@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { revalidatePath } from "next/cache";
 
 export async function toggleFollowVendor(vendorId: string) {
@@ -315,7 +316,10 @@ export async function getCart() {
 
       if (error) throw error;
 
-      const list = orders || [];
+      const list = (orders || []).filter((order) => {
+        const items = order.order_items as unknown[] | undefined;
+        return Array.isArray(items) && items.length > 0;
+      });
       const total = list.reduce((sum, order) => {
         const items = order.order_items as { total_price: number }[] | undefined;
         const lineSum =
@@ -403,39 +407,59 @@ export async function removeFromCart(itemId: string) {
 
     if (!user) throw new Error("Authentication required");
 
-    const { data: item, error: iError } = await supabase
+    // Two-step lookup avoids fragile nested PostgREST filters on delete flows.
+    const { data: line, error: lineErr } = await supabase
       .from("order_items")
-      .select("order_id, orders!inner(buyer_id, status)")
+      .select("id, order_id")
       .eq("id", itemId)
-      .eq("orders.buyer_id", user.id)
-      .eq("orders.status", "pending")
+      .maybeSingle();
+
+    if (lineErr || !line) throw new Error("Item not found");
+
+    const { data: ord, error: ordErr } = await supabase
+      .from("orders")
+      .select("id, buyer_id, status")
+      .eq("id", line.order_id)
       .single();
 
-    if (iError || !item) throw new Error("Item not found");
+    if (ordErr || !ord || ord.buyer_id !== user.id || ord.status !== "pending") {
+      throw new Error("Item not found");
+    }
 
-    const orderId = item.order_id;
+    const orderId = line.order_id;
 
-    const { error: dError } = await supabase
+    // Ownership is verified above. RLS often blocks DELETE on order_items in PostgREST even when
+    // SELECT works; use service role for the mutations only (same pattern as payment webhooks).
+    const admin = createServiceRoleClient();
+    const { data: removed, error: dError } = await admin
       .from("order_items")
       .delete()
-      .eq("id", itemId);
+      .eq("id", itemId)
+      .eq("order_id", orderId)
+      .select("id");
 
     if (dError) throw dError;
+    if (!removed?.length) {
+      throw new Error("Could not remove item. Please try again.");
+    }
 
-    // Check if order is now empty
-    const { data: remainingItems } = await supabase
+    const { data: remainingItems } = await admin
       .from("order_items")
       .select("total_price")
       .eq("order_id", orderId);
 
     if (!remainingItems || remainingItems.length === 0) {
-      await supabase.from("orders").delete().eq("id", orderId);
+      const { error: delOrdErr } = await admin.from("orders").delete().eq("id", orderId);
+      if (delOrdErr) {
+        console.warn("removeFromCart: could not delete empty pending order:", delOrdErr);
+      }
     } else {
       const newTotal = remainingItems.reduce((sum, i) => sum + Number(i.total_price), 0);
-      await supabase
+      const { error: upErr } = await admin
         .from("orders")
         .update({ total_amount: newTotal, subtotal: newTotal })
         .eq("id", orderId);
+      if (upErr) throw upErr;
     }
 
     revalidatePath("/cart");

@@ -42,17 +42,10 @@ export const metadata: Metadata = {
   },
 };
 
+// Do not add <head> here: Next injects CSS into <head>; a manual <head> can drop stylesheets. Fonts: globals.css @import.
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Vend+Sans:ital,wght@0,300..700;1,300..700&display=swap"
-          rel="stylesheet"
-        />
-      </head>
       <body
         className="font-sans antialiased min-h-screen bg-[var(--color-bg)] text-[var(--color-text-primary)] transition-colors duration-200"
         style={{ backgroundColor: "#ffffff", color: "var(--color-text-primary)" }}
