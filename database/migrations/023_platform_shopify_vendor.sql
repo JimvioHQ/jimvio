@@ -1,0 +1,31 @@
+-- Platform-owned Shopify catalog
+--
+-- products.vendor_id is NOT NULL, so Jimvio still needs exactly one "platform" vendor row to attach
+-- Shopify imports to. That row represents the marketplace operator, not a third-party seller.
+--
+-- 1) Pick or create a profiles.id (e.g. your admin user). Every vendor must reference profiles.id as user_id.
+-- 2) Insert one vendor for the platform store (run in Supabase SQL after replacing :owner_profile_id):
+--
+-- INSERT INTO public.vendors (
+--   user_id,
+--   business_name,
+--   business_slug,
+--   business_description,
+--   verification_status,
+--   is_active
+-- ) VALUES (
+--   ':owner_profile_id'::uuid,
+--   'Jimvio Marketplace',
+--   'jimvio-marketplace',
+--   'Official platform catalog (Shopify sync)',
+--   'verified',
+--   true
+-- )
+-- ON CONFLICT (business_slug) DO NOTHING;
+--
+-- 3) Copy the new row's id from public.vendors and set in your app environment:
+--    JIMVIO_PLATFORM_SHOPIFY_VENDOR_ID=<that-uuid>
+--
+-- Then /admin/shopify can connect Shopify without typing a vendor UUID in the form.
+
+SELECT 1;
