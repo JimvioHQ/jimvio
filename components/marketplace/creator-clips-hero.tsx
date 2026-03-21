@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
+import { useBodyScrollLock, useEscapeClose } from "@/hooks/use-body-scroll-lock";
 import Link from "next/link";
 import { Play, Eye, ShoppingBag, X, Sparkles } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -25,6 +26,9 @@ interface CreatorClipsHeroProps {
 
 export function CreatorClipsHero({ clips, className }: CreatorClipsHeroProps) {
   const [modalClip, setModalClip] = useState<ClipItem | null>(null);
+  const closeModal = useCallback(() => setModalClip(null), []);
+  useBodyScrollLock(!!modalClip);
+  useEscapeClose(!!modalClip, closeModal);
 
   if (!clips?.length) return null;
 
@@ -116,10 +120,10 @@ export function CreatorClipsHero({ clips, className }: CreatorClipsHeroProps) {
       {/* Modal */}
       {modalClip && (
         <>
-          <div className="fixed inset-0 z-[1000] bg-ink-darker/85 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setModalClip(null)} aria-hidden />
+          <div className="fixed inset-0 z-[1000] overscroll-none bg-ink-darker/85 backdrop-blur-sm animate-in fade-in duration-200" onClick={closeModal} aria-hidden />
           <div className="fixed inset-0 z-[1001] flex items-center justify-center p-4 pointer-events-none">
             <div className="pointer-events-auto w-full max-w-lg flex flex-col gap-0 bg-[#121212] rounded-2xl overflow-hidden shadow-2xl border border-white/10 relative">
-              <button type="button" onClick={() => setModalClip(null)} className="absolute top-3 right-3 z-20 w-10 h-10 rounded-full bg-ink-darker/50 flex items-center justify-center text-white hover:bg-ink-darker/70">
+              <button type="button" onClick={closeModal} className="absolute top-3 right-3 z-20 w-10 h-10 rounded-full bg-ink-darker/50 flex items-center justify-center text-white hover:bg-ink-darker/70">
                 <X className="h-5 w-5" />
               </button>
               <div className="aspect-[9/16] max-h-[50vh] relative bg-ink-dark">
@@ -162,7 +166,7 @@ export function CreatorClipsHero({ clips, className }: CreatorClipsHeroProps) {
                     <p className="text-white font-black text-sm truncate">{modalClip.products.name}</p>
                     <p className="text-[#f97316] font-black">${Number(modalClip.products.price).toFixed(2)}</p>
                   </div>
-                  <Link href={`/marketplace/${modalClip.products.slug ?? ""}?buy=1`} onClick={() => setModalClip(null)}>
+                  <Link href={`/marketplace/${modalClip.products.slug ?? ""}?buy=1`} onClick={closeModal}>
                     <Button className="rounded-xl h-10 px-5 bg-[#f97316] hover:bg-[#ea580c] font-black text-white text-xs">Buy Product</Button>
                   </Link>
                 </div>

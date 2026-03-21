@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
+import { useBodyScrollLock, useEscapeClose } from "@/hooks/use-body-scroll-lock";
 import Link from "next/link";
 import { Play, Eye, ShoppingBag, X, ChevronRight } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -27,6 +28,9 @@ interface TrendingProductClipsSectionProps {
 
 export function TrendingProductClipsSection({ clips, className, title = "Trending Product Clips" }: TrendingProductClipsSectionProps) {
   const [modalClip, setModalClip] = useState<TrendingClip | null>(null);
+  const closeModal = useCallback(() => setModalClip(null), []);
+  useBodyScrollLock(!!modalClip);
+  useEscapeClose(!!modalClip, closeModal);
 
   if (!clips?.length) return null;
 
@@ -141,15 +145,15 @@ export function TrendingProductClipsSection({ clips, className, title = "Trendin
       {modalClip && (
         <>
           <div
-            className="fixed inset-0 z-[1000] bg-ink-darker/80 backdrop-blur-sm animate-in fade-in duration-200"
-            onClick={() => setModalClip(null)}
+            className="fixed inset-0 z-[1000] overscroll-none bg-ink-darker/80 backdrop-blur-sm animate-in fade-in duration-200"
+            onClick={closeModal}
             aria-hidden
           />
           <div className="pointer-events-none fixed inset-0 z-[1001] flex items-center justify-center p-4">
             <div className="pointer-events-auto relative flex w-full max-w-lg flex-col gap-0 overflow-hidden rounded-2xl border border-white/10 bg-[#121212] shadow-2xl">
               <button
                 type="button"
-                onClick={() => setModalClip(null)}
+                onClick={closeModal}
                 className="absolute right-3 top-3 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-ink-darker/50 text-white hover:bg-ink-darker/70"
               >
                 <X className="h-5 w-5" />
@@ -205,7 +209,7 @@ export function TrendingProductClipsSection({ clips, className, title = "Trendin
                     <p className="truncate text-sm font-black text-white">{modalClip.products.name}</p>
                     <p className="font-black text-[#f97316]">${Number(modalClip.products.price).toFixed(2)}</p>
                   </div>
-                  <Link href={`/marketplace/${modalClip.products.slug ?? ""}?buy=1`} onClick={() => setModalClip(null)}>
+                  <Link href={`/marketplace/${modalClip.products.slug ?? ""}?buy=1`} onClick={closeModal}>
                     <Button className="h-10 rounded-xl bg-[#f97316] px-5 text-xs font-black text-white hover:bg-[#ea580c]">
                       Buy Product
                     </Button>

@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { ProductChatWidgetLoader } from "@/components/marketplace/product-chat-widget-loader";
@@ -37,7 +38,9 @@ export default async function PublicLayout({ children }: { children: React.React
 
   return (
     <div className="flex flex-col min-h-screen">
-      <Navbar user={profile} marketing={marketing} />
+      <Suspense fallback={<div className="min-h-[var(--navbar-height)]" aria-hidden />}>
+        <Navbar user={profile} marketing={marketing} />
+      </Suspense>
       <main className="flex-1 pt-[var(--navbar-height)] pb-0 md:pb-0">{children}</main>
       <Footer contact={platformSettings?.contact} />
       {/* Global product chat: opens from product cards (contact icon) or product page triggers */}

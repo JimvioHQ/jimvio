@@ -7,8 +7,6 @@ import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Search,
-  ChevronDown,
   User,
   ShoppingCart,
   MessageCircle,
@@ -43,6 +41,7 @@ import { cn } from "@/lib/utils";
 import { signOut } from "@/lib/auth/actions";
 import { getNavbarCounts } from "@/lib/actions/marketplace";
 import type { MarketingSettings } from "@/lib/platform-settings-shared";
+import { NavbarSearch } from "@/components/layout/navbar-search";
 
 interface NavbarProps {
   user?: { email: string; full_name?: string | null; avatar_url?: string | null } | null;
@@ -127,16 +126,22 @@ export function Navbar({ user, marketing }: NavbarProps) {
   return (
     <header
       className={cn(
-        "fixed top-0 left-0 right-0 z-50 w-full border-b transition-[box-shadow,background-color] duration-200",
-        "border-[var(--color-border)] bg-[var(--color-surface)]/90 backdrop-blur-xl backdrop-saturate-150",
-        "supports-[backdrop-filter]:bg-[var(--color-surface)]/75",
-        isScrolled ? "shadow-[var(--shadow-md)]" : "shadow-[var(--shadow-sm)]",
+        "fixed top-0 left-0 right-0 z-50 w-full border-b transition-[box-shadow,background-color,backdrop-filter] duration-200",
+        // Scrolled: solid surface so dark sections never bleed through glass (link contrast).
+        isScrolled
+          ? "border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-md)]"
+          : "border-[var(--color-border)]/80 bg-[var(--color-surface)]/92 backdrop-blur-xl backdrop-saturate-150 supports-[backdrop-filter]:bg-[var(--color-surface)]/80 shadow-[var(--shadow-sm)]",
       )}
     >
       <nav>
         <div className="max-w-[var(--container-max)] mx-auto px-4 sm:px-5 md:px-8 py-2 sm:py-2.5">
           {/* Primary links — slim strip */}
-          <div className="hidden lg:block border-b border-[var(--color-border)]/90 bg-[var(--color-surface-secondary)]/80">
+          <div
+            className={cn(
+              "hidden lg:block border-b border-[var(--color-border)]/90",
+              isScrolled ? "bg-[var(--color-surface-secondary)]" : "bg-[var(--color-surface-secondary)]/85",
+            )}
+          >
             <div className="flex items-center justify-center gap-0.5 sm:gap-1 min-h-[32px] py-0 overflow-x-auto no-scrollbar">
               {navLinks.map((item) => {
                 const Icon = iconForNavHref(item.href);
@@ -149,7 +154,9 @@ export function Navbar({ user, marketing }: NavbarProps) {
                       "relative flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-semibold tracking-tight shrink-0 rounded-t-md transition-colors",
                       active
                         ? "text-[var(--color-accent)]"
-                        : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]",
+                        : isScrolled
+                          ? "text-[var(--color-text-primary)]/90 hover:text-[var(--color-text-primary)]"
+                          : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]",
                     )}
                   >
                     <Icon className={cn("h-3.5 w-3.5 opacity-70", active && "text-[var(--color-accent)] opacity-100")} />
@@ -184,52 +191,37 @@ export function Navbar({ user, marketing }: NavbarProps) {
 
             <div className="flex-1 hidden lg:flex flex-col min-w-0 max-w-[min(560px,52vw)]">
               <div className="flex items-stretch gap-2 w-full min-w-0">
-                <div className="hidden xl:flex shrink-0 items-center gap-2 text-[12px] text-[var(--color-text-secondary)]">
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[var(--color-surface)] border border-[var(--color-border)] font-medium tabular-nums">
+                <div
+                  className={cn(
+                    "hidden xl:flex shrink-0 items-center gap-2 text-[12px]",
+                    isScrolled ? "text-[var(--color-text-primary)]/85" : "text-[var(--color-text-secondary)]",
+                  )}
+                >
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[var(--color-surface)] border border-[var(--color-border)] font-medium tabular-nums shadow-sm">
                     <Globe className="h-3.5 w-3.5 text-[var(--color-accent)]" aria-hidden />
                     {localeStrip}
                   </span>
                   <Link
                     href="/help"
-                    className="inline-flex items-center gap-1.5 px-2 py-1.5 rounded-lg font-medium hover:bg-[var(--color-surface-secondary)] transition-colors"
+                    className={cn(
+                      "inline-flex items-center gap-1.5 px-2 py-1.5 rounded-lg font-medium hover:bg-[var(--color-surface-secondary)] transition-colors",
+                      isScrolled && "hover:bg-[var(--color-accent-light)]/60",
+                    )}
                   >
                     <HelpCircle className="h-3.5 w-3.5" />
                     Help
                   </Link>
                 </div>
-                <form
-                  className="flex-1 min-w-0 flex rounded-xl overflow-hidden h-10 bg-[var(--color-surface)] ring-1 ring-ink-darker/10 shadow-[var(--shadow-sm)] focus-within:ring-2 focus-within:ring-[var(--color-accent)]/35 focus-within:shadow-[var(--shadow-md)] transition-shadow"
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    runSearch(searchQ);
-                  }}
-                >
-                  <label className="sr-only" htmlFor="nav-search-q">
-                    Search marketplace
-                  </label>
-                  <Link
-                    href="/marketplace"
-                    className="pl-3 pr-2.5 flex items-center gap-1 bg-zinc-50/90 border-r border-[var(--color-border)] text-[12px] font-semibold text-[var(--color-text-secondary)] hover:bg-zinc-100 transition-colors whitespace-nowrap min-w-[88px]"
-                  >
-                    All <ChevronDown className="h-3 w-3 opacity-50" />
-                  </Link>
-                  <input
-                    id="nav-search-q"
-                    type="search"
-                    value={searchQ}
-                    onChange={(e) => setSearchQ(e.target.value)}
-                    placeholder={marketing.search_placeholder}
-                    autoComplete="off"
-                    className="flex-1 min-w-0 px-3 text-[14px] outline-none font-medium placeholder:text-[var(--color-text-muted)] bg-transparent"
-                  />
-                  <button
-                    type="submit"
-                    className="bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white px-4 flex items-center justify-center transition-colors"
-                    aria-label="Search"
-                  >
-                    <Search className="h-4 w-4" strokeWidth={2.25} />
-                  </button>
-                </form>
+                <NavbarSearch
+                  searchQ={searchQ}
+                  setSearchQ={setSearchQ}
+                  placeholder={marketing.search_placeholder}
+                  isScrolled={isScrolled}
+                  variant="desktop"
+                  runSearch={runSearch}
+                  navLinks={navLinks}
+                  primaryCta={marketing.primary_cta}
+                />
               </div>
             </div>
 
@@ -239,7 +231,12 @@ export function Navbar({ user, marketing }: NavbarProps) {
                   <div className="flex items-center">
                     <Link
                       href="/cart"
-                      className="relative p-2 rounded-xl text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] hover:bg-[var(--color-surface-secondary)] transition-colors"
+                      className={cn(
+                        "relative p-2 rounded-xl hover:text-[var(--color-accent)] hover:bg-[var(--color-surface-secondary)] transition-colors",
+                        isScrolled
+                          ? "text-[var(--color-text-primary)]/80"
+                          : "text-[var(--color-text-secondary)]",
+                      )}
                     >
                       <ShoppingCart className="h-[22px] w-[22px]" />
                       {counts.cartCount > 0 ? (
@@ -250,7 +247,12 @@ export function Navbar({ user, marketing }: NavbarProps) {
                     </Link>
                     <Link
                       href="/messages"
-                      className="relative p-2 rounded-xl text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] hover:bg-[var(--color-surface-secondary)] transition-colors"
+                      className={cn(
+                        "relative p-2 rounded-xl hover:text-[var(--color-accent)] hover:bg-[var(--color-surface-secondary)] transition-colors",
+                        isScrolled
+                          ? "text-[var(--color-text-primary)]/80"
+                          : "text-[var(--color-text-secondary)]",
+                      )}
                     >
                       <MessageCircle className="h-[22px] w-[22px]" />
                       {counts.chatCount > 0 ? (
@@ -279,7 +281,12 @@ export function Navbar({ user, marketing }: NavbarProps) {
                             {(user.full_name?.charAt(0) || user.email.charAt(0)).toUpperCase()}
                           </div>
                         )}
-                        <span className="hidden md:inline text-[12px] font-semibold text-[var(--color-text-secondary)] max-w-[7rem] truncate">
+                        <span
+                          className={cn(
+                            "hidden md:inline text-[12px] font-semibold max-w-[7rem] truncate",
+                            isScrolled ? "text-[var(--color-text-primary)]/90" : "text-[var(--color-text-secondary)]",
+                          )}
+                        >
                           {user.full_name?.split(" ")[0] || "Account"}
                         </span>
                       </button>
@@ -322,7 +329,12 @@ export function Navbar({ user, marketing }: NavbarProps) {
                 <div className="flex items-center">
                   <Link
                     href="/cart"
-                    className="relative p-2 rounded-xl text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] hover:bg-[var(--color-surface-secondary)] transition-colors"
+                    className={cn(
+                      "relative p-2 rounded-xl hover:text-[var(--color-accent)] hover:bg-[var(--color-surface-secondary)] transition-colors",
+                      isScrolled
+                        ? "text-[var(--color-text-primary)]/80"
+                        : "text-[var(--color-text-secondary)]",
+                    )}
                   >
                     <ShoppingCart className="h-[22px] w-[22px]" />
                   </Link>
@@ -330,10 +342,20 @@ export function Navbar({ user, marketing }: NavbarProps) {
                     href="/login"
                     className="flex items-center gap-2 px-2 py-1.5 rounded-xl hover:bg-[var(--color-surface-secondary)] transition-colors"
                   >
-                    <div className="h-8 w-8 rounded-full bg-[var(--color-surface-secondary)] border border-[var(--color-border)] flex items-center justify-center text-[var(--color-text-secondary)]">
+                    <div
+                      className={cn(
+                        "h-8 w-8 rounded-full bg-[var(--color-surface-secondary)] border border-[var(--color-border)] flex items-center justify-center",
+                        isScrolled ? "text-[var(--color-text-primary)]/85" : "text-[var(--color-text-secondary)]",
+                      )}
+                    >
                       <User className="h-4 w-4" />
                     </div>
-                    <span className="hidden sm:inline text-[12px] font-semibold text-[var(--color-text-secondary)]">
+                    <span
+                      className={cn(
+                        "hidden sm:inline text-[12px] font-semibold",
+                        isScrolled ? "text-[var(--color-text-primary)]/90" : "text-[var(--color-text-secondary)]",
+                      )}
+                    >
                       Sign in
                     </span>
                   </Link>
@@ -382,9 +404,9 @@ export function Navbar({ user, marketing }: NavbarProps) {
                     animate={{ x: 0 }}
                     exit={{ x: "100%" }}
                     transition={{ type: "spring", damping: 32, stiffness: 360 }}
-                    className="lg:hidden fixed inset-y-0 right-0 z-[9999] w-[min(100%,380px)] overflow-y-auto bg-[var(--color-surface)] border-l border-[var(--color-border)] shadow-2xl pt-[env(safe-area-inset-top,0px)]"
+                    className="lg:hidden fixed inset-y-0 right-0 z-[9999] flex w-[min(100%,380px)] max-h-[100dvh] flex-col overflow-hidden border-l border-[var(--color-border)] bg-[var(--color-surface)] shadow-2xl pt-[env(safe-area-inset-top,0px)]"
                   >
-                    <div className="sticky top-0 flex items-center justify-between gap-3 px-4 py-3.5 bg-[var(--color-surface)]/95 backdrop-blur-md border-b border-[var(--color-border)] z-10">
+                    <div className="flex shrink-0 items-center justify-between gap-3 border-b border-[var(--color-border)] bg-[var(--color-surface)]/95 px-4 py-3.5 backdrop-blur-md">
                       <span className="text-[15px] font-semibold text-[var(--color-text-primary)]">Menu</span>
                       <button
                         type="button"
@@ -395,55 +417,40 @@ export function Navbar({ user, marketing }: NavbarProps) {
                         <X className="h-5 w-5" />
                       </button>
                     </div>
-                    <div className="p-4 flex flex-col gap-4 pb-24">
-                      <div className="flex flex-wrap gap-2">
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] font-medium text-[var(--color-text-secondary)] bg-[var(--color-surface-secondary)] border border-[var(--color-border)]">
-                          <Globe className="h-3.5 w-3.5 text-[var(--color-accent)]" />
-                          {localeStrip}
-                        </span>
-                        <Link
-                          href="/help"
-                          onClick={() => setMobileOpen(false)}
-                          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] font-medium border border-[var(--color-border)] hover:bg-[var(--color-surface-secondary)]"
-                        >
-                          <HelpCircle className="h-3.5 w-3.5" />
-                          Help
-                        </Link>
+                    <div className="flex min-h-0 flex-1 flex-col">
+                      <div className="shrink-0 space-y-4 p-4 pb-3">
+                        <div className="flex flex-wrap gap-2">
+                          <span className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-2.5 py-1.5 text-[12px] font-medium text-[var(--color-text-secondary)]">
+                            <Globe className="h-3.5 w-3.5 text-[var(--color-accent)]" />
+                            {localeStrip}
+                          </span>
+                          <Link
+                            href="/help"
+                            onClick={() => setMobileOpen(false)}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-border)] px-2.5 py-1.5 text-[12px] font-medium hover:bg-[var(--color-surface-secondary)]"
+                          >
+                            <HelpCircle className="h-3.5 w-3.5" />
+                            Help
+                          </Link>
+                        </div>
+
+                        <NavbarSearch
+                          searchQ={searchQ}
+                          setSearchQ={setSearchQ}
+                          placeholder={marketing.search_placeholder}
+                          isScrolled
+                          variant="mobile"
+                          onNavigate={() => setMobileOpen(false)}
+                          runSearch={runSearch}
+                          navLinks={navLinks}
+                          primaryCta={marketing.primary_cta}
+                        />
                       </div>
 
-                      <form
-                        className="flex rounded-xl overflow-hidden h-12 bg-[var(--color-surface)] ring-1 ring-ink-darker/10 shadow-[var(--shadow-sm)] focus-within:ring-2 focus-within:ring-[var(--color-accent)]/35"
-                        onSubmit={(e) => {
-                          e.preventDefault();
-                          runSearch(searchQ);
-                        }}
-                      >
-                        <Link
-                          href="/marketplace"
-                          onClick={() => setMobileOpen(false)}
-                          className="pl-3 pr-2 flex items-center gap-1 bg-zinc-50 border-r border-[var(--color-border)] text-[12px] font-semibold text-[var(--color-text-secondary)] min-w-[76px]"
-                        >
-                          All <ChevronDown className="h-3 w-3 opacity-50" />
-                        </Link>
-                        <input
-                          type="search"
-                          value={searchQ}
-                          onChange={(e) => setSearchQ(e.target.value)}
-                          placeholder={marketing.search_placeholder}
-                          className="flex-1 min-w-0 px-3 text-[15px] outline-none font-medium placeholder:text-[var(--color-text-muted)] bg-transparent"
-                        />
-                        <button
-                          type="submit"
-                          className="bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white px-4 flex items-center justify-center shrink-0"
-                          aria-label="Search"
-                        >
-                          <Search className="h-4 w-4" strokeWidth={2.25} />
-                        </button>
-                      </form>
+                      <div className="mx-4 h-px shrink-0 bg-[var(--color-border)]" />
 
-                      <div className="h-px bg-[var(--color-border)]" />
-
-                      <div className="space-y-1">
+                      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain px-4 pb-24 pt-3">
+                        <div className="space-y-1">
                         {navLinks.map((item) => {
                           const Icon = iconForNavHref(item.href);
                           const active = linkIsActive(pathname, item.href);
@@ -471,7 +478,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
                             </Link>
                           );
                         })}
-                      </div>
+                        </div>
 
                       <Link
                         href={marketing.primary_cta.href}
@@ -500,6 +507,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
                           </Link>
                         </div>
                       ) : null}
+                      </div>
                     </div>
                   </motion.div>
                 </>

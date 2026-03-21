@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useBodyScrollLock, useEscapeClose } from "@/hooks/use-body-scroll-lock";
 import Link from "next/link";
 import Image from "next/image";
 import { X, Star, ShoppingCart, ExternalLink } from "lucide-react";
@@ -32,6 +33,9 @@ interface ProductQuickPopupProps {
 }
 
 export function ProductQuickPopup({ product, vendor, open, onClose, className }: ProductQuickPopupProps) {
+  useBodyScrollLock(open);
+  useEscapeClose(open, onClose);
+
   if (!open) return null;
 
   const imgSrc = Array.isArray(product.images) && product.images[0] ? product.images[0] : null;
@@ -43,7 +47,7 @@ export function ProductQuickPopup({ product, vendor, open, onClose, className }:
   return (
     <>
       <div
-        className="fixed inset-0 bg-ink-darker/60 backdrop-blur-sm z-[1000] animate-in fade-in duration-200"
+        className="fixed inset-0 z-[1000] overscroll-none bg-ink-darker/60 backdrop-blur-sm animate-in fade-in duration-200"
         aria-hidden
         onClick={onClose}
       />

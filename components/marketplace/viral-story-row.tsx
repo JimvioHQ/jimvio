@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import { useBodyScrollLock, useEscapeClose } from "@/hooks/use-body-scroll-lock";
 import { 
   X, Heart, MessageCircle, Share2, Play, Pause, 
   Volume2, VolumeX, ChevronUp, ChevronDown, UserPlus, Music2,
@@ -39,16 +40,23 @@ export function ViralStoryRow({ clips, initialActiveIndex = null, onClose, force
   const [isFollowing, setIsFollowing] = useState(false);
   const router = useRouter();
 
+  const closePlayer = useCallback(() => {
+    setActiveClipIndex(null);
+    onClose?.();
+  }, [onClose]);
+
+  const playerOpen = activeClipIndex !== null;
+  useBodyScrollLock(playerOpen);
+  useEscapeClose(playerOpen, closePlayer);
+
   useEffect(() => {
     if (forceOpen && initialActiveIndex !== null) {
       setActiveClipIndex(initialActiveIndex);
-      document.body.style.overflow = "hidden";
     }
   }, [forceOpen, initialActiveIndex]);
-  
+
   const openPlayer = async (index: number) => {
     setActiveClipIndex(index);
-    document.body.style.overflow = "hidden";
     
     // Check follow status when opening player
     const vendorId = clips[index].vendors?.id;
@@ -75,12 +83,6 @@ export function ViralStoryRow({ clips, initialActiveIndex = null, onClose, force
         toast.error(res.error || "Failed to follow");
       }
     }
-  };
-
-  const closePlayer = () => {
-    setActiveClipIndex(null);
-    document.body.style.overflow = "auto";
-    if (onClose) onClose();
   };
 
   if (!clips || clips.length === 0) return null;

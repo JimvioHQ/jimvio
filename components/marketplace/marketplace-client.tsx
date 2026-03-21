@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
+import { useBodyScrollLock, useEscapeClose } from "@/hooks/use-body-scroll-lock";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -102,6 +103,9 @@ export function MarketplaceClient({
   const hasAside = (topCreators?.length ?? 0) > 0 || (popularStores?.length ?? 0) > 0;
   const gridCols = hasAside ? "lg:grid-cols-3" : "lg:grid-cols-4";
   const [modalClip, setModalClip] = useState<(typeof viralClips)[number] | null>(null);
+  const closeModalClip = useCallback(() => setModalClip(null), []);
+  useBodyScrollLock(!!modalClip);
+  useEscapeClose(!!modalClip, closeModalClip);
 
   const paramsRecord = params as Record<string, string | undefined>;
   const isSearchMode = Boolean(params.q?.trim());
@@ -742,15 +746,15 @@ export function MarketplaceClient({
       {modalClip && (
         <>
           <div
-            className="fixed inset-0 z-[1000] bg-ink-darker/80 backdrop-blur-sm animate-in fade-in duration-200"
-            onClick={() => setModalClip(null)}
+            className="fixed inset-0 z-[1000] overscroll-none bg-ink-darker/80 backdrop-blur-sm animate-in fade-in duration-200"
+            onClick={closeModalClip}
             aria-hidden
           />
           <div className="fixed inset-0 z-[1001] flex items-center justify-center p-4 pointer-events-none">
             <div className="pointer-events-auto w-full max-w-lg flex flex-col gap-0 bg-[#121212] rounded-2xl overflow-hidden shadow-2xl border border-white/10 relative">
               <button
                 type="button"
-                onClick={() => setModalClip(null)}
+                onClick={closeModalClip}
                 className="absolute top-3 right-3 z-20 w-10 h-10 rounded-full bg-ink-darker/50 flex items-center justify-center text-white hover:bg-ink-darker/70"
               >
                 <X className="h-5 w-5" />
@@ -806,7 +810,7 @@ export function MarketplaceClient({
                     <p className="text-white font-black text-sm truncate">{modalClip.products.name}</p>
                     <p className="text-[var(--color-accent)] font-black">${Number(modalClip.products.price).toFixed(2)}</p>
                   </div>
-                  <Link href={`/marketplace/${(modalClip.products as { slug?: string }).slug ?? ""}?buy=1`} onClick={() => setModalClip(null)}>
+                  <Link href={`/marketplace/${(modalClip.products as { slug?: string }).slug ?? ""}?buy=1`} onClick={closeModalClip}>
                     <Button className="rounded-xl h-10 px-5 bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] font-black text-white text-xs">
                       Buy Product
                     </Button>

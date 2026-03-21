@@ -48,7 +48,8 @@ export function TikTokFeed({ clips, className }: TikTokFeedProps) {
   const [liked, setLiked] = useState<Record<string, boolean>>({});
   const [productPopup, setProductPopup] = useState<FeedClip | null>(null);
   const [muted, setMuted] = useState(true);
-  const containerRef = useRef<HTMLDivElement>(null);
+  /** Wheel-to-skip only on the video column — not the scrollable desktop sidebar. */
+  const videoColumnRef = useRef<HTMLDivElement>(null);
 
   const clip = clips[index];
   const likeCount = clip ? Math.round((clip.total_views ?? 0) * 0.12) : 0;
@@ -63,7 +64,7 @@ export function TikTokFeed({ clips, className }: TikTokFeedProps) {
   }, [clips.length]);
 
   useEffect(() => {
-    const el = containerRef.current;
+    const el = videoColumnRef.current;
     if (!el) return;
     const onWheel = (e: WheelEvent) => {
       if (e.deltaY > 30) goNext();
@@ -85,14 +86,16 @@ export function TikTokFeed({ clips, className }: TikTokFeedProps) {
 
   return (
     <div
-      ref={containerRef}
       className={cn(
         "flex flex-col lg:flex-row h-[calc(100vh-var(--navbar-height,108px))] min-h-[calc(100vh-var(--navbar-height,108px))] max-h-[100dvh] overflow-hidden bg-ink-dark",
         className
       )}
     >
       {/* LEFT: Desktop = centered Shorts-style pill; mobile = full bleed */}
-      <div className="relative flex-1 min-w-0 flex items-center justify-center bg-ink-dark">
+      <div
+        ref={videoColumnRef}
+        className="relative flex min-h-0 flex-1 min-w-0 items-center justify-center bg-ink-dark"
+      >
         {/* Desktop: vertical Shorts-style container (centered pill, 9:16) */}
         <div className="relative hidden lg:flex w-full h-full items-center justify-center p-4">
           <div className="relative h-full max-h-full aspect-[9/16] w-auto max-w-[360px] rounded-3xl overflow-hidden shadow-2xl ring-2 ring-white/10 bg-ink-dark">
@@ -166,7 +169,7 @@ export function TikTokFeed({ clips, className }: TikTokFeedProps) {
       </div>
 
       {/* RIGHT: All details — desktop only; on mobile these stay as overlays below */}
-      <aside className="hidden lg:flex flex-col w-[380px] xl:w-[420px] shrink-0 bg-ink-darker border-l border-white/10 overflow-y-auto">
+      <aside className="hidden lg:flex min-h-0 flex-col w-[380px] xl:w-[420px] shrink-0 border-l border-white/10 bg-ink-darker overflow-y-auto overscroll-contain">
         <div className="p-6 space-y-6">
           {/* Creator + Follow */}
           <div className="flex items-center gap-4">
