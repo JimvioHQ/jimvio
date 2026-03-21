@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/utils";
-import { Package, Loader2, Bitcoin, Copy, Wallet, ChevronDown, ChevronUp } from "lucide-react";
+import { Package, Loader2, Bitcoin, Copy } from "lucide-react";
 import { toast } from "sonner";
 
 interface CartItem {
@@ -35,8 +35,7 @@ const PAY_CURRENCIES = [
 ];
 
 export function CheckoutClient({ orders, total }: CheckoutClientProps) {
-  const [loading, setLoading] = useState<"irembo" | "crypto" | null>(null);
-  const [showCrypto, setShowCrypto] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [payCurrency, setPayCurrency] = useState("btc");
   const [payment, setPayment] = useState<{
     paymentId: number;
@@ -50,33 +49,8 @@ export function CheckoutClient({ orders, total }: CheckoutClientProps) {
 
   const orderIds = orders.map((o) => o.id);
 
-  const handlePayWithIrembo = async () => {
-    setLoading("irembo");
-    try {
-      const res = await fetch("/api/payments/initialize-cart", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderIds }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || "Failed to start payment");
-      }
-      const url = data.data?.paymentUrl;
-      if (url && typeof window !== "undefined") {
-        window.location.href = url;
-        return;
-      }
-      throw new Error("No payment URL returned");
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Payment failed");
-    } finally {
-      setLoading(null);
-    }
-  };
-
   const handlePayWithCrypto = async () => {
-    setLoading("crypto");
+    setLoading(true);
     try {
       const res = await fetch("/api/nowpayments/create", {
         method: "POST",
@@ -108,7 +82,7 @@ export function CheckoutClient({ orders, total }: CheckoutClientProps) {
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Failed to create payment");
     } finally {
-      setLoading(null);
+      setLoading(false);
     }
   };
 
@@ -208,66 +182,40 @@ export function CheckoutClient({ orders, total }: CheckoutClientProps) {
             </div>
           </div>
 
-          <Button
-            size="lg"
-            className="w-full bg-[#f97316] hover:bg-[#ea580c] h-14 font-bold mb-3"
-            onClick={handlePayWithIrembo}
-            disabled={loading !== null}
-          >
-            {loading === "irembo" ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
-            ) : (
-              <>
-                <Wallet className="h-5 w-5 mr-2" />
-                Pay with Irembo Pay
-              </>
-            )}
-          </Button>
-          <p className="text-[10px] text-zinc-500 text-center mb-4">Recommended — supports Jimvio + Shopify fulfillment.</p>
-
-          <button
-            type="button"
-            onClick={() => setShowCrypto((s) => !s)}
-            className="w-full flex items-center justify-center gap-2 text-xs font-bold text-zinc-600 py-2"
-          >
-            {showCrypto ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-            Pay with cryptocurrency instead
-          </button>
-
-          {showCrypto && (
-            <div className="mt-4 pt-4 border-t border-zinc-100 space-y-4">
-              <div>
-                <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider block mb-2">Asset</label>
-                <select
-                  value={payCurrency}
-                  onChange={(e) => setPayCurrency(e.target.value)}
-                  className="w-full h-12 px-4 rounded-xl border border-[var(--color-border)] bg-white text-sm font-medium"
-                >
-                  {PAY_CURRENCIES.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <Button
-                size="lg"
-                variant="outline"
-                className="w-full h-14 font-bold"
-                onClick={handlePayWithCrypto}
-                disabled={loading !== null}
+          <div className="space-y-4">
+            <div>
+              <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider block mb-2">Asset</label>
+              <select
+                value={payCurrency}
+                onChange={(e) => setPayCurrency(e.target.value)}
+                className="w-full h-12 px-4 rounded-xl border border-[var(--color-border)] bg-white text-sm font-medium"
               >
-                {loading === "crypto" ? (
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                ) : (
-                  <>
-                    <Bitcoin className="h-5 w-5 mr-2" />
-                    Continue with crypto
-                  </>
-                )}
-              </Button>
+                {PAY_CURRENCIES.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.label}
+                  </option>
+                ))}
+              </select>
             </div>
-          )}
+            <Button
+              size="lg"
+              className="w-full h-14 font-bold bg-[var(--color-accent)] hover:opacity-90"
+              onClick={handlePayWithCrypto}
+              disabled={loading}
+            >
+              {loading ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <>
+                  <Bitcoin className="h-5 w-5 mr-2" />
+                  Pay with cryptocurrency
+                </>
+              )}
+            </Button>
+            <p className="text-[10px] text-zinc-500 text-center">
+              Checkout is processed via cryptocurrency. Your order updates when payment is confirmed.
+            </p>
+          </div>
         </div>
       </div>
     </div>

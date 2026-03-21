@@ -51,7 +51,7 @@ export async function createOrder(productId: string, quantity: number = 1) {
       buyer_id: user.id,
       vendor_id: product.vendor_id,
       total_amount: totalPrice,
-      currency: product.currency ?? "RWF",
+      currency: product.currency ?? "USD",
       status: "pending",
       payment_status: "pending",
       integration_source: product.source === "shopify" ? "shopify" : "manual",

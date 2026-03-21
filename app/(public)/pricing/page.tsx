@@ -79,7 +79,7 @@ const plans = [
 
 const faqs = [
   { q: "Can I change plans later?", a: "Yes, you can upgrade or downgrade your plan at any time. Changes take effect immediately." },
-  { q: "What payment methods are accepted?", a: "We accept all major mobile money services (MTN, Airtel), Irembopay, and card payments." },
+  { q: "What payment methods are accepted?", a: "We accept major mobile money services (MTN, Airtel), bank transfers, and cryptocurrency at checkout where enabled." },
   { q: "Is there a transaction fee?", a: "Platform fees vary by plan: 5% (Starter), 3% (Creator), 2% (Business). There are no hidden fees." },
   { q: "Can I try paid features before subscribing?", a: "Yes! All new accounts get a 14-day free trial of the Creator plan." },
   { q: "What happens to my data if I downgrade?", a: "Your data is always safe. Products and orders remain active, some features may become limited." },

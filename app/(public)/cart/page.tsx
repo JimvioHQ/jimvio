@@ -1,4 +1,5 @@
 import React from "react";
+import Link from "next/link";
 import { ShoppingBag } from "lucide-react";
 import { getCart } from "@/lib/actions/marketplace";
 import { CartClient } from "@/components/marketplace/cart-client";
@@ -7,8 +8,7 @@ import { CartClient } from "@/components/marketplace/cart-client";
 export const dynamic = "force-dynamic";
 
 export default async function CartPage() {
-  const { orders, total } = await getCart();
-  console.log("CartPage orders found:", orders?.length || 0, "total:", total);
+  const { orders } = await getCart();
 
   return (
     <div className="min-h-screen bg-[var(--color-bg)] pt-40 pb-20">
@@ -23,6 +23,9 @@ export default async function CartPage() {
               <p className="text-[10px] font-black capitalize tracking-[0.2em] text-[var(--color-accent)]">Your Sourcing Hub</p>
             </div>
             <h1 className="text-4xl font-black text-zinc-900 tracking-tighter">Shopping Cart</h1>
+            <Link href="/products" className="text-sm font-semibold text-[var(--color-accent)] hover:underline mt-2 inline-block">
+              Browse products
+            </Link>
           </div>
           <div className="hidden sm:flex items-center gap-8">
             <div className="text-right">
@@ -37,7 +40,7 @@ export default async function CartPage() {
           </div>
         </div>
 
-        <CartClient initialOrders={orders} initialTotal={total} />
+        <CartClient initialOrders={orders} />
       </div>
     </div>
   );

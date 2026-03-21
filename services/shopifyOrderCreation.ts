@@ -28,7 +28,7 @@ export interface ShopifyOrderInput {
   }[];
   totalAmount: number;
   currency: string;
-  iremboPaymentRef: string;
+  paymentReference: string;
   platformCommissionRate: number;
 }
 
@@ -75,7 +75,7 @@ export async function createShopifyOrder(input: ShopifyOrderInput): Promise<Shop
       note: `Jimvio Order: ${input.jimvioOrderId}`,
       note_attributes: [
         { name: "jimvio_order_id", value: input.jimvioOrderId },
-        { name: "payment_ref", value: input.iremboPaymentRef },
+        { name: "payment_ref", value: input.paymentReference },
         { name: "platform", value: "Jimvio" },
         { name: "commission_rate", value: `${input.platformCommissionRate}%` },
         { name: "commission_amount", value: commissionAmount.toFixed(2) },
@@ -135,7 +135,7 @@ export async function createShopifyOrder(input: ShopifyOrderInput): Promise<Shop
       currency: input.currency,
       status: "completed",
       provider: "shopify",
-      provider_transaction_id: input.iremboPaymentRef,
+      provider_transaction_id: input.paymentReference,
       description: `Platform commission (${input.platformCommissionRate}%) from Shopify order #${shopifyOrderNumber}`,
       order_id: input.jimvioOrderId,
       metadata: {

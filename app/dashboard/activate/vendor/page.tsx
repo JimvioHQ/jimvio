@@ -232,7 +232,7 @@ export default function ActivateVendorPage() {
       website: form.website.trim() || null,
       tax_id: form.tax_id.trim() || null,
       verification_status: "pending",
-      payout_method: "irembopay",
+      payout_method: "mtn",
       payout_account: null,
       affiliate_enabled: true,
       affiliate_commission_rate: 10,

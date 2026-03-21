@@ -94,8 +94,7 @@ export async function finalizeOrderPayment(
       }
     | null;
 
-  const iremboRef = ctx.providerTransactionId;
-  const paymentRefDisplay = ctx.providerReference;
+  const providerTxId = ctx.providerTransactionId;
 
   if (shopifyItems.length === 0) {
     if (isPaid) {
@@ -109,9 +108,6 @@ export async function finalizeOrderPayment(
     };
     if (ctx.nowpaymentsPaymentId != null) {
       regularPatch.nowpayments_payment_id = ctx.nowpaymentsPaymentId;
-    } else {
-      regularPatch.irembopay_transaction_id = iremboRef;
-      regularPatch.irembopay_reference = paymentRefDisplay;
     }
     await db.from("orders").update(regularPatch).eq("id", orderId);
 
@@ -189,7 +185,7 @@ export async function finalizeOrderPayment(
         })),
         totalAmount: vendorTotal,
         currency: order.currency || "USD",
-        iremboPaymentRef: iremboRef,
+        paymentReference: providerTxId,
         platformCommissionRate,
       });
     })
@@ -212,9 +208,6 @@ export async function finalizeOrderPayment(
     };
     if (ctx.nowpaymentsPaymentId != null) {
       shopifyPatch.nowpayments_payment_id = ctx.nowpaymentsPaymentId;
-    } else {
-      shopifyPatch.irembopay_transaction_id = iremboRef;
-      shopifyPatch.irembopay_reference = paymentRefDisplay;
     }
     await db.from("orders").update(shopifyPatch).eq("id", orderId);
 

@@ -1,15 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
-import { processIremboWebhookRequest } from "@/lib/irembo-webhook-handler";
+import { NextResponse } from "next/server";
 
-export async function POST(req: NextRequest) {
-  try {
-    const body = await req.text();
-    const signature = req.headers.get("x-irembopay-signature") || "";
-
-    const result = await processIremboWebhookRequest(body, signature);
-    return NextResponse.json(result.body, { status: result.status });
-  } catch (error) {
-    console.error("Webhook error:", error);
-    return NextResponse.json({ error: "Webhook processing failed" }, { status: 500 });
-  }
+/** Deprecated payment webhook — no longer used. */
+export async function POST() {
+  return NextResponse.json(
+    { error: "Payment provider integration has been removed." },
+    { status: 410 }
+  );
 }

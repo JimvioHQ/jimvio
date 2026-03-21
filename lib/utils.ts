@@ -5,14 +5,48 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function formatCurrency(amount: number, currency = "RWF"): string {
+const DEFAULT_FIAT = "USD";
+
+function getRwfToUsdRateForDisplay(): number {
+  const pub =
+    typeof process !== "undefined" && process.env.NEXT_PUBLIC_RWF_TO_USD_RATE
+      ? parseFloat(process.env.NEXT_PUBLIC_RWF_TO_USD_RATE)
+      : NaN;
+  const server =
+    typeof process !== "undefined" && process.env.RWF_TO_USD_RATE
+      ? parseFloat(process.env.RWF_TO_USD_RATE)
+      : NaN;
+  const r =
+    Number.isFinite(pub) && pub > 0
+      ? pub
+      : Number.isFinite(server) && server > 0
+        ? server
+        : 0.0008;
+  return r;
+}
+
+/** Format a numeric amount; default display currency is USD. */
+export function formatCurrency(amount: number, currency = DEFAULT_FIAT): string {
   if (currency === "RWF") {
     return `RWF ${amount.toLocaleString("en-RW")}`;
   }
   return new Intl.NumberFormat("en-US", {
     style: "currency",
-    currency,
+    currency: currency.length === 3 ? currency : DEFAULT_FIAT,
   }).format(amount);
+}
+
+/**
+ * Show prices in USD when the stored currency is RWF (uses same rate as payments).
+ * Other currencies pass through to Intl.
+ */
+export function formatDisplayMoney(amount: number, currency?: string | null): string {
+  const c = (currency || DEFAULT_FIAT).toUpperCase();
+  if (c === "RWF") {
+    const usd = amount * getRwfToUsdRateForDisplay();
+    return formatCurrency(usd, DEFAULT_FIAT);
+  }
+  return formatCurrency(amount, c);
 }
 
 export function formatNumber(num: number): string {

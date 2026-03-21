@@ -46,7 +46,7 @@ export default function VendorSetupPage() {
     website:              "",
     tax_id:               "",
     payout_account:       "",
-    payout_method:        "irembopay",
+    payout_method:        "mtn",
     affiliate_enabled:    true,
     affiliate_commission_rate: "10",
   });
@@ -320,7 +320,6 @@ export default function VendorSetupPage() {
             <label className="text-sm font-medium text-[var(--color-text-primary)] block mb-1.5">Payout Method</label>
             <div className="grid grid-cols-2 gap-3">
               {[
-                { value: "irembopay", label: "Irembopay",     icon: "💳", desc: "Fast mobile money payouts" },
                 { value: "mtn",       label: "MTN MoMo",       icon: "📱", desc: "MTN Mobile Money" },
                 { value: "airtel",    label: "Airtel Money",   icon: "📱", desc: "Airtel Money" },
                 { value: "bank",      label: "Bank Transfer",  icon: "🏦", desc: "Direct bank transfer" },

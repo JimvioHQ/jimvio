@@ -46,31 +46,43 @@ export async function POST(req: NextRequest) {
     const shopifyOrderId = String(payload.id ?? "");
     const fulfillment = payload.fulfillments?.[0];
 
-    const byId = await supabase
-      .from("orders")
-      .update({
-        tracking_number: fulfillment?.tracking_number ?? null,
-        tracking_status: "shipped",
-        shopify_fulfillment_status: "fulfilled",
-        status: "shipped",
-        shipped_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq("shopify_order_id", shopifyOrderId)
-      .select("id");
+    const patch = {
+      tracking_number: fulfillment?.tracking_number ?? null,
+      tracking_status: "shipped",
+      shopify_fulfillment_status: "fulfilled",
+      status: "shipped" as const,
+      shipped_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
 
-    if (!byId.data?.length && shopifyOrderId) {
-      await supabase
+    let jimvioOrderId: string | null = null;
+
+    if (shopifyOrderId) {
+      const byShopify = await supabase
         .from("orders")
-        .update({
-          tracking_number: fulfillment?.tracking_number ?? null,
-          tracking_status: "shipped",
-          shopify_fulfillment_status: "fulfilled",
-          status: "shipped",
-          shipped_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .contains("shopify_order_ids", [shopifyOrderId]);
+        .select("id")
+        .eq("shopify_order_id", shopifyOrderId)
+        .maybeSingle();
+
+      if (byShopify.data?.id) {
+        jimvioOrderId = byShopify.data.id;
+        await supabase.from("orders").update(patch).eq("id", jimvioOrderId);
+      } else {
+        const byArray = await supabase
+          .from("orders")
+          .select("id")
+          .contains("shopify_order_ids", [shopifyOrderId])
+          .maybeSingle();
+        if (byArray.data?.id) {
+          jimvioOrderId = byArray.data.id;
+          await supabase.from("orders").update(patch).eq("id", jimvioOrderId);
+        }
+      }
+    }
+
+    if (jimvioOrderId && shopifyOrderId) {
+      const { releaseVendorEarnings } = await import("@/services/paymentService");
+      await releaseVendorEarnings(jimvioOrderId, shopifyOrderId);
     }
   }
 

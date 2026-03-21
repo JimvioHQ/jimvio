@@ -47,7 +47,7 @@ import { FollowButton } from "@/components/marketplace/follow-button";
 import { HomepageHero } from "@/components/layout/homepage-hero";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { cn } from "@/lib/utils";
+import { cn, formatDisplayMoney } from "@/lib/utils";
 import { getResolvedPlatformSettings, socialProofBarValues, PLATFORM_SETTINGS_DEFAULTS } from "@/lib/platform-settings";
 import { industryCardBackground, INDUSTRY_GRADIENTS, stableDiscountPercent } from "@/lib/homepage-helpers";
 
@@ -423,8 +423,8 @@ export default async function HomePage() {
                       </div>
                     </div>
                     <h4 className="text-[12px] font-semibold text-text-primary mb-1.5 line-clamp-1 group-hover:text-[#f97316] transition-colors">{p.name || "Refined Goods"}</h4>
-                    <div className="text-[15px] font-extrabold text-text-primary mb-1">RWF {p.price.toLocaleString()}</div>
-                    <div className="text-[10px] text-[#9ca3af] line-through font-medium mb-2">RWF {Math.round(Number(p.price) * 1.25).toLocaleString()}</div>
+                    <div className="text-[15px] font-extrabold text-text-primary mb-1">{formatDisplayMoney(Number(p.price), (p as { currency?: string }).currency ?? "RWF")}</div>
+                    <div className="text-[10px] text-[#9ca3af] line-through font-medium mb-2">{formatDisplayMoney(Math.round(Number(p.price) * 1.25), (p as { currency?: string }).currency ?? "RWF")}</div>
                     <div className="w-full h-1.5 bg-[#f0f0f0] rounded-full overflow-hidden mb-1.5">
                       <div className="h-full bg-gradient-to-r from-[#f97316] to-[#fb923c] rounded-full" style={{ width: `${heat - i * 5}%` }} />
                     </div>
@@ -613,7 +613,7 @@ export default async function HomePage() {
                   </div>
                   <div className="text-right shrink-0">
                     <div className="text-[22px] font-black text-[#f97316] font-outfit">
-                      RWF {Number(spotlightCreator.total_earnings ?? 0).toLocaleString()}
+                      {formatDisplayMoney(Number(spotlightCreator.total_earnings ?? 0), "RWF")}
                     </div>
                     <p className="text-[9px] text-white/40 font-black capitalize tracking-[0.2em]">Earnings</p>
                   </div>
@@ -896,7 +896,7 @@ export default async function HomePage() {
                         {prod.name}
                       </h5>
                       <p className="mt-1 text-[10px] font-semibold text-white/45">
-                        RWF {Number(prod.price ?? 0).toLocaleString()} · {prod.vendors?.business_name || "Verified"}
+                        {formatDisplayMoney(Number(prod.price ?? 0), (prod as { currency?: string }).currency ?? "RWF")} · {prod.vendors?.business_name || "Verified"}
                       </p>
                     </div>
                     <span className="shrink-0 self-center rounded-md bg-gradient-to-r from-[#f97316] to-[#ea580c] px-2 py-1 text-[9px] font-black uppercase tracking-wider text-white">

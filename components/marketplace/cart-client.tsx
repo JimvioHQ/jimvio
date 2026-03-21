@@ -1,14 +1,15 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   ShoppingCart, Trash2, Plus, Minus, ArrowRight, Package, 
   ShieldCheck, HelpCircle, Store, ChevronRight, AlertCircle, ShoppingBag
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { formatCurrency, cn } from "@/lib/utils";
+import { formatDisplayMoney } from "@/lib/utils";
 import { updateCartItemQuantity, removeFromCart } from "@/lib/actions/marketplace";
 import { toast } from "sonner";
 
@@ -29,6 +30,7 @@ interface CartOrder {
   status: string;
   total_amount: number;
   subtotal: number;
+  currency?: string | null;
   order_items: CartItem[];
   vendors: {
     id: string;
@@ -37,15 +39,30 @@ interface CartOrder {
   } | null;
 }
 
-interface CartClientProps {
-  initialOrders: CartOrder[];
-  initialTotal: number;
+function sumOrderItems(items: CartItem[]): number {
+  return items.reduce((s, i) => s + Number(i.total_price), 0);
 }
 
-export function CartClient({ initialOrders, initialTotal }: CartClientProps) {
+interface CartClientProps {
+  initialOrders: CartOrder[];
+  /** @deprecated Totals are derived from line items in the client */
+  initialTotal?: number;
+}
+
+export function CartClient({ initialOrders }: CartClientProps) {
+  const router = useRouter();
   const [orders, setOrders] = useState(initialOrders);
-  const [total, setTotal] = useState(initialTotal);
   const [loadingItems, setLoadingItems] = useState<string[]>([]);
+
+  useEffect(() => {
+    setOrders(initialOrders);
+  }, [initialOrders]);
+
+  /** Always derive money from line items so UI never shows stale order.total_amount after edits. */
+  const grandTotal = useMemo(
+    () => orders.reduce((sum, o) => sum + sumOrderItems(o.order_items), 0),
+    [orders]
+  );
 
   const handleUpdateQuantity = async (itemId: string, newQty: number) => {
     if (newQty < 1) return;
@@ -54,21 +71,19 @@ export function CartClient({ initialOrders, initialTotal }: CartClientProps) {
     try {
       const res = await updateCartItemQuantity(itemId, newQty);
       if (res.success) {
-        // Optimistic / Local update for speed (optional, or just rely on server actions + revalidate)
-        // For simplicity let's just refresh counts or similar
         window.dispatchEvent(new CustomEvent("cart-updated"));
-        // We'll let the server revalidation update the props, 
-        // but for immediate feedback we can update locally
-        setOrders(prev => prev.map(order => ({
-          ...order,
-          order_items: order.order_items.map(item => 
-            item.id === itemId ? { ...item, quantity: newQty, total_price: item.unit_price * newQty } : item
-          )
-        })));
-        
-        // Recalculate total locally
-        setTotal(prev => prev); // This is complex due to multiple vendors, 
-        // better to just have the server handle it or do a full re-calc
+        setOrders((prev) =>
+          prev.map((order) => {
+            const order_items = order.order_items.map((item) =>
+              item.id === itemId
+                ? { ...item, quantity: newQty, total_price: item.unit_price * newQty }
+                : item
+            );
+            const lineSum = sumOrderItems(order_items);
+            return { ...order, order_items, total_amount: lineSum, subtotal: lineSum };
+          })
+        );
+        router.refresh();
       } else {
         toast.error(res.error || "Failed to update quantity");
       }
@@ -85,14 +100,18 @@ export function CartClient({ initialOrders, initialTotal }: CartClientProps) {
       const res = await removeFromCart(itemId);
       if (res.success) {
         window.dispatchEvent(new CustomEvent("cart-updated"));
-        setOrders(prev => {
-          const newOrders = prev.map(order => ({
-            ...order,
-            order_items: order.order_items.filter(item => item.id !== itemId)
-          })).filter(order => order.order_items.length > 0);
-          return newOrders;
+        setOrders((prev) => {
+          const next = prev
+            .map((order) => {
+              const order_items = order.order_items.filter((item) => item.id !== itemId);
+              const lineSum = sumOrderItems(order_items);
+              return { ...order, order_items, total_amount: lineSum, subtotal: lineSum };
+            })
+            .filter((order) => order.order_items.length > 0);
+          return next;
         });
         toast.success("Item removed from cart");
+        router.refresh();
       } else {
         toast.error(res.error || "Failed to remove item");
       }
@@ -179,7 +198,9 @@ export function CartClient({ initialOrders, initialTotal }: CartClientProps) {
                           <h4 className="font-bold text-zinc-900 hover:text-[var(--color-accent)] transition-colors cursor-pointer line-clamp-2">
                             {item.product_name}
                           </h4>
-                          <p className="text-[10px] font-black text-zinc-400 capitalize tracking-widest">Unit Price: {formatCurrency(item.unit_price)}</p>
+                          <p className="text-[10px] font-black text-zinc-400 capitalize tracking-widest">
+                            Unit Price: {formatDisplayMoney(item.unit_price, order.currency ?? "USD")}
+                          </p>
                         </div>
                         <button 
                           onClick={() => handleRemove(item.id)}
@@ -209,7 +230,7 @@ export function CartClient({ initialOrders, initialTotal }: CartClientProps) {
                         </div>
                         <div className="text-right">
                           <p className="text-lg font-black text-zinc-900 tracking-tighter">
-                            {formatCurrency(item.total_price)}
+                            {formatDisplayMoney(item.total_price, order.currency ?? "USD")}
                           </p>
                         </div>
                       </div>
@@ -218,10 +239,12 @@ export function CartClient({ initialOrders, initialTotal }: CartClientProps) {
                 ))}
               </div>
 
-              {/* Order Subtotal */}
+              {/* Order Subtotal — sum of line items only (avoids stale DB total_amount) */}
               <div className="bg-zinc-50/50 border-t border-[#f5f5f5] px-6 py-4 flex items-center justify-between">
                 <span className="text-[11px] font-black text-zinc-400 capitalize tracking-widest">Order Subtotal</span>
-                <span className="text-sm font-black text-zinc-900">{formatCurrency(order.total_amount)}</span>
+                <span className="text-sm font-black text-zinc-900">
+                  {formatDisplayMoney(sumOrderItems(order.order_items), order.currency ?? "USD")}
+                </span>
               </div>
             </motion.div>
           ))}
@@ -240,7 +263,7 @@ export function CartClient({ initialOrders, initialTotal }: CartClientProps) {
             <div className="space-y-4 mb-8">
               <div className="flex justify-between text-sm">
                 <span className="text-zinc-500 font-medium">Items Total ({orders.reduce((acc, o) => acc + o.order_items.length, 0)})</span>
-                <span className="text-zinc-900 font-black">{formatCurrency(total)}</span>
+                <span className="text-zinc-900 font-black">{formatDisplayMoney(grandTotal, "USD")}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-zinc-500 font-medium">Global Shipping</span>
@@ -253,7 +276,9 @@ export function CartClient({ initialOrders, initialTotal }: CartClientProps) {
               <div className="h-px bg-zinc-100 my-4" />
               <div className="flex justify-between items-end">
                 <span className="text-[11px] font-black text-zinc-900 capitalize tracking-[0.2em]">Total Pay</span>
-                <span className="text-3xl font-black text-[var(--color-accent)] tracking-tighter">{formatCurrency(total)}</span>
+                <span className="text-3xl font-black text-[var(--color-accent)] tracking-tighter">
+                  {formatDisplayMoney(grandTotal, "USD")}
+                </span>
               </div>
             </div>
 

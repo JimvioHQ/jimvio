@@ -4,7 +4,7 @@ import { HeroSearch, type HeroSearchCategory } from "@/components/marketplace/he
 import { ViralStoryRow } from "@/components/marketplace/viral-story-row";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { cn } from "@/lib/utils";
+import { cn, formatDisplayMoney } from "@/lib/utils";
 
 type HeroStat = {
   value: string;
@@ -304,7 +304,7 @@ export function HomepageHero({
                         <div className="mt-4 rounded-xl border border-[#f97316]/20 bg-gradient-to-br from-[#fff7ed] to-white p-3.5">
                           <div className="text-[10px] font-black uppercase tracking-[0.2em] text-[#ea580c]">Tracked earnings</div>
                           <div className="font-outfit mt-1 text-[1.375rem] font-black tabular-nums text-[var(--color-text-primary)]">
-                            RWF {Number(spotlightCreator.total_earnings ?? 0).toLocaleString()}
+                            {formatDisplayMoney(Number(spotlightCreator.total_earnings ?? 0), "RWF")}
                           </div>
                         </div>
 

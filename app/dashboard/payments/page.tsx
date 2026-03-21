@@ -10,6 +10,7 @@ import { StatCard } from "@/components/ui/stat-card";
 import { Input } from "@/components/ui/input";
 import { formatCurrency } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
+import { normalizeVendorPayoutMethod } from "@/lib/payout-method";
 
 export default function PaymentsPage() {
   const [wallet, setWallet]     = useState<Record<string, unknown> | null>(null);
@@ -54,7 +55,7 @@ export default function PaymentsPage() {
       amount,
       currency:      "RWF",
       status:        "pending",
-      payout_method: vendor?.payout_method ?? "irembopay",
+      payout_method: normalizeVendorPayoutMethod(vendor?.payout_method as string | null | undefined),
       payout_account:vendor?.payout_account ?? "",
     });
 
@@ -145,7 +146,7 @@ export default function PaymentsPage() {
             </Button>
           </div>
           <p className="text-xs text-muted-c">
-            Withdrawals are processed to your configured payout method (Irembopay/MoMo/Bank) within 1–2 business days.
+            Withdrawals are processed to your configured payout method (mobile money or bank) within 1–2 business days.
             Minimum withdrawal: RWF 1,000.
           </p>
         </CardContent>

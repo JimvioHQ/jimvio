@@ -183,6 +183,10 @@ export interface Order {
   irembopay_reference: string | null;
   irembopay_transaction_id: string | null;
   nowpayments_payment_id: number | null;
+  /** From migration 025 — Pesapal checkout */
+  pesapal_tracking_id?: string | null;
+  pesapal_merchant_ref?: string | null;
+  payment_provider?: string | null;
   paid_at: string | null;
   shipped_at: string | null;
   delivered_at: string | null;

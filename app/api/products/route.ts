@@ -110,7 +110,7 @@ export async function POST(req: NextRequest) {
         vendor_id: vendor.id,
         slug,
         status: "draft",
-        currency: "RWF",
+        currency: "USD",
       })
       .select()
       .single();

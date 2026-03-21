@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { useBodyScrollLock, useEscapeClose } from "@/hooks/use-body-scroll-lock";
 import { 
   X, Heart, MessageCircle, Share2, Play, Pause, 
@@ -38,7 +39,12 @@ export function ViralStoryRow({ clips, initialActiveIndex = null, onClose, force
   const [isMuted, setIsMuted] = useState(true);
   const [followedVendors, setFollowedVendors] = useState<Record<string, boolean>>({});
   const [isFollowing, setIsFollowing] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const closePlayer = useCallback(() => {
     setActiveClipIndex(null);
@@ -171,9 +177,11 @@ export function ViralStoryRow({ clips, initialActiveIndex = null, onClose, force
         </div>
       )}
 
-      {/* Full Screen TikTok Style Player */}
-      {activeClipIndex !== null && (
-        <div className="fixed inset-0 z-[1000] bg-ink-dark flex items-center justify-center animate-in fade-in duration-300">
+      {/* Full-screen player: must portal to document.body — hero panels use overflow-hidden + backdrop-blur, which trap/clips position:fixed */}
+      {mounted &&
+        activeClipIndex !== null &&
+        createPortal(
+          <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-ink-dark animate-in fade-in duration-300">
           <div className="relative w-full max-w-[500px] bg-ink-darker overflow-hidden sm:rounded-3xl shadow-2xl flex flex-col h-screen sm:h-[90vh]">
             
             {/* Close Button */}
@@ -314,8 +322,9 @@ export function ViralStoryRow({ clips, initialActiveIndex = null, onClose, force
                <div className="h-full bg-[#f97316] w-2/3 animate-progress" />
             </div>
           </div>
-        </div>
-      )}
+        </div>,
+          document.body,
+        )}
     </>
   );
 }

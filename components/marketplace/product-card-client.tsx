@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { Package, MessageCircle, ShoppingCart, ShieldCheck, Heart } from "lucide-react";
-import { formatCurrency, cn } from "@/lib/utils";
+import { formatDisplayMoney, cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { addToCart } from "@/lib/actions/marketplace";
 import { ProductQuickPopup } from "@/components/influencer/product-quick-popup";
@@ -36,9 +36,11 @@ export interface ProductCardClientProps {
   /** When set, show wishlist heart and call on toggle (e.g. dashboard marketplace) */
   inWishlist?: boolean;
   onToggleWishlist?: (e: React.MouseEvent) => void;
+  /** Product detail URL prefix (default /marketplace) */
+  detailBasePath?: string;
 }
 
-export function ProductCardClient({ p, inWishlist = false, onToggleWishlist }: ProductCardClientProps) {
+export function ProductCardClient({ p, inWishlist = false, onToggleWishlist, detailBasePath = "/marketplace" }: ProductCardClientProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [quickViewOpen, setQuickViewOpen] = useState(false);
   const images = p.images ?? [];
@@ -49,7 +51,7 @@ export function ProductCardClient({ p, inWishlist = false, onToggleWishlist }: P
   const showWishlist = !!onToggleWishlist;
   const storeUrl = p.vendors?.business_slug ? `/vendors/${p.vendors.business_slug}` : `/marketplace?vendor=${p.vendors?.id ?? ""}`;
   const isVerified = p.vendors?.verification_status === "verified" || !p.vendors?.verification_status;
-  const displayPrice = formatCurrency(price, p.currency ?? "RWF");
+  const displayPrice = formatDisplayMoney(price, p.currency ?? "USD");
 
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -80,7 +82,7 @@ export function ProductCardClient({ p, inWishlist = false, onToggleWishlist }: P
     <>
       <div className="group bg-white border border-[#e8e8e8] rounded-lg flex flex-col h-full overflow-hidden hover:border-[#f97316]/40 hover:shadow-md transition-all duration-200 min-w-0">
         <Link
-          href={`/marketplace/${p.slug}`}
+          href={`${detailBasePath}/${p.slug}`}
           className="relative aspect-[4/3] bg-[#fafafa] flex items-center justify-center p-3 sm:p-6 overflow-hidden border-b border-[#f0f0f0]"
         >
           {imgSrc ? (
@@ -127,7 +129,7 @@ export function ProductCardClient({ p, inWishlist = false, onToggleWishlist }: P
         </Link>
 
         <div className="p-3 sm:p-4 flex-1 flex flex-col min-h-0">
-          <Link href={`/marketplace/${p.slug}`}>
+          <Link href={`${detailBasePath}/${p.slug}`}>
             <h3 className="text-[12px] sm:text-[13px] text-text-primary line-clamp-2 leading-snug mb-1.5 sm:mb-2 group-hover:text-[#f97316] transition-colors">
               {p.name}
             </h3>

@@ -44,7 +44,7 @@ const allRoles = [
     badge: "Free to activate",
     badgeVariant: "default" as const,
     description: "Open your own storefront. Sell physical or digital products globally. Manage inventory and get paid fast.",
-    features: ["Product catalog", "Order management", "Inventory tracking", "Affiliate programs", "Analytics", "Irembopay payouts"],
+    features: ["Product catalog", "Order management", "Inventory tracking", "Affiliate programs", "Analytics", "Mobile money & bank payouts"],
     alwaysActive: false,
     setupPath: "/dashboard/vendor/setup",
   },

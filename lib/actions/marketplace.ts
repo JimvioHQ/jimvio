@@ -171,7 +171,7 @@ export async function addToCart(productId: string, vendorId: string, quantity: n
     // 1. Get product details for price etc
     const { data: product, error: pError } = await supabase
       .from("products")
-      .select("name, price, images, shopify_variant_id, shopify_product_id")
+      .select("name, price, images, shopify_variant_id, shopify_product_id, currency")
       .eq("id", productId)
       .single();
 
@@ -196,6 +196,7 @@ export async function addToCart(productId: string, vendorId: string, quantity: n
           status: "pending",
           total_amount: product.price * quantity,
           subtotal: product.price * quantity,
+          currency: (product as { currency?: string | null }).currency ?? "USD",
         })
         .select()
         .single();
@@ -269,33 +270,77 @@ export async function addToCart(productId: string, vendorId: string, quantity: n
   }
 }
 
+/** True when Node/undici could not reach Supabase (VPN, Wi‑Fi, or cold edge). */
+function isTransientNetworkError(error: unknown): boolean {
+  const parts: string[] = [];
+  if (error instanceof Error) {
+    parts.push(error.message, String(error.cause ?? ""));
+  }
+  if (error && typeof error === "object") {
+    const o = error as Record<string, unknown>;
+    if (typeof o.message === "string") parts.push(o.message);
+    if (typeof o.details === "string") parts.push(o.details);
+  }
+  const s = parts.join(" ");
+  return /fetch failed|ConnectTimeout|ECONNRESET|ETIMEDOUT|UND_ERR_CONNECT_TIMEOUT|EAI_AGAIN/i.test(
+    s
+  );
+}
+
+function sleep(ms: number) {
+  return new Promise<void>((r) => setTimeout(r, ms));
+}
+
 export async function getCart() {
-  try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+  const maxAttempts = 3;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const supabase = await createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
-    if (!user) return { orders: [], total: 0 };
+      if (!user) return { orders: [], total: 0 };
 
-    const { data: orders, error } = await supabase
-      .from("orders")
-      .select(`
+      const { data: orders, error } = await supabase
+        .from("orders")
+        .select(`
         *,
         vendors (id, business_name, business_slug),
         order_items (*)
       `)
-      .eq("buyer_id", user.id)
-      .eq("status", "pending")
-      .order("created_at", { ascending: false });
+        .eq("buyer_id", user.id)
+        .eq("status", "pending")
+        .order("created_at", { ascending: false });
 
-    if (error) throw error;
+      if (error) throw error;
 
-    const total = orders?.reduce((sum, order) => sum + Number(order.total_amount), 0) || 0;
+      const list = orders || [];
+      const total = list.reduce((sum, order) => {
+        const items = order.order_items as { total_price: number }[] | undefined;
+        const lineSum =
+          items?.reduce((s, i) => s + Number(i.total_price), 0) ?? Number(order.total_amount);
+        return sum + lineSum;
+      }, 0);
 
-    return { orders: orders || [], total };
-  } catch (error) {
-    console.error("Get cart error:", error);
-    return { orders: [], total: 0 };
+      return { orders: list, total };
+    } catch (error) {
+      const canRetry = attempt < maxAttempts && isTransientNetworkError(error);
+      if (canRetry) {
+        await sleep(400 * attempt);
+        continue;
+      }
+      if (isTransientNetworkError(error)) {
+        console.warn(
+          "getCart: Supabase unreachable after retries (network/timeout). Returning empty cart."
+        );
+      } else {
+        console.error("Get cart error:", error);
+      }
+      return { orders: [], total: 0 };
+    }
   }
+  return { orders: [], total: 0 };
 }
 
 export async function updateCartItemQuantity(itemId: string, quantity: number) {

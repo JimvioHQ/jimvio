@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { createClient } from "@/lib/supabase/client";
+import { normalizeVendorPayoutMethod } from "@/lib/payout-method";
 
 export default function SettingsPage() {
   const [isPending, startTransition] = useTransition();
@@ -49,7 +50,7 @@ export default function SettingsPage() {
         business_phone:           vendRes.data.business_phone ?? "",
         business_address:         vendRes.data.business_address ?? "",
         website:                  vendRes.data.website ?? "",
-        payout_method:            vendRes.data.payout_method ?? "irembopay",
+        payout_method:            normalizeVendorPayoutMethod(vendRes.data.payout_method),
         payout_account:           vendRes.data.payout_account ?? "",
         affiliate_enabled:        vendRes.data.affiliate_enabled ?? true,
         affiliate_commission_rate: String(vendRes.data.affiliate_commission_rate ?? 10),
@@ -164,7 +165,6 @@ export default function SettingsPage() {
                     <label className="text-sm font-medium text-[var(--color-text-primary)] block mb-1.5">Payout Method</label>
                     <select value={vendor.payout_method} onChange={e => setVendor(v => v ? { ...v, payout_method: e.target.value } : v)}
                       className="w-full h-10 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30 transition-all">
-                      <option value="irembopay">Irembopay</option>
                       <option value="mtn">MTN MoMo</option>
                       <option value="airtel">Airtel Money</option>
                       <option value="bank">Bank Transfer</option>

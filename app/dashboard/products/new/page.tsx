@@ -36,7 +36,7 @@ export default function NewProductPage() {
     product_type: "physical",
     price: "",
     compare_at_price: "",
-    currency: "RWF",
+    currency: "USD",
     category_id: "",
     is_digital: false,
     digital_file_url: "",
@@ -305,8 +305,8 @@ export default function NewProductPage() {
                       onChange={(e) => handleChange("currency", e.target.value)}
                       className={selectClass}
                     >
-                      <option value="RWF">RWF — Rwandan Franc</option>
                       <option value="USD">USD — US Dollar</option>
+                      <option value="RWF">RWF — Rwandan Franc</option>
                       <option value="EUR">EUR — Euro</option>
                       <option value="KES">KES — Kenyan Shilling</option>
                       <option value="UGX">UGX — Ugandan Shilling</option>
