@@ -63,7 +63,7 @@ export default function TermsPage() {
                  <div className="space-y-4">
                     <h2 className="text-3xl font-black">Violation Policy</h2>
                     <p className="text-white/80 leading-relaxed font-medium">
-                       We take our community standards seriously. Any breach of these terms may result in temporary suspension or permanent ban from the Jimvio ecosystem. We reserve the right to report illegal activities to the relevant authorities in Rwanda or internationally.
+                       We take our platform standards seriously. Any breach of these terms may result in temporary suspension or permanent ban from the Jimvio ecosystem. We reserve the right to report illegal activities to the relevant authorities in Rwanda or internationally.
                     </p>
                  </div>
               </div>

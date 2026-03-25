@@ -12,7 +12,6 @@ import {
   Laptop,
   ChevronRight,
   ShoppingCart,
-  MessageCircle,
   Star,
   ShieldCheck,
   CheckCircle,
@@ -24,7 +23,6 @@ import {
   Menu,
   Package,
   TrendingUp,
-  Users,
   BarChart2,
   Lock,
   PlayCircle,
@@ -33,7 +31,7 @@ import {
 } from "lucide-react";
 import {
   getCategories, getFeaturedProducts, getTrendingProducts, getTopVendors,
-  getCommunities, getViralClips, getCampaigns, getTopAffiliates, getPlatformStats, getTopCreators,
+  getViralClips, getCampaigns, getTopAffiliates, getPlatformStats, getTopCreators,
   getProducts,
 } from "@/services/db";
 import { HeroSearch } from "@/components/marketplace/hero-search";
@@ -67,14 +65,13 @@ function pickIndustryLucide(slug: string, name: string): LucideIcon {
 export default async function HomePage() {
   const [
     categories, featured, trending, vendors,
-    communities, viralClips, topAffiliates, platformStats, topCreators,
+    viralClips, topAffiliates, platformStats, topCreators,
     shopifyFeaturedRes, platformSettingsMaybe, campaigns,
   ] = await Promise.all([
     getCategories().catch(() => []),
     getFeaturedProducts(24).catch(() => []),
     getTrendingProducts(8).catch(() => []),
     getTopVendors(8).catch(() => []),
-    getCommunities(4).catch(() => []),
     getViralClips(8).catch(() => []),
     getTopAffiliates(3).catch(() => []),
     getPlatformStats().catch(() => ({ totalUsers: 0, totalVendors: 0, totalProducts: 0 })),
@@ -628,79 +625,6 @@ export default async function HomePage() {
           </div>
         </div>
         </div>
-
-        {/* Communities */}
-        <section>
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-12 animate-slide-down">
-            <div>
-              <p className="home-section-eyebrow mb-3 text-[#433360]/80 text-[12px]">Network & insights</p>
-              <h2 className="font-outfit text-[32px] sm:text-[36px] md:text-[40px] font-black text-text-primary flex items-center gap-4 capitalize tracking-tight leading-tight">
-                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-[#fff7ed] to-[#ffedd5] ring-1 ring-[#f97316]/20 group-hover:scale-110 transition-transform duration-300">
-                  <MessageCircle className="h-7 w-7 text-[#f97316]" />
-                </span>
-                Trading Communities
-              </h2>
-            </div>
-            <Link href="/communities" className="text-[12px] font-black text-[#f97316] uppercase tracking-[0.2em] flex items-center gap-2.5 hover:gap-3.5 transition-all shrink-0 group hover:translate-x-1 duration-300">
-              Join Conversation <ChevronRight className="h-4 w-4 group-hover:scale-125 transition-transform duration-300" />
-            </Link>
-          </div>
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr,1.3fr] gap-8">
-            <div className="space-y-3 stagger-children">
-              {communities.map((c: any) => (
-                <div key={c.id} className="home-surface rounded-2xl p-5 flex items-center gap-5 cursor-pointer hover:bg-gradient-to-r hover:from-[#fffbf5] hover:to-white border-l-[5px] border-l-transparent hover:border-l-[#f97316] transition-all duration-300 group shadow-[0_2px_20px_-12px_rgba(43,34,72,0.1)] hover:shadow-[0_12px_36px_-16px_rgba(249,115,22,0.15)] hover:-translate-y-0.5 hover:scale-102">
-                  <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-[#faf8fc] to-[#f0ecf5] flex items-center justify-center group-hover:from-[#fff7ed] group-hover:to-[#ffedd5] transition-colors shrink-0 ring-1 ring-[#ebe8f2] group-hover:ring-[#f97316]/20 group-hover:scale-110 duration-300">
-                    <Users className="h-7 w-7 text-[#9ca3af] group-hover:text-[#f97316] group-hover:animate-float transition-all" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h4 className="text-[15px] font-black text-text-primary leading-tight mb-1 group-hover:text-[#f97316] transition-colors duration-300">{c.name}</h4>
-                    <p className="text-[12px] text-[#6b7280] truncate font-bold capitalize tracking-tight">{c.description || "B2B Insights & Networking"}</p>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-[16px] font-black text-[#f97316] font-outfit">{c.member_count?.toLocaleString() || "1K+"}</div>
-                    <div className="text-[10px] text-green-500 font-black flex items-center justify-end gap-1.5 capitalize tracking-widest">
-                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />{" "}
-                      {Number(c.member_count ?? 0).toLocaleString()} members
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="bg-[#2d2248] rounded-[1.35rem] p-8 text-white min-h-[400px] flex flex-col shadow-[0_24px_60px_-20px_rgba(26,20,40,0.55)] relative overflow-hidden border border-white/10 [background-color:#2d2248] ring-1 ring-white/5 hover:shadow-[0_32px_80px_-20px_rgba(26,20,40,0.7)] hover:border-white/20 transition-all duration-500 animate-fade-in-up">
-              <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_80%_20%,rgba(249,115,22,0.12),transparent)] pointer-events-none animate-float" />
-              <div className="absolute top-0 right-0 p-8 opacity-[0.07] pointer-events-none">
-                <MessageCircle className="h-40 w-40 text-white" />
-              </div>
-              <div className="flex items-center gap-2.5 text-[14px] font-black mb-8 text-white/90 capitalize tracking-widest relative z-10">
-                <div className="w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(34,197,94,0.5)]" /> Live Insight: Electronics Tech
-              </div>
-              <div className="space-y-6 mb-10 flex-1 overflow-y-auto no-scrollbar relative z-10">
-                {[
-                  { name: "Jason K.", loc: "Taipei", msg: "Anyone seeing lead time increases on MLCCs? Our distributor pushed to 16 weeks.", color: "bg-[#f97316]" },
-                  { name: "Sara L.", loc: "Shenzhen", msg: "Verified. We switched to TDK last quarter. DM for supplier IDs.", color: "bg-[#9a3412]", me: true },
-                  { name: "Marco R.", loc: "Milan", msg: "Vishay has stock too. Better price but 10K+ min pcs.", color: "bg-[#f97316]" },
-                ].map((m, i) => (
-                  <div key={i} className={cn("flex gap-4 max-w-[85%]", m.me ? "ml-auto flex-row-reverse" : "")}>
-                    <Avatar className="h-9 w-9 shrink-0 ring-2 ring-white/10">
-                      <AvatarFallback className={cn("text-[11px] font-black text-white", m.color)}>{m.name.split(" ").map(n => n[0]).join("")}</AvatarFallback>
-                    </Avatar>
-                    <div className={cn("p-4 rounded-2xl", m.me ? "bg-[#f97316] rounded-tr-none text-white shadow-xl" : "bg-white/5 backdrop-blur-md rounded-tl-none border border-white/10")}>
-                      <span className="block text-[10px] font-black text-white/30 capitalize tracking-[0.2em] mb-2">{m.name} · {m.loc}</span>
-                      <p className="text-[14px] font-bold leading-relaxed">{m.msg}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="flex flex-wrap gap-2.5 relative z-10">
-                {["#components", "#MLCC", "#sourcing", "#supply-chain"].map(t => (
-                  <span key={t} className="px-4 py-1.5 bg-white/5 rounded-full text-[11px] text-white/40 font-black capitalize tracking-widest border border-white/5 hover:bg-white/10 cursor-pointer transition-all">
-                    {t}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </div>
-        </section>
 
         {/* Creators Archive - Premium Redesign */}
         <section className="relative -mx-4 sm:-mx-6 py-12 sm:rounded-2xl bg-gradient-to-b from-[#1a1428] via-[#2d2248] to-[#1a1428] border border-white/10 px-4 sm:px-6 md:px-8 [background-color:#1a1428] hover:shadow-2xl hover:shadow-[#2d2248]/30 transition-all duration-500">

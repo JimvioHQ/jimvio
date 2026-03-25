@@ -81,10 +81,11 @@ export const PLATFORM_SETTINGS_DEFAULTS: ResolvedPlatformSettings = {
     ],
     nav_links: [
       { label: "Home", href: "/" },
+      { label: "Communities", href: "/communities" },
       { label: "Marketplace", href: "/marketplace" },
       { label: "Affiliates", href: "/affiliates" },
       { label: "Influencers", href: "/influencers" },
-      { label: "Communities", href: "/communities" },
+      { label: "Clips", href: "/clips" },
       { label: "Vendors", href: "/vendors" },
     ],
     search_placeholder: "Search globally, sell everywhere…",

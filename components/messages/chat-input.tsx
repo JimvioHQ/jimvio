@@ -178,7 +178,7 @@ export function ChatInput({
           }}
           placeholder="Type a message..."
           rows={1}
-          className="flex-1 min-h-[40px] max-h-32 px-4 py-2.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/20"
+          className="flex-1 min-h-[40px] max-h-32 px-4 py-2.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] resize-none focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/20"
         />
         <Button
           type="button"

@@ -1,14 +1,13 @@
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
-export type UserRole = 'buyer' | 'vendor' | 'affiliate' | 'influencer' | 'community_owner' | 'admin';
+export type UserRole = 'buyer' | 'vendor' | 'affiliate' | 'influencer' | 'admin';
 export type ProductType = 'physical' | 'digital' | 'subscription' | 'course' | 'software' | 'template' | 'ebook';
 export type ProductStatus = 'draft' | 'active' | 'paused' | 'archived';
 export type OrderStatus = 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'refunded';
 export type PaymentStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'refunded' | 'cancelled';
 export type PayoutStatus = 'pending' | 'processing' | 'paid' | 'failed';
 export type CampaignStatus = 'draft' | 'active' | 'paused' | 'completed' | 'cancelled';
-export type CommunityMemberStatus = 'active' | 'paused' | 'cancelled' | 'expired';
-export type NotificationType = 'order' | 'payment' | 'affiliate' | 'influencer' | 'community' | 'system' | 'review';
+export type NotificationType = 'order' | 'payment' | 'affiliate' | 'influencer' | 'system' | 'review';
 export type SubscriptionPlan = 'monthly' | 'yearly' | 'lifetime';
 export type VerificationStatus = 'pending' | 'verified' | 'rejected' | 'suspended';
 
@@ -377,69 +376,6 @@ export interface ViralClip {
   total_conversions: number;
   is_active: boolean;
   created_at: string;
-}
-
-export interface Community {
-  id: string;
-  owner_id: string;
-  name: string;
-  slug: string;
-  description: string | null;
-  long_description: string | null;
-  avatar_url: string | null;
-  cover_image: string | null;
-  category: string | null;
-  tags: string[] | null;
-  is_private: boolean;
-  member_count: number;
-  post_count: number;
-  monthly_price: number | null;
-  yearly_price: number | null;
-  lifetime_price: number | null;
-  currency: string;
-  trial_days: number;
-  is_featured: boolean;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-  profiles?: Profile;
-}
-
-export interface CommunityMember {
-  id: string;
-  community_id: string;
-  user_id: string;
-  role: string;
-  subscription_plan: SubscriptionPlan | null;
-  subscription_status: CommunityMemberStatus;
-  subscribed_at: string;
-  expires_at: string | null;
-  cancelled_at: string | null;
-  payment_reference: string | null;
-  created_at: string;
-  profiles?: Profile;
-  communities?: Community;
-}
-
-export interface CommunityPost {
-  id: string;
-  community_id: string;
-  author_id: string;
-  title: string | null;
-  body: string;
-  images: Json;
-  attachments: Json;
-  post_type: string;
-  is_pinned: boolean;
-  is_exclusive: boolean;
-  like_count: number;
-  comment_count: number;
-  view_count: number;
-  is_published: boolean;
-  published_at: string;
-  created_at: string;
-  updated_at: string;
-  profiles?: Profile;
 }
 
 export interface Notification {

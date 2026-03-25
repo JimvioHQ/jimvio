@@ -19,12 +19,12 @@ import {
   LogOut,
   TrendingUp,
   Video,
-  Users,
   Factory,
   Plus,
   Home,
   ShoppingBag,
   Package,
+  Users,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -40,7 +40,7 @@ import {
 import { cn } from "@/lib/utils";
 import { signOut } from "@/lib/auth/actions";
 import { getNavbarCounts } from "@/lib/actions/marketplace";
-import type { MarketingSettings } from "@/lib/platform-settings-shared";
+import type { MarketingSettings, NavLinkConfig } from "@/lib/platform-settings-shared";
 import { NavbarSearch } from "@/components/layout/navbar-search";
 
 interface NavbarProps {
@@ -48,13 +48,22 @@ interface NavbarProps {
   marketing: MarketingSettings;
 }
 
+function ensureCommunitiesNavLink(links: NavLinkConfig[]): NavLinkConfig[] {
+  const norm = (href: string) => href.replace(/\/$/, "") || "/";
+  if (links.some((l) => norm(l.href) === "/communities")) return links;
+  const insert: NavLinkConfig = { label: "Communities", href: "/communities" };
+  const homeIdx = links.findIndex((l) => norm(l.href) === "/");
+  if (homeIdx === -1) return [insert, ...links];
+  return [...links.slice(0, homeIdx + 1), insert, ...links.slice(homeIdx + 1)];
+}
+
 function iconForNavHref(href: string): LucideIcon {
   const h = href.replace(/\/$/, "") || "/";
   if (h === "/") return Home;
+  if (h.startsWith("/communities")) return Users;
   if (h.startsWith("/marketplace")) return ShoppingBag;
   if (h.startsWith("/affiliates")) return TrendingUp;
   if (h.startsWith("/influencers")) return Video;
-  if (h.startsWith("/communities")) return Users;
   if (h.startsWith("/vendors")) return Factory;
   if (h.startsWith("/clips") || h.startsWith("/clippings")) return Video;
   return Package;
@@ -75,7 +84,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
   const pathname = usePathname();
   const router = useRouter();
 
-  const navLinks = marketing.nav_links ?? [];
+  const navLinks = ensureCommunitiesNavLink(marketing.nav_links ?? []);
   const localeStrip = (marketing.locale_strip?.trim() || "EN · USD").trim();
 
   const runSearch = useCallback(

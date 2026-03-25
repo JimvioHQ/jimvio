@@ -3,7 +3,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getUserNotifications } from "@/services/db";
 import { redirect } from "next/navigation";
-import { Bell, MessageSquare } from "lucide-react";
+import { Bell } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { timeAgo } from "@/lib/utils";
 import { MarkReadButton } from "./mark-read-button";
@@ -41,11 +41,7 @@ export default async function DashboardNotificationsPage() {
             >
               <CardContent className="p-4 flex items-start gap-3">
                 <div className="h-10 w-10 rounded-full bg-[var(--color-surface)] flex items-center justify-center shrink-0">
-                  {n.type === "community" ? (
-                    <MessageSquare className="h-5 w-5 text-[var(--color-accent)]" />
-                  ) : (
-                    <Bell className="h-5 w-5 text-[var(--color-text-muted)]" />
-                  )}
+                  <Bell className="h-5 w-5 text-[var(--color-text-muted)]" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="font-semibold text-[var(--color-text-primary)]">{n.title}</p>

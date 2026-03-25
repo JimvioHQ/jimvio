@@ -11,8 +11,8 @@ export const metadata: Metadata = {
     template: "%s | Jimvio",
   },
   description:
-    "Buy, sell, affiliate, influence, and build communities. Jimvio is the global creator-commerce platform built for Africa and beyond.",
-  keywords: ["marketplace", "ecommerce", "affiliate", "influencer", "community", "Rwanda", "Africa"],
+    "Buy, sell, affiliate, and influence. Jimvio is the global creator-commerce platform built for Africa and beyond.",
+  keywords: ["marketplace", "ecommerce", "affiliate", "influencer", "B2B", "Rwanda", "Africa"],
   authors: [{ name: "Jimvio" }],
   creator: "Jimvio",
   metadataBase: new URL(siteUrl),
@@ -21,13 +21,13 @@ export const metadata: Metadata = {
     locale: "en_US",
     url: siteUrl,
     title: "Jimvio – Global Creator-Commerce Ecosystem",
-    description: "The all-in-one platform for buyers, vendors, affiliates, influencers, and communities.",
+    description: "The all-in-one platform for buyers, vendors, affiliates, and influencers.",
     siteName: "Jimvio",
   },
   twitter: {
     card: "summary_large_image",
     title: "Jimvio – Global Creator-Commerce Ecosystem",
-    description: "The all-in-one platform for buyers, vendors, affiliates, influencers, and communities.",
+    description: "The all-in-one platform for buyers, vendors, affiliates, and influencers.",
     creator: "@jimvio",
   },
   robots: {

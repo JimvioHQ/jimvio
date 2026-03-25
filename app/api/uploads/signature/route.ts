@@ -15,7 +15,6 @@ export async function POST(req: NextRequest) {
       "jimvio/avatars",
       "jimvio/banners",
       "jimvio/clips",
-      "jimvio/community",
       "jimvio/campaigns",
     ];
 

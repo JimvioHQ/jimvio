@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Users, Store, Package, ShoppingCart, DollarSign, UsersRound, ShieldCheck, TrendingUp } from "lucide-react";
+import { Users, Store, Package, ShoppingCart, DollarSign, ShieldCheck, TrendingUp } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { StatCard } from "@/components/ui/stat-card";
@@ -17,7 +17,6 @@ type Stats = {
   totalOrders: number;
   totalRevenue: number;
   monthlyRevenue: number;
-  activeCommunities: number;
   pendingVerifications: number;
 };
 
@@ -36,13 +35,12 @@ export function AdminOverviewClient({ stats, chartData }: { stats: Stats; chartD
         </Badge>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         <StatCard title="Total Users" value={stats.totalUsers.toLocaleString()} icon={<Users className="h-4 w-4" />} iconColor="from-blue-600 to-cyan-600" />
         <StatCard title="Vendors" value={stats.totalVendors.toLocaleString()} icon={<Store className="h-4 w-4" />} iconColor="from-emerald-600 to-teal-600" />
         <StatCard title="Products" value={stats.totalProducts.toLocaleString()} icon={<Package className="h-4 w-4" />} iconColor="from-violet-600 to-purple-600" />
         <StatCard title="Orders (30d)" value={stats.totalOrders.toLocaleString()} icon={<ShoppingCart className="h-4 w-4" />} iconColor="from-amber-600 to-orange-600" />
         <StatCard title="Revenue (30d)" value={formatCurrency(stats.monthlyRevenue)} icon={<DollarSign className="h-4 w-4" />} iconColor="from-green-600 to-emerald-600" />
-        <StatCard title="Communities" value={stats.activeCommunities.toLocaleString()} icon={<UsersRound className="h-4 w-4" />} iconColor="from-pink-600 to-rose-600" />
       </div>
 
       {stats.pendingVerifications > 0 && (

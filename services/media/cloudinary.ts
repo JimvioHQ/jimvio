@@ -9,7 +9,6 @@ export type CloudinaryFolder =
   | "jimvio/avatars"
   | "jimvio/banners"
   | "jimvio/clips"
-  | "jimvio/community"
   | "jimvio/campaigns";
 
 interface CloudinaryUploadResult {

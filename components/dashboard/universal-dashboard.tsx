@@ -6,7 +6,6 @@ import {
   Package,
   Link2,
   Video,
-  Users,
   Store,
   FileText,
   ArrowRight,
@@ -27,7 +26,7 @@ const quickActions = [
   { label: "Become a Vendor", href: "/dashboard/vendor/setup", icon: <Store className="h-5 w-5" />, color: "bg-[var(--color-accent-light)] text-[var(--color-accent)]" },
   { label: "Promote Products (Affiliate)", href: "/dashboard/roles", icon: <Link2 className="h-5 w-5" />, color: "bg-emerald-100 text-emerald-600" },
   { label: "Create Product Clip", href: "/dashboard/campaigns/browse", icon: <Video className="h-5 w-5" />, color: "bg-pink-100 text-pink-600" },
-  { label: "Join Communities", href: "/communities", icon: <Users className="h-5 w-5" />, color: "bg-amber-100 text-amber-600" },
+  { label: "Discover Clips", href: "/clips", icon: <Video className="h-5 w-5" />, color: "bg-amber-100 text-amber-600" },
 ];
 
 const roleCards = [
@@ -35,7 +34,6 @@ const roleCards = [
   { id: "vendor", label: "Vendor", description: "Start selling products globally.", href: "/dashboard/vendor/setup", buttonLabel: "Apply as Vendor" },
   { id: "affiliate", label: "Affiliate", description: "Promote products and earn commission.", href: "/dashboard/roles", buttonLabel: "Activate Affiliate" },
   { id: "influencer", label: "Influencer / Creator", description: "Create clips and join campaigns.", href: "/dashboard/roles", buttonLabel: "Activate Creator" },
-  { id: "community", label: "Community Member", description: "Join or create paid communities.", href: "/dashboard/roles", buttonLabel: "Join Communities" },
 ];
 
 const onboardingCards = [
@@ -198,7 +196,7 @@ export function UniversalDashboardSkeleton() {
         ))}
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {[1, 2, 3, 4, 5].map((i) => (
+        {[1, 2, 3, 4].map((i) => (
           <div key={i} className="h-40 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] animate-pulse" />
         ))}
       </div>

@@ -1,13 +1,13 @@
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowLeft, ShoppingBag, Link2, Video, Users } from "lucide-react";
+import { ArrowLeft, ShoppingBag, Link2, Video, Sparkles } from "lucide-react";
 
 const benefits = [
   { icon: <ShoppingBag className="h-4 w-4" />, title: "Global Marketplace",  desc: "500K+ physical & digital products" },
   { icon: <Link2        className="h-4 w-4" />, title: "Affiliate Network",   desc: "Earn up to 50% commission per sale" },
   { icon: <Video        className="h-4 w-4" />, title: "Viral Clip Engine",   desc: "Promote products, earn automatically" },
-  { icon: <Users        className="h-4 w-4" />, title: "Paid Communities",    desc: "Build & monetize your audience" },
+  { icon: <Sparkles     className="h-4 w-4" />, title: "Creator tools",       desc: "Campaigns, clips, and growth" },
 ];
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
@@ -61,7 +61,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
               <span className="text-white">Buy, sell, grow.</span>
             </h2>
             <p className="text-white/80 text-sm leading-relaxed max-w-xs mb-6">
-              Join buyers and suppliers. List products, run affiliates, or build communities.
+              Join buyers and suppliers. List products, run affiliates, and grow with creators.
             </p>
 
             <div className="space-y-3">

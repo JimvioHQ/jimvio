@@ -20,25 +20,23 @@ import {
   Wallet,
   Video,
   BarChart3,
-  UserPlus,
-  Users,
   MessageSquare,
   MessageCircle,
   Bell,
   User,
   Settings,
-  LogOut,
   ChevronLeft,
   ChevronRight,
-  Bookmark,
-  PenSquare,
   X,
+  Users,
+  CirclePlus,
+  LayoutGrid,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { signOut } from "@/lib/auth/actions";
+import { SignOutButton } from "@/components/auth/sign-out-button";
 
-export type DashboardRole = "buyer" | "vendor" | "affiliate" | "influencer" | "community" | "admin";
+export type DashboardRole = "buyer" | "vendor" | "affiliate" | "influencer" | "admin";
 
 type NavItem = {
   label: string;
@@ -64,6 +62,14 @@ const sidebarSections: NavSection[] = [
       { label: "Orders", href: "/dashboard/orders", icon: <ShoppingCart className="h-4 w-4" /> },
       { label: "Buying Leads", href: "/dashboard/requests", icon: <FileText className="h-4 w-4" /> },
       { label: "Saved Products", href: "/dashboard/wishlist", icon: <Heart className="h-4 w-4" /> },
+    ],
+  },
+  {
+    title: "COMMUNITY",
+    items: [
+      { label: "Browse Communities", href: "/communities", icon: <Users className="h-4 w-4" /> },
+      { label: "Create a Community", href: "/communities/create", icon: <CirclePlus className="h-4 w-4" /> },
+      { label: "My Communities (Creator)", href: "/creator", icon: <LayoutGrid className="h-4 w-4" /> },
     ],
   },
   {
@@ -94,18 +100,6 @@ const sidebarSections: NavSection[] = [
       { label: "Video Analytics", href: "/dashboard/analytics", icon: <BarChart3 className="h-4 w-4" />, requiredRole: "influencer" },
       { label: "Creator Earnings", href: "/dashboard/creator/earnings", icon: <DollarSign className="h-4 w-4" />, requiredRole: "influencer" },
       { label: "Discover Clips", href: "/clips", icon: <Megaphone className="h-4 w-4" /> },
-    ],
-  },
-  {
-    title: "COMMUNITY",
-    items: [
-      { label: "Discover Communities", href: "/dashboard/communities", icon: <Users className="h-4 w-4" /> },
-      { label: "My Communities", href: "/dashboard/my-communities", icon: <UserPlus className="h-4 w-4" /> },
-      { label: "My Posts", href: "/dashboard/my-posts", icon: <MessageSquare className="h-4 w-4" /> },
-      { label: "Create Post", href: "/dashboard/create-post", icon: <PenSquare className="h-4 w-4" /> },
-      { label: "Discussions", href: "/dashboard/discussions", icon: <MessageCircle className="h-4 w-4" /> },
-      { label: "Saved Threads", href: "/dashboard/saved-threads", icon: <Bookmark className="h-4 w-4" /> },
-      { label: "Community Hub", href: "/communities/hub", icon: <MessageCircle className="h-4 w-4" /> },
     ],
   },
   {
@@ -259,17 +253,7 @@ export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobil
               <p className="text-xs text-[var(--color-text-muted)] truncate">{user.email}</p>
             </div>
           )}
-          {!collapsed && (
-            <form action={signOut}>
-              <button
-                type="submit"
-                className="p-1.5 rounded-lg text-[var(--color-text-muted)] hover:bg-red-50 hover:text-red-600 transition-colors"
-                title="Sign out"
-              >
-                <LogOut className="h-4 w-4" />
-              </button>
-            </form>
-          )}
+          {!collapsed && <SignOutButton variant="icon" />}
         </div>
       </div>
     </>

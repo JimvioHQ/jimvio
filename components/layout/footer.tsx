@@ -23,7 +23,7 @@ const footerLinks = {
   "Earn & Grow": [
     { label: "Affiliate Program", href: "/affiliates" },
     { label: "Influencer Hub", href: "/influencers" },
-    { label: "Communities", href: "/communities" },
+    { label: "Clips", href: "/clips" },
     { label: "Clippings", href: "/clippings" },
     { label: "Partner API", href: "/api" },
     { label: "Creator Studio", href: "/creator" },
@@ -50,7 +50,7 @@ export function Footer({ contact: contactProp }: { contact?: ContactSettings }) 
   const contact = contactProp ?? PLATFORM_SETTINGS_DEFAULTS.contact;
   return (
     <footer className="bg-white text-text-primary pt-20 border-t border-[#f0f0f0]">
-      <div className="max-w-[1280px] mx-auto px-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-12 pb-16">
+      <div className="max-w-[1280px] mx-auto grid grid-cols-1 gap-12 px-4 pb-16 sm:px-6 lg:grid-cols-6">
         <div className="lg:col-span-2">
           <Link href="/" className="mb-6 block transition-transform hover:scale-105 active:scale-95 origin-left">
             <Image 
@@ -94,37 +94,48 @@ export function Footer({ contact: contactProp }: { contact?: ContactSettings }) 
           </div>
         </div>
 
-        {Object.entries(footerLinks).map(([title, links]) => (
-          <div key={title} className="lg:col-span-1">
-            <h5 className="text-[11px] font-black text-[#9ca3af] capitalize tracking-[0.2em] mb-8">
-              {title}
-            </h5>
-            <ul className="flex flex-col gap-4">
-              {links.map((link) => (
-                <li key={link.label}>
-                  <Link 
-                    href={link.href} 
-                    className="text-[14px] text-[#4b5563] hover:text-[#f97316] transition-colors font-semibold"
-                  >
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
+        {/* Mobile: 2 columns of link groups; lg: 4 equal columns */}
+        <div className="grid grid-cols-2 gap-x-6 gap-y-10 sm:gap-x-10 lg:col-span-4 lg:grid-cols-4 lg:gap-x-8 lg:gap-y-0">
+          {Object.entries(footerLinks).map(([title, links]) => (
+            <div key={title} className="min-w-0">
+              <h5 className="mb-4 text-[11px] font-black capitalize tracking-[0.2em] text-[#9ca3af] sm:mb-6 lg:mb-8">
+                {title}
+              </h5>
+              <ul className="flex flex-col gap-3 sm:gap-4">
+                {links.map((link) => (
+                  <li key={link.label}>
+                    <Link
+                      href={link.href}
+                      className="text-[13px] font-semibold leading-snug text-[#4b5563] transition-colors hover:text-[#f97316] sm:text-[14px]"
+                    >
+                      {link.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
       </div>
 
-      <div className="border-t border-[#f0f0f0] bg-[#fafafa] py-10 w-full">
-        <div className="max-w-[1280px] mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6">
-          <p className="text-[12px] text-[#9ca3af] font-bold capitalize tracking-[0.15em]">
+      <div className="w-full border-t border-[#f0f0f0] bg-[#fafafa] py-10">
+        <div className="mx-auto flex max-w-[1280px] flex-col items-center justify-between gap-6 px-4 sm:px-6 md:flex-row">
+          <p className="text-center text-[12px] font-bold capitalize tracking-[0.15em] text-[#9ca3af] md:text-left">
             © {new Date().getFullYear()} Jimvio, Inc. · Built for Global Commerce · Kigali 🇷🇼
           </p>
-          <div className="flex gap-8">
-            <Link href="/privacy" className="text-[12px] text-[#9ca3af] hover:text-[#f97316] transition-colors font-bold capitalize tracking-widest">Privacy Policy</Link>
-            <Link href="/terms" className="text-[12px] text-[#9ca3af] hover:text-[#f97316] transition-colors font-bold capitalize tracking-widest">Terms</Link>
-            <Link href="#" className="text-[12px] text-[#9ca3af] hover:text-[#f97316] transition-colors font-bold capitalize tracking-widest">Cookies</Link>
-            <Link href="#" className="text-[12px] text-[#9ca3af] hover:text-[#f97316] transition-colors font-bold capitalize tracking-widest">Sitemap</Link>
+          <div className="grid w-full max-w-md grid-cols-2 gap-x-6 gap-y-3 text-center sm:flex sm:max-w-none sm:flex-wrap sm:justify-end sm:gap-x-8 sm:gap-y-0 sm:text-left">
+            <Link href="/privacy" className="text-[12px] font-bold capitalize tracking-widest text-[#9ca3af] transition-colors hover:text-[#f97316]">
+              Privacy Policy
+            </Link>
+            <Link href="/terms" className="text-[12px] font-bold capitalize tracking-widest text-[#9ca3af] transition-colors hover:text-[#f97316]">
+              Terms
+            </Link>
+            <Link href="#" className="text-[12px] font-bold capitalize tracking-widest text-[#9ca3af] transition-colors hover:text-[#f97316]">
+              Cookies
+            </Link>
+            <Link href="#" className="text-[12px] font-bold capitalize tracking-widest text-[#9ca3af] transition-colors hover:text-[#f97316]">
+              Sitemap
+            </Link>
           </div>
         </div>
       </div>

@@ -12,7 +12,7 @@ export default function PrivacyPolicyPage() {
     {
       title: "How We Use Data",
       icon: <Shield className="h-5 w-5" />,
-      content: "Primarily to provide and improve the Jimvio ecosystem, facilitate transactions between vendors and buyers, manage affiliate commissions, and ensure the security of our community."
+      content: "Primarily to provide and improve the Jimvio ecosystem, facilitate transactions between vendors and buyers, manage affiliate commissions, and ensure the security of our users."
     },
     {
       title: "Data Security",

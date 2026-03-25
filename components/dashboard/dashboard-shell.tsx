@@ -4,11 +4,11 @@ import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Globe, MessageSquare, UserRound, Menu, Settings, LogOut } from "lucide-react";
+import { LayoutDashboard, Globe, MessageSquare, UserRound, Menu, Settings } from "lucide-react";
 import { Sidebar, type DashboardRole } from "@/components/dashboard/sidebar";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
-import { signOut } from "@/lib/auth/actions";
+import { SignOutButton } from "@/components/auth/sign-out-button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -48,17 +48,15 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
 
       const roles: DashboardRole[] = ["buyer"];
 
-      const [vendorRes, affiliateRes, influencerRes, communityRes] = await Promise.all([
+      const [vendorRes, affiliateRes, influencerRes] = await Promise.all([
         supabase.from("vendors").select("id").eq("user_id", authUser.id).maybeSingle(),
         supabase.from("affiliates").select("id").eq("user_id", authUser.id).maybeSingle(),
         supabase.from("influencers").select("id").eq("user_id", authUser.id).maybeSingle(),
-        supabase.from("communities").select("id").eq("owner_id", authUser.id).maybeSingle(),
       ]);
 
       if (vendorRes.data) roles.push("vendor");
       if (affiliateRes.data) roles.push("affiliate");
       if (influencerRes.data) roles.push("influencer");
-      if (communityRes.data) roles.push("community");
 
       setActiveRoles(roles);
     }
@@ -117,16 +115,8 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem asChild className="p-0 focus:bg-transparent">
-                  <form action={signOut} className="w-full">
-                    <button
-                      type="submit"
-                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-red-600 outline-none hover:bg-red-50 dark:hover:bg-red-950/30"
-                    >
-                      <LogOut className="h-4 w-4 shrink-0" />
-                      Sign out
-                    </button>
-                  </form>
+                <DropdownMenuItem asChild className="p-0 focus:bg-transparent text-red-600">
+                  <SignOutButton variant="menu" />
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

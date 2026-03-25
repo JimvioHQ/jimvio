@@ -5,8 +5,8 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  Package, Link2, Video, Users, ShoppingBag, CheckCircle,
-  ArrowRight, Zap, Crown, Loader2
+  Package, Link2, Video, ShoppingBag, CheckCircle,
+  ArrowRight, Crown, Loader2
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -20,7 +20,6 @@ interface RoleState {
   vendor:     RoleStatus;
   affiliate:  RoleStatus;
   influencer: RoleStatus;
-  community:  RoleStatus;
 }
 
 const allRoles = [
@@ -72,25 +71,13 @@ const allRoles = [
     alwaysActive: false,
     setupPath: null,
   },
-  {
-    id: "community" as const,
-    label: "Community Owner",
-    icon: <Users className="h-6 w-6" />,
-    color: "bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400",
-    badge: "Recurring income",
-    badgeVariant: "warning" as const,
-    description: "Launch a paid community. Monthly, yearly, or lifetime plans. Build a recurring income stream.",
-    features: ["Custom community page", "Subscription plans", "Exclusive posts", "Member management", "Analytics"],
-    alwaysActive: false,
-    setupPath: "/dashboard/community/setup",
-  },
 ];
 
 export default function RolesPage() {
   const router = useRouter();
   const [roles, setRoles] = useState<RoleState>({
     buyer: "active", vendor: "inactive", affiliate: "inactive",
-    influencer: "inactive", community: "inactive",
+    influencer: "inactive",
   });
   const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -115,7 +102,6 @@ export default function RolesPage() {
         vendor:     (vendorRes.data || activeRoles.includes("vendor")) ? "active" : "inactive",
         affiliate:  (affiliateRes.data || activeRoles.includes("affiliate")) ? "active" : "inactive",
         influencer: (influencerRes.data || activeRoles.includes("influencer")) ? "active" : "inactive",
-        community:  activeRoles.includes("community_owner") ? "active" : "inactive",
       });
       setLoading(false);
     }
@@ -129,13 +115,11 @@ export default function RolesPage() {
     const supabase = createClient();
 
     try {
-      // Add role to user_roles
       await supabase.from("user_roles").upsert(
-        { user_id: userId, role: roleId === "community" ? "community_owner" : roleId },
+        { user_id: userId, role: roleId },
         { onConflict: "user_id,role" }
       );
 
-      // Create the role-specific record
       if (roleId === "affiliate") {
         const { error } = await supabase.from("affiliates").insert({ user_id: userId }).select().single();
         if (!error) {
@@ -149,10 +133,6 @@ export default function RolesPage() {
         });
         setRoles(prev => ({ ...prev, influencer: "active" }));
       } else if (roleId === "vendor" && setupPath) {
-        // Vendor needs full setup form
-        router.push(setupPath);
-        return;
-      } else if (roleId === "community" && setupPath) {
         router.push(setupPath);
         return;
       }
@@ -182,7 +162,6 @@ export default function RolesPage() {
         </p>
       </div>
 
-      {/* Active roles summary */}
       {activeCount > 1 && (
         <div className="flex flex-wrap gap-2">
           {allRoles.filter(r => roles[r.id] === "active").map(r => (
@@ -194,7 +173,6 @@ export default function RolesPage() {
         </div>
       )}
 
-      {/* Info banner */}
       <div className="bg-[var(--color-accent-light)] border border-[var(--color-accent)]/30 rounded-xl px-4 py-3 flex items-start gap-3">
         <Crown className="h-5 w-5 text-[var(--color-accent)] shrink-0 mt-0.5" />
         <div>
@@ -205,7 +183,6 @@ export default function RolesPage() {
         </div>
       </div>
 
-      {/* Role cards */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {allRoles.map((r) => {
           const status = roles[r.id];
@@ -215,7 +192,6 @@ export default function RolesPage() {
           return (
             <Card key={r.id} className={isActive ? "ring-2 ring-[var(--color-accent)]/30" : ""}>
               <CardContent className="p-4">
-                {/* Header */}
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-3">
                     <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${r.color}`}>
@@ -237,7 +213,6 @@ export default function RolesPage() {
 
                 <p className="text-sm text-muted-c mb-3 leading-relaxed">{r.description}</p>
 
-                {/* Features */}
                 <ul className="space-y-1 mb-4">
                   {r.features.map((f, i) => (
                     <li key={i} className="flex items-center gap-2 text-sm text-muted-c">
@@ -246,7 +221,6 @@ export default function RolesPage() {
                   ))}
                 </ul>
 
-                {/* Action */}
                 {isActive ? (
                   <div className="flex items-center gap-2 text-sm font-medium text-[var(--color-accent)]">
                     <CheckCircle className="h-4 w-4" /> This role is active

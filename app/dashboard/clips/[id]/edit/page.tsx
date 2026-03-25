@@ -138,7 +138,7 @@ export default function EditClipPage() {
           </div>
           <div>
             <label className="text-sm font-medium text-[var(--color-text-primary)] block mb-1.5">Caption</label>
-            <textarea value={caption} onChange={(e) => setCaption(e.target.value)} rows={3} className="w-full px-3 py-2.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30 resize-none" />
+            <textarea value={caption} onChange={(e) => setCaption(e.target.value)} rows={3} className="w-full px-3 py-2.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30 resize-none" />
           </div>
           <div>
             <label className="text-sm font-medium text-[var(--color-text-primary)] block mb-1.5">Tags (comma-separated)</label>

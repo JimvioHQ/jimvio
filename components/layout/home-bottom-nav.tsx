@@ -3,14 +3,14 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Compass, ShoppingBag, Users, User } from "lucide-react";
+import { Home, ShoppingBag, User, Users, Video } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const items = [
   { href: "/", label: "Home", icon: Home },
-  { href: "/#trending-clips", label: "Discover", icon: Compass },
+  { href: "/communities", label: "Communities", icon: Users },
   { href: "/marketplace", label: "Marketplace", icon: ShoppingBag },
-  { href: "/communities", label: "Community", icon: Users },
+  { href: "/clips", label: "Clips", icon: Video },
   { href: "/dashboard", label: "Profile", icon: User },
 ];
 
@@ -22,8 +22,11 @@ export function HomeBottomNav() {
       <div className="flex items-center justify-around h-14 px-2">
         {items.map(({ href, label, icon: Icon }) => {
           const isRoot = href === "/";
-          const isHash = href.startsWith("/#");
-          const isActive = isRoot ? pathname === "/" : isHash ? pathname === "/" : pathname === href || pathname.startsWith(href);
+          const isActive = isRoot
+            ? pathname === "/"
+            : href === "/communities"
+              ? pathname === "/communities" || pathname.startsWith("/communities/")
+              : pathname === href || pathname.startsWith(`${href}/`);
           return (
             <Link
               key={href + label}

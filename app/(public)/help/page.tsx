@@ -18,7 +18,7 @@ export default function HelpCenterPage() {
     "What is Jimvio Trade Assurance?",
     "How to withdraw affiliate earnings?",
     "Shipping and logistics support for creators",
-    "Managing your community subscriptions"
+    "Managing your subscription billing"
   ];
 
   return (

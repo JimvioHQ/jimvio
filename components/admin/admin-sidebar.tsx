@@ -16,16 +16,14 @@ import {
   AlertTriangle,
   DollarSign,
   Settings,
-  LogOut,
   ChevronLeft,
   ChevronRight,
   MessageCircle,
-  UsersRound,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { signOut } from "@/lib/auth/actions";
+import { SignOutButton } from "@/components/auth/sign-out-button";
 
 const adminNavItems = [
   { label: "Overview", href: "/admin", icon: <LayoutDashboard className="h-4 w-4" /> },
@@ -34,7 +32,6 @@ const adminNavItems = [
   { label: "Products", href: "/admin/products", icon: <Package className="h-4 w-4" /> },
   { label: "Orders", href: "/admin/orders", icon: <ShoppingCart className="h-4 w-4" /> },
   { label: "Shopify", href: "/admin/shopify", icon: <Package className="h-4 w-4" /> },
-  { label: "Communities", href: "/admin/communities", icon: <UsersRound className="h-4 w-4" /> },
   { label: "Messages", href: "/admin/messages", icon: <MessageCircle className="h-4 w-4" /> },
   { label: "Reports", href: "/admin/reports", icon: <BarChart3 className="h-4 w-4" /> },
   { label: "Verification Requests", href: "/admin/verifications", icon: <ShieldCheck className="h-4 w-4" /> },
@@ -135,11 +132,7 @@ export function AdminSidebar({ user, collapsed, onCollapsedChange, mobileOpen, o
                 <p className="text-sm font-medium truncate">{user.full_name || "Admin"}</p>
                 <p className="text-xs text-[var(--color-text-muted)] truncate">{user.email}</p>
               </div>
-              <form action={signOut}>
-                <button type="submit" className="p-1.5 rounded-lg text-[var(--color-text-muted)] hover:bg-red-50 hover:text-red-600" title="Sign out">
-                  <LogOut className="h-4 w-4" />
-                </button>
-              </form>
+              <SignOutButton variant="icon" />
             </>
           )}
         </div>

@@ -15,7 +15,7 @@ const buttonVariants = cva(
         outline:
           "border border-brand-500 text-brand-500 hover:bg-brand-500 hover:text-white",
         ghost:
-          "text-white/70 hover:text-white hover:bg-white/10",
+          "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-secondary)] border border-transparent",
         destructive:
           "bg-red-600 text-white hover:bg-red-700 shadow-md",
         glass:
@@ -52,7 +52,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     const Comp = asChild ? Slot : "button";
     return (
       <Comp
-        className={cn(buttonVariants({ variant, size, className }))}
+        className={cn(buttonVariants({ variant, size }), className)}
         ref={ref}
         disabled={disabled || loading}
         {...props}

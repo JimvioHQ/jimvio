@@ -82,7 +82,7 @@ export function ReviewForm({ productId, vendorId }: ReviewFormProps) {
             placeholder="Great product!" 
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[var(--color-accent)] outline-none"
+            className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl px-4 py-3 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:ring-2 focus:ring-[var(--color-accent)] outline-none"
           />
         </div>
 
@@ -93,7 +93,7 @@ export function ReviewForm({ productId, vendorId }: ReviewFormProps) {
             rows={3}
             value={body}
             onChange={(e) => setBody(e.target.value)}
-            className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[var(--color-accent)] outline-none resize-none"
+            className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl px-4 py-3 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:ring-2 focus:ring-[var(--color-accent)] outline-none resize-none"
           />
         </div>
 

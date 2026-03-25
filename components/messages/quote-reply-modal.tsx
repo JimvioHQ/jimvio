@@ -77,7 +77,7 @@ export function QuoteReplyModal({
               onChange={(e) => setBody(e.target.value)}
               placeholder="Add a note..."
               rows={2}
-              className="w-full px-4 py-2 rounded-xl border border-[var(--color-border)] text-sm mt-1 resize-none"
+              className="w-full px-4 py-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] mt-1 resize-none"
             />
           </div>
           <div className="flex gap-2 pt-2">

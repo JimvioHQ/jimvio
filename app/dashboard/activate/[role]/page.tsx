@@ -7,7 +7,6 @@ import {
   Store,
   Link2,
   Video,
-  Users,
   ArrowRight,
   CheckCircle2,
   Building2,
@@ -42,14 +41,6 @@ const roleConfig: Record<string, { title: string; description: string; requireme
     setupPath: "/dashboard/roles",
     icon: <Video className="h-12 w-12 text-pink-600" />,
   },
-  community: {
-    title: "Join Communities",
-    description: "Create or join paid communities. Host discussions and build recurring revenue.",
-    requirements: ["Active account", "Community guidelines"],
-    buttonLabel: "Get Started",
-    setupPath: "/dashboard/roles",
-    icon: <Users className="h-12 w-12 text-amber-600" />,
-  },
 };
 
 export default function ActivateRolePage() {
@@ -68,9 +59,8 @@ export default function ActivateRolePage() {
         setLoading(false);
         return;
       }
-      const table = role === "vendor" ? "vendors" : role === "affiliate" ? "affiliates" : role === "influencer" ? "influencers" : "communities";
-      const col = role === "community" ? "owner_id" : "user_id";
-      supabase.from(table).select("id").eq(col, user.id).maybeSingle().then(({ data }) => {
+      const table = role === "vendor" ? "vendors" : role === "affiliate" ? "affiliates" : "influencers";
+      supabase.from(table).select("id").eq("user_id", user.id).maybeSingle().then(({ data }) => {
         setAlreadyActive(!!data);
         setLoading(false);
       });

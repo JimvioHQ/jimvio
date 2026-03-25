@@ -7,14 +7,12 @@ import {
   Package,
   DollarSign,
   Eye,
-  MessageSquare,
   Globe,
   Plus,
   Link2,
   Video,
   Users,
   ArrowRight,
-  MessageCircle,
   Store,
   Truck,
   Pencil,
@@ -31,7 +29,7 @@ const quickActions = [
   { label: "Upload Product", href: "/dashboard/products/new", icon: <Plus className="h-5 w-5" />, color: "bg-emerald-100 text-emerald-600" },
   { label: "Generate Affiliate Link", href: "/dashboard/links", icon: <Link2 className="h-5 w-5" />, color: "bg-blue-100 text-blue-600" },
   { label: "Create Product Clip", href: "/dashboard/campaigns/browse", icon: <Video className="h-5 w-5" />, color: "bg-pink-100 text-pink-600" },
-  { label: "Join Community", href: "/communities", icon: <Users className="h-5 w-5" />, color: "bg-amber-100 text-amber-600" },
+  { label: "Discover Clips", href: "/clips", icon: <Video className="h-5 w-5" />, color: "bg-amber-100 text-amber-600" },
 ];
 
 const vendorQuickActions = [
@@ -41,12 +39,11 @@ const vendorQuickActions = [
   { label: "Edit Store", href: "/dashboard/vendor/store", icon: <Pencil className="h-5 w-5" />, color: "bg-violet-100 text-violet-600" },
 ];
 
-type ActivityType = "viewed_product" | "uploaded_product" | "affiliate_link" | "posted_discussion";
+type ActivityType = "viewed_product" | "uploaded_product" | "affiliate_link";
 const activityIcons: Record<ActivityType, React.ReactNode> = {
   viewed_product: <Package className="h-4 w-4" />,
   uploaded_product: <Package className="h-4 w-4" />,
   affiliate_link: <Link2 className="h-4 w-4" />,
-  posted_discussion: <MessageCircle className="h-4 w-4" />,
 };
 
 export default function DashboardPage() {
@@ -56,9 +53,6 @@ export default function DashboardPage() {
     productsListed: 0,
     affiliateEarnings: 0,
     videoViews: 0,
-    communityPosts: 0,
-    communitiesJoined: 0,
-    communityReputation: 0,
     vendorOrders: 0,
     vendorRevenue: 0,
     vendorFollowers: 0,
@@ -102,22 +96,11 @@ export default function DashboardPage() {
       const affiliateEarnings = Number(affiliateRes.data?.total_earnings ?? 0);
       const orders = ordersRes.count ?? 0;
 
-      const [communityMembersRes, communityPostsRes] = await Promise.all([
-        supabase.from("community_members").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("subscription_status", "active"),
-        supabase.from("community_posts").select("id, like_count").eq("author_id", user.id),
-      ]);
-      const communitiesJoined = communityMembersRes.count ?? 0;
-      const communityPosts = communityPostsRes.data?.length ?? 0;
-      const communityReputation = communityPostsRes.data?.reduce((sum, p) => sum + (p.like_count ?? 0), 0) ?? 0;
-
       setStats({
         orders,
         productsListed,
         affiliateEarnings,
         videoViews: 0,
-        communityPosts,
-        communitiesJoined,
-        communityReputation,
         vendorOrders,
         vendorRevenue,
         vendorFollowers,
@@ -134,10 +117,6 @@ export default function DashboardPage() {
           recent.push({ type: "uploaded_product", label: `Uploaded: ${p.name}`, time: new Date(p.created_at).toLocaleDateString(), href: "/dashboard/products" });
         });
       }
-      const communityPostsList = await supabase.from("community_posts").select("id, title, created_at").eq("author_id", user.id).order("created_at", { ascending: false }).limit(2);
-      communityPostsList.data?.forEach((p) => {
-        recent.push({ type: "posted_discussion", label: p.title ? `Post: ${p.title}` : "Posted in community", time: new Date(p.created_at).toLocaleDateString(), href: "/dashboard/community/posts" });
-      });
       recent.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
       setActivity(recent.slice(0, 8));
       setLoading(false);
@@ -159,7 +138,7 @@ export default function DashboardPage() {
           Welcome back, {userName}
         </h1>
         <p className="mt-1 text-sm text-[var(--color-text-muted)] leading-relaxed max-w-lg">
-          Your orders, store, affiliates, and community — one place.
+          Your orders, store, affiliates, and creators — one place.
         </p>
       </div>
 
@@ -209,59 +188,20 @@ export default function DashboardPage() {
           Overview
         </h2>
         {loading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-2.5 sm:gap-4">
-            {[1, 2, 3, 4, 5].map((i) => (
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
+            {[1, 2, 3, 4].map((i) => (
               <div key={i} className="h-28 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] animate-pulse" />
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-2.5 sm:gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
             <StatCard title="Orders" value={stats.orders} icon={<ShoppingCart className="h-4 w-4" />} iconColor="from-blue-600 to-cyan-600" className="shadow-sm hover:shadow-md transition-shadow" />
             <StatCard title="Products Listed" value={stats.productsListed} icon={<Package className="h-4 w-4" />} iconColor="from-[var(--color-accent)] to-amber-600" className="shadow-sm hover:shadow-md transition-shadow" />
             <StatCard title="Affiliate Earnings" value={formatCurrency(stats.affiliateEarnings)} icon={<DollarSign className="h-4 w-4" />} iconColor="from-emerald-600 to-teal-600" className="shadow-sm hover:shadow-md transition-shadow" />
             <StatCard title="Video Views" value={stats.videoViews.toLocaleString()} icon={<Eye className="h-4 w-4" />} iconColor="from-pink-600 to-rose-600" className="shadow-sm hover:shadow-md transition-shadow" />
-            <StatCard title="Community Posts" value={stats.communityPosts} icon={<MessageSquare className="h-4 w-4" />} iconColor="from-amber-600 to-orange-600" className="shadow-sm hover:shadow-md transition-shadow" />
           </div>
         )}
       </section>
-
-      {/* Community profile: joined, posts, reputation */}
-      {(stats.communitiesJoined > 0 || stats.communityPosts > 0) && (
-        <section>
-          <h2 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-[var(--color-text-secondary)] mb-3 sm:mb-4 flex items-center gap-2">
-            <MessageCircle className="h-4 w-4 shrink-0 text-[var(--color-accent)]" /> Community
-          </h2>
-          <Card className="rounded-2xl border-[var(--color-border)] shadow-sm overflow-hidden">
-            <CardContent className="p-4 sm:p-5">
-              <div className="grid grid-cols-3 gap-4 text-center">
-                <div>
-                  <p className="text-2xl font-black text-[var(--color-text-primary)]">{stats.communitiesJoined}</p>
-                  <p className="text-xs text-[var(--color-text-muted)] font-medium">Communities joined</p>
-                </div>
-                <div>
-                  <p className="text-2xl font-black text-[var(--color-text-primary)]">{stats.communityPosts}</p>
-                  <p className="text-xs text-[var(--color-text-muted)] font-medium">Posts created</p>
-                </div>
-                <div>
-                  <p className="text-2xl font-black text-[var(--color-accent)]">{stats.communityReputation}</p>
-                  <p className="text-xs text-[var(--color-text-muted)] font-medium">Reputation (likes)</p>
-                </div>
-              </div>
-              <div className="mt-4 pt-4 border-t border-[var(--color-border)] flex flex-wrap gap-2">
-                <Link href="/communities/hub">
-                  <Button variant="outline" size="sm" className="rounded-xl">Hub</Button>
-                </Link>
-                <Link href="/dashboard/community/posts">
-                  <Button variant="outline" size="sm" className="rounded-xl">My Posts</Button>
-                </Link>
-                <Link href="/communities">
-                  <Button variant="outline" size="sm" className="rounded-xl">Discover</Button>
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
-        </section>
-      )}
 
       {/* Quick Actions — horizontal swipe on small screens */}
       <section>
