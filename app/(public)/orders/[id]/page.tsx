@@ -96,9 +96,15 @@ export default function PublicOrderDetailPage() {
       ? "Crypto"
       : order.payment_provider === "pesapal"
         ? "PesaPal"
-        : order.payment_provider || "—";
+        : order.payment_provider === "pawapay"
+          ? "PawaPay"
+          : order.payment_provider || "—";
   const ref =
-    order.pesapal_tracking_id || order.nowpayments_payment_id || order.payment_provider || "—";
+    order.pesapal_tracking_id ||
+    order.nowpayments_payment_id ||
+    order.pawapay_deposit_id ||
+    order.payment_provider ||
+    "—";
 
   return (
     <div className="min-h-screen bg-[var(--color-bg)] pt-28 pb-20">

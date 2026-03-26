@@ -9,10 +9,12 @@ export const dynamic = "force-dynamic";
 export default async function CheckoutSuccessPage({
   searchParams,
 }: {
-  searchParams: Promise<{ order_id?: string }>;
+  searchParams: Promise<{ orderId?: string; order_id?: string }>;
 }) {
-  const { order_id } = await searchParams;
-  if (!order_id) notFound();
+  const sp = await searchParams;
+  /** Pending / PawaPay flows use `orderId`; some callbacks use `order_id`. */
+  const orderId = sp.orderId?.trim() || sp.order_id?.trim();
+  if (!orderId) notFound();
 
   const supabase = await createClient();
   const { data: order, error } = await supabase
@@ -27,7 +29,7 @@ export default async function CheckoutSuccessPage({
       order_items ( product_name, quantity, total_price )
     `
     )
-    .eq("id", order_id)
+    .eq("id", orderId)
     .single();
 
   if (error || !order) notFound();

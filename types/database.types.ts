@@ -185,6 +185,8 @@ export interface Order {
   /** From migration 025 — Pesapal checkout */
   pesapal_tracking_id?: string | null;
   pesapal_merchant_ref?: string | null;
+  /** PawaPay client deposit UUID (migration 031) */
+  pawapay_deposit_id?: string | null;
   payment_provider?: string | null;
   paid_at: string | null;
   shipped_at: string | null;

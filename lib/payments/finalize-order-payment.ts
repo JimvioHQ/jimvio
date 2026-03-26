@@ -11,6 +11,8 @@ export type FinalizePaymentContext = {
   webhookReference?: string;
   /** When checkout used NowPayments (crypto). */
   nowpaymentsPaymentId?: number | null;
+  /** e.g. pawapay — stored on orders.payment_provider when finalizing */
+  paymentProvider?: string | null;
 };
 
 /**
@@ -108,6 +110,9 @@ export async function finalizeOrderPayment(
     };
     if (ctx.nowpaymentsPaymentId != null) {
       regularPatch.nowpayments_payment_id = ctx.nowpaymentsPaymentId;
+    }
+    if (ctx.paymentProvider) {
+      regularPatch.payment_provider = ctx.paymentProvider;
     }
     await db.from("orders").update(regularPatch).eq("id", orderId);
 
@@ -208,6 +213,9 @@ export async function finalizeOrderPayment(
     };
     if (ctx.nowpaymentsPaymentId != null) {
       shopifyPatch.nowpayments_payment_id = ctx.nowpaymentsPaymentId;
+    }
+    if (ctx.paymentProvider) {
+      shopifyPatch.payment_provider = ctx.paymentProvider;
     }
     await db.from("orders").update(shopifyPatch).eq("id", orderId);
 

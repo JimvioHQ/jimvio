@@ -106,7 +106,14 @@ export default function PublicOrdersPage() {
             {filtered.map((o) => {
               const first = o.order_items?.[0];
               const more = (o.order_items?.length || 0) - 1;
-              const pay = o.payment_provider === "nowpayments" ? "Crypto" : o.payment_provider === "pesapal" ? "PesaPal" : o.payment_provider || "—";
+              const pay =
+                o.payment_provider === "nowpayments"
+                  ? "Crypto"
+                  : o.payment_provider === "pesapal"
+                    ? "PesaPal"
+                    : o.payment_provider === "pawapay"
+                      ? "PawaPay"
+                      : o.payment_provider || "—";
               const num = o.order_number || o.id.slice(0, 8);
               return (
                 <li

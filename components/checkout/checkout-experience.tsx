@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { ShippingForm, type ShippingFormValues } from "@/components/checkout/Shi
 import { OrderSummary, type OrderSummaryItem } from "@/components/checkout/OrderSummary";
 import { PaymentMethodSelector } from "@/components/checkout/PaymentMethodSelector";
 import { updatePendingOrdersShipping } from "@/lib/actions/checkout";
+import { getPawaPayProviderOptions } from "@/lib/pawapay-providers";
 import { toast } from "sonner";
 import { cn, formatDisplayMoney } from "@/lib/utils";
 import { NOWPAYMENTS_INVOICE_URL_STORAGE_KEY } from "@/lib/nowpayments-invoice-bridge";
@@ -40,8 +41,10 @@ export function CheckoutExperience({
   profile: { full_name: string | null; email: string | null; phone: string | null } | null;
 }) {
   const [selectedOrderId, setSelectedOrderId] = useState(orders[0]?.id ?? "");
-  const [payment, setPayment] = useState<"pesapal" | "nowpayments" | null>("pesapal");
+  const [payment, setPayment] = useState<"pesapal" | "nowpayments" | "pawapay" | null>("pesapal");
   const [payCurrency, setPayCurrency] = useState("usdttrc20");
+  const [pawapayProvider, setPawapayProvider] = useState("");
+  const [pawapayPhone, setPawapayPhone] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   const nameParts = (profile?.full_name || "").split(" ");
@@ -82,6 +85,22 @@ export function CheckoutExperience({
     : 0;
   const currency = (selectedOrder?.currency || "USD").toUpperCase();
   const total = subtotal;
+
+  const pawapayOpts = useMemo(() => {
+    const all = getPawaPayProviderOptions();
+    if (currency === "USD") return all;
+    return all.filter((p) => p.currency.toUpperCase() === currency);
+  }, [currency]);
+
+  useEffect(() => {
+    if (pawapayOpts.length && !pawapayOpts.some((o) => o.id === pawapayProvider)) {
+      setPawapayProvider(pawapayOpts[0].id);
+    }
+  }, [pawapayOpts, pawapayProvider]);
+
+  useEffect(() => {
+    setPawapayPhone(shipping.phone);
+  }, [shipping.phone]);
 
   async function handleComplete() {
     if (!selectedOrder || !payment) {
@@ -133,6 +152,31 @@ export function CheckoutExperience({
           return;
         }
         throw new Error("No redirect URL");
+      }
+
+      if (payment === "pawapay") {
+        if (!pawapayProvider || !pawapayPhone.trim()) {
+          throw new Error("Choose a mobile network and enter your phone number for PawaPay");
+        }
+        if (pawapayOpts.length === 0) {
+          throw new Error(`No PawaPay providers for ${currency}. Configure NEXT_PUBLIC_PAWAPAY_PROVIDERS or use another method.`);
+        }
+        const res = await fetch("/api/payments/pawapay/initiate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            orderId: selectedOrder.id,
+            provider: pawapayProvider,
+            phoneNumber: pawapayPhone.trim(),
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "PawaPay failed");
+        if (data.status === "ACCEPTED" || data.status === "DUPLICATE_IGNORED") {
+          window.location.href = `/checkout/pending?orderId=${encodeURIComponent(selectedOrder.id)}`;
+          return;
+        }
+        throw new Error(data.error || "PawaPay did not accept the deposit");
       }
 
       const res = await fetch("/api/payments/nowpayments/initiate", {
@@ -205,6 +249,12 @@ export function CheckoutExperience({
             onSelect={setPayment}
             payCurrency={payCurrency}
             onCurrencyChange={setPayCurrency}
+            orderCurrency={currency}
+            orderTotal={total}
+            pawapayProvider={pawapayProvider}
+            onPawapayProviderChange={setPawapayProvider}
+            pawapayPhone={pawapayPhone}
+            onPawapayPhoneChange={setPawapayPhone}
           />
         </div>
 

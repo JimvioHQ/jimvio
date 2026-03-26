@@ -17,7 +17,14 @@ type Order = {
 
 export function CheckoutSuccessClient({ order }: { order: Order }) {
   const label = order.order_number?.startsWith("JV") ? order.order_number : `JV-${String(order.order_number || order.id).slice(0, 8).toUpperCase()}`;
-  const method = order.payment_provider === "nowpayments" ? "Crypto" : order.payment_provider === "pesapal" ? "PesaPal" : order.payment_provider || "—";
+  const method =
+    order.payment_provider === "nowpayments"
+      ? "Crypto"
+      : order.payment_provider === "pesapal"
+        ? "PesaPal"
+        : order.payment_provider === "pawapay"
+          ? "PawaPay"
+          : order.payment_provider || "—";
 
   return (
     <div className="text-center">

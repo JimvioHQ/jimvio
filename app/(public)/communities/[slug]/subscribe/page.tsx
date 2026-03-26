@@ -40,11 +40,21 @@ export default async function CommunitySubscribePage({
   if (!community) notFound();
   if (community.is_free) redirect(`/communities/${slug}`);
 
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  let profilePhone: string | null = null;
+  if (user) {
+    const { data: prof } = await supabase.from("profiles").select("phone").eq("id", user.id).maybeSingle();
+    profilePhone = prof?.phone ?? null;
+  }
+
   return (
     <CommunitySubscribeClient
       community={community}
       initialPlan={planRaw}
       initialProvider={providerRaw}
+      profilePhone={profilePhone}
     />
   );
 }

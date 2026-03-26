@@ -21,9 +21,11 @@ export async function POST(
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { planType, paymentProvider = "pesapal" } = (await req.json()) as {
+  const { planType, paymentProvider = "pesapal", pawapayProvider, pawapayPhone } = (await req.json()) as {
     planType?: string;
     paymentProvider?: string;
+    pawapayProvider?: string;
+    pawapayPhone?: string;
   };
 
   if (!planType || !["monthly", "yearly", "lifetime"].includes(planType)) {
@@ -80,15 +82,32 @@ export async function POST(
     );
   }
 
+  if (paymentProvider === "pawapay") {
+    if (!pawapayProvider?.trim() || !pawapayPhone?.trim()) {
+      return NextResponse.json({ error: "pawapayProvider and pawapayPhone are required for PawaPay" }, { status: 400 });
+    }
+  }
+
   const path =
     paymentProvider === "nowpayments"
       ? `${base}/api/payments/nowpayments/initiate`
-      : `${base}/api/payments/pesapal/initiate`;
+      : paymentProvider === "pawapay"
+        ? `${base}/api/payments/pawapay/initiate`
+        : `${base}/api/payments/pesapal/initiate`;
+
+  const paymentBody =
+    paymentProvider === "pawapay"
+      ? JSON.stringify({
+          orderId: order.id,
+          provider: pawapayProvider?.trim(),
+          phoneNumber: pawapayPhone?.trim(),
+        })
+      : JSON.stringify({ orderId: order.id });
 
   const paymentRes = await fetch(path, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ orderId: order.id }),
+    body: paymentBody,
   });
 
   const paymentData = (await paymentRes.json()) as Record<string, unknown>;
@@ -97,6 +116,13 @@ export async function POST(
       { error: (paymentData.error as string) || "Payment initiation failed" },
       { status: paymentRes.status }
     );
+  }
+
+  if (paymentProvider === "pawapay") {
+    return NextResponse.json({
+      ...paymentData,
+      pendingUrl: `${base}/checkout/pending?orderId=${encodeURIComponent(order.id)}`,
+    });
   }
 
   return NextResponse.json(paymentData);
