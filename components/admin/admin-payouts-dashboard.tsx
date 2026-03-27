@@ -44,16 +44,17 @@ function maskAccount(s: string | null): string {
 
 function methodLabel(id: string | null): string {
   switch (id) {
+    case "mtn":
     case "mtn_momo":
       return "MTN Mobile Money";
     case "bank_transfer":
+    case "bank":
       return "Bank Transfer";
     case "crypto":
       return "Crypto";
-    case "irembopay":
-      return "IremboPay";
     default:
-      return id || "—";
+      if (!id) return "—";
+      return id.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
   }
 }
 

@@ -1,6 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createShopifyOrder, attachShopifyOrdersToJimvioOrder } from "@/services/shopifyOrderCreation";
 import { getShopifyPlatformCommissionFallback } from "@/lib/platform-settings";
+import { creditVendorWalletsForNativeOrder } from "@/lib/payments/credit-vendors-for-native-order";
+import { dispatchNonShopifyFulfillmentIntegrations, isShopifyFulfillmentLine } from "@/lib/order-fulfillment/after-payment";
 
 export type FinalizePaymentContext = {
   providerTransactionId: string;
@@ -38,6 +40,8 @@ export async function finalizeOrderPayment(
         total_price,
         shopify_variant_id,
         shopify_product_id,
+        product_source,
+        source_metadata,
         affiliate_id,
         affiliate_commission_rate,
         affiliate_commission_amount
@@ -65,13 +69,15 @@ export async function finalizeOrderPayment(
     quantity: number;
     unit_price: number;
     total_price: number;
+    product_source?: string | null;
+    source_metadata?: Record<string, unknown> | null;
     affiliate_id: string | null;
     affiliate_commission_rate: number | null;
     affiliate_commission_amount: number | null;
     product_id: string | null;
   }>;
 
-  const shopifyItems = orderItems.filter((item) => item.shopify_variant_id != null);
+  const shopifyItems = orderItems.filter((item) => isShopifyFulfillmentLine(item));
   const hasShopifyBridge =
     order.shopify_order_id != null || (Array.isArray(order.shopify_order_ids) && order.shopify_order_ids.length > 0);
 
@@ -115,6 +121,35 @@ export async function finalizeOrderPayment(
       regularPatch.payment_provider = ctx.paymentProvider;
     }
     await db.from("orders").update(regularPatch).eq("id", orderId);
+
+    await creditVendorWalletsForNativeOrder(db, {
+      orderId,
+      orderNumber: String(order.order_number ?? orderId),
+      currency: String(order.currency ?? "RWF"),
+      paymentProvider: ctx.paymentProvider ?? null,
+      providerTransactionId: ctx.providerTransactionId,
+      items: orderItems.map((i) => ({
+        vendor_id: i.vendor_id,
+        total_price: i.total_price,
+        product_source: i.product_source,
+        shopify_variant_id: i.shopify_variant_id,
+      })),
+    });
+
+    await dispatchNonShopifyFulfillmentIntegrations(db, {
+      orderId,
+      orderNumber: String(order.order_number ?? orderId),
+      items: orderItems.map((i) => ({
+        id: i.id,
+        product_id: i.product_id ?? "",
+        vendor_id: i.vendor_id,
+        quantity: i.quantity,
+        unit_price: i.unit_price,
+        total_price: i.total_price,
+        product_source: i.product_source,
+        source_metadata: i.source_metadata ?? null,
+      })),
+    });
 
     const affItems = orderItems.filter((i) => i.affiliate_id != null);
     for (const item of affItems) {
@@ -227,6 +262,63 @@ export async function finalizeOrderPayment(
         message: `Your Shopify order${ctx.amountForMessage != null ? ` (RWF ${Number(ctx.amountForMessage).toLocaleString()})` : ""} is being fulfilled by the merchant.`,
         data: { order_id: orderId, reference: ctx.webhookReference },
         action_url: `/dashboard/orders/${orderId}`,
+      });
+    }
+  }
+
+  await creditVendorWalletsForNativeOrder(db, {
+    orderId,
+    orderNumber: String(order.order_number ?? orderId),
+    currency: String(order.currency ?? "RWF"),
+    paymentProvider: ctx.paymentProvider ?? null,
+    providerTransactionId: ctx.providerTransactionId,
+    items: orderItems.map((i) => ({
+      vendor_id: i.vendor_id,
+      total_price: i.total_price,
+      product_source: i.product_source,
+      shopify_variant_id: i.shopify_variant_id,
+    })),
+  });
+
+  await dispatchNonShopifyFulfillmentIntegrations(db, {
+    orderId,
+    orderNumber: String(order.order_number ?? orderId),
+    items: orderItems.map((i) => ({
+      id: i.id,
+      product_id: i.product_id ?? "",
+      vendor_id: i.vendor_id,
+      quantity: i.quantity,
+      unit_price: i.unit_price,
+      total_price: i.total_price,
+      product_source: i.product_source,
+      source_metadata: i.source_metadata ?? null,
+    })),
+  });
+
+  const affShopify = orderItems.filter((i) => i.affiliate_id != null);
+  for (const item of affShopify) {
+    if (item.affiliate_id && item.affiliate_commission_amount) {
+      const { data: existing } = await db
+        .from("affiliate_commissions")
+        .select("id")
+        .eq("order_item_id", item.id)
+        .maybeSingle();
+      if (existing) continue;
+      await db.from("affiliate_commissions").insert({
+        affiliate_id: item.affiliate_id,
+        order_id: orderId,
+        order_item_id: item.id,
+        product_id: item.product_id,
+        vendor_id: item.vendor_id,
+        commission_rate: item.affiliate_commission_rate,
+        order_amount: item.total_price,
+        commission_amount: item.affiliate_commission_amount,
+        status: "pending",
+      });
+
+      await db.rpc("increment_affiliate_earnings", {
+        p_affiliate_id: item.affiliate_id,
+        p_amount: item.affiliate_commission_amount,
       });
     }
   }

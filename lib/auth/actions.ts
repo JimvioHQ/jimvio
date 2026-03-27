@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { redirect } from "next/navigation";
 import { resolvePostLoginPath } from "@/lib/auth/post-login-redirect";
+import { getPublicAppUrl } from "@/lib/app-url";
 
 /** Admin (service role) client — bypasses RLS for server-side operations */
 function getAdminClient() {
@@ -57,7 +58,7 @@ export async function signUp(formData: FormData) {
       password,
       options: {
         data: { full_name: fullName },
-        emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/auth/callback`,
+        emailRedirectTo: `${getPublicAppUrl()}/auth/callback`,
       },
     });
 
@@ -115,7 +116,7 @@ export async function signInWithGoogle(): Promise<void> {
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/auth/callback`,
+        redirectTo: `${getPublicAppUrl()}/auth/callback`,
       },
     });
     if (error) {
@@ -148,7 +149,7 @@ export async function resetPassword(formData: FormData) {
     if (!email) return { error: "Email is required." };
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/reset-password`,
+      redirectTo: `${getPublicAppUrl()}/reset-password`,
     });
     if (error) return { error: error.message };
     return { success: "Password reset link sent to your email." };

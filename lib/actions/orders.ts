@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getDefaultAffiliateCommissionPercent } from "@/lib/platform-settings";
+import { normalizeProductSource } from "@/lib/sources/product-source";
 
 export async function createOrder(productId: string, quantity: number = 1) {
   const supabase = await createClient();
@@ -61,6 +62,9 @@ export async function createOrder(productId: string, quantity: number = 1) {
 
   if (orderError) throw orderError;
 
+  const src = normalizeProductSource((product as { source?: string | null }).source);
+  const meta = (product as { source_metadata?: Record<string, unknown> | null }).source_metadata ?? {};
+
   await supabase.from("order_items").insert({
     order_id: order.id,
     product_id: product.id,
@@ -74,6 +78,8 @@ export async function createOrder(productId: string, quantity: number = 1) {
     affiliate_commission_amount: commissionAmount,
     shopify_variant_id: product.shopify_variant_id ?? null,
     shopify_product_id: product.shopify_product_id ?? null,
+    product_source: src,
+    source_metadata: meta,
   });
 
   return { orderId: order.id };

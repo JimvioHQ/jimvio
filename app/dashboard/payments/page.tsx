@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/ui/stat-card";
 import { Input } from "@/components/ui/input";
-import { formatCurrency } from "@/lib/utils";
+import { formatWalletMoney } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { normalizeVendorPayoutMethod } from "@/lib/payout-method";
 
@@ -19,6 +19,10 @@ export default function PaymentsPage() {
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [withdrawing, setWithdrawing]       = useState(false);
   const [withdrawSuccess, setWithdrawSuccess] = useState(false);
+  const [vendorPayoutHint, setVendorPayoutHint] = useState<{ method: string; account: string } | null>(null);
+  const [syncOrderId, setSyncOrderId] = useState("");
+  const [syncingOrder, setSyncingOrder] = useState(false);
+  const [syncOrderMsg, setSyncOrderMsg] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -26,12 +30,21 @@ export default function PaymentsPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const [walletRes, payoutsRes] = await Promise.all([
+      const [walletRes, payoutsRes, vendorRes] = await Promise.all([
         supabase.from("wallets").select("*").eq("user_id", user.id).single(),
         supabase.from("payouts").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(20),
+        supabase.from("vendors").select("payout_method, payout_account").eq("user_id", user.id).maybeSingle(),
       ]);
       setWallet(walletRes.data);
       setPayouts(payoutsRes.data ?? []);
+      if (vendorRes.data) {
+        setVendorPayoutHint({
+          method: String(vendorRes.data.payout_method ?? ""),
+          account: String(vendorRes.data.payout_account ?? ""),
+        });
+      } else {
+        setVendorPayoutHint(null);
+      }
       setLoading(false);
     }
     load();
@@ -49,11 +62,12 @@ export default function PaymentsPage() {
 
     const { data: vendor } = await supabase.from("vendors").select("payout_method, payout_account").eq("user_id", user.id).single();
 
+    const cur = String((wallet as { currency?: string } | null)?.currency ?? "RWF");
     await supabase.from("payouts").insert({
       user_id:       user.id,
       type:          "vendor_withdrawal",
       amount,
-      currency:      "RWF",
+      currency:      cur,
       status:        "pending",
       payout_method: normalizeVendorPayoutMethod(vendor?.payout_method as string | null | undefined),
       payout_account:vendor?.payout_account ?? "",
@@ -76,10 +90,41 @@ export default function PaymentsPage() {
     setTimeout(() => setWithdrawSuccess(false), 3000);
   }
 
+  async function syncCreditsForOrder() {
+    const id = syncOrderId.trim();
+    if (!id) return;
+    setSyncingOrder(true);
+    setSyncOrderMsg(null);
+    try {
+      const res = await fetch("/api/vendor/wallet/sync-order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId: id }),
+      });
+      const data = (await res.json()) as { error?: string; ok?: boolean };
+      if (!res.ok) throw new Error(data.error || "Request failed");
+      setSyncOrderMsg("Earnings synced. If the balance still looks wrong, refresh the page.");
+      setSyncOrderId("");
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (user) {
+        const { data: w } = await supabase.from("wallets").select("*").eq("user_id", user.id).single();
+        setWallet(w);
+      }
+    } catch (e) {
+      setSyncOrderMsg(e instanceof Error ? e.message : "Failed");
+    } finally {
+      setSyncingOrder(false);
+    }
+  }
+
   const available = Number(wallet?.available_balance ?? 0);
   const pending   = Number(wallet?.pending_balance ?? 0);
   const earned    = Number(wallet?.total_earned ?? 0);
   const paid      = Number(wallet?.total_paid ?? 0);
+  const walletCurrency = String((wallet as { currency?: string } | null)?.currency ?? "RWF");
 
   return (
     <div className="space-y-5 animate-fade-in">
@@ -93,7 +138,7 @@ export default function PaymentsPage() {
         <div className="flex items-start justify-between mb-4">
           <div>
             <p className="text-white/80 text-sm font-medium mb-1">Available Balance</p>
-            <p className="text-3xl font-bold">{loading ? "—" : formatCurrency(available)}</p>
+            <p className="text-3xl font-bold">{loading ? "—" : formatWalletMoney(available, walletCurrency)}</p>
           </div>
           <div className="p-2.5 rounded-lg bg-white/15">
             <Wallet className="h-5 w-5 text-white" />
@@ -101,9 +146,9 @@ export default function PaymentsPage() {
         </div>
         <div className="grid grid-cols-3 gap-3">
           {[
-            { label: "Pending",     value: formatCurrency(pending) },
-            { label: "Total Earned",value: formatCurrency(earned) },
-            { label: "Total Paid",  value: formatCurrency(paid) },
+            { label: "Pending",     value: formatWalletMoney(pending, walletCurrency) },
+            { label: "Total Earned",value: formatWalletMoney(earned, walletCurrency) },
+            { label: "Total Paid",  value: formatWalletMoney(paid, walletCurrency) },
           ].map((s, i) => (
             <div key={i} className="bg-white/10 rounded-lg p-2.5">
               <p className="text-white/80 text-xs mb-0.5">{s.label}</p>
@@ -128,9 +173,9 @@ export default function PaymentsPage() {
           )}
           <div className="flex gap-3 items-end">
             <Input
-              label="Amount to withdraw (RWF)"
+              label={`Amount to withdraw (${walletCurrency})`}
               type="number"
-              placeholder={`Max: ${formatCurrency(available)}`}
+              placeholder={`Max: ${formatWalletMoney(available, walletCurrency)}`}
               min="1000"
               max={available}
               value={withdrawAmount}
@@ -146,9 +191,37 @@ export default function PaymentsPage() {
             </Button>
           </div>
           <p className="text-xs text-muted-c">
-            Withdrawals are processed to your configured payout method (mobile money or bank) within 1–2 business days.
-            Minimum withdrawal: RWF 1,000.
+            Balances are in <strong>{walletCurrency}</strong>. Withdrawals are sent to your vendor payout account within 1–2 business days.
+            Minimum withdrawal: RWF 1,000. Set payout method and account under{" "}
+            <a href="/dashboard/settings" className="underline text-[var(--color-accent)]">Settings</a> or your vendor profile if payouts fail.
           </p>
+          {vendorPayoutHint && !vendorPayoutHint.account?.trim() && (
+            <p className="text-xs rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-amber-900 dark:text-amber-100">
+              Add a <strong>mobile number or bank account</strong> for payouts on your vendor record. Jimvio uses{" "}
+              <code className="text-[11px]">vendors.payout_method</code> and <code className="text-[11px]">vendors.payout_account</code>{" "}
+              when you request a withdrawal.
+            </p>
+          )}
+          {vendorPayoutHint && (
+            <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-secondary)]/80 px-3 py-3 space-y-2">
+              <p className="text-xs text-muted-c">
+                Paid orders missing from your balance? Paste the order UUID from Orders received (or Supabase) and apply credits once.
+              </p>
+              <div className="flex flex-wrap gap-2 items-end">
+                <Input
+                  label="Order ID"
+                  value={syncOrderId}
+                  onChange={(e) => setSyncOrderId(e.target.value)}
+                  placeholder="Order UUID from vendor orders"
+                  className="flex-1 min-w-[200px]"
+                />
+                <Button type="button" variant="secondary" loading={syncingOrder} onClick={syncCreditsForOrder}>
+                  Sync earnings
+                </Button>
+              </div>
+              {syncOrderMsg && <p className="text-xs text-[var(--color-text-primary)]">{syncOrderMsg}</p>}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -179,7 +252,11 @@ export default function PaymentsPage() {
                 <tbody>
                   {payouts.map((p) => (
                     <tr key={p.id as string}>
-                      <td className="pl-5"><span className="text-sm font-bold text-[var(--color-text-primary)]">{formatCurrency(Number(p.amount))}</span></td>
+                      <td className="pl-5">
+                        <span className="text-sm font-bold text-[var(--color-text-primary)]">
+                          {formatWalletMoney(Number(p.amount), (p.currency as string) || walletCurrency)}
+                        </span>
+                      </td>
                       <td><span className="text-sm text-[var(--color-text-primary)] capitalize">{p.payout_method as string}</span></td>
                       <td><span className="text-sm text-muted-c">{p.payout_account as string ?? "—"}</span></td>
                       <td className="text-center">

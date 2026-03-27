@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, formatMultiCurrencyLineTotals } from "@/lib/utils";
 
 export default function VendorAnalyticsPage() {
   const supabase = createClient();
@@ -23,6 +23,8 @@ export default function VendorAnalyticsPage() {
     totalViews: 0,
     totalOrders: 0,
     totalRevenue: 0,
+    totalRevenueLabel: "—",
+    revenueDisplayCurrency: "RWF",
     conversionRate: 0,
     viewsByMonth: [] as { month: string; views: number }[],
     ordersByMonth: [] as { month: string; orders: number }[],
@@ -48,7 +50,11 @@ export default function VendorAnalyticsPage() {
 
       const [productsRes, orderItemsRes] = await Promise.all([
         supabase.from("products").select("id, view_count").eq("vendor_id", v.id).eq("is_active", true),
-        supabase.from("order_items").select("total_price, created_at").eq("vendor_id", v.id).gte("created_at", new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString()),
+        supabase
+          .from("order_items")
+          .select("total_price, created_at, orders(currency)")
+          .eq("vendor_id", v.id)
+          .gte("created_at", new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString()),
       ]);
 
       const products = productsRes.data ?? [];
@@ -56,6 +62,8 @@ export default function VendorAnalyticsPage() {
       const totalViews = products.reduce((s, p) => s + (Number(p.view_count) ?? 0), 0);
       const totalOrders = items.length;
       const totalRevenue = items.reduce((s, i) => s + Number(i.total_price), 0);
+      const totalRevenueLabel = formatMultiCurrencyLineTotals(items as Parameters<typeof formatMultiCurrencyLineTotals>[0]);
+      const revenueDisplayCurrency = (items[0] as { orders?: { currency?: string } } | undefined)?.orders?.currency?.toUpperCase() || "RWF";
       const conversionRate = totalViews > 0 ? Math.round((totalOrders / totalViews) * 10000) / 100 : 0;
 
       const viewsByMonth = months.map((m) => ({ month: m.label, views: 0 }));
@@ -76,6 +84,8 @@ export default function VendorAnalyticsPage() {
         totalViews,
         totalOrders,
         totalRevenue,
+        totalRevenueLabel,
+        revenueDisplayCurrency,
         conversionRate,
         viewsByMonth,
         ordersByMonth,
@@ -136,8 +146,8 @@ export default function VendorAnalyticsPage() {
               <CardContent className="p-4 flex items-center gap-3">
                 <div className="p-2 rounded-xl bg-emerald-100 text-emerald-600"><DollarSign className="h-5 w-5" /></div>
                 <div>
-                  <p className="text-xs font-medium text-[var(--color-text-muted)]">Revenue</p>
-                  <p className="text-xl font-bold text-[var(--color-text-primary)]">{formatCurrency(stats.totalRevenue)}</p>
+                  <p className="text-xs font-medium text-[var(--color-text-muted)]">Revenue (6 mo.)</p>
+                  <p className="text-xl font-bold text-[var(--color-text-primary)] leading-tight">{stats.totalRevenueLabel}</p>
                 </div>
               </CardContent>
             </Card>
@@ -179,7 +189,9 @@ export default function VendorAnalyticsPage() {
                       <div className="flex-1 h-6 bg-[var(--color-surface-secondary)] rounded-full overflow-hidden max-w-[200px]">
                         <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${(() => { const max = Math.max(1, ...stats.revenueByMonth.map((x) => x.revenue)); return (m.revenue / max) * 100; })()}%` }} />
                       </div>
-                      <span className="text-sm font-semibold w-20 text-right">{formatCurrency(m.revenue)}</span>
+                      <span className="text-sm font-semibold w-28 text-right tabular-nums">
+                        {formatCurrency(m.revenue, stats.revenueDisplayCurrency)}
+                      </span>
                     </div>
                   ))}
                 </div>

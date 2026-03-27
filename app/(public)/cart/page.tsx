@@ -9,6 +9,13 @@ export const dynamic = "force-dynamic";
 
 export default async function CartPage() {
   const { orders } = await getCart();
+  const currencyCodes = [
+    ...new Set(
+      (orders || []).map((o: { currency?: string | null }) => (o.currency || "USD").toUpperCase())
+    ),
+  ];
+  const currencyHeader =
+    currencyCodes.length === 0 ? "—" : currencyCodes.length === 1 ? currencyCodes[0] : "Multiple";
 
   return (
     <div className="min-h-screen bg-[var(--color-bg)] pt-40 pb-20">
@@ -35,7 +42,9 @@ export default async function CartPage() {
             <div className="h-10 w-px bg-zinc-200" />
             <div className="text-right">
               <p className="text-[10px] font-black text-zinc-400 capitalize tracking-widest mb-1">Currency</p>
-              <p className="text-xl font-black text-zinc-900">USD</p>
+              <p className="text-xl font-black text-zinc-900" title={currencyCodes.join(", ")}>
+                {currencyHeader}
+              </p>
             </div>
           </div>
         </div>

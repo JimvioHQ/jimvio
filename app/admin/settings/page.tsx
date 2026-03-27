@@ -1,6 +1,7 @@
 import React from "react";
 import { getAdminDB } from "@/services/db";
 import { resolvePlatformSettingsFromRows } from "@/lib/platform-settings-shared";
+import { mergeSupplierSources } from "@/lib/sources/supplier-settings";
 import AdminPlatformSettingsForm from "./settings-form";
 
 export const dynamic = "force-dynamic";
@@ -11,5 +12,8 @@ export default async function AdminSettingsPage() {
 
   const initial = resolvePlatformSettingsFromRows(data ?? []);
 
-  return <AdminPlatformSettingsForm initial={initial} />;
+  const { data: ssRow } = await admin.from("platform_settings").select("value").eq("key", "supplier_sources").maybeSingle();
+  const supplierSourcesInitial = mergeSupplierSources(ssRow?.value);
+
+  return <AdminPlatformSettingsForm initial={initial} supplierSourcesInitial={supplierSourcesInitial} />;
 }

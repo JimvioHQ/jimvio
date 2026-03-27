@@ -16,12 +16,13 @@ import {
   Store,
   Truck,
   Pencil,
+  Wallet,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/ui/stat-card";
 import { createClient } from "@/lib/supabase/client";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, formatMultiCurrencyLineTotals } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 
 const quickActions = [
@@ -33,6 +34,7 @@ const quickActions = [
 ];
 
 const vendorQuickActions = [
+  { label: "Payments & payout", href: "/dashboard/payments", icon: <Wallet className="h-5 w-5" />, color: "bg-emerald-100 text-emerald-700" },
   { label: "Add New Product", href: "/dashboard/products/new", icon: <Plus className="h-5 w-5" />, color: "bg-emerald-100 text-emerald-600" },
   { label: "Manage Products", href: "/dashboard/products", icon: <Package className="h-5 w-5" />, color: "bg-blue-100 text-blue-600" },
   { label: "View Orders", href: "/dashboard/vendor/orders", icon: <Truck className="h-5 w-5" />, color: "bg-amber-100 text-amber-600" },
@@ -54,7 +56,7 @@ export default function DashboardPage() {
     affiliateEarnings: 0,
     videoViews: 0,
     vendorOrders: 0,
-    vendorRevenue: 0,
+    vendorRevenueLabel: "—",
     vendorFollowers: 0,
   });
   const [isVendor, setIsVendor] = useState(false);
@@ -78,18 +80,18 @@ export default function DashboardPage() {
 
       let productsListed = 0;
       let vendorOrders = 0;
-      let vendorRevenue = 0;
+      let vendorRevenueLabel = "—";
       let vendorFollowers = 0;
       if (vendorRes.data) {
         setIsVendor(true);
         const [prodCount, orderItems, followCount] = await Promise.all([
           supabase.from("products").select("id", { count: "exact", head: true }).eq("vendor_id", vendorRes.data.id).eq("is_active", true),
-          supabase.from("order_items").select("total_price").eq("vendor_id", vendorRes.data.id),
+          supabase.from("order_items").select("total_price, orders(currency)").eq("vendor_id", vendorRes.data.id),
           supabase.from("vendor_followers").select("id", { count: "exact", head: true }).eq("vendor_id", vendorRes.data.id),
         ]);
         productsListed = prodCount.count ?? 0;
         vendorOrders = orderItems.data?.length ?? 0;
-        vendorRevenue = orderItems.data?.reduce((s, i) => s + Number(i.total_price), 0) ?? 0;
+        vendorRevenueLabel = formatMultiCurrencyLineTotals((orderItems.data ?? []) as Parameters<typeof formatMultiCurrencyLineTotals>[0]);
         vendorFollowers = followCount.count ?? 0;
       }
 
@@ -102,7 +104,7 @@ export default function DashboardPage() {
         affiliateEarnings,
         videoViews: 0,
         vendorOrders,
-        vendorRevenue,
+        vendorRevenueLabel,
         vendorFollowers,
       });
 
@@ -159,7 +161,14 @@ export default function DashboardPage() {
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
                 <StatCard title="Total Products" value={stats.productsListed} icon={<Package className="h-4 w-4" />} iconColor="from-[var(--color-accent)] to-amber-600" className="shadow-sm hover:shadow-md transition-shadow" />
                 <StatCard title="Orders Received" value={stats.vendorOrders} icon={<Truck className="h-4 w-4" />} iconColor="from-blue-600 to-cyan-600" className="shadow-sm hover:shadow-md transition-shadow" />
-                <StatCard title="Revenue" value={formatCurrency(stats.vendorRevenue)} icon={<DollarSign className="h-4 w-4" />} iconColor="from-emerald-600 to-teal-600" className="shadow-sm hover:shadow-md transition-shadow" />
+                <StatCard
+                  title="Revenue"
+                  value={stats.vendorRevenueLabel}
+                  description="By order currency"
+                  icon={<DollarSign className="h-4 w-4" />}
+                  iconColor="from-emerald-600 to-teal-600"
+                  className="shadow-sm hover:shadow-md transition-shadow"
+                />
                 <StatCard title="Store Followers" value={stats.vendorFollowers} icon={<Users className="h-4 w-4" />} iconColor="from-violet-600 to-purple-600" className="shadow-sm hover:shadow-md transition-shadow" />
               </div>
               <div className="grid grid-cols-1 min-[420px]:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4 mt-3 sm:mt-4">
@@ -197,7 +206,7 @@ export default function DashboardPage() {
           <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
             <StatCard title="Orders" value={stats.orders} icon={<ShoppingCart className="h-4 w-4" />} iconColor="from-blue-600 to-cyan-600" className="shadow-sm hover:shadow-md transition-shadow" />
             <StatCard title="Products Listed" value={stats.productsListed} icon={<Package className="h-4 w-4" />} iconColor="from-[var(--color-accent)] to-amber-600" className="shadow-sm hover:shadow-md transition-shadow" />
-            <StatCard title="Affiliate Earnings" value={formatCurrency(stats.affiliateEarnings)} icon={<DollarSign className="h-4 w-4" />} iconColor="from-emerald-600 to-teal-600" className="shadow-sm hover:shadow-md transition-shadow" />
+            <StatCard title="Affiliate Earnings" value={formatCurrency(stats.affiliateEarnings, "RWF")} icon={<DollarSign className="h-4 w-4" />} iconColor="from-emerald-600 to-teal-600" className="shadow-sm hover:shadow-md transition-shadow" />
             <StatCard title="Video Views" value={stats.videoViews.toLocaleString()} icon={<Eye className="h-4 w-4" />} iconColor="from-pink-600 to-rose-600" className="shadow-sm hover:shadow-md transition-shadow" />
           </div>
         )}

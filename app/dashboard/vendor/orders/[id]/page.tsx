@@ -63,6 +63,7 @@ export default function VendorOrderDetailPage() {
 
   const s = statusConfig[order.status] ?? statusConfig.pending;
   const vendorTotal = vendorItems.reduce((sum, i) => sum + Number(i.total_price), 0);
+  const orderCurrency = (order.currency as string | undefined)?.toUpperCase() || "RWF";
 
   return (
     <div className="space-y-6">
@@ -96,15 +97,17 @@ export default function VendorOrderDetailPage() {
                 )}
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-[var(--color-text-primary)]">{item.product_name}</p>
-                  <p className="text-sm text-[var(--color-text-muted)]">{item.quantity} × {formatCurrency(Number(item.unit_price))}</p>
+                  <p className="text-sm text-[var(--color-text-muted)]">
+                    {item.quantity} × {formatCurrency(Number(item.unit_price), orderCurrency)}
+                  </p>
                 </div>
-                <p className="font-semibold">{formatCurrency(Number(item.total_price))}</p>
+                <p className="font-semibold">{formatCurrency(Number(item.total_price), orderCurrency)}</p>
               </li>
             ))}
           </ul>
           <div className="p-4 border-t border-[var(--color-border)] flex justify-between font-semibold">
             <span>Your total</span>
-            <span className="text-[var(--color-accent)]">{formatCurrency(vendorTotal)}</span>
+            <span className="text-[var(--color-accent)]">{formatCurrency(vendorTotal, orderCurrency)}</span>
           </div>
         </CardContent>
       </Card>

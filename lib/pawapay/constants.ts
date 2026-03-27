@@ -1,2 +1,1 @@
-/** Placeholder — Part 2+ */
-export {};
+export { isPawaPaySandboxEnv } from "./env";

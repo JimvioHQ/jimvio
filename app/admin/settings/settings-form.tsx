@@ -8,7 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import type { ResolvedPlatformSettings, TrustBarItem } from "@/lib/platform-settings-shared";
+import type { SupplierSourcesSettings } from "@/lib/sources/supplier-settings";
 import { savePlatformSettingsAction } from "@/lib/actions/admin-platform-settings";
+import { saveSupplierSourcesAction } from "@/lib/actions/admin-supplier-sources";
 import { toast } from "sonner";
 
 function linesToList(s: string): string[] {
@@ -22,8 +24,15 @@ function listToLines(list: string[]): string {
   return list.join("\n");
 }
 
-export default function AdminPlatformSettingsForm({ initial }: { initial: ResolvedPlatformSettings }) {
+export default function AdminPlatformSettingsForm({
+  initial,
+  supplierSourcesInitial,
+}: {
+  initial: ResolvedPlatformSettings;
+  supplierSourcesInitial: SupplierSourcesSettings;
+}) {
   const [fees, setFees] = useState(initial.fees);
+  const [supplierSources, setSupplierSources] = useState<SupplierSourcesSettings>(supplierSourcesInitial);
   const [social, setSocial] = useState(initial.social_proof);
   const [affiliatePropLines, setAffiliatePropLines] = useState(listToLines(initial.marketing.affiliate_value_props));
   const [trustBar, setTrustBar] = useState<TrustBarItem[]>(
@@ -31,6 +40,18 @@ export default function AdminPlatformSettingsForm({ initial }: { initial: Resolv
   );
   const [contact, setContact] = useState(initial.contact);
   const [pending, startTransition] = useTransition();
+  const [pendingSources, startSourcesTransition] = useTransition();
+
+  const saveSources = () => {
+    startSourcesTransition(async () => {
+      const res = await saveSupplierSourcesAction(supplierSources);
+      if ("error" in res) {
+        toast.error(res.error);
+        return;
+      }
+      toast.success("Supplier channel settings saved");
+    });
+  };
 
   const updateTrust = (i: number, field: keyof TrustBarItem, value: string) => {
     setTrustBar((rows) => {
@@ -159,6 +180,58 @@ export default function AdminPlatformSettingsForm({ initial }: { initial: Resolv
               onChange={(e) => setFees((f) => ({ ...f, platform_fee_fixed_rwf: Number(e.target.value) || 0 }))}
             />
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Supplier channels</CardTitle>
+          <p className="text-sm text-[var(--color-text-muted)]">
+            Enable or disable supply sources and set default platform commission per channel (CJ, Shopify sync, manual
+            vendors). Listing filters can respect these flags in API routes.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-6 max-w-3xl">
+          {(["vendor", "shopify", "cj"] as const).map((key) => (
+            <div key={key} className="rounded-xl border border-[var(--color-border)] p-4 grid sm:grid-cols-3 gap-3 items-end">
+              <div className="sm:col-span-1">
+                <p className="font-semibold text-[var(--color-text-primary)] capitalize">{key === "cj" ? "CJ Dropshipping" : key}</p>
+                <label className="flex items-center gap-2 mt-2 text-sm text-[var(--color-text-muted)]">
+                  <input
+                    type="checkbox"
+                    checked={supplierSources[key].enabled}
+                    onChange={(e) =>
+                      setSupplierSources((s) => ({
+                        ...s,
+                        [key]: { ...s[key], enabled: e.target.checked },
+                      }))
+                    }
+                  />
+                  Enabled
+                </label>
+              </div>
+              <div className="grid gap-1">
+                <Label>Platform commission (%)</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  max={100}
+                  step={0.5}
+                  className="rounded-xl"
+                  value={supplierSources[key].platform_commission_percent}
+                  onChange={(e) =>
+                    setSupplierSources((s) => ({
+                      ...s,
+                      [key]: { ...s[key], platform_commission_percent: Number(e.target.value) || 0 },
+                    }))
+                  }
+                />
+              </div>
+            </div>
+          ))}
+          <Button type="button" onClick={saveSources} loading={pendingSources} className="rounded-xl">
+            Save supplier channels
+          </Button>
         </CardContent>
       </Card>
 

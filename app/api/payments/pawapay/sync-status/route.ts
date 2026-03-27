@@ -10,6 +10,31 @@ const admin = createServiceClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process
   auth: { autoRefreshToken: false, persistSession: false },
 });
 
+/** PawaPay / TLS sometimes drops the connection (ECONNRESET); retry before failing the poll. */
+function isTransientUpstreamError(e: unknown): boolean {
+  const msg = e instanceof Error ? e.message : String(e);
+  return /econnreset|etimedout|fetch failed|socket|network|timeout|aborted|ECONNRESET|ENOTFOUND/i.test(msg);
+}
+
+async function checkDepositStatusWithRetry(depositId: string): Promise<Awaited<ReturnType<typeof checkDepositStatus>>> {
+  const delaysMs = [0, 400, 900];
+  let last: unknown;
+  for (let i = 0; i < delaysMs.length; i++) {
+    if (delaysMs[i] > 0) {
+      await new Promise((r) => setTimeout(r, delaysMs[i]));
+    }
+    try {
+      return await checkDepositStatus(String(depositId));
+    } catch (e) {
+      last = e;
+      if (!isTransientUpstreamError(e) || i === delaysMs.length - 1) {
+        throw e;
+      }
+    }
+  }
+  throw last;
+}
+
 /**
  * Lets the buyer poll PawaPay deposit status and finalize the order when COMPLETED.
  * Needed when webhooks cannot reach the app (e.g. localhost) — the dashboard callback never runs.
@@ -74,20 +99,31 @@ export async function POST(req: NextRequest) {
 
   let remote: Awaited<ReturnType<typeof checkDepositStatus>>;
   try {
-    remote = await checkDepositStatus(String(depositId));
+    remote = await checkDepositStatusWithRetry(String(depositId));
   } catch (e) {
     const msg = e instanceof Error ? e.message : "PawaPay status check failed";
-    return NextResponse.json({ error: msg, pawapay: true }, { status: 502 });
+    return NextResponse.json(
+      {
+        error: msg,
+        pawapay: true,
+        /** Client can keep polling — upstream was temporarily unreachable */
+        transient: isTransientUpstreamError(e),
+      },
+      { status: 502 }
+    );
   }
 
   const st = (remote.status || "").toUpperCase();
 
   if (st === "FAILED" || st === "REJECTED" || st === "CANCELLED") {
+    const fr = remote.failureReason;
     return NextResponse.json({
       payment_status: order.payment_status,
       depositStatus: remote.status ?? st,
       pawapay: true,
       terminalFailure: true,
+      failureCode: fr?.failureCode ?? null,
+      failureMessage: fr?.failureMessage ?? null,
     });
   }
 

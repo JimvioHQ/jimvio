@@ -142,7 +142,9 @@ export default function BuyerOrdersPage() {
                         </td>
                         <td className="py-3 px-4">{supplier}</td>
                         <td className="py-3 px-4 text-right">{totalQty}</td>
-                        <td className="py-3 px-4 text-right font-semibold">{formatCurrency(Number(order.total_amount))}</td>
+                        <td className="py-3 px-4 text-right font-semibold">
+                          {formatCurrency(Number(order.total_amount), (order.currency as string) || "RWF")}
+                        </td>
                         <td className="py-3 px-4 text-center">
                           <Badge variant={s.variant} className="flex items-center gap-1 w-fit mx-auto">
                             {s.icon} {s.label}

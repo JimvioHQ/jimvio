@@ -25,15 +25,67 @@ function getRwfToUsdRateForDisplay(): number {
   return r;
 }
 
-/** Format a numeric amount; default display currency is USD. */
+/** Format a numeric amount. Pass ISO 4217 code (e.g. RWF, USD, ZMW) when known — avoids showing USD for RWF orders. */
 export function formatCurrency(amount: number, currency = DEFAULT_FIAT): string {
-  if (currency === "RWF") {
+  const c = (currency || DEFAULT_FIAT).toUpperCase();
+  if (c === "RWF") {
     return `RWF ${amount.toLocaleString("en-RW")}`;
   }
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: currency.length === 3 ? currency : DEFAULT_FIAT,
-  }).format(amount);
+  try {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: c.length === 3 ? c : DEFAULT_FIAT,
+    }).format(amount);
+  } catch {
+    return `${c} ${amount.toLocaleString("en-US", { maximumFractionDigits: 2 })}`;
+  }
+}
+
+/** Wallet / payouts default to RWF in schema — use when no column is loaded yet. */
+export function formatWalletMoney(amount: number, walletCurrency?: string | null): string {
+  return formatCurrency(amount, (walletCurrency || "RWF").toUpperCase());
+}
+
+type LineWithOrderCurrency = {
+  total_price: number | string;
+  orders?: { currency?: string | null } | null;
+};
+
+/** Aggregate line totals by parent order currency (vendor dashboard revenue). */
+export function formatMultiCurrencyLineTotals(rows: LineWithOrderCurrency[]): string {
+  const map = new Map<string, number>();
+  for (const row of rows) {
+    const c = (row.orders?.currency || "RWF").toUpperCase();
+    map.set(c, (map.get(c) ?? 0) + Number(row.total_price));
+  }
+  if (map.size === 0) return formatCurrency(0, "RWF");
+  const parts = [...map.entries()].map(([c, a]) => formatCurrency(a, c));
+  return parts.join(" · ");
+}
+
+/**
+ * Cart and checkout lines: always show the **stored** order currency (no RWF→USD conversion).
+ * Use this for pending orders and line items. For marketplace browse cards, see `formatDisplayMoney`.
+ */
+export function formatCartMoney(amount: number, currency?: string | null): string {
+  return formatCurrency(amount, (currency || DEFAULT_FIAT).toUpperCase());
+}
+
+export type CartOrderForTotals = {
+  currency?: string | null;
+  order_items: { total_price: number | string }[];
+};
+
+/** One subtotal per currency when the cart has multiple vendor orders in different currencies. */
+export function formatMultiCurrencyCartTotals(orders: CartOrderForTotals[]): string {
+  const map = new Map<string, number>();
+  for (const o of orders) {
+    const c = (o.currency || DEFAULT_FIAT).toUpperCase();
+    const sum = o.order_items?.reduce((s, i) => s + Number(i.total_price), 0) ?? 0;
+    map.set(c, (map.get(c) ?? 0) + sum);
+  }
+  if (map.size === 0) return formatCurrency(0, DEFAULT_FIAT);
+  return [...map.entries()].map(([c, a]) => formatCurrency(a, c)).join(" · ");
 }
 
 /**

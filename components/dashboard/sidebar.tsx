@@ -80,6 +80,7 @@ const sidebarSections: NavSection[] = [
       { label: "Orders Received", href: "/dashboard/vendor/orders", icon: <Truck className="h-4 w-4" />, requiredRole: "vendor" },
       { label: "Inventory", href: "/dashboard/inventory", icon: <Layers className="h-4 w-4" />, requiredRole: "vendor" },
       { label: "Analytics", href: "/dashboard/vendor/analytics", icon: <BarChart3 className="h-4 w-4" />, requiredRole: "vendor" },
+      { label: "Payments & payouts", href: "/dashboard/payments", icon: <Wallet className="h-4 w-4" />, requiredRole: "vendor" },
     ],
   },
   {

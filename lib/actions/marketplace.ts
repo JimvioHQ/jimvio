@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { revalidatePath } from "next/cache";
+import { normalizeProductSource } from "@/lib/sources/product-source";
 
 export async function toggleFollowVendor(vendorId: string) {
   try {
@@ -172,7 +173,7 @@ export async function addToCart(productId: string, vendorId: string, quantity: n
     // 1. Get product details for price etc
     const { data: product, error: pError } = await supabase
       .from("products")
-      .select("name, price, images, shopify_variant_id, shopify_product_id, currency")
+      .select("name, price, images, shopify_variant_id, shopify_product_id, currency, source, source_metadata")
       .eq("id", productId)
       .single();
 
@@ -217,13 +218,18 @@ export async function addToCart(productId: string, vendorId: string, quantity: n
       .eq("product_id", productId)
       .maybeSingle();
 
+    const lineSource = normalizeProductSource((product as { source?: string | null }).source);
+    const lineMeta = (product as { source_metadata?: Record<string, unknown> | null }).source_metadata ?? {};
+
     if (existingItem) {
       const newQty = existingItem.quantity + quantity;
       const { error: updateError } = await supabase
         .from("order_items")
         .update({
           quantity: newQty,
-          total_price: product.price * newQty
+          total_price: product.price * newQty,
+          product_source: lineSource,
+          source_metadata: lineMeta,
         })
         .eq("id", existingItem.id);
       
@@ -242,6 +248,8 @@ export async function addToCart(productId: string, vendorId: string, quantity: n
           total_price: product.price * quantity,
           shopify_variant_id: product.shopify_variant_id ?? null,
           shopify_product_id: product.shopify_product_id ?? null,
+          product_source: lineSource,
+          source_metadata: lineMeta,
         });
       
       if (insertError) throw insertError;

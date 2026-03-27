@@ -140,8 +140,9 @@ export interface Product {
   shopify_variant_id?: number | null;
   shopify_handle?: string | null;
   shopify_synced_at?: string | null;
-  /** `jimvio` (default) or `shopify` synced */
+  /** `vendor` | `shopify` | `cj` — fulfillment routing */
   source?: string | null;
+  source_metadata?: Json;
   vendors?: Vendor;
   product_categories?: ProductCategory;
   product_variants?: ProductVariant[];
@@ -179,8 +180,8 @@ export interface Order {
   billing_address: Json;
   notes: string | null;
   metadata: Json;
-  irembopay_reference: string | null;
-  irembopay_transaction_id: string | null;
+  payment_external_reference: string | null;
+  payment_external_id: string | null;
   nowpayments_payment_id: number | null;
   /** From migration 025 — Pesapal checkout */
   pesapal_tracking_id?: string | null;
@@ -222,6 +223,9 @@ export interface OrderItem {
   affiliate_commission_amount: number | null;
   shopify_variant_id?: number | null;
   shopify_product_id?: string | null;
+  /** Snapshot of `products.source` at checkout */
+  product_source?: string | null;
+  source_metadata?: Json;
   cj_product_id?: string | null;
   digital_download_url: string | null;
   download_count: number;

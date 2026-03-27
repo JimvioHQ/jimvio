@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { finalizeOrderPayment } from "@/lib/payments/finalize-order-payment";
+import { ensureNativeVendorCreditsApplied } from "@/lib/payments/credit-vendors-for-native-order";
 import { checkDepositStatus, getPawaPayConfig } from "@/lib/pawapay";
 
 export const dynamic = "force-dynamic";
@@ -72,6 +73,14 @@ export async function POST(req: NextRequest) {
   const orderId = order.id;
 
   if (order.payment_status === "completed") {
+    try {
+      await ensureNativeVendorCreditsApplied(supabase, orderId, {
+        providerTransactionId: body.providerTransactionId || depositId,
+        paymentProvider: "pawapay",
+      });
+    } catch (e) {
+      console.error("[PawaPay callback] ensureNativeVendorCreditsApplied", e);
+    }
     return NextResponse.json({ received: true });
   }
 

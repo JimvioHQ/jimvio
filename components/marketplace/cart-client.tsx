@@ -9,7 +9,7 @@ import {
   ShieldCheck, HelpCircle, Store, ChevronRight, AlertCircle, ShoppingBag
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { formatDisplayMoney } from "@/lib/utils";
+import { formatCartMoney, formatMultiCurrencyCartTotals } from "@/lib/utils";
 import { updateCartItemQuantity, removeFromCart } from "@/lib/actions/marketplace";
 import { toast } from "sonner";
 
@@ -58,9 +58,12 @@ export function CartClient({ initialOrders }: CartClientProps) {
     setOrders(initialOrders);
   }, [initialOrders]);
 
-  /** Always derive money from line items so UI never shows stale order.total_amount after edits. */
-  const grandTotal = useMemo(
-    () => orders.reduce((sum, o) => sum + sumOrderItems(o.order_items), 0),
+  /** Subtotals grouped by order currency — never add USD and RWF as one number. */
+  const totalsLabel = useMemo(() => formatMultiCurrencyCartTotals(orders), [orders]);
+
+  const hasMixedCurrencies = useMemo(
+    () =>
+      new Set(orders.map((o) => (o.currency || "USD").toUpperCase())).size > 1,
     [orders]
   );
 
@@ -199,7 +202,7 @@ export function CartClient({ initialOrders }: CartClientProps) {
                             {item.product_name}
                           </h4>
                           <p className="text-[10px] font-black text-zinc-400 capitalize tracking-widest">
-                            Unit Price: {formatDisplayMoney(item.unit_price, order.currency ?? "USD")}
+                            Unit Price: {formatCartMoney(item.unit_price, order.currency ?? "USD")}
                           </p>
                         </div>
                         <button 
@@ -230,7 +233,7 @@ export function CartClient({ initialOrders }: CartClientProps) {
                         </div>
                         <div className="text-right">
                           <p className="text-lg font-black text-zinc-900 tracking-tighter">
-                            {formatDisplayMoney(item.total_price, order.currency ?? "USD")}
+                            {formatCartMoney(item.total_price, order.currency ?? "USD")}
                           </p>
                         </div>
                       </div>
@@ -243,7 +246,7 @@ export function CartClient({ initialOrders }: CartClientProps) {
               <div className="bg-zinc-50/50 border-t border-[#f5f5f5] px-6 py-4 flex items-center justify-between">
                 <span className="text-[11px] font-black text-zinc-400 capitalize tracking-widest">Order Subtotal</span>
                 <span className="text-sm font-black text-zinc-900">
-                  {formatDisplayMoney(sumOrderItems(order.order_items), order.currency ?? "USD")}
+                  {formatCartMoney(sumOrderItems(order.order_items), order.currency ?? "USD")}
                 </span>
               </div>
             </motion.div>
@@ -263,7 +266,7 @@ export function CartClient({ initialOrders }: CartClientProps) {
             <div className="space-y-4 mb-8">
               <div className="flex justify-between text-sm">
                 <span className="text-zinc-500 font-medium">Items Total ({orders.reduce((acc, o) => acc + o.order_items.length, 0)})</span>
-                <span className="text-zinc-900 font-black">{formatDisplayMoney(grandTotal, "USD")}</span>
+                <span className="text-zinc-900 font-black text-right max-w-[14rem]">{totalsLabel}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-zinc-500 font-medium">Global Shipping</span>
@@ -271,13 +274,15 @@ export function CartClient({ initialOrders }: CartClientProps) {
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-zinc-500 font-medium">Estimated Taxes</span>
-                <span className="text-zinc-900 font-bold">$0.00</span>
+                <span className="text-zinc-900 font-bold">
+                  {hasMixedCurrencies ? "—" : formatCartMoney(0, orders[0]?.currency ?? "USD")}
+                </span>
               </div>
               <div className="h-px bg-zinc-100 my-4" />
               <div className="flex justify-between items-end">
                 <span className="text-[11px] font-black text-zinc-900 capitalize tracking-[0.2em]">Total Pay</span>
                 <span className="text-3xl font-black text-[var(--color-accent)] tracking-tighter">
-                  {formatDisplayMoney(grandTotal, "USD")}
+                  {totalsLabel}
                 </span>
               </div>
             </div>

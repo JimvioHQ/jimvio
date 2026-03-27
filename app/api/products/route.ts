@@ -30,6 +30,7 @@ export async function GET(req: NextRequest) {
     const limit = Math.min(parseInt(searchParams.get("limit") || "24"), 100);
     const category = searchParams.get("category");
     const type = searchParams.get("type");
+    const source = searchParams.get("source");
     const search = searchParams.get("q");
     const sort = searchParams.get("sort") || "trending";
     const offset = (page - 1) * limit;
@@ -38,7 +39,7 @@ export async function GET(req: NextRequest) {
       .from("products")
       .select(`
         id, name, slug, short_description, price, compare_at_price,
-        images, rating, review_count, is_featured, is_digital,
+        images, rating, review_count, is_featured, is_digital, source,
         affiliate_enabled, affiliate_commission_rate, sale_count, view_count,
         vendors!inner(id, business_name, business_slug, rating, verification_status),
         product_categories(name, slug)
@@ -48,6 +49,7 @@ export async function GET(req: NextRequest) {
 
     if (category) query = query.eq("product_categories.slug", category);
     if (type) query = query.eq("product_type", type);
+    if (source) query = query.eq("source", source);
     if (search) query = query.textSearch("name", search);
 
     switch (sort) {
@@ -111,6 +113,8 @@ export async function POST(req: NextRequest) {
         slug,
         status: "draft",
         currency: "USD",
+        source: "vendor",
+        source_metadata: {},
       })
       .select()
       .single();

@@ -1,7 +1,7 @@
 "use client";
 
-import { Package } from "lucide-react";
-import { formatDisplayMoney } from "@/lib/utils";
+import { Package, ShieldCheck, Lock, BadgeCheck } from "lucide-react";
+import { formatCartMoney } from "@/lib/utils";
 
 export type OrderSummaryItem = {
   id: string;
@@ -23,13 +23,17 @@ export function OrderSummary({
   total: number;
   currency: string;
 }) {
+  const c = currency.toUpperCase();
+
   return (
-    <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-sm)]">
-      <h3 className="text-lg font-bold text-[var(--color-text-primary)] mb-4">Order summary</h3>
-      <ul className="space-y-4 mb-6 max-h-[360px] overflow-y-auto pr-1">
+    <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 sm:p-6 shadow-[var(--shadow-sm)]">
+      <h3 className="text-base font-semibold text-[var(--color-text-primary)] mb-1">Order summary</h3>
+      <p className="text-xs text-[var(--color-text-muted)] mb-5">Review items before you pay.</p>
+
+      <ul className="space-y-4 mb-6 max-h-[min(360px,50vh)] overflow-y-auto pr-1 -mr-1 scrollbar-thin">
         {items.map((item) => (
           <li key={item.id} className="flex gap-3">
-            <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)] flex items-center justify-center">
+            <div className="h-14 w-14 shrink-0 overflow-hidden rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-secondary)] flex items-center justify-center">
               {item.product_image ? (
                 <img src={item.product_image} alt="" className="h-full w-full object-cover" />
               ) : (
@@ -37,32 +41,47 @@ export function OrderSummary({
               )}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-[var(--color-text-primary)] line-clamp-2">{item.product_name}</p>
-              <p className="text-xs text-[var(--color-text-muted)]">Qty {item.quantity}</p>
+              <p className="text-sm font-medium text-[var(--color-text-primary)] line-clamp-2 leading-snug">{item.product_name}</p>
+              <p className="text-xs text-[var(--color-text-muted)] mt-0.5">Qty {item.quantity}</p>
             </div>
-            <p className="text-sm font-bold text-[var(--color-text-primary)] shrink-0">
-              {formatDisplayMoney(Number(item.total_price), currency)}
+            <p className="text-sm font-semibold text-[var(--color-text-primary)] shrink-0 tabular-nums">
+              {formatCartMoney(Number(item.total_price), c)}
             </p>
           </li>
         ))}
       </ul>
-      <div className="space-y-2 border-t border-[var(--color-border)] pt-4 text-sm">
+
+      <div className="space-y-2.5 border-t border-[var(--color-border)] pt-5 text-sm">
         <div className="flex justify-between text-[var(--color-text-secondary)]">
           <span>Subtotal</span>
-          <span>{formatDisplayMoney(subtotal, currency)}</span>
+          <span className="font-medium text-[var(--color-text-primary)] tabular-nums">{formatCartMoney(subtotal, c)}</span>
         </div>
         <div className="flex justify-between text-[var(--color-text-secondary)]">
           <span>Shipping</span>
-          <span>{formatDisplayMoney(0, currency)}</span>
+          <span className="text-[var(--color-text-muted)]">Calculated next</span>
         </div>
-        <div className="flex justify-between text-lg font-black text-[var(--color-text-primary)] pt-2">
-          <span>Total</span>
-          <span className="text-[var(--color-accent)]">{formatDisplayMoney(total, currency)}</span>
+        <div className="flex justify-between items-baseline pt-3 border-t border-[var(--color-border)]">
+          <span className="text-base font-semibold text-[var(--color-text-primary)]">Total</span>
+          <span className="text-xl font-bold text-[var(--color-text-primary)] tabular-nums tracking-tight">
+            {formatCartMoney(total, c)}
+          </span>
         </div>
       </div>
-      <p className="mt-4 text-center text-[10px] font-bold uppercase tracking-widest text-[var(--color-text-muted)]">
-        Secured checkout · Jimvio
-      </p>
+
+      <div className="mt-6 pt-5 border-t border-[var(--color-border)] space-y-3">
+        <div className="flex items-start gap-2.5 text-[11px] text-[var(--color-text-secondary)]">
+          <Lock className="h-4 w-4 shrink-0 text-[var(--color-accent)] mt-0.5" aria-hidden />
+          <span>Secure SSL checkout — your payment details are encrypted.</span>
+        </div>
+        <div className="flex items-start gap-2.5 text-[11px] text-[var(--color-text-secondary)]">
+          <ShieldCheck className="h-4 w-4 shrink-0 text-[var(--color-accent)] mt-0.5" aria-hidden />
+          <span>Buyer protection on eligible orders through Jimvio.</span>
+        </div>
+        <div className="flex items-start gap-2.5 text-[11px] text-[var(--color-text-secondary)]">
+          <BadgeCheck className="h-4 w-4 shrink-0 text-[var(--color-accent)] mt-0.5" aria-hidden />
+          <span>PCI-aligned payment partners (PesaPal, PawaPay, NowPayments).</span>
+        </div>
+      </div>
     </div>
   );
 }

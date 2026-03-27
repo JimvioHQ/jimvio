@@ -40,7 +40,7 @@ export default function VendorOrdersPage() {
         .from("order_items")
         .select(`
           id, product_name, quantity, unit_price, total_price, created_at,
-          orders ( id, order_number, status, created_at, profiles ( full_name, email ) )
+          orders ( id, order_number, status, created_at, currency, profiles ( full_name, email ) )
         `)
         .eq("vendor_id", v.id)
         .order("created_at", { ascending: false });
@@ -55,6 +55,7 @@ export default function VendorOrdersPage() {
             order_number: o.order_number,
             status: o.status,
             created_at: o.created_at,
+            currency: (o as { currency?: string }).currency ?? "RWF",
             buyer: o.profiles,
             items: [],
           });
@@ -152,7 +153,9 @@ export default function VendorOrdersPage() {
                         <td className="py-3 px-4">{order.buyer?.full_name || order.buyer?.email || "—"}</td>
                         <td className="py-3 px-4 line-clamp-2">{productLabel}</td>
                         <td className="py-3 px-4 text-right">{order.totalQty ?? 0}</td>
-                        <td className="py-3 px-4 text-right font-semibold">{formatCurrency(order.totalAmount ?? 0)}</td>
+                        <td className="py-3 px-4 text-right font-semibold">
+                          {formatCurrency(order.totalAmount ?? 0, order.currency ?? "RWF")}
+                        </td>
                         <td className="py-3 px-4 text-center"><Badge variant={s.variant}>{s.label}</Badge></td>
                         <td className="py-3 px-4 text-right">
                           <Button asChild variant="outline" size="sm">

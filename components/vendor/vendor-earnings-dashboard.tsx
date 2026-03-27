@@ -154,8 +154,8 @@ export function VendorEarningsDashboard() {
   function methodLabel(id: string | null): string {
     const m = METHOD_OPTIONS.find((o) => o.id === id);
     if (m) return m.label;
-    if (id === "irembopay") return "IremboPay";
-    return id || "—";
+    if (!id) return "—";
+    return id.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
   }
 
   function payoutStatusVariant(s: string | null): "success" | "warning" | "default" | "destructive" {
