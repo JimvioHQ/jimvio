@@ -115,7 +115,7 @@ export async function registerPesapalIPN(): Promise<string> {
       Authorization:  `Bearer ${token}`,
     },
     body: JSON.stringify({
-      url:                   `${process.env.NEXT_PUBLIC_APP_URL}/api/payments/pesapal`,
+      url:                   `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/pesapal`,
       ipn_notification_type: 'GET',
     }),
   })

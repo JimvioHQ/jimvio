@@ -39,7 +39,8 @@ function defaultPaymentForCurrency(currency: string | null): "pesapal" | "nowpay
   return c === "RWF" ? "pawapay" : "pesapal";
 }
 
-function paymentMethodLabel(m: "pesapal" | "nowpayments" | "pawapay" | null): string {
+function paymentMethodLabel(m: "pesapal" | "nowpayments" | "pawapay" | "afripay" | null): string {
+  if (m === "afripay") return "AfriPay (Mobile Money)";
   if (m === "pawapay") return "Mobile money (PawaPay)";
   if (m === "pesapal") return "Card (PesaPal)";
   if (m === "nowpayments") return "Cryptocurrency";
@@ -56,12 +57,14 @@ export function CheckoutExperience({
   profile: { full_name: string | null; email: string | null; phone: string | null } | null;
 }) {
   const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>(orders.map(o => o.id));
-  const [payment, setPayment] = useState<"pesapal" | "nowpayments" | "pawapay" | null>(() =>
-    defaultPaymentForCurrency(orders[0]?.currency ?? null)
+  const [payment, setPayment] = useState<"pesapal" | "nowpayments" | "pawapay" | "afripay" | null>(() =>
+    orders[0]?.currency?.toUpperCase() === "RWF" ? "afripay" : defaultPaymentForCurrency(orders[0]?.currency ?? null)
   );
   const [payCurrency, setPayCurrency] = useState("usdttrc20");
   const [pawapayProvider, setPawapayProvider] = useState("");
   const [pawapayPhone, setPawapayPhone] = useState("");
+  const [afripayNetwork, setAfripayNetwork] = useState<"MTN" | "BK" | "MPESA">("MTN");
+  const [afripayPhone, setAfripayPhone] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   const { activeStep, shippingRef, paymentRef, reviewRef } = useCheckoutScrollStep();
@@ -132,6 +135,7 @@ export function CheckoutExperience({
 
   React.useEffect(() => {
     setPawapayPhone(shipping.phone);
+    setAfripayPhone(shipping.phone);
   }, [shipping.phone]);
 
   const payCtaLabel = useMemo(() => {
@@ -194,6 +198,26 @@ export function CheckoutExperience({
           return;
         }
         throw new Error("No redirect URL");
+      }
+
+      if (payment === "afripay") {
+        if (!afripayPhone.trim()) {
+          throw new Error("Enter your mobile money number for AfriPay");
+        }
+        const res = await fetch("/api/payments/afripay/initiate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            orderId: primaryOrderId,
+            orderIds,
+            network: afripayNetwork,
+            phoneNumber: afripayPhone.trim(),
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "AfriPay failed");
+        window.location.href = `/checkout/pending?orderId=${encodeURIComponent(primaryOrderId)}`;
+        return;
       }
 
       if (payment === "pawapay") {
@@ -369,15 +393,6 @@ export function CheckoutExperience({
           )}
 
           <section
-            ref={shippingRef}
-            data-checkout-step="shipping"
-            id="checkout-shipping"
-            className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 sm:p-8 shadow-sm"
-          >
-            <ShippingForm values={shipping} onChange={(patch) => setShipping((s) => ({ ...s, ...patch }))} />
-          </section>
-
-          <section
             ref={paymentRef}
             data-checkout-step="payment"
             id="checkout-payment"
@@ -394,20 +409,28 @@ export function CheckoutExperience({
               onPawapayProviderChange={setPawapayProvider}
               pawapayPhone={pawapayPhone}
               onPawapayPhoneChange={setPawapayPhone}
+              afripayNetwork={afripayNetwork}
+              onAfripayNetworkChange={setAfripayNetwork}
+              afripayPhone={afripayPhone}
+              onAfripayPhoneChange={setAfripayPhone}
             />
           </section>
 
           <section
-            ref={reviewRef}
-            data-checkout-step="review"
-            id="checkout-review"
-            className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)]/40 p-5 sm:p-8 shadow-sm"
+            ref={shippingRef}
+            data-checkout-step="shipping"
+            id="checkout-shipping"
+            className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 sm:p-8 shadow-sm"
           >
-            <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">Review &amp; pay</h2>
-            <p className="text-sm text-[var(--color-text-muted)] mt-1 mb-6">
-              Confirm your details, then complete payment securely.
-            </p>
-            <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 space-y-3 text-sm">
+            <ShippingForm values={shipping} onChange={(patch) => setShipping((s) => ({ ...s, ...patch }))} />
+          </section>
+        </div>
+
+        <aside className="lg:sticky lg:top-24 self-start w-full space-y-6">
+          <OrderSummary items={items} subtotal={subtotal} total={total} currency={currency} />
+          
+          <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)]/40 p-5 sm:p-6 shadow-sm space-y-6">
+            <div className="space-y-4 text-sm">
               <div className="flex justify-between gap-4">
                 <span className="text-[var(--color-text-muted)]">Ship to</span>
                 <span className="text-right font-medium text-[var(--color-text-primary)]">
@@ -419,10 +442,6 @@ export function CheckoutExperience({
                 </span>
               </div>
               <div className="flex justify-between gap-4">
-                <span className="text-[var(--color-text-muted)]">Contact</span>
-                <span className="text-right text-[var(--color-text-primary)]">{shipping.email}</span>
-              </div>
-              <div className="flex justify-between gap-4">
                 <span className="text-[var(--color-text-muted)]">Payment</span>
                 <span className="text-right font-medium text-[var(--color-text-primary)]">{paymentMethodLabel(payment)}</span>
               </div>
@@ -432,7 +451,7 @@ export function CheckoutExperience({
               type="button"
               size="lg"
               className={cn(
-                "w-full mt-8 h-14 rounded-xl text-base font-semibold",
+                "w-full h-14 rounded-xl text-base font-semibold",
                 "bg-[var(--color-accent)] text-white hover:opacity-[0.96] active:scale-[0.99]",
                 "shadow-lg shadow-[var(--color-accent)]/25 border-0",
                 "focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2"
@@ -451,16 +470,13 @@ export function CheckoutExperience({
                 </>
               )}
             </Button>
-            <p className="text-center text-[11px] text-[var(--color-text-muted)] mt-4">
-              {selectedOrders.length} vendor order{selectedOrders.length === 1 ? "" : "s"} · {currency} · Encrypted checkout
+            
+            <p className="text-center text-[11px] text-[var(--color-text-muted)]">
+              {selectedOrders.length} vendor order{selectedOrders.length === 1 ? "" : "s"} · {currency}
             </p>
-          </section>
-        </div>
+          </div>
 
-        {/* RIGHT ~30% sticky summary */}
-        <aside className="lg:sticky lg:top-24 self-start w-full">
-          <OrderSummary items={items} subtotal={subtotal} total={total} currency={currency} />
-          <div className="mt-4 text-center text-[11px] text-[var(--color-text-muted)]">
+          <div className="text-center text-[11px] text-[var(--color-text-muted)]">
             <Link href="/cart" className="text-[var(--color-accent)] font-medium hover:underline">
               ← Edit cart
             </Link>

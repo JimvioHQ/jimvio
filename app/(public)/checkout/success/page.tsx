@@ -9,12 +9,20 @@ export const dynamic = "force-dynamic";
 export default async function CheckoutSuccessPage({
   searchParams,
 }: {
-  searchParams: Promise<{ orderId?: string; order_id?: string }>;
+  searchParams: Promise<{ orderId?: string; order_id?: string; OrderMerchantReference?: string }>;
 }) {
   const sp = await searchParams;
-  /** Pending / PawaPay flows use `orderId`; some callbacks use `order_id`. */
-  const orderId = sp.orderId?.trim() || sp.order_id?.trim();
-  if (!orderId) notFound();
+  /** 
+   * Jimvio flows use `orderId` or `order_id`. 
+   * PesaPal callbacks use `OrderMerchantReference` which we generate as `orderId:timestamp`.
+   */
+  const rawRef = sp.OrderMerchantReference?.trim();
+  const orderId = sp.orderId?.trim() || sp.order_id?.trim() || rawRef?.split(":")[0];
+  
+  if (!orderId) {
+    console.warn("[CheckoutSuccess] No orderId found in searchParams", sp);
+    notFound();
+  }
 
   const supabase = await createClient();
   const { data: order, error } = await supabase

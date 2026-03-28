@@ -71,3 +71,42 @@ export async function initiateAfriPayPayment(params: {
     };
   }
 }
+
+export async function checkAfriPayStatus(transactionId: string): Promise<{ status: string; error?: string }> {
+  const apiKey = process.env.AFRIPAY_API_KEY?.trim();
+  if (!apiKey) return { status: "FAILED", error: "AFRIPAY_API_KEY is not set" };
+
+  const baseUrl =
+    process.env.AFRIPAY_SANDBOX === "true"
+      ? "https://sandbox.afripay.africa"
+      : "https://www.afripay.africa";
+
+  try {
+    // TODO: Verify endpoint from AfriPay docs when available
+    const url = `${baseUrl.replace(/\/$/, "")}/api/v1/payment/status/${transactionId}`;
+
+    const res = await fetch(url, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        Accept: "application/json",
+      },
+    });
+
+    const text = await res.text();
+    let data: { status?: string };
+    try {
+       data = text ? (JSON.parse(text) as typeof data) : {};
+    } catch {
+       return { status: "FAILED", error: text.slice(0, 300) };
+    }
+
+    if (!res.ok) {
+       return { status: "FAILED", error: text.slice(0, 400) };
+    }
+
+    return { status: data.status ?? "PENDING" };
+  } catch (e) {
+    return { status: "FAILED", error: e instanceof Error ? e.message : String(e) };
+  }
+}

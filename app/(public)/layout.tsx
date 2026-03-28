@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { ProductChatWidgetLoader } from "@/components/marketplace/product-chat-widget-loader";
+import { AISourcingAssistant } from "@/components/marketplace/ai-sourcing-assistant";
 import { createClient, getCachedUser } from "@/lib/supabase/server";
 import { getResolvedPlatformSettings, PLATFORM_SETTINGS_DEFAULTS } from "@/lib/platform-settings";
 
@@ -43,7 +44,8 @@ export default async function PublicLayout({ children }: { children: React.React
       </Suspense>
       <main className="flex-1 pt-[var(--navbar-height)] pb-0 md:pb-0">{children}</main>
       <Footer contact={platformSettings?.contact} />
-      {/* Global product chat: opens from product cards (contact icon) or product page triggers */}
+      {/* Global AI & Chat widgets */}
+      <AISourcingAssistant />
       <ProductChatWidgetLoader />
     </div>
   );

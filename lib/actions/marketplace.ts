@@ -207,12 +207,15 @@ export async function addToCart(productId: string, vendorId: string, quantity: n
 
     if (pError || !product) throw new Error("Product not found");
 
-    // 2. Look for an existing pending order for this vendor and buyer
+    const productCurrency = (product as { currency?: string | null }).currency?.toUpperCase() || "USD";
+    
+    // 2. Look for an existing pending order for this vendor AND currency and buyer
     let { data: order, error: oError } = await supabase
       .from("orders")
-      .select("id")
+      .select("id, currency")
       .eq("buyer_id", user.id)
       .eq("vendor_id", vendorId)
+      .eq("currency", productCurrency)
       .eq("status", "pending")
       .maybeSingle();
 
@@ -226,7 +229,7 @@ export async function addToCart(productId: string, vendorId: string, quantity: n
           status: "pending",
           total_amount: product.price * quantity,
           subtotal: product.price * quantity,
-          currency: (product as { currency?: string | null }).currency ?? "USD",
+          currency: productCurrency,
         })
         .select()
         .single();
@@ -283,13 +286,22 @@ export async function addToCart(productId: string, vendorId: string, quantity: n
       if (insertError) throw insertError;
     }
 
-    // 4. Order totals (subtotal / total_amount) are now updated automatically by 
+    // 4. Update order totals (subtotal / total_amount) are now updated automatically by 
     // the 'tr_update_order_totals' PostgreSQL trigger. No manual update needed.
     
-    revalidatePath("/");
-    revalidatePath("/marketplace");
+    // 5. Fetch updated cart item count for immediate frontend update (reduces roundtrips)
+    const { data: countData } = await supabase
+      .from("order_items")
+      .select("quantity, orders!inner(id)")
+      .eq("orders.buyer_id", user.id)
+      .eq("orders.status", "pending");
+    
+    const newCartCount = countData?.reduce((sum, item) => sum + Number(item.quantity || 0), 0) || 0;
+
+    // Only revalidate the cart page where it matters most, avoiding global slowdown
     revalidatePath("/cart");
-    return { success: true };
+    
+    return { success: true, cartCount: newCartCount };
   } catch (error: any) {
     console.error("Add to cart error:", error);
     return { success: false, error: error.message };

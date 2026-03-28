@@ -40,7 +40,7 @@ export function ProductActionModule({ product, vendor, currentPath }: ProductAct
   const [wishlistLoading, setWishlistLoading] = useState(false);
   const [added, setAdded] = useState(false);
   const [inWishlist, setInWishlist] = useState(false);
-  const { refreshCart } = useCartStore();
+  const { setCartCount } = useCartStore();
 
   useEffect(() => {
     async function checkWishlist() {
@@ -57,7 +57,9 @@ export function ProductActionModule({ product, vendor, currentPath }: ProductAct
       const result = await addToCart(product.id, product.vendor_id, quantity);
       if (result.success) {
         setAdded(true);
-        await refreshCart();
+        if (typeof result.cartCount === "number") {
+          setCartCount(result.cartCount);
+        }
         setTimeout(() => setAdded(false), 2500);
       } else if (result.error === "Authentication required") {
         window.location.href = `/login?next=${window.location.pathname}`;

@@ -4,14 +4,11 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createPesapalOrder, registerPesapalIPN } from '@/lib/pesapal'
-import { createClient } from '@supabase/supabase-js'
+import { createServiceRoleClient } from '@/lib/supabase/service-role'
 
 export const dynamic = 'force-dynamic'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+const supabase = createServiceRoleClient()
 
 export async function POST(req: NextRequest) {
   try {
@@ -105,8 +102,12 @@ export async function POST(req: NextRequest) {
       ? `Jimvio Order ${order.order_number}`
       : `Jimvio Multi-Order (${orders.length} vendors)`
 
+    // Generate a unique merchant reference for this ATTEMPT to satisfy PesaPal uniqueness rules
+    // PesaPal max length for merchant reference is 50 chars. UUID (36) + timestamp (13/14) = ~50
+    const merchantRef = `${primaryOrderId}:${Date.now()}`
+
     const result = await createPesapalOrder({
-      jimvioOrderId: primaryOrderId, // gateway still uses one ID as primary ref
+      jimvioOrderId: merchantRef, // Use unique Ref to avoid PesaPal rejection on repeat attempts
       amount,
       currency,
       description,
@@ -125,17 +126,19 @@ export async function POST(req: NextRequest) {
     })
 
     // Save merchant ref to all orders in the batch
-    const batchId = crypto.randomUUID()
-    await supabase
+    const { error: updateError } = await supabase
       .from('orders')
       .update({
-        pesapal_merchant_ref: primaryOrderId,
-        payment_batch_id:     batchId,
+        pesapal_merchant_ref: merchantRef,
         payment_provider:     'pesapal',
-        gateway_used:         'pesapal',
         updated_at:           new Date().toISOString(),
       })
       .in('id', orderIds)
+
+    if (updateError) {
+      console.error('[PesaPal Initiate] DB Update Error:', updateError)
+      return NextResponse.json({ error: `Could not link payment to order: ${updateError.message}` }, { status: 500 })
+    }
 
     return NextResponse.json({ redirectUrl: result.redirectUrl })
 

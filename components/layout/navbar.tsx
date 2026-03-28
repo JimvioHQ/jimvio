@@ -28,6 +28,7 @@ import {
   Search,
   Command,
   ChevronDown,
+  ChevronRight,
   Sparkles,
   Zap,
 } from "lucide-react";
@@ -45,6 +46,7 @@ import {
 import { cn } from "@/lib/utils";
 import { signOut } from "@/lib/auth/actions";
 import { useCartStore } from "@/lib/store/use-cart-store";
+import { useAIStore } from "@/lib/store/use-ai-store";
 import type { MarketingSettings, NavLinkConfig } from "@/lib/platform-settings-shared";
 import { NavbarSearch } from "@/components/layout/navbar-search";
 import { CurrencySelector } from "@/context/CurrencyContext";
@@ -89,6 +91,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
   const [searchQ, setSearchQ] = useState("");
 
   const { cartCount, chatCount, refreshCounts } = useCartStore();
+  const { openAssistant } = useAIStore();
   const pathname = usePathname();
   const router = useRouter();
 
@@ -214,8 +217,21 @@ export function Navbar({ user, marketing }: NavbarProps) {
                 <NavbarSearch searchQ={searchQ} setSearchQ={setSearchQ} placeholder={marketing.search_placeholder} isScrolled={isScrolled} variant="desktop" runSearch={runSearch} navLinks={navLinks} />
              </div>
 
-             {/* Functional Icons (RE-ADDED MESSAGE ICON) */}
+             {/* Functional Icons */}
              <div className="flex items-center gap-0.5 sm:gap-1.5 shrink-0">
+                <button
+                   onClick={() => openAssistant()}
+                   className="hidden sm:flex items-center gap-2 px-3.5 py-2 rounded-full bg-orange-50 border border-orange-100 text-orange-600 hover:bg-orange-100 transition-all group mr-1"
+                >
+                   <Sparkles className="h-4 w-4 fill-orange-500 stroke-none animate-pulse" />
+                   <span className="text-[12px] font-black uppercase tracking-tight">AI Mode</span>
+                </button>
+                <button 
+                   onClick={() => openAssistant()}
+                   className="flex sm:hidden p-2 rounded-full bg-orange-50 text-orange-600 border border-orange-100 transition-all mr-1"
+                >
+                   <Sparkles size={20} className="fill-orange-500 stroke-none" />
+                </button>
                 <Link href="/messages" className="relative p-2.5 rounded-full hover:bg-zinc-100 transition-all group lg:flex items-center justify-center">
                    <MessageCircle className="h-5.5 w-5.5 text-zinc-800 transition-transform group-hover:rotate-6" />
                    {chatCount > 0 && <span className="absolute -top-1 -right-1 h-[20px] min-w-[20px] bg-[#f97316] text-white text-[10px] font-black flex items-center justify-center rounded-full ring-2 ring-white animate-pulse">{chatCount}</span>}
@@ -278,7 +294,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
           {mobileOpen && (
             <>
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setMobileOpen(false)} className="fixed inset-0 bg-black/30 backdrop-blur-md z-[9998] pointer-events-auto" />
-              <motion.div initial={{ x: "100%", opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: "100%", opacity: 0 }} transition={{ type: "spring", damping: 28, stiffness: 260 }} className="fixed inset-y-3 right-3 w-[min(100%-24px,380px)] bg-white z-[9999] shadow-2xl flex flex-col p-6 pointer-events-auto rounded-[40px] border border-white/20">
+              <motion.div initial={{ x: "100%", opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: "100%", opacity: 0 }} transition={{ type: "spring", damping: 28, stiffness: 260 }} className="fixed inset-0 w-full h-full bg-white z-[9999] shadow-2xl flex flex-col p-6 pointer-events-auto overflow-hidden">
                  {/* Mobile Header Quick Actions */}
                  <div className="flex items-center justify-between mb-8">
                     <div className="flex items-center gap-2">
@@ -296,7 +312,17 @@ export function Navbar({ user, marketing }: NavbarProps) {
                     </button>
                  </div>
                  
-                 <div className="mb-6 z-[99999] relative">
+                 <div className="mb-6 z-[99999] relative space-y-3">
+                    <button
+                      onClick={() => { openAssistant(); setMobileOpen(false); }}
+                      className="w-full h-15 rounded-[24px] bg-orange-50 border border-orange-100 flex items-center justify-between px-6 text-orange-600 hover:bg-orange-100 transition-all active:scale-95 shadow-sm"
+                    >
+                       <div className="flex items-center gap-3">
+                          <Sparkles className="h-5 w-5 fill-orange-500 stroke-none" />
+                          <span className="text-[15px] font-black uppercase">Launch AI Mode</span>
+                       </div>
+                       <ChevronRight size={18} />
+                    </button>
                     <NavbarSearch 
                        searchQ={searchQ} 
                        setSearchQ={setSearchQ} 

@@ -54,14 +54,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  let body: { orderId?: string };
+  let body: { orderId?: string; trackingId?: string };
   try {
-    body = (await req.json()) as { orderId?: string };
+    body = (await req.json()) as { orderId?: string; trackingId?: string };
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
   const orderId = body.orderId?.trim();
+  const trackingId = body.trackingId?.trim();
   if (!orderId) {
     return NextResponse.json({ error: "Missing orderId" }, { status: 400 });
   }
@@ -86,48 +87,57 @@ export async function POST(req: NextRequest) {
 
   const depositId = order.pawapay_deposit_id;
 
-  if (!depositId) {
-    if (order.payment_provider === "pawapay") {
+  if (order.payment_provider === "pawapay" && depositId) {
+    let remote: Awaited<ReturnType<typeof checkDepositStatus>>;
+    try {
+      remote = await checkDepositStatusWithRetry(String(depositId));
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "PawaPay status check failed";
+      return NextResponse.json(
+        {
+          error: msg,
+          pawapay: true,
+          transient: isTransientUpstreamError(e),
+        },
+        { status: 502 }
+      );
+    }
+
+    const st = (remote.status || "").toUpperCase();
+
+    if (st === "FAILED" || st === "REJECTED" || st === "CANCELLED") {
+      const fr = remote.failureReason;
       return NextResponse.json({
         payment_status: order.payment_status,
+        depositStatus: remote.status ?? st,
         pawapay: true,
-        missingDepositId: true,
+        terminalFailure: true,
+        failureCode: fr?.failureCode ?? null,
+        failureMessage: fr?.failureMessage ?? null,
       });
     }
-    return NextResponse.json({ payment_status: order.payment_status, pawapay: false });
-  }
 
-  let remote: Awaited<ReturnType<typeof checkDepositStatus>>;
-  try {
-    remote = await checkDepositStatusWithRetry(String(depositId));
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : "PawaPay status check failed";
-    return NextResponse.json(
-      {
-        error: msg,
-        pawapay: true,
-        /** Client can keep polling — upstream was temporarily unreachable */
-        transient: isTransientUpstreamError(e),
-      },
-      { status: 502 }
-    );
-  }
+    if (st === "COMPLETED") {
+      try {
+        await finalizeOrderPayment(admin, orderId, {
+          providerTransactionId: String(depositId),
+          providerReference: String(depositId),
+          paidAtIso: new Date().toISOString(),
+          notifyUserId: user.id,
+          amountForMessage: null,
+          webhookReference: String(depositId),
+          paymentProvider: "pawapay",
+        });
+        return NextResponse.json({ payment_status: "completed", done: true, synced: true });
+      } catch (e) {
+        console.error("[PawaPay sync-status] finalize", e);
+        return NextResponse.json(
+          { error: e instanceof Error ? e.message : "Could not finalize order" },
+          { status: 500 }
+        );
+      }
+    }
 
-  const st = (remote.status || "").toUpperCase();
-
-  if (st === "FAILED" || st === "REJECTED" || st === "CANCELLED") {
-    const fr = remote.failureReason;
-    return NextResponse.json({
-      payment_status: order.payment_status,
-      depositStatus: remote.status ?? st,
-      pawapay: true,
-      terminalFailure: true,
-      failureCode: fr?.failureCode ?? null,
-      failureMessage: fr?.failureMessage ?? null,
-    });
-  }
-
-  if (st !== "COMPLETED") {
     return NextResponse.json({
       payment_status: order.payment_status,
       depositStatus: remote.status ?? null,
@@ -135,23 +145,67 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  try {
-    await finalizeOrderPayment(admin, orderId, {
-      providerTransactionId: String(depositId),
-      providerReference: String(depositId),
-      paidAtIso: new Date().toISOString(),
-      notifyUserId: user.id,
-      amountForMessage: null,
-      webhookReference: String(depositId),
-      paymentProvider: "pawapay",
-    });
-  } catch (e) {
-    console.error("[PawaPay sync-status] finalize", e);
-    return NextResponse.json(
-      { error: e instanceof Error ? e.message : "Could not finalize order" },
-      { status: 500 }
-    );
+  if (order.payment_provider === "afripay") {
+    const { checkAfriPayStatus } = await import("@/lib/payments/afripay");
+    let remote;
+    try {
+      remote = await checkAfriPayStatus(orderId);
+    } catch (e) {
+      return NextResponse.json({ error: "AfriPay status check failed", transient: true }, { status: 502 });
+    }
+
+    const st = (remote.status || "").toUpperCase();
+    if (st === "FAILED" || st === "CANCELLED") {
+      return NextResponse.json({
+        payment_status: order.payment_status,
+        terminalFailure: true,
+        failureMessage: remote.error || "AfriPay transaction failed",
+      });
+    }
+
+    if (st === "SUCCESS" || st === "COMPLETED" || st === "PAID") {
+      try {
+        await finalizeOrderPayment(admin, orderId, {
+          providerTransactionId: orderId,
+          providerReference: orderId,
+          paidAtIso: new Date().toISOString(),
+          notifyUserId: user.id,
+          paymentProvider: "afripay",
+        });
+        return NextResponse.json({ payment_status: "completed", done: true, synced: true });
+      } catch (e) {
+        console.error("[AfriPay sync-status] finalize", e);
+      }
+    }
   }
 
-  return NextResponse.json({ payment_status: "completed", done: true, synced: true });
+  // PESAPAL FALLBACK POLLING
+  if ((order.payment_provider || "").toLowerCase() === "pesapal" && trackingId) {
+    const { verifyPesapalTransaction } = await import("@/lib/pesapal");
+    let remote;
+    try {
+      remote = await verifyPesapalTransaction(trackingId);
+    } catch (e) {
+      console.error("[PesaPal sync-status] verify error:", e);
+      return NextResponse.json({ error: "PesaPal check failed", transient: true }, { status: 502 });
+    }
+
+    const st = (remote.status_code || "").toUpperCase();
+    if (st === "COMPLETED") {
+       try {
+          await finalizeOrderPayment(admin, orderId, {
+             providerTransactionId: trackingId,
+             providerReference: trackingId,
+             paidAtIso: new Date().toISOString(),
+             notifyUserId: user.id,
+             paymentProvider: "pesapal",
+          });
+          return NextResponse.json({ payment_status: "completed", done: true, synced: true });
+       } catch (e) {
+          console.error("[PesaPal sync-status] finalize error:", e);
+       }
+    }
+  }
+
+  return NextResponse.json({ payment_status: order.payment_status, done: false });
 }

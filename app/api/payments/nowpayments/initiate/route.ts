@@ -75,12 +75,10 @@ export async function POST(req: NextRequest) {
       buyerEmail:    buyerProfile?.email || '',
     })
 
-    // Save payment provider and batch to all orders
-    const batchId = crypto.randomUUID()
+    // Save payment provider to all orders
     await supabase
       .from('orders')
       .update({
-        payment_batch_id: batchId,
         payment_provider: 'nowpayments',
         gateway_used:     'nowpayments',
         updated_at:       new Date().toISOString(),

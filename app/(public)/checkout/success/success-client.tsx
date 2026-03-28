@@ -6,6 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatDisplayMoney } from "@/lib/utils";
 
+import { useEffect } from "react";
+import { useCartStore } from "@/lib/store/use-cart-store";
+
 type Order = {
   id: string;
   order_number: string;
@@ -16,15 +19,45 @@ type Order = {
 };
 
 export function CheckoutSuccessClient({ order }: { order: Order }) {
+  const { refreshCart } = useCartStore();
+
+  useEffect(() => {
+    const sp = new URLSearchParams(window.location.search);
+    const trackingId = sp.get("OrderTrackingId") || sp.get("order_tracking_id");
+
+    async function syncAndRefresh() {
+      // 1. Trigger the background verification/sync (handles localhost webhook block)
+      try {
+        await fetch("/api/payments/pawapay/sync-status", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ orderId: order.id, trackingId }),
+        });
+      } catch (e) {
+        /* ignore fetch error */
+      }
+      
+      // 2. Refresh the local cart state
+      await refreshCart();
+      window.dispatchEvent(new CustomEvent("cart-updated"));
+    }
+
+    syncAndRefresh();
+  }, [order.id, refreshCart]);
   const label = order.order_number?.startsWith("JV") ? order.order_number : `JV-${String(order.order_number || order.id).slice(0, 8).toUpperCase()}`;
+  const p = (order.payment_provider || "").toLowerCase();
   const method =
-    order.payment_provider === "nowpayments"
+    p === "nowpayments"
       ? "Crypto"
-      : order.payment_provider === "pesapal"
+      : p === "pesapal"
         ? "PesaPal"
-        : order.payment_provider === "pawapay"
+        : p === "pawapay"
           ? "PawaPay"
-          : order.payment_provider || "—";
+          : p === "afripay"
+            ? "AfriPay"
+            : p 
+              ? p.charAt(0).toUpperCase() + p.slice(1)
+              : "—";
 
   return (
     <div className="text-center">

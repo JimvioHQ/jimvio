@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { finalizeOrderPayment } from "@/lib/payments/finalize-order-payment";
 
 export const dynamic = "force-dynamic";
 
@@ -12,9 +13,6 @@ type Body = {
   status?: string;
 };
 
-/**
- * TODO: Add AfriPay signature verification once their webhook docs are confirmed.
- */
 export async function POST(req: NextRequest) {
   let body: Body;
   try {
@@ -32,7 +30,7 @@ export async function POST(req: NextRequest) {
 
   const { data: order } = await supabase
     .from("orders")
-    .select("id, payment_status")
+    .select("id, buyer_id, payment_status")
     .eq("payment_external_reference", transactionId)
     .maybeSingle();
 
@@ -54,7 +52,19 @@ export async function POST(req: NextRequest) {
   }
 
   if (st === "success" || st === "completed" || st === "paid") {
-    await supabase.from("orders").update({ gateway_used: "afripay" }).eq("id", order.id);
+    try {
+      await finalizeOrderPayment(supabase, order.id, {
+        providerTransactionId: transactionId,
+        providerReference: transactionId,
+        paidAtIso: new Date().toISOString(),
+        notifyUserId: order.buyer_id,
+        webhookReference: transactionId,
+        paymentProvider: "afripay",
+      });
+      await supabase.from("orders").update({ gateway_used: "afripay", payment_provider: "afripay" }).eq("id", order.id);
+    } catch (err) {
+      console.error("[webhooks/afripay] finalize failed", err);
+    }
   }
 
   return NextResponse.json({ received: true });

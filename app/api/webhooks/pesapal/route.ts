@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { finalizeOrderPayment } from "@/lib/payments/finalize-order-payment";
+import { verifyPesapalTransaction } from "@/lib/pesapal";
 
 export const dynamic = "force-dynamic";
 
@@ -7,12 +9,6 @@ const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env
   auth: { autoRefreshToken: false, persistSession: false },
 });
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
-/**
- * PesaPal IPN can arrive as GET with query params (configuration-dependent).
- * Full confirmation should use PesaPal GetTransactionStatus — this updates tracking + gateway_used.
- */
 export async function GET(req: NextRequest) {
   const url = new URL(req.url);
   const orderTrackingId =
@@ -24,44 +20,68 @@ export async function GET(req: NextRequest) {
     url.searchParams.get("order_merchant_reference") ||
     url.searchParams.get("merchant_reference");
 
-  if (!orderMerchantReference?.trim()) {
-    console.warn("[webhooks/pesapal] missing OrderMerchantReference");
+  if (!orderTrackingId || !orderMerchantReference) {
     return NextResponse.json({ received: true });
   }
 
+  // 1. Fetch official status from PesaPal to be secure
+  let statusResponse;
+  try {
+    statusResponse = await verifyPesapalTransaction(orderTrackingId);
+  } catch (err) {
+    console.error("[webhooks/pesapal] verify failed", err);
+    return NextResponse.json({ received: true });
+  }
+
+  // PesaPal statuses: COMPLETED, FAILED, INVALID, REVERSED
+  const pStatus = (statusResponse.status_code || "").toString().toUpperCase();
+  const paymentMethod = statusResponse.payment_method || "pesapal";
+
+  // 2. Find the order(s) by tracking ID or merchant ref (which includes our UUID)
   const ref = orderMerchantReference.trim();
+  const jimvioOrderId = ref.split(":")[0]; // Strip our unique timestamp suffix
 
-  let row: { id: string; pesapal_tracking_id: string | null } | null = null;
-
-  const byMerchant = await supabase
+  const { data: order } = await supabase
     .from("orders")
-    .select("id, pesapal_tracking_id")
-    .eq("pesapal_merchant_ref", ref)
+    .select("id, buyer_id, payment_status")
+    .eq("id", jimvioOrderId)
     .maybeSingle();
 
-  if (byMerchant.data) row = byMerchant.data;
-
-  if (!row && UUID_RE.test(ref)) {
-    const byId = await supabase.from("orders").select("id, pesapal_tracking_id").eq("id", ref).maybeSingle();
-    if (byId.data) row = byId.data;
-  }
-
-  if (!row) {
-    const byExt = await supabase.from("orders").select("id, pesapal_tracking_id").eq("payment_external_id", ref).maybeSingle();
-    if (byExt.data) row = byExt.data;
-  }
-
-  if (!row) {
-    console.warn("[webhooks/pesapal] order not found for ref", ref, orderTrackingId);
+  if (!order) {
+    console.warn("[webhooks/pesapal] order not found", jimvioOrderId);
     return NextResponse.json({ received: true });
   }
 
-  const patch: Record<string, string> = { gateway_used: "pesapal" };
-  if (orderTrackingId && row.pesapal_tracking_id !== orderTrackingId) {
-    patch.pesapal_tracking_id = orderTrackingId;
+  if (order.payment_status === "completed") {
+    return NextResponse.json({ received: true });
   }
 
-  await supabase.from("orders").update(patch).eq("id", row.id);
+  // 3. Update or Finalize
+  if (pStatus === "COMPLETED") {
+    try {
+      await finalizeOrderPayment(supabase, order.id, {
+        providerTransactionId: statusResponse.payment_status_description || orderTrackingId,
+        providerReference: orderTrackingId,
+        paidAtIso: new Date().toISOString(),
+        notifyUserId: order.buyer_id,
+        webhookReference: orderTrackingId,
+        paymentProvider: "pesapal",
+      });
+      // Ensure gateway_used is set
+      await supabase.from("orders").update({ 
+        gateway_used: "pesapal",
+        pesapal_tracking_id: orderTrackingId,
+        payment_provider: "pesapal"
+      }).eq("id", order.id);
+    } catch (err) {
+      console.error("[webhooks/pesapal] finalize failed", err);
+    }
+  } else if (pStatus === "FAILED" || pStatus === "INVALID") {
+    await supabase.from("orders").update({ 
+      payment_status: "failed",
+      gateway_used: "pesapal"
+    }).eq("id", order.id);
+  }
 
   return NextResponse.json({ received: true });
 }

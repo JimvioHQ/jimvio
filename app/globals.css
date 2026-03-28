@@ -186,6 +186,13 @@
     box-sizing: border-box;
   }
 
+  html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+  }
+
   html {
     scroll-behavior: smooth;
     -webkit-font-smoothing: antialiased;
@@ -195,7 +202,7 @@
   body {
     background-color: var(--color-bg);
     color: var(--color-text-primary);
-    min-height: 100vh;
+    min-height: 100%;
     font-family: "Vend Sans", sans-serif;
     font-optical-sizing: auto;
     font-weight: 400;
