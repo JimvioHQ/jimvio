@@ -96,11 +96,6 @@ export default async function HomePage() {
 
 
 
-  const heroStats = [
-    { value: socialBar.verifiedVendors, label: "Verified suppliers", detail: "Audited sellers and sourcing partners" },
-    { value: socialBar.totalProducts, label: "Active products", detail: "Fresh inventory across top categories" },
-    { value: socialBar.countries, label: "Countries reached", detail: "Cross-border trade lanes already moving" },
-  ];
   const heroCampaigns = (campaignChips.length > 0 ? campaignChips : trendingSideCats.map((c: any) => c.name)).slice(0, 4);
   const heroKeywords = platformSettings.marketing.trending_search_keywords.slice(0, 4);
 
@@ -117,7 +112,6 @@ export default async function HomePage() {
         <HomepageHero
           trustBarItems={trustBarItems}
           heroKeywords={heroKeywords}
-          heroStats={heroStats}
           heroCampaigns={heroCampaigns}
           socialBar={{ successRate: socialBar.successRate }}
           viralClips={viralClips as any}
@@ -130,7 +124,7 @@ export default async function HomePage() {
         <TrustBar items={trustBarItems} />
 
         {/* ── MAIN CONTENT ── */}
-        <div className="max-w-[1280px] mx-auto px-4 sm:px-6 pt-12 pb-12 md:pt-16 md:pb-24 space-y-16">
+        <div className="max-w-[1536px] mx-auto px-4 sm:px-6 pt-8 pb-12 md:pt-12 md:pb-20 space-y-10">
 
           <TrendingProductClipsSection clips={viralClips as any} />
 

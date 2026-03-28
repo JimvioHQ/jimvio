@@ -6,12 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn, formatDisplayMoney } from "@/lib/utils";
 
-type HeroStat = {
-  value: string;
-  label: string;
-  detail: string;
-};
-
 type TrustBarItem = {
   title: string;
   desc: string;
@@ -43,7 +37,6 @@ type ViralClip = {
 interface HomepageHeroProps {
   trustBarItems: TrustBarItem[];
   heroKeywords: string[];
-  heroStats: HeroStat[];
   heroCampaigns: string[];
   socialBar: {
     successRate: string;
@@ -60,7 +53,6 @@ interface HomepageHeroProps {
 export function HomepageHero({
   trustBarItems,
   heroKeywords,
-  heroStats,
   heroCampaigns,
   socialBar,
   viralClips,
@@ -79,7 +71,7 @@ export function HomepageHero({
       <div className="pointer-events-none absolute top-40 left-[-4rem] h-[400px] w-[400px] rounded-full bg-[#433360]/5 blur-[100px]" />
       <div className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-white via-white/80 to-transparent" />
 
-      <div className="relative z-10 mx-auto w-full max-w-[1280px] px-4 py-8 sm:px-6 lg:px-8 lg:py-16">
+      <div className="relative z-10 mx-auto w-full max-w-[1536px] px-4 py-8 sm:px-6 lg:py-10">
         {/* Simple 2-column flex layout container */}
         <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 xl:gap-16 items-start">
           
@@ -147,27 +139,7 @@ export function HomepageHero({
             </div>
 
             {/* 3. Stats Block */}
-            <div className="w-full pt-8 sm:pt-10 border-t border-zinc-100">
-              <p className="mb-6 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">
-                Network Intelligence Snapshot
-              </p>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8">
-                {heroStats.map((stat, i) => {
-                  const Icon = statIcons[i % statIcons.length];
-                  return (
-                    <div key={`${i}-${stat.label}`} className="flex flex-col gap-2 group">
-                       <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-1 group-hover:text-[#f97316] transition-colors">{stat.label}</p>
-                       <div className="text-[32px] sm:text-[40px] font-black tabular-nums text-zinc-900 leading-none">
-                         {stat.value}
-                       </div>
-                       <p className="text-[12px] sm:text-[13px] text-zinc-500 font-bold leading-snug">
-                         {stat.detail}
-                       </p>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+
 
           </div>
 

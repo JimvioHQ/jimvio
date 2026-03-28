@@ -54,7 +54,7 @@ export function TrustBar({ items }: { items: TrustBarItem[] }) {
       variants={stagger}
       className={cn("relative z-10 border-y border-white/40 py-8", glassLight)}
     >
-      <div className="max-w-[1280px] mx-auto px-4 sm:px-6 grid grid-cols-2 md:grid-cols-4 gap-6">
+      <div className="max-w-[1536px] mx-auto px-4 sm:px-6 grid grid-cols-2 md:grid-cols-4 gap-6">
         {items.map((item, idx) => {
           const Icon = TRUST_ICONS[idx % TRUST_ICONS.length];
           return (
@@ -515,7 +515,7 @@ export function HowItWorks() {
   ];
   return (
     <div className="border-t border-white/30 bg-white/30 backdrop-blur-xl py-16 md:py-24">
-      <div className="max-w-[1280px] mx-auto px-4 sm:px-6">
+      <div className="max-w-[1536px] mx-auto px-4 sm:px-6">
         <motion.div initial="hidden" whileInView="show" viewport={{ once: true }} variants={stagger}>
           <motion.div variants={fadeUp} className="text-center mb-12">
             <Eyebrow text="How it works" />
@@ -563,7 +563,7 @@ export function AppPromo() {
       <motion.div
         initial="hidden" whileInView="show" viewport={{ once: true, margin: "-80px" }}
         variants={stagger}
-        className="max-w-[1280px] mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-16 relative z-10"
+        className="max-w-[1536px] mx-auto px-4 sm:px-6 flex flex-col md:flex-row items-center justify-between gap-16 relative z-10"
       >
         <motion.div variants={fadeUp} className="flex-1 max-w-[580px]">
           <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#f97316] mb-5">Mobile Ecosystem</p>

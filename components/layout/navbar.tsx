@@ -296,7 +296,19 @@ export function Navbar({ user, marketing }: NavbarProps) {
                     </button>
                  </div>
                  
-                 <div className="space-y-6 flex-1 overflow-y-auto no-scrollbar pb-6">
+                 <div className="mb-6 z-[99999] relative">
+                    <NavbarSearch 
+                       searchQ={searchQ} 
+                       setSearchQ={setSearchQ} 
+                       placeholder={marketing.search_placeholder ?? "Search globally..."} 
+                       isScrolled={isScrolled} 
+                       variant="mobile" 
+                       runSearch={runSearch} 
+                       navLinks={navLinks} 
+                    />
+                 </div>
+
+                 <div className="space-y-6 flex-1 overflow-y-auto no-scrollbar pb-6 relative z-10">
                     <div>
                        <h4 className="text-[10px] font-black text-zinc-300 uppercase tracking-widest pl-4 mb-4">Marketplace Engine</h4>
                        <div className="grid grid-cols-1 gap-2">
