@@ -9,10 +9,11 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatCard } from "@/components/ui/stat-card";
 import { Progress } from "@/components/ui/progress";
-import { formatCurrency } from "@/lib/utils";
+import { useCurrency } from "@/context/CurrencyContext";
 import { createClient } from "@/lib/supabase/client";
 
 export default function CampaignsPage() {
+  const { formatMoney } = useCurrency();
   const [campaigns, setCampaigns] = useState<Record<string, unknown>[]>([]);
   const [loading, setLoading]     = useState(true);
   const [vendor, setVendor]       = useState<Record<string, unknown> | null>(null);
@@ -92,7 +93,7 @@ export default function CampaignsPage() {
         <StatCard title="Total Campaigns"   value={campaigns.length}               icon={<Zap        className="h-4 w-4" />} iconColor="from-pink-600 to-rose-600" />
         <StatCard title="Active"            value={activeCampaigns}                 icon={<Users      className="h-4 w-4" />} iconColor="from-purple-600 to-primary-600" />
         <StatCard title="Total Views"       value={totalViews.toLocaleString()}     icon={<Eye        className="h-4 w-4" />} iconColor="from-cyan-600 to-blue-600" />
-        <StatCard title="Campaign Revenue"  value={formatCurrency(totalRevenue)}    icon={<DollarSign className="h-4 w-4" />} iconColor="from-amber-600 to-orange-600" />
+        <StatCard title="Campaign Revenue"  value={formatMoney(totalRevenue, "RWF")}    icon={<DollarSign className="h-4 w-4" />} iconColor="from-amber-600 to-orange-600" />
       </div>
 
       {campaigns.length === 0 ? (
@@ -158,7 +159,7 @@ export default function CampaignsPage() {
                     {[
                       { label: "Views",   value: views > 0 ? `${(views/1000).toFixed(0)}K` : "0", icon: "👁" },
                       { label: "Conv.",   value: convs.toString(),                                  icon: "✅" },
-                      { label: "Revenue", value: rev > 0 ? formatCurrency(rev) : "RWF 0",          icon: "💰" },
+                      { label: "Revenue", value: rev > 0 ? formatMoney(rev, "RWF") : formatMoney(0, "RWF"),          icon: "💰" },
                     ].map((s, i) => (
                       <div key={i} className="bg-subtle rounded-xl p-2.5 text-center">
                         <div className="text-base mb-1">{s.icon}</div>
@@ -172,7 +173,7 @@ export default function CampaignsPage() {
                     <div>
                       <div className="flex justify-between text-xs mb-1.5">
                         <span className="text-muted-c">Budget used</span>
-                        <span className="text-base font-medium">{formatCurrency(rev)} / {formatCurrency(budget)}</span>
+                        <span className="text-base font-medium">{formatMoney(rev, "RWF")} / {formatMoney(budget, "RWF")}</span>
                       </div>
                       <Progress value={budget > 0 ? Math.min(100, (rev/budget)*100) : 0} className="h-2" />
                     </div>

@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { FollowButton } from "@/components/marketplace/follow-button";
 import { ProductQuickPopup } from "./product-quick-popup";
 import { cn } from "@/lib/utils";
+import { LocalizedPrice } from "@/components/currency/localized-price";
 
 export type FeedClip = {
   id: string;
@@ -32,6 +33,7 @@ export type FeedClip = {
     name: string;
     slug?: string;
     price: number;
+    currency?: string | null;
     images?: string[] | null;
     rating?: number | null;
     inventory_quantity?: number | null;
@@ -215,7 +217,11 @@ export function TikTokFeed({ clips, className }: TikTokFeedProps) {
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-white font-black text-sm truncate">{clip.products.name}</p>
-                <p className="text-[#f97316] font-black">${Number(clip.products.price).toFixed(2)}</p>
+                <LocalizedPrice
+                  amount={Number(clip.products.price)}
+                  currency={clip.products.currency}
+                  className="text-[#f97316] font-black"
+                />
                 {clip.vendors && (
                   <p className="text-[#9ca3af] text-xs font-medium truncate">{clip.vendors.business_name}</p>
                 )}
@@ -334,7 +340,11 @@ export function TikTokFeed({ clips, className }: TikTokFeedProps) {
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-white font-black text-xs truncate">{clip.products.name}</p>
-              <p className="text-[#f97316] font-black text-xs">${Number(clip.products.price).toFixed(2)}</p>
+              <LocalizedPrice
+                amount={Number(clip.products.price)}
+                currency={clip.products.currency}
+                className="text-[#f97316] font-black text-xs"
+              />
             </div>
           </button>
         )}

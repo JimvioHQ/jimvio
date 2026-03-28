@@ -156,6 +156,7 @@ export async function POST(req: NextRequest) {
     const corePatch = {
       pawapay_deposit_id: resolvedDepositId,
       payment_provider: "pawapay" as const,
+      gateway_used: "pawapay" as const,
       updated_at: now,
     };
 

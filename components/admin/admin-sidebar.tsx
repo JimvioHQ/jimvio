@@ -31,7 +31,6 @@ const adminNavItems = [
   { label: "Vendors", href: "/admin/vendors", icon: <Store className="h-4 w-4" /> },
   { label: "Products", href: "/admin/products", icon: <Package className="h-4 w-4" /> },
   { label: "Orders", href: "/admin/orders", icon: <ShoppingCart className="h-4 w-4" /> },
-  { label: "Shopify", href: "/admin/shopify", icon: <Package className="h-4 w-4" /> },
   { label: "Messages", href: "/admin/messages", icon: <MessageCircle className="h-4 w-4" /> },
   { label: "Reports", href: "/admin/reports", icon: <BarChart3 className="h-4 w-4" /> },
   { label: "Verification Requests", href: "/admin/verifications", icon: <ShieldCheck className="h-4 w-4" /> },

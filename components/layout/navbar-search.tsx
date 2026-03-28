@@ -13,7 +13,10 @@ import {
   Store,
   LayoutGrid,
   Link2,
+  Command,
+  ArrowRight,
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import type { NavLinkConfig } from "@/lib/platform-settings-shared";
 import {
@@ -32,16 +35,12 @@ const EXTRA_QUICK_LINKS: NavLinkConfig[] = [
   { label: "Contact", href: "/contact" },
   { label: "Blog", href: "/blog" },
   { label: "Cart", href: "/cart" },
-  { label: "Buying requests", href: "/requests/new" },
 ];
 
-function mergeQuickLinks(
-  navLinks: NavLinkConfig[],
-  primaryCta: { label: string; href: string } | undefined,
-): NavLinkConfig[] {
+function mergeQuickLinks(navLinks: NavLinkConfig[]): NavLinkConfig[] {
   const seen = new Set<string>();
   const out: NavLinkConfig[] = [];
-  for (const item of [...navLinks, ...(primaryCta ? [primaryCta] : []), ...EXTRA_QUICK_LINKS]) {
+  for (const item of [...navLinks, ...EXTRA_QUICK_LINKS]) {
     if (!item?.href || !item?.label) continue;
     const key = item.href.replace(/\/$/, "") || "/";
     if (seen.has(key)) continue;
@@ -50,36 +49,6 @@ function mergeQuickLinks(
   }
   return out;
 }
-
-function filterQuickLinks(all: NavLinkConfig[], q: string): NavLinkConfig[] {
-  const trimmed = q.trim().toLowerCase();
-  if (!trimmed) return all.slice(0, 8);
-  return all
-    .filter(
-      (l) =>
-        l.label.toLowerCase().includes(trimmed) || l.href.toLowerCase().includes(trimmed),
-    )
-    .slice(0, 8);
-}
-
-export interface NavbarSearchProps {
-  searchQ: string;
-  setSearchQ: React.Dispatch<React.SetStateAction<string>>;
-  placeholder: string;
-  isScrolled: boolean;
-  variant: "desktop" | "mobile";
-  onNavigate?: () => void;
-  runSearch: (override?: string) => void;
-  navLinks: NavLinkConfig[];
-  primaryCta?: { label: string; href: string };
-}
-
-type FlatRow =
-  | { kind: "history"; text: string }
-  | { kind: "product"; product: ProductRow }
-  | { kind: "vendor"; vendor: VendorRow }
-  | { kind: "category"; category: CategoryRow }
-  | { kind: "link"; link: NavLinkConfig };
 
 export function NavbarSearch({
   searchQ,
@@ -90,17 +59,16 @@ export function NavbarSearch({
   onNavigate,
   runSearch,
   navLinks,
-  primaryCta,
-}: NavbarSearchProps) {
+}: any) {
   const router = useRouter();
   const pathname = usePathname();
   const urlSearchParams = useSearchParams();
   const containerRef = useRef<HTMLDivElement>(null);
-  const panelRef = useRef<HTMLDivElement>(null);
-  const suggestReq = useRef(0);
+  const inputRef = useRef<HTMLInputElement>(null);
   const [portalReady, setPortalReady] = useState(false);
 
   const [open, setOpen] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
   const [history, setHistory] = useState<string[]>([]);
   const [products, setProducts] = useState<ProductRow[]>([]);
   const [vendors, setVendors] = useState<VendorRow[]>([]);
@@ -108,549 +76,201 @@ export function NavbarSearch({
   const [loading, setLoading] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
 
-  const inputId = variant === "desktop" ? "nav-search-q" : "nav-search-q-mobile";
   const isDesktop = variant === "desktop";
-
-  const allQuickLinks = useMemo(() => mergeQuickLinks(navLinks, primaryCta), [navLinks, primaryCta]);
-  const quickLinksFiltered = useMemo(
-    () => filterQuickLinks(allQuickLinks, searchQ),
-    [allQuickLinks, searchQ],
-  );
-
-  const refreshHistory = useCallback(() => {
-    setHistory(readNavSearchHistory());
-  }, []);
 
   useEffect(() => {
     setPortalReady(true);
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        inputRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
-
-  useEffect(() => {
-    if (pathname === "/marketplace") {
-      const q = urlSearchParams.get("q");
-      if (q != null) setSearchQ(q);
-    }
-  }, [pathname, urlSearchParams, setSearchQ]);
 
   useEffect(() => {
     const q = searchQ.trim();
     if (q.length < 2) {
-      setProducts([]);
-      setVendors([]);
-      setCategories([]);
+      setProducts([]); setVendors([]); setCategories([]);
       setLoading(false);
-      suggestReq.current += 1;
       return;
     }
-    const req = ++suggestReq.current;
     setLoading(true);
-    const id = window.setTimeout(() => {
+    const id = setTimeout(() => {
       fetch(`/api/search/suggestions?q=${encodeURIComponent(q)}`)
-        .then((r) => r.json())
-        .then(
-          (d: {
-            products?: ProductRow[];
-            vendors?: VendorRow[];
-            categories?: CategoryRow[];
-          }) => {
-            if (req !== suggestReq.current) return;
-            setProducts(Array.isArray(d.products) ? d.products : []);
-            setVendors(Array.isArray(d.vendors) ? d.vendors : []);
-            setCategories(Array.isArray(d.categories) ? d.categories : []);
-          },
-        )
-        .catch(() => {
-          if (req !== suggestReq.current) return;
-          setProducts([]);
-          setVendors([]);
-          setCategories([]);
+        .then(r => r.json())
+        .then(d => {
+           setProducts(d.products || []);
+           setVendors(d.vendors || []);
+           setCategories(d.categories || []);
         })
-        .finally(() => {
-          if (req === suggestReq.current) setLoading(false);
-        });
-    }, 260);
-    return () => window.clearTimeout(id);
+        .finally(() => setLoading(false));
+    }, 300);
+    return () => clearTimeout(id);
   }, [searchQ]);
 
   useEffect(() => {
     const onDoc = (e: MouseEvent) => {
-      const t = e.target as Node;
-      if (containerRef.current?.contains(t)) return;
-      if (panelRef.current?.contains(t)) return;
+      if (containerRef.current?.contains(e.target as Node)) return;
       setOpen(false);
-      setActiveIndex(-1);
+      setIsFocused(false);
     };
     document.addEventListener("mousedown", onDoc);
     return () => document.removeEventListener("mousedown", onDoc);
   }, []);
 
-  const historyFiltered = useMemo(() => {
-    const q = searchQ.trim().toLowerCase();
-    const list = history;
-    if (!q) return list.slice(0, 8);
-    return list.filter((h) => h.toLowerCase().includes(q)).slice(0, 8);
-  }, [history, searchQ]);
+  const closePanel = () => { setOpen(false); setIsFocused(false); };
 
-  const productNamesLower = useMemo(
-    () => new Set(historyFiltered.map((h) => h.toLowerCase())),
-    [historyFiltered],
-  );
-
-  const productsDeduped = useMemo(() => {
-    const seen = new Set<string>();
-    return products.filter((p) => {
-      const k = p.name.toLowerCase();
-      if (productNamesLower.has(k) || seen.has(k)) return false;
-      seen.add(k);
-      return true;
-    });
-  }, [products, productNamesLower]);
-
-  const flatRows: FlatRow[] = useMemo(
-    () => [
-      ...historyFiltered.map((text) => ({ kind: "history" as const, text })),
-      ...productsDeduped.map((product) => ({ kind: "product" as const, product })),
-      ...vendors.map((vendor) => ({ kind: "vendor" as const, vendor })),
-      ...categories.map((category) => ({ kind: "category" as const, category })),
-      ...quickLinksFiltered.map((link) => ({ kind: "link" as const, link })),
-    ],
-    [historyFiltered, productsDeduped, vendors, categories, quickLinksFiltered],
-  );
-
-  const qTrim = searchQ.trim();
-  const hasApiColumns = qTrim.length >= 2;
-  const emptySearchState =
-    hasApiColumns &&
-    !loading &&
-    productsDeduped.length === 0 &&
-    vendors.length === 0 &&
-    categories.length === 0 &&
-    historyFiltered.length === 0 &&
-    quickLinksFiltered.length === 0;
-
-  const showPanel =
-    open &&
-    (historyFiltered.length > 0 ||
-      productsDeduped.length > 0 ||
-      vendors.length > 0 ||
-      categories.length > 0 ||
-      quickLinksFiltered.length > 0 ||
-      loading ||
-      emptySearchState);
-
-  const closePanel = useCallback(() => {
-    setOpen(false);
-    setActiveIndex(-1);
-  }, []);
-
-  const commitTextSearch = useCallback(
-    (term: string) => {
-      const t = term.trim();
-      if (t) addNavSearchHistory(t);
-      runSearch(t);
-      closePanel();
-      onNavigate?.();
-    },
-    [runSearch, closePanel, onNavigate],
-  );
-
-  const goProduct = useCallback(
-    (p: ProductRow) => {
-      addNavSearchHistory(p.name);
-      router.push(`/marketplace/${p.slug}`);
-      closePanel();
-      onNavigate?.();
-    },
-    [router, closePanel, onNavigate],
-  );
-
-  const goVendor = useCallback(
-    (v: VendorRow) => {
-      addNavSearchHistory(v.business_name);
-      router.push(`/vendors/${v.business_slug}`);
-      closePanel();
-      onNavigate?.();
-    },
-    [router, closePanel, onNavigate],
-  );
-
-  const goCategory = useCallback(
-    (c: CategoryRow) => {
-      addNavSearchHistory(c.name);
-      router.push(`/marketplace?cat=${encodeURIComponent(c.slug)}`);
-      closePanel();
-      onNavigate?.();
-    },
-    [router, closePanel, onNavigate],
-  );
-
-  const goLink = useCallback(
-    (l: NavLinkConfig) => {
-      addNavSearchHistory(l.label);
-      router.push(l.href);
-      closePanel();
-      onNavigate?.();
-    },
-    [router, closePanel, onNavigate],
-  );
-
-  const activateRow = useCallback(
-    (row: FlatRow) => {
-      if (row.kind === "history") commitTextSearch(row.text);
-      else if (row.kind === "product") goProduct(row.product);
-      else if (row.kind === "vendor") goVendor(row.vendor);
-      else if (row.kind === "category") goCategory(row.category);
-      else goLink(row.link);
-    },
-    [commitTextSearch, goProduct, goVendor, goCategory, goLink],
-  );
-
-  const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Escape") {
-      closePanel();
-      return;
-    }
-    if (e.key === "ArrowDown") {
-      if (!open) setOpen(true);
-      e.preventDefault();
-      if (flatRows.length === 0) return;
-      setActiveIndex((i) => Math.min(i + 1, flatRows.length - 1));
-      return;
-    }
-    if (e.key === "ArrowUp") {
-      e.preventDefault();
-      if (flatRows.length === 0) return;
-      setActiveIndex((i) => Math.max(i - 1, -1));
-      return;
-    }
-    if (e.key === "Enter") {
-      if (activeIndex >= 0 && flatRows[activeIndex]) {
-        e.preventDefault();
-        activateRow(flatRows[activeIndex]);
-      }
-    }
+  const commitSearch = (term: string) => {
+    addNavSearchHistory(term);
+    runSearch(term);
+    closePanel();
   };
 
-  const formHeight = isDesktop ? "h-10" : "h-12";
+  const showPanel = open || (searchQ.trim().length > 0 && isFocused);
 
-  const activeFlatIndex = (section: "history" | "product" | "vendor" | "category" | "link", localIdx: number) => {
-    let base = 0;
-    if (section === "history") return localIdx;
-    base += historyFiltered.length;
-    if (section === "product") return base + localIdx;
-    base += productsDeduped.length;
-    if (section === "vendor") return base + localIdx;
-    base += vendors.length;
-    if (section === "category") return base + localIdx;
-    base += categories.length;
-    return base + localIdx;
-  };
-
-  const panelInner = (
-    <div
-      ref={panelRef}
-      id={`${inputId}-listbox`}
-      role="listbox"
-      className={cn(
-        "w-full border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-lg)]",
-        isDesktop
-          ? "max-h-[min(72vh,560px)] overflow-y-auto border-b"
-          : "max-h-[min(60vh,420px)] overflow-y-auto rounded-xl border",
-      )}
-    >
-      <div className="mx-auto w-full max-w-[var(--container-max)] px-4 sm:px-5 md:px-8">
-      {loading ? (
-        <div className="flex items-center gap-2 border-b border-[var(--color-border)]/80 py-2.5 text-[12px] text-[var(--color-text-muted)]">
-          <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden />
-          Searching catalog, stores, and categories…
-        </div>
-      ) : null}
-
-      {historyFiltered.length > 0 ? (
-        <div className="border-b border-[var(--color-border)]/80 py-3">
-          <div className="mb-2 flex items-center justify-between gap-2">
-            <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">
-              <Clock className="h-3.5 w-3.5" aria-hidden />
-              Recent searches
-            </span>
-            <button
-              type="button"
-              className="text-[11px] font-medium text-[var(--color-accent)] hover:underline"
-              onClick={() => {
-                clearNavSearchHistory();
-                setHistory([]);
-                setActiveIndex(-1);
-              }}
-            >
-              Clear
-            </button>
+  const resultsInner = (
+    <div className={cn(
+       "w-full bg-white/95 backdrop-blur-3xl border border-white/20 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.2)] flex flex-col overflow-hidden",
+       isDesktop ? "rounded-[32px] max-h-[600px]" : "rounded-2xl max-h-[80vh]"
+    )}>
+       {/* SEARCH INPUT CLONE (Visual weight) */}
+       <div className="p-6 border-b border-zinc-100 flex items-center gap-4 bg-zinc-50/50">
+          <Search className="h-5 w-5 text-[#f97316]" />
+          <p className="text-[15px] font-bold text-zinc-900 flex-1 truncate">
+             {searchQ ? `Searching for "${searchQ}"` : "Explore the marketplace"}
+          </p>
+          <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white border border-zinc-200 text-[10px] font-black text-zinc-400">
+             <Command className="h-3 w-3" /> ESC
           </div>
-          <div className="flex flex-wrap gap-2">
-            {historyFiltered.map((text, i) => {
-              const idx = activeFlatIndex("history", i);
-              const active = activeIndex === idx;
-              return (
-                <button
-                  key={`h-${text}-${i}`}
-                  type="button"
-                  role="option"
-                  aria-selected={active}
-                  className={cn(
-                    "max-w-full truncate rounded-full border border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-3 py-1.5 text-left text-[12px] font-semibold text-[var(--color-text-primary)] transition-colors hover:border-[var(--color-accent)]/40 hover:bg-[var(--color-accent-light)]/30",
-                    active && "border-[var(--color-accent)]/50 bg-[var(--color-accent-light)]/40",
-                  )}
-                  onMouseEnter={() => setActiveIndex(idx)}
-                  onClick={() => commitTextSearch(text)}
-                >
-                  {text}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      ) : null}
+       </div>
 
-      <div className="grid grid-cols-1 gap-4 py-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="min-w-0">
-          <div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">
-            <Package className="h-3.5 w-3.5 shrink-0" aria-hidden />
-            Products
-          </div>
-          {productsDeduped.length === 0 && !loading ? (
-            <p className="text-[12px] text-[var(--color-text-muted)]">
-              {hasApiColumns ? "No matching listings." : "Type to find products."}
-            </p>
-          ) : null}
-          <ul className="space-y-0.5">
-            {productsDeduped.map((p, j) => {
-              const idx = activeFlatIndex("product", j);
-              const active = activeIndex === idx;
-              return (
-                <li key={p.id}>
-                  <button
-                    type="button"
-                    role="option"
-                    aria-selected={active}
-                    className={cn(
-                      "flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-[13px] font-medium text-[var(--color-text-primary)] transition-colors hover:bg-[var(--color-surface-secondary)]",
-                      active && "bg-[var(--color-surface-secondary)]",
-                    )}
-                    onMouseEnter={() => setActiveIndex(idx)}
-                    onClick={() => goProduct(p)}
-                  >
-                    <Package className="h-4 w-4 shrink-0 text-[var(--color-accent)]" aria-hidden />
-                    <span className="truncate">{p.name}</span>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
+       <div className="flex-1 overflow-y-auto no-scrollbar grid grid-cols-1 md:grid-cols-12 divide-x divide-zinc-50">
+          {/* LEFT: RESULTS */}
+          <div className="md:col-span-8 p-6 space-y-8">
+             {loading && (
+                <div className="flex items-center gap-3 py-4">
+                   <Loader2 className="h-5 w-5 animate-spin text-[#f97316]" />
+                   <p className="text-[14px] font-black text-zinc-400">Summoning product matches...</p>
+                </div>
+             )}
+             
+             {!loading && products.length > 0 && (
+                <div>
+                   <h4 className="text-[11px] font-black text-zinc-400 uppercase tracking-widest mb-4">Top Matches</h4>
+                   <div className="space-y-2">
+                      {products.map(p => (
+                         <button key={p.id} onClick={() => { router.push(`/marketplace/${p.slug}`); closePanel(); }} className="w-full flex items-center justify-between p-4 rounded-2xl bg-zinc-50/30 hover:bg-[#f97316]/5 border border-transparent hover:border-[#f97316]/10 transition-all group">
+                            <div className="flex items-center gap-4">
+                               <Package className="h-5 w-5 text-zinc-300 group-hover:text-[#f97316]" />
+                               <span className="text-[14px] font-bold text-zinc-700 group-hover:text-zinc-900 truncate max-w-[300px]">{p.name}</span>
+                            </div>
+                            <ArrowRight className="h-4 w-4 text-zinc-300 -translate-x-2 opacity-0 group-hover:translate-x-0 group-hover:opacity-100 transition-all" />
+                         </button>
+                      ))}
+                   </div>
+                </div>
+             )}
 
-        <div className="min-w-0">
-          <div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">
-            <Store className="h-3.5 w-3.5 shrink-0" aria-hidden />
-            Stores & vendors
+             {!loading && searchQ && products.length === 0 && vendors.length === 0 && (
+                <div className="py-20 text-center space-y-4">
+                   <div className="h-16 w-16 bg-zinc-50 rounded-full flex items-center justify-center mx-auto">
+                      <Search className="h-8 w-8 text-zinc-200" />
+                   </div>
+                   <div>
+                      <p className="text-[15px] font-black text-zinc-900">No immediate matches found</p>
+                      <p className="text-[13px] font-medium text-zinc-500">Try checking your spelling or use "Enter" for a full database hunt.</p>
+                   </div>
+                </div>
+             )}
           </div>
-          {vendors.length === 0 && !loading ? (
-            <p className="text-[12px] text-[var(--color-text-muted)]">
-              {hasApiColumns ? "No matching storefronts." : "Type to find stores."}
-            </p>
-          ) : null}
-          <ul className="space-y-0.5">
-            {vendors.map((v, j) => {
-              const idx = activeFlatIndex("vendor", j);
-              const active = activeIndex === idx;
-              return (
-                <li key={v.id}>
-                  <button
-                    type="button"
-                    role="option"
-                    aria-selected={active}
-                    className={cn(
-                      "flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-[13px] font-medium text-[var(--color-text-primary)] transition-colors hover:bg-[var(--color-surface-secondary)]",
-                      active && "bg-[var(--color-surface-secondary)]",
-                    )}
-                    onMouseEnter={() => setActiveIndex(idx)}
-                    onClick={() => goVendor(v)}
-                  >
-                    <Store className="h-4 w-4 shrink-0 text-[var(--color-accent)]" aria-hidden />
-                    <span className="truncate">{v.business_name}</span>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
 
-        <div className="min-w-0">
-          <div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">
-            <LayoutGrid className="h-3.5 w-3.5 shrink-0" aria-hidden />
-            Categories
+          {/* RIGHT: VENDORS & CATEGORIES */}
+          <div className="md:col-span-4 p-6 bg-zinc-50/30 space-y-8">
+             {vendors.length > 0 && (
+                <div>
+                   <h4 className="text-[11px] font-black text-zinc-400 uppercase tracking-widest mb-4">Stores</h4>
+                   <div className="space-y-1">
+                      {vendors.map(v => (
+                         <button key={v.id} onClick={() => { router.push(`/vendors/${v.business_slug}`); closePanel(); }} className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white text-[13px] font-bold text-zinc-600 transition-all">
+                            <Store className="h-4 w-4 opacity-50" /> {v.business_name}
+                         </button>
+                      ))}
+                   </div>
+                </div>
+             )}
+             
+             <div>
+                <h4 className="text-[11px] font-black text-zinc-400 uppercase tracking-widest mb-4">Quick Browse</h4>
+                <div className="grid grid-cols-1 gap-1">
+                   {mergeQuickLinks(navLinks).slice(0, 6).map(l => (
+                      <button key={l.href} onClick={() => { router.push(l.href); closePanel(); }} className="flex items-center justify-between p-3 rounded-xl hover:bg-white border border-transparent hover:border-zinc-100 transition-all text-[13px] font-bold text-zinc-500 group">
+                         {l.label}
+                         <ArrowRight className="h-3 w-3 opacity-0 group-hover:opacity-100" />
+                      </button>
+                   ))}
+                </div>
+             </div>
           </div>
-          {categories.length === 0 && !loading ? (
-            <p className="text-[12px] text-[var(--color-text-muted)]">
-              {hasApiColumns ? "No matching categories." : "Type to browse categories."}
-            </p>
-          ) : null}
-          <ul className="space-y-0.5">
-            {categories.map((c, j) => {
-              const idx = activeFlatIndex("category", j);
-              const active = activeIndex === idx;
-              return (
-                <li key={c.id}>
-                  <button
-                    type="button"
-                    role="option"
-                    aria-selected={active}
-                    className={cn(
-                      "flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-[13px] font-medium text-[var(--color-text-primary)] transition-colors hover:bg-[var(--color-surface-secondary)]",
-                      active && "bg-[var(--color-surface-secondary)]",
-                    )}
-                    onMouseEnter={() => setActiveIndex(idx)}
-                    onClick={() => goCategory(c)}
-                  >
-                    <LayoutGrid className="h-4 w-4 shrink-0 text-[var(--color-accent)]" aria-hidden />
-                    <span className="truncate">{c.name}</span>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
+       </div>
 
-        <div className="min-w-0">
-          <div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">
-            <Link2 className="h-3.5 w-3.5 shrink-0" aria-hidden />
-            Quick links
-          </div>
-          {quickLinksFiltered.length === 0 ? (
-            <p className="text-[12px] text-[var(--color-text-muted)]">No routes match.</p>
-          ) : null}
-          <ul className="space-y-0.5">
-            {quickLinksFiltered.map((l, j) => {
-              const idx = activeFlatIndex("link", j);
-              const active = activeIndex === idx;
-              return (
-                <li key={`${l.href}-${l.label}`}>
-                  <button
-                    type="button"
-                    role="option"
-                    aria-selected={active}
-                    className={cn(
-                      "flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-[13px] font-medium text-[var(--color-text-primary)] transition-colors hover:bg-[var(--color-surface-secondary)]",
-                      active && "bg-[var(--color-surface-secondary)]",
-                    )}
-                    onMouseEnter={() => setActiveIndex(idx)}
-                    onClick={() => goLink(l)}
-                  >
-                    <Link2 className="h-4 w-4 shrink-0 text-[var(--color-text-muted)]" aria-hidden />
-                    <span className="truncate">{l.label}</span>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      </div>
-
-      {emptySearchState ? (
-        <div className="border-t border-[var(--color-border)]/80 py-3 text-[13px] text-[var(--color-text-secondary)]">
-          Nothing matched yet. Press{" "}
-          <kbd className="rounded border border-[var(--color-border)] px-1 py-0.5 text-[11px]">Enter</kbd> to search the
-          marketplace catalog.
-        </div>
-      ) : null}
-      </div>
+       <button onClick={() => commitSearch(searchQ)} className="p-4 bg-zinc-900 hover:bg-black text-white text-[13px] font-black flex items-center justify-center gap-2 transition-all">
+          View full catalog results for "{searchQ || 'everything'}" <ArrowRight className="h-4 w-4" />
+       </button>
     </div>
   );
 
   return (
-    <div ref={containerRef} className="relative flex-1 min-w-0">
-      <form
-        className={cn(
-          "flex w-full rounded-xl overflow-hidden bg-[var(--color-surface)] ring-1 shadow-[var(--shadow-sm)] focus-within:ring-2 focus-within:ring-[var(--color-accent)]/35 focus-within:shadow-[var(--shadow-md)] transition-shadow",
-          isScrolled ? "ring-[var(--color-border)]" : "ring-ink-darker/10",
-          formHeight,
-        )}
-        onSubmit={(e) => {
-          e.preventDefault();
-          commitTextSearch(searchQ);
+    <div ref={containerRef} className={cn("relative z-[200]", isDesktop ? "flex-initial" : "flex-1 w-full")}>
+      <motion.div
+        animate={{ 
+           width: isDesktop ? (isFocused || searchQ ? 420 : 180) : "100%",
+           scale: isFocused ? 1.02 : 1 
         }}
+        transition={{ type: "spring", damping: 30, stiffness: 350 }}
+        className={cn(
+          "flex items-center h-[46px] rounded-full border transition-all duration-300",
+          isFocused 
+            ? "bg-white border-[#f97316]/40 shadow-[0_0_25px_rgba(249,115,22,0.15)]" 
+            : "bg-zinc-100/60 border-zinc-200/50 hover:bg-zinc-100"
+        )}
       >
-        <label className="sr-only" htmlFor={inputId}>
-          Search marketplace
-        </label>
-        <Link
-          href="/marketplace"
-          onClick={() => onNavigate?.()}
-          className={cn(
-            "pl-3 flex items-center gap-1 border-r border-[var(--color-border)] text-[12px] font-semibold hover:bg-zinc-100 transition-colors whitespace-nowrap shrink-0",
-            isDesktop ? "pr-2.5 bg-zinc-50/90" : "pr-2 bg-zinc-50 min-w-[76px]",
-            isScrolled ? "text-[var(--color-text-primary)]/85" : "text-[var(--color-text-secondary)]",
-          )}
-        >
-          All <ChevronDown className="h-3 w-3 opacity-50" />
-        </Link>
+        <div className="pl-4 pr-1 shrink-0">
+           {loading ? <Loader2 className="h-[18px] w-[18px] animate-spin text-[#f97316]" /> : <Search className="h-[18px] w-[18px] text-zinc-400" />}
+        </div>
         <input
-          id={inputId}
+          ref={inputRef}
           type="search"
           value={searchQ}
-          onChange={(e) => {
-            setSearchQ(e.target.value);
-            setActiveIndex(-1);
-            setOpen(true);
-          }}
-          onFocus={() => {
-            refreshHistory();
-            setOpen(true);
-          }}
-          onKeyDown={onKeyDown}
-          placeholder={placeholder}
-          autoComplete="off"
-          autoCorrect="off"
-          spellCheck={false}
-          role="combobox"
-          aria-expanded={open}
-          aria-controls={`${inputId}-listbox`}
-          aria-autocomplete="list"
-          className={cn(
-            "flex-1 min-w-0 outline-none font-medium placeholder:text-[var(--color-text-muted)] bg-transparent",
-            isDesktop ? "px-3 text-[14px]" : "px-3 text-[15px]",
-          )}
+          onChange={(e) => { setSearchQ(e.target.value); setOpen(true); }}
+          onFocus={() => { setOpen(true); setIsFocused(true); setHistory(readNavSearchHistory()); }}
+          placeholder={isDesktop && !isFocused && !searchQ ? "" : placeholder}
+          className="flex-1 min-w-0 bg-transparent border-0 outline-none px-2 text-[13.5px] font-black text-zinc-900 placeholder:text-zinc-400 placeholder:font-bold"
         />
-        <button
-          type="submit"
-          className="bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white px-4 flex items-center justify-center transition-colors shrink-0"
-          aria-label="Search"
-        >
-          <Search className="h-4 w-4" strokeWidth={2.25} />
-        </button>
-      </form>
+        
+        <AnimatePresence>
+           {!isFocused && !searchQ && isDesktop && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="pr-4 flex items-center gap-1.5 shrink-0 pointer-events-none">
+                 <div className="px-1.5 py-0.5 rounded bg-zinc-200/50 text-[8px] font-black text-zinc-400 flex items-center gap-0.5">
+                    <Command className="h-2 w-2" /> K
+                 </div>
+              </motion.div>
+           )}
+        </AnimatePresence>
+      </motion.div>
 
-      {showPanel && portalReady && isDesktop
-        ? createPortal(
-            <>
-              <button
-                type="button"
-                aria-label="Close search"
-                className="fixed inset-0 z-[65] cursor-default bg-ink-darker/20"
-                onClick={closePanel}
-              />
-              <div
-                className="fixed left-0 right-0 z-[70] animate-in fade-in slide-in-from-top-1 duration-150"
-                style={{ top: "var(--navbar-height, 108px)" }}
-              >
-                {panelInner}
-              </div>
-            </>,
-            document.body,
-          )
-        : null}
-
-      {showPanel && !isDesktop ? (
-        <div className="absolute left-0 right-0 top-full z-[120] mt-1">{panelInner}</div>
-      ) : null}
+      {/* SEARCH PANEL OVERLAY */}
+      {showPanel && portalReady && createPortal(
+        <div className="fixed inset-0 z-[190] p-4 flex items-start justify-center pt-[100px] sm:pt-[120px]">
+           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 bg-black/5 backdrop-blur-[2px]" onClick={closePanel} />
+           <motion.div initial={{ opacity: 0, y: -20, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} className="w-full max-w-[800px] relative z-10">
+              {resultsInner}
+           </motion.div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }

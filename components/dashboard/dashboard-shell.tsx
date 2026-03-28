@@ -9,6 +9,7 @@ import { Sidebar, type DashboardRole } from "@/components/dashboard/sidebar";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { SignOutButton } from "@/components/auth/sign-out-button";
+import { CurrencySelector } from "@/context/CurrencyContext";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,14 +25,16 @@ interface UserProfile {
   avatar_url: string | null;
 }
 
+import { useUserStore } from "@/lib/store/use-user-store";
+
 function DashboardShellContent({ children }: { children: React.ReactNode }) {
-  const [activeRoles, setActiveRoles] = useState<DashboardRole[]>(["buyer"]);
+  const { activeRoles, fetchRoles } = useUserStore();
   const [user, setUser] = useState<UserProfile>({ email: "", full_name: null, avatar_url: null });
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
-    async function loadUserAndRoles() {
+    async function loadUser() {
       const supabase = createClient();
       const { data: { user: authUser } } = await supabase.auth.getUser();
       if (!authUser) return;
@@ -45,24 +48,11 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
       if (profile) {
         setUser({ email: profile.email, full_name: profile.full_name, avatar_url: profile.avatar_url });
       }
-
-      const roles: DashboardRole[] = ["buyer"];
-
-      const [vendorRes, affiliateRes, influencerRes] = await Promise.all([
-        supabase.from("vendors").select("id").eq("user_id", authUser.id).maybeSingle(),
-        supabase.from("affiliates").select("id").eq("user_id", authUser.id).maybeSingle(),
-        supabase.from("influencers").select("id").eq("user_id", authUser.id).maybeSingle(),
-      ]);
-
-      if (vendorRes.data) roles.push("vendor");
-      if (affiliateRes.data) roles.push("affiliate");
-      if (influencerRes.data) roles.push("influencer");
-
-      setActiveRoles(roles);
     }
 
-    loadUserAndRoles();
-  }, []);
+    loadUser();
+    fetchRoles();
+  }, [fetchRoles]);
 
   return (
     <div className="flex h-screen overflow-hidden bg-[var(--color-surface-secondary)]">
@@ -82,6 +72,7 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
             <Link href="/dashboard" className="shrink-0 py-1" aria-label="Dashboard home">
               <Image src="/jimvio-logo.png" alt="Jimvio" width={128} height={40} priority className="h-7 w-auto sm:h-8" />
             </Link>
+            <CurrencySelector className="ml-auto max-w-[7.5rem] shrink-0 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-2 py-1.5 text-[11px] text-[var(--color-text-primary)]" />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button

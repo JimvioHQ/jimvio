@@ -7,12 +7,14 @@ import Image from "next/image";
 import { X, Star, ShoppingCart, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { LocalizedPrice } from "@/components/currency/localized-price";
 
 export type ProductPopupProduct = {
   id?: string;
   name: string;
   slug?: string;
   price: number;
+  currency?: string | null;
   images?: string[] | null;
   rating?: number | null;
   inventory_quantity?: number | null;
@@ -88,7 +90,11 @@ export function ProductQuickPopup({ product, vendor, open, onClose, className }:
         <div className="p-5 space-y-4">
           <h3 className="text-lg font-black text-text-primary line-clamp-2">{product.name}</h3>
           <div className="flex items-center justify-between">
-            <span className="text-2xl font-black text-[#f97316]">${Number(product.price).toFixed(2)}</span>
+            <LocalizedPrice
+              amount={Number(product.price)}
+              currency={product.currency}
+              className="text-2xl font-black text-[#f97316]"
+            />
             <div className="flex items-center gap-1 text-amber-500">
               <Star className="h-4 w-4 fill-current" />
               <span className="text-sm font-bold text-text-primary">{rating.toFixed(1)}</span>

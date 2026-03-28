@@ -2,9 +2,9 @@
 
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { formatCurrency } from "@/lib/utils";
 import { Package, Loader2, Bitcoin, Copy } from "lucide-react";
 import { toast } from "sonner";
+import { useCurrency } from "@/context/CurrencyContext";
 
 interface CartItem {
   id: string;
@@ -35,6 +35,7 @@ const PAY_CURRENCIES = [
 ];
 
 export function CheckoutClient({ orders, total }: CheckoutClientProps) {
+  const { formatPrice, formatMoney, formatCartTotalsLabel } = useCurrency();
   const [loading, setLoading] = useState(false);
   const [payCurrency, setPayCurrency] = useState("btc");
   const [payment, setPayment] = useState<{
@@ -127,7 +128,7 @@ export function CheckoutClient({ orders, total }: CheckoutClientProps) {
               <p className="text-2xl font-black text-zinc-900">
                 {payment.payAmount} {payment.payCurrency.toUpperCase()}
               </p>
-              <p className="text-sm text-zinc-500 mt-1">≈ ${payment.priceAmount.toFixed(2)} USD</p>
+              <p className="text-sm text-zinc-500 mt-1">≈ {formatPrice(payment.priceAmount)} (USD)</p>
             </div>
           </div>
 
@@ -158,7 +159,7 @@ export function CheckoutClient({ orders, total }: CheckoutClientProps) {
                       <p className="text-xs text-zinc-500">Qty: {item.quantity}</p>
                     </div>
                   </div>
-                  <span className="font-semibold">{formatCurrency(item.total_price)}</span>
+                  <span className="font-semibold">{formatMoney(Number(item.total_price), order.currency)}</span>
                 </div>
               ))}
             </div>
@@ -172,12 +173,12 @@ export function CheckoutClient({ orders, total }: CheckoutClientProps) {
           <div className="space-y-2 mb-6">
             <div className="flex justify-between text-sm">
               <span className="text-zinc-500">Subtotal</span>
-              <span>{formatCurrency(total)}</span>
+              <span>{formatCartTotalsLabel(orders)}</span>
             </div>
             <div className="border-t border-zinc-100 pt-4 mt-4">
               <div className="flex justify-between font-bold">
                 <span>Total</span>
-                <span className="text-[var(--color-accent)]">{formatCurrency(total)}</span>
+                <span className="text-[var(--color-accent)]">{formatCartTotalsLabel(orders)}</span>
               </div>
             </div>
           </div>

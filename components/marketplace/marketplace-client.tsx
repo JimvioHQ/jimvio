@@ -31,6 +31,7 @@ import { TrendingProductClipsSection } from "@/components/marketplace/trending-p
 import { TopCreatorsSection } from "@/components/marketplace/top-creators-section";
 import { PopularStoresSection } from "@/components/marketplace/popular-stores-section";
 import { FollowButton } from "@/components/marketplace/follow-button";
+import { LocalizedPrice } from "@/components/currency/localized-price";
 
 interface Product {
   id: string;
@@ -166,32 +167,34 @@ export function MarketplaceClient({
         initial={{ opacity: 0, y: -12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35, ease: "easeOut" }}
-        className="bg-[var(--color-surface)] border-b border-[var(--color-border)]"
+        className="relative z-40 border-b border-zinc-200 bg-gradient-to-br from-zinc-50 via-white to-orange-50/30"
       >
-        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-8 sm:py-10">
-          <div className="flex items-center gap-2 mb-4 text-xs text-[var(--color-text-muted)]">
-            <Link href="/" className="hover:text-[var(--color-accent)] transition-colors">
+        <div className="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 rounded-full bg-orange-400/5 blur-[80px] pointer-events-none" />
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-8 sm:py-12 relative z-10">
+          <div className="flex items-center gap-2 mb-6 text-[13px] font-bold text-zinc-400">
+            <Link href="/" className="hover:text-[#f97316] transition-colors">
               Home
             </Link>
-            <span aria-hidden>/</span>
-            <span className="text-[var(--color-text-primary)] font-medium">Marketplace</span>
+            <span aria-hidden className="text-zinc-300">/</span>
+            <span className="text-zinc-800">Marketplace</span>
           </div>
 
           <div className="flex flex-col gap-6">
-            <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
-              <div className="min-w-0 space-y-2">
-                <h1 className="text-3xl sm:text-4xl font-bold text-[var(--color-text-primary)] tracking-tight">
-                  Browse <span className="text-[var(--color-accent)]">products</span>
+            <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-8">
+              <div className="min-w-0 space-y-3">
+                <div className="inline-flex items-center gap-2 rounded-full bg-orange-100/50 border border-orange-200/50 px-3.5 py-1.5 text-[11px] font-black text-[#f97316] mb-2 shadow-sm">
+                  <span className="h-2 w-2 rounded-full bg-[#f97316] shadow-[0_0_8px_#f97316] animate-pulse" />
+                  {statLine ?? "Live marketplace pulse"}
+                </div>
+                <h1 className="text-4xl sm:text-[44px] font-black text-zinc-900 tracking-tighter leading-tight">
+                  Discover <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#f97316] to-[#ea580c]">premium</span> products
                 </h1>
-                <p className="text-sm text-[var(--color-text-secondary)] max-w-xl leading-relaxed">
-                  Filter by category and product type, or search the catalog.
+                <p className="text-[15px] font-medium text-zinc-500 max-w-xl leading-relaxed">
+                  Shop straight from verified vendors worldwide. Physical, digital, software and more.
                 </p>
-                {statLine ? (
-                  <p className="text-xs font-medium text-[var(--color-text-muted)] pt-1">{statLine}</p>
-                ) : null}
               </div>
-              <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto lg:min-w-[280px] shrink-0 items-stretch sm:items-center">
-                <MarketplaceSearch currentParams={paramsRecord} className="w-full sm:max-w-none lg:w-[min(100%,22rem)]" />
+              <div className="flex flex-col sm:flex-row gap-4 w-full flex-1 max-w-2xl shrink-0 items-stretch sm:items-center lg:justify-end">
+                <MarketplaceSearch currentParams={paramsRecord} className="w-full" />
                 <SortSelect currentSort={params.sort} />
               </div>
             </div>
@@ -206,7 +209,6 @@ export function MarketplaceClient({
                 { label: "Physical", type: "physical", catalog: null, icon: Package },
                 { label: "Digital", type: "digital", catalog: null, icon: Zap },
                 { label: "Software", type: "software", catalog: null, icon: Globe },
-                { label: "Shopify", type: null, catalog: "shopify", icon: Package },
               ] as const
             ).map((t) => {
               const href =
@@ -225,13 +227,13 @@ export function MarketplaceClient({
                   key={t.label}
                   href={href}
                   className={cn(
-                    "inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold border transition-all whitespace-nowrap",
+                    "inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-black transition-all whitespace-nowrap shadow-sm border",
                     active
-                      ? "bg-[var(--color-text-primary)] text-[var(--color-surface)] border-[var(--color-text-primary)]"
-                      : "bg-[var(--color-surface)] text-[var(--color-text-secondary)] border-[var(--color-border)] hover:border-[var(--color-text-primary)] hover:text-[var(--color-text-primary)]",
+                      ? "bg-zinc-900 border-zinc-900 text-white shadow-md shadow-zinc-900/10 scale-105"
+                      : "bg-white border-zinc-200 text-zinc-600 hover:border-zinc-300 hover:text-zinc-900 hover:bg-zinc-50 active:scale-95",
                   )}
                 >
-                  <Icon className={cn("h-3.5 w-3.5 shrink-0", active && "text-[var(--color-accent)]")} />
+                  <Icon className={cn("h-4 w-4 shrink-0", active && "text-[#f97316]")} />
                   {t.label}
                 </Link>
               );
@@ -243,33 +245,32 @@ export function MarketplaceClient({
                   : marketplaceHref(paramsRecord, { affiliate: "1" })
               }
               className={cn(
-                "inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold border transition-all whitespace-nowrap",
+                "inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-black transition-all whitespace-nowrap shadow-sm border",
                 params.affiliate === "1"
-                  ? "bg-[var(--color-accent)] text-white border-[var(--color-accent)]"
-                  : "bg-[var(--color-surface)] text-[var(--color-text-secondary)] border-[var(--color-border)] hover:border-[var(--color-accent)]",
+                  ? "bg-gradient-to-br from-[#f97316] to-[#ea580c] text-white border-transparent shadow-[#f97316]/30 scale-105"
+                  : "bg-white border-zinc-200 text-zinc-600 hover:border-[#f97316]/50 hover:text-[#f97316] hover:bg-orange-50 active:scale-95",
               )}
             >
-              <Percent className="h-3.5 w-3.5" />
+              <Percent className="h-4 w-4" />
               Affiliate picks
             </Link>
           </div>
         </div>
       </motion.div>
 
-      <div className="lg:hidden max-w-[1400px] mx-auto px-4 pt-4 pb-2">
-        <h3 className="text-[10px] font-semibold text-[var(--color-text-muted)] uppercase tracking-wider mb-2">
-          Categories
-        </h3>
+      {/* Mobile sticky search + categories */}
+      <div className="lg:hidden sticky top-0 z-[100] bg-[var(--color-surface)]/95 backdrop-blur-xl border-b border-[var(--color-border)] pt-3 pb-2 px-4 space-y-2">
+        <MarketplaceSearch currentParams={paramsRecord} className="w-full" />
         <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
           {[{ slug: null as string | null, name: "All" }, ...categories].map((cat) => (
             <Link
               key={cat.slug ?? "all"}
               href={marketplaceHref(paramsRecord, { cat: cat.slug ?? null })}
               className={cn(
-                "shrink-0 px-4 py-2 rounded-full text-xs font-semibold transition-all border",
+                "shrink-0 px-3.5 py-1.5 rounded-full text-[11px] font-bold transition-all border",
                 (!params.cat && !cat.slug) || params.cat === cat.slug
-                  ? "bg-[var(--color-text-primary)] text-[var(--color-surface)] border-[var(--color-text-primary)]"
-                  : "bg-[var(--color-surface)] text-[var(--color-text-secondary)] border-[var(--color-border)]",
+                  ? "bg-[var(--color-accent)] text-white border-[var(--color-accent)] shadow-sm shadow-orange-500/20"
+                  : "bg-[var(--color-surface-secondary)] text-[var(--color-text-secondary)] border-[var(--color-border)] hover:border-[var(--color-accent)]/50",
               )}
             >
               {cat.name}
@@ -287,44 +288,47 @@ export function MarketplaceClient({
           className="hidden lg:block lg:w-64 shrink-0"
         >
           <div className="sticky top-40 space-y-8">
-            <div className="space-y-3">
-              <h3 className="text-xs font-semibold text-[var(--color-text-primary)] uppercase tracking-wider flex items-center gap-2">
+            <div className="space-y-4 bg-white border border-zinc-200 rounded-3xl p-5 shadow-sm">
+              <h3 className="text-[11px] font-black text-zinc-400 uppercase tracking-[0.2em] flex items-center gap-2">
                 Categories
-                <span className="h-px flex-1 bg-[var(--color-border)]" />
               </h3>
-              <div className="flex flex-col gap-1">
-                {[{ slug: null as string | null, name: "All categories" }, ...categories].map((cat) => (
-                  <Link
-                    key={cat.slug || "all"}
-                    href={marketplaceHref(paramsRecord, { cat: cat.slug ?? null })}
-                    className={cn(
-                      "flex items-center justify-between py-2 px-3 rounded-lg text-sm font-medium transition-colors",
-                      (!params.cat && !cat.slug) || params.cat === cat.slug
-                        ? "bg-[var(--color-accent-light)] text-[var(--color-accent)] border border-[var(--color-accent)]"
-                        : "text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-secondary)] border border-transparent",
-                    )}
-                  >
-                    <span>{cat.name}</span>
-                    {!params.cat && !cat.slug ? (
-                      <span className="text-xs text-[var(--color-text-muted)] tabular-nums">{total}</span>
-                    ) : null}
-                  </Link>
-                ))}
+              <div className="flex flex-col gap-1.5">
+                {[{ slug: null as string | null, name: "All categories" }, ...categories].map((cat) => {
+                  const isActive = (!params.cat && !cat.slug) || params.cat === cat.slug;
+                  return (
+                    <Link
+                      key={cat.slug || "all"}
+                      href={marketplaceHref(paramsRecord, { cat: cat.slug ?? null })}
+                      className={cn(
+                        "flex items-center justify-between py-2.5 px-4 rounded-xl text-[13px] font-bold transition-all duration-300",
+                        isActive
+                          ? "bg-gradient-to-r from-orange-50 to-white text-[#f97316] border border-orange-100 shadow-sm"
+                          : "text-zinc-600 hover:bg-zinc-50 border border-transparent hover:border-zinc-100",
+                      )}
+                    >
+                      <span>{cat.name}</span>
+                      {isActive && (
+                        <div className="w-1.5 h-1.5 rounded-full bg-[#f97316] shadow-[0_0_8px_#f97316]" />
+                      )}
+                    </Link>
+                  );
+                })}
               </div>
             </div>
 
-            <div className="p-5 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)] space-y-3">
-              <div className="h-9 w-9 rounded-lg bg-[var(--color-surface)] border border-[var(--color-border)] flex items-center justify-center">
-                <ShieldCheck className="h-5 w-5 text-[var(--color-accent)]" />
+            <div className="p-6 rounded-3xl border border-orange-200 bg-gradient-to-b from-orange-50/50 to-white space-y-4 shadow-sm relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-[#f97316]/10 blur-2xl rounded-full translate-x-1/2 -translate-y-1/2 group-hover:scale-150 transition-transform duration-700" />
+              <div className="h-10 w-10 rounded-xl bg-white border border-orange-100 shadow-sm flex items-center justify-center relative z-10">
+                <ShieldCheck className="h-5 w-5 text-[#f97316]" />
               </div>
-              <div>
-                <h4 className="text-sm font-semibold text-[var(--color-text-primary)] mb-1">Buyer support</h4>
-                <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
+              <div className="relative z-10">
+                <h4 className="text-[15px] font-black text-zinc-900 mb-1.5">Buyer support</h4>
+                <p className="text-[13px] text-zinc-500 font-medium leading-relaxed">
                   Questions about an order or seller? Reach our team anytime.
                 </p>
               </div>
-              <Button size="sm" variant="outline" className="w-full rounded-lg h-9 text-xs font-semibold" asChild>
-                <Link href="/contact">Contact us</Link>
+              <Button size="sm" variant="outline" className="w-full rounded-xl h-10 text-[13px] font-black border-zinc-200 hover:bg-white hover:text-[#f97316] hover:border-[#f97316]/50 shadow-sm relative z-10 transition-all duration-300" asChild>
+                <Link href="/contact">Contact Support</Link>
               </Button>
             </div>
           </div>
@@ -361,9 +365,6 @@ export function MarketplaceClient({
             </div>
             <p className="text-sm text-[var(--color-text-muted)] sm:ml-auto tabular-nums">
               <span className="font-medium text-[var(--color-text-primary)]">{total}</span> result{total === 1 ? "" : "s"}
-              {params.catalog === "shopify" && hasShopifyProducts ? (
-                <span className="text-[var(--color-text-muted)]"> · Shopify catalog</span>
-              ) : null}
             </p>
           </div>
 
@@ -402,15 +403,6 @@ export function MarketplaceClient({
                   <X className="h-3 w-3 opacity-60" />
                 </Link>
               ) : null}
-              {params.catalog === "shopify" ? (
-                <Link
-                  href={marketplaceHref(paramsRecord, { catalog: null })}
-                  className="inline-flex items-center gap-1 rounded-full border border-[var(--color-border)] px-2.5 py-1 text-xs font-medium hover:border-[var(--color-accent)]"
-                >
-                  Shopify
-                  <X className="h-3 w-3 opacity-60" />
-                </Link>
-              ) : null}
               {params.affiliate === "1" ? (
                 <Link
                   href={marketplaceHref(paramsRecord, { affiliate: null })}
@@ -442,7 +434,7 @@ export function MarketplaceClient({
             <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">
               {params.q?.trim()
                 ? `Results for “${params.q.trim()}”`
-                : params.cat || params.type || params.catalog === "shopify"
+                : params.cat || params.type
                   ? "Filtered products"
                   : "All products"}
             </h2>
@@ -452,7 +444,7 @@ export function MarketplaceClient({
             {initialProducts.length > 0 || mixedFeed.length > 0 ? (
               <div key={JSON.stringify(params)} className="space-y-10">
                 {/* Mobile: 2-col feed; row-based layout only inside store cards (store's products in rows) */}
-                <div className="lg:hidden grid grid-cols-2 gap-3 sm:gap-4">
+                <div className="lg:hidden grid grid-cols-2 gap-3 sm:gap-4 auto-rows-auto items-start">
                   {mixedFeed.map((item, idx) => {
                     if (item.type === "product") {
                       return (
@@ -621,7 +613,7 @@ export function MarketplaceClient({
                   <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className={cn("grid grid-cols-2 sm:grid-cols-2 gap-x-4 gap-y-8 sm:gap-x-6 sm:gap-y-10", gridCols)}
+                    className={cn("grid grid-cols-2 sm:grid-cols-2 gap-x-5 gap-y-6", gridCols)}
                   >
                     {firstRow.map((p, idx) => (
                       <motion.div
@@ -644,7 +636,7 @@ export function MarketplaceClient({
                     <motion.div
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
-                      className={cn("grid grid-cols-2 sm:grid-cols-2 gap-x-4 gap-y-8 sm:gap-x-6 sm:gap-y-10", gridCols)}
+                      className={cn("grid grid-cols-2 sm:grid-cols-2 gap-x-5 gap-y-6", gridCols)}
                     >
                       {secondRow.map((p, idx) => (
                         <motion.div
@@ -808,7 +800,11 @@ export function MarketplaceClient({
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-white font-black text-sm truncate">{modalClip.products.name}</p>
-                    <p className="text-[var(--color-accent)] font-black">${Number(modalClip.products.price).toFixed(2)}</p>
+                    <LocalizedPrice
+                      amount={Number(modalClip.products.price)}
+                      currency={(modalClip.products as { currency?: string | null }).currency}
+                      className="text-[var(--color-accent)] font-black"
+                    />
                   </div>
                   <Link href={`/marketplace/${(modalClip.products as { slug?: string }).slug ?? ""}?buy=1`} onClick={closeModalClip}>
                     <Button className="rounded-xl h-10 px-5 bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] font-black text-white text-xs">

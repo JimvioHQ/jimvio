@@ -25,7 +25,6 @@ export default async function ProductBySlugPage({ params }: PageProps) {
     follower_count?: number;
   } | null;
   const mainImage = product.images?.[0] || null;
-  const isShopify = product.source === "shopify";
 
   return (
     <div className="min-h-screen bg-[var(--color-bg)]">
@@ -53,9 +52,6 @@ export default async function ProductBySlugPage({ params }: PageProps) {
 
           <div className="space-y-4">
             <div className="flex flex-wrap gap-2">
-              {isShopify && (
-                <Badge variant="accent">Shopify</Badge>
-              )}
               <Badge variant="secondary">{String(product.product_type)}</Badge>
             </div>
             <h1 className="text-4xl font-black text-[var(--color-text-primary)] leading-tight">{product.name}</h1>

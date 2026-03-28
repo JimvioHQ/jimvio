@@ -18,7 +18,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/ui/stat-card";
 import { cn } from "@/lib/utils";
-import { formatCurrency } from "@/lib/utils";
+import { useCurrency } from "@/context/CurrencyContext";
 
 const quickActions = [
   { label: "Browse Marketplace", href: "/marketplace", icon: <Globe className="h-5 w-5" />, color: "bg-[var(--color-accent-light)] text-[var(--color-accent)]" },
@@ -69,6 +69,7 @@ function StatCardSkeleton() {
 }
 
 export function UniversalDashboard({ userName, activity, loading }: UniversalDashboardProps) {
+  const { formatMoney } = useCurrency();
   return (
     <div className="space-y-6 animate-fade-in">
       {/* 1. Welcome section */}
@@ -120,7 +121,7 @@ export function UniversalDashboard({ userName, activity, loading }: UniversalDas
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
             <StatCard title="Orders" value={activity.orders} icon={<ShoppingCart className="h-4 w-4" />} iconColor="from-blue-600 to-cyan-600" />
             <StatCard title="Products" value={activity.products} icon={<Package className="h-4 w-4" />} iconColor="from-[var(--color-accent)] to-amber-600" />
-            <StatCard title="Affiliate Earnings" value={formatCurrency(activity.affiliateEarnings)} icon={<DollarSign className="h-4 w-4" />} iconColor="from-emerald-600 to-teal-600" />
+            <StatCard title="Affiliate Earnings" value={formatMoney(activity.affiliateEarnings, "RWF")} icon={<DollarSign className="h-4 w-4" />} iconColor="from-emerald-600 to-teal-600" />
             <StatCard title="Clips Uploaded" value={activity.clipsUploaded} icon={<Video className="h-4 w-4" />} iconColor="from-pink-600 to-rose-600" />
             <StatCard title="Followers" value={activity.followers} icon={<UserPlus className="h-4 w-4" />} iconColor="from-amber-600 to-orange-600" />
           </div>

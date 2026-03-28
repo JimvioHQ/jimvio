@@ -25,18 +25,19 @@ export async function GET(req: NextRequest) {
     const status = await verifyPesapalTransaction(orderTrackingId)
 
     if (status.payment_status_description === 'Completed') {
-      // Check order not already paid (prevent double processing)
-      const { data: order } = await supabase
+      // Check if orders exist and status of at least one
+      const { data: firstOrder } = await supabase
         .from('orders')
         .select('payment_status')
-        .eq('id', orderMerchantRef)
-        .single()
+        .eq('pesapal_merchant_ref', orderMerchantRef)
+        .limit(1)
+        .maybeSingle()
 
-      if (order?.payment_status === 'paid') {
+      if (firstOrder?.payment_status === 'paid') {
         return NextResponse.json({ received: true, status: 'already_processed' })
       }
 
-      // Update order with PesaPal tracking ID
+      // Update all orders in the batch with PesaPal tracking ID
       await supabase
         .from('orders')
         .update({
@@ -47,7 +48,7 @@ export async function GET(req: NextRequest) {
           paid_at:             new Date().toISOString(),
           updated_at:          new Date().toISOString(),
         })
-        .eq('id', orderMerchantRef)
+        .eq('pesapal_merchant_ref', orderMerchantRef)
 
       const { handleSuccessfulPayment } = await import('@/services/paymentService')
       await handleSuccessfulPayment({

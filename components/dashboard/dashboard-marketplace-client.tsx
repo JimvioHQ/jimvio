@@ -271,26 +271,17 @@ export function DashboardMarketplaceClient({
             </div>
             <div className="flex flex-wrap items-center gap-2 overflow-x-auto no-scrollbar">
               {[
-                { label: "All Items", type: undefined as string | undefined, catalog: undefined as string | undefined, icon: <Sparkles className="h-3.5 w-3.5" /> },
-                { label: "Physical Goods", type: "physical" as string | undefined, catalog: undefined as string | undefined, icon: <Package className="h-3.5 w-3.5" /> },
-                { label: "Digital Assets", type: "digital" as string | undefined, catalog: undefined as string | undefined, icon: <Zap className="h-3.5 w-3.5" /> },
-                { label: "Shopify catalog", type: undefined as string | undefined, catalog: "shopify" as string | undefined, icon: <Package className="h-3.5 w-3.5" /> },
-                { label: "Software", type: "software" as string | undefined, catalog: undefined as string | undefined, icon: <Globe className="h-3.5 w-3.5" /> },
+                { label: "All Items", type: undefined as string | undefined, icon: <Sparkles className="h-3.5 w-3.5" /> },
+                { label: "Physical Goods", type: "physical" as string | undefined, icon: <Package className="h-3.5 w-3.5" /> },
+                { label: "Digital Assets", type: "digital" as string | undefined, icon: <Zap className="h-3.5 w-3.5" /> },
+                { label: "Software", type: "software" as string | undefined, icon: <Globe className="h-3.5 w-3.5" /> },
               ].map((t) => {
-                const active =
-                  t.catalog === "shopify"
-                    ? params.catalog === "shopify"
-                    : !params.catalog && (params.type === t.type || (!params.type && !t.type));
+                const active = params.type === t.type || (!params.type && !t.type);
                 return (
                   <button
                     key={t.label}
                     type="button"
-                    onClick={() =>
-                      updateParams({
-                        type: t.catalog === "shopify" ? undefined : t.type,
-                        catalog: t.catalog,
-                      })
-                    }
+                    onClick={() => updateParams({ type: t.type, catalog: undefined })}
                     className={cn(
                       "flex items-center gap-2.5 px-4 sm:px-6 py-2.5 rounded-full text-[11px] font-black capitalize tracking-[0.1em] border transition-all whitespace-nowrap",
                       active

@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { FollowButton } from "@/components/marketplace/follow-button";
 import { cn } from "@/lib/utils";
+import { LocalizedPrice } from "@/components/currency/localized-price";
 
 export type StoreProduct = {
   id: string;
@@ -14,6 +15,7 @@ export type StoreProduct = {
   slug: string;
   images?: string[] | null;
   price: number;
+  currency?: string | null;
 };
 
 export type StoreVendor = {
@@ -107,7 +109,11 @@ export function PopularStoresSection({ stores, className }: PopularStoresSection
                           )}
                         </div>
                         <span className="text-[9px] font-bold text-[#4b5563] truncate w-full text-center mt-1 group-hover/product:text-[#f97316]">{pr.name}</span>
-                        <span className="text-[9px] font-black text-[#f97316]">${Number(pr.price).toFixed(2)}</span>
+                        <LocalizedPrice
+                          amount={Number(pr.price)}
+                          currency={pr.currency}
+                          className="text-[9px] font-black text-[#f97316]"
+                        />
                       </Link>
                     ))}
                   </div>

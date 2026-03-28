@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { FollowButton } from "@/components/marketplace/follow-button";
 import { cn } from "@/lib/utils";
+import { LocalizedPrice } from "@/components/currency/localized-price";
 
 export type ClipItem = {
   id: string;
@@ -16,7 +17,7 @@ export type ClipItem = {
   thumbnail_url?: string | null;
   total_views?: number | null;
   vendors?: { id: string; business_name: string; business_slug?: string; logo_url?: string; business_logo?: string } | null;
-  products?: { id?: string; name: string; slug?: string; price: number; images?: string[] | null } | null;
+  products?: { id?: string; name: string; slug?: string; price: number; currency?: string | null; images?: string[] | null } | null;
 };
 
 interface CreatorClipsHeroProps {
@@ -164,7 +165,11 @@ export function CreatorClipsHero({ clips, className }: CreatorClipsHeroProps) {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-white font-black text-sm truncate">{modalClip.products.name}</p>
-                    <p className="text-[#f97316] font-black">${Number(modalClip.products.price).toFixed(2)}</p>
+                    <LocalizedPrice
+                      amount={Number(modalClip.products.price)}
+                      currency={modalClip.products.currency}
+                      className="text-[#f97316] font-black"
+                    />
                   </div>
                   <Link href={`/marketplace/${modalClip.products.slug ?? ""}?buy=1`} onClick={closeModal}>
                     <Button className="rounded-xl h-10 px-5 bg-[#f97316] hover:bg-[#ea580c] font-black text-white text-xs">Buy Product</Button>

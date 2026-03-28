@@ -32,6 +32,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
+import { useUserStore } from "@/lib/store/use-user-store";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -58,6 +59,7 @@ const FORM_STEPS = [
 
 export default function ActivateVendorPage() {
   const router = useRouter();
+  const { fetchRoles } = useUserStore();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [step, setStep] = useState(1);
@@ -252,6 +254,7 @@ export default function ActivateVendorPage() {
       { user_id: user.id, role: "vendor", is_active: true },
       { onConflict: "user_id,role" }
     ).then(() => {});
+    await fetchRoles();
     toast.success("Application submitted. We'll review it shortly.");
     router.refresh();
     router.push("/dashboard");

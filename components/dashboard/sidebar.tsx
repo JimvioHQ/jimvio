@@ -35,6 +35,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { SignOutButton } from "@/components/auth/sign-out-button";
+import { CurrencySelector } from "@/context/CurrencyContext";
 
 export type DashboardRole = "buyer" | "vendor" | "affiliate" | "influencer" | "admin";
 
@@ -60,7 +61,7 @@ const sidebarSections: NavSection[] = [
     items: [
       { label: "Browse Marketplace", href: "/dashboard/marketplace", icon: <Globe className="h-4 w-4" /> },
       { label: "Orders", href: "/dashboard/orders", icon: <ShoppingCart className="h-4 w-4" /> },
-      { label: "Buying Leads", href: "/dashboard/requests", icon: <FileText className="h-4 w-4" /> },
+      { label: "Digital Library", href: "/dashboard/library", icon: <Video className="h-4 w-4" /> },
       { label: "Saved Products", href: "/dashboard/wishlist", icon: <Heart className="h-4 w-4" /> },
     ],
   },
@@ -131,16 +132,21 @@ interface SidebarProps {
 export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobileOpen, onMobileClose }: SidebarProps) {
   const pathname = usePathname();
 
+  const hasRole = (role: DashboardRole): boolean => {
+    if (activeRoles.includes("admin")) return true;
+    return activeRoles.includes(role);
+  };
+
   const resolveHref = (item: NavItem): string => {
     if (!item.requiredRole) return item.href;
     if (item.requiredRole === "buyer") return item.href;
-    if (activeRoles.includes(item.requiredRole)) return item.href;
+    if (hasRole(item.requiredRole)) return item.href;
     return getActivateHref(item.requiredRole);
   };
 
   const isActivationLink = (item: NavItem): boolean => {
     if (!item.requiredRole || item.requiredRole === "buyer") return false;
-    return !activeRoles.includes(item.requiredRole);
+    return !hasRole(item.requiredRole);
   };
 
   const content = (
@@ -236,6 +242,16 @@ export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobil
           </div>
         ))}
       </nav>
+
+      {/* Display currency (FX for dashboard amounts) */}
+      {!collapsed && (
+        <div className="px-3 pb-2 pt-1 border-t border-[var(--color-border)] shrink-0">
+          <p className="text-[10px] font-semibold text-[var(--color-text-muted)] uppercase tracking-wider mb-1.5">
+            Display currency
+          </p>
+          <CurrencySelector className="w-full max-w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-2.5 py-2 text-xs text-[var(--color-text-primary)]" />
+        </div>
+      )}
 
       {/* User & sign out */}
       <div className="p-3 border-t border-[var(--color-border)] shrink-0">

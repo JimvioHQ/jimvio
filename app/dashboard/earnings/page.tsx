@@ -9,11 +9,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatCard } from "@/components/ui/stat-card";
-import { formatCurrency } from "@/lib/utils";
+import { useCurrency } from "@/context/CurrencyContext";
 import { createClient } from "@/lib/supabase/client";
 import { TableRowSkeleton } from "@/components/ui/skeleton";
 
 export default function AffiliateEarningsPage() {
+  const { formatMoney } = useCurrency();
   const router = useRouter();
   const [earnings, setEarnings] = useState<any[]>([]);
   const [payouts, setPayouts] = useState<any[]>([]);
@@ -77,10 +78,10 @@ export default function AffiliateEarningsPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Pending earnings" value={formatCurrency(stats.pending)} icon={<Clock className="h-4 w-4" />} iconColor="from-amber-600 to-orange-600" />
-        <StatCard title="Available" value={formatCurrency(stats.available)} icon={<CheckCircle className="h-4 w-4" />} iconColor="from-emerald-600 to-teal-600" />
-        <StatCard title="Paid" value={formatCurrency(stats.paid)} icon={<ArrowUpRight className="h-4 w-4" />} iconColor="from-purple-600 to-pink-600" />
-        <StatCard title="Total earned" value={formatCurrency(stats.total)} icon={<DollarSign className="h-4 w-4" />} iconColor="from-blue-600 to-cyan-600" />
+        <StatCard title="Pending earnings" value={formatMoney(stats.pending, "RWF")} icon={<Clock className="h-4 w-4" />} iconColor="from-amber-600 to-orange-600" />
+        <StatCard title="Available" value={formatMoney(stats.available, "RWF")} icon={<CheckCircle className="h-4 w-4" />} iconColor="from-emerald-600 to-teal-600" />
+        <StatCard title="Paid" value={formatMoney(stats.paid, "RWF")} icon={<ArrowUpRight className="h-4 w-4" />} iconColor="from-purple-600 to-pink-600" />
+        <StatCard title="Total earned" value={formatMoney(stats.total, "RWF")} icon={<DollarSign className="h-4 w-4" />} iconColor="from-blue-600 to-cyan-600" />
       </div>
 
       <div className="flex items-center gap-2 p-2 rounded-xl bg-[var(--color-surface-secondary)] border border-[var(--color-border)] overflow-x-auto" style={{ WebkitOverflowScrolling: "touch" }}>
@@ -130,8 +131,8 @@ export default function AffiliateEarningsPage() {
                     <tr key={e.id} className="border-b border-[var(--color-border)] last:border-b-0 hover:bg-[var(--color-surface-secondary)]/50 transition-colors">
                       <td className="py-3.5 pl-5 pr-3 font-medium text-[var(--color-text-primary)]">#{e.orders?.order_number || String(e.id).slice(0, 8)}</td>
                       <td className="py-3.5 px-3 text-[var(--color-text-muted)]">{new Date(e.created_at).toLocaleDateString()}</td>
-                      <td className="py-3.5 px-3 text-right tabular-nums">{formatCurrency(Number(e.orders?.total_amount || 0))}</td>
-                      <td className="py-3.5 px-3 text-right font-semibold text-[var(--color-accent)] tabular-nums">{formatCurrency(Number(e.commission_amount ?? e.amount ?? 0))}</td>
+                      <td className="py-3.5 px-3 text-right tabular-nums">{formatMoney(Number(e.orders?.total_amount || 0), (e.orders?.currency as string) || "RWF")}</td>
+                      <td className="py-3.5 px-3 text-right font-semibold text-[var(--color-accent)] tabular-nums">{formatMoney(Number(e.commission_amount ?? e.amount ?? 0), "RWF")}</td>
                       <td className="py-3.5 pl-3 pr-5 text-center">
                         <Badge variant={e.status === "paid" ? "success" : e.status === "cancelled" ? "destructive" : "warning"} className="text-[10px] py-0.5">{e.status || "pending"}</Badge>
                       </td>
@@ -173,7 +174,7 @@ export default function AffiliateEarningsPage() {
                     <tr key={p.id} className="border-b border-[var(--color-border)] last:border-b-0 hover:bg-[var(--color-surface-secondary)]/50 transition-colors">
                       <td className="py-3.5 pl-5 pr-3">{new Date(p.created_at).toLocaleDateString()}</td>
                       <td className="py-3.5 px-3 capitalize">{String(p.payout_method || "—").replace(/_/g, " ")}</td>
-                      <td className="py-3.5 px-3 text-right font-medium tabular-nums">{formatCurrency(Number(p.amount ?? 0))}</td>
+                      <td className="py-3.5 px-3 text-right font-medium tabular-nums">{formatMoney(Number(p.amount ?? 0), "RWF")}</td>
                       <td className="py-3.5 pl-3 pr-5 text-center">
                         <Badge variant={p.status === "paid" ? "success" : p.status === "failed" ? "destructive" : "warning"} className="text-[10px] py-0.5">{p.status || "pending"}</Badge>
                       </td>

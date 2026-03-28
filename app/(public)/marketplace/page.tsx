@@ -86,6 +86,7 @@ export default async function MarketplacePage({ searchParams }: PageProps) {
         slug: p.slug,
         images: p.images,
         price: p.price,
+        currency: p.currency,
       }));
       return { ...store, products: normalized };
     })

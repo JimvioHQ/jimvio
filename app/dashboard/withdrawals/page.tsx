@@ -7,7 +7,7 @@ import { Wallet, ArrowDownRight, CreditCard, Banknote, History, Clock, CheckCirc
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { formatCurrency } from "@/lib/utils";
+import { useCurrency } from "@/context/CurrencyContext";
 import { createClient } from "@/lib/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
@@ -19,6 +19,7 @@ const PAYMENT_METHODS = [
 ] as const;
 
 export default function AffiliateWithdrawalsPage() {
+  const { formatMoney } = useCurrency();
   const router = useRouter();
   const [balance, setBalance] = useState({ available: 0, pending: 0, paid: 0 });
   const [affiliateId, setAffiliateId] = useState<string | null>(null);
@@ -138,10 +139,10 @@ export default function AffiliateWithdrawalsPage() {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
               <div className="space-y-2">
                 <span className="text-xs font-semibold text-[var(--color-text-muted)] uppercase tracking-wider">Available Balance</span>
-                <h2 className="text-3xl sm:text-4xl font-bold text-[var(--color-text-primary)]">{formatCurrency(balance.available, "RWF")}</h2>
+                <h2 className="text-3xl sm:text-4xl font-bold text-[var(--color-text-primary)]">{formatMoney(balance.available, "RWF")}</h2>
                 <div className="flex items-center gap-4 text-sm text-[var(--color-text-muted)]">
-                  <span className="flex items-center gap-1.5"><Clock className="h-4 w-4 text-amber-500" /> {formatCurrency(balance.pending, "RWF")} Pending</span>
-                  <span className="flex items-center gap-1.5"><CheckCircle className="h-4 w-4 text-emerald-500" /> {formatCurrency(balance.paid, "RWF")} Paid</span>
+                  <span className="flex items-center gap-1.5"><Clock className="h-4 w-4 text-amber-500" /> {formatMoney(balance.pending, "RWF")} Pending</span>
+                  <span className="flex items-center gap-1.5"><CheckCircle className="h-4 w-4 text-emerald-500" /> {formatMoney(balance.paid, "RWF")} Paid</span>
                 </div>
               </div>
               <div className="space-y-3 w-full md:max-w-[280px]">
@@ -217,7 +218,7 @@ export default function AffiliateWithdrawalsPage() {
                   <tr key={p.id}>
                     <td className="pl-5 text-sm">{new Date(p.created_at).toLocaleDateString()}</td>
                     <td className="capitalize text-sm">{String(p.payout_method || "—").replace(/_/g, " ")}</td>
-                    <td className="text-right font-medium">{formatCurrency(Number(p.amount ?? 0), "RWF")}</td>
+                    <td className="text-right font-medium">{formatMoney(Number(p.amount ?? 0), "RWF")}</td>
                     <td className="pr-5">
                       <Badge variant={p.status === "paid" ? "success" : p.status === "failed" ? "destructive" : "warning"} className="text-[10px] py-0">{p.status || "pending"}</Badge>
                     </td>

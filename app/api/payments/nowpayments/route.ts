@@ -37,10 +37,10 @@ export async function POST(req: NextRequest) {
 
     // Handle payment completed
     if (isPaymentComplete(status)) {
-      // Check order not already paid (prevent double processing)
+      // Check order not already paid and get batch ID
       const { data: order } = await supabase
         .from('orders')
-        .select('payment_status')
+        .select('payment_status, payment_batch_id')
         .eq('id', jimvioOrderId)
         .single()
 
@@ -48,18 +48,23 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ received: true, status: 'already_processed' })
       }
 
-      // Update order with NowPayments payment ID
-      await supabase
-        .from('orders')
-        .update({
-          payment_status:        'paid',
-          status:                'processing',
-          payment_provider:      'nowpayments',
-          nowpayments_payment_id: parseInt(paymentId, 10),
-          paid_at:               new Date().toISOString(),
-          updated_at:            new Date().toISOString(),
-        })
-        .eq('id', jimvioOrderId)
+      const batchId = order?.payment_batch_id
+
+      // Update all orders in the batch (or just the single one if no batch)
+      const updateQuery = supabase.from('orders').update({
+        payment_status:        'paid',
+        status:                'processing',
+        payment_provider:      'nowpayments',
+        nowpayments_payment_id: parseInt(paymentId, 10),
+        paid_at:               new Date().toISOString(),
+        updated_at:            new Date().toISOString(),
+      })
+
+      if (batchId) {
+        await updateQuery.eq('payment_batch_id', batchId)
+      } else {
+        await updateQuery.eq('id', jimvioOrderId)
+      }
 
       const { handleSuccessfulPayment } = await import('@/services/paymentService')
       await handleSuccessfulPayment({

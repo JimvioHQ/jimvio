@@ -8,13 +8,14 @@ import { Package, ArrowLeft, ShoppingCart, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { formatCurrency } from "@/lib/utils";
+import { useCurrency } from "@/context/CurrencyContext";
 import { createClient } from "@/lib/supabase/client";
 import { TableRowSkeleton } from "@/components/ui/skeleton";
 
-type ProductInfo = { id?: string; name?: string; slug?: string; price?: number; images?: string[] };
+type ProductInfo = { id?: string; name?: string; slug?: string; price?: number; currency?: string | null; images?: string[] };
 
 export default function AffiliatePromotedProductsPage() {
+  const { formatMoney } = useCurrency();
   const router = useRouter();
   const [affiliate, setAffiliate] = useState<{ id: string } | null>(null);
   const [rows, setRows] = useState<Record<string, unknown>[]>([]);
@@ -32,7 +33,7 @@ export default function AffiliatePromotedProductsPage() {
           .from("affiliate_links")
           .select(`
             id, commission_rate, total_clicks, total_conversions, total_earnings,
-            products ( id, name, slug, price, images )
+            products ( id, name, slug, price, currency, images )
           `)
           .eq("affiliate_id", aff.id)
           .order("total_clicks", { ascending: false });
@@ -137,7 +138,7 @@ export default function AffiliatePromotedProductsPage() {
                                   </Link>
                                   {rate > 0 && (
                                     <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
-                                      {rate}% — {formatCurrency(perSale)} per sale
+                                      {rate}% — {formatMoney(perSale, product?.currency)} per sale
                                     </p>
                                   )}
                                 </>
@@ -152,7 +153,7 @@ export default function AffiliatePromotedProductsPage() {
                         </td>
                         <td className="py-3.5 px-3 text-right font-medium tabular-nums">{(r.total_clicks as number) ?? 0}</td>
                         <td className="py-3.5 px-3 text-right font-medium tabular-nums">{(r.total_conversions as number) ?? 0}</td>
-                        <td className="py-3.5 px-3 text-right font-semibold text-[var(--color-accent)]">{formatCurrency(Number(r.total_earnings ?? 0))}</td>
+                        <td className="py-3.5 px-3 text-right font-semibold text-[var(--color-accent)]">{formatMoney(Number(r.total_earnings ?? 0), "RWF")}</td>
                         <td className="py-3.5 pr-5">
                           {hasProduct && product?.slug ? (
                             <a

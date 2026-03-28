@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import Image from "next/image";
 import { CreditCard, Bitcoin, Check, Smartphone } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useCurrency } from "@/context/CurrencyContext";
 import { estimatePawaPayLocalAmount } from "@/lib/pawapay-convert";
 import {
   getPawaPayProviderOptions,
@@ -73,6 +74,7 @@ export function PaymentMethodSelector({
   pawapayPhone: string;
   onPawapayPhoneChange: (phone: string) => void;
 }) {
+  const { formatMoney } = useCurrency();
   const oc = orderCurrency.toUpperCase();
   const pawapayOptions = useMemo(() => {
     const all = getPawaPayProviderOptions();
@@ -220,7 +222,7 @@ export function PaymentMethodSelector({
                         {pawapayEstimate.localAmount.toLocaleString()} {pawapayEstimate.localCurrency}
                       </span>{" "}
                       <span className="font-normal text-[var(--color-text-muted)]">
-                        (from {orderTotal.toFixed(2)} {orderCurrency})
+                        (from {formatMoney(orderTotal, orderCurrency)})
                       </span>
                     </>
                   ) : (

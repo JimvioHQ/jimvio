@@ -12,6 +12,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
+import { useUserStore } from "@/lib/store/use-user-store";
+import { type DashboardRole } from "@/components/dashboard/sidebar";
+import { toast } from "sonner";
 
 type RoleStatus = "active" | "inactive" | "loading";
 
@@ -75,71 +78,68 @@ const allRoles = [
 
 export default function RolesPage() {
   const router = useRouter();
-  const [roles, setRoles] = useState<RoleState>({
-    buyer: "active", vendor: "inactive", affiliate: "inactive",
-    influencer: "inactive",
-  });
+  const { activeRoles, fetchRoles, addRole } = useUserStore();
+  const [roleLocalStatus, setRoleLocalStatus] = useState<Record<string, RoleStatus>>({});
   const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function loadRoles() {
+    async function init() {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push("/login"); return; }
       setUserId(user.id);
-
-      const [userRolesRes, vendorRes, affiliateRes, influencerRes] = await Promise.all([
-        supabase.from("user_roles").select("role").eq("user_id", user.id),
-        supabase.from("vendors").select("id").eq("user_id", user.id).maybeSingle(),
-        supabase.from("affiliates").select("id").eq("user_id", user.id).maybeSingle(),
-        supabase.from("influencers").select("id").eq("user_id", user.id).maybeSingle(),
-      ]);
-
-      const activeRoles = userRolesRes.data?.map(r => r.role) ?? ["buyer"];
-      setRoles({
-        buyer:      "active",
-        vendor:     (vendorRes.data || activeRoles.includes("vendor")) ? "active" : "inactive",
-        affiliate:  (affiliateRes.data || activeRoles.includes("affiliate")) ? "active" : "inactive",
-        influencer: (influencerRes.data || activeRoles.includes("influencer")) ? "active" : "inactive",
-      });
+      await fetchRoles();
       setLoading(false);
     }
-    loadRoles();
-  }, [router]);
+    init();
+  }, [router, fetchRoles]);
 
   async function activateRole(roleId: keyof RoleState, setupPath: string | null) {
-    if (!userId || roles[roleId] === "active") return;
+    if (!userId || activeRoles.includes(roleId)) return;
 
-    setRoles(prev => ({ ...prev, [roleId]: "loading" }));
+    setRoleLocalStatus(prev => ({ ...prev, [roleId]: "loading" }));
     const supabase = createClient();
 
     try {
-      await supabase.from("user_roles").upsert(
-        { user_id: userId, role: roleId },
+      const { error: upsertError } = await supabase.from("user_roles").upsert(
+        { user_id: userId, role: roleId, is_active: true },
         { onConflict: "user_id,role" }
       );
 
+      if (upsertError) throw upsertError;
+
       if (roleId === "affiliate") {
-        const { error } = await supabase.from("affiliates").insert({ user_id: userId }).select().single();
-        if (!error) {
-          setRoles(prev => ({ ...prev, affiliate: "active" }));
-        }
+        const { error } = await supabase.from("affiliates").upsert({ user_id: userId }, { onConflict: "user_id" });
+        if (error) throw error;
       } else if (roleId === "influencer") {
         const { data: prof } = await supabase.from("profiles").select("full_name").eq("id", userId).single();
-        await supabase.from("influencers").insert({
+        const { error } = await supabase.from("influencers").upsert({
           user_id:      userId,
           display_name: prof?.full_name ?? "Influencer",
-        });
-        setRoles(prev => ({ ...prev, influencer: "active" }));
+        }, { onConflict: "user_id" });
+        if (error) throw error;
       } else if (roleId === "vendor" && setupPath) {
         router.push(setupPath);
         return;
       }
 
-      setRoles(prev => ({ ...prev, [roleId]: "active" }));
-    } catch {
-      setRoles(prev => ({ ...prev, [roleId]: "inactive" }));
+      const { data: refreshedRoles, error: fetchErr } = await supabase.rpc('get_user_roles', { lookup_user_id: userId });
+      
+      // Force update state with the known new role + whatever the server says
+      let finalRoles: DashboardRole[] = refreshedRoles as DashboardRole[] || ["buyer"];
+      if (!finalRoles.includes(roleId)) {
+        finalRoles = [...finalRoles, roleId];
+      }
+      
+      useUserStore.setState({ activeRoles: finalRoles });
+
+      setRoleLocalStatus(prev => ({ ...prev, [roleId]: "active" }));
+      toast.success(`${roleId.charAt(0).toUpperCase() + roleId.slice(1)} role activated!`);
+    } catch (err: any) {
+      console.error("[RolesPage] activation failed:", err);
+      toast.error(err.message || "Failed to activate role");
+      setRoleLocalStatus(prev => ({ ...prev, [roleId]: "inactive" }));
     }
   }
 
@@ -151,7 +151,7 @@ export default function RolesPage() {
     );
   }
 
-  const activeCount = Object.values(roles).filter(v => v === "active").length;
+  const activeCount = activeRoles.length;
 
   return (
     <div className="space-y-5 animate-fade-in">
@@ -164,7 +164,7 @@ export default function RolesPage() {
 
       {activeCount > 1 && (
         <div className="flex flex-wrap gap-2">
-          {allRoles.filter(r => roles[r.id] === "active").map(r => (
+          {allRoles.filter(r => activeRoles.includes(r.id)).map(r => (
             <span key={r.id} className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold ${r.color}`}>
               {r.icon && React.cloneElement(r.icon as React.ReactElement<{ className?: string }>, { className: "h-3.5 w-3.5" })}
               {r.label} <CheckCircle className="h-3 w-3" />
@@ -185,9 +185,8 @@ export default function RolesPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {allRoles.map((r) => {
-          const status = roles[r.id];
-          const isActive  = status === "active";
-          const isLoading = status === "loading";
+          const isActive  = activeRoles.includes(r.id);
+          const isLoading = roleLocalStatus[r.id] === "loading";
 
           return (
             <Card key={r.id} className={isActive ? "ring-2 ring-[var(--color-accent)]/30" : ""}>

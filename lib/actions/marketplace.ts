@@ -4,6 +4,34 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { revalidatePath } from "next/cache";
 import { normalizeProductSource } from "@/lib/sources/product-source";
+import { getProducts } from "@/services/db";
+
+export async function getSearchSuggestions(query: string) {
+  try {
+    if (!query || query.length < 1) return { success: true, products: [] };
+    
+    const { products } = await getProducts({
+      search: query,
+      limit: 6,
+      sort: "trending"
+    });
+
+    return { 
+      success: true, 
+      products: products.map((p: any) => ({
+        id: p.id,
+        name: p.name,
+        slug: p.slug,
+        image: p.images?.[0] || null,
+        price: p.price,
+        currency: p.currency
+      }))
+    };
+  } catch (error: any) {
+    console.error("Search suggestions error:", error);
+    return { success: false, error: error.message };
+  }
+}
 
 export async function toggleFollowVendor(vendorId: string) {
   try {
@@ -255,20 +283,9 @@ export async function addToCart(productId: string, vendorId: string, quantity: n
       if (insertError) throw insertError;
     }
 
-    // 4. Update order totals (optional but good practice)
-    const { data: allItems } = await supabase
-      .from("order_items")
-      .select("total_price")
-      .eq("order_id", orderId);
+    // 4. Order totals (subtotal / total_amount) are now updated automatically by 
+    // the 'tr_update_order_totals' PostgreSQL trigger. No manual update needed.
     
-    const newTotal = allItems?.reduce((sum, i) => sum + Number(i.total_price), 0) || 0;
-    const { error: orderUpdateError } = await supabase
-      .from("orders")
-      .update({ total_amount: newTotal, subtotal: newTotal })
-      .eq("id", orderId);
-    
-    if (orderUpdateError) throw orderUpdateError;
-
     revalidatePath("/");
     revalidatePath("/marketplace");
     revalidatePath("/cart");
@@ -386,19 +403,8 @@ export async function updateCartItemQuantity(itemId: string, quantity: number) {
 
     if (uError) throw uError;
 
-    // Update order total
-    const { data: allItems } = await supabase
-      .from("order_items")
-      .select("total_price")
-      .eq("order_id", item.order_id);
+    // Order totals (subtotal / total_amount) are updated automatically by trigger.
     
-    const newTotal = allItems?.reduce((sum, i) => sum + Number(i.total_price), 0) || 0;
-    
-    await supabase
-      .from("orders")
-      .update({ total_amount: newTotal, subtotal: newTotal })
-      .eq("id", item.order_id);
-
     revalidatePath("/cart");
     revalidatePath("/");
     return { success: true };
@@ -434,16 +440,13 @@ export async function removeFromCart(itemId: string) {
       throw new Error("Item not found");
     }
 
-    const orderId = line.order_id;
-
-    // Ownership is verified above. RLS often blocks DELETE on order_items in PostgREST even when
-    // SELECT works; use service role for the mutations only (same pattern as payment webhooks).
-    const admin = createServiceRoleClient();
-    const { data: removed, error: dError } = await admin
+    // Now using the standard Supabase client since RLS has been fixed.
+    // Order totals (subtotal / total_amount) are updated automatically by trigger.
+    const { data: removed, error: dError } = await supabase
       .from("order_items")
       .delete()
       .eq("id", itemId)
-      .eq("order_id", orderId)
+      .eq("order_id", line.order_id)
       .select("id");
 
     if (dError) throw dError;
@@ -451,23 +454,18 @@ export async function removeFromCart(itemId: string) {
       throw new Error("Could not remove item. Please try again.");
     }
 
-    const { data: remainingItems } = await admin
+    // Check if order is now empty - automatic deletion of empty orders can be 
+    // handled by checking remaining items.
+    const { data: remainingItems } = await supabase
       .from("order_items")
-      .select("total_price")
-      .eq("order_id", orderId);
+      .select("id")
+      .eq("order_id", line.order_id);
 
     if (!remainingItems || remainingItems.length === 0) {
-      const { error: delOrdErr } = await admin.from("orders").delete().eq("id", orderId);
+      const { error: delOrdErr } = await supabase.from("orders").delete().eq("id", line.order_id);
       if (delOrdErr) {
         console.warn("removeFromCart: could not delete empty pending order:", delOrdErr);
       }
-    } else {
-      const newTotal = remainingItems.reduce((sum, i) => sum + Number(i.total_price), 0);
-      const { error: upErr } = await admin
-        .from("orders")
-        .update({ total_amount: newTotal, subtotal: newTotal })
-        .eq("id", orderId);
-      if (upErr) throw upErr;
     }
 
     revalidatePath("/cart");
@@ -533,3 +531,55 @@ export async function getWishlistProductIds(): Promise<string[]> {
     return [];
   }
 }
+
+/**
+ * Check whether a product is already in the current user's pending cart.
+ * Returns { inCart: true, itemId: "<order_item_id>" } or { inCart: false }.
+ */
+export async function checkProductInCart(productId: string): Promise<{ inCart: boolean; itemId?: string }> {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { inCart: false };
+
+    const { data } = await supabase
+      .from("order_items")
+      .select("id, orders!inner(buyer_id, status)")
+      .eq("product_id", productId)
+      .eq("orders.buyer_id", user.id)
+      .eq("orders.status", "pending")
+      .maybeSingle();
+
+    if (data) return { inCart: true, itemId: data.id };
+    return { inCart: false };
+  } catch {
+    return { inCart: false };
+  }
+}
+
+/**
+ * Remove a product from the cart by product_id (not item_id).
+ * Looks up the matching order_item automatically then delegates to removeFromCart.
+ */
+export async function removeProductFromCart(productId: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, error: "Authentication required" };
+
+    const { data: item } = await supabase
+      .from("order_items")
+      .select("id, orders!inner(buyer_id, status)")
+      .eq("product_id", productId)
+      .eq("orders.buyer_id", user.id)
+      .eq("orders.status", "pending")
+      .maybeSingle();
+
+    if (!item) return { success: false, error: "Item not in cart" };
+
+    return removeFromCart(item.id);
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+

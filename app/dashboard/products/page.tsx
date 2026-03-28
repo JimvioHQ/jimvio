@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatCard } from "@/components/ui/stat-card";
-import { formatCurrency } from "@/lib/utils";
+import { useCurrency } from "@/context/CurrencyContext";
 import { createClient } from "@/lib/supabase/client";
 import { TableRowSkeleton } from "@/components/ui/skeleton";
 
@@ -20,6 +20,7 @@ const statusMap: Record<string, { label: string; variant: "success" | "warning" 
 };
 
 export default function ProductsPage() {
+  const { formatMoney } = useCurrency();
   const [products, setProducts]   = useState<Record<string, unknown>[]>([]);
   const [filtered, setFiltered]   = useState<Record<string, unknown>[]>([]);
   const [loading, setLoading]     = useState(true);
@@ -40,7 +41,7 @@ export default function ProductsPage() {
         const { data: prods } = await supabase
           .from("products")
           .select(`
-            id, name, slug, price, compare_at_price, status, product_type,
+            id, name, slug, price, currency, compare_at_price, status, product_type,
             images, inventory_quantity, sale_count, rating, review_count,
             affiliate_enabled, affiliate_commission_rate, is_active,
             is_digital, created_at
@@ -199,7 +200,7 @@ export default function ProductsPage() {
                         <td>
                           <p className="text-sm font-semibold text-[var(--color-text-primary)] line-clamp-2">{p.name as string}</p>
                         </td>
-                        <td className="text-right"><span className="text-sm font-semibold text-[var(--color-text-primary)]">{formatCurrency(Number(p.price))}</span></td>
+                        <td className="text-right"><span className="text-sm font-semibold text-[var(--color-text-primary)]">{formatMoney(Number(p.price), (p.currency as string) || undefined)}</span></td>
                         <td className="text-right">
                           {p.is_digital
                             ? <span className="text-xs text-muted-c">—</span>

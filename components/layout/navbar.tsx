@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
 import {
   User,
   ShoppingCart,
@@ -25,6 +25,11 @@ import {
   ShoppingBag,
   Package,
   Users,
+  Search,
+  Command,
+  ChevronDown,
+  Sparkles,
+  Zap,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -39,9 +44,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { signOut } from "@/lib/auth/actions";
-import { getNavbarCounts } from "@/lib/actions/marketplace";
+import { useCartStore } from "@/lib/store/use-cart-store";
 import type { MarketingSettings, NavLinkConfig } from "@/lib/platform-settings-shared";
 import { NavbarSearch } from "@/components/layout/navbar-search";
+import { CurrencySelector } from "@/context/CurrencyContext";
 
 interface NavbarProps {
   user?: { email: string; full_name?: string | null; avatar_url?: string | null } | null;
@@ -65,7 +71,7 @@ function iconForNavHref(href: string): LucideIcon {
   if (h.startsWith("/affiliates")) return TrendingUp;
   if (h.startsWith("/influencers")) return Video;
   if (h.startsWith("/vendors")) return Factory;
-  if (h.startsWith("/clips") || h.startsWith("/clippings")) return Video;
+  if (h.startsWith("/clips")) return Video;
   return Package;
 }
 
@@ -76,16 +82,39 @@ function linkIsActive(pathname: string, href: string): boolean {
 }
 
 export function Navbar({ user, marketing }: NavbarProps) {
+  const { scrollY } = useScroll();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [portalReady, setPortalReady] = useState(false);
   const [searchQ, setSearchQ] = useState("");
-  const [counts, setCounts] = useState({ cartCount: 0, chatCount: 0 });
+
+  const { cartCount, chatCount, refreshCounts } = useCartStore();
   const pathname = usePathname();
   const router = useRouter();
 
   const navLinks = ensureCommunitiesNavLink(marketing.nav_links ?? []);
   const localeStrip = (marketing.locale_strip?.trim() || "EN · USD").trim();
+
+  const navHeight = useTransform(scrollY, [0, 80], [102, 72]);
+  const topBarOpacity = useTransform(scrollY, [0, 40], [1, 0]);
+  const topBarHeight = useTransform(scrollY, [0, 40], [32, 0]);
+
+  useEffect(() => {
+    const handleScroll = () => setIsScrolled(window.scrollY > 15);
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  useEffect(() => setPortalReady(true), []);
+
+  useEffect(() => {
+    document.body.style.overflow = mobileOpen ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
+  }, [mobileOpen]);
+
+  useEffect(() => {
+    if (user) refreshCounts();
+  }, [user, refreshCounts]);
 
   const runSearch = useCallback(
     (override?: string) => {
@@ -99,432 +128,235 @@ export function Navbar({ user, marketing }: NavbarProps) {
     [router, searchQ],
   );
 
-  useEffect(() => {
-    const handleScroll = () => setIsScrolled(window.scrollY > 8);
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    handleScroll();
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  useEffect(() => {
-    setPortalReady(true);
-  }, []);
-
-  useEffect(() => {
-    document.body.style.overflow = mobileOpen ? "hidden" : "";
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [mobileOpen]);
-
-  useEffect(() => {
-    const refreshCounts = () => {
-      if (!user) {
-        setCounts({ cartCount: 0, chatCount: 0 });
-        return;
-      }
-      getNavbarCounts()
-        .then(setCounts)
-        .catch((e) => console.error("Navbar: counts failed", e));
-    };
-    refreshCounts();
-    window.addEventListener("cart-updated", refreshCounts);
-    return () => window.removeEventListener("cart-updated", refreshCounts);
-  }, [user]);
+  const solutions = [
+    { title: "Marketplace", desc: "Discover premium products", href: "/marketplace", icon: ShoppingBag, color: "text-orange-500" },
+    { title: "Viral Clips", desc: "Video-driven commerce", href: "/clips", icon: Video, color: "text-blue-500" },
+    { title: "Communities", desc: "Global trader networking", href: "/communities", icon: Users, color: "text-emerald-500" },
+    { title: "Affiliates", desc: "Drive growth & earn", href: "/affiliates", icon: TrendingUp, color: "text-purple-500" },
+  ];
 
   return (
-    <header
-      className={cn(
-        "fixed top-0 left-0 right-0 z-50 w-full border-b transition-[box-shadow,background-color,backdrop-filter] duration-200",
-        // Scrolled: solid surface so dark sections never bleed through glass (link contrast).
-        isScrolled
-          ? "border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-md)]"
-          : "border-[var(--color-border)]/80 bg-[var(--color-surface)]/92 backdrop-blur-xl backdrop-saturate-150 supports-[backdrop-filter]:bg-[var(--color-surface)]/80 shadow-[var(--shadow-sm)]",
-      )}
-    >
-      <nav>
-        <div className="max-w-[var(--container-max)] mx-auto px-4 sm:px-5 md:px-8 py-2 sm:py-2.5">
-          {/* Primary links — slim strip */}
-          <div
-            className={cn(
-              "hidden lg:block border-b border-[var(--color-border)]/90",
-              isScrolled ? "bg-[var(--color-surface-secondary)]" : "bg-[var(--color-surface-secondary)]/85",
-            )}
-          >
-            <div className="flex items-center justify-center gap-0.5 sm:gap-1 min-h-[32px] py-0 overflow-x-auto no-scrollbar">
-              {navLinks.map((item) => {
-                const Icon = iconForNavHref(item.href);
-                const active = linkIsActive(pathname, item.href);
-                return (
-                  <Link
-                    key={`${item.href}-${item.label}`}
-                    href={item.href}
-                    className={cn(
-                      "relative flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-semibold tracking-tight shrink-0 rounded-t-md transition-colors",
-                      active
-                        ? "text-[var(--color-accent)]"
-                        : isScrolled
-                          ? "text-[var(--color-text-primary)]/90 hover:text-[var(--color-text-primary)]"
-                          : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]",
-                    )}
-                  >
-                    <Icon className={cn("h-3.5 w-3.5 opacity-70", active && "text-[var(--color-accent)] opacity-100")} />
-                    {item.label}
-                    {active ? (
-                      <span
-                        className="absolute bottom-0 left-2 right-2 h-[2px] rounded-full bg-[var(--color-accent)]"
-                        aria-hidden
-                      />
-                    ) : null}
-                  </Link>
-                );
-              })}
-            </div>
+    <header className="fixed top-0 left-0 right-0 z-[100] w-full px-0 sm:px-4 lg:px-8 pt-0 sm:pt-2 pointer-events-none isolate">
+      <motion.div 
+        style={{ height: navHeight }}
+        className={cn(
+          "mx-auto w-full max-w-[1536px] relative pointer-events-auto transition-all duration-500 sm:rounded-[28px] border-b sm:border border-white/20 bg-white/80 backdrop-blur-3xl shadow-[0_15px_40px_rgba(0,0,0,0.06)] flex flex-col items-stretch overflow-visible group/nav",
+          isScrolled && "sm:shadow-[0_20px_60px_rgba(0,0,0,0.12)] border-white/40 backdrop-saturate-150"
+        )}
+      >
+        {/* DESKTOP TOP STRIP */}
+        <motion.div 
+          style={{ height: topBarHeight, opacity: topBarOpacity }}
+          className="border-b border-zinc-100/50 flex items-center justify-between px-8 md:px-12 transition-all shrink-0 overflow-hidden"
+        >
+           <div className="flex items-center gap-6">
+              <span className="flex items-center gap-1.5 text-[9px] font-black text-zinc-400 tracking-widest uppercase">
+                 <Globe className="h-3 w-3 text-[#f97316]" /> {localeStrip}
+              </span>
+              <CurrencySelector className="h-5 rounded-lg bg-transparent border-0 px-1 text-[10px] font-bold text-zinc-400 hover:text-zinc-900 transition-colors" />
+           </div>
+           <div className="flex items-center gap-6">
+              <Link href="/help" className="text-[10px] font-black tracking-wider text-zinc-400 hover:text-[#f97316] transition-all uppercase">Support</Link>
+              <Link href="/vendors" className="text-[10px] font-black tracking-wider text-zinc-400 hover:text-zinc-800 transition-all uppercase">Vendors</Link>
+           </div>
+        </motion.div>
+
+        {/* MAIN NAVIGATION BAR */}
+        <div className="flex-1 flex items-center px-6 sm:px-10 gap-5 sm:gap-8 overflow-visible">
+          {/* Logo */}
+          <Link href="/" className="relative shrink-0 transition-transform active:scale-95 duration-300">
+             <Image src="/jimvio-logo.png" alt="Jimvio" width={140} height={38} className="w-[100px] sm:w-[130px] h-auto object-contain" priority />
+          </Link>
+
+          {/* Desktop Central Links */}
+          <div className="hidden lg:flex items-center gap-1">
+             <DropdownMenu modal={false}>
+                <DropdownMenuTrigger asChild>
+                  <button className="px-4 py-2 rounded-2xl text-[14px] font-black text-zinc-600 hover:text-zinc-900 transition-all flex items-center gap-1.5 group">
+                     Explore <ChevronDown className="h-3.5 w-3.5 opacity-40 group-hover:rotate-180 transition-transform" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-[360px] p-3 rounded-[32px] shadow-[0_32px_80px_rgba(0,0,0,0.15)] border-white/20 backdrop-blur-3xl bg-white/95 mt-4 grid grid-cols-1 gap-1">
+                   {solutions.map(s => (
+                      <DropdownMenuItem key={s.href} asChild className="p-3 rounded-2xl border border-transparent focus:bg-zinc-50 cursor-pointer group">
+                         <Link href={s.href} className="flex items-center gap-4">
+                            <div className={cn("h-10 w-10 rounded-xl bg-orange-50/10 flex items-center justify-center shrink-0", s.color)}><s.icon className="h-5 w-5" /></div>
+                            <div className="min-w-0">
+                               <p className="text-[14px] font-black text-zinc-900 leading-none mb-1">{s.title}</p>
+                               <p className="text-[11px] font-bold text-zinc-400 leading-tight truncate">{s.desc}</p>
+                            </div>
+                         </Link>
+                      </DropdownMenuItem>
+                   ))}
+                </DropdownMenuContent>
+             </DropdownMenu>
+
+             {navLinks.slice(0, 3).map((item) => {
+               const active = linkIsActive(pathname, item.href);
+               return (
+                 <Link
+                   key={item.href}
+                   href={item.href}
+                   className={cn(
+                     "px-4 py-2 rounded-2xl text-[14px] font-black transition-all",
+                     active ? "text-[#f97316] bg-orange-50/50" : "text-zinc-500 hover:text-zinc-900"
+                   )}
+                 >
+                   {item.label}
+                 </Link>
+               );
+             })}
           </div>
 
-          {/* Logo · search · actions */}
-          <div className="flex items-center justify-between gap-3 sm:gap-4 min-h-[52px] py-1.5 sm:py-2 min-w-0">
-            <Link
-              href="/"
-              className="shrink-0 transition-transform active:scale-[0.98] flex items-center min-w-0 max-w-[46%] sm:max-w-none"
-            >
-              <Image
-                src="/jimvio-logo.png"
-                alt="Jimvio"
-                width={320}
-                height={90}
-                className="w-[88px] sm:w-[112px] md:w-[140px] lg:w-[168px] h-auto object-contain"
-                priority
-              />
-            </Link>
+          {/* Action Center (Flexible) */}
+          <div className="flex-1 flex items-center justify-end gap-1.5 sm:gap-3 ml-auto">
+             <div className="hidden md:block flex-initial max-w-[420px] w-full mr-2">
+                <NavbarSearch searchQ={searchQ} setSearchQ={setSearchQ} placeholder={marketing.search_placeholder} isScrolled={isScrolled} variant="desktop" runSearch={runSearch} navLinks={navLinks} />
+             </div>
 
-            <div className="flex-1 hidden lg:flex flex-col min-w-0 max-w-[min(560px,52vw)]">
-              <div className="flex items-stretch gap-2 w-full min-w-0">
-                <div
-                  className={cn(
-                    "hidden xl:flex shrink-0 items-center gap-2 text-[12px]",
-                    isScrolled ? "text-[var(--color-text-primary)]/85" : "text-[var(--color-text-secondary)]",
-                  )}
-                >
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[var(--color-surface)] border border-[var(--color-border)] font-medium tabular-nums shadow-sm">
-                    <Globe className="h-3.5 w-3.5 text-[var(--color-accent)]" aria-hidden />
-                    {localeStrip}
-                  </span>
-                  <Link
-                    href="/help"
-                    className={cn(
-                      "inline-flex items-center gap-1.5 px-2 py-1.5 rounded-lg font-medium hover:bg-[var(--color-surface-secondary)] transition-colors",
-                      isScrolled && "hover:bg-[var(--color-accent-light)]/60",
-                    )}
-                  >
-                    <HelpCircle className="h-3.5 w-3.5" />
-                    Help
-                  </Link>
-                </div>
-                <NavbarSearch
-                  searchQ={searchQ}
-                  setSearchQ={setSearchQ}
-                  placeholder={marketing.search_placeholder}
-                  isScrolled={isScrolled}
-                  variant="desktop"
-                  runSearch={runSearch}
-                  navLinks={navLinks}
-                  primaryCta={marketing.primary_cta}
-                />
-              </div>
-            </div>
+             {/* Functional Icons (RE-ADDED MESSAGE ICON) */}
+             <div className="flex items-center gap-0.5 sm:gap-1.5 shrink-0">
+                <Link href="/messages" className="relative p-2.5 rounded-full hover:bg-zinc-100 transition-all group lg:flex items-center justify-center">
+                   <MessageCircle className="h-5.5 w-5.5 text-zinc-800 transition-transform group-hover:rotate-6" />
+                   {chatCount > 0 && <span className="absolute -top-1 -right-1 h-[20px] min-w-[20px] bg-[#f97316] text-white text-[10px] font-black flex items-center justify-center rounded-full ring-2 ring-white animate-pulse">{chatCount}</span>}
+                </Link>
+                <Link href="/cart" className="relative p-2.5 rounded-full hover:bg-zinc-100 transition-all group flex items-center justify-center">
+                   <ShoppingCart className="h-5.5 w-5.5 text-zinc-800 transition-transform group-hover:-rotate-6" />
+                   {cartCount > 0 && <span className="absolute -top-1 -right-1 h-[20px] min-w-[20px] bg-zinc-900 text-white text-[10px] font-black flex items-center justify-center rounded-full ring-2 ring-white">{cartCount}</span>}
+                </Link>
+             </div>
 
-            <div className="flex items-center gap-0.5 sm:gap-1 shrink-0 flex-nowrap min-w-0">
-              {user ? (
-                <>
-                  <div className="flex items-center">
-                    <Link
-                      href="/cart"
-                      className={cn(
-                        "relative p-2 rounded-xl hover:text-[var(--color-accent)] hover:bg-[var(--color-surface-secondary)] transition-colors",
-                        isScrolled
-                          ? "text-[var(--color-text-primary)]/80"
-                          : "text-[var(--color-text-secondary)]",
-                      )}
-                    >
-                      <ShoppingCart className="h-[22px] w-[22px]" />
-                      {counts.cartCount > 0 ? (
-                        <span className="absolute top-1 right-1 h-4 min-w-[1rem] px-0.5 bg-[var(--color-accent)] text-white text-[9px] font-bold flex items-center justify-center rounded-full border-2 border-[var(--color-surface)]">
-                          {counts.cartCount > 9 ? "9+" : counts.cartCount}
-                        </span>
-                      ) : null}
-                    </Link>
-                    <Link
-                      href="/messages"
-                      className={cn(
-                        "relative p-2 rounded-xl hover:text-[var(--color-accent)] hover:bg-[var(--color-surface-secondary)] transition-colors",
-                        isScrolled
-                          ? "text-[var(--color-text-primary)]/80"
-                          : "text-[var(--color-text-secondary)]",
-                      )}
-                    >
-                      <MessageCircle className="h-[22px] w-[22px]" />
-                      {counts.chatCount > 0 ? (
-                        <span className="absolute top-1 right-1 h-4 min-w-[1rem] px-0.5 bg-[var(--color-accent)] text-white text-[9px] font-bold flex items-center justify-center rounded-full border-2 border-[var(--color-surface)]">
-                          {counts.chatCount > 9 ? "9+" : counts.chatCount}
-                        </span>
-                      ) : null}
-                    </Link>
-                  </div>
+             <div className="h-8 w-[1px] bg-zinc-200/50 hidden lg:block mx-1" />
 
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <button
-                        type="button"
-                        className="flex items-center gap-2 pl-1 pr-1 sm:pr-2 py-1 rounded-xl hover:bg-[var(--color-surface-secondary)] transition-colors outline-none"
-                      >
-                        {user.avatar_url ? (
-                          <Avatar className="h-8 w-8 border border-[var(--color-border)]">
-                            <AvatarImage src={user.avatar_url} alt="" />
-                            <AvatarFallback className="text-xs bg-[var(--color-accent)] text-white font-semibold">
-                              {user.full_name?.charAt(0) || user.email.charAt(0)}
-                            </AvatarFallback>
-                          </Avatar>
-                        ) : (
-                          <div className="h-8 w-8 rounded-full bg-[var(--color-accent)] flex items-center justify-center text-white text-xs font-semibold border border-white shadow-sm">
-                            {(user.full_name?.charAt(0) || user.email.charAt(0)).toUpperCase()}
-                          </div>
-                        )}
-                        <span
-                          className={cn(
-                            "hidden md:inline text-[12px] font-semibold max-w-[7rem] truncate",
-                            isScrolled ? "text-[var(--color-text-primary)]/90" : "text-[var(--color-text-secondary)]",
-                          )}
-                        >
-                          {user.full_name?.split(" ")[0] || "Account"}
-                        </span>
-                      </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-56 rounded-xl">
-                      <DropdownMenuLabel>
-                        <div className="flex flex-col space-y-0.5">
-                          <p className="text-sm font-semibold truncate">{user.full_name || "Creator"}</p>
-                          <p className="text-[11px] text-muted-foreground font-normal truncate">{user.email}</p>
-                        </div>
-                      </DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem asChild>
-                        <Link href="/dashboard" className="cursor-pointer flex items-center gap-2">
-                          <LayoutDashboard className="h-4 w-4" />
-                          Dashboard
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <Link href="/dashboard/settings" className="cursor-pointer flex items-center gap-2">
-                          <Settings className="h-4 w-4" />
-                          Settings
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        className="text-red-600 focus:text-red-600 cursor-pointer flex items-center gap-2"
-                        onSelect={async () => {
-                          await signOut();
-                          window.location.href = "/";
-                        }}
-                      >
-                        <LogOut className="h-4 w-4" />
-                        Sign out
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </>
-              ) : (
-                <div className="flex items-center">
-                  <Link
-                    href="/cart"
-                    className={cn(
-                      "relative p-2 rounded-xl hover:text-[var(--color-accent)] hover:bg-[var(--color-surface-secondary)] transition-colors",
-                      isScrolled
-                        ? "text-[var(--color-text-primary)]/80"
-                        : "text-[var(--color-text-secondary)]",
-                    )}
-                  >
-                    <ShoppingCart className="h-[22px] w-[22px]" />
-                  </Link>
-                  <Link
-                    href="/login"
-                    className="flex items-center gap-2 px-2 py-1.5 rounded-xl hover:bg-[var(--color-surface-secondary)] transition-colors"
-                  >
-                    <div
-                      className={cn(
-                        "h-8 w-8 rounded-full bg-[var(--color-surface-secondary)] border border-[var(--color-border)] flex items-center justify-center",
-                        isScrolled ? "text-[var(--color-text-primary)]/85" : "text-[var(--color-text-secondary)]",
-                      )}
-                    >
-                      <User className="h-4 w-4" />
+             {user ? (
+                <DropdownMenu modal={false}>
+                  <DropdownMenuTrigger asChild>
+                    <button className="flex items-center gap-2.5 p-1 xl:pr-3.5 rounded-full bg-zinc-50 border border-zinc-100 hover:bg-white hover:shadow-xl hover:border-zinc-200 transition-all active:scale-95 group shrink-0">
+                       <Avatar className="h-10 w-10 ring-2 ring-white shadow-sm flex-shrink-0">
+                          <AvatarImage src={user.avatar_url ?? undefined} />
+                          <AvatarFallback className="bg-gradient-to-br from-[#f97316] to-[#ea580c] text-white font-black text-[12px] uppercase">{user.full_name?.[0]}</AvatarFallback>
+                       </Avatar>
+                       <span className="hidden xl:block text-[13px] font-black text-zinc-900 truncate max-w-[140px]">{user.full_name?.split(" ")[0]}</span>
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-64 rounded-[32px] p-3 shadow-2xl border-white/20 bg-white/95 mt-4">
+                    <div className="p-4 bg-zinc-50 rounded-[24px] mb-2">
+                       <p className="text-[15px] font-black text-zinc-900 leading-tight">{user.full_name}</p>
+                       <p className="text-[11px] font-medium text-zinc-500 mt-1 truncate">{user.email}</p>
                     </div>
-                    <span
-                      className={cn(
-                        "hidden sm:inline text-[12px] font-semibold",
-                        isScrolled ? "text-[var(--color-text-primary)]/90" : "text-[var(--color-text-secondary)]",
-                      )}
-                    >
-                      Sign in
-                    </span>
-                  </Link>
+                    <DropdownMenuItem asChild className="rounded-2xl py-3 font-bold text-zinc-600 focus:bg-zinc-50 focus:text-[#f97316] cursor-pointer">
+                      <Link href="/dashboard"><LayoutDashboard className="h-4 w-4 mr-3" /> Dashboard</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild className="rounded-2xl py-3 font-bold text-zinc-600 focus:bg-zinc-50 focus:text-zinc-900 cursor-pointer">
+                      <Link href="/dashboard/settings"><Settings className="h-4 w-4 mr-3" /> My Account</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator className="mx-2 bg-zinc-100/50" />
+                    <DropdownMenuItem onSelect={async () => { await signOut(); window.location.href = "/"; }} className="rounded-2xl py-3 font-bold text-red-500 focus:bg-red-50 cursor-pointer">
+                      <LogOut className="h-4 w-4 mr-3" /> Logout
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+             ) : (
+                <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+                   <Link href="/login" className="hidden sm:block px-4 py-2 text-[13px] font-black text-zinc-500 hover:text-zinc-900 transition-colors">Log In</Link>
+                   <Button asChild className="h-10 sm:h-11 rounded-full px-5 sm:px-7 text-[13px] font-black bg-zinc-900 hover:bg-black text-white shadow-xl shadow-black/10 active:scale-95 transition-all">
+                      <Link href="/register">Join Free</Link>
+                   </Button>
                 </div>
-              )}
+             )}
 
-              <Link href={marketing.primary_cta.href} className="hidden lg:block ml-1">
-                <Button
-                  size="sm"
-                  className="h-9 rounded-xl px-4 text-[13px] font-semibold bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white shadow-[var(--shadow-sm)] border-0"
-                >
-                  {marketing.primary_cta.label}
-                </Button>
-              </Link>
-
-              <button
-                type="button"
-                aria-label={mobileOpen ? "Close menu" : "Open menu"}
-                aria-expanded={mobileOpen}
-                className="lg:hidden flex items-center justify-center min-w-[44px] min-h-[44px] rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-primary)] hover:bg-[var(--color-surface-secondary)] active:scale-[0.98] transition-all shadow-[var(--shadow-sm)]"
-                onClick={() => setMobileOpen((o) => !o)}
-              >
-                {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-              </button>
-            </div>
+             <button onClick={() => setMobileOpen(true)} className="md:hidden p-2.5 rounded-full bg-zinc-50 border border-zinc-100 text-zinc-900 shadow-sm active:scale-90 transition-all shrink-0">
+                <Menu className="h-6 w-6" />
+             </button>
           </div>
         </div>
+      </motion.div>
 
-        {portalReady &&
-          createPortal(
-            <AnimatePresence>
-              {mobileOpen ? (
-                <>
-                  <motion.div
-                    key="m-backdrop"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="lg:hidden fixed inset-0 bg-ink-darker/45 backdrop-blur-[2px] z-[9998]"
-                    aria-hidden
-                    onClick={() => setMobileOpen(false)}
-                  />
-                  <motion.div
-                    key="m-drawer"
-                    initial={{ x: "100%" }}
-                    animate={{ x: 0 }}
-                    exit={{ x: "100%" }}
-                    transition={{ type: "spring", damping: 32, stiffness: 360 }}
-                    className="lg:hidden fixed inset-y-0 right-0 z-[9999] flex w-[min(100%,380px)] max-h-[100dvh] flex-col overflow-hidden border-l border-[var(--color-border)] bg-[var(--color-surface)] shadow-2xl pt-[env(safe-area-inset-top,0px)]"
-                  >
-                    <div className="flex shrink-0 items-center justify-between gap-3 border-b border-[var(--color-border)] bg-[var(--color-surface)]/95 px-4 py-3.5 backdrop-blur-md">
-                      <span className="text-[15px] font-semibold text-[var(--color-text-primary)]">Menu</span>
-                      <button
-                        type="button"
-                        aria-label="Close menu"
-                        className="p-2 rounded-lg border border-[var(--color-border)] hover:bg-[var(--color-surface-secondary)]"
-                        onClick={() => setMobileOpen(false)}
-                      >
-                        <X className="h-5 w-5" />
-                      </button>
+      {/* REFINED MOBILE INTERFACE (CONTROL CENTER STYLE) */}
+      {portalReady && createPortal(
+        <AnimatePresence>
+          {mobileOpen && (
+            <>
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setMobileOpen(false)} className="fixed inset-0 bg-black/30 backdrop-blur-md z-[9998] pointer-events-auto" />
+              <motion.div initial={{ x: "100%", opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: "100%", opacity: 0 }} transition={{ type: "spring", damping: 28, stiffness: 260 }} className="fixed inset-y-3 right-3 w-[min(100%-24px,380px)] bg-white z-[9999] shadow-2xl flex flex-col p-6 pointer-events-auto rounded-[40px] border border-white/20">
+                 {/* Mobile Header Quick Actions */}
+                 <div className="flex items-center justify-between mb-8">
+                    <div className="flex items-center gap-2">
+                       <Link href="/messages" onClick={() => setMobileOpen(false)} className="relative h-11 w-11 rounded-full bg-zinc-50 flex items-center justify-center">
+                          <MessageCircle className="h-5 w-5 text-zinc-900" />
+                          {chatCount > 0 && <span className="absolute -top-1 -right-1 h-5 w-5 bg-[#f97316] text-white text-[10px] font-black flex items-center justify-center rounded-full ring-2 ring-white">{chatCount}</span>}
+                       </Link>
+                       <Link href="/cart" onClick={() => setMobileOpen(false)} className="relative h-11 w-11 rounded-full bg-orange-50/50 flex items-center justify-center text-[#f97316]">
+                          <ShoppingCart className="h-5 w-5" />
+                          {cartCount > 0 && <span className="absolute -top-1 -right-1 h-5 w-5 bg-zinc-900 text-white text-[10px] font-black flex items-center justify-center rounded-full ring-2 ring-white">{cartCount}</span>}
+                       </Link>
                     </div>
-                    <div className="flex min-h-0 flex-1 flex-col">
-                      <div className="shrink-0 space-y-4 p-4 pb-3">
-                        <div className="flex flex-wrap gap-2">
-                          <span className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-2.5 py-1.5 text-[12px] font-medium text-[var(--color-text-secondary)]">
-                            <Globe className="h-3.5 w-3.5 text-[var(--color-accent)]" />
-                            {localeStrip}
-                          </span>
-                          <Link
-                            href="/help"
-                            onClick={() => setMobileOpen(false)}
-                            className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-border)] px-2.5 py-1.5 text-[12px] font-medium hover:bg-[var(--color-surface-secondary)]"
-                          >
-                            <HelpCircle className="h-3.5 w-3.5" />
-                            Help
-                          </Link>
-                        </div>
-
-                        <NavbarSearch
-                          searchQ={searchQ}
-                          setSearchQ={setSearchQ}
-                          placeholder={marketing.search_placeholder}
-                          isScrolled
-                          variant="mobile"
-                          onNavigate={() => setMobileOpen(false)}
-                          runSearch={runSearch}
-                          navLinks={navLinks}
-                          primaryCta={marketing.primary_cta}
-                        />
-                      </div>
-
-                      <div className="mx-4 h-px shrink-0 bg-[var(--color-border)]" />
-
-                      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain px-4 pb-24 pt-3">
-                        <div className="space-y-1">
-                        {navLinks.map((item) => {
-                          const Icon = iconForNavHref(item.href);
-                          const active = linkIsActive(pathname, item.href);
-                          return (
-                            <Link
-                              key={`mob-${item.href}-${item.label}`}
-                              href={item.href}
-                              onClick={() => setMobileOpen(false)}
-                              className={cn(
-                                "flex items-center gap-3 py-3 px-3 rounded-xl text-[15px] font-semibold transition-colors",
-                                active
-                                  ? "bg-[var(--color-accent-light)] text-[var(--color-accent)]"
-                                  : "text-[var(--color-text-primary)] hover:bg-[var(--color-surface-secondary)]",
-                              )}
-                            >
-                              <span
-                                className={cn(
-                                  "flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-secondary)]",
-                                  active && "border-[var(--color-accent)]/30 bg-white",
-                                )}
-                              >
-                                <Icon className="h-[18px] w-[18px]" />
-                              </span>
-                              {item.label}
-                            </Link>
-                          );
-                        })}
-                        </div>
-
-                      <Link
-                        href={marketing.primary_cta.href}
-                        onClick={() => setMobileOpen(false)}
-                        className="flex items-center justify-between gap-3 py-3.5 px-4 rounded-xl bg-[var(--color-accent)] text-white font-semibold shadow-[var(--shadow-md)] active:scale-[0.99] transition-transform"
-                      >
-                        <span>{marketing.primary_cta.label}</span>
-                        <Plus className="h-5 w-5 opacity-90" />
-                      </Link>
-
-                      {!user ? (
-                        <div className="grid grid-cols-2 gap-2 pt-2">
-                          <Link
-                            href="/login"
-                            className="py-3.5 text-center rounded-xl border border-[var(--color-border)] font-semibold text-sm hover:bg-[var(--color-surface-secondary)]"
-                            onClick={() => setMobileOpen(false)}
-                          >
-                            Log in
-                          </Link>
-                          <Link
-                            href="/register"
-                            className="py-3.5 text-center rounded-xl bg-[var(--color-text-primary)] text-white font-semibold text-sm hover:opacity-90"
-                            onClick={() => setMobileOpen(false)}
-                          >
-                            Join
-                          </Link>
-                        </div>
-                      ) : null}
-                      </div>
+                    <button onClick={() => setMobileOpen(false)} className="h-11 w-11 rounded-full bg-zinc-900 text-white flex items-center justify-center shadow-lg active:scale-90 transition-transform">
+                       <X className="h-5 w-5" />
+                    </button>
+                 </div>
+                 
+                 <div className="space-y-6 flex-1 overflow-y-auto no-scrollbar pb-6">
+                    <div>
+                       <h4 className="text-[10px] font-black text-zinc-300 uppercase tracking-widest pl-4 mb-4">Marketplace Engine</h4>
+                       <div className="grid grid-cols-1 gap-2">
+                          {solutions.map(s => (
+                             <Link key={s.href} href={s.href} onClick={() => setMobileOpen(false)} className="flex items-center justify-between p-5 rounded-[24px] bg-zinc-50 border border-transparent hover:border-zinc-100 transition-all group">
+                                <div className="flex items-center gap-4">
+                                   <div className={cn("h-10 w-10 rounded-xl bg-white shadow-sm flex items-center justify-center", s.color)}><s.icon className="h-5 w-5" /></div>
+                                   <div className="min-w-0">
+                                      <p className="text-[16px] font-black text-zinc-900">{s.title}</p>
+                                      <p className="text-[10px] font-bold text-zinc-400 -mt-0.5">{s.desc}</p>
+                                   </div>
+                                </div>
+                                <Plus className="h-4 w-4 text-zinc-300 opacity-0 group-hover:opacity-100 transition-opacity" />
+                             </Link>
+                          ))}
+                       </div>
                     </div>
-                  </motion.div>
-                </>
-              ) : null}
-            </AnimatePresence>,
-            document.body,
+
+                    <div>
+                       <h4 className="text-[10px] font-black text-zinc-300 uppercase tracking-widest pl-4 mb-4">Other Services</h4>
+                       <div className="flex flex-col gap-1">
+                          {navLinks.map((item) => {
+                             const Icon = iconForNavHref(item.href);
+                             const active = linkIsActive(pathname, item.href);
+                             if (solutions.some(s => s.href === item.href)) return null;
+                             return (
+                                <Link key={item.href} href={item.href} onClick={() => setMobileOpen(false)}
+                                  className={cn("flex items-center justify-between px-6 py-4 rounded-[20px] text-[15px] font-black transition-all",
+                                     active ? "text-[#f97316]" : "text-zinc-600 hover:text-zinc-900 hover:bg-zinc-50"
+                                  )}>
+                                   <div className="flex items-center gap-4"><Icon className="h-5 w-5 opacity-30" /> {item.label}</div>
+                                </Link>
+                             )
+                          })}
+                       </div>
+                    </div>
+                 </div>
+
+                 <div className="pt-6 border-t border-zinc-100 mt-auto">
+                    {user ? (
+                       <Button asChild className="w-full h-15 rounded-[28px] font-black bg-zinc-900 text-white text-[17px] shadow-xl">
+                          <Link href="/dashboard" onClick={() => setMobileOpen(false)}>My Dashboard</Link>
+                       </Button>
+                    ) : (
+                       <div className="grid grid-cols-2 gap-3">
+                          <Button asChild variant="outline" className="h-14 rounded-[24px] border-zinc-100 font-black text-zinc-500">
+                             <Link href="/login" onClick={() => setMobileOpen(false)}>Log In</Link>
+                          </Button>
+                          <Button asChild className="h-14 rounded-[24px] font-black bg-[#f97316] hover:bg-[#ea580c] shadow-xl shadow-orange-500/20 text-white">
+                             <Link href="/register" onClick={() => setMobileOpen(false)}>Join Free</Link>
+                          </Button>
+                       </div>
+                    )}
+                 </div>
+              </motion.div>
+            </>
           )}
-      </nav>
+        </AnimatePresence>,
+        document.body
+      )}
     </header>
   );
 }

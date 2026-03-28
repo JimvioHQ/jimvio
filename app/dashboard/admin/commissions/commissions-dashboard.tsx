@@ -15,6 +15,7 @@ import { CommissionStats, type StatCard } from "@/components/admin/CommissionSta
 import { CommissionTable, type CommissionRow } from "@/components/admin/CommissionTable";
 import { Button } from "@/components/ui/button";
 import { Wallet, ShoppingBag, BarChart3, TrendingUp } from "lucide-react";
+import { useCurrency } from "@/context/CurrencyContext";
 
 type Row = CommissionRow;
 
@@ -27,6 +28,7 @@ export function CommissionsDashboard({
   walletBalance: number | null;
   walletTotal: number | null;
 }) {
+  const { formatMoney } = useCurrency();
   const [range, setRange] = useState<"7" | "30" | "90">("30");
 
   const filteredByRange = useMemo(() => {
@@ -49,15 +51,15 @@ export function CommissionsDashboard({
     return [
       {
         title: "Total earned (period)",
-        value: `USD ${total.toFixed(2)}`,
-        sub: walletBalance != null ? `Wallet available: USD ${walletBalance.toFixed(2)}` : undefined,
+        value: formatMoney(total, "USD"),
+        sub: walletBalance != null ? `Wallet available: ${formatMoney(walletBalance, "USD")}` : undefined,
         changePct: change,
         icon: <Wallet className="h-5 w-5" />,
       },
       {
         title: "This month",
-        value: `USD ${total.toFixed(2)}`,
-        sub: walletTotal != null ? `All-time wallet: USD ${walletTotal.toFixed(2)}` : undefined,
+        value: formatMoney(total, "USD"),
+        sub: walletTotal != null ? `All-time wallet: ${formatMoney(walletTotal, "USD")}` : undefined,
         icon: <TrendingUp className="h-5 w-5" />,
       },
       {
@@ -70,12 +72,12 @@ export function CommissionsDashboard({
         title: "Avg commission",
         value:
           filteredByRange.length > 0
-            ? `USD ${(total / filteredByRange.length).toFixed(2)}`
+            ? formatMoney(total / filteredByRange.length, "USD")
             : "—",
         icon: <BarChart3 className="h-5 w-5" />,
       },
     ];
-  }, [filteredByRange, initialRows, range, walletBalance, walletTotal]);
+  }, [filteredByRange, initialRows, range, walletBalance, walletTotal, formatMoney]);
 
   const chartData = useMemo(() => {
     const map = new Map<string, { date: string; pesapal: number; nowpayments: number; shopify: number }>();

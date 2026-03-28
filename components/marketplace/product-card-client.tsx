@@ -1,13 +1,19 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { Package, MessageCircle, ShoppingCart, ShieldCheck, Heart } from "lucide-react";
-import { formatDisplayMoney, cn } from "@/lib/utils";
+import Image from "next/image";
+import {
+  Package, MessageCircle, ShoppingCart, ShieldCheck,
+  Heart, Star, Zap, Tag, TrendingUp, Trash2, CheckCircle2,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { addToCart } from "@/lib/actions/marketplace";
+import { addToCart, checkProductInCart, removeProductFromCart } from "@/lib/actions/marketplace";
 import { ProductQuickPopup } from "@/components/influencer/product-quick-popup";
+import { LocalizedPrice } from "@/components/currency/localized-price";
 import { toast } from "sonner";
+import { useCartStore } from "@/lib/store/use-cart-store";
 
 interface Product {
   id: string;
@@ -25,7 +31,13 @@ interface Product {
   affiliate_commission_rate?: number | null;
   sale_count?: number;
   view_count?: number;
-  vendors?: { id: string; business_name?: string; business_slug?: string; business_logo?: string; verification_status?: string } | null;
+  vendors?: {
+    id: string;
+    business_name?: string;
+    business_slug?: string;
+    business_logo?: string;
+    verification_status?: string;
+  } | null;
   product_categories?: { id: string; name: string; slug: string } | null;
   source?: string;
   currency?: string;
@@ -33,173 +45,331 @@ interface Product {
 
 export interface ProductCardClientProps {
   p: Product;
-  /** When set, show wishlist heart and call on toggle (e.g. dashboard marketplace) */
   inWishlist?: boolean;
   onToggleWishlist?: (e: React.MouseEvent) => void;
-  /** Product detail URL prefix (default /marketplace) */
   detailBasePath?: string;
 }
 
-export function ProductCardClient({ p, inWishlist = false, onToggleWishlist, detailBasePath = "/marketplace" }: ProductCardClientProps) {
-  const [isLoading, setIsLoading] = useState(false);
+export function ProductCardClient({
+  p,
+  inWishlist = false,
+  onToggleWishlist,
+  detailBasePath = "/marketplace",
+}: ProductCardClientProps) {
+  const [loading, setLoading] = useState(false);
+  const [inCart, setInCart] = useState(false);
+  const [cartChecked, setCartChecked] = useState(false);
+  const [wishlistAnimating, setWishlistAnimating] = useState(false);
+  const [imageError, setImageError] = useState(false);
+  const { refreshCounts } = useCartStore();
   const [quickViewOpen, setQuickViewOpen] = useState(false);
+
   const images = p.images ?? [];
   const imgSrc = images[0] ?? null;
   const price = Number(p.price ?? 0);
-  const moq = p.inventory_quantity ?? 1;
-  const isShopify = p.source === "shopify";
+  const compareAt = Number(p.compare_at_price ?? 0);
+  const discount = compareAt > price && compareAt > 0
+    ? Math.round(((compareAt - price) / compareAt) * 100)
+    : 0;
+  const isDigital = p.is_digital;
+  const isVerified = p.vendors?.verification_status === "verified";
   const showWishlist = !!onToggleWishlist;
-  const storeUrl = p.vendors?.business_slug ? `/vendors/${p.vendors.business_slug}` : `/marketplace?vendor=${p.vendors?.id ?? ""}`;
-  const isVerified = p.vendors?.verification_status === "verified" || !p.vendors?.verification_status;
-  const displayPrice = formatDisplayMoney(price, p.currency ?? "USD");
+  const storeUrl = p.vendors?.business_slug
+    ? `/vendors/${p.vendors.business_slug}`
+    : `/marketplace?vendor=${p.vendors?.id ?? ""}`;
+  const stars = Math.round(Number(p.rating ?? 0));
+  const commissionRate = p.affiliate_commission_rate;
 
-  const handleAddToCart = async (e: React.MouseEvent) => {
+  // Check if product is already in cart on mount
+  useEffect(() => {
+    let cancelled = false;
+    checkProductInCart(p.id).then((res) => {
+      if (!cancelled) {
+        setInCart(res.inCart);
+        setCartChecked(true);
+      }
+    });
+    return () => { cancelled = true; };
+  }, [p.id]);
+
+  const handleCartToggle = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (isLoading) return;
-    const vendorId = p.vendors?.id;
-    if (!vendorId) {
-      toast.error("Cannot find vendor for this product.");
-      return;
-    }
-    setIsLoading(true);
+    if (loading) return;
+    setLoading(true);
+
     try {
-      const result = await addToCart(p.id, vendorId);
-      if (result.success) {
-        window.dispatchEvent(new CustomEvent("cart-updated"));
-        toast.success(`"${p.name}" added to cart!`);
+      if (inCart) {
+        // Remove from cart
+        const result = await removeProductFromCart(p.id);
+        if (result.success) {
+          setInCart(false);
+          toast.success(`"${p.name}" removed from cart`);
+          await refreshCounts();
+        } else {
+          toast.error(result.error || "Failed to remove from cart");
+        }
       } else {
-        toast.error(result.error || "Failed to add to cart");
+        // Add to cart
+        const vendorId = p.vendors?.id;
+        if (!vendorId) { toast.error("Cannot find vendor for this product."); return; }
+        const result = await addToCart(p.id, vendorId);
+        if (result.success) {
+          setInCart(true);
+          toast.success(`"${p.name}" added to cart!`);
+          await refreshCounts();
+        } else {
+          toast.error(result.error || "Failed to add to cart");
+        }
       }
     } catch {
       toast.error("Something went wrong");
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
+  const handleWishlist = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setWishlistAnimating(true);
+    setTimeout(() => setWishlistAnimating(false), 400);
+    onToggleWishlist?.(e);
+  };
+
+  const handleChat = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!p.vendors?.id) return;
+    window.dispatchEvent(
+      new CustomEvent("openProductChat", {
+        detail: {
+          vendor: {
+            id: p.vendors.id,
+            business_name: p.vendors.business_name ?? null,
+            business_logo: p.vendors.business_logo ?? null,
+            business_slug: p.vendors.business_slug ?? null,
+          },
+          product: {
+            id: p.id, name: p.name, slug: p.slug,
+            price: Number(p.price ?? 0), images: p.images ?? null,
+          },
+          currentPath: typeof window !== "undefined" ? window.location.pathname : "/marketplace",
+        },
+      })
+    );
+  };
+
+  // Cart button label/style helpers
+  const cartLabel = inCart ? "In Cart" : "Add";
+  const CartIcon = inCart ? CheckCircle2 : ShoppingCart;
+  const cartBtnClass = inCart
+    ? "flex-1 flex items-center justify-center gap-1.5 h-10 rounded-xl bg-emerald-500 text-[12px] font-bold text-white hover:bg-red-500 hover:scale-[1.02] active:scale-95 shadow-lg shadow-emerald-500/30 transition-all disabled:opacity-60 group/cartbtn"
+    : "flex-1 flex items-center justify-center gap-1.5 h-10 rounded-xl bg-gradient-to-br from-[#f97316] to-[#ea580c] text-[12px] font-bold text-white hover:scale-[1.02] active:scale-95 shadow-lg shadow-[#f97316]/30 transition-all disabled:opacity-60";
+
+  // Mobile button
+  const mobileBtnClass = inCart
+    ? "sm:hidden mt-1 w-full h-9 rounded-xl text-[11px] font-black bg-emerald-500 hover:bg-red-500 text-white transition-colors"
+    : "sm:hidden mt-1 w-full h-9 rounded-xl text-[11px] font-black bg-[var(--color-accent)] text-white";
+
   return (
     <>
-      <div className="group bg-white border border-[#e8e8e8] rounded-lg flex flex-col h-full overflow-hidden hover:border-[#f97316]/40 hover:shadow-md transition-all duration-200 min-w-0">
+      <div className={cn(
+        "group relative flex flex-col h-full overflow-hidden rounded-[20px]",
+        "bg-white border border-zinc-100 shadow-sm",
+        inCart
+          ? "border-emerald-200/60 shadow-emerald-50/80 ring-1 ring-emerald-200/40"
+          : "hover:border-[#f97316]/30 hover:shadow-2xl hover:shadow-[#f97316]/10",
+        "transition-all duration-500 ease-out"
+      )}>
+
+        {/* ── Image area ── */}
         <Link
           href={`${detailBasePath}/${p.slug}`}
-          className="relative aspect-[4/3] bg-[#fafafa] flex items-center justify-center p-3 sm:p-6 overflow-hidden border-b border-[#f0f0f0]"
+          className="relative block w-full aspect-square overflow-hidden bg-zinc-50 flex-shrink-0"
         >
-          {imgSrc ? (
-            <img
+          {imgSrc && !imageError ? (
+            <Image
               src={imgSrc}
               alt={p.name}
-              loading="lazy"
-              decoding="async"
-              className="max-w-full max-h-full object-contain group-hover:scale-105 transition-transform duration-300"
+              fill
+              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+              className="object-cover group-hover:scale-[1.06] transition-transform duration-500 ease-out"
+              priority={false}
+              onError={() => setImageError(true)}
             />
           ) : (
-            <div className="w-20 h-20 rounded-lg bg-[#f0f0f0] flex items-center justify-center">
-              <Package className="h-10 w-10 text-[#d1d5db]" />
+            <div className="absolute inset-0 flex items-center justify-center bg-zinc-50 border-b border-zinc-100">
+              <span className="text-4xl font-black text-zinc-200 uppercase tracking-tighter transition-transform duration-500 group-hover:scale-110">
+                {p.name.charAt(0)}
+              </span>
             </div>
           )}
-          {isVerified && (
-            <span className="absolute top-1.5 left-1.5 sm:top-2 sm:left-2 inline-flex items-center gap-0.5 sm:gap-1 px-1.5 py-0.5 sm:px-2 rounded bg-white/95 border border-[#e5e7eb] text-[8px] sm:text-[10px] font-semibold text-emerald-700 shadow-sm max-w-[calc(100%-0.5rem)]">
-              <ShieldCheck className="h-2.5 w-2.5 sm:h-3 sm:w-3 shrink-0" /> <span className="truncate">Verified</span>
-            </span>
-          )}
-          {isShopify && (
-            <span className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 inline-flex items-center gap-0.5 px-1.5 py-0.5 sm:px-2 rounded bg-white/95 border border-[#e5e7eb] text-[8px] sm:text-[10px] font-semibold text-text-primary shadow-sm">
-              <span className="text-[#f97316] font-black">Shopify</span>
-            </span>
-          )}
+
+          {/* Gradient overlay on hover */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-10" />
+
+          {/* TOP LEFT badges */}
+          <div className="absolute top-3 left-3 flex flex-col gap-2 z-20">
+            {/* In-cart badge */}
+            {inCart && cartChecked && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/95 backdrop-blur-md px-2.5 py-1 text-[10px] font-black text-white shadow-lg">
+                <CheckCircle2 className="h-3 w-3" /> In Cart
+              </span>
+            )}
+            {discount > 0 && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-red-500/90 backdrop-blur-md px-2.5 py-1 text-[10px] font-black text-white shadow-lg">
+                <Tag className="h-3 w-3" /> -{discount}%
+              </span>
+            )}
+            {isDigital && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-violet-600/90 backdrop-blur-md px-2.5 py-1 text-[10px] font-black text-white shadow-lg">
+                <Zap className="h-3 w-3" /> Digital
+              </span>
+            )}
+          </div>
+
+          {/* TOP RIGHT: wishlist */}
           {showWishlist && (
             <button
               type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onToggleWishlist(e);
-              }}
+              onClick={handleWishlist}
               className={cn(
-                "absolute top-1.5 right-1.5 sm:top-2 sm:right-2 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white/95 border border-[#e5e7eb] shadow-sm flex items-center justify-center transition-colors hover:bg-white",
-                inWishlist && "text-red-500 fill-red-500 border-red-200",
-                isShopify && "top-9 sm:top-10"
+                "absolute top-2.5 right-2.5 z-10",
+                "h-8 w-8 rounded-full flex items-center justify-center",
+                "bg-white/90 backdrop-blur-sm border border-white/60 shadow-md",
+                "hover:scale-110 active:scale-95 transition-transform duration-150",
+                inWishlist && "bg-red-50/90 border-red-200/80"
               )}
               title={inWishlist ? "Remove from saved" : "Save product"}
             >
-              <Heart className={cn("h-3.5 w-3.5 sm:h-4 sm:w-4", inWishlist && "fill-current")} />
+              <Heart
+                className={cn(
+                  "h-3.5 w-3.5 transition-all duration-300",
+                  wishlistAnimating && "scale-125",
+                  inWishlist ? "fill-red-500 text-red-500" : "text-gray-500"
+                )}
+              />
             </button>
           )}
+
+          {/* Hover action row */}
+          <div className="absolute bottom-3 left-3 right-3 translate-y-[150%] group-hover:translate-y-0 transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] flex gap-2 z-20">
+            <button
+              type="button"
+              onClick={handleChat}
+              className="flex-1 flex items-center justify-center gap-1.5 h-10 rounded-xl bg-white/95 backdrop-blur-md text-[12px] font-bold text-zinc-800 hover:bg-white border border-white/60 shadow-xl transition-all active:scale-95"
+            >
+              <MessageCircle className="h-4 w-4" /> Chat
+            </button>
+            <button
+              type="button"
+              onClick={handleCartToggle}
+              disabled={loading}
+              title={inCart ? "Click to remove from cart" : "Add to cart"}
+              className={cartBtnClass}
+            >
+              {loading ? (
+                <span className="h-4 w-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+              ) : inCart ? (
+                <>
+                  {/* Default "In Cart" state — hover shows "Remove" */}
+                  <CheckCircle2 className="h-4 w-4 group-hover/cartbtn:hidden" />
+                  <span className="group-hover/cartbtn:hidden">In Cart</span>
+                  <Trash2 className="h-4 w-4 hidden group-hover/cartbtn:block" />
+                  <span className="hidden group-hover/cartbtn:block">Remove</span>
+                </>
+              ) : (
+                <><ShoppingCart className="h-4 w-4" /> Add</>
+              )}
+            </button>
+          </div>
         </Link>
 
-        <div className="p-3 sm:p-4 flex-1 flex flex-col min-h-0">
-          <Link href={`${detailBasePath}/${p.slug}`}>
-            <h3 className="text-[12px] sm:text-[13px] text-text-primary line-clamp-2 leading-snug mb-1.5 sm:mb-2 group-hover:text-[#f97316] transition-colors">
+        {/* ── Info area ── */}
+        <div className="flex flex-col flex-1 p-3 sm:p-3.5 gap-1.5">
+
+          {/* Vendor + verified */}
+          <div className="flex items-center gap-1 min-w-0">
+            <Link
+              href={storeUrl}
+              onClick={(e) => e.stopPropagation()}
+              className="text-[10px] font-bold text-[var(--color-text-muted)] hover:text-[var(--color-accent)] truncate flex-1 transition-colors"
+            >
+              {p.vendors?.business_name || "Jimvio Store"}
+            </Link>
+            {isVerified && (
+              <span title="Verified seller">
+                <ShieldCheck className="h-3 w-3 text-emerald-500 shrink-0" />
+              </span>
+            )}
+          </div>
+
+          {/* Product name */}
+          <Link href={`${detailBasePath}/${p.slug}`} className="min-w-0">
+            <h3 className="text-[12.5px] sm:text-[13px] font-bold text-[var(--color-text-primary)] line-clamp-2 leading-snug group-hover:text-[var(--color-accent)] transition-colors">
               {p.name}
             </h3>
           </Link>
 
-          {p.product_categories?.name ? (
-            <p className="text-[9px] sm:text-[10px] text-[#888] line-clamp-1 mb-1">{p.product_categories.name}</p>
-          ) : null}
+          {/* Stars */}
+          {stars > 0 && (
+            <div className="flex items-center gap-1">
+              <div className="flex items-center gap-0.5">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Star
+                    key={i}
+                    className={cn(
+                      "h-2.5 w-2.5",
+                      i < stars ? "fill-amber-400 text-amber-400" : "text-gray-200 fill-gray-200"
+                    )}
+                  />
+                ))}
+              </div>
+              {p.review_count ? (
+                <span className="text-[9px] text-[var(--color-text-muted)] font-medium">({p.review_count})</span>
+              ) : null}
+            </div>
+          )}
 
-          <Link
-            href={storeUrl}
-            onClick={(e) => e.stopPropagation()}
-            className="text-[10px] sm:text-[11px] text-[#666] hover:text-[#f97316] mb-1.5 sm:mb-2 truncate"
-          >
-            {p.vendors?.business_name || (isShopify ? "Shopify store" : "Supplier")}
-          </Link>
-
-          <div className="mt-auto pt-2 sm:pt-3 border-t border-[#f0f0f0] space-y-2 sm:space-y-3">
-            <div className="flex items-baseline justify-between gap-1 sm:gap-2 min-w-0">
-              <span className="text-sm sm:text-lg font-bold text-[#f97316] truncate tabular-nums">{displayPrice}</span>
-              <span className="text-[9px] sm:text-[10px] text-[#999] shrink-0">MOQ: {moq}</span>
+          {/* Price row */}
+          <div className="mt-auto pt-2 flex items-end justify-between gap-2 border-t border-[var(--color-border)]/60">
+            <div className="min-w-0">
+              <LocalizedPrice
+                amount={price}
+                currency={p.currency}
+                className="text-sm sm:text-[15px] font-black text-[var(--color-accent)] tabular-nums"
+              />
+              {discount > 0 && (
+                <p className="text-[10px] text-[var(--color-text-muted)] line-through tabular-nums">
+                  <LocalizedPrice amount={compareAt} currency={p.currency} className="inline" />
+                </p>
+              )}
             </div>
 
-            <div className="flex gap-1.5 sm:gap-2">
-              <>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="flex-1 h-8 sm:h-9 rounded border-[#e0e0e0] text-[#333] hover:bg-[#fafafa] hover:border-[#f97316] hover:text-[#f97316]"
-                  title="Chat with supplier"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    if (!p.vendors?.id) return;
-                    window.dispatchEvent(
-                      new CustomEvent("openProductChat", {
-                        detail: {
-                          vendor: {
-                            id: p.vendors.id,
-                            business_name: p.vendors.business_name ?? null,
-                            business_logo: p.vendors.business_logo ?? null,
-                            business_slug: p.vendors.business_slug ?? null,
-                          },
-                          product: {
-                            id: p.id,
-                            name: p.name,
-                            slug: p.slug,
-                            price: Number(p.price ?? 0),
-                            images: p.images ?? null,
-                          },
-                          currentPath: typeof window !== "undefined" ? window.location.pathname : "/marketplace",
-                        },
-                      })
-                    );
-                  }}
-                >
-                  <MessageCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                </Button>
-                <Button
-                  size="icon"
-                  onClick={handleAddToCart}
-                  loading={isLoading}
-                  className="flex-1 h-8 sm:h-9 rounded bg-[#f97316] hover:bg-[#ea580c] text-white"
-                  title="Add to order"
-                >
-                  <ShoppingCart className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                </Button>
-              </>
-            </div>
+            {/* Affiliate badge */}
+            {p.affiliate_enabled && commissionRate && (
+              <span className="shrink-0 inline-flex items-center gap-0.5 rounded-lg bg-[var(--color-accent-light)] text-[var(--color-accent)] px-1.5 py-0.5 text-[9px] font-black">
+                <TrendingUp className="h-2.5 w-2.5" />{commissionRate}%
+              </span>
+            )}
           </div>
+
+          {/* Mobile add/remove button */}
+          <Button
+            size="sm"
+            onClick={handleCartToggle}
+            disabled={loading}
+            className={mobileBtnClass}
+          >
+            {loading ? (
+              <span className="h-3.5 w-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+            ) : inCart ? (
+              <><Trash2 className="h-3 w-3" /> Remove from Cart</>
+            ) : (
+              <><ShoppingCart className="h-3 w-3" /> Add to Cart</>
+            )}
+          </Button>
         </div>
       </div>
 
@@ -208,12 +378,15 @@ export function ProductCardClient({ p, inWishlist = false, onToggleWishlist, det
           name: p.name,
           slug: p.slug,
           price: p.price,
+          currency: p.currency,
           images: p.images ?? null,
           rating: p.rating ?? null,
           inventory_quantity: undefined,
         }}
         vendor={
-          p.vendors ? { id: p.vendors.id, business_name: p.vendors.business_name ?? "", business_slug: p.vendors.business_slug } : null
+          p.vendors
+            ? { id: p.vendors.id, business_name: p.vendors.business_name ?? "", business_slug: p.vendors.business_slug }
+            : null
         }
         open={quickViewOpen}
         onClose={() => setQuickViewOpen(false)}

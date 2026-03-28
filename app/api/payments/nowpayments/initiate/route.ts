@@ -18,14 +18,17 @@ const supabase = createClient(
 
 export async function POST(req: NextRequest) {
   try {
-    const { orderId, payCurrency = 'USDT' } = await req.json()
+    const { orderId, orderIds: rawOrderIds, payCurrency = 'USDT' } = await req.json()
+    const orderIds: string[] = Array.isArray(rawOrderIds) ? rawOrderIds : [orderId].filter(Boolean)
 
-    if (!orderId) {
-      return NextResponse.json({ error: 'Missing orderId' }, { status: 400 })
+    if (orderIds.length === 0) {
+      return NextResponse.json({ error: 'Missing orderId or orderIds' }, { status: 400 })
     }
 
-    // Fetch order + buyer email
-    const { data: order, error } = await supabase
+    const primaryOrderId = orderIds[0]
+
+    // Fetch all orders + buyer email
+    const { data: orders, error } = await supabase
       .from('orders')
       .select(`
         id,
@@ -40,27 +43,31 @@ export async function POST(req: NextRequest) {
           quantity
         )
       `)
-      .eq('id', orderId)
-      .single()
+      .in('id', orderIds)
 
-    if (error || !order) {
-      return NextResponse.json({ error: 'Order not found' }, { status: 404 })
+    if (error || !orders || orders.length === 0) {
+      return NextResponse.json({ error: 'Orders not found' }, { status: 404 })
     }
+
+    const order = orders.find(o => o.id === primaryOrderId) || orders[0]
 
     type BuyerProfile = { email: string | null }
     const rawProfiles = order.profiles as BuyerProfile | BuyerProfile[] | null
     const buyerProfile = Array.isArray(rawProfiles) ? rawProfiles[0] : rawProfiles
 
+    const totalAmount = orders.reduce((sum, o) => sum + Number(o.total_amount || 0), 0)
     const { amount, currency } = orderTotalsForUsdGateway(
-      Number(order.total_amount),
+      totalAmount,
       order.currency
     )
 
-    const lineItems = (order.order_items as { product_name: string | null; quantity: number | null }[] | null) ?? []
-    const description = buildNowPaymentsOrderDescription(order.order_number, lineItems)
+    const lineItems = orders.flatMap(o => (o.order_items as any[] || []))
+    const description = orders.length === 1 
+      ? buildNowPaymentsOrderDescription(order.order_number, lineItems)
+      : `Jimvio Bundle (${orders.length} vendors)`
 
     const result = await createNowPaymentsInvoice({
-      jimvioOrderId: orderId,
+      jimvioOrderId: primaryOrderId,
       amount,
       currency,
       payCurrency,
@@ -68,14 +75,17 @@ export async function POST(req: NextRequest) {
       buyerEmail:    buyerProfile?.email || '',
     })
 
-    // Save payment provider to order
+    // Save payment provider and batch to all orders
+    const batchId = crypto.randomUUID()
     await supabase
       .from('orders')
       .update({
+        payment_batch_id: batchId,
         payment_provider: 'nowpayments',
+        gateway_used:     'nowpayments',
         updated_at:       new Date().toISOString(),
       })
-      .eq('id', orderId)
+      .in('id', orderIds)
 
     return NextResponse.json({ invoiceUrl: result.invoiceUrl })
 

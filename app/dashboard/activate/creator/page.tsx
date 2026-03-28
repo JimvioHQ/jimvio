@@ -7,10 +7,12 @@ import { Video, ArrowLeft, CheckCircle, User, Share2, FileCheck } from "lucide-r
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
+import { useUserStore } from "@/lib/store/use-user-store";
 import { cn } from "@/lib/utils";
 
 export default function ActivateCreatorPage() {
   const router = useRouter();
+  const { fetchRoles } = useUserStore();
   const [loading, setLoading] = useState(true);
   const [activating, setActivating] = useState(false);
   const [influencer, setInfluencer] = useState<{ id: string } | null>(null);
@@ -69,13 +71,20 @@ export default function ActivateCreatorPage() {
         { user_id: user.id, role: "influencer", is_active: true },
         { onConflict: "user_id,role" }
       );
+      await fetchRoles();
       router.refresh();
       router.push("/dashboard/influencer");
     }
     setActivating(false);
   }
 
-  if (loading) {
+  useEffect(() => {
+    if (!loading && influencer) {
+      router.replace("/dashboard/influencer");
+    }
+  }, [loading, influencer, router]);
+
+  if (loading || influencer) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center bg-gradient-to-b from-[var(--color-surface-secondary)] to-[var(--color-bg)]">
         <div className="flex flex-col items-center gap-3">
@@ -86,11 +95,6 @@ export default function ActivateCreatorPage() {
         </div>
       </div>
     );
-  }
-
-  if (influencer) {
-    router.replace("/dashboard/influencer");
-    return null;
   }
 
   const canActivate = agreedToGuidelines;

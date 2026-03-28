@@ -1,149 +1,182 @@
 "use client";
 
-import React, { useState } from "react";
-import Link from "next/link";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Zap, ChevronDown, Camera, Sparkles } from "lucide-react";
+import { Search, Zap, Loader2, Package, Store, LayoutGrid, Clock, ArrowUpRight } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { cn } from "@/lib/utils";
 
-export type HeroSearchCategory = { label: string; slug: string };
-
-interface HeroSearchProps {
-  categories: HeroSearchCategory[];
-}
-
-export function HeroSearch({ categories }: HeroSearchProps) {
+export function HeroSearch() {
   const router = useRouter();
   const [q, setQ] = useState("");
-  const [cat, setCat] = useState("");
-  const [isCategoryOpen, setIsCategoryOpen] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [results, setResults] = useState<{ products: any[], vendors: any[], categories: any[] }>({ products: [], vendors: [], categories: [] });
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  const searchUrl = (params: { q?: string; cat?: string; ai?: string }) => {
+  useEffect(() => {
+    if (q.length < 2) {
+      setResults({ products: [], vendors: [], categories: [] });
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    const id = setTimeout(() => {
+      fetch(`/api/search/suggestions?q=${encodeURIComponent(q)}`)
+        .then(r => r.json())
+        .then(d => setResults(d))
+        .finally(() => setLoading(false));
+    }, 300);
+    return () => clearTimeout(id);
+  }, [q]);
+
+  useEffect(() => {
+    const onDoc = (e: MouseEvent) => {
+      if (!containerRef.current?.contains(e.target as Node)) setIsFocused(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, []);
+
+  const handleSearch = (term = q) => {
     const sp = new URLSearchParams();
-    if (params.q?.trim()) sp.set("q", params.q.trim());
-    if (params.cat) sp.set("cat", params.cat);
-    if (params.ai === "1") sp.set("sort", "trending");
-    return `/marketplace${sp.toString() ? `?${sp.toString()}` : ""}`;
-  };
-
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>, useAi: boolean) => {
-    e.preventDefault();
-    router.push(searchUrl({ q, cat: cat || undefined, ai: useAi ? "1" : undefined }));
+    if (term.trim()) sp.set("q", term.trim());
+    router.push(`/marketplace${sp.toString() ? `?${sp.toString()}` : ""}`);
   };
 
   return (
-    <div className="w-full max-w-[720px] space-y-4">
-      {/* Main search — hero command bar */}
-      <form
-        className="group/search overflow-hidden rounded-[1.25rem] border border-white/55 bg-white/50 shadow-[0_8px_40px_-16px_rgba(43,34,72,0.18),inset_0_1px_0_rgba(255,255,255,0.65)] ring-1 ring-white/40 backdrop-blur-xl transition-all duration-300 hover:border-[#f97316]/40 focus-within:border-[#f97316]/55 focus-within:shadow-[0_12px_48px_-12px_rgba(249,115,22,0.2),inset_0_1px_0_rgba(255,255,255,0.75)] focus-within:ring-[#f97316]/25"
-        onSubmit={(e) => handleSubmit(e, false)}
+    <div ref={containerRef} className="w-full max-w-[800px] z-[100] relative group/hero">
+      <motion.form
+        animate={{ 
+           scale: isFocused ? 1.02 : 1,
+           y: isFocused ? -5 : 0
+        }}
+        className={cn(
+          "relative flex items-center h-16 sm:h-20 rounded-[2.5rem] transition-all duration-500 overflow-hidden",
+          isFocused 
+            ? "bg-white border-2 border-[#f97316] shadow-[0_32px_80px_rgba(249,115,22,0.25)]" 
+            : "bg-white/40 backdrop-blur-3xl border border-white/60 shadow-[0_20px_50px_rgba(0,0,0,0.1)] hover:bg-white/60 hover:border-white/80"
+        )}
+        onSubmit={(e) => { e.preventDefault(); handleSearch(); }}
       >
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center min-h-[56px] sm:min-h-[64px]">
-          {/* Category dropdown */}
-          <div className="relative shrink-0 border-b sm:border-b-0 sm:border-r border-[#ebe8f2] bg-gradient-to-b from-[#faf9fc] to-[#f5f3fa] sm:min-h-[64px] flex items-center">
-            <button
-              type="button"
-              onClick={() => setIsCategoryOpen((o) => !o)}
-              className="flex items-center justify-between gap-2 px-5 py-4 sm:py-0 sm:min-h-[64px] text-left w-full sm:w-[180px] text-[14px] font-bold text-text-primary hover:bg-[#f5f5f5] transition-colors"
-            >
-              <span className="truncate">{cat ? categories.find((c) => c.slug === cat)?.label ?? "Category" : "All categories"}</span>
-              <ChevronDown className={`h-5 w-5 shrink-0 text-[#9ca3af] transition-transform ${isCategoryOpen ? "rotate-180" : ""}`} />
-            </button>
-            {isCategoryOpen && (
-              <>
-                <div className="absolute left-0 sm:w-[240px] right-0 sm:right-auto top-full z-20 mt-1 bg-white border border-[#ebe8f2] rounded-xl shadow-xl py-2 max-h-[300px] overflow-y-auto">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCat("");
-                      setIsCategoryOpen(false);
-                    }}
-                    className="w-full px-5 py-3 text-left text-[14px] font-semibold text-text-primary hover:bg-[#fff7ed]"
-                  >
-                    All categories
-                  </button>
-                  {categories.slice(0, 14).map((c) => (
-                    <button
-                      key={c.slug}
-                      type="button"
-                      onClick={() => {
-                        setCat(c.slug);
-                        setIsCategoryOpen(false);
-                      }}
-                      className={`w-full px-5 py-3 text-left text-[14px] hover:bg-[#fff7ed] ${cat === c.slug ? "font-bold text-[#f97316] bg-[#fff7ed]/60" : "text-[#4b5563]"}`}
-                    >
-                      {c.label}
-                    </button>
-                  ))}
-                </div>
-                <div
-                  className="fixed inset-0 z-10"
-                  aria-hidden
-                  onClick={() => setIsCategoryOpen(false)}
-                />
-              </>
-            )}
-          </div>
-
-          {/* Search input — larger and more spacious */}
-          <div className="flex min-h-[52px] flex-1 items-center gap-3 bg-white/35 px-5 py-4 backdrop-blur-sm sm:min-h-[64px] sm:py-0">
-            <Search className="h-6 w-6 text-[#9ca3af] shrink-0 group-focus-within/search:text-[#f97316] transition-colors" />
-            <input
-              type="text"
-              name="q"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="Search products, suppliers, or describe what you need..."
-              className="flex-1 bg-transparent border-none outline-none text-text-primary placeholder:text-[#6b7280] text-[15px] sm:text-[16px] font-medium min-w-0 placeholder:font-normal"
-              autoComplete="off"
-            />
-            <Link
-              href="/marketplace"
-              className="p-2.5 rounded-xl text-[#9ca3af] hover:text-[#f97316] hover:bg-[#fff7ed] transition-colors shrink-0"
-              title="Search by image (coming soon)"
-            >
-              <Camera className="h-5 w-5" />
-            </Link>
-          </div>
-
-          {/* Action: AI Match only — Enter still submits form to search */}
-          <div className="flex border-t sm:border-t-0 sm:border-l border-[#ebe8f2] sm:min-h-[64px]">
-            <button
-              type="button"
-              onClick={() => {
-                router.push(searchUrl({ q, cat: cat || undefined, ai: "1" }));
-              }}
-              className="flex items-center justify-center gap-2 w-full px-6 py-4 sm:py-0 bg-gradient-to-br from-[#f97316] to-[#ea580c] text-white hover:from-[#ea580c] hover:to-[#c2410c] transition-all shrink-0 min-h-[52px] sm:min-h-[64px] shadow-lg shadow-[#f97316]/30 text-[14px] font-black"
-            >
-              <Zap className="h-5 w-5 fill-white stroke-none" />
-              AI Match
-            </button>
-          </div>
+        <div className="flex-1 flex items-center px-6 sm:px-10 h-full">
+           {loading ? <Loader2 className="h-6 w-6 animate-spin text-[#f97316] mr-4" /> : <Search className="h-6 w-6 text-zinc-400 mr-4" />}
+           <input
+             type="text"
+             value={q}
+             onFocus={() => setIsFocused(true)}
+             onChange={(e) => setQ(e.target.value)}
+             placeholder="Search products or explore industries..."
+             className="flex-1 bg-transparent border-0 outline-none text-[16px] sm:text-[20px] font-black text-zinc-900 placeholder:text-zinc-400 placeholder:font-bold h-full"
+           />
         </div>
-      </form>
 
-      {/* Supporting line + quick filters */}
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-        <p className="flex items-center gap-1.5 text-[11px] text-[#6b7280] font-medium">
-          <Sparkles className="h-3.5 w-3.5 text-[#f97316]" />
-          Get AI-powered product matches & supplier recommendations
-        </p>
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-[11px] text-[#9ca3af] font-bold uppercase tracking-wider">Quick:</span>
-          <Link
-            href="/marketplace"
-            className="text-[11px] font-bold text-[#4b5563] hover:text-[#f97316] hover:underline"
-          >
-            Verified suppliers
-          </Link>
-          <span className="text-[#e5e7eb]">|</span>
-          <Link
-            href="/marketplace?type=physical"
-            className="text-[11px] font-bold text-[#4b5563] hover:text-[#f97316] hover:underline"
-          >
-            In stock
-          </Link>
-        </div>
-      </div>
+        <button
+          type="submit"
+          className="h-full px-8 sm:px-12 bg-zinc-900 hover:bg-black text-white text-[14px] sm:text-[18px] font-black flex items-center gap-3 transition-colors shrink-0 group/btn"
+        >
+          <Zap className="h-5 w-5 fill-[#f97316] stroke-none group-hover:scale-120 transition-transform" />
+          <span className="hidden sm:inline">AI Match</span>
+        </button>
+      </motion.form>
+
+      {/* QUICK ACCESS PANEL */}
+      <AnimatePresence>
+         {isFocused && (
+            <motion.div
+               initial={{ opacity: 0, y: 15, scale: 0.98 }}
+               animate={{ opacity: 1, y: 0, scale: 1 }}
+               exit={{ opacity: 0, y: 10, scale: 0.98 }}
+               className="absolute top-full left-0 right-0 mt-4 bg-white/90 backdrop-blur-3xl rounded-[2.5rem] border border-white/40 shadow-[0_40px_100px_rgba(0,0,0,0.2)] overflow-hidden"
+            >
+               <div className="grid grid-cols-1 md:grid-cols-12 divide-x divide-zinc-50">
+                  {/* SEARCH RESULTS */}
+                  <div className="md:col-span-8 p-10 space-y-8 max-h-[500px] overflow-y-auto no-scrollbar">
+                     {q.length < 2 ? (
+                        <div className="space-y-6">
+                           <h4 className="text-[11px] font-black text-zinc-400 uppercase tracking-widest">Trending Now</h4>
+                           <div className="grid grid-cols-2 gap-3">
+                              {["Electric Vehicles", "Sustainable Fashion", "Smart Home Tech", "Organic Skincare"].map(t => (
+                                 <button key={t} onClick={() => { setQ(t); handleSearch(t); }} className="flex items-center justify-between p-4 rounded-3xl bg-zinc-50 hover:bg-[#f97316]/5 text-left transition-all group">
+                                    <span className="text-[14px] font-bold text-zinc-700">{t}</span>
+                                    <ArrowUpRight className="h-4 w-4 text-zinc-300 group-hover:text-[#f97316] transition-all" />
+                                 </button>
+                              ))}
+                           </div>
+                        </div>
+                     ) : (
+                        <div className="space-y-6">
+                           {results.products.length > 0 && (
+                              <div>
+                                 <h4 className="text-[11px] font-black text-zinc-400 uppercase tracking-widest mb-4">Discovery Results</h4>
+                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    {results.products.slice(0, 4).map(p => (
+                                       <button key={p.id} onClick={() => router.push(`/marketplace/${p.slug}`)} className="flex items-center gap-4 p-4 rounded-[2rem] bg-zinc-50/50 hover:bg-white hover:shadow-xl transition-all border border-transparent hover:border-zinc-100 group text-left">
+                                          <div className="h-10 w-10 rounded-2xl bg-white flex items-center justify-center shadow-sm">
+                                             <Package className="h-5 w-5 text-[#f97316]" />
+                                          </div>
+                                          <span className="text-[14px] font-bold text-zinc-800 truncate">{p.name}</span>
+                                       </button>
+                                    ))}
+                                 </div>
+                              </div>
+                           )}
+                           
+                           {results.categories.length > 0 && (
+                              <div className="pt-6 border-t border-zinc-50">
+                                 <h4 className="text-[11px] font-black text-zinc-400 uppercase tracking-widest mb-4">Industries</h4>
+                                 <div className="flex flex-wrap gap-2">
+                                    {results.categories.slice(0, 6).map(c => (
+                                       <button key={c.id} onClick={() => router.push(`/marketplace?cat=${c.slug}`)} className="px-5 py-2 rounded-full bg-zinc-100/50 text-zinc-600 text-[13px] font-bold hover:bg-[#f97316] hover:text-white transition-all">
+                                          {c.name}
+                                       </button>
+                                    ))}
+                                 </div>
+                              </div>
+                           )}
+                        </div>
+                     )}
+                  </div>
+
+                  {/* SIDEBAR: STORES & HELP */}
+                  <div className="md:col-span-4 p-10 bg-zinc-50/30 space-y-10">
+                     {results.vendors.length > 0 && (
+                        <div>
+                           <h4 className="text-[11px] font-black text-zinc-400 uppercase tracking-widest mb-6">Top Verified Stores</h4>
+                           <div className="space-y-2">
+                              {results.vendors.slice(0, 3).map(v => (
+                                 <button key={v.id} onClick={() => router.push(`/vendors/${v.business_slug}`)} className="w-full flex items-center gap-4 p-3 rounded-2xl hover:bg-white text-left transition-all">
+                                    <div className="h-10 w-10 rounded-full bg-white shadow-sm flex items-center justify-center text-[15px] font-black text-[#f97316]">{v.business_name[0]}</div>
+                                    <div className="min-w-0">
+                                       <p className="text-[14px] font-bold text-zinc-900 truncate">{v.business_name}</p>
+                                       <p className="text-[10px] font-black text-[#f97316] uppercase mt-0.5">Verified</p>
+                                    </div>
+                                 </button>
+                              ))}
+                           </div>
+                        </div>
+                     )}
+
+                     <div>
+                        <h4 className="text-[11px] font-black text-zinc-400 uppercase tracking-widest mb-6">Quick Links</h4>
+                        <div className="grid grid-cols-1 gap-2">
+                           <button onClick={() => router.push('/help')} className="flex items-center gap-3 text-zinc-500 hover:text-zinc-900 text-[14px] font-bold transition-all p-2 rounded-xl hover:bg-white">
+                              <LayoutGrid className="h-4 w-4" /> Support Portal
+                           </button>
+                           <button onClick={() => router.push('/marketplace')} className="flex items-center gap-3 text-zinc-500 hover:text-zinc-900 text-[14px] font-bold transition-all p-2 rounded-xl hover:bg-white">
+                              <Clock className="h-4 w-4" /> Browsing History
+                           </button>
+                        </div>
+                     </div>
+                  </div>
+               </div>
+
+               <button onClick={() => handleSearch()} className="w-full h-16 bg-zinc-900 hover:bg-black text-white text-[15px] font-black flex items-center justify-center gap-3 transition-colors">
+                  Explore full marketplace for "{q || 'everything'}" <ArrowUpRight className="h-5 w-5" />
+               </button>
+            </motion.div>
+         )}
+      </AnimatePresence>
     </div>
   );
 }

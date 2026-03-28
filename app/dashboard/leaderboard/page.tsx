@@ -8,9 +8,11 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { createClient } from "@/lib/supabase/client";
-import { formatCurrency, cn } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import { useCurrency } from "@/context/CurrencyContext";
 
 export default function AffiliateLeaderboardPage() {
+  const { formatMoney } = useCurrency();
   const [leaders, setLeaders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -75,7 +77,7 @@ export default function AffiliateLeaderboardPage() {
                      <p className="text-[10px] font-black capitalize text-muted-c tracking-widest">{l.total_conversions || 0} Deals Closed</p>
                    </div>
                    <div className="pt-2">
-                     <p className="text-2xl font-black text-accent">{formatCurrency(l.total_earnings)}</p>
+                     <p className="text-2xl font-black text-accent">{formatMoney(Number(l.total_earnings), "RWF")}</p>
                      <Badge variant="outline" className="mt-1 text-[9px] font-black">ACTIVE ELITE</Badge>
                    </div>
                 </CardContent>
@@ -145,7 +147,7 @@ export default function AffiliateLeaderboardPage() {
                         </div>
                       </div>
                     </td>
-                    <td className="text-right font-black text-[var(--color-text-primary)]">{formatCurrency(l.total_earnings)}</td>
+                    <td className="text-right font-black text-[var(--color-text-primary)]">{formatMoney(Number(l.total_earnings), "RWF")}</td>
                     <td className="text-right text-sm text-muted-c font-bold">{(l.total_clicks || 0).toLocaleString()}</td>
                     <td className="text-right text-sm font-black text-emerald-500">{(l.total_conversions || 0).toLocaleString()}</td>
                     <td className="pr-6 text-right">

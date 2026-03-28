@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { FollowButton } from "@/components/marketplace/follow-button";
 import { cn } from "@/lib/utils";
+import { LocalizedPrice } from "@/components/currency/localized-price";
 
 export type TrendingClip = {
   id: string;
@@ -16,7 +17,16 @@ export type TrendingClip = {
   thumbnail_url?: string | null;
   total_views?: number | null;
   vendors?: { id: string; business_name: string; business_slug?: string; logo_url?: string; business_logo?: string } | null;
-  products?: { id?: string; name: string; slug?: string; price: number; images?: string[] | null; rating?: number | null; inventory_quantity?: number | null } | null;
+  products?: {
+    id?: string;
+    name: string;
+    slug?: string;
+    price: number;
+    currency?: string | null;
+    images?: string[] | null;
+    rating?: number | null;
+    inventory_quantity?: number | null;
+  } | null;
 };
 
 interface TrendingProductClipsSectionProps {
@@ -207,7 +217,11 @@ export function TrendingProductClipsSection({ clips, className, title = "Trendin
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-black text-white">{modalClip.products.name}</p>
-                    <p className="font-black text-[#f97316]">${Number(modalClip.products.price).toFixed(2)}</p>
+                    <LocalizedPrice
+                      amount={Number(modalClip.products.price)}
+                      currency={modalClip.products.currency}
+                      className="font-black text-[#f97316]"
+                    />
                   </div>
                   <Link href={`/marketplace/${modalClip.products.slug ?? ""}?buy=1`} onClick={closeModal}>
                     <Button className="h-10 rounded-xl bg-[#f97316] px-5 text-xs font-black text-white hover:bg-[#ea580c]">

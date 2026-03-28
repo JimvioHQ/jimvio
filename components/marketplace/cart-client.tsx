@@ -2,15 +2,17 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  ShoppingCart, Trash2, Plus, Minus, ArrowRight, Package, 
-  ShieldCheck, HelpCircle, Store, ChevronRight, AlertCircle, ShoppingBag
+import {
+  ShoppingCart, Trash2, Plus, Minus, ArrowRight,
+  Package, ShieldCheck, Store, ChevronRight,
+  HelpCircle, Loader2, ShoppingBag, Tag,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { formatCartMoney, formatMultiCurrencyCartTotals } from "@/lib/utils";
 import { updateCartItemQuantity, removeFromCart } from "@/lib/actions/marketplace";
+import { useCurrency } from "@/context/CurrencyContext";
 import { toast } from "sonner";
 
 interface CartItem {
@@ -45,39 +47,35 @@ function sumOrderItems(items: CartItem[]): number {
 
 interface CartClientProps {
   initialOrders: CartOrder[];
-  /** @deprecated Totals are derived from line items in the client */
-  initialTotal?: number;
 }
 
 export function CartClient({ initialOrders }: CartClientProps) {
   const router = useRouter();
+  const { formatMoney, formatCartTotalsLabel } = useCurrency();
   const [orders, setOrders] = useState(initialOrders);
   const [loadingItems, setLoadingItems] = useState<string[]>([]);
+  const [removingItems, setRemovingItems] = useState<string[]>([]);
+  const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
 
-  useEffect(() => {
-    setOrders(initialOrders);
-  }, [initialOrders]);
+  useEffect(() => { setOrders(initialOrders); }, [initialOrders]);
 
-  /** Subtotals grouped by order currency — never add USD and RWF as one number. */
-  const totalsLabel = useMemo(() => formatMultiCurrencyCartTotals(orders), [orders]);
-
+  const totalsLabel = useMemo(() => formatCartTotalsLabel(orders), [orders, formatCartTotalsLabel]);
+  const totalItems = orders.reduce((acc, o) => acc + o.order_items.length, 0);
   const hasMixedCurrencies = useMemo(
-    () =>
-      new Set(orders.map((o) => (o.currency || "USD").toUpperCase())).size > 1,
+    () => new Set(orders.map((o) => (o.currency || "USD").toUpperCase())).size > 1,
     [orders]
   );
 
   const handleUpdateQuantity = async (itemId: string, newQty: number) => {
     if (newQty < 1) return;
-    
     setLoadingItems(prev => [...prev, itemId]);
     try {
       const res = await updateCartItemQuantity(itemId, newQty);
       if (res.success) {
         window.dispatchEvent(new CustomEvent("cart-updated"));
-        setOrders((prev) =>
-          prev.map((order) => {
-            const order_items = order.order_items.map((item) =>
+        setOrders(prev =>
+          prev.map(order => {
+            const order_items = order.order_items.map(item =>
               item.id === itemId
                 ? { ...item, quantity: newQty, total_price: item.unit_price * newQty }
                 : item
@@ -98,240 +96,293 @@ export function CartClient({ initialOrders }: CartClientProps) {
   };
 
   const handleRemove = async (itemId: string) => {
-    setLoadingItems(prev => [...prev, itemId]);
+    // Optimistically start exit animation
+    setRemovingItems(prev => [...prev, itemId]);
     try {
       const res = await removeFromCart(itemId);
       if (res.success) {
         window.dispatchEvent(new CustomEvent("cart-updated"));
-        setOrders((prev) => {
+        setOrders(prev => {
           const next = prev
-            .map((order) => {
-              const order_items = order.order_items.filter((item) => item.id !== itemId);
+            .map(order => {
+              const order_items = order.order_items.filter(item => item.id !== itemId);
               const lineSum = sumOrderItems(order_items);
               return { ...order, order_items, total_amount: lineSum, subtotal: lineSum };
             })
-            .filter((order) => order.order_items.length > 0);
+            .filter(order => order.order_items.length > 0);
           return next;
         });
-        toast.success("Item removed from cart");
+        toast.success("Removed from cart");
         router.refresh();
       } else {
+        // Revert animation if failed
+        setRemovingItems(prev => prev.filter(id => id !== itemId));
         toast.error(res.error || "Failed to remove item");
       }
     } catch (err) {
+      setRemovingItems(prev => prev.filter(id => id !== itemId));
       console.error(err);
-    } finally {
-      setLoadingItems(prev => prev.filter(id => id !== itemId));
     }
   };
 
+  // ── EMPTY STATE ──
   if (orders.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center text-center py-20 bg-white rounded-3xl border border-[var(--color-border)] shadow-sm">
-        <div className="h-24 w-24 bg-[var(--color-surface-secondary)] rounded-full flex items-center justify-center mb-6">
-          <ShoppingCart className="h-10 w-10 text-[var(--color-text-muted)]" />
+      <div className="flex flex-col items-center justify-center text-center py-24 bg-white rounded-2xl border border-zinc-200 shadow-sm">
+        <div className="h-20 w-20 bg-zinc-50 border-2 border-dashed border-zinc-200 rounded-2xl flex items-center justify-center mb-5">
+          <ShoppingCart className="h-9 w-9 text-zinc-300" />
         </div>
-        <h1 className="text-3xl font-black text-[var(--color-text-primary)] mb-4">Your cart is empty</h1>
-        <p className="text-[var(--color-text-secondary)] mb-10 max-w-md mx-auto">
-          Seems you haven't added any products yet. Our premium marketplace is full of amazing discoveries!
+        <h2 className="text-xl font-black text-zinc-800 mb-2">Your cart is empty</h2>
+        <p className="text-sm text-zinc-400 font-medium mb-8 max-w-xs">
+          You haven't added any products yet. Explore the marketplace to get started.
         </p>
-        <Link href="/marketplace">
-          <Button size="lg" className="bg-[#f97316] hover:bg-[#ea580c] font-black h-14 px-10 rounded-xl shadow-lg shadow-[#f97316]/20">
-            Start Sourcing <ArrowRight className="ml-2 h-5 w-5" />
-          </Button>
-        </Link>
+        <Button asChild className="h-10 px-6 rounded-xl font-black text-xs uppercase tracking-widest bg-[var(--color-accent)] hover:brightness-110 border-0">
+          <Link href="/marketplace">
+            <ShoppingBag className="mr-2 h-4 w-4" /> Browse Products
+          </Link>
+        </Button>
       </div>
     );
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      {/* ── CART ITEMS LIST ── */}
-      <div className="lg:col-span-2 space-y-8">
-        <AnimatePresence mode="popLayout">
-          {orders.map((order) => (
-            <motion.div 
+    <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] xl:grid-cols-[1fr_360px] gap-6">
+
+      {/* ══ CART ITEMS ══ */}
+      <div className="space-y-4">
+        <AnimatePresence mode="popLayout" initial={false}>
+          {orders.map(order => (
+            <motion.div
               key={order.id}
-              initial={{ opacity: 0, y: 20 }}
+              layout
+              initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-3xl border border-[#eee] shadow-sm overflow-hidden"
+              exit={{ opacity: 0, scale: 0.97, y: -8 }}
+              transition={{ duration: 0.2 }}
+              className="bg-white rounded-xl border border-zinc-200 shadow-sm overflow-hidden"
             >
-              {/* Vendor Header */}
-              <div className="bg-[#fafafa] border-b border-[#eee] px-6 py-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 bg-white rounded-xl border border-[#eee] flex items-center justify-center">
-                    <Store className="h-5 w-5 text-zinc-900" />
+              {/* Vendor header */}
+              <div className="bg-zinc-50 border-b border-zinc-100 px-5 py-3 flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="h-8 w-8 bg-white rounded-lg border border-zinc-200 flex items-center justify-center">
+                    <Store className="h-4 w-4 text-zinc-500" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-black text-zinc-900 group flex items-center gap-2 cursor-pointer">
+                    <Link
+                      href={`/vendors/${order.vendors?.business_slug}`}
+                      className="text-xs font-black text-zinc-800 hover:text-[var(--color-accent)] transition-colors flex items-center gap-1"
+                    >
                       {order.vendors?.business_name || "Official Store"}
-                      <ChevronRight className="h-4 w-4 text-zinc-300 group-hover:text-text-primary transition-colors" />
-                    </h3>
-                    <p className="text-[10px] font-black text-zinc-400 capitalize tracking-widest">Global Supplier</p>
+                      <ChevronRight className="h-3 w-3" />
+                    </Link>
+                    <p className="text-[9px] font-semibold text-zinc-400 uppercase tracking-widest">Global Supplier</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-green-50 rounded-lg border border-green-100">
-                  <ShieldCheck className="h-3.5 w-3.5 text-green-600" />
-                  <span className="text-[10px] font-black text-green-700 capitalize">Trade Assurance</span>
-                </div>
+                <span className="flex items-center gap-1 text-[10px] font-black text-green-700 bg-green-50 border border-green-100 px-2.5 py-1 rounded-full">
+                  <ShieldCheck className="h-3 w-3" /> Trade Assured
+                </span>
               </div>
 
-              {/* Items in this order */}
-              <div className="divide-y divide-[#f5f5f5]">
-                {order.order_items.map((item) => (
-                  <div key={item.id} className="p-6 flex gap-6">
-                    {/* Image */}
-                    <div className="h-28 w-28 shrink-0 bg-[#f9f9fb] rounded-2xl border border-[#eee] overflow-hidden flex items-center justify-center p-2 group cursor-pointer">
-                      {item.product_image ? (
-                        <img 
-                          src={item.product_image} 
-                          alt={item.product_name} 
-                          className="h-full w-full object-contain group-hover:scale-110 transition-transform duration-500"
-                        />
-                      ) : (
-                        <Package className="h-10 w-10 text-zinc-300" />
-                      )}
-                    </div>
+              {/* Items */}
+              <div className="divide-y divide-zinc-50">
+                <AnimatePresence mode="popLayout" initial={false}>
+                  {order.order_items.map(item => (
+                    <motion.div
+                      key={item.id}
+                      layout
+                      initial={{ opacity: 1, height: "auto" }}
+                      animate={
+                        removingItems.includes(item.id)
+                          ? { opacity: 0, height: 0, overflow: "hidden" }
+                          : { opacity: 1, height: "auto" }
+                      }
+                      exit={{ opacity: 0, height: 0, overflow: "hidden" }}
+                      transition={{ duration: 0.25 }}
+                    >
+                      <div className="p-4 flex gap-4">
+                        {/* Thumbnail */}
+                        <div className="relative h-20 w-20 shrink-0 bg-zinc-50 rounded-lg border border-zinc-200 overflow-hidden">
+                          {item.product_image && !imageErrors[item.id] ? (
+                            <Image
+                              src={item.product_image}
+                              alt={item.product_name}
+                              fill
+                              sizes="80px"
+                              className="object-contain p-1"
+                              onError={() => setImageErrors(prev => ({ ...prev, [item.id]: true }))}
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-2xl font-black text-zinc-200 uppercase">
+                              {item.product_name.charAt(0)}
+                            </div>
+                          )}
+                        </div>
 
-                    {/* Content */}
-                    <div className="flex-1 flex flex-col justify-between">
-                      <div className="flex justify-between gap-4">
-                        <div className="space-y-1">
-                          <h4 className="font-bold text-zinc-900 hover:text-[var(--color-accent)] transition-colors cursor-pointer line-clamp-2">
-                            {item.product_name}
-                          </h4>
-                          <p className="text-[10px] font-black text-zinc-400 capitalize tracking-widest">
-                            Unit Price: {formatCartMoney(item.unit_price, order.currency ?? "USD")}
-                          </p>
-                        </div>
-                        <button 
-                          onClick={() => handleRemove(item.id)}
-                          className="h-9 w-9 bg-zinc-50 rounded-xl flex items-center justify-center text-zinc-400 hover:text-red-500 hover:bg-red-50 transition-all active:scale-90"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
+                        {/* Details */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2 mb-2">
+                            <p className="text-xs font-black text-zinc-800 line-clamp-2 leading-snug flex-1">
+                              {item.product_name}
+                            </p>
+                            {/* Remove button */}
+                            <button
+                              onClick={() => handleRemove(item.id)}
+                              disabled={removingItems.includes(item.id)}
+                              className="h-7 w-7 shrink-0 rounded-lg flex items-center justify-center text-zinc-300 hover:text-red-500 hover:bg-red-50 transition-all disabled:opacity-50"
+                              title="Remove"
+                            >
+                              {removingItems.includes(item.id) ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <Trash2 className="h-3.5 w-3.5" />
+                              )}
+                            </button>
+                          </div>
 
-                      <div className="flex items-center justify-between mt-4">
-                        <div className="flex items-center bg-zinc-50 rounded-xl border border-zinc-100 p-1">
-                          <button 
-                            onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)}
-                            disabled={item.quantity <= 1 || loadingItems.includes(item.id)}
-                            className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-white hover:shadow-sm disabled:opacity-30 transition-all text-zinc-600"
-                          >
-                            <Minus className="h-3 w-3" />
-                          </button>
-                          <span className="w-10 text-center text-xs font-black text-zinc-900">{item.quantity}</span>
-                          <button 
-                            onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
-                            disabled={loadingItems.includes(item.id)}
-                            className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-white hover:shadow-sm disabled:opacity-30 transition-all text-zinc-600"
-                          >
-                            <Plus className="h-3 w-3" />
-                          </button>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-lg font-black text-zinc-900 tracking-tighter">
-                            {formatCartMoney(item.total_price, order.currency ?? "USD")}
+                          <p className="text-[10px] text-zinc-400 font-medium mb-3">
+                            Unit: {formatMoney(item.unit_price, order.currency ?? "USD")}
                           </p>
+
+                          {/* Qty + line total */}
+                          <div className="flex items-center justify-between">
+                            {/* Compact qty stepper */}
+                            <div className="flex items-center gap-0.5 bg-zinc-50 border border-zinc-200 rounded-lg p-0.5">
+                              <button
+                                onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)}
+                                disabled={item.quantity <= 1 || loadingItems.includes(item.id)}
+                                className="h-6 w-6 rounded-md flex items-center justify-center text-zinc-400 hover:bg-white hover:text-zinc-700 disabled:opacity-30 transition-all"
+                              >
+                                <Minus className="h-2.5 w-2.5" />
+                              </button>
+                              <span className="w-7 text-center text-xs font-black text-zinc-800">
+                                {loadingItems.includes(item.id)
+                                  ? <Loader2 className="h-3 w-3 animate-spin mx-auto" />
+                                  : item.quantity
+                                }
+                              </span>
+                              <button
+                                onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
+                                disabled={loadingItems.includes(item.id)}
+                                className="h-6 w-6 rounded-md flex items-center justify-center text-zinc-400 hover:bg-white hover:text-zinc-700 disabled:opacity-30 transition-all"
+                              >
+                                <Plus className="h-2.5 w-2.5" />
+                              </button>
+                            </div>
+
+                            <span className="text-sm font-black text-zinc-900">
+                              {formatMoney(item.total_price, order.currency ?? "USD")}
+                            </span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </div>
-                ))}
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
               </div>
 
-              {/* Order Subtotal — sum of line items only (avoids stale DB total_amount) */}
-              <div className="bg-zinc-50/50 border-t border-[#f5f5f5] px-6 py-4 flex items-center justify-between">
-                <span className="text-[11px] font-black text-zinc-400 capitalize tracking-widest">Order Subtotal</span>
-                <span className="text-sm font-black text-zinc-900">
-                  {formatCartMoney(sumOrderItems(order.order_items), order.currency ?? "USD")}
+              {/* Order subtotal */}
+              <div className="bg-zinc-50/80 border-t border-zinc-100 px-5 py-2.5 flex items-center justify-between">
+                <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Order Subtotal</span>
+                <span className="text-xs font-black text-zinc-800">
+                  {formatMoney(sumOrderItems(order.order_items), order.currency ?? "USD")}
                 </span>
               </div>
             </motion.div>
           ))}
         </AnimatePresence>
+
+        {/* Continue shopping */}
+        <Link href="/marketplace" className="flex items-center gap-2 text-xs font-bold text-zinc-400 hover:text-[var(--color-accent)] transition-colors pt-2">
+          <ChevronRight className="h-3.5 w-3.5 rotate-180" /> Continue Shopping
+        </Link>
       </div>
 
-      {/* ── SUMMARY STICKY ── */}
-      <div className="lg:col-span-1">
-        <div className="sticky top-40 space-y-6">
-          <div className="bg-white rounded-[2rem] border border-[#eee] p-8 shadow-xl shadow-black/5">
-            <h2 className="text-xl font-black text-zinc-900 mb-8 flex items-center gap-3">
+      {/* ══ ORDER SUMMARY SIDEBAR ══ */}
+      <aside>
+        <div className="sticky top-[calc(var(--navbar-height,64px)+56px)] space-y-4">
+
+          {/* Summary card */}
+          <div className="bg-white rounded-xl border border-zinc-200 shadow-sm p-5 space-y-5">
+            <h2 className="text-sm font-black text-zinc-900 flex items-center gap-2">
+              <Tag className="h-4 w-4 text-[var(--color-accent)]" />
               Order Summary
-              <div className="h-px flex-1 bg-zinc-100" />
             </h2>
 
-            <div className="space-y-4 mb-8">
-              <div className="flex justify-between text-sm">
-                <span className="text-zinc-500 font-medium">Items Total ({orders.reduce((acc, o) => acc + o.order_items.length, 0)})</span>
-                <span className="text-zinc-900 font-black text-right max-w-[14rem]">{totalsLabel}</span>
+            <div className="space-y-3">
+              <div className="flex justify-between text-xs">
+                <span className="text-zinc-500">Items ({totalItems})</span>
+                <span className="font-black text-zinc-800 text-right max-w-[10rem] truncate">{totalsLabel}</span>
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-zinc-500 font-medium">Global Shipping</span>
-                <span className="text-[10px] font-black text-zinc-400 capitalize tracking-widest">Calculated at Checkout</span>
+              <div className="flex justify-between text-xs">
+                <span className="text-zinc-500">Shipping</span>
+                <span className="text-zinc-400 font-semibold">At Checkout</span>
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-zinc-500 font-medium">Estimated Taxes</span>
-                <span className="text-zinc-900 font-bold">
-                  {hasMixedCurrencies ? "—" : formatCartMoney(0, orders[0]?.currency ?? "USD")}
-                </span>
-              </div>
-              <div className="h-px bg-zinc-100 my-4" />
-              <div className="flex justify-between items-end">
-                <span className="text-[11px] font-black text-zinc-900 capitalize tracking-[0.2em]">Total Pay</span>
-                <span className="text-3xl font-black text-[var(--color-accent)] tracking-tighter">
-                  {totalsLabel}
+              <div className="flex justify-between text-xs">
+                <span className="text-zinc-500">Estimated Tax</span>
+                <span className="text-zinc-800 font-bold">
+                  {hasMixedCurrencies ? "—" : formatMoney(0, orders[0]?.currency ?? "USD")}
                 </span>
               </div>
             </div>
 
-            <Button size="lg" asChild className="w-full bg-[#f97316] hover:bg-[#ea580c] text-white rounded-2xl h-16 text-sm font-black capitalize tracking-widest shadow-2xl shadow-orange-500/20 group">
+            <div className="border-t border-zinc-100 pt-4 flex items-end justify-between">
+              <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Total</span>
+              <span className="text-2xl font-black text-[var(--color-accent)] tracking-tight">{totalsLabel}</span>
+            </div>
+
+            <Button
+              asChild
+              className="w-full h-11 bg-[var(--color-accent)] hover:brightness-110 text-white font-black text-xs uppercase tracking-widest rounded-xl shadow-lg shadow-[var(--color-accent)]/20 border-0 group transition-all"
+            >
               <Link href="/checkout">
-                Proceed to Custom Checkout <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                Proceed to Checkout
+                <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-0.5 transition-transform" />
               </Link>
             </Button>
 
-            <div className="mt-8 space-y-4">
-              <div className="flex items-center gap-3 p-4 bg-zinc-50 rounded-2xl border border-zinc-100">
-                <ShieldCheck className="h-5 w-5 text-green-600" />
+            {/* Trust badges */}
+            <div className="space-y-2.5 pt-1">
+              <div className="flex items-center gap-3 bg-green-50 p-3 rounded-lg border border-green-100">
+                <ShieldCheck className="h-4 w-4 text-green-600 shrink-0" />
                 <div>
-                  <h4 className="text-[11px] font-black text-zinc-900 capitalize">Trade Assurance</h4>
-                  <p className="text-[9px] text-zinc-500 leading-none mt-0.5">Jimvio protects your payment</p>
+                  <p className="text-[10px] font-black text-zinc-800">Trade Assurance</p>
+                  <p className="text-[9px] text-zinc-500">Jimvio escrow protects all payments</p>
                 </div>
               </div>
-              <div className="flex items-center gap-3 p-4 bg-blue-50/50 rounded-2xl border border-blue-100/50">
-                <HelpCircle className="h-5 w-5 text-blue-600" />
+              <div className="flex items-center gap-3 bg-blue-50/60 p-3 rounded-lg border border-blue-100/60">
+                <HelpCircle className="h-4 w-4 text-blue-500 shrink-0" />
                 <div>
-                  <h4 className="text-[11px] font-black text-zinc-900 capitalize">Need Help?</h4>
-                  <p className="text-[9px] text-zinc-500 leading-none mt-0.5">Contact our support curators</p>
+                  <p className="text-[10px] font-black text-zinc-800">Need Help?</p>
+                  <p className="text-[9px] text-zinc-500">Contact our support curators</p>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="p-8 bg-zinc-900 rounded-[2rem] text-white">
-            <div className="flex items-center gap-3 mb-4">
-               <ShoppingBag className="h-5 w-5 text-[var(--color-accent)]" />
-               <h4 className="text-xs font-black capitalize tracking-widest">Jimvio Logistics</h4>
+          {/* Logistics promo card */}
+          <div className="bg-zinc-900 rounded-xl p-5 text-white relative overflow-hidden">
+            <div className="absolute -top-4 -right-4 h-20 w-20 bg-[var(--color-accent)]/10 rounded-full blur-xl" />
+            <div className="flex items-center gap-2 mb-3">
+              <Package className="h-4 w-4 text-[var(--color-accent)]" />
+              <h4 className="text-[10px] font-black uppercase tracking-widest">Jimvio Logistics</h4>
             </div>
-            <p className="text-[10px] text-zinc-400 font-medium leading-relaxed mb-6">
-              Benefit from our global shipping network. Real-time tracking and verified carrier partners for every order.
+            <p className="text-[10px] text-zinc-400 leading-relaxed mb-4">
+              Real-time tracking and verified carrier partners. Global shipping network for all orders.
             </p>
-            <div className="flex -space-x-3">
-              {[1,2,3,4].map(i => (
-                <div key={i} className="h-8 w-8 rounded-full border-2 border-ink-dark bg-ink-darker flex items-center justify-center overflow-hidden">
-                  <Package className="h-4 w-4 text-zinc-500" />
-                </div>
-              ))}
-              <div className="pl-4 flex items-center">
-                 <span className="text-[9px] font-black text-zinc-500">20+ Shipping methods available</span>
+            <div className="flex items-center gap-2">
+              <div className="flex -space-x-2">
+                {[1, 2, 3].map(i => (
+                  <div key={i} className="h-6 w-6 rounded-full bg-zinc-700 border-2 border-zinc-900 flex items-center justify-center">
+                    <Package className="h-3 w-3 text-zinc-400" />
+                  </div>
+                ))}
               </div>
+              <span className="text-[9px] font-bold text-zinc-500">20+ shipping methods</span>
             </div>
           </div>
+
         </div>
-      </div>
+      </aside>
     </div>
   );
 }

@@ -1,16 +1,26 @@
-import React from "react";
-import { HelpCircle, Search, Book, MessageSquare, Zap, ShieldCheck, Mail, ArrowRight, FileText } from "lucide-react";
+"use client";
+
+import React, { useState, useEffect } from "react";
+import { 
+  HelpCircle, Search, Book, MessageSquare, Zap, 
+  ShieldCheck, Mail, ArrowRight, FileText, 
+  Sparkles, ChevronRight, MessageCircle 
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 
 export default function HelpCenterPage() {
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [searchVal, setSearchVal] = useState("");
+
   const categories = [
-    { icon: <ShieldCheck />, title: "Trust & Safety", count: "12 articles" },
-    { icon: <Zap />, title: "Getting Started", count: "8 articles" },
-    { icon: <FileText />, title: "Selling Guide", count: "15 articles" },
-    { icon: <Book />, title: "Buying Guide", count: "10 articles" },
-    { icon: <MessageSquare />, title: "Messenger", count: "5 articles" },
-    { icon: <HelpCircle />, title: "FAQ", count: "24 articles" },
+    { icon: ShieldCheck, title: "Trust & Safety", count: "12 articles", color: "bg-blue-50 text-blue-600" },
+    { icon: Zap, title: "Getting Started", count: "8 articles", color: "bg-orange-50 text-[#f97316]" },
+    { icon: FileText, title: "Selling Guide", count: "15 articles", color: "bg-purple-50 text-purple-600" },
+    { icon: Book, title: "Buying Guide", count: "10 articles", color: "bg-emerald-50 text-emerald-600" },
+    { icon: MessageSquare, title: "Messenger", count: "5 articles", color: "bg-pink-50 text-pink-600" },
+    { icon: HelpCircle, title: "FAQ", count: "24 articles", color: "bg-zinc-100 text-zinc-600" },
   ];
 
   const commonQuestions = [
@@ -22,78 +32,159 @@ export default function HelpCenterPage() {
   ];
 
   return (
-    <div className="bg-[var(--color-bg)] min-h-screen">
-      {/* Search Header */}
-      <section className="bg-white border-b border-[var(--color-border)] py-24 pb-32">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
-          <h1 className="text-4xl md:text-6xl font-[900] text-[var(--color-text-primary)] mb-8 tracking-tighter">
-            How can we <span className="text-[var(--color-accent)]">help you?</span>
-          </h1>
-          <div className="relative group">
-            <Search className="absolute left-6 top-1/2 -translate-y-1/2 h-6 w-6 text-[var(--color-text-muted)] group-focus-within:text-[var(--color-accent)] transition-colors" />
-            <Input 
-              placeholder="Search for articles, guides, and tutorials..." 
-              className="h-20 pl-16 pr-8 text-xl border-2 rounded-2xl shadow-xl shadow-black/5 focus-visible:ring-[var(--color-accent)]"
-            />
-          </div>
-          <div className="flex flex-wrap justify-center gap-3 mt-8">
-             <span className="text-sm font-bold text-[var(--color-text-muted)] tracking-widest capitalize py-1">Popular:</span>
-             {["Verificaton", "Shipping", "Refunds", "API"].map(tag => (
-               <span key={tag} className="text-sm font-black text-[var(--color-text-primary)] hover:text-[var(--color-accent)] cursor-pointer transition-colors leading-6">{tag}</span>
+    <div className="bg-zinc-50 min-h-screen selection:bg-[#f97316]/20">
+      {/* GLOSSY HEADER SECTION */}
+      <section className="relative pt-32 pb-44 overflow-hidden bg-white border-b border-zinc-100">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full opacity-[0.03] pointer-events-none">
+           <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,#f97316,transparent_70%)]" />
+        </div>
+
+        <div className="max-w-5xl mx-auto px-6 text-center relative z-10">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
+             <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-orange-50 text-[#f97316] text-[11px] font-black uppercase tracking-widest mb-6">
+                <Sparkles className="h-3 w-3" /> Support Intelligence
+             </span>
+             <h1 className="text-5xl md:text-7xl font-black text-zinc-900 mb-10 tracking-tight leading-[0.95]">
+               How can we <span className="text-[#f97316] italic">help you?</span>
+             </h1>
+          </motion.div>
+
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }} 
+            animate={{ opacity: 1, scale: 1 }} 
+            transition={{ delay: 0.2 }}
+            className="relative max-w-3xl mx-auto"
+          >
+             <form className={cn(
+                "group flex h-16 sm:h-20 items-center rounded-[2rem] border transition-all p-2 pr-2.5",
+                isSearchFocused 
+                  ? "bg-white border-[#f97316] shadow-[0_25px_60px_-15px_rgba(249,115,22,0.2)] ring-4 ring-[#f97316]/5 scale-[1.02]" 
+                  : "bg-zinc-50 border-zinc-200 shadow-sm hover:border-zinc-300"
+             )}>
+                <div className="flex h-full flex-1 items-center px-6">
+                   <Search className={cn("mr-4 h-6 w-6 transition-colors", isSearchFocused ? "text-[#f97316]" : "text-zinc-400")} />
+                   <input
+                     type="text"
+                     value={searchVal}
+                     onChange={(e) => setSearchVal(e.target.value)}
+                     onFocus={() => setIsSearchFocused(true)}
+                     onBlur={() => setIsSearchFocused(false)}
+                     placeholder="Describe your issue or ask Jimvio AI..."
+                     className="h-full w-full bg-transparent text-[16px] sm:text-[19px] font-bold text-zinc-900 outline-none placeholder:font-medium placeholder:text-zinc-400/80"
+                   />
+                </div>
+                <button
+                  type="button"
+                  className="h-full flex items-center gap-3 rounded-[1.5rem] bg-zinc-900 px-6 sm:px-10 text-[14px] sm:text-[16px] font-black text-white shadow-xl shadow-zinc-900/10 transition-all hover:bg-black hover:-translate-y-0.5"
+                >
+                   <Zap className="h-5 w-5 fill-[#f97316] stroke-none" />
+                   <span className="hidden sm:inline">Ask AI</span>
+                </button>
+             </form>
+          </motion.div>
+
+          <div className="flex flex-wrap justify-center gap-3 mt-10">
+             {["Verification", "Shipping", "Refunds", "Payouts"].map(tag => (
+               <button key={tag} className="text-[12px] font-black text-zinc-500 hover:text-zinc-900 bg-zinc-50 hover:bg-white border border-zinc-200 px-5 py-2.5 rounded-full transition-all">{tag}</button>
              ))}
           </div>
         </div>
       </section>
 
-      {/* Categories Grid */}
-      <section className="max-w-6xl mx-auto px-4 sm:px-6 -mt-16 pb-24">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* CATEGORIES GRID WITH CARDS */}
+      <section className="max-w-7xl mx-auto px-6 -mt-20 pb-24 relative z-20">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
           {categories.map((cat, i) => (
-            <div key={i} className="bg-white border border-[var(--color-border)] p-8 rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-300 group cursor-pointer">
-              <div className="h-12 w-12 rounded-xl bg-[var(--color-accent-light)] text-[var(--color-accent)] flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                {cat.icon}
+            <motion.div 
+              key={i} 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.1 }}
+              className="group relative bg-white border border-zinc-100 p-10 rounded-[2.5rem] shadow-xl shadow-black/[0.02] hover:shadow-2xl hover:shadow-black/[0.05] transition-all cursor-pointer overflow-hidden active:scale-95 duration-300"
+            >
+              <div className={cn("h-16 w-16 rounded-[1.25rem] flex items-center justify-center mb-8 transition-transform group-hover:scale-110 group-hover:rotate-12", cat.color)}>
+                 <cat.icon className="h-7 w-7" />
               </div>
-              <h3 className="text-xl font-black text-[var(--color-text-primary)] mb-2">{cat.title}</h3>
-              <p className="text-xs text-[var(--color-text-muted)] font-bold capitalize tracking-widest">{cat.count}</p>
-            </div>
+              <h3 className="text-2xl font-black text-zinc-900 mb-3 tracking-tight">{cat.title}</h3>
+              <p className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-400 mb-8">{cat.count}</p>
+              
+              <div className="flex items-center gap-2 text-[13px] font-black text-[#f97316] opacity-0 group-hover:opacity-100 translate-x-4 group-hover:translate-x-0 transition-all">
+                 Browse Guide <ArrowRight className="h-4 w-4" />
+              </div>
+              
+              <div className="absolute top-0 right-0 p-10 opacity-[0.03] group-hover:opacity-[0.08] transition-opacity">
+                 <cat.icon className="h-32 w-32" />
+              </div>
+            </motion.div>
           ))}
         </div>
       </section>
 
-      {/* Featured Articles */}
-      <section className="py-24 max-w-4xl mx-auto px-4 sm:px-6">
-        <h2 className="text-3xl font-black text-[var(--color-text-primary)] mb-10 text-center">Frequently Asked Questions</h2>
-        <div className="space-y-4">
-          {commonQuestions.map((q, i) => (
-            <div key={i} className="bg-white border border-[var(--color-border)] p-6 rounded-2xl flex items-center justify-between group hover:border-[var(--color-accent)] transition-colors cursor-pointer">
-              <span className="font-bold text-[var(--color-text-primary)] group-hover:text-[var(--color-accent)]">{q}</span>
-              <ArrowRight className="h-5 w-5 text-[var(--color-text-muted)] group-hover:text-[var(--color-accent)]" />
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Support CTA */}
-      <section className="py-24 px-4 bg-white border-y border-[var(--color-border)]">
-         <div className="max-w-4xl mx-auto text-center">
-            <h2 className="text-3xl font-black mb-6">Still need assistance?</h2>
-            <p className="text-[var(--color-text-secondary)] mb-10 max-w-xl mx-auto">Our support representatives are standing by to help you with your specific issues.</p>
-            <div className="flex flex-col sm:flex-row gap-6 justify-center">
-               <div className="bg-[var(--color-surface-secondary)] p-8 rounded-3xl border border-[var(--color-border)] flex-1">
-                  <Mail className="h-8 w-8 text-[var(--color-accent)] mx-auto mb-4" />
-                  <h4 className="font-black mb-2">Email Support</h4>
-                  <p className="text-sm text-[var(--color-text-secondary)] mb-4">Response within 24 hours</p>
-                  <Button variant="outline" className="w-full font-black rounded-xl">Contact Us</Button>
+      {/* REFINED FAQ SECTION */}
+      <section className="py-32 bg-white border-y border-zinc-100">
+        <div className="max-w-4xl mx-auto px-6">
+           <div className="text-center mb-20">
+              <h2 className="text-4xl font-black text-zinc-900 mb-4 tracking-tight">Most Searched Topics</h2>
+              <p className="text-[15px] font-bold text-zinc-400">Quick answers to the common hurdles on our path.</p>
+           </div>
+           
+           <div className="space-y-4">
+             {commonQuestions.map((q, i) => (
+               <div key={i} className="group flex items-center justify-between p-8 rounded-[2rem] bg-zinc-50 border border-transparent hover:border-[#f97316]/20 hover:bg-white transition-all cursor-pointer">
+                 <span className="text-[17px] font-bold text-zinc-800 group-hover:text-zinc-900">{q}</span>
+                 <div className="h-10 w-10 rounded-full bg-white shadow-sm flex items-center justify-center group-hover:bg-[#f97316] group-hover:text-white transition-all">
+                    <ChevronRight className="h-5 w-5" />
+                 </div>
                </div>
-               <div className="bg-ink-dark p-8 rounded-3xl text-white flex-1">
-                  <MessageSquare className="h-8 w-8 text-[var(--color-accent)] mx-auto mb-4" />
-                  <h4 className="font-black mb-2 text-white">Live Chat</h4>
-                  <p className="text-sm text-white/50 mb-4">Real-time assistance</p>
-                  <Button className="w-full bg-[var(--color-accent)] font-black rounded-xl">Start Chat</Button>
+             ))}
+           </div>
+        </div>
+      </section>
+
+      {/* HIGH-END CONTACT CTAs */}
+      <section className="py-40 bg-zinc-50">
+         <div className="max-w-7xl mx-auto px-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+               <div className="relative bg-zinc-900 p-16 rounded-[3rem] text-white overflow-hidden group">
+                  <div className="relative z-10">
+                     <div className="h-14 w-14 rounded-2xl bg-[#f97316] flex items-center justify-center mb-10 shadow-2xl shadow-orange-500/40">
+                        <MessageCircle className="h-7 w-7 text-white" />
+                     </div>
+                     <h2 className="text-4xl font-black mb-4 tracking-tight">Talk to our experts.</h2>
+                     <p className="text-lg text-zinc-400 font-medium mb-10 max-w-sm">Get real-time assistance from our specialist team available 24/7.</p>
+                     <Button className="h-14 px-10 rounded-2xl bg-white text-zinc-900 font-black hover:bg-zinc-100 transition-all text-base">Start Live Chat</Button>
+                  </div>
+                  <div className="absolute -bottom-20 -right-20 h-80 w-80 bg-[#f97316] opacity-[0.05] blur-[100px] group-hover:opacity-[0.1] transition-opacity" />
+               </div>
+
+               <div className="relative bg-white p-16 rounded-[3rem] border border-zinc-100 overflow-hidden group">
+                   <div className="relative z-10">
+                      <div className="h-14 w-14 rounded-2xl bg-zinc-50 flex items-center justify-center mb-10 border border-zinc-100">
+                         <Mail className="h-7 w-7 text-zinc-900" />
+                      </div>
+                      <h2 className="text-4xl font-black text-zinc-900 mb-4 tracking-tight">Open a Support Case.</h2>
+                      <p className="text-lg text-zinc-400 font-medium mb-10 max-w-sm">Detailed technical issues or specialized requests. We respond in &lt;12h.</p>
+                      <Button variant="outline" className="h-14 px-10 rounded-2xl border-zinc-200 text-zinc-900 font-black hover:bg-zinc-50 transition-all text-base">Submit a Ticket</Button>
+                   </div>
+                   <div className="absolute top-0 right-0 p-16 text-[#f97316] opacity-[0.02]">
+                      <Mail className="h-64 w-64" />
+                   </div>
                </div>
             </div>
          </div>
       </section>
+
+      {/* FOOTER-LIKE BADGES */}
+      <footer className="py-20 text-center border-t border-zinc-200 bg-white">
+         <div className="max-w-4xl mx-auto px-6">
+            <div className="flex flex-wrap justify-center gap-12 grayscale opacity-40 hover:grayscale-0 hover:opacity-100 transition-all">
+               <div className="flex items-center gap-2 font-black text-zinc-900"><ShieldCheck className="h-5 w-5" /> Secured by Jimvio Shield</div>
+               <div className="flex items-center gap-2 font-black text-zinc-900"><Zap className="h-5 w-5" /> AI Augmented Support</div>
+               <div className="flex items-center gap-2 font-black text-zinc-900"><MessageSquare className="h-5 w-5" /> Humans on Standby</div>
+            </div>
+         </div>
+      </footer>
     </div>
   );
 }

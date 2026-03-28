@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { ThemeProvider } from "@/components/providers/theme-provider";
+import { CurrencyProvider } from "@/context/CurrencyContext";
 import { Toaster } from "sonner";
 
 const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "https://jimvio.com";
@@ -51,7 +52,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         style={{ backgroundColor: "#ffffff", color: "var(--color-text-primary)" }}
       >
         <ThemeProvider>
-          {children}
+          <CurrencyProvider>{children}</CurrencyProvider>
           <Toaster
             richColors
             position="top-right"

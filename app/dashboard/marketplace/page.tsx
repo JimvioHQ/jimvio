@@ -72,6 +72,7 @@ export default async function DashboardMarketplacePage({ searchParams }: PagePro
         slug: p.slug,
         images: p.images,
         price: p.price,
+        currency: p.currency,
       }));
       return { ...store, products: normalized };
     })

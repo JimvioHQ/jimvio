@@ -8,11 +8,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/ui/stat-card";
 import { Input } from "@/components/ui/input";
-import { formatWalletMoney } from "@/lib/utils";
+import { useCurrency } from "@/context/CurrencyContext";
 import { createClient } from "@/lib/supabase/client";
 import { normalizeVendorPayoutMethod } from "@/lib/payout-method";
 
 export default function PaymentsPage() {
+  const { formatMoney } = useCurrency();
   const [wallet, setWallet]     = useState<Record<string, unknown> | null>(null);
   const [payouts, setPayouts]   = useState<Record<string, unknown>[]>([]);
   const [loading, setLoading]   = useState(true);
@@ -138,7 +139,7 @@ export default function PaymentsPage() {
         <div className="flex items-start justify-between mb-4">
           <div>
             <p className="text-white/80 text-sm font-medium mb-1">Available Balance</p>
-            <p className="text-3xl font-bold">{loading ? "—" : formatWalletMoney(available, walletCurrency)}</p>
+            <p className="text-3xl font-bold">{loading ? "—" : formatMoney(available, walletCurrency)}</p>
           </div>
           <div className="p-2.5 rounded-lg bg-white/15">
             <Wallet className="h-5 w-5 text-white" />
@@ -146,9 +147,9 @@ export default function PaymentsPage() {
         </div>
         <div className="grid grid-cols-3 gap-3">
           {[
-            { label: "Pending",     value: formatWalletMoney(pending, walletCurrency) },
-            { label: "Total Earned",value: formatWalletMoney(earned, walletCurrency) },
-            { label: "Total Paid",  value: formatWalletMoney(paid, walletCurrency) },
+            { label: "Pending",     value: formatMoney(pending, walletCurrency) },
+            { label: "Total Earned",value: formatMoney(earned, walletCurrency) },
+            { label: "Total Paid",  value: formatMoney(paid, walletCurrency) },
           ].map((s, i) => (
             <div key={i} className="bg-white/10 rounded-lg p-2.5">
               <p className="text-white/80 text-xs mb-0.5">{s.label}</p>
@@ -175,7 +176,7 @@ export default function PaymentsPage() {
             <Input
               label={`Amount to withdraw (${walletCurrency})`}
               type="number"
-              placeholder={`Max: ${formatWalletMoney(available, walletCurrency)}`}
+              placeholder={`Max: ${formatMoney(available, walletCurrency)}`}
               min="1000"
               max={available}
               value={withdrawAmount}
@@ -254,7 +255,7 @@ export default function PaymentsPage() {
                     <tr key={p.id as string}>
                       <td className="pl-5">
                         <span className="text-sm font-bold text-[var(--color-text-primary)]">
-                          {formatWalletMoney(Number(p.amount), (p.currency as string) || walletCurrency)}
+                          {formatMoney(Number(p.amount), (p.currency as string) || walletCurrency)}
                         </span>
                       </td>
                       <td><span className="text-sm text-[var(--color-text-primary)] capitalize">{p.payout_method as string}</span></td>

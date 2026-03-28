@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Heart, Eye, Package, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { formatCurrency } from "@/lib/utils";
+import { useCurrency } from "@/context/CurrencyContext";
 import { toggleWishlist } from "@/lib/actions/marketplace";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -15,6 +15,7 @@ type Product = {
   name: string;
   slug: string;
   price: number;
+  currency?: string | null;
   images?: string[];
   rating?: number;
   review_count?: number;
@@ -29,8 +30,10 @@ type WishlistItem = {
 };
 
 export function WishlistGrid({ initialItems }: { initialItems: WishlistItem[] }) {
+  const { formatMoney } = useCurrency();
   const [items, setItems] = useState<WishlistItem[]>(initialItems);
   const [removingId, setRemovingId] = useState<string | null>(null);
+  const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
 
   const handleRemove = async (e: React.MouseEvent, productId: string) => {
     e.preventDefault();
@@ -66,11 +69,20 @@ export function WishlistGrid({ initialItems }: { initialItems: WishlistItem[] })
         return (
           <Card key={rowId} className="overflow-hidden border-[var(--color-border)] hover:shadow-md transition-all group">
             <Link href={`/marketplace/${product.slug}`} className="block">
-              <div className="aspect-[4/3] bg-[var(--color-surface-secondary)] flex items-center justify-center p-4 relative">
-                {imgSrc ? (
-                  <img src={imgSrc} alt={product.name} className="max-w-full max-h-full object-contain group-hover:scale-105 transition-transform" />
+              <div className="aspect-[4/3] bg-[var(--color-surface-secondary)] flex items-center justify-center p-4 relative overflow-hidden">
+                {imgSrc && !imageErrors[product.id] ? (
+                  <img 
+                    src={imgSrc} 
+                    alt={product.name} 
+                    className="max-w-full max-h-full object-contain group-hover:scale-105 transition-transform"
+                    onError={() => setImageErrors(prev => ({ ...prev, [product.id]: true }))}
+                  />
                 ) : (
-                  <Package className="h-16 w-16 text-[var(--color-border)]" />
+                  <div className="w-full h-full flex items-center justify-center bg-zinc-50 dark:bg-zinc-900">
+                    <span className="text-5xl font-black text-zinc-200 dark:text-zinc-800 uppercase tracking-tighter">
+                      {product.name.charAt(0)}
+                    </span>
+                  </div>
                 )}
                 <button
                   type="button"
@@ -88,7 +100,7 @@ export function WishlistGrid({ initialItems }: { initialItems: WishlistItem[] })
             <CardContent className="p-4">
               <p className="font-medium text-[var(--color-text-primary)] line-clamp-2">{product.name}</p>
               <p className="text-sm text-[var(--color-text-muted)] mt-0.5">{product.vendors?.business_name ?? "—"}</p>
-              <p className="font-semibold text-[var(--color-accent)] mt-1">{formatCurrency(Number(product.price))}</p>
+              <p className="font-semibold text-[var(--color-accent)] mt-1">{formatMoney(Number(product.price), product.currency)}</p>
               <div className="flex items-center gap-2 mt-1 text-sm text-[var(--color-text-muted)]">
                 {product.rating != null && (
                   <span className="flex items-center gap-0.5">

@@ -18,11 +18,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
-import { formatCurrency } from "@/lib/utils";
+import { useCurrency } from "@/context/CurrencyContext";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 export default function VendorStorePage() {
+  const { formatMoney } = useCurrency();
   const supabase = createClient();
   const [vendor, setVendor] = useState<{
     id: string;
@@ -237,7 +238,7 @@ export default function VendorStorePage() {
                     )}
                   </div>
                   <p className="text-sm font-medium text-[var(--color-text-primary)] mt-1 line-clamp-2">{p.name}</p>
-                  <p className="text-xs text-[var(--color-accent)] font-semibold">{formatCurrency(Number(p.price))}</p>
+                  <p className="text-xs text-[var(--color-accent)] font-semibold">{formatMoney(Number(p.price), (p as { currency?: string }).currency)}</p>
                 </Link>
               ))}
             </div>

@@ -1,50 +1,60 @@
 "use client";
-
+ 
 import React, { useState } from "react";
-import { ShoppingCart, Loader2 } from "lucide-react";
+import { ShoppingCart, Loader2, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { createOrder } from "@/lib/actions/orders";
-import { useRouter } from "next/navigation";
-
+import { addToCart } from "@/lib/actions/marketplace";
+import { useCartStore } from "@/lib/store/use-cart-store";
+ 
 interface BuyButtonProps {
   productId: string;
+  vendorId?: string;
+  quantity?: number;
   className?: string;
 }
-
-export function BuyButton({ productId, className }: BuyButtonProps) {
+ 
+export function BuyButton({ productId, vendorId, quantity = 1, className }: BuyButtonProps) {
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
-
-  async function handleBuy() {
+  const [added, setAdded] = useState(false);
+  const { refreshCart } = useCartStore();
+ 
+  async function handleAddToCart() {
+    if (!vendorId) return;
     setLoading(true);
     try {
-      const result = await createOrder(productId);
-      if (result.orderId) {
-        // Redirect to a payment or order confirmation page
-        // For now, let's go to the dashboard orders
-        router.push(`/dashboard/orders`);
+      const result = await addToCart(productId, vendorId, quantity);
+      if (result.success) {
+        setAdded(true);
+        await refreshCart();
+        setTimeout(() => setAdded(false), 2000);
+      } else if (result.error === "Authentication required") {
+         window.location.href = `/login?next=${window.location.pathname}`;
+      } else {
+        alert(result.error || "Failed to add to cart");
       }
     } catch (error) {
-      console.error("Order creation failed:", error);
+      console.error("Cart addition failed:", error);
       alert("Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
   }
-
+ 
   return (
     <Button 
       size="lg" 
-      onClick={handleBuy}
-      disabled={loading}
+      onClick={handleAddToCart}
+      disabled={loading || added}
       className={className}
     >
       {loading ? (
         <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+      ) : added ? (
+        <CheckCircle2 className="mr-2 h-5 w-5" />
       ) : (
         <ShoppingCart className="mr-2 h-5 w-5" />
       )}
-      Buy Now
+      {added ? "Added to Cart" : "Add to Cart"}
     </Button>
   );
 }

@@ -7,10 +7,12 @@ import { Link2, ArrowLeft, CheckCircle, Mail, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
+import { useUserStore } from "@/lib/store/use-user-store";
 import { cn } from "@/lib/utils";
 
 export default function ActivateAffiliatePage() {
   const router = useRouter();
+  const { fetchRoles } = useUserStore();
   const [loading, setLoading] = useState(true);
   const [activating, setActivating] = useState(false);
   const [affiliate, setAffiliate] = useState<{ id: string } | null>(null);
@@ -52,13 +54,20 @@ export default function ActivateAffiliatePage() {
         { user_id: user.id, role: "affiliate", is_active: true },
         { onConflict: "user_id,role" }
       );
+      await fetchRoles();
       router.refresh();
       router.push("/dashboard/links");
     }
     setActivating(false);
   }
 
-  if (loading) {
+  useEffect(() => {
+    if (!loading && affiliate) {
+      router.replace("/dashboard/links");
+    }
+  }, [loading, affiliate, router]);
+
+  if (loading || affiliate) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center bg-gradient-to-b from-[var(--color-surface-secondary)] to-[var(--color-bg)]">
         <div className="flex flex-col items-center gap-3">
@@ -69,11 +78,6 @@ export default function ActivateAffiliatePage() {
         </div>
       </div>
     );
-  }
-
-  if (affiliate) {
-    router.replace("/dashboard/links");
-    return null;
   }
 
   const canActivate = emailVerified;

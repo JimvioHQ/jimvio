@@ -9,10 +9,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatCard } from "@/components/ui/stat-card";
 import { RevenueChart } from "@/components/charts/revenue-chart";
-import { formatCurrency } from "@/lib/utils";
+import { useCurrency } from "@/context/CurrencyContext";
 import { createClient } from "@/lib/supabase/client";
 
 export default function AffiliateAnalyticsPage() {
+  const { formatMoney } = useCurrency();
   const router = useRouter();
   const [affiliate, setAffiliate] = useState<{ id: string } | null>(null);
   const [links, setLinks] = useState<any[]>([]);
@@ -80,7 +81,7 @@ export default function AffiliateAnalyticsPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard title="Total Clicks" value={loading ? "—" : totalClicks.toLocaleString()} icon={<MousePointer className="h-4 w-4" />} iconColor="from-blue-600 to-cyan-600" />
         <StatCard title="Conversions" value={loading ? "—" : totalConversions.toLocaleString()} icon={<ShoppingCart className="h-4 w-4" />} iconColor="from-emerald-600 to-teal-600" />
-        <StatCard title="Commission Earned" value={loading ? "—" : formatCurrency(totalEarnings)} icon={<DollarSign className="h-4 w-4" />} iconColor="from-amber-600 to-orange-600" />
+        <StatCard title="Commission Earned" value={loading ? "—" : formatMoney(totalEarnings, "RWF")} icon={<DollarSign className="h-4 w-4" />} iconColor="from-amber-600 to-orange-600" />
         <StatCard title="Active Links" value={loading ? "—" : links.length.toString()} icon={<TrendingUp className="h-4 w-4" />} iconColor="from-purple-600 to-pink-600" />
       </div>
 
@@ -157,7 +158,7 @@ export default function AffiliateAnalyticsPage() {
                       </td>
                       <td className="py-3.5 px-3 text-right font-medium tabular-nums">{l.total_clicks ?? 0}</td>
                       <td className="py-3.5 px-3 text-right font-medium tabular-nums">{l.total_conversions ?? 0}</td>
-                      <td className="py-3.5 pl-3 pr-5 text-right font-semibold text-[var(--color-accent)] tabular-nums">{formatCurrency(Number(l.total_earnings ?? 0))}</td>
+                      <td className="py-3.5 pl-3 pr-5 text-right font-semibold text-[var(--color-accent)] tabular-nums">{formatMoney(Number(l.total_earnings ?? 0), "RWF")}</td>
                     </tr>
                   );
                 })}

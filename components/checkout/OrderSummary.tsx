@@ -1,7 +1,7 @@
 "use client";
 
 import { Package, ShieldCheck, Lock, BadgeCheck } from "lucide-react";
-import { formatCartMoney } from "@/lib/utils";
+import { useCurrency } from "@/context/CurrencyContext";
 
 export type OrderSummaryItem = {
   id: string;
@@ -24,6 +24,7 @@ export function OrderSummary({
   currency: string;
 }) {
   const c = currency.toUpperCase();
+  const { formatMoney } = useCurrency();
 
   return (
     <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 sm:p-6 shadow-[var(--shadow-sm)]">
@@ -45,7 +46,7 @@ export function OrderSummary({
               <p className="text-xs text-[var(--color-text-muted)] mt-0.5">Qty {item.quantity}</p>
             </div>
             <p className="text-sm font-semibold text-[var(--color-text-primary)] shrink-0 tabular-nums">
-              {formatCartMoney(Number(item.total_price), c)}
+              {formatMoney(Number(item.total_price), c)}
             </p>
           </li>
         ))}
@@ -54,7 +55,7 @@ export function OrderSummary({
       <div className="space-y-2.5 border-t border-[var(--color-border)] pt-5 text-sm">
         <div className="flex justify-between text-[var(--color-text-secondary)]">
           <span>Subtotal</span>
-          <span className="font-medium text-[var(--color-text-primary)] tabular-nums">{formatCartMoney(subtotal, c)}</span>
+          <span className="font-medium text-[var(--color-text-primary)] tabular-nums">{formatMoney(subtotal, c)}</span>
         </div>
         <div className="flex justify-between text-[var(--color-text-secondary)]">
           <span>Shipping</span>
@@ -63,7 +64,7 @@ export function OrderSummary({
         <div className="flex justify-between items-baseline pt-3 border-t border-[var(--color-border)]">
           <span className="text-base font-semibold text-[var(--color-text-primary)]">Total</span>
           <span className="text-xl font-bold text-[var(--color-text-primary)] tabular-nums tracking-tight">
-            {formatCartMoney(total, c)}
+            {formatMoney(total, c)}
           </span>
         </div>
       </div>

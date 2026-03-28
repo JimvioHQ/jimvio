@@ -9,10 +9,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatCard } from "@/components/ui/stat-card";
 import { Badge } from "@/components/ui/badge";
 import { RevenueChart } from "@/components/charts/revenue-chart";
-import { formatCurrency } from "@/lib/utils";
+import { useCurrency } from "@/context/CurrencyContext";
 import { createClient } from "@/lib/supabase/client";
 
 export default function AnalyticsPage() {
+  const { formatMoney } = useCurrency();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [period, setPeriod]   = useState("30D");
@@ -216,7 +217,7 @@ export default function AnalyticsPage() {
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <StatCard title="Revenue"       value={formatCurrency(stats.revenue)} icon={<DollarSign   className="h-4 w-4" />} iconColor="from-primary-600 to-accent-600" />
+        <StatCard title="Revenue"       value={formatMoney(stats.revenue, "RWF")} icon={<DollarSign   className="h-4 w-4" />} iconColor="from-primary-600 to-accent-600" />
         <StatCard title="Orders"        value={stats.orders}                   icon={<ShoppingCart className="h-4 w-4" />} iconColor="from-blue-600 to-cyan-600" />
         <StatCard title="Product Views" value={stats.views.toLocaleString()}   icon={<Users        className="h-4 w-4" />} iconColor="from-emerald-600 to-teal-600" />
         <StatCard title="Conversion"    value={`${stats.convRate.toFixed(2)}%`} icon={<TrendingUp   className="h-4 w-4" />} iconColor="from-amber-600 to-orange-600" />
@@ -274,7 +275,7 @@ export default function AnalyticsPage() {
                       <span className="text-sm font-medium text-[var(--color-text-primary)] truncate">{p.name as string}</span>
                     </div>
                     <div className="text-right shrink-0 ml-2">
-                      <p className="text-xs font-bold text-[var(--color-accent)]">{formatCurrency(Number(p.price))}</p>
+                      <p className="text-xs font-bold text-[var(--color-accent)]">{formatMoney(Number(p.price), (p as { currency?: string }).currency)}</p>
                       <p className="text-xs text-muted-c">{sales} sales</p>
                     </div>
                   </div>

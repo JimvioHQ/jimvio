@@ -8,11 +8,12 @@ import { DollarSign, Eye, ShoppingCart, Wallet, ArrowRight, Loader2 } from "luci
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatCard } from "@/components/ui/stat-card";
-import { formatCurrency } from "@/lib/utils";
+import { useCurrency } from "@/context/CurrencyContext";
 import { createClient } from "@/lib/supabase/client";
 import { Badge } from "@/components/ui/badge";
 
 export default function CreatorEarningsPage() {
+  const { formatMoney } = useCurrency();
   const router = useRouter();
   const [influencer, setInfluencer] = useState<Record<string, unknown> | null>(null);
   const [payouts, setPayouts] = useState<any[]>([]);
@@ -63,10 +64,10 @@ export default function CreatorEarningsPage() {
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Earnings from sales" value={formatCurrency(totalEarnings)} icon={<ShoppingCart className="h-4 w-4" />} iconColor="from-emerald-600 to-teal-600" />
-        <StatCard title="Earnings from views" value={formatCurrency(0)} icon={<Eye className="h-4 w-4" />} iconColor="from-cyan-600 to-blue-600" />
-        <StatCard title="Pending / Available" value={formatCurrency(available)} icon={<DollarSign className="h-4 w-4" />} iconColor="from-amber-600 to-orange-600" />
-        <StatCard title="Paid out" value={formatCurrency(paid)} icon={<ArrowRight className="h-4 w-4" />} iconColor="from-purple-600 to-pink-600" />
+        <StatCard title="Earnings from sales" value={formatMoney(totalEarnings, "RWF")} icon={<ShoppingCart className="h-4 w-4" />} iconColor="from-emerald-600 to-teal-600" />
+        <StatCard title="Earnings from views" value={formatMoney(0, "RWF")} icon={<Eye className="h-4 w-4" />} iconColor="from-cyan-600 to-blue-600" />
+        <StatCard title="Pending / Available" value={formatMoney(available, "RWF")} icon={<DollarSign className="h-4 w-4" />} iconColor="from-amber-600 to-orange-600" />
+        <StatCard title="Paid out" value={formatMoney(paid, "RWF")} icon={<ArrowRight className="h-4 w-4" />} iconColor="from-purple-600 to-pink-600" />
       </div>
 
       <Card className="border-[var(--color-border)] shadow-[var(--shadow-sm)] overflow-hidden">
@@ -97,7 +98,7 @@ export default function CreatorEarningsPage() {
                     <tr key={p.id} className="border-b border-[var(--color-border)] last:border-b-0 hover:bg-[var(--color-surface-secondary)]/50">
                       <td className="py-3.5 pl-5 pr-3">{new Date(p.created_at).toLocaleDateString()}</td>
                       <td className="py-3.5 px-3 capitalize">{String(p.payout_method || "—").replace(/_/g, " ")}</td>
-                      <td className="py-3.5 px-3 text-right font-medium tabular-nums">{formatCurrency(Number(p.amount ?? 0))}</td>
+                      <td className="py-3.5 px-3 text-right font-medium tabular-nums">{formatMoney(Number(p.amount ?? 0), "RWF")}</td>
                       <td className="py-3.5 pl-3 pr-5 text-center">
                         <Badge variant={p.status === "paid" ? "success" : p.status === "failed" ? "destructive" : "warning"} className="text-[10px] py-0.5">{p.status || "pending"}</Badge>
                       </td>

@@ -22,6 +22,7 @@ interface ProductCardProps {
 
 export function ProductCard({ product, viewMode = "grid" }: ProductCardProps) {
   const [wishlisted, setWishlisted] = useState(false);
+  const [imageError, setImageError] = useState(false);
   const discount = product.compare_at_price
     ? calculateDiscount(product.price, product.compare_at_price)
     : 0;
@@ -34,16 +35,19 @@ export function ProductCard({ product, viewMode = "grid" }: ProductCardProps) {
       <Link href={`/marketplace/${product.slug}`}>
         <Card className="flex gap-4 p-4 group cursor-pointer">
           <div className="relative w-32 h-32 flex-shrink-0 rounded-[var(--radius-lg)] overflow-hidden bg-[var(--color-surface-secondary)]">
-            {primaryImage ? (
+            {primaryImage && !imageError ? (
               <Image
                 src={primaryImage}
                 alt={product.name}
                 fill
                 className="object-cover group-hover:scale-[1.02] transition-transform duration-200"
+                onError={() => setImageError(true)}
               />
             ) : (
-              <div className="w-full h-full flex items-center justify-center">
-                <Package className="h-10 w-10 text-[var(--color-text-muted)]" />
+              <div className="w-full h-full flex items-center justify-center bg-zinc-100 dark:bg-zinc-800">
+                <span className="text-2xl font-black text-zinc-400 dark:text-zinc-600 uppercase tracking-tighter">
+                  {product.name.charAt(0)}
+                </span>
               </div>
             )}
           </div>
@@ -109,16 +113,19 @@ export function ProductCard({ product, viewMode = "grid" }: ProductCardProps) {
     <Link href={`/marketplace/${product.slug}`}>
       <Card className="group relative overflow-hidden p-0 cursor-pointer">
         <div className="relative aspect-square overflow-hidden bg-[var(--color-surface-secondary)] rounded-t-[var(--radius-lg)]">
-          {primaryImage ? (
+          {primaryImage && !imageError ? (
             <Image
               src={primaryImage}
               alt={product.name}
               fill
               className="object-cover group-hover:scale-[1.02] transition-transform duration-200"
+              onError={() => setImageError(true)}
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <Package className="h-12 w-12 text-[var(--color-text-muted)]" />
+            <div className="w-full h-full flex items-center justify-center bg-zinc-50 dark:bg-zinc-900 border-b border-zinc-100 dark:border-zinc-800">
+              <span className="text-4xl font-black text-zinc-200 dark:text-zinc-800 uppercase tracking-tighter">
+                {product.name.charAt(0)}
+              </span>
             </div>
           )}
 

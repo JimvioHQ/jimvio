@@ -12,8 +12,9 @@ import { useCheckoutScrollStep } from "@/components/checkout/use-checkout-active
 import { updatePendingOrdersShipping } from "@/lib/actions/checkout";
 import { getPawaPayProviderOptions } from "@/lib/pawapay-providers";
 import { toast } from "sonner";
-import { cn, formatCartMoney } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { NOWPAYMENTS_INVOICE_URL_STORAGE_KEY } from "@/lib/nowpayments-invoice-bridge";
+import { CurrencySelector, useCurrency } from "@/context/CurrencyContext";
 
 type CartItem = {
   id: string;
@@ -54,8 +55,7 @@ export function CheckoutExperience({
   total: number;
   profile: { full_name: string | null; email: string | null; phone: string | null } | null;
 }) {
-  const firstCurrency = (orders[0]?.currency || "USD").toUpperCase();
-  const [selectedOrderId, setSelectedOrderId] = useState(orders[0]?.id ?? "");
+  const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>(orders.map(o => o.id));
   const [payment, setPayment] = useState<"pesapal" | "nowpayments" | "pawapay" | null>(() =>
     defaultPaymentForCurrency(orders[0]?.currency ?? null)
   );
@@ -65,6 +65,7 @@ export function CheckoutExperience({
   const [submitting, setSubmitting] = useState(false);
 
   const { activeStep, shippingRef, paymentRef, reviewRef } = useCheckoutScrollStep();
+  const { formatPrice, formatMoney, loading: ratesLoading } = useCurrency();
 
   const nameParts = (profile?.full_name || "").split(" ");
 
@@ -81,29 +82,41 @@ export function CheckoutExperience({
     zip: "",
   });
 
-  const selectedOrder = useMemo(
-    () => orders.find((o) => o.id === selectedOrderId) ?? orders[0],
-    [orders, selectedOrderId]
+  const selectedOrders = useMemo(
+    () => orders.filter((o) => selectedOrderIds.includes(o.id)),
+    [orders, selectedOrderIds]
   );
 
   const items: OrderSummaryItem[] = useMemo(
     () =>
-      (selectedOrder?.order_items ?? []).map((i) => ({
-        id: i.id,
-        product_name: i.product_name,
-        product_image: i.product_image,
-        quantity: i.quantity,
-        unit_price: i.unit_price,
-        total_price: i.total_price,
-      })),
-    [selectedOrder]
+      selectedOrders.flatMap((order) => 
+        (order.order_items ?? []).map((i) => ({
+          id: i.id,
+          product_name: i.product_name,
+          product_image: i.product_image,
+          quantity: i.quantity,
+          unit_price: i.unit_price,
+          total_price: i.total_price,
+          vendor_name: order.vendors?.business_name
+        }))
+      ),
+    [selectedOrders]
   );
 
-  const subtotal = selectedOrder
-    ? selectedOrder.order_items.reduce((s, i) => s + Number(i.total_price), 0)
-    : 0;
-  const currency = (selectedOrder?.currency || "USD").toUpperCase();
+  const subtotal = selectedOrders.reduce(
+    (acc, order) => acc + order.order_items.reduce((s, i) => s + Number(i.total_price), 0), 
+    0
+  );
+  const currency = (selectedOrders[0]?.currency || "USD").toUpperCase();
   const total = subtotal;
+
+  const toggleOrder = (id: string) => {
+    setSelectedOrderIds(prev => 
+      prev.includes(id) 
+        ? prev.filter(oid => oid !== id) 
+        : [...prev, id]
+    );
+  };
 
   const pawapayOpts = useMemo(() => {
     const all = getPawaPayProviderOptions();
@@ -122,13 +135,13 @@ export function CheckoutExperience({
   }, [shipping.phone]);
 
   const payCtaLabel = useMemo(() => {
-    const money = formatCartMoney(total, currency);
+    const money = formatMoney(total, currency);
     return `Pay ${money} securely`;
-  }, [total, currency]);
+  }, [total, currency, formatMoney]);
 
   async function handleComplete() {
-    if (!selectedOrder || !payment) {
-      toast.error("Select a payment method");
+    if (!selectedOrders.length || !payment) {
+      toast.error("Select at least one order and a payment method");
       return;
     }
 
@@ -163,11 +176,16 @@ export function CheckoutExperience({
         throw new Error(save.error || "Could not save address");
       }
 
+      // We'll use the first order ID as the primary reference, 
+      // but send all selected IDs to be linked on the backend.
+      const primaryOrderId = selectedOrders[0].id;
+      const orderIds = selectedOrders.map(o => o.id);
+
       if (payment === "pesapal") {
         const res = await fetch("/api/payments/pesapal/initiate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ orderId: selectedOrder.id }),
+          body: JSON.stringify({ orderId: primaryOrderId, orderIds }),
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "PesaPal failed");
@@ -189,7 +207,8 @@ export function CheckoutExperience({
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            orderId: selectedOrder.id,
+            orderId: primaryOrderId,
+            orderIds,
             provider: pawapayProvider,
             phoneNumber: pawapayPhone.trim(),
           }),
@@ -197,7 +216,7 @@ export function CheckoutExperience({
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "PawaPay failed");
         if (data.status === "ACCEPTED" || data.status === "DUPLICATE_IGNORED") {
-          window.location.href = `/checkout/pending?orderId=${encodeURIComponent(selectedOrder.id)}`;
+          window.location.href = `/checkout/pending?orderId=${encodeURIComponent(primaryOrderId)}`;
           return;
         }
         throw new Error(data.error || "PawaPay did not accept the deposit");
@@ -206,7 +225,7 @@ export function CheckoutExperience({
       const res = await fetch("/api/payments/nowpayments/initiate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderId: selectedOrder.id, payCurrency }),
+        body: JSON.stringify({ orderId: primaryOrderId, orderIds, payCurrency }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "NowPayments failed");
@@ -216,7 +235,7 @@ export function CheckoutExperience({
         } catch {
           /* private mode */
         }
-        window.location.href = `/checkout/crypto-invoice?orderId=${encodeURIComponent(selectedOrder.id)}`;
+        window.location.href = `/checkout/crypto-invoice?orderId=${encodeURIComponent(primaryOrderId)}`;
         return;
       }
       throw new Error("No invoice URL");
@@ -240,11 +259,23 @@ export function CheckoutExperience({
 
   return (
     <div>
-      <header className="mb-8 lg:mb-10">
-        <h1 className="text-2xl sm:text-3xl font-bold text-[var(--color-text-primary)] tracking-tight">Checkout</h1>
-        <p className="text-sm text-[var(--color-text-muted)] mt-1 max-w-xl">
-          Enter shipping, choose payment, then confirm. You pay one seller order at a time.
-        </p>
+      <header className="mb-8 lg:mb-10 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-2xl sm:text-3xl font-bold text-[var(--color-text-primary)] tracking-tight">Checkout</h1>
+          <p className="text-sm text-[var(--color-text-muted)] mt-1 max-w-xl">
+            Enter shipping, choose payment, then confirm. You pay one seller order at a time.
+          </p>
+        </div>
+        <div className="shrink-0 space-y-1.5 sm:text-right">
+          <p className="text-[11px] font-medium text-[var(--color-text-muted)] uppercase tracking-wide">Display currency</p>
+          <CurrencySelector />
+          <p className="text-[10px] text-[var(--color-text-muted)] max-w-[220px] sm:ml-auto">
+            Charges stay in <span className="font-semibold text-[var(--color-text-secondary)]">{currency}</span>
+            {currency === "USD" && !ratesLoading && formatPrice(total) !== "..."
+              ? ` · about ${formatPrice(total)}`
+              : null}
+          </p>
+        </div>
       </header>
 
       <CheckoutProgress activeStep={activeStep} />
@@ -254,29 +285,39 @@ export function CheckoutExperience({
         <div className="space-y-10 min-w-0">
           {orders.length > 1 && (
             <section aria-labelledby="multi-seller-heading" className="space-y-4">
-              <div>
-                <h2 id="multi-seller-heading" className="text-lg font-semibold text-[var(--color-text-primary)]">
-                  Sellers in your cart
-                </h2>
-                <p className="text-sm text-[var(--color-text-muted)] mt-1">
-                  Select which order you are paying now. You can return to checkout for the rest.
-                </p>
+              <div className="flex items-end justify-between">
+                <div>
+                  <h2 id="multi-seller-heading" className="text-lg font-semibold text-[var(--color-text-primary)]">
+                    Sellers in your cart
+                  </h2>
+                  <p className="text-sm text-[var(--color-text-muted)] mt-1">
+                    Select the vendor orders you want to pay for together.
+                  </p>
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="text-xs font-bold text-[var(--color-accent)]"
+                  onClick={() => {
+                    const allSelected = selectedOrderIds.length === orders.length;
+                    setSelectedOrderIds(allSelected ? [] : orders.map(o => o.id));
+                  }}
+                >
+                  {selectedOrderIds.length === orders.length ? "Deselect All" : "Select All"}
+                </Button>
               </div>
               <div className="grid gap-3">
                 {orders.map((o) => {
                   const lineSum = o.order_items.reduce((s, i) => s + Number(i.total_price), 0);
                   const oc = (o.currency || "USD").toUpperCase();
-                  const selected = selectedOrderId === o.id;
+                  const selected = selectedOrderIds.includes(o.id);
                   return (
                     <button
                       key={o.id}
                       type="button"
-                      onClick={() => {
-                        setSelectedOrderId(o.id);
-                        setPayment(defaultPaymentForCurrency(o.currency));
-                      }}
+                      onClick={() => toggleOrder(o.id)}
                       className={cn(
-                        "w-full text-left rounded-2xl border-2 p-4 sm:p-5 transition-all",
+                        "w-full text-left rounded-2xl border-2 p-4 sm:p-5 transition-all outline-none",
                         selected
                           ? "border-[var(--color-accent)] bg-[var(--color-accent-light)]/40 shadow-[inset_0_0_0_1px_var(--color-accent)]"
                           : "border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[var(--color-border-strong)]"
@@ -284,6 +325,12 @@ export function CheckoutExperience({
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex items-center gap-3 min-w-0">
+                          <div className={cn(
+                            "h-5 w-5 rounded border-2 flex items-center justify-center transition-colors",
+                            selected ? "bg-[var(--color-accent)] border-[var(--color-accent)]" : "border-[var(--color-border-strong)] bg-white"
+                          )}>
+                            {selected && <div className="h-2 w-2 bg-white rounded-full" />}
+                          </div>
                           <div className="h-10 w-10 rounded-xl bg-[var(--color-surface-secondary)] flex items-center justify-center shrink-0">
                             <Store className="h-5 w-5 text-[var(--color-text-primary)]" />
                           </div>
@@ -296,28 +343,23 @@ export function CheckoutExperience({
                             </p>
                           </div>
                         </div>
-                        <ChevronRight
-                          className={cn("h-5 w-5 shrink-0 text-[var(--color-text-muted)]", selected && "text-[var(--color-accent)]")}
-                        />
-                      </div>
-                      <ul className="mt-4 space-y-2 border-t border-[var(--color-border)]/80 pt-3">
-                        {o.order_items.map((it) => (
-                          <li key={it.id} className="flex justify-between gap-3 text-sm">
-                            <span className="text-[var(--color-text-secondary)] truncate">
-                              {it.product_name} × {it.quantity}
-                            </span>
-                            <span className="font-medium text-[var(--color-text-primary)] tabular-nums shrink-0">
-                              {formatCartMoney(Number(it.total_price), oc)}
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
-                      <div className="mt-3 flex justify-between items-center text-sm">
-                        <span className="text-[var(--color-text-muted)]">Order subtotal</span>
-                        <span className="font-semibold tabular-nums">{formatCartMoney(lineSum, oc)}</span>
+                        <span className="font-semibold tabular-nums text-[var(--color-text-primary)]">
+                          {formatMoney(lineSum, oc)}
+                        </span>
                       </div>
                       {selected && (
-                        <p className="mt-3 text-xs font-semibold text-[var(--color-accent)]">Paying this order next</p>
+                        <ul className="mt-4 space-y-2 border-t border-[var(--color-border)]/80 pt-3 animate-in fade-in slide-in-from-top-1 duration-200">
+                          {o.order_items.map((it) => (
+                            <li key={it.id} className="flex justify-between gap-3 text-xs">
+                              <span className="text-[var(--color-text-secondary)] truncate">
+                                {it.product_name} × {it.quantity}
+                              </span>
+                              <span className="font-medium text-[var(--color-text-primary)] tabular-nums shrink-0">
+                                {formatMoney(Number(it.total_price), oc)}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
                       )}
                     </button>
                   );
@@ -409,8 +451,8 @@ export function CheckoutExperience({
                 </>
               )}
             </Button>
-            <p className="text-center text-[11px] text-[var(--color-text-muted)] mt-3">
-              {selectedOrder?.vendors?.business_name ?? "Seller"} · {currency} · Encrypted checkout
+            <p className="text-center text-[11px] text-[var(--color-text-muted)] mt-4">
+              {selectedOrders.length} vendor order{selectedOrders.length === 1 ? "" : "s"} · {currency} · Encrypted checkout
             </p>
           </section>
         </div>

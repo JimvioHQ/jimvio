@@ -15,13 +15,17 @@ const supabase = createClient(
 
 export async function POST(req: NextRequest) {
   try {
-    const { orderId } = await req.json()
-    if (!orderId) {
-      return NextResponse.json({ error: 'Missing orderId' }, { status: 400 })
+    const { orderId, orderIds: rawOrderIds } = await req.json()
+    const orderIds: string[] = Array.isArray(rawOrderIds) ? rawOrderIds : [orderId].filter(Boolean)
+    
+    if (orderIds.length === 0) {
+      return NextResponse.json({ error: 'Missing orderId or orderIds' }, { status: 400 })
     }
 
-    // Fetch order + buyer profile
-    const { data: order, error } = await supabase
+    const primaryOrderId = orderIds[0]
+
+    // Fetch all orders + buyer profile
+    const { data: orders, error } = await supabase
       .from('orders')
       .select(`
         id,
@@ -35,12 +39,13 @@ export async function POST(req: NextRequest) {
           phone
         )
       `)
-      .eq('id', orderId)
-      .single()
+      .in('id', orderIds)
 
-    if (error || !order) {
-      return NextResponse.json({ error: 'Order not found' }, { status: 404 })
+    if (error || !orders || orders.length === 0) {
+      return NextResponse.json({ error: 'Orders not found' }, { status: 404 })
     }
+
+    const order = orders.find(o => o.id === primaryOrderId) || orders[0]
 
     type BuyerProfile = { full_name: string | null; email: string | null; phone: string | null }
     const rawProfiles = order.profiles as BuyerProfile | BuyerProfile[] | null
@@ -74,9 +79,9 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    let amount = Number(order.total_amount)
+    let amount = orders.reduce((sum, o) => sum + Number(o.total_amount || 0), 0)
     if (!Number.isFinite(amount) || amount <= 0) {
-      return NextResponse.json({ error: 'Invalid order amount' }, { status: 400 })
+      return NextResponse.json({ error: 'Invalid aggregate order amount' }, { status: 400 })
     }
 
     let currency = (order.currency || 'USD').toUpperCase()
@@ -95,12 +100,16 @@ export async function POST(req: NextRequest) {
     // Register IPN webhook URL with PesaPal
     const ipnId = await registerPesapalIPN()
 
-    // Create PesaPal payment request (billing_address matches API 3.0 docs)
+    // Create PesaPal payment request
+    const description = orders.length === 1 
+      ? `Jimvio Order ${order.order_number}`
+      : `Jimvio Multi-Order (${orders.length} vendors)`
+
     const result = await createPesapalOrder({
-      jimvioOrderId: orderId,
+      jimvioOrderId: primaryOrderId, // gateway still uses one ID as primary ref
       amount,
       currency,
-      description: `Jimvio Order ${order.order_number}`,
+      description,
       ipnId,
       buyer: {
         email,
@@ -115,15 +124,18 @@ export async function POST(req: NextRequest) {
       },
     })
 
-    // Save merchant ref to order
+    // Save merchant ref to all orders in the batch
+    const batchId = crypto.randomUUID()
     await supabase
       .from('orders')
       .update({
-        pesapal_merchant_ref: orderId,
+        pesapal_merchant_ref: primaryOrderId,
+        payment_batch_id:     batchId,
         payment_provider:     'pesapal',
+        gateway_used:         'pesapal',
         updated_at:           new Date().toISOString(),
       })
-      .eq('id', orderId)
+      .in('id', orderIds)
 
     return NextResponse.json({ redirectUrl: result.redirectUrl })
 

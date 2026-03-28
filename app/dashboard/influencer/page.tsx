@@ -12,10 +12,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { StatCard } from "@/components/ui/stat-card";
-import { formatCurrency } from "@/lib/utils";
+import { useCurrency } from "@/context/CurrencyContext";
 import { createClient } from "@/lib/supabase/client";
 
 export default function InfluencerDashboardPage() {
+  const { formatMoney } = useCurrency();
   const [influencer, setInfluencer] = useState<any>(null);
   const [stats, setStats]           = useState({ totalViews: 0, totalEarnings: 0, totalClicks: 0, totalConversions: 0, activeCampaigns: 0 });
   const [recentClips, setRecentClips] = useState<any[]>([]);
@@ -101,7 +102,7 @@ export default function InfluencerDashboardPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard title="Total Video Views" value={loading ? "—" : stats.totalViews.toLocaleString()} icon={<Eye className="h-4 w-4" />} iconColor="from-cyan-600 to-blue-600" />
         <StatCard title="Products Promoted" value={loading ? "—" : stats.activeCampaigns.toString()} icon={<Package className="h-4 w-4" />} iconColor="from-violet-600 to-purple-600" />
-        <StatCard title="Total Earnings" value={loading ? "—" : formatCurrency(stats.totalEarnings)} icon={<DollarSign className="h-4 w-4" />} iconColor="from-emerald-600 to-teal-600" />
+        <StatCard title="Total Earnings" value={loading ? "—" : formatMoney(stats.totalEarnings, "RWF")} icon={<DollarSign className="h-4 w-4" />} iconColor="from-emerald-600 to-teal-600" />
         <StatCard title="Followers" value={loading ? "—" : (influencer?.total_followers ?? 0).toLocaleString()} icon={<Users className="h-4 w-4" />} iconColor="from-pink-600 to-rose-600" />
       </div>
 
@@ -251,7 +252,7 @@ export default function InfluencerDashboardPage() {
                 </div>
                 <div>
                   <p className="text-xs font-bold text-white/80 capitalize">Available Payout</p>
-                  <p className="text-2xl font-black">{formatCurrency(stats.totalEarnings)}</p>
+                  <p className="text-2xl font-black">{formatMoney(stats.totalEarnings, "RWF")}</p>
                 </div>
               </div>
               <Button className="w-full bg-white text-emerald-700 hover:bg-white/90 font-black rounded-xl">

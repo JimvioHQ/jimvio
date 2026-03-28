@@ -10,13 +10,15 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatCard } from "@/components/ui/stat-card";
 import { Input } from "@/components/ui/input";
-import { formatCurrency, cn } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import { useCurrency } from "@/context/CurrencyContext";
 import { createClient } from "@/lib/supabase/client";
 import { TableRowSkeleton } from "@/components/ui/skeleton";
 
-type ProductRow = { id: string; name: string; slug: string; price: number; affiliate_commission_rate?: number; images?: string[] };
+type ProductRow = { id: string; name: string; slug: string; price: number; currency?: string | null; affiliate_commission_rate?: number; images?: string[] };
 
 export default function AffiliateLinksPage() {
+  const { formatMoney } = useCurrency();
   const router = useRouter();
   const [affiliate, setAffiliate]   = useState<Record<string, unknown> | null>(null);
   const [links, setLinks]           = useState<Record<string, unknown>[]>([]);
@@ -62,7 +64,7 @@ export default function AffiliateLinksPage() {
     const supabase = createClient();
     const q = supabase
       .from("products")
-      .select("id, name, slug, price, affiliate_commission_rate, images")
+      .select("id, name, slug, price, currency, affiliate_commission_rate, images")
       .eq("status", "active")
       .eq("is_active", true)
       .eq("affiliate_enabled", true)
@@ -180,7 +182,7 @@ export default function AffiliateLinksPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard title="Total Clicks" value={loading ? "—" : totalClicks.toLocaleString()} icon={<MousePointer className="h-4 w-4" />} iconColor="from-primary-600 to-accent-600" />
         <StatCard title="Conversions" value={loading ? "—" : totalConvs.toLocaleString()} icon={<ShoppingCart className="h-4 w-4" />} iconColor="from-emerald-600 to-teal-600" />
-        <StatCard title="Commission Earned" value={loading ? "—" : formatCurrency(totalEarnings)} icon={<DollarSign className="h-4 w-4" />} iconColor="from-amber-600 to-orange-600" />
+        <StatCard title="Commission Earned" value={loading ? "—" : formatMoney(totalEarnings, "RWF")} icon={<DollarSign className="h-4 w-4" />} iconColor="from-amber-600 to-orange-600" />
         <StatCard title="Active Links" value={loading ? "—" : activeLinks.toString()} icon={<Link2 className="h-4 w-4" />} iconColor="from-blue-600 to-cyan-600" />
       </div>
 
@@ -230,7 +232,7 @@ export default function AffiliateLinksPage() {
                         )}
                       </div>
                       <span className="flex-1 min-w-0 font-medium text-sm text-[var(--color-text-primary)] truncate">{p.name}</span>
-                      <span className="text-sm text-[var(--color-text-muted)] shrink-0">{formatCurrency(Number(p.price))}</span>
+                      <span className="text-sm text-[var(--color-text-muted)] shrink-0">{formatMoney(Number(p.price), p.currency)}</span>
                       <span className={cn("text-xs font-medium shrink-0 px-2 py-0.5 rounded-full", rate > 0 ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400" : "bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)]")}>
                         {rate > 0 ? `${rate}%` : "—"}
                       </span>
@@ -259,7 +261,7 @@ export default function AffiliateLinksPage() {
                     </div>
                     <p className="text-xs text-[var(--color-text-muted)]">
                       {(selectedProduct.affiliate_commission_rate ?? 10)}% commission · You earn{" "}
-                      <span className="font-semibold text-[var(--color-accent)]">{formatCurrency(Number(selectedProduct.price) * ((selectedProduct.affiliate_commission_rate ?? 10) / 100))}</span> per sale
+                      <span className="font-semibold text-[var(--color-accent)]">{formatMoney(Number(selectedProduct.price) * ((selectedProduct.affiliate_commission_rate ?? 10) / 100), selectedProduct.currency)}</span> per sale
                     </p>
                     <div className="flex gap-2 mt-3">
                       <Button size="sm" onClick={createLinkFromProduct} disabled={creating} className="flex-1">
@@ -389,7 +391,7 @@ export default function AffiliateLinksPage() {
                         </td>
                         <td className="py-3.5 px-3 text-right font-medium tabular-nums">{((l.total_clicks as number) ?? 0).toLocaleString()}</td>
                         <td className="py-3.5 px-3 text-right font-medium tabular-nums">{((l.total_conversions as number) ?? 0).toLocaleString()}</td>
-                        <td className="py-3.5 px-3 text-right font-semibold text-[var(--color-text-primary)]">{formatCurrency(Number(l.total_earnings ?? 0))}</td>
+                        <td className="py-3.5 px-3 text-right font-semibold text-[var(--color-text-primary)]">{formatMoney(Number(l.total_earnings ?? 0), "RWF")}</td>
                         <td className="py-3.5 px-3 text-center">
                           <Badge variant={l.is_active ? "success" : "secondary"} className="text-[10px] py-0.5">{l.is_active ? "Active" : "Inactive"}</Badge>
                         </td>

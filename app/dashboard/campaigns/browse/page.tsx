@@ -12,10 +12,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { formatCurrency } from "@/lib/utils";
+import { useCurrency } from "@/context/CurrencyContext";
 import { createClient } from "@/lib/supabase/client";
 
 export default function InfluencerBrowseCampaignsPage() {
+  const { formatMoney } = useCurrency();
   const [campaigns, setCampaigns] = useState<any[]>([]);
   const [loading, setLoading]     = useState(true);
   const [search, setSearch]       = useState("");
@@ -28,7 +29,7 @@ export default function InfluencerBrowseCampaignsPage() {
         .select(`
           *, 
           vendors ( business_name, business_slug, rating ),
-          products ( name, slug, images, price, affiliate_commission_rate )
+          products ( name, slug, images, price, currency, affiliate_commission_rate )
         `)
         .eq("status", "active")
         .order("created_at", { ascending: false });
@@ -109,7 +110,7 @@ export default function InfluencerBrowseCampaignsPage() {
                   </div>
                   <div className="text-right">
                     <p className="text-[10px] text-muted-c capitalize font-bold tracking-wider mb-1">Price</p>
-                    <p className="text-lg font-black text-[var(--color-text-primary)]">{formatCurrency(product?.price || 0)}</p>
+                    <p className="text-lg font-black text-[var(--color-text-primary)]">{formatMoney(Number(product?.price || 0), product?.currency)}</p>
                   </div>
                 </div>
 

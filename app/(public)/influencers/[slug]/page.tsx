@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FollowButton } from "@/components/marketplace/follow-button";
 import { TikTokFeed } from "@/components/influencer/tiktok-feed";
 import { notFound } from "next/navigation";
+import { LocalizedPrice } from "@/components/currency/localized-price";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -124,7 +125,11 @@ export default async function InfluencerProfilePage({ params }: PageProps) {
                       </div>
                       <div className="p-3">
                         <p className="font-bold text-[var(--color-text-primary)] text-sm line-clamp-2">{p.name}</p>
-                        <p className="text-[var(--color-accent)] font-black text-sm">${Number(p.price).toFixed(2)}</p>
+                        <LocalizedPrice
+                          amount={Number(p.price)}
+                          currency={p.currency}
+                          className="text-[var(--color-accent)] font-black text-sm"
+                        />
                       </div>
                     </Link>
                   ))}

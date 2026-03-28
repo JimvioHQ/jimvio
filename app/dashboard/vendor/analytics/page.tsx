@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   BarChart3,
@@ -13,17 +13,21 @@ import {
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
-import { formatCurrency, formatMultiCurrencyLineTotals } from "@/lib/utils";
+import { useCurrency } from "@/context/CurrencyContext";
+import { groupOrderLineRowsToCartOrders } from "@/lib/currency/format";
 
 export default function VendorAnalyticsPage() {
+  const { formatMoney, formatCartTotalsLabel } = useCurrency();
   const supabase = createClient();
   const [vendorId, setVendorId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [revenueLineItems, setRevenueLineItems] = useState<
+    { total_price: number | string; orders?: { currency?: string | null } | null }[]
+  >([]);
   const [stats, setStats] = useState({
     totalViews: 0,
     totalOrders: 0,
     totalRevenue: 0,
-    totalRevenueLabel: "—",
     revenueDisplayCurrency: "RWF",
     conversionRate: 0,
     viewsByMonth: [] as { month: string; views: number }[],
@@ -37,6 +41,7 @@ export default function VendorAnalyticsPage() {
       if (!user) return;
       const { data: v } = await supabase.from("vendors").select("id").eq("user_id", user.id).single();
       if (!v) {
+        setRevenueLineItems([]);
         setLoading(false);
         return;
       }
@@ -62,7 +67,7 @@ export default function VendorAnalyticsPage() {
       const totalViews = products.reduce((s, p) => s + (Number(p.view_count) ?? 0), 0);
       const totalOrders = items.length;
       const totalRevenue = items.reduce((s, i) => s + Number(i.total_price), 0);
-      const totalRevenueLabel = formatMultiCurrencyLineTotals(items as Parameters<typeof formatMultiCurrencyLineTotals>[0]);
+      setRevenueLineItems(items as typeof revenueLineItems);
       const revenueDisplayCurrency = (items[0] as { orders?: { currency?: string } } | undefined)?.orders?.currency?.toUpperCase() || "RWF";
       const conversionRate = totalViews > 0 ? Math.round((totalOrders / totalViews) * 10000) / 100 : 0;
 
@@ -84,7 +89,6 @@ export default function VendorAnalyticsPage() {
         totalViews,
         totalOrders,
         totalRevenue,
-        totalRevenueLabel,
         revenueDisplayCurrency,
         conversionRate,
         viewsByMonth,
@@ -95,6 +99,11 @@ export default function VendorAnalyticsPage() {
     }
     load();
   }, []);
+
+  const totalRevenueLabel = useMemo(() => {
+    if (!revenueLineItems.length) return "—";
+    return formatCartTotalsLabel(groupOrderLineRowsToCartOrders(revenueLineItems));
+  }, [revenueLineItems, formatCartTotalsLabel]);
 
   if (!loading && !vendorId) {
     return (
@@ -147,7 +156,7 @@ export default function VendorAnalyticsPage() {
                 <div className="p-2 rounded-xl bg-emerald-100 text-emerald-600"><DollarSign className="h-5 w-5" /></div>
                 <div>
                   <p className="text-xs font-medium text-[var(--color-text-muted)]">Revenue (6 mo.)</p>
-                  <p className="text-xl font-bold text-[var(--color-text-primary)] leading-tight">{stats.totalRevenueLabel}</p>
+                  <p className="text-xl font-bold text-[var(--color-text-primary)] leading-tight">{totalRevenueLabel}</p>
                 </div>
               </CardContent>
             </Card>
@@ -190,7 +199,7 @@ export default function VendorAnalyticsPage() {
                         <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${(() => { const max = Math.max(1, ...stats.revenueByMonth.map((x) => x.revenue)); return (m.revenue / max) * 100; })()}%` }} />
                       </div>
                       <span className="text-sm font-semibold w-28 text-right tabular-nums">
-                        {formatCurrency(m.revenue, stats.revenueDisplayCurrency)}
+                        {formatMoney(m.revenue, stats.revenueDisplayCurrency)}
                       </span>
                     </div>
                   ))}
