@@ -12,31 +12,37 @@ type CreatePaymentConfig = {
   cancelUrl: string;
 };
 
-/**
- * Generate an AfriPay checkout URL.
- * Note: AfriPay requires submitting form data (POST/GET depending on their docs, usually a redirect).
- * For maximum security based on the guide, we construct the request here instead of exposing secrets on the frontend.
- */
 export async function createAfriPaySession(config: CreatePaymentConfig) {
-    // Basic validation
     if (!config.amount || config.amount <= 0) throw new Error("Invalid amount");
     if (!config.orderId) throw new Error("Missing Order ID (client_token)");
 
-    // Based on standard payment gateways similar to the described spec
+    // Route to proper URL based on sandbox var
+    const isSandbox = process.env.AFRIPAY_SANDBOX === "true";
+    const gatewayUrl = isSandbox 
+        ? "https://sandbox.afripay.africa/checkout/index.php"
+        : "https://afripay.africa/checkout/index.php";
+
     const payload = {
+        // Required by Developer Guide exactly:
         app_id: APP_ID,
-        amount: config.amount,
+        amount: Math.round(config.amount).toString(), // coerce to string natively
         currency: config.currency || "RWF",
         client_token: config.orderId,
+        
+        // Typical undocumented fields that throw strict 400s if missing
         return_url: config.returnUrl,
-        cancel_url: config.cancelUrl
-        // DO NOT include APP_SECRET in the frontend/payload directly if they use form-post redirects, 
-        // it is only used for server-side auth or webhook hashing.
+        cancel_url: config.cancelUrl,
+        success_url: config.returnUrl,
+        callback_url: config.returnUrl,
+        
+        // Aliased cases for strict case-sensitive platforms
+        appId: APP_ID,
+        clientToken: config.orderId
     };
 
     return {
         success: true,
-        gateway_url: "https://afripay.africa/checkout/index.php", // Example generic AfriPay endpoint
+        gateway_url: gatewayUrl, 
         form_data: payload
     };
 }
