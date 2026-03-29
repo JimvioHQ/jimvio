@@ -3,6 +3,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { CurrencyProvider } from "@/context/CurrencyContext";
 import { Toaster } from "sonner";
+import NextTopLoader from "nextjs-toploader";
 
 const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "https://jimvio.com";
 
@@ -52,6 +53,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         style={{ backgroundColor: "#ffffff", color: "var(--color-text-primary)" }}
       >
         <ThemeProvider>
+          <NextTopLoader color="#f97316" height={3} showSpinner={false} easing="ease" speed={200} shadow="0 0 10px #f97316,0 0 5px #f97316" />
           <CurrencyProvider>{children}</CurrencyProvider>
           <Toaster
             richColors

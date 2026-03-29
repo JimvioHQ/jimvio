@@ -16,27 +16,37 @@ interface BuyButtonProps {
 export function BuyButton({ productId, vendorId, quantity = 1, className }: BuyButtonProps) {
   const [loading, setLoading] = useState(false);
   const [added, setAdded] = useState(false);
-  const { refreshCart } = useCartStore();
- 
+  const { refreshCart, incrementCartCount } = useCartStore();
+  
   async function handleAddToCart() {
     if (!vendorId) return;
-    setLoading(true);
+
+    // Fast Optimistic Update
+    setAdded(true);
+    incrementCartCount(quantity);
+    
+    // Auto-reset UI state without waiting for the server
+    setTimeout(() => setAdded(false), 2000);
+
+    // Call server asynchronously
     try {
       const result = await addToCart(productId, vendorId, quantity);
       if (result.success) {
-        setAdded(true);
-        await refreshCart();
-        setTimeout(() => setAdded(false), 2000);
+        // Silently refresh global cart state in background
+        refreshCart(); 
       } else if (result.error === "Authentication required") {
+         // Rollback UI
+         incrementCartCount(-quantity); 
          window.location.href = `/login?next=${window.location.pathname}`;
       } else {
-        alert(result.error || "Failed to add to cart");
+         // Rollback UI
+         incrementCartCount(-quantity); 
+         alert(result.error || "Failed to add to cart");
       }
     } catch (error) {
       console.error("Cart addition failed:", error);
+      incrementCartCount(-quantity); 
       alert("Something went wrong. Please try again.");
-    } finally {
-      setLoading(false);
     }
   }
  

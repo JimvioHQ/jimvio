@@ -13,30 +13,31 @@ export async function initiateAfriPayPayment(params: {
   description: string;
   callbackUrl: string;
 }): Promise<{ transactionId: string; status: string; error?: string }> {
-  const apiKey = process.env.AFRIPAY_API_KEY?.trim();
-  if (!apiKey) {
-    return { transactionId: params.transactionId, status: "FAILED", error: "AFRIPAY_API_KEY is not set" };
+  const appId = process.env.AFRIPAY_APP_ID?.trim();
+  const appSecret = process.env.AFRIPAY_APP_SECRET?.trim();
+  
+  if (!appId || !appSecret) {
+    return { transactionId: params.transactionId, status: "FAILED", error: "AFRIPAY_APP_ID or AFRIPAY_APP_SECRET is not set" };
   }
 
   const baseUrl =
     process.env.AFRIPAY_SANDBOX === "true"
-      ? "https://sandbox.afripay.africa"
-      : "https://www.afripay.africa";
+      ? "https://sandbox.afripay.io/api"
+      : "https://afripay.io/api";
 
   try {
     const amount = await convertFromUSD(params.amountUSD, "RWF");
-
-    // TODO: Replace with exact AfriPay endpoint once confirmed from their docs
-    const url = `${baseUrl.replace(/\/$/, "")}/api/v1/payment/initiate`;
+    const url = `${baseUrl.replace(/\/$/, "")}/payment/initiate`;
 
     const res = await fetch(url, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
         Accept: "application/json",
       },
       body: JSON.stringify({
+        app_id: appId,
+        app_secret: appSecret,
         transactionId: params.transactionId,
         amount: Math.round(amount),
         currency: "RWF",
@@ -73,24 +74,29 @@ export async function initiateAfriPayPayment(params: {
 }
 
 export async function checkAfriPayStatus(transactionId: string): Promise<{ status: string; error?: string }> {
-  const apiKey = process.env.AFRIPAY_API_KEY?.trim();
-  if (!apiKey) return { status: "FAILED", error: "AFRIPAY_API_KEY is not set" };
+  const appId = process.env.AFRIPAY_APP_ID?.trim();
+  const appSecret = process.env.AFRIPAY_APP_SECRET?.trim();
+  
+  if (!appId || !appSecret) return { status: "FAILED", error: "AFRIPAY_APP_ID or AFRIPAY_APP_SECRET is not set" };
 
   const baseUrl =
     process.env.AFRIPAY_SANDBOX === "true"
-      ? "https://sandbox.afripay.africa"
-      : "https://www.afripay.africa";
+      ? "https://sandbox.afripay.io/api"
+      : "https://afripay.io/api";
 
   try {
-    // TODO: Verify endpoint from AfriPay docs when available
-    const url = `${baseUrl.replace(/\/$/, "")}/api/v1/payment/status/${transactionId}`;
+    const url = `${baseUrl.replace(/\/$/, "")}/payment/status/${transactionId}`;
 
     const res = await fetch(url, {
-      method: "GET",
+      method: "POST", // Status calls typically POST app credentials if basic auth isn't used
       headers: {
-        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
         Accept: "application/json",
       },
+      body: JSON.stringify({
+         app_id: appId,
+         app_secret: appSecret
+      })
     });
 
     const text = await res.text();

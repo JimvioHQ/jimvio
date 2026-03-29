@@ -14,6 +14,7 @@ interface CartState {
   refreshCounts: () => Promise<void>;
   setCartData: (orders: any[], total: number) => void;
   setCartCount: (count: number) => void;
+  incrementCartCount: (amount: number) => void;
   clearCart: () => void;
 }
 
@@ -69,6 +70,10 @@ export const useCartStore = create<CartState>((set, get) => ({
 
   setCartCount: (count) => {
     set({ cartCount: count });
+  },
+
+  incrementCartCount: (amount) => {
+    set((state) => ({ cartCount: state.cartCount + amount }));
   },
 
   clearCart: () => {

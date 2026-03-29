@@ -61,7 +61,7 @@ export function ProductCardClient({
   const [cartChecked, setCartChecked] = useState(false);
   const [wishlistAnimating, setWishlistAnimating] = useState(false);
   const [imageError, setImageError] = useState(false);
-  const { refreshCounts } = useCartStore();
+  const { refreshCounts, incrementCartCount } = useCartStore();
   const [quickViewOpen, setQuickViewOpen] = useState(false);
 
   const images = p.images ?? [];
@@ -95,37 +95,45 @@ export function ProductCardClient({
   const handleCartToggle = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (loading) return;
-    setLoading(true);
 
     try {
       if (inCart) {
-        // Remove from cart
+        // Optimistic Remove
+        setInCart(false);
+        incrementCartCount(-1);
+        toast.success(`"${p.name}" removed from cart`);
+
         const result = await removeProductFromCart(p.id);
         if (result.success) {
-          setInCart(false);
-          toast.success(`"${p.name}" removed from cart`);
-          await refreshCounts();
+          refreshCounts();
         } else {
+          // Rollback
+          setInCart(true);
+          incrementCartCount(1);
           toast.error(result.error || "Failed to remove from cart");
         }
       } else {
-        // Add to cart
         const vendorId = p.vendors?.id;
         if (!vendorId) { toast.error("Cannot find vendor for this product."); return; }
+        
+        // Optimistic Add
+        setInCart(true);
+        incrementCartCount(1);
+        toast.success(`"${p.name}" added to cart!`);
+
         const result = await addToCart(p.id, vendorId);
         if (result.success) {
-          setInCart(true);
-          toast.success(`"${p.name}" added to cart!`);
-          await refreshCounts();
+          refreshCounts();
         } else {
+          // Rollback
+          setInCart(false);
+          incrementCartCount(-1);
           toast.error(result.error || "Failed to add to cart");
         }
       }
     } catch {
       toast.error("Something went wrong");
-    } finally {
-      setLoading(false);
+      // Could apply more complex rollbacks here, but a general error toast covers network failure.
     }
   };
 

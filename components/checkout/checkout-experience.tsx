@@ -201,22 +201,32 @@ export function CheckoutExperience({
       }
 
       if (payment === "afripay") {
-        if (!afripayPhone.trim()) {
-          throw new Error("Enter your mobile money number for AfriPay");
-        }
-        const res = await fetch("/api/payments/afripay/initiate", {
+        toast.loading("Transferring to AfriPay Secure Checkout...", { id: "afripay-load" });
+        const res = await fetch("/api/afripay/create", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            orderId: primaryOrderId,
-            orderIds,
-            network: afripayNetwork,
-            phoneNumber: afripayPhone.trim(),
-          }),
+          body: JSON.stringify({ orderId: primaryOrderId }),
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "AfriPay failed");
-        window.location.href = `/checkout/pending?orderId=${encodeURIComponent(primaryOrderId)}`;
+        if (!res.ok) {
+           toast.dismiss("afripay-load");
+           throw new Error(data.message || "AfriPay session failed");
+        }
+
+        // Dynamically build and submit the form exactly as the Developer Guide mandates for Step 3
+        const form = document.createElement("form");
+        form.method = "POST";
+        form.action = data.checkout.gateway_url; 
+        
+        Object.entries(data.checkout.form_data).forEach(([key, val]) => {
+           const input = document.createElement("input");
+           input.type = "hidden";
+           input.name = key;
+           input.value = String(val);
+           form.appendChild(input);
+        });
+        document.body.appendChild(form);
+        form.submit();
         return;
       }
 
