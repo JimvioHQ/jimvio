@@ -6,8 +6,6 @@ import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import { EMOJI_LIST } from "./message-bubble";
 
-const BUCKET = "chat-files";
-
 export function ChatInput({
   conversationId,
   userId,
@@ -34,13 +32,30 @@ export function ChatInput({
   const imageInputRef = useRef<HTMLInputElement>(null);
   const supabase = createClient();
 
-  async function uploadFile(file: File, type: "image" | "file") {
-    const ext = file.name.split(".").pop() || "bin";
-    const path = `${conversationId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-    const { data, error } = await supabase.storage.from(BUCKET).upload(path, file, { upsert: false });
-    if (error) throw error;
-    const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(data.path);
-    return { url: urlData.publicUrl, file_name: file.name };
+  async function uploadFile(file: File, _type: "image" | "file"): Promise<{ url: string; file_name: string }> {
+    // Get server-signed upload params
+    const sigRes = await fetch("/api/uploads/signature", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ folder: "jimvio/chat" }),
+    });
+    if (!sigRes.ok) throw new Error("Failed to get upload signature");
+    const { data: sig } = await sigRes.json();
+
+    const resourceType = file.type.startsWith("video/") ? "video" : file.type.startsWith("image/") ? "image" : "raw";
+    const formData = new FormData();
+    formData.append("file",      file);
+    formData.append("api_key",   sig.apiKey);
+    formData.append("timestamp", sig.timestamp);
+    formData.append("signature", sig.signature);
+    formData.append("folder",    sig.folder);
+
+    const endpoint = `https://api.cloudinary.com/v1_1/${sig.cloudName}/${resourceType}/upload`;
+    const uploadRes = await fetch(endpoint, { method: "POST", body: formData });
+    if (!uploadRes.ok) throw new Error("Cloudinary upload failed");
+    const data = await uploadRes.json();
+
+    return { url: data.secure_url, file_name: file.name };
   }
 
   async function sendMessage(payload: {

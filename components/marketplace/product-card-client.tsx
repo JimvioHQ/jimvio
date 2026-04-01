@@ -48,6 +48,8 @@ export interface ProductCardClientProps {
   inWishlist?: boolean;
   onToggleWishlist?: (e: React.MouseEvent) => void;
   detailBasePath?: string;
+  /** Pre-fetched cart status from batch query. When provided, skips the per-card server call. */
+  initialInCart?: boolean;
 }
 
 export function ProductCardClient({
@@ -55,10 +57,11 @@ export function ProductCardClient({
   inWishlist = false,
   onToggleWishlist,
   detailBasePath = "/marketplace",
+  initialInCart,
 }: ProductCardClientProps) {
   const [loading, setLoading] = useState(false);
-  const [inCart, setInCart] = useState(false);
-  const [cartChecked, setCartChecked] = useState(false);
+  const [inCart, setInCart] = useState(initialInCart ?? false);
+  const [cartChecked, setCartChecked] = useState(initialInCart !== undefined);
   const [wishlistAnimating, setWishlistAnimating] = useState(false);
   const [imageError, setImageError] = useState(false);
   const { refreshCounts, incrementCartCount } = useCartStore();
@@ -80,8 +83,9 @@ export function ProductCardClient({
   const stars = Math.round(Number(p.rating ?? 0));
   const commissionRate = p.affiliate_commission_rate;
 
-  // Check if product is already in cart on mount
+  // Only fall back to per-card check if parent didn't provide batch data
   useEffect(() => {
+    if (initialInCart !== undefined) return; // Already have batch data
     let cancelled = false;
     checkProductInCart(p.id).then((res) => {
       if (!cancelled) {
@@ -90,50 +94,43 @@ export function ProductCardClient({
       }
     });
     return () => { cancelled = true; };
-  }, [p.id]);
+  }, [p.id, initialInCart]);
 
   const handleCartToggle = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
 
     try {
+      setLoading(true);
       if (inCart) {
-        // Optimistic Remove
-        setInCart(false);
-        incrementCartCount(-1);
-        toast.success(`"${p.name}" removed from cart`);
-
+        // Wait for action to complete before updating global state
         const result = await removeProductFromCart(p.id);
         if (result.success) {
+          setInCart(false);
           refreshCounts();
+          toast.success(`"${p.name}" removed from cart`);
         } else {
-          // Rollback
-          setInCart(true);
-          incrementCartCount(1);
           toast.error(result.error || "Failed to remove from cart");
         }
       } else {
         const vendorId = p.vendors?.id;
         if (!vendorId) { toast.error("Cannot find vendor for this product."); return; }
         
-        // Optimistic Add
-        setInCart(true);
-        incrementCartCount(1);
-        toast.success(`"${p.name}" added to cart!`);
-
+        // Wait for action to complete before updating global state
         const result = await addToCart(p.id, vendorId);
         if (result.success) {
+          setInCart(true);
           refreshCounts();
+          toast.success(`"${p.name}" added to cart!`);
         } else {
-          // Rollback
-          setInCart(false);
-          incrementCartCount(-1);
           toast.error(result.error || "Failed to add to cart");
         }
       }
     } catch {
       toast.error("Something went wrong");
       // Could apply more complex rollbacks here, but a general error toast covers network failure.
+    } finally {
+      setLoading(false);
     }
   };
 

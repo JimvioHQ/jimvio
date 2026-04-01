@@ -11,10 +11,13 @@ type Product = Parameters<typeof ProductCardClient>[0]["p"];
 export function ProductsCatalogClient({
   initialProducts,
   categories,
+  cartProductIds = [],
 }: {
   initialProducts: Product[];
   categories: { id: string; name: string; slug: string }[];
+  cartProductIds?: string[];
 }) {
+  const cartSet = useMemo(() => new Set(cartProductIds), [cartProductIds]);
   const [q, setQ] = useState("");
   const [cat, setCat] = useState<string>("all");
   const [source, setSource] = useState<"all" | "shopify" | "jimvio">("all");
@@ -81,7 +84,7 @@ export function ProductsCatalogClient({
       ) : (
         <div className="product-grid md:grid-cols-3 lg:grid-cols-4">
           {filtered.map((p) => (
-            <ProductCardClient key={p.id} p={p} detailBasePath="/products" />
+            <ProductCardClient key={p.id} p={p} detailBasePath="/products" initialInCart={cartSet.has(p.id)} />
           ))}
         </div>
       )}

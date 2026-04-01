@@ -10,12 +10,18 @@ export const getDB = cache(async () => {
 });
 
 /**
- * Service Role client for bypass RLS and admin tasks
+ * Service Role client for bypass RLS and admin tasks.
+ * Uses a module-level singleton to avoid re-creating the client on every call.
  */
+let _adminClient: ReturnType<typeof createAdminClient> | null = null;
+
 export function getAdminDB() {
-  return createAdminClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { autoRefreshToken: false, persistSession: false } }
-  );
+  if (!_adminClient) {
+    _adminClient = createAdminClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    );
+  }
+  return _adminClient;
 }

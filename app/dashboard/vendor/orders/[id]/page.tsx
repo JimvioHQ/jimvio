@@ -71,7 +71,7 @@ export default function VendorOrderDetailPage() {
       }
       const { data: items } = await supabase
         .from("order_items")
-        .select("id, product_name, product_image, quantity, unit_price, total_price")
+        .select("id, product_name, product_image, quantity, unit_price, total_price, product_source")
         .eq("order_id", id)
         .eq("vendor_id", v.id);
       setOrder(orderData);
@@ -114,7 +114,14 @@ export default function VendorOrderDetailPage() {
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-[var(--color-text-primary)] truncate">{item.product_name}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-semibold text-[var(--color-text-primary)] truncate">{item.product_name}</p>
+                        {item.product_source === "cj" && (
+                          <Badge variant="secondary" className="text-[9px] px-1.5 py-0 uppercase">
+                            CJ Dropshipping
+                          </Badge>
+                        )}
+                      </div>
                       <p className="text-sm text-[var(--color-text-muted)]">
                         {item.quantity} × {formatMoney(Number(item.unit_price), orderCurrency)}
                       </p>

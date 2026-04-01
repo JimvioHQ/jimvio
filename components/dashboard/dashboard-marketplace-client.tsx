@@ -70,6 +70,10 @@ interface DashboardMarketplaceClientProps {
   limit: number;
   params: { q?: string; cat?: string; sort?: string; min?: string; max?: string; country?: string; type?: string; catalog?: string };
   popularStores?: PopularStore[];
+  /** Pre-fetched cart product IDs from server for batch status */
+  cartProductIds?: string[];
+  /** Pre-fetched followed vendor IDs from server for batch status */
+  followedVendorIds?: string[];
 }
 
 const SORT_OPTIONS = [
@@ -95,7 +99,11 @@ export function DashboardMarketplaceClient({
   limit,
   params,
   popularStores = [],
+  cartProductIds = [],
+  followedVendorIds = [],
 }: DashboardMarketplaceClientProps) {
+  const cartSet = useMemo(() => new Set(cartProductIds), [cartProductIds]);
+  const followSet = useMemo(() => new Set(followedVendorIds), [followedVendorIds]);
   const router = useRouter();
   const searchParams = useSearchParams();
   const [wishlistIds, setWishlistIds] = useState<Set<string>>(new Set());
@@ -526,6 +534,7 @@ export function DashboardMarketplaceClient({
                         <div className="flex gap-1.5">
                           <FollowButton
                             vendorId={s.id}
+                            initialFollowing={followSet.has(s.id)}
                             className="flex-1 rounded-lg h-8 text-[10px] font-bold border border-[#f0f0f0] hover:border-[#f97316] hover:text-[#f97316]"
                           />
                           <Link href={storeUrl} className="shrink-0">
@@ -596,6 +605,7 @@ export function DashboardMarketplaceClient({
                   >
                     <ProductCardClient
                       p={p}
+                      initialInCart={cartSet.has(p.id)}
                       inWishlist={wishlistIds.has(p.id)}
                       onToggleWishlist={savingId ? undefined : (e) => handleSave(e, p.id)}
                     />

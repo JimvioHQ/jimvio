@@ -11,6 +11,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
+import { CloudinaryUploadButton, CloudinaryDropzone } from "@/components/ui/cloudinary-upload";
+import { CloudinaryImage } from "@/components/ui/cloudinary-image";
 
 function slugify(text: string) {
   return text.toLowerCase().replace(/[^\w\s-]/g, "").replace(/[\s_-]+/g, "-").replace(/^-+|-+$/g, "");
@@ -48,6 +50,7 @@ export default function NewProductPage() {
     is_featured: false,
     status: "draft",
     tags: "",
+    images: [] as string[],
   });
 
   useEffect(() => {
@@ -84,6 +87,18 @@ export default function NewProductPage() {
     });
   }
 
+  function handleImageUpload(url: string) {
+    setForm((prev) => ({ ...prev, images: [...prev.images, url] }));
+  }
+
+  function removeImage(index: number) {
+    setForm((prev) => {
+      const newImages = [...prev.images];
+      newImages.splice(index, 1);
+      return { ...prev, images: newImages };
+    });
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -117,7 +132,7 @@ export default function NewProductPage() {
         influencer_enabled: form.influencer_enabled,
         is_featured: form.is_featured,
         tags: form.tags ? form.tags.split(",").map((t) => t.trim()).filter(Boolean) : null,
-        images: [],
+        images: form.images,
       };
       const { error: insertErr } = await supabase.from("products").insert(payload);
       if (insertErr) {
@@ -167,6 +182,40 @@ export default function NewProductPage() {
         <Card className="border-[var(--color-border)] shadow-[var(--shadow-md)] rounded-2xl overflow-hidden bg-white/90 backdrop-blur-sm">
           <CardContent className="p-6 sm:p-8">
             <form onSubmit={handleSubmit} className="space-y-8">
+              <div className="space-y-6">
+                <div className="pb-2">
+                  <h2 className="text-lg font-semibold text-[var(--color-text-primary)] flex items-center gap-2">
+                    <ImageIcon className="h-5 w-5 text-[var(--color-accent)]" />
+                    Product Images
+                  </h2>
+                  <p className="text-sm text-[var(--color-text-muted)] mt-1">Upload at least one image showing your product</p>
+                </div>
+                
+                {form.images.length > 0 && (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                    {form.images.map((img, i) => (
+                      <div key={i} className="relative group aspect-square rounded-2xl overflow-hidden border">
+                        <CloudinaryImage src={img} alt={`Product Image ${i + 1}`} className="w-full h-full object-cover" />
+                        <button 
+                          type="button" 
+                          onClick={() => removeImage(i)}
+                          className="absolute top-2 right-2 bg-black/50 hover:bg-black/70 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
+                <CloudinaryDropzone 
+                  folder="jimvio/products"
+                  onUploadSuccess={handleImageUpload}
+                  label="Upload Product Image"
+                  sublabel="Recommended: 1000x1000px JPG/PNG"
+                />
+              </div>
+
               {/* Basic Information */}
               <div className="space-y-6">
                 <div className="pb-2">

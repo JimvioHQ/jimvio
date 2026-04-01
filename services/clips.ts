@@ -114,7 +114,7 @@ export async function getTopCreators(limit = 6) {
     .eq("is_active", true);
 
   const order = new Map(rankedIds.map((id, i) => [id, i]));
-  const sorted = (influencers ?? []).sort((a, b) => (order.get(a.id) ?? 999) - (order.get(b.id) ?? 999)).slice(0, limit);
+  const sorted: any[] = (influencers ?? []).sort((a: any, b: any) => (order.get(a.id) ?? 999) - (order.get(b.id) ?? 999)).slice(0, limit);
 
   return sorted.map((inf) => ({
     id: inf.id,

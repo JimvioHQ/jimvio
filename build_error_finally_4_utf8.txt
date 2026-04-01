@@ -1,0 +1,75 @@
+﻿
+> jimvio@1.0.0 build
+> next build
+
+   Γû▓ Next.js 15.5.12
+   - Environments: .env.local, .env
+   - Experiments (use with caution):
+     ┬╖ serverActions
+
+   Creating an optimized production build ...
+ Γ£ô Compiled successfully in 18.4s
+   Linting and checking validity of types ...
+node.exe : Failed to 
+compile.
+At line:1 char:1
++ & "C:\Program 
+Files\nodejs/node.exe" 
+"C:\Program 
+Files\nodejs/node_mo 
+...
++ ~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
+~~
+    + CategoryInfo     
+         : 
+NotSpecified: (F    
+ailed to compile.:Str  
+  ing) [], 
+RemoteExcept    ion
+    + 
+FullyQualifiedError    
+Id : NativeCommandErr  
+  or
+ 
+
+./services/clips.ts:120
+:13
+Type error: Property 
+'id' does not exist on 
+type 'never'.
+
+[0m [90m 118 |[39m
+ [90m 119 |[39m   
+[36mreturn[39m sorted
+[33m.[39mmap((inf) 
+[33m=>[39m ({
+[31m[1m>[22m[39m[9
+0m 120 |[39m     
+id[33m:[39m inf[33m.
+[39mid[33m,[39m
+ [90m     |[39m      
+       
+[31m[1m^[22m[39m
+ [90m 121 |[39m     
+user_id[33m:[39m inf
+[33m.[39muser_id[33m,
+[39m
+ [90m 122 |[39m     
+full_name[33m:[39m in
+f[33m.[39mdisplay_nam
+e 
+[33m?[39m[33m?[39m 
+[32m"Creator"[39m[33
+m,[39m
+ [90m 123 |[39m     
+avatar_url[33m:[39m i
+nf[33m.[39mprofile_im
+age 
+[33m?[39m[33m?[39m 
+[36mnull[39m[33m,[3
+9m[0m
+Next.js build worker 
+exited with code: 1 
+and signal: null

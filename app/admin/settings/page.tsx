@@ -13,7 +13,7 @@ export default async function AdminSettingsPage() {
   const initial = resolvePlatformSettingsFromRows(data ?? []);
 
   const { data: ssRow } = await admin.from("platform_settings").select("value").eq("key", "supplier_sources").maybeSingle();
-  const supplierSourcesInitial = mergeSupplierSources(ssRow?.value);
+  const supplierSourcesInitial = mergeSupplierSources((ssRow as any)?.value);
 
   return <AdminPlatformSettingsForm initial={initial} supplierSourcesInitial={supplierSourcesInitial} />;
 }

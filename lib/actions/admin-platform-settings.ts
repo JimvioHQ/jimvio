@@ -23,7 +23,7 @@ export async function savePlatformSettingsAction(next: ResolvedPlatformSettings)
       { key: "marketing", value: next.marketing as unknown as Record<string, unknown> },
       { key: "contact", value: next.contact as unknown as Record<string, unknown> },
     ];
-    const { error } = await admin.from("platform_settings").upsert(rows, { onConflict: "key" });
+    const { error } = await (admin.from("platform_settings") as any).upsert(rows, { onConflict: "key" });
     if (error) return { error: error.message };
 
     revalidatePath("/admin/settings");

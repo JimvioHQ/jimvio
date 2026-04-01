@@ -8,6 +8,7 @@ import {
   getCategories, getFeaturedProducts, getTrendingProducts, getTopVendors,
   getViralClips, getCampaigns, getPlatformStats, getTopCreators, getProducts,
 } from "@/services/db";
+import { getCartProductIds } from "@/lib/actions/marketplace";
 import { ProductCardClient } from "@/components/marketplace/product-card-client";
 import { TrendingProductClipsSection } from "@/components/marketplace/trending-product-clips-section";
 import { SocialProofBar } from "@/components/marketplace/social-proof-bar";
@@ -46,6 +47,7 @@ export default async function HomePage() {
     categories, featured, trending, vendors,
     viralClips, platformStats, topCreators,
     shopifyFeaturedRes, platformSettingsMaybe, campaigns,
+    cartProductIds,
   ] = await Promise.all([
     getCategories().catch(() => []),
     getFeaturedProducts(24).catch(() => []),
@@ -57,7 +59,10 @@ export default async function HomePage() {
     getProducts({ catalog: "shopify", limit: 24, offset: 0, sort: "newest" }).catch(() => ({ products: [], total: 0 })),
     getResolvedPlatformSettings().catch(() => null),
     getCampaigns(8).catch(() => []),
+    getCartProductIds().catch(() => []),
   ]);
+
+  const cartSet = new Set(cartProductIds);
 
   const platformSettings = platformSettingsMaybe ?? PLATFORM_SETTINGS_DEFAULTS;
   const industriesSorted = [...(categories as any[])]
@@ -126,6 +131,19 @@ export default async function HomePage() {
         {/* ── MAIN CONTENT ── */}
         <div className="max-w-[1536px] mx-auto px-4 sm:px-6 pt-8 pb-12 md:pt-12 md:pb-20 space-y-10">
 
+          {/* ── RECOMMENDED PICKS ── */}
+          <section id="recommended-picks" className="grid grid-cols-1 lg:grid-cols-[1fr,260px] gap-8 scroll-mt-32">
+            <div>
+              <RecommendedHeader />
+              <div className="product-grid md:grid-cols-3 lg:grid-cols-4">
+                {recommended.map((p) => (
+                  <ProductCardClient key={p.id} p={p as any} initialInCart={cartSet.has(p.id)} />
+                ))}
+              </div>
+            </div>
+            <CategorySidebar cats={sidebarCats} />
+          </section>
+
           <TrendingProductClipsSection clips={viralClips as any} />
 
           <SocialProofBar
@@ -134,19 +152,6 @@ export default async function HomePage() {
             totalProducts={socialBar.totalProducts}
             countries={socialBar.countries}
           />
-
-          {/* ── RECOMMENDED PICKS ── */}
-          <section className="grid grid-cols-1 lg:grid-cols-[1fr,260px] gap-8">
-            <div>
-              <RecommendedHeader />
-              <div className="product-grid md:grid-cols-3 lg:grid-cols-4">
-                {recommended.map((p) => (
-                  <ProductCardClient key={p.id} p={p as any} />
-                ))}
-              </div>
-            </div>
-            <CategorySidebar cats={sidebarCats} />
-          </section>
 
           <TopCreatorsSection creators={topCreators as any} />
           <PopularStoresSection stores={(vendors || []).map((v: any) => ({

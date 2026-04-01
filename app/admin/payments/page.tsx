@@ -9,8 +9,8 @@ export const dynamic = "force-dynamic";
 export default async function AdminPaymentsPage() {
   const admin = getAdminDB();
   const { data: orders } = await admin.from("orders").select("id, total_amount, status, created_at").order("created_at", { ascending: false }).limit(30);
-  const list = orders ?? [];
-  const totalVolume = list.reduce((s, o) => s + Number(o.total_amount ?? 0), 0);
+  const list: any[] = orders ?? [];
+  const totalVolume = list.reduce((s, o) => s + Number(o?.total_amount ?? 0), 0);
   return (
     <div className="space-y-6">
       <div>

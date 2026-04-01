@@ -11,6 +11,7 @@ import {
   type ProductQuery,
 } from "@/services/db";
 import { formatNumber } from "@/lib/utils";
+import { getCartProductIds, getFollowedVendorIds } from "@/lib/actions/marketplace";
 import { MarketplaceClient } from "@/components/marketplace/marketplace-client";
 
 interface PageProps {
@@ -43,7 +44,7 @@ export default async function MarketplacePage({ searchParams }: PageProps) {
     catalog: isShopifyOnly ? "shopify" : undefined,
   };
 
-  const [categories, coreProductsResult, shopifyCount, viralClips, topCreators, vendors, vendorCount, listingCount] =
+  const [categories, coreProductsResult, shopifyCount, viralClips, topCreators, vendors, vendorCount, listingCount, cartProductIds, followedVendorIds] =
     await Promise.all([
       getMarketplaceCategories().catch(() => []),
       getProducts(query).catch(() => ({ products: [], total: 0 })),
@@ -53,6 +54,8 @@ export default async function MarketplacePage({ searchParams }: PageProps) {
       getTopVendors(6).catch(() => []),
       countActiveVendors().catch(() => 0),
       countActiveListedProducts().catch(() => 0),
+      getCartProductIds().catch(() => []),
+      getFollowedVendorIds().catch(() => []),
     ]);
 
   const { products: rawProducts, total } = coreProductsResult;
@@ -105,6 +108,8 @@ export default async function MarketplacePage({ searchParams }: PageProps) {
       topCreators={topCreators as any}
       popularStores={stores}
       hasShopifyProducts={shopifyCount > 0}
+      cartProductIds={cartProductIds}
+      followedVendorIds={followedVendorIds}
       marketplaceStats={{
         activeVendors: vendorCount,
         activeListings: listingCount,

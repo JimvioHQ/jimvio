@@ -1,5 +1,6 @@
 import React from "react";
 import { getCategories, getProducts, getTopVendors, type ProductQuery } from "@/services/db";
+import { getCartProductIds, getFollowedVendorIds } from "@/lib/actions/marketplace";
 import { DashboardMarketplaceClient } from "@/components/dashboard/dashboard-marketplace-client";
 
 interface PageProps {
@@ -35,10 +36,12 @@ export default async function DashboardMarketplacePage({ searchParams }: PagePro
     catalog: isShopifyOnly ? "shopify" : undefined,
   };
 
-  const [categories, coreResult, vendors] = await Promise.all([
+  const [categories, coreResult, vendors, cartProductIds, followedVendorIds] = await Promise.all([
     getCategories().catch(() => []),
     getProducts(query).catch(() => ({ products: [], total: 0 })),
     getTopVendors(6).catch(() => []),
+    getCartProductIds().catch(() => []),
+    getFollowedVendorIds().catch(() => []),
   ]);
 
   const rawProducts = coreResult.products;
@@ -87,6 +90,8 @@ export default async function DashboardMarketplacePage({ searchParams }: PagePro
       limit={limit}
       params={params}
       popularStores={popularStores}
+      cartProductIds={cartProductIds}
+      followedVendorIds={followedVendorIds}
     />
   );
 }

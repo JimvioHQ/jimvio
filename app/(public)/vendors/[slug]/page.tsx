@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getAdminDB, getVendorProducts, getVendorClipsWithDetails } from "@/services/db";
+import { getCartProductIds, getFollowedVendorIds } from "@/lib/actions/marketplace";
 import { ProductCardClient } from "@/components/marketplace/product-card-client";
 import { FollowButton } from "@/components/marketplace/follow-button";
 import { notFound } from "next/navigation";
@@ -33,20 +34,27 @@ export default async function VendorStorePage({ params }: PageProps) {
   const admin = getAdminDB();
   
   // Fetch vendor by slug from DB
-  const { data: vendor } = await admin
+  const { data: vendorData } = await admin
     .from("vendors")
     .select("*")
     .eq("business_slug", slug)
     .single();
 
-  if (!vendor) {
+  if (!vendorData) {
     notFound();
   }
 
-  const [products, clips] = await Promise.all([
+  const vendor = vendorData as any;
+
+  const [products, clips, cartProductIds, followedVendorIds] = await Promise.all([
     getVendorProducts(vendor.id),
     getVendorClipsWithDetails(vendor.id),
+    getCartProductIds().catch(() => [] as string[]),
+    getFollowedVendorIds().catch(() => [] as string[]),
   ]);
+
+  const cartSet = new Set(cartProductIds);
+  const isFollowing = followedVendorIds.includes(vendor.id);
 
   return (
     <div className="min-h-screen bg-[var(--color-bg)]">
@@ -146,7 +154,7 @@ export default async function VendorStorePage({ params }: PageProps) {
 
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
                       {products.map((p) => (
-                        <ProductCardClient key={p.id} p={p as any} />
+                        <ProductCardClient key={p.id} p={p as any} initialInCart={cartSet.has(p.id)} />
                       ))}
                     </div>
                   </TabsContent>
@@ -236,7 +244,7 @@ export default async function VendorStorePage({ params }: PageProps) {
                   </Button>
                 </div>
                 
-                {vendor.id && <FollowButton vendorId={vendor.id} className="w-full h-12 font-black text-[13px] rounded-xl border-2" />}
+                {vendor.id && <FollowButton vendorId={vendor.id} initialFollowing={isFollowing} className="w-full h-12 font-black text-[13px] rounded-xl border-2" />}
               </div>
 
               <div className="mt-8 pt-8 border-t border-[var(--color-border)] space-y-4">

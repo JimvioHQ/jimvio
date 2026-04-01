@@ -14,22 +14,34 @@ interface FollowButtonProps {
   variant?: "default" | "outline" | "secondary" | "ghost";
   /** e.g. "Follow" for influencers, "Follow Store" for marketplace */
   followLabel?: string;
+  /** Pre-fetched follow status from batch query. When provided, skips the per-button server call. */
+  initialFollowing?: boolean;
 }
 
-export function FollowButton({ vendorId, className, variant = "outline", followLabel = "Follow Store" }: FollowButtonProps) {
-  const [isFollowing, setIsFollowing] = useState(false);
+export function FollowButton({ vendorId, className, variant = "outline", followLabel = "Follow Store", initialFollowing }: FollowButtonProps) {
+  const [isFollowing, setIsFollowing] = useState(initialFollowing ?? false);
   const [loading, setLoading] = useState(false);
-  const [initialized, setInitialized] = useState(false);
+  const [initialized, setInitialized] = useState(initialFollowing !== undefined);
   const router = useRouter();
 
+  // Only fall back to per-button check if parent didn't provide batch data
   useEffect(() => {
+    if (initialFollowing !== undefined) return; // Already have batch data
+    let mounted = true;
     async function checkStatus() {
-      const status = await getFollowStatus(vendorId);
-      setIsFollowing(status);
-      setInitialized(true);
+      try {
+        const status = await getFollowStatus(vendorId);
+        if (mounted) {
+          setIsFollowing(status);
+          setInitialized(true);
+        }
+      } catch (err) {
+        if (mounted) setInitialized(true);
+      }
     }
     checkStatus();
-  }, [vendorId]);
+    return () => { mounted = false; };
+  }, [vendorId, initialFollowing]);
 
   const handleFollow = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -51,15 +63,6 @@ export function FollowButton({ vendorId, className, variant = "outline", followL
       }
     }
   };
-
-  if (!initialized) {
-    return (
-      <Button variant={variant} className={cn("font-black h-12 rounded-xl border-2 opacity-50", className)} disabled>
-         <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
-         Loading...
-      </Button>
-    );
-  }
 
   return (
     <Button

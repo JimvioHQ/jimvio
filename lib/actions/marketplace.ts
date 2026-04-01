@@ -59,7 +59,6 @@ export async function toggleFollowVendor(vendorId: string) {
         .eq("user_id", user.id);
       
       if (error) throw error;
-      revalidatePath("/");
       return { success: true, action: "unfollowed" };
     } else {
       // Follow
@@ -71,7 +70,6 @@ export async function toggleFollowVendor(vendorId: string) {
         });
       
       if (error) throw error;
-      revalidatePath("/");
       return { success: true, action: "followed" };
     }
   } catch (error: any) {
@@ -117,7 +115,10 @@ export async function submitReview({
 
     if (error) throw error;
     
-    revalidatePath("/");
+    // Targeted revalidation instead of nuking entire cache
+    if (productId) {
+      revalidatePath(`/marketplace`);
+    }
     return { success: true, data };
   } catch (error: any) {
     console.error("Submit review error:", error);
@@ -198,26 +199,32 @@ export async function addToCart(productId: string, vendorId: string, quantity: n
       return { success: false, error: "Authentication required" };
     }
 
-    // 1. Get product details for price etc
-    const { data: product, error: pError } = await supabase
-      .from("products")
-      .select("name, price, images, shopify_variant_id, shopify_product_id, currency, source, source_metadata")
-      .eq("id", productId)
-      .single();
+    // 1+2. Fetch product details AND existing pending order IN PARALLEL
+    const [productResult, orderResult] = await Promise.all([
+      supabase
+        .from("products")
+        .select("name, price, images, shopify_variant_id, shopify_product_id, currency, source, source_metadata")
+        .eq("id", productId)
+        .single(),
+      supabase
+        .from("orders")
+        .select("id, currency")
+        .eq("buyer_id", user.id)
+        .eq("vendor_id", vendorId)
+        .eq("status", "pending")
+        .maybeSingle(),
+    ]);
 
-    if (pError || !product) throw new Error("Product not found");
+    const product = productResult.data;
+    if (productResult.error || !product) throw new Error("Product not found");
 
     const productCurrency = (product as { currency?: string | null }).currency?.toUpperCase() || "USD";
     
-    // 2. Look for an existing pending order for this vendor AND currency and buyer
-    let { data: order, error: oError } = await supabase
-      .from("orders")
-      .select("id, currency")
-      .eq("buyer_id", user.id)
-      .eq("vendor_id", vendorId)
-      .eq("currency", productCurrency)
-      .eq("status", "pending")
-      .maybeSingle();
+    // Check if the existing order matches currency, if not create a new one
+    let order = orderResult.data;
+    if (order && order.currency !== productCurrency) {
+      order = null; // Need a new order for this currency
+    }
 
     if (!order) {
       // Create new pending order
@@ -288,20 +295,8 @@ export async function addToCart(productId: string, vendorId: string, quantity: n
 
     // 4. Update order totals (subtotal / total_amount) are now updated automatically by 
     // the 'tr_update_order_totals' PostgreSQL trigger. No manual update needed.
-    
-    // 5. Fetch updated cart item count for immediate frontend update (reduces roundtrips)
-    const { data: countData } = await supabase
-      .from("order_items")
-      .select("quantity, orders!inner(id)")
-      .eq("orders.buyer_id", user.id)
-      .eq("orders.status", "pending");
-    
-    const newCartCount = countData?.reduce((sum, item) => sum + Number(item.quantity || 0), 0) || 0;
 
-    // Only revalidate the cart page where it matters most, avoiding global slowdown
-    revalidatePath("/cart");
-    
-    return { success: true, cartCount: newCartCount };
+    return { success: true };
   } catch (error: any) {
     console.error("Add to cart error:", error);
     return { success: false, error: error.message };
@@ -417,8 +412,6 @@ export async function updateCartItemQuantity(itemId: string, quantity: number) {
 
     // Order totals (subtotal / total_amount) are updated automatically by trigger.
     
-    revalidatePath("/cart");
-    revalidatePath("/");
     return { success: true };
   } catch (error: any) {
     console.error("Update cart item error:", error);
@@ -480,8 +473,6 @@ export async function removeFromCart(itemId: string) {
       }
     }
 
-    revalidatePath("/cart");
-    revalidatePath("/");
     return { success: true };
   } catch (error: any) {
     console.error("Remove from cart error:", error);
@@ -539,6 +530,49 @@ export async function getWishlistProductIds(): Promise<string[]> {
       .select("product_id")
       .eq("user_id", user.id);
     return (data ?? []).map((r) => r.product_id);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * BATCH: Get all product IDs currently in the user's pending cart.
+ * Use this at the page/layout level to avoid N+1 per-card queries.
+ */
+export async function getCartProductIds(): Promise<string[]> {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return [];
+
+    const { data } = await supabase
+      .from("order_items")
+      .select("product_id, orders!inner(buyer_id, status)")
+      .eq("orders.buyer_id", user.id)
+      .eq("orders.status", "pending");
+
+    return (data ?? []).map((r) => r.product_id);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * BATCH: Get all vendor IDs the current user is following.
+ * Use this at the page/layout level to avoid N+1 per-button queries.
+ */
+export async function getFollowedVendorIds(): Promise<string[]> {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return [];
+
+    const { data } = await supabase
+      .from("vendor_followers")
+      .select("vendor_id")
+      .eq("user_id", user.id);
+
+    return (data ?? []).map((r) => r.vendor_id);
   } catch {
     return [];
   }

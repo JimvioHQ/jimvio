@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { createClient } from "@/lib/supabase/client";
 import { normalizeVendorPayoutMethod } from "@/lib/payout-method";
+import { CloudinaryUploadButton, CloudinaryDropzone } from "@/components/ui/cloudinary-upload";
+import { CloudinaryAvatar, CloudinaryImage } from "@/components/ui/cloudinary-image";
 
 export default function SettingsPage() {
   const [isPending, startTransition] = useTransition();
@@ -17,9 +19,10 @@ export default function SettingsPage() {
   const [saved, setSaved]        = useState<string | null>(null);
   const [userId, setUserId]      = useState<string | null>(null);
 
-  const [profile, setProfile] = useState({ full_name: "", username: "", bio: "", website: "", phone: "", city: "", country: "RW" });
+  const [profile, setProfile] = useState({ full_name: "", username: "", avatar_url: "", bio: "", website: "", phone: "", city: "", country: "RW" });
   const [vendor, setVendor]   = useState<{
     id: string; business_name: string; business_description: string; business_email: string;
+    business_logo: string; business_banner: string;
     business_phone: string; business_address: string; website: string;
     payout_method: string; payout_account: string; affiliate_enabled: boolean; affiliate_commission_rate: string;
   } | null>(null);
@@ -38,6 +41,7 @@ export default function SettingsPage() {
 
       if (profRes.data) setProfile({
         full_name: profRes.data.full_name ?? "", username: profRes.data.username ?? "",
+        avatar_url: profRes.data.avatar_url ?? "",
         bio: profRes.data.bio ?? "", website: profRes.data.website ?? "",
         phone: profRes.data.phone ?? "", city: profRes.data.city ?? "", country: profRes.data.country ?? "RW",
       });
@@ -46,6 +50,8 @@ export default function SettingsPage() {
         id:                       vendRes.data.id,
         business_name:            vendRes.data.business_name ?? "",
         business_description:     vendRes.data.business_description ?? "",
+        business_logo:            vendRes.data.business_logo ?? "",
+        business_banner:          vendRes.data.business_banner ?? "",
         business_email:           vendRes.data.business_email ?? "",
         business_phone:           vendRes.data.business_phone ?? "",
         business_address:         vendRes.data.business_address ?? "",
@@ -66,13 +72,14 @@ export default function SettingsPage() {
     startTransition(async () => {
       const supabase = createClient();
       await supabase.from("profiles").update({
-        full_name: profile.full_name,
-        username:  profile.username || null,
-        bio:       profile.bio || null,
-        website:   profile.website || null,
-        phone:     profile.phone || null,
-        city:      profile.city || null,
-        country:   profile.country,
+        full_name:  profile.full_name,
+        username:   profile.username || null,
+        avatar_url: profile.avatar_url || null,
+        bio:        profile.bio || null,
+        website:    profile.website || null,
+        phone:      profile.phone || null,
+        city:       profile.city || null,
+        country:    profile.country,
       }).eq("id", userId);
       setSaved("profile");
       setTimeout(() => setSaved(null), 2500);
@@ -86,6 +93,8 @@ export default function SettingsPage() {
       await supabase.from("vendors").update({
         business_name:        vendor.business_name,
         business_description: vendor.business_description || null,
+        business_logo:        vendor.business_logo || null,
+        business_banner:      vendor.business_banner || null,
         business_email:       vendor.business_email,
         business_phone:       vendor.business_phone || null,
         business_address:     vendor.business_address || null,
@@ -127,6 +136,19 @@ export default function SettingsPage() {
                   <CheckCircle className="h-4 w-4" /> Profile saved!
                 </div>
               )}
+              <div className="flex items-center gap-5">
+                <CloudinaryAvatar src={profile.avatar_url} size={80} fallback={<div className="w-20 h-20 rounded-full bg-zinc-100 flex items-center justify-center text-zinc-400 font-bold text-xl">{profile.full_name?.[0] || "?"}</div>} />
+                <div className="space-y-1.5">
+                  <p className="text-sm font-medium">Profile Photo</p>
+                  <CloudinaryUploadButton
+                    folder="jimvio/avatars"
+                    resourceType="image"
+                    buttonText="Change Photo"
+                    variant="outline"
+                    onUploadSuccess={(url) => setProfile(p => ({ ...p, avatar_url: url }))}
+                  />
+                </div>
+              </div>
               <Input label="Full Name" value={profile.full_name} onChange={e => setProfile(p => ({ ...p, full_name: e.target.value }))} />
               <Input label="Username" placeholder="@username" value={profile.username} onChange={e => setProfile(p => ({ ...p, username: e.target.value }))} />
               <Textarea label="Bio" placeholder="Tell people about yourself..." value={profile.bio} onChange={e => setProfile(p => ({ ...p, bio: e.target.value }))} className="min-h-[80px]" />
@@ -151,6 +173,34 @@ export default function SettingsPage() {
                     <CheckCircle className="h-4 w-4" /> Store settings saved!
                   </div>
                 )}
+                <div className="flex gap-4 mb-4">
+                  <div className="flex-1 space-y-2">
+                    <p className="text-sm font-medium">Store Logo</p>
+                    {vendor.business_logo ? (
+                      <div className="relative group w-24 h-24 rounded-2xl overflow-hidden border">
+                        <CloudinaryImage src={vendor.business_logo} alt="Store Logo" className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                          <CloudinaryUploadButton folder="jimvio/avatars" buttonText="Replace" className="text-white border-white hover:text-white" variant="outline" onUploadSuccess={(url) => setVendor(v => v ? { ...v, business_logo: url } : v)} />
+                        </div>
+                      </div>
+                    ) : (
+                      <CloudinaryDropzone folder="jimvio/avatars" className="h-24 w-24" label="Upload Logo" sublabel="" onUploadSuccess={(url) => setVendor(v => v ? { ...v, business_logo: url } : v)} />
+                    )}
+                  </div>
+                  <div className="flex-[2] space-y-2">
+                    <p className="text-sm font-medium">Store Banner</p>
+                    {vendor.business_banner ? (
+                       <div className="relative group w-full h-24 rounded-2xl overflow-hidden border">
+                        <CloudinaryImage src={vendor.business_banner} alt="Store Banner" className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                          <CloudinaryUploadButton folder="jimvio/banners" buttonText="Replace Banner" className="text-white border-white hover:text-white" variant="outline" onUploadSuccess={(url) => setVendor(v => v ? { ...v, business_banner: url } : v)} />
+                        </div>
+                      </div>
+                    ) : (
+                      <CloudinaryDropzone folder="jimvio/banners" className="h-24" label="Upload Banner" sublabel="1200x400 recommended" onUploadSuccess={(url) => setVendor(v => v ? { ...v, business_banner: url } : v)} />
+                    )}
+                  </div>
+                </div>
                 <Input label="Business Name" value={vendor.business_name} onChange={e => setVendor(v => v ? { ...v, business_name: e.target.value } : v)} />
                 <Textarea label="Business Description" value={vendor.business_description} onChange={e => setVendor(v => v ? { ...v, business_description: e.target.value } : v)} className="min-h-[80px]" />
                 <div className="grid grid-cols-2 gap-4">

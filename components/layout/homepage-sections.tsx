@@ -52,22 +52,22 @@ export function TrustBar({ items }: { items: TrustBarItem[] }) {
     <motion.div
       initial="hidden" whileInView="show" viewport={{ once: true, margin: "-60px" }}
       variants={stagger}
-      className={cn("relative z-10 border-y border-white/40 py-8", glassLight)}
+      className={cn("relative z-10 border-y border-white/40 py-3 md:py-4", glassLight)}
     >
-      <div className="max-w-[1536px] mx-auto px-4 sm:px-6 grid grid-cols-2 md:grid-cols-4 gap-6">
+      <div className="max-w-[1536px] mx-auto px-4 sm:px-6 grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
         {items.map((item, idx) => {
           const Icon = TRUST_ICONS[idx % TRUST_ICONS.length];
           return (
-            <motion.div key={idx} variants={fadeUp} className="flex items-center gap-3 group">
+            <motion.div key={idx} variants={fadeUp} className="flex items-center gap-2 md:gap-2.5 group">
               <motion.span
                 whileHover={{ scale: 1.12, rotate: -4 }}
-                className="shrink-0 h-11 w-11 flex items-center justify-center rounded-2xl bg-orange-50/80 ring-1 ring-[#f97316]/15 group-hover:bg-orange-100 transition-colors"
+                className="shrink-0 h-8 w-8 flex items-center justify-center rounded-[10px] bg-orange-50/80 ring-1 ring-[#f97316]/15 group-hover:bg-orange-100 transition-colors"
               >
-                <Icon className="h-5 w-5 text-[#f97316]" />
+                <Icon className="h-4 w-4 text-[#f97316]" />
               </motion.span>
-              <div>
-                <p className="text-[13px] font-black text-zinc-900 tracking-tight leading-tight">{item.title}</p>
-                <p className="text-[11px] font-bold text-zinc-400 mt-0.5">{item.desc}</p>
+              <div className="min-w-0">
+                <p className="text-[10px] md:text-[12px] font-black text-zinc-900 tracking-tight leading-tight truncate">{item.title}</p>
+                <p className="text-[8px] md:text-[10px] font-bold text-zinc-500 mt-0.5 truncate">{item.desc}</p>
               </div>
             </motion.div>
           );

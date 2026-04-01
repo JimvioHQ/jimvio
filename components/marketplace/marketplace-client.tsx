@@ -76,6 +76,10 @@ interface MarketplaceClientProps {
   topCreators?: any[];
   popularStores?: any[];
   hasShopifyProducts?: boolean;
+  /** Pre-fetched cart product IDs from server for batch status */
+  cartProductIds?: string[];
+  /** Pre-fetched followed vendor IDs from server for batch status */
+  followedVendorIds?: string[];
   marketplaceStats?: {
     activeVendors: number;
     activeListings: number;
@@ -95,8 +99,12 @@ export function MarketplaceClient({
   topCreators = [],
   popularStores = [],
   hasShopifyProducts = false,
+  cartProductIds = [],
+  followedVendorIds = [],
   marketplaceStats,
 }: MarketplaceClientProps) {
+  const cartSet = useMemo(() => new Set(cartProductIds), [cartProductIds]);
+  const followSet = useMemo(() => new Set(followedVendorIds), [followedVendorIds]);
   const totalPages = Math.ceil(total / limit);
   const firstRowCount = 8;
   const firstRow = initialProducts.slice(0, firstRowCount);
@@ -454,7 +462,7 @@ export function MarketplaceClient({
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: idx * 0.03 }}
                         >
-                          <ProductCardClient p={item.data} />
+                          <ProductCardClient p={item.data} initialInCart={cartSet.has(item.data.id)} />
                         </motion.div>
                       );
                     }
@@ -515,7 +523,7 @@ export function MarketplaceClient({
                           {/* Row 3: actions */}
                           <div className="flex gap-1.5 sm:gap-2 mt-auto flex-shrink-0">
                             <div className="min-w-0 flex-1">
-                              <FollowButton vendorId={s.id} className="w-full min-w-0 rounded-xl h-7 sm:h-8 text-[9px] sm:text-[10px] font-bold border border-[#f0f0f0] px-2" />
+                              <FollowButton vendorId={s.id} initialFollowing={followSet.has(s.id)} className="w-full min-w-0 rounded-xl h-7 sm:h-8 text-[9px] sm:text-[10px] font-bold border border-[#f0f0f0] px-2" />
                             </div>
                             <Link href={storeUrl} className="shrink-0">
                               <Button size="sm" className="rounded-xl h-7 sm:h-8 px-2.5 sm:px-3 text-[9px] sm:text-[10px] font-black bg-[var(--color-accent)] text-white border-0 whitespace-nowrap">Visit</Button>
@@ -623,7 +631,7 @@ export function MarketplaceClient({
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         transition={{ duration: 0.4, delay: (idx % 8) * 0.05, ease: [0.23, 1, 0.32, 1] }}
                       >
-                        <ProductCardClient p={p} />
+                        <ProductCardClient p={p} initialInCart={cartSet.has(p.id)} />
                       </motion.div>
                     ))}
                   </motion.div>
@@ -646,7 +654,7 @@ export function MarketplaceClient({
                           animate={{ opacity: 1, scale: 1, y: 0 }}
                           transition={{ duration: 0.4, delay: (idx % 8) * 0.05, ease: [0.23, 1, 0.32, 1] }}
                         >
-                          <ProductCardClient p={p} />
+                          <ProductCardClient p={p} initialInCart={cartSet.has(p.id)} />
                         </motion.div>
                       ))}
                     </motion.div>

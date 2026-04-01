@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/client";
+import { CloudinaryUploadButton } from "@/components/ui/cloudinary-upload";
 
 type ProductOption = { id: string; name: string; slug: string };
 
@@ -114,12 +115,30 @@ export default function NewClipPage() {
             <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Unboxing the new gadget" className="rounded-xl" />
           </div>
           <div>
-            <label className="text-sm font-medium text-[var(--color-text-primary)] block mb-1.5">Upload Video (URL) *</label>
-            <Input type="url" value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} placeholder="https://... (direct video or Cloudinary, etc.)" className="rounded-xl" />
+            <label className="text-sm font-medium text-[var(--color-text-primary)] block mb-1.5">Upload Video *</label>
+            <div className="flex gap-3">
+              <Input type="url" value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} placeholder="https://..." className="rounded-xl flex-1" />
+              <CloudinaryUploadButton
+                folder="jimvio/clips"
+                resourceType="video"
+                onUploadSuccess={(url) => setVideoUrl(url)}
+                buttonText="Browse File"
+              />
+            </div>
+            {videoUrl && <p className="text-xs text-green-600 mt-1 flex items-center gap-1">✓ Video uploaded or linked</p>}
           </div>
           <div>
             <label className="text-sm font-medium text-[var(--color-text-muted)] block mb-1.5">Thumbnail URL (optional)</label>
-            <Input type="url" value={thumbnailUrl} onChange={(e) => setThumbnailUrl(e.target.value)} placeholder="https://..." className="rounded-xl" />
+            <div className="flex gap-3">
+              <Input type="url" value={thumbnailUrl} onChange={(e) => setThumbnailUrl(e.target.value)} placeholder="https://..." className="rounded-xl flex-1" />
+              <CloudinaryUploadButton
+                folder="jimvio/banners"
+                resourceType="image"
+                onUploadSuccess={(url) => setThumbnailUrl(url)}
+                buttonText="Browse Image"
+              />
+            </div>
+            {thumbnailUrl && <p className="text-xs text-green-600 mt-1 flex items-center gap-1">✓ Thumbnail linked</p>}
           </div>
           <div>
             <label className="text-sm font-medium text-[var(--color-text-primary)] block mb-1.5">Select product to promote</label>

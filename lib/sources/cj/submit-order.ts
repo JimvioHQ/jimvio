@@ -32,9 +32,64 @@ export async function submitCjOrderForLines(
     return { ok: true, externalReference: null };
   }
 
-  // TODO: POST to CJ order API with shipping payload from orders + order_items
-  void orderId;
-  void orderNumber;
-  void lines;
-  return { ok: true, externalReference: null };
+  const { data: orderData, error: orderErr } = await _db
+    .from("orders")
+    .select("shipping_address, buyer_id")
+    .eq("id", orderId)
+    .single();
+
+  if (orderErr || !orderData) {
+    console.error(`[CJ] Could not fetch order ${orderId} for shipping details`, orderErr);
+    return { ok: false, error: "Failed to load order shipping data" };
+  }
+
+  const shipping = orderData.shipping_address as any;
+  if (!shipping) {
+    console.warn(`[CJ] Order ${orderId} has no shipping_address. CJ requires an address.`);
+    return { ok: false, error: "No shipping address provided" };
+  }
+
+  // Map to CJ format
+  const cjPayload = {
+    orderNumber: orderNumber,
+    shippingZip: shipping.zip || "00000",
+    shippingCountry: shipping.countryCode || "US",
+    shippingCity: shipping.city || "Unknown",
+    shippingAddress: shipping.address1 || "Unknown",
+    shippingCustomerName: shipping.name || "Customer",
+    shippingPhone: shipping.phone || "0000000000",
+    remark: `jimvio-${orderId}`,
+    products: lines.map((line) => {
+      // the variant ID from CJ is typically stored in sourceMetadata by the importer
+      const cjVariantId = line.sourceMetadata?.vid || line.sourceMetadata?.variant_id || "";
+      return {
+        vid: cjVariantId,
+        quantity: line.quantity,
+      };
+    }),
+  };
+
+  try {
+    const res = await fetch("https://developers.cjdropshipping.com/api2.0/v1/shopping/order/createOrder", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "CJ-Access-Token": apiKey,
+      },
+      body: JSON.stringify(cjPayload),
+    });
+
+    const body = await res.json();
+    if (!res.ok || body.code !== 200) {
+      console.error(`[CJ] Order creation failed for ${orderId}:`, body);
+      return { ok: false, error: body.message || "CJ API error" };
+    }
+
+    // Success
+    const cjOrderId = body.data?.orderId;
+    return { ok: true, externalReference: cjOrderId };
+  } catch (err: any) {
+    console.error(`[CJ] Exception during order submission:`, err);
+    return { ok: false, error: err.message };
+  }
 }

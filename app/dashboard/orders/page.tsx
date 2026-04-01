@@ -52,7 +52,7 @@ export default function BuyerOrdersPage() {
         .from("orders")
         .select(`
           id, order_number, status, total_amount, currency, created_at,
-          order_items ( id, product_name, quantity, unit_price, total_price, vendor_id, vendors ( id, business_name, business_slug ) )
+          order_items ( id, product_name, quantity, unit_price, total_price, vendor_id, product_source, vendors ( id, business_name, business_slug ) )
         `)
         .eq("buyer_id", user.id)
         .order("created_at", { ascending: false });
@@ -176,9 +176,14 @@ export default function BuyerOrdersPage() {
                         <td className="py-4 px-5">
                           <div className="flex flex-col gap-0.5">
                             <span className="font-medium text-[var(--color-text-primary)] line-clamp-1">{first?.product_name ?? "—"}</span>
+                            {first?.product_source === "cj" && (
+                              <Badge variant="secondary" className="w-fit text-[9px] px-1.5 py-0 mt-0.5 uppercase">
+                                CJ Dropshipping
+                              </Badge>
+                            )}
                             {items.length > 1 && (
-                              <span className="text-[10px] font-black text-[var(--color-accent)] uppercase">
-                                +{items.length - 1} more vendors
+                              <span className="text-[10px] font-black text-[var(--color-accent)] uppercase mt-0.5">
+                                +{items.length - 1} more items
                               </span>
                             )}
                           </div>

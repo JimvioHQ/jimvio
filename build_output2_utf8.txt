@@ -1,0 +1,84 @@
+﻿
+> jimvio@1.0.0 build
+> next build
+
+   Γû▓ Next.js 15.5.12
+   - Environments: .env.local, .env
+   - Experiments (use with caution):
+     ┬╖ serverActions
+
+   Creating an optimized production build ...
+ Γ£ô Compiled successfully in 20.4s
+   Linting and checking validity of types ...
+node.exe : Failed to 
+compile.
+At line:1 char:1
++ & "C:\Program 
+Files\nodejs/node.exe" 
+"C:\Program 
+Files\nodejs/node_mo 
+...
++ ~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
+~~
+    + CategoryInfo     
+         : 
+NotSpecified: (F    
+ailed to compile.:Str  
+  ing) [], 
+RemoteExcept    ion
+    + 
+FullyQualifiedError    
+Id : NativeCommandErr  
+  or
+ 
+
+./app/admin/settings/pa
+ge.tsx:16:62
+Type error: Property 
+'value' does not exist 
+on type 'never'.
+
+[0m [90m 14 |[39m
+ [90m 15 |[39m   
+[36mconst[39m { 
+data[33m:[39m ssRow 
+} [33m=[39m 
+[36mawait[39m admin[
+33m.[39m[36mfrom[39m
+([32m"platform_setting
+s"[39m)[33m.[39msele
+ct([32m"value"[39m)[
+33m.[39meq([32m"key"
+[39m[33m,[39m [32m"s
+upplier_sources"[39m)
+[33m.[39mmaybeSingle()
+[33m;[39m
+[31m[1m>[22m[39m[9
+0m 16 |[39m   
+[36mconst[39m 
+supplierSourcesInitial 
+[33m=[39m mergeSuppli
+erSources(ssRow[33m?[
+39m[33m.[39mvalue)[3
+3m;[39m
+ [90m    |[39m       
+                       
+                       
+         
+[31m[1m^[22m[39m
+ [90m 17 |[39m
+ [90m 18 |[39m   
+[36mreturn[39m [33m<
+[39m[33mAdminPlatform
+SettingsForm[39m initi
+al[33m=[39m{initial} 
+supplierSourcesInitial
+[33m=[39m{supplierSour
+cesInitial} [33m/[39m
+[33m>[39m[33m;[39m
+ [90m 19 |[39m }[0m
+Next.js build worker 
+exited with code: 1 
+and signal: null

@@ -3,12 +3,18 @@ import { Zap, Clock, TrendingUp, Package, Percent, ArrowRight } from "lucide-rea
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { getProducts } from "@/services/db";
+import { getCartProductIds } from "@/lib/actions/marketplace";
 import { ProductCardClient } from "@/components/marketplace/product-card-client";
 import Link from "next/link";
 
 export default async function FlashDealsPage() {
-  const { products } = await getProducts({ limit: 20, sort: "sales" });
+  const [{ products }, cartProductIds] = await Promise.all([
+    getProducts({ limit: 20, sort: "sales" }),
+    getCartProductIds().catch(() => []),
+  ]);
   
+  const cartSet = new Set(cartProductIds);
+
   // Mix in some high discount logic if it doesn't already exist in the seed data
   const dealProducts = products.map(p => ({
     ...p,
@@ -85,7 +91,7 @@ export default async function FlashDealsPage() {
                   HOT DEAL
                 </div>
               )}
-              <ProductCardClient p={p as any} />
+              <ProductCardClient p={p as any} initialInCart={cartSet.has(p.id)} />
             </div>
           ))}
         </div>

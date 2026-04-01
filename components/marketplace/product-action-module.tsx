@@ -53,27 +53,23 @@ export function ProductActionModule({ product, vendor, currentPath }: ProductAct
   async function handleAddToCart() {
     if (!product.vendor_id) return;
     
-    // Fast Optimistic Update
-    setAdded(true);
-    incrementCartCount(quantity);
-    setTimeout(() => setAdded(false), 2500);
+    setLoading(true);
 
     try {
       const result = await addToCart(product.id, product.vendor_id, quantity);
       if (result.success) {
-        if (typeof result.cartCount === "number") {
-          setCartCount(result.cartCount);
-        }
+        incrementCartCount(quantity);
+        setAdded(true);
+        setTimeout(() => setAdded(false), 2500);
       } else if (result.error === "Authentication required") {
-        incrementCartCount(-quantity);
         window.location.href = `/login?next=${window.location.pathname}`;
       } else {
-        incrementCartCount(-quantity);
         alert(result.error || "Failed to add to cart");
       }
     } catch (error) {
       console.error("Cart addition failed:", error);
-      incrementCartCount(-quantity);
+    } finally {
+      setLoading(false);
     }
   }
 

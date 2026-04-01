@@ -54,7 +54,7 @@ export default function VendorOrdersPage() {
       const { data } = await supabase
         .from("order_items")
         .select(`
-          id, product_name, quantity, unit_price, total_price, created_at,
+          id, product_name, quantity, unit_price, total_price, created_at, product_source,
           orders ( id, order_number, status, created_at, currency, profiles ( id, full_name, email ) )
         `)
         .eq("vendor_id", v.id)
@@ -211,7 +211,14 @@ export default function VendorOrdersPage() {
                           </div>
                         </td>
                         <td className="py-4 px-5">
-                           <span className="text-xs font-semibold text-[var(--color-text-secondary)] line-clamp-1">{productLabel}</span>
+                          <div className="flex flex-col gap-0.5">
+                            <span className="text-xs font-semibold text-[var(--color-text-secondary)] line-clamp-1">{productLabel}</span>
+                            {first?.product_source === "cj" && (
+                              <Badge variant="secondary" className="w-fit text-[9px] px-1.5 py-0 mt-0.5 uppercase">
+                                CJ Dropshipping
+                              </Badge>
+                            )}
+                          </div>
                         </td>
                         <td className="py-4 px-5 text-right font-medium">{order.totalQty ?? 0}</td>
                         <td className="py-4 px-5 text-right font-black text-[var(--color-text-primary)]">

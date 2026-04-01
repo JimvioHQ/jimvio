@@ -45,7 +45,7 @@ export default function OrderDetailPage() {
         .select(`
           id, order_number, status, payment_status, total_amount, currency,
           created_at, paid_at, shipped_at, delivered_at,
-          order_items ( id, product_name, product_image, quantity, unit_price, total_price, vendor_id, vendors ( id, business_name, business_slug ) )
+          order_items ( id, product_name, product_image, quantity, unit_price, total_price, vendor_id, product_source, vendors ( id, business_name, business_slug ) )
         `)
         .eq("id", id)
         .eq("buyer_id", user.id)
@@ -171,7 +171,14 @@ export default function OrderDetailPage() {
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-bold text-[var(--color-text-primary)] truncate">{item.product_name}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-bold text-[var(--color-text-primary)] truncate">{item.product_name}</p>
+                        {item.product_source === "cj" && (
+                          <Badge variant="secondary" className="text-[9px] px-1.5 py-0 uppercase">
+                            CJ Dropshipping
+                          </Badge>
+                        )}
+                      </div>
                       <p className="text-sm text-[var(--color-text-muted)] mt-0.5">
                         {item.quantity} × {formatMoney(Number(item.unit_price), oc)}
                       </p>

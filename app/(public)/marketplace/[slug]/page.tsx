@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getProductBySlug, getTrendingProducts } from "@/services/db";
+import { getCartProductIds, getFollowedVendorIds } from "@/lib/actions/marketplace";
 import { formatCurrency, cn } from "@/lib/utils";
 import { ProductCardClient } from "@/components/marketplace/product-card-client";
 import { ProductActionModule } from "@/components/marketplace/product-action-module";
@@ -37,7 +38,13 @@ export default async function ProductDetailPage({ params }: PageProps) {
   const product = await getProductBySlug(slug);
   if (!product) notFound();
 
-  const relatedProducts = await getTrendingProducts(4);
+  const [relatedProducts, cartProductIds, followedVendorIds] = await Promise.all([
+    getTrendingProducts(4),
+    getCartProductIds().catch(() => [] as string[]),
+    getFollowedVendorIds().catch(() => [] as string[]),
+  ]);
+
+  const cartSet = new Set(cartProductIds);
   const images: string[] = product.images ?? [];
   const vendor = product.vendors;
 
@@ -457,6 +464,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
                 <div className="space-y-2 pt-1 border-t border-zinc-50">
                   <FollowButton
                     vendorId={vendor?.id ?? ""}
+                    initialFollowing={followedVendorIds.includes(String(vendor?.id ?? ""))}
                     className="w-full h-9 rounded-lg font-black text-[10px] uppercase tracking-widest border-2 transition-all active:scale-95"
                   />
                   <Button variant="ghost" size="sm" className="w-full h-8 font-semibold text-[10px] text-zinc-400 hover:text-[var(--color-accent)] uppercase tracking-widest" asChild>
@@ -498,7 +506,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-5">
               {relatedProducts.map((p) => (
-                <ProductCardClient key={p.id} p={p as any} />
+                <ProductCardClient key={p.id} p={p as any} initialInCart={cartSet.has(p.id)} />
               ))}
             </div>
           </section>

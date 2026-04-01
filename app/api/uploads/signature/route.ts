@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { cloudinaryService, type CloudinaryFolder } from "@/services/media/cloudinary";
+import { ALL_CLOUDINARY_FOLDERS, type CloudinaryFolder } from "@/services/media/cloudinary";
+import { cloudinaryServer } from "@/services/media/cloudinary-server";
 
 export async function POST(req: NextRequest) {
   try {
@@ -10,19 +11,11 @@ export async function POST(req: NextRequest) {
 
     const { folder } = await req.json() as { folder: CloudinaryFolder };
 
-    const validFolders: CloudinaryFolder[] = [
-      "jimvio/products",
-      "jimvio/avatars",
-      "jimvio/banners",
-      "jimvio/clips",
-      "jimvio/campaigns",
-    ];
-
-    if (!validFolders.includes(folder)) {
+    if (!ALL_CLOUDINARY_FOLDERS.includes(folder)) {
       return NextResponse.json({ error: "Invalid folder" }, { status: 400 });
     }
 
-    const signature = await cloudinaryService.generateUploadSignature(folder);
+    const signature = cloudinaryServer.generateUploadSignature(folder);
     return NextResponse.json({ success: true, data: signature });
   } catch {
     return NextResponse.json({ error: "Failed to generate signature" }, { status: 500 });

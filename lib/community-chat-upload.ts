@@ -1,27 +1,62 @@
-import { createClient } from "@/lib/supabase/client";
-
-const BUCKET = "chat-files";
+/**
+ * lib/community-chat-upload.ts
+ * Upload community chat files to Cloudinary instead of Supabase Storage.
+ */
 
 export type ChatAttachmentPayload = {
-  url: string;
+  url:  string;
   name: string;
   mime: string;
   size: number;
+  publicId?: string;
 };
 
-/** Upload a file for community chat; uses same bucket as DM chat (see messaging migration notes). */
-export async function uploadCommunityChatFile(communityId: string, roomId: string, file: File): Promise<ChatAttachmentPayload> {
-  const supabase = createClient();
-  const ext = file.name.split(".").pop() || "bin";
-  const base = file.name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 80) || "file";
-  const path = `community/${communityId}/${roomId}/${Date.now()}-${Math.random().toString(36).slice(2)}-${base}.${ext}`;
-  const { data, error } = await supabase.storage.from(BUCKET).upload(path, file, { upsert: false });
-  if (error) throw error;
-  const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(data.path);
+/** Upload a file for community chat directly to Cloudinary via the signed upload API. */
+export async function uploadCommunityChatFile(
+  _communityId: string,
+  _roomId: string,
+  file: File
+): Promise<ChatAttachmentPayload> {
+  // 1. Get a signed upload signature from the server
+  const sigRes = await fetch("/api/uploads/signature", {
+    method:  "POST",
+    headers: { "Content-Type": "application/json" },
+    body:    JSON.stringify({ folder: "jimvio/communities" }),
+  });
+
+  if (!sigRes.ok) {
+    const j = await sigRes.json().catch(() => ({}));
+    throw new Error(j?.error ?? "Failed to get upload signature");
+  }
+
+  const { data: sig } = await sigRes.json();
+
+  // 2. Determine resource type
+  const resourceType = file.type.startsWith("video/") ? "video" : "image";
+
+  // 3. Upload directly from browser to Cloudinary
+  const formData = new FormData();
+  formData.append("file",      file);
+  formData.append("api_key",   sig.apiKey);
+  formData.append("timestamp", sig.timestamp);
+  formData.append("signature", sig.signature);
+  formData.append("folder",    sig.folder);
+
+  const endpoint = `https://api.cloudinary.com/v1_1/${sig.cloudName}/${resourceType}/upload`;
+  const uploadRes = await fetch(endpoint, { method: "POST", body: formData });
+
+  if (!uploadRes.ok) {
+    const err = await uploadRes.json().catch(() => ({}));
+    throw new Error(err?.error?.message ?? "Cloudinary upload failed");
+  }
+
+  const data = await uploadRes.json();
+
   return {
-    url: urlData.publicUrl,
-    name: file.name,
-    mime: file.type || "application/octet-stream",
-    size: file.size,
+    url:      data.secure_url,
+    name:     file.name,
+    mime:     file.type || "application/octet-stream",
+    size:     file.size,
+    publicId: data.public_id,
   };
 }

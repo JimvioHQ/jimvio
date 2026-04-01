@@ -19,7 +19,7 @@ export async function saveSupplierSourcesAction(
     if (!roles?.some((r) => r.role === "admin")) return { error: "Forbidden" };
 
     const admin = getAdminDB();
-    const { error } = await admin.from("platform_settings").upsert(
+    const { error } = await (admin.from("platform_settings") as any).upsert(
       { key: "supplier_sources", value: next as unknown as Record<string, unknown> },
       { onConflict: "key" }
     );

@@ -77,6 +77,18 @@ function iconForNavHref(href: string): LucideIcon {
   return Package;
 }
 
+function colorForNavHref(href: string): string {
+  const h = href.replace(/\/$/, "") || "/";
+  if (h === "/") return "text-orange-500 bg-orange-50";
+  if (h.startsWith("/marketplace")) return "text-orange-500 bg-orange-50";
+  if (h.startsWith("/clips")) return "text-blue-500 bg-blue-50";
+  if (h.startsWith("/communities")) return "text-emerald-500 bg-emerald-50";
+  if (h.startsWith("/affiliates")) return "text-purple-500 bg-purple-50";
+  if (h.startsWith("/influencers")) return "text-pink-500 bg-pink-50";
+  if (h.startsWith("/vendors")) return "text-yellow-600 bg-yellow-50";
+  return "text-zinc-500 bg-zinc-50";
+}
+
 function linkIsActive(pathname: string, href: string): boolean {
   const h = href.replace(/\/$/, "") || "/";
   if (h === "/") return pathname === "/";
@@ -138,257 +150,361 @@ export function Navbar({ user, marketing }: NavbarProps) {
     { title: "Affiliates", desc: "Drive growth & earn", href: "/affiliates", icon: TrendingUp, color: "text-purple-500" },
   ];
 
+  // Ordered mobile nav links: Home first, then the rest
+  const orderedMobileLinks = [
+    ...navLinks.filter((l) => (l.href.replace(/\/$/, "") || "/") === "/"),
+    ...navLinks.filter((l) => (l.href.replace(/\/$/, "") || "/") !== "/"),
+  ];
+
   return (
-    <header className="fixed top-0 left-0 right-0 z-[100] w-full px-0 sm:px-4 lg:px-8 pt-0 sm:pt-2 pointer-events-none isolate">
-      <motion.div 
+    <header className={cn(
+      "fixed top-0 left-0 right-0 z-[100] w-full pointer-events-none isolate transition-all duration-500",
+      isScrolled ? "px-0 sm:px-4 lg:px-8 pt-0 sm:pt-2 md:pt-4" : "px-0 pt-0"
+    )}>
+      <motion.div
         style={{ height: navHeight }}
         className={cn(
-          "mx-auto w-full max-w-[1536px] relative pointer-events-auto transition-all duration-500 sm:rounded-[28px] border-b sm:border border-white/20 bg-white/80 backdrop-blur-3xl shadow-[0_15px_40px_rgba(0,0,0,0.06)] flex flex-col items-stretch overflow-visible group/nav",
-          isScrolled && "sm:shadow-[0_20px_60px_rgba(0,0,0,0.12)] border-white/40 backdrop-saturate-150"
+          "mx-auto w-full relative pointer-events-auto transition-all duration-500 bg-white/85 backdrop-blur-3xl flex flex-col items-stretch overflow-visible group/nav",
+          isScrolled
+            ? "max-w-[1536px] sm:rounded-[32px] border-b sm:border border-white/60 sm:shadow-[0_20px_60px_rgba(0,0,0,0.12)] backdrop-saturate-150"
+            : "max-w-none rounded-none border-b border-zinc-200/60 shadow-sm"
         )}
       >
-        {/* DESKTOP TOP STRIP */}
-        <motion.div 
-          style={{ height: topBarHeight, opacity: topBarOpacity }}
-          className="border-b border-zinc-100/50 flex items-center justify-between px-8 md:px-12 transition-all shrink-0 overflow-hidden"
-        >
-           <div className="flex items-center gap-6">
+        <div className="mx-auto w-full max-w-[1536px] flex flex-col items-stretch h-full overflow-visible">
+          {/* DESKTOP TOP STRIP */}
+          <motion.div
+            style={{ height: topBarHeight, opacity: topBarOpacity }}
+            className="hidden md:flex border-b border-zinc-100/50 items-center justify-between px-8 md:px-12 transition-all shrink-0 overflow-hidden"
+          >
+            <div className="flex items-center gap-6">
               <span className="flex items-center gap-1.5 text-[9px] font-black text-zinc-400 tracking-widest uppercase">
-                 <Globe className="h-3 w-3 text-[#f97316]" /> {localeStrip}
+                <Globe className="h-3 w-3 text-[#f97316]" /> {localeStrip}
               </span>
               <CurrencySelector className="h-5 rounded-lg bg-transparent border-0 px-1 text-[10px] font-bold text-zinc-400 hover:text-zinc-900 transition-colors" />
-           </div>
-           <div className="flex items-center gap-6">
+            </div>
+            <div className="flex items-center gap-6">
               <Link href="/help" className="text-[10px] font-black tracking-wider text-zinc-400 hover:text-[#f97316] transition-all uppercase">Support</Link>
               <Link href="/vendors" className="text-[10px] font-black tracking-wider text-zinc-400 hover:text-zinc-800 transition-all uppercase">Vendors</Link>
-           </div>
-        </motion.div>
+            </div>
+          </motion.div>
 
-        {/* MAIN NAVIGATION BAR */}
-        <div className="flex-1 flex items-center px-6 sm:px-10 gap-5 sm:gap-8 overflow-visible">
-          {/* Logo */}
-          <Link href="/" className="relative shrink-0 transition-transform active:scale-95 duration-300">
-             <Image src="/jimvio-logo.png" alt="Jimvio" width={140} height={38} className="w-[100px] sm:w-[130px] h-auto object-contain" priority />
-          </Link>
+          {/* MAIN NAVIGATION BAR */}
+          <div className="flex-1 flex items-center px-4 sm:px-10 gap-3 sm:gap-8 overflow-visible">
+            {/* Logo */}
+            <Link href="/" className="relative shrink-0 transition-transform active:scale-95 duration-300">
+              <Image src="/jimvio-logo.png" alt="Jimvio" width={140} height={38} className="w-[110px] sm:w-[130px] h-auto object-contain" priority />
+            </Link>
 
-          {/* Desktop Central Links */}
-          <div className="hidden lg:flex items-center gap-1">
-             <DropdownMenu modal={false}>
+            {/* Desktop Central Links */}
+            <div className="hidden min-[1150px]:flex items-center gap-1">
+              <DropdownMenu modal={false}>
                 <DropdownMenuTrigger asChild>
                   <button className="px-4 py-2 rounded-2xl text-[14px] font-black text-zinc-600 hover:text-zinc-900 transition-all flex items-center gap-1.5 group">
-                     Explore <ChevronDown className="h-3.5 w-3.5 opacity-40 group-hover:rotate-180 transition-transform" />
+                    Explore <ChevronDown className="h-3.5 w-3.5 opacity-40 group-hover:rotate-180 transition-transform" />
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-[360px] p-3 rounded-[32px] shadow-[0_32px_80px_rgba(0,0,0,0.15)] border-white/20 backdrop-blur-3xl bg-white/95 mt-4 grid grid-cols-1 gap-1">
-                   {solutions.map(s => (
-                      <DropdownMenuItem key={s.href} asChild className="p-3 rounded-2xl border border-transparent focus:bg-zinc-50 cursor-pointer group">
-                         <Link href={s.href} className="flex items-center gap-4">
-                            <div className={cn("h-10 w-10 rounded-xl bg-orange-50/10 flex items-center justify-center shrink-0", s.color)}><s.icon className="h-5 w-5" /></div>
-                            <div className="min-w-0">
-                               <p className="text-[14px] font-black text-zinc-900 leading-none mb-1">{s.title}</p>
-                               <p className="text-[11px] font-bold text-zinc-400 leading-tight truncate">{s.desc}</p>
-                            </div>
-                         </Link>
-                      </DropdownMenuItem>
-                   ))}
+                  {solutions.map(s => (
+                    <DropdownMenuItem key={s.href} asChild className="p-3 rounded-2xl border border-transparent focus:bg-zinc-50 cursor-pointer group">
+                      <Link href={s.href} className="flex items-center gap-4">
+                        <div className={cn("h-10 w-10 rounded-xl bg-orange-50/10 flex items-center justify-center shrink-0", s.color)}><s.icon className="h-5 w-5" /></div>
+                        <div className="min-w-0">
+                          <p className="text-[14px] font-black text-zinc-900 leading-none mb-1">{s.title}</p>
+                          <p className="text-[11px] font-bold text-zinc-400 leading-tight truncate">{s.desc}</p>
+                        </div>
+                      </Link>
+                    </DropdownMenuItem>
+                  ))}
                 </DropdownMenuContent>
-             </DropdownMenu>
+              </DropdownMenu>
 
-             {navLinks.slice(0, 3).map((item) => {
-               const active = linkIsActive(pathname, item.href);
-               return (
-                 <Link
-                   key={item.href}
-                   href={item.href}
-                   className={cn(
-                     "px-4 py-2 rounded-2xl text-[14px] font-black transition-all",
-                     active ? "text-[#f97316] bg-orange-50/50" : "text-zinc-500 hover:text-zinc-900"
-                   )}
-                 >
-                   {item.label}
-                 </Link>
-               );
-             })}
-          </div>
+              {navLinks.slice(0, 3).map((item) => {
+                const active = linkIsActive(pathname, item.href);
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={cn(
+                      "px-4 py-2 rounded-2xl text-[14px] font-black transition-all",
+                      active ? "text-[#f97316] bg-orange-50/50" : "text-zinc-500 hover:text-zinc-900"
+                    )}
+                  >
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </div>
 
-          {/* Action Center (Flexible) */}
-          <div className="flex-1 flex items-center justify-end gap-1.5 sm:gap-3 ml-auto">
-             <div className="hidden md:block flex-initial max-w-[420px] w-full mr-2">
+            {/* Action Center (Flexible) */}
+            <div className="flex-1 flex items-center justify-end gap-2 sm:gap-3 ml-auto">
+              <div className="hidden md:block flex-initial max-w-[420px] w-full mr-2">
                 <NavbarSearch searchQ={searchQ} setSearchQ={setSearchQ} placeholder={marketing.search_placeholder} isScrolled={isScrolled} variant="desktop" runSearch={runSearch} navLinks={navLinks} />
-             </div>
+              </div>
 
-             {/* Functional Icons */}
-             <div className="flex items-center gap-0.5 sm:gap-1.5 shrink-0">
+              {/* Functional Icons */}
+              <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
                 <button
-                   onClick={() => openAssistant()}
-                   className="hidden sm:flex items-center gap-2 px-3.5 py-2 rounded-full bg-orange-50 border border-orange-100 text-orange-600 hover:bg-orange-100 transition-all group mr-1"
+                  onClick={() => openAssistant()}
+                  className="hidden sm:flex items-center gap-2 px-3.5 py-2 rounded-full bg-orange-50 border border-orange-100 text-orange-600 hover:bg-orange-100 transition-all group mr-1"
                 >
-                   <Sparkles className="h-4 w-4 fill-orange-500 stroke-none animate-pulse" />
-                   <span className="text-[12px] font-black uppercase tracking-tight">AI Mode</span>
+                  <Sparkles className="h-4 w-4 fill-orange-500 stroke-none animate-pulse" />
+                  <span className="text-[12px] font-black uppercase tracking-tight">AI Mode</span>
                 </button>
-                <button 
-                   onClick={() => openAssistant()}
-                   className="flex sm:hidden p-2 rounded-full bg-orange-50 text-orange-600 border border-orange-100 transition-all mr-1"
+                <button
+                  onClick={() => openAssistant()}
+                  className="flex sm:hidden p-2 rounded-full bg-orange-50 text-orange-600 border border-orange-100 transition-all"
                 >
-                   <Sparkles size={20} className="fill-orange-500 stroke-none" />
+                  <Sparkles className="h-4 w-4 fill-orange-500 stroke-none" />
                 </button>
-                <Link href="/messages" className="relative p-2.5 rounded-full hover:bg-zinc-100 transition-all group lg:flex items-center justify-center">
-                   <MessageCircle className="h-5.5 w-5.5 text-zinc-800 transition-transform group-hover:rotate-6" />
-                   {chatCount > 0 && <span className="absolute -top-1 -right-1 h-[20px] min-w-[20px] bg-[#f97316] text-white text-[10px] font-black flex items-center justify-center rounded-full ring-2 ring-white animate-pulse">{chatCount}</span>}
+                <Link href="/dashboard/messages" className="hidden sm:flex relative p-2.5 rounded-full hover:bg-zinc-100 transition-all group items-center justify-center">
+                  <MessageCircle className="h-5 w-5 text-zinc-800 transition-transform group-hover:rotate-6" />
+                  {chatCount > 0 && <span className="absolute -top-1 -right-1 h-[18px] min-w-[18px] bg-[#f97316] text-white text-[9px] font-black flex items-center justify-center rounded-full ring-2 ring-white animate-pulse">{chatCount}</span>}
                 </Link>
-                <Link href="/cart" className="relative p-2.5 rounded-full hover:bg-zinc-100 transition-all group flex items-center justify-center">
-                   <ShoppingCart className="h-5.5 w-5.5 text-zinc-800 transition-transform group-hover:-rotate-6" />
-                   {cartCount > 0 && <span className="absolute -top-1 -right-1 h-[20px] min-w-[20px] bg-zinc-900 text-white text-[10px] font-black flex items-center justify-center rounded-full ring-2 ring-white">{cartCount}</span>}
+                <Link href="/cart" className="relative p-2 rounded-full hover:bg-zinc-100 transition-all group flex items-center justify-center">
+                  <ShoppingCart className="h-5 w-5 text-zinc-800 transition-transform group-hover:-rotate-6" />
+                  {cartCount > 0 && <span className="absolute -top-1 -right-1 h-[18px] min-w-[18px] bg-zinc-900 text-white text-[9px] font-black flex items-center justify-center rounded-full ring-2 ring-white">{cartCount}</span>}
                 </Link>
-             </div>
+              </div>
 
-             <div className="h-8 w-[1px] bg-zinc-200/50 hidden lg:block mx-1" />
+              <div className="h-8 w-[1px] bg-zinc-200/50 hidden lg:block mx-1" />
 
-             {user ? (
-                <DropdownMenu modal={false}>
-                  <DropdownMenuTrigger asChild>
-                    <button className="flex items-center gap-2.5 p-1 xl:pr-3.5 rounded-full bg-zinc-50 border border-zinc-100 hover:bg-white hover:shadow-xl hover:border-zinc-200 transition-all active:scale-95 group shrink-0">
-                       <Avatar className="h-10 w-10 ring-2 ring-white shadow-sm flex-shrink-0">
+              <div className="hidden sm:flex items-center gap-2 shrink-0">
+                {user ? (
+                  <DropdownMenu modal={false}>
+                    <DropdownMenuTrigger asChild>
+                      <button className="flex items-center gap-2.5 p-1 xl:pr-3.5 rounded-full bg-zinc-50 border border-zinc-100 hover:bg-white hover:shadow-xl hover:border-zinc-200 transition-all active:scale-95 group shrink-0">
+                        <Avatar className="h-9 w-9 xl:h-10 xl:w-10 ring-2 ring-white shadow-sm flex-shrink-0">
                           <AvatarImage src={user.avatar_url ?? undefined} />
                           <AvatarFallback className="bg-gradient-to-br from-[#f97316] to-[#ea580c] text-white font-black text-[12px] uppercase">{user.full_name?.[0]}</AvatarFallback>
-                       </Avatar>
-                       <span className="hidden xl:block text-[13px] font-black text-zinc-900 truncate max-w-[140px]">{user.full_name?.split(" ")[0]}</span>
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-64 rounded-[32px] p-3 shadow-2xl border-white/20 bg-white/95 mt-4">
-                    <div className="p-4 bg-zinc-50 rounded-[24px] mb-2">
-                       <p className="text-[15px] font-black text-zinc-900 leading-tight">{user.full_name}</p>
-                       <p className="text-[11px] font-medium text-zinc-500 mt-1 truncate">{user.email}</p>
-                    </div>
-                    <DropdownMenuItem asChild className="rounded-2xl py-3 font-bold text-zinc-600 focus:bg-zinc-50 focus:text-[#f97316] cursor-pointer">
-                      <Link href="/dashboard"><LayoutDashboard className="h-4 w-4 mr-3" /> Dashboard</Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild className="rounded-2xl py-3 font-bold text-zinc-600 focus:bg-zinc-50 focus:text-zinc-900 cursor-pointer">
-                      <Link href="/dashboard/settings"><Settings className="h-4 w-4 mr-3" /> My Account</Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator className="mx-2 bg-zinc-100/50" />
-                    <DropdownMenuItem onSelect={async () => { await signOut(); window.location.href = "/"; }} className="rounded-2xl py-3 font-bold text-red-500 focus:bg-red-50 cursor-pointer">
-                      <LogOut className="h-4 w-4 mr-3" /> Logout
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-             ) : (
-                <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-                   <Link href="/login" className="hidden sm:block px-4 py-2 text-[13px] font-black text-zinc-500 hover:text-zinc-900 transition-colors">Log In</Link>
-                   <Button asChild className="h-10 sm:h-11 rounded-full px-5 sm:px-7 text-[13px] font-black bg-zinc-900 hover:bg-black text-white shadow-xl shadow-black/10 active:scale-95 transition-all">
+                        </Avatar>
+                        <span className="hidden xl:block text-[13px] font-black text-zinc-900 truncate max-w-[140px]">{user.full_name?.split(" ")[0]}</span>
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-64 rounded-[32px] p-3 shadow-2xl border-white/20 bg-white/95 mt-4">
+                      <div className="p-4 bg-zinc-50 rounded-[24px] mb-2">
+                        <p className="text-[15px] font-black text-zinc-900 leading-tight">{user.full_name}</p>
+                        <p className="text-[11px] font-medium text-zinc-500 mt-1 truncate">{user.email}</p>
+                      </div>
+                      <DropdownMenuItem asChild className="rounded-2xl py-3 font-bold text-zinc-600 focus:bg-zinc-50 focus:text-[#f97316] cursor-pointer">
+                        <Link href="/dashboard"><LayoutDashboard className="h-4 w-4 mr-3" /> Dashboard</Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild className="rounded-2xl py-3 font-bold text-zinc-600 focus:bg-zinc-50 focus:text-zinc-900 cursor-pointer">
+                        <Link href="/dashboard/settings"><Settings className="h-4 w-4 mr-3" /> My Account</Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator className="mx-2 bg-zinc-100/50" />
+                      <DropdownMenuItem onSelect={async () => { await signOut(); window.location.href = "/"; }} className="rounded-2xl py-3 font-bold text-red-500 focus:bg-red-50 cursor-pointer">
+                        <LogOut className="h-4 w-4 mr-3" /> Logout
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                ) : (
+                  <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+                    <Link href="/login" className="px-4 py-2 text-[13px] font-black text-zinc-500 hover:text-zinc-900 transition-colors">Log In</Link>
+                    <Button asChild className="h-10 sm:h-11 rounded-full px-5 sm:px-7 text-[13px] font-black bg-zinc-900 hover:bg-black text-white shadow-xl shadow-black/10 active:scale-95 transition-all">
                       <Link href="/register">Join Free</Link>
-                   </Button>
-                </div>
-             )}
+                    </Button>
+                  </div>
+                )}
+              </div>
 
-             <button onClick={() => setMobileOpen(true)} className="md:hidden p-2.5 rounded-full bg-zinc-50 border border-zinc-100 text-zinc-900 shadow-sm active:scale-90 transition-all shrink-0">
-                <Menu className="h-6 w-6" />
-             </button>
+              <button onClick={() => setMobileOpen(true)} className="md:hidden p-2 rounded-full bg-zinc-50 border border-zinc-100 text-zinc-900 shadow-sm active:scale-90 transition-all shrink-0">
+                <Menu className="h-5 w-5" />
+              </button>
+            </div>
           </div>
         </div>
       </motion.div>
 
-      {/* REFINED MOBILE INTERFACE (CONTROL CENTER STYLE) */}
+      {/* ── MOBILE DRAWER ─────────────────────────────────────────── */}
       {portalReady && createPortal(
         <AnimatePresence>
           {mobileOpen && (
             <>
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setMobileOpen(false)} className="fixed inset-0 bg-black/30 backdrop-blur-md z-[9998] pointer-events-auto" />
-              <motion.div initial={{ x: "100%", opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: "100%", opacity: 0 }} transition={{ type: "spring", damping: 28, stiffness: 260 }} className="fixed inset-0 w-full h-full bg-white z-[9999] shadow-2xl flex flex-col p-6 pointer-events-auto overflow-hidden">
-                 {/* Mobile Header Quick Actions */}
-                 <div className="flex items-center justify-between mb-8">
-                    <div className="flex items-center gap-2">
-                       <Link href="/messages" onClick={() => setMobileOpen(false)} className="relative h-11 w-11 rounded-full bg-zinc-50 flex items-center justify-center">
-                          <MessageCircle className="h-5 w-5 text-zinc-900" />
-                          {chatCount > 0 && <span className="absolute -top-1 -right-1 h-5 w-5 bg-[#f97316] text-white text-[10px] font-black flex items-center justify-center rounded-full ring-2 ring-white">{chatCount}</span>}
-                       </Link>
-                       <Link href="/cart" onClick={() => setMobileOpen(false)} className="relative h-11 w-11 rounded-full bg-orange-50/50 flex items-center justify-center text-[#f97316]">
-                          <ShoppingCart className="h-5 w-5" />
-                          {cartCount > 0 && <span className="absolute -top-1 -right-1 h-5 w-5 bg-zinc-900 text-white text-[10px] font-black flex items-center justify-center rounded-full ring-2 ring-white">{cartCount}</span>}
-                       </Link>
-                    </div>
-                    <button onClick={() => setMobileOpen(false)} className="h-11 w-11 rounded-full bg-zinc-900 text-white flex items-center justify-center shadow-lg active:scale-90 transition-transform">
-                       <X className="h-5 w-5" />
-                    </button>
-                 </div>
-                 
-                 <div className="mb-6 z-[99999] relative space-y-3">
+              {/* Backdrop */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setMobileOpen(false)}
+                className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[9998] pointer-events-auto"
+              />
+
+              {/* Drawer Panel */}
+              <motion.div
+                initial={{ x: "100%", opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                exit={{ x: "100%", opacity: 0 }}
+                transition={{ type: "spring", damping: 30, stiffness: 280 }}
+                className="fixed inset-y-0 right-0 w-full max-w-sm bg-white z-[9999] shadow-2xl flex flex-col pointer-events-auto overflow-hidden"
+              >
+                {/* ── Drawer Header ── */}
+                <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-100 shrink-0">
+                  <Link href="/" onClick={() => setMobileOpen(false)} className="shrink-0">
+                    <Image src="/jimvio-logo.png" alt="Jimvio" width={110} height={30} className="h-7 w-auto object-contain" priority />
+                  </Link>
+                  <div className="flex items-center gap-2">
+                    <Link href="/cart" onClick={() => setMobileOpen(false)} className="relative h-10 w-10 rounded-full bg-zinc-50 border border-zinc-100 flex items-center justify-center text-zinc-700">
+                      <ShoppingCart className="h-4.5 w-4.5" />
+                      {cartCount > 0 && <span className="absolute -top-1 -right-1 h-[18px] min-w-[18px] bg-zinc-900 text-white text-[9px] font-black flex items-center justify-center rounded-full ring-2 ring-white">{cartCount}</span>}
+                    </Link>
+                    <Link href="/dashboard/messages" onClick={() => setMobileOpen(false)} className="relative h-10 w-10 rounded-full bg-zinc-50 border border-zinc-100 flex items-center justify-center text-zinc-700">
+                      <MessageCircle className="h-4.5 w-4.5" />
+                      {chatCount > 0 && <span className="absolute -top-1 -right-1 h-[18px] min-w-[18px] bg-[#f97316] text-white text-[9px] font-black flex items-center justify-center rounded-full ring-2 ring-white">{chatCount}</span>}
+                    </Link>
                     <button
-                      onClick={() => { openAssistant(); setMobileOpen(false); }}
-                      className="w-full h-15 rounded-[24px] bg-orange-50 border border-orange-100 flex items-center justify-between px-6 text-orange-600 hover:bg-orange-100 transition-all active:scale-95 shadow-sm"
+                      onClick={() => setMobileOpen(false)}
+                      className="h-10 w-10 rounded-full bg-zinc-900 text-white flex items-center justify-center active:scale-90 transition-transform"
                     >
-                       <div className="flex items-center gap-3">
-                          <Sparkles className="h-5 w-5 fill-orange-500 stroke-none" />
-                          <span className="text-[15px] font-black uppercase">Launch AI Mode</span>
-                       </div>
-                       <ChevronRight size={18} />
+                      <X className="h-5 w-5" />
                     </button>
-                    <NavbarSearch 
-                       searchQ={searchQ} 
-                       setSearchQ={setSearchQ} 
-                       placeholder={marketing.search_placeholder ?? "Search globally..."} 
-                       isScrolled={isScrolled} 
-                       variant="mobile" 
-                       runSearch={runSearch} 
-                       navLinks={navLinks} 
+                  </div>
+                </div>
+
+                {/* ── Scrollable body ── */}
+                <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-4 space-y-2">
+
+                  {/* Search */}
+                  <div className="relative z-[99999] mb-2">
+                    <NavbarSearch
+                      searchQ={searchQ}
+                      setSearchQ={setSearchQ}
+                      placeholder={marketing.search_placeholder ?? "Search globally..."}
+                      isScrolled={isScrolled}
+                      variant="mobile"
+                      runSearch={runSearch}
+                      navLinks={navLinks}
                     />
-                 </div>
+                  </div>
 
-                 <div className="space-y-6 flex-1 overflow-y-auto no-scrollbar pb-6 relative z-10">
-                    <div>
-                       <h4 className="text-[10px] font-black text-zinc-300 uppercase tracking-widest pl-4 mb-4">Marketplace Engine</h4>
-                       <div className="grid grid-cols-1 gap-2">
-                          {solutions.map(s => (
-                             <Link key={s.href} href={s.href} onClick={() => setMobileOpen(false)} className="flex items-center justify-between p-5 rounded-[24px] bg-zinc-50 border border-transparent hover:border-zinc-100 transition-all group">
-                                <div className="flex items-center gap-4">
-                                   <div className={cn("h-10 w-10 rounded-xl bg-white shadow-sm flex items-center justify-center", s.color)}><s.icon className="h-5 w-5" /></div>
-                                   <div className="min-w-0">
-                                      <p className="text-[16px] font-black text-zinc-900">{s.title}</p>
-                                      <p className="text-[10px] font-bold text-zinc-400 -mt-0.5">{s.desc}</p>
-                                   </div>
-                                </div>
-                                <Plus className="h-4 w-4 text-zinc-300 opacity-0 group-hover:opacity-100 transition-opacity" />
-                             </Link>
-                          ))}
-                       </div>
+                  {/* AI Mode CTA */}
+                  <button
+                    onClick={() => { openAssistant(); setMobileOpen(false); }}
+                    className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-full
+  bg-gradient-to-r from-orange-50/80 to-amber-50/60
+  border border-orange-200/50
+  text-orange-600 font-black text-[12px] uppercase tracking-wider
+  shadow-[0_4px_16px_rgba(249,115,22,0.12),0_1px_0_rgba(255,255,255,0.7)_inset]
+  hover:shadow-[0_6px_20px_rgba(249,115,22,0.22),0_1px_0_rgba(255,255,255,0.9)_inset]
+  hover:-translate-y-0.5 hover:scale-[1.02]
+  transition-all duration-200"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Sparkles className="h-5 w-5 fill-orange-500 stroke-none shrink-0" />
+                      <span className="text-[15px] font-black">Launch AI Mode</span>
                     </div>
+                    <ChevronRight className="h-4 w-4 opacity-50 group-hover:translate-x-0.5 transition-transform" />
+                  </button>
 
-                    <div>
-                       <h4 className="text-[10px] font-black text-zinc-300 uppercase tracking-widest pl-4 mb-4">Other Services</h4>
-                       <div className="flex flex-col gap-1">
-                          {navLinks.map((item) => {
-                             const Icon = iconForNavHref(item.href);
-                             const active = linkIsActive(pathname, item.href);
-                             if (solutions.some(s => s.href === item.href)) return null;
-                             return (
-                                <Link key={item.href} href={item.href} onClick={() => setMobileOpen(false)}
-                                  className={cn("flex items-center justify-between px-6 py-4 rounded-[20px] text-[15px] font-black transition-all",
-                                     active ? "text-[#f97316]" : "text-zinc-600 hover:text-zinc-900 hover:bg-zinc-50"
-                                  )}>
-                                   <div className="flex items-center gap-4"><Icon className="h-5 w-5 opacity-30" /> {item.label}</div>
-                                </Link>
-                             )
-                          })}
-                       </div>
+                  {/* ── Dashboard shortcut (logged-in only) ── */}
+                  {user && (
+                    <Link
+                      href="/dashboard"
+                      onClick={() => setMobileOpen(false)}
+                      className={cn(
+                        "flex items-center gap-4 px-4 py-3.5 rounded-2xl text-[15px] font-black transition-all",
+                        linkIsActive(pathname, "/dashboard")
+                          ? "bg-orange-50 text-[#f97316]"
+                          : "text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900"
+                      )}
+                    >
+                      <span className={cn(
+                        "h-9 w-9 rounded-xl flex items-center justify-center shrink-0",
+                        linkIsActive(pathname, "/dashboard") ? "bg-orange-100 text-orange-500" : "bg-zinc-100 text-zinc-500"
+                      )}>
+                        <LayoutDashboard className="h-4.5 w-4.5" />
+                      </span>
+                      Dashboard
+                      {linkIsActive(pathname, "/dashboard") && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-[#f97316]" />}
+                    </Link>
+                  )}
+
+                  {/* ── All Nav Links (Home first) ── */}
+                  <div className="pt-2">
+                    <p className="text-[10px] font-black text-zinc-300 uppercase tracking-widest px-2 mb-2">Navigation</p>
+                    <div className="flex flex-col gap-1">
+                      {orderedMobileLinks.map((item) => {
+                        const Icon = iconForNavHref(item.href);
+                        const active = linkIsActive(pathname, item.href);
+                        const colorClasses = colorForNavHref(item.href);
+                        const [iconColor, iconBg] = colorClasses.split(" ");
+                        return (
+                          <Link
+                            key={item.href}
+                            href={item.href}
+                            onClick={() => setMobileOpen(false)}
+                            className={cn(
+                              "flex items-center gap-4 px-4 py-3.5 rounded-2xl text-[15px] font-black transition-all",
+                              active
+                                ? "bg-orange-50 text-[#f97316]"
+                                : "text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900"
+                            )}
+                          >
+                            <span className={cn("h-9 w-9 rounded-xl flex items-center justify-center shrink-0", active ? "bg-orange-100 text-orange-500" : `${iconBg} ${iconColor}`)}>
+                              <Icon className="h-4.5 w-4.5" />
+                            </span>
+                            {item.label}
+                            {active && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-[#f97316]" />}
+                          </Link>
+                        );
+                      })}
                     </div>
-                 </div>
+                  </div>
 
-                 <div className="pt-6 border-t border-zinc-100 mt-auto">
-                    {user ? (
-                       <Button asChild className="w-full h-15 rounded-[28px] font-black bg-zinc-900 text-white text-[17px] shadow-xl">
-                          <Link href="/dashboard" onClick={() => setMobileOpen(false)}>My Dashboard</Link>
-                       </Button>
-                    ) : (
-                       <div className="grid grid-cols-2 gap-3">
-                          <Button asChild variant="outline" className="h-14 rounded-[24px] border-zinc-100 font-black text-zinc-500">
-                             <Link href="/login" onClick={() => setMobileOpen(false)}>Log In</Link>
-                          </Button>
-                          <Button asChild className="h-14 rounded-[24px] font-black bg-[#f97316] hover:bg-[#ea580c] shadow-xl shadow-orange-500/20 text-white">
-                             <Link href="/register" onClick={() => setMobileOpen(false)}>Join Free</Link>
-                          </Button>
-                       </div>
-                    )}
-                 </div>
+                  {/* ── Extra Links ── */}
+                  <div className="pt-1">
+                    <p className="text-[10px] font-black text-zinc-300 uppercase tracking-widest px-2 mb-2">More</p>
+                    <div className="flex flex-col gap-1">
+                      <Link href="/help" onClick={() => setMobileOpen(false)} className="flex items-center gap-4 px-4 py-3.5 rounded-2xl text-[15px] font-black text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900 transition-all">
+                        <span className="h-9 w-9 rounded-xl bg-zinc-50 flex items-center justify-center shrink-0">
+                          <HelpCircle className="h-4.5 w-4.5 text-zinc-400" />
+                        </span>
+                        Support
+                      </Link>
+                      <Link href="/vendors" onClick={() => setMobileOpen(false)} className="flex items-center gap-4 px-4 py-3.5 rounded-2xl text-[15px] font-black text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900 transition-all">
+                        <span className="h-9 w-9 rounded-xl bg-yellow-50 flex items-center justify-center shrink-0">
+                          <Factory className="h-4.5 w-4.5 text-yellow-600" />
+                        </span>
+                        Vendors
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+
+                {/* ── Footer Auth ── */}
+                <div className="shrink-0 px-4 py-4 border-t border-zinc-100 bg-white">
+                  {user ? (
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-10 w-10 ring-2 ring-orange-100 shrink-0">
+                        <AvatarImage src={user.avatar_url ?? undefined} />
+                        <AvatarFallback className="bg-gradient-to-br from-[#f97316] to-[#ea580c] text-white font-black text-[13px] uppercase">{user.full_name?.[0]}</AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[14px] font-black text-zinc-900 truncate">{user.full_name}</p>
+                        <p className="text-[11px] text-zinc-400 truncate">{user.email}</p>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <Link href="/dashboard" onClick={() => setMobileOpen(false)} className="h-10 w-10 rounded-full bg-zinc-900 text-white flex items-center justify-center">
+                          <LayoutDashboard className="h-4 w-4" />
+                        </Link>
+                        <button
+                          onClick={async () => { await signOut(); window.location.href = "/"; }}
+                          className="h-10 w-10 rounded-full bg-red-50 text-red-500 flex items-center justify-center"
+                        >
+                          <LogOut className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-3">
+                      <Button asChild variant="outline" className="h-12 rounded-2xl border-zinc-100 font-black text-zinc-600 text-[14px]">
+                        <Link href="/login" onClick={() => setMobileOpen(false)}>Log In</Link>
+                      </Button>
+                      <Button asChild className="h-12 rounded-2xl font-black bg-[#f97316] hover:bg-[#ea580c] shadow-lg shadow-orange-500/20 text-white text-[14px]">
+                        <Link href="/register" onClick={() => setMobileOpen(false)}>Join Free</Link>
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </motion.div>
             </>
           )}

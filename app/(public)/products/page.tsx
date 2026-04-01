@@ -1,14 +1,16 @@
 import React from "react";
 import { getMarketplaceCategories, getProducts, type ProductQuery } from "@/services/db";
+import { getCartProductIds } from "@/lib/actions/marketplace";
 import { ProductsCatalogClient } from "./products-catalog-client";
 
 export const dynamic = "force-dynamic";
 
 export default async function ProductsPage() {
   const query: ProductQuery = { limit: 200, offset: 0, sort: "newest" };
-  const [categories, { products: raw }] = await Promise.all([
+  const [categories, { products: raw }, cartProductIds] = await Promise.all([
     getMarketplaceCategories().catch(() => []),
     getProducts(query).catch(() => ({ products: [] })),
+    getCartProductIds().catch(() => []),
   ]);
 
   const products = (raw ?? []).map((p: Record<string, unknown>) => ({
@@ -25,7 +27,7 @@ export default async function ProductsPage() {
           <h1 className="text-3xl font-black text-[var(--color-text-primary)]">Products</h1>
           <p className="text-sm text-[var(--color-text-secondary)] mt-1">Browse every active listing on Jimvio</p>
         </div>
-        <ProductsCatalogClient initialProducts={products as never} categories={categories as never} />
+        <ProductsCatalogClient initialProducts={products as never} categories={categories as never} cartProductIds={cartProductIds} />
       </div>
     </div>
   );

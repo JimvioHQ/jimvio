@@ -10,6 +10,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
+import { CloudinaryUploadButton, CloudinaryDropzone } from "@/components/ui/cloudinary-upload";
+import { CloudinaryImage } from "@/components/ui/cloudinary-image";
 
 export default function EditProductPage() {
   const router = useRouter();
@@ -27,6 +29,7 @@ export default function EditProductPage() {
     inventory_quantity: "", affiliate_enabled: true,
     affiliate_commission_rate: "10", status: "draft",
     is_featured: false, tags: "", is_digital: false,
+    images: [] as string[],
   });
 
   useEffect(() => {
@@ -57,6 +60,7 @@ export default function EditProductPage() {
           is_featured:             p.is_featured ?? false,
           tags:                    (p.tags as string[])?.join(", ") ?? "",
           is_digital:              p.is_digital ?? false,
+          images:                  (p.images as string[]) || [],
         });
       }
       setCategories(catsRes.data ?? []);
@@ -67,6 +71,18 @@ export default function EditProductPage() {
 
   function handleChange(field: string, value: string | boolean) {
     setForm(prev => ({ ...prev, [field]: value }));
+  }
+
+  function handleImageUpload(url: string) {
+    setForm((prev) => ({ ...prev, images: [...prev.images, url] }));
+  }
+
+  function removeImage(index: number) {
+    setForm((prev) => {
+      const newImages = [...prev.images];
+      newImages.splice(index, 1);
+      return { ...prev, images: newImages };
+    });
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -87,6 +103,7 @@ export default function EditProductPage() {
         status:                  form.status,
         is_featured:             form.is_featured,
         tags:                    form.tags ? form.tags.split(",").map(t => t.trim()).filter(Boolean) : null,
+        images:                  form.images,
       }).eq("id", productId);
 
       if (updateErr) { setError(updateErr.message); return; }
@@ -140,6 +157,36 @@ export default function EditProductPage() {
               <input type="checkbox" checked={form.is_featured} onChange={e => handleChange("is_featured", e.target.checked)} className="accent-purple-600 w-4 h-4" />
               <span className="text-sm text-base">Mark as Featured Product</span>
             </label>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pt-5 px-5 pb-4"><CardTitle>Product Images</CardTitle></CardHeader>
+          <CardContent className="px-5 pb-5 pt-0 space-y-4">
+            {form.images.length > 0 && (
+              <div className="grid grid-cols-3 md:grid-cols-4 gap-4 mb-4">
+                {form.images.map((img, i) => (
+                  <div key={i} className="relative group aspect-square rounded-xl overflow-hidden border">
+                    <CloudinaryImage src={img} alt={`Product Image ${i + 1}`} className="w-full h-full object-cover" />
+                    <button 
+                      type="button" 
+                      onClick={() => removeImage(i)}
+                      className="absolute top-2 right-2 bg-black/50 hover:bg-black/80 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            <CloudinaryDropzone 
+              folder="jimvio/products"
+              onUploadSuccess={handleImageUpload}
+              label={form.images.length === 0 ? "Upload main image (required)" : "Upload additional images"}
+            />
           </CardContent>
         </Card>
 
