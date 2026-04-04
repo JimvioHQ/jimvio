@@ -116,29 +116,23 @@ export default function NewClipPage() {
           </div>
           <div>
             <label className="text-sm font-medium text-[var(--color-text-primary)] block mb-1.5">Upload Video *</label>
-            <div className="flex gap-3">
-              <Input type="url" value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} placeholder="https://..." className="rounded-xl flex-1" />
-              <CloudinaryUploadButton
-                folder="jimvio/clips"
-                resourceType="video"
-                onUploadSuccess={(url) => setVideoUrl(url)}
-                buttonText="Browse File"
-              />
-            </div>
-            {videoUrl && <p className="text-xs text-green-600 mt-1 flex items-center gap-1">✓ Video uploaded or linked</p>}
+            <CloudinaryUploadButton
+              folder="jimvio/clips"
+              resourceType="video"
+              onUploadSuccess={(url) => setVideoUrl(url)}
+              buttonText="Browse File"
+            />
+            {videoUrl && <p className="text-xs text-green-600 mt-1 flex items-center gap-1">✓ Video uploaded</p>}
           </div>
           <div>
-            <label className="text-sm font-medium text-[var(--color-text-muted)] block mb-1.5">Thumbnail URL (optional)</label>
-            <div className="flex gap-3">
-              <Input type="url" value={thumbnailUrl} onChange={(e) => setThumbnailUrl(e.target.value)} placeholder="https://..." className="rounded-xl flex-1" />
-              <CloudinaryUploadButton
-                folder="jimvio/banners"
-                resourceType="image"
-                onUploadSuccess={(url) => setThumbnailUrl(url)}
-                buttonText="Browse Image"
-              />
-            </div>
-            {thumbnailUrl && <p className="text-xs text-green-600 mt-1 flex items-center gap-1">✓ Thumbnail linked</p>}
+            <label className="text-sm font-medium text-[var(--color-text-muted)] block mb-1.5">Thumbnail (optional)</label>
+            <CloudinaryUploadButton
+              folder="jimvio/banners"
+              resourceType="image"
+              onUploadSuccess={(url) => setThumbnailUrl(url)}
+              buttonText="Browse Image"
+            />
+            {thumbnailUrl && <p className="text-xs text-green-600 mt-1 flex items-center gap-1">✓ Thumbnail uploaded</p>}
           </div>
           <div>
             <label className="text-sm font-medium text-[var(--color-text-primary)] block mb-1.5">Select product to promote</label>

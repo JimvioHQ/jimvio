@@ -408,18 +408,17 @@ export default function NewProductPage() {
                       <ImageIcon className="h-5 w-5 text-[var(--color-accent)]" />
                       Digital file
                     </h2>
-                    <p className="text-sm text-[var(--color-text-muted)] mt-1">Link to the file customers download after purchase</p>
+                    <p className="text-sm text-[var(--color-text-muted)] mt-1">Upload the file customers download after purchase</p>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="digital_file_url" className="text-[var(--color-text-secondary)] font-medium">Download URL</Label>
-                    <Input
-                      id="digital_file_url"
-                      type="url"
-                      placeholder="https://your-file-host.com/your-file.zip"
-                      value={form.digital_file_url}
-                      onChange={(e) => handleChange("digital_file_url", e.target.value)}
-                      className={inputClass}
+                    <Label className="text-[var(--color-text-secondary)] font-medium">Upload File</Label>
+                    <CloudinaryUploadButton
+                      folder="jimvio/digital-files"
+                      resourceType="raw"
+                      onUploadSuccess={(url) => handleChange("digital_file_url", url)}
+                      buttonText="Browse File"
                     />
+                    {form.digital_file_url && <p className="text-xs text-green-600 mt-1 flex items-center gap-1">✓ File uploaded</p>}
                   </div>
                 </div>
               )}

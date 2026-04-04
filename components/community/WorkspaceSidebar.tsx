@@ -14,6 +14,7 @@ import {
   LayoutList,
   Lock,
   MessageCircle,
+  MessageSquare,
   Settings,
   Trophy,
   Users,
@@ -131,6 +132,7 @@ export function WorkspaceSidebar({
 
   const membersActive = pathname.includes("/workspace/members");
   const leaderboardActive = pathname.includes("/workspace/leaderboard");
+  const chatsActive = pathname.includes("/workspace/chats");
 
   return (
     <>
@@ -228,6 +230,17 @@ export function WorkspaceSidebar({
         </div>
 
         <div className="border-t border-[var(--color-border)] p-2 space-y-1">
+          <Link
+            href={`${base}/chats`}
+            onClick={onNavigate}
+            className={cn(
+              "flex items-center gap-2 px-2 py-2 rounded-xl text-xs font-bold",
+              chatsActive ? "bg-[var(--color-accent-light)] text-[var(--color-accent)]" : "text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-secondary)]"
+            )}
+          >
+            <MessageSquare className="h-4 w-4" />
+            Chats
+          </Link>
           <Link
             href={`${base}/members`}
             onClick={onNavigate}

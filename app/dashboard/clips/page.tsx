@@ -11,6 +11,7 @@ import { StatCard } from "@/components/ui/stat-card";
 import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
+import { CloudinaryUploadButton } from "@/components/ui/cloudinary-upload";
 
 export default function ViralClipsPage() {
   const [clips, setClips]         = useState<Record<string, unknown>[]>([]);
@@ -171,7 +172,16 @@ export default function ViralClipsPage() {
           <CardContent className="px-5 pb-5 pt-0 space-y-4">
             <Input label="Clip Title *" placeholder="e.g. TikTok Growth Secrets Revealed" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} />
             <Input label="Description" placeholder="Brief description for influencers" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
-            <Input label="Video URL *" type="url" placeholder="https://res.cloudinary.com/... or YouTube/Vimeo URL" value={form.video_url} onChange={e => setForm(f => ({ ...f, video_url: e.target.value }))} hint="Paste a direct video URL (Cloudinary, YouTube, Vimeo)" />
+            <div>
+              <label className="text-sm font-medium text-[var(--color-text-primary)] block mb-1.5">Upload Video *</label>
+              <CloudinaryUploadButton
+                folder="jimvio/clips"
+                resourceType="video"
+                onUploadSuccess={(url) => setForm(f => ({ ...f, video_url: url }))}
+                buttonText="Browse File"
+              />
+              {form.video_url && <p className="text-xs text-green-600 mt-1 flex items-center gap-1">✓ Video uploaded</p>}
+            </div>
             <div>
               <label className="text-sm font-medium text-[var(--color-text-primary)] block mb-1.5">Link to Product (optional)</label>
               <select value={form.product_id} onChange={e => setForm(f => ({ ...f, product_id: e.target.value }))}
@@ -199,7 +209,6 @@ export default function ViralClipsPage() {
           <h3 className="text-base font-bold mb-2">Upload Your First Marketing Clip</h3>
           <p className="text-sm text-muted-c mb-4 max-w-md mx-auto">Upload a short marketing video. Influencers download and share it on TikTok, Instagram, and YouTube. Track every view and conversion.</p>
           <Button onClick={() => setShowForm(true)}><Plus className="h-4 w-4" /> Upload First Clip</Button>
-          <p className="text-muted-c text-xs mt-3">Supports any video URL (Cloudinary, YouTube, Vimeo)</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">

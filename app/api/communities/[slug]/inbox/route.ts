@@ -5,12 +5,20 @@ export const dynamic = "force-dynamic";
 
 /** Get or create a 1:1 inbox thread with another active member. */
 export async function POST(req: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
-  const { slug: communityId } = await params;
+  const { slug } = await params;
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { data: community } = await supabase
+    .from("communities")
+    .select("id")
+    .eq("slug", slug)
+    .single();
+
+  if (!community) return NextResponse.json({ error: "Community not found" }, { status: 404 });
 
   const body = (await req.json()) as { peerUserId?: string };
   if (!body.peerUserId || typeof body.peerUserId !== "string") {
@@ -18,7 +26,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   }
 
   const { data, error } = await supabase.rpc("get_or_create_community_inbox_conversation", {
-    p_community_id: communityId,
+    p_community_id: community.id,
     p_peer_id: body.peerUserId,
   });
 

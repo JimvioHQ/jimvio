@@ -7,18 +7,26 @@ export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ slug: string; conversationId: string }> }
 ) {
-  const { slug: communityId, conversationId } = await params;
+  const { slug, conversationId } = await params;
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const { data: community } = await supabase
+    .from("communities")
+    .select("id")
+    .eq("slug", slug)
+    .single();
+
+  if (!community) return NextResponse.json({ error: "Community not found" }, { status: 404 });
+
   const { data: conv, error: cErr } = await supabase
     .from("community_inbox_conversations")
     .select("id, community_id, user_low, user_high")
     .eq("id", conversationId)
-    .eq("community_id", communityId)
+    .eq("community_id", community.id)
     .maybeSingle();
 
   if (cErr || !conv) return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -28,7 +36,7 @@ export async function GET(
 
   const { data: rows, error } = await supabase
     .from("community_inbox_messages")
-    .select("id, sender_id, body, created_at")
+    .select("id, sender_id, body, attachments, message_type, reactions, created_at")
     .eq("conversation_id", conversationId)
     .eq("is_deleted", false)
     .order("created_at", { ascending: true })
@@ -55,18 +63,26 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ slug: string; conversationId: string }> }
 ) {
-  const { slug: communityId, conversationId } = await params;
+  const { slug, conversationId } = await params;
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const { data: community } = await supabase
+    .from("communities")
+    .select("id")
+    .eq("slug", slug)
+    .single();
+
+  if (!community) return NextResponse.json({ error: "Community not found" }, { status: 404 });
+
   const { data: conv, error: cErr } = await supabase
     .from("community_inbox_conversations")
     .select("id, community_id, user_low, user_high")
     .eq("id", conversationId)
-    .eq("community_id", communityId)
+    .eq("community_id", community.id)
     .maybeSingle();
 
   if (cErr || !conv) return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -74,9 +90,12 @@ export async function POST(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const body = (await req.json()) as { body?: string };
-  const text = typeof body.body === "string" ? body.body.trim() : "";
-  if (!text) return NextResponse.json({ error: "Message cannot be empty" }, { status: 400 });
+  const payload = await req.json();
+  const text = typeof payload.body === "string" ? payload.body.trim() : "";
+  const attachments = Array.isArray(payload.attachments) ? payload.attachments : [];
+  const message_type = typeof payload.message_type === "string" ? payload.message_type : "text";
+
+  if (!text && attachments.length === 0) return NextResponse.json({ error: "Message cannot be empty" }, { status: 400 });
 
   const { data: msg, error } = await supabase
     .from("community_inbox_messages")
@@ -84,8 +103,11 @@ export async function POST(
       conversation_id: conversationId,
       sender_id: user.id,
       body: text,
+      attachments,
+      message_type,
+      reactions: {}
     })
-    .select("id, sender_id, body, created_at")
+    .select("id, sender_id, body, attachments, message_type, reactions, created_at")
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });

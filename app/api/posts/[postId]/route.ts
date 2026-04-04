@@ -135,7 +135,16 @@ export async function DELETE(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const { error } = await supabase.from("community_posts").delete().eq("id", postId);
+  const { error } = await supabase
+    .from("community_posts")
+    .update({
+      is_deleted: true,
+      deleted_by: isStaff && !isAuthor ? user.id : null,
+      body: "",
+      title: "[deleted]",
+    })
+    .eq("id", postId);
+
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
   return NextResponse.json({ ok: true });
 }

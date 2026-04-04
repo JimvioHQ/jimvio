@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { WorkspaceShell } from "@/components/community/workspace-shell";
+import { isMembershipActive } from "@/services/communityService";
 import type { WorkspaceSpaceRow } from "@/components/community/workspace-context";
 
 export default async function CommunityWorkspaceLayout({
@@ -31,12 +32,12 @@ export default async function CommunityWorkspaceLayout({
 
   const { data: membership } = await supabase
     .from("community_memberships")
-    .select("role, plan_type, status, space_access")
+    .select("role, plan_type, status, space_access, expires_at")
     .eq("community_id", community.id)
     .eq("user_id", user.id)
     .maybeSingle();
 
-  if (!membership || membership.status !== "active") {
+  if (!membership || !isMembershipActive(membership)) {
     redirect(`/communities/${slug}`);
   }
 

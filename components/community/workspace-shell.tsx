@@ -6,7 +6,9 @@ import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { WorkspaceProvider, type WorkspaceContextValue } from "@/components/community/workspace-context";
 import { WorkspaceSidebar } from "@/components/community/WorkspaceSidebar";
+import { CallProvider } from "@/components/community/call-context";
 import type { MembershipLite } from "@/lib/community-workspace-access";
+
 
 type ShellProps = {
   slug: string;
@@ -57,7 +59,9 @@ export function WorkspaceShell({
 
   return (
     <WorkspaceProvider value={ctx}>
-      <div className="relative flex w-full min-h-[calc(100vh-var(--navbar-height))] bg-[var(--color-bg)]">
+      <CallProvider>
+        <div className="relative flex w-full min-h-[calc(100vh-var(--navbar-height))] bg-[var(--color-bg)]">
+
         {mobileOpen && (
           <button
             type="button"
@@ -120,7 +124,8 @@ export function WorkspaceShell({
             </div>
           </div>
         </div>
-      </div>
+        </div>
+      </CallProvider>
     </WorkspaceProvider>
   );
 }

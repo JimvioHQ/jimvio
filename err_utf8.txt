@@ -1,0 +1,59 @@
+﻿node.exe : Failed to 
+compile.
+At line:1 char:1
++ & "C:\Program 
+Files\nodejs/node.exe" 
+"C:\Program 
+Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo        
+      : NotSpecified: (F  
+  ailed to compile.:Str   
+ ing) [], RemoteExcept    
+ion
+    + FullyQualifiedError 
+   Id : NativeCommandErr  
+  or
+ 
+
+./components/community/roo
+ms/ChatRoom.tsx
+Module parse failed: 
+Identifier 'endCall' has 
+already been declared 
+(845:13)
+File was processed with 
+these loaders:
+ * ./node_modules/next/dis
+t/build/webpack/loaders/ne
+xt-flight-client-module-lo
+ader.js
+ * ./node_modules/next/dis
+t/build/webpack/loaders/ne
+xt-swc-loader.js
+You may need an 
+additional loader to 
+handle the result of 
+these loaders.
+|         await 
+initWebRTC(type, true);
+|     }
+>     function endCall() {
+|         localStream?.get
+Tracks().forEach((t)=>t.st
+op());
+|         
+setLocalStream(null);
+
+Import trace for 
+requested module:
+./components/community/roo
+ms/ChatRoom.tsx
+./components/community/wor
+kspace-room-view.tsx
+
+
+> Build failed because of 
+webpack errors

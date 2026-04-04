@@ -61,58 +61,67 @@ export function WorkspaceRoomOverlay({
 
   const node = (
     <div
-      className="fixed inset-0 z-[10001] flex flex-col bg-[var(--color-bg)] animate-in fade-in duration-200"
+      className="fixed inset-0 z-[10001] flex flex-col bg-[var(--color-bg)] animate-in fade-in slide-in-from-bottom-4 duration-300"
       role="dialog"
       aria-modal="true"
       aria-labelledby="workspace-room-overlay-title"
     >
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_120%_80%_at_50%_-20%,rgba(249,115,22,0.08),transparent_55%)]" />
-      <header className="relative z-10 shrink-0 border-b border-[var(--color-border)] bg-[var(--color-surface)]/95 backdrop-blur-xl shadow-[0_1px_0_rgba(0,0,0,0.04)]">
-        <div className="flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-3">
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            className="h-10 w-10 shrink-0 rounded-xl border-[var(--color-border)] bg-[var(--color-surface-secondary)] text-[var(--color-text-primary)] hover:bg-[var(--color-accent-light)] hover:text-[var(--color-accent)] hover:border-[var(--color-accent)]/40"
-            onClick={onClose}
-            aria-label="Back to workspace"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-black uppercase tracking-wider text-[var(--color-text-muted)] truncate">{communityName}</p>
-            <div className="flex flex-wrap items-center gap-2 mt-0.5">
-              <span className="text-lg leading-none w-7 text-center shrink-0">{spaceIcon || "·"}</span>
-              <span className="text-xs font-bold text-[var(--color-text-muted)] truncate">{spaceName}</span>
-              <span className="text-[var(--color-border)] hidden sm:inline">/</span>
-              <h1 id="workspace-room-overlay-title" className="text-base sm:text-lg font-black text-[var(--color-text-primary)] truncate">
-                {roomName}
-              </h1>
-            </div>
+      {/* Premium Background Elements */}
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_140%_100%_at_50%_-20%,rgba(34,197,94,0.08),transparent_50%)]" />
+      <div className="pointer-events-none absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[var(--color-border)] to-transparent opacity-50" />
+
+      <header className="relative z-10 shrink-0 border-b border-[var(--color-border)] bg-[var(--color-surface)]/80 backdrop-blur-2xl px-3 py-1.5 sm:px-6 sm:py-2.5 flex items-center gap-3 sm:gap-4 shadow-[0_4px_24px_rgba(0,0,0,0.02)]">
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          className="h-9 w-9 sm:h-10 sm:w-10 shrink-0 rounded-xl border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-primary)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-accent)] hover:border-[var(--color-accent)]/30 hover:scale-105 active:scale-95 transition-all duration-200"
+          onClick={onClose}
+          aria-label="Back to workspace"
+        >
+          <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5" />
+        </Button>
+
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 mb-0">
+            <span className="text-[9px] font-black uppercase tracking-[0.2em] text-[var(--color-text-muted)] opacity-70 leading-none">{communityName}</span>
           </div>
-          <div className="hidden sm:flex items-center gap-2 shrink-0">
-            <span
-              className={cn(
-                "inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider px-3 py-1.5 rounded-full",
-                "bg-[var(--color-accent-light)] text-[var(--color-accent)] border border-[var(--color-accent)]/25"
-              )}
-            >
-              <Sparkles className="h-3.5 w-3.5" />
-              {roomTypeLabel(roomType)}
-            </span>
+          <div className="flex items-center gap-2 sm:gap-3">
+             {spaceIcon && <span className="text-base sm:text-lg leading-none w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center bg-[var(--color-surface-secondary)] rounded-lg border border-[var(--color-border)] shadow-sm">{spaceIcon}</span>}
+             <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap leading-tight">
+                   <span className="text-[11px] font-bold text-[var(--color-text-muted)] tracking-tight">{spaceName}</span>
+                   <span className="text-[var(--color-border)] opacity-60 text-xs">/</span>
+                   <h1 id="workspace-room-overlay-title" className="text-sm sm:text-base font-black tracking-tight text-[var(--color-text-primary)] truncate">
+                     {roomName}
+                   </h1>
+                </div>
+             </div>
           </div>
         </div>
-        <div className="sm:hidden px-3 pb-2">
-          <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-[var(--color-accent-light)] text-[var(--color-accent)] border border-[var(--color-accent)]/25">
+
+        <div className="hidden md:flex items-center gap-3 shrink-0">
+          <span
+            className={cn(
+              "inline-flex items-center gap-2 text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-xl shadow-sm transition-all duration-300",
+              "bg-[var(--color-surface-secondary)] text-[var(--color-text-primary)] border border-[var(--color-border)] group hover:border-[var(--color-accent)]/40"
+            )}
+          >
+            <Sparkles className="h-3 w-3 text-[var(--color-accent)] animate-pulse" />
             {roomTypeLabel(roomType)}
           </span>
         </div>
       </header>
-      <div className="relative z-10 flex flex-1 min-h-0 flex-col overflow-hidden">{children}</div>
+
+      <main className="relative z-10 flex flex-1 min-h-0 flex-col overflow-hidden bg-[var(--color-bg)]/50 backdrop-blur-sm">
+        {children}
+      </main>
+
+      {/* Decorative footer-like edge */}
+      <div className="h-px w-full bg-gradient-to-r from-transparent via-[var(--color-border)] to-transparent opacity-20 shrink-0" />
     </div>
   );
 
-  /* SSR + first client paint: render in-tree so HTML matches. After mount, portal to body for stacking above shell/nav. */
   if (!mounted) return node;
   return createPortal(node, document.body);
 }

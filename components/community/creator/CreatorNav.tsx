@@ -10,6 +10,7 @@ import {
   LayoutGrid,
   Users,
   Wallet,
+  Shield,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -19,6 +20,7 @@ const LINKS = (communityId: string, slug: string) => [
   { href: `/creator/${communityId}/members`, label: "Members", icon: Users },
   { href: `/creator/${communityId}/content`, label: "Content", icon: BookOpen },
   { href: `/creator/${communityId}/earnings`, label: "Earnings", icon: Wallet },
+  { href: `/creator/${communityId}/moderation`, label: "Moderation", icon: Shield },
 ];
 
 export function CreatorNav({

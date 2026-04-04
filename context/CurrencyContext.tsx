@@ -126,7 +126,16 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
 export function useCurrency(): CurrencyContextValue {
   const ctx = useContext(CurrencyContext);
   if (!ctx) {
-    throw new Error("useCurrency must be used within a CurrencyProvider");
+    // Return a stable fallback for SSR/Client initialization to avoid crashes
+    return {
+      rates: {},
+      userCurrency: "RWF",
+      loading: true,
+      setUserCurrency: () => {},
+      formatPrice: (a) => `...`,
+      formatMoney: (a) => `...`,
+      formatCartTotalsLabel: () => `...`,
+    };
   }
   return ctx;
 }

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import { CloudinaryUploadButton } from "@/components/ui/cloudinary-upload";
 
 const CATEGORIES = ["Business", "Tech", "Marketing", "Finance", "Fitness", "Other"] as const;
 const STEPS = ["Basics", "Branding", "Pricing", "Review"] as const;
@@ -208,8 +209,15 @@ export function CreateCommunityForm() {
       {step === 1 && (
         <div className="space-y-4">
           <div>
-            <label className="text-xs font-bold text-[var(--color-text-muted)]">Avatar URL</label>
-            <Input value={avatarUrl} onChange={(e) => setAvatarUrl(e.target.value)} className="mt-1 rounded-xl border-[var(--color-border)]" placeholder="https://…" />
+            <label className="text-xs font-bold text-[var(--color-text-muted)]">Upload Avatar</label>
+            <div className="mt-1">
+              <CloudinaryUploadButton
+                folder="jimvio/community-avatars"
+                resourceType="image"
+                buttonText="Browse Image"
+                onUploadSuccess={(url) => setAvatarUrl(url)}
+              />
+            </div>
             {avatarUrl && (
               <div className="mt-3 flex justify-center">
                 <div className="h-24 w-24 rounded-full overflow-hidden border-4 border-[var(--color-border)]">
@@ -219,8 +227,15 @@ export function CreateCommunityForm() {
             )}
           </div>
           <div>
-            <label className="text-xs font-bold text-[var(--color-text-muted)]">Cover image URL</label>
-            <Input value={coverUrl} onChange={(e) => setCoverUrl(e.target.value)} className="mt-1 rounded-xl border-[var(--color-border)]" placeholder="https://…" />
+            <label className="text-xs font-bold text-[var(--color-text-muted)]">Upload Cover Image</label>
+            <div className="mt-1">
+              <CloudinaryUploadButton
+                folder="jimvio/community-covers"
+                resourceType="image"
+                buttonText="Browse Image"
+                onUploadSuccess={(url) => setCoverUrl(url)}
+              />
+            </div>
             {coverUrl && (
               <div className="mt-3 h-36 rounded-2xl overflow-hidden border border-[var(--color-border)] relative">
                 <Image src={coverUrl} alt="" fill className="object-cover" unoptimized />

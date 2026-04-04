@@ -21,6 +21,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useCurrency } from "@/context/CurrencyContext";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { CloudinaryUploadButton } from "@/components/ui/cloudinary-upload";
 
 export default function VendorStorePage() {
   const { formatMoney } = useCurrency();
@@ -131,13 +132,13 @@ export default function VendorStorePage() {
         <div className="relative h-40 sm:h-48 bg-[var(--color-surface-secondary)]">
           {editing ? (
             <div className="absolute inset-0 flex items-center justify-center p-4">
-              <div className="w-full">
-                <Label className="text-xs text-[var(--color-text-muted)]">Banner URL</Label>
-                <Input
-                  value={form.business_banner}
-                  onChange={(e) => setForm((f) => ({ ...f, business_banner: e.target.value }))}
-                  placeholder="https://..."
-                  className="mt-1 bg-white"
+              <div className="w-full flex flex-col items-center gap-3">
+                <Label className="text-xs text-[var(--color-text-muted)]">Upload Banner</Label>
+                <CloudinaryUploadButton
+                  folder="jimvio/banners"
+                  resourceType="image"
+                  buttonText="Browse Banner"
+                  onUploadSuccess={(url) => setForm((f) => ({ ...f, business_banner: url }))}
                 />
               </div>
             </div>
@@ -156,13 +157,15 @@ export default function VendorStorePage() {
             <div className="relative shrink-0">
               {editing ? (
                 <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl border-2 border-dashed border-[var(--color-border)] flex items-center justify-center bg-[var(--color-surface)]">
-                  <div className="w-full p-2">
-                    <Label className="text-xs">Logo URL</Label>
-                    <Input
-                      value={form.business_logo}
-                      onChange={(e) => setForm((f) => ({ ...f, business_logo: e.target.value }))}
-                      placeholder="https://..."
-                      className="mt-1 h-8 text-xs"
+                  <div className="w-full p-2 flex flex-col gap-2">
+                    <Label className="text-xs">Upload Logo</Label>
+                    <CloudinaryUploadButton
+                      folder="jimvio/avatars"
+                      resourceType="image"
+                      buttonText="Browse"
+                      className="w-full"
+                      variant="outline"
+                      onUploadSuccess={(url) => setForm((f) => ({ ...f, business_logo: url }))}
                     />
                   </div>
                 </div>

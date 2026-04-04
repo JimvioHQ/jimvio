@@ -31,8 +31,8 @@ export async function uploadCommunityChatFile(
 
   const { data: sig } = await sigRes.json();
 
-  // 2. Determine resource type
-  const resourceType = file.type.startsWith("video/") ? "video" : "image";
+  // 2. Determine resource type (audio files are uploaded as "video" resource type in Cloudinary)
+  const resourceType = file.type.startsWith("video/") || file.type.startsWith("audio/") ? "video" : "image";
 
   // 3. Upload directly from browser to Cloudinary
   const formData = new FormData();

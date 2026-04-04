@@ -42,7 +42,7 @@ export async function getUserMembership(
 /**
  * Check if membership is active (not expired or cancelled)
  */
-export function isMembershipActive(membership: CommunityMembershipRow | null): boolean {
+export function isMembershipActive(membership: Pick<CommunityMembershipRow, 'status' | 'expires_at'> | null): boolean {
   if (!membership) return false;
   if (membership.status !== "active") return false;
   if (membership.expires_at && new Date(membership.expires_at) < new Date()) return false;

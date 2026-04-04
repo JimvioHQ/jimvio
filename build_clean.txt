@@ -1,0 +1,76 @@
+﻿
+> jimvio@1.0.0 build
+> next build
+
+   Γû▓ Next.js 15.5.12
+   - Environments: .env.local, .env
+   - Experiments (use with caution):
+     ┬╖ serverActions
+
+   Creating an optimized production build ...
+ Γ£ô Compiled successfully in 73s
+   Linting and checking validity of types ...
+node.exe : Failed to 
+compile.
+At line:1 char:1
++ & "C:\Program 
+Files\nodejs/node.exe" 
+"C:\Program 
+Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo        
+      : NotSpecifi    ed: 
+(Failed to com    
+pile.:String) [],     
+RemoteException
+    + FullyQualifiedEr    
+rorId : NativeComm    
+andError
+ 
+
+./app/(public)/communities
+/[slug]/workspace/layout.t
+sx:40:42
+Type error: Argument of 
+type '{ role: any; 
+plan_type: any; status: 
+any; space_access: any; 
+expires_at: any; }' is 
+not assignable to 
+parameter of type 
+'CommunityMembershipRow'.
+  Type '{ role: any; 
+plan_type: any; status: 
+any; space_access: any; 
+expires_at: any; }' is 
+missing the following 
+properties from type 
+'CommunityMembershipRow': 
+id, community_id, 
+user_id, subscribed_at, 
+and 6 more.
+
+[0m [90m 38 |[39m     
+[33m.[39mmaybeSingle()[3
+3m;[39m
+ [90m 39 |[39m
+[31m[1m>[22m[39m[90m 
+40 |[39m   [36mif[39m 
+([33m![39mmembership 
+[33m||[39m [33m![39mis
+MembershipActive(membershi
+p)) {
+ [90m    |[39m          
+                          
+      [31m[1m^[22m[39m
+ [90m 41 |[39m     redir
+ect([32m`/communities/${s
+lug}`[39m)[33m;[39m
+ [90m 42 |[39m   }
+ [90m 43 |[39m[0m
+Next.js build worker 
+exited with code: 1 and 
+signal: null
+

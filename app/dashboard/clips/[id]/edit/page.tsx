@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/client";
+import { CloudinaryUploadButton } from "@/components/ui/cloudinary-upload";
 
 type ProductOption = { id: string; name: string };
 
@@ -122,12 +123,24 @@ export default function EditClipPage() {
             <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Clip title" className="rounded-xl" />
           </div>
           <div>
-            <label className="text-sm font-medium text-[var(--color-text-primary)] block mb-1.5">Video URL *</label>
-            <Input type="url" value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} className="rounded-xl" />
+            <label className="text-sm font-medium text-[var(--color-text-primary)] block mb-1.5">Video *</label>
+            <CloudinaryUploadButton
+              folder="jimvio/clips"
+              resourceType="video"
+              onUploadSuccess={(url) => setVideoUrl(url)}
+              buttonText="Replace Video"
+            />
+            {videoUrl && <p className="text-xs text-green-600 mt-1 flex items-center gap-1">✓ Video uploaded</p>}
           </div>
           <div>
-            <label className="text-sm font-medium text-[var(--color-text-muted)] block mb-1.5">Thumbnail URL</label>
-            <Input type="url" value={thumbnailUrl} onChange={(e) => setThumbnailUrl(e.target.value)} className="rounded-xl" />
+            <label className="text-sm font-medium text-[var(--color-text-muted)] block mb-1.5">Thumbnail</label>
+            <CloudinaryUploadButton
+              folder="jimvio/banners"
+              resourceType="image"
+              onUploadSuccess={(url) => setThumbnailUrl(url)}
+              buttonText="Replace Thumbnail"
+            />
+            {thumbnailUrl && <p className="text-xs text-green-600 mt-1 flex items-center gap-1">✓ Thumbnail uploaded</p>}
           </div>
           <div>
             <label className="text-sm font-medium text-[var(--color-text-primary)] block mb-1.5">Product to promote</label>

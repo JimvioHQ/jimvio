@@ -29,6 +29,102 @@ export type TrendingClip = {
   } | null;
 };
 
+const getLogoUrl = (v: TrendingClip["vendors"]) =>
+  v?.logo_url ?? (v as { business_logo?: string } | undefined)?.business_logo;
+
+/** Individual clip card — shared by mobile and desktop grids */
+function ClipCard({
+  clip,
+  logoUrl,
+  onOpen,
+  width,
+}: {
+  clip: TrendingClip;
+  logoUrl: (v: TrendingClip["vendors"]) => string | undefined;
+  onOpen: (c: TrendingClip) => void;
+  width: number;
+}) {
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={() => onOpen(clip)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen(clip); }
+      }}
+      className="group relative shrink-0 cursor-pointer overflow-hidden rounded-2xl border border-[#ebe8f2] bg-[#1a1428] text-left ring-1 ring-[#433360]/10 transition-all duration-300 hover:border-[#f97316]/35 hover:ring-[#f97316]/20 active:scale-[0.99]"
+      style={{ width }}
+    >
+      <div className="relative aspect-[9/16]">
+        <div
+          className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
+          style={{
+            backgroundImage: clip.thumbnail_url
+              ? `url(${clip.thumbnail_url})`
+              : "linear-gradient(to bottom, var(--color-bg-dark), #431407)",
+          }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#0f0a18]/95 via-[#1a1428]/25 to-transparent" />
+
+        {/* Vendor row */}
+        <div className="absolute left-2.5 right-2.5 top-2.5 z-10 flex min-w-0 items-center gap-1.5">
+          <div className="relative shrink-0">
+            <Avatar className="h-6 w-6 border-2 border-white/50 shadow-sm transition-transform group-hover:scale-110">
+              <AvatarImage src={logoUrl(clip.vendors)} />
+              <AvatarFallback className="bg-[#f97316] text-[9px] font-black text-white">
+                {clip.vendors?.business_name?.[0] ?? "V"}
+              </AvatarFallback>
+            </Avatar>
+            <div className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-[1.5px] border-[#1a1428] bg-emerald-500" />
+          </div>
+          <span className="min-w-0 truncate text-[10px] font-black leading-tight text-white drop-shadow-md">
+            {clip.vendors?.business_name ?? "Creator"}
+          </span>
+        </div>
+
+        {/* Hover overlay: stats + product + follow */}
+        <div className="absolute bottom-2.5 left-2.5 right-2.5 z-10 flex flex-col gap-1.5 opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300">
+          <div className="flex h-5 w-fit items-center gap-1 rounded-full bg-black/40 px-2 backdrop-blur-sm">
+            <Eye className="h-3 w-3 shrink-0 text-[#f97316]" />
+            <span className="text-[9px] font-black tabular-nums text-white">{(clip.total_views ?? 0).toLocaleString()}</span>
+          </div>
+          {clip.products && (
+            <div className="flex items-center justify-between gap-1.5 rounded-xl bg-white/95 px-2 py-1 backdrop-blur-md shadow-lg">
+              <span className="min-w-0 truncate text-[9px] font-black text-[#1a1428]">{clip.products.name}</span>
+              <ShoppingBag className="h-3 w-3 shrink-0 text-[#f97316]" />
+            </div>
+          )}
+          {clip.vendors?.id && (
+            <div onClick={(e) => e.stopPropagation()}>
+              <FollowButton
+                vendorId={clip.vendors.id}
+                followLabel="Follow"
+                variant="ghost"
+                className="h-7 w-full rounded-xl border-0 bg-[#f97316] px-2 text-[9px] font-black text-white hover:bg-[#ea580c] transition-all active:scale-95"
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Static view count (hidden on hover) */}
+        <div className="absolute bottom-2.5 right-2.5 z-10 group-hover:opacity-0 transition-opacity duration-300">
+          <div className="flex h-5 items-center gap-1 rounded-full bg-black/40 px-2 backdrop-blur-sm">
+            <Eye className="h-3 w-3 shrink-0 text-white/60" />
+            <span className="text-[9px] font-black text-white tabular-nums">{(clip.total_views ?? 0).toLocaleString()}</span>
+          </div>
+        </div>
+
+        {/* Play button */}
+        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20">
+          <div className="flex h-11 w-11 scale-90 items-center justify-center rounded-full border border-white/25 bg-white/10 backdrop-blur-md transition-transform group-hover:scale-100">
+            <Play className="ml-1 h-5 w-5 fill-white text-white" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 interface TrendingProductClipsSectionProps {
   clips: TrendingClip[];
   className?: string;
@@ -44,10 +140,11 @@ export function TrendingProductClipsSection({ clips, className, title = "Trendin
 
   if (!clips?.length) return null;
 
-  const logoUrl = (v: TrendingClip["vendors"]) => v?.logo_url ?? (v as { business_logo?: string } | undefined)?.business_logo;
+  const logoUrl = getLogoUrl;
 
   return (
     <section className={cn("space-y-4", className)}>
+
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
         <div className="relative flex min-w-0 gap-4 sm:gap-5">
           <div
@@ -81,74 +178,10 @@ export function TrendingProductClipsSection({ clips, className, title = "Trendin
         </Link>
       </div>
 
-      <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1 no-scrollbar sm:-mx-6 sm:px-6">
+      {/* Single horizontal scroll row — all screen sizes */}
+      <div className="flex flex-nowrap gap-3 overflow-x-auto pb-4 no-scrollbar -mx-4 px-4 sm:-mx-6 sm:px-6">
         {clips.map((clip) => (
-          <div
-            key={clip.id}
-            role="button"
-            tabIndex={0}
-            onClick={() => setModalClip(clip)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                setModalClip(clip);
-              }
-            }}
-            className="group relative w-[132px] flex-shrink-0 cursor-pointer overflow-hidden rounded-2xl border border-[#ebe8f2] bg-[#1a1428] text-left ring-1 ring-[#433360]/10 transition-all duration-300 hover:border-[#f97316]/35 hover:ring-[#f97316]/20 active:scale-[0.99] sm:w-[152px]"
-          >
-            <div className="relative aspect-[9/16]">
-              <div
-                className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
-                style={{
-                  backgroundImage: clip.thumbnail_url
-                    ? `url(${clip.thumbnail_url})`
-                    : "linear-gradient(to bottom, var(--color-bg-dark), #431407)",
-                }}
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#0f0a18]/95 via-[#1a1428]/35 to-transparent" />
-
-              <div className="absolute left-2 right-2 top-2 z-10 flex min-w-0 items-center gap-2">
-                <Avatar className="h-7 w-7 shrink-0 border border-white/40">
-                  <AvatarImage src={logoUrl(clip.vendors)} />
-                  <AvatarFallback className="bg-[#f97316] text-[9px] font-black text-white">
-                    {clip.vendors?.business_name?.[0] ?? "V"}
-                  </AvatarFallback>
-                </Avatar>
-                <span className="min-w-0 truncate text-[9px] font-bold leading-tight text-white drop-shadow-md sm:text-[10px]">
-                  {clip.vendors?.business_name ?? "Creator"}
-                </span>
-              </div>
-
-              <div className="absolute bottom-2 left-2 right-2 z-10 flex flex-col gap-1.5">
-                <div className="flex items-center gap-1 text-white/95">
-                  <Eye className="h-3 w-3 shrink-0 opacity-90" />
-                  <span className="text-[9px] font-black tabular-nums sm:text-[10px]">{(clip.total_views ?? 0).toLocaleString()}</span>
-                </div>
-                {clip.products && (
-                  <div className="flex items-center justify-between gap-1 rounded-lg bg-black/35 px-1.5 py-1 backdrop-blur-sm">
-                    <span className="min-w-0 truncate text-[8px] font-bold leading-tight text-white sm:text-[9px]">{clip.products.name}</span>
-                    <ShoppingBag className="h-3 w-3 shrink-0 text-[#f97316]" />
-                  </div>
-                )}
-                {clip.vendors?.id && (
-                  <div onClick={(e) => e.stopPropagation()} className="pt-0.5">
-                    <FollowButton
-                      vendorId={clip.vendors.id}
-                      followLabel="Follow"
-                      variant="ghost"
-                      className="h-7 w-full rounded-lg border-0 bg-[#f97316] px-1.5 text-[9px] font-black text-white hover:bg-[#ea580c] sm:h-8 sm:text-[10px]"
-                    />
-                  </div>
-                )}
-              </div>
-
-              <div className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100">
-                <div className="flex h-11 w-11 items-center justify-center rounded-full border border-white/25 bg-white/15 backdrop-blur-sm">
-                  <Play className="ml-0.5 h-5 w-5 fill-white text-white" />
-                </div>
-              </div>
-            </div>
-          </div>
+          <ClipCard key={clip.id} clip={clip} logoUrl={logoUrl} onOpen={setModalClip} width={140} />
         ))}
       </div>
 

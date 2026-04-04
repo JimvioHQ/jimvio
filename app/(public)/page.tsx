@@ -18,7 +18,6 @@ import { HomepageHero } from "@/components/layout/homepage-hero";
 import {
   TrustBar,
   RecommendedHeader,
-  CategorySidebar,
   FlashDeals,
   TrendingSidePanel,
   IndustriesSection,
@@ -126,22 +125,27 @@ export default async function HomePage() {
         />
 
         {/* ── TRUST BAR ── */}
-        <TrustBar items={trustBarItems} />
+        <div className="hidden lg:block">
+          <TrustBar items={trustBarItems} />
+        </div>
 
         {/* ── MAIN CONTENT ── */}
         <div className="max-w-[1536px] mx-auto px-4 sm:px-6 pt-8 pb-12 md:pt-12 md:pb-20 space-y-10">
 
           {/* ── RECOMMENDED PICKS ── */}
-          <section id="recommended-picks" className="grid grid-cols-1 lg:grid-cols-[1fr,260px] gap-8 scroll-mt-32">
-            <div>
+          <section id="recommended-picks" className="scroll-mt-32">
+            <div className="mb-4">
               <RecommendedHeader />
-              <div className="product-grid md:grid-cols-3 lg:grid-cols-4">
-                {recommended.map((p) => (
-                  <ProductCardClient key={p.id} p={p as any} initialInCart={cartSet.has(p.id)} />
-                ))}
-              </div>
             </div>
-            <CategorySidebar cats={sidebarCats} />
+
+            {/* Products — single horizontal scroll row */}
+            <div className="flex flex-nowrap gap-4 overflow-x-auto pb-4 no-scrollbar -mx-4 px-4 sm:-mx-6 sm:px-6">
+              {recommended.slice(0, 24).map((p) => (
+                <div key={p.id} className="w-[160px] shrink-0 lg:w-[180px]">
+                  <ProductCardClient p={p as any} initialInCart={cartSet.has(p.id)} />
+                </div>
+              ))}
+            </div>
           </section>
 
           <TrendingProductClipsSection clips={viralClips as any} />

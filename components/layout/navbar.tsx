@@ -50,6 +50,7 @@ import { useAIStore } from "@/lib/store/use-ai-store";
 import type { MarketingSettings, NavLinkConfig } from "@/lib/platform-settings-shared";
 import { NavbarSearch } from "@/components/layout/navbar-search";
 import { CurrencySelector } from "@/context/CurrencyContext";
+import { CurrencyConverterWidget } from "@/components/shared/currency-converter-widget";
 
 interface NavbarProps {
   user?: { email: string; full_name?: string | null; avatar_url?: string | null } | null;
@@ -101,6 +102,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [portalReady, setPortalReady] = useState(false);
   const [searchQ, setSearchQ] = useState("");
+  const [isMobile, setIsMobile] = useState(false);
 
   const { cartCount, chatCount, refreshCounts } = useCartStore();
   const { openAssistant } = useAIStore();
@@ -111,6 +113,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
   const localeStrip = (marketing.locale_strip?.trim() || "EN · USD").trim();
 
   const navHeight = useTransform(scrollY, [0, 80], [102, 72]);
+  const mobileNavHeight = useTransform(scrollY, [0, 80], [48, 48]);
   const topBarOpacity = useTransform(scrollY, [0, 40], [1, 0]);
   const topBarHeight = useTransform(scrollY, [0, 40], [32, 0]);
 
@@ -118,6 +121,15 @@ export function Navbar({ user, marketing }: NavbarProps) {
     const handleScroll = () => setIsScrolled(window.scrollY > 15);
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    handleResize(); // Set initial value
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   useEffect(() => setPortalReady(true), []);
@@ -162,7 +174,9 @@ export function Navbar({ user, marketing }: NavbarProps) {
       isScrolled ? "px-0 sm:px-4 lg:px-8 pt-0 sm:pt-2 md:pt-4" : "px-0 pt-0"
     )}>
       <motion.div
-        style={{ height: navHeight }}
+        style={{ 
+          height: isMobile ? mobileNavHeight : navHeight,
+        }}
         className={cn(
           "mx-auto w-full relative pointer-events-auto transition-all duration-500 bg-white/85 backdrop-blur-3xl flex flex-col items-stretch overflow-visible group/nav",
           isScrolled
@@ -189,10 +203,10 @@ export function Navbar({ user, marketing }: NavbarProps) {
           </motion.div>
 
           {/* MAIN NAVIGATION BAR */}
-          <div className="flex-1 flex items-center px-4 sm:px-10 gap-3 sm:gap-8 overflow-visible">
+          <div className="flex-1 flex items-center px-2 sm:px-4 md:px-10 gap-2 sm:gap-3 md:gap-8 overflow-visible">
             {/* Logo */}
             <Link href="/" className="relative shrink-0 transition-transform active:scale-95 duration-300">
-              <Image src="/jimvio-logo.png" alt="Jimvio" width={140} height={38} className="w-[110px] sm:w-[130px] h-auto object-contain" priority />
+              <Image src="/jimvio-logo.png" alt="Jimvio" width={140} height={38} className="w-[90px] sm:w-[110px] md:w-[130px] h-auto object-contain" priority />
             </Link>
 
             {/* Desktop Central Links */}
@@ -252,16 +266,16 @@ export function Navbar({ user, marketing }: NavbarProps) {
                 </button>
                 <button
                   onClick={() => openAssistant()}
-                  className="flex sm:hidden p-2 rounded-full bg-orange-50 text-orange-600 border border-orange-100 transition-all"
+                  className="flex sm:hidden h-10 w-10 md:h-11 md:w-11 p-2 md:p-2.5 rounded-full bg-orange-50 text-orange-600 border border-orange-100 transition-all"
                 >
-                  <Sparkles className="h-4 w-4 fill-orange-500 stroke-none" />
+                  <Sparkles className="h-4 w-4 md:h-5 md:w-5 fill-orange-500 stroke-none" />
                 </button>
-                <Link href="/dashboard/messages" className="hidden sm:flex relative p-2.5 rounded-full hover:bg-zinc-100 transition-all group items-center justify-center">
-                  <MessageCircle className="h-5 w-5 text-zinc-800 transition-transform group-hover:rotate-6" />
+                <Link href="/dashboard/messages" className="hidden sm:flex relative h-10 w-10 md:h-11 md:w-11 p-2 md:p-2.5 rounded-full hover:bg-zinc-100 transition-all group items-center justify-center">
+                  <MessageCircle className="h-4 w-4 md:h-5 md:w-5 text-zinc-800 transition-transform group-hover:rotate-6" />
                   {chatCount > 0 && <span className="absolute -top-1 -right-1 h-[18px] min-w-[18px] bg-[#f97316] text-white text-[9px] font-black flex items-center justify-center rounded-full ring-2 ring-white animate-pulse">{chatCount}</span>}
                 </Link>
-                <Link href="/cart" className="relative p-2 rounded-full hover:bg-zinc-100 transition-all group flex items-center justify-center">
-                  <ShoppingCart className="h-5 w-5 text-zinc-800 transition-transform group-hover:-rotate-6" />
+                <Link href="/cart" className="relative h-10 w-10 md:h-11 md:w-11 p-2 md:p-2.5 rounded-full hover:bg-zinc-100 transition-all group flex items-center justify-center">
+                  <ShoppingCart className="h-4 w-4 md:h-5 md:w-5 text-zinc-800 transition-transform group-hover:-rotate-6" />
                   {cartCount > 0 && <span className="absolute -top-1 -right-1 h-[18px] min-w-[18px] bg-zinc-900 text-white text-[9px] font-black flex items-center justify-center rounded-full ring-2 ring-white">{cartCount}</span>}
                 </Link>
               </div>
@@ -272,10 +286,10 @@ export function Navbar({ user, marketing }: NavbarProps) {
                 {user ? (
                   <DropdownMenu modal={false}>
                     <DropdownMenuTrigger asChild>
-                      <button className="flex items-center gap-2.5 p-1 xl:pr-3.5 rounded-full bg-zinc-50 border border-zinc-100 hover:bg-white hover:shadow-xl hover:border-zinc-200 transition-all active:scale-95 group shrink-0">
-                        <Avatar className="h-9 w-9 xl:h-10 xl:w-10 ring-2 ring-white shadow-sm flex-shrink-0">
+                      <button className="flex items-center gap-2.5 p-1 xl:pr-3.5 rounded-full bg-zinc-50 border border-zinc-100 hover:bg-white hover:shadow-xl hover:border-zinc-200 transition-all active:scale-95 group shrink-0 h-10 md:h-11">
+                        <Avatar className="h-7 w-7 md:h-9 md:w-9 xl:h-10 xl:w-10 ring-2 ring-white shadow-sm flex-shrink-0">
                           <AvatarImage src={user.avatar_url ?? undefined} />
-                          <AvatarFallback className="bg-gradient-to-br from-[#f97316] to-[#ea580c] text-white font-black text-[12px] uppercase">{user.full_name?.[0]}</AvatarFallback>
+                          <AvatarFallback className="bg-gradient-to-br from-[#f97316] to-[#ea580c] text-white font-black text-[10px] md:text-[12px] uppercase">{user.full_name?.[0]}</AvatarFallback>
                         </Avatar>
                         <span className="hidden xl:block text-[13px] font-black text-zinc-900 truncate max-w-[140px]">{user.full_name?.split(" ")[0]}</span>
                       </button>
@@ -307,7 +321,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
                 )}
               </div>
 
-              <button onClick={() => setMobileOpen(true)} className="md:hidden p-2 rounded-full bg-zinc-50 border border-zinc-100 text-zinc-900 shadow-sm active:scale-90 transition-all shrink-0">
+              <button onClick={() => setMobileOpen(true)} className="md:hidden h-10 w-10 p-2 rounded-full bg-zinc-50 border border-zinc-100 text-zinc-900 shadow-sm active:scale-90 transition-all shrink-0">
                 <Menu className="h-5 w-5" />
               </button>
             </div>
@@ -338,9 +352,9 @@ export function Navbar({ user, marketing }: NavbarProps) {
                 className="fixed inset-y-0 right-0 w-full max-w-sm bg-white z-[9999] shadow-2xl flex flex-col pointer-events-auto overflow-hidden"
               >
                 {/* ── Drawer Header ── */}
-                <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-100 shrink-0">
+                <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-zinc-100 shrink-0">
                   <Link href="/" onClick={() => setMobileOpen(false)} className="shrink-0">
-                    <Image src="/jimvio-logo.png" alt="Jimvio" width={110} height={30} className="h-7 w-auto object-contain" priority />
+                    <Image src="/jimvio-logo.png" alt="Jimvio" width={110} height={30} className="h-6 sm:h-7 w-auto object-contain" priority />
                   </Link>
                   <div className="flex items-center gap-2">
                     <Link href="/cart" onClick={() => setMobileOpen(false)} className="relative h-10 w-10 rounded-full bg-zinc-50 border border-zinc-100 flex items-center justify-center text-zinc-700">
@@ -374,6 +388,11 @@ export function Navbar({ user, marketing }: NavbarProps) {
                       runSearch={runSearch}
                       navLinks={navLinks}
                     />
+                  </div>
+
+                  {/* Currency Converter */}
+                  <div className="mb-2">
+                    <CurrencyConverterWidget variant="compact" className="mx-0" />
                   </div>
 
                   {/* AI Mode CTA */}

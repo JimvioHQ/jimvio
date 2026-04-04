@@ -198,7 +198,7 @@ CREATE TABLE public.community_messages (
   sender_id       uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   body            text DEFAULT '',
   message_type    text DEFAULT 'text'
-                  CHECK (message_type IN ('text', 'image', 'file', 'system')),
+                  CHECK (message_type IN ('text', 'image', 'audio', 'file', 'system')),
   -- Threading
   thread_id       uuid REFERENCES public.community_messages(id) ON DELETE SET NULL,
   reply_count     integer DEFAULT 0,

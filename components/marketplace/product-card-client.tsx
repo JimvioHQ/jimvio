@@ -50,6 +50,8 @@ export interface ProductCardClientProps {
   detailBasePath?: string;
   /** Pre-fetched cart status from batch query. When provided, skips the per-card server call. */
   initialInCart?: boolean;
+  /** Enables a more compact layout specifically for high-density grids */
+  compact?: boolean;
 }
 
 export function ProductCardClient({
@@ -58,6 +60,7 @@ export function ProductCardClient({
   onToggleWishlist,
   detailBasePath = "/marketplace",
   initialInCart,
+  compact = false,
 }: ProductCardClientProps) {
   const [loading, setLoading] = useState(false);
   const [inCart, setInCart] = useState(initialInCart ?? false);
@@ -191,7 +194,10 @@ export function ProductCardClient({
         {/* ── Image area ── */}
         <Link
           href={`${detailBasePath}/${p.slug}`}
-          className="relative block w-full aspect-square overflow-hidden bg-zinc-50 flex-shrink-0"
+          className={cn(
+            "relative block w-full overflow-hidden bg-zinc-50 flex-shrink-0 transition-all duration-500",
+            compact ? "aspect-[1.15/1]" : "aspect-square"
+          )}
         >
           {imgSrc && !imageError ? (
             <Image
@@ -259,33 +265,40 @@ export function ProductCardClient({
           )}
 
           {/* Hover action row */}
-          <div className="absolute bottom-3 left-3 right-3 translate-y-[150%] group-hover:translate-y-0 transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] flex gap-2 z-20">
+          <div className={cn(
+            "absolute left-3 right-3 z-20 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] flex gap-2",
+            compact 
+              ? "bottom-2 translate-y-[180%] group-hover:translate-y-0" 
+              : "bottom-3 translate-y-[150%] group-hover:translate-y-0"
+          )}>
             <button
               type="button"
               onClick={handleChat}
-              className="flex-1 flex items-center justify-center gap-1.5 h-10 rounded-xl bg-white/95 backdrop-blur-md text-[12px] font-bold text-zinc-800 hover:bg-white border border-white/60 shadow-xl transition-all active:scale-95"
+              className={cn(
+                "flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-white/95 backdrop-blur-md font-bold text-zinc-800 hover:bg-white border border-white/60 shadow-xl transition-all active:scale-95",
+                compact ? "h-8 text-[10px]" : "h-10 text-[12px]"
+              )}
             >
-              <MessageCircle className="h-4 w-4" /> Chat
+              <MessageCircle className={cn(compact ? "h-3 w-3" : "h-4 w-4")} /> Chat
             </button>
             <button
               type="button"
               onClick={handleCartToggle}
               disabled={loading}
               title={inCart ? "Click to remove from cart" : "Add to cart"}
-              className={cartBtnClass}
+              className={cn(cartBtnClass, compact ? "h-8 text-[10px]" : "h-10 text-[12px]")}
             >
               {loading ? (
-                <span className="h-4 w-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                <span className={cn("border-2 border-white/40 border-t-white rounded-full animate-spin", compact ? "h-3 w-3" : "h-4 w-4")} />
               ) : inCart ? (
                 <>
-                  {/* Default "In Cart" state — hover shows "Remove" */}
-                  <CheckCircle2 className="h-4 w-4 group-hover/cartbtn:hidden" />
-                  <span className="group-hover/cartbtn:hidden">In Cart</span>
-                  <Trash2 className="h-4 w-4 hidden group-hover/cartbtn:block" />
-                  <span className="hidden group-hover/cartbtn:block">Remove</span>
+                  <CheckCircle2 className={cn("group-hover/cartbtn:hidden", compact ? "h-3 w-3" : "h-4 w-4")} />
+                  <span className="group-hover/cartbtn:hidden">{compact ? "In" : "In Cart"}</span>
+                  <Trash2 className={cn("hidden group-hover/cartbtn:block", compact ? "h-3 w-3" : "h-4 w-4")} />
+                  <span className="hidden group-hover/cartbtn:block">{compact ? "Del" : "Remove"}</span>
                 </>
               ) : (
-                <><ShoppingCart className="h-4 w-4" /> Add</>
+                <><ShoppingCart className={cn(compact ? "h-3 w-3" : "h-4 w-4")} /> {compact ? "Add" : "Add"}</>
               )}
             </button>
           </div>
@@ -312,7 +325,10 @@ export function ProductCardClient({
 
           {/* Product name */}
           <Link href={`${detailBasePath}/${p.slug}`} className="min-w-0">
-            <h3 className="text-[12.5px] sm:text-[13px] font-bold text-[var(--color-text-primary)] line-clamp-2 leading-snug group-hover:text-[var(--color-accent)] transition-colors">
+            <h3 className={cn(
+              "font-bold text-[var(--color-text-primary)] leading-[1.2] group-hover:text-[var(--color-accent)] transition-colors",
+              compact ? "text-[11px] line-clamp-1" : "text-[12.5px] sm:text-[13px] line-clamp-2"
+            )}>
               {p.name}
             </h3>
           </Link>
