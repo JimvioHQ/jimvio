@@ -5,6 +5,8 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { revalidatePath } from "next/cache";
 import { normalizeProductSource } from "@/lib/sources/product-source";
 import { getProducts } from "@/services/db";
+import { cookies } from "next/headers";
+import { getDefaultAffiliateCommissionPercent } from "@/lib/platform-settings";
 
 export async function getSearchSuggestions(query: string) {
   try {
@@ -203,7 +205,7 @@ export async function addToCart(productId: string, vendorId: string, quantity: n
     const [productResult, orderResult] = await Promise.all([
       supabase
         .from("products")
-        .select("name, price, images, shopify_variant_id, shopify_product_id, currency, source, source_metadata")
+        .select("id, name, price, images, shopify_variant_id, shopify_product_id, currency, source, source_metadata, affiliate_enabled, affiliate_commission_rate")
         .eq("id", productId)
         .single(),
       supabase
@@ -248,7 +250,45 @@ export async function addToCart(productId: string, vendorId: string, quantity: n
     if (!order) throw new Error("Could not retrieve or create order");
     const orderId = order.id;
 
-    // 3. Add or update order item
+    // 3. Handle referral/affiliate tracking
+    const cookieStore = await cookies();
+    const refCode = cookieStore.get("jimvio_ref")?.value;
+    let affiliateId = null;
+    let commissionRate = (product as any).affiliate_commission_rate ?? (await getDefaultAffiliateCommissionPercent());
+    let commissionAmount = 0;
+
+    if (refCode && (product as any).affiliate_enabled) {
+      // 1. Try resolving as specific link_code (LNK-)
+      if (refCode.startsWith("LNK-")) {
+        const { data: link } = await supabase
+          .from("affiliate_links")
+          .select("affiliate_id, commission_rate")
+          .eq("link_code", refCode)
+          .maybeSingle();
+
+        if (link) {
+          affiliateId = link.affiliate_id;
+          commissionRate = link.commission_rate || commissionRate;
+        }
+      } else {
+        // 2. Try resolving as general affiliate_code (AFF-)
+        const { data: aff } = await supabase
+          .from("affiliates")
+          .select("id")
+          .eq("affiliate_code", refCode)
+          .maybeSingle();
+
+        if (aff) {
+          affiliateId = aff.id;
+        }
+      }
+    }
+
+    const price = Number(product.price);
+    const lineSource = normalizeProductSource((product as { source?: string | null }).source);
+    const lineMeta = (product as { source_metadata?: Record<string, unknown> | null }).source_metadata ?? {};
+
+    // 4. Add or update order item
     const { data: existingItem } = await supabase
       .from("order_items")
       .select("id, quantity")
@@ -256,16 +296,20 @@ export async function addToCart(productId: string, vendorId: string, quantity: n
       .eq("product_id", productId)
       .maybeSingle();
 
-    const lineSource = normalizeProductSource((product as { source?: string | null }).source);
-    const lineMeta = (product as { source_metadata?: Record<string, unknown> | null }).source_metadata ?? {};
-
     if (existingItem) {
       const newQty = existingItem.quantity + quantity;
+      const newTotal = price * newQty;
+      const newCommAmount = affiliateId ? (newTotal * (commissionRate || 10)) / 100 : 0;
+
       const { error: updateError } = await supabase
         .from("order_items")
         .update({
           quantity: newQty,
-          total_price: product.price * newQty,
+          total_price: newTotal,
+          unit_price: price,
+          affiliate_id: affiliateId,
+          affiliate_commission_rate: commissionRate,
+          affiliate_commission_amount: newCommAmount,
           product_source: lineSource,
           source_metadata: lineMeta,
         })
@@ -273,6 +317,9 @@ export async function addToCart(productId: string, vendorId: string, quantity: n
       
       if (updateError) throw updateError;
     } else {
+      const totalPrice = price * quantity;
+      const initialCommAmount = affiliateId ? (totalPrice * (commissionRate || 10)) / 100 : 0;
+
       const { error: insertError } = await supabase
         .from("order_items")
         .insert({
@@ -282,8 +329,11 @@ export async function addToCart(productId: string, vendorId: string, quantity: n
           product_name: product.name,
           product_image: product.images?.[0] || null,
           quantity: quantity,
-          unit_price: product.price,
-          total_price: product.price * quantity,
+          unit_price: price,
+          total_price: totalPrice,
+          affiliate_id: affiliateId,
+          affiliate_commission_rate: commissionRate,
+          affiliate_commission_amount: initialCommAmount,
           shopify_variant_id: product.shopify_variant_id ?? null,
           shopify_product_id: product.shopify_product_id ?? null,
           product_source: lineSource,

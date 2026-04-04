@@ -4,7 +4,7 @@ export const dynamic = "force-dynamic";
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Link2, Plus, Copy, TrendingUp, DollarSign, MousePointer, ShoppingCart, ExternalLink, CheckCircle, Search } from "lucide-react";
+import { Link2, Plus, Copy, TrendingUp, DollarSign, MousePointer, ShoppingCart, ExternalLink, CheckCircle, Search, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -141,6 +141,18 @@ export default function AffiliateLinksPage() {
       setCopied(codeOrUrl);
       setTimeout(() => setCopied(null), 2000);
     });
+  }
+
+  async function deleteLink(id: string) {
+    if (!confirm("Are you sure you want to delete this affiliate link? All click data for this specific link will be lost.")) return;
+    
+    const supabase = createClient();
+    const { error } = await supabase.from("affiliate_links").delete().eq("id", id);
+    if (!error) {
+      setLinks(prev => prev.filter(l => l.id !== id));
+    } else {
+      alert("Error deleting link: " + error.message);
+    }
   }
 
   const totalClicks   = links.reduce((s, l) => s + (l.total_clicks as number ?? 0), 0);
@@ -396,9 +408,18 @@ export default function AffiliateLinksPage() {
                           <Badge variant={l.is_active ? "success" : "secondary"} className="text-[10px] py-0.5">{l.is_active ? "Active" : "Inactive"}</Badge>
                         </td>
                         <td className="py-3.5 pl-3 pr-5 text-right">
-                          <a href={l.destination_url as string} target="_blank" rel="noopener noreferrer" className="inline-flex p-2 rounded-lg hover:bg-[var(--color-surface)] text-[var(--color-text-muted)] transition-colors" title="Open link">
-                            <ExternalLink className="h-4 w-4" />
-                          </a>
+                          <div className="flex items-center justify-end gap-1">
+                            <a href={l.destination_url as string} target="_blank" rel="noopener noreferrer" className="inline-flex p-2 rounded-lg hover:bg-[var(--color-surface)] text-[var(--color-text-muted)] transition-colors" title="Open link">
+                              <ExternalLink className="h-4 w-4" />
+                            </a>
+                            <button 
+                              onClick={() => deleteLink(l.id as string)}
+                              className="inline-flex p-2 rounded-lg hover:bg-red-50 text-red-400 hover:text-red-600 transition-colors"
+                              title="Delete link"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );

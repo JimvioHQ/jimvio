@@ -1,29 +1,16 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import {
-   Search,
-   ChevronDown,
-   Clock,
-   Package,
-   Loader2,
-   Store,
-   LayoutGrid,
-   Link2,
-   Command,
-   ArrowRight,
-   X,
+   Search, Package, Loader2, Store, Command, ArrowRight, X,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import type { NavLinkConfig } from "@/lib/platform-settings-shared";
 import {
-   addNavSearchHistory,
-   clearNavSearchHistory,
-   readNavSearchHistory,
+   addNavSearchHistory, clearNavSearchHistory, readNavSearchHistory,
 } from "@/lib/marketplace-search-history";
 
 type ProductRow = { id: string; name: string; slug: string };
@@ -52,24 +39,13 @@ function mergeQuickLinks(navLinks: NavLinkConfig[]): NavLinkConfig[] {
 }
 
 export function NavbarSearch({
-   searchQ,
-   setSearchQ,
-   placeholder,
-   isScrolled,
-   variant,
-   onNavigate,
-   runSearch,
-   navLinks,
+   searchQ, setSearchQ, placeholder, isScrolled, variant,
+   onNavigate, runSearch, navLinks,
 }: any) {
    const router = useRouter();
-   const pathname = usePathname();
-   const urlSearchParams = useSearchParams();
    const containerRef = useRef<HTMLDivElement>(null);
    const inputRef = useRef<HTMLInputElement>(null);
    const [portalReady, setPortalReady] = useState(false);
-
-   // open = dropdown panel is visible
-   // isFocused = input is focused (controls expanded width)
    const [open, setOpen] = useState(false);
    const [isFocused, setIsFocused] = useState(false);
    const [history, setHistory] = useState<string[]>([]);
@@ -77,11 +53,9 @@ export function NavbarSearch({
    const [vendors, setVendors] = useState<VendorRow[]>([]);
    const [categories, setCategories] = useState<CategoryRow[]>([]);
    const [loading, setLoading] = useState(false);
-   const [activeIndex, setActiveIndex] = useState(-1);
 
    const isDesktop = variant === "desktop";
 
-   // ── Cmd+K shortcut ──────────────────────────────────────────
    useEffect(() => {
       setPortalReady(true);
       const handleKeyDown = (e: KeyboardEvent) => {
@@ -94,39 +68,27 @@ export function NavbarSearch({
       return () => window.removeEventListener("keydown", handleKeyDown);
    }, []);
 
-   // ── ESC key: close panel only, keep text ────────────────────
    useEffect(() => {
       const handleEsc = (e: KeyboardEvent) => {
-         if (e.key === "Escape" && open) {
-            e.preventDefault();
-            closePanel();
-            // blur input so the width shrinks, but text remains
-            inputRef.current?.blur();
-         }
+         if (e.key === "Escape" && open) { e.preventDefault(); closePanel(); inputRef.current?.blur(); }
       };
       document.addEventListener("keydown", handleEsc);
       return () => document.removeEventListener("keydown", handleEsc);
    }, [open]);
 
-   // ── Click outside: close panel only, keep text ──────────────
    useEffect(() => {
       const onDoc = (e: MouseEvent) => {
          if (containerRef.current?.contains(e.target as Node)) return;
-         closePanel();
-         setIsFocused(false);
-         // do NOT clear searchQ
+         closePanel(); setIsFocused(false);
       };
       document.addEventListener("mousedown", onDoc);
       return () => document.removeEventListener("mousedown", onDoc);
    }, []);
 
-   // ── Live suggestions fetch ───────────────────────────────────
    useEffect(() => {
       const q = searchQ.trim();
       if (q.length < 2) {
-         setProducts([]); setVendors([]); setCategories([]);
-         setLoading(false);
-         return;
+         setProducts([]); setVendors([]); setCategories([]); setLoading(false); return;
       }
       setLoading(true);
       const id = setTimeout(() => {
@@ -142,34 +104,19 @@ export function NavbarSearch({
       return () => clearTimeout(id);
    }, [searchQ]);
 
-   // Close panel (but never touch searchQ)
-   const closePanel = () => {
-      setOpen(false);
-      setActiveIndex(-1);
-   };
-
+   const closePanel = () => setOpen(false);
    const commitSearch = (term: string) => {
-      addNavSearchHistory(term);
-      runSearch(term);
-      closePanel();
-      setIsFocused(false);
-      inputRef.current?.blur();
+      addNavSearchHistory(term); runSearch(term); closePanel();
+      setIsFocused(false); inputRef.current?.blur();
    };
 
-   // Panel visible when: dropdown is open AND (has text or has focus)
    const showPanel = open && (searchQ.trim().length > 0 || isFocused);
-
-   // Width logic: expand while focused OR while there is text typed
-   // Once user blurs: shrinks back. Text stays, just narrower.
    const expandedWidth = isDesktop ? (isFocused ? 420 : searchQ ? 200 : 180) : "100%";
 
-   const resultsInner = (
-      <div className={cn(
-         "bg-white/95 backdrop-blur-3xl border border-white/20 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.2)] flex flex-col overflow-hidden",
-         isDesktop ? "rounded-[32px] max-h-[600px]" : "rounded-2xl max-h-[80vh]"
-      )}>
-         {/* SEARCH HEADER */}
-         <div className="p-6 border-b border-zinc-100 flex items-center gap-4 bg-zinc-50/50 w-full">
+   const resultsPanel = (
+      <div className="bg-white/95 backdrop-blur-3xl border border-white/20 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.2)] flex flex-col overflow-hidden rounded-[32px] max-h-[600px]">
+         {/* Header */}
+         <div className="p-5 border-b border-zinc-100 flex items-center gap-4 bg-zinc-50/50">
             <Search className="h-5 w-5 text-[#f97316] shrink-0" />
             <p className="text-[15px] font-bold text-zinc-900 flex-1 truncate">
                {searchQ ? `Searching for "${searchQ}"` : "Explore the marketplace"}
@@ -182,13 +129,14 @@ export function NavbarSearch({
             </button>
          </div>
 
+         {/* Body */}
          <div className="flex-1 overflow-y-auto no-scrollbar grid grid-cols-1 md:grid-cols-12 divide-x divide-zinc-50">
-            {/* LEFT: RESULTS */}
+            {/* Left: results */}
             <div className="md:col-span-8 p-6 space-y-8">
                {loading && (
                   <div className="flex items-center gap-3 py-4">
                      <Loader2 className="h-5 w-5 animate-spin text-[#f97316]" />
-                     <p className="text-[14px] font-black text-zinc-400">Summoning product matches...</p>
+                     <p className="text-[14px] font-black text-zinc-400">Summoning product matches…</p>
                   </div>
                )}
 
@@ -197,9 +145,13 @@ export function NavbarSearch({
                      <h4 className="text-[11px] font-black text-zinc-400 uppercase tracking-widest mb-4">Top Matches</h4>
                      <div className="space-y-2">
                         {products.map(p => (
-                           <button key={p.id} onClick={() => { router.push(`/marketplace/${p.slug}`); closePanel(); setIsFocused(false); }} className="w-full flex items-center justify-between p-4 rounded-2xl bg-zinc-50/30 hover:bg-[#f97316]/5 border border-transparent hover:border-[#f97316]/10 transition-all group">
+                           <button
+                              key={p.id}
+                              onClick={() => { router.push(`/marketplace/${p.slug}`); closePanel(); setIsFocused(false); }}
+                              className="w-full flex items-center justify-between p-4 rounded-2xl bg-zinc-50/30 hover:bg-[#f97316]/5 border border-transparent hover:border-[#f97316]/10 transition-all group"
+                           >
                               <div className="flex items-center gap-4">
-                                 <Package className="h-5 w-5 text-zinc-300 group-hover:text-[#f97316]" />
+                                 <Package className="h-5 w-5 text-zinc-300 group-hover:text-[#f97316] transition-colors" />
                                  <span className="text-[14px] font-bold text-zinc-700 group-hover:text-zinc-900 truncate max-w-[300px]">{p.name}</span>
                               </div>
                               <ArrowRight className="h-4 w-4 text-zinc-300 -translate-x-2 opacity-0 group-hover:translate-x-0 group-hover:opacity-100 transition-all" />
@@ -215,8 +167,8 @@ export function NavbarSearch({
                         <Search className="h-8 w-8 text-zinc-200" />
                      </div>
                      <div>
-                        <p className="text-[15px] font-black text-zinc-900">No immediate matches found</p>
-                        <p className="text-[13px] font-medium text-zinc-500">Try checking your spelling or use "Enter" for a full database hunt.</p>
+                        <p className="text-[15px] font-black text-zinc-900">No immediate matches</p>
+                        <p className="text-[13px] font-medium text-zinc-500 mt-1">Try checking your spelling or hit Enter for a full search.</p>
                      </div>
                   </div>
                )}
@@ -229,14 +181,18 @@ export function NavbarSearch({
                )}
             </div>
 
-            {/* RIGHT: VENDORS & CATEGORIES */}
+            {/* Right: vendors + quick links */}
             <div className="md:col-span-4 p-6 bg-zinc-50/30 space-y-8">
                {vendors.length > 0 && (
                   <div>
                      <h4 className="text-[11px] font-black text-zinc-400 uppercase tracking-widest mb-4">Stores</h4>
                      <div className="space-y-1">
                         {vendors.map(v => (
-                           <button key={v.id} onClick={() => { router.push(`/vendors/${v.business_slug}`); closePanel(); setIsFocused(false); }} className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white text-[13px] font-bold text-zinc-600 transition-all">
+                           <button
+                              key={v.id}
+                              onClick={() => { router.push(`/vendors/${v.business_slug}`); closePanel(); setIsFocused(false); }}
+                              className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white text-[13px] font-bold text-zinc-600 transition-all"
+                           >
                               <Store className="h-4 w-4 opacity-50" /> {v.business_name}
                            </button>
                         ))}
@@ -248,9 +204,13 @@ export function NavbarSearch({
                   <h4 className="text-[11px] font-black text-zinc-400 uppercase tracking-widest mb-4">Quick Browse</h4>
                   <div className="grid grid-cols-1 gap-1">
                      {mergeQuickLinks(navLinks).slice(0, 6).map(l => (
-                        <button key={l.href} onClick={() => { router.push(l.href); closePanel(); setIsFocused(false); }} className="flex items-center justify-between p-3 rounded-xl hover:bg-white border border-transparent hover:border-zinc-100 transition-all text-[13px] font-bold text-zinc-500 group">
+                        <button
+                           key={l.href}
+                           onClick={() => { router.push(l.href); closePanel(); setIsFocused(false); }}
+                           className="flex items-center justify-between p-3 rounded-xl hover:bg-white border border-transparent hover:border-zinc-100 transition-all text-[13px] font-bold text-zinc-500 group"
+                        >
                            {l.label}
-                           <ArrowRight className="h-3 w-3 opacity-0 group-hover:opacity-100" />
+                           <ArrowRight className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
                         </button>
                      ))}
                   </div>
@@ -258,8 +218,12 @@ export function NavbarSearch({
             </div>
          </div>
 
-         <button onClick={() => commitSearch(searchQ)} className="p-4 bg-zinc-900 hover:bg-black text-white text-[13px] font-black flex items-center justify-center gap-2 transition-all">
-            View full catalog results for "{searchQ || 'everything'}" <ArrowRight className="h-4 w-4" />
+         {/* Footer CTA */}
+         <button
+            onClick={() => commitSearch(searchQ)}
+            className="p-4 bg-zinc-900 hover:bg-black text-white text-[13px] font-black flex items-center justify-center gap-2 transition-all"
+         >
+            View full catalog results for "{searchQ || "everything"}" <ArrowRight className="h-4 w-4" />
          </button>
       </div>
    );
@@ -277,8 +241,8 @@ export function NavbarSearch({
                isFocused
                   ? "bg-white border-[#f97316]/40 shadow-[0_0_25px_rgba(249,115,22,0.15)]"
                   : searchQ
-                  ? "bg-white border-zinc-200 shadow-sm"
-                  : "bg-zinc-100/60 border-zinc-200/50 hover:bg-zinc-100"
+                     ? "bg-white border-zinc-200 shadow-sm"
+                     : "bg-zinc-100/60 border-zinc-200/50 hover:bg-zinc-100"
             )}
          >
             <div className="pl-4 pr-1 shrink-0">
@@ -293,19 +257,16 @@ export function NavbarSearch({
                value={searchQ}
                onChange={(e) => { setSearchQ(e.target.value); setOpen(true); }}
                onFocus={() => { setOpen(true); setIsFocused(true); setHistory(readNavSearchHistory()); }}
-               onBlur={() => {
-                  // Delay so click events fire first before we collapse
-                  setTimeout(() => setIsFocused(false), 150);
-               }}
+               onBlur={() => setTimeout(() => setIsFocused(false), 150)}
                onKeyDown={(e) => {
-                  if (e.key === "Enter") { commitSearch(searchQ); }
+                  if (e.key === "Enter") commitSearch(searchQ);
                   if (e.key === "Escape") { closePanel(); inputRef.current?.blur(); }
                }}
-               placeholder={isDesktop && !isFocused && !searchQ ? "" : (placeholder ?? "Search...")}
+               placeholder={isDesktop && !isFocused && !searchQ ? "" : (placeholder ?? "Search…")}
                className="flex-1 min-w-0 bg-transparent border-0 outline-none px-2 text-[13.5px] font-black text-zinc-900 placeholder:text-zinc-400 placeholder:font-bold"
             />
 
-            {/* Clear button — only shown when there's text */}
+            {/* Clear */}
             <AnimatePresence>
                {searchQ && (
                   <motion.button
@@ -316,14 +277,13 @@ export function NavbarSearch({
                      onClick={() => { setSearchQ(""); setOpen(false); inputRef.current?.focus(); }}
                      className="mr-3 h-5 w-5 rounded-full bg-zinc-200 hover:bg-zinc-300 flex items-center justify-center shrink-0 transition-colors"
                      tabIndex={-1}
-                     aria-label="Clear search"
                   >
                      <X className="h-3 w-3 text-zinc-500" />
                   </motion.button>
                )}
             </AnimatePresence>
 
-            {/* Cmd+K hint — only when empty and not focused on desktop */}
+            {/* Cmd+K hint */}
             <AnimatePresence>
                {!isFocused && !searchQ && isDesktop && (
                   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="pr-4 flex items-center gap-1.5 shrink-0 pointer-events-none">
@@ -335,12 +295,16 @@ export function NavbarSearch({
             </AnimatePresence>
          </motion.div>
 
-         {/* SEARCH PANEL OVERLAY */}
+         {/* Portal panel */}
          {showPanel && portalReady && createPortal(
             <div className="fixed inset-0 z-[190] p-4 flex items-start justify-center pt-[100px] sm:pt-[120px]">
-               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 bg-black/5 backdrop-blur-[2px]" onClick={() => { closePanel(); }} />
-               <motion.div initial={{ opacity: 0, y: -20, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} className="w-full max-w-[800px] relative z-10">
-                  {resultsInner}
+               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 bg-black/5 backdrop-blur-[2px]" onClick={closePanel} />
+               <motion.div
+                  initial={{ opacity: 0, y: -20, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  className="w-full max-w-[800px] relative z-10"
+               >
+                  {resultsPanel}
                </motion.div>
             </div>,
             document.body

@@ -28,15 +28,27 @@ export async function createOrder(productId: string, quantity: number = 1) {
   let commissionAmount = 0;
 
   if (refCode && product.affiliate_enabled) {
-    const { data: link } = await supabase
-      .from("affiliate_links")
-      .select("affiliate_id, commission_rate")
-      .eq("link_code", refCode)
-      .single();
+    if (refCode.startsWith("LNK-")) {
+      const { data: link } = await supabase
+        .from("affiliate_links")
+        .select("affiliate_id, commission_rate")
+        .eq("link_code", refCode)
+        .maybeSingle();
 
-    if (link) {
-      affiliateId = link.affiliate_id;
-      commissionRate = link.commission_rate || commissionRate;
+      if (link) {
+        affiliateId = link.affiliate_id;
+        commissionRate = link.commission_rate || commissionRate;
+      }
+    } else {
+      const { data: aff } = await supabase
+        .from("affiliates")
+        .select("id")
+        .eq("affiliate_code", refCode)
+        .maybeSingle();
+
+      if (aff) {
+        affiliateId = aff.id;
+      }
     }
   }
 

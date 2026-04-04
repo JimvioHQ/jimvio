@@ -45,6 +45,7 @@ export function CreatorSpacesPageClient({ communityId }: { communityId: string }
   const [spaces, setSpaces] = useState<SpaceRow[]>([]);
   const [rooms, setRooms] = useState<RoomRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [communitySlug, setCommunitySlug] = useState<string>("");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -59,6 +60,13 @@ export function CreatorSpacesPageClient({ communityId }: { communityId: string }
       .select("id, space_id, name, slug, room_type, access_type, sort_order")
       .eq("community_id", communityId)
       .order("sort_order");
+    const { data: comm } = await supabase
+      .from("communities")
+      .select("slug")
+      .eq("id", communityId)
+      .single();
+    if (comm) setCommunitySlug(comm.slug);
+
     setSpaces((sp as SpaceRow[]) ?? []);
     setRooms((rm as RoomRow[]) ?? []);
     setLoading(false);
@@ -174,21 +182,31 @@ export function CreatorSpacesPageClient({ communityId }: { communityId: string }
       ) : (
         <>
           <SpaceBuilder communityId={communityId} spaces={spaces} rooms={rooms} onUpdate={load} />
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-col gap-4 mt-6">
+            <h3 className="text-xs font-black uppercase text-[var(--color-text-muted)] tracking-widest pl-1">Quick Add By Space</h3>
             {spaces.map((s) => (
-              <Button
-                key={s.id}
-                type="button"
-                variant="outline"
-                className="rounded-xl border-[var(--color-border)] text-xs font-bold"
-                onClick={() => {
-                  setRoomError(null);
-                  setRoomSpaceId(s.id);
-                  setRoomModal(true);
-                }}
-              >
-                + Add room to {s.name}
-              </Button>
+              <div key={s.id} className="w-full flex flex-col p-4 border border-[var(--color-border)] rounded-3xl bg-[var(--color-surface-secondary)]/20 shadow-sm">
+                  <h4 className="text-sm font-black text-[var(--color-text-primary)] mb-3 flex items-center gap-2">
+                     <span className="text-xl">{s.icon}</span> {s.name}
+                  </h4>
+                  <div className="flex flex-wrap gap-2">
+                      <Button type="button" variant="outline" className="rounded-xl border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-accent)] hover:text-white hover:border-[var(--color-accent)] text-[10px] uppercase font-black tracking-wider transition-all h-9" onClick={() => { setRoomError(null); setRType("course"); setRoomSpaceId(s.id); setRoomModal(true); }}>
+                        + Add Course
+                      </Button>
+                      <Button type="button" variant="outline" className="rounded-xl border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-accent)] hover:text-white hover:border-[var(--color-accent)] text-[10px] uppercase font-black tracking-wider transition-all h-9" onClick={() => { setRoomError(null); setRType("tasks"); setRoomSpaceId(s.id); setRoomModal(true); }}>
+                        + Add Task Room
+                      </Button>
+                      <Button type="button" variant="outline" className="rounded-xl border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-accent)] hover:text-white hover:border-[var(--color-accent)] text-[10px] uppercase font-black tracking-wider transition-all h-9" onClick={() => { setRoomError(null); setRType("resources"); setRoomSpaceId(s.id); setRoomModal(true); }}>
+                        + Add Resources
+                      </Button>
+                      <Button type="button" variant="outline" className="rounded-xl border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-accent)] hover:text-white hover:border-[var(--color-accent)] text-[10px] uppercase font-black tracking-wider transition-all h-9" onClick={() => { setRoomError(null); setRType("chat"); setRoomSpaceId(s.id); setRoomModal(true); }}>
+                        + Add Chat Room
+                      </Button>
+                      <Button type="button" variant="outline" className="rounded-xl border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-accent)] hover:text-white hover:border-[var(--color-accent)] text-[10px] uppercase font-black tracking-wider transition-all h-9" onClick={() => { setRoomError(null); setRType("posts"); setRoomSpaceId(s.id); setRoomModal(true); }}>
+                        + Add Forum / Posts
+                      </Button>
+                  </div>
+              </div>
             ))}
           </div>
         </>

@@ -448,3 +448,105 @@ export interface PlatformSettingRow {
   value: Json;
   updated_at: string;
 }
+
+// ═══════════════════════════════════════════════════════════════
+// UGC + CLIPPING SYSTEM (ugc-clipping-schema.sql)
+// ═══════════════════════════════════════════════════════════════
+
+export type UGCPostType = 'post' | 'review' | 'unboxing' | 'howto' | 'deal';
+export type UGCModerationStatus = 'pending' | 'approved' | 'rejected' | 'hidden';
+export type ReportReason = 'spam' | 'hate_speech' | 'misinformation' | 'nudity' | 'violence' | 'copyright' | 'fraud' | 'other';
+export type ReportStatus = 'pending' | 'reviewed' | 'actioned' | 'dismissed';
+
+export interface UGCPostMedia {
+  url: string;
+  type: 'image' | 'video';
+  public_id?: string;
+  thumbnail?: string;
+}
+
+export interface UGCPost {
+  id: string;
+  user_id: string;
+  caption: string | null;
+  media: UGCPostMedia[];
+  post_type: UGCPostType;
+  like_count: number;
+  comment_count: number;
+  share_count: number;
+  view_count: number;
+  is_published: boolean;
+  is_featured: boolean;
+  reported_count: number;
+  moderation_status: UGCModerationStatus;
+  created_at: string;
+  updated_at: string;
+  profiles?: Profile;
+}
+
+export interface UGCPostLike {
+  id: string;
+  post_id: string;
+  user_id: string;
+  created_at: string;
+}
+
+export interface UGCComment {
+  id: string;
+  post_id: string;
+  user_id: string;
+  parent_id: string | null;
+  body: string;
+  like_count: number;
+  is_deleted: boolean;
+  created_at: string;
+  profiles?: Profile;
+}
+
+export interface UGCHashtag {
+  id: string;
+  tag: string;
+  post_count: number;
+  created_at: string;
+}
+
+export interface UGCReport {
+  id: string;
+  reporter_id: string;
+  post_id: string | null;
+  clip_id: string | null;
+  comment_id: string | null;
+  reason: ReportReason;
+  details: string | null;
+  status: ReportStatus;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  created_at: string;
+}
+
+export interface ClipLike {
+  id: string;
+  clip_id: string;
+  user_id: string;
+  created_at: string;
+}
+
+export interface ClipComment {
+  id: string;
+  clip_id: string;
+  user_id: string;
+  parent_id: string | null;
+  body: string;
+  like_count: number;
+  is_deleted: boolean;
+  created_at: string;
+  updated_at: string;
+  profiles?: Profile;
+}
+
+export interface ClipAffiliateLinkRow {
+  id: string;
+  clip_id: string;
+  affiliate_link_id: string;
+  created_at: string;
+}

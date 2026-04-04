@@ -31,6 +31,7 @@ import {
   ChevronRight,
   Sparkles,
   Zap,
+  Play,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -57,19 +58,35 @@ interface NavbarProps {
   marketing: MarketingSettings;
 }
 
-function ensureCommunitiesNavLink(links: NavLinkConfig[]): NavLinkConfig[] {
+function ensureCoreNavLinks(links: NavLinkConfig[]): NavLinkConfig[] {
+  // Filter out the legacy /clips link right from the start
+  let updated = links.filter(l => (l.href.replace(/\/$/, "") || "/") !== "/clips");
   const norm = (href: string) => href.replace(/\/$/, "") || "/";
-  if (links.some((l) => norm(l.href) === "/communities")) return links;
-  const insert: NavLinkConfig = { label: "Communities", href: "/communities" };
-  const homeIdx = links.findIndex((l) => norm(l.href) === "/");
-  if (homeIdx === -1) return [insert, ...links];
-  return [...links.slice(0, homeIdx + 1), insert, ...links.slice(homeIdx + 1)];
+  
+  // Ensure required links exist
+  if (!updated.some((l) => norm(l.href) === "/communities")) {
+    updated.push({ label: "Communities", href: "/communities" });
+  }
+  if (!updated.some((l) => norm(l.href) === "/content")) {
+    updated.push({ label: "Content Hub", href: "/content" });
+  }
+  
+  // Move home to front if present
+  const homeIdx = updated.findIndex((l) => norm(l.href) === "/");
+  if (homeIdx > 0) {
+    const home = updated[homeIdx];
+    updated.splice(homeIdx, 1);
+    updated.unshift(home);
+  }
+  
+  return updated;
 }
 
 function iconForNavHref(href: string): LucideIcon {
   const h = href.replace(/\/$/, "") || "/";
   if (h === "/") return Home;
   if (h.startsWith("/communities")) return Users;
+  if (h.startsWith("/content")) return Play;
   if (h.startsWith("/marketplace")) return ShoppingBag;
   if (h.startsWith("/affiliates")) return TrendingUp;
   if (h.startsWith("/influencers")) return Video;
@@ -82,6 +99,7 @@ function colorForNavHref(href: string): string {
   const h = href.replace(/\/$/, "") || "/";
   if (h === "/") return "text-orange-500 bg-orange-50";
   if (h.startsWith("/marketplace")) return "text-orange-500 bg-orange-50";
+  if (h.startsWith("/content")) return "text-rose-500 bg-rose-50";
   if (h.startsWith("/clips")) return "text-blue-500 bg-blue-50";
   if (h.startsWith("/communities")) return "text-emerald-500 bg-emerald-50";
   if (h.startsWith("/affiliates")) return "text-purple-500 bg-purple-50";
@@ -109,7 +127,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
   const pathname = usePathname();
   const router = useRouter();
 
-  const navLinks = ensureCommunitiesNavLink(marketing.nav_links ?? []);
+  const navLinks = ensureCoreNavLinks(marketing.nav_links ?? []);
   const localeStrip = (marketing.locale_strip?.trim() || "EN · USD").trim();
 
   const navHeight = useTransform(scrollY, [0, 80], [102, 72]);
@@ -157,7 +175,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
 
   const solutions = [
     { title: "Marketplace", desc: "Discover premium products", href: "/marketplace", icon: ShoppingBag, color: "text-orange-500" },
-    { title: "Viral Clips", desc: "Video-driven commerce", href: "/clips", icon: Video, color: "text-blue-500" },
+    { title: "Content Hub", desc: "UGC & Viral Clips", href: "/content", icon: Play, color: "text-rose-500" },
     { title: "Communities", desc: "Global trader networking", href: "/communities", icon: Users, color: "text-emerald-500" },
     { title: "Affiliates", desc: "Drive growth & earn", href: "/affiliates", icon: TrendingUp, color: "text-purple-500" },
   ];
@@ -174,7 +192,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
       isScrolled ? "px-0 sm:px-4 lg:px-8 pt-0 sm:pt-2 md:pt-4" : "px-0 pt-0"
     )}>
       <motion.div
-        style={{ 
+        style={{
           height: isMobile ? mobileNavHeight : navHeight,
         }}
         className={cn(
@@ -349,7 +367,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
                 animate={{ x: 0, opacity: 1 }}
                 exit={{ x: "100%", opacity: 0 }}
                 transition={{ type: "spring", damping: 30, stiffness: 280 }}
-                className="fixed inset-y-0 right-0 w-full max-w-sm bg-white z-[9999] shadow-2xl flex flex-col pointer-events-auto overflow-hidden"
+                className="fixed inset-y-0 right-0 w-full bg-white z-[9999] flex flex-col pointer-events-auto overflow-hidden"
               >
                 {/* ── Drawer Header ── */}
                 <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-zinc-100 shrink-0">

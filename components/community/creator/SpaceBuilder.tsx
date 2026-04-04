@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
-import { ChevronDown, ChevronUp, GripVertical } from "lucide-react";
+import { ChevronDown, ChevronUp, GripVertical, Settings, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
+import { DashboardCourseStudio } from "@/components/community/rooms/CourseRoom";
 
 export type SpaceRow = {
   id: string;
@@ -35,6 +36,7 @@ export function SpaceBuilder({
   onUpdate: () => void;
 }) {
   const [open, setOpen] = useState<Record<string, boolean>>({});
+  const [editingCourseId, setEditingCourseId] = useState<string | null>(null);
 
   const bySpace = useMemo(() => {
     const m = new Map<string, RoomRow[]>();
@@ -120,6 +122,11 @@ export function SpaceBuilder({
                         </Button>
                       </div>
                       <span className="font-semibold text-[var(--color-text-primary)] flex-1 truncate">{r.name}</span>
+                      {r.room_type === "course" && (
+                        <button onClick={() => setEditingCourseId(r.id)} className="px-3 py-1 rounded-lg bg-[var(--color-accent)]/10 text-[var(--color-accent)] font-black text-[10px] uppercase hover:bg-[var(--color-accent)] hover:text-white transition-all flex items-center gap-1.5 shrink-0 mx-2 shadow-sm border border-[var(--color-accent)]/10">
+                           <Settings size={12} /> Manage Course
+                        </button>
+                      )}
                       <span className="text-[10px] font-bold uppercase text-[var(--color-text-muted)]">{r.room_type}</span>
                     </li>
                   ))}
@@ -128,6 +135,14 @@ export function SpaceBuilder({
             </div>
           );
         })
+      )}
+      
+      {editingCourseId && (
+        <DashboardCourseStudio 
+           roomId={editingCourseId} 
+           communityId={communityId} 
+           onClose={() => setEditingCourseId(null)} 
+        />
       )}
     </div>
   );

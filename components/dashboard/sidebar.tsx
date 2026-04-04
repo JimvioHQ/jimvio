@@ -31,6 +31,8 @@ import {
   Users,
   CirclePlus,
   LayoutGrid,
+  ImageIcon,
+  Pencil,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -95,13 +97,19 @@ const sidebarSections: NavSection[] = [
     ],
   },
   {
+    title: "CONTENT & CLIPS",
+    items: [
+      { label: "Content Hub", href: "/content", icon: <ImageIcon className="h-4 w-4" /> },
+      { label: "Create Post", href: "/dashboard/ugc/new", icon: <Pencil className="h-4 w-4" /> },
+    ],
+  },
+  {
     title: "CREATOR",
     items: [
       { label: "Creator Studio", href: "/dashboard/influencer", icon: <Video className="h-4 w-4" />, requiredRole: "influencer" },
       { label: "My Clips", href: "/dashboard/clips", icon: <Video className="h-4 w-4" />, requiredRole: "influencer" },
-      { label: "Video Analytics", href: "/dashboard/analytics", icon: <BarChart3 className="h-4 w-4" />, requiredRole: "influencer" },
+      { label: "Creator Analytics", href: "/dashboard/analytics", icon: <BarChart3 className="h-4 w-4" />, requiredRole: "influencer" },
       { label: "Creator Earnings", href: "/dashboard/creator/earnings", icon: <DollarSign className="h-4 w-4" />, requiredRole: "influencer" },
-      { label: "Discover Clips", href: "/clips", icon: <Megaphone className="h-4 w-4" /> },
     ],
   },
   {

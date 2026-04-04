@@ -44,6 +44,8 @@ export const metadata: Metadata = {
   },
 };
 
+import { ReferralTracker } from "@/components/affiliate/referral-tracker";
+
 // Do not add <head> here: Next injects CSS into <head>; a manual <head> can drop stylesheets. Fonts: globals.css @import.
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -54,7 +56,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       >
         <ThemeProvider>
           <NextTopLoader color="#f97316" height={3} showSpinner={false} easing="ease" speed={200} shadow="0 0 10px #f97316,0 0 5px #f97316" />
-          <CurrencyProvider>{children}</CurrencyProvider>
+          <ReferralTracker />
+          <CurrencyProvider>{children} </CurrencyProvider>
           <Toaster
             richColors
             position="top-right"

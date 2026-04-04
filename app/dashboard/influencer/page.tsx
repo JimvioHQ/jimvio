@@ -37,24 +37,41 @@ export default function InfluencerDashboardPage() {
       setInfluencer(inf);
 
       if (inf) {
+        // Fetch Clips
         const { data: clipsData } = await supabase
           .from("viral_clips")
           .select("id, title, thumbnail_url, video_url, total_views, total_conversions, total_clicks, product_id, products(name)")
           .eq("influencer_id", inf.id)
           .order("created_at", { ascending: false })
-          .limit(20);
+          .limit(10);
+        
+        // Fetch UGC
+        const { data: ugcData } = await supabase
+          .from("ugc_posts")
+          .select("id, caption, media, view_count")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(10);
+
         const clipsList = clipsData ?? [];
-        const totalViews = clipsList.reduce((s, c) => s + (Number(c.total_views) || 0), 0);
+        const ugcList = ugcData ?? [];
+
+        const clipViews = clipsList.reduce((s, c) => s + (Number(c.total_views) || 0), 0);
+        const ugcViews = ugcList.reduce((s, c) => s + (Number(c.view_count) || 0), 0);
+
         const totalConvs = clipsList.reduce((s, c) => s + (Number(c.total_conversions) || 0), 0);
         const totalClicks = clipsList.reduce((s, c) => s + (Number(c.total_clicks) || 0), 0);
         const productIds = new Set(clipsList.map((c: any) => c.product_id).filter(Boolean));
+
         setStats({
-          totalViews,
+          totalViews: clipViews + ugcViews,
           totalEarnings: Number(inf.total_earnings) || 0,
           totalClicks,
           totalConversions: totalConvs,
           activeCampaigns: productIds.size,
         });
+
+        // Unified recent content
         setRecentClips(clipsList.slice(0, 4));
       }
       setLoading(false);
@@ -90,17 +107,20 @@ export default function InfluencerDashboardPage() {
         </div>
         <div className="flex gap-2">
           <Button size="sm" variant="outline" asChild>
-            <Link href="/dashboard/campaigns/browse">Browse Campaigns</Link>
+            <Link href="/dashboard/analytics">View Analytics</Link>
           </Button>
           <Button size="sm" asChild>
-            <Link href="/dashboard/clips/new"><Plus className="h-4 w-4" /> Upload Content</Link>
+            <Link href="/dashboard/ugc/new"><Plus className="h-4 w-4" /> New Post</Link>
+          </Button>
+          <Button size="sm" asChild>
+            <Link href="/dashboard/clips/new"><Video className="h-4 w-4" /> New Clip</Link>
           </Button>
         </div>
       </div>
 
       {/* Stats row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Total Video Views" value={loading ? "—" : stats.totalViews.toLocaleString()} icon={<Eye className="h-4 w-4" />} iconColor="from-cyan-600 to-blue-600" />
+        <StatCard title="Total Content Views" value={loading ? "—" : stats.totalViews.toLocaleString()} icon={<Eye className="h-4 w-4" />} iconColor="from-cyan-600 to-blue-600" />
         <StatCard title="Products Promoted" value={loading ? "—" : stats.activeCampaigns.toString()} icon={<Package className="h-4 w-4" />} iconColor="from-violet-600 to-purple-600" />
         <StatCard title="Total Earnings" value={loading ? "—" : formatMoney(stats.totalEarnings, "RWF")} icon={<DollarSign className="h-4 w-4" />} iconColor="from-emerald-600 to-teal-600" />
         <StatCard title="Followers" value={loading ? "—" : (influencer?.total_followers ?? 0).toLocaleString()} icon={<Users className="h-4 w-4" />} iconColor="from-pink-600 to-rose-600" />
