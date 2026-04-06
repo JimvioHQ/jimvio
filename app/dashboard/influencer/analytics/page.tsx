@@ -163,7 +163,7 @@ export default function CreatorAnalyticsPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-[var(--color-text-primary)]">Creator Analytics</h1>
           <p className="text-sm text-[var(--color-text-muted)] mt-0.5">
-            Your campaign submissions and affiliate performance tracked in real-time.
+            Your campaign submissions and content performance tracked in real-time.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -224,7 +224,7 @@ export default function CreatorAnalyticsPage() {
           { label: "Approved", value: stats?.approvedSubmissions ?? 0, icon: <CheckCircle className="h-4 w-4" /> },
           { label: "Comments", value: stats?.totalComments ?? 0, icon: <MessageCircle className="h-4 w-4" /> },
           { label: "Shares", value: stats?.totalShares ?? 0, icon: <RefreshCcw className="h-4 w-4" /> },
-          { label: "Link Clicks", value: stats?.totalClicks ?? 0, icon: <MousePointer className="h-4 w-4" /> },
+          { label: "Campaigns", value: topSubmissions?.length ?? 0, icon: <Video className="h-4 w-4" /> },
           { label: "Pending", value: formatMoney(stats?.pendingEarnings ?? 0, "RWF"), icon: <Clock className="h-4 w-4" />, isText: true },
         ].map((item: any) => (
           <div key={item.label} className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl p-3.5 text-center">
@@ -252,21 +252,12 @@ export default function CreatorAnalyticsPage() {
           <CardContent className="px-5 pb-5 pt-0">
             {chartData.length > 0 ? (
               <ResponsiveContainer width="100%" height={220}>
-                <AreaChart data={chartData} margin={{ left: -10, right: 0 }}>
-                  <defs>
-                    <linearGradient id="gradEarnings" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#7C3AED" stopOpacity={0.25} />
-                      <stop offset="95%" stopColor="#7C3AED" stopOpacity={0} />
-                    </linearGradient>
-                    <linearGradient id="gradConv" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#10B981" stopOpacity={0.25} />
-                      <stop offset="95%" stopColor="#10B981" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
-                  <XAxis dataKey="date" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
-                  <YAxis tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
+                <BarChart data={chartData} margin={{ left: -10, right: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
+                  <XAxis dataKey="date" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
                   <Tooltip
+                    cursor={{ fill: 'var(--color-surface-secondary)' }}
                     contentStyle={{
                       background: "var(--color-surface)",
                       border: "1px solid var(--color-border)",
@@ -274,9 +265,9 @@ export default function CreatorAnalyticsPage() {
                       fontSize: 12,
                     }}
                   />
-                  <Area type="monotone" dataKey="earnings" stroke="#7C3AED" strokeWidth={2} fill="url(#gradEarnings)" />
-                  <Area type="monotone" dataKey="conversions" stroke="#10B981" strokeWidth={2} fill="url(#gradConv)" />
-                </AreaChart>
+                  <Bar dataKey="earnings" stackId="a" fill="#7C3AED" radius={[0, 0, 4, 4]} />
+                  <Bar dataKey="conversions" stackId="a" fill="#10B981" radius={[4, 4, 0, 0]} />
+                </BarChart>
               </ResponsiveContainer>
             ) : (
               <div className="flex items-center justify-center h-[220px] text-[var(--color-text-muted)] text-sm">
@@ -296,7 +287,6 @@ export default function CreatorAnalyticsPage() {
             {[
               { href: "/ugc", label: "Browse Campaigns", icon: "🎬", desc: "Start earning per view" },
               { href: "/dashboard/submissions", label: "My Submissions", icon: "⭐", desc: "Track approval status" },
-              { href: "/dashboard/links", label: "Manage Links", icon: "🔗", desc: "View affiliate codes" },
               { href: "/dashboard/withdrawals", label: "Request Payout", icon: "💸", desc: `${formatMoney(stats?.availableBalance ?? 0, "RWF")} available` },
             ].map((item) => (
               <Link
@@ -367,51 +357,7 @@ export default function CreatorAnalyticsPage() {
         </Card>
       )}
 
-      {/* Affiliate Links Performance */}
-      {affiliateLinks.length > 0 && (
-        <Card className="border-[var(--color-border)]">
-          <CardHeader className="pb-3 px-5 pt-5 flex flex-row items-center justify-between">
-            <CardTitle className="text-base font-semibold flex items-center gap-2">
-              <MousePointer className="h-4 w-4 text-[var(--color-accent)]" /> Affiliate Links
-            </CardTitle>
-            <Link href="/dashboard/links" className="text-xs text-[var(--color-accent)] font-semibold hover:underline">
-              Manage →
-            </Link>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[560px] text-sm">
-                <thead>
-                  <tr className="border-b border-[var(--color-border)] bg-[var(--color-surface-secondary)]/50">
-                    {["Product / Link", "Clicks", "Unique", "Conversions", "Earnings", "Status"].map((h) => (
-                      <th key={h} className="text-left font-medium text-[var(--color-text-muted)] py-3 px-4 first:pl-5 last:pr-5 last:text-center">{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {affiliateLinks.slice(0, 8).map((link) => (
-                    <tr key={link.id} className="border-b border-[var(--color-border)] last:border-0 hover:bg-[var(--color-surface-secondary)]/40 transition-colors">
-                      <td className="py-3.5 pl-5 pr-4">
-                        <p className="font-semibold truncate max-w-[150px]">{link.products?.name ?? "Global"}</p>
-                        <p className="text-[10px] font-mono text-[var(--color-accent)] mt-0.5">{link.link_code}</p>
-                      </td>
-                      <td className="py-3.5 px-4 font-bold">{formatNum(link.total_clicks)}</td>
-                      <td className="py-3.5 px-4 text-[var(--color-text-muted)]">{formatNum(link.unique_clicks)}</td>
-                      <td className="py-3.5 px-4 text-emerald-600 font-semibold">{link.total_conversions}</td>
-                      <td className="py-3.5 px-4 font-bold">{formatMoney(link.total_earnings, "RWF")}</td>
-                      <td className="py-3.5 pr-5 text-center">
-                        <Badge variant={link.is_active ? "success" : "secondary"} className="text-[10px]">
-                          {link.is_active ? "Active" : "Paused"}
-                        </Badge>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+
 
       {/* Start creating & earning CTA */}
       {!stats?.totalSubmissions && (

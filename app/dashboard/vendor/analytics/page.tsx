@@ -15,6 +15,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
 import { useCurrency } from "@/context/CurrencyContext";
 import { groupOrderLineRowsToCartOrders } from "@/lib/currency/format";
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
+} from "recharts";
 
 export default function VendorAnalyticsPage() {
   const { formatMoney, formatCartTotalsLabel } = useCurrency();
@@ -173,37 +176,39 @@ export default function VendorAnalyticsPage() {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card className="border-[var(--color-border)]">
-              <CardHeader><CardTitle className="text-base">Orders (last 6 months)</CardTitle></CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {stats.ordersByMonth.map((m, i) => (
-                    <div key={i} className="flex items-center justify-between gap-4">
-                      <span className="text-sm text-[var(--color-text-secondary)]">{m.month}</span>
-                      <div className="flex-1 h-6 bg-[var(--color-surface-secondary)] rounded-full overflow-hidden max-w-[200px]">
-                        <div className="h-full bg-[var(--color-accent)] rounded-full" style={{ width: `${(() => { const max = Math.max(1, ...stats.ordersByMonth.map((x) => x.orders)); return (m.orders / max) * 100; })()}%` }} />
-                      </div>
-                      <span className="text-sm font-semibold w-8 text-right">{m.orders}</span>
-                    </div>
-                  ))}
-                </div>
+              <CardHeader><CardTitle className="text-base text-[var(--color-text-primary)]">Orders (last 6 months)</CardTitle></CardHeader>
+              <CardContent className="h-[280px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={stats.ordersByMonth} margin={{ left: -15, right: 0, top: 10, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
+                    <XAxis dataKey="month" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                    <Tooltip
+                      cursor={{ fill: 'var(--color-surface-secondary)' }}
+                      contentStyle={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: 12, fontSize: 12 }}
+                    />
+                    <Bar dataKey="orders" fill="var(--color-accent)" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
               </CardContent>
             </Card>
+
             <Card className="border-[var(--color-border)]">
-              <CardHeader><CardTitle className="text-base">Revenue (last 6 months)</CardTitle></CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {stats.revenueByMonth.map((m, i) => (
-                    <div key={i} className="flex items-center justify-between gap-4">
-                      <span className="text-sm text-[var(--color-text-secondary)]">{m.month}</span>
-                      <div className="flex-1 h-6 bg-[var(--color-surface-secondary)] rounded-full overflow-hidden max-w-[200px]">
-                        <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${(() => { const max = Math.max(1, ...stats.revenueByMonth.map((x) => x.revenue)); return (m.revenue / max) * 100; })()}%` }} />
-                      </div>
-                      <span className="text-sm font-semibold w-28 text-right tabular-nums">
-                        {formatMoney(m.revenue, stats.revenueDisplayCurrency)}
-                      </span>
-                    </div>
-                  ))}
-                </div>
+              <CardHeader><CardTitle className="text-base text-[var(--color-text-primary)]">Revenue (last 6 months)</CardTitle></CardHeader>
+              <CardContent className="h-[280px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={stats.revenueByMonth} margin={{ left: -15, right: 0, top: 10, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
+                    <XAxis dataKey="month" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={(val) => `${val > 1000 ? (val/1000).toFixed(1) + 'k' : val}`} />
+                    <Tooltip
+                      cursor={{ fill: 'var(--color-surface-secondary)' }}
+                      formatter={(val: number) => formatMoney(val, stats.revenueDisplayCurrency)}
+                      contentStyle={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: 12, fontSize: 12 }}
+                    />
+                    <Bar dataKey="revenue" fill="#10B981" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
               </CardContent>
             </Card>
           </div>

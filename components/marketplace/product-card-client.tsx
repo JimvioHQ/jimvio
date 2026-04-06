@@ -78,7 +78,6 @@ export function ProductCardClient({
     ? Math.round(((compareAt - price) / compareAt) * 100)
     : 0;
   const isDigital = p.is_digital;
-  const isVerified = p.vendors?.verification_status === "verified";
   const showWishlist = !!onToggleWishlist;
   const storeUrl = p.vendors?.business_slug
     ? `/vendors/${p.vendors.business_slug}`
@@ -316,11 +315,6 @@ export function ProductCardClient({
             >
               {p.vendors?.business_name || "Jimvio Store"}
             </Link>
-            {isVerified && (
-              <span title="Verified seller">
-                <ShieldCheck className="h-3 w-3 text-emerald-500 shrink-0" />
-              </span>
-            )}
           </div>
 
           {/* Product name */}

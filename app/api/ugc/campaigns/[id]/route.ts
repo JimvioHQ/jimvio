@@ -76,6 +76,22 @@ export async function PATCH(
     Object.entries(body).filter(([k]) => allowed.includes(k))
   );
 
+  // Escrow Gate Logic: You cannot activate a campaign without deposited funds 
+  if (updates.status === 'active') {
+    const { data: escrow } = await db.from('ugc_campaign_escrow')
+      .select('id')
+      .eq('campaign_id', id)
+      .eq('status', 'held')
+      .maybeSingle();
+
+    if (!escrow) {
+      return NextResponse.json(
+        { error: 'You must deposit the required campaign budget in escrow before activating.' },
+        { status: 402 } 
+      );
+    }
+  }
+
   const { data: updated, error } = await db
     .from('ugc_campaigns')
     .update(updates)

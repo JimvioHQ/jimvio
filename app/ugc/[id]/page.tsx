@@ -10,7 +10,7 @@ import {
   Calendar, Info, Play, MessageSquare, 
   TrendingUp, DollarSign, Camera, 
   ChevronRight, Sparkles, ClipboardCheck,
-  Users
+  Users, Music, Target
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -69,6 +69,7 @@ export default function CampaignDetailPage() {
   }
 
   const budgetPct = Math.min(100, ((campaign.spent_budget ?? 0) / (campaign.total_budget || 1)) * 100);
+  const banner = campaign.media?.find(m => m.usage === 'banner')?.url;
 
   return (
     <div className="min-h-screen bg-zinc-50/50 pb-20">
@@ -76,12 +77,22 @@ export default function CampaignDetailPage() {
       <div className="relative w-full h-[400px] overflow-hidden bg-zinc-900">
         {/* Background Visuals */}
         <div className="absolute inset-0 z-0">
-          <Image 
-            src="/hero-bg.png" 
-            alt="" 
-            fill 
-            className="object-cover opacity-40 saturate-[0.5]"
-          />
+          {banner ? (
+            <Image 
+              src={banner} 
+              alt={campaign.title} 
+              fill 
+              className="object-cover opacity-60 saturate-[0.8] brightness-[0.7]"
+              priority
+            />
+          ) : (
+            <Image 
+              src="/hero-bg.png" 
+              alt="" 
+              fill 
+              className="object-cover opacity-40 saturate-[0.5]"
+            />
+          )}
           <div className="absolute inset-0 bg-gradient-to-t from-zinc-50 via-zinc-50/80 to-transparent" />
           <div className="absolute inset-0 bg-gradient-to-r from-zinc-50 via-zinc-50/40 to-transparent" />
         </div>
@@ -174,6 +185,41 @@ export default function CampaignDetailPage() {
                      </div>
                   )}
 
+                  {/* Structured: Custom Mission Types */}
+                  {campaign.campaign_type === 'music_clipping' && campaign.music_track_url && (
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div className="space-y-3">
+                           <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 px-1">Required Audio</p>
+                           <a href={campaign.music_track_url} target="_blank" className="flex items-center gap-3 p-4 rounded-2xl bg-orange-50 border border-orange-100 hover:border-orange-300 transition-all group">
+                              <div className="h-10 w-10 bg-white rounded-xl shadow-sm flex items-center justify-center shrink-0">
+                                 <Music className="h-4 w-4 text-orange-500" />
+                              </div>
+                              <div className="overflow-hidden">
+                                 <p className="text-sm font-black text-zinc-900 truncate">Listen to Track</p>
+                                 <p className="text-xs font-bold text-orange-600 truncate">{campaign.music_artist_name || 'Original Audio'}</p>
+                              </div>
+                           </a>
+                        </div>
+                     </div>
+                  )}
+
+                  {campaign.campaign_type === 'promotion' && campaign.promotion_target && (
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div className="space-y-3">
+                           <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 px-1">Promotion Target</p>
+                           <a href={campaign.promotion_target_url || '#'} target="_blank" className="flex items-center gap-3 p-4 rounded-2xl bg-blue-50 border border-blue-100 hover:border-blue-300 transition-all group">
+                              <div className="h-10 w-10 bg-white rounded-xl shadow-sm flex items-center justify-center shrink-0">
+                                 <Target className="h-4 w-4 text-blue-500" />
+                              </div>
+                              <div className="overflow-hidden">
+                                 <p className="text-sm font-black text-zinc-900 truncate">{campaign.promotion_target}</p>
+                                 <p className="text-xs font-bold text-blue-600 truncate">View Target Link</p>
+                              </div>
+                           </a>
+                        </div>
+                     </div>
+                  )}
+
                   {/* Structured: Hashtags & Mentions */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                      {(campaign.required_hashtags?.length ?? 0) > 0 && (
@@ -260,11 +306,23 @@ export default function CampaignDetailPage() {
            {/* Payout Card */}
            <div className="p-8 rounded-[40px] bg-zinc-950 text-white shadow-2xl relative overflow-hidden">
               <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/20 blur-3xl rounded-full" />
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 mb-2">Earn per 1K views</p>
-              <div className="flex items-baseline gap-2 mb-2">
-                 <span className="text-4xl font-black">{formatMoney(campaign.rate_per_1k_views, "RWF")}</span>
-                 <span className="text-sm font-bold text-zinc-500"> / 1K</span>
-              </div>
+              {campaign.payment_model === 'fixed_per_content' ? (
+                <>
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-400 mb-2">Fixed Reward</p>
+                  <div className="flex items-baseline gap-2 mb-2">
+                    <span className="text-4xl font-black">{formatMoney(campaign.fixed_rate ?? 0, "RWF")}</span>
+                    <span className="text-sm font-bold text-zinc-500"> / Submission</span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 mb-2">Earn per 1K views</p>
+                  <div className="flex items-baseline gap-2 mb-2">
+                    <span className="text-4xl font-black">{formatMoney(campaign.rate_per_1k_views, "RWF")}</span>
+                    <span className="text-sm font-bold text-zinc-500"> / 1K</span>
+                  </div>
+                </>
+              )}
               {campaign.max_payout_per_sub && (
                 <div className="flex items-center gap-2 p-2 px-3 rounded-xl bg-white/5 border border-white/10 mt-4 mb-8">
                    <div className="h-2 w-2 rounded-full bg-orange-500" />

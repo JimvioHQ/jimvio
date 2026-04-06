@@ -148,9 +148,11 @@ export async function syncAllApprovedSubmissions(): Promise<{
       platform,
       total_views_earned,
       total_earnings,
+      is_suspicious,
       ugc_campaigns!inner (
         id,
         rate_per_1k_views,
+        payment_model,
         max_payout_per_sub,
         total_budget,
         spent_budget,
@@ -162,7 +164,8 @@ export async function syncAllApprovedSubmissions(): Promise<{
         id,
         user_id,
         total_earnings,
-        available_balance
+        available_balance,
+        pending_balance
       )
     `)
     .eq('status', 'approved');
@@ -179,6 +182,7 @@ export async function syncAllApprovedSubmissions(): Promise<{
       const campaign = sub.ugc_campaigns as unknown as {
         id: string;
         rate_per_1k_views: number;
+        payment_model: string;
         max_payout_per_sub: number | null;
         total_budget: number;
         spent_budget: number;
@@ -191,6 +195,7 @@ export async function syncAllApprovedSubmissions(): Promise<{
         user_id: string;
         total_earnings: number;
         available_balance: number;
+        pending_balance: number;
       };
 
       // Skip if campaign has ended
@@ -201,6 +206,18 @@ export async function syncAllApprovedSubmissions(): Promise<{
 
       // Skip paused/cancelled/completed campaigns
       if (!['active'].includes(campaign.status)) {
+        skipped++;
+        continue;
+      }
+
+      // EXCLUSIVE LOGIC: Skip campaigns that are strictly "fixed_per_content" because they are paid on approval!
+      if (campaign.payment_model === 'fixed_per_content') {
+        skipped++;
+        continue;
+      }
+
+      // FRAUD LOGIC: Skip globally flagged suspicious content from receiving views sync money
+      if (sub.is_suspicious) {
         skipped++;
         continue;
       }
@@ -269,39 +286,43 @@ export async function syncAllApprovedSubmissions(): Promise<{
           .eq('id', campaign.id);
       }
 
-      // 2g. Credit influencer
+      // 2g. Credit influencer in PENDING state (Fraud Delay)
       await db
         .from('influencers')
         .update({
           total_earnings: (influencer.total_earnings ?? 0) + earningsThisSync,
-          available_balance: (influencer.available_balance ?? 0) + earningsThisSync,
+          pending_balance: (influencer.pending_balance ?? 0) + earningsThisSync,
         })
         .eq('id', influencer.id);
 
-      // 2h. Credit wallet (manual update — no RPC required)
+      // 2h. Credit wallet (Pending buffer)
       const { data: walletRow } = await db
         .from('wallets')
-        .select('available_balance, total_earned')
+        .select('pending_balance, total_earned')
         .eq('user_id', influencer.user_id)
         .single();
       if (walletRow) {
         await db
           .from('wallets')
           .update({
-            available_balance: ((walletRow as { available_balance: number }).available_balance ?? 0) + earningsThisSync,
+            pending_balance: ((walletRow as { pending_balance: number }).pending_balance ?? 0) + earningsThisSync,
             total_earned: ((walletRow as { total_earned: number }).total_earned ?? 0) + earningsThisSync,
           })
           .eq('user_id', influencer.user_id);
       }
 
-      // 2i. Insert payout record
+      // 2i. Insert payout record (Pending 48 Hrs)
+      const releaseDate = new Date();
+      releaseDate.setHours(releaseDate.getHours() + 48);
+
       await db.from('payouts').insert({
         user_id: influencer.user_id,
         type: 'ugc_earnings',
         amount: earningsThisSync,
         currency: 'USD',
-        status: 'paid',
-        notes: `UGC campaign earnings sync — submission ${sub.id}`,
+        status: 'pending',
+        release_date: releaseDate.toISOString(),
+        notes: `UGC campaign earnings sync — submission ${sub.id} (Clears in 48h)`,
       });
 
       // 2j. Insert notification

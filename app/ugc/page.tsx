@@ -24,6 +24,7 @@ function CampaignCard({ c }: { c: UGCCampaign }) {
   const { formatMoney } = useCurrency();
   const budgetPct = Math.min(100, ((c.spent_budget ?? 0) / (c.total_budget || 1)) * 100);
   const timeStr = formatTimeAgo(c.created_at);
+  const banner = c.media?.find(m => m.usage === 'banner')?.url;
 
   return (
     <Link
@@ -34,9 +35,9 @@ function CampaignCard({ c }: { c: UGCCampaign }) {
       <div className="relative aspect-[16/10] overflow-hidden">
         {/* Fallback pattern / background */}
         <div className="absolute inset-0 bg-gradient-to-br from-zinc-100 to-zinc-200" />
-        {c.media?.[0]?.url && (
+        {banner && (
           <img 
-            src={c.media[0].url} 
+            src={banner} 
             className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
             alt={c.title}
           />
@@ -215,7 +216,7 @@ export default function UGCBrowserPage() {
             <div className="relative w-full aspect-[21/9] rounded-[40px] overflow-hidden group border border-zinc-100 shadow-2xl">
                <div className="absolute inset-0 bg-gradient-to-br from-zinc-900/60 to-zinc-900/10 z-10" />
                <img 
-                 src={featuredCampaign.media?.[0]?.url || "/hero-bg.png"} 
+                 src={featuredCampaign.media?.find(m => m.usage === 'banner')?.url || "/hero-bg.png"} 
                  className="absolute inset-0 w-full h-full object-cover" 
                  alt=""
                />

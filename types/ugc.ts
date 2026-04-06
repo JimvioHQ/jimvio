@@ -2,7 +2,8 @@
 // UGC & CLIPPING MODULE — Shared TypeScript types (V2)
 // ──────────────────────────────────────────────────────────
 
-export type UGCCampaignType   = 'clipping' | 'ugc';
+export type UGCCampaignType   = 'clipping' | 'ugc' | 'music_clipping' | 'promotion';
+export type UGCPaymentModel   = 'per_views' | 'fixed_per_content';
 export type UGCCampaignStatus = 'draft' | 'active' | 'paused' | 'completed' | 'cancelled';
 export type UGCSubmissionStatus = 'pending' | 'approved' | 'rejected' | 'removed';
 export type UGCPlatform          = 'tiktok' | 'instagram' | 'youtube' | 'x';
@@ -30,8 +31,11 @@ export interface UGCCampaign {
   title: string;
   description: string | null;
   campaign_type: UGCCampaignType;
+  payment_model: UGCPaymentModel;
   status: UGCCampaignStatus;
+  
   rate_per_1k_views: number;
+  fixed_rate: number;
   total_budget: number;
   spent_budget: number;
   max_payout_per_sub: number | null;
@@ -51,6 +55,13 @@ export interface UGCCampaign {
   total_views_tracked: number;
   starts_at: string | null;
   ends_at: string | null;
+  
+  // Custom Campaign Type Logic fields
+  music_track_url: string | null;
+  music_artist_name: string | null;
+  promotion_target: string | null;
+  promotion_target_url: string | null;
+
   created_at: string;
   updated_at: string;
 
@@ -164,7 +175,10 @@ export interface CreateCampaignPayload {
   title: string;
   description?: string;
   campaign_type: UGCCampaignType;
+  payment_model?: UGCPaymentModel;
+  
   rate_per_1k_views: number;
+  fixed_rate?: number;
   total_budget: number;
   max_payout_per_sub?: number;
   allowed_platforms?: string[];
@@ -179,6 +193,18 @@ export interface CreateCampaignPayload {
   requires_face?: boolean;
   starts_at?: string;
   ends_at?: string;
+
+  music_track_url?: string;
+  music_artist_name?: string;
+  promotion_target?: string;
+  promotion_target_url?: string;
+
+  media?: {
+    type?: UGCMediaType;
+    url: string;
+    thumbnail_url?: string;
+    usage?: UGCMediaUsage;
+  }[];
 }
 
 export interface CreateSubmissionPayload {

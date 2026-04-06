@@ -66,6 +66,7 @@ const sidebarSections: NavSection[] = [
       { label: "Orders", href: "/dashboard/orders", icon: <ShoppingCart className="h-4 w-4" /> },
       { label: "Digital Library", href: "/dashboard/library", icon: <Video className="h-4 w-4" /> },
       { label: "Saved Products", href: "/dashboard/wishlist", icon: <Heart className="h-4 w-4" /> },
+      { label: "Analytics", href: "/dashboard/buyer/analytics", icon: <BarChart3 className="h-4 w-4" /> },
     ],
   },
   {
@@ -74,6 +75,7 @@ const sidebarSections: NavSection[] = [
       { label: "Browse Communities", href: "/communities", icon: <Users className="h-4 w-4" /> },
       { label: "Create a Community", href: "/communities/create", icon: <CirclePlus className="h-4 w-4" /> },
       { label: "My Communities (Creator)", href: "/creator", icon: <LayoutGrid className="h-4 w-4" /> },
+      { label: "Analytics", href: "/dashboard/community/analytics", icon: <BarChart3 className="h-4 w-4" /> },
     ],
   },
   {
@@ -98,11 +100,12 @@ const sidebarSections: NavSection[] = [
     ],
   },
   {
-    title: "UGC & CLIPPING (BRAND)",
+    title: "UGC & CLIPPING (CAMPAIGNS)",
     items: [
-      { label: "Dashboard", href: "/dashboard/vendor/campaigns", icon: <LayoutDashboard className="h-4 w-4" />, requiredRole: "vendor" },
-      { label: "Create Campaign", href: "/dashboard/vendor/campaigns/new", icon: <CirclePlus className="h-4 w-4" />, requiredRole: "vendor" },
-      { label: "Review Submissions", href: "/dashboard/vendor/submissions", icon: <CheckCircle className="h-4 w-4" />, requiredRole: "vendor" },
+      { label: "Dashboard", href: "/dashboard/vendor/campaigns", icon: <LayoutDashboard className="h-4 w-4" /> },
+      { label: "Create Campaign", href: "/dashboard/vendor/campaigns/new", icon: <CirclePlus className="h-4 w-4" /> },
+      { label: "Review Submissions", href: "/dashboard/vendor/submissions", icon: <CheckCircle className="h-4 w-4" /> },
+      { label: "Analytics", href: "/dashboard/vendor/campaigns/analytics", icon: <BarChart3 className="h-4 w-4" /> },
     ],
   },
   {

@@ -8,7 +8,9 @@ import { ArrowLeft, MousePointer, ShoppingCart, DollarSign, TrendingUp, BarChart
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatCard } from "@/components/ui/stat-card";
-import { RevenueChart } from "@/components/charts/revenue-chart";
+import { 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
+} from "recharts";
 import { useCurrency } from "@/context/CurrencyContext";
 import { createClient } from "@/lib/supabase/client";
 
@@ -94,14 +96,26 @@ export default function AffiliateAnalyticsPage() {
           <p className="text-sm text-[var(--color-text-muted)] mt-0.5">Compare click volume across your promoted products.</p>
         </CardHeader>
         <CardContent className="pt-5 pb-5 px-5">
-          <div className="w-full overflow-x-auto" style={{ minHeight: 280, WebkitOverflowScrolling: "touch" }}>
+          <div className="w-full" style={{ height: 350 }}>
             {chartData.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-center">
+              <div className="flex flex-col items-center justify-center py-20 text-center h-full">
                 <BarChart3 className="h-10 w-10 text-[var(--color-text-muted)] mb-2 opacity-50" />
-                <p className="text-sm text-[var(--color-text-muted)]">No data yet. Generate links to see performance.</p>
+                <p className="text-sm text-[var(--color-text-muted)]">No data yet. Generate links to see real-time chart performance.</p>
               </div>
             ) : (
-              <RevenueChart data={chartData} type="bar" dataKey="clicks" labelKey="month" height={280} />
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData} margin={{ left: -15, right: 0, top: 10, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
+                  <XAxis dataKey="month" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                  <Tooltip
+                    cursor={{ fill: 'var(--color-surface-secondary)' }}
+                    contentStyle={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: 12, fontSize: 12 }}
+                  />
+                  <Bar dataKey="clicks" stackId="a" fill="var(--color-accent)" radius={[0, 0, 4, 4]} />
+                  <Bar dataKey="conversions" stackId="a" fill="#10B981" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
             )}
           </div>
         </CardContent>
