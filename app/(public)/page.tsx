@@ -104,7 +104,7 @@ export default async function HomePage() {
   const heroKeywords = platformSettings.marketing.trending_search_keywords.slice(0, 4);
 
   return (
-    <div className="min-h-screen pb-24 md:pb-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:24px_24px] bg-fixed" style={{ backgroundColor: "#f9fafb" }}>
+    <div className="min-h-screen pb-14 md:pb-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:24px_24px] bg-fixed" style={{ backgroundColor: "#f9fafb" }}>
       {/* Subtle global ambient glow */}
       <div className="pointer-events-none fixed top-0 left-0 right-0 h-screen z-0">
         <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-orange-100/30 rounded-full blur-[120px]" />

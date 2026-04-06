@@ -8,16 +8,15 @@ import { getDB } from "./base";
 
 export interface CreatorDashboardStats {
   totalViews: number;
-  totalLikes: number;
-  totalClips: number;
-  totalUGCPosts: number;
-  totalComments: number;
-  totalShares: number;
+  totalSubmissions: number;
+  approvedSubmissions: number;
+  pendingSubmissions: number;
   // Earnings
   pendingEarnings: number;
   availableBalance: number;
   totalEarned: number;
   paidEarnings: number;
+  totalUgCEarnings: number;
   // Affiliate
   totalClicks: number;
   totalConversions: number;
@@ -27,11 +26,11 @@ export interface CreatorDashboardStats {
 export interface TopClip {
   id: string;
   title: string;
-  thumbnail_url: string | null;
+  platform: string;
+  post_url: string;
   total_views: number;
-  total_likes: number;
-  total_conversions: number;
   earnings: number;
+  status: string;
 }
 
 export interface EarningsByDay {
@@ -47,53 +46,46 @@ export interface EarningsByDay {
 export async function getCreatorDashboardStats(userId: string): Promise<CreatorDashboardStats> {
   const db = await getDB();
 
-  const [infRes, affRes, ugcRes] = await Promise.all([
+  const [infRes, affRes] = await Promise.all([
     db.from("influencers").select("id, total_clicks, total_conversions").eq("user_id", userId).maybeSingle(),
     db.from("affiliates").select("id, total_earnings, available_balance, pending_earnings, paid_earnings, conversion_rate").eq("user_id", userId).maybeSingle(),
-    db.from("ugc_posts").select("id, like_count, comment_count, share_count, view_count").eq("user_id", userId),
   ]);
 
   const influencer = infRes.data;
   const affiliate = affRes.data;
-  const ugcPosts = ugcRes.data ?? [];
 
-  let clips: Array<{ total_views: number; total_likes: number; total_comments: number; total_shares: number }> = [];
+  let submissions: Array<{ view_count: number; total_earnings: number; status: string }> = [];
   if (influencer) {
     const { data } = await db
-      .from("viral_clips")
-      .select("total_views, total_likes, total_comments, total_shares")
-      .eq("influencer_id", influencer.id)
-      .eq("is_active", true);
-    clips = data ?? [];
+      .from("ugc_submissions")
+      .select("view_count, total_earnings, status")
+      .eq("influencer_id", influencer.id);
+    submissions = data ?? [];
   }
 
-  const totalViews = clips.reduce((s, c) => s + (c.total_views ?? 0), 0);
-  const totalLikes = clips.reduce((s, c) => s + (c.total_likes ?? 0), 0) +
-    ugcPosts.reduce((s, p) => s + (p.like_count ?? 0), 0);
-  const totalComments = clips.reduce((s, c) => s + (c.total_comments ?? 0), 0) +
-    ugcPosts.reduce((s, p) => s + (p.comment_count ?? 0), 0);
-  const totalShares = clips.reduce((s, c) => s + (c.total_shares ?? 0), 0) +
-    ugcPosts.reduce((s, p) => s + (p.share_count ?? 0), 0);
+  const totalViews = submissions.reduce((s, c) => s + (Number(c.view_count) || 0), 0);
+  const totalUgCEarnings = submissions.reduce((s, c) => s + (Number(c.total_earnings) || 0), 0);
+  const approvedSubmissions = submissions.filter(s => s.status === 'approved').length;
+  const pendingSubmissions = submissions.filter(s => s.status === 'pending' || s.status === 'in_review').length;
 
   return {
     totalViews,
-    totalLikes,
-    totalClips: clips.length,
-    totalUGCPosts: ugcPosts.length,
-    totalComments,
-    totalShares,
+    totalSubmissions: submissions.length,
+    approvedSubmissions,
+    pendingSubmissions,
     pendingEarnings: Number(affiliate?.pending_earnings ?? 0),
     availableBalance: Number(affiliate?.available_balance ?? 0),
-    totalEarned: Number(affiliate?.total_earnings ?? 0),
+    totalEarned: Number(affiliate?.total_earnings ?? 0) + totalUgCEarnings,
     paidEarnings: Number(affiliate?.paid_earnings ?? 0),
-    totalClicks: Number(influencer?.total_clicks ?? affiliate?.id ? 0 : 0),
+    totalUgCEarnings,
+    totalClicks: Number(influencer?.total_clicks ?? 0),
     totalConversions: Number(influencer?.total_conversions ?? 0),
     conversionRate: Number(affiliate?.conversion_rate ?? 0),
   };
 }
 
 // ─────────────────────────────────────────────────────────────
-// TOP PERFORMING CLIPS
+// TOP PERFORMING SUBMISSIONS
 // ─────────────────────────────────────────────────────────────
 export async function getTopPerformingClips(userId: string, limit = 5): Promise<TopClip[]> {
   const db = await getDB();
@@ -101,18 +93,21 @@ export async function getTopPerformingClips(userId: string, limit = 5): Promise<
   const infRes = await db.from("influencers").select("id").eq("user_id", userId).maybeSingle();
   if (!infRes.data) return [];
 
-  const { data: clips } = await db
-    .from("viral_clips")
-    .select("id, title, thumbnail_url, total_views, total_likes, total_conversions")
+  const { data: submissions } = await db
+    .from("ugc_submissions")
+    .select("id, platform, post_url, view_count, total_earnings, status, ugc_campaigns(title)")
     .eq("influencer_id", infRes.data.id)
-    .eq("is_active", true)
-    .order("total_views", { ascending: false })
+    .order("view_count", { ascending: false })
     .limit(limit);
 
-  return (clips ?? []).map((c: any) => ({
-    ...c,
-    // Pseudo earnings calc: conversions × avg commission — real data from commissions table
-    earnings: Number(c.total_conversions ?? 0) * 5,
+  return (submissions ?? []).map((c: any) => ({
+    id: c.id,
+    title: c.ugc_campaigns?.title || "Unknown Campaign",
+    platform: c.platform || "unknown",
+    post_url: c.post_url,
+    total_views: Number(c.view_count) || 0,
+    earnings: Number(c.total_earnings) || 0,
+    status: c.status || "review",
   }));
 }
 

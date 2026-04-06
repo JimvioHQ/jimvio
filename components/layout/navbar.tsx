@@ -59,18 +59,21 @@ interface NavbarProps {
 }
 
 function ensureCoreNavLinks(links: NavLinkConfig[]): NavLinkConfig[] {
-  // Filter out the legacy /clips link right from the start
-  let updated = links.filter(l => (l.href.replace(/\/$/, "") || "/") !== "/clips");
+  // Filter out the legacy /clips link and any links that are already in the 'Explore' (solutions) dropdown
+  const exploreHrefs = ["/influencers/browse", "/ugc", "/vendors", "/affiliates", "/influencers"];
+  let updated = links.filter(l => {
+    const normHref = l.href.replace(/\/$/, "") || "/";
+    return normHref !== "/clips" && !exploreHrefs.includes(normHref);
+  });
+  
   const norm = (href: string) => href.replace(/\/$/, "") || "/";
-  
-  // Ensure required links exist
-  if (!updated.some((l) => norm(l.href) === "/communities")) {
-    updated.push({ label: "Communities", href: "/communities" });
+
+  // Only keep very high level links in the main bar
+  // If marketplace isn't there, add it
+  if (!updated.some((l) => norm(l.href) === "/marketplace")) {
+    updated.push({ label: "Marketplace", href: "/marketplace" });
   }
-  if (!updated.some((l) => norm(l.href) === "/content")) {
-    updated.push({ label: "Content Hub", href: "/content" });
-  }
-  
+
   // Move home to front if present
   const homeIdx = updated.findIndex((l) => norm(l.href) === "/");
   if (homeIdx > 0) {
@@ -78,7 +81,7 @@ function ensureCoreNavLinks(links: NavLinkConfig[]): NavLinkConfig[] {
     updated.splice(homeIdx, 1);
     updated.unshift(home);
   }
-  
+
   return updated;
 }
 
@@ -86,7 +89,7 @@ function iconForNavHref(href: string): LucideIcon {
   const h = href.replace(/\/$/, "") || "/";
   if (h === "/") return Home;
   if (h.startsWith("/communities")) return Users;
-  if (h.startsWith("/content")) return Play;
+  if (h.startsWith("/ugc")) return Video;
   if (h.startsWith("/marketplace")) return ShoppingBag;
   if (h.startsWith("/affiliates")) return TrendingUp;
   if (h.startsWith("/influencers")) return Video;
@@ -99,7 +102,7 @@ function colorForNavHref(href: string): string {
   const h = href.replace(/\/$/, "") || "/";
   if (h === "/") return "text-orange-500 bg-orange-50";
   if (h.startsWith("/marketplace")) return "text-orange-500 bg-orange-50";
-  if (h.startsWith("/content")) return "text-rose-500 bg-rose-50";
+  if (h.startsWith("/ugc")) return "text-violet-500 bg-violet-50";
   if (h.startsWith("/clips")) return "text-blue-500 bg-blue-50";
   if (h.startsWith("/communities")) return "text-emerald-500 bg-emerald-50";
   if (h.startsWith("/affiliates")) return "text-purple-500 bg-purple-50";
@@ -174,17 +177,36 @@ export function Navbar({ user, marketing }: NavbarProps) {
   );
 
   const solutions = [
-    { title: "Marketplace", desc: "Discover premium products", href: "/marketplace", icon: ShoppingBag, color: "text-orange-500" },
-    { title: "Content Hub", desc: "UGC & Viral Clips", href: "/content", icon: Play, color: "text-rose-500" },
-    { title: "Communities", desc: "Global trader networking", href: "/communities", icon: Users, color: "text-emerald-500" },
-    { title: "Affiliates", desc: "Drive growth & earn", href: "/affiliates", icon: TrendingUp, color: "text-purple-500" },
+    { title: "Browse Creators", desc: "Connect with top performing influencers", href: "/influencers/browse", icon: Users, color: "text-orange-500" },
+    { title: "UGC Campaigns", desc: "Earn rewards for video submissions", href: "/ugc", icon: Video, color: "text-violet-500" },
+    { title: "Brand Solutions", desc: "Tools for vendors and businesses", href: "/vendors", icon: Factory, color: "text-emerald-500" },
+    { title: "Affiliate Center", desc: "Promote products & earn commission", href: "/affiliates", icon: TrendingUp, color: "text-purple-500" },
   ];
 
-  // Ordered mobile nav links: Home first, then the rest
-  const orderedMobileLinks = [
-    ...navLinks.filter((l) => (l.href.replace(/\/$/, "") || "/") === "/"),
-    ...navLinks.filter((l) => (l.href.replace(/\/$/, "") || "/") !== "/"),
+  // Ordered mobile nav links: Flattened and starting from Home
+  const mobileLinkItems = [
+    ...navLinks,
+    ...solutions.map(s => ({ label: s.title, href: s.href, icon: s.icon })),
+    { label: "Communities", href: "/communities", icon: Users },
+    { label: "Support", href: "/help", icon: HelpCircle }
   ];
+
+  // Remove exact duplicates by href
+  const seenHrefs = new Set<string>();
+  const orderedMobileLinks = mobileLinkItems.filter(item => {
+    const h = item.href.replace(/\/$/, "") || "/";
+    if (seenHrefs.has(h)) return false;
+    seenHrefs.add(h);
+    return true;
+  });
+
+  // Ensure Home is first
+  const homeIdxM = orderedMobileLinks.findIndex(l => (l.href.replace(/\/$/, "") || "/") === "/");
+  if (homeIdxM > 0) {
+    const home = orderedMobileLinks[homeIdxM];
+    orderedMobileLinks.splice(homeIdxM, 1);
+    orderedMobileLinks.unshift(home);
+  }
 
   return (
     <header className={cn(
@@ -250,7 +272,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              {navLinks.slice(0, 3).map((item) => {
+              {navLinks.map((item) => {
                 const active = linkIsActive(pathname, item.href);
                 return (
                   <Link
@@ -258,7 +280,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
                     href={item.href}
                     className={cn(
                       "px-4 py-2 rounded-2xl text-[14px] font-black transition-all",
-                      active ? "text-[#f97316] bg-orange-50/50" : "text-zinc-500 hover:text-zinc-900"
+                      active ? "text-zinc-900 bg-zinc-100/50" : "text-zinc-500 hover:text-zinc-900"
                     )}
                   >
                     {item.label}
@@ -455,12 +477,11 @@ export function Navbar({ user, marketing }: NavbarProps) {
                     </Link>
                   )}
 
-                  {/* ── All Nav Links (Home first) ── */}
+                  {/* ── All Nav Links (Flattened) ── */}
                   <div className="pt-2">
-                    <p className="text-[10px] font-black text-zinc-300 uppercase tracking-widest px-2 mb-2">Navigation</p>
                     <div className="flex flex-col gap-1">
-                      {orderedMobileLinks.map((item) => {
-                        const Icon = iconForNavHref(item.href);
+                      {orderedMobileLinks.map((item: any) => {
+                        const Icon = item.icon || iconForNavHref(item.href);
                         const active = linkIsActive(pathname, item.href);
                         const colorClasses = colorForNavHref(item.href);
                         const [iconColor, iconBg] = colorClasses.split(" ");
@@ -496,12 +517,6 @@ export function Navbar({ user, marketing }: NavbarProps) {
                           <HelpCircle className="h-4.5 w-4.5 text-zinc-400" />
                         </span>
                         Support
-                      </Link>
-                      <Link href="/vendors" onClick={() => setMobileOpen(false)} className="flex items-center gap-4 px-4 py-3.5 rounded-2xl text-[15px] font-black text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900 transition-all">
-                        <span className="h-9 w-9 rounded-xl bg-yellow-50 flex items-center justify-center shrink-0">
-                          <Factory className="h-4.5 w-4.5 text-yellow-600" />
-                        </span>
-                        Vendors
                       </Link>
                     </div>
                   </div>

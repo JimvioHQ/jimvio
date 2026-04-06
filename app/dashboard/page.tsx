@@ -287,21 +287,21 @@ export default function DashboardPage() {
         </section>
       )}
 
-      {/* ── Influencer Section ── */}
+      {/* ── Influencer Section (UGC & Clipping) ── */}
       {isInfluencer && (
         <section>
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <Video className="h-4 w-4 text-pink-500" />
-              <h2 className="text-sm font-black uppercase tracking-widest text-[var(--color-text-muted)]">Creator Studio</h2>
+              <Video className="h-4 w-4 text-violet-500" />
+              <h2 className="text-sm font-black uppercase tracking-widest text-[var(--color-text-muted)]">Influencer Hub & Clipping</h2>
             </div>
             <Link href="/dashboard/influencer" className="text-xs font-bold text-[var(--color-accent)] hover:underline flex items-center gap-1">
               Open studio <ArrowUpRight className="h-3 w-3" />
             </Link>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-2 gap-3">
-            <QuickAction href="/dashboard/campaigns/browse" icon={<Zap className="h-4 w-4" />} label="Browse Campaigns" sublabel="Find brand deals" color="bg-pink-100 text-pink-600" />
-            <QuickAction href="/dashboard/clips" icon={<Video className="h-4 w-4" />} label="My Clips" sublabel="Manage videos" color="bg-rose-100 text-rose-600" />
+            <QuickAction href="/ugc" icon={<Globe className="h-4 w-4" />} label="Browse Campaigns" sublabel="Find brand deals" color="bg-violet-100 text-violet-600 dark:bg-violet-900/30 dark:text-violet-400" />
+            <QuickAction href="/dashboard/submissions" icon={<Video className="h-4 w-4" />} label="My Clips & Submissions" sublabel="Track views & earnings" color="bg-pink-100 text-pink-600 dark:bg-pink-900/30 dark:text-pink-400" />
           </div>
         </section>
       )}

@@ -45,10 +45,10 @@ export function TopCreatorsSection({ creators, className }: TopCreatorsSectionPr
           <p className="text-[12px] text-[#6b7280] font-medium mt-0.5">Trending creators sharing products</p>
         </div>
         <Link
-          href="/influencers"
-          className="text-[11px] font-bold text-[#f97316] capitalize tracking-widest flex items-center gap-1.5 hover:gap-2.5 transition-all shrink-0"
+          href="/influencers/browse"
+          className="text-[11px] font-black text-[#f97316] uppercase tracking-[0.2em] flex items-center gap-2 hover:gap-3 transition-all shrink-0 bg-orange-50 px-4 py-2 rounded-full border border-orange-100"
         >
-          View All <ChevronRight className="h-3.5 w-3.5" />
+          View All Creators <ChevronRight className="h-3.5 w-3.5" />
         </Link>
       </div>
 

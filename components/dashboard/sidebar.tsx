@@ -22,6 +22,7 @@ import {
   BarChart3,
   MessageSquare,
   MessageCircle,
+  CheckCircle,
   Bell,
   User,
   Settings,
@@ -97,19 +98,20 @@ const sidebarSections: NavSection[] = [
     ],
   },
   {
-    title: "CONTENT & CLIPS",
+    title: "UGC & CLIPPING (BRAND)",
     items: [
-      { label: "Content Hub", href: "/content", icon: <ImageIcon className="h-4 w-4" /> },
-      { label: "Create Post", href: "/dashboard/ugc/new", icon: <Pencil className="h-4 w-4" /> },
+      { label: "Dashboard", href: "/dashboard/vendor/campaigns", icon: <LayoutDashboard className="h-4 w-4" />, requiredRole: "vendor" },
+      { label: "Create Campaign", href: "/dashboard/vendor/campaigns/new", icon: <CirclePlus className="h-4 w-4" />, requiredRole: "vendor" },
+      { label: "Review Submissions", href: "/dashboard/vendor/submissions", icon: <CheckCircle className="h-4 w-4" />, requiredRole: "vendor" },
     ],
   },
   {
-    title: "CREATOR",
+    title: "INFLUENCER & CREATOR",
     items: [
-      { label: "Creator Studio", href: "/dashboard/influencer", icon: <Video className="h-4 w-4" />, requiredRole: "influencer" },
-      { label: "My Clips", href: "/dashboard/clips", icon: <Video className="h-4 w-4" />, requiredRole: "influencer" },
-      { label: "Creator Analytics", href: "/dashboard/analytics", icon: <BarChart3 className="h-4 w-4" />, requiredRole: "influencer" },
-      { label: "Creator Earnings", href: "/dashboard/creator/earnings", icon: <DollarSign className="h-4 w-4" />, requiredRole: "influencer" },
+      { label: "Creator Studio", href: "/dashboard/influencer", icon: <LayoutDashboard className="h-4 w-4" />, requiredRole: "influencer" },
+      { label: "Browse Campaigns", href: "/ugc", icon: <Globe className="h-4 w-4" />, requiredRole: "influencer" },
+      { label: "My Clips & Submissions", href: "/dashboard/submissions", icon: <Video className="h-4 w-4" />, requiredRole: "influencer" },
+      { label: "Creator Analytics", href: "/dashboard/influencer/analytics", icon: <BarChart3 className="h-4 w-4" />, requiredRole: "influencer" },
     ],
   },
   {
