@@ -14,11 +14,11 @@ export type ContentComment = {
   };
 };
 
-export async function getContentComments(contentId: string, itemType: "clipping" | "ugc") {
+export async function getContentComments(contentId: string, itemType: "clipping" | "ugc" | "short") {
   try {
     const supabase = await createClient();
-    const table = itemType === "clipping" ? "clip_comments" : "ugc_post_comments";
-    const idField = itemType === "clipping" ? "clip_id" : "post_id";
+    const table = itemType === "clipping" ? "clip_comments" : itemType === "ugc" ? "ugc_post_comments" : "short_video_comments";
+    const idField = itemType === "clipping" ? "clip_id" : itemType === "ugc" ? "post_id" : "video_id";
 
     const { data, error } = await supabase
       .from(table)
@@ -29,7 +29,10 @@ export async function getContentComments(contentId: string, itemType: "clipping"
       .eq(idField, contentId)
       .order("created_at", { ascending: false });
 
-    if (error) throw error;
+    if (error) {
+      console.error("[DATABASE ERROR] getContentComments failed:", error);
+      throw error;
+    }
 
     return {
       success: true,
@@ -53,14 +56,14 @@ export async function getContentComments(contentId: string, itemType: "clipping"
   }
 }
 
-export async function addContentComment(contentId: string, itemType: "clipping" | "ugc", body: string) {
+export async function addContentComment(contentId: string, itemType: "clipping" | "ugc" | "short", body: string) {
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { success: false, error: "Authentication required" };
 
-    const table = itemType === "clipping" ? "clip_comments" : "ugc_post_comments";
-    const idField = itemType === "clipping" ? "clip_id" : "post_id";
+    const table = itemType === "clipping" ? "clip_comments" : itemType === "ugc" ? "ugc_post_comments" : "short_video_comments";
+    const idField = itemType === "clipping" ? "clip_id" : itemType === "ugc" ? "post_id" : "video_id";
 
     const { data, error } = await supabase
       .from(table)
@@ -75,7 +78,10 @@ export async function addContentComment(contentId: string, itemType: "clipping" 
       `)
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error("[DATABASE ERROR] addContentComment failed:", error);
+      throw error;
+    }
 
     const profile = Array.isArray(data.profiles) ? data.profiles[0] : data.profiles;
 

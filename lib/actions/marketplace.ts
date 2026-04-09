@@ -210,7 +210,7 @@ export async function addToCart(productId: string, vendorId: string, quantity: n
         .single(),
       supabase
         .from("orders")
-        .select("id, currency")
+        .select("id, currency, metadata")
         .eq("buyer_id", user.id)
         .eq("vendor_id", vendorId)
         .eq("status", "pending")
@@ -252,10 +252,21 @@ export async function addToCart(productId: string, vendorId: string, quantity: n
 
     // 3. Handle referral/affiliate tracking
     const cookieStore = await cookies();
+    const lastVideoId = cookieStore.get("jimvio_last_video_id")?.value;
     const refCode = cookieStore.get("jimvio_ref")?.value;
     let affiliateId = null;
     let commissionRate = (product as any).affiliate_commission_rate ?? (await getDefaultAffiliateCommissionPercent());
     let commissionAmount = 0;
+
+    // Attach video_id to order metadata if present
+    if (lastVideoId && !(order.metadata as any)?.video_id) {
+      await supabase
+        .from("orders")
+        .update({
+          metadata: { ...((order.metadata as any) || {}), video_id: lastVideoId }
+        })
+        .eq("id", orderId);
+    }
 
     if (refCode && (product as any).affiliate_enabled) {
       // 1. Try resolving as specific link_code (LNK-)
@@ -291,7 +302,7 @@ export async function addToCart(productId: string, vendorId: string, quantity: n
     // 4. Add or update order item
     const { data: existingItem } = await supabase
       .from("order_items")
-      .select("id, quantity")
+      .select("id, quantity, metadata")
       .eq("order_id", orderId)
       .eq("product_id", productId)
       .maybeSingle();
@@ -312,6 +323,7 @@ export async function addToCart(productId: string, vendorId: string, quantity: n
           affiliate_commission_amount: newCommAmount,
           product_source: lineSource,
           source_metadata: lineMeta,
+          metadata: { ...((existingItem.metadata as any) || {}), video_id: lastVideoId }
         })
         .eq("id", existingItem.id);
       
@@ -338,6 +350,7 @@ export async function addToCart(productId: string, vendorId: string, quantity: n
           shopify_product_id: product.shopify_product_id ?? null,
           product_source: lineSource,
           source_metadata: lineMeta,
+          metadata: { video_id: lastVideoId }
         });
       
       if (insertError) throw insertError;

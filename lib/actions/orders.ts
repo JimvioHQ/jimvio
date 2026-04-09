@@ -21,6 +21,7 @@ export async function createOrder(productId: string, quantity: number = 1) {
   if (!product) throw new Error("Product not found");
 
   const cookieStore = await cookies();
+  const lastVideoId = cookieStore.get("jimvio_last_video_id")?.value;
   const refCode = cookieStore.get("jimvio_ref")?.value;
   let affiliateId = null;
   const defaultAffiliate = await getDefaultAffiliateCommissionPercent();
@@ -68,6 +69,7 @@ export async function createOrder(productId: string, quantity: number = 1) {
       status: "pending",
       payment_status: "pending",
       integration_source: product.source === "shopify" ? "shopify" : "manual",
+      metadata: lastVideoId ? { video_id: lastVideoId } : {},
     })
     .select()
     .single();
@@ -92,6 +94,7 @@ export async function createOrder(productId: string, quantity: number = 1) {
     shopify_product_id: product.shopify_product_id ?? null,
     product_source: src,
     source_metadata: meta,
+    metadata: lastVideoId ? { video_id: lastVideoId } : {},
   });
 
   return { orderId: order.id };

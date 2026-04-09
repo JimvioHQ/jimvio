@@ -7,7 +7,7 @@ import {
   Video, Zap, DollarSign, TrendingUp, Users, 
   Play, Plus, ArrowRight, MousePointer, ExternalLink,
   ShoppingBag, Star, LayoutDashboard, Globe, Eye, Package,
-  Send, CheckCircle, BarChart3, Loader2
+  Send, CheckCircle, BarChart3, Loader2, Film
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -107,6 +107,9 @@ export default function InfluencerDashboardPage() {
             <Link href="/dashboard/analytics"><BarChart3 className="w-4 h-4 mr-2" /> Analytics</Link>
           </Button>
           <Button size="sm" asChild className="rounded-xl h-10 bg-gradient-to-r from-violet-600 to-indigo-700 font-bold px-6">
+            <Link href="/dashboard/influencer/videos"><Video className="h-4 w-4 mr-2" /> Video Studio</Link>
+          </Button>
+          <Button size="sm" asChild className="rounded-xl h-10 border border-[var(--color-border)] bg-white hover:bg-[var(--color-surface-secondary)] font-bold px-4">
             <Link href="/ugc"><Globe className="h-4 w-4 mr-2" /> Browse Campaigns</Link>
           </Button>
         </div>
@@ -236,6 +239,7 @@ export default function InfluencerDashboardPage() {
             </CardHeader>
             <CardContent className="px-4 pb-6 space-y-2">
               {[
+                { label: "Short Video Studio", icon: <Film className="w-4 h-4" />, href: "/dashboard/influencer/videos" },
                 { label: "Find Campaigns", icon: <Globe className="w-4 h-4" />, href: "/ugc" },
                 { label: "My Submissions", icon: <Send className="w-4 h-4" />, href: "/dashboard/submissions" },
                 { label: "Affiliate Tracking", icon: <MousePointer className="w-4 h-4" />, href: "/dashboard/links" },

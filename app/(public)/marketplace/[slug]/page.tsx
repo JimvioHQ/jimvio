@@ -21,7 +21,8 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getProductBySlug, getTrendingProducts } from "@/services/db";
 import { getCartProductIds, getFollowedVendorIds } from "@/lib/actions/marketplace";
-import { formatCurrency, cn } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import { ProductPriceDisplay, ProductBuyBoxPrice } from "@/components/marketplace/product-price-display";
 import { ProductCardClient } from "@/components/marketplace/product-card-client";
 import { ProductActionModule } from "@/components/marketplace/product-action-module";
 import { FollowButton } from "@/components/marketplace/follow-button";
@@ -161,21 +162,12 @@ export default async function ProductDetailPage({ params }: PageProps) {
 
                 {/* Price */}
                 <div className="space-y-1">
-                  <div className="flex items-baseline gap-2.5">
-                    <span className="text-3xl font-black text-[var(--color-accent)] tracking-tight">
-                      {formatCurrency(product.price)}
-                    </span>
-                    {product.compare_at_price && (
-                      <span className="text-sm text-zinc-300 line-through font-semibold">
-                        {formatCurrency(product.compare_at_price)}
-                      </span>
-                    )}
-                    {savings && (
-                      <span className="text-[10px] font-black text-red-600 bg-red-50 px-2 py-0.5 rounded-md">
-                        −{savings}%
-                      </span>
-                    )}
-                  </div>
+                  <ProductPriceDisplay
+                    price={Number(product.price)}
+                    compareAtPrice={product.compare_at_price}
+                    currency={product.currency}
+                    savings={savings}
+                  />
                   <p className="text-[10px] text-zinc-400 flex items-center gap-1">
                     <Clock className="h-3 w-3" /> Listed on Jimvio · Bulk quotes available
                   </p>
@@ -355,29 +347,15 @@ export default async function ProductDetailPage({ params }: PageProps) {
               <div className="bg-white rounded-xl border border-zinc-200 shadow-sm p-5 space-y-5">
                 {/* Price */}
                 <div className="space-y-1.5">
-                  <div className="flex items-baseline gap-2.5">
-                    <span className="text-3xl font-black text-zinc-900 tracking-tight">
-                      {formatCurrency(product.price)}
-                    </span>
-                    {product.compare_at_price && (
-                      <span className="text-sm text-zinc-300 line-through font-semibold">
-                        {formatCurrency(product.compare_at_price)}
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-green-50 text-green-600 border border-green-100">
-                      In Stock
-                    </span>
-                    {savings && (
-                      <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-red-50 text-red-500">
-                        Save {savings}%
-                      </span>
-                    )}
-                    <span className="text-[10px] text-zinc-400 flex items-center gap-1">
-                      <Truck className="h-3 w-3" /> Free Delivery
-                    </span>
-                  </div>
+                  <ProductBuyBoxPrice
+                    price={Number(product.price)}
+                    compareAtPrice={product.compare_at_price}
+                    currency={product.currency}
+                    savings={savings}
+                  />
+                  <span className="text-[10px] text-zinc-400 flex items-center gap-1">
+                    <Truck className="h-3 w-3" /> Free Delivery
+                  </span>
                 </div>
 
                 {/* Action Module */}

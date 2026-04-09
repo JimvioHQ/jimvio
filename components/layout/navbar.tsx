@@ -178,6 +178,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
 
   const solutions = [
     { title: "Browse Creators", desc: "Connect with top performing influencers", href: "/influencers/browse", icon: Users, color: "text-orange-500" },
+    { title: "Creator TV", desc: "Watch promotional shorts & latest buzz", href: "/shorts", icon: Play, color: "text-red-500" },
     { title: "UGC Campaigns", desc: "Earn rewards for video submissions", href: "/ugc", icon: Video, color: "text-violet-500" },
     { title: "Brand Solutions", desc: "Tools for vendors and businesses", href: "/vendors", icon: Factory, color: "text-emerald-500" },
     { title: "Affiliate Center", desc: "Promote products & earn commission", href: "/affiliates", icon: TrendingUp, color: "text-purple-500" },

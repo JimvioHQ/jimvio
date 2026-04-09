@@ -7,7 +7,8 @@ import { Heart, ShoppingBag, Star, Zap, Eye, Package } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { cn, formatCurrency, calculateDiscount } from "@/lib/utils";
+import { cn, calculateDiscount } from "@/lib/utils";
+import { LocalizedPrice } from "@/components/currency/localized-price";
 import type { Product } from "@/types/database.types";
 
 interface ProductCardProps {
@@ -78,12 +79,18 @@ export function ProductCard({ product, viewMode = "grid" }: ProductCardProps) {
               )}
             </div>
             <div className="flex items-center gap-3">
-              <span className="font-semibold text-[var(--color-accent)]">{formatCurrency(product.price)}</span>
+              <LocalizedPrice
+                amount={product.price}
+                currency={(product as any).currency}
+                className="font-semibold text-[var(--color-accent)]"
+              />
               {discount > 0 && (
                 <>
-                  <span className="text-small text-[var(--color-text-muted)] line-through">
-                    {formatCurrency(product.compare_at_price!)}
-                  </span>
+                  <LocalizedPrice
+                    amount={product.compare_at_price!}
+                    currency={(product as any).currency}
+                    className="text-small text-[var(--color-text-muted)] line-through"
+                  />
                   <Badge variant="destructive" className="text-xs">
                     {discount}% off
                   </Badge>
@@ -191,11 +198,17 @@ export function ProductCard({ product, viewMode = "grid" }: ProductCardProps) {
 
           <div className="flex items-center justify-between">
             <div className="flex items-baseline gap-2">
-              <span className="font-black text-[15px] text-zinc-900 tracking-tighter">{formatCurrency(product.price)}</span>
+              <LocalizedPrice
+                amount={product.price}
+                currency={(product as any).currency}
+                className="font-black text-[15px] text-zinc-900 tracking-tighter"
+              />
               {discount > 0 && (
-                <span className="text-[11px] text-zinc-400 line-through font-medium">
-                  {formatCurrency(product.compare_at_price!)}
-                </span>
+                <LocalizedPrice
+                  amount={product.compare_at_price!}
+                  currency={(product as any).currency}
+                  className="text-[11px] text-zinc-400 line-through font-medium"
+                />
               )}
             </div>
             

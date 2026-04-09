@@ -121,7 +121,7 @@ export function Footer({ contact: contactProp }: { contact?: ContactSettings }) 
       <div className="w-full border-t border-[#f0f0f0] bg-[#fafafa] py-10">
         <div className="mx-auto flex max-w-[1280px] flex-col items-center justify-between gap-6 px-4 sm:px-6 md:flex-row">
           <p className="text-center text-[12px] font-bold capitalize tracking-[0.15em] text-[#9ca3af] md:text-left">
-            © {new Date().getFullYear()} Jimvio, Inc. · Built for Global Commerce · Kigali 🇷🇼
+            © {new Date().getFullYear()} Jimvio, Inc. · Built for Global
           </p>
           <div className="grid w-full max-w-md grid-cols-2 gap-x-6 gap-y-3 text-center sm:flex sm:max-w-none sm:flex-wrap sm:justify-end sm:gap-x-8 sm:gap-y-0 sm:text-left">
             <Link href="/privacy" className="text-[12px] font-bold capitalize tracking-widest text-[#9ca3af] transition-colors hover:text-[#f97316]">
