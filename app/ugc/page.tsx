@@ -20,106 +20,9 @@ const PLATFORM_ICONS: Record<string, any> = {
   x: Share2,
 };
 
-function CampaignCard({ c }: { c: UGCCampaign }) {
-  const { formatMoney } = useCurrency();
-  const budgetPct = Math.min(100, ((c.spent_budget ?? 0) / (c.total_budget || 1)) * 100);
-  const timeStr = formatTimeAgo(c.created_at);
-  const banner = c.media?.find(m => m.usage === 'banner')?.url;
+import { SharedCampaignCard } from '@/components/ugc/campaign-card-shared';
 
-  return (
-    <Link
-      href={`/ugc/${c.id}`}
-      className="group flex flex-col rounded-3xl bg-white border border-zinc-100/80 shadow-sm hover:shadow-xl hover:border-orange-200 transition-all duration-500 overflow-hidden"
-    >
-      {/* Visual Header */}
-      <div className="relative aspect-[16/10] overflow-hidden">
-        {/* Fallback pattern / background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-zinc-100 to-zinc-200" />
-        {banner && (
-          <img 
-            src={banner} 
-            className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-            alt={c.title}
-          />
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-        
-        {/* Brand Overlay */}
-        <div className="absolute top-4 left-4 right-4 flex items-center justify-between">
-          <div className="flex items-center gap-2 px-2 py-1.5 rounded-full bg-black/40 backdrop-blur-md border border-white/10">
-            {c.vendor?.business_logo ? (
-              <img src={c.vendor.business_logo} className="w-5 h-5 rounded-full object-cover" alt="" />
-            ) : (
-              <div className="w-5 h-5 rounded-full bg-orange-500 flex items-center justify-center text-[10px] font-black text-white">
-                {c.vendor?.business_name?.[0] ?? 'B'}
-              </div>
-            )}
-            <span className="text-[10px] font-black text-white truncate max-w-[80px]">
-              {c.vendor?.business_name ?? 'Brand'}
-            </span>
-            <CheckCircle className="h-2.5 w-2.5 text-blue-400 fill-blue-400" />
-            <span className="text-[9px] font-bold text-white/60 ml-0.5">{timeStr}</span>
-          </div>
-          
-          <div className="flex gap-1">
-            {(c.allowed_platforms ?? []).map((p) => {
-              const Icon = PLATFORM_ICONS[p] || Share2;
-              return (
-                <div key={p} className="w-7 h-7 rounded-full bg-black/40 backdrop-blur-md border border-white/10 flex items-center justify-center text-white">
-                  <Icon className="h-3.5 w-3.5" />
-                </div>
-              );
-            })}
-          </div>
-        </div>
 
-        <div className="absolute bottom-4 left-4 right-4 text-white">
-          <h3 className="font-black text-lg leading-tight tracking-tight drop-shadow-md">
-            {c.title}
-          </h3>
-        </div>
-      </div>
-
-      {/* Info Body */}
-      <div className="p-4 space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="space-y-0.5">
-            <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest leading-none">Earnings / Goal</p>
-            <p className="text-[13px] font-black text-zinc-900">
-              {formatMoney(c.spent_budget || 0, "RWF")} / {formatMoney(c.total_budget, "RWF")}
-            </p>
-          </div>
-          <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-orange-50 border border-orange-100">
-            <TrendingUp className="h-3 w-3 text-orange-600" />
-            <span className="text-[11px] font-black text-orange-700">{c.submission_count}</span>
-            <span className="text-[11px] font-bold text-orange-500">creators</span>
-          </div>
-        </div>
-
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex-1 space-y-2">
-            <div className="flex justify-between items-center px-1">
-              <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Progress</span>
-              <span className="text-[10px] font-black text-zinc-900">{Math.round(budgetPct)}%</span>
-            </div>
-            <div className="h-2 w-full bg-zinc-100 rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-gradient-to-r from-orange-400 to-orange-600 transition-all duration-1000 ease-out" 
-                style={{ width: `${budgetPct}%` }} 
-              />
-            </div>
-          </div>
-          <div className="shrink-0 text-right">
-             <span className="block text-[13px] font-black text-zinc-900 leading-none">
-               {formatMoney(c.rate_per_1k_views, "RWF")}
-             </span>
-             <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">/ 1K views</span>
-          </div>
-        </div>
-      </div>
-    </Link>
-  );
-}
 
 export default function UGCBrowserPage() {
   const { formatMoney } = useCurrency();
@@ -276,7 +179,7 @@ export default function UGCBrowserPage() {
              </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {campaigns.map((c) => <CampaignCard key={c.id} c={c} />)}
+              {campaigns.map((c) => <SharedCampaignCard key={c.id} c={c as any} />)}
             </div>
           )}
 

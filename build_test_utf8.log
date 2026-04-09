@@ -1,0 +1,96 @@
+﻿
+> jimvio@1.0.0 build
+> next build
+
+   Γû▓ Next.js 15.5.12
+   - Environments: .env.local, .env
+   - Experiments (use with caution):
+     ┬╖ serverActions
+
+   Creating an optimized production build ...
+ Γ£ô Compiled successfully in 90s
+   Linting and checking validity of types ...
+node.exe : Failed to 
+compile.
+At line:1 char:1
++ & "C:\Program 
+Files\nodejs/node.exe" 
+"C:\Program 
+Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo        
+      : NotSpecified: (F  
+  ailed to compile.:Str   
+ ing) [], RemoteExcept    
+ion
+    + FullyQualifiedError 
+   Id : NativeCommandErr  
+  or
+ 
+
+./components/community/com
+munity-subscribe-client.ts
+x:253:20
+Type error: Type '{ 
+selected: "pesapal" | 
+"pawapay" | "nowpayments" 
+| "flutterwave" | 
+"paypal" | null; 
+onSelect: (m: "pesapal" | 
+"pawapay" | "nowpayments" 
+| "afripay" | 
+"flutterwave" | "paypal") 
+=> void; ... 7 more ...; 
+onPawapayPhoneChange: 
+Dispatch<...>; }' is 
+missing the following 
+properties from type '{ 
+selected: "pesapal" | 
+"pawapay" | "nowpayments" 
+| "afripay" | 
+"flutterwave" | "paypal" 
+| null; onSelect: 
+(method: "pesapal" | 
+"pawapay" | "nowpayments" 
+| "afripay" | 
+"flutterwave" | "paypal") 
+=> void; ... 13 more ...; 
+onFlutterwaveMethodChange:
+ (method: "card" | 
+"momo") => void; }': 
+afripayNetwork, 
+onAfripayNetworkChange, 
+afripayPhone, 
+onAfripayPhoneChange, and 
+2 more.
+
+[0m [90m 251 |[39m     
+            {[90m/* STEP 
+2: Payment */[39m}
+ [90m 252 |[39m         
+        {currentStep 
+[33m===[39m [35m2[39m 
+[33m&&[39m (
+[31m[1m>[22m[39m[90m 
+253 |[39m                
+   [33m<[39m[33mPayment
+MethodSelector[39m
+ [90m     |[39m         
+           
+[31m[1m^[22m[39m
+ [90m 254 |[39m         
+            selected[33m=
+[39m{payment}
+ [90m 255 |[39m         
+            
+onSelect[33m=[39m{(m) 
+[33m=>[39m 
+setPayment(m)}
+ [90m 256 |[39m         
+            payCurrency[3
+3m=[39m{payCurrency}[0m
+Next.js build worker 
+exited with code: 1 and 
+signal: null

@@ -7,12 +7,16 @@ import {
 import {
   getCategories, getFeaturedProducts, getTrendingProducts, getTopVendors,
   getViralClips, getCampaigns, getPlatformStats, getTopCreators, getProducts,
+  getPublicCommunities,
 } from "@/services/db";
 import { getCartProductIds } from "@/lib/actions/marketplace";
 import { ProductCardClient } from "@/components/marketplace/product-card-client";
 import { TrendingProductClipsSection } from "@/components/marketplace/trending-product-clips-section";
 import { SocialProofBar } from "@/components/marketplace/social-proof-bar";
 import { TopCreatorsSection } from "@/components/marketplace/top-creators-section";
+import { CampaignScrollRow } from "@/components/marketplace/campaign-scroll-row";
+import { CommunityScrollRow } from "@/components/marketplace/community-scroll-row";
+
 import { PopularStoresSection } from "@/components/marketplace/popular-stores-section";
 import { HomepageHero } from "@/components/layout/homepage-hero";
 import {
@@ -46,19 +50,20 @@ export default async function HomePage() {
     categories, featured, trending, vendors,
     viralClips, platformStats, topCreators,
     shopifyFeaturedRes, platformSettingsMaybe, campaigns,
-    cartProductIds,
+    cartProductIds, communitiesList,
   ] = await Promise.all([
     getCategories().catch(() => []),
     getFeaturedProducts(24).catch(() => []),
     getTrendingProducts(8).catch(() => []),
     getTopVendors(8).catch(() => []),
     getViralClips(8).catch(() => []),
-    getPlatformStats().catch(() => ({ totalUsers: 0, totalVendors: 0, totalProducts: 0 })),
+    getPlatformStats().catch(() => ({ totalUsers: 0, totalVendors: 0, totalProducts: 0, totalCampaigns: 0, totalCommunities: 0, totalEarnings: 0 })),
     getTopCreators(6).catch(() => []),
     getProducts({ catalog: "shopify", limit: 24, offset: 0, sort: "newest" }).catch(() => ({ products: [], total: 0 })),
     getResolvedPlatformSettings().catch(() => null),
-    getCampaigns(8).catch(() => []),
+    getCampaigns(12).catch(() => []),
     getCartProductIds().catch(() => []),
+    getPublicCommunities(12).catch(() => []),
   ]);
 
   const cartSet = new Set(cartProductIds);
@@ -122,6 +127,7 @@ export default async function HomePage() {
           topSuppliersSidebar={topSuppliersSidebar}
           spotlightCreator={spotlightCreator}
           primaryCta={platformSettings.marketing.primary_cta}
+          platformStats={platformStats as any}
         />
 
         {/* ── TRUST BAR ── */}
@@ -131,6 +137,8 @@ export default async function HomePage() {
 
         {/* ── MAIN CONTENT ── */}
         <div className="max-w-[1536px] mx-auto px-4 sm:px-6 pt-8 pb-12 md:pt-12 md:pb-20 space-y-10">
+
+
 
           {/* ── RECOMMENDED PICKS ── */}
           <section id="recommended-picks" className="scroll-mt-32">
@@ -148,14 +156,15 @@ export default async function HomePage() {
             </div>
           </section>
 
+          {/* ── LIVE CONTENT ── */}
+          <div className="space-y-12 pb-8">
+            <CampaignScrollRow campaigns={campaigns as any[]} />
+            <CommunityScrollRow communities={communitiesList as any[]} />
+          </div>
+
           <TrendingProductClipsSection clips={viralClips as any} />
 
-          <SocialProofBar
-            verifiedVendors={socialBar.verifiedVendors}
-            successRate={socialBar.successRate}
-            totalProducts={socialBar.totalProducts}
-            countries={socialBar.countries}
-          />
+
 
           <TopCreatorsSection creators={topCreators as any} />
           <PopularStoresSection stores={(vendors || []).map((v: any) => ({

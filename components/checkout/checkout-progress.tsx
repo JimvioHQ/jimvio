@@ -5,8 +5,8 @@ import { Truck, CreditCard, ClipboardCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const STEPS = [
-  { id: 1 as const, label: "Shipping", icon: Truck },
-  { id: 2 as const, label: "Payment", icon: CreditCard },
+  { id: 1 as const, label: "Payment", icon: CreditCard },
+  { id: 2 as const, label: "Shipping", icon: Truck },
   { id: 3 as const, label: "Review", icon: ClipboardCheck },
 ];
 

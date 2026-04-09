@@ -31,14 +31,17 @@ export default async function CheckoutPage() {
     vendors: Array.isArray(o.vendors) ? o.vendors[0] : o.vendors,
   }));
 
+  const isCommunity = normalized.some((o: any) => o.integration_source === "community");
+
   return (
-    <div className="min-h-screen bg-[var(--color-bg)] pt-28 pb-20">
-      <div className="max-w-[var(--container-max)] mx-auto px-4 sm:px-6">
-        <div className="mb-8">
-          <h1 className="text-3xl font-black text-[var(--color-text-primary)] tracking-tight">Checkout</h1>
-          <p className="text-sm text-[var(--color-text-secondary)] mt-1">Shipping, review, and pay securely</p>
-        </div>
-        <CheckoutExperience orders={normalized as never} total={total} profile={profile} />
+    <div className="min-h-screen bg-zinc-50/50 pt-20 pb-12">
+      <div className="max-w-[1200px] mx-auto px-0 sm:px-4 md:px-6">
+        <CheckoutExperience 
+          orders={normalized as never} 
+          total={total} 
+          profile={profile} 
+          mode={isCommunity ? "community" : "cart"} 
+        />
       </div>
     </div>
   );

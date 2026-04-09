@@ -1,6 +1,6 @@
 import React from "react";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { CheckoutSuccessClient } from "./success-client";
 
@@ -9,16 +9,29 @@ export const dynamic = "force-dynamic";
 export default async function CheckoutSuccessPage({
   searchParams,
 }: {
-  searchParams: Promise<{ orderId?: string; order_id?: string; OrderMerchantReference?: string }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const sp = await searchParams;
-  /** 
-   * Jimvio flows use `orderId` or `order_id`. 
-   * PesaPal callbacks use `OrderMerchantReference` which we generate as `orderId:timestamp`.
-   */
-  const rawRef = sp.OrderMerchantReference?.trim();
-  const orderId = sp.orderId?.trim() || sp.order_id?.trim() || rawRef?.split(":")[0];
-  
+  const pick = (v: any): string | undefined => {
+    if (Array.isArray(v)) return v[0];
+    return typeof v === "string" ? v : undefined;
+  };
+
+  const status = pick(sp.status)?.toLowerCase();
+  const cancelled = pick(sp.cancelled)?.toLowerCase() === "true";
+
+  const rawRef = pick(sp.OrderMerchantReference)?.trim();
+  const orderId =
+    pick(sp.orderId)?.trim() ||
+    pick(sp.order_id)?.trim() ||
+    pick(sp.order)?.trim() ||
+    rawRef?.split(":")[0];
+
+  if (status === "failed" || status === "cancelled" || cancelled) {
+    // If we know it failed, send them to a failure page or back to checkout with error
+    return redirect(`/checkout?error=Payment failed or was cancelled.&orderId=${orderId}`);
+  }
+
   if (!orderId) {
     console.warn("[CheckoutSuccess] No orderId found in searchParams", sp);
     notFound();

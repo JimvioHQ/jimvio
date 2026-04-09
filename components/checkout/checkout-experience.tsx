@@ -1,22 +1,31 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
-import { Loader2, Lock, Store, Package, ChevronRight } from "lucide-react";
+import {
+  Loader2,
+  Lock,
+  Store,
+  Package,
+  ChevronLeft,
+  ArrowRight,
+  ShieldCheck,
+  Building,
+  Users,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ShippingForm, type ShippingFormValues } from "@/components/checkout/ShippingForm";
-import { OrderSummary, type OrderSummaryItem } from "@/components/checkout/OrderSummary";
 import { PaymentMethodSelector } from "@/components/checkout/PaymentMethodSelector";
-import { CheckoutProgress } from "@/components/checkout/checkout-progress";
-import { useCheckoutScrollStep } from "@/components/checkout/use-checkout-active-step";
 import { updatePendingOrdersShipping } from "@/lib/actions/checkout";
 import { getPawaPayProviderOptions } from "@/lib/pawapay-providers";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { NOWPAYMENTS_INVOICE_URL_STORAGE_KEY } from "@/lib/nowpayments-invoice-bridge";
-import { CurrencySelector, useCurrency } from "@/context/CurrencyContext";
+import { useCurrency } from "@/context/CurrencyContext";
 
-type CartItem = {
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+export type CartItem = {
   id: string;
   product_name: string;
   product_image: string | null;
@@ -25,40 +34,87 @@ type CartItem = {
   total_price: number;
 };
 
-type CartOrder = {
+export type CartOrder = {
   id: string;
   vendor_id: string;
   total_amount: number;
   currency: string | null;
   order_items: CartItem[];
-  vendors: { business_name: string } | null;
+  vendors: { business_name: string; avatar_url?: string } | null;
+  integration_source?: string;
+  metadata?: any;
 };
 
-function defaultPaymentForCurrency(currency: string | null): "pesapal" | "nowpayments" | "pawapay" {
-  const c = (currency || "USD").toUpperCase();
-  return c === "RWF" ? "pawapay" : "pesapal";
+interface CheckoutExperienceProps {
+  orders: CartOrder[];
+  total: number;
+  profile: {
+    full_name: string | null;
+    email: string | null;
+    phone: string | null;
+  } | null;
+  mode?: "cart" | "community";
 }
 
-function paymentMethodLabel(m: "pesapal" | "nowpayments" | "pawapay" | "afripay" | null): string {
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function defaultPaymentForCurrency(
+  currency: string | null
+): "pesapal" | "nowpayments" | "pawapay" | "flutterwave" | "paypal" | "afripay" {
+  const c = (currency || "USD").toUpperCase();
+  if (c === "RWF") return "afripay";
+  if (c === "USD") return "flutterwave";
+  return "pesapal";
+}
+
+function paymentMethodLabel(
+  m: "pesapal" | "nowpayments" | "pawapay" | "flutterwave" | "paypal" | "afripay" | null
+): string {
   if (m === "afripay") return "AfriPay (Mobile Money)";
-  if (m === "pawapay") return "Mobile money (PawaPay)";
+  if (m === "pawapay") return "Mobile Money (PawaPay)";
   if (m === "pesapal") return "Card (PesaPal)";
   if (m === "nowpayments") return "Cryptocurrency";
+  if (m === "flutterwave") return "Credit/Debit Card";
+  if (m === "paypal") return "PayPal";
   return "—";
 }
+
+const STEPS = [
+  { n: 1, label: "Review Order" },
+  { n: 2, label: "Payment" },
+  { n: 3, label: "Confirm & Pay" },
+] as const;
+
+const STEP_TITLES = ["Review Your Order", "Select Payment", "Confirm & Pay"];
+const STEP_SUBTITLES = [
+  "Confirm your shipping details and items",
+  "Choose how you want to pay",
+  "Review everything and complete your purchase",
+];
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export function CheckoutExperience({
   orders,
   total: _totalAll,
   profile,
-}: {
-  orders: CartOrder[];
-  total: number;
-  profile: { full_name: string | null; email: string | null; phone: string | null } | null;
-}) {
-  const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>(orders.map(o => o.id));
-  const [payment, setPayment] = useState<"pesapal" | "nowpayments" | "pawapay" | "afripay" | null>(() =>
-    orders[0]?.currency?.toUpperCase() === "RWF" ? "afripay" : defaultPaymentForCurrency(orders[0]?.currency ?? null)
+  mode = "cart",
+}: CheckoutExperienceProps) {
+  const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>(
+    orders.map((o) => o.id)
+  );
+  const [payment, setPayment] = useState<
+    | "pesapal"
+    | "nowpayments"
+    | "pawapay"
+    | "afripay"
+    | "flutterwave"
+    | "paypal"
+    | null
+  >(() =>
+    orders[0]?.currency?.toUpperCase() === "RWF"
+      ? "afripay"
+      : defaultPaymentForCurrency(orders[0]?.currency ?? null)
   );
   const [payCurrency, setPayCurrency] = useState("usdttrc20");
   const [pawapayProvider, setPawapayProvider] = useState("");
@@ -66,12 +122,13 @@ export function CheckoutExperience({
   const [afripayNetwork, setAfripayNetwork] = useState<"MTN" | "BK" | "MPESA">("MTN");
   const [afripayPhone, setAfripayPhone] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
 
-  const { activeStep, shippingRef, paymentRef, reviewRef } = useCheckoutScrollStep();
-  const { formatPrice, formatMoney, loading: ratesLoading } = useCurrency();
+  const { formatMoney } = useCurrency();
 
   const nameParts = (profile?.full_name || "").split(" ");
 
+  const [flutterwaveMethod, setFlutterwaveMethod] = useState<"card" | "momo">("card");
   const [shipping, setShipping] = useState<ShippingFormValues>({
     firstName: nameParts[0] || "",
     lastName: nameParts.slice(1).join(" ") || "",
@@ -90,36 +147,15 @@ export function CheckoutExperience({
     [orders, selectedOrderIds]
   );
 
-  const items: OrderSummaryItem[] = useMemo(
-    () =>
-      selectedOrders.flatMap((order) => 
-        (order.order_items ?? []).map((i) => ({
-          id: i.id,
-          product_name: i.product_name,
-          product_image: i.product_image,
-          quantity: i.quantity,
-          unit_price: i.unit_price,
-          total_price: i.total_price,
-          vendor_name: order.vendors?.business_name
-        }))
-      ),
-    [selectedOrders]
-  );
-
   const subtotal = selectedOrders.reduce(
-    (acc, order) => acc + order.order_items.reduce((s, i) => s + Number(i.total_price), 0), 
+    (acc, order) =>
+      acc + order.order_items.reduce((s, i) => s + Number(i.total_price), 0),
     0
   );
   const currency = (selectedOrders[0]?.currency || "USD").toUpperCase();
   const total = subtotal;
 
-  const toggleOrder = (id: string) => {
-    setSelectedOrderIds(prev => 
-      prev.includes(id) 
-        ? prev.filter(oid => oid !== id) 
-        : [...prev, id]
-    );
-  };
+  const isCommunity = mode === "community" || selectedOrders.some(o => o.integration_source === "community");
 
   const pawapayOpts = useMemo(() => {
     const all = getPawaPayProviderOptions();
@@ -127,21 +163,50 @@ export function CheckoutExperience({
     return all.filter((p) => p.currency.toUpperCase() === currency);
   }, [currency]);
 
-  React.useEffect(() => {
-    if (pawapayOpts.length && !pawapayOpts.some((o) => o.id === pawapayProvider)) {
+  useEffect(() => {
+    if (
+      pawapayOpts.length &&
+      !pawapayOpts.some((o) => o.id === pawapayProvider)
+    ) {
       setPawapayProvider(pawapayOpts[0].id);
     }
   }, [pawapayOpts, pawapayProvider]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     setPawapayPhone(shipping.phone);
     setAfripayPhone(shipping.phone);
   }, [shipping.phone]);
 
-  const payCtaLabel = useMemo(() => {
-    const money = formatMoney(total, currency);
-    return `Pay ${money} securely`;
-  }, [total, currency, formatMoney]);
+  // ─── Step navigation ───────────────────────────────────────────────────────
+
+  function advanceFromStep1() {
+    const { firstName, email, phone, address1, city } = shipping;
+    // For community, we are more lenient but still need basic info
+    if (!firstName.trim() || !email.trim() || !phone.trim() || (!isCommunity && (!address1.trim() || !city.trim()))) {
+      toast.error("Please complete your required fields");
+      return;
+    }
+    setCurrentStep(2);
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }
+
+  function advanceFromStep2() {
+    if (!payment) {
+      toast.error("Please select a payment method");
+      return;
+    }
+    setCurrentStep(3);
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }
+
+  function goBack() {
+    if (currentStep > 1) {
+      setCurrentStep((s) => (s - 1) as 1 | 2 | 3);
+      window.scrollTo({ top: 0, behavior: "instant" });
+    }
+  }
+
+  // ─── Payment submission ────────────────────────────────────────────────────
 
   async function handleComplete() {
     if (!selectedOrders.length || !payment) {
@@ -153,12 +218,12 @@ export function CheckoutExperience({
     const lastName = shipping.lastName.trim() || firstName;
     const email = shipping.email.trim();
     const phone = shipping.phone.trim();
-    const address1 = shipping.address1.trim();
-    const city = shipping.city.trim();
+    const address1 = shipping.address1.trim() || (isCommunity ? "Digital Delivery" : "");
+    const city = shipping.city.trim() || (isCommunity ? "Online" : "");
     const zip = shipping.zip.trim() || "00000";
 
-    if (!firstName || !email || !phone || !address1 || !city) {
-      toast.error("Please complete shipping fields");
+    if (!firstName || !email || !phone || (!isCommunity && (!address1 || !city))) {
+      toast.error("Please complete all required fields");
       return;
     }
 
@@ -176,14 +241,10 @@ export function CheckoutExperience({
         countryCode: shipping.countryCode,
         zip,
       });
-      if (!save.success) {
-        throw new Error(save.error || "Could not save address");
-      }
+      if (!save.success) throw new Error(save.error || "Could not save address");
 
-      // We'll use the first order ID as the primary reference, 
-      // but send all selected IDs to be linked on the backend.
       const primaryOrderId = selectedOrders[0].id;
-      const orderIds = selectedOrders.map(o => o.id);
+      const orderIds = selectedOrders.map((o) => o.id);
 
       if (payment === "pesapal") {
         const res = await fetch("/api/payments/pesapal/initiate", {
@@ -201,7 +262,9 @@ export function CheckoutExperience({
       }
 
       if (payment === "afripay") {
-        toast.loading("Transferring to AfriPay Secure Checkout...", { id: "afripay-load" });
+        toast.loading("Transferring to AfriPay Secure Checkout...", {
+          id: "afripay-load",
+        });
         const res = await fetch("/api/afripay/create", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -209,21 +272,18 @@ export function CheckoutExperience({
         });
         const data = await res.json();
         if (!res.ok) {
-           toast.dismiss("afripay-load");
-           throw new Error(data.message || "AfriPay session failed");
+          toast.dismiss("afripay-load");
+          throw new Error(data.message || "AfriPay session failed");
         }
-
-        // Dynamically build and submit the form exactly as the Developer Guide mandates for Step 3
         const form = document.createElement("form");
         form.method = "POST";
-        form.action = data.checkout.gateway_url; 
-        
+        form.action = data.checkout.gateway_url;
         Object.entries(data.checkout.form_data).forEach(([key, val]) => {
-           const input = document.createElement("input");
-           input.type = "hidden";
-           input.name = key;
-           input.value = String(val);
-           form.appendChild(input);
+          const input = document.createElement("input");
+          input.type = "hidden";
+          input.name = key;
+          input.value = String(val);
+          form.appendChild(input);
         });
         document.body.appendChild(form);
         form.submit();
@@ -231,12 +291,14 @@ export function CheckoutExperience({
       }
 
       if (payment === "pawapay") {
-        if (!pawapayProvider || !pawapayPhone.trim()) {
-          throw new Error("Choose a mobile network and enter your phone number for PawaPay");
-        }
-        if (pawapayOpts.length === 0) {
-          throw new Error(`No PawaPay providers for ${currency}. Configure NEXT_PUBLIC_PAWAPAY_PROVIDERS or use another method.`);
-        }
+        if (!pawapayProvider || !pawapayPhone.trim())
+          throw new Error(
+            "Choose a mobile network and enter your phone number for PawaPay"
+          );
+        if (pawapayOpts.length === 0)
+          throw new Error(
+            `No PawaPay providers for ${currency}. Configure NEXT_PUBLIC_PAWAPAY_PROVIDERS or use another method.`
+          );
         const res = await fetch("/api/payments/pawapay/initiate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -249,13 +311,47 @@ export function CheckoutExperience({
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "PawaPay failed");
-        if (data.status === "ACCEPTED" || data.status === "DUPLICATE_IGNORED") {
+        if (
+          data.status === "ACCEPTED" ||
+          data.status === "DUPLICATE_IGNORED"
+        ) {
           window.location.href = `/checkout/pending?orderId=${encodeURIComponent(primaryOrderId)}`;
           return;
         }
         throw new Error(data.error || "PawaPay did not accept the deposit");
       }
 
+      if (payment === "flutterwave") {
+        const res = await fetch("/api/payments/flutterwave/initiate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ orderId: primaryOrderId, orderIds, method: flutterwaveMethod }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Flutterwave failed");
+        if (data.redirectUrl) {
+          window.location.href = data.redirectUrl as string;
+          return;
+        }
+        throw new Error("No redirect URL");
+      }
+
+      if (payment === "paypal") {
+        const res = await fetch("/api/payments/paypal/create-order", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ orderId: primaryOrderId, orderIds }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "PayPal error");
+        if (data.approvalUrl) {
+          window.location.href = data.approvalUrl as string;
+          return;
+        }
+        throw new Error("No approval URL");
+      }
+
+      // NowPayments (crypto) — default
       const res = await fetch("/api/payments/nowpayments/initiate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -265,9 +361,12 @@ export function CheckoutExperience({
       if (!res.ok) throw new Error(data.error || "NowPayments failed");
       if (data.invoiceUrl) {
         try {
-          sessionStorage.setItem(NOWPAYMENTS_INVOICE_URL_STORAGE_KEY, data.invoiceUrl as string);
+          sessionStorage.setItem(
+            NOWPAYMENTS_INVOICE_URL_STORAGE_KEY,
+            data.invoiceUrl as string
+          );
         } catch {
-          /* private mode */
+          /* private browsing */
         }
         window.location.href = `/checkout/crypto-invoice?orderId=${encodeURIComponent(primaryOrderId)}`;
         return;
@@ -280,218 +379,494 @@ export function CheckoutExperience({
     }
   }
 
+  // ─── Empty cart ────────────────────────────────────────────────────────────
+
   if (!orders.length) {
     return (
-      <div className="text-center py-20">
-        <p className="text-[var(--color-text-secondary)] mb-4">Your cart is empty.</p>
-        <Button asChild variant="default">
+      <div className="flex flex-col items-center justify-center py-24 gap-4">
+        <div className="w-16 h-16 rounded-2xl bg-orange-50 flex items-center justify-center">
+          <Package className="h-8 w-8 text-orange-400" />
+        </div>
+        <p className="text-zinc-500 text-sm">Your cart is empty.</p>
+        <Button
+          asChild
+          className="bg-orange-500 hover:bg-orange-600 text-white rounded-xl"
+        >
           <Link href="/cart">Back to cart</Link>
         </Button>
       </div>
     );
   }
 
+  // ─── All cart items flattened (for sidebar) ────────────────────────────────
+  const allItems = selectedOrders.flatMap((o) => o.order_items);
+
+  // ─── Render ────────────────────────────────────────────────────────────────
+
   return (
-    <div>
-      <header className="mb-8 lg:mb-10 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
-        <div className="min-w-0 flex-1">
-          <h1 className="text-2xl sm:text-3xl font-bold text-[var(--color-text-primary)] tracking-tight">Checkout</h1>
-          <p className="text-sm text-[var(--color-text-muted)] mt-1 max-w-xl">
-            Enter shipping, choose payment, then confirm. You pay one seller order at a time.
-          </p>
-        </div>
-        <div className="shrink-0 space-y-1.5 sm:text-right">
-          <p className="text-[11px] font-medium text-[var(--color-text-muted)] uppercase tracking-wide">Display currency</p>
-          <CurrencySelector />
-          <p className="text-[10px] text-[var(--color-text-muted)] max-w-[220px] sm:ml-auto">
-            Charges stay in <span className="font-semibold text-[var(--color-text-secondary)]">{currency}</span>
-            {currency === "USD" && !ratesLoading && formatPrice(total) !== "..."
-              ? ` · about ${formatPrice(total)}`
-              : null}
-          </p>
-        </div>
-      </header>
+    <div className="min-h-screen bg-zinc-100 flex items-start justify-center py-0 md:py-8 px-0 md:px-4">
+      <div className="w-full max-w-5xl flex flex-col md:flex-row md:rounded-2xl overflow-hidden shadow-2xl shadow-black/10">
 
-      <CheckoutProgress activeStep={activeStep} />
+        {/* ══════════════════════════════════════════
+            LEFT SIDEBAR
+        ══════════════════════════════════════════ */}
+        <aside className="w-full md:w-[300px] lg:w-[340px] flex-shrink-0 bg-orange-600 flex flex-col gap-6 p-7 relative overflow-hidden">
 
-      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,7fr)_minmax(280px,3fr)] gap-8 lg:gap-12 xl:gap-14 items-start">
-        {/* LEFT ~70% */}
-        <div className="space-y-10 min-w-0">
-          {orders.length > 1 && (
-            <section aria-labelledby="multi-seller-heading" className="space-y-4">
-              <div className="flex items-end justify-between">
-                <div>
-                  <h2 id="multi-seller-heading" className="text-lg font-semibold text-[var(--color-text-primary)]">
-                    Sellers in your cart
-                  </h2>
-                  <p className="text-sm text-[var(--color-text-muted)] mt-1">
-                    Select the vendor orders you want to pay for together.
-                  </p>
-                </div>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="text-xs font-bold text-[var(--color-accent)]"
-                  onClick={() => {
-                    const allSelected = selectedOrderIds.length === orders.length;
-                    setSelectedOrderIds(allSelected ? [] : orders.map(o => o.id));
-                  }}
-                >
-                  {selectedOrderIds.length === orders.length ? "Deselect All" : "Select All"}
-                </Button>
-              </div>
-              <div className="grid gap-3">
-                {orders.map((o) => {
-                  const lineSum = o.order_items.reduce((s, i) => s + Number(i.total_price), 0);
-                  const oc = (o.currency || "USD").toUpperCase();
-                  const selected = selectedOrderIds.includes(o.id);
-                  return (
-                    <button
-                      key={o.id}
-                      type="button"
-                      onClick={() => toggleOrder(o.id)}
-                      className={cn(
-                        "w-full text-left rounded-2xl border-2 p-4 sm:p-5 transition-all outline-none",
-                        selected
-                          ? "border-[var(--color-accent)] bg-[var(--color-accent-light)]/40 shadow-[inset_0_0_0_1px_var(--color-accent)]"
-                          : "border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[var(--color-border-strong)]"
-                      )}
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className={cn(
-                            "h-5 w-5 rounded border-2 flex items-center justify-center transition-colors",
-                            selected ? "bg-[var(--color-accent)] border-[var(--color-accent)]" : "border-[var(--color-border-strong)] bg-white"
-                          )}>
-                            {selected && <div className="h-2 w-2 bg-white rounded-full" />}
-                          </div>
-                          <div className="h-10 w-10 rounded-xl bg-[var(--color-surface-secondary)] flex items-center justify-center shrink-0">
-                            <Store className="h-5 w-5 text-[var(--color-text-primary)]" />
-                          </div>
-                          <div className="min-w-0">
-                            <p className="font-semibold text-[var(--color-text-primary)] truncate">
-                              {o.vendors?.business_name || "Seller"}
-                            </p>
-                            <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
-                              {o.order_items.length} item{o.order_items.length === 1 ? "" : "s"} · {oc}
-                            </p>
-                          </div>
-                        </div>
-                        <span className="font-semibold tabular-nums text-[var(--color-text-primary)]">
-                          {formatMoney(lineSum, oc)}
-                        </span>
-                      </div>
-                      {selected && (
-                        <ul className="mt-4 space-y-2 border-t border-[var(--color-border)]/80 pt-3 animate-in fade-in slide-in-from-top-1 duration-200">
-                          {o.order_items.map((it) => (
-                            <li key={it.id} className="flex justify-between gap-3 text-xs">
-                              <span className="text-[var(--color-text-secondary)] truncate">
-                                {it.product_name} × {it.quantity}
-                              </span>
-                              <span className="font-medium text-[var(--color-text-primary)] tabular-nums shrink-0">
-                                {formatMoney(Number(it.total_price), oc)}
-                              </span>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </section>
-          )}
+          {/* Decorative blobs */}
+          <div className="absolute -top-20 -right-20 w-64 h-64 rounded-full bg-white/5 pointer-events-none" />
+          <div className="absolute -bottom-10 -left-16 w-48 h-48 rounded-full bg-white/5 pointer-events-none" />
 
-          <section
-            ref={paymentRef}
-            data-checkout-step="payment"
-            id="checkout-payment"
-            className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 sm:p-8 shadow-sm"
-          >
-            <PaymentMethodSelector
-              selected={payment}
-              onSelect={setPayment}
-              payCurrency={payCurrency}
-              onCurrencyChange={setPayCurrency}
-              orderCurrency={currency}
-              orderTotal={total}
-              pawapayProvider={pawapayProvider}
-              onPawapayProviderChange={setPawapayProvider}
-              pawapayPhone={pawapayPhone}
-              onPawapayPhoneChange={setPawapayPhone}
-              afripayNetwork={afripayNetwork}
-              onAfripayNetworkChange={setAfripayNetwork}
-              afripayPhone={afripayPhone}
-              onAfripayPhoneChange={setAfripayPhone}
-            />
-          </section>
-
-          <section
-            ref={shippingRef}
-            data-checkout-step="shipping"
-            id="checkout-shipping"
-            className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 sm:p-8 shadow-sm"
-          >
-            <ShippingForm values={shipping} onChange={(patch) => setShipping((s) => ({ ...s, ...patch }))} />
-          </section>
-        </div>
-
-        <aside className="lg:sticky lg:top-24 self-start w-full space-y-6">
-          <OrderSummary items={items} subtotal={subtotal} total={total} currency={currency} />
-          
-          <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)]/40 p-5 sm:p-6 shadow-sm space-y-6">
-            <div className="space-y-4 text-sm">
-              <div className="flex justify-between gap-4">
-                <span className="text-[var(--color-text-muted)]">Ship to</span>
-                <span className="text-right font-medium text-[var(--color-text-primary)]">
-                  {shipping.firstName} {shipping.lastName}
-                  <br />
-                  <span className="text-xs font-normal text-[var(--color-text-secondary)]">
-                    {shipping.city}, {shipping.country}
-                  </span>
-                </span>
-              </div>
-              <div className="flex justify-between gap-4">
-                <span className="text-[var(--color-text-muted)]">Payment</span>
-                <span className="text-right font-medium text-[var(--color-text-primary)]">{paymentMethodLabel(payment)}</span>
-              </div>
+          {/* Brand */}
+          <div className="relative z-10 flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-white/15 flex items-center justify-center">
+              <ShieldCheck className="h-5 w-5 text-white" />
             </div>
+            <span className="font-semibold text-[15px] text-white/90 tracking-wide">
+              Secure Checkout
+            </span>
+          </div>
 
-            <Button
-              type="button"
-              size="lg"
-              className={cn(
-                "w-full h-14 rounded-xl text-base font-semibold",
-                "bg-[var(--color-accent)] text-white hover:opacity-[0.96] active:scale-[0.99]",
-                "shadow-lg shadow-[var(--color-accent)]/25 border-0",
-                "focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2"
-              )}
-              disabled={submitting}
-              onClick={() => void handleComplete()}
-            >
-              {submitting ? (
-                <>
-                  <Loader2 className="h-5 w-5 animate-spin mr-2" /> Processing…
-                </>
-              ) : (
-                <>
-                  <Lock className="h-5 w-5 mr-2 shrink-0" strokeWidth={2} />
-                  {payCtaLabel}
-                </>
-              )}
-            </Button>
-            
-            <p className="text-center text-[11px] text-[var(--color-text-muted)]">
-              {selectedOrders.length} vendor order{selectedOrders.length === 1 ? "" : "s"} · {currency}
+          {/* Total */}
+          <div className="relative z-10 bg-white/10 rounded-2xl p-5">
+            <p className="text-[10px] font-semibold tracking-[1.6px] uppercase text-white/50 mb-1">
+              Order Total
+            </p>
+            <p className="text-[32px] font-bold text-white leading-none tracking-tight">
+              {formatMoney(total, currency)}
             </p>
           </div>
 
-          <div className="text-center text-[11px] text-[var(--color-text-muted)]">
-            <Link href="/cart" className="text-[var(--color-accent)] font-medium hover:underline">
-              ← Edit cart
-            </Link>
+          {/* Cart items — desktop only */}
+          <div className="relative z-10 hidden md:flex flex-col gap-0 flex-1">
+            <p className="text-[10px] font-semibold tracking-[1.6px] uppercase text-white/40 mb-3">
+              Your Items
+            </p>
+            {allItems.map((item) => {
+              const order = selectedOrders.find((o) =>
+                o.order_items.some((i) => i.id === item.id)
+              );
+              return (
+                <div
+                  key={item.id}
+                  className="flex items-center gap-3 py-3 border-b border-white/10 last:border-none"
+                >
+                  <div className="w-11 h-11 rounded-xl bg-white/10 overflow-hidden flex-shrink-0 flex items-center justify-center">
+                    {item.product_image ? (
+                      <img
+                        src={item.product_image}
+                        alt={item.product_name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <Package className="h-5 w-5 text-white/30" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13px] font-medium text-white/90 truncate">
+                      {item.product_name}
+                    </p>
+                    <p className="text-[11px] text-white/40">
+                      {order?.vendors?.business_name} · Qty {item.quantity}
+                    </p>
+                  </div>
+                  <p className="text-[13px] font-semibold text-white/80 flex-shrink-0">
+                    {formatMoney(Number(item.unit_price), currency)}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Step progress — desktop only */}
+          <div className="relative z-10 hidden md:flex flex-col gap-0">
+            {STEPS.map((step, idx) => {
+              const state =
+                step.n < currentStep
+                  ? "done"
+                  : step.n === currentStep
+                  ? "active"
+                  : "pending";
+              return (
+                <React.Fragment key={step.n}>
+                  <div
+                    className="flex items-center gap-3 py-1 cursor-pointer"
+                    onClick={() =>
+                      step.n < currentStep &&
+                      setCurrentStep(step.n as 1 | 2 | 3)
+                    }
+                  >
+                    <div
+                      className={cn(
+                        "w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-semibold flex-shrink-0 transition-all",
+                        state === "active" && "bg-white text-orange-600",
+                        state === "done" && "bg-white/20 text-white",
+                        state === "pending" &&
+                          "bg-white/8 text-white/30 border border-white/15"
+                      )}
+                    >
+                      {state === "done" ? "✓" : step.n}
+                    </div>
+                    <span
+                      className={cn(
+                        "text-[13px] font-medium transition-all",
+                        state === "active" && "text-white",
+                        state === "done" && "text-white/60",
+                        state === "pending" && "text-white/30"
+                      )}
+                    >
+                      {step.label}
+                    </span>
+                  </div>
+                  {idx < STEPS.length - 1 && (
+                    <div className="w-px h-3 bg-white/10 ml-[13px]" />
+                  )}
+                </React.Fragment>
+              );
+            })}
           </div>
         </aside>
+
+        {/* ══════════════════════════════════════════
+            RIGHT PANEL
+        ══════════════════════════════════════════ */}
+        <div className="flex-1 bg-white flex flex-col min-h-[600px]">
+
+          {/* Header */}
+          <div className="px-7 md:px-9 pt-7 pb-0 border-b border-zinc-100">
+            {/* Mobile progress pills */}
+            <div className="flex gap-1.5 mb-5 md:hidden">
+              {STEPS.map((step) => (
+                <div
+                  key={step.n}
+                  className={cn(
+                    "h-1 flex-1 rounded-full transition-all duration-300",
+                    step.n <= currentStep ? "bg-orange-500" : "bg-zinc-200"
+                  )}
+                />
+              ))}
+            </div>
+            <h1 className="text-xl font-bold text-zinc-900 tracking-tight">
+              {STEP_TITLES[currentStep - 1]}
+            </h1>
+            <p className="text-[13px] text-zinc-400 mt-1 mb-5">
+              {STEP_SUBTITLES[currentStep - 1]}
+            </p>
+          </div>
+
+          {/* ── STEP 1: Shipping + order review ──── */}
+          {currentStep === 1 && (
+            <div className="flex-1 px-7 md:px-9 py-7 overflow-y-auto space-y-6">
+
+              {/* Shipping form */}
+              <div>
+                <p className="text-[10px] font-semibold tracking-[1.4px] uppercase text-zinc-400 mb-4">
+                  Shipping Address
+                </p>
+                <div
+                  className={cn(
+                    // Style ShippingForm internals via descendant selectors
+                    "[&_label]:text-[12px] [&_label]:font-medium [&_label]:text-zinc-500 [&_label]:mb-1.5 [&_label]:block",
+                    "[&_input]:h-11 [&_input]:rounded-xl [&_input]:border [&_input]:border-zinc-200",
+                    "[&_input]:bg-zinc-50 [&_input]:px-3.5 [&_input]:text-[14px] [&_input]:text-zinc-900",
+                    "[&_input]:w-full [&_input]:outline-none [&_input]:transition-all",
+                    "[&_input:focus]:border-orange-400 [&_input:focus]:ring-2 [&_input:focus]:ring-orange-100",
+                    "[&_select]:h-11 [&_select]:rounded-xl [&_select]:border [&_select]:border-zinc-200",
+                    "[&_select]:bg-zinc-50 [&_select]:px-3.5 [&_select]:text-[14px] [&_select]:text-zinc-900",
+                    "[&_select]:w-full [&_select]:outline-none [&_select]:transition-all",
+                    "[&_select:focus]:border-orange-400 [&_select:focus]:ring-2 [&_select:focus]:ring-orange-100"
+                  )}
+                >
+                  <ShippingForm
+                    values={shipping}
+                    onChange={(patch) => setShipping((s) => ({ ...s, ...patch }))}
+                  />
+                </div>
+              </div>
+
+              {/* Order items */}
+              <div className="border-t border-zinc-100 pt-6">
+                <p className="text-[10px] font-semibold tracking-[1.4px] uppercase text-zinc-400 mb-4">
+                  Order Items
+                </p>
+                {selectedOrders.map((o) => {
+                  const oc = (o.currency || "USD").toUpperCase();
+                  return (
+                    <div key={o.id} className="mb-5 last:mb-0">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Store className="h-4 w-4 text-zinc-400" />
+                        <span className="text-[13px] font-semibold text-zinc-700">
+                          {o.vendors?.business_name || "Seller"}
+                        </span>
+                      </div>
+                      <div className="space-y-3">
+                        {o.order_items.map((item) => (
+                          <div key={item.id} className="flex gap-3 items-center">
+                            <div className="w-14 h-14 rounded-xl bg-zinc-100 overflow-hidden flex-shrink-0 flex items-center justify-center">
+                              {item.product_image ? (
+                                <img
+                                  src={item.product_image}
+                                  alt={item.product_name}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <Package className="h-6 w-6 text-zinc-300" />
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-[13px] text-zinc-800 font-medium leading-snug line-clamp-2">
+                                {item.product_name}
+                              </p>
+                              <p className="text-[11px] text-zinc-400 mt-0.5">
+                                Qty: {item.quantity}
+                              </p>
+                            </div>
+                            <p className="text-[13px] font-semibold text-zinc-800 flex-shrink-0">
+                              {formatMoney(Number(item.unit_price), oc)}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="mt-3 pt-3 border-t border-zinc-100 flex justify-between text-[13px]">
+                        <span className="text-zinc-400">Subtotal</span>
+                        <span className="font-semibold text-zinc-800">
+                          {formatMoney(
+                            o.order_items.reduce(
+                              (s, i) => s + Number(i.total_price),
+                              0
+                            ),
+                            oc
+                          )}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* ── STEP 2: Payment method ────────────── */}
+          {currentStep === 2 && (
+            <div className="flex-1 px-7 md:px-9 py-7 overflow-y-auto">
+              <p className="text-[10px] font-semibold tracking-[1.4px] uppercase text-zinc-400 mb-4">
+                Choose Payment Method
+              </p>
+              <PaymentMethodSelector
+                selected={payment}
+                onSelect={setPayment}
+                payCurrency={payCurrency}
+                onCurrencyChange={setPayCurrency}
+                orderCurrency={currency}
+                orderTotal={total}
+                pawapayProvider={pawapayProvider}
+                onPawapayProviderChange={setPawapayProvider}
+                pawapayPhone={pawapayPhone}
+                onPawapayPhoneChange={setPawapayPhone}
+                afripayNetwork={afripayNetwork}
+                onAfripayNetworkChange={setAfripayNetwork}
+                afripayPhone={afripayPhone}
+                onAfripayPhoneChange={setAfripayPhone}
+                flutterwaveMethod={flutterwaveMethod}
+                onFlutterwaveMethodChange={setFlutterwaveMethod}
+              />
+            </div>
+          )}
+
+          {/* ── STEP 3: Confirm & Pay ─────────────── */}
+          {currentStep === 3 && (
+            <div className="flex-1 px-7 md:px-9 py-7 overflow-y-auto space-y-4">
+
+              {/* Order summary */}
+              <div className="rounded-2xl border border-zinc-100 overflow-hidden">
+                <div className="px-5 py-3.5 bg-zinc-50 border-b border-zinc-100 flex items-center gap-2">
+                  <Package className="h-4 w-4 text-zinc-400" />
+                  <span className="text-[11px] font-semibold tracking-[1.2px] uppercase text-zinc-400">
+                    Order Summary
+                  </span>
+                </div>
+                {selectedOrders.flatMap((o) =>
+                  o.order_items.map((item) => (
+                    <div
+                      key={item.id}
+                      className="flex justify-between items-center px-5 py-3 border-b border-zinc-100 last:border-none text-[13px]"
+                    >
+                      <span className="text-zinc-600 truncate pr-4">
+                        {item.product_name} × {item.quantity}
+                      </span>
+                      <span className="font-medium text-zinc-800 flex-shrink-0">
+                        {formatMoney(Number(item.total_price), currency)}
+                      </span>
+                    </div>
+                  ))
+                )}
+                <div className="flex justify-between items-center px-5 py-3 bg-zinc-50 border-t border-zinc-100 text-[13px]">
+                  <span className="font-semibold text-zinc-600">Subtotal</span>
+                  <span className="font-semibold text-zinc-800">
+                    {formatMoney(total, currency)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Shipping details */}
+              <div className="rounded-2xl border border-zinc-100 overflow-hidden">
+                <div className="px-5 py-3.5 bg-zinc-50 border-b border-zinc-100 flex items-center gap-2">
+                  <Store className="h-4 w-4 text-zinc-400" />
+                  <span className="text-[11px] font-semibold tracking-[1.2px] uppercase text-zinc-400">
+                    Shipping To
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setCurrentStep(1)}
+                    className="ml-auto text-[11px] text-orange-500 font-medium hover:text-orange-600 transition-colors"
+                  >
+                    Edit
+                  </button>
+                </div>
+                {[
+                  {
+                    label: "Name",
+                    value: `${shipping.firstName} ${shipping.lastName}`.trim(),
+                  },
+                  { label: "Email", value: shipping.email },
+                  { label: "Phone", value: shipping.phone },
+                  {
+                    label: "Address",
+                    value: [shipping.address1, shipping.city, shipping.country]
+                      .filter(Boolean)
+                      .join(", "),
+                  },
+                ].map(({ label, value }) => (
+                  <div
+                    key={label}
+                    className="flex justify-between items-center px-5 py-3 border-b border-zinc-100 last:border-none text-[13px]"
+                  >
+                    <span className="text-zinc-400">{label}</span>
+                    <span className="font-medium text-zinc-800 text-right max-w-[60%]">
+                      {value || "—"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Payment method */}
+              <div className="rounded-2xl border border-zinc-100 overflow-hidden">
+                <div className="px-5 py-3.5 bg-zinc-50 border-b border-zinc-100 flex items-center gap-2">
+                  <Lock className="h-4 w-4 text-zinc-400" />
+                  <span className="text-[11px] font-semibold tracking-[1.2px] uppercase text-zinc-400">
+                    Payment Method
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setCurrentStep(2)}
+                    className="ml-auto text-[11px] text-orange-500 font-medium hover:text-orange-600 transition-colors"
+                  >
+                    Edit
+                  </button>
+                </div>
+                <div className="px-5 py-3.5 flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-orange-50 flex items-center justify-center flex-shrink-0">
+                    <Lock className="h-4 w-4 text-orange-500" />
+                  </div>
+                  <span className="text-[14px] font-semibold text-zinc-800">
+                    {paymentMethodLabel(payment)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Total to pay */}
+              <div className="flex items-center justify-between bg-orange-50 rounded-2xl px-5 py-4">
+                <span className="text-[14px] font-semibold text-orange-700">
+                  Total to Pay
+                </span>
+                <span className="text-[26px] font-bold text-orange-700 tracking-tight leading-none">
+                  {formatMoney(total, currency)}
+                </span>
+              </div>
+
+              {/* Terms */}
+              <label className="flex items-start gap-3 cursor-pointer text-[12px] text-zinc-400 leading-relaxed">
+                <input
+                  type="checkbox"
+                  defaultChecked
+                  className="mt-0.5 w-4 h-4 rounded accent-orange-500 flex-shrink-0"
+                />
+                <span>
+                  By clicking Pay Now, you agree to the{" "}
+                  <span className="text-orange-500 font-medium">
+                    User Agreement
+                  </span>
+                  ,{" "}
+                  <span className="text-orange-500 font-medium">
+                    Privacy Policy
+                  </span>{" "}
+                  and{" "}
+                  <span className="text-orange-500 font-medium">
+                    Refund &amp; Returns Policy
+                  </span>
+                  . All transactions are secure and encrypted.
+                </span>
+              </label>
+            </div>
+          )}
+
+          {/* ── FOOTER ─────────────────────────────── */}
+          <div className="px-7 md:px-9 py-5 border-t border-zinc-100 flex items-center justify-between gap-4 bg-white">
+
+            {/* Back button */}
+            <button
+              type="button"
+              onClick={goBack}
+              className={cn(
+                "flex items-center gap-1.5 text-[13px] text-zinc-400 hover:text-zinc-700 transition-colors font-medium",
+                currentStep === 1 && "invisible pointer-events-none"
+              )}
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Back
+            </button>
+
+            <div className="flex flex-col items-end gap-1.5">
+              {/* CTA button */}
+              {currentStep < 3 ? (
+                <button
+                  type="button"
+                  onClick={currentStep === 1 ? advanceFromStep1 : advanceFromStep2}
+                  className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 active:scale-[0.98] text-white px-7 py-3 rounded-xl font-semibold text-[14px] transition-all"
+                >
+                  Continue
+                  <ArrowRight className="h-4 w-4" />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  disabled={submitting}
+                  onClick={() => void handleComplete()}
+                  className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 active:scale-[0.98] disabled:opacity-60 disabled:pointer-events-none text-white px-7 py-3.5 rounded-xl font-bold text-[15px] transition-all shadow-lg shadow-orange-200"
+                >
+                  {submitting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Processing…
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="h-4 w-4" />
+                      Pay {formatMoney(total, currency)}
+                    </>
+                  )}
+                </button>
+              )}
+
+              {/* Secure badge */}
+              <div className="flex items-center gap-1.5 text-[11px] text-zinc-300">
+                <ShieldCheck className="h-3 w-3" />
+                256-bit SSL secured
+              </div>
+            </div>
+          </div>
+
+        </div>
+        {/* end right panel */}
       </div>
     </div>
   );

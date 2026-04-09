@@ -1,0 +1,2 @@
+﻿components/checkout/checkout-experience.tsx(602,5): error TS1005: ')' expected.
+components/checkout/checkout-experience.tsx(603,3): error TS1109: Expression expected.

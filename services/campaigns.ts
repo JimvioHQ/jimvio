@@ -4,20 +4,27 @@ import { getDB } from "./base";
 // INFLUENCER CAMPAIGNS
 // ─────────────────────────────────────────────────────────────
 
-export async function getCampaigns(limit = 6) {
+export async function getCampaigns(limit = 12) {
   const db = await getDB();
-  const { data } = await db
-    .from("influencer_campaigns")
+  const { data, error } = await db
+    .from("ugc_campaigns")
     .select(`
-      id, title, description, campaign_type, budget,
-      commission_type, commission_rate, status, start_date, end_date,
-      total_views, total_clicks, total_conversions, total_revenue,
-      vendors ( business_name, business_slug ),
-      products ( name, slug, images )
+      *,
+      media:ugc_campaign_media(*),
+      vendor:vendors!brand_id (
+        business_name,
+        business_slug,
+        business_logo
+      )
     `)
     .eq("status", "active")
-    .order("total_revenue", { ascending: false })
+    .order("created_at", { ascending: false })
     .limit(limit);
+  
+  if (error) {
+    console.error("Error fetching campaigns:", JSON.stringify(error, null, 2));
+    return [];
+  }
   return data ?? [];
 }
 
