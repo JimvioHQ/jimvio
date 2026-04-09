@@ -7,7 +7,7 @@ import {
 import {
   getCategories, getFeaturedProducts, getTrendingProducts, getTopVendors,
   getViralClips, getCampaigns, getPlatformStats, getTopCreators, getProducts,
-  getPublicCommunities,
+  getPublicCommunities, getShortVideos,
 } from "@/services/db";
 import { getCartProductIds } from "@/lib/actions/marketplace";
 import { ProductCardClient } from "@/components/marketplace/product-card-client";
@@ -16,6 +16,7 @@ import { SocialProofBar } from "@/components/marketplace/social-proof-bar";
 import { TopCreatorsSection } from "@/components/marketplace/top-creators-section";
 import { CampaignScrollRow } from "@/components/marketplace/campaign-scroll-row";
 import { CommunityScrollRow } from "@/components/marketplace/community-scroll-row";
+import { ShortClipsReel } from "@/components/marketplace/short-clips-reel";
 
 import { PopularStoresSection } from "@/components/marketplace/popular-stores-section";
 import { HomepageHero } from "@/components/layout/homepage-hero";
@@ -50,7 +51,7 @@ export default async function HomePage() {
     categories, featured, trending, vendors,
     viralClips, platformStats, topCreators,
     shopifyFeaturedRes, platformSettingsMaybe, campaigns,
-    cartProductIds, communitiesList,
+    cartProductIds, communitiesList, videos,
   ] = await Promise.all([
     getCategories().catch(() => []),
     getFeaturedProducts(24).catch(() => []),
@@ -64,6 +65,7 @@ export default async function HomePage() {
     getCampaigns(12).catch(() => []),
     getCartProductIds().catch(() => []),
     getPublicCommunities(12).catch(() => []),
+    getShortVideos(10).catch(() => []),
   ]);
 
   const cartSet = new Set(cartProductIds);
@@ -124,6 +126,7 @@ export default async function HomePage() {
           heroCampaigns={heroCampaigns}
           socialBar={{ successRate: socialBar.successRate }}
           viralClips={viralClips as any}
+          videos={videos as any[]}
           topSuppliersSidebar={topSuppliersSidebar}
           spotlightCreator={spotlightCreator}
           primaryCta={platformSettings.marketing.primary_cta}
@@ -158,6 +161,7 @@ export default async function HomePage() {
 
           {/* ── LIVE CONTENT ── */}
           <div className="space-y-12 pb-8">
+            <ShortClipsReel videos={videos as any[]} />
             <CampaignScrollRow campaigns={campaigns as any[]} />
             <CommunityScrollRow communities={communitiesList as any[]} />
           </div>

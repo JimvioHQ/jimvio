@@ -181,3 +181,55 @@ export async function getTopCreators(limit = 6) {
     total_views: viewsByInfluencer.get(inf.id) || 0,
   }));
 }
+
+/** 
+ * NEW: Fetch real short videos from the short_videos table
+ */
+export async function getShortVideos(limit = 8) {
+  const db = await getDB();
+  const { data } = await db
+    .from("short_videos")
+    .select(`
+      id, title, description, video_url, thumbnail_url, view_count, like_count, comment_count, status,
+      creator_id,
+      video_type, community_id, external_link,
+      communities ( id, name, slug, cover_image ),
+      influencers ( user_id, display_name, profile_image ),
+      products ( id, name, slug, price, currency, images, vendor_id )
+    `)
+    .eq("status", "active")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (!data) return [];
+  
+  return data.map((v: any) => {
+    const influencer = v.influencers;
+    const prod = v.products;
+    return {
+      id: v.id,
+      title: v.title,
+      description: v.description,
+      video_url: v.video_url,
+      thumbnail_url: v.thumbnail_url,
+      total_views: v.view_count || 0,
+      total_likes: v.like_count || 0,
+      total_comments: v.comment_count || 0,
+      video_type: v.video_type || "product",
+      creator: {
+        id: influencer?.id,
+        name: influencer?.display_name || "Creator",
+        avatar: influencer?.profile_image || null
+      },
+      product: prod ? {
+        id: prod.id,
+        name: prod.name,
+        slug: prod.slug,
+        price: prod.price,
+        currency: prod.currency,
+        image: Array.isArray(prod.images) ? prod.images[0] : null
+      } : null,
+      community: v.communities
+    };
+  });
+}

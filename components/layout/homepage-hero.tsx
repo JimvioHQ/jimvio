@@ -23,6 +23,7 @@ interface HomepageHeroProps {
   heroCampaigns: string[];
   socialBar: { successRate: string };
   viralClips: ViralClip[];
+  videos: any[];
   topSuppliersSidebar: Supplier[];
   spotlightCreator: SpotlightCreator;
   primaryCta: { label: string; href: string };
@@ -34,6 +35,62 @@ interface HomepageHeroProps {
     totalCommunities: number;
     totalEarnings: number;
   };
+}
+
+function VideoMarquee({ videos, mobile = false }: { videos: any[]; mobile?: boolean }) {
+  if (!videos?.length) return null;
+  // Duplicate for seamless loop
+  const list = [...videos, ...videos, ...videos, ...videos];
+
+  return (
+    <div className={cn(
+      "relative w-full overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)]",
+      mobile ? "h-[220px] py-1" : "h-[450px]"
+    )}>
+      <motion.div
+        animate={{ x: [0, -180 * videos.length] }}
+        transition={{
+          duration: videos.length * 3.5,
+          repeat: Infinity,
+          ease: "linear",
+        }}
+        className="flex gap-4 py-2"
+      >
+        {list.map((v, i) => (
+          <Link
+            key={`${v.id}-${i}`}
+            href={`/shorts?clip=${v.id}`}
+            className={cn(
+               "group relative shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-zinc-900 shadow-xl transition-transform hover:scale-[1.05]",
+               mobile ? "aspect-[9/16] h-[200px]" : "aspect-[9/16] h-[400px]"
+            )}
+          >
+            <img
+              src={v.thumbnail_url || v.video_url?.replace(".mp4", ".jpg") || "/hero-bg.png"}
+              alt=""
+              className="h-full w-full object-cover opacity-80 transition-transform duration-700 group-hover:scale-110 group-hover:opacity-100"
+            />
+            <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors" />
+            
+            <div className="absolute inset-x-0 bottom-0 p-2 sm:p-3 bg-gradient-to-t from-black/60 to-transparent">
+              <div className="flex items-center gap-1.5">
+                <div className="h-4 w-4 sm:h-5 sm:w-5 rounded-full border border-white/50 bg-white/20 backdrop-blur-md overflow-hidden shrink-0">
+                  {v.creator?.avatar && <img src={v.creator.avatar} alt="" className="h-full w-full object-cover" />}
+                </div>
+                <p className="text-[8px] sm:text-[9px] font-black text-white truncate drop-shadow-md">{v.title}</p>
+              </div>
+            </div>
+
+            {/* Live indicator for mobile hero appeal */}
+            <div className="absolute top-2 right-2 flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-black/40 backdrop-blur-md">
+              <div className="h-1 w-1 rounded-full bg-orange-500 animate-pulse" />
+              <span className="text-[7px] font-black text-white uppercase tracking-tighter">Live</span>
+            </div>
+          </Link>
+        ))}
+      </motion.div>
+    </div>
+  );
 }
 
 /* ─── Globe Canvas ──────────────────────────────────────── */
@@ -193,6 +250,7 @@ export function HomepageHero({
   heroCampaigns,
   socialBar,
   viralClips,
+  videos,
   topSuppliersSidebar,
   spotlightCreator,
   primaryCta,
@@ -337,6 +395,10 @@ export function HomepageHero({
               </Link>
             ))}
           </div>
+
+          <div className="w-full mt-4">
+             <VideoMarquee videos={videos} mobile />
+          </div>
         </div>
       </section>
 
@@ -421,8 +483,19 @@ export function HomepageHero({
             </motion.div>
           </div>
 
-          {/* Empty right column to let background shine */}
-          <div className="hidden lg:block h-full pointer-events-none" />
+          {/* Right column: Video Marquee */}
+          <motion.div 
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.5, duration: 0.8 }}
+            className="hidden lg:block h-full relative"
+          >
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-[800px]">
+                <VideoMarquee videos={videos} />
+              </div>
+            </div>
+          </motion.div>
         </div>
       </section>
     </>

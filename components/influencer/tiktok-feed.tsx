@@ -609,13 +609,6 @@ export function TikTokFeed({ clips, className, initialIndex = 0, onClose }: TikT
                     <LocalizedPrice amount={Number(clip.products.price)} currency={clip.products.currency} className="text-[#D85A30] font-black text-[20px]" />
                   </div>
                 </button>
-                <div className="px-4 pb-4 grid grid-cols-2 gap-2">
-                  {[{ icon: <CheckCircle2 className="h-3 w-3" />, text: "Verified Dealer" }, { icon: <Sparkles className="h-3 w-3" />, text: "Top Quality" }].map((badge, i) => (
-                    <div key={i} className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-white border border-[#E8E3D8] text-[10px] font-bold text-[#5C574F]">
-                      <span className="text-[#D85A30]">{badge.icon}</span> {badge.text}
-                    </div>
-                  ))}
-                </div>
               </div>
               <div className="flex gap-3">
                 <button
