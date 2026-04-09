@@ -75,7 +75,7 @@ export function TopCreatorsSection({ creators, className }: TopCreatorsSectionPr
                   {followers} followers
                 </p>
                 <p className="text-[10px] text-[#9ca3af] line-clamp-2 mb-4 flex-1 min-h-[2.5rem]">
-                  B2B creator · Verified
+                  B2B creator
                 </p>
               </Link>
               <Link href={profileUrl} className="w-full">

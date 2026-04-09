@@ -306,16 +306,6 @@ export function ProductCardClient({
         {/* ── Info area ── */}
         <div className="flex flex-col flex-1 p-3 sm:p-3.5 gap-1.5">
 
-          {/* Vendor + verified */}
-          <div className="flex items-center gap-1 min-w-0">
-            <Link
-              href={storeUrl}
-              onClick={(e) => e.stopPropagation()}
-              className="text-[10px] font-bold text-[var(--color-text-muted)] hover:text-[var(--color-accent)] truncate flex-1 transition-colors"
-            >
-              {p.vendors?.business_name || "Jimvio Store"}
-            </Link>
-          </div>
 
           {/* Product name */}
           <Link href={`${detailBasePath}/${p.slug}`} className="min-w-0">

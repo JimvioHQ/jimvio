@@ -91,13 +91,13 @@ export function ShortClipsReel({ videos, className }: ShortClipsReelProps) {
         {videos.map((video) => (
           <div
             key={video.id}
-            className="shrink-0 group relative flex flex-col overflow-hidden rounded-[28px] bg-white border border-zinc-100 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.08)] hover:shadow-[0_20px_50px_-12px_rgba(249,115,22,0.12)] hover:border-orange-100/60 transition-all duration-500 hover:-translate-y-1.5"
-            style={{ width: "clamp(220px, 65vw, 260px)" }}
+            className="shrink-0 group relative flex flex-col overflow-hidden rounded-[20px] bg-white border border-zinc-100 shadow-[0_8px_30px_-12px_rgba(0,0,0,0.06)] hover:shadow-[0_15px_40px_-12px_rgba(249,115,22,0.1)] hover:border-orange-100/50 transition-all duration-500 hover:-translate-y-1.5"
+            style={{ width: "clamp(160px, 45vw, 190px)" }}
           >
             {/* ── VIDEO PLAYER PORTION ── */}
             <Link 
               href={`/shorts?clip=${video.id}`} 
-              className="block relative aspect-[9/15] overflow-hidden rounded-t-[27px] bg-zinc-100"
+              className="block relative aspect-[9/11] overflow-hidden rounded-t-[23px] bg-zinc-100"
             >
               <div
                 className="absolute inset-0 bg-cover bg-center transition-transform duration-1000 group-hover:scale-110"
@@ -128,33 +128,33 @@ export function ShortClipsReel({ videos, className }: ShortClipsReelProps) {
               </div>
 
               {/* Bottom Video Metadata */}
-              <div className="absolute inset-x-0 bottom-0 p-5 pt-10 space-y-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="h-7 w-7 rounded-full border-2 border-white/40 overflow-hidden bg-white/10 backdrop-blur-md shadow-lg transition-transform group-hover:scale-110">
+              <div className="absolute inset-x-0 bottom-0 p-3 pt-4 space-y-1">
+                <div className="flex items-center gap-1.5">
+                  <div className="h-5 w-5 rounded-full border-2 border-white/40 overflow-hidden bg-white/10 backdrop-blur-md shadow-lg transition-transform group-hover:scale-110">
                     {video.creator.avatar ? (
                       <img src={video.creator.avatar} alt={video.creator.name} className="h-full w-full object-cover" />
                     ) : (
-                      <div className="h-full w-full bg-zinc-800 flex items-center justify-center text-[10px] font-black text-white uppercase">
+                      <div className="h-full w-full bg-zinc-800 flex items-center justify-center text-[8px] font-black text-white uppercase">
                         {video.creator.name[0]}
                       </div>
                     )}
                   </div>
-                  <span className="text-[12px] font-black text-white tracking-tight drop-shadow-md truncate">
+                  <span className="text-[10px] font-bold text-white tracking-tight drop-shadow-md truncate">
                     {video.creator.name}
                   </span>
                 </div>
                 
-                <h3 className="text-[14px] font-black text-white leading-[1.3] line-clamp-1 drop-shadow-lg tracking-tight">
+                <h3 className="text-[12px] font-black text-white leading-[1.1] line-clamp-1 drop-shadow-lg tracking-tight">
                    {video.title}
                 </h3>
 
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-1.5 text-white/90 text-xs font-black drop-shadow-md">
-                    <Eye className="h-3.5 w-3.5 text-orange-400" />
+                <div className="flex items-center gap-2.5">
+                  <div className="flex items-center gap-1 text-white/90 text-[9px] font-black drop-shadow-md">
+                    <Eye className="h-2.5 w-2.5 text-orange-400" />
                     {formatCount(video.total_views)}
                   </div>
-                  <div className="flex items-center gap-1.5 text-white/90 text-xs font-black drop-shadow-md">
-                    <Heart className="h-3.5 w-3.5 text-pink-500 fill-pink-500/20" />
+                  <div className="flex items-center gap-1 text-white/90 text-[9px] font-black drop-shadow-md">
+                    <Heart className="h-2.5 w-2.5 text-pink-500 fill-pink-500/20" />
                     {formatCount(video.total_likes)}
                   </div>
                 </div>
@@ -169,19 +169,19 @@ export function ShortClipsReel({ videos, className }: ShortClipsReelProps) {
             </Link>
 
             {/* ── CONVERSION SECTION (Grounded UI) ── */}
-            <div className="p-4 bg-zinc-50/40 backdrop-blur-sm border-t border-zinc-50 space-y-3 relative z-10">
+            <div className="p-2.5 bg-zinc-50/40 backdrop-blur-sm border-t border-zinc-50 space-y-1.5 relative z-10">
               {video.video_type === "product" && video.product ? (
-                <div className="space-y-3.5">
-                  <div className="flex items-center justify-between gap-3">
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between gap-2">
                     <div className="flex-1 min-w-0">
-                      <p className="text-[13px] font-black text-zinc-900 truncate leading-none">
+                      <p className="text-[11px] font-black text-zinc-900 truncate leading-none">
                         {video.product.name}
                       </p>
-                      <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-1.5">Verified Shop</p>
+                      <p className="text-[7px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">Verified Shop</p>
                     </div>
                     {video.product.price != null && (
-                      <div className="shrink-0 px-2.5 py-1 rounded-lg bg-orange-50/50 border border-orange-100/50">
-                        <p className="text-[14px] font-black text-orange-600 leading-none">
+                      <div className="shrink-0 px-1.5 py-0.5 rounded-lg bg-orange-50/50 border border-orange-100/50">
+                        <p className="text-[11px] font-black text-orange-600 leading-none">
                           {video.product.currency || "USD"}{Number(video.product.price).toFixed(2)}
                         </p>
                       </div>
@@ -189,41 +189,41 @@ export function ShortClipsReel({ videos, className }: ShortClipsReelProps) {
                   </div>
                   <Link 
                     href={`/marketplace/${video.product.slug}?buy=1`}
-                    className="flex items-center justify-center gap-2 w-full h-11 rounded-[14px] bg-zinc-950 hover:bg-black text-white text-[12px] font-black uppercase tracking-wider transition-all transform active:scale-[0.96] shadow-xl shadow-zinc-900/10"
+                    className="flex items-center justify-center gap-1.5 w-full h-8 rounded-lg bg-zinc-950 hover:bg-black text-white text-[10px] font-black uppercase tracking-wider transition-all transform active:scale-[0.96] shadow-xl shadow-zinc-900/10"
                   >
-                    Buy Product <ChevronRight className="h-3.5 w-3.5 text-orange-500" />
+                    Buy Product <ChevronRight className="h-2 w-2 text-orange-500" />
                   </Link>
                 </div>
               ) : video.video_type === "community" && video.community ? (
-                <div className="space-y-3.5">
-                  <div className="flex items-center justify-between gap-3">
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between gap-2">
                     <div className="flex-1 min-w-0">
-                      <p className="text-[13px] font-black text-zinc-900 truncate leading-none">
+                      <p className="text-[11px] font-black text-zinc-900 truncate leading-none">
                         {video.community.name}
                       </p>
-                      <p className="text-[11px] font-bold text-indigo-500 mt-1.5 uppercase tracking-wide">
+                      <p className="text-[8px] font-bold text-indigo-500 mt-0.5 uppercase tracking-wide">
                         {formatCount(video.community.member_count || 0)} Members
                       </p>
                     </div>
                   </div>
                   <Link 
                     href={`/groups/community/${video.community.slug}`}
-                    className="flex items-center justify-center gap-2 w-full h-11 rounded-[14px] bg-indigo-600 hover:bg-indigo-700 text-white text-[12px] font-black uppercase tracking-wider transition-all transform active:scale-[0.96] shadow-xl shadow-indigo-600/10"
+                    className="flex items-center justify-center gap-1.5 w-full h-8 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-black uppercase tracking-wider transition-all transform active:scale-[0.96] shadow-xl shadow-indigo-600/10"
                   >
-                    Join Now <ArrowRight className="h-3.5 w-3.5" />
+                    Join Now <ArrowRight className="h-2 w-2" />
                   </Link>
                 </div>
               ) : (
-                <div className="space-y-3.5">
-                  <p className="text-[13px] font-black text-zinc-900 truncate tracking-tight">
+                <div className="space-y-1.5">
+                  <p className="text-[11px] font-black text-zinc-900 truncate tracking-tight">
                     Visit Sponsor Link
                   </p>
                   <a 
                     href={video.external_link || "#"}
                     target="_blank"
-                    className="flex items-center justify-center gap-2 w-full h-11 rounded-[14px] bg-orange-600 hover:bg-orange-700 text-white text-[12px] font-black uppercase tracking-wider transition-all active:scale-[0.96] shadow-xl shadow-orange-600/10"
+                    className="flex items-center justify-center gap-1.5 w-full h-8 rounded-lg bg-orange-600 hover:bg-orange-700 text-white text-[10px] font-black uppercase tracking-wider transition-all active:scale-[0.96] shadow-xl shadow-orange-600/10"
                   >
-                    Explore <ExternalLink className="h-3.5 w-3.5" />
+                    Explore <ExternalLink className="h-2 w-2" />
                   </a>
                 </div>
               )}

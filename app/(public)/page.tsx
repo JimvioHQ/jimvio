@@ -161,8 +161,8 @@ export default async function HomePage() {
 
           {/* ── LIVE CONTENT ── */}
           <div className="space-y-12 pb-8">
-            <ShortClipsReel videos={videos as any[]} />
             <CampaignScrollRow campaigns={campaigns as any[]} />
+            <ShortClipsReel videos={videos as any[]} />
             <CommunityScrollRow communities={communitiesList as any[]} />
           </div>
 

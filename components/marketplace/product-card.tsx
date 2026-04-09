@@ -182,10 +182,7 @@ export function ProductCard({ product, viewMode = "grid" }: ProductCardProps) {
 
         <div className="p-4 bg-white">
           <div className="flex justify-between items-start gap-2 mb-1">
-             <span className="text-[9px] font-black text-zinc-400 capitalize tracking-[0.15em] truncate">
-                {(product as { vendors?: { business_name?: string } }).vendors?.business_name || "Jimvio Original"}
-             </span>
-             {product.affiliate_enabled && (
+            {product.affiliate_enabled && (
                <Badge variant="accent" className="h-4 px-1 text-[8px] capitalize tracking-tighter bg-zinc-100 text-zinc-500 border-none font-bold">
                  Global
                </Badge>
