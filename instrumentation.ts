@@ -9,29 +9,18 @@ export async function register() {
     const { syncAllShopifyVendors } = await import('./services/shopifyProductSync');
 
     console.log('----------------------------------------------------');
-    console.log('🚀 JIMVIO: Background Sync Service Initialized');
-    console.log('⏰ Interval: Every 5 minutes');
+    console.log('🚀 JIMVIO: Boot Sync Service Initialized');
+    console.log('Mode: Startup execution only (Vercel Hobby Plan)');
     console.log('----------------------------------------------------');
 
     // Initial sync on startup (delayed by 10s to let the server breathe)
     setTimeout(async () => {
-       console.log('[Background-Sync] Running initial startup sync...');
+       console.log('[Boot-Sync] Running startup sync...');
        try {
          await syncAllShopifyVendors();
        } catch (e) {
-         console.error('[Background-Sync] Startup sync failed:', e);
+         console.error('[Boot-Sync] Startup sync failed:', e);
        }
     }, 10000);
-
-    // Set recurring interval (5 minutes)
-    setInterval(async () => {
-      console.log('[Background-Sync] Running scheduled 5-minute Shopify sync...');
-      try {
-        const result = await syncAllShopifyVendors();
-        console.log(`[Background-Sync] Sync Result: Succeeded=${result.succeeded}, Failed=${result.failed}`);
-      } catch (error) {
-        console.error('[Background-Sync] Error during scheduled sync:', error);
-      }
-    }, 5 * 60 * 1000); 
   }
 }
