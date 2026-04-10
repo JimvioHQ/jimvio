@@ -16,11 +16,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { ShippingForm, type ShippingFormValues } from "@/components/checkout/ShippingForm";
 import { PaymentMethodSelector } from "@/components/checkout/PaymentMethodSelector";
+import { PawaPayPaymentForm } from "@/components/pawapay/payment-form";
 import { updatePendingOrdersShipping } from "@/lib/actions/checkout";
-import { getPawaPayProviderOptions } from "@/lib/pawapay-providers";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { NOWPAYMENTS_INVOICE_URL_STORAGE_KEY } from "@/lib/nowpayments-invoice-bridge";
 import { useCurrency } from "@/context/CurrencyContext";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -60,17 +59,16 @@ interface CheckoutExperienceProps {
 
 function defaultPaymentForCurrency(
   currency: string | null
-): "pesapal" | "nowpayments" | "pawapay" | "flutterwave" | "paypal" | "afripay" {
+): "pesapal" | "nowpayments" | "pawapay" | "flutterwave" | "paypal" {
   const c = (currency || "USD").toUpperCase();
-  if (c === "RWF") return "afripay";
+  if (c === "RWF") return "flutterwave";
   if (c === "USD") return "flutterwave";
   return "pesapal";
 }
 
 function paymentMethodLabel(
-  m: "pesapal" | "nowpayments" | "pawapay" | "flutterwave" | "paypal" | "afripay" | null
+  m: "pesapal" | "nowpayments" | "pawapay" | "flutterwave" | "paypal" | null
 ): string {
-  if (m === "afripay") return "AfriPay (Mobile Money)";
   if (m === "pawapay") return "Mobile Money (PawaPay)";
   if (m === "pesapal") return "Card (PesaPal)";
   if (m === "nowpayments") return "Cryptocurrency";
@@ -107,20 +105,13 @@ export function CheckoutExperience({
     | "pesapal"
     | "nowpayments"
     | "pawapay"
-    | "afripay"
     | "flutterwave"
     | "paypal"
     | null
   >(() =>
-    orders[0]?.currency?.toUpperCase() === "RWF"
-      ? "afripay"
-      : defaultPaymentForCurrency(orders[0]?.currency ?? null)
+    defaultPaymentForCurrency(orders[0]?.currency ?? null)
   );
   const [payCurrency, setPayCurrency] = useState("usdttrc20");
-  const [pawapayProvider, setPawapayProvider] = useState("");
-  const [pawapayPhone, setPawapayPhone] = useState("");
-  const [afripayNetwork, setAfripayNetwork] = useState<"MTN" | "BK" | "MPESA">("MTN");
-  const [afripayPhone, setAfripayPhone] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
 
@@ -157,25 +148,6 @@ export function CheckoutExperience({
 
   const isCommunity = mode === "community" || selectedOrders.some(o => o.integration_source === "community");
 
-  const pawapayOpts = useMemo(() => {
-    const all = getPawaPayProviderOptions();
-    if (currency === "USD") return all;
-    return all.filter((p) => p.currency.toUpperCase() === currency);
-  }, [currency]);
-
-  useEffect(() => {
-    if (
-      pawapayOpts.length &&
-      !pawapayOpts.some((o) => o.id === pawapayProvider)
-    ) {
-      setPawapayProvider(pawapayOpts[0].id);
-    }
-  }, [pawapayOpts, pawapayProvider]);
-
-  useEffect(() => {
-    setPawapayPhone(shipping.phone);
-    setAfripayPhone(shipping.phone);
-  }, [shipping.phone]);
 
   // ─── Step navigation ───────────────────────────────────────────────────────
 
@@ -261,71 +233,36 @@ export function CheckoutExperience({
         throw new Error("No redirect URL");
       }
 
-      if (payment === "afripay") {
-        toast.loading("Transferring to AfriPay Secure Checkout...", {
-          id: "afripay-load",
-        });
-        const res = await fetch("/api/afripay/create", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ orderId: primaryOrderId }),
-        });
-        const data = await res.json();
-        if (!res.ok) {
-          toast.dismiss("afripay-load");
-          throw new Error(data.message || "AfriPay session failed");
-        }
-        const form = document.createElement("form");
-        form.method = "POST";
-        form.action = data.checkout.gateway_url;
-        Object.entries(data.checkout.form_data).forEach(([key, val]) => {
-          const input = document.createElement("input");
-          input.type = "hidden";
-          input.name = key;
-          input.value = String(val);
-          form.appendChild(input);
-        });
-        document.body.appendChild(form);
-        form.submit();
-        return;
-      }
 
       if (payment === "pawapay") {
-        if (!pawapayProvider || !pawapayPhone.trim())
-          throw new Error(
-            "Choose a mobile network and enter your phone number for PawaPay"
-          );
-        if (pawapayOpts.length === 0)
-          throw new Error(
-            `No PawaPay providers for ${currency}. Configure NEXT_PUBLIC_PAWAPAY_PROVIDERS or use another method.`
-          );
-        const res = await fetch("/api/payments/pawapay/initiate", {
+        console.log("Jimvio Order Shipping Address:", shipping);
+        const res = await fetch("/api/pawapay/checkout", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
+            amount: total,
+            currency: (selectedOrders[0]?.currency || "USD").toUpperCase(),
             orderId: primaryOrderId,
-            orderIds,
-            provider: pawapayProvider,
-            phoneNumber: pawapayPhone.trim(),
+            country: shipping.countryCode,
           }),
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "PawaPay failed");
-        if (
-          data.status === "ACCEPTED" ||
-          data.status === "DUPLICATE_IGNORED"
-        ) {
-          window.location.href = `/checkout/pending?orderId=${encodeURIComponent(primaryOrderId)}`;
+        console.log("pawaPay Checkout response data:", data);
+        if (!res.ok) throw new Error(data.message || data.error || "pawaPay initiation failed");
+        
+        const redirect = data.redirectUrl || data.redirectURL;
+        if (redirect) {
+          window.location.href = redirect;
           return;
         }
-        throw new Error(data.error || "PawaPay did not accept the deposit");
+        throw new Error("No redirect URL received from pawaPay");
       }
 
       if (payment === "flutterwave") {
         const res = await fetch("/api/payments/flutterwave/initiate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ orderId: primaryOrderId, orderIds, method: flutterwaveMethod }),
+          body: JSON.stringify({ orderId: primaryOrderId, orderIds }),
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Flutterwave failed");
@@ -355,20 +292,12 @@ export function CheckoutExperience({
       const res = await fetch("/api/payments/nowpayments/initiate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderId: primaryOrderId, orderIds, payCurrency }),
+        body: JSON.stringify({ orderId: primaryOrderId, orderIds }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "NowPayments failed");
       if (data.invoiceUrl) {
-        try {
-          sessionStorage.setItem(
-            NOWPAYMENTS_INVOICE_URL_STORAGE_KEY,
-            data.invoiceUrl as string
-          );
-        } catch {
-          /* private browsing */
-        }
-        window.location.href = `/checkout/crypto-invoice?orderId=${encodeURIComponent(primaryOrderId)}`;
+        window.location.href = data.invoiceUrl as string;
         return;
       }
       throw new Error("No invoice URL");
@@ -410,7 +339,7 @@ export function CheckoutExperience({
         {/* ══════════════════════════════════════════
             LEFT SIDEBAR
         ══════════════════════════════════════════ */}
-        <aside className="w-full md:w-[300px] lg:w-[340px] flex-shrink-0 bg-orange-600 flex flex-col gap-6 p-7 relative overflow-hidden">
+        <aside className="w-full md:w-[300px] lg:w-[340px] flex-shrink-0 bg-orange-600 flex flex-col gap-6 p-7 relative overflow-x-hidden overflow-y-auto">
 
           {/* Decorative blobs */}
           <div className="absolute -top-20 -right-20 w-64 h-64 rounded-full bg-white/5 pointer-events-none" />
@@ -437,44 +366,48 @@ export function CheckoutExperience({
           </div>
 
           {/* Cart items — desktop only */}
-          <div className="relative z-10 hidden md:flex flex-col gap-0 flex-1">
+          <div className="relative z-10 hidden md:flex flex-col gap-0">
             <p className="text-[10px] font-semibold tracking-[1.6px] uppercase text-white/40 mb-3">
               Your Items
             </p>
-            {allItems.map((item) => {
-              const order = selectedOrders.find((o) =>
-                o.order_items.some((i) => i.id === item.id)
-              );
-              return (
-                <div
-                  key={item.id}
-                  className="flex items-center gap-3 py-3 border-b border-white/10 last:border-none"
-                >
-                  <div className="w-11 h-11 rounded-xl bg-white/10 overflow-hidden flex-shrink-0 flex items-center justify-center">
-                    {item.product_image ? (
-                      <img
-                        src={item.product_image}
-                        alt={item.product_name}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <Package className="h-5 w-5 text-white/30" />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[13px] font-medium text-white/90 truncate">
-                      {item.product_name}
+            {/* Scrollable items list so long names/many items never hide the step tracker */}
+            <div className="overflow-x-hidden overflow-y-auto max-h-[260px] pr-1 -mr-1">
+              {allItems.map((item) => {
+                const order = selectedOrders.find((o) =>
+                  o.order_items.some((i) => i.id === item.id)
+                );
+                return (
+                  <div
+                    key={item.id}
+                    className="flex items-center gap-3 py-3 border-b border-white/10 last:border-none"
+                  >
+                    <div className="w-11 h-11 rounded-xl bg-white/10 overflow-hidden flex-shrink-0 flex items-center justify-center">
+                      {item.product_image ? (
+                        <img
+                          src={item.product_image}
+                          alt={item.product_name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <Package className="h-5 w-5 text-white/30" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      {/* Hard-clamp to 1 line so very long product names don't overflow */}
+                      <p className="text-[13px] font-medium text-white/90 truncate leading-tight">
+                        {item.product_name}
+                      </p>
+                      <p className="text-[11px] text-white/40 mt-0.5 truncate">
+                        {order?.vendors?.business_name} · Qty {item.quantity}
+                      </p>
+                    </div>
+                    <p className="text-[13px] font-semibold text-white/80 flex-shrink-0 ml-2">
+                      {formatMoney(Number(item.unit_price), currency)}
                     </p>
-                    <p className="text-[11px] text-white/40">
-                      {order?.vendors?.business_name} · Qty {item.quantity}
-                    </p>
                   </div>
-                  <p className="text-[13px] font-semibold text-white/80 flex-shrink-0">
-                    {formatMoney(Number(item.unit_price), currency)}
-                  </p>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
 
           {/* Step progress — desktop only */}
@@ -652,20 +585,12 @@ export function CheckoutExperience({
                 Choose Payment Method
               </p>
               <PaymentMethodSelector
-                selected={payment}
-                onSelect={setPayment}
+                selected={payment as any}
+                onSelect={(m) => setPayment(m as any)}
                 payCurrency={payCurrency}
                 onCurrencyChange={setPayCurrency}
                 orderCurrency={currency}
                 orderTotal={total}
-                pawapayProvider={pawapayProvider}
-                onPawapayProviderChange={setPawapayProvider}
-                pawapayPhone={pawapayPhone}
-                onPawapayPhoneChange={setPawapayPhone}
-                afripayNetwork={afripayNetwork}
-                onAfripayNetworkChange={setAfripayNetwork}
-                afripayPhone={afripayPhone}
-                onAfripayPhoneChange={setAfripayPhone}
                 flutterwaveMethod={flutterwaveMethod}
                 onFlutterwaveMethodChange={setFlutterwaveMethod}
               />
@@ -688,12 +613,12 @@ export function CheckoutExperience({
                   o.order_items.map((item) => (
                     <div
                       key={item.id}
-                      className="flex justify-between items-center px-5 py-3 border-b border-zinc-100 last:border-none text-[13px]"
+                      className="flex justify-between items-start gap-3 px-5 py-3 border-b border-zinc-100 last:border-none text-[13px]"
                     >
-                      <span className="text-zinc-600 truncate pr-4">
+                      <span className="text-zinc-600 min-w-0 line-clamp-2 leading-snug">
                         {item.product_name} × {item.quantity}
                       </span>
-                      <span className="font-medium text-zinc-800 flex-shrink-0">
+                      <span className="font-medium text-zinc-800 flex-shrink-0 whitespace-nowrap pt-px">
                         {formatMoney(Number(item.total_price), currency)}
                       </span>
                     </div>
@@ -768,7 +693,7 @@ export function CheckoutExperience({
                     <Lock className="h-4 w-4 text-orange-500" />
                   </div>
                   <span className="text-[14px] font-semibold text-zinc-800">
-                    {paymentMethodLabel(payment)}
+                    {payment === "flutterwave" ? "Flutterwave Global Checkout" : (payment === "nowpayments" ? "Cryptocurrency (Global)" : paymentMethodLabel(payment))}
                   </span>
                 </div>
               </div>

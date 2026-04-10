@@ -137,6 +137,8 @@ export function CommunityDetailView({
   const lifetime = Number(community.lifetime_price ?? 0);
   const currency = (community.currency || "USD").toUpperCase();
 
+  const isFree = community.is_free || (monthly === 0 && yearly === 0 && lifetime === 0);
+
   const priceForPlan = (p: PlanKey) => (p === "monthly" ? monthly : p === "yearly" ? yearly : lifetime);
 
   const loginNext = `/login?next=${encodeURIComponent(`/communities/${community.slug}`)}`;
@@ -298,6 +300,20 @@ export function CommunityDetailView({
                     </div>
                     <Button asChild className="w-full h-14 rounded-2xl bg-[#1a1428] text-white font-black text-base shadow-xl hover:opacity-90">
                        <Link href={`/communities/${community.slug}/workspace`}>Open Workspace <ArrowRight className="ml-2 h-4 w-4" /></Link>
+                    </Button>
+                  </div>
+                ) : isFree ? (
+                  <div className="space-y-6">
+                    <div className="p-5 rounded-2xl bg-emerald-50 border border-emerald-100">
+                       <p className="text-xs font-black text-emerald-700 uppercase tracking-widest">Free Access</p>
+                       <p className="text-sm font-bold text-emerald-600 mt-1">This community is open to everyone. Join now to start participating.</p>
+                    </div>
+                    <Button 
+                      onClick={handleJoin}
+                      disabled={joining}
+                      className="w-full h-14 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white font-black text-base shadow-xl shadow-emerald-500/20 active:scale-95 transition-all"
+                    >
+                       {joining ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : "Join Community"}
                     </Button>
                   </div>
                 ) : (

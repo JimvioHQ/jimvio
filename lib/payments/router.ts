@@ -6,7 +6,6 @@ import { randomUUID } from "crypto";
 import type { CurrencyCode } from "@/lib/currency/config";
 import { initiateAfriPayPayment } from "./afripay";
 import { createNowPaymentsInvoice } from "./nowpayments";
-import { initiatePawaPayDeposit } from "./pawapay";
 import { initiatePesaPalPayment } from "./pesapal";
 
 export type RoutePaymentParams = {
@@ -129,53 +128,7 @@ export async function routePayment(params: RoutePaymentParams): Promise<RoutePay
     return { gateway: "afripay", status: af.status, transactionId: af.transactionId };
   }
 
-  // 4. RWF + card → PawaPay (per spec)
-  if (userCurrency === "RWF" && paymentMethod === "card") {
-    logRoute("pawapay", userCurrency, paymentMethod);
-    const depositId = randomUUID();
-    const correspondent = mobileNetwork || "MTN_MOMO_RWA";
-    if (!phoneNumber.trim()) {
-      return fail("pawapay", "phoneNumber is required for PawaPay");
-    }
-    const pp = await initiatePawaPayDeposit({
-      depositId,
-      amountUSD,
-      currency: "RWF",
-      correspondent,
-      msisdn: phoneNumber.replace(/\D/g, ""),
-      description,
-      callbackUrl: `${b}/api/webhooks/pawapay`,
-    });
-    if (pp.error || pp.status === "FAILED") {
-      return fail("pawapay", pp.error ?? "PawaPay deposit failed");
-    }
-    return { gateway: "pawapay", depositId: pp.depositId, status: pp.status };
-  }
 
-  // 5. NGN / GHS → PawaPay
-  if (userCurrency === "NGN" || userCurrency === "GHS") {
-    logRoute("pawapay", userCurrency, paymentMethod);
-    const depositId = randomUUID();
-    const correspondent =
-      mobileNetwork ||
-      (userCurrency === "NGN" ? "MTN_MOMO_NGA" : "MTN_MOMO_GHA");
-    if (!phoneNumber.trim()) {
-      return fail("pawapay", "phoneNumber is required for PawaPay");
-    }
-    const pp = await initiatePawaPayDeposit({
-      depositId,
-      amountUSD,
-      currency: userCurrency,
-      correspondent,
-      msisdn: phoneNumber.replace(/\D/g, ""),
-      description,
-      callbackUrl: `${b}/api/webhooks/pawapay`,
-    });
-    if (pp.error || pp.status === "FAILED") {
-      return fail("pawapay", pp.error ?? "PawaPay deposit failed");
-    }
-    return { gateway: "pawapay", depositId: pp.depositId, status: pp.status };
-  }
 
   // 6. KES / UGX / TZS → PesaPal
   if (userCurrency === "KES" || userCurrency === "UGX" || userCurrency === "TZS") {

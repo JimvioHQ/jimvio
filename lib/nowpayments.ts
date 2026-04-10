@@ -44,7 +44,7 @@ export interface NowPaymentsInvoiceParams {
   jimvioOrderId: string
   amount: number
   currency: string       // price currency e.g. 'USD'
-  payCurrency: string    // crypto currency e.g. 'USDT', 'BTC', 'ETH'
+  payCurrency?: string    // optional crypto currency e.g. 'USDT', 'BTC', 'ETH'
   description: string
   buyerEmail: string
 }
@@ -52,16 +52,9 @@ export interface NowPaymentsInvoiceParams {
 export async function createNowPaymentsInvoice(params: NowPaymentsInvoiceParams) {
   const apiKey = getNowPaymentsApiKey()
   const baseUrl = getNowPaymentsBaseUrl()
-  const res = await fetch(`${baseUrl}/invoice`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key':    apiKey,
-    },
-    body: JSON.stringify({
+    const body = {
       price_amount:        params.amount,
       price_currency:      params.currency.toLowerCase(),
-      pay_currency:        params.payCurrency.toLowerCase(),
       order_id:            params.jimvioOrderId,
       order_description:   params.description,
       ipn_callback_url:    `${process.env.NEXT_PUBLIC_APP_URL}/api/payments/nowpayments`,
@@ -69,8 +62,17 @@ export async function createNowPaymentsInvoice(params: NowPaymentsInvoiceParams)
       cancel_url:          `${process.env.NEXT_PUBLIC_APP_URL}/checkout/cancel`,
       is_fixed_rate:       false,
       is_fee_paid_by_user: false,
-    }),
-  })
+      ...(params.payCurrency ? { pay_currency: params.payCurrency.toLowerCase() } : {}),
+    }
+
+    const res = await fetch(`${baseUrl}/invoice`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key':    apiKey,
+      },
+      body: JSON.stringify(body),
+    })
 
   const data = (await res.json()) as Record<string, unknown> & {
     invoice_url?: string

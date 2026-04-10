@@ -3,15 +3,15 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, ShoppingBag, User, Users, Video } from "lucide-react";
+import { Home, ShoppingBag, User, Users, Clapperboard, Megaphone } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const items = [
   { href: "/", label: "Home", icon: Home },
-  { href: "/communities", label: "Communities", icon: Users },
   { href: "/marketplace", label: "Marketplace", icon: ShoppingBag },
-  { href: "/clips", label: "Clips", icon: Video },
-  { href: "/dashboard", label: "Profile", icon: User },
+  { href: "/shorts", label: "Videos", icon: Clapperboard },
+  { href: "/ugc", label: "Campaigns", icon: Megaphone },
+  { href: "/dashboard", label: "Dashboard", icon: User },
 ];
 
 export function HomeBottomNav() {

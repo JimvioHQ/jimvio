@@ -82,32 +82,15 @@ export async function POST(
     );
   }
 
-  if (paymentProvider === "pawapay") {
-    if (!pawapayProvider?.trim() || !pawapayPhone?.trim()) {
-      return NextResponse.json({ error: "pawapayProvider and pawapayPhone are required for PawaPay" }, { status: 400 });
-    }
-  }
-
   const path =
     paymentProvider === "nowpayments"
       ? `${base}/api/payments/nowpayments/initiate`
-      : paymentProvider === "pawapay"
-        ? `${base}/api/payments/pawapay/initiate`
-        : `${base}/api/payments/pesapal/initiate`;
-
-  const paymentBody =
-    paymentProvider === "pawapay"
-      ? JSON.stringify({
-          orderId: order.id,
-          provider: pawapayProvider?.trim(),
-          phoneNumber: pawapayPhone?.trim(),
-        })
-      : JSON.stringify({ orderId: order.id });
+      : `${base}/api/payments/pesapal/initiate`;
 
   const paymentRes = await fetch(path, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: paymentBody,
+    body: JSON.stringify({ orderId: order.id }),
   });
 
   const paymentData = (await paymentRes.json()) as Record<string, unknown>;
@@ -116,13 +99,6 @@ export async function POST(
       { error: (paymentData.error as string) || "Payment initiation failed" },
       { status: paymentRes.status }
     );
-  }
-
-  if (paymentProvider === "pawapay") {
-    return NextResponse.json({
-      ...paymentData,
-      pendingUrl: `${base}/checkout/pending?orderId=${encodeURIComponent(order.id)}`,
-    });
   }
 
   return NextResponse.json(paymentData);

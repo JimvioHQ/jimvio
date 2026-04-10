@@ -76,23 +76,45 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    let amount = orders.reduce((sum, o) => sum + Number(o.total_amount || 0), 0)
-    if (!Number.isFinite(amount) || amount <= 0) {
+    const rawTotal = orders.reduce((sum, o) => sum + Number(o.total_amount || 0), 0)
+    if (!Number.isFinite(rawTotal) || rawTotal <= 0) {
       return NextResponse.json({ error: 'Invalid aggregate order amount' }, { status: 400 })
     }
 
-    let currency = (order.currency || 'USD').toUpperCase()
-    const rate = parseFloat(process.env.RWF_TO_USD_RATE || '0.0008')
-    if (currency === 'RWF' && rate > 0) {
-      amount = Math.round(amount * rate * 100) / 100
-      currency = 'USD'
-    }
+    const orderCurrency = (order.currency || 'USD').toUpperCase()
 
-    const forceCurrency = process.env.PESAPAL_CHECKOUT_CURRENCY?.trim().toUpperCase()
-    if (forceCurrency === 'RWF' && currency === 'USD' && rate > 0) {
-      amount = Math.max(1, Math.round(amount / rate))
+    // ── Currency Conversion ────────────────────────────────────────────────
+    // PesaPal Rwanda merchant accounts are restricted to RWF transactions.
+    // We always convert to RWF using the live exchange rate from the platform's
+    // real-time rates fetcher (lib/currency/rates.ts) — never a static .env rate.
+    let amount: number
+    let currency: string
+
+    if (orderCurrency === 'RWF') {
+      // Already in RWF — just round to whole francs
+      amount = Math.max(1, Math.round(rawTotal))
+      currency = 'RWF'
+    } else {
+      // Fetch live rate and convert to RWF
+      const { convertFromUSD, convertToUSD } = await import('@/lib/currency/rates')
+
+      let amountUSD = rawTotal
+      if (orderCurrency !== 'USD') {
+        // Convert non-USD order to USD first, then to RWF
+        amountUSD = await convertToUSD(rawTotal, orderCurrency as any)
+      }
+
+      const rwfRaw = await convertFromUSD(amountUSD, 'RWF' as any)
+      amount = Math.max(1, Math.round(rwfRaw))
       currency = 'RWF'
     }
+
+    console.log('[PesaPal Initiate] Final payload:', {
+      orderCurrency,
+      rawTotal,
+      pesapalCurrency: currency,
+      pesapalAmount: amount,
+    })
 
     // Register IPN webhook URL with PesaPal
     const ipnId = await registerPesapalIPN()

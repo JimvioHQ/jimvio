@@ -8,6 +8,7 @@ import { Check, ChevronRight, Loader2, Users, ShieldCheck, ArrowRight, ChevronLe
 import { Button } from "@/components/ui/button";
 import { cn, formatDisplayMoney } from "@/lib/utils";
 import { PaymentMethodSelector } from "@/components/checkout/PaymentMethodSelector";
+import { PawaPayPaymentForm } from "@/components/pawapay/payment-form";
 import { useCurrency } from "@/context/CurrencyContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
@@ -45,14 +46,12 @@ export function CommunitySubscribeClient({
     initialPlan === "yearly" || initialPlan === "lifetime" ? initialPlan : "monthly"
   );
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
-  const [payment, setPayment] = useState<"pesapal" | "nowpayments" | "pawapay" | "flutterwave" | "paypal" | "afripay" | null>(
+  const [payment, setPayment] = useState<"pesapal" | "nowpayments" | "flutterwave" | "paypal" | "pawapay" | null>(
     (initialProvider as any) || "flutterwave"
   );
   
   const [submitting, setSubmitting] = useState(false);
   const [payCurrency, setPayCurrency] = useState("usdttrc20");
-  const [pawapayProvider, setPawapayProvider] = useState("");
-  const [pawapayPhone, setPawapayPhone] = useState(profilePhone || "");
   const [afripayNetwork, setAfripayNetwork] = useState<"MTN" | "BK" | "MPESA">("MTN");
   const [afripayPhone, setAfripayPhone] = useState(profilePhone || "");
   const [flutterwaveMethod, setFlutterwaveMethod] = useState<"card" | "momo">("card");
@@ -81,14 +80,36 @@ export function CommunitySubscribeClient({
     
     setSubmitting(true);
     try {
+      if (payment === "pawapay") {
+        const res = await fetch("/api/pawapay/checkout", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            amount,
+            currency,
+            orderId: community.slug,
+            country: "RW",
+            returnUrl: `${window.location.origin}/communities/${community.slug}/workspace`
+          }),
+        });
+        const data = await res.json();
+        console.log("pawaPay Sub response data:", data);
+        if (!res.ok) throw new Error(data.message || data.error || "pawaPay initiation failed");
+        
+        const redirect = data.redirectUrl || data.redirectURL;
+        if (redirect) {
+          window.location.href = redirect;
+          return;
+        }
+        throw new Error("No redirect URL received from pawaPay");
+      }
+
       const res = await fetch(`/api/communities/${community.slug}/subscribe`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           planType: plan,
           paymentProvider: payment,
-          pawapayProvider,
-          pawapayPhone: pawapayPhone.trim(),
           afripayNetwork,
           afripayPhone: afripayPhone.trim(),
           flutterwaveMethod,
@@ -106,8 +127,6 @@ export function CommunitySubscribeClient({
       
       if (data.redirectUrl || data.invoiceUrl) {
         window.location.href = data.redirectUrl || data.invoiceUrl;
-      } else if (data.pendingUrl) {
-        window.location.href = data.pendingUrl;
       } else {
         toast.success("Joined community!");
         router.push(`/communities/${community.slug}`);
@@ -183,7 +202,7 @@ export function CommunitySubscribeClient({
                     <span className="text-xs font-bold text-white/70">{benefit}</span>
                  </div>
                ))}
-             </div>
+              </div>
           </div>
 
           <div className="relative z-10 pt-6 border-t border-white/5 flex items-center justify-between opacity-50">
@@ -263,10 +282,6 @@ export function CommunitySubscribeClient({
                     onCurrencyChange={setPayCurrency}
                     orderCurrency={currency}
                     orderTotal={amount}
-                    pawapayProvider={pawapayProvider}
-                    onPawapayProviderChange={setPawapayProvider}
-                    pawapayPhone={pawapayPhone}
-                    onPawapayPhoneChange={setPawapayPhone}
                     afripayNetwork={afripayNetwork}
                     onAfripayNetworkChange={setAfripayNetwork}
                     afripayPhone={afripayPhone}
@@ -297,6 +312,7 @@ export function CommunitySubscribeClient({
                             <p className="text-sm font-black text-zinc-600 mt-1">{payment ? payment.toUpperCase() : "..."}</p>
                          </div>
                       </div>
+
                    </div>
                 )}
               </motion.div>
@@ -316,12 +332,14 @@ export function CommunitySubscribeClient({
             </button>
 
             <button
-              disabled={submitting}
+              disabled={submitting || (currentStep === 3 && payment === "pawapay")}
               onClick={() => {
                  if (currentStep < 3) setCurrentStep((s) => (s + 1) as any);
                  else handleComplete();
               }}
-              className="h-14 px-10 rounded-2xl bg-orange-500 hover:bg-orange-600 active:scale-[0.98] disabled:opacity-50 text-white font-black text-sm transition-all shadow-xl shadow-orange-500/20 flex items-center gap-3"
+              className={cn(
+                "h-14 px-10 rounded-2xl bg-orange-500 hover:bg-orange-600 active:scale-[0.98] disabled:opacity-50 text-white font-black text-sm transition-all shadow-xl shadow-orange-500/20 flex items-center gap-3"
+              )}
             >
               {submitting ? (
                 <>

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import Image from "next/image";
@@ -32,6 +32,8 @@ import {
   Sparkles,
   Zap,
   Play,
+  Megaphone,
+  Clapperboard,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -89,21 +91,21 @@ function iconForNavHref(href: string): LucideIcon {
   const h = href.replace(/\/$/, "") || "/";
   if (h === "/") return Home;
   if (h.startsWith("/communities")) return Users;
-  if (h.startsWith("/ugc")) return Video;
+  if (h.startsWith("/ugc")) return Megaphone;
   if (h.startsWith("/marketplace")) return ShoppingBag;
   if (h.startsWith("/affiliates")) return TrendingUp;
-  if (h.startsWith("/influencers")) return Video;
+  if (h.startsWith("/influencers")) return User;
   if (h.startsWith("/vendors")) return Factory;
-  if (h.startsWith("/clips")) return Video;
+  if (h.startsWith("/shorts")) return Clapperboard;
   return Package;
 }
 
 function colorForNavHref(href: string): string {
   const h = href.replace(/\/$/, "") || "/";
   if (h === "/") return "text-orange-500 bg-orange-50";
-  if (h.startsWith("/marketplace")) return "text-orange-500 bg-orange-50";
+  if (h.startsWith("/marketplace")) return "text-blue-500 bg-blue-50";
+  if (h.startsWith("/shorts")) return "text-red-500 bg-red-50";
   if (h.startsWith("/ugc")) return "text-violet-500 bg-violet-50";
-  if (h.startsWith("/clips")) return "text-blue-500 bg-blue-50";
   if (h.startsWith("/communities")) return "text-emerald-500 bg-emerald-50";
   if (h.startsWith("/affiliates")) return "text-purple-500 bg-purple-50";
   if (h.startsWith("/influencers")) return "text-pink-500 bg-pink-50";
@@ -121,14 +123,25 @@ export function Navbar({ user, marketing }: NavbarProps) {
   const { scrollY } = useScroll();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [exploreOpen, setExploreOpen] = useState(false);
   const [portalReady, setPortalReady] = useState(false);
   const [searchQ, setSearchQ] = useState("");
   const [isMobile, setIsMobile] = useState(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const { cartCount, chatCount, refreshCounts } = useCartStore();
   const { openAssistant } = useAIStore();
   const pathname = usePathname();
   const router = useRouter();
+
+  const handleExploreEnter = () => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    setExploreOpen(true);
+  };
+
+  const handleExploreLeave = () => {
+    timeoutRef.current = setTimeout(() => setExploreOpen(false), 150);
+  };
 
   const navLinks = ensureCoreNavLinks(marketing.nav_links ?? []);
   const localeStrip = (marketing.locale_strip?.trim() || "EN · USD").trim();
@@ -177,37 +190,24 @@ export function Navbar({ user, marketing }: NavbarProps) {
   );
 
   const solutions = [
-    { title: "Browse Creators", desc: "Connect with top performing influencers", href: "/influencers/browse", icon: Users, color: "text-orange-500" },
-    { title: "Creator TV", desc: "Watch promotional shorts & latest buzz", href: "/shorts", icon: Play, color: "text-red-500" },
-    { title: "UGC Campaigns", desc: "Earn rewards for video submissions", href: "/ugc", icon: Video, color: "text-violet-500" },
-    { title: "Brand Solutions", desc: "Tools for vendors and businesses", href: "/vendors", icon: Factory, color: "text-emerald-500" },
-    { title: "Affiliate Center", desc: "Promote products & earn commission", href: "/affiliates", icon: TrendingUp, color: "text-purple-500" },
+    { title: "Creators", desc: "Connect with top performing influencers", href: "/influencers/browse", icon: User, color: "text-orange-500" },
+    { title: "Videos", desc: "Watch promotional shorts & latest buzz", href: "/shorts", icon: Clapperboard, color: "text-red-500" },
+    { title: "Campaigns", desc: "Earn rewards for video submissions", href: "/ugc", icon: Megaphone, color: "text-violet-500" },
+    { title: "Suppliers", desc: "Tools for vendors and businesses", href: "/vendors", icon: Factory, color: "text-emerald-500" },
+    { title: "Affiliate", desc: "Promote products & earn commission", href: "/affiliates", icon: TrendingUp, color: "text-purple-500" },
   ];
 
-  // Ordered mobile nav links: Flattened and starting from Home
-  const mobileLinkItems = [
-    ...navLinks,
-    ...solutions.map(s => ({ label: s.title, href: s.href, icon: s.icon })),
+  // Ordered mobile nav links as requested
+  const orderedMobileLinks = [
+    { label: "Home", href: "/", icon: Home },
+    { label: "Marketplace", href: "/marketplace", icon: ShoppingBag },
+    { label: "Videos", href: "/shorts", icon: Clapperboard },
+    { label: "Campaigns", href: "/ugc", icon: Megaphone },
     { label: "Communities", href: "/communities", icon: Users },
-    { label: "Support", href: "/help", icon: HelpCircle }
+    { label: "Affiliate", href: "/affiliates", icon: TrendingUp },
+    { label: "Creators", href: "/influencers/browse", icon: User },
+    { label: "Suppliers", href: "/vendors", icon: Factory },
   ];
-
-  // Remove exact duplicates by href
-  const seenHrefs = new Set<string>();
-  const orderedMobileLinks = mobileLinkItems.filter(item => {
-    const h = item.href.replace(/\/$/, "") || "/";
-    if (seenHrefs.has(h)) return false;
-    seenHrefs.add(h);
-    return true;
-  });
-
-  // Ensure Home is first
-  const homeIdxM = orderedMobileLinks.findIndex(l => (l.href.replace(/\/$/, "") || "/") === "/");
-  if (homeIdxM > 0) {
-    const home = orderedMobileLinks[homeIdxM];
-    orderedMobileLinks.splice(homeIdxM, 1);
-    orderedMobileLinks.unshift(home);
-  }
 
   return (
     <header className={cn(
@@ -238,8 +238,8 @@ export function Navbar({ user, marketing }: NavbarProps) {
               <CurrencySelector className="h-5 rounded-lg bg-transparent border-0 px-1 text-[10px] font-bold text-zinc-400 hover:text-zinc-900 transition-colors" />
             </div>
             <div className="flex items-center gap-6">
-              <Link href="/help" className="text-[10px] font-black tracking-wider text-zinc-400 hover:text-[#f97316] transition-all uppercase">Support</Link>
-              <Link href="/vendors" className="text-[10px] font-black tracking-wider text-zinc-400 hover:text-zinc-800 transition-all uppercase">Vendors</Link>
+              <Link href="/help" className="text-[10px] font-black tracking-wider text-zinc-400 hover:text-[#f97316] transition-all uppercase">Help center</Link>
+              <Link href="/vendors" className="text-[10px] font-black tracking-wider text-zinc-400 hover:text-zinc-800 transition-all uppercase">Suppliers</Link>
             </div>
           </motion.div>
 
@@ -252,13 +252,24 @@ export function Navbar({ user, marketing }: NavbarProps) {
 
             {/* Desktop Central Links */}
             <div className="hidden min-[1150px]:flex items-center gap-1">
-              <DropdownMenu modal={false}>
-                <DropdownMenuTrigger asChild>
-                  <button className="px-4 py-2 rounded-2xl text-[14px] font-black text-zinc-600 hover:text-zinc-900 transition-all flex items-center gap-1.5 group">
-                    Explore <ChevronDown className="h-3.5 w-3.5 opacity-40 group-hover:rotate-180 transition-transform" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-[360px] p-3 rounded-[32px] shadow-[0_32px_80px_rgba(0,0,0,0.15)] border-white/20 backdrop-blur-3xl bg-white/95 mt-4 grid grid-cols-1 gap-1">
+              <div 
+                onMouseEnter={handleExploreEnter}
+                onMouseLeave={handleExploreLeave}
+                className="relative"
+              >
+                <DropdownMenu open={exploreOpen} onOpenChange={setExploreOpen} modal={false}>
+                  <DropdownMenuTrigger asChild>
+                    <button className="px-4 py-2 rounded-2xl text-[14px] font-black text-zinc-600 hover:text-zinc-900 transition-all flex items-center gap-1.5 group">
+                      <Globe className="h-4 w-4 opacity-70 group-hover:text-orange-500 transition-colors" />
+                      Explore <ChevronDown className="h-3.5 w-3.5 opacity-40 group-hover:rotate-180 transition-transform" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent 
+                    onMouseEnter={handleExploreEnter}
+                    onMouseLeave={handleExploreLeave}
+                    sideOffset={15}
+                    className="w-[360px] p-3 rounded-[32px] shadow-[0_32px_80px_rgba(0,0,0,0.15)] border-white/20 backdrop-blur-3xl bg-white/95 grid grid-cols-1 gap-1"
+                  >
                   {solutions.map(s => (
                     <DropdownMenuItem key={s.href} asChild className="p-3 rounded-2xl border border-transparent focus:bg-zinc-50 cursor-pointer group">
                       <Link href={s.href} className="flex items-center gap-4">
@@ -272,18 +283,21 @@ export function Navbar({ user, marketing }: NavbarProps) {
                   ))}
                 </DropdownMenuContent>
               </DropdownMenu>
+              </div>
 
               {navLinks.map((item) => {
                 const active = linkIsActive(pathname, item.href);
+                const Icon = iconForNavHref(item.href);
                 return (
                   <Link
                     key={item.href}
                     href={item.href}
                     className={cn(
-                      "px-4 py-2 rounded-2xl text-[14px] font-black transition-all",
+                      "group px-4 py-2 rounded-2xl text-[14px] font-black transition-all flex items-center gap-2",
                       active ? "text-zinc-900 bg-zinc-100/50" : "text-zinc-500 hover:text-zinc-900"
                     )}
                   >
+                    <Icon className={cn("h-4 w-4", active ? "text-orange-500" : "text-zinc-400 group-hover:text-zinc-900")} />
                     {item.label}
                   </Link>
                 );
@@ -517,7 +531,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
                         <span className="h-9 w-9 rounded-xl bg-zinc-50 flex items-center justify-center shrink-0">
                           <HelpCircle className="h-4.5 w-4.5 text-zinc-400" />
                         </span>
-                        Support
+                        Help center
                       </Link>
                     </div>
                   </div>

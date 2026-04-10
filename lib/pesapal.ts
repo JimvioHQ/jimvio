@@ -7,9 +7,10 @@
 //   live    → https://pay.pesapal.com/v3
 
 const PESAPAL_BASE_URL =
-  process.env.PESAPAL_ENV === "live"
+  process.env.PESAPAL_BASE_URL ||
+  (process.env.PESAPAL_ENV === "live"
     ? "https://pay.pesapal.com/v3"
-    : "https://cybqa.pesapal.com/pesapalv3"
+    : "https://cybqa.pesapal.com/pesapalv3");
 
 /** Trim, strip BOM/CR, strip one layer of surrounding " or ' (common .env mistakes). */
 function normalizePesapalCredential(raw: string | undefined): string {
@@ -157,20 +158,33 @@ type PesapalSubmitJson = {
   status?: string
 }
 
-function pesapalSubmitErrorMessage(data: PesapalSubmitJson): string {
+function pesapalSubmitErrorMessage(data: PesapalSubmitJson, sentAmount?: number, sentCurrency?: string): string {
   const code = data.error?.code
-  const msg = data.error?.message?.trim()
-  if (code === "general_system_decline_error") {
+  const msg = data.error?.message?.trim() || ''
+  const amountHint = sentAmount != null ? ` [Sent: ${sentCurrency ?? ''} ${sentAmount}]` : ''
+
+  if (
+    msg.toLowerCase().includes('amount') ||
+    msg.toLowerCase().includes('limit') ||
+    code === 'amount_limit_exceeded'
+  ) {
     return (
-      `PesaPal could not create the payment (${code}). ` +
-      (msg ? `${msg} ` : "") +
-      `Common fixes: (1) Set PESAPAL_CHECKOUT_CURRENCY=RWF in .env when using Rwanda sandbox merchant keys with USD-priced orders — we convert using RWF_TO_USD_RATE. ` +
-      `(2) Use a public https URL for NEXT_PUBLIC_APP_URL (e.g. ngrok) if sandbox rejects localhost. ` +
-      `(3) Retry later if PesaPal sandbox is busy.`
+      `PesaPal rejected this transaction: "${msg}".${amountHint} ` +
+      `This is an account-level restriction — your PesaPal merchant account has a per-transaction cap. ` +
+      `To resolve: log in to pay.pesapal.com → Account Settings, or email support@pesapal.com to increase your limit. ` +
+      `Alternatively, ask the buyer to complete payment in smaller installments if supported.`
     )
   }
-  if (msg) return `PesaPal order failed: ${msg}`
-  if (code) return `PesaPal order failed (${code}).`
+
+  if (code === "general_system_decline_error") {
+    return (
+      `PesaPal could not create the payment (${code}).${amountHint} ` +
+      (msg ? `${msg} ` : "") +
+      `Common fixes: Use a public https URL for NEXT_PUBLIC_APP_URL (e.g. ngrok) if sandbox rejects localhost.`
+    )
+  }
+  if (msg) return `PesaPal order failed: ${msg}${amountHint}`
+  if (code) return `PesaPal order failed (${code}).${amountHint}`
   return `PesaPal order failed: ${JSON.stringify(data)}`
 }
 
@@ -231,6 +245,14 @@ export async function createPesapalOrder(params: PesapalOrderParams) {
     payload.cancellation_url = `${appUrl}/checkout/cancel`
   }
 
+  console.log('[PesaPal] Submitting order:', {
+    id,
+    currency,
+    amount,
+    appUrl,
+    ipnId: params.ipnId,
+  })
+
   const res = await fetch(`${PESAPAL_BASE_URL}/api/Transactions/SubmitOrderRequest`, {
     method: "POST",
     headers: {
@@ -243,7 +265,8 @@ export async function createPesapalOrder(params: PesapalOrderParams) {
 
   const data = (await res.json()) as PesapalSubmitJson
   if (!data.redirect_url) {
-    throw new Error(pesapalSubmitErrorMessage(data))
+    console.error('[PesaPal] Order rejected by API:', { amount, currency, response: data })
+    throw new Error(pesapalSubmitErrorMessage(data, amount, currency))
   }
 
   return {

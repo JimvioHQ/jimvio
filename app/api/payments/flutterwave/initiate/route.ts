@@ -31,8 +31,7 @@ export async function POST(req: NextRequest) {
     const { data: order, error } = await supabase
       .from("orders")
       .select(
-        `id, order_number, total_amount, currency, payment_status,
-         payment_batch_id,
+        `id, order_number, total_amount, currency, shipping_address, payment_status,
          profiles!orders_buyer_id_fkey (full_name, email, phone)`
       )
       .eq("id", orderId)
@@ -57,8 +56,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { orderIds, method } = body as { orderIds?: string[]; method?: "card" | "momo" };
-
     const txRef = randomUUID(); // Our unique reference to Flutterwave
     const origin =
       req.headers.get("origin") ||
@@ -67,30 +64,18 @@ export async function POST(req: NextRequest) {
 
     const redirectUrl = `${origin}/checkout/success?order=${orderId}&provider=flutterwave&tx_ref=${txRef}`;
 
-    console.log("[Flutterwave initiate] Processing order:", { orderId, rawAmount: order.total_amount, rawCurrency: order.currency, method });
-
     let amount = Number(order.total_amount);
     let currency = (order.currency || "USD").toUpperCase();
 
-    // DYNAMIC CURRENCY HANDLING based on method choice:
-    if (method === "momo") {
-      // For MoMo, we always favor RWF (local) to ensure provider compatibility
-      if (currency !== "RWF") {
-        const { usdToRwfAmount } = await import("@/lib/money");
-        const converted = usdToRwfAmount(amount);
-        console.log("[Flutterwave initiate] Converting USD order to RWF for MoMo:", { from: amount, to: converted });
-        amount = converted;
-        currency = "RWF";
-      }
-    } else {
-      // For Card/Apple Pay, we favor USD (global) to ensure conversion on customer's side works best
-      if (currency !== "USD") {
-        const { rwfToUsdAmount } = await import("@/lib/money");
-        const converted = rwfToUsdAmount(amount);
-        console.log("[Flutterwave initiate] Converting RWF order to USD for Card:", { from: amount, to: converted });
-        amount = converted;
-        currency = "USD";
-      }
+    // CRITICAL: Flutterwave Hosted Checkout ONLY shows 'mobilemoneyrwanda' if the currency is RWF.
+    // Since we want the user to choose between Card and MoMo on Flutterwave's site,
+    // we MUST use RWF. If the order is in USD, we convert it now.
+    if (currency !== "RWF") {
+      const { usdToRwfAmount } = await import("@/lib/money");
+      const converted = usdToRwfAmount(amount);
+      console.log("[Flutterwave initiate] Converting order to RWF to enable MoMo on FLW site:", { from: `${amount} ${currency}`, to: `${converted} RWF` });
+      amount = converted;
+      currency = "RWF";
     }
 
     const paymentLink = await createFlutterwavePaymentLink({
@@ -102,7 +87,7 @@ export async function POST(req: NextRequest) {
       customerName: profile.full_name || "Customer",
       customerPhone: profile.phone || "",
       orderDescription: `Order ${order.order_number || orderId.slice(0, 8)}`,
-      paymentOptions: method === "momo" ? "mobilemoneyrwanda" : "card,applepay,googlepay",
+      paymentOptions: "card,applepay,googlepay,mobilemoneyrwanda",
     });
 
     // Save tx_ref to order so webhook can reconcile

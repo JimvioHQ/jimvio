@@ -67,7 +67,7 @@ export function ProductCardClient({
   const [cartChecked, setCartChecked] = useState(initialInCart !== undefined);
   const [wishlistAnimating, setWishlistAnimating] = useState(false);
   const [imageError, setImageError] = useState(false);
-  const { refreshCounts, incrementCartCount } = useCartStore();
+  const { incrementCartCount, setCartCount } = useCartStore();
   const [quickViewOpen, setQuickViewOpen] = useState(false);
 
   const images = p.images ?? [];
@@ -109,7 +109,8 @@ export function ProductCardClient({
         const result = await removeProductFromCart(p.id);
         if (result.success) {
           setInCart(false);
-          refreshCounts();
+          // Decrease count locally
+          setCartCount(Math.max(0, useCartStore.getState().cartCount - 1));
           toast.success(`"${p.name}" removed from cart`);
         } else {
           toast.error(result.error || "Failed to remove from cart");
@@ -122,7 +123,7 @@ export function ProductCardClient({
         const result = await addToCart(p.id, vendorId);
         if (result.success) {
           setInCart(true);
-          refreshCounts();
+          incrementCartCount(1);
           toast.success(`"${p.name}" added to cart!`);
         } else {
           toast.error(result.error || "Failed to add to cart");

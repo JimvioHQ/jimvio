@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { TikTokFeed, FeedClip } from "@/components/influencer/tiktok-feed";
 
 export const metadata: Metadata = {
-  title: "Creator TV | Jimvio",
+  title: "Videos | Jimvio",
   description: "Watch high-conversion short videos from top creators and shop the buzz.",
 };
 

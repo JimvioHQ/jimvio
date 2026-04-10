@@ -18,7 +18,7 @@ const supabase = createClient(
 
 export async function POST(req: NextRequest) {
   try {
-    const { orderId, orderIds: rawOrderIds, payCurrency = 'USDT' } = await req.json()
+    const { orderId, orderIds: rawOrderIds, payCurrency } = await req.json()
     const orderIds: string[] = Array.isArray(rawOrderIds) ? rawOrderIds : [orderId].filter(Boolean)
 
     if (orderIds.length === 0) {

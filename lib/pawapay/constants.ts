@@ -1,1 +1,0 @@
-export { isPawaPaySandboxEnv } from "./env";

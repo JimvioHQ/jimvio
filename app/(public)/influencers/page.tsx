@@ -21,7 +21,7 @@ export default async function InfluencersPage() {
           <Link href="/influencers/browse">
             <Button variant="secondary" className="rounded-2xl bg-white/15 border border-white/20 text-white hover:bg-white/25 font-bold gap-2">
               <Users className="h-4 w-4" />
-              Browse Creators
+              Creators
             </Button>
           </Link>
           <Link href="/marketplace">
