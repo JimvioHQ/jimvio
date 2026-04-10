@@ -28,11 +28,13 @@ export function CheckoutSuccessClient({ order }: { order: Order }) {
     async function syncAndRefresh() {
       // 1. Trigger the background verification/sync (handles localhost webhook block)
       try {
-        await fetch("/api/payments/pawapay/sync-status", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ orderId: order.id, trackingId }),
-        });
+        if (order.payment_provider === "pawapay" && trackingId) {
+          await fetch("/api/payments/pawapay/sync-status", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ orderId: order.id, trackingId }),
+          });
+        }
       } catch (e) {
         /* ignore fetch error */
       }

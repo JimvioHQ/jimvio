@@ -122,7 +122,7 @@ export async function POST(request: Request) {
     let appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://jimvio.com";
     if (appUrl.includes("localhost")) appUrl = "https://jimvio.com";
 
-    const finalReturnUrl = `${appUrl}/checkout/success`;
+    const finalReturnUrl = `${appUrl}/checkout/success?order=${orderId}&order_tracking_id=${depositId}`;
 
     // Important: In v2/paymentpage, amount and currency are inside amountDetails.
     // reason must be between 1 and 50 characters.
@@ -162,6 +162,18 @@ export async function POST(request: Request) {
 
     // Response contains redirectUrl
     console.log("pawaPay v2/paymentpage Backend Success Data:", JSON.stringify(data, null, 2));
+
+    // Update order with payment provider
+    const { createClient } = await import("@supabase/supabase-js");
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+    await supabase.from("orders").update({
+      payment_provider: "pawapay",
+      gateway_used: "pawapay",
+    }).eq("id", orderId);
+
     return NextResponse.json(data);
   } catch (error: any) {
     console.error("pawaPay backend handler error:", error);

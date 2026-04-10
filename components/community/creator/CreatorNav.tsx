@@ -55,7 +55,7 @@ export function CreatorNav({
         </div>
       </div>
 
-      <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-2 space-y-1">
+      <div className="flex overflow-x-auto lg:flex-col lg:overflow-visible gap-2 lg:gap-0 lg:space-y-1 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-2 scrollbar-none snap-x">
         {links.map(({ href, label, icon: Icon }) => {
           const active = pathname === href || pathname.startsWith(href + "/");
           return (
@@ -63,7 +63,7 @@ export function CreatorNav({
               key={href}
               href={href}
               className={cn(
-                "flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-bold transition-colors",
+                "flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-bold transition-colors whitespace-nowrap shrink-0 snap-center",
                 active
                   ? "bg-[var(--color-accent-light)] text-[var(--color-accent)]"
                   : "text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-secondary)]"
@@ -76,7 +76,7 @@ export function CreatorNav({
         })}
       </div>
 
-      <div className="flex flex-col gap-2 px-1">
+      <div className="flex lg:flex-col items-center lg:items-start gap-4 lg:gap-2 px-1 text-center lg:text-left justify-center lg:justify-start">
         <Link
           href={`/communities/${slug}/workspace`}
           className="text-xs font-bold text-[var(--color-accent)] hover:underline"
