@@ -70,7 +70,7 @@ export async function getTopVendors(limit = 4, options?: { requireActiveProducts
         total_sales,
         business_country,
         created_at,
-        products!inner ( id )
+        products ( id, name, slug, images, price, currency )
       `,
       )
       .eq("is_active", true)
@@ -78,44 +78,17 @@ export async function getTopVendors(limit = 4, options?: { requireActiveProducts
       .eq("products.is_active", true)
       .order("total_sales", { ascending: false })
       .order("created_at", { ascending: false })
-      .limit(Math.min(500, Math.max(limit * 40, 120)));
+      .limit(limit);
 
     if (error) {
-      console.warn("getTopVendors (!inner products) failed, using all vendors:", error.message);
+      console.warn("getTopVendors failed, using shallow fetch:", error.message);
       return getTopVendors(limit, { requireActiveProducts: false });
     }
 
-    const byId = new Map<
-      string,
-      {
-        id: string;
-        business_name: string;
-        business_slug: string;
-        business_logo: string | null;
-        rating: number;
-        total_sales: number;
-        business_country: string;
-        created_at: string;
-      }
-    >();
-    for (const row of data ?? []) {
-      const r = row as {
-        id: string;
-        business_name: string;
-        business_slug: string;
-        business_logo: string | null;
-        rating: number;
-        total_sales: number;
-        business_country: string;
-        created_at: string;
-        products?: unknown;
-      };
-      if (!byId.has(r.id)) {
-        const { products: _p, ...rest } = r;
-        byId.set(r.id, rest);
-      }
-    }
-    return [...byId.values()].slice(0, limit);
+    return (data ?? []).map((v: any) => ({
+      ...v,
+      products: (v.products || []).slice(0, 3)
+    }));
   }
 
   const { data } = await db

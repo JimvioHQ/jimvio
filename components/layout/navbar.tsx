@@ -61,20 +61,27 @@ interface NavbarProps {
 }
 
 function ensureCoreNavLinks(links: NavLinkConfig[]): NavLinkConfig[] {
-  // Filter out the legacy /clips link and any links that are already in the 'Explore' (solutions) dropdown
-  const exploreHrefs = ["/influencers/browse", "/ugc", "/vendors", "/affiliates", "/influencers"];
+  // Only filter out the legacy /clips link and ensure we don't have duplicates
   let updated = links.filter(l => {
     const normHref = l.href.replace(/\/$/, "") || "/";
-    return normHref !== "/clips" && !exploreHrefs.includes(normHref);
+    return normHref !== "/clips";
   });
   
   const norm = (href: string) => href.replace(/\/$/, "") || "/";
 
-  // Only keep very high level links in the main bar
   // If marketplace isn't there, add it
   if (!updated.some((l) => norm(l.href) === "/marketplace")) {
     updated.push({ label: "Marketplace", href: "/marketplace" });
   }
+
+  // Ensure these core links are visible if they aren't already
+  const coreHrefs = ["/communities", "/ugc"];
+  coreHrefs.forEach(href => {
+    if (!updated.some(l => norm(l.href) === href)) {
+      if (href === "/communities") updated.push({ label: "Communities", href: "/communities" });
+      if (href === "/ugc") updated.push({ label: "Missions", href: "/ugc" });
+    }
+  });
 
   // Move home to front if present
   const homeIdx = updated.findIndex((l) => norm(l.href) === "/");
@@ -191,7 +198,10 @@ export function Navbar({ user, marketing }: NavbarProps) {
 
   const solutions = [
     { title: "Marketplace", desc: "Discover premium products worldwide", href: "/marketplace", icon: ShoppingBag, color: "text-blue-500" },
-    { title: "Suppliers", desc: "Tools for vendors and businesses", href: "/vendors", icon: Factory, color: "text-emerald-500" },
+    { title: "Communities", desc: "Join curated trade groups", href: "/communities", icon: Users, color: "text-emerald-500" },
+    { title: "UGC Missions", desc: "Create content and earn", href: "/ugc", icon: Megaphone, color: "text-violet-500" },
+    { title: "Explore Stores", desc: "Browse our verified vendors", href: "/vendors", icon: Factory, color: "text-amber-500" },
+    { title: "Affiliate Hub", desc: "Manage your referral empire", href: "/affiliates", icon: TrendingUp, color: "text-purple-500" },
   ];
 
   // Ordered mobile nav links as requested

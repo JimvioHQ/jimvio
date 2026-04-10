@@ -148,37 +148,80 @@ export function FlashDeals({ products }: { products: any[] }) {
     <motion.div
       initial="hidden" whileInView="show" viewport={{ once: true, margin: "-60px" }}
       variants={stagger}
-      className={cn("rounded-[36px] overflow-hidden", glassLight)}
+      className={cn("rounded-[36px] overflow-hidden relative", glassLight)}
     >
-      <div className="px-6 py-5 border-b border-white/40 flex items-center gap-4">
-        <div className="h-10 w-10 rounded-xl bg-orange-50 flex items-center justify-center">
-          <Zap className="h-5 w-5 text-[#f97316] fill-[#f97316]" />
+      <div className="absolute top-0 right-0 p-4">
+         <div className="flex items-center gap-1.5 px-3 py-1 bg-orange-500/10 rounded-full border border-orange-500/20">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
+            </span>
+            <span className="text-[10px] font-black text-orange-600 uppercase tracking-wider">High Demand</span>
+         </div>
+      </div>
+
+      <div className="px-6 py-6 border-b border-white/40 flex items-center gap-4">
+        <div className="h-12 w-12 rounded-2xl bg-orange-50 flex items-center justify-center shadow-inner">
+          <Zap className="h-6 w-6 text-[#f97316] fill-[#f97316] animate-pulse" />
         </div>
         <div>
-          <p className="text-[9px] font-black text-zinc-400 uppercase tracking-[0.25em]">Live · Updated daily</p>
-          <h3 className="text-[18px] font-black text-zinc-900 leading-tight tracking-tight">Flash Trade Deals</h3>
+          <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.25em] mb-1">Live · Refreshed daily</p>
+          <h3 className="text-[22px] font-black text-zinc-900 leading-tight tracking-tight">Flash Trade Deals</h3>
         </div>
       </div>
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 p-5">
+
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 p-6">
         {products.slice(0, 5).map((p, i) => {
           const dealPct = stableDiscountPercent(p.id);
-          const heat = Math.min(92, 45 + (dealPct % 40));
+          const heat = Math.min(94, 65 + (dealPct % 30));
+          const img = p.images?.[0] || null;
+
           return (
             <motion.div key={p.id} variants={scaleIn}>
-              <motion.div whileHover={{ y: -4, scale: 1.02 }} whileTap={{ scale: 0.97 }}>
-                <Link href={`/marketplace/${p.slug}`} className="block rounded-2xl p-3 hover:bg-white/70 transition-all border border-transparent hover:border-white/60 hover:shadow-md backdrop-blur-sm">
-                  <div className="aspect-square bg-zinc-50/80 rounded-xl mb-3 flex items-center justify-center relative overflow-hidden border border-zinc-100">
-                    <Package className="h-7 w-7 text-zinc-200" />
-                    <div className="absolute top-2 right-2 bg-[#f97316] text-white text-[10px] font-black px-2 py-0.5 rounded-lg shadow-lg shadow-orange-500/30">
+              <motion.div whileHover={{ y: -6, scale: 1.03 }} whileTap={{ scale: 0.97 }}>
+                <Link href={`/marketplace/${p.slug}`} className="group block rounded-[28px] p-3 bg-white/40 hover:bg-white transition-all border border-transparent hover:border-white hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] backdrop-blur-sm">
+                  <div className="aspect-square bg-white rounded-2xl mb-4 flex items-center justify-center relative overflow-hidden border border-zinc-100/50 shadow-sm">
+                    {img ? (
+                      <img
+                        src={img}
+                        alt={p.name}
+                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                      />
+                    ) : (
+                      <Package className="h-8 w-8 text-zinc-200" />
+                    )}
+                    
+                    <div className="absolute top-2.5 right-2.5 bg-[#f97316] text-white text-[11px] font-black px-2.5 py-1 rounded-xl shadow-lg shadow-orange-500/40 border border-white/20">
                       -{dealPct}%
                     </div>
                   </div>
-                  <h4 className="text-[12px] font-black text-zinc-800 mb-1.5 line-clamp-1">{p.name || "Refined Goods"}</h4>
-                  <div className="text-[14px] font-black text-zinc-900 mb-1">{formatDisplayMoney(Number(p.price), (p as any).currency ?? "RWF")}</div>
-                  <div className="w-full h-1.5 bg-zinc-100 rounded-full overflow-hidden mb-1">
-                    <div className="h-full bg-gradient-to-r from-[#f97316] to-[#fb923c] rounded-full" style={{ width: `${heat - i * 5}%` }} />
+
+                  <div className="space-y-2 px-1">
+                    <h4 className="text-[13px] font-black text-zinc-800 line-clamp-1 group-hover:text-orange-600 transition-colors uppercase tracking-tight">
+                      {p.name || "Refined Goods"}
+                    </h4>
+                    
+                    <div className="flex items-baseline gap-1.5">
+                       <span className="text-[16px] font-black text-zinc-950 tracking-tighter">
+                         {formatDisplayMoney(Number(p.price), (p as any).currency ?? "RWF")}
+                       </span>
+                    </div>
+
+                    <div className="pt-2">
+                       <div className="flex justify-between items-center mb-1.5">
+                          <span className="text-[9px] font-black text-orange-600 uppercase tracking-widest">{heat}% Sold</span>
+                          {heat > 80 && <span className="text-[9px] font-black text-orange-500 animate-pulse uppercase">Hot</span>}
+                       </div>
+                       <div className="w-full h-2 bg-zinc-100 rounded-full overflow-hidden border border-zinc-50 shadow-inner">
+                          <motion.div 
+                            initial={{ width: 0 }}
+                            whileInView={{ width: `${heat}%` }}
+                            transition={{ duration: 1, delay: 0.2 }}
+                            className="h-full bg-gradient-to-r from-orange-400 via-orange-500 to-amber-500 rounded-full shadow-[0_0_8px_rgba(249,115,22,0.4)]" 
+                          />
+                       </div>
+                    </div>
                   </div>
-                  <div className="text-[9px] text-zinc-400 font-black uppercase tracking-widest"><span className="text-[#f97316]">{heat - i * 5}%</span> interest</div>
                 </Link>
               </motion.div>
             </motion.div>
