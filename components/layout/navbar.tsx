@@ -61,10 +61,8 @@ interface NavbarProps {
 }
 
 function ensureCoreNavLinks(links: NavLinkConfig[]): NavLinkConfig[] {
-  // Move almost all links to the Explore dropdown as requested
+  // Hide specific links from the main bar that should stay in Explore
   const hideHrefs = [
-    "/marketplace",
-    "/communities",
     "/ugc",
     "/vendors",
     "/affiliates",
@@ -80,6 +78,14 @@ function ensureCoreNavLinks(links: NavLinkConfig[]): NavLinkConfig[] {
   });
   
   const norm = (href: string) => href.replace(/\/$/, "") || "/";
+
+  // Ensure Marketplace and Communities are present in the main bar
+  if (!updated.some(l => norm(l.href) === "/marketplace")) {
+    updated.push({ label: "Marketplace", href: "/marketplace" });
+  }
+  if (!updated.some(l => norm(l.href) === "/communities")) {
+    updated.push({ label: "Communities", href: "/communities" });
+  }
 
   // Move home to front if present
   const homeIdx = updated.findIndex((l) => norm(l.href) === "/");
@@ -195,19 +201,23 @@ export function Navbar({ user, marketing }: NavbarProps) {
   );
 
   const solutions = [
-    { title: "Marketplace", desc: "Discover premium products worldwide", href: "/marketplace", icon: ShoppingBag, color: "text-blue-500" },
-    { title: "Communities", desc: "Join curated trade groups", href: "/communities", icon: Users, color: "text-emerald-500" },
-    { title: "Affiliate Hub", desc: "Manage your referral empire", href: "/affiliates", icon: TrendingUp, color: "text-purple-500" },
-    { title: "Influencers", desc: "Connect with top creators", href: "/influencers/browse", icon: User, color: "text-pink-500" },
-    { title: "Explore Stores", desc: "Browse our verified vendors", href: "/vendors", icon: Factory, color: "text-amber-500" },
-    { title: "UGC Missions", desc: "Create content and earn", href: "/ugc", icon: Megaphone, color: "text-violet-500" },
+    { title: "Videos", desc: "Watch top creator shorts and clips", href: "/shorts", icon: Clapperboard, color: "text-red-500" },
+    { title: "Campaigns", desc: "Participate in active UGC missions", href: "/ugc", icon: Megaphone, color: "text-violet-500" },
+    { title: "Suppliers", desc: "Tools for vendors and businesses", href: "/vendors", icon: Factory, color: "text-emerald-500" },
+    { title: "Affiliate", desc: "Manage your referral empire", href: "/affiliates", icon: TrendingUp, color: "text-purple-500" },
+    { title: "Creators", desc: "Connect with verified top talent", href: "/influencers/browse", icon: User, color: "text-pink-500" },
   ];
 
   // Ordered mobile nav links as requested
   const orderedMobileLinks = [
     { label: "Home", href: "/", icon: Home },
-    { label: "Explore", href: "/marketplace", icon: Globe }, // Point to marketplace or a general explore
-    { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+    { label: "Marketplace", href: "/marketplace", icon: ShoppingBag },
+    { label: "Videos", href: "/shorts", icon: Clapperboard },
+    { label: "Campaigns", href: "/ugc", icon: Megaphone },
+    { label: "Communities", href: "/communities", icon: Users },
+    { label: "Affiliate", href: "/affiliates", icon: TrendingUp },
+    { label: "Creators", href: "/influencers/browse", icon: User },
+    { label: "Suppliers", href: "/vendors", icon: Factory },
   ];
 
   return (
