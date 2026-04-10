@@ -83,6 +83,9 @@ export function CreatorSpacesPageClient({ communityId }: { communityId: string }
   const [spaceError, setSpaceError] = useState<string | null>(null);
   const [roomError, setRoomError] = useState<string | null>(null);
 
+  const [editingSpaceId, setEditingSpaceId] = useState<string | null>(null);
+  const [editingRoomId, setEditingRoomId] = useState<string | null>(null);
+
   const [sName, setSName] = useState("");
   const [sDesc, setSDesc] = useState("");
   const [sIcon, setSIcon] = useState("💬");
@@ -100,16 +103,27 @@ export function CreatorSpacesPageClient({ communityId }: { communityId: string }
     try {
       const supabase = createClient();
       const base = slugify(sName.trim()) || "space";
-      const { error } = await supabase.from("spaces").insert({
-        community_id: communityId,
+      const data = {
         name: sName.trim(),
-        slug: `${base}-${Date.now().toString(36)}`.slice(0, 80),
         description: sDesc.trim() || null,
         icon: sIcon,
         color: sColor,
         access_type: sAccess,
-        sort_order: spaces.length,
-      });
+      };
+
+      let error;
+      if (editingSpaceId) {
+        const { error: err } = await supabase.from("spaces").update(data).eq("id", editingSpaceId);
+        error = err;
+      } else {
+        const { error: err } = await supabase.from("spaces").insert({
+          ...data,
+          community_id: communityId,
+          slug: `${base}-${Date.now().toString(36)}`.slice(0, 80),
+          sort_order: spaces.length,
+        });
+        error = err;
+      }
       if (error) {
         setSpaceError(supabaseErrorMessage(error));
         return;
@@ -132,15 +146,26 @@ export function CreatorSpacesPageClient({ communityId }: { communityId: string }
     try {
       const supabase = createClient();
       const base = slugify(rName.trim()) || "room";
-      const { error } = await supabase.from("rooms").insert({
-        community_id: communityId,
-        space_id: roomSpaceId,
+      const data = {
         name: rName.trim(),
-        slug: `${base}-${Date.now().toString(36)}`.slice(0, 80),
         room_type: rType,
         access_type: rAccess,
-        sort_order: rooms.filter((x) => x.space_id === roomSpaceId).length,
-      });
+      };
+
+      let error;
+      if (editingRoomId) {
+        const { error: err } = await supabase.from("rooms").update(data).eq("id", editingRoomId);
+        error = err;
+      } else {
+        const { error: err } = await supabase.from("rooms").insert({
+          ...data,
+          community_id: communityId,
+          space_id: roomSpaceId,
+          slug: `${base}-${Date.now().toString(36)}`.slice(0, 80),
+          sort_order: rooms.filter((x) => x.space_id === roomSpaceId).length,
+        });
+        error = err;
+      }
       if (error) {
         setRoomError(supabaseErrorMessage(error));
         return;
@@ -168,6 +193,9 @@ export function CreatorSpacesPageClient({ communityId }: { communityId: string }
           className="rounded-xl bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-black"
           onClick={() => {
             setSpaceError(null);
+            setEditingSpaceId(null);
+            setSName("");
+            setSDesc("");
             setSpaceModal(true);
           }}
         >
@@ -181,7 +209,41 @@ export function CreatorSpacesPageClient({ communityId }: { communityId: string }
         </div>
       ) : (
         <>
-          <SpaceBuilder communityId={communityId} spaces={spaces} rooms={rooms} onUpdate={load} />
+          <SpaceBuilder
+            communityId={communityId}
+            spaces={spaces}
+            rooms={rooms}
+            onUpdate={load}
+            onEditSpace={(s) => {
+              setEditingSpaceId(s.id);
+              setSName(s.name);
+              setSDesc((s as any).description || "");
+              setSIcon(s.icon || "💬");
+              setSColor((s as any).color || "#7c3aed");
+              setSAccess(s.access_type as any);
+              setSpaceModal(true);
+            }}
+            onDeleteSpace={async (s) => {
+              if (!confirm(`Are you sure you want to delete the space "${s.name}"?`)) return;
+              const supabase = createClient();
+              await supabase.from("spaces").delete().eq("id", s.id);
+              await load();
+            }}
+            onEditRoom={(r) => {
+              setEditingRoomId(r.id);
+              setRoomSpaceId(r.space_id);
+              setRName(r.name);
+              setRType(r.room_type);
+              setRAccess(r.access_type as any);
+              setRoomModal(true);
+            }}
+            onDeleteRoom={async (r) => {
+              if (!confirm(`Are you sure you want to delete the room "${r.name}"?`)) return;
+              const supabase = createClient();
+              await supabase.from("rooms").delete().eq("id", r.id);
+              await load();
+            }}
+          />
           <div className="flex flex-col gap-4 mt-6">
             <h3 className="text-xs font-black uppercase text-[var(--color-text-muted)] tracking-widest pl-1">Quick Add By Space</h3>
             {spaces.map((s) => (
@@ -190,19 +252,19 @@ export function CreatorSpacesPageClient({ communityId }: { communityId: string }
                      <span className="text-xl">{s.icon}</span> {s.name}
                   </h4>
                   <div className="flex flex-wrap gap-2">
-                      <Button type="button" variant="outline" className="rounded-xl border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-accent)] hover:text-white hover:border-[var(--color-accent)] text-[10px] uppercase font-black tracking-wider transition-all h-9" onClick={() => { setRoomError(null); setRType("course"); setRoomSpaceId(s.id); setRoomModal(true); }}>
+                      <Button type="button" variant="outline" className="rounded-xl border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-accent)] hover:text-white hover:border-[var(--color-accent)] text-[10px] uppercase font-black tracking-wider transition-all h-9" onClick={() => { setEditingRoomId(null); setRName(""); setRoomError(null); setRType("course"); setRoomSpaceId(s.id); setRoomModal(true); }}>
                         + Add Course
                       </Button>
-                      <Button type="button" variant="outline" className="rounded-xl border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-accent)] hover:text-white hover:border-[var(--color-accent)] text-[10px] uppercase font-black tracking-wider transition-all h-9" onClick={() => { setRoomError(null); setRType("tasks"); setRoomSpaceId(s.id); setRoomModal(true); }}>
+                      <Button type="button" variant="outline" className="rounded-xl border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-accent)] hover:text-white hover:border-[var(--color-accent)] text-[10px] uppercase font-black tracking-wider transition-all h-9" onClick={() => { setEditingRoomId(null); setRName(""); setRoomError(null); setRType("tasks"); setRoomSpaceId(s.id); setRoomModal(true); }}>
                         + Add Task Room
                       </Button>
-                      <Button type="button" variant="outline" className="rounded-xl border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-accent)] hover:text-white hover:border-[var(--color-accent)] text-[10px] uppercase font-black tracking-wider transition-all h-9" onClick={() => { setRoomError(null); setRType("resources"); setRoomSpaceId(s.id); setRoomModal(true); }}>
+                      <Button type="button" variant="outline" className="rounded-xl border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-accent)] hover:text-white hover:border-[var(--color-accent)] text-[10px] uppercase font-black tracking-wider transition-all h-9" onClick={() => { setEditingRoomId(null); setRName(""); setRoomError(null); setRType("resources"); setRoomSpaceId(s.id); setRoomModal(true); }}>
                         + Add Resources
                       </Button>
-                      <Button type="button" variant="outline" className="rounded-xl border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-accent)] hover:text-white hover:border-[var(--color-accent)] text-[10px] uppercase font-black tracking-wider transition-all h-9" onClick={() => { setRoomError(null); setRType("chat"); setRoomSpaceId(s.id); setRoomModal(true); }}>
+                      <Button type="button" variant="outline" className="rounded-xl border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-accent)] hover:text-white hover:border-[var(--color-accent)] text-[10px] uppercase font-black tracking-wider transition-all h-9" onClick={() => { setEditingRoomId(null); setRName(""); setRoomError(null); setRType("chat"); setRoomSpaceId(s.id); setRoomModal(true); }}>
                         + Add Chat Room
                       </Button>
-                      <Button type="button" variant="outline" className="rounded-xl border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-accent)] hover:text-white hover:border-[var(--color-accent)] text-[10px] uppercase font-black tracking-wider transition-all h-9" onClick={() => { setRoomError(null); setRType("posts"); setRoomSpaceId(s.id); setRoomModal(true); }}>
+                      <Button type="button" variant="outline" className="rounded-xl border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-accent)] hover:text-white hover:border-[var(--color-accent)] text-[10px] uppercase font-black tracking-wider transition-all h-9" onClick={() => { setEditingRoomId(null); setRName(""); setRoomError(null); setRType("posts"); setRoomSpaceId(s.id); setRoomModal(true); }}>
                         + Add Forum / Posts
                       </Button>
                   </div>

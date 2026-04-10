@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
-import { ChevronDown, ChevronUp, GripVertical, Settings, Sparkles, X } from "lucide-react";
+import { ChevronDown, ChevronUp, GripVertical, Settings, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import { DashboardCourseStudio } from "@/components/community/rooms/CourseRoom";
@@ -29,11 +29,19 @@ export function SpaceBuilder({
   spaces,
   rooms,
   onUpdate,
+  onEditSpace,
+  onDeleteSpace,
+  onEditRoom,
+  onDeleteRoom,
 }: {
   communityId: string;
   spaces: SpaceRow[];
   rooms: RoomRow[];
   onUpdate: () => void;
+  onEditSpace: (s: SpaceRow) => void;
+  onDeleteSpace: (s: SpaceRow) => void;
+  onEditRoom: (r: RoomRow) => void;
+  onDeleteRoom: (r: RoomRow) => void;
 }) {
   const [open, setOpen] = useState<Record<string, boolean>>({});
   const [editingCourseId, setEditingCourseId] = useState<string | null>(null);
@@ -108,6 +116,12 @@ export function SpaceBuilder({
                   <span className="font-black text-[var(--color-text-primary)] truncate">{s.name}</span>
                   <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-[var(--color-accent-light)] text-[var(--color-accent)]">{s.access_type}</span>
                 </button>
+                <Button type="button" size="icon" variant="ghost" className="h-7 w-7 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]" onClick={(e) => { e.stopPropagation(); onEditSpace(s); }}>
+                  <Pencil className="h-3 w-3" />
+                </Button>
+                <Button type="button" size="icon" variant="ghost" className="h-7 w-7 text-[var(--color-danger)] hover:text-[var(--color-danger)] hover:bg-[var(--color-danger-light)]/20" onClick={(e) => { e.stopPropagation(); onDeleteSpace(s); }}>
+                  <Trash2 className="h-3 w-3" />
+                </Button>
               </div>
               {isOpen && (
                 <ul className="divide-y divide-[var(--color-border)]">
@@ -128,6 +142,12 @@ export function SpaceBuilder({
                         </button>
                       )}
                       <span className="text-[10px] font-bold uppercase text-[var(--color-text-muted)]">{r.room_type}</span>
+                      <Button type="button" size="icon" variant="ghost" className="h-6 w-6 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] ml-2" onClick={() => onEditRoom(r)}>
+                        <Pencil className="h-3 w-3" />
+                      </Button>
+                      <Button type="button" size="icon" variant="ghost" className="h-6 w-6 text-[var(--color-danger)] hover:text-[var(--color-danger)] hover:bg-[var(--color-danger-light)]/20" onClick={() => onDeleteRoom(r)}>
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
                     </li>
                   ))}
                 </ul>

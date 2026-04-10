@@ -11,6 +11,7 @@ import {
   Users,
   Wallet,
   Shield,
+  Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -21,6 +22,7 @@ const LINKS = (communityId: string, slug: string) => [
   { href: `/creator/${communityId}/content`, label: "Content", icon: BookOpen },
   { href: `/creator/${communityId}/earnings`, label: "Earnings", icon: Wallet },
   { href: `/creator/${communityId}/moderation`, label: "Moderation", icon: Shield },
+  { href: `/creator/${communityId}/settings`, label: "Settings", icon: Settings },
 ];
 
 export function CreatorNav({
