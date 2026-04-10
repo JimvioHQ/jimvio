@@ -6,10 +6,16 @@ export async function GET(req: NextRequest) {
   if (!secret) {
     return NextResponse.json({ error: "CRON_SECRET not configured" }, { status: 503 });
   }
+  const { searchParams } = new URL(req.url);
+  const urlParamsSecret = searchParams.get("secret");
   const auth = req.headers.get("authorization");
-  if (auth !== `Bearer ${secret}`) {
+
+  const isAuthorized = (auth === `Bearer ${secret}`) || (urlParamsSecret === secret);
+
+  if (!isAuthorized) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
   const result = await syncAllShopifyVendors();
   return NextResponse.json({ ok: true, ...result, timestamp: new Date().toISOString() });
 }

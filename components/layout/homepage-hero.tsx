@@ -14,18 +14,13 @@ import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle } from 
 
 /* ─── Types ─────────────────────────────────────────────── */
 type Supplier = { business_name?: string; business_slug?: string; rating?: number };
-type SpotlightCreator = { full_name?: string; total_earnings?: number; total_clicks?: number; total_conversions?: number } | null | undefined;
-type ViralClip = { id: string; title: string; video_url: string; thumbnail_url?: string; total_views?: number; total_shares?: number; vendors?: { id: string; business_name: string; logo_url?: string } };
 
 interface HomepageHeroProps {
   trustBarItems: { title: string; desc: string }[];
   heroKeywords: string[];
   heroCampaigns: string[];
   socialBar: { successRate: string };
-  viralClips: ViralClip[];
-  videos: any[];
   topSuppliersSidebar: Supplier[];
-  spotlightCreator: SpotlightCreator;
   primaryCta: { label: string; href: string };
   platformStats?: {
     totalUsers: number;
@@ -37,61 +32,7 @@ interface HomepageHeroProps {
   };
 }
 
-function VideoMarquee({ videos, mobile = false }: { videos: any[]; mobile?: boolean }) {
-  if (!videos?.length) return null;
-  // Duplicate for seamless loop
-  const list = [...videos, ...videos, ...videos, ...videos];
 
-  return (
-    <div className={cn(
-      "relative w-full overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)]",
-      mobile ? "h-[220px] py-1" : "h-[450px]"
-    )}>
-      <motion.div
-        animate={{ x: [0, -180 * videos.length] }}
-        transition={{
-          duration: videos.length * 3.5,
-          repeat: Infinity,
-          ease: "linear",
-        }}
-        className="flex gap-4 py-2"
-      >
-        {list.map((v, i) => (
-          <Link
-            key={`${v.id}-${i}`}
-            href={`/shorts?clip=${v.id}`}
-            className={cn(
-               "group relative shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-zinc-900 shadow-xl transition-transform hover:scale-[1.05]",
-               mobile ? "aspect-[9/16] h-[200px]" : "aspect-[9/16] h-[400px]"
-            )}
-          >
-            <img
-              src={v.thumbnail_url || v.video_url?.replace(".mp4", ".jpg") || "/hero-bg.png"}
-              alt=""
-              className="h-full w-full object-cover opacity-80 transition-transform duration-700 group-hover:scale-110 group-hover:opacity-100"
-            />
-            <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors" />
-            
-            <div className="absolute inset-x-0 bottom-0 p-2 sm:p-3 bg-gradient-to-t from-black/60 to-transparent">
-              <div className="flex items-center gap-1.5">
-                <div className="h-4 w-4 sm:h-5 sm:w-5 rounded-full border border-white/50 bg-white/20 backdrop-blur-md overflow-hidden shrink-0">
-                  {v.creator?.avatar && <img src={v.creator.avatar} alt="" className="h-full w-full object-cover" />}
-                </div>
-                <p className="text-[8px] sm:text-[9px] font-black text-white truncate drop-shadow-md">{v.title}</p>
-              </div>
-            </div>
-
-            {/* Live indicator for mobile hero appeal */}
-            <div className="absolute top-2 right-2 flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-black/40 backdrop-blur-md">
-              <div className="h-1 w-1 rounded-full bg-orange-500 animate-pulse" />
-              <span className="text-[7px] font-black text-white uppercase tracking-tighter">Live</span>
-            </div>
-          </Link>
-        ))}
-      </motion.div>
-    </div>
-  );
-}
 
 /* ─── Globe Canvas ──────────────────────────────────────── */
 function GlobeCanvas() {
@@ -249,10 +190,7 @@ function GlobeCanvas() {
 export function HomepageHero({
   heroCampaigns,
   socialBar,
-  viralClips,
-  videos,
   topSuppliersSidebar,
-  spotlightCreator,
   primaryCta,
   platformStats,
 }: HomepageHeroProps) {
@@ -284,31 +222,7 @@ export function HomepageHero({
             </DialogHeader>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 relative z-10">
-              <Link href="/communities" className="bg-zinc-50 hover:bg-white p-4 rounded-2xl border border-transparent hover:border-blue-100 hover:shadow-lg hover:shadow-blue-500/5 transition-all group flex flex-col gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100 text-blue-600 group-hover:scale-105 transition-transform">
-                  <Users className="h-5 w-5" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-black text-zinc-900 group-hover:text-blue-600 transition-colors">Community Program</h3>
-                  <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">
-                    {platformStats?.totalCommunities || "12+"} ACTIVE COMMUNITIES
-                  </p>
-                  <p className="text-[11px] font-semibold text-zinc-500 mt-1 leading-snug">Monetize your circle with high-value products.</p>
-                </div>
-              </Link>
 
-              <Link href="/ugc" className="bg-zinc-50 hover:bg-white p-4 rounded-2xl border border-transparent hover:border-purple-100 hover:shadow-lg hover:shadow-purple-500/5 transition-all group flex flex-col gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-100 text-purple-600 group-hover:scale-105 transition-transform">
-                  <Video className="h-5 w-5" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-black text-zinc-900 group-hover:text-purple-600 transition-colors">UGC & Clipping</h3>
-                  <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">
-                    {platformStats?.totalCampaigns || "150+"} LIVE CAMPAIGNS
-                  </p>
-                  <p className="text-[11px] font-semibold text-zinc-500 mt-1 leading-snug">Turn your short-form creativity into currency.</p>
-                </div>
-              </Link>
 
               <Link href="/influencers/program" className="bg-zinc-50 hover:bg-white p-4 rounded-2xl border border-transparent hover:border-pink-100 hover:shadow-lg hover:shadow-pink-500/5 transition-all group flex flex-col gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-pink-100 text-pink-600 group-hover:scale-105 transition-transform">
@@ -387,7 +301,6 @@ export function HomepageHero({
           <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar -mx-5 px-5 w-full justify-center">
             {[
               { icon: ShoppingBag, text: "Explore Marketplace", href: "/marketplace" },
-              { icon: TrendingUp, text: "Creators Hub", href: "/influencers/browse" },
             ].map((item) => (
               <Link key={item.text} href={item.href} className="shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/60 border border-zinc-100 transition-colors backdrop-blur-sm shadow-sm">
                 <item.icon className="h-3.5 w-3.5 text-zinc-500" />
@@ -396,9 +309,7 @@ export function HomepageHero({
             ))}
           </div>
 
-          <div className="w-full mt-4">
-             <VideoMarquee videos={videos} mobile />
-          </div>
+
         </div>
       </section>
 
@@ -472,8 +383,7 @@ export function HomepageHero({
               className="flex flex-wrap gap-2 pt-4"
             >
               {[
-{ icon: ShoppingBag, text: "Explore Marketplace", href: "/marketplace" },
-              { icon: TrendingUp, text: "Creators Hub", href: "/influencers/browse" },
+                { icon: ShoppingBag, text: "Explore Marketplace", href: "/marketplace" },
               ].map((item) => (
                 <Link key={item.text} href={item.href} className="flex items-center gap-2.5 px-4 py-4 rounded-xl bg-white/80 border border-orange-400 hover:bg-white transition-all text-[11px] font-black backdrop-blur-sm">
                   <item.icon className={cn("h-4 w-4")} />
@@ -483,19 +393,7 @@ export function HomepageHero({
             </motion.div>
           </div>
 
-          {/* Right column: Video Marquee */}
-          <motion.div 
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.5, duration: 0.8 }}
-            className="hidden lg:block h-full relative"
-          >
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-[800px]">
-                <VideoMarquee videos={videos} />
-              </div>
-            </div>
-          </motion.div>
+
         </div>
       </section>
     </>

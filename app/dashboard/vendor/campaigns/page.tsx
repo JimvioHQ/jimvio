@@ -5,7 +5,7 @@ import Link from 'next/link';
 import type { UGCCampaign } from '@/types/ugc';
 import { 
   Plus, Eye, Target, Video, Wallet, ArrowRight,
-  TrendingUp, CircleDollarSign, BarChart3, AlertCircle 
+  TrendingUp, CircleDollarSign, BarChart3, AlertCircle, Trash2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -53,6 +53,21 @@ export default function BrandCampaignsPage() {
       alert("Error: " + e.message);
     } finally {
       setFundingId(null);
+    }
+  }
+
+  async function handleDeleteCampaign(id: string) {
+    if (!confirm("Are you sure you want to delete this campaign? This action cannot be undone.")) return;
+    try {
+      const res = await fetch(`/api/ugc/campaigns/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setCampaigns(prev => prev.filter(c => c.id !== id));
+      } else {
+        const json = await res.json();
+        alert("Error: " + (json.error || 'Failed to delete campaign'));
+      }
+    } catch (e: any) {
+      alert("Error: " + e.message);
     }
   }
 
@@ -193,6 +208,13 @@ export default function BrandCampaignsPage() {
                            <Link href={`/dashboard/vendor/campaigns/${c.id}`} className="w-full md:w-36">
                               <Button variant="outline" className="w-full rounded-xl text-xs font-semibold h-10 border-[var(--color-border)]">Edit Blueprints</Button>
                            </Link>
+                           <Button 
+                             variant="ghost" 
+                             onClick={() => handleDeleteCampaign(c.id)}
+                             className="w-full md:w-36 rounded-xl text-xs font-semibold h-10 text-red-500 hover:bg-red-50 hover:text-red-600"
+                           >
+                             <Trash2 className="h-4 w-4 mr-2" /> Delete
+                           </Button>
                         </>
                       ) : (
                         <>
@@ -202,13 +224,13 @@ export default function BrandCampaignsPage() {
                                 {pendingReviews > 0 && <span className="absolute -top-2 -right-2 h-5 min-w-[20px] rounded-full bg-red-500 text-white text-[10px] flex items-center justify-center px-1 font-black ring-2 ring-[var(--color-surface)] animate-bounce">{pendingReviews}</span>}
                               </Button>
                            </Link>
-                           <Link href={`/dashboard/vendor/campaigns/${c.id}`} className="w-full md:w-36">
-                              <Button variant="outline" className="w-full rounded-xl text-xs font-semibold h-10 border-[var(--color-border)] group">
-                                View Analytics <BarChart3 className="h-3.5 w-3.5 ml-2 opacity-50 group-hover:opacity-100 transition-opacity" />
-                              </Button>
-                           </Link>
-                        </>
-                      )}
+                            <Link href={`/dashboard/vendor/campaigns/${c.id}`} className="w-full md:w-36">
+                               <Button variant="outline" className="w-full rounded-xl text-xs font-semibold h-10 border-[var(--color-border)] group">
+                                 View Analytics <BarChart3 className="h-3.5 w-3.5 ml-2 opacity-50 group-hover:opacity-100 transition-opacity" />
+                               </Button>
+                            </Link>
+                         </>
+                       )}
                     </div>
                     
                   </div>

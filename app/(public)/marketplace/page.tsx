@@ -44,15 +44,11 @@ export default async function MarketplacePage({ searchParams }: PageProps) {
     catalog: isShopifyOnly ? "shopify" : undefined,
   };
 
-  const [categories, coreProductsResult, shopifyCount, viralClips, topCreators, vendors, vendorCount, listingCount, cartProductIds, followedVendorIds] =
+  const [categories, coreProductsResult, shopifyCount, listingCount, cartProductIds, followedVendorIds] =
     await Promise.all([
       getMarketplaceCategories().catch(() => []),
       getProducts(query).catch(() => ({ products: [], total: 0 })),
       countActiveShopifyProducts().catch(() => 0),
-      getViralClips(8).catch(() => []),
-      getTopCreators(6).catch(() => []),
-      getTopVendors(6).catch(() => []),
-      countActiveVendors().catch(() => 0),
       countActiveListedProducts().catch(() => 0),
       getCartProductIds().catch(() => []),
       getFollowedVendorIds().catch(() => []),
@@ -67,35 +63,6 @@ export default async function MarketplacePage({ searchParams }: PageProps) {
     source: p.source || "jimvio",
   }));
 
-  const vendorList = vendors ?? [];
-  const storesWithProducts = await Promise.all(
-    vendorList.map(async (v: any) => {
-      const store = {
-        id: v.id,
-        business_name: v.business_name,
-        business_slug: v.business_slug,
-        business_logo: v.business_logo ?? v.logo_url,
-        rating: v.rating,
-        total_sales: v.total_sales,
-      };
-      const { products: storeProducts } = await getProducts({
-        vendorId: v.id,
-        limit: 5,
-        sort: "newest",
-      }).catch(() => ({ products: [] }));
-      const normalized = (storeProducts ?? []).map((p: any) => ({
-        id: p.id,
-        name: p.name,
-        slug: p.slug,
-        images: p.images,
-        price: p.price,
-        currency: p.currency,
-      }));
-      return { ...store, products: normalized };
-    })
-  );
-  const stores = storesWithProducts;
-
   return (
     <MarketplaceClient
       initialProducts={products}
@@ -104,16 +71,13 @@ export default async function MarketplacePage({ searchParams }: PageProps) {
       currentPage={currentPage}
       limit={limit}
       params={params}
-      viralClips={viralClips as any}
-      topCreators={topCreators as any}
-      popularStores={stores}
       hasShopifyProducts={shopifyCount > 0}
       cartProductIds={cartProductIds}
       followedVendorIds={followedVendorIds}
       marketplaceStats={{
-        activeVendors: vendorCount,
+        activeVendors: 0,
         activeListings: listingCount,
-        activeVendorsLabel: formatNumber(vendorCount),
+        activeVendorsLabel: "0",
         activeListingsLabel: formatNumber(listingCount),
       }}
     />

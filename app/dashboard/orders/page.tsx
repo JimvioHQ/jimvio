@@ -22,6 +22,8 @@ import { useCurrency } from "@/context/CurrencyContext";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { StatCard } from "@/components/ui/stat-card";
+import { updateOrderStatus } from "@/lib/actions/marketplace";
+import { toast } from "sonner";
 
 const statusConfig: Record<string, { label: string; variant: "success" | "warning" | "secondary" | "accent" | "default"; icon: React.ReactNode }> = {
   pending:    { label: "Pending",    variant: "warning",   icon: <Clock className="h-3.5 w-3.5" /> },
@@ -83,6 +85,17 @@ export default function BuyerOrdersPage() {
       
     return matchSearch && matchFilter;
   });
+
+  async function handleCancelOrder(orderId: string) {
+    if (!confirm("Are you sure you want to cancel this order?")) return;
+    const res = await updateOrderStatus(orderId, "cancelled");
+    if (res.success) {
+      setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: "cancelled" } : o));
+      toast.success("Order cancelled successfully");
+    } else {
+      toast.error(res.error || "Failed to cancel order");
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -232,6 +245,12 @@ export default function BuyerOrdersPage() {
                                     <span className="text-sm font-medium">Contact Vendor</span>
                                   </Link>
                                 </DropdownMenuItem>
+                                {s.label === "Pending" && (
+                                  <DropdownMenuItem className="flex items-center gap-2.5 cursor-pointer rounded-lg text-rose-600" onClick={() => handleCancelOrder(order.id)}>
+                                    <XCircle className="h-4 w-4" /> 
+                                    <span className="text-sm font-medium">Cancel Order</span>
+                                  </DropdownMenuItem>
+                                )}
                                 <DropdownMenuSeparator className="bg-[var(--color-border)]/50" />
                                 <DropdownMenuItem className="flex items-center gap-2.5 cursor-pointer rounded-lg text-amber-600">
                                   <Download className="h-4 w-4" /> 

@@ -178,7 +178,7 @@ export default function SettingsPage() {
                     <p className="text-sm font-medium">Store Logo</p>
                     {vendor.business_logo ? (
                       <div className="relative group w-24 h-24 rounded-2xl overflow-hidden border">
-                        <CloudinaryImage src={vendor.business_logo} alt="Store Logo" className="w-full h-full object-cover" />
+                        <CloudinaryImage src={vendor.business_logo} alt="Store Logo" fill className="object-cover" />
                         <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                           <CloudinaryUploadButton folder="jimvio/avatars" buttonText="Replace" className="text-white border-white hover:text-white" variant="outline" onUploadSuccess={(url) => setVendor(v => v ? { ...v, business_logo: url } : v)} />
                         </div>
@@ -191,7 +191,7 @@ export default function SettingsPage() {
                     <p className="text-sm font-medium">Store Banner</p>
                     {vendor.business_banner ? (
                        <div className="relative group w-full h-24 rounded-2xl overflow-hidden border">
-                        <CloudinaryImage src={vendor.business_banner} alt="Store Banner" className="w-full h-full object-cover" />
+                        <CloudinaryImage src={vendor.business_banner} alt="Store Banner" fill className="object-cover" />
                         <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                           <CloudinaryUploadButton folder="jimvio/banners" buttonText="Replace Banner" className="text-white border-white hover:text-white" variant="outline" onUploadSuccess={(url) => setVendor(v => v ? { ...v, business_banner: url } : v)} />
                         </div>

@@ -22,6 +22,8 @@ import { createClient } from "@/lib/supabase/client";
 import { useCurrency } from "@/context/CurrencyContext";
 import { cn } from "@/lib/utils";
 import { StatCard } from "@/components/ui/stat-card";
+import { updateOrderStatus } from "@/lib/actions/marketplace";
+import { toast } from "sonner";
 
 const statusConfig: Record<string, { label: string; variant: "success" | "warning" | "secondary" | "accent" | "default" }> = {
   pending: { label: "Pending", variant: "warning" },
@@ -109,6 +111,17 @@ export default function VendorOrdersPage() {
 
     return matchSearch && matchFilter;
   });
+
+  async function handleStatusChange(orderId: string, newStatus: string) {
+    if (!confirm(`Are you sure you want to mark this order as ${newStatus}?`)) return;
+    const res = await updateOrderStatus(orderId, newStatus);
+    if (res.success) {
+      setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
+      toast.success(`Order status updated to ${newStatus}`);
+    } else {
+      toast.error(res.error || "Failed to update status");
+    }
+  }
 
   if (!loading && !vendorId) {
     return (
@@ -254,13 +267,13 @@ export default function VendorOrdersPage() {
                                   </Link>
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator className="bg-[var(--color-border)]/50" />
-                                <DropdownMenuItem className="flex items-center gap-2.5 cursor-pointer rounded-lg text-amber-600">
-                                  <Download className="h-4 w-4" /> 
-                                  <span className="text-sm font-medium">Print Invoice</span>
+                                <DropdownMenuItem className="flex items-center gap-2.5 cursor-pointer rounded-lg text-amber-600" onClick={() => window.print()}>
+                                   <Download className="h-4 w-4" /> 
+                                   <span className="text-sm font-medium">Print Invoice</span>
                                 </DropdownMenuItem>
-                                <DropdownMenuItem className="flex items-center gap-2.5 cursor-pointer rounded-lg text-rose-600">
-                                  <XCircle className="h-4 w-4" /> 
-                                  <span className="text-sm font-medium">Cancel Order</span>
+                                <DropdownMenuItem className="flex items-center gap-2.5 cursor-pointer rounded-lg text-rose-600" onClick={() => handleStatusChange(order.id, "cancelled")}>
+                                   <XCircle className="h-4 w-4" /> 
+                                   <span className="text-sm font-medium">Cancel Order</span>
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>

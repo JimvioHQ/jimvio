@@ -26,7 +26,7 @@ const PLATFORM_ICONS: Record<string, any> = {
   x:         { icon: MessageSquare, color: 'text-zinc-800', bg: 'bg-zinc-100' },
 };
 
-function SubmissionCard({ sub }: { sub: UGCSubmission }) {
+function SubmissionCard({ sub, onDelete }: { sub: UGCSubmission; onDelete: (id: string) => void }) {
   const { formatMoney } = useCurrency();
   const cfg = STATUS_CONFIG[sub.status] || STATUS_CONFIG.pending;
   const pCfg = PLATFORM_ICONS[sub.platform] || { icon: Video, color: 'text-zinc-500', bg: 'bg-zinc-50' };
@@ -50,14 +50,24 @@ function SubmissionCard({ sub }: { sub: UGCSubmission }) {
                    {cfg.label}
                 </div>
              </div>
-             <a
-               href={sub.post_url}
-               target="_blank"
-               rel="noopener noreferrer"
-               className="text-[11px] font-black text-blue-500 hover:text-blue-600 transition-colors flex items-center gap-1.5 bg-blue-50/50 px-3 py-1.5 rounded-xl border border-blue-100/50 w-fit"
-             >
-               {sub.platform.toUpperCase()} POST <ExternalLink className="h-3 w-3" />
-             </a>
+             <div className="flex items-center gap-2">
+               <a
+                 href={sub.post_url}
+                 target="_blank"
+                 rel="noopener noreferrer"
+                 className="text-[11px] font-black text-blue-500 hover:text-blue-600 transition-colors flex items-center gap-1.5 bg-blue-50/50 px-3 py-1.5 rounded-xl border border-blue-100/50 w-fit"
+               >
+                 {sub.platform.toUpperCase()} POST <ExternalLink className="h-3 w-3" />
+               </a>
+               {(sub.status === 'pending' || sub.status === 'rejected') && (
+                 <button
+                   onClick={() => onDelete(sub.id)}
+                   className="text-[11px] font-black text-red-500 hover:text-red-600 transition-colors flex items-center bg-red-50/50 px-3 py-1.5 rounded-xl border border-red-100/50 w-fit"
+                 >
+                   DELETE
+                 </button>
+               )}
+             </div>
           </div>
 
           {sub.status === 'rejected' && sub.rejection_reason && (
@@ -115,6 +125,22 @@ export default function DashboardSubmissionsPage() {
     }
     load();
   }, [statusFilter]);
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this submission?")) return;
+    try {
+      const { createClient } = await import('@/lib/supabase/client');
+      const supabase = createClient();
+      const { error } = await supabase.from('ugc_submissions').delete().eq('id', id);
+      if (!error) {
+        setSubmissions(prev => prev.filter(s => s.id !== id));
+      } else {
+        alert("Failed to delete submission.");
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   const stats = {
     total: submissions.length,
@@ -196,7 +222,7 @@ export default function DashboardSubmissionsPage() {
          </div>
       ) : (
          <div className="space-y-4">
-            {submissions.map((sub) => <SubmissionCard key={sub.id} sub={sub} />)}
+            {submissions.map((sub) => <SubmissionCard key={sub.id} sub={sub} onDelete={handleDelete} />)}
          </div>
       )}
     </div>

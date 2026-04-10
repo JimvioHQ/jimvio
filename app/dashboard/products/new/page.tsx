@@ -195,7 +195,7 @@ export default function NewProductPage() {
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                     {form.images.map((img, i) => (
                       <div key={i} className="relative group aspect-square rounded-2xl overflow-hidden border">
-                        <CloudinaryImage src={img} alt={`Product Image ${i + 1}`} className="w-full h-full object-cover" />
+                        <CloudinaryImage src={img} alt={`Product Image ${i + 1}`} fill className="object-cover" />
                         <button 
                           type="button" 
                           onClick={() => removeImage(i)}

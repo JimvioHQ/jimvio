@@ -320,12 +320,12 @@ export function IndustriesSection({ industries }: { industries: Industry[] }) {
 // ── AFFILIATE PANEL ───────────────────────────────────────────
 interface AffiliatePanelProps {
   valueProps: string[];
-  campaigns: string[];
+  campaigns?: string[];
   spotlightCreator?: { full_name?: string; total_earnings?: number; total_clicks?: number; total_conversions?: number } | null;
   trendingCats: { name: string }[];
 }
 
-export function AffiliatePanel({ valueProps, campaigns, spotlightCreator, trendingCats }: AffiliatePanelProps) {
+export function AffiliatePanel({ valueProps, campaigns = [], spotlightCreator, trendingCats }: AffiliatePanelProps) {
   const chips = campaigns.length > 0 ? campaigns : trendingCats.map((c) => c.name);
   return (
     <motion.section
@@ -370,19 +370,23 @@ export function AffiliatePanel({ valueProps, campaigns, spotlightCreator, trendi
 
       {/* Right */}
       <motion.div variants={fadeUp} className="p-8 md:p-14 flex flex-col justify-center relative z-10">
-        <h3 className="text-[20px] font-black text-white mb-2 tracking-tight">Active Campaigns</h3>
-        <p className="text-[13px] text-white/40 font-bold mb-6">Bridging manufacturers and authentic voices.</p>
-        <div className="flex flex-wrap gap-2 mb-8">
-          {chips.map((t, i) => (
-            <motion.span key={`${t}-${i}`} whileHover={{ scale: 1.06, y: -2 }} whileTap={{ scale: 0.97 }}
-              className={cn(
-                "px-4 py-2 rounded-2xl text-[11px] font-black border uppercase tracking-[0.12em] cursor-default transition-colors",
-                i === 0 ? "bg-[#f97316] text-white border-[#f97316]" : "bg-white/5 text-white/60 border-white/10 hover:border-[#f97316]/40 hover:text-[#f97316]"
-              )}>
-              {t}
-            </motion.span>
-          ))}
-        </div>
+        {chips.length > 0 && (
+          <>
+            <h3 className="text-[20px] font-black text-white mb-2 tracking-tight">Active Categories</h3>
+            <p className="text-[13px] text-white/40 font-bold mb-6">Bridging manufacturers and authentic voices.</p>
+            <div className="flex flex-wrap gap-2 mb-8">
+              {chips.map((t, i) => (
+                <motion.span key={`${t}-${i}`} whileHover={{ scale: 1.06, y: -2 }} whileTap={{ scale: 0.97 }}
+                  className={cn(
+                    "px-4 py-2 rounded-2xl text-[11px] font-black border uppercase tracking-[0.12em] cursor-default transition-colors",
+                    i === 0 ? "bg-[#f97316] text-white border-[#f97316]" : "bg-white/5 text-white/60 border-white/10 hover:border-[#f97316]/40 hover:text-[#f97316]"
+                  )}>
+                  {t}
+                </motion.span>
+              ))}
+            </div>
+          </>
+        )}
         {/* Creator spotlight */}
         <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-[28px] p-5 flex items-center gap-4 mb-8 border-l-4 border-l-[#f97316]">
           {spotlightCreator ? (

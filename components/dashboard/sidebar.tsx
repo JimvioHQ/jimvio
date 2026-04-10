@@ -100,24 +100,6 @@ const sidebarSections: NavSection[] = [
     ],
   },
   {
-    title: "UGC & CLIPPING (CAMPAIGNS)",
-    items: [
-      { label: "Dashboard", href: "/dashboard/vendor/campaigns", icon: <LayoutDashboard className="h-4 w-4" /> },
-      { label: "Create Campaign", href: "/dashboard/vendor/campaigns/new", icon: <CirclePlus className="h-4 w-4" /> },
-      { label: "Review Submissions", href: "/dashboard/vendor/submissions", icon: <CheckCircle className="h-4 w-4" /> },
-      { label: "Analytics", href: "/dashboard/vendor/campaigns/analytics", icon: <BarChart3 className="h-4 w-4" /> },
-    ],
-  },
-  {
-    title: "INFLUENCER & CREATOR",
-    items: [
-      { label: "Creator Studio", href: "/dashboard/influencer", icon: <LayoutDashboard className="h-4 w-4" />, requiredRole: "influencer" },
-      { label: "Browse Campaigns", href: "/ugc", icon: <Globe className="h-4 w-4" />, requiredRole: "influencer" },
-      { label: "My Clips & Submissions", href: "/dashboard/submissions", icon: <Video className="h-4 w-4" />, requiredRole: "influencer" },
-      { label: "Creator Analytics", href: "/dashboard/influencer/analytics", icon: <BarChart3 className="h-4 w-4" />, requiredRole: "influencer" },
-    ],
-  },
-  {
     title: "GENERAL",
     items: [
       { label: "Messages", href: "/dashboard/messages", icon: <MessageSquare className="h-4 w-4" /> },

@@ -52,6 +52,7 @@ export interface ProductCardClientProps {
   initialInCart?: boolean;
   /** Enables a more compact layout specifically for high-density grids */
   compact?: boolean;
+  onAddToCart?: () => void;
 }
 
 export function ProductCardClient({
@@ -61,6 +62,7 @@ export function ProductCardClient({
   detailBasePath = "/marketplace",
   initialInCart,
   compact = false,
+  onAddToCart,
 }: ProductCardClientProps) {
   const [loading, setLoading] = useState(false);
   const [inCart, setInCart] = useState(initialInCart ?? false);
@@ -124,6 +126,7 @@ export function ProductCardClient({
         if (result.success) {
           setInCart(true);
           incrementCartCount(1);
+          onAddToCart?.();
           toast.success(`"${p.name}" added to cart!`);
         } else {
           toast.error(result.error || "Failed to add to cart");

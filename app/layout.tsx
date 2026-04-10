@@ -52,7 +52,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" suppressHydrationWarning>
       <body
         className="font-sans antialiased min-h-screen bg-[var(--color-bg)] text-[var(--color-text-primary)] transition-colors duration-200"
-        style={{ backgroundColor: "#ffffff", color: "var(--color-text-primary)" }}
       >
         <ThemeProvider>
           <NextTopLoader color="#f97316" height={3} showSpinner={false} easing="ease" speed={200} shadow="0 0 10px #f97316,0 0 5px #f97316" />

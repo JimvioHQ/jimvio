@@ -235,11 +235,16 @@ export async function syncVendorShopifyProducts(vendorId: string) {
 
   const transformed = shopifyProducts.map((p) => transformToJimvioProduct(p, vendorId, slugToId));
 
+  // 1. Batch Upsert (Updates existing and inserts new)
   for (let i = 0; i < transformed.length; i += 100) {
     const batch = transformed.slice(i, i + 100);
     const { error } = await supabase.from("products").upsert(batch, { onConflict: "slug" });
     if (error) throw new Error(`Product upsert error: ${error.message}`);
   }
+
+  // 2. Data Consistency: Cleanup products deleted in Shopify
+  const shopifyIdsFound = shopifyProducts.map(p => String(p.id));
+  await cleanupMissingProducts(vendorId, shopifyIdsFound);
 
   await supabase
     .from("shopify_credentials")
@@ -247,6 +252,65 @@ export async function syncVendorShopifyProducts(vendorId: string) {
     .eq("vendor_id", vendorId);
 
   return { synced: transformed.length };
+}
+
+/**
+ * Compares local shopify-sourced products against a list of active Shopify IDs.
+ * Automatically deletes local products that are no longer present in the Shopify source.
+ */
+async function cleanupMissingProducts(vendorId: string, activeShopifyIds: string[]) {
+  // Fetch all local products for this vendor linked to Shopify
+  const { data: localProducts, error } = await supabase
+    .from("products")
+    .select("id, name, shopify_product_id")
+    .eq("vendor_id", vendorId)
+    .eq("source", "shopify");
+
+  if (error) {
+    console.error(`[Shopify-Cleanup] Failed to fetch local products for vendor ${vendorId}:`, error.message);
+    return;
+  }
+
+  if (!localProducts || localProducts.length === 0) return;
+
+  // Identify products in DB that aren't in the provided active list
+  const missingInShopify = localProducts.filter(p => 
+    p.shopify_product_id && !activeShopifyIds.includes(String(p.shopify_product_id))
+  );
+
+  if (missingInShopify.length === 0) return;
+
+  const idsToProcess = missingInShopify.map(p => p.id);
+  
+  console.log(`[Shopify-Cleanup] Processing ${missingInShopify.length} stale products for vendor ${vendorId}...`);
+  
+  // Step 1: Try a Hard Delete (cleanest for the database)
+  const { error: deleteErr } = await supabase
+    .from("products")
+    .delete()
+    .in("id", idsToProcess);
+
+  // Step 2: If Hard Delete fails (e.g., product has orders), perform a Soft Archive
+  if (deleteErr) {
+    console.warn(`[Shopify-Cleanup] Hard delete failed (likely due to existing orders). Switching to Soft Archive...`);
+    
+    const { error: archiveErr } = await supabase
+      .from("products")
+      .update({ 
+        status: "archived", 
+        is_active: false,
+        shopify_product_id: null // Stop tracking in sync
+      })
+      .in("id", idsToProcess);
+
+    if (archiveErr) {
+      console.error(`[Shopify-Cleanup] Critical error archiving items:`, archiveErr.message);
+    } else {
+      console.log(`[Shopify-Cleanup] Successfully archived ${idsToProcess.length} products with order history.`);
+    }
+  } else {
+    console.log(`[Shopify-Cleanup] Successfully deleted ${idsToProcess.length} products.`);
+  }
 }
 
 export async function syncAllShopifyVendors() {
@@ -260,10 +324,40 @@ export async function syncAllShopifyVendors() {
 
   if (ids.size === 0) return { succeeded: 0, failed: 0 };
 
+  // 1. First, sync all active vendors
   const results = await Promise.allSettled([...ids].map((id) => syncVendorShopifyProducts(id)));
+
+  // 2. Then, cleanup orphaned products from vendors that are NO LONGER in the sync list
+  await cleanupOrphanedShopifyProducts([...ids]);
 
   return {
     succeeded: results.filter((r) => r.status === "fulfilled").length,
     failed: results.filter((r) => r.status === "rejected").length,
   };
+}
+
+/**
+ * Removes all Shopify-sourced products from the database if their vendor_id 
+ * is not in the current active sync whitelist.
+ */
+async function cleanupOrphanedShopifyProducts(activeVendorIds: string[]) {
+  if (!activeVendorIds || activeVendorIds.length === 0) return;
+
+  // Use raw parenthetical syntax for PostgREST 'in' compatibility
+  const vendorFilter = `(${activeVendorIds.join(",")})`;
+
+  const { error: deleteErr } = await supabase
+    .from("products")
+    .delete()
+    .eq("source", "shopify")
+    .not("vendor_id", "in", vendorFilter);
+
+  if (deleteErr) {
+    // Fallback to archive if delete is blocked
+    await supabase
+      .from("products")
+      .update({ status: "archived", is_active: false })
+      .eq("source", "shopify")
+      .not("vendor_id", "in", vendorFilter);
+  }
 }

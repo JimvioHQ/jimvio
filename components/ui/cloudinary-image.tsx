@@ -56,8 +56,8 @@ export function CloudinaryImage({
   return (
     <Image
       src={optimizedSrc}
-      width={width}
-      height={height}
+      width={!rest.fill ? (width || 800) : undefined}
+      height={!rest.fill ? (height || 800) : undefined}
       alt={alt}
       className={cn(className)}
       {...rest}

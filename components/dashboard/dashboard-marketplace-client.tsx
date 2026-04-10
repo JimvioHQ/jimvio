@@ -17,6 +17,7 @@ import {
   Store,
   Star,
   ChevronRight,
+  ShoppingBag,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +27,8 @@ import { FollowButton } from "@/components/marketplace/follow-button";
 import { toggleWishlist, getWishlistProductIds } from "@/lib/actions/marketplace";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useCartStore } from "@/lib/store/use-cart-store";
+import { CartAside } from "@/components/dashboard/cart-aside";
 
 interface Product {
   id: string;
@@ -98,7 +101,6 @@ export function DashboardMarketplaceClient({
   currentPage,
   limit,
   params,
-  popularStores = [],
   cartProductIds = [],
   followedVendorIds = [],
 }: DashboardMarketplaceClientProps) {
@@ -108,12 +110,21 @@ export function DashboardMarketplaceClient({
   const searchParams = useSearchParams();
   const [wishlistIds, setWishlistIds] = useState<Set<string>>(new Set());
   const [savingId, setSavingId] = useState<string | null>(null);
+  const { cartCount, refreshCounts, setCartCount } = useCartStore();
+  const [cartOpen, setCartOpen] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
   const [searchInput, setSearchInput] = useState(params.q ?? "");
 
   useEffect(() => {
     getWishlistProductIds().then((ids) => setWishlistIds(new Set(ids)));
-  }, []);
+    
+    // Initialize cart count from server prop if store is empty
+    if (cartCount === 0 && cartProductIds.length > 0) {
+      setCartCount(cartProductIds.length);
+    }
+    
+    refreshCounts();
+  }, [refreshCounts, cartProductIds.length, cartCount, setCartCount]);
 
   const countries = useMemo(() => {
     const set = new Set<string>();
@@ -163,6 +174,7 @@ export function DashboardMarketplaceClient({
 
   return (
     <div className="min-h-screen bg-[#fafafa]">
+      <CartAside isOpen={cartOpen} onClose={() => setCartOpen(false)} />
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
@@ -202,6 +214,20 @@ export function DashboardMarketplaceClient({
                 </div>
               </div>
               {/* Sort dropdown (preserves other params) */}
+              <div className="relative group">
+                <button
+                  onClick={() => setCartOpen(true)}
+                  className="flex items-center justify-center h-12 w-12 bg-zinc-900 rounded-2xl text-white shadow-xl shadow-zinc-900/20 hover:scale-105 active:scale-95 transition-all"
+                >
+                  <ShoppingBag className="h-5 w-5" />
+                  {cartCount > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 h-5 w-5 bg-[var(--color-accent)] text-white text-[10px] font-black rounded-full flex items-center justify-center border-2 border-white shadow-sm group-hover:animate-bounce">
+                      {cartCount}
+                    </span>
+                  )}
+                </button>
+              </div>
+
               <div className="relative">
                 <button
                   onClick={() => setSortOpen(!sortOpen)}
@@ -329,77 +355,7 @@ export function DashboardMarketplaceClient({
         </div>
       </div>
 
-      {/* Mobile: Stores horizontal strip (same as public marketplace) */}
-      {popularStores.length > 0 && (
-        <div className="lg:hidden max-w-[1400px] mx-auto px-4 pb-6">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] flex items-center gap-2">
-              <Store className="h-3.5 w-3.5 text-[#f97316]" />
-              Stores to discover
-            </h3>
-            <Link href="/vendors" className="text-[10px] font-bold text-[#f97316] flex items-center gap-1">
-              All <ChevronRight className="h-3 w-3" />
-            </Link>
-          </div>
-          <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1">
-            {popularStores.map((s) => {
-              const storeUrl = s.business_slug ? `/vendors/${s.business_slug}` : `/marketplace?vendor=${s.id}`;
-              const rating = (s.rating ?? 4.5).toFixed(1);
-              const storeProducts = s.products ?? [];
-              return (
-                <div
-                  key={s.id}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => router.push(storeUrl)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      router.push(storeUrl);
-                    }
-                  }}
-                  className="shrink-0 w-[140px] rounded-xl bg-white border border-[#f0f0f0] p-3 shadow-sm hover:border-[#f97316]/20 transition-colors cursor-pointer"
-                >
-                  <div className="flex items-center gap-2 mb-2">
-                    <Avatar className="h-8 w-8 rounded-lg border border-[#fff7ed] shrink-0">
-                      <AvatarImage src={s.business_logo ?? undefined} />
-                      <AvatarFallback className="bg-[#f97316] text-white text-[10px] font-black rounded-lg">
-                        {s.business_name?.[0] ?? "S"}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[11px] font-black text-text-primary truncate">{s.business_name}</p>
-                      <div className="flex items-center gap-0.5 text-[9px] text-zinc-500">
-                        <Star className="h-2.5 w-2.5 text-amber-500 fill-amber-500" />
-                        <span>{rating}</span>
-                      </div>
-                    </div>
-                  </div>
-                  {storeProducts.length > 0 && (
-                    <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
-                      {storeProducts.slice(0, 3).map((pr) => (
-                        <Link
-                          key={pr.id}
-                          href={`/marketplace/${pr.slug}`}
-                          className="shrink-0 w-8 h-8 rounded-lg overflow-hidden bg-[#f5f5f5] border border-[#f0f0f0] block"
-                        >
-                          {Array.isArray(pr.images) && pr.images[0] ? (
-                            <img src={pr.images[0]} alt="" className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                              <Package className="h-3 w-3 text-zinc-300" />
-                            </div>
-                          )}
-                        </Link>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
+
 
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-6 lg:py-10 flex flex-col lg:flex-row gap-8">
         {/* Left sidebar: sticky when scrolling */}
@@ -470,85 +426,7 @@ export function DashboardMarketplaceClient({
               </div>
             </div>
 
-            {/* Stores */}
-            {popularStores.length > 0 && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-[11px] font-black text-zinc-900 capitalize tracking-[0.2em] flex items-center gap-2">
-                    <Store className="h-3.5 w-3.5 text-[#f97316]" />
-                    Stores
-                  </h3>
-                  <Link
-                    href="/vendors"
-                    className="text-[10px] font-bold text-[#f97316] capitalize tracking-wider flex items-center gap-1 hover:gap-2 transition-all"
-                  >
-                    All <ChevronRight className="h-3 w-3" />
-                  </Link>
-                </div>
-                <div className="space-y-3">
-                  {popularStores.map((s) => {
-                    const storeUrl = s.business_slug ? `/vendors/${s.business_slug}` : `/marketplace?vendor=${s.id}`;
-                    const rating = (s.rating ?? 4.5).toFixed(1);
-                    const followers = formatStoreFollowers(s.total_sales ?? 100);
-                    const storeProducts = s.products ?? [];
-                    return (
-                      <div
-                        key={s.id}
-                        className="p-3 rounded-xl bg-white border border-[#f0f0f0] shadow-sm hover:border-[#f97316]/20 transition-colors"
-                      >
-                        <div className="flex items-center gap-2 mb-2">
-                          <Avatar className="h-9 w-9 rounded-lg border border-[#fff7ed] shrink-0">
-                            <AvatarImage src={s.business_logo ?? undefined} />
-                            <AvatarFallback className="bg-[#f97316] text-white text-xs font-black rounded-lg">
-                              {s.business_name?.[0] ?? "S"}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-[12px] font-black text-text-primary truncate">{s.business_name}</p>
-                            <div className="flex items-center gap-1 text-[10px] text-zinc-500">
-                              <Star className="h-3 w-3 text-amber-500 fill-amber-500" />
-                              <span>{rating}</span>
-                              <span>· {followers}</span>
-                            </div>
-                          </div>
-                        </div>
-                        {storeProducts.length > 0 && (
-                          <div className="flex gap-1.5 mb-2 overflow-x-auto no-scrollbar">
-                            {storeProducts.slice(0, 4).map((pr) => (
-                              <Link
-                                key={pr.id}
-                                href={`/marketplace/${pr.slug}`}
-                                className="shrink-0 w-9 h-9 rounded-lg overflow-hidden bg-[#f5f5f5] border border-[#f0f0f0] hover:border-[#f97316]/40 transition-colors"
-                              >
-                                {Array.isArray(pr.images) && pr.images[0] ? (
-                                  <img src={pr.images[0]} alt="" className="w-full h-full object-cover" />
-                                ) : (
-                                  <div className="w-full h-full flex items-center justify-center text-zinc-300">
-                                    <Package className="h-3.5 w-3.5" />
-                                  </div>
-                                )}
-                              </Link>
-                            ))}
-                          </div>
-                        )}
-                        <div className="flex gap-1.5">
-                          <FollowButton
-                            vendorId={s.id}
-                            initialFollowing={followSet.has(s.id)}
-                            className="flex-1 rounded-lg h-8 text-[10px] font-bold border border-[#f0f0f0] hover:border-[#f97316] hover:text-[#f97316]"
-                          />
-                          <Link href={storeUrl} className="shrink-0">
-                            <Button size="sm" className="rounded-lg h-8 px-3 text-[10px] font-black bg-[#f97316] hover:bg-[#ea580c] text-white border-0">
-                              Visit
-                            </Button>
-                          </Link>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
+
 
             <motion.div
               whileHover={{ scale: 1.02 }}
@@ -608,6 +486,7 @@ export function DashboardMarketplaceClient({
                       initialInCart={cartSet.has(p.id)}
                       inWishlist={wishlistIds.has(p.id)}
                       onToggleWishlist={savingId ? undefined : (e) => handleSave(e, p.id)}
+                      onAddToCart={() => setCartOpen(true)}
                     />
                   </motion.div>
                 ))}

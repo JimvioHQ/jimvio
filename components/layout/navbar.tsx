@@ -190,22 +190,14 @@ export function Navbar({ user, marketing }: NavbarProps) {
   );
 
   const solutions = [
-    { title: "Creators", desc: "Connect with top performing influencers", href: "/influencers/browse", icon: User, color: "text-orange-500" },
-    { title: "Videos", desc: "Watch promotional shorts & latest buzz", href: "/shorts", icon: Clapperboard, color: "text-red-500" },
-    { title: "Campaigns", desc: "Earn rewards for video submissions", href: "/ugc", icon: Megaphone, color: "text-violet-500" },
+    { title: "Marketplace", desc: "Discover premium products worldwide", href: "/marketplace", icon: ShoppingBag, color: "text-blue-500" },
     { title: "Suppliers", desc: "Tools for vendors and businesses", href: "/vendors", icon: Factory, color: "text-emerald-500" },
-    { title: "Affiliate", desc: "Promote products & earn commission", href: "/affiliates", icon: TrendingUp, color: "text-purple-500" },
   ];
 
   // Ordered mobile nav links as requested
   const orderedMobileLinks = [
     { label: "Home", href: "/", icon: Home },
     { label: "Marketplace", href: "/marketplace", icon: ShoppingBag },
-    { label: "Videos", href: "/shorts", icon: Clapperboard },
-    { label: "Campaigns", href: "/ugc", icon: Megaphone },
-    { label: "Communities", href: "/communities", icon: Users },
-    { label: "Affiliate", href: "/affiliates", icon: TrendingUp },
-    { label: "Creators", href: "/influencers/browse", icon: User },
     { label: "Suppliers", href: "/vendors", icon: Factory },
   ];
 

@@ -109,8 +109,7 @@ export function MarketplaceClient({
   const firstRowCount = 8;
   const firstRow = initialProducts.slice(0, firstRowCount);
   const secondRow = initialProducts.slice(firstRowCount);
-  const hasAside = (topCreators?.length ?? 0) > 0 || (popularStores?.length ?? 0) > 0;
-  const gridCols = hasAside ? "lg:grid-cols-3" : "lg:grid-cols-4";
+  const gridCols = "lg:grid-cols-4";
   const [modalClip, setModalClip] = useState<(typeof viralClips)[number] | null>(null);
   const closeModalClip = useCallback(() => setModalClip(null), []);
   useBodyScrollLock(!!modalClip);
@@ -138,31 +137,8 @@ export function MarketplaceClient({
     | { type: "creator"; data: (typeof topCreators)[number] }
     | { type: "clip"; data: (typeof viralClips)[number] };
   const mixedFeed = useMemo(() => {
-    if (isSearchMode) {
-      return initialProducts.map((p) => ({ type: "product" as const, data: p }));
-    }
-    const items: FeedItem[] = [];
-    const stores = popularStores ?? [];
-    const creators = topCreators ?? [];
-    const clips = viralClips ?? [];
-    const nonProduct = [
-      ...stores.map((s) => ({ type: "store" as const, data: s })),
-      ...creators.map((c) => ({ type: "creator" as const, data: c })),
-      ...clips.map((c) => ({ type: "clip" as const, data: c })),
-    ];
-    let nonIdx = 0;
-    initialProducts.forEach((p, i) => {
-      items.push({ type: "product", data: p });
-      if (nonProduct.length > 0 && (i + 1) % 2 === 0) {
-        items.push(nonProduct[nonIdx % nonProduct.length]);
-        nonIdx += 1;
-      }
-    });
-    if (nonIdx < nonProduct.length) {
-      for (let j = nonIdx; j < nonProduct.length; j++) items.push(nonProduct[j]);
-    }
-    return items;
-  }, [initialProducts, popularStores, topCreators, viralClips, isSearchMode]);
+    return initialProducts.map((p) => ({ type: "product" as const, data: p }));
+  }, [initialProducts]);
 
   const statLine =
     marketplaceStats && (marketplaceStats.activeVendors > 0 || marketplaceStats.activeListings > 0)
@@ -453,167 +429,16 @@ export function MarketplaceClient({
               <div key={JSON.stringify(params)} className="space-y-10">
                 {/* Mobile: 2-col feed; row-based layout only inside store cards (store's products in rows) */}
                 <div className="lg:hidden grid grid-cols-2 gap-3 sm:gap-4 auto-rows-auto items-start">
-                  {mixedFeed.map((item, idx) => {
-                    if (item.type === "product") {
-                      return (
-                        <motion.div
-                          key={`product-${item.data.id}-${idx}`}
-                          initial={{ opacity: 0, y: 12 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: idx * 0.03 }}
-                        >
-                          <ProductCardClient p={item.data} initialInCart={cartSet.has(item.data.id)} />
-                        </motion.div>
-                      );
-                    }
-                    if (item.type === "store") {
-                      const s = item.data;
-                      const storeUrl = s.business_slug ? `/vendors/${s.business_slug}` : `/marketplace?vendor=${s.id}`;
-                      const rating = (s.rating ?? 4.5).toFixed(1);
-                      const followers = (s.total_sales ?? 100) >= 1000 ? ((s.total_sales ?? 100) / 1000).toFixed(1) + "K" : String(s.total_sales ?? 100);
-                      const storeProducts = (s.products ?? []) as { id: string; name: string; slug: string; images?: string[]; price: number }[];
-                      return (
-                        <motion.div
-                          key={`store-${s.id}-${idx}`}
-                          initial={{ opacity: 0, y: 12 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: idx * 0.03 }}
-                          className="min-w-0 w-full rounded-2xl bg-white border border-[#f0f0f0] shadow-sm overflow-hidden p-2.5 sm:p-3 flex flex-col"
-                        >
-                          {/* Row 1: store info */}
-                          <Link href={storeUrl} className="flex flex-row items-center gap-2 min-w-0 mb-1.5">
-                            <Avatar className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl border border-[#fff7ed] shrink-0">
-                              <AvatarImage src={s.business_logo ?? undefined} />
-                              <AvatarFallback className="bg-[var(--color-accent)] text-white text-[10px] sm:text-xs font-black rounded-xl">{s.business_name?.[0] ?? "S"}</AvatarFallback>
-                            </Avatar>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-[11px] sm:text-[12px] font-black text-text-primary truncate">{s.business_name}</p>
-                              <div className="flex items-center gap-1 text-[9px] sm:text-[10px] text-[#6b7280] truncate">
-                                <Star className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-amber-500 fill-amber-500 shrink-0" />
-                                <span>{rating}</span>
-                                <span>· {followers}</span>
-                              </div>
-                            </div>
-                          </Link>
-                          {/* Row 2: only this store's products (inside store card), row of thumbnails */}
-                          {storeProducts.length > 0 ? (
-                            <div className="flex flex-row gap-1 mb-2 overflow-x-auto no-scrollbar">
-                              {storeProducts.slice(0, 5).map((pr) => (
-                                <Link
-                                  key={pr.id}
-                                  href={`/marketplace/${pr.slug}`}
-                                  className="shrink-0 flex flex-col items-center w-[48px] sm:w-[52px] group"
-                                >
-                                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg overflow-hidden bg-[#f5f5f5] border border-[#f0f0f0] group-hover:border-[var(--color-accent)] transition-colors">
-                                    {Array.isArray(pr.images) && pr.images[0] ? (
-                                      <img src={pr.images[0]} alt="" className="w-full h-full object-cover" />
-                                    ) : (
-                                      <div className="w-full h-full flex items-center justify-center text-[#ccc]">
-                                        <Package className="h-3.5 w-3.5" />
-                                      </div>
-                                    )}
-                                  </div>
-                                  <span className="text-[8px] sm:text-[9px] font-bold text-[#4b5563] truncate w-full text-center mt-0.5">{pr.name}</span>
-                                </Link>
-                              ))}
-                            </div>
-                          ) : (
-                            <Link href={storeUrl} className="text-[9px] font-bold text-[var(--color-accent)] mb-2 block">New arrivals →</Link>
-                          )}
-                          {/* Row 3: actions */}
-                          <div className="flex gap-1.5 sm:gap-2 mt-auto flex-shrink-0">
-                            <div className="min-w-0 flex-1">
-                              <FollowButton vendorId={s.id} initialFollowing={followSet.has(s.id)} className="w-full min-w-0 rounded-xl h-7 sm:h-8 text-[9px] sm:text-[10px] font-bold border border-[#f0f0f0] px-2" />
-                            </div>
-                            <Link href={storeUrl} className="shrink-0">
-                              <Button size="sm" className="rounded-xl h-7 sm:h-8 px-2.5 sm:px-3 text-[9px] sm:text-[10px] font-black bg-[var(--color-accent)] text-white border-0 whitespace-nowrap">Visit</Button>
-                            </Link>
-                          </div>
-                        </motion.div>
-                      );
-                    }
-                    if (item.type === "creator") {
-                      const c = item.data as {
-                        id: string;
-                        user_id: string;
-                        full_name?: string | null;
-                        avatar_url?: string | null;
-                        total_conversions?: number;
-                        total_clicks?: number;
-                        total_views?: number;
-                      };
-                      const profileUrl = `/influencers/u/${c.user_id}`;
-                      let base = (c.total_conversions ?? 0) * 120 + Math.floor((c.total_clicks ?? 0) * 0.8);
-                      const v = Number(c.total_views ?? 0);
-                      if (v > 0) base = Math.max(base, Math.floor(v * 0.015));
-                      const followers = base >= 1000 ? (base / 1000).toFixed(1) + "K" : String(base);
-                      return (
-                        <motion.div
-                          key={`creator-${c.id}-${idx}`}
-                          initial={{ opacity: 0, y: 12 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: idx * 0.03 }}
-                          className="rounded-2xl bg-white border border-[#f0f0f0] shadow-sm overflow-hidden p-3 flex flex-col items-center text-center"
-                        >
-                          <Link href={profileUrl} className="flex flex-col items-center w-full">
-                            <Avatar className="h-12 w-12 border-2 border-[#fff7ed] mb-2">
-                              <AvatarImage src={c.avatar_url ?? undefined} />
-                              <AvatarFallback className="bg-[var(--color-accent)] text-white font-black">{c.full_name?.[0] ?? "C"}</AvatarFallback>
-                            </Avatar>
-                            <p className="text-[12px] font-black text-text-primary truncate w-full">{c.full_name ?? "Creator"}</p>
-                            <p className="text-[10px] text-[#6b7280] font-bold">{followers} followers</p>
-                          </Link>
-                          <Link href={profileUrl} className="w-full mt-2">
-                            <Button size="sm" variant="outline" className="w-full rounded-xl h-8 text-[10px] font-bold border-[#f0f0f0]">
-                              <UserPlus className="h-3 w-3 mr-1" /> Follow
-                            </Button>
-                          </Link>
-                        </motion.div>
-                      );
-                    }
-                    // clip card
-                    const clip = item.data;
-                    const logoUrl = (clip.vendors as { logo_url?: string; business_logo?: string } | undefined)?.logo_url ?? (clip.vendors as { business_logo?: string } | undefined)?.business_logo;
-                    return (
-                      <motion.div
-                        key={`clip-${clip.id}-${idx}`}
-                        initial={{ opacity: 0, y: 12 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: idx * 0.03 }}
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => setModalClip(clip)}
-                        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setModalClip(clip); } }}
-                        className="rounded-2xl overflow-hidden bg-ink-dark shadow-sm aspect-[9/16] max-h-[280px] flex flex-col cursor-pointer"
-                      >
-                        <div className="relative flex-1 min-h-0 bg-cover bg-center" style={{ backgroundImage: clip.thumbnail_url ? `url(${clip.thumbnail_url})` : "linear-gradient(to bottom, var(--color-bg-dark), #431407)" }}>
-                          <div className="absolute inset-0 bg-gradient-to-t from-ink-darker/90 via-transparent to-transparent" />
-                          <div className="absolute top-1.5 left-1.5 right-1.5 flex items-center gap-1.5">
-                            <Avatar className="h-6 w-6 border border-white/80">
-                              <AvatarImage src={logoUrl} />
-                              <AvatarFallback className="bg-[var(--color-accent)] text-white text-[8px] font-black">{clip.vendors?.business_name?.[0] ?? "V"}</AvatarFallback>
-                            </Avatar>
-                            <span className="text-[9px] font-bold text-white truncate flex-1">{clip.vendors?.business_name ?? "Clip"}</span>
-                          </div>
-                          <div className="absolute bottom-1.5 left-1.5 right-1.5 flex items-center gap-1 text-white/90">
-                            <Eye className="h-2.5 w-2.5" />
-                            <span className="text-[9px] font-bold">{(clip.total_views ?? 0).toLocaleString()}</span>
-                          </div>
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <div className="h-8 w-8 rounded-full bg-white/20 flex items-center justify-center">
-                              <Play className="h-4 w-4 text-white fill-white ml-0.5" />
-                            </div>
-                          </div>
-                        </div>
-                        {clip.products && (
-                          <div className="px-2 py-1.5 bg-ink-darker/60 flex items-center justify-between gap-1">
-                            <span className="text-[9px] font-bold text-white truncate flex-1">{clip.products.name}</span>
-                            <Package className="h-3 w-3 text-[var(--color-accent)] shrink-0" />
-                          </div>
-                        )}
-                      </motion.div>
-                    );
-                  })}
+                  {mixedFeed.map((item, idx) => (
+                    <motion.div
+                      key={`product-${item.data.id}-${idx}`}
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: idx * 0.03 }}
+                    >
+                      <ProductCardClient p={item.data} initialInCart={cartSet.has(item.data.id)} />
+                    </motion.div>
+                  ))}
                 </div>
 
                 {/* Desktop: first row, clips section, second row */}
@@ -636,9 +461,7 @@ export function MarketplaceClient({
                     ))}
                   </motion.div>
 
-                  {viralClips?.length > 0 && (
-                    <TrendingProductClipsSection clips={viralClips} title="Influencer clips" />
-                  )}
+
 
                   {secondRow.length > 0 && (
                     <motion.div
@@ -722,24 +545,7 @@ export function MarketplaceClient({
           )}
         </div>
 
-        {/* ── RIGHT ASIDE: only when we have creators or stores ── */}
-        {hasAside && (
-          <motion.aside
-            initial={{ opacity: 0, x: 30 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-            className="hidden xl:block w-72 shrink-0"
-          >
-            <div className="sticky top-40 space-y-8 [&_.grid]:!grid-cols-1">
-              {topCreators?.length > 0 && (
-                <TopCreatorsSection creators={topCreators} className="!space-y-4" />
-              )}
-              {popularStores?.length > 0 && (
-                <PopularStoresSection stores={popularStores} className="!space-y-4" />
-              )}
-            </div>
-          </motion.aside>
-        )}
+
       </div>
 
       {/* Clip modal (mobile grid taps) */}
