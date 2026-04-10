@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { 
   ShoppingCart, Search, Eye, Package, Truck, CheckCircle, XCircle, Clock, 
-  MoreHorizontal, MessageSquare, Download, Filter, ArrowUpDown, ChevronDown
+  MoreHorizontal, MessageSquare, Download, Filter, ArrowUpDown, ChevronDown, ShoppingBag
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -212,6 +212,14 @@ export default function BuyerOrdersPage() {
                                 <DropdownMenuLabel className="text-[10px] font-black uppercase text-[var(--color-text-muted)] px-2 py-1.5">
                                   Order Options
                                 </DropdownMenuLabel>
+                                {s.label === "Pending" && (
+                                  <DropdownMenuItem asChild>
+                                    <Link href="/checkout" className="flex items-center gap-2.5 cursor-pointer rounded-lg">
+                                      <ShoppingBag className="h-4 w-4 text-[var(--color-accent)]" /> 
+                                      <span className="text-sm font-medium text-[var(--color-accent)]">Complete Payment</span>
+                                    </Link>
+                                  </DropdownMenuItem>
+                                )}
                                 <DropdownMenuItem asChild>
                                   <Link href={`/dashboard/orders/${order.id}`} className="flex items-center gap-2.5 cursor-pointer rounded-lg">
                                     <Eye className="h-4 w-4 text-blue-500" /> 

@@ -220,7 +220,16 @@ export default function OrderDetailPage() {
 
                <div className="pt-4 space-y-2">
                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-text-muted)] mb-3">Quick Actions</p>
-                 <Button className="w-full justify-start gap-3 rounded-xl h-11 font-bold shadow-lg shadow-[var(--color-accent)]/10" variant="default" asChild>
+                 
+                 {order.payment_status !== "completed" && (
+                   <Button className="w-full justify-start gap-3 rounded-xl h-11 font-bold bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white shadow-lg shadow-[var(--color-accent)]/20" asChild>
+                      <Link href="/checkout">
+                        <ShoppingBag className="h-4 w-4" /> Complete Payment
+                      </Link>
+                   </Button>
+                 )}
+
+                 <Button className="w-full justify-start gap-3 rounded-xl h-11 font-bold shadow-sm border-[var(--color-border)]" variant={order.payment_status !== "completed" ? "outline" : "default"} asChild>
                     <Link href={`/dashboard/messages?vendor=${items[0]?.vendor_id}`}>
                       <MessageSquare className="h-4 w-4" /> Contact Vendor
                     </Link>
