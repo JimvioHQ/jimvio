@@ -47,19 +47,21 @@ export default function VendorOrdersPage() {
     async function load() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      const { data: v } = await supabase.from("vendors").select("id").eq("user_id", user.id).single();
-      if (!v) {
+      const { data: userVendors } = await supabase.from("vendors").select("id").eq("user_id", user.id);
+      if (!userVendors || userVendors.length === 0) {
         setLoading(false);
         return;
       }
-      setVendorId(v.id);
+      setVendorId(userVendors[0].id); // Keep tracking one for UI state if needed, but fetch all others
+      
+      const vendorIds = userVendors.map(v => v.id);
       const { data } = await supabase
         .from("order_items")
         .select(`
-          id, product_name, quantity, unit_price, total_price, created_at, product_source,
+          id, product_name, quantity, unit_price, total_price, created_at, product_source, vendor_id,
           orders ( id, order_number, status, created_at, currency, profiles ( id, full_name, email ) )
         `)
-        .eq("vendor_id", v.id)
+        .in("vendor_id", vendorIds)
         .order("created_at", { ascending: false });
       
       const byOrder = new Map<string, any>();
