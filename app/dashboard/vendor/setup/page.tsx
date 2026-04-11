@@ -58,9 +58,9 @@ export default function VendorSetupPage() {
       if (!user) { router.push("/login"); return; }
       setUserId(user.id);
 
-      // Check if vendor already exists
-      const { data: existingVendor } = await supabase.from("vendors").select("id").eq("user_id", user.id).single();
-      if (existingVendor) { router.push("/dashboard"); return; }
+      // Check if vendor already exists (Wait, we now allow multiple stores, so we don't redirect)
+      // const { data: existingVendor } = await supabase.from("vendors").select("id").eq("user_id", user.id).single();
+      // if (existingVendor) { router.push("/dashboard"); return; }
 
       // Pre-fill email from profile
       const { data: profile } = await supabase.from("profiles").select("email, full_name").eq("id", user.id).single();

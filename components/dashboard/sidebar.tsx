@@ -29,6 +29,7 @@ import {
   ChevronLeft,
   ChevronRight,
   X,
+  Zap,
   Users,
   CirclePlus,
   LayoutGrid,
@@ -79,14 +80,33 @@ const sidebarSections: NavSection[] = [
     ],
   },
   {
-    title: "VENDOR",
+    title: "MISSION OWNER",
+    items: [
+      { label: "Mission Hub", href: "/dashboard/vendor/campaigns", icon: <LayoutDashboard className="h-4 w-4" /> },
+      { label: "Submission Queue", href: "/dashboard/vendor/submissions", icon: <Video className="h-4 w-4" /> },
+      { label: "Launch Mission", href: "/dashboard/vendor/campaigns/new", icon: <CirclePlus className="h-4 w-4" /> },
+      { label: "Mission Intelligence", href: "/dashboard/vendor/campaigns/analytics", icon: <BarChart3 className="h-4 w-4" /> },
+    ],
+  },
+  {
+    title: "VENDOR HUB",
     items: [
       { label: "My Store", href: "/dashboard/vendor/store", icon: <Store className="h-4 w-4" />, requiredRole: "vendor" },
       { label: "Products", href: "/dashboard/products", icon: <Package className="h-4 w-4" />, requiredRole: "vendor" },
       { label: "Orders Received", href: "/dashboard/vendor/orders", icon: <Truck className="h-4 w-4" />, requiredRole: "vendor" },
       { label: "Inventory", href: "/dashboard/inventory", icon: <Layers className="h-4 w-4" />, requiredRole: "vendor" },
-      { label: "Analytics", href: "/dashboard/vendor/analytics", icon: <BarChart3 className="h-4 w-4" />, requiredRole: "vendor" },
       { label: "Payments & payouts", href: "/dashboard/payments", icon: <Wallet className="h-4 w-4" />, requiredRole: "vendor" },
+    ],
+  },
+  {
+    title: "CREATOR HUB",
+    items: [
+      { label: "Explore Missions", href: "/ugc", icon: <Zap className="h-4 w-4" /> },
+      { label: "My Submissions", href: "/dashboard/submissions", icon: <FileText className="h-4 w-4" />, requiredRole: "influencer" },
+      { label: "Creator Studio", href: "/dashboard/influencer", icon: <LayoutDashboard className="h-4 w-4" />, requiredRole: "influencer" },
+      { label: "My Clips", href: "/dashboard/influencer/videos", icon: <Video className="h-4 w-4" />, requiredRole: "influencer" },
+      { label: "Creator Analytics", href: "/dashboard/influencer/analytics", icon: <BarChart3 className="h-4 w-4" />, requiredRole: "influencer" },
+      { label: "Earnings", href: "/dashboard/earnings", icon: <DollarSign className="h-4 w-4" />, requiredRole: "influencer" },
     ],
   },
   {

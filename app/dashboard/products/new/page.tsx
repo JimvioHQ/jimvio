@@ -26,6 +26,8 @@ export default function NewProductPage() {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [vendor, setVendor] = useState<Record<string, unknown> | null>(null);
+  const [userVendors, setUserVendors] = useState<Record<string, unknown>[]>([]);
+  const [selectedVendorId, setSelectedVendorId] = useState<string>("");
   const [categories, setCategories] = useState<Record<string, unknown>[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -61,12 +63,18 @@ export default function NewProductPage() {
         router.push("/login");
         return;
       }
-      const { data: vend } = await supabase.from("vendors").select("*").eq("user_id", user.id).single();
-      if (!vend) {
+      const { data: vends } = await supabase.from("vendors").select("*").eq("user_id", user.id);
+      
+      if (!vends || vends.length === 0) {
         router.push("/dashboard/activate/vendor");
         return;
       }
-      setVendor(vend);
+
+      setUserVendors(vends);
+      const initialVendor = vends[0];
+      setVendor(initialVendor);
+      setSelectedVendorId(initialVendor.id as string);
+
       const { data: cats } = await supabase
         .from("product_categories")
         .select("id, name, slug")
@@ -112,7 +120,7 @@ export default function NewProductPage() {
       const { data: existing } = await supabase.from("products").select("id").eq("slug", slug).single();
       if (existing) slug = `${slug}-${Date.now()}`;
       const payload: Record<string, unknown> = {
-        vendor_id: vendor.id,
+        vendor_id: selectedVendorId,
         name: form.name,
         slug,
         short_description: form.short_description || null,
@@ -226,6 +234,23 @@ export default function NewProductPage() {
                   <p className="text-sm text-[var(--color-text-muted)] mt-1">Name, type, category and description</p>
                 </div>
                 <div className="space-y-5">
+                  {userVendors.length > 1 && (
+                    <div className="space-y-2">
+                       <Label className="text-[var(--color-text-secondary)] font-medium">Assign to Store *</Label>
+                       <select
+                        value={selectedVendorId}
+                        onChange={(e) => setSelectedVendorId(e.target.value)}
+                        className={selectClass}
+                       >
+                         {userVendors.map((v) => (
+                           <option key={v.id as string} value={v.id as string}>
+                             {v.business_name as string}
+                           </option>
+                         ))}
+                       </select>
+                       <p className="text-xs text-[var(--color-text-muted)]">Select which store will host this product</p>
+                    </div>
+                  )}
                   <div className="space-y-2">
                     <Label htmlFor="name" className="text-[var(--color-text-secondary)] font-medium">Product name *</Label>
                     <Input

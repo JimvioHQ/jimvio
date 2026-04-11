@@ -24,6 +24,12 @@ interface DashStats {
   vendorRevenue: number;
   vendorOrders: number;
   vendorProducts: number;
+  // Mission Owner
+  activeMissions: number;
+  totalSubmissionsReceived: number;
+  // Creator
+  missionsJoined: number;
+  mySubmissions: number;
 }
 
 interface RecentOrder {
@@ -88,6 +94,8 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<DashStats>({
     orders: 0, wishlist: 0, affiliateEarnings: 0,
     vendorRevenue: 0, vendorOrders: 0, vendorProducts: 0,
+    activeMissions: 0, totalSubmissionsReceived: 0,
+    missionsJoined: 0, mySubmissions: 0,
   });
   const [vendorRevenueRows, setVendorRevenueRows] = useState<any[]>([]);
   const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([]);
@@ -125,19 +133,36 @@ export default function DashboardPage() {
       setRecentOrders((recentRes.data as RecentOrder[]) ?? []);
 
       let vendorRevenue = 0, vendorOrders = 0, vendorProducts = 0;
+      let activeMissions = 0, totalSubmissionsReceived = 0;
+      let missionsJoined = 0, mySubmissions = 0;
 
       if (activeRoles.includes("vendor")) {
-        const vendor = await supabase.from("vendors").select("id").eq("user_id", user.id).maybeSingle();
-        if (vendor.data) {
-          const [pCount, oItems] = await Promise.all([
-            supabase.from("products").select("id", { count: "exact", head: true }).eq("vendor_id", vendor.data.id).eq("is_active", true),
-            supabase.from("order_items").select("total_price, orders(currency)").eq("vendor_id", vendor.data.id),
+        const { data: userVendors } = await supabase.from("vendors").select("id").eq("user_id", user.id);
+        
+        if (userVendors && userVendors.length > 0) {
+          const vendorIds = userVendors.map(v => v.id);
+          const [pCount, oItems, missions, subs] = await Promise.all([
+            supabase.from("products").select("id", { count: "exact", head: true }).in("vendor_id", vendorIds).eq("is_active", true),
+            supabase.from("order_items").select("total_price, orders(currency)").in("vendor_id", vendorIds),
+            supabase.from("ugc_campaigns").select("id", { count: "exact", head: true }).in("brand_id", vendorIds).eq("status", "active"),
+            supabase.from("ugc_submissions").select("id", { count: "exact", head: true }).in("vendor_id", vendorIds),
           ]);
           vendorProducts = pCount.count ?? 0;
           vendorOrders = oItems.data?.length ?? 0;
           setVendorRevenueRows(oItems.data ?? []);
           vendorRevenue = oItems.data?.reduce((s, i) => s + Number(i.total_price), 0) ?? 0;
+          activeMissions = missions.count ?? 0;
+          totalSubmissionsReceived = subs.count ?? 0;
         }
+      }
+
+      if (activeRoles.includes("influencer")) {
+        const [joined, sent] = await Promise.all([
+          supabase.from("ugc_campaign_participants").select("id", { count: "exact", head: true }).eq("influencer_id", user.id),
+          supabase.from("ugc_submissions").select("id", { count: "exact", head: true }).eq("influencer_id", user.id), // assuming influencer_id is user.id in submissions
+        ]);
+        missionsJoined = joined.count ?? 0;
+        mySubmissions = sent.count ?? 0;
       }
 
       setStats({
@@ -145,6 +170,8 @@ export default function DashboardPage() {
         wishlist: wishlistRes.count ?? 0,
         affiliateEarnings: Number(affiliateRes.data?.total_earnings ?? 0),
         vendorRevenue, vendorOrders, vendorProducts,
+        activeMissions, totalSubmissionsReceived,
+        missionsJoined, mySubmissions,
       });
       setLoading(false);
     }
@@ -234,7 +261,49 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      {/* ── Vendor Section ── */}
+        {/* ── Mission Owner Section ── */}
+        <section className="space-y-4">
+          <div className="flex items-center justify-between px-1">
+            <h2 className="text-lg font-black text-[var(--color-text-primary)] flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-orange-500" />
+              Mission Operations
+            </h2>
+            <Link href="/dashboard/vendor/campaigns" className="text-xs font-bold text-[var(--color-text-muted)] hover:text-[var(--color-accent)] transition-colors">
+              Manage all
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <StatBadge icon={<Activity className="h-5 w-5" />} value={stats.activeMissions} label="Active Missions" gradient="bg-gradient-to-br from-indigo-500 to-indigo-600 shadow-indigo-500/20" />
+            <StatBadge icon={<Video className="h-5 w-5" />} value={stats.totalSubmissionsReceived} label="Submissions" gradient="bg-gradient-to-br from-orange-500 to-amber-500 shadow-orange-500/20" />
+            <div className="md:col-span-2 grid grid-cols-2 gap-4">
+              <QuickAction href="/dashboard/vendor/campaigns/new" icon={<Plus className="h-4 w-4" />} label="Launch Mission" sublabel="Draft new campaign" color="bg-zinc-100 text-zinc-900" />
+              <QuickAction href="/dashboard/vendor/submissions" icon={<Video className="h-4 w-4" />} label="View Submissions" sublabel="Review content" color="bg-zinc-100 text-zinc-900" />
+            </div>
+          </div>
+        </section>
+
+        {/* ── Creator Hub Section ── */}
+        <section className="space-y-4">
+          <div className="flex items-center justify-between px-1">
+            <h2 className="text-lg font-black text-[var(--color-text-primary)] flex items-center gap-2">
+              <Zap className="h-5 w-5 text-indigo-500" />
+              Creator Studio
+            </h2>
+            <Link href="/dashboard/influencer" className="text-xs font-bold text-[var(--color-text-muted)] hover:text-[var(--color-accent)] transition-colors">
+              Studio Home
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <StatBadge icon={<Package className="h-5 w-5" />} value={stats.missionsJoined} label="Missions Joined" gradient="bg-gradient-to-br from-violet-500 to-purple-600 shadow-violet-500/20" />
+            <StatBadge icon={<CheckCircle className="h-5 w-5" />} value={stats.mySubmissions} label="Submissions" gradient="bg-gradient-to-br from-emerald-500 to-teal-500 shadow-emerald-500/20" />
+            <div className="md:col-span-2 grid grid-cols-2 gap-4">
+              <QuickAction href="/ugc" icon={<Globe className="h-4 w-4" />} label="Explore Missions" sublabel="Find opportunities" color="bg-zinc-100 text-zinc-900" />
+              <QuickAction href="/dashboard/influencer/videos" icon={<Video className="h-4 w-4" />} label="My Clips" sublabel="Manage content" color="bg-zinc-100 text-zinc-900" />
+            </div>
+          </div>
+        </section>
+
+      {/* ── Store Operations Section ── */}
       {isVendor && (
         <section>
           <div className="flex items-center justify-between mb-4">

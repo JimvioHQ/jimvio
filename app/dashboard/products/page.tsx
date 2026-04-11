@@ -3,7 +3,10 @@ export const dynamic = "force-dynamic";
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { Package, Plus, Search, TrendingUp, Edit, Trash2 } from "lucide-react";
+import { 
+  Plus, Search, TrendingUp, Edit, Trash2, 
+  Package, AlertCircle, Store, Layers, MousePointer 
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +14,7 @@ import { StatCard } from "@/components/ui/stat-card";
 import { useCurrency } from "@/context/CurrencyContext";
 import { createClient } from "@/lib/supabase/client";
 import { TableRowSkeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 
 const statusMap: Record<string, { label: string; variant: "success" | "warning" | "secondary" }> = {
   active:   { label: "Active",   variant: "success"   },
@@ -34,19 +38,20 @@ export default function ProductsPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data: vend } = await supabase.from("vendors").select("*").eq("user_id", user.id).single();
-      setVendor(vend);
+      const { data: userVendors } = await supabase.from("vendors").select("*").eq("user_id", user.id);
+      setVendor(userVendors?.[0] || null);
 
-      if (vend) {
+      if (userVendors && userVendors.length > 0) {
+        const vendorIds = userVendors.map(v => v.id);
         const { data: prods } = await supabase
           .from("products")
           .select(`
             id, name, slug, price, currency, compare_at_price, status, product_type,
             images, inventory_quantity, sale_count, rating, review_count,
             affiliate_enabled, affiliate_commission_rate, is_active,
-            is_digital, created_at
+            is_digital, created_at, vendor_id
           `)
-          .eq("vendor_id", vend.id)
+          .in("vendor_id", vendorIds)
           .order("created_at", { ascending: false });
 
         setProducts(prods ?? []);
@@ -89,150 +94,171 @@ export default function ProductsPage() {
 
   if (!loading && !vendor) {
     return (
-      <div className="space-y-5">
-        <h1 className="text-xl font-bold text-[var(--color-text-primary)]">Products</h1>
-        <div className="bg-subtle border border-base rounded-xl p-8 text-center">
-          <div className="text-4xl mb-3">🏪</div>
-          <h3 className="text-lg font-bold text-[var(--color-text-primary)] mb-2">Activate Vendor Role First</h3>
-          <p className="text-sm text-muted-c mb-4">You need a vendor account to manage products.</p>
-          <Button asChild><Link href="/dashboard/activate/vendor">Become a Vendor</Link></Button>
+      <div className="max-w-4xl mx-auto py-20 text-center space-y-6">
+        <div className="w-20 h-20 bg-zinc-50 border border-zinc-100 rounded-[32px] flex items-center justify-center mx-auto text-3xl shadow-xl">🏪</div>
+        <div>
+           <h3 className="text-xl font-black text-zinc-900">Vendor Activation Required</h3>
+           <p className="text-sm text-zinc-400 font-medium mt-2">Scale your business by deploying your first storefront.</p>
         </div>
+        <Button asChild className="h-12 px-8 rounded-2xl bg-zinc-900 text-white hover:bg-black font-black uppercase text-xs tracking-widest active:scale-95 transition-all">
+           <Link href="/dashboard/vendor/setup">Activate Vendor Role</Link>
+        </Button>
       </div>
     );
   }
 
   return (
-    <div className="space-y-5 animate-fade-in">
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div>
-          <h1 className="text-xl font-bold text-[var(--color-text-primary)]">Products</h1>
-          <p className="text-sm text-muted-c mt-0.5">Manage your product catalog</p>
-        </div>
-        <Button asChild>
-          <Link href="/dashboard/products/new"><Plus className="h-4 w-4" /> Add Product</Link>
-        </Button>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <StatCard title="Total Products" value={loading ? "—" : products.length}  change={3.1}  icon={<Package    className="h-4 w-4" />} iconColor="from-primary-600 to-accent-600" />
-        <StatCard title="Active"         value={loading ? "—" : active}            change={1.5}  icon={<TrendingUp className="h-4 w-4" />} iconColor="from-emerald-600 to-teal-600" />
-        <StatCard title="Total Sales"    value={loading ? "—" : totalSales.toLocaleString()} change={18.2} icon={<TrendingUp className="h-4 w-4" />} iconColor="from-blue-600 to-cyan-600" />
-        <StatCard title="Low Stock"      value={loading ? "—" : lowStock}           change={-2}   icon={<Package    className="h-4 w-4" />} iconColor="from-amber-600 to-orange-600" />
-      </div>
-
-      {/* Filter bar */}
-      <Card>
-        <CardContent className="p-3">
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="relative flex-1 min-w-[200px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-c pointer-events-none" />
-              <input
-                placeholder="Search products..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                className="w-full h-9 pl-9 pr-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm text-[var(--color-text-primary)] placeholder:text-muted-c focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30 focus:border-[var(--color-accent)] transition-all"
-              />
+    <div className="max-w-6xl mx-auto space-y-8 animate-in slide-in-from-bottom-2 duration-500 fade-in pb-20">
+      
+      {/* ── HEADER ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 pt-4 px-2">
+         <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-zinc-950 flex items-center justify-center shadow-xl">
+               <Package className="h-6 w-6 text-white" />
             </div>
-            <div className="flex items-center gap-1 bg-subtle border border-base rounded-lg overflow-hidden p-0.5">
-              {["All", "Active", "Digital", "Physical", "Low Stock"].map((f) => (
-                <button
+            <div>
+               <h1 className="text-2xl font-black text-zinc-900 tracking-tight flex items-center gap-2">
+                  Products
+                  <span className="text-zinc-300 font-bold">{products.length}</span>
+               </h1>
+               <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Master Catalog</p>
+            </div>
+         </div>
+
+         <Link href="/dashboard/products/new">
+            <Button className="h-11 px-6 rounded-xl bg-zinc-900 text-white hover:bg-black font-black text-xs uppercase tracking-widest shadow-xl active:scale-95 transition-all">
+               <Plus className="h-4 w-4 mr-2" /> Add Product
+            </Button>
+         </Link>
+      </div>
+
+      {/* ── STATS CARDS ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+         {[
+           { label: "Public Listings", value: products.filter(p => p.status === 'active').length, icon: Store, color: "text-blue-500", bg: "bg-blue-50" },
+           { label: "Lifetime Sales", value: totalSales, icon: TrendingUp, color: "text-emerald-500", bg: "bg-emerald-50" },
+           { label: "Inventory Alert", value: lowStock, icon: AlertCircle, color: "text-red-500", bg: "bg-red-50" },
+           { label: "Digital Goods", value: products.filter(p => p.is_digital).length, icon: MousePointer, color: "text-violet-500", bg: "bg-violet-50" },
+         ].map((stat, i) => (
+            <div key={i} className="bg-white border border-zinc-100 p-5 rounded-[28px] shadow-sm flex items-center gap-4 relative group overflow-hidden">
+               <div className={cn("absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity", stat.bg)} />
+               <div className={cn("relative w-10 h-10 rounded-xl flex items-center justify-center shrink-0", stat.bg, stat.color)}>
+                  <stat.icon className="h-5 w-5" />
+               </div>
+               <div className="relative">
+                  <p className="text-xl font-black text-zinc-900">{stat.value}</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">{stat.label}</p>
+               </div>
+            </div>
+         ))}
+      </div>
+
+      {/* ── SEARCH & FILTER ── */}
+      <div className="flex flex-col md:flex-row gap-4 px-2">
+         <div className="relative flex-1">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 pointer-events-none" />
+            <input
+               placeholder="Search product registry..."
+               value={search}
+               onChange={e => setSearch(e.target.value)}
+               className="w-full h-12 pl-11 pr-4 rounded-2xl bg-white border border-zinc-100 text-sm font-bold text-zinc-900 placeholder:text-zinc-300 focus:outline-none focus:ring-4 focus:ring-zinc-100 transition-all shadow-sm"
+            />
+         </div>
+         <div className="flex bg-zinc-50 border border-zinc-100 p-1 rounded-2xl overflow-x-auto">
+            {["All", "Active", "Digital", "Physical", "Low Stock"].map((f) => (
+               <button
                   key={f}
                   onClick={() => setFilter(f)}
-                  className={`px-2.5 py-1.5 rounded-md text-xs font-medium transition-all ${activeFilter === f ? "bg-[var(--color-accent)] text-white shadow-primary" : "text-muted-c hover:text-[var(--color-text-primary)]"}`}
-                >
+                  className={cn(
+                     "px-5 h-10 rounded-xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all",
+                     activeFilter === f ? "bg-zinc-900 text-white shadow-xl" : "text-zinc-400 hover:text-zinc-900"
+                  )}
+               >
                   {f}
-                </button>
-              ))}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+               </button>
+            ))}
+         </div>
+      </div>
 
-      {/* Table */}
-      <Card>
-        <CardHeader className="pt-4 px-4 pb-3">
-          <CardTitle>
-            {loading ? "Loading..." : `All Products (${filtered.length})`}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <table className="table-base">
-              <thead>
-                <tr>
-                  <th className="pl-5">Product Image</th>
-                  <th className="text-left">Product Name</th>
-                  <th className="text-right">Price</th>
-                  <th className="text-right">Stock</th>
-                  <th className="text-center">Status</th>
-                  <th className="text-center">Edit</th>
-                  <th className="text-center pr-5">Delete</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading
-                  ? Array(5).fill(0).map((_, i) => <TableRowSkeleton key={i} cols={7} />)
-                  : filtered.length === 0 ? (
-                    <tr>
-                      <td colSpan={7} className="text-center py-16 text-muted-c">
-                        <div className="text-4xl mb-2">📦</div>
-                        {products.length === 0
-                          ? <><p className="font-medium text-base mb-1">No products yet</p><p className="text-sm">Start adding products to your store.</p></>
-                          : <><p className="font-medium text-base">No results found</p><p className="text-sm">Try a different search term.</p></>
-                        }
-                      </td>
-                    </tr>
-                  )
-                  : filtered.map((p) => {
-                    const s      = statusMap[p.status as string] ?? { label: "Unknown", variant: "secondary" as const };
-                    const images = (p.images as string[]) ?? [];
-                    return (
-                      <tr key={p.id as string} className="group">
-                        <td className="pl-5">
-                          <div className="w-12 h-12 rounded-lg overflow-hidden bg-subtle border border-base shrink-0 flex items-center justify-center text-xl">
-                            {images[0]
-                              ? <img src={images[0]} alt={p.name as string} className="w-full h-full object-cover" />
-                              : (p.is_digital ? "💾" : "📦")
-                            }
+      {/* ── PRODUCT REGISTRY ── */}
+      <div className="space-y-4">
+         <h2 className="text-xs font-black uppercase tracking-[0.2em] text-zinc-400 px-2">Catalog Registry</h2>
+         
+         {loading ? (
+            <div className="space-y-3">
+               {[1, 2, 3].map(i => <div key={i} className="h-24 rounded-[32px] bg-zinc-50 border border-zinc-100 animate-pulse" />)}
+            </div>
+         ) : filtered.length === 0 ? (
+            <div className="py-20 text-center rounded-[32px] bg-zinc-50 border border-zinc-100 border-dashed">
+               <Package className="h-10 w-10 text-zinc-300 mx-auto mb-4" />
+               <p className="text-sm font-bold text-zinc-500">No products found.</p>
+            </div>
+         ) : (
+            <div className="grid grid-cols-1 gap-3">
+               {filtered.map((p) => {
+                 const s = statusMap[p.status as string] || statusMap.draft;
+                 const img = (p.images as string[])?.[0];
+
+                  return (
+                    <div key={p.id as string} className="group bg-white border border-zinc-100 hover:border-zinc-300 rounded-[28px] p-4 pr-6 flex items-center gap-6 transition-all shadow-sm hover:shadow-md">
+                       
+                       {/* Identity */}
+                       <div className="w-16 h-16 rounded-2xl bg-zinc-50 border border-zinc-100 flex items-center justify-center shrink-0 overflow-hidden relative group-hover:border-zinc-300 transition-all">
+                          {img ? (
+                             <img src={img} alt={p.name as string} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                          ) : (
+                             <Package className="h-6 w-6 text-zinc-300" />
+                          )}
+                          {p.is_digital && <span className="absolute top-1 right-1 bg-violet-600 text-white text-[8px] font-black px-1.5 py-0.5 rounded-md shadow-lg">DIGITAL</span>}
+                       </div>
+
+                       <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                             <span className={cn(
+                                "text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md border",
+                                s.variant === 'success' ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
+                                s.variant === 'warning' ? "bg-amber-50 text-amber-600 border-amber-100" :
+                                "bg-zinc-50 text-zinc-500 border-zinc-200"
+                             )}>{s.label}</span>
+                             <span className="text-[8px] font-black uppercase tracking-widest text-zinc-300">{p.product_type}</span>
                           </div>
-                        </td>
-                        <td>
-                          <p className="text-sm font-semibold text-[var(--color-text-primary)] line-clamp-2">{p.name as string}</p>
-                        </td>
-                        <td className="text-right"><span className="text-sm font-semibold text-[var(--color-text-primary)]">{formatMoney(Number(p.price), (p.currency as string) || undefined)}</span></td>
-                        <td className="text-right">
-                          {p.is_digital
-                            ? <span className="text-xs text-muted-c">—</span>
-                            : <span className={`text-sm font-medium ${(p.inventory_quantity as number) <= 5 ? "text-amber-600 dark:text-amber-400" : "text-[var(--color-text-primary)]"}`}>
-                                {(p.inventory_quantity as number) ?? 0}
-                              </span>
-                          }
-                        </td>
-                        <td className="text-center"><Badge variant={s.variant}>{s.label}</Badge></td>
-                        <td className="text-center">
+                          <h3 className="text-base font-black text-zinc-900 truncate">{p.name as string}</h3>
+                          <div className="flex items-center gap-4 mt-1">
+                             <span className="text-xs font-black text-zinc-900">{formatMoney(Number(p.price), (p.currency as string) || undefined)}</span>
+                             <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest flex items-center gap-1.5">
+                                <TrendingUp className="h-3 w-3" /> {p.sale_count || 0} Sold
+                             </span>
+                             {!p.is_digital && (
+                                <span className={cn(
+                                  "text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5",
+                                  (p.inventory_quantity as number) <= 5 ? "text-red-500" : "text-zinc-400"
+                                )}>
+                                   <Layers className="h-3 w-3" /> {p.inventory_quantity || 0} Stock
+                                </span>
+                             )}
+                          </div>
+                       </div>
+
+                       {/* Actions */}
+                       <div className="flex items-center gap-2 shrink-0">
                           <Link href={`/dashboard/products/${p.id as string}/edit`}>
-                            <button className="btn btn-ghost btn-icon-sm" title="Edit"><Edit className="h-4 w-4" /></button>
+                             <div className="w-10 h-10 rounded-xl bg-zinc-50 hover:bg-zinc-900 hover:text-white flex items-center justify-center text-zinc-400 transition-all cursor-pointer border border-zinc-100">
+                                <Edit className="h-4 w-4" />
+                             </div>
                           </Link>
-                        </td>
-                        <td className="text-center pr-5">
-                          <button
-                            className="btn btn-ghost btn-icon-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
-                            title="Delete"
-                            onClick={() => deleteProduct(p.id as string)}
-                          >
-                            <Trash2 className="h-4 w-4" />
+                          <button onClick={() => deleteProduct(p.id as string)} className="w-10 h-10 rounded-xl bg-zinc-50 hover:bg-red-50 hover:text-red-600 flex items-center justify-center text-zinc-300 transition-all cursor-pointer border border-zinc-100 group-hover:opacity-100 opacity-0">
+                             <Trash2 className="h-4 w-4" />
                           </button>
-                        </td>
-                      </tr>
-                    );
-                  })
-                }
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
+                       </div>
+
+                    </div>
+                  );
+               })}
+            </div>
+         )}
+      </div>
+
     </div>
   );
 }
+

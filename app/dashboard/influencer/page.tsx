@@ -94,187 +94,141 @@ export default function InfluencerDashboardPage() {
 
   return (
     <div className="space-y-8 pb-10 animate-fade-in">
-      {/* Welcome Header */}
-      <div className="flex items-start justify-between flex-wrap gap-6">
-        <div>
-          <h1 className="text-3xl font-black text-[var(--color-text-primary)] tracking-tight">
-            Creator Studio
-          </h1>
-          <p className="text-sm text-[var(--color-text-muted)] mt-1.5 font-medium">Manage your content partnerships and track earnings.</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Button size="sm" variant="outline" asChild className="rounded-xl h-10 border-[var(--color-border)] hover:bg-[var(--color-surface-secondary)]">
-            <Link href="/dashboard/analytics"><BarChart3 className="w-4 h-4 mr-2" /> Analytics</Link>
-          </Button>
-          <Button size="sm" asChild className="rounded-xl h-10 bg-gradient-to-r from-violet-600 to-indigo-700 font-bold px-6">
-            <Link href="/dashboard/influencer/videos"><Video className="h-4 w-4 mr-2" /> Video Studio</Link>
-          </Button>
-          <Button size="sm" asChild className="rounded-xl h-10 border border-[var(--color-border)] bg-white hover:bg-[var(--color-surface-secondary)] font-bold px-4">
-            <Link href="/ugc"><Globe className="h-4 w-4 mr-2" /> Browse Campaigns</Link>
-          </Button>
-        </div>
+      {/* ── HEADER ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 pt-4 px-2">
+         <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center shadow-xl text-white font-black text-xl">
+               {influencer.display_name?.[0]?.toUpperCase() || 'C'}
+            </div>
+            <div>
+               <h1 className="text-2xl font-black text-zinc-900 tracking-tight flex items-center gap-2">
+                  Creator Studio
+                  <span className="text-zinc-300 font-medium">@{influencer.username || 'creator'}</span>
+               </h1>
+               <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-zinc-400">
+                  <span className="flex items-center gap-1"><Globe className="w-3 h-3" /> Global Partner</span>
+                  <span>•</span>
+                  <span>{influencer.category || 'Lifestyle'}</span>
+               </div>
+            </div>
+         </div>
+
+         <div className="flex items-center gap-3">
+            <Link href="/dashboard/influencer/videos">
+               <Button variant="outline" className="h-11 px-6 rounded-xl border-zinc-200 font-black text-xs uppercase tracking-widest transition-all hover:bg-zinc-50">
+                  My Clips
+               </Button>
+            </Link>
+            <Link href="/ugc">
+               <Button className="h-11 px-8 rounded-xl bg-zinc-900 text-white hover:bg-black font-black text-xs uppercase tracking-widest shadow-xl active:scale-95 transition-all">
+                  <Plus className="h-4 w-4 mr-2" /> Join Mission
+               </Button>
+            </Link>
+         </div>
       </div>
 
-      {/* Primary Metrics */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Submission Views" value={stats.totalViews.toLocaleString()} icon={<Eye className="h-4 w-4" />} iconColor="from-blue-600 to-cyan-600" />
-        <StatCard title="Active Campaigns" value={stats.activeCampaigns.toString()} icon={<Package className="h-4 w-4" />} iconColor="from-violet-600 to-purple-600" />
-        <StatCard title="Total Earnings" value={formatMoney(stats.totalEarnings, "RWF")} icon={<DollarSign className="h-4 w-4" />} iconColor="from-emerald-600 to-teal-600" />
-        <StatCard title="Creator Tier" value="Rising Star" icon={<Star className="h-4 w-4" />} iconColor="from-amber-500 to-orange-500" />
+      {/* ── METRIC CARDS ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+         {[
+           { label: "Total Earnings", value: formatMoney(stats.totalEarnings), icon: DollarSign, color: "text-emerald-500", bg: "bg-emerald-50" },
+           { label: "Content Reach", value: formatCompactNumber(stats.totalViews), icon: Eye, color: "text-blue-500", bg: "bg-blue-50" },
+           { label: "Market Influence", value: stats.totalClicks, icon: MousePointer, color: "text-violet-500", bg: "bg-violet-50" },
+           { label: "Active Missions", value: stats.activeCampaigns, icon: Target, color: "text-amber-500", bg: "bg-amber-50" },
+         ].map((stat, i) => (
+            <div key={i} className="bg-white border border-zinc-100 p-5 rounded-[28px] shadow-sm flex items-center gap-4 relative group overflow-hidden">
+               <div className={cn("absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity", stat.bg)} />
+               <div className={cn("relative w-10 h-10 rounded-xl flex items-center justify-center shrink-0", stat.bg, stat.color)}>
+                  <stat.icon className="h-5 w-5" />
+               </div>
+               <div className="relative">
+                  <p className="text-xl font-black text-zinc-900">{stat.value}</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">{stat.label}</p>
+               </div>
+            </div>
+         ))}
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
         <div className="xl:col-span-2 space-y-8">
-          {/* Submissions Feed */}
-          <Card className="border border-[var(--color-border)] rounded-3xl shadow-sm overflow-hidden bg-[var(--color-surface)]">
-            <CardHeader className="flex flex-row items-center justify-between px-6 py-5 border-b border-[var(--color-border)]">
-              <CardTitle className="text-base font-black flex items-center gap-2">
-                <Send className="w-4 h-4 text-[var(--color-accent)]" /> 
-                Recent Content Submissions
-              </CardTitle>
-              <Link href="/dashboard/submissions" className="text-xs text-[var(--color-accent)] font-bold flex items-center gap-1 hover:underline">
-                View All <ArrowRight className="h-3 w-3" />
-              </Link>
-            </CardHeader>
-            <CardContent className="p-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {recentSubmissions.map((sub) => (
-                  <div key={sub.id} className="group flex flex-col justify-between p-5 rounded-2xl bg-[var(--color-surface-secondary)]/50 border border-[var(--color-border)] hover:border-[var(--color-accent)]/30 transition-all">
-                    <div>
-                      <div className="flex items-center justify-between mb-3">
-                        <Badge variant="outline" className="text-[10px] py-0 px-2 rounded-lg bg-[var(--color-surface)] border-[var(--color-border)] font-black uppercase text-[var(--color-text-muted)]">
-                          {sub.platform}
-                        </Badge>
-                        <Badge 
-                          variant={sub.status === "approved" ? "success" : sub.status === "rejected" ? "destructive" : "warning"} 
-                          className="text-[9px] px-2 py-0.5 rounded-full capitalize font-bold tracking-tight shadow-sm"
-                        >
-                          {sub.status}
-                        </Badge>
-                      </div>
-                      <p className="text-sm font-black text-[var(--color-text-primary)] mb-1.5 line-clamp-1 leading-tight">
-                        {(sub.ugc_campaigns as any)?.title || "Campaign Content"}
-                      </p>
-                      <a href={sub.post_url} target="_blank" rel="noopener noreferrer" className="text-[11px] text-[var(--color-accent)] hover:underline truncate block opacity-80">
-                        {sub.post_url}
-                      </a>
-                    </div>
-                    <div className="flex items-center justify-between mt-5 pt-4 border-t border-[var(--color-border)]/50">
-                      <div className="space-y-0.5">
-                        <span className="text-[9px] text-[var(--color-text-muted)] uppercase font-black tracking-widest">Views Tracked</span>
-                        <p className="text-sm font-black text-[var(--color-text-primary)]">{(sub.view_count || 0).toLocaleString()}</p>
-                      </div>
-                      <div className="text-right space-y-0.5">
-                        <span className="text-[9px] text-[var(--color-text-muted)] uppercase font-black tracking-widest">Payout</span>
-                        <p className="text-sm font-black text-emerald-500">{formatMoney(Number(sub.total_earnings || 0), "RWF")}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-                
-                {recentSubmissions.length === 0 && (
-                  <div className="col-span-1 sm:col-span-2 py-16 text-center border-2 border-dashed border-[var(--color-border)] rounded-3xl h-full flex flex-col items-center justify-center space-y-4">
-                    <div className="w-16 h-16 bg-[var(--color-surface-secondary)] rounded-full flex items-center justify-center text-3xl opacity-30">🎬</div>
-                    <div className="max-w-[280px]">
-                      <p className="text-sm font-black text-[var(--color-text-primary)]">No submissions found</p>
-                      <p className="text-xs text-[var(--color-text-muted)] mt-1 mb-6">Browse active brand campaigns, create amazing content, and submit your first link to start earning.</p>
-                    </div>
-                    <Button size="sm" asChild className="rounded-xl px-6 h-10 font-bold bg-[var(--color-accent)]">
-                      <Link href="/ugc">Explore Campaigns</Link>
-                    </Button>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Promotion Card */}
-          <div className="relative rounded-3xl overflow-hidden group shadow-xl shadow-violet-900/5">
-            <div className="absolute inset-0 bg-gradient-to-br from-violet-600 via-indigo-700 to-blue-800 opacity-90 group-hover:scale-105 transition-transform duration-500" />
-            <div className="relative p-10 text-center flex flex-col items-center space-y-6">
-              <div className="w-16 h-16 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl flex items-center justify-center text-3xl shadow-2xl">
-                🚀
-              </div>
-              <div>
-                <h3 className="text-xl font-black text-white tracking-tight">Scale Your Content Earnings</h3>
-                <p className="text-white/80 text-sm max-w-sm mt-2 mx-auto leading-relaxed">
-                  Join exclusive brand campaigns and monetize every view you generate through TikTok, Instagram, and YouTube.
-                </p>
-              </div>
-              <Button asChild className="rounded-2xl h-12 px-10 bg-white text-indigo-700 hover:bg-white/90 font-black shadow-lg shadow-black/20">
-                <Link href="/ugc">Browse All Campaigns</Link>
-              </Button>
-            </div>
-          </div>
-        </div>
-
-        {/* Sidebar Actions */}
-        <div className="space-y-6">
-          {/* Earnings Card */}
-          <Card className="border-none bg-indigo-900 text-white rounded-3xl shadow-xl overflow-hidden relative">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500 opacity-20 blur-[60px]" />
-            <CardContent className="p-8">
-              <div className="flex items-center gap-4 mb-6">
-                <div className="h-14 w-14 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center text-3xl border border-white/10">
-                  💰
-                </div>
-                <div>
-                  <p className="text-[10px] font-black text-indigo-200 uppercase tracking-widest">Available Payout</p>
-                  <p className="text-3xl font-black">{formatMoney(stats.totalEarnings, "RWF")}</p>
-                </div>
-              </div>
-              <Button className="w-full h-14 bg-white text-indigo-900 hover:bg-indigo-50 font-black rounded-2xl shadow-lg border-none">
-                Request Withdrawal <ArrowRight className="h-4 w-4 ml-2" />
-              </Button>
-              <p className="text-[10px] text-center text-indigo-300 mt-4 font-bold opacity-80">
-                Minimum withdrawal: FRw 10,000
-              </p>
-            </CardContent>
-          </Card>
-
-          {/* Quick Actions */}
-          <Card className="border border-[var(--color-border)] rounded-3xl shadow-sm bg-[var(--color-surface)]">
-            <CardHeader className="pb-4 pt-6 px-6">
-              <CardTitle className="text-xs font-black uppercase tracking-widest text-[var(--color-text-muted)] opacity-60">Success Hub</CardTitle>
-            </CardHeader>
-            <CardContent className="px-4 pb-6 space-y-2">
-              {[
-                { label: "Short Video Studio", icon: <Film className="w-4 h-4" />, href: "/dashboard/influencer/videos" },
-                { label: "Find Campaigns", icon: <Globe className="w-4 h-4" />, href: "/ugc" },
-                { label: "My Submissions", icon: <Send className="w-4 h-4" />, href: "/dashboard/submissions" },
-                { label: "Affiliate Tracking", icon: <MousePointer className="w-4 h-4" />, href: "/dashboard/links" },
-                { label: "Profile Settings", icon: <Users className="w-4 h-4" />, href: "/dashboard/settings" },
-              ].map((a, i) => (
-                <Button key={i} variant="ghost" className="w-full justify-between h-14 rounded-2xl px-4 hover:bg-[var(--color-surface-secondary)] group transition-all" asChild>
-                  <Link href={a.href}>
-                    <div className="flex items-center gap-3">
-                      <span className="p-2.5 rounded-xl bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)] group-hover:bg-white group-hover:text-[var(--color-accent)] shadow-sm transition-all">{a.icon}</span>
-                      <span className="font-bold text-sm text-[var(--color-text-primary)]">{a.label}</span>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-[var(--color-text-muted)] opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+            <h2 className="text-xs font-black uppercase tracking-[0.2em] text-zinc-400 px-2">Pipeline Status</h2>
+            
+            {recentSubmissions.length === 0 ? (
+               <div className="py-20 text-center rounded-[32px] bg-zinc-50 border border-zinc-100 border-dashed">
+                  <Film className="h-10 w-10 text-zinc-300 mx-auto mb-4" />
+                  <p className="text-sm font-bold text-zinc-500">No submissions yet.</p>
+                  <Link href="/ugc" className="mt-4 inline-block">
+                     <Button variant="ghost" className="text-xs font-black uppercase tracking-widest">Find Missions →</Button>
                   </Link>
-                </Button>
-              ))}
-            </CardContent>
-          </Card>
+               </div>
+            ) : (
+               <div className="grid grid-cols-1 gap-3">
+                  {recentSubmissions.map((sub) => {
+                    const campaign = sub.ugc_campaigns as any;
+                    const isPending = sub.status === 'pending';
 
-          {/* Tier Tracker */}
-          <Card className="border border-[var(--color-border)] rounded-3xl shadow-sm bg-[var(--color-surface)] p-6">
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-[10px] font-black uppercase tracking-widest text-[var(--color-text-muted)]">Creator Rank</span>
-              <Badge variant="outline" className="border-amber-500/20 text-amber-500 text-[10px] font-bold">Lvl 3</Badge>
-            </div>
-            <div className="flex items-center gap-2 mb-4">
-              <div className="h-2 flex-1 bg-[var(--color-surface-secondary)] rounded-full overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-amber-400 to-orange-500" style={{ width: "72%" }} />
-              </div>
-              <span className="text-[10px] font-black text-amber-500 italic">PRO</span>
-            </div>
-            <p className="text-[10px] text-[var(--color-text-muted)] font-medium leading-relaxed">
-              Generate <b>5,000 more views</b> this month to unlock **Elite Creator** status and 5% higher commission rates.
-            </p>
-          </Card>
+                    return (
+                       <div key={sub.id} className="group bg-white border border-zinc-100 hover:border-zinc-300 rounded-[28px] p-4 pr-6 flex items-center gap-4 transition-all shadow-sm">
+                          <div className="w-10 h-10 rounded-xl bg-zinc-50 flex items-center justify-center shrink-0 border border-zinc-100 group-hover:bg-zinc-900 group-hover:text-white transition-colors">
+                             <Video className="h-4 w-4" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                             <h4 className="text-sm font-black text-zinc-900 truncate">{campaign?.title || 'Unknown Mission'}</h4>
+                             <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-1.5 mt-0.5">
+                                <span className={cn("px-1.5 py-0.5 rounded-md border", isPending ? "bg-amber-50 text-amber-600 border-amber-100" : "bg-emerald-50 text-emerald-600 border-emerald-100")}>
+                                   {sub.status}
+                                </span>
+                                • {sub.platform}
+                             </p>
+                          </div>
+                          <div className="text-right shrink-0">
+                             <p className="text-sm font-black text-zinc-900">{formatMoney(sub.total_earnings || 0)}</p>
+                             <p className="text-[9px] font-black text-zinc-300 uppercase tracking-widest">Earned</p>
+                          </div>
+                          <Link href={sub.post_url} target="_blank" className="ml-2 w-8 h-8 rounded-lg bg-zinc-50 flex items-center justify-center text-zinc-400 hover:bg-zinc-100 hover:text-zinc-900 transition-all">
+                             <ExternalLink className="w-3.5 h-3.5" />
+                          </Link>
+                       </div>
+                    );
+                  })}
+               </div>
+            )}
+
         </div>
+
+         {/* ── QUICK ACTIONS ── */}
+         <div className="lg:col-span-4 space-y-6">
+            <div className="rounded-[32px] bg-zinc-950 p-6 text-white shadow-xl relative overflow-hidden">
+               <div className="absolute top-0 right-0 w-32 h-32 bg-violet-600 opacity-20 blur-2xl rounded-full translate-x-10 -translate-y-10" />
+               <div className="relative z-10 space-y-4">
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 text-[9px] font-black uppercase tracking-widest border border-white/10">
+                    <Sparkles className="h-3 w-3 text-amber-400" /> Growth Tips
+                  </div>
+                  <h3 className="text-lg font-black leading-tight">Max your outreach</h3>
+                  <p className="text-xs text-zinc-400 font-medium">Verified creators earn 2x more on average. Complete your profile to get priority reviews.</p>
+                  <Button variant="outline" className="w-full h-10 rounded-xl bg-white/5 border-white/10 hover:bg-white/10 text-white font-black text-[10px] uppercase tracking-widest transition-all">
+                     Upgrade Profile
+                  </Button>
+               </div>
+            </div>
+
+            <div className="rounded-[32px] bg-white border border-zinc-100 p-6 shadow-sm">
+               <h3 className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-4">Market Pulse</h3>
+               <div className="space-y-4">
+                  {[
+                    { label: "Avg. Payout", value: "$45.00", icon: TrendingUp },
+                    { label: "Active Brands", value: "240+", icon: Building2 },
+                  ].map((item, i) => (
+                    <div key={i} className="flex items-center justify-between">
+                       <div className="flex items-center gap-2">
+                          <item.icon className="w-3.5 h-3.5 text-zinc-300" />
+                          <span className="text-[10px] font-bold text-zinc-500">{item.label}</span>
+                       </div>
+                       <span className="text-xs font-black text-zinc-900">{item.value}</span>
+                    </div>
+                  ))}
+               </div>
+            </div>
+         </div>
       </div>
     </div>
   );

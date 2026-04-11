@@ -76,7 +76,7 @@ function ensureCoreNavLinks(links: NavLinkConfig[]): NavLinkConfig[] {
     const normHref = l.href.replace(/\/$/, "") || "/";
     return normHref !== "/clips" && !hideHrefs.includes(normHref);
   });
-  
+
   const norm = (href: string) => href.replace(/\/$/, "") || "/";
 
   // Ensure Marketplace and Communities are present in the main bar
@@ -263,7 +263,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
 
             {/* Desktop Central Links */}
             <div className="hidden min-[1150px]:flex items-center gap-1">
-              <div 
+              <div
                 onMouseEnter={handleExploreEnter}
                 onMouseLeave={handleExploreLeave}
                 className="relative"
@@ -275,25 +275,25 @@ export function Navbar({ user, marketing }: NavbarProps) {
                       Explore <ChevronDown className="h-3.5 w-3.5 opacity-40 group-hover:rotate-180 transition-transform" />
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent 
+                  <DropdownMenuContent
                     onMouseEnter={handleExploreEnter}
                     onMouseLeave={handleExploreLeave}
                     sideOffset={15}
                     className="w-[360px] p-3 rounded-[32px] shadow-[0_32px_80px_rgba(0,0,0,0.15)] border-white/20 backdrop-blur-3xl bg-white/95 grid grid-cols-1 gap-1"
                   >
-                  {solutions.map(s => (
-                    <DropdownMenuItem key={s.href} asChild className="p-3 rounded-2xl border border-transparent focus:bg-zinc-50 cursor-pointer group">
-                      <Link href={s.href} className="flex items-center gap-4">
-                        <div className={cn("h-10 w-10 rounded-xl bg-orange-50/10 flex items-center justify-center shrink-0", s.color)}><s.icon className="h-5 w-5" /></div>
-                        <div className="min-w-0">
-                          <p className="text-[14px] font-black text-zinc-900 leading-none mb-1">{s.title}</p>
-                          <p className="text-[11px] font-bold text-zinc-400 leading-tight truncate">{s.desc}</p>
-                        </div>
-                      </Link>
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
+                    {solutions.map(s => (
+                      <DropdownMenuItem key={s.href} asChild className="p-3 rounded-2xl border border-transparent focus:bg-zinc-50 cursor-pointer group">
+                        <Link href={s.href} className="flex items-center gap-4">
+                          <div className={cn("h-10 w-10 rounded-xl bg-orange-50/10 flex items-center justify-center shrink-0", s.color)}><s.icon className="h-5 w-5" /></div>
+                          <div className="min-w-0">
+                            <p className="text-[14px] font-black text-zinc-900 leading-none mb-1">{s.title}</p>
+                            <p className="text-[11px] font-bold text-zinc-400 leading-tight truncate">{s.desc}</p>
+                          </div>
+                        </Link>
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
 
               {navLinks.map((item) => {
@@ -304,7 +304,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
                     key={item.href}
                     href={item.href}
                     className={cn(
-                      "group px-4 py-2 rounded-2xl text-[14px] font-black transition-all flex items-center gap-2",
+                      "group px-2 py-2 rounded-2xl text-[14px] font-black transition-all flex items-center gap-2",
                       active ? "text-zinc-900 bg-zinc-100/50" : "text-zinc-500 hover:text-zinc-900"
                     )}
                   >
