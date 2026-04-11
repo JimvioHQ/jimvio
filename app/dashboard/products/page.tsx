@@ -209,7 +209,7 @@ export default function ProductsPage() {
                           ) : (
                              <Package className="h-6 w-6 text-zinc-300" />
                           )}
-                          {p.is_digital && <span className="absolute top-1 right-1 bg-violet-600 text-white text-[8px] font-black px-1.5 py-0.5 rounded-md shadow-lg">DIGITAL</span>}
+                          {Boolean(p.is_digital) && <span className="absolute top-1 right-1 bg-violet-600 text-white text-[8px] font-black px-1.5 py-0.5 rounded-md shadow-lg">DIGITAL</span>}
                        </div>
 
                        <div className="flex-1 min-w-0">
@@ -220,20 +220,20 @@ export default function ProductsPage() {
                                 s.variant === 'warning' ? "bg-amber-50 text-amber-600 border-amber-100" :
                                 "bg-zinc-50 text-zinc-500 border-zinc-200"
                              )}>{s.label}</span>
-                             <span className="text-[8px] font-black uppercase tracking-widest text-zinc-300">{p.product_type}</span>
+                             <span className="text-[8px] font-black uppercase tracking-widest text-zinc-300">{p.product_type as string}</span>
                           </div>
                           <h3 className="text-base font-black text-zinc-900 truncate">{p.name as string}</h3>
                           <div className="flex items-center gap-4 mt-1">
                              <span className="text-xs font-black text-zinc-900">{formatMoney(Number(p.price), (p.currency as string) || undefined)}</span>
                              <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest flex items-center gap-1.5">
-                                <TrendingUp className="h-3 w-3" /> {p.sale_count || 0} Sold
+                                <TrendingUp className="h-3 w-3" /> {(p.sale_count as number) || 0} Sold
                              </span>
                              {!p.is_digital && (
                                 <span className={cn(
                                   "text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5",
                                   (p.inventory_quantity as number) <= 5 ? "text-red-500" : "text-zinc-400"
                                 )}>
-                                   <Layers className="h-3 w-3" /> {p.inventory_quantity || 0} Stock
+                                   <Layers className="h-3 w-3" /> {(p.inventory_quantity as number) || 0} Stock
                                 </span>
                              )}
                           </div>

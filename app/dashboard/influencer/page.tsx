@@ -7,7 +7,8 @@ import {
   Video, Zap, DollarSign, TrendingUp, Users, 
   Play, Plus, ArrowRight, MousePointer, ExternalLink,
   ShoppingBag, Star, LayoutDashboard, Globe, Eye, Package,
-  Send, CheckCircle, BarChart3, Loader2, Film
+  Send, CheckCircle, BarChart3, Loader2, Film, Target, Sparkles,
+  Building2
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,11 @@ import { Badge } from "@/components/ui/badge";
 import { StatCard } from "@/components/ui/stat-card";
 import { useCurrency } from "@/context/CurrencyContext";
 import { createClient } from "@/lib/supabase/client";
+import { cn } from "@/lib/utils";
+
+function formatCompactNumber(number: number) {
+  return Intl.NumberFormat("en", { notation: "compact" }).format(number);
+}
 
 export default function InfluencerDashboardPage() {
   const { formatMoney } = useCurrency();
