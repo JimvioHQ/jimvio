@@ -45,7 +45,7 @@ export function SharedCampaignCard({ c }: CampaignCardProps) {
       className="group flex flex-col rounded-3xl bg-white border border-zinc-100/80 shadow-sm hover:shadow-xl hover:border-orange-200 transition-all duration-500 overflow-hidden h-full"
     >
       {/* Visual Header */}
-      <div className="relative aspect-[4/3] overflow-hidden shrink-0">
+      <div className="relative aspect-[4/5] md:aspect-[4/3] overflow-hidden shrink-0">
         <div className="absolute inset-0 bg-gradient-to-br from-zinc-100 to-zinc-200" />
         {banner && (
           <img 

@@ -28,7 +28,7 @@ export function CampaignScrollRow({ campaigns }: CampaignScrollRowProps) {
 
       <div className="flex flex-nowrap gap-4 overflow-x-auto pb-4 no-scrollbar -mx-4 px-4 sm:-mx-6 sm:px-6">
         {campaigns.map((c) => (
-          <div key={c.id} className="w-[165px] md:w-[280px] shrink-0">
+          <div key={c.id} className="w-[240px] md:w-[280px] shrink-0">
             <SharedCampaignCard c={c} />
           </div>
         ))}
