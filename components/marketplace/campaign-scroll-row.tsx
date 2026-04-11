@@ -10,7 +10,7 @@ interface CampaignScrollRowProps {
 }
 
 export function CampaignScrollRow({ campaigns }: CampaignScrollRowProps) {
-  if (!campaigns?.length) return null;
+  if (!campaigns?.length) return <section className="p-4 bg-red-50 text-red-500 font-bold">Debug: No campaigns returned from DB</section>;
 
   return (
     <section className="scroll-mt-32">
