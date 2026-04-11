@@ -310,7 +310,7 @@ export default function CampaignDetailPage() {
                 <>
                   <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-400 mb-2">Fixed Reward</p>
                   <div className="flex items-baseline gap-2 mb-2">
-                    <span className="text-4xl font-black">{formatMoney(campaign.fixed_rate ?? 0, "RWF")}</span>
+                    <span className="text-4xl font-black">{formatMoney(campaign.fixed_rate ?? 0, "USD")}</span>
                     <span className="text-sm font-bold text-zinc-500"> / Submission</span>
                   </div>
                 </>
@@ -318,7 +318,7 @@ export default function CampaignDetailPage() {
                 <>
                   <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 mb-2">Earn per 1K views</p>
                   <div className="flex items-baseline gap-2 mb-2">
-                    <span className="text-4xl font-black">{formatMoney(campaign.rate_per_1k_views, "RWF")}</span>
+                    <span className="text-4xl font-black">{formatMoney(campaign.rate_per_1k_views, "USD")}</span>
                     <span className="text-sm font-bold text-zinc-500"> / 1K</span>
                   </div>
                 </>
@@ -326,7 +326,7 @@ export default function CampaignDetailPage() {
               {campaign.max_payout_per_sub && (
                 <div className="flex items-center gap-2 p-2 px-3 rounded-xl bg-white/5 border border-white/10 mt-4 mb-8">
                    <div className="h-2 w-2 rounded-full bg-orange-500" />
-                   <p className="text-[11px] font-black text-zinc-300">Max {formatMoney(campaign.max_payout_per_sub, "RWF")} / submission</p>
+                   <p className="text-[11px] font-black text-zinc-300">Max {formatMoney(campaign.max_payout_per_sub, "USD")} / submission</p>
                 </div>
               )}
               
@@ -348,7 +348,7 @@ export default function CampaignDetailPage() {
               <div className="space-y-3">
                  <div className="flex justify-between items-center px-1">
                     <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest leading-none">Budget used</span>
-                    <span className="text-[11px] font-black text-zinc-900">{formatMoney(campaign.spent_budget || 0, "RWF")} / {formatMoney(campaign.total_budget, "RWF")}</span>
+                    <span className="text-[11px] font-black text-zinc-900">{formatMoney(campaign.spent_budget || 0, "USD")} / {formatMoney(campaign.total_budget, "USD")}</span>
                  </div>
                  <div className="h-2.5 w-full bg-zinc-100 rounded-full overflow-hidden">
                     <div 

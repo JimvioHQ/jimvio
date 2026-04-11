@@ -108,7 +108,7 @@ export default function CampaignDashboardPage() {
          {/* ── STATS GRID ── */}
          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {[
-               { label: 'Total Earnings', val: formatMoney(stats.totalEarnings, "RWF"), icon: DollarSign, color: 'text-emerald-500' },
+               { label: 'Total Earnings', val: formatMoney(stats.totalEarnings, "USD"), icon: DollarSign, color: 'text-emerald-500' },
                { label: 'Views Tracked', val: stats.totalViews.toLocaleString(), icon: TrendingUp, color: 'text-orange-500' },
                { label: 'Submissions', val: submissions.length, icon: Share2, color: 'text-blue-500' },
                { label: 'Approved', val: stats.approvedCount, icon: CheckCircle, color: 'text-zinc-900' },
@@ -189,7 +189,7 @@ export default function CampaignDashboardPage() {
                                        </div>
                                        <div className="flex items-center gap-1.5">
                                           <DollarSign className="h-3 w-3 text-emerald-500" />
-                                          <span className="text-xs font-black text-zinc-900">{formatMoney(Number(s.total_earnings) || 0, "RWF")}</span>
+                                          <span className="text-xs font-black text-zinc-900">{formatMoney(Number(s.total_earnings) || 0, "USD")}</span>
                                           <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">earned</span>
                                        </div>
                                     </div>

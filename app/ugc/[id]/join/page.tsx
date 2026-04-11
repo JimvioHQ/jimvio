@@ -147,12 +147,12 @@ export default function JoinCampaignPage() {
                  <div className="flex flex-wrap items-center justify-center md:justify-start gap-4">
                     <div className="px-4 py-2 rounded-2xl bg-white/5 border border-white/10 flex items-center gap-2">
                        <DollarSign className="h-4 w-4 text-orange-500" />
-                       <span className="text-sm font-black">{formatMoney(campaign.rate_per_1k_views, "RWF")} / 1K views</span>
+                       <span className="text-sm font-black">{formatMoney(campaign.rate_per_1k_views, "USD")} / 1K views</span>
                     </div>
                     {campaign.max_payout_per_sub && (
                        <div className="px-4 py-2 rounded-2xl bg-white/5 border border-white/10 flex items-center gap-2">
                           <ShieldCheck className="h-4 w-4 text-emerald-500" />
-                          <span className="text-sm font-black">Max {formatMoney(campaign.max_payout_per_sub, "RWF")} per sub</span>
+                          <span className="text-sm font-black">Max {formatMoney(campaign.max_payout_per_sub, "USD")} per sub</span>
                        </div>
                     )}
                  </div>

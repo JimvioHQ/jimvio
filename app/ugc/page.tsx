@@ -137,11 +137,11 @@ export default function UGCBrowserPage() {
                  <div className="flex flex-wrap items-center gap-6">
                     <div className="text-white">
                        <span className="block text-[10px] font-black uppercase tracking-widest text-white/60 mb-0.5">Payout Rate</span>
-                       <span className="text-2xl font-black">{formatMoney(featuredCampaign.rate_per_1k_views, "RWF")} / 1K views</span>
+                       <span className="text-2xl font-black">{formatMoney(featuredCampaign.rate_per_1k_views, "USD")} / 1K views</span>
                     </div>
                     <div className="text-white">
                        <span className="block text-[10px] font-black uppercase tracking-widest text-white/60 mb-0.5">Campaign Budget</span>
-                       <span className="text-2xl font-black">{formatMoney(featuredCampaign.total_budget, "RWF")}</span>
+                       <span className="text-2xl font-black">{formatMoney(featuredCampaign.total_budget, "USD")}</span>
                     </div>
                  </div>
 

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { TrendingUp, Play, Instagram, Youtube, Share2, CheckCircle, Target } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn, timeAgo as formatTimeAgo } from "@/lib/utils";
+import { useCurrency } from "@/context/CurrencyContext";
 
 const PLATFORM_ICONS: Record<string, any> = {
   tiktok: Play,
@@ -34,6 +35,7 @@ interface CampaignCardProps {
 }
 
 export function SharedCampaignCard({ c }: CampaignCardProps) {
+  const { formatMoney } = useCurrency();
   const budgetPct = Math.min(100, ((c.spent_budget ?? 0) / (c.total_budget || 1)) * 100);
   const timeStr = c.created_at ? formatTimeAgo(c.created_at) : '';
   const banner = c.media?.find(m => m.usage === 'banner')?.url;
@@ -41,7 +43,7 @@ export function SharedCampaignCard({ c }: CampaignCardProps) {
 
   return (
     <Link
-      href={`/ugc/campaigns/${c.id}`}
+      href={`/ugc/${c.id}`}
       className="group flex flex-col rounded-3xl bg-white border border-zinc-100/80 shadow-sm hover:shadow-xl hover:border-orange-200 transition-all duration-500 overflow-hidden h-full"
     >
       {/* Visual Header */}
@@ -100,7 +102,7 @@ export function SharedCampaignCard({ c }: CampaignCardProps) {
           <div className="space-y-0.5">
             <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest leading-none">Payout Rate</p>
             <p className="text-[12px] font-black text-zinc-900">
-              RWF {Number(c.rate_per_1k_views).toLocaleString()} <span className="text-[9px] text-zinc-400">/ 1k views</span>
+              {formatMoney(c.rate_per_1k_views, "USD")} <span className="text-[9px] text-zinc-400">/ 1k views</span>
             </p>
           </div>
           <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-lg bg-orange-50 border border-orange-100">
