@@ -1,29 +1,94 @@
-import Link from "next/link";
-import { X } from "lucide-react";
-import { Button } from "@/components/ui/button";
+"use client";
 
-export default function CheckoutCancelPage() {
+import React, { Suspense } from "react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { X, ArrowRight, ShieldAlert, ShoppingBag, Home } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+
+function CancelContent() {
+  const searchParams = useSearchParams();
+  const orderId = searchParams.get("order");
+  const reason = searchParams.get("reason");
+
+  const message = 
+    reason === "server_error" ? "A technical error occurred during processing." :
+    reason === "verification_failed" ? "We couldn't verify the payment status." :
+    "The payment process was cancelled or didn't go through.";
+
   return (
-    <div className="min-h-screen bg-[var(--color-bg)] pt-28 pb-20 flex items-center justify-center px-4">
-      <div className="max-w-[480px] w-full text-center">
-        <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-[var(--color-danger-light)] animate-[fade-in_0.4s_ease-out]">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--color-danger)] text-white">
-            <X className="h-7 w-7" strokeWidth={3} />
+    <div className="min-h-screen bg-[#fafafa] flex items-center justify-center px-4 py-20 relative overflow-hidden">
+      {/* Abstract background elements */}
+      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-red-500/5 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/2" />
+      <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-orange-500/5 rounded-full blur-[120px] translate-y-1/2 -translate-x-1/2" />
+
+      <div className="max-w-[540px] w-full relative z-10">
+        <div className="bg-white rounded-[40px] border border-zinc-100 p-10 md:p-14 shadow-[0_32px_96px_-16px_rgba(0,0,0,0.06)] text-center">
+          
+          {/* Icon */}
+          <div className="mx-auto mb-10 w-24 h-24 rounded-[32px] bg-red-50 flex items-center justify-center relative">
+            <div className="absolute inset-0 bg-red-500/5 rounded-[32px] animate-ping opacity-20" />
+            <div className="w-16 h-16 rounded-2xl bg-red-500 flex items-center justify-center text-white shadow-lg shadow-red-200">
+              <ShieldAlert className="h-8 w-8" strokeWidth={2.5} />
+            </div>
           </div>
-        </div>
-        <h1 className="text-2xl font-black text-[var(--color-text-primary)]">Payment cancelled</h1>
-        <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
-          Your order was not completed. No charges were made.
-        </p>
-        <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
-          <Button asChild size="lg" className="w-full sm:w-auto">
-            <Link href="/checkout">Try again</Link>
-          </Button>
-          <Button asChild size="lg" variant="outline" className="w-full sm:w-auto">
-            <Link href="/">Go home</Link>
-          </Button>
+
+          <h1 className="text-[28px] md:text-[32px] font-black text-[#1a1428] tracking-tight leading-tight">
+            Checkout Cancelled
+          </h1>
+          
+          <p className="mt-4 text-zinc-400 font-medium text-balance leading-relaxed">
+            {message} No charges were captured from your account.
+          </p>
+
+          <div className="mt-12 space-y-3">
+             {orderId ? (
+                <Button asChild size="lg" className="h-16 w-full rounded-2xl bg-[#1a1428] hover:bg-black text-white font-black text-sm shadow-xl shadow-zinc-200 transition-all active:scale-[0.98] flex items-center justify-center gap-3">
+                  <Link href={`/orders/${orderId}`}>
+                     Resume Payment
+                     <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </Button>
+             ) : (
+                <Button asChild size="lg" className="h-16 w-full rounded-2xl bg-orange-500 hover:bg-orange-600 text-white font-black text-sm shadow-xl shadow-orange-200 transition-all active:scale-[0.98] flex items-center justify-center gap-3">
+                  <Link href="/checkout">
+                     Back to Checkout
+                     <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </Button>
+             )}
+
+             <div className="grid grid-cols-2 gap-3 pt-2">
+                <Button asChild variant="outline" className="h-14 rounded-2xl border-zinc-100 hover:bg-zinc-50 text-zinc-600 font-bold text-[13px] gap-2">
+                  <Link href="/marketplace">
+                    <ShoppingBag className="h-4 w-4" />
+                    Shop More
+                  </Link>
+                </Button>
+                <Button asChild variant="outline" className="h-14 rounded-2xl border-zinc-100 hover:bg-zinc-50 text-zinc-600 font-bold text-[13px] gap-2">
+                  <Link href="/">
+                    <Home className="h-4 w-4" />
+                    Go Home
+                  </Link>
+                </Button>
+             </div>
+          </div>
+
+          <p className="mt-10 text-[10px] font-black uppercase tracking-[2px] text-zinc-300">
+             Jimvio Global Secure Network
+          </p>
         </div>
       </div>
     </div>
   );
 }
+
+export default function CheckoutCancelPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#fafafa]" />}>
+      <CancelContent />
+    </Suspense>
+  );
+}
+

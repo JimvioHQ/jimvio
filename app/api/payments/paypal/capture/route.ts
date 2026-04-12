@@ -1,11 +1,12 @@
 // app/api/payments/paypal/capture/route.ts
 // Step 2: PayPal redirects buyer here after approval.
-// Captures the payment and marks the order paid.
+// Captures the payment and triggers order finalization.
+// The PAYMENT.CAPTURE.COMPLETED webhook may also arrive — finalizeOrderPayment is idempotent.
 
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { capturePayPalOrder } from "@/lib/paypal";
-import { handleSuccessfulPayment } from "@/services/paymentService";
+import { finalizeOrderPayment } from "@/lib/payments/finalize-order-payment";
 
 export const dynamic = "force-dynamic";
 
@@ -36,10 +37,10 @@ export async function GET(req: NextRequest) {
     const captureId =
       capture.purchase_units?.[0]?.payments?.captures?.[0]?.id ?? null;
 
-    // Check order status (idempotency)
+    // Check order status
     const { data: order } = await supabase
       .from("orders")
-      .select("id, payment_status, payment_batch_id")
+      .select("id, buyer_id, payment_status")
       .eq("id", orderId)
       .maybeSingle();
 
@@ -47,34 +48,31 @@ export async function GET(req: NextRequest) {
       return NextResponse.redirect(`${appUrl}/checkout/cancel?reason=order_not_found`);
     }
 
-    if (order.payment_status === "paid") {
+    // Already completed (webhook arrived first) — go straight to success
+    if (order.payment_status === "completed") {
       return NextResponse.redirect(`${appUrl}/checkout/success?order=${orderId}`);
     }
 
-    // Update all orders in the batch
-    const patch = supabase.from("orders").update({
-      payment_status: "paid",
-      status: "processing",
-      payment_provider: "paypal",
-      paypal_order_id: token,
-      paypal_capture_id: captureId,
-      paid_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+    // Finalize — idempotent, handles vendor wallet + notifications + Shopify
+    await finalizeOrderPayment(supabase, orderId, {
+      providerTransactionId: captureId ?? token,
+      providerReference: token,
+      paidAtIso: new Date().toISOString(),
+      notifyUserId: order.buyer_id ?? null,
+      paymentProvider: "paypal",
+      webhookReference: `paypal-${captureId ?? token}-CAPTURE.COMPLETED`,
     });
 
-    if (order.payment_batch_id) {
-      await patch.eq("payment_batch_id", order.payment_batch_id);
-    } else {
-      await patch.eq("id", orderId);
-    }
-
-    // Run post-payment logic
-    await handleSuccessfulPayment({
-      jimvioOrderId: orderId,
-      paymentProvider: "paypal" as never,
-      paymentRef: token,
-      paymentId: captureId ?? token,
-    });
+    await supabase
+      .from("orders")
+      .update({
+        gateway_used: "paypal",
+        payment_provider: "paypal",
+        paypal_order_id: token,
+        paypal_capture_id: captureId,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", orderId);
 
     return NextResponse.redirect(`${appUrl}/checkout/success?order=${orderId}`);
   } catch (err) {

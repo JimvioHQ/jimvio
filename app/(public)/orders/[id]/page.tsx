@@ -3,13 +3,14 @@
 import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Package } from "lucide-react";
+import { ArrowLeft, Package, CreditCard, Lock, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { OrderStatusBadge } from "@/components/orders/OrderStatusBadge";
 import { TrackingCard } from "@/components/orders/TrackingCard";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 
 export default function PublicOrderDetailPage() {
   const params = useParams();
@@ -17,7 +18,45 @@ export default function PublicOrderDetailPage() {
   const id = params.id as string;
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [paying, setPaying] = useState(false);
   const channelRef = useRef<ReturnType<ReturnType<typeof createClient>["channel"]> | null>(null);
+
+  const handlePay = async () => {
+    if (!order) return;
+    setPaying(true);
+    try {
+      const provider = order.payment_provider || "flutterwave";
+      let endpoint = `/api/payments/${provider}/initiate`;
+      
+      // Special case for pawaPay which has a different route structure in this project
+      if (provider === "pawapay") endpoint = "/api/pawapay/checkout";
+
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          orderId: order.id,
+          // For PawaPay we might need amount/currency if it doesn't fetch them from order ID
+          amount: order.total_amount,
+          currency: order.currency,
+          country: order.shipping_address?.countryCode || "RW"
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || data.message || "Payment initiation failed");
+
+      const url = data.redirectUrl || data.invoiceUrl || data.approvalUrl || data.redirectURL;
+      if (url) {
+        window.location.href = url;
+      } else {
+        throw new Error("No payment link found. Please contact support.");
+      }
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setPaying(false);
+    }
+  };
 
   useEffect(() => {
     const supabase = createClient();
@@ -69,6 +108,22 @@ export default function PublicOrderDetailPage() {
       if (channelRef.current) void supabase.removeChannel(channelRef.current);
     };
   }, [id, router]);
+
+  useEffect(() => {
+    if (!order || order.payment_status !== "pending") return;
+    
+    const provider = (order.payment_provider || "").toLowerCase();
+    const depositId = order.pawapay_deposit_id;
+
+    if (provider === "pawapay" && depositId) {
+      console.log("[AutoSync] Triggering PawaPay status check...");
+      fetch("/api/payments/pawapay/sync-status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId: order.id, trackingId: depositId }),
+      }).catch(err => console.error("[AutoSync] Sync failed:", err));
+    }
+  }, [order?.id, order?.payment_status]);
 
   if (loading) {
     return (
@@ -134,6 +189,37 @@ export default function PublicOrderDetailPage() {
                 <Badge variant="accent">{pay}</Badge>
                 <span className="text-xs font-mono text-[var(--color-text-muted)] truncate max-w-[200px]">{String(ref)}</span>
               </div>
+
+              {order.payment_status === "pending" && (
+                <div className="mt-6 p-5 rounded-2xl bg-orange-50 border border-orange-100 flex flex-col sm:flex-row items-center justify-between gap-6 shadow-sm">
+                  <div className="flex items-center gap-4">
+                    <div className="h-12 w-12 rounded-xl bg-orange-100 flex items-center justify-center text-orange-600 shrink-0">
+                      <CreditCard className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <p className="text-[15px] font-bold text-orange-950">Payment Pending</p>
+                      <p className="text-[13px] text-orange-700 font-medium">Please complete your payment to start order processing.</p>
+                    </div>
+                  </div>
+                  <Button 
+                    onClick={handlePay} 
+                    disabled={paying} 
+                    className="w-full sm:w-auto h-12 px-8 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-xl transition-all shadow-lg shadow-orange-200"
+                  >
+                    {paying ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        Redirecting...
+                      </>
+                    ) : (
+                      <>
+                        <Lock className="h-4 w-4 mr-2" />
+                        Complete Payment
+                      </>
+                    )}
+                  </Button>
+                </div>
+              )}
 
               <div className="mt-8 space-y-4">
                 <p className="text-sm font-bold text-[var(--color-text-primary)]">Items</p>

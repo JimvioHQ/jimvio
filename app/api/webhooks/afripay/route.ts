@@ -1,12 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { finalizeOrderPayment } from "@/lib/payments/finalize-order-payment";
+import {
+  logWebhookEvent,
+  markWebhookProcessed,
+  markWebhookFailed,
+} from "@/lib/payments/webhook-logger";
 
 export const dynamic = "force-dynamic";
 
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
-  auth: { autoRefreshToken: false, persistSession: false },
-});
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  { auth: { autoRefreshToken: false, persistSession: false } }
+);
 
 type Body = {
   transactionId?: string;
@@ -28,6 +35,19 @@ export async function POST(req: NextRequest) {
 
   const st = (body.status || "").toLowerCase();
 
+  // Idempotency
+  const idempotencyKey = `afripay-${transactionId}`;
+  const { isDuplicate, eventId } = await logWebhookEvent(supabase, {
+    provider: "afripay",
+    idempotencyKey,
+    payload: body,
+    orderId: null,
+  });
+
+  if (isDuplicate) {
+    return NextResponse.json({ received: true, duplicate: true });
+  }
+
   const { data: order } = await supabase
     .from("orders")
     .select("id, buyer_id, payment_status")
@@ -36,18 +56,34 @@ export async function POST(req: NextRequest) {
 
   if (!order) {
     console.warn("[webhooks/afripay] no order for transactionId", transactionId);
+    if (eventId) await markWebhookFailed(supabase, eventId, "Order not found");
     return NextResponse.json({ received: true });
   }
 
+  // Update event row with resolved order id
+  if (eventId) {
+    await supabase
+      .from("webhook_events")
+      .update({ order_id: order.id })
+      .eq("id", eventId);
+  }
+
   if (order.payment_status === "completed") {
+    if (eventId) await markWebhookProcessed(supabase, eventId, order.id);
     return NextResponse.json({ received: true });
   }
 
   if (st === "failed" || st === "cancelled") {
     await supabase
       .from("orders")
-      .update({ payment_status: "failed", gateway_used: "afripay" })
-      .eq("id", order.id);
+      .update({
+        payment_status: "failed",
+        gateway_used: "afripay",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", order.id)
+      .neq("payment_status", "completed");
+    if (eventId) await markWebhookProcessed(supabase, eventId, order.id);
     return NextResponse.json({ received: true });
   }
 
@@ -58,12 +94,24 @@ export async function POST(req: NextRequest) {
         providerReference: transactionId,
         paidAtIso: new Date().toISOString(),
         notifyUserId: order.buyer_id,
-        webhookReference: transactionId,
+        webhookReference: idempotencyKey,
         paymentProvider: "afripay",
       });
-      await supabase.from("orders").update({ gateway_used: "afripay", payment_provider: "afripay" }).eq("id", order.id);
+      await supabase
+        .from("orders")
+        .update({
+          gateway_used: "afripay",
+          payment_provider: "afripay",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", order.id);
+
+      console.log("[webhooks/afripay] ✓ Order finalized:", order.id);
+      if (eventId) await markWebhookProcessed(supabase, eventId, order.id);
     } catch (err) {
-      console.error("[webhooks/afripay] finalize failed", err);
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error("[webhooks/afripay] ✗ finalize failed", msg);
+      if (eventId) await markWebhookFailed(supabase, eventId, msg);
     }
   }
 

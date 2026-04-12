@@ -1,10 +1,16 @@
 // app/api/payments/flutterwave/webhook/route.ts
 // Flutterwave sends async POST webhook for every payment event.
+// Updated to use finalizeOrderPayment for consistent order + wallet handling.
 
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { validateFlutterwaveWebhook, verifyFlutterwaveTransaction } from "@/lib/flutterwave";
-import { handleSuccessfulPayment } from "@/services/paymentService";
+import { finalizeOrderPayment } from "@/lib/payments/finalize-order-payment";
+import {
+  logWebhookEvent,
+  markWebhookProcessed,
+  markWebhookFailed,
+} from "@/lib/payments/webhook-logger";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +24,6 @@ export async function POST(req: NextRequest) {
   const rawBody = await req.text();
   const signature = req.headers.get("verif-hash");
 
-  // Validate using FLUTTERWAVE_WEBHOOK_HASH secret
   if (!validateFlutterwaveWebhook(rawBody, signature)) {
     console.warn("[Flutterwave webhook] Invalid signature");
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -36,67 +41,105 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ received: true });
   }
 
-  if (txData.status !== "successful") {
-    if (txData.status === "failed") {
+  // Handle failure — mark order cancelled but never downgrade a completed order
+  if (txData.status === "failed") {
+    const { data: failedOrder } = await supabase
+      .from("orders")
+      .select("id, payment_status")
+      .eq("flutterwave_tx_ref", txData.tx_ref)
+      .maybeSingle();
+    if (failedOrder && failedOrder.payment_status !== "completed") {
       await supabase
         .from("orders")
         .update({ payment_status: "failed", status: "cancelled", updated_at: new Date().toISOString() })
-        .eq("flutterwave_tx_ref", txData.tx_ref);
+        .eq("id", failedOrder.id);
     }
     return NextResponse.json({ received: true });
   }
 
-  // Double-verify with Flutterwave API
-  try {
-    if (txData.id) {
-      const verified = await verifyFlutterwaveTransaction(txData.id);
-      if (verified.status !== "successful") {
-        return NextResponse.json({ received: true });
-      }
-    }
-  } catch (e) {
-    console.error("[Flutterwave webhook] verify failed", e);
+  if (txData.status !== "successful") {
+    return NextResponse.json({ received: true });
   }
 
+  const txId = String(txData.id ?? txData.tx_ref);
+
+  // Idempotency guard
+  const idempotencyKey = `flw-${txId}`;
+  const { isDuplicate, eventId } = await logWebhookEvent(supabase, {
+    provider: "flutterwave",
+    idempotencyKey,
+    payload: event,
+    orderId: null,
+  });
+
+  if (isDuplicate) {
+    return NextResponse.json({ received: true, duplicate: true });
+  }
+
+  // Secondary verification — confirm with Flutterwave API
+  if (txData.id) {
+    try {
+      const verified = await verifyFlutterwaveTransaction(txData.id);
+      if (verified.status !== "successful") {
+        console.warn("[Flutterwave webhook] Secondary verify failed for tx", txId);
+        if (eventId) await markWebhookFailed(supabase, eventId, "Secondary verification failed");
+        return NextResponse.json({ received: true });
+      }
+    } catch (e) {
+      console.error("[Flutterwave webhook] verify API error", e);
+      // Don't block on network errors — proceed
+    }
+  }
+
+  // Resolve order
   const { data: order } = await supabase
     .from("orders")
-    .select("id, payment_status, payment_batch_id")
+    .select("id, payment_status, payment_batch_id, buyer_id")
     .eq("flutterwave_tx_ref", txData.tx_ref)
     .maybeSingle();
 
   if (!order) {
     console.warn("[Flutterwave webhook] No order for tx_ref", txData.tx_ref);
+    if (eventId) await markWebhookFailed(supabase, eventId, "Order not found");
     return NextResponse.json({ received: true });
   }
 
-  if (order.payment_status === "paid") {
+  if (eventId) {
+    // Update event row with resolved order id
+    await supabase.from("webhook_events").update({ order_id: order.id }).eq("id", eventId);
+  }
+
+  if (order.payment_status === "completed") {
+    if (eventId) await markWebhookProcessed(supabase, eventId, order.id);
     return NextResponse.json({ received: true, status: "already_processed" });
   }
 
-  const patch = supabase.from("orders").update({
-    payment_status: "paid",
-    status: "processing",
-    payment_provider: "flutterwave",
-    flutterwave_transaction_id: txData.id ?? null,
-    paid_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  });
-
-  if (order.payment_batch_id) {
-    await patch.eq("payment_batch_id", order.payment_batch_id);
-  } else {
-    await patch.eq("id", order.id);
-  }
-
   try {
-    await handleSuccessfulPayment({
-      jimvioOrderId: order.id,
-      paymentProvider: "flutterwave" as never,
-      paymentRef: txData.tx_ref,
-      paymentId: String(txData.id ?? ""),
+    await finalizeOrderPayment(supabase, order.id, {
+      providerTransactionId: txId,
+      providerReference: txData.tx_ref,
+      paidAtIso: new Date().toISOString(),
+      notifyUserId: order.buyer_id ?? null,
+      paymentProvider: "flutterwave",
+      webhookReference: idempotencyKey,
     });
+
+    await supabase
+      .from("orders")
+      .update({
+        gateway_used: "flutterwave",
+        payment_provider: "flutterwave",
+        flutterwave_transaction_id: txData.id ?? null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", order.id);
+
+    console.log("[Flutterwave webhook] ✓ Order finalized:", order.id);
+    if (eventId) await markWebhookProcessed(supabase, eventId, order.id);
   } catch (e) {
-    console.error("[Flutterwave webhook] handleSuccessfulPayment", e);
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("[Flutterwave webhook] ✗ finalize failed:", msg);
+    if (eventId) await markWebhookFailed(supabase, eventId, msg);
   }
 
   return NextResponse.json({ received: true });

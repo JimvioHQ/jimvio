@@ -7,6 +7,10 @@
     {
       "path": "/api/ugc/views/sync",
       "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/retry-failed-webhooks",
+      "schedule": "0 * * * *"
     }
   ]
 }

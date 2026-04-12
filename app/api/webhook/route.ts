@@ -1,10 +1,30 @@
-import { NextResponse } from "next/server";
+/**
+ * app/api/webhook/route.ts  (legacy PawaPay callback URL)
+ *
+ * PawaPay sends callbacks here. This route now delegates to
+ * the shared finalizeOrderPayment logic so orders are actually updated.
+ *
+ * Configure PawaPay dashboard callback URL to:
+ *   https://your-domain/api/webhook
+ *
+ * Or migrate to the unified endpoint:
+ *   https://your-domain/api/webhooks/payment?provider=pawapay
+ */
+
+import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
+import { finalizeOrderPayment } from "@/lib/payments/finalize-order-payment";
+import {
+  logWebhookEvent,
+  markWebhookProcessed,
+  markWebhookFailed,
+} from "@/lib/payments/webhook-logger";
 
 export const dynamic = "force-dynamic";
 
-type PawaPayCallbackBody = Record<string, unknown>;
+type PawaPayBody = Record<string, unknown>;
 
-function pickDepositId(body: PawaPayCallbackBody): string | undefined {
+function pickDepositId(body: PawaPayBody): string | undefined {
   const top = body.depositId;
   if (typeof top === "string" && top.trim()) return top.trim();
   const data = body.data;
@@ -15,50 +35,113 @@ function pickDepositId(body: PawaPayCallbackBody): string | undefined {
   return undefined;
 }
 
-function pickStatus(body: PawaPayCallbackBody): string | undefined {
+function pickStatus(body: PawaPayBody): string {
   const top = body.status;
-  if (typeof top === "string" && top.trim()) return top.trim();
+  if (typeof top === "string" && top.trim()) return top.trim().toUpperCase();
   const data = body.data;
   if (data && typeof data === "object" && data !== null && "status" in data) {
     const s = (data as { status?: unknown }).status;
-    if (typeof s === "string" && s.trim()) return s.trim();
+    if (typeof s === "string" && s.trim()) return s.trim().toUpperCase();
   }
-  return undefined;
+  return "";
 }
 
-/**
- * Public webhook URL for PawaPay sandbox callbacks when using ngrok:
- * https://<your-ngrok-host>/api/webhook
- *
- * Configure the same URL under Deposits in the PawaPay dashboard (Callback URLs).
- */
-export async function POST(req: Request) {
-  let body: PawaPayCallbackBody;
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  { auth: { autoRefreshToken: false, persistSession: false } }
+);
+
+export async function POST(req: NextRequest) {
+  let body: PawaPayBody;
   try {
-    body = (await req.json()) as PawaPayCallbackBody;
+    body = (await req.json()) as PawaPayBody;
   } catch {
     return NextResponse.json({ success: false, error: "Invalid JSON" }, { status: 400 });
   }
 
-  // Full payload for debugging in terminal / log drain
-  console.log("[PawaPay /api/webhook] body:", JSON.stringify(body, null, 2));
-
   const depositId = pickDepositId(body);
-  const statusRaw = pickStatus(body);
-  const status = (statusRaw || "").toUpperCase();
+  const status = pickStatus(body);
 
-  if (depositId) {
-    console.log("[PawaPay /api/webhook] depositId:", depositId, "status:", statusRaw ?? "(none)");
+  console.log("[PawaPay /api/webhook] depositId:", depositId, "status:", status);
+
+  if (!depositId) {
+    return NextResponse.json({ success: true });
   }
 
+  // Idempotency
+  const idempotencyKey = `pawapay-${depositId}`;
+  const { isDuplicate, eventId } = await logWebhookEvent(supabase, {
+    provider: "pawapay",
+    idempotencyKey,
+    payload: body,
+    orderId: null,
+  });
+
+  if (isDuplicate) {
+    return NextResponse.json({ success: true, duplicate: true });
+  }
+
+  // Handle failed payments
+  if (status === "FAILED") {
+    const { data: order } = await supabase
+      .from("orders")
+      .select("id")
+      .eq("payment_external_reference", depositId)
+      .maybeSingle();
+
+    if (order) {
+      await supabase
+        .from("orders")
+        .update({ payment_status: "failed", status: "cancelled", updated_at: new Date().toISOString() })
+        .eq("id", order.id)
+        .neq("payment_status", "completed");
+    }
+    if (eventId) await markWebhookProcessed(supabase, eventId, order?.id ?? null);
+    return NextResponse.json({ success: true });
+  }
+
+  // Handle successful payments
   if (status === "COMPLETED") {
-    console.log("Payment successful", depositId ?? "");
-  } else if (status === "FAILED") {
-    console.log("Payment failed", depositId ?? "");
-  } else if (status === "PENDING" || status === "PROCESSING" || status === "ACCEPTED") {
-    console.log("Payment pending", depositId ?? "");
-  } else if (status) {
-    console.log("[PawaPay /api/webhook] unhandled status:", status, depositId ?? "");
+    const { data: order } = await supabase
+      .from("orders")
+      .select("id, buyer_id, payment_status")
+      .eq("payment_external_reference", depositId)
+      .maybeSingle();
+
+    if (!order) {
+      console.warn("[PawaPay /api/webhook] No order found for depositId:", depositId);
+      if (eventId) await markWebhookFailed(supabase, eventId, "Order not found");
+      return NextResponse.json({ success: true });
+    }
+
+    if (order.payment_status === "completed") {
+      if (eventId) await markWebhookProcessed(supabase, eventId, order.id);
+      return NextResponse.json({ success: true });
+    }
+
+    try {
+      await finalizeOrderPayment(supabase, order.id, {
+        providerTransactionId: depositId,
+        providerReference: depositId,
+        paidAtIso: new Date().toISOString(),
+        notifyUserId: order.buyer_id ?? null,
+        paymentProvider: "pawapay",
+        webhookReference: depositId,
+      });
+
+      await supabase
+        .from("orders")
+        .update({ gateway_used: "pawapay", payment_provider: "pawapay", updated_at: new Date().toISOString() })
+        .eq("id", order.id);
+
+      console.log("[PawaPay /api/webhook] ✓ Order finalized:", order.id);
+      if (eventId) await markWebhookProcessed(supabase, eventId, order.id);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      console.error("[PawaPay /api/webhook] ✗ Finalize failed:", msg);
+      if (eventId) await markWebhookFailed(supabase, eventId, msg);
+    }
   }
 
   return NextResponse.json({ success: true });

@@ -20,6 +20,7 @@ export async function POST(req: NextRequest) {
     const body = (await req.json()) as {
       orderId?: string;
       orderIds?: string[];
+      channel?: "sms" | "whatsapp" | "sms,whatsapp";
     };
 
     const orderId = body.orderId?.trim();
@@ -88,6 +89,7 @@ export async function POST(req: NextRequest) {
       customerPhone: profile.phone || "",
       orderDescription: `Order ${order.order_number || orderId.slice(0, 8)}`,
       paymentOptions: "card,applepay,googlepay,mobilemoneyrwanda",
+      channel: body.channel || "sms",
     });
 
     // Save tx_ref to order so webhook can reconcile

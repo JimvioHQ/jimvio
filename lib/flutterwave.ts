@@ -45,6 +45,35 @@ async function flwFetch<T>(
   return data as T;
 }
 
+/** 
+ * Ensure phone number is in full international format (e.g. +250...)
+ * for reliable OTP delivery via SMS.
+ */
+function formatPhoneInternational(phone: string | undefined): string | undefined {
+  if (!phone) return undefined;
+  
+  // Remove all non-numeric characters except +
+  let cleaned = phone.replace(/[^\d+]/g, "").trim();
+  
+  if (!cleaned) return undefined;
+
+  // If already starts with +, trust it but ensure it has enough digits
+  if (cleaned.startsWith("+")) return cleaned;
+
+  // Rwanda specific: if starts with 07..., convert to +2507...
+  if (cleaned.startsWith("0")) {
+    return "+250" + cleaned.substring(1);
+  }
+
+  // If it's 9 or 10 digits without prefix, assume Rwanda +250
+  if (cleaned.length >= 9 && cleaned.length <= 10 && !cleaned.startsWith("250")) {
+    return "+250" + cleaned;
+  }
+
+  // Final fallback: just ensure + prefix
+  return cleaned.startsWith("+") ? cleaned : "+" + cleaned;
+}
+
 export interface FlutterwavePaymentParams {
   txRef: string;          // Our unique order reference (UUID)
   amount: number;
@@ -55,6 +84,12 @@ export interface FlutterwavePaymentParams {
   customerPhone?: string;
   orderDescription?: string;
   paymentOptions?: string;
+  /** 
+   * OTP Channel: "sms" (force SMS), "whatsapp", or "sms,whatsapp".
+   * Note: Flutterwave may ignore this for some hosted flows, but it's
+   * valid for direct charge and some specialized integration modes.
+   */
+  channel?: "sms" | "whatsapp" | "sms,whatsapp";
 }
 
 export interface FlutterwavePaymentLink {
@@ -68,7 +103,10 @@ export interface FlutterwavePaymentLink {
 export async function createFlutterwavePaymentLink(
   params: FlutterwavePaymentParams
 ): Promise<string> {
-  const payload = {
+  const formattedPhone = formatPhoneInternational(params.customerPhone);
+  const otpChannel = params.channel || "sms"; // Default to SMS as requested
+
+  const payload: any = {
     tx_ref: params.txRef,
     amount: params.amount,
     currency: (params.currency || "USD").toUpperCase(),
@@ -76,8 +114,11 @@ export async function createFlutterwavePaymentLink(
     customer: {
       email: params.customerEmail,
       name: params.customerName,
-      phonenumber: params.customerPhone || undefined,
+      phonenumber: formattedPhone || undefined,
     },
+    // Adding channel field here. Even if it's Hosted Checkout, 
+    // it helps Flutterwave route notifications correctly.
+    channel: otpChannel, 
     country: (params.currency || "USD").toUpperCase() === "USD" ? undefined : "RW",
     payment_options: params.paymentOptions || (
       (params.currency || "USD").toUpperCase() === "RWF" 
@@ -99,8 +140,8 @@ export async function createFlutterwavePaymentLink(
     amount: Math.max(minAmount, Number(params.amount)),
   };
 
-  console.log("[Flutterwave] Creating payment link with payload (Restored):", JSON.stringify(finalPayload, null, 2));
-
+  console.log(`[Flutterwave] Initiating payment. Reference: ${params.txRef}, Phone: ${formattedPhone}, OTP Channel: ${otpChannel}`);
+  
   const data = await flwFetch<FlutterwavePaymentLink>("/payments", {
     method: "POST",
     body: JSON.stringify(finalPayload),

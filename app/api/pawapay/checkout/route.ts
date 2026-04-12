@@ -119,8 +119,9 @@ export async function POST(request: Request) {
     const depositId = uuidv4();
 
     // pawaPay requires a public HTTPS return URL.
+    // NOTE: For local development, this must be an ngrok or public URL for webhooks to work,
+    // but the redirect itself should respect the environment.
     let appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://jimvio.com";
-    if (appUrl.includes("localhost")) appUrl = "https://jimvio.com";
 
     const finalReturnUrl = `${appUrl}/checkout/success?order=${orderId}&order_tracking_id=${depositId}`;
 
@@ -172,6 +173,7 @@ export async function POST(request: Request) {
     await supabase.from("orders").update({
       payment_provider: "pawapay",
       gateway_used: "pawapay",
+      pawapay_deposit_id: depositId,
     }).eq("id", orderId);
 
     return NextResponse.json(data);
