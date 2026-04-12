@@ -10,7 +10,7 @@
     },
     {
       "path": "/api/cron/retry-failed-webhooks",
-      "schedule": "0 * * * *"
+      "schedule": "0 2 * * *"
     }
   ]
 }
