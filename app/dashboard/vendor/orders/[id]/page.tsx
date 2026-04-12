@@ -55,11 +55,14 @@ export default function VendorOrderDetailPage() {
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      const { data: v } = await supabase.from("vendors").select("id").eq("user_id", user.id).single();
-      if (!v) {
+      const { data: userVendors } = await supabase.from("vendors").select("id").eq("user_id", user.id);
+      if (!userVendors || userVendors.length === 0) {
         setLoading(false);
         return;
       }
+      
+      const vendorIds = userVendors.map(v => v.id);
+
       const { data: items, error } = await supabase
         .from("order_items")
         .select(`
@@ -67,7 +70,7 @@ export default function VendorOrderDetailPage() {
           orders ( id, order_number, status, total_amount, currency, created_at, shipping_address, profiles ( full_name, email ) )
         `)
         .eq("order_id", id)
-        .eq("vendor_id", v.id);
+        .in("vendor_id", vendorIds);
 
       if (error || !items || items.length === 0) {
         setLoading(false);
