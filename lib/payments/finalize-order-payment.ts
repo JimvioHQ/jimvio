@@ -122,6 +122,18 @@ export async function finalizeOrderPayment(
     }
     await db.from("orders").update(regularPatch).eq("id", orderId);
 
+    // Track History
+    try {
+      await db.from("order_status_history").insert({
+        order_id: orderId,
+        previous_status: order.status,
+        new_status: "confirmed",
+        notes: `Payment confirmed via ${ctx.paymentProvider || 'gateway'}. Order moved to confirmed.`
+      });
+    } catch (e) {
+      console.warn("Could not log status history for confirmed order:", e);
+    }
+
     await creditVendorWalletsForNativeOrder(db, {
       orderId,
       orderNumber: String(order.order_number ?? orderId),
@@ -253,6 +265,18 @@ export async function finalizeOrderPayment(
       shopifyPatch.payment_provider = ctx.paymentProvider;
     }
     await db.from("orders").update(shopifyPatch).eq("id", orderId);
+
+    // Track History
+    try {
+      await db.from("order_status_history").insert({
+        order_id: orderId,
+        previous_status: order.status,
+        new_status: "processing",
+        notes: `Payment confirmed via ${ctx.paymentProvider || 'gateway'}. Forwarding to Shopify for fulfillment.`
+      });
+    } catch (e) {
+      console.warn("Could not log status history for shopify order:", e);
+    }
 
     if (ctx.notifyUserId) {
       await db.from("notifications").insert({

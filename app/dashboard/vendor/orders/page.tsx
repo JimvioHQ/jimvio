@@ -31,6 +31,7 @@ const statusConfig: Record<string, { label: string; variant: "success" | "warnin
   processing: { label: "Processing", variant: "default" },
   shipped: { label: "Shipped", variant: "accent" },
   delivered: { label: "Delivered", variant: "success" },
+  completed: { label: "Completed", variant: "success" },
   cancelled: { label: "Cancelled", variant: "secondary" },
 };
 

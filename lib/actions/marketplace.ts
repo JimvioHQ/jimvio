@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { revalidatePath } from "next/cache";
+import { finalizeAndCompleteOrder } from "./order-lifecycle";
 import { normalizeProductSource } from "@/lib/sources/product-source";
 import { getProducts } from "@/services/db";
 import { cookies } from "next/headers";
@@ -701,28 +702,69 @@ export async function updateOrderStatus(orderId: string, newStatus: string): Pro
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { success: false, error: "Authentication required" };
 
-    // Check if user is either buyer or vendor of the order
-    const { data: order, error: fetchErr } = await supabase
+    const adminClient = createServiceRoleClient();
+
+    // 1. Fetch current order
+    const { data: order, error: fetchErr } = await adminClient
       .from("orders")
-      .select("id, buyer_id")
+      .select("id, buyer_id, status")
       .eq("id", orderId)
       .single();
 
     if (fetchErr || !order) return { success: false, error: "Order not found" };
 
-    // Only allow cancelling if it's pending or confirmed by buyer, 
-    // or if the user is the vendor/admin. 
-    // Real validation would check vendor_id in order_items.
+    // Security: Only buyer can update through this endpoint (unless admin handled elsewhere)
+    if (order.buyer_id !== user.id) {
+       return { success: false, error: "Action restricted to order owner" };
+    }
+
+    const currentStatus = order.status;
+
+    // 2. Handle 'Completed' transition via specialized logic (Fund Release)
+    if (newStatus === "completed") {
+       const res = await finalizeAndCompleteOrder(orderId, user.id, "Buyer confirmed order completion.");
+       return { success: res.success, error: res.error };
+    }
+
+    // 3. Buyer State Machine Logic
+    // Buyers can typically move:
+    // shipped -> delivered
+    // pending -> cancelled
+    // confirmed -> cancelled (depending on store policy, let's allow for now if not processed)
     
-    const { error: updateErr } = await supabase
+    let allowed = false;
+    if (currentStatus === "shipped" && newStatus === "delivered") allowed = true;
+    if (currentStatus === "pending" && newStatus === "cancelled") allowed = true;
+    if (currentStatus === "confirmed" && newStatus === "cancelled") allowed = true;
+
+    if (!allowed) {
+      return { success: false, error: `Invalid transition: Cannot move from ${currentStatus} to ${newStatus}` };
+    }
+
+    // 4. Update Status
+    const { error: updateErr } = await adminClient
       .from("orders")
-      .update({ status: newStatus })
+      .update({ 
+        status: newStatus,
+        updated_at: new Date().toISOString()
+      })
       .eq("id", orderId);
 
     if (updateErr) throw updateErr;
 
+    // 5. Track History
+    await adminClient.from("order_status_history").insert({
+      order_id: orderId,
+      user_id: user.id,
+      previous_status: currentStatus,
+      new_status: newStatus,
+      notes: `Buyer transitioned order to ${newStatus}`
+    });
+
+    revalidatePath(`/dashboard/orders/${orderId}`);
     return { success: true };
   } catch (error: any) {
+    console.error("Update order status error:", error);
     return { success: false, error: error.message };
   }
 }

@@ -150,10 +150,10 @@ export async function finalizeCommunityPayment(
 
   const now = new Date().toISOString();
 
-  // --- Credit creator wallet ---
+  // --- Credit creator wallet (Escrow) ---
   const { data: creatorWallet } = await db
     .from("wallets")
-    .select("available_balance, total_earned")
+    .select("available_balance, total_earned, pending_balance")
     .eq("user_id", community.owner_id)
     .maybeSingle();
 
@@ -161,17 +161,17 @@ export async function finalizeCommunityPayment(
     await db
       .from("wallets")
       .update({
-        available_balance: Number(creatorWallet.available_balance) + creatorEarnings,
-        total_earned: Number(creatorWallet.total_earned) + creatorEarnings,
+        pending_balance: Number(creatorWallet.pending_balance || 0) + creatorEarnings,
+        total_earned: Number(creatorWallet.total_earned || 0) + creatorEarnings,
         updated_at: now,
       })
       .eq("user_id", community.owner_id);
   } else {
     await db.from("wallets").insert({
       user_id: community.owner_id,
-      available_balance: creatorEarnings,
+      available_balance: 0,
       total_earned: creatorEarnings,
-      pending_balance: 0,
+      pending_balance: creatorEarnings,
       total_paid: 0,
       currency: ctx.currency.toUpperCase(),
     });
@@ -184,9 +184,9 @@ export async function finalizeCommunityPayment(
     type: "community_earning",
     amount: creatorEarnings,
     currency: ctx.currency.toUpperCase(),
-    status: "completed",
+    status: "pending",
     provider: ctx.paymentProvider,
-    description: `Community subscription (${ctx.planType}) — creator earnings`,
+    description: `Community subscription (${ctx.planType}) — pending escrow`,
     metadata: {
       community_id: ctx.communityId,
       membership_id: membershipId,

@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArrowLeft, Package, Clock, Loader2, CheckCircle, Truck, ShoppingBag, XCircle } from "lucide-react";
+import { ArrowLeft, Package, Clock, Loader2, CheckCircle, CheckCircle2, Truck, ShoppingBag, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +19,7 @@ const statusConfig: Record<string, { label: string; variant: "success" | "warnin
   processing: { label: "Processing", variant: "default" },
   shipped: { label: "Shipped", variant: "accent" },
   delivered: { label: "Delivered", variant: "success" },
+  completed: { label: "Completed", variant: "success" },
   cancelled: { label: "Cancelled", variant: "secondary" },
 };
 
@@ -33,14 +34,25 @@ export default function VendorOrderDetailPage() {
 
   const handleStatusUpdate = async (newStatus: string) => {
     if (updatingStatus) return;
+    
+    let trackingNumber: string | undefined;
+    if (newStatus === "shipped") {
+      const input = window.prompt("STRICT REQUIREMENT:\nPlease enter the courier tracking number to mark this order as shipped:");
+      if (!input || input.trim() === "") {
+        toast.error("Tracking number is required to proceed.");
+        return;
+      }
+      trackingNumber = input.trim();
+    }
+
     setUpdatingStatus(true);
     try {
-      const res = await updateVendorOrderStatus(id, newStatus);
+      const res = await updateVendorOrderStatus(id, newStatus, trackingNumber);
       if (res.success) {
         setOrder({ ...order, status: newStatus });
         toast.success(`Order status updated to ${newStatus}`);
       } else {
-        toast.error(res.error || "Failed to update status");
+        toast.error(res.error || "Failed to update status: " + res.error);
       }
     } catch (e) {
       toast.error("Something went wrong");
@@ -142,7 +154,7 @@ export default function VendorOrderDetailPage() {
                 <div className="absolute top-1/2 left-0 w-full h-[2px] bg-[var(--color-border)] -translate-y-1/2 rounded-full overflow-hidden">
                   <div 
                     className="h-full bg-[var(--color-accent)] transition-all duration-700 ease-in-out" 
-                    style={{ width: order.status === 'pending' ? '0%' : order.status === 'confirmed' ? '25%' : order.status === 'processing' ? '50%' : order.status === 'shipped' ? '75%' : order.status === 'delivered' ? '100%' : '0%' }}
+                    style={{ width: order.status === 'pending' ? '0%' : order.status === 'confirmed' ? '20%' : order.status === 'processing' ? '40%' : order.status === 'shipped' ? '60%' : order.status === 'delivered' ? '80%' : order.status === 'completed' ? '100%' : '0%' }}
                   />
                 </div>
                 <div className="relative flex justify-between">
@@ -151,8 +163,9 @@ export default function VendorOrderDetailPage() {
                     { id: "processing", icon: <Clock className="h-4 w-4" />, label: "Processing" },
                     { id: "shipped", icon: <Truck className="h-4 w-4" />, label: "Shipped" },
                     { id: "delivered", icon: <ShoppingBag className="h-4 w-4" />, label: "Delivered" },
+                    { id: "completed", icon: <CheckCircle2 className="h-4 w-4" />, label: "Completed" },
                   ].map((step, idx) => {
-                    const statusOrder = ["pending", "confirmed", "processing", "shipped", "delivered"];
+                    const statusOrder = ["pending", "confirmed", "processing", "shipped", "delivered", "completed"];
                     const currentIdx = statusOrder.indexOf(order.status);
                     const stepIdx = statusOrder.indexOf(step.id);
                     const isPast = currentIdx >= stepIdx;

@@ -13,6 +13,8 @@ import { Badge } from "@/components/ui/badge";
 import { useCurrency } from "@/context/CurrencyContext";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
+import { updateOrderStatus } from "@/lib/actions/marketplace";
+import { toast } from "sonner";
 
 const statusConfig: Record<string, { label: string; variant: "success" | "warning" | "secondary" | "accent" | "default" }> = {
   pending:    { label: "Pending",    variant: "warning" },
@@ -20,6 +22,7 @@ const statusConfig: Record<string, { label: string; variant: "success" | "warnin
   processing: { label: "Processing", variant: "default" },
   shipped:    { label: "Shipped",    variant: "accent" },
   delivered:  { label: "Delivered",  variant: "success" },
+  completed:  { label: "Completed",  variant: "success" },
   cancelled:  { label: "Cancelled",  variant: "secondary" },
 };
 
@@ -30,6 +33,31 @@ export default function OrderDetailPage() {
   const id = params?.id as string;
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [updating, setUpdating] = useState(false);
+
+  const handleUpdateStatus = async (newStatus: string) => {
+    if (!id || updating) return;
+    
+    if (newStatus === "completed") {
+      const confirm = window.confirm("Confirm Delivery?\n\nBy clicking OK, you confirm you have received the items in good condition. This will release the payment to the vendor.");
+      if (!confirm) return;
+    }
+
+    setUpdating(true);
+    try {
+      const res = await updateOrderStatus(id, newStatus);
+      if (res.success) {
+        setOrder({ ...order, status: newStatus });
+        toast.success(newStatus === "completed" ? "Order finalized! Payment released." : `Order marked as ${newStatus}`);
+      } else {
+        toast.error(res.error || "Failed to update status");
+      }
+    } catch (e) {
+      toast.error("An unexpected error occurred");
+    } finally {
+      setUpdating(false);
+    }
+  };
 
   useEffect(() => {
     if (!id) return;
@@ -102,10 +130,11 @@ export default function OrderDetailPage() {
                <div 
                  className="h-full bg-[var(--color-accent)] transition-all duration-1000" 
                  style={{ 
-                   width: order.status === "delivered" ? "100%" : 
-                          order.status === "shipped" ? "75%" : 
-                          order.status === "processing" ? "50%" : 
-                          order.status === "confirmed" ? "25%" : "12%" 
+                   width: order.status === "completed" ? "100%" : 
+                          order.status === "delivered" ? "80%" : 
+                          order.status === "shipped" ? "60%" : 
+                          order.status === "processing" ? "40%" : 
+                          order.status === "confirmed" ? "20%" : "10%" 
                  }}
                />
             </div>
@@ -115,7 +144,8 @@ export default function OrderDetailPage() {
               { id: "confirmed", label: "Confirmed", icon: <CheckCircle className="h-5 w-5" /> },
               { id: "processing", label: "Preparing", icon: <Package className="h-5 w-5" /> },
               { id: "shipped", label: "Shipped", icon: <Truck className="h-5 w-5" /> },
-              { id: "delivered", label: "Arrived", icon: <CheckCircle2 className="h-5 w-5" /> },
+              { id: "delivered", label: "Arrived", icon: <ShoppingBag className="h-5 w-5" /> },
+              { id: "completed", label: "Completed", icon: <CheckCircle2 className="h-5 w-5" /> },
             ].map((step, i, arr) => {
               const stages = arr.map(a => a.id);
               const currentIdx = stages.indexOf(order.status);
@@ -221,6 +251,26 @@ export default function OrderDetailPage() {
                <div className="pt-4 space-y-2">
                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-text-muted)] mb-3">Quick Actions</p>
                  
+                 {order.status === "shipped" && (
+                   <Button 
+                    className="w-full justify-start gap-3 rounded-xl h-12 font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-600/20 mb-2 transition-all hover:scale-[1.02]" 
+                    onClick={() => handleUpdateStatus("delivered")}
+                    disabled={updating}
+                   >
+                      <CheckCircle2 className="h-4 w-4" /> {updating ? "Updating..." : "Mark as Arrived"}
+                   </Button>
+                 )}
+
+                 {order.status === "delivered" && (
+                   <Button 
+                    className="w-full justify-start gap-3 rounded-xl h-12 font-bold bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white shadow-lg shadow-[var(--color-accent)]/20 mb-2 transition-all hover:scale-[1.02]" 
+                    onClick={() => handleUpdateStatus("completed")}
+                    disabled={updating}
+                   >
+                      <ShoppingBag className="h-4 w-4" /> {updating ? "Processing..." : "Confirm Delivery & Finalize"}
+                   </Button>
+                 )}
+
                  {order.payment_status !== "completed" && (
                    <Button className="w-full justify-start gap-3 rounded-xl h-11 font-bold bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white shadow-lg shadow-[var(--color-accent)]/20" asChild>
                       <Link href="/checkout">
@@ -229,7 +279,7 @@ export default function OrderDetailPage() {
                    </Button>
                  )}
 
-                 <Button className="w-full justify-start gap-3 rounded-xl h-11 font-bold shadow-sm border-[var(--color-border)]" variant={order.payment_status !== "completed" ? "outline" : "default"} asChild>
+                 <Button className="w-full justify-start gap-3 rounded-xl h-11 font-bold shadow-sm border-[var(--color-border)]" variant={order.payment_status !== "completed" || ["shipped", "delivered"].includes(order.status) ? "outline" : "default"} asChild>
                     <Link href={`/dashboard/messages?vendor=${items[0]?.vendor_id}`}>
                       <MessageSquare className="h-4 w-4" /> Contact Vendor
                     </Link>

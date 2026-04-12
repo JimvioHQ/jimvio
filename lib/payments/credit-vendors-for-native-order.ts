@@ -86,17 +86,17 @@ export async function creditVendorWalletsForNativeOrder(
       await db
         .from("wallets")
         .update({
-          available_balance: Number(wallet.available_balance) + vendorEarnings,
-          total_earned: Number(wallet.total_earned) + vendorEarnings,
+          pending_balance: Number(wallet.pending_balance || 0) + vendorEarnings,
+          total_earned: Number(wallet.total_earned || 0) + vendorEarnings,
           updated_at: now,
         })
         .eq("user_id", vendor.user_id);
     } else {
       await db.from("wallets").insert({
         user_id: vendor.user_id,
-        available_balance: vendorEarnings,
+        available_balance: 0,
         total_earned: vendorEarnings,
-        pending_balance: 0,
+        pending_balance: vendorEarnings,
         total_paid: 0,
         currency,
       });
@@ -108,10 +108,10 @@ export async function creditVendorWalletsForNativeOrder(
       type: "vendor_earning",
       amount: vendorEarnings,
       currency,
-      status: "completed",
+      status: "pending",
       provider,
       provider_transaction_id: params.providerTransactionId,
-      description: `Earnings from order ${params.orderNumber} (~${commissionRate.toFixed(1)}% avg platform fee)`,
+      description: `Pending Escrow: Earnings from order ${params.orderNumber} (~${commissionRate.toFixed(1)}% avg platform fee)`,
       order_id: params.orderId,
       metadata: {
         vendor_id: vendorId,
