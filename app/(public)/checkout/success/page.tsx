@@ -18,7 +18,7 @@ export default async function CheckoutSuccessPage({
   };
 
   const status = pick(sp.status)?.toLowerCase();
-  const cancelled = pick(sp.cancelled)?.toLowerCase() === "true";
+  const cancelled = pick(sp.cancelled)?.toLowerCase() === "true" || pick(sp.cancel)?.toLowerCase() === "true";
 
   const rawRef = pick(sp.OrderMerchantReference)?.trim();
   const orderId =

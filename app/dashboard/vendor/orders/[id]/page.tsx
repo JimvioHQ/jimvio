@@ -62,7 +62,7 @@ export default function VendorOrderDetailPage() {
       }
       const { data: orderData } = await supabase
         .from("orders")
-        .select("id, order_number, status, total_amount, currency, created_at, profiles ( full_name, email )")
+        .select("id, order_number, status, total_amount, currency, created_at, shipping_address, profiles ( full_name, email )")
         .eq("id", id)
         .single();
       if (!orderData) {
@@ -169,15 +169,37 @@ export default function VendorOrderDetailPage() {
           </Card>
 
           <Card className="border-[var(--color-border)] shadow-sm">
-            <CardHeader><CardTitle className="text-base">Customer Details</CardTitle></CardHeader>
-            <CardContent className="space-y-1">
-              <p className="font-bold text-[var(--color-text-primary)]">{order.profiles?.full_name ?? "General Customer"}</p>
-              <p className="text-sm text-[var(--color-text-secondary)]">{order.profiles?.email ?? "—"}</p>
-              <div className="pt-2">
-                <Button variant="link" className="p-0 h-auto text-[var(--color-accent)] text-xs font-bold" asChild>
-                  <Link href={`/dashboard/messages?buyer=${order.profiles?.id}`}>Chat with customer</Link>
-                </Button>
+            <CardHeader><CardTitle className="text-base">Customer & Shipping</CardTitle></CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <p className="font-bold text-[var(--color-text-primary)]">{order.profiles?.full_name ?? "General Customer"}</p>
+                <p className="text-sm text-[var(--color-text-secondary)]">{order.profiles?.email ?? "—"}</p>
+                <div className="pt-2">
+                  <Button variant="link" className="p-0 h-auto text-[var(--color-accent)] text-xs font-bold" asChild>
+                    <Link href={`/dashboard/messages?buyer=${order.profiles?.id}`}>Chat with customer</Link>
+                  </Button>
+                </div>
               </div>
+              
+              {order.shipping_address && (
+                <div className="pt-4 border-t border-[var(--color-border)]">
+                  <p className="text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-2">Shipping Address</p>
+                  <div className="text-sm text-[var(--color-text-primary)] leading-relaxed">
+                    <p className="font-medium">{order.shipping_address.firstName || ""} {order.shipping_address.lastName || ""}</p>
+                    <p>{order.shipping_address.line1}</p>
+                    {order.shipping_address.line2 && <p>{order.shipping_address.line2}</p>}
+                    <p>
+                      {order.shipping_address.city}
+                      {order.shipping_address.state ? `, ${order.shipping_address.state}` : ""}
+                      {order.shipping_address.zipCode ? ` ${order.shipping_address.zipCode}` : ""}
+                    </p>
+                    <p className="font-medium mt-1">{order.shipping_address.countryCode || order.shipping_address.country}</p>
+                    {order.shipping_address.phone && (
+                      <p className="mt-2 text-[var(--color-text-secondary)]">Phone: {order.shipping_address.phone}</p>
+                    )}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
