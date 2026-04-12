@@ -97,6 +97,17 @@ export default function VendorOrderDetailPage() {
   const vendorTotal = vendorItems.reduce((sum, i) => sum + Number(i.total_price), 0);
   const orderCurrency = (order.currency as string | undefined)?.toUpperCase() || "RWF";
 
+  let mapAddress = "";
+  let googleMapsUrl = "";
+  let qrCodeUrl = "";
+  
+  if (order.shipping_address) {
+    const rawAddress = `${order.shipping_address.line1}, ${order.shipping_address.city}, ${order.shipping_address.countryCode || order.shipping_address.country}`;
+    mapAddress = encodeURIComponent(rawAddress);
+    googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${mapAddress}`;
+    qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(googleMapsUrl)}&color=000000&bgcolor=ffffff`;
+  }
+
   return (
     <div className="space-y-8 animate-fade-in pb-12 max-w-5xl">
       {/* Header */}
@@ -255,79 +266,118 @@ export default function VendorOrderDetailPage() {
             </CardContent>
           </Card>
 
-          <Card className="border-[var(--color-border)]/50 shadow-sm rounded-3xl overflow-hidden relative group">
-            {/* Stamp decorative background */}
-            <div className="absolute -right-6 -top-6 text-[var(--color-border)] opacity-10 rotate-12 group-hover:rotate-0 transition-transform duration-700 pointer-events-none">
-              <Package className="h-32 w-32" />
+        </div>
+      </div>
+      
+      {/* FULL WIDTH BOTTOM ROW: Customer & Shipping */}
+      <Card className="border-[var(--color-border)]/50 shadow-sm rounded-3xl overflow-hidden relative group">
+        {/* Stamp decorative background */}
+        <div className="absolute -right-6 -top-6 text-[var(--color-border)] opacity-10 rotate-12 group-hover:rotate-0 transition-transform duration-700 pointer-events-none">
+          <Package className="h-32 w-32" />
+        </div>
+        
+        <CardHeader className="bg-[var(--color-surface-secondary)]/30 border-b border-[var(--color-border)]/50 px-6 py-4 flex flex-row items-center justify-between">
+          <CardTitle className="text-sm font-black uppercase tracking-widest text-[var(--color-text-primary)] flex items-center gap-2">
+            <Truck className="h-4 w-4 text-[var(--color-text-muted)]" /> Fulfillment Logistics & Customer
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-0 grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-[var(--color-border)]/50">
+          
+          <div className="flex flex-col h-full bg-gradient-to-br from-[var(--color-surface)] to-[var(--color-surface-secondary)]/20 relative z-10">
+            {/* Top half: Customer Identity */}
+            <div className="p-6 pb-4">
+              <p className="font-black text-2xl text-[var(--color-text-primary)]">{order.profiles?.full_name ?? "General Customer"}</p>
+              <p className="text-sm font-medium text-[var(--color-text-secondary)] mt-1 mb-4">{order.profiles?.email ?? "No Email Provided"}</p>
+              <Button variant="secondary" size="sm" className="rounded-xl gap-2 shadow-sm font-bold bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 hover:text-blue-700 border-none" asChild>
+                <Link href={`/dashboard/messages?buyer=${order.profiles?.id}`}>Chat with Buyer</Link>
+              </Button>
             </div>
             
-            <CardHeader className="bg-[var(--color-surface-secondary)]/30 border-b border-[var(--color-border)]/50 px-6 py-4 flex flex-row items-center justify-between">
-              <CardTitle className="text-sm font-black uppercase tracking-widest text-[var(--color-text-primary)] flex items-center gap-2">
-                <Truck className="h-4 w-4 text-[var(--color-text-muted)]" /> Customer Info
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              
-              <div className="p-6 flex flex-col gap-1 border-b border-[var(--color-border)]/50 relative z-10">
-                <p className="font-black text-lg text-[var(--color-text-primary)]">{order.profiles?.full_name ?? "General Customer"}</p>
-                <p className="text-sm font-medium text-[var(--color-text-secondary)] bg-[var(--color-surface-secondary)]/50 w-fit px-2 py-0.5 rounded-md">{order.profiles?.email ?? "No Email Provided"}</p>
-                <div className="pt-3">
-                  <Button variant="secondary" size="sm" className="w-full sm:w-auto rounded-xl gap-2 shadow-sm font-bold bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 hover:text-blue-700 border-none" asChild>
-                    <Link href={`/dashboard/messages?buyer=${order.profiles?.id}`}>Chat with Buyer</Link>
+            {/* Bottom half: Shipping Label */}
+            {order.shipping_address && (
+              <div className="p-6 pt-4 flex-1">
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="h-6 w-1 bg-[var(--color-accent)] rounded-full" />
+                  <p className="text-xs font-black uppercase tracking-widest text-[var(--color-text-muted)]">Delivery Label</p>
+                </div>
+                
+                <div className="bg-[var(--color-surface-secondary)]/40 border border-[var(--color-border)]/50 p-5 rounded-2xl relative shadow-inner">
+                  {/* Fake barcode decor */}
+                  <div className="absolute right-4 top-4 opacity-20 flex gap-0.5">
+                     {[...Array(15)].map((_, i) => <div key={i} className="h-8 bg-[var(--color-text-primary)]" style={{ width: Math.random() > 0.5 ? '2px' : '4px' }} />)}
+                  </div>
+                  
+                  <div className="text-sm font-bold text-[var(--color-text-primary)] space-y-1 pr-16 relative z-10">
+                    <p className="text-lg font-black text-[var(--color-accent)] mb-2">
+                      {order.shipping_address.firstName || ""} {order.shipping_address.lastName || ""}
+                    </p>
+                    <p>{order.shipping_address.line1}</p>
+                    {order.shipping_address.line2 && <p>{order.shipping_address.line2}</p>}
+                    <p className="text-[var(--color-text-secondary)]">
+                      {order.shipping_address.city}
+                      {order.shipping_address.state ? `, ${order.shipping_address.state}` : ""}
+                      {order.shipping_address.zipCode ? ` ${order.shipping_address.zipCode}` : ""}
+                    </p>
+                    <p className="inline-block mt-3 bg-[var(--color-text-primary)] text-[var(--color-surface)] px-3 py-1 rounded-md text-xs font-black uppercase tracking-widest">
+                      {order.shipping_address.countryCode || order.shipping_address.country}
+                    </p>
+                  </div>
+
+                  {order.shipping_address.phone && (
+                    <div className="mt-5 pt-4 border-t border-[var(--color-border)]/50 flex items-center justify-between relative z-10">
+                      <span className="text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">Phone</span>
+                      <span className="text-sm font-black text-[var(--color-text-primary)]">{order.shipping_address.phone}</span>
+                    </div>
+                  )}
+                  
+                  {/* QR Code */}
+                  {qrCodeUrl && (
+                     <div className="absolute top-4 right-4 z-10 border border-[var(--color-border)]/50 p-1 bg-white rounded-xl shadow-sm hover:scale-105 transition-transform">
+                       <a href={googleMapsUrl} target="_blank" rel="noopener noreferrer" title="Scan to open in Google Maps">
+                         <img src={qrCodeUrl} alt="Address QR Code" className="w-16 h-16 rounded-lg opacity-90" />
+                       </a>
+                     </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+          
+          {/* Right side: Google Maps Interactive Pane */}
+          {order.shipping_address ? (
+            <div className="bg-[var(--color-surface-secondary)]/10 h-64 md:h-auto relative z-10 p-4">
+              <div className="w-full h-full rounded-2xl overflow-hidden border border-[var(--color-border)]/50 shadow-inner relative group">
+                <iframe 
+                  width="100%" 
+                  height="100%" 
+                  style={{ border: 0 }} 
+                  loading="lazy" 
+                  allowFullScreen 
+                  src={`https://maps.google.com/maps?q=${mapAddress}&t=&z=14&ie=UTF8&iwloc=&output=embed`}
+                />
+                
+                {/* Map Action Overlay */}
+                <div className="absolute top-0 w-full h-full pointer-events-none flex items-end justify-end p-4">
+                  <Button size="sm" variant="secondary" className="h-10 px-4 rounded-xl shadow-xl font-black text-sm bg-[var(--color-surface)]/95 backdrop-blur-md pointer-events-auto border border-[var(--color-border)] hover:bg-[var(--color-surface)] hover:scale-105 transition-all" asChild>
+                    <a href={googleMapsUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
+                       <Truck className="h-4 w-4" /> Open Directions
+                    </a>
                   </Button>
                 </div>
               </div>
-              
-              {order.shipping_address ? (
-                <div className="p-6 relative z-10 bg-gradient-to-b from-[var(--color-surface)] to-[var(--color-surface-secondary)]/20">
-                  <div className="flex items-center gap-2 mb-4">
-                    <div className="h-6 w-1 bg-[var(--color-accent)] rounded-full" />
-                    <p className="text-xs font-black uppercase tracking-widest text-[var(--color-text-muted)]">Delivery Address</p>
-                  </div>
-                  
-                  <div className="bg-[var(--color-surface-secondary)]/40 border border-[var(--color-border)]/50 p-4 rounded-2xl relative shadow-inner">
-                    {/* Fake barcode decor */}
-                    <div className="absolute right-4 top-4 opacity-20 flex gap-0.5">
-                       {[...Array(15)].map((_, i) => <div key={i} className="h-8 bg-[var(--color-text-primary)]" style={{ width: Math.random() > 0.5 ? '2px' : '4px' }} />)}
-                    </div>
-                    
-                    <div className="text-sm font-bold text-[var(--color-text-primary)] space-y-1.5 pr-16 relative z-10">
-                      <p className="text-base font-black text-[var(--color-accent)]">
-                        {order.shipping_address.firstName || ""} {order.shipping_address.lastName || ""}
-                      </p>
-                      <p>{order.shipping_address.line1}</p>
-                      {order.shipping_address.line2 && <p>{order.shipping_address.line2}</p>}
-                      <p className="text-[var(--color-text-secondary)]">
-                        {order.shipping_address.city}
-                        {order.shipping_address.state ? `, ${order.shipping_address.state}` : ""}
-                        {order.shipping_address.zipCode ? ` ${order.shipping_address.zipCode}` : ""}
-                      </p>
-                      <p className="inline-block mt-2 bg-[var(--color-text-primary)] text-[var(--color-surface)] px-2 py-0.5 rounded text-xs font-black uppercase tracking-widest">
-                        {order.shipping_address.countryCode || order.shipping_address.country}
-                      </p>
-                    </div>
-
-                    {order.shipping_address.phone && (
-                      <div className="mt-4 pt-3 border-t border-[var(--color-border)]/50 flex items-center justify-between relative z-10">
-                        <span className="text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">Phone</span>
-                        <span className="text-sm font-black text-[var(--color-text-primary)]">{order.shipping_address.phone}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <div className="p-6 text-center">
-                   <div className="h-12 w-12 rounded-full bg-[var(--color-surface-secondary)] flex items-center justify-center mx-auto mb-3">
-                     <Truck className="h-5 w-5 text-[var(--color-text-muted)]" />
-                   </div>
-                   <p className="text-sm font-bold text-[var(--color-text-primary)]">No shipping required</p>
-                   <p className="text-xs text-[var(--color-text-muted)] font-medium mt-1">This order might be a digital product.</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center p-12 text-center bg-[var(--color-surface-secondary)]/10 h-full">
+               <div className="h-16 w-16 rounded-full bg-[var(--color-surface-secondary)] flex items-center justify-center mx-auto mb-4 border border-[var(--color-border)]/50 shadow-sm">
+                 <Package className="h-6 w-6 text-[var(--color-text-muted)]" />
+               </div>
+               <p className="text-lg font-black text-[var(--color-text-primary)]">No shipping required</p>
+               <p className="text-sm text-[var(--color-text-muted)] font-medium mt-1">This order only contains digital products.</p>
+            </div>
+          )}
+          
+        </CardContent>
+      </Card>
     </div>
   );
 }
