@@ -225,7 +225,18 @@ async function resolveOrderId(
     return data?.id ?? null;
   }
 
-  // Fallback: lookup by external reference (AfriPay, PawaPay use transactionId as ref)
+  // Provider-specific fallbacks
+  if (event.provider === "pawapay") {
+    // PawaPay deposit ID is stored in pawapay_deposit_id (set at checkout initiation)
+    const { data } = await db
+      .from("orders")
+      .select("id")
+      .eq("pawapay_deposit_id", event.providerTransactionId)
+      .maybeSingle();
+    if (data?.id) return data.id;
+  }
+
+  // Generic fallback: lookup by external reference (AfriPay uses transactionId as ref)
   const { data } = await db
     .from("orders")
     .select("id")

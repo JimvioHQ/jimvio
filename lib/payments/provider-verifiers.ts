@@ -373,7 +373,7 @@ export const verifyPawaPay: ProviderVerifier = async (headers, rawBody) => {
     event: {
       provider: "pawapay",
       providerTransactionId: depositId,
-      jimvioOrderId: null, // resolved by DB lookup on payment_external_reference
+      jimvioOrderId: null, // resolved by DB lookup on pawapay_deposit_id in resolveOrderId
       idempotencyKey: `pawapay-${depositId}`,
       status,
       rawBody,

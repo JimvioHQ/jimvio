@@ -34,6 +34,18 @@ const statusConfig: Record<string, { label: string; variant: "success" | "warnin
   cancelled: { label: "Cancelled", variant: "secondary" },
 };
 
+/** 
+ * If payment is completed but fulfillment status is still 'pending' 
+ * (edge case where finalizeOrderPayment ran but status wasn't updated),
+ * display as 'confirmed' so vendors know payment was received.
+ */
+function resolveDisplayStatus(order: { status: string; payment_status?: string }): string {
+  if (order.status === "pending" && order.payment_status === "completed") {
+    return "confirmed";
+  }
+  return order.status ?? "pending";
+}
+
 export default function VendorOrdersPage() {
   const { formatMoney } = useCurrency();
   const supabase = createClient();
@@ -44,6 +56,8 @@ export default function VendorOrdersPage() {
   const [filter, setFilter] = useState("All");
 
   useEffect(() => {
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+
     async function load() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -52,14 +66,14 @@ export default function VendorOrdersPage() {
         setLoading(false);
         return;
       }
-      setVendorId(userVendors[0].id); // Keep tracking one for UI state if needed, but fetch all others
+      setVendorId(userVendors[0].id);
       
       const vendorIds = userVendors.map(v => v.id);
       const { data } = await supabase
         .from("order_items")
         .select(`
           id, product_name, quantity, unit_price, total_price, created_at, product_source, vendor_id,
-          orders ( id, order_number, status, created_at, currency, profiles ( id, full_name, email ) )
+          orders ( id, order_number, status, payment_status, created_at, currency, profiles ( id, full_name, email ) )
         `)
         .in("vendor_id", vendorIds)
         .order("created_at", { ascending: false });
@@ -74,6 +88,7 @@ export default function VendorOrdersPage() {
             id: o.id,
             order_number: o.order_number,
             status: o.status,
+            payment_status: o.payment_status,
             created_at: o.created_at,
             currency: (o as any).currency ?? "RWF",
             buyer: o.profiles,
@@ -87,10 +102,41 @@ export default function VendorOrdersPage() {
         row.totalAmount += Number(item.total_price);
         row.totalQty += Number(item.quantity);
       });
-      setOrders(Array.from(byOrder.values()));
+
+      const orderList = Array.from(byOrder.values());
+      setOrders(orderList);
       setLoading(false);
+
+      // Real-time: subscribe to status changes on all vendor orders
+      if (channel) await supabase.removeChannel(channel);
+      const orderIds = orderList.map(o => o.id);
+      if (orderIds.length > 0) {
+        channel = supabase
+          .channel("vendor-orders-realtime")
+          .on(
+            "postgres_changes",
+            { event: "UPDATE", schema: "public", table: "orders" },
+            (payload) => {
+              const updated = payload.new as { id: string; status: string; payment_status: string };
+              if (!orderIds.includes(updated.id)) return;
+              setOrders(prev =>
+                prev.map(o =>
+                  o.id === updated.id
+                    ? { ...o, status: updated.status, payment_status: updated.payment_status }
+                    : o
+                )
+              );
+            }
+          )
+          .subscribe();
+      }
     }
+
     load();
+
+    return () => {
+      if (channel) supabase.removeChannel(channel);
+    };
   }, []);
 
   const totalSales = orders.reduce((s, o) => s + Number(o.totalAmount || 0), 0);
@@ -206,7 +252,8 @@ export default function VendorOrdersPage() {
                   </tr>
                 ) : (
                   filtered.map((order) => {
-                    const s = statusConfig[order.status] ?? statusConfig.pending;
+                    const displayStatus = resolveDisplayStatus(order);
+                    const s = statusConfig[displayStatus] ?? statusConfig.pending;
                     const first = order.items[0];
                     const productLabel = first ? (order.items.length > 1 ? `${first.product_name} +${order.items.length - 1} more` : first.product_name) : "—";
                     return (
