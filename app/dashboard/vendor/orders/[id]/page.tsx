@@ -60,22 +60,29 @@ export default function VendorOrderDetailPage() {
         setLoading(false);
         return;
       }
-      const { data: orderData } = await supabase
-        .from("orders")
-        .select("id, order_number, status, total_amount, currency, created_at, shipping_address, profiles ( full_name, email )")
-        .eq("id", id)
-        .single();
+      const { data: items, error } = await supabase
+        .from("order_items")
+        .select(`
+          id, product_name, product_image, quantity, unit_price, total_price, product_source,
+          orders ( id, order_number, status, total_amount, currency, created_at, shipping_address, profiles ( full_name, email ) )
+        `)
+        .eq("order_id", id)
+        .eq("vendor_id", v.id);
+
+      if (error || !items || items.length === 0) {
+        setLoading(false);
+        return;
+      }
+
+      const orderData = Array.isArray(items[0].orders) ? items[0].orders[0] : items[0].orders;
+      
       if (!orderData) {
         setLoading(false);
         return;
       }
-      const { data: items } = await supabase
-        .from("order_items")
-        .select("id, product_name, product_image, quantity, unit_price, total_price, product_source")
-        .eq("order_id", id)
-        .eq("vendor_id", v.id);
+
       setOrder(orderData);
-      setVendorItems(items ?? []);
+      setVendorItems(items);
       setLoading(false);
     })();
   }, [id]);
