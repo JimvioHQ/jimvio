@@ -139,7 +139,16 @@ export default function VendorOrdersPage() {
     };
   }, []);
 
-  const totalSales = orders.reduce((s, o) => s + Number(o.totalAmount || 0), 0);
+  const totalSalesUsd = orders
+    .filter(o => o.status !== "cancelled" && o.status !== "failed")
+    .reduce((s, o) => {
+      // Very basic normalization for display sum if orders are mixed currency
+      const amt = Number(o.totalAmount || 0);
+      const isRwf = (o.currency || "").toUpperCase() === "RWF";
+      const rate = 1250; // simple fallback for dashboard sum
+      return s + (isRwf ? amt / rate : amt);
+    }, 0);
+
   const pendingFulfillment = orders.filter(o => ["pending", "confirmed", "processing"].includes(o.status)).length;
   const completedSales = orders.filter(o => o.status === "delivered").length;
 
@@ -192,7 +201,7 @@ export default function VendorOrdersPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard title="Total Orders" value={orders.length} icon={<Package className="h-4 w-4" />} iconColor="from-blue-600 to-cyan-600" />
         <StatCard title="To Fulfill" value={pendingFulfillment} icon={<Clock className="h-4 w-4" />} iconColor="from-amber-600 to-orange-600" />
-        <StatCard title="Total Sales" value={formatMoney(totalSales, "RWF")} icon={<DollarSign className="h-4 w-4" />} iconColor="from-emerald-600 to-teal-600" />
+        <StatCard title="Total Sales" value={formatMoney(totalSalesUsd, "USD")} icon={<DollarSign className="h-4 w-4" />} iconColor="from-emerald-600 to-teal-600" />
         <StatCard title="Completed" value={completedSales} icon={<CheckCircle2 className="h-4 w-4" />} iconColor="from-violet-600 to-purple-600" />
       </div>
 
