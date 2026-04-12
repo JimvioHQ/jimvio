@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { v4 as uuidv4 } from "uuid";
+import { convertFromUSD } from "@/lib/currency/rates";
 
 export async function POST(request: Request) {
   try {
@@ -52,14 +53,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Amount and currency are required" }, { status: 400 });
     }
 
-    // pawaPay DOES NOT support USD for collection. We must convert to a local currency (e.g., RWF).
-    if (currency.toUpperCase() === "USD") {
-      const rate = Number(process.env.RWF_TO_USD_RATE) || 0.0008;
-      const rwfAmount = amount / rate;
-      amount = rwfAmount;
-      currency = "RWF";
-    }
-
     // 1. Determine Target Country (Alpha-3)
     const alpha2To3: Record<string, string> = {
       "RW": "RWA", "UG": "UGA", "ZM": "ZMB", "GH": "GHA", "NG": "NGA",
@@ -72,14 +65,6 @@ export async function POST(request: Request) {
       country = alpha2To3[country.toUpperCase()] || country;
     }
 
-    // 2. Map Country to Native Currency
-    const countryToCurrency: Record<string, string> = {
-      "RWA": "RWF", "UGA": "UGX", "ZMB": "ZMW", "GHA": "GHS", "NGA": "NGN",
-      "KEN": "KES", "ZAF": "ZAR", "SLE": "SLE", "TZA": "TZS", "MWI": "MWK",
-      "MOZ": "MZN", "LSO": "LSL", "SEN": "XOF", "CIV": "XOF", "BEN": "XOF",
-      "BFA": "XOF", "CMR": "XAF", "GAB": "XAF", "COG": "XAF"
-    };
-
     // Standardize country or infer from currency if not provided
     if (!country || country.length !== 3) {
       const currencyToCountry: Record<string, string> = {
@@ -89,31 +74,26 @@ export async function POST(request: Request) {
       country = currencyToCountry[currency.toUpperCase()] || "RWA";
     }
 
+    // 2. Map Country to Native Currency
+    const countryToCurrency: Record<string, string> = {
+      "RWA": "RWF", "UGA": "UGX", "ZMB": "ZMW", "GHA": "GHS", "NGA": "NGN",
+      "KEN": "KES", "ZAF": "ZAR", "SLE": "SLE", "TZA": "TZS", "MWI": "MWK",
+      "MOZ": "MZN", "LSO": "LSL", "SEN": "XOF", "CIV": "XOF", "BEN": "XOF",
+      "BFA": "XOF", "CMR": "XAF", "GAB": "XAF", "COG": "XAF"
+    };
+
     const nativeCurrency = countryToCurrency[country.toUpperCase()] || "RWF";
 
-    // 3. Convert Amount if needed (Base everything on USD if possible)
-    // In Jimvio, we usually have a rate in .env
-    if (currency.toUpperCase() !== nativeCurrency) {
-      // First convert input to USD (if it's RWF)
-      let usdAmount = amount;
-      if (currency.toUpperCase() === "RWF") {
-        const rate = Number(process.env.RWF_TO_USD_RATE) || 0.0008;
-        usdAmount = amount * rate;
-      }
-
-      // Then convert USD to target Native Currency
-      // (Using rough current market rates as fallbacks for the demo if not in .env)
-      const usdToNativeRates: Record<string, number> = {
-        "RWF": 1250, "UGX": 3750, "ZMW": 25, "GHS": 12, "NGN": 1200,
-        "KES": 150, "ZAR": 18, "SLE": 22, "TZS": 2500, "XOF": 600, "XAF": 600
-      };
-
-      const targetRate = usdToNativeRates[nativeCurrency] || 1;
-      const convertedAmount = usdAmount * targetRate;
-
-      console.log(`pawaPay: Converting ${amount} ${currency} to ${convertedAmount} ${nativeCurrency} for ${country}`);
-      amount = convertedAmount;
+    // 3. Convert Amount (Base everything on USD)
+    // pawaPay DOES NOT support USD for collection. We must convert to local currency.
+    if (currency.toUpperCase() === "USD") {
+      console.log(`pawaPay: Converting USD to ${nativeCurrency} using live rates.`);
+      amount = await convertFromUSD(amount, nativeCurrency as any);
       currency = nativeCurrency;
+    } else if (currency.toUpperCase() !== nativeCurrency) {
+      console.log(`pawaPay cross-currency map missing. Charging natively in ${currency} instead of ${nativeCurrency}`);
+      // Fallback: If Jimvio cart somehow sent Euro or similar, just charge the quantity as is.
+      // Jimvio core prices are USD, so the first 'if' handles 99% of checkouts natively.
     }
 
     const depositId = uuidv4();
