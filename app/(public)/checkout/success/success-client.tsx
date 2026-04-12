@@ -23,28 +23,43 @@ export function CheckoutSuccessClient({ order }: { order: Order }) {
 
   useEffect(() => {
     const sp = new URLSearchParams(window.location.search);
+    // PawaPay passes order_tracking_id in the redirect URL — this IS the depositId
     const trackingId = sp.get("OrderTrackingId") || sp.get("order_tracking_id");
 
-    async function syncAndRefresh() {
-      // 1. Trigger the background verification/sync (handles localhost webhook block)
+    async function doSync() {
+      if (!trackingId) return;
       try {
-        if (order.payment_provider === "pawapay" && trackingId) {
-          await fetch("/api/payments/pawapay/sync-status", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ orderId: order.id, trackingId }),
-          });
-        }
+        const res = await fetch("/api/payments/pawapay/sync-status", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ orderId: order.id, trackingId }),
+        });
+        const data = await res.json();
+        console.log("[PawaPay sync]", data?.status, res.status);
       } catch (e) {
-        /* ignore fetch error */
+        console.error("[PawaPay sync error]", e);
       }
-      
-      // 2. Refresh the local cart state
-      await refreshCart();
-      window.dispatchEvent(new CustomEvent("cart-updated"));
     }
 
-    syncAndRefresh();
+    async function syncAndRefresh() {
+      // Attempt 1: immediately on page load
+      await doSync();
+
+      // Attempt 2: retry after 4 seconds in case PawaPay hasn't reported COMPLETED yet
+      setTimeout(async () => {
+        await doSync();
+        await refreshCart();
+        window.dispatchEvent(new CustomEvent("cart-updated"));
+      }, 4000);
+    }
+
+    // Run for any order with a tracking ID (PawaPay orders always have one)
+    if (trackingId) {
+      syncAndRefresh();
+    } else {
+      // Non-PawaPay orders: just refresh cart
+      refreshCart().then(() => window.dispatchEvent(new CustomEvent("cart-updated")));
+    }
   }, [order.id, refreshCart]);
   const label = order.order_number?.startsWith("JV") ? order.order_number : `JV-${String(order.order_number || order.id).slice(0, 8).toUpperCase()}`;
   const p = (order.payment_provider || "").toLowerCase();

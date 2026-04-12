@@ -24,11 +24,13 @@ export async function POST(request: Request) {
     const isSandbox = process.env.PAWAPAY_ENV === "sandbox";
     const baseUrl = isSandbox ? "https://api.sandbox.pawapay.io" : "https://api.pawapay.io";
 
-    // Call PawaPay to verify
-    const verifyRes = await fetch(`${baseUrl}/v2/deposits/${trackingId}`, {
+    // PawaPay deposit status: GET /deposits/{depositId}
+    // NOTE: /v2/deposits does NOT exist — correct path has no version prefix
+    const verifyRes = await fetch(`${baseUrl}/deposits/${trackingId}`, {
       method: "GET",
       headers: {
         "Authorization": `Bearer ${apiToken}`,
+        "Content-Type": "application/json",
       },
       cache: "no-store",
     });

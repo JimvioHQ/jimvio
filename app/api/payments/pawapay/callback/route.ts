@@ -102,7 +102,7 @@ export async function POST(request: Request) {
 
     if (apiToken) {
       try {
-        const verifyRes = await fetch(`${baseUrl}/v1/deposits/${depositId}`, {
+        const verifyRes = await fetch(`${baseUrl}/deposits/${depositId}`, {
           headers: { Authorization: `Bearer ${apiToken}` },
           cache: "no-store",
         });
