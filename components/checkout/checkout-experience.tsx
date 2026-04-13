@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import {
   Loader2,
@@ -12,6 +12,12 @@ import {
   ShieldCheck,
   Building,
   Users,
+  CreditCard,
+  CheckCircle2,
+  Calendar,
+  MapPin,
+  ChevronRight,
+  TrendingUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ShippingForm, type ShippingFormValues } from "@/components/checkout/ShippingForm";
@@ -21,6 +27,7 @@ import { updatePendingOrdersShipping } from "@/lib/actions/checkout";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useCurrency } from "@/context/CurrencyContext";
+import { GlassCard, GlassAmbientGlow, GlassPill } from "@/components/ui/glass";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -69,25 +76,25 @@ function defaultPaymentForCurrency(
 function paymentMethodLabel(
   m: "pesapal" | "nowpayments" | "pawapay" | "flutterwave" | "paypal" | null
 ): string {
-  if (m === "pawapay") return "Mobile Money (PawaPay)";
-  if (m === "pesapal") return "Card (PesaPal)";
-  if (m === "nowpayments") return "Cryptocurrency";
-  if (m === "flutterwave") return "Credit/Debit Card";
+  if (m === "pawapay") return "Mobile Money";
+  if (m === "pesapal") return "Card";
+  if (m === "nowpayments") return "Crypto";
+  if (m === "flutterwave") return "Credit Card";
   if (m === "paypal") return "PayPal";
   return "—";
 }
 
 const STEPS = [
-  { n: 1, label: "Review Order" },
-  { n: 2, label: "Payment" },
-  { n: 3, label: "Confirm & Pay" },
+  { n: 1, label: "Dispatch", icon: Package },
+  { n: 2, label: "Authorize", icon: Lock },
+  { n: 3, label: "Execute", icon: CheckCircle2 },
 ] as const;
 
-const STEP_TITLES = ["Review Your Order", "Select Payment", "Confirm & Pay"];
+const STEP_TITLES = ["Logistics Registry", "Secure Authorization", "Review & Execute"];
 const STEP_SUBTITLES = [
-  "Confirm your shipping details and items",
-  "Choose how you want to pay",
-  "Review everything and complete your purchase",
+  "Authorize shipping coordinates for batch delivery.",
+  "Select a verified payment gateway for trade clearance.",
+  "Final reconciliation before system execution."
 ];
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -153,13 +160,12 @@ export function CheckoutExperience({
 
   function advanceFromStep1() {
     const { firstName, email, phone, address1, city } = shipping;
-    // For community, we are more lenient but still need basic info
     if (!firstName.trim() || !email.trim() || !phone.trim() || (!isCommunity && (!address1.trim() || !city.trim()))) {
       toast.error("Please complete your required fields");
       return;
     }
     setCurrentStep(2);
-    window.scrollTo({ top: 0, behavior: "instant" });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function advanceFromStep2() {
@@ -168,13 +174,13 @@ export function CheckoutExperience({
       return;
     }
     setCurrentStep(3);
-    window.scrollTo({ top: 0, behavior: "instant" });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function goBack() {
     if (currentStep > 1) {
       setCurrentStep((s) => (s - 1) as 1 | 2 | 3);
-      window.scrollTo({ top: 0, behavior: "instant" });
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
   }
 
@@ -235,7 +241,6 @@ export function CheckoutExperience({
 
 
       if (payment === "pawapay") {
-        console.log("Jimvio Order Shipping Address:", shipping);
         const res = await fetch("/api/pawapay/checkout", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -247,7 +252,6 @@ export function CheckoutExperience({
           }),
         });
         const data = await res.json();
-        console.log("pawaPay Checkout response data:", data);
         if (!res.ok) throw new Error(data.message || data.error || "pawaPay initiation failed");
         
         const redirect = data.redirectUrl || data.redirectURL;
@@ -312,18 +316,17 @@ export function CheckoutExperience({
 
   if (!orders.length) {
     return (
-      <div className="flex flex-col items-center justify-center py-24 gap-4">
-        <div className="w-16 h-16 rounded-2xl bg-orange-50 flex items-center justify-center">
-          <Package className="h-8 w-8 text-orange-400" />
-        </div>
-        <p className="text-zinc-500 text-sm">Your cart is empty.</p>
-        <Button
-          asChild
-          variant="orange"
-          className="rounded-xl font-black uppercase tracking-widest transition-all"
-        >
-          <Link href="/cart">Back to cart</Link>
-        </Button>
+      <div className="min-h-[60vh] flex flex-col items-center justify-center p-12 text-center" style={{ background: "#f8f7f5" }}>
+        <GlassCard className="max-w-md w-full p-12 rounded-[40px] bg-white border-white shadow-2xl">
+          <div className="w-20 h-20 bg-orange-50 rounded-[28px] flex items-center justify-center mx-auto mb-8 border border-orange-100 shadow-inner">
+            <Package className="h-10 w-10 text-orange-400" />
+          </div>
+          <h2 className="text-2xl font-black text-stone-900 tracking-tight mb-4">Registry Exhausted</h2>
+          <p className="text-[13px] font-bold text-stone-400 uppercase tracking-widest leading-relaxed mb-10">Your trade batch contains no authorized items.</p>
+          <Button asChild className="w-full h-14 rounded-2xl bg-orange-500 text-white font-black text-[13px] uppercase tracking-[0.2em] shadow-xl shadow-orange-500/20 active:scale-95 transition-all outline-none border-none">
+            <Link href="/marketplace">Re-Enter Market</Link>
+          </Button>
+        </GlassCard>
       </div>
     );
   }
@@ -334,465 +337,325 @@ export function CheckoutExperience({
   // ─── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-zinc-100 flex items-start justify-center py-0 md:py-8 px-0 md:px-4">
-      <div className="w-full max-w-5xl flex flex-col md:flex-row md:rounded-2xl overflow-hidden shadow-2xl shadow-black/10">
+    <div className="min-h-screen pb-24 relative overflow-hidden" style={{ background: "#f8f7f5" }}>
+      <GlassAmbientGlow color="orange" position="top-right" className="opacity-40" />
+      <GlassAmbientGlow color="sky" position="bottom-left" className="opacity-20" />
 
-        {/* ══════════════════════════════════════════
-            LEFT SIDEBAR
-        ══════════════════════════════════════════ */}
-        <aside className="w-full md:w-[300px] lg:w-[340px] flex-shrink-0 bg-orange-600 flex flex-col gap-6 p-7 relative overflow-x-hidden overflow-y-auto">
-
-          {/* Decorative blobs */}
-          <div className="absolute -top-20 -right-20 w-64 h-64 rounded-full bg-white/5 pointer-events-none" />
-          <div className="absolute -bottom-10 -left-16 w-48 h-48 rounded-full bg-white/5 pointer-events-none" />
-
-          {/* Brand */}
-          <div className="relative z-10 flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-white/15 flex items-center justify-center">
-              <ShieldCheck className="h-5 w-5 text-white" />
-            </div>
-            <span className="font-semibold text-[15px] text-white/90 tracking-wide">
-              Secure Checkout
-            </span>
-          </div>
-
-          {/* Total */}
-          <div className="relative z-10 bg-white/10 rounded-2xl p-5">
-            <p className="text-[10px] font-semibold tracking-[1.6px] uppercase text-white/50 mb-1">
-              Order Total
-            </p>
-            <p className="text-[32px] font-bold text-white leading-none tracking-tight">
-              {formatMoney(total, currency)}
-            </p>
-          </div>
-
-          {/* Cart items — desktop only */}
-          <div className="relative z-10 hidden md:flex flex-col gap-0">
-            <p className="text-[10px] font-semibold tracking-[1.6px] uppercase text-white/40 mb-3">
-              Your Items
-            </p>
-            {/* Scrollable items list so long names/many items never hide the step tracker */}
-            <div className="overflow-x-hidden overflow-y-auto max-h-[260px] pr-1 -mr-1">
-              {allItems.map((item) => {
-                const order = selectedOrders.find((o) =>
-                  o.order_items.some((i) => i.id === item.id)
-                );
-                return (
-                  <div
-                    key={item.id}
-                    className="flex items-center gap-3 py-3 border-b border-white/10 last:border-none"
-                  >
-                    <div className="w-11 h-11 rounded-xl bg-white/10 overflow-hidden flex-shrink-0 flex items-center justify-center">
-                      {item.product_image ? (
-                        <img
-                          src={item.product_image}
-                          alt={item.product_name}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <Package className="h-5 w-5 text-white/30" />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      {/* Hard-clamp to 1 line so very long product names don't overflow */}
-                      <p className="text-[13px] font-medium text-white/90 truncate leading-tight">
-                        {item.product_name}
-                      </p>
-                      <p className="text-[11px] text-white/40 mt-0.5 truncate">
-                        {order?.vendors?.business_name} · Qty {item.quantity}
-                      </p>
-                    </div>
-                    <p className="text-[13px] font-semibold text-white/80 flex-shrink-0 ml-2">
-                      {formatMoney(Number(item.unit_price), currency)}
-                    </p>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Step progress — desktop only */}
-          <div className="relative z-10 hidden md:flex flex-col gap-0">
-            {STEPS.map((step, idx) => {
-              const state =
-                step.n < currentStep
-                  ? "done"
-                  : step.n === currentStep
-                  ? "active"
-                  : "pending";
-              return (
-                <React.Fragment key={step.n}>
-                  <div
-                    className="flex items-center gap-3 py-1 cursor-pointer"
-                    onClick={() =>
-                      step.n < currentStep &&
-                      setCurrentStep(step.n as 1 | 2 | 3)
-                    }
-                  >
-                    <div
-                      className={cn(
-                        "w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-semibold flex-shrink-0 transition-all",
-                        state === "active" && "bg-white text-orange-600",
-                        state === "done" && "bg-white/20 text-white",
-                        state === "pending" &&
-                          "bg-white/8 text-white/30 border border-white/15"
-                      )}
-                    >
-                      {state === "done" ? "✓" : step.n}
-                    </div>
-                    <span
-                      className={cn(
-                        "text-[13px] font-medium transition-all",
-                        state === "active" && "text-white",
-                        state === "done" && "text-white/60",
-                        state === "pending" && "text-white/30"
-                      )}
-                    >
-                      {step.label}
-                    </span>
-                  </div>
-                  {idx < STEPS.length - 1 && (
-                    <div className="w-px h-3 bg-white/10 ml-[13px]" />
-                  )}
-                </React.Fragment>
-              );
-            })}
-          </div>
-        </aside>
-
-        {/* ══════════════════════════════════════════
-            RIGHT PANEL
-        ══════════════════════════════════════════ */}
-        <div className="flex-1 bg-white flex flex-col min-h-[600px]">
-
-          {/* Header */}
-          <div className="px-7 md:px-9 pt-7 pb-0 border-b border-zinc-100">
-            {/* Mobile progress pills */}
-            <div className="flex gap-1.5 mb-5 md:hidden">
-              {STEPS.map((step) => (
-                <div
-                  key={step.n}
-                  className={cn(
-                    "h-1 flex-1 rounded-full transition-all duration-300",
-                    step.n <= currentStep ? "bg-orange-500" : "bg-zinc-200"
-                  )}
-                />
-              ))}
-            </div>
-            <h1 className="text-xl font-bold text-zinc-900 tracking-tight">
-              {STEP_TITLES[currentStep - 1]}
-            </h1>
-            <p className="text-[13px] text-zinc-400 mt-1 mb-5">
-              {STEP_SUBTITLES[currentStep - 1]}
-            </p>
-          </div>
-
-          {/* ── STEP 1: Shipping + order review ──── */}
-          {currentStep === 1 && (
-            <div className="flex-1 px-7 md:px-9 py-7 overflow-y-auto space-y-6">
-
-              {/* Shipping form */}
-              <div>
-                <p className="text-[10px] font-semibold tracking-[1.4px] uppercase text-zinc-400 mb-4">
-                  Shipping Address
-                </p>
-                <div
-                  className={cn(
-                    // Style ShippingForm internals via descendant selectors
-                    "[&_label]:text-[12px] [&_label]:font-medium [&_label]:text-zinc-500 [&_label]:mb-1.5 [&_label]:block",
-                    "[&_input]:h-11 [&_input]:rounded-xl [&_input]:border [&_input]:border-zinc-200",
-                    "[&_input]:bg-zinc-50 [&_input]:px-3.5 [&_input]:text-[14px] [&_input]:text-zinc-900",
-                    "[&_input]:w-full [&_input]:outline-none [&_input]:transition-all",
-                    "[&_input:focus]:border-orange-400 [&_input:focus]:ring-2 [&_input:focus]:ring-orange-100",
-                    "[&_select]:h-11 [&_select]:rounded-xl [&_select]:border [&_select]:border-zinc-200",
-                    "[&_select]:bg-zinc-50 [&_select]:px-3.5 [&_select]:text-[14px] [&_select]:text-zinc-900",
-                    "[&_select]:w-full [&_select]:outline-none [&_select]:transition-all",
-                    "[&_select:focus]:border-orange-400 [&_select:focus]:ring-2 [&_select:focus]:ring-orange-100"
-                  )}
-                >
-                  <ShippingForm
-                    values={shipping}
-                    onChange={(patch) => setShipping((s) => ({ ...s, ...patch }))}
-                  />
-                </div>
+      <div className="max-w-6xl mx-auto px-6 pt-12 relative z-10">
+        
+        {/* Superior Header */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-12 animate-in fade-in slide-in-from-top-4 duration-1000">
+           <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                 <div className="p-2.5 rounded-[18px] bg-white border border-white shadow-2xl shrink-0">
+                    <ShieldCheck className="h-8 w-8 text-orange-500" />
+                 </div>
+                 <h1 className="text-4xl sm:text-5xl font-black text-stone-900 tracking-tighter leading-none">
+                    Terminal Checkout
+                 </h1>
               </div>
-
-              {/* Order items */}
-              <div className="border-t border-zinc-100 pt-6">
-                <p className="text-[10px] font-semibold tracking-[1.4px] uppercase text-zinc-400 mb-4">
-                  Order Items
-                </p>
-                {selectedOrders.map((o) => {
-                  const oc = (o.currency || "USD").toUpperCase();
-                  return (
-                    <div key={o.id} className="mb-5 last:mb-0">
-                      <div className="flex items-center gap-2 mb-3">
-                        <Store className="h-4 w-4 text-zinc-400" />
-                        <span className="text-[13px] font-semibold text-zinc-700">
-                          {o.vendors?.business_name || "Seller"}
-                        </span>
-                      </div>
-                      <div className="space-y-3">
-                        {o.order_items.map((item) => (
-                          <div key={item.id} className="flex gap-3 items-center">
-                            <div className="w-14 h-14 rounded-xl bg-zinc-100 overflow-hidden flex-shrink-0 flex items-center justify-center">
-                              {item.product_image ? (
-                                <img
-                                  src={item.product_image}
-                                  alt={item.product_name}
-                                  className="w-full h-full object-cover"
-                                />
-                              ) : (
-                                <Package className="h-6 w-6 text-zinc-300" />
-                              )}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-[13px] text-zinc-800 font-medium leading-snug line-clamp-2">
-                                {item.product_name}
-                              </p>
-                              <p className="text-[11px] text-zinc-400 mt-0.5">
-                                Qty: {item.quantity}
-                              </p>
-                            </div>
-                            <p className="text-[13px] font-semibold text-zinc-800 flex-shrink-0">
-                              {formatMoney(Number(item.unit_price), oc)}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                      <div className="mt-3 pt-3 border-t border-zinc-100 flex justify-between text-[13px]">
-                        <span className="text-zinc-400">Subtotal</span>
-                        <span className="font-semibold text-zinc-800">
-                          {formatMoney(
-                            o.order_items.reduce(
-                              (s, i) => s + Number(i.total_price),
-                              0
-                            ),
-                            oc
-                          )}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* ── STEP 2: Payment method ────────────── */}
-          {currentStep === 2 && (
-            <div className="flex-1 px-7 md:px-9 py-7 overflow-y-auto">
-              <p className="text-[10px] font-semibold tracking-[1.4px] uppercase text-zinc-400 mb-4">
-                Choose Payment Method
+              <p className="text-[14px] font-bold text-stone-400 uppercase tracking-[0.3em] pl-16">
+                 Authorized Trade Secure Tunnel v2.0
               </p>
-              <PaymentMethodSelector
-                selected={payment as any}
-                onSelect={(m) => setPayment(m as any)}
-                payCurrency={payCurrency}
-                onCurrencyChange={setPayCurrency}
-                orderCurrency={currency}
-                orderTotal={total}
-                flutterwaveMethod={flutterwaveMethod}
-                onFlutterwaveMethodChange={setFlutterwaveMethod}
-              />
-            </div>
-          )}
-
-          {/* ── STEP 3: Confirm & Pay ─────────────── */}
-          {currentStep === 3 && (
-            <div className="flex-1 px-7 md:px-9 py-7 overflow-y-auto space-y-4">
-
-              {/* Order summary */}
-              <div className="rounded-2xl border border-zinc-100 overflow-hidden">
-                <div className="px-5 py-3.5 bg-zinc-50 border-b border-zinc-100 flex items-center gap-2">
-                  <Package className="h-4 w-4 text-zinc-400" />
-                  <span className="text-[11px] font-semibold tracking-[1.2px] uppercase text-zinc-400">
-                    Order Summary
-                  </span>
-                </div>
-                {selectedOrders.flatMap((o) =>
-                  o.order_items.map((item) => (
-                    <div
-                      key={item.id}
-                      className="flex justify-between items-start gap-3 px-5 py-3 border-b border-zinc-100 last:border-none text-[13px]"
-                    >
-                      <span className="text-zinc-600 min-w-0 line-clamp-2 leading-snug">
-                        {item.product_name} × {item.quantity}
-                      </span>
-                      <span className="font-medium text-zinc-800 flex-shrink-0 whitespace-nowrap pt-px">
-                        {formatMoney(Number(item.total_price), currency)}
-                      </span>
+           </div>
+           
+           {/* Superior Stepper */}
+           <div className="flex items-center gap-4 bg-white/40 p-2 rounded-[28px] border border-white shadow-2xl backdrop-blur-xl shrink-0">
+              {STEPS.map((step, idx) => {
+                 const active = step.n === currentStep;
+                 const past = step.n < currentStep;
+                 return (
+                    <div key={step.n} className="flex items-center">
+                       <div className={cn(
+                          "flex items-center gap-3 px-5 h-11 rounded-[22px] transition-all duration-500",
+                          active ? "bg-stone-900 text-white shadow-xl scale-105" : "text-stone-400"
+                       )}>
+                          <step.icon className={cn("h-4 w-4", active ? "text-orange-500" : "text-stone-300")} />
+                          <span className={cn("text-[11px] font-black uppercase tracking-widest", !active && "hidden sm:inline")}>
+                             {step.label}
+                          </span>
+                       </div>
+                       {idx < STEPS.length - 1 && (
+                          <ChevronRight className="h-4 w-4 text-stone-200 mx-2" />
+                       )}
                     </div>
-                  ))
-                )}
-                <div className="flex justify-between items-center px-5 py-3 bg-zinc-50 border-t border-zinc-100 text-[13px]">
-                  <span className="font-semibold text-zinc-600">Subtotal</span>
-                  <span className="font-semibold text-zinc-800">
-                    {formatMoney(total, currency)}
-                  </span>
-                </div>
-              </div>
-
-              {/* Shipping details */}
-              <div className="rounded-2xl border border-zinc-100 overflow-hidden">
-                <div className="px-5 py-3.5 bg-zinc-50 border-b border-zinc-100 flex items-center gap-2">
-                  <Store className="h-4 w-4 text-zinc-400" />
-                  <span className="text-[11px] font-semibold tracking-[1.2px] uppercase text-zinc-400">
-                    Shipping To
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setCurrentStep(1)}
-                    className="ml-auto text-[11px] text-orange-500 font-medium hover:text-orange-600 transition-colors"
-                  >
-                    Edit
-                  </button>
-                </div>
-                {[
-                  {
-                    label: "Name",
-                    value: `${shipping.firstName} ${shipping.lastName}`.trim(),
-                  },
-                  { label: "Email", value: shipping.email },
-                  { label: "Phone", value: shipping.phone },
-                  {
-                    label: "Address",
-                    value: [shipping.address1, shipping.city, shipping.country]
-                      .filter(Boolean)
-                      .join(", "),
-                  },
-                ].map(({ label, value }) => (
-                  <div
-                    key={label}
-                    className="flex justify-between items-center px-5 py-3 border-b border-zinc-100 last:border-none text-[13px]"
-                  >
-                    <span className="text-zinc-400">{label}</span>
-                    <span className="font-medium text-zinc-800 text-right max-w-[60%]">
-                      {value || "—"}
-                    </span>
-                  </div>
-                ))}
-              </div>
-
-              {/* Payment method */}
-              <div className="rounded-2xl border border-zinc-100 overflow-hidden">
-                <div className="px-5 py-3.5 bg-zinc-50 border-b border-zinc-100 flex items-center gap-2">
-                  <Lock className="h-4 w-4 text-zinc-400" />
-                  <span className="text-[11px] font-semibold tracking-[1.2px] uppercase text-zinc-400">
-                    Payment Method
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setCurrentStep(2)}
-                    className="ml-auto text-[11px] text-orange-500 font-medium hover:text-orange-600 transition-colors"
-                  >
-                    Edit
-                  </button>
-                </div>
-                <div className="px-5 py-3.5 flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-orange-50 flex items-center justify-center flex-shrink-0">
-                    <Lock className="h-4 w-4 text-orange-500" />
-                  </div>
-                  <span className="text-[14px] font-semibold text-zinc-800">
-                    {payment === "flutterwave" ? "Flutterwave Global Checkout" : (payment === "nowpayments" ? "Cryptocurrency (Global)" : paymentMethodLabel(payment))}
-                  </span>
-                </div>
-              </div>
-
-              {/* Total to pay */}
-              <div className="flex items-center justify-between bg-orange-50 rounded-2xl px-5 py-4">
-                <span className="text-[14px] font-semibold text-orange-700">
-                  Total to Pay
-                </span>
-                <span className="text-[26px] font-bold text-orange-700 tracking-tight leading-none">
-                  {formatMoney(total, currency)}
-                </span>
-              </div>
-
-              {/* Terms */}
-              <label className="flex items-start gap-3 cursor-pointer text-[12px] text-zinc-400 leading-relaxed">
-                <input
-                  type="checkbox"
-                  defaultChecked
-                  className="mt-0.5 w-4 h-4 rounded accent-orange-500 flex-shrink-0"
-                />
-                <span>
-                  By clicking Pay Now, you agree to the{" "}
-                  <span className="text-orange-500 font-medium">
-                    User Agreement
-                  </span>
-                  ,{" "}
-                  <span className="text-orange-500 font-medium">
-                    Privacy Policy
-                  </span>{" "}
-                  and{" "}
-                  <span className="text-orange-500 font-medium">
-                    Refund &amp; Returns Policy
-                  </span>
-                  . All transactions are secure and encrypted.
-                </span>
-              </label>
-            </div>
-          )}
-
-          {/* ── FOOTER ─────────────────────────────── */}
-          <div className="px-7 md:px-9 py-5 border-t border-zinc-100 flex items-center justify-between gap-4 bg-white">
-
-            {/* Back button */}
-            <button
-              type="button"
-              onClick={goBack}
-              className={cn(
-                "flex items-center gap-1.5 text-[13px] text-zinc-400 hover:text-zinc-700 transition-colors font-medium",
-                currentStep === 1 && "invisible pointer-events-none"
-              )}
-            >
-              <ChevronLeft className="h-4 w-4" />
-              Back
-            </button>
-
-            <div className="flex flex-col items-end gap-1.5">
-              {/* CTA button */}
-              {currentStep < 3 ? (
-                <button
-                  type="button"
-                  onClick={currentStep === 1 ? advanceFromStep1 : advanceFromStep2}
-                  className="flex items-center gap-2 bg-orange-500/10 backdrop-blur-md border border-orange-500/30 active:scale-[0.98] text-orange-600 px-7 py-3 rounded-xl font-black text-[14px] transition-all uppercase tracking-widest shadow-sm"
-                >
-                  Continue
-                  <ArrowRight className="h-4 w-4" />
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  disabled={submitting}
-                  onClick={() => void handleComplete()}
-                  className="flex items-center gap-2 bg-orange-500/10 backdrop-blur-md border border-orange-500/30 active:scale-[0.98] disabled:opacity-60 disabled:pointer-events-none text-orange-600 px-7 py-3.5 rounded-xl font-black text-[15px] transition-all shadow-sm uppercase tracking-widest"
-                >
-                  {submitting ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Processing…
-                    </>
-                  ) : (
-                    <>
-                      <Lock className="h-4 w-4" />
-                      Pay {formatMoney(total, currency)}
-                    </>
-                  )}
-                </button>
-              )}
-
-              {/* Secure badge */}
-              <div className="flex items-center gap-1.5 text-[11px] text-zinc-300">
-                <ShieldCheck className="h-3 w-3" />
-                256-bit SSL secured
-              </div>
-            </div>
-          </div>
-
+                 )
+              })}
+           </div>
         </div>
-        {/* end right panel */}
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
+           
+           {/* Primary Registry Console */}
+           <div className="lg:col-span-8 space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-100">
+              
+              <div className="space-y-2 mb-6">
+                 <h2 className="text-2xl font-black text-stone-900 tracking-tight">{STEP_TITLES[currentStep - 1]}</h2>
+                 <p className="text-sm font-medium text-stone-500">{STEP_SUBTITLES[currentStep - 1]}</p>
+              </div>
+
+              {/* Dynamic Step Content */}
+              <GlassCard className="p-8 sm:p-10 rounded-[48px] bg-white border-white shadow-2xl overflow-hidden relative">
+                 <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/5 blur-3xl rounded-full translate-x-1/2 -translate-y-1/2" />
+                 
+                 {currentStep === 1 && (
+                    <div className="space-y-12">
+                       <section>
+                          <div className="flex items-center gap-3 mb-8">
+                             <div className="w-1.5 h-6 bg-orange-500 rounded-full" />
+                             <h3 className="text-[12px] font-black uppercase tracking-[0.3em] text-stone-400">Logistics Destination</h3>
+                          </div>
+                          <div className={cn(
+                            "[&_label]:text-[11px] [&_label]:font-black [&_label]:text-stone-300 [&_label]:uppercase [&_label]:tracking-widest [&_label]:mb-2 [&_label]:block",
+                            "[&_input]:h-14 [&_input]:rounded-[20px] [&_input]:border-stone-50",
+                            "[&_input]:bg-stone-50/50 [&_input]:px-6 [&_input]:text-sm [&_input]:font-bold [&_input]:text-stone-900",
+                            "[&_input]:w-full [&_input]:shadow-inner [&_input]:transition-all",
+                            "[&_input:focus]:bg-white [&_input:focus]:border-orange-500/20 [&_input:focus]:ring-4 [&_input:focus]:ring-orange-500/5",
+                            "[&_select]:h-14 [&_select]:rounded-[20px] [&_select]:border-stone-50",
+                            "[&_select]:bg-stone-50/50 [&_select]:px-6 [&_select]:text-sm [&_select]:font-bold [&_select]:text-stone-900",
+                            "[&_select]:w-full [&_select]:shadow-inner [&_select]:transition-all",
+                            "[&_select:focus]:bg-white [&_select:focus]:border-orange-500/20"
+                          )}>
+                            <ShippingForm
+                              values={shipping}
+                              onChange={(patch) => setShipping((s) => ({ ...s, ...patch }))}
+                            />
+                          </div>
+                       </section>
+
+                       <section className="pt-12 border-t border-stone-50">
+                          <div className="flex items-center gap-3 mb-8">
+                             <div className="w-1.5 h-6 bg-orange-500 rounded-full" />
+                             <h3 className="text-[12px] font-black uppercase tracking-[0.3em] text-stone-400">Batch Inventory Review</h3>
+                          </div>
+                          <div className="space-y-10">
+                             {selectedOrders.map((o) => (
+                                <div key={o.id} className="space-y-6">
+                                   <div className="flex items-center justify-between">
+                                      <div className="flex items-center gap-3">
+                                         <div className="p-2 rounded-xl bg-stone-900 text-white shadow-lg shadow-stone-900/20">
+                                            <Store className="h-4 w-4" />
+                                         </div>
+                                         <span className="text-sm font-black text-stone-900 uppercase tracking-tighter">
+                                            {o.vendors?.business_name || "Nexus Seller"}
+                                         </span>
+                                      </div>
+                                      <GlassPill color="default" className="text-[10px] font-black opacity-60">Verified Storefront</GlassPill>
+                                   </div>
+                                   <div className="space-y-4">
+                                      {o.order_items.map((item) => (
+                                         <div key={item.id} className="flex gap-6 items-center p-4 rounded-[28px] bg-stone-50/50 border border-transparent hover:bg-white hover:border-white hover:shadow-xl transition-all duration-500 group">
+                                            <div className="w-16 h-16 rounded-[22px] bg-white border border-stone-100 shadow-xl overflow-hidden flex-shrink-0 flex items-center justify-center group-hover:scale-110 transition-transform duration-700">
+                                               {item.product_image ? (
+                                                  <img src={item.product_image} alt={item.product_name} className="w-full h-full object-cover" />
+                                               ) : (
+                                                  <Package className="h-6 w-6 text-stone-100" />
+                                               )}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                               <p className="text-sm font-black text-stone-900 tracking-tight leading-snug line-clamp-2">
+                                                  {item.product_name}
+                                               </p>
+                                               <p className="text-[10px] font-bold text-stone-400 uppercase tracking-[0.2em] mt-1.5">
+                                                  Qty Authorization: {item.quantity} units
+                                               </p>
+                                            </div>
+                                            <div className="text-right">
+                                               <p className="text-lg font-black text-stone-900 tabular-nums">
+                                                  {formatMoney(Number(item.unit_price), currency)}
+                                               </p>
+                                            </div>
+                                         </div>
+                                      ))}
+                                   </div>
+                                </div>
+                             ))}
+                          </div>
+                       </section>
+                    </div>
+                 )}
+
+                 {currentStep === 2 && (
+                    <div className="space-y-12 min-h-[400px]">
+                       <div className="flex items-center gap-3 mb-8">
+                          <div className="w-1.5 h-6 bg-orange-500 rounded-full" />
+                          <h3 className="text-[12px] font-black uppercase tracking-[0.3em] text-stone-400">Access Protocol Selection</h3>
+                       </div>
+                       <PaymentMethodSelector
+                         selected={payment as any}
+                         onSelect={(m) => setPayment(m as any)}
+                         payCurrency={payCurrency}
+                         onCurrencyChange={setPayCurrency}
+                         orderCurrency={currency}
+                         orderTotal={total}
+                         flutterwaveMethod={flutterwaveMethod}
+                         onFlutterwaveMethodChange={setFlutterwaveMethod}
+                       />
+                    </div>
+                 )}
+
+                 {currentStep === 3 && (
+                    <div className="space-y-10">
+                       <section className="space-y-6">
+                          <div className="flex items-center gap-3 mb-4">
+                             <div className="w-1.5 h-6 bg-orange-500 rounded-full" />
+                             <h3 className="text-[12px] font-black uppercase tracking-[0.3em] text-stone-400">Execution Coordinates</h3>
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                             <div className="p-8 rounded-[32px] bg-stone-50 shadow-inner border border-stone-50/50 space-y-4">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-stone-300">Recipient Registry</p>
+                                <div className="space-y-1">
+                                   <p className="text-lg font-black text-stone-900 tracking-tight leading-none uppercase">{shipping.firstName} {shipping.lastName}</p>
+                                   <p className="text-sm font-bold text-stone-500">{shipping.email}</p>
+                                   <p className="text-sm font-bold text-stone-500">{shipping.phone}</p>
+                                </div>
+                             </div>
+                             <div className="p-8 rounded-[32px] bg-stone-50 shadow-inner border border-stone-50/50 space-y-4">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-stone-300">Delivery Vector</p>
+                                <div className="space-y-1">
+                                   <p className="text-lg font-black text-stone-900 tracking-tight leading-none uppercase">{shipping.address1}</p>
+                                   <p className="text-sm font-bold text-stone-500">{shipping.city}, {shipping.country}</p>
+                                   <p className="text-sm font-bold text-stone-500">ZIP: {shipping.zip || "NA"}</p>
+                                </div>
+                             </div>
+                          </div>
+                       </section>
+
+                       <section className="space-y-6 pt-6 border-t border-stone-100">
+                          <div className="flex items-center gap-3 mb-4">
+                             <div className="w-1.5 h-6 bg-orange-500 rounded-full" />
+                             <h3 className="text-[12px] font-black uppercase tracking-[0.3em] text-stone-400">Payment Authorization</h3>
+                          </div>
+                          <div className="flex items-center justify-between p-8 rounded-[32px] bg-stone-50 shadow-inner border border-stone-50/50">
+                             <div className="flex items-center gap-6">
+                                <div className="w-14 h-14 rounded-2xl bg-white shadow-xl flex items-center justify-center border border-white">
+                                   <Lock className="h-6 w-6 text-orange-500" />
+                                </div>
+                                <div>
+                                   <p className="text-[11px] font-black uppercase tracking-widest text-stone-300 mb-1">Gateway Protocol</p>
+                                   <p className="text-xl font-black text-stone-900 tracking-tighter uppercase leading-none">{paymentMethodLabel(payment)}</p>
+                                </div>
+                             </div>
+                             <button onClick={() => setCurrentStep(2)} className="h-10 px-6 rounded-xl bg-white border border-stone-100 text-[10px] font-black uppercase tracking-widest text-stone-500 hover:text-orange-500 active:scale-95 transition-all shadow-sm">Modify</button>
+                          </div>
+                       </section>
+                    </div>
+                 )}
+              </GlassCard>
+
+              {/* Secure Footer Bar */}
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-6 px-10 pt-4">
+                 <button 
+                   onClick={goBack}
+                   className={cn(
+                      "flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] text-stone-400 hover:text-stone-900 transition-all active:scale-95",
+                      currentStep === 1 && "invisible"
+                   )}
+                 >
+                    <ChevronLeft className="h-4 w-4" /> Back protocol
+                 </button>
+                 <div className="flex items-center gap-4">
+                    <div className="hidden sm:flex items-center gap-2 text-[10px] font-bold text-stone-300 uppercase tracking-widest">
+                       <ShieldCheck className="h-3 w-3" /> Encrypted Endpoint
+                    </div>
+                    {currentStep < 3 ? (
+                       <Button 
+                         onClick={currentStep === 1 ? advanceFromStep1 : advanceFromStep2}
+                         className="h-14 px-10 rounded-2xl bg-stone-900 text-white font-black text-[12px] uppercase tracking-[0.2em] shadow-2xl active:scale-95 transition-all outline-none border-none"
+                       >
+                          Proceed Deployment <ArrowRight className="h-4 w-4 ml-3 text-orange-500" />
+                       </Button>
+                    ) : (
+                       <Button 
+                         disabled={submitting}
+                         onClick={() => void handleComplete()}
+                         className="h-14 px-12 rounded-2xl bg-orange-500 text-white font-black text-[13px] uppercase tracking-[0.2em] shadow-2xl shadow-orange-500/30 active:scale-95 transition-all outline-none border-none min-w-[220px]"
+                       >
+                          {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <>Execute Trade <Lock className="h-4 w-4 ml-3" /></>}
+                       </Button>
+                    )}
+                 </div>
+              </div>
+           </div>
+
+           {/* Scalar Summary Column */}
+           <div className="lg:col-span-4 space-y-8 animate-in fade-in slide-in-from-right-8 duration-1000 delay-200">
+              
+              <GlassCard className="p-8 rounded-[40px] bg-stone-900 text-white shadow-2xl relative overflow-hidden group">
+                 <div className="absolute top-0 right-0 w-48 h-48 bg-orange-500/20 blur-[80px] rounded-full translate-x-1/2 -translate-y-1/2" />
+                 
+                 <div className="flex items-center justify-between mb-10">
+                    <h3 className="text-[11px] font-black uppercase tracking-[0.3em] text-white/40">Total Valuation</h3>
+                    <TrendingUp className="h-4 w-4 text-orange-500" />
+                 </div>
+
+                 <div className="space-y-6 mb-12">
+                    <div className="flex justify-between items-end border-b border-white/5 pb-6">
+                       <span className="text-[12px] font-bold text-white/30 uppercase tracking-widest">Trade Volume</span>
+                       <span className="text-5xl font-black text-white tracking-tighter tabular-nums leading-none">
+                          {formatMoney(total, currency).replace(/[A-Z]+/, '')}
+                          <span className="text-xl text-orange-500 ml-2">{currency}</span>
+                       </span>
+                    </div>
+                    
+                    <div className="space-y-4">
+                       <div className="flex justify-between items-center text-[11px] font-bold uppercase tracking-widest">
+                          <span className="text-white/30">Registry Fee</span>
+                          <span className="text-emerald-500">Free Authority</span>
+                       </div>
+                       <div className="flex justify-between items-center text-[11px] font-bold uppercase tracking-widest">
+                          <span className="text-white/30">Tax Vector</span>
+                          <span className="text-white/60">Inclusive</span>
+                       </div>
+                    </div>
+                 </div>
+
+                 <div className="p-6 rounded-[24px] bg-white/5 border border-white/10 space-y-4 mb-4">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-white/30">Batch Integrity</p>
+                    <div className="flex -space-x-3 overflow-hidden">
+                       {allItems.slice(0, 5).map((item, i) => (
+                          <div key={i} className="w-10 h-10 rounded-xl border-2 border-stone-900 bg-white overflow-hidden shadow-xl">
+                             <img src={item.product_image || ''} className="w-full h-full object-cover" alt="" />
+                          </div>
+                       ))}
+                       {allItems.length > 5 && (
+                          <div className="w-10 h-10 rounded-xl border-2 border-stone-900 bg-stone-800 flex items-center justify-center text-[10px] font-black">
+                             +{allItems.length - 5}
+                          </div>
+                       )}
+                    </div>
+                 </div>
+              </GlassCard>
+
+              {/* Secure Shield Badge */}
+              <div className="p-8 rounded-[40px] bg-white border border-white shadow-xl text-center space-y-6">
+                 <div className="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto shadow-inner border border-emerald-100">
+                    <ShieldCheck className="h-8 w-8 text-emerald-500" />
+                 </div>
+                 <div>
+                    <h4 className="text-[12px] font-black uppercase tracking-[0.2em] text-stone-900 mb-2">Vault Protocol Active</h4>
+                    <p className="text-[11px] font-bold text-stone-400 leading-relaxed px-4">
+                       All transmissions are end-to-end encrypted with 256-bit entropy under the Secure Trade Provision.
+                    </p>
+                 </div>
+              </div>
+
+              {/* Progress Indicator - Scalar View */}
+              <div className="px-6">
+                 <div className="h-1.5 w-full bg-stone-200 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-orange-500 transition-all duration-1000"
+                      style={{ width: `${(currentStep / STEPS.length) * 100}%` }}
+                    />
+                 </div>
+                 <div className="flex justify-between mt-3">
+                    <span className="text-[9px] font-black text-orange-500 uppercase tracking-widest">Auth Level {currentStep}</span>
+                    <span className="text-[9px] font-black text-stone-300 uppercase tracking-widest">Ready for Stage {currentStep === 3 ? 'Final' : currentStep + 1}</span>
+                 </div>
+              </div>
+
+           </div>
+        </div>
       </div>
     </div>
   );

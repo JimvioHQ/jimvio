@@ -45,82 +45,80 @@ export function ShippingForm({
     };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-10">
       <div>
-        <h2 className="text-lg font-semibold text-[var(--color-text-primary)] tracking-tight">Shipping details</h2>
-        <p className="text-sm text-[var(--color-text-muted)] mt-1">Where should we deliver your order?</p>
+        <h3 className="text-[12px] font-black uppercase tracking-[0.3em] text-stone-400 mb-2">Logistics Coordinates</h3>
+        <p className="text-[11px] font-bold text-stone-300 uppercase tracking-widest">Authorize destination registry for this trade batch.</p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         <Input
-          label="First name"
-          icon={<User className="h-4 w-4" />}
+          label="Legal First Name"
+          icon={<User className="h-4 w-4 text-orange-500" />}
           value={values.firstName}
           onChange={set("firstName")}
           required
-          className="rounded-xl min-h-[44px]"
+          className="rounded-[20px] h-14 bg-stone-50/50 border-stone-50 shadow-inner font-bold text-stone-900"
         />
         <Input
-          label="Last name"
-          hint="Optional if you use a single name."
-          icon={<User className="h-4 w-4" />}
+          label="Legal Last Name"
+          icon={<User className="h-4 w-4 text-orange-500" />}
           value={values.lastName}
           onChange={set("lastName")}
-          className="rounded-xl min-h-[44px]"
+          className="rounded-[20px] h-14 bg-stone-50/50 border-stone-50 shadow-inner font-bold text-stone-900"
         />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         <Input
-          label="Email"
+          label="Registry Email"
           type="email"
-          icon={<Mail className="h-4 w-4" />}
+          icon={<Mail className="h-4 w-4 text-orange-500" />}
           value={values.email}
           onChange={set("email")}
           required
           autoComplete="email"
-          className="rounded-xl min-h-[44px]"
+          className="rounded-[20px] h-14 bg-stone-50/50 border-stone-50 shadow-inner font-bold text-stone-900"
         />
         <Input
-          label="Phone"
+          label="Authority Phone"
           type="tel"
-          icon={<Phone className="h-4 w-4" />}
+          icon={<Phone className="h-4 w-4 text-orange-500" />}
           value={values.phone}
           onChange={set("phone")}
           required
           autoComplete="tel"
-          className="rounded-xl min-h-[44px]"
+          className="rounded-[20px] h-14 bg-stone-50/50 border-stone-50 shadow-inner font-bold text-stone-900"
         />
       </div>
 
       <Input
-        label="Street address"
-        icon={<MapPin className="h-4 w-4" />}
+        label="Primary Vector (Street)"
+        icon={<MapPin className="h-4 w-4 text-orange-500" />}
         value={values.address1}
         onChange={set("address1")}
         required
         autoComplete="street-address"
-        className="rounded-xl min-h-[44px]"
+        className="rounded-[20px] h-14 bg-stone-50/50 border-stone-50 shadow-inner font-bold text-stone-900"
       />
 
       <Input
-        label="Apartment, suite, etc."
-        hint="Optional"
-        icon={<Building2 className="h-4 w-4" />}
+        label="Secondary Vector (Suite/Bldg)"
+        icon={<Building2 className="h-4 w-4 text-orange-500" />}
         value={values.address2}
         onChange={set("address2")}
-        className="rounded-xl min-h-[44px]"
+        className="rounded-[20px] h-14 bg-stone-50/50 border-stone-50 shadow-inner font-bold text-stone-900"
       />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         <div>
-          <label className="text-xs font-semibold text-[var(--color-text-secondary)] mb-1 block">Country</label>
-          <div className="relative">
-            <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--color-text-muted)] pointer-events-none z-10" />
+          <label className="text-[11px] font-black uppercase tracking-widest text-stone-300 mb-2 block">Sovereign State</label>
+          <div className="relative group">
+            <Globe className="absolute left-6 top-1/2 -translate-y-1/2 h-4 w-4 text-orange-500 pointer-events-none z-10 transition-transform group-focus-within:scale-110" />
             <select
               value={values.country}
               onChange={set("country")}
-              className="w-full min-h-[44px] pl-10 pr-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)]"
+              className="w-full h-14 pl-14 pr-6 rounded-[20px] border border-stone-50 bg-stone-50/50 shadow-inner text-sm font-black text-stone-900 focus:outline-none focus:ring-4 focus:ring-orange-500/5 focus:bg-white focus:border-orange-500/20 transition-all appearance-none uppercase tracking-widest"
             >
               {COUNTRIES.map((c) => (
                 <option key={c.code} value={c.name}>
@@ -131,23 +129,22 @@ export function ShippingForm({
           </div>
         </div>
         <Input
-          label="City"
-          icon={<MapPin className="h-4 w-4" />}
+          label="Registry City"
+          icon={<MapPin className="h-4 w-4 text-orange-500" />}
           value={values.city}
           onChange={set("city")}
           required
           autoComplete="address-level2"
-          className="rounded-xl min-h-[44px]"
+          className="rounded-[20px] h-14 bg-stone-50/50 border-stone-50 shadow-inner font-bold text-stone-900"
         />
       </div>
 
       <Input
-        label="ZIP / Postal code"
-        hint="Optional — use 00000 if your area has no postal code."
-        icon={<MapPin className="h-4 w-4" />}
+        label="Regional Index (ZIP)"
+        icon={<MapPin className="h-4 w-4 text-orange-500" />}
         value={values.zip}
         onChange={set("zip")}
-        className="rounded-xl min-h-[44px]"
+        className="rounded-[20px] h-14 bg-stone-50/50 border-stone-50 shadow-inner font-bold text-stone-900"
       />
     </div>
   );
