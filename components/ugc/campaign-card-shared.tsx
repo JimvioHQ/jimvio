@@ -2,8 +2,10 @@
 
 import React from "react";
 import Link from "next/link";
-import { TrendingUp, Play, Instagram, Youtube, Share2, CheckCircle, Target } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import {
+  TrendingUp, Play, Instagram, Youtube, Share2, CheckCircle,
+  Zap, Users,
+} from "lucide-react";
 import { cn, timeAgo as formatTimeAgo } from "@/lib/utils";
 import { useCurrency } from "@/context/CurrencyContext";
 
@@ -12,6 +14,13 @@ const PLATFORM_ICONS: Record<string, any> = {
   instagram: Instagram,
   youtube: Youtube,
   x: Share2,
+};
+
+const PLATFORM_COLORS: Record<string, string> = {
+  tiktok: "#010101",
+  instagram: "#E1306C",
+  youtube: "#FF0000",
+  x: "#000000",
 };
 
 export type SharedCampaignRow = {
@@ -26,8 +35,18 @@ export type SharedCampaignRow = {
   created_at?: string;
   allowed_platforms?: string[];
   media?: { url: string; usage: string }[];
-  vendors?: { business_name: string; business_slug: string; logo_url: string; business_logo?: string };
-  vendor?: { business_name: string; business_slug: string; logo_url: string; business_logo?: string }; // alias
+  vendors?: {
+    business_name: string;
+    business_slug: string;
+    logo_url: string;
+    business_logo?: string;
+  };
+  vendor?: {
+    business_name: string;
+    business_slug: string;
+    logo_url: string;
+    business_logo?: string;
+  };
 };
 
 interface CampaignCardProps {
@@ -37,91 +56,192 @@ interface CampaignCardProps {
 export function SharedCampaignCard({ c }: CampaignCardProps) {
   const { formatMoney } = useCurrency();
   const budgetPct = Math.min(100, ((c.spent_budget ?? 0) / (c.total_budget || 1)) * 100);
-  const timeStr = c.created_at ? formatTimeAgo(c.created_at) : '';
-  const banner = c.media?.find(m => m.usage === 'banner')?.url;
+  const banner = c.media?.find((m) => m.usage === "banner")?.url;
   const vendor = c.vendor || c.vendors;
+  const platforms = (c.allowed_platforms ?? ["tiktok"]).slice(0, 3);
+  const isUGC = c.campaign_type === "ugc";
 
   return (
+    //turn  into light mode
     <Link
       href={`/ugc/${c.id}`}
-      className="group flex flex-col rounded-3xl bg-white border border-zinc-100/80 shadow-sm hover:shadow-xl hover:border-orange-200 transition-all duration-500 overflow-hidden h-full"
+      className="group flex flex-col rounded-2xl overflow-hidden border border-stone-100 bg-white hover:border-orange-200 hover:bg-stone-50/50 transition-all duration-300"
+      style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.04)" }}
     >
-      {/* Visual Header */}
-      <div className="relative aspect-[4/5] md:aspect-[4/3] overflow-hidden shrink-0">
-        <div className="absolute inset-0 bg-gradient-to-br from-zinc-100 to-zinc-200" />
+      {/* ── Compact banner image ── */}
+      <div className="relative w-full overflow-hidden" style={{ aspectRatio: "16/7" }}>
+        {/* fallback gradient */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background: "linear-gradient(135deg, #fdfcfb 0%, #e2d1c3 100%)",
+            opacity: 0.2,
+          }}
+        />
         {banner && (
-          <img 
-            src={banner} 
-            className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+          <img
+            src={banner}
             alt={c.title}
+            className="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-700 opacity-90 group-hover:opacity-100"
           />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-        
-        {/* Brand Overlay */}
-        <div className="absolute top-3 left-3 right-3 flex items-center justify-between">
-          <div className="flex items-center gap-2 px-2 py-1 rounded-full bg-black/40 backdrop-blur-md border border-white/10">
-            {vendor?.business_logo || vendor?.logo_url ? (
-              <img src={vendor.business_logo || vendor.logo_url} className="w-4 h-4 rounded-full object-cover" alt="" />
-            ) : (
-              <div className="w-4 h-4 rounded-full bg-orange-500 flex items-center justify-center text-[8px] font-black text-white">
-                {vendor?.business_name?.[0] ?? 'B'}
-              </div>
-            )}
-            <span className="text-[9px] font-black text-white truncate max-w-[70px]">
-              {vendor?.business_name ?? 'Brand'}
-            </span>
-            <CheckCircle className="h-2 w-2 text-blue-400 fill-blue-400" />
-          </div>
-          
-          <div className="flex gap-1">
-            {(c.allowed_platforms ?? ['tiktok']).slice(0, 2).map((p) => {
-              const Icon = PLATFORM_ICONS[p] || Share2;
-              return (
-                <div key={p} className="w-6 h-6 rounded-full bg-black/40 backdrop-blur-md border border-white/10 flex items-center justify-center text-white">
-                  <Icon className="h-3 w-3" />
-                </div>
-              );
-            })}
-          </div>
+        {/* Light vignette */}
+        <div className="absolute inset-0 bg-gradient-to-t from-white via-white/20 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-r from-white/40 via-transparent to-transparent" />
+
+        {/* Campaign type pill — top-left */}
+        <div className="absolute top-3 left-3">
+          <span
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider shadow-sm"
+            style={{
+              background: isUGC
+                ? "rgba(249,115,22,0.1)"
+                : "rgba(99,102,241,0.1)",
+              border: isUGC
+                ? "1px solid rgba(249,115,22,0.2)"
+                : "1px solid rgba(99,102,241,0.2)",
+              color: isUGC ? "#ea580c" : "#4f46e5",
+            }}
+          >
+            <Zap className="h-2.5 w-2.5" />
+            {c.campaign_type || "UGC"}
+          </span>
         </div>
 
-        <div className="absolute bottom-3 left-3 right-3 text-white">
-          <Badge className="mb-1.5 bg-orange-500 text-white border-none font-black text-[9px] uppercase tracking-wider">
-            {c.campaign_type || 'Active Mission'}
-          </Badge>
-          <h3 className="font-black text-sm leading-tight tracking-tight drop-shadow-md line-clamp-2">
-            {c.title}
-          </h3>
+        {/* Platform icons — top-right */}
+        <div className="absolute top-3 right-3 flex gap-1">
+          {platforms.map((p) => {
+            const Icon = PLATFORM_ICONS[p] || Share2;
+            return (
+              <div
+                key={p}
+                className="w-6 h-6 rounded-lg flex items-center justify-center shadow-sm"
+                style={{
+                  background: "rgba(255,255,255,0.9)",
+                  backdropFilter: "blur(8px)",
+                  border: "1px solid rgba(0,0,0,0.05)",
+                }}
+              >
+                <Icon className="h-3 w-3 text-stone-600" />
+              </div>
+            );
+          })}
         </div>
       </div>
 
-      {/* Info Body */}
-      <div className="p-3 space-y-3 flex flex-col flex-1">
-        <div className="flex items-center justify-between">
-          <div className="space-y-0.5">
-            <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest leading-none">Payout Rate</p>
-            <p className="text-[12px] font-black text-zinc-900">
-              {formatMoney(c.rate_per_1k_views, "USD")} <span className="text-[9px] text-zinc-400">/ 1k views</span>
+      {/* ── Card body ── */}
+      <div className="flex flex-col gap-3 p-4">
+        {/* Brand row */}
+        <div className="flex items-center gap-2">
+          <div className="relative flex-shrink-0">
+            {vendor?.business_logo || vendor?.logo_url ? (
+              <img
+                src={vendor.business_logo || vendor.logo_url}
+                className="w-7 h-7 rounded-lg object-cover"
+                style={{ border: "1px solid rgba(0,0,0,0.08)" }}
+                alt=""
+              />
+            ) : (
+              <div
+                className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black text-white"
+                style={{ background: "linear-gradient(135deg,#f97316,#ea580c)" }}
+              >
+                {vendor?.business_name?.[0] ?? "B"}
+              </div>
+            )}
+            <CheckCircle
+              className="h-3 w-3 absolute -bottom-0.5 -right-0.5"
+              style={{ color: "#3b82f6", fill: "#3b82f6" }}
+            />
+          </div>
+          <span className="text-[11px] font-semibold text-stone-500 truncate">
+            {vendor?.business_name ?? "Brand"}
+          </span>
+          <span className="ml-auto text-[10px] text-stone-400 font-medium flex-shrink-0">
+            {c.created_at ? formatTimeAgo(c.created_at) : ""}
+          </span>
+        </div>
+
+        {/* Title */}
+        <h3
+          className="text-[13px] font-bold text-stone-900 leading-snug line-clamp-2 tracking-tight"
+          style={{ letterSpacing: "-0.01em" }}
+        >
+          {c.title}
+        </h3>
+
+        {/* Stats row */}
+        <div
+          className="grid grid-cols-2 gap-2 rounded-xl p-3"
+          style={{ background: "#f8f7f5", border: "1px solid #eeedea" }}
+        >
+          <div>
+            <p className="text-[9px] font-bold uppercase tracking-widest text-stone-400 mb-0.5">
+              Payout
+            </p>
+            <p className="text-[13px] font-black text-stone-900">
+              {formatMoney(c.rate_per_1k_views, "USD")}
+              <span className="text-[9px] text-stone-400 font-medium ml-1">/1k</span>
             </p>
           </div>
-          <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-lg bg-orange-50 border border-orange-100">
-            <TrendingUp className="h-2.5 w-2.5 text-orange-600" />
-            <span className="text-[10px] font-black text-orange-700">{c.submission_count ?? 0}</span>
+          <div>
+            <p className="text-[9px] font-bold uppercase tracking-widest text-stone-400 mb-0.5">
+              Budget
+            </p>
+            <p className="text-[13px] font-black text-stone-900">
+              {formatMoney(c.total_budget, "USD")}
+            </p>
           </div>
         </div>
 
-        <div className="space-y-1.5 mt-auto">
-          <div className="flex justify-between items-center px-0.5">
-            <span className="text-[9px] font-black text-zinc-400 uppercase tracking-widest">Live Budget Pct</span>
-            <span className="text-[9px] font-black text-zinc-900">{Math.round(budgetPct)}%</span>
+        {/* Budget bar + submissions */}
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <Users className="h-3 w-3 text-stone-400" />
+              <span className="text-[10px] text-stone-400 font-medium">
+                {c.submission_count ?? 0} submissions
+              </span>
+            </div>
+            <span className="text-[10px] font-bold text-stone-500">
+              {Math.round(budgetPct)}% used
+            </span>
           </div>
-          <div className="h-1.5 w-full bg-zinc-100 rounded-full overflow-hidden">
-            <div 
-              className="h-full bg-gradient-to-r from-orange-400 to-orange-600 transition-all duration-1000 ease-out" 
-              style={{ width: `${budgetPct}%` }} 
+          {/* Track */}
+          <div
+            className="h-1 w-full rounded-full overflow-hidden"
+            style={{ background: "#eeedea" }}
+          >
+            <div
+              className="h-full rounded-full transition-all duration-1000"
+              style={{
+                width: `${budgetPct}%`,
+                background: "linear-gradient(90deg,#f97316,#fb923c)",
+              }}
             />
           </div>
+        </div>
+
+        {/* CTA */}
+        <div
+          className="flex items-center justify-between pt-1"
+        >
+          <span
+            className="inline-flex items-center gap-1 text-[11px] font-bold"
+            style={{ color: "#ea580c" }}
+          >
+            <TrendingUp className="h-3 w-3" /> Earning now
+          </span>
+          <span
+            className="inline-flex items-center gap-1 text-[11px] font-bold px-3 py-1.5 rounded-lg transition-all group-hover:bg-orange-500 group-hover:text-white"
+            style={{
+              background: "rgba(249,115,22,0.08)",
+              color: "#ea580c",
+              border: "1px solid rgba(249,115,22,0.15)",
+            }}
+          >
+            Join →
+          </span>
         </div>
       </div>
     </Link>
