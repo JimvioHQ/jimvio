@@ -282,10 +282,6 @@ export function CommunitySubscribeClient({
                     onCurrencyChange={setPayCurrency}
                     orderCurrency={currency}
                     orderTotal={amount}
-                    afripayNetwork={afripayNetwork}
-                    onAfripayNetworkChange={setAfripayNetwork}
-                    afripayPhone={afripayPhone}
-                    onAfripayPhoneChange={setAfripayPhone}
                     flutterwaveMethod={flutterwaveMethod}
                     onFlutterwaveMethodChange={setFlutterwaveMethod}
                   />

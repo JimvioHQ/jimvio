@@ -15,7 +15,7 @@ export async function POST(request: Request) {
     console.log(`pawaPay: Initiation using API v2 [/v2/paymentpage] in ${process.env.PAWAPAY_ENV} mode`);
 
     const body = await request.json();
-    let { amount, currency, orderId, country } = body;
+    let { amount, currency, orderId, country, returnUrl } = body;
 
     // Priority 1: Detect user's current physical location from IP
     let ipCountry = request.headers.get("x-vercel-ip-country") || request.headers.get("cf-ipcountry");
@@ -107,9 +107,32 @@ export async function POST(request: Request) {
 
     // Important: In v2/paymentpage, amount and currency are inside amountDetails.
     // reason must be between 1 and 50 characters.
+    // pawaPay MANDATES an absolute HTTPS return URL for session creation.
+    // In production, pawaPay VALIDATES the domain and often requires an EXACT match with whitelisted URLs.
+    let finalUrl = returnUrl || finalReturnUrl;
+    
+    // Safety 1: Force HTTPS
+    if (finalUrl.startsWith("http://")) {
+      finalUrl = finalUrl.replace("http://", "https://");
+    }
+
+    // Safety 2: Domain & Protocol Compliance
+    if (!isSandbox) {
+      // Production mode requirements:
+      // 1. Remove localhost/port (replace with jimvio.com)
+      // 2. Remove query parameters (pawaPay often fails on dynamic query strings if not whitelisted as wildcards)
+      finalUrl = finalUrl.replace(/localhost(:\d+)?/, "jimvio.com").replace(/127\.0\.0\.1(:\d+)?/, "jimvio.com");
+      
+      // Optionally strip query params to ensure whitelisting success
+      if (finalUrl.includes("?")) {
+        console.warn("pawaPay: Stripping query parameters for Production API compatibility.");
+        finalUrl = finalUrl.split("?")[0];
+      }
+    }
+
     const payload = {
       depositId,
-      returnUrl: finalReturnUrl,
+      returnUrl: finalUrl,
       amountDetails: {
         amount: Math.round(amount).toString(), // v2 expects string here
         currency: currency.toUpperCase()

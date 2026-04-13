@@ -34,11 +34,10 @@ export default async function CheckoutPage() {
   const isCommunity = normalized.some((o: any) => o.integration_source === "community");
 
   return (
-    <div className="min-h-screen bg-zinc-50/50 pt-20 pb-12">
-      <div className="max-w-[1200px] mx-auto px-0 sm:px-4 md:px-6">
+    <div className="min-h-screen bg-zinc-50/50 pb-12">
+      <div className="max-w-[1200px] mx-auto px-4 sm:px-4 md:px-6">
         <CheckoutExperience 
           orders={normalized as never} 
-          total={total} 
           profile={profile} 
           mode={isCommunity ? "community" : "cart"} 
         />

@@ -1,10 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyPesapalTransaction } from '@/lib/pesapal';
-import { createServiceRoleClient } from '@/lib/supabase/service-role';
+import { createClient } from "@supabase/supabase-js";
+import { finalizeOrderPayment } from "@/lib/payments/finalize-order-payment";
+import {
+  logWebhookEvent,
+  markWebhookProcessed,
+  markWebhookFailed,
+} from "@/lib/payments/webhook-logger";
 
 export const dynamic = 'force-dynamic';
 
-const supabase = createServiceRoleClient();
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  { auth: { autoRefreshToken: false, persistSession: false } }
+);
 
 /**
  * CALLBACK HANDLER
@@ -18,6 +28,7 @@ export async function GET(req: NextRequest) {
   const merchantRef = searchParams.get('OrderMerchantReference');
 
   if (!trackingId) {
+    console.error("[PesaPal Callback] Missing OrderTrackingId");
     return NextResponse.redirect(new URL('/checkout/error?msg=Missing tracking ID', req.url));
   }
 
@@ -28,40 +39,106 @@ export async function GET(req: NextRequest) {
     // PesaPal status values: 0 = Pending, 1 = Completed, 2 = Failed, 3 = Cancelled
     const statusCode = statusData.status_code;
     const isSuccess = statusCode === 1;
+    const isFailed = statusCode === 2 || statusCode === 3;
 
-    // 2. Update Database (payments table)
-    const dbStatus = isSuccess ? 'completed' : (statusCode === 2 ? 'failed' : 'pending');
-    
-    await supabase
-      .from('payments')
-      .update({ 
-        status: dbStatus,
-        updated_at: new Date().toISOString()
-      })
-      .eq('tracking_id', trackingId);
+    // 2. Resolve Order ID
+    // merchantRef was set to orderId during initiation (or orderId:batchId)
+    const orderId = merchantRef ? merchantRef.split(':')[0] : null;
 
-    // 3. Optional: If it's a specific order, update the orders table too
-    // This maintains compatibility with Jimvio's existing order system
-    if (merchantRef) {
-      const actualOrderId = merchantRef.split(':')[0];
+    if (!orderId) {
+       console.error(`[PesaPal Callback] Could not resolve orderId from merchantRef: ${merchantRef}`);
+       return NextResponse.redirect(new URL(`/checkout/error?msg=Order reference missing`, req.url));
+    }
+
+    const idempotencyKey = `pesapal-${trackingId}-${statusCode}`;
+
+    // 3. Idempotency & Audit Log
+    const { isDuplicate, eventId } = await logWebhookEvent(supabase, {
+      provider: "pesapal",
+      idempotencyKey,
+      payload: statusData,
+      orderId,
+    });
+
+    if (isDuplicate) {
+      console.log(`[PesaPal Callback] Duplicate event for order ${orderId}.`);
+      return NextResponse.redirect(new URL(`/checkout/success?order=${orderId}`, req.url));
+    }
+
+    // 4. Resolve Order from DB
+    const { data: order } = await supabase
+      .from("orders")
+      .select("id, payment_status, buyer_id")
+      .eq("id", orderId)
+      .maybeSingle();
+
+    if (!order) {
+      console.warn(`[PesaPal Callback] Order ${orderId} not found in DB.`);
+      if (eventId) await markWebhookFailed(supabase, eventId, "Order not found");
+      return NextResponse.redirect(new URL(`/checkout/error?msg=Order not found`, req.url));
+    }
+
+    // Already finalized?
+    if (order.payment_status === "completed") {
+      if (eventId) await markWebhookProcessed(supabase, eventId, orderId);
+      return NextResponse.redirect(new URL(`/checkout/success?order=${orderId}`, req.url));
+    }
+
+    // 5. Handle Terminal Failure
+    if (isFailed) {
       await supabase
-        .from('orders')
+        .from("orders")
         .update({ 
-          payment_status: isSuccess ? 'paid' : 'failed',
-          updated_at: new Date().toISOString()
+          payment_status: "failed", 
+          status: "cancelled", 
+          updated_at: new Date().toISOString() 
         })
-        .eq('id', actualOrderId);
+        .eq("id", orderId)
+        .neq("payment_status", "completed");
+      
+      if (eventId) await markWebhookProcessed(supabase, eventId, orderId);
+      return NextResponse.redirect(new URL(`/checkout/error?msg=Payment failed`, req.url));
     }
 
-    // 4. Redirect user to success or failure page
+    // 6. Finalization (on Success)
     if (isSuccess) {
-      return NextResponse.redirect(new URL(`/checkout/success?tracking_id=${trackingId}`, req.url));
-    } else {
-      return NextResponse.redirect(new URL(`/checkout/error?msg=Payment failed (Code: ${statusCode})`, req.url));
+      try {
+        await finalizeOrderPayment(supabase, orderId, {
+          providerTransactionId: trackingId,
+          providerReference: merchantRef || trackingId,
+          paidAtIso: new Date().toISOString(),
+          notifyUserId: order.buyer_id,
+          paymentProvider: "pesapal",
+          webhookReference: idempotencyKey,
+        });
+
+        await supabase
+          .from("orders")
+          .update({
+            gateway_used: "pesapal",
+            payment_provider: "pesapal",
+            pesapal_tracking_id: trackingId,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", orderId);
+
+        console.log(`[PesaPal Callback] ✓ Order finalized: ${orderId}`);
+        if (eventId) await markWebhookProcessed(supabase, eventId, orderId);
+        
+        return NextResponse.redirect(new URL(`/checkout/success?order=${orderId}&tracking_id=${trackingId}`, req.url));
+      } catch (e: any) {
+        const msg = e.message || String(e);
+        console.error(`[PesaPal Callback] ✗ Finalization failed: ${msg}`);
+        if (eventId) await markWebhookFailed(supabase, eventId, msg);
+        return NextResponse.redirect(new URL(`/checkout/error?msg=Order finalization failed`, req.url));
+      }
     }
 
-  } catch (error) {
-    console.error('[PesaPal Callback API] Error:', error);
-    return NextResponse.redirect(new URL('/checkout/error?msg=Verification failed', req.url));
+    // 7. Fallback for Pending items
+    return NextResponse.redirect(new URL(`/checkout/status?order=${orderId}&status=pending`, req.url));
+
+  } catch (error: any) {
+    console.error('[PesaPal Callback API] Fatal Error:', error);
+    return NextResponse.redirect(new URL('/checkout/error?msg=Internal server error', req.url));
   }
 }

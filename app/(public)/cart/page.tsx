@@ -36,7 +36,7 @@ export default async function CartPage() {
               </div>
               <div>
                 <h1 className="text-3xl sm:text-4xl font-black text-stone-900 tracking-tight flex items-center gap-3">
-                  Dispatch Terminal
+                  My Cart
                   {totalItems > 0 && (
                     <span className="text-[12px] font-black px-3 py-1 rounded-full bg-orange-500 text-white shadow-lg shadow-orange-500/30">
                       {totalItems} BATCH

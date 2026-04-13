@@ -1,249 +1,287 @@
 "use client";
 
-import React, { useMemo } from "react";
-import Image from "next/image";
+import React from "react";
 import { CreditCard, Bitcoin, Check, Smartphone, Globe, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useCurrency } from "@/context/CurrencyContext";
 
-const COINS = [
-  { id: "usdttrc20", label: "USDT (TRC20)" },
-  { id: "btc", label: "Bitcoin (BTC)" },
-  { id: "eth", label: "Ethereum (ETH)" },
-  { id: "bnb", label: "BNB" },
-];
+/* ──────────────────────────────────────────────────
+   INLINE SVG BRAND LOGOS — zero CDN dependency
+   All rendered with inline SVG or styled spans.
+   Pill height: 24px, consistent across all logos.
+   ────────────────────────────────────────────────── */
 
-const PROV_ICONS: Record<string, React.ReactNode> = {
-  visa: (
-    <div key="visa" className="h-[18px] px-1.5 rounded-sm bg-[#1A1F71] flex items-center justify-center shadow-sm border border-white/10 group-hover:scale-110 transition-transform">
-      <span className="text-[10px] font-bold text-white italic tracking-tighter leading-none">VISA</span>
-    </div>
-  ),
-  mastercard: (
-    <div key="mc" className="h-[18px] w-[26px] rounded-sm bg-[#252525] flex items-center justify-center relative overflow-hidden shadow-sm border border-white/10 group-hover:scale-110 transition-transform">
-      <div className="h-2.5 w-2.5 rounded-full bg-[#EB001B] opacity-90 absolute left-1" />
-      <div className="h-2.5 w-2.5 rounded-full bg-[#F79E1B] opacity-90 absolute right-1" />
-    </div>
-  ),
-  mtn: (
-    <div key="mtn" className="h-[18px] px-1.5 rounded-sm bg-[#FFCC00] flex items-center justify-center shadow-sm border border-black/5 group-hover:scale-110 transition-transform">
-      <span className="text-[10px] font-black text-black tracking-tight leading-none">MTN</span>
-    </div>
-  ),
-  airtel: (
-    <div key="airtel" className="h-[18px] px-1.5 rounded-sm bg-[#E60000] flex items-center justify-center shadow-sm border border-black/5 group-hover:scale-110 transition-transform">
-      <span className="text-[10px] font-bold text-white lowercase leading-none">airtel</span>
-    </div>
-  ),
-  paypal: (
-    <div key="paypal" className="h-[18px] px-1.5 rounded-sm bg-[#003087] flex items-center justify-center shadow-sm border border-white/5 group-hover:scale-110 transition-transform">
-      <span className="text-[10px] font-bold text-white italic leading-none">PayPal</span>
-    </div>
-  ),
-  momo: (
-    <div key="momo" className="h-[18px] px-1.5 rounded-sm bg-[#000000] flex items-center justify-center shadow-sm border border-white/10 group-hover:scale-110 transition-transform">
-      <span className="text-[10px] font-bold text-[#FFCC00] leading-none">MoMo</span>
-    </div>
-  ),
-  btc: (
-    <div key="btc" className="h-[18px] px-1.5 rounded-sm bg-[#F7931A] flex items-center gap-1 shadow-sm border border-white/10 group-hover:scale-110 transition-transform">
-      <span className="text-[10px] font-bold text-white leading-none">₿</span>
-      <span className="text-[9px] font-semibold text-white leading-none">BTC</span>
-    </div>
-  ),
-  eth: (
-    <div key="eth" className="h-[18px] px-1.5 rounded-sm bg-[#627EEA] flex items-center shadow-sm border border-white/10 group-hover:scale-110 transition-transform">
-      <span className="text-[9px] font-bold text-white leading-none">ETH</span>
-    </div>
-  ),
-  usdt: (
-    <div key="usdt" className="h-[18px] px-1.5 rounded-sm bg-[#26A17B] flex items-center shadow-sm border border-white/10 group-hover:scale-110 transition-transform">
-      <span className="text-[9px] font-bold text-white leading-none">USDT</span>
-    </div>
-  ),
-  applepay: (
-     <div key="applepay" className="h-[18px] px-1.5 rounded-sm bg-black flex items-center justify-center shadow-sm border border-white/10">
-        <span className="text-[10px] font-bold text-white leading-none"> Pay</span>
-     </div>
-  ),
-  googlepay: (
-     <div key="googlepay" className="h-[18px] px-1.5 rounded-sm bg-white flex items-center justify-center shadow-sm border border-stone-200">
-        <span className="text-[10px] font-bold text-stone-900 leading-none">G Pay</span>
-     </div>
-  )
+const pill: React.CSSProperties = {
+  display: "inline-flex", alignItems: "center", justifyContent: "center",
+  height: 24, minWidth: 38, padding: "0 7px", borderRadius: 7, overflow: "hidden",
+  flexShrink: 0,
 };
 
-const cardBase =
-  "group relative flex w-full items-center gap-5 bg-white px-6 py-6 text-left transition-all duration-500 focus:outline-none hover:bg-stone-50 border border-stone-100 rounded-[32px] mb-4 last:mb-0 hover:shadow-2xl hover:shadow-stone-900/5 hover:-translate-y-1 active:scale-[0.98]";
+function Visa() {
+  return (
+    <span style={{ ...pill, background: "#1A1F71" }}>
+      <svg width="32" height="10" viewBox="0 0 200 70" fill="none">
+        <path d="M76 65H50L65 5h26L76 65zM44 5L20 44 17 29 8 9A5 5 0 002 5v1h40zM0 5l14 60h26L62 5H0zM140 5c-6 0-12 4-12 4L97 65h26l5-13h32l3 13h23L140 5zm-4 30 13-24 6 24h-19z" fill="white" />
+      </svg>
+    </span>
+  );
+}
+
+function Mastercard() {
+  return (
+    <span style={{ ...pill, background: "#111", padding: "0 5px" }}>
+      <svg width="34" height="21" viewBox="0 0 52 33">
+        <circle cx="18" cy="16.5" r="15" fill="#EB001B" />
+        <circle cx="34" cy="16.5" r="15" fill="#F79E1B" />
+        <path d="M26 5a15 15 0 010 23A15 15 0 0126 5z" fill="#FF5F00" />
+      </svg>
+    </span>
+  );
+}
+
+function ApplePay() {
+  return (
+    <span style={{ ...pill, background: "#000", minWidth: 52 }}>
+      <svg width="46" height="15" viewBox="0 0 115 38">
+        <text x="2" y="27" fontFamily="-apple-system,Helvetica,sans-serif" fontSize="23" fontWeight="500" fill="white"> Pay</text>
+      </svg>
+    </span>
+  );
+}
+
+function GooglePay() {
+  return (
+    <span style={{ ...pill, background: "#fff", border: "1px solid #e5e7eb", minWidth: 56 }}>
+      <svg width="50" height="15" viewBox="0 0 124 38">
+        <text x="2" y="27" fontFamily="Arial,sans-serif" fontSize="23" fontWeight="700" fill="#4285F4">G</text>
+        <text x="20" y="27" fontFamily="Arial,sans-serif" fontSize="23" fontWeight="500" fill="#555">Pay</text>
+      </svg>
+    </span>
+  );
+}
+
+function MTN() {
+  return (
+    <span style={{ ...pill, background: "#FFCC00" }}>
+      <span style={{ fontSize: 11, fontWeight: 800, color: "#000", letterSpacing: "0.05em" }}>MTN</span>
+    </span>
+  );
+}
+
+function Airtel() {
+  return (
+    <span style={{ ...pill, background: "#E60000" }}>
+      <span style={{ fontSize: 10, fontWeight: 700, color: "#fff", fontStyle: "italic" }}>airtel</span>
+    </span>
+  );
+}
+
+function MoMo() {
+  return (
+    <span style={{ ...pill, background: "#000" }}>
+      <span style={{ fontSize: 10, fontWeight: 800, color: "#FFCC00" }}>MoMo</span>
+    </span>
+  );
+}
+
+function BTC() {
+  return (
+    <span style={{ ...pill, background: "#F7931A", padding: "0 5px" }}>
+      <svg width="16" height="16" viewBox="0 0 32 32">
+        <circle cx="16" cy="16" r="16" fill="#F7931A" />
+        <path d="M21.2 13.7c.3-2-1.2-3.1-3.3-3.8l.7-2.7-1.7-.4-.7 2.6-1.3-.3.7-2.6-1.7-.4-.7 2.6-3.2-.8-.4 1.8 1.1.3c.7.2.8.6.8 1l-1.8 7c-.1.4-.5.9-1.2.7l-1.1-.3-.8 1.9 3 .8-.7 2.7 1.7.4.7-2.7 1.3.3-.7 2.7 1.7.4.7-2.7c2.3.5 4.1-.2 4.6-2.3.4-1.6-.1-2.6-1.2-3.2.9-.2 1.5-.9 1.6-2zm-3 4.2c-.3 1.3-2.5.6-3.2.5l.6-2.5c.7.2 3 .5 2.6 2zm.4-4.3c-.3 1.2-2.1.6-2.7.5l.5-2.2c.7.2 2.5.4 2.2 1.7z" fill="white" />
+      </svg>
+    </span>
+  );
+}
+
+function ETH() {
+  return (
+    <span style={{ ...pill, background: "#627EEA", padding: "0 6px" }}>
+      <svg width="11" height="17" viewBox="0 0 256 417">
+        <polygon points="128,0 128,154 0,209" fill="rgba(255,255,255,0.55)" />
+        <polygon points="128,0 256,209 128,154" fill="white" />
+        <polygon points="128,154 0,209 128,269" fill="rgba(255,255,255,0.55)" />
+        <polygon points="128,154 256,209 128,269" fill="white" />
+        <polygon points="128,294 0,232 128,417" fill="rgba(255,255,255,0.55)" />
+        <polygon points="128,417 256,232 128,294" fill="white" />
+      </svg>
+    </span>
+  );
+}
+
+function USDT() {
+  return (
+    <span style={{ ...pill, background: "#26A17B" }}>
+      <span style={{ fontSize: 10, fontWeight: 800, color: "#fff" }}>USDT</span>
+    </span>
+  );
+}
+
+function BNB() {
+  return (
+    <span style={{ ...pill, background: "#F3BA2F" }}>
+      <span style={{ fontSize: 10, fontWeight: 800, color: "#000" }}>BNB</span>
+    </span>
+  );
+}
+
+function PayPalBrand() {
+  return (
+    <span style={{ ...pill, background: "#fff", border: "1px solid #e5e7eb", minWidth: 58 }}>
+      <svg width="52" height="14" viewBox="0 0 124 34">
+        <text x="0" y="25" fontFamily="Arial,sans-serif" fontSize="24" fontWeight="800" fill="#003087">Pay</text>
+        <text x="44" y="25" fontFamily="Arial,sans-serif" fontSize="24" fontWeight="800" fill="#009CDE">Pal</text>
+      </svg>
+    </span>
+  );
+}
+
+/* ──────────────────────────────────────────────────
+   LIQUID ORANGE GLASS — card styles
+   ────────────────────────────────────────────────── */
+const IDLE: React.CSSProperties = {
+  background: "rgba(255,255,255,0.55)",
+  backdropFilter: "blur(20px) saturate(160%)",
+  WebkitBackdropFilter: "blur(20px) saturate(160%)",
+  border: "1px solid rgba(255,255,255,0.85)",
+  boxShadow: "0 2px 10px rgba(249,115,22,0.04), inset 0 1px 0 rgba(255,255,255,0.95)",
+};
+const ACTIVE: React.CSSProperties = {
+  background: "rgba(249,115,22,0.07)",
+  backdropFilter: "blur(24px) saturate(180%)",
+  WebkitBackdropFilter: "blur(24px) saturate(180%)",
+  border: "1px solid rgba(249,115,22,0.32)",
+  boxShadow: "0 4px 18px rgba(249,115,22,0.14), inset 0 1px 0 rgba(255,255,255,0.80)",
+};
+
+interface MethodDef {
+  id: "pesapal" | "nowpayments" | "flutterwave" | "paypal" | "pawapay";
+  title: string;
+  icon: React.ReactNode;
+  logos: React.ReactNode[];
+}
+
+const METHODS: MethodDef[] = [
+  {
+    id: "pesapal",
+    title: "Credit / Debit Card",
+    icon: <CreditCard className="h-[17px] w-[17px]" />,
+    logos: [<Visa key="v" />, <Mastercard key="mc" />],
+  },
+  {
+    id: "flutterwave",
+    title: "Card & Digital Wallets",
+    icon: <Globe className="h-[17px] w-[17px]" />,
+    logos: [<Visa key="v" />, <Mastercard key="mc" />, <ApplePay key="ap" />, <GooglePay key="gp" />],
+  },
+  {
+    id: "pawapay",
+    title: "Mobile Money",
+    icon: <Smartphone className="h-[17px] w-[17px]" />,
+    logos: [<MTN key="mtn" />, <Airtel key="air" />, <MoMo key="mm" />],
+  },
+  {
+    id: "nowpayments",
+    title: "Cryptocurrency",
+    icon: <Bitcoin className="h-[17px] w-[17px]" />,
+    logos: [<BTC key="btc" />, <ETH key="eth" />, <USDT key="usdt" />, <BNB key="bnb" />],
+  },
+  {
+    id: "paypal",
+    title: "PayPal",
+    icon: <Wallet className="h-[17px] w-[17px]" />,
+    logos: [<PayPalBrand key="pp" />],
+  },
+];
 
 export function PaymentMethodSelector({
   selected,
   onSelect,
-  payCurrency: _payCurrency,
-  onCurrencyChange: _onCurrencyChange,
-  orderCurrency,
-  orderTotal: _orderTotal,
-  flutterwaveMethod: _flutterwaveMethod,
-  onFlutterwaveMethodChange: _onFlutterwaveMethodChange,
-  afripayNetwork: _afripayNetwork,
-  onAfripayNetworkChange: _onAfripayNetworkChange,
-  afripayPhone: _afripayPhone,
-  onAfripayPhoneChange: _onAfripayPhoneChange,
+  payCurrency: _pc,
+  onCurrencyChange: _occ,
+  orderCurrency: _oc,
+  orderTotal: _ot,
+  flutterwaveMethod: _fw,
+  onFlutterwaveMethodChange: _ofwc,
 }: {
   selected: "pesapal" | "nowpayments" | "flutterwave" | "paypal" | "pawapay" | null;
-  onSelect: (method: "pesapal" | "nowpayments" | "flutterwave" | "paypal" | "pawapay") => void;
+  onSelect: (m: "pesapal" | "nowpayments" | "flutterwave" | "paypal" | "pawapay") => void;
   payCurrency: string;
-  onCurrencyChange: (currency: string) => void;
+  onCurrencyChange: (c: string) => void;
   orderCurrency: string;
   orderTotal: number;
   flutterwaveMethod: "card" | "momo";
-  onFlutterwaveMethodChange: (method: "card" | "momo") => void;
-  afripayNetwork?: "MTN" | "BK" | "MPESA";
-  onAfripayNetworkChange?: (network: "MTN" | "BK" | "MPESA") => void;
-  afripayPhone?: string;
-  onAfripayPhoneChange?: (phone: string) => void;
+  onFlutterwaveMethodChange: (m: "card" | "momo") => void;
 }) {
-  const { formatMoney: _formatMoney } = useCurrency();
-  const _oc = orderCurrency.toUpperCase();
-
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <div className="flex flex-col">
-
-        <button
-          type="button"
-          onClick={() => onSelect("pesapal")}
-          className={cn(cardBase, selected === "pesapal" && "bg-stone-900 text-white border-stone-900 shadow-2xl shadow-stone-900/20")}
-        >
-          <div className={cn("flex-shrink-0 flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-100 shadow-inner group-hover:scale-110 transition-transform duration-700", selected === "pesapal" && "bg-white/10 border-white/10 text-emerald-400")}>
-            <CreditCard className="h-6 w-6" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className={cn("font-black text-[15px] text-stone-900 uppercase tracking-tighter", selected === "pesapal" && "text-white")}>Credit / Debit Card</p>
-            <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-              {PROV_ICONS.visa}
-              {PROV_ICONS.mastercard}
-            </div>
-          </div>
-          <div className="shrink-0">
-            {selected === "pesapal" ? (
-              <div className="h-8 w-8 rounded-full bg-orange-500 flex items-center justify-center shadow-lg shadow-orange-500/30">
-                <Check className="h-5 w-5 text-white" strokeWidth={4} />
-              </div>
-            ) : (
-              <div className="h-8 w-8 rounded-full border-2 border-stone-100 group-hover:border-stone-200 transition-colors" />
+    <div className="space-y-2">
+      {METHODS.map(m => {
+        const active = selected === m.id;
+        return (
+          <button
+            key={m.id}
+            type="button"
+            onClick={() => onSelect(m.id)}
+            className="relative w-full text-left transition-all duration-200 active:scale-[0.985] rounded-[18px] overflow-hidden"
+            style={active ? ACTIVE : IDLE}
+          >
+            {/* Active top shimmer line */}
+            {active && (
+              <div
+                className="pointer-events-none absolute inset-x-0 top-0 h-px"
+                style={{ background: "linear-gradient(90deg,transparent,rgba(249,115,22,0.5) 50%,transparent)" }}
+              />
             )}
-          </div>
-        </button>
 
-        <button
-          type="button"
-          onClick={() => onSelect("nowpayments")}
-          className={cn(cardBase, selected === "nowpayments" && "bg-stone-900 text-white border-stone-900 shadow-2xl shadow-stone-900/20")}
-        >
-          <div className={cn("flex-shrink-0 flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-50 text-orange-600 border border-orange-100 shadow-inner group-hover:scale-110 transition-transform duration-700", selected === "nowpayments" && "bg-white/10 border-white/10 text-orange-400")}>
-            <Bitcoin className="h-6 w-6" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className={cn("font-black text-[15px] text-stone-900 uppercase tracking-tighter", selected === "nowpayments" && "text-white")}>Cryptocurrency (Global)</p>
-            <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-              {PROV_ICONS.btc}
-              {PROV_ICONS.eth}
-              {PROV_ICONS.usdt}
-            </div>
-          </div>
-          <div className="shrink-0">
-            {selected === "nowpayments" ? (
-              <div className="h-8 w-8 rounded-full bg-orange-500 flex items-center justify-center shadow-lg shadow-orange-500/30">
-                <Check className="h-5 w-5 text-white" strokeWidth={4} />
+            <div className="flex items-center gap-3 px-4 py-3">
+              {/* Icon circle */}
+              <div
+                className="flex-shrink-0 flex items-center justify-center rounded-[11px]"
+                style={{
+                  width: 36, height: 36,
+                  background: active ? "rgba(249,115,22,0.13)" : "rgba(255,255,255,0.80)",
+                  border: active ? "1px solid rgba(249,115,22,0.28)" : "1px solid rgba(255,255,255,0.95)",
+                  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.9)",
+                  color: active ? "#ea580c" : "#a8a29e",
+                  transition: "all 0.2s",
+                }}
+              >
+                {m.icon}
               </div>
-            ) : (
-              <div className="h-8 w-8 rounded-full border-2 border-stone-100 group-hover:border-stone-200 transition-colors" />
-            )}
-          </div>
-        </button>
 
-        <button
-          type="button"
-          onClick={() => onSelect("flutterwave")}
-          className={cn(cardBase, selected === "flutterwave" && "bg-stone-900 text-white border-stone-900 shadow-2xl shadow-stone-900/20")}
-        >
-          <div className={cn("flex-shrink-0 flex h-14 w-14 items-center justify-center rounded-2xl bg-yellow-50 text-yellow-600 border border-yellow-100 shadow-inner group-hover:scale-110 transition-transform duration-700", selected === "flutterwave" && "bg-white/10 border-white/10 text-yellow-400")}>
-            <Globe className="h-6 w-6" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className={cn("font-black text-[15px] text-stone-900 uppercase tracking-tighter", selected === "flutterwave" && "text-white")}>Flutterwave Terminal</p>
-            <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-              {PROV_ICONS.applepay}
-              {PROV_ICONS.googlepay}
-              {PROV_ICONS.momo}
-            </div>
-          </div>
-          <div className="shrink-0">
-            {selected === "flutterwave" ? (
-              <div className="h-8 w-8 rounded-full bg-orange-500 flex items-center justify-center shadow-lg shadow-orange-500/30">
-                <Check className="h-5 w-5 text-white" strokeWidth={4} />
+              {/* Title + logos */}
+              <div className="flex-1 min-w-0">
+                <p
+                  className="text-[12.5px] font-semibold leading-none mb-2"
+                  style={{ color: active ? "#c2410c" : "#57534e" }}
+                >
+                  {m.title}
+                </p>
+                <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
+                  {m.logos}
+                </div>
               </div>
-            ) : (
-              <div className="h-8 w-8 rounded-full border-2 border-stone-100 group-hover:border-stone-200 transition-colors" />
-            )}
-          </div>
-        </button>
 
-        <button
-          type="button"
-          onClick={() => onSelect("pawapay")}
-          className={cn(cardBase, selected === "pawapay" && "bg-stone-900 text-white border-stone-900 shadow-2xl shadow-stone-900/20")}
-        >
-          <div className={cn("flex-shrink-0 flex h-14 w-14 items-center justify-center rounded-2xl bg-sky-50 text-sky-600 border border-sky-100 shadow-inner group-hover:scale-110 transition-transform duration-700", selected === "pawapay" && "bg-white/10 border-white/10 text-sky-400")}>
-            <Smartphone className="h-6 w-6" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className={cn("font-black text-[15px] text-stone-900 uppercase tracking-tighter", selected === "pawapay" && "text-white")}>Mobile Money Terminal</p>
-            <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-              {PROV_ICONS.mtn}
-              {PROV_ICONS.airtel}
-              {PROV_ICONS.momo}
-            </div>
-          </div>
-          <div className="shrink-0">
-            {selected === "pawapay" ? (
-              <div className="h-8 w-8 rounded-full bg-orange-500 flex items-center justify-center shadow-lg shadow-orange-500/30">
-                <Check className="h-5 w-5 text-white" strokeWidth={4} />
+              {/* Radio button */}
+              <div
+                className="flex-shrink-0 flex items-center justify-center rounded-full transition-all duration-200"
+                style={{
+                  width: 21, height: 21,
+                  background: active ? "#f97316" : "transparent",
+                  border: active ? "2px solid #f97316" : "2px solid rgba(249,115,22,0.22)",
+                  boxShadow: active ? "0 2px 8px rgba(249,115,22,0.38)" : "none",
+                }}
+              >
+                {active && (
+                  <svg width="9" height="7" viewBox="0 0 9 7" fill="none">
+                    <path d="M1 3.5l2.5 2.5 4.5-5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                )}
               </div>
-            ) : (
-              <div className="h-8 w-8 rounded-full border-2 border-stone-100 group-hover:border-stone-200 transition-colors" />
-            )}
-          </div>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => onSelect("paypal")}
-          className={cn(cardBase, selected === "paypal" && "bg-stone-900 text-white border-stone-900 shadow-2xl shadow-stone-900/20")}
-        >
-          <div className={cn("flex-shrink-0 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#003087]/5 text-[#003087] border border-[#003087]/10 shadow-inner group-hover:scale-110 transition-transform duration-700", selected === "paypal" && "bg-white/10 border-white/10 text-sky-300")}>
-            <Wallet className="h-6 w-6" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className={cn("font-black text-[15px] text-stone-900 uppercase tracking-tighter", selected === "paypal" && "text-white")}>PayPal Secure</p>
-            <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-              {PROV_ICONS.paypal}
             </div>
-          </div>
-          <div className="shrink-0">
-            {selected === "paypal" ? (
-              <div className="h-8 w-8 rounded-full bg-orange-500 flex items-center justify-center shadow-lg shadow-orange-500/30">
-                <Check className="h-5 w-5 text-white" strokeWidth={4} />
-              </div>
-            ) : (
-              <div className="h-8 w-8 rounded-full border-2 border-stone-100 group-hover:border-stone-200 transition-colors" />
-            )}
-          </div>
-        </button>
-
-      </div>
+          </button>
+        );
+      })}
     </div>
   );
 }
-
