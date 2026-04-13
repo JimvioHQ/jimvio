@@ -32,7 +32,7 @@ export function PlatformSpotlight({ campaign, community }: SpotlightProps) {
          </div>
 
          <div className="relative z-10 pt-6">
-            <Button asChild size="lg" className="rounded-2xl bg-orange-500 hover:bg-orange-600 text-white font-black px-8">
+            <Button asChild variant="orange" size="lg" className="rounded-2xl font-black px-8 uppercase tracking-widest transition-all">
               <Link href={campaign ? `/ugc/campaigns/${campaign.id}` : "/ugc"}>
                 Apply to Mission <ArrowRight className="ml-2 w-4 h-4" />
               </Link>

@@ -33,6 +33,7 @@ import {
 } from "@/components/layout/homepage-sections";
 import { getResolvedPlatformSettings, socialProofBarValues, PLATFORM_SETTINGS_DEFAULTS } from "@/lib/platform-settings";
 import { stableDiscountPercent } from "@/lib/homepage-helpers";
+import { GlassCard, GlassAmbientGlow } from "@/components/ui/glass";
 
 function pickIcon(slug: string, name: string): LucideIcon {
   const s = `${slug} ${name}`.toLowerCase();
@@ -105,18 +106,14 @@ export default async function HomePage() {
     return { icon: <Icon className="h-4 w-4" />, label: cat.name, slug: cat.slug };
   });
 
-
-
   const heroCampaigns = (campaignChips.length > 0 ? campaignChips : trendingSideCats.map((c: any) => c.name)).slice(0, 4);
   const heroKeywords = platformSettings.marketing.trending_search_keywords.slice(0, 4);
 
   return (
-    <div className="min-h-screen pb-14 md:pb-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:24px_24px] bg-fixed" style={{ backgroundColor: "#f9fafb" }}>
-      {/* Subtle global ambient glow */}
-      <div className="pointer-events-none fixed top-0 left-0 right-0 h-screen z-0">
-        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-orange-100/30 rounded-full blur-[120px]" />
-        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-zinc-100/50 rounded-full blur-[100px]" />
-      </div>
+    <div className="min-h-screen pb-14 md:pb-0 relative overflow-hidden" style={{ background: "#f8f7f5" }}>
+      {/* Dynamic Ambient Glows — Dashboard Signature */}
+      <GlassAmbientGlow color="orange" position="top-right" className="opacity-40" />
+      <GlassAmbientGlow color="indigo" position="bottom-left" className="opacity-30" />
 
       <div className="relative z-10">
         {/* ── HERO ── */}
@@ -134,12 +131,12 @@ export default async function HomePage() {
         />
 
         {/* ── TRUST BAR ── */}
-        <div className="hidden lg:block">
+        <div className="hidden lg:block relative z-20 -mt-8 px-6">
           <TrustBar items={trustBarItems} />
         </div>
 
         {/* ── MAIN CONTENT ── */}
-        <div className="max-w-[1536px] mx-auto px-4 sm:px-6 pt-8 pb-12 md:pt-12 md:pb-20 space-y-10">
+        <div className="max-w-[1536px] mx-auto px-4 sm:px-6 pt-8 pb-12 md:pt-16 md:pb-24 space-y-20">
 
 
 

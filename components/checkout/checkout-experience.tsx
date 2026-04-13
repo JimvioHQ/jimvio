@@ -319,7 +319,8 @@ export function CheckoutExperience({
         <p className="text-zinc-500 text-sm">Your cart is empty.</p>
         <Button
           asChild
-          className="bg-orange-500 hover:bg-orange-600 text-white rounded-xl"
+          variant="orange"
+          className="rounded-xl font-black uppercase tracking-widest transition-all"
         >
           <Link href="/cart">Back to cart</Link>
         </Button>
@@ -756,7 +757,7 @@ export function CheckoutExperience({
                 <button
                   type="button"
                   onClick={currentStep === 1 ? advanceFromStep1 : advanceFromStep2}
-                  className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 active:scale-[0.98] text-white px-7 py-3 rounded-xl font-semibold text-[14px] transition-all"
+                  className="flex items-center gap-2 bg-orange-500/10 backdrop-blur-md border border-orange-500/30 active:scale-[0.98] text-orange-600 px-7 py-3 rounded-xl font-black text-[14px] transition-all uppercase tracking-widest shadow-sm"
                 >
                   Continue
                   <ArrowRight className="h-4 w-4" />
@@ -766,7 +767,7 @@ export function CheckoutExperience({
                   type="button"
                   disabled={submitting}
                   onClick={() => void handleComplete()}
-                  className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 active:scale-[0.98] disabled:opacity-60 disabled:pointer-events-none text-white px-7 py-3.5 rounded-xl font-bold text-[15px] transition-all shadow-lg shadow-orange-200"
+                  className="flex items-center gap-2 bg-orange-500/10 backdrop-blur-md border border-orange-500/30 active:scale-[0.98] disabled:opacity-60 disabled:pointer-events-none text-orange-600 px-7 py-3.5 rounded-xl font-black text-[15px] transition-all shadow-sm uppercase tracking-widest"
                 >
                   {submitting ? (
                     <>

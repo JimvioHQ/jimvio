@@ -9,6 +9,9 @@
  *   3. capturePayPalOrder()  → finalizes and captures funds
  */
 
+import { convertToUSD } from "@/lib/currency/rates";
+import type { CurrencyCode } from "@/lib/currency/config";
+
 const PAYPAL_BASE_URL =
   process.env.PAYPAL_ENV === "live"
     ? "https://api-m.paypal.com"
@@ -106,10 +109,16 @@ export async function createPayPalOrder(
   params: CreatePayPalOrderParams
 ): Promise<{ orderId: string; approvalUrl: string }> {
   const currency = (params.currency || "USD").toUpperCase();
-  // PayPal does not support RWF — fall back to USD
-  const paypalCurrency = ["USD", "EUR", "GBP", "CAD", "AUD"].includes(currency)
-    ? currency
-    : "USD";
+  
+  // 1. Identify if PayPal natively supports this currency
+  const supported = ["USD", "EUR", "GBP", "CAD", "AUD", "HKD", "SGD", "JPY"].includes(currency);
+  const paypalCurrency = supported ? currency : "USD";
+
+  // 2. If not supported (e.g. RWF), convert the amount to USD
+  let finalAmount = Number(params.amount);
+  if (!supported) {
+    finalAmount = await convertToUSD(finalAmount, currency as CurrencyCode);
+  }
 
   const payload = {
     intent: "CAPTURE",
@@ -119,7 +128,7 @@ export async function createPayPalOrder(
         description: (params.description || "Jimvio Order").slice(0, 127),
         amount: {
           currency_code: paypalCurrency,
-          value: Number(params.amount).toFixed(2),
+          value: finalAmount.toFixed(2),
         },
       },
     ],

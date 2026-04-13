@@ -8,7 +8,7 @@ import {
   LayoutDashboard, Globe, ShoppingCart, FileText, Heart, Store, Package,
   Truck, Layers, Link2, Megaphone, DollarSign, Wallet, Video, BarChart3,
   MessageSquare, Bell, User, Settings, ChevronLeft, ChevronRight, X, Zap,
-  Users, CirclePlus, LayoutGrid, ArrowUpRight, LogOut,
+  Users, CirclePlus, LayoutGrid, ArrowUpRight, LogOut, Eye, EyeOff,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
@@ -36,7 +36,6 @@ const sidebarSections: NavSection[] = [
     title: "",
     items: [
       { label: "Dashboard", href: "/dashboard", icon: <LayoutDashboard className="h-[14px] w-[14px]" /> },
-      { label: "My Wallet", href: "/dashboard/wallet", icon: <Wallet className="h-[14px] w-[14px]" /> },
     ],
   },
   {
@@ -44,9 +43,9 @@ const sidebarSections: NavSection[] = [
     accentRgb: "56,189,248",
     items: [
       { label: "Marketplace", href: "/dashboard/marketplace", icon: <Globe className="h-[14px] w-[14px]" /> },
-      { label: "Orders", href: "/dashboard/orders", icon: <ShoppingCart className="h-[14px] w-[14px]" /> },
+      { label: "My Orders", href: "/dashboard/orders", icon: <ShoppingCart className="h-[14px] w-[14px]" /> },
       { label: "Digital Library", href: "/dashboard/library", icon: <Video className="h-[14px] w-[14px]" /> },
-      { label: "Saved", href: "/dashboard/wishlist", icon: <Heart className="h-[14px] w-[14px]" /> },
+      { label: "Wishlist", href: "/dashboard/wishlist", icon: <Heart className="h-[14px] w-[14px]" /> },
       { label: "Analytics", href: "/dashboard/buyer/analytics", icon: <BarChart3 className="h-[14px] w-[14px]" /> },
     ],
   },
@@ -67,7 +66,7 @@ const sidebarSections: NavSection[] = [
       { label: "Mission Hub", href: "/dashboard/vendor/campaigns", icon: <LayoutDashboard className="h-[14px] w-[14px]" /> },
       { label: "Submissions", href: "/dashboard/vendor/submissions", icon: <Video className="h-[14px] w-[14px]" /> },
       { label: "Launch", href: "/dashboard/vendor/campaigns/new", icon: <CirclePlus className="h-[14px] w-[14px]" /> },
-      { label: "Intelligence", href: "/dashboard/vendor/campaigns/analytics", icon: <BarChart3 className="h-[14px] w-[14px]" /> },
+      { label: "Analytics", href: "/dashboard/vendor/campaigns/analytics", icon: <BarChart3 className="h-[14px] w-[14px]" /> },
     ],
   },
   {
@@ -133,6 +132,7 @@ export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobil
   const pathname = usePathname();
   const { formatMoney } = useCurrency();
   const [balance, setBalance] = React.useState({ available: 0, pending: 0 });
+  const [balanceHidden, setBalanceHidden] = React.useState(true);
 
   React.useEffect(() => {
     async function fetch() {
@@ -160,7 +160,7 @@ export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobil
       {/* ── Logo bar ── */}
       <div
         className="flex items-center justify-between shrink-0 px-4 py-4"
-        style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}
+        style={{ borderBottom: "1px solid rgba(0,0,0,0.05)" }}
       >
         <Link href="/" onClick={onMobileClose} className="flex items-center gap-2.5 min-w-0 group">
           {/* Orange glass logo mark */}
@@ -170,9 +170,9 @@ export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobil
             transition={{ type: "spring", stiffness: 300, damping: 20 }}
             className="flex-shrink-0 flex items-center justify-center transition-transform group-hover:rotate-[10deg]"
             style={{
-              width: 34, height: 34, borderRadius: 10,
+              width: 34, height: 34, borderRadius: 12,
               background: "linear-gradient(135deg, rgba(251,146,60,0.95), rgba(234,88,12,0.85))",
-              boxShadow: "0 4px 12px rgba(251,146,60,0.4), inset 0 1px 0 rgba(255,255,255,0.3)",
+              boxShadow: "0 4px 12px rgba(251,146,60,0.3), inset 0 1px 0 rgba(255,255,255,0.3)",
             }}
           >
             <LayoutDashboard style={{ width: 15, height: 15, color: "white" }} />
@@ -188,7 +188,7 @@ export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobil
                 alt="Jimvio" 
                 width={100} 
                 height={30} 
-                className="h-[26px] w-auto brightness-[0.1] contrast-[1.1] opacity-90"
+                className="h-[26px] w-auto"
               />
             </motion.div>
           )}
@@ -198,12 +198,12 @@ export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobil
           <button
             type="button"
             onClick={() => onCollapsedChange(!collapsed)}
-            className="hidden lg:flex items-center justify-center transition-all hover:scale-105 active:scale-95"
+            className="hidden lg:flex items-center justify-center transition-all hover:scale-105 active:scale-95 rounded-full"
             style={{
-              width: 26, height: 26, borderRadius: "50%",
-              background: "rgba(15,23,42,0.04)",
-              border: "1px solid rgba(15,23,42,0.08)",
-              color: "rgba(15,23,42,0.4)",
+              width: 28, height: 28,
+              background: "rgba(0,0,0,0.04)",
+              border: "1px solid rgba(0,0,0,0.06)",
+              color: "rgba(0,0,0,0.35)",
             }}
             aria-label={collapsed ? "Expand" : "Collapse"}
           >
@@ -213,12 +213,12 @@ export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobil
             <button
               type="button"
               onClick={onMobileClose}
-              className="lg:hidden flex items-center justify-center transition-all active:scale-95"
+              className="lg:hidden flex items-center justify-center transition-all active:scale-95 rounded-full"
               style={{
-                width: 30, height: 30, borderRadius: "50%",
-                background: "rgba(15,23,42,0.05)",
-                border: "1px solid rgba(15,23,42,0.09)",
-                color: "rgba(15,23,42,0.5)",
+                width: 30, height: 30,
+                background: "rgba(0,0,0,0.04)",
+                border: "1px solid rgba(0,0,0,0.06)",
+                color: "rgba(0,0,0,0.45)",
               }}
               aria-label="Close"
             >
@@ -228,6 +228,7 @@ export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobil
         </div>
       </div>
 
+      {/* ── Wallet Card ── */}
       {!collapsed && (
         <motion.div 
           initial={{ y: 20, opacity: 0 }}
@@ -235,71 +236,68 @@ export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobil
           transition={{ type: "spring", damping: 25, stiffness: 200, delay: 0.1 }}
           className="px-3 pt-3 pb-1 shrink-0"
         >
-          <Link href="/dashboard/wallet" className="block group" style={{ borderRadius: 20 }}>
-            <motion.div
-              whileHover={{ y: -2, scale: 1.01 }}
-              whileTap={{ scale: 0.98 }}
-              className="relative overflow-hidden transition-all duration-300"
-              style={{
-                borderRadius: 20,
-                padding: "14px 16px",
-                background: "rgba(255,255,255,0.55)",
-                border: "1px solid rgba(255,255,255,0.8)",
-                boxShadow: "inset 0 1px 0 rgba(255,255,255,0.9), 0 4px 16px rgba(0,0,0,0.04)",
-              }}
-            >
-              {/* Glass specular on card */}
-              <div
-                className="pointer-events-none absolute"
-                style={{
-                  top: "-40%", left: "-20%", width: "70%", height: "80%",
-                  background: "linear-gradient(135deg, rgba(255,255,255,0.09) 0%, transparent 60%)",
-                  transform: "rotate(-20deg)",
-                }}
-              />
-              {/* Orange glow */}
-              <div
-                className="pointer-events-none absolute"
-                style={{
-                  bottom: -20, right: -20, width: 80, height: 80, borderRadius: "50%",
-                  background: "radial-gradient(circle, rgba(251,146,60,0.18), transparent)",
-                  filter: "blur(15px)",
-                }}
-              />
-
-              <div className="relative">
-                <div className="flex items-center justify-between mb-2.5">
-                  <div
-                    className="flex items-center justify-center"
-                    style={{
-                      width: 28, height: 28, borderRadius: 9,
-                      background: "linear-gradient(135deg, rgba(251,146,60,0.9), rgba(220,88,12,0.8))",
-                      boxShadow: "0 3px 8px rgba(251,146,60,0.35), inset 0 1px 0 rgba(255,255,255,0.25)",
-                    }}
-                  >
-                    <Wallet style={{ width: 12, height: 12, color: "white" }} />
+          <div className="relative overflow-hidden rounded-[18px] bg-gradient-to-br from-orange-500 via-orange-400 to-amber-400 shadow-[0_6px_20px_rgba(249,115,22,0.2)] group">
+            {/* Decorative blur */}
+            <div className="absolute top-0 right-0 w-28 h-28 bg-white/15 blur-[35px] rounded-full translate-x-1/3 -translate-y-1/3" />
+            
+            <div className="relative z-10 p-3">
+              {/* Top: icon + label + eye */}
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-1.5">
+                  <div className="h-6 w-6 rounded-[7px] bg-white/20 backdrop-blur-md flex items-center justify-center text-white border border-white/15">
+                    <Wallet style={{ width: 11, height: 11 }} />
                   </div>
-                  <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(15,23,42,0.35)" }}>
-                    Wallet
-                  </span>
+                  <span className="text-[8px] font-black text-white/85 uppercase tracking-widest">My Wallet</span>
                 </div>
-                <p style={{ fontSize: 22, fontWeight: 800, color: "#0f172a", letterSpacing: "-0.5px", lineHeight: 1 }}>
-                  {formatMoney(balance.available, "USD")}
-                </p>
-                <div className="flex items-center gap-1.5 mt-1.5">
-                  <motion.span 
-                    animate={{ scale: [1, 1.2, 1] }}
-                    transition={{ repeat: Infinity, duration: 2 }}
-                    style={{ width: 5, height: 5, borderRadius: "50%", background: "#f59e0b", display: "block", flexShrink: 0 }} 
-                  />
-                  <span style={{ fontSize: 10, fontWeight: 600, color: "rgba(15,23,42,0.45)" }}>
-                    {formatMoney(balance.pending, "USD")} in escrow
-                  </span>
-                </div>
+                <button
+                  type="button"
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); setBalanceHidden(v => !v); }}
+                  className="h-6 w-6 rounded-full bg-white/15 flex items-center justify-center text-white/75 hover:bg-white/25 transition-all active:scale-90 border border-white/10"
+                  aria-label={balanceHidden ? "Show balance" : "Hide balance"}
+                >
+                  {balanceHidden ? <EyeOff style={{ width: 10, height: 10 }} /> : <Eye style={{ width: 10, height: 10 }} />}
+                </button>
               </div>
-            </motion.div>
-          </Link>
+
+              {/* Balance */}
+              <Link href="/dashboard/wallet" onClick={onMobileClose} className="block">
+                <p className="text-[20px] font-black text-white tabular-nums tracking-tighter leading-none mb-1.5">
+                  {balanceHidden ? "• • • • • •" : formatMoney(balance.available, "USD")}
+                </p>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1">
+                    <span className="w-[4px] h-[4px] rounded-full bg-white/50 animate-pulse block shrink-0" />
+                    <span className="text-[9px] font-semibold text-white/55">
+                      {balanceHidden ? "•••" : formatMoney(balance.pending, "USD")} pending
+                    </span>
+                  </div>
+                  <div className="h-5 w-5 rounded-full bg-white/15 flex items-center justify-center group-hover:bg-white/25 transition-colors">
+                    <ArrowUpRight style={{ width: 9, height: 9, color: "white" }} />
+                  </div>
+                </div>
+              </Link>
+            </div>
+          </div>
         </motion.div>
+      )}
+
+      {/* Collapsed wallet icon */}
+      {collapsed && (
+        <div className="px-2 pt-3 pb-1 shrink-0 flex justify-center">
+          <Link
+            href="/dashboard/wallet"
+            title="My Wallet"
+            className="flex items-center justify-center transition-all hover:scale-110 active:scale-95"
+            style={{
+              width: 36, height: 36, borderRadius: 12,
+              background: "linear-gradient(135deg, rgba(251,146,60,0.15), rgba(251,146,60,0.08))",
+              border: "1px solid rgba(251,146,60,0.2)",
+              color: "#ea580c",
+            }}
+          >
+            <Wallet style={{ width: 14, height: 14 }} />
+          </Link>
+        </div>
       )}
 
       {/* ── Nav ── */}
@@ -314,7 +312,7 @@ export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobil
                       style={{
                         display: "block", width: 5, height: 5, borderRadius: "50%", flexShrink: 0,
                         background: `rgb(${section.accentRgb})`,
-                        boxShadow: `0 0 6px rgba(${section.accentRgb},0.8)`,
+                        boxShadow: `0 0 6px rgba(${section.accentRgb},0.6)`,
                       }}
                     />
                   )}
@@ -361,14 +359,14 @@ export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobil
                           opacity: locked ? 0.35 : 1,
                         }}
                       >
-                        {/* Hover liquid layer */}
+                        {/* Hover layer */}
                         <motion.div
                           className="absolute inset-0 bg-stone-900/5 opacity-0 group-hover:opacity-100 transition-opacity"
                           initial={false}
                           whileHover={{ scale: 1.05 }}
                         />
 
-                        {/* Active top shimmer */}
+                        {/* Active shimmer */}
                         {isActive && (
                           <motion.span
                             layoutId="activeShimmer"
@@ -434,16 +432,16 @@ export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobil
       {!collapsed && (
         <div
           className="px-3 py-2.5 shrink-0"
-          style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}
+          style={{ borderTop: "1px solid rgba(0,0,0,0.05)" }}
         >
-          <p style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(255,255,255,0.22)", marginBottom: 6, paddingLeft: 2 }}>
+          <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(0,0,0,0.3)", marginBottom: 6, paddingLeft: 2 }}>
             Display currency
           </p>
           <div
             style={{
               borderRadius: 12,
-              background: "rgba(15,23,42,0.04)",
-              border: "1px solid rgba(15,23,42,0.08)",
+              background: "rgba(0,0,0,0.03)",
+              border: "1px solid rgba(0,0,0,0.06)",
               color: "#475569",
               fontSize: 12,
               padding: "2px 4px",
@@ -457,16 +455,16 @@ export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobil
       {/* ── User footer ── */}
       <div
         className="px-3 py-3 shrink-0"
-        style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}
+        style={{ borderTop: "1px solid rgba(0,0,0,0.05)" }}
       >
         <div className={cn("flex items-center gap-2.5", collapsed && "justify-center")}>
           <div
             className="flex-shrink-0 flex items-center justify-center"
             style={{
-              width: 32, height: 32, borderRadius: "50%",
+              width: 34, height: 34, borderRadius: "50%",
               background: user.avatar_url ? "transparent" : "linear-gradient(135deg, #f97316, #a855f7)",
-              border: "1.5px solid white",
-              boxShadow: "0 0 0 2px rgba(15,23,42,0.06)",
+              border: "2px solid rgba(249,115,22,0.2)",
+              boxShadow: "0 0 0 2px rgba(255,255,255,0.8)",
               overflow: "hidden",
               fontSize: 12, fontWeight: 700, color: "white",
             }}
@@ -480,10 +478,10 @@ export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobil
           {!collapsed && (
             <>
               <div className="flex-1 min-w-0">
-                <p style={{ fontSize: 12, fontWeight: 650, color: "#0f172a", lineHeight: 1.3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                <p style={{ fontSize: 12, fontWeight: 700, color: "#1c1917", lineHeight: 1.3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {user.full_name || user.email?.split("@")[0]}
                 </p>
-                <p style={{ fontSize: 10, fontWeight: 500, color: "#64748b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                <p style={{ fontSize: 10, fontWeight: 500, color: "#78716c", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {user.email}
                 </p>
               </div>
@@ -503,12 +501,12 @@ export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobil
         className="absolute inset-0"
         style={{
           borderRadius: "inherit",
-          background: "rgba(255,255,255,0.45)",
+          background: "rgba(255,255,255,0.55)",
           backdropFilter: "blur(48px) saturate(160%)",
           WebkitBackdropFilter: "blur(48px) saturate(160%)",
         }}
       />
-      {/* Top specular highlight — the signature iPhone glass edge */}
+      {/* Top specular highlight */}
       <div
         className="absolute inset-x-0 top-0"
         style={{
@@ -516,7 +514,7 @@ export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobil
           background: "linear-gradient(90deg, transparent 5%, rgba(255,255,255,0.85) 40%, rgba(255,255,255,0.6) 60%, transparent 95%)",
         }}
       />
-      {/* Left edge refraction */}
+      {/* Left edge */}
       <div
         className="absolute inset-y-0 left-0"
         style={{
@@ -524,7 +522,7 @@ export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobil
           background: "linear-gradient(180deg, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.2) 50%, transparent 100%)",
         }}
       />
-      {/* Inner top glow — soft wet-glass effect */}
+      {/* Inner top glow */}
       <div
         className="absolute inset-x-0 top-0"
         style={{
@@ -533,16 +531,7 @@ export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobil
           borderRadius: "inherit",
         }}
       />
-      {/* Diagonal specular sweep */}
-      <div
-        className="absolute"
-        style={{
-          top: "-30%", left: "-15%", width: "65%", height: "70%",
-          background: "linear-gradient(135deg, rgba(255,255,255,0.05) 0%, transparent 55%)",
-          transform: "rotate(-15deg)",
-        }}
-      />
-      {/* Ambient color blobs showing through glass */}
+      {/* Ambient color blobs */}
       <div
         className="absolute"
         style={{
@@ -591,7 +580,7 @@ export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobil
         <>
           <div
             className="fixed inset-0 z-40 lg:hidden animate-in fade-in duration-200"
-            style={{ background: "rgba(0,0,0,0.45)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}
+            style={{ background: "rgba(0,0,0,0.35)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}
             onClick={onMobileClose}
             aria-hidden
           />
@@ -601,7 +590,7 @@ export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobil
               "w-[min(15.5rem,88vw)]",
               "animate-in slide-in-from-left duration-250",
             )}
-            style={{ borderRadius: "0 28px 28px 0", boxShadow: "4px 0 48px rgba(0,0,0,0.4)" }}
+            style={{ borderRadius: "0 28px 28px 0", boxShadow: "4px 0 40px rgba(0,0,0,0.15)" }}
           >
             {glassShell}
             {content}

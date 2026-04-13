@@ -1,15 +1,15 @@
 "use client";
+export const dynamic = "force-dynamic";
 
 import React, { useEffect, useState } from "react";
 import { 
   Wallet, DollarSign, ArrowUpRight, ArrowDownRight, 
   Clock, CheckCircle2, Filter, Download, 
-  Store, Users, Sparkles, TrendingUp, History
+  Store, Users, Sparkles, TrendingUp, History,
+  ArrowLeft, RefreshCw, ChevronRight, ShieldCheck, ShoppingBag
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { StatCard } from "@/components/ui/stat-card";
+import { GlassCard, GlassPill, GlassAmbientGlow } from "@/components/ui/glass";
 import { useCurrency } from "@/context/CurrencyContext";
 import { getUserWalletData } from "@/lib/actions/wallet";
 import { cn } from "@/lib/utils";
@@ -32,7 +32,14 @@ export default function WalletDashboardPage() {
     load();
   }, []);
 
-  if (loading) return <div className="py-20 text-center animate-pulse text-[var(--color-text-muted)]">Loading your financial hub...</div>;
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center space-y-6" style={{ background: "#f8f7f5" }}>
+        <RefreshCw className="h-6 w-6 animate-spin text-orange-500" />
+        <p className="text-[11px] font-bold text-stone-400 capitalize pl-1">Accessing Wallet...</p>
+      </div>
+    );
+  }
 
   const wallet = data?.wallet || { available_balance: 0, pending_balance: 0, total_earned: 0 };
   const transactions = data?.transactions || [];
@@ -47,196 +54,198 @@ export default function WalletDashboardPage() {
   });
 
   return (
-    <div className="space-y-8 animate-fade-in pb-12">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-black tracking-tight text-[var(--color-text-primary)] flex items-center gap-3">
-            <div className="p-2 rounded-2xl bg-[var(--color-accent)]/10 text-[var(--color-accent)]">
-              <Wallet className="h-8 w-8" />
-            </div>
-            My Wallet
-          </h1>
-          <p className="text-[var(--color-text-muted)] mt-1 font-medium">Manage your earnings across all Jimvio roles</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Button variant="outline" className="rounded-xl border-[var(--color-border)] shadow-sm">
-            <Download className="h-4 w-4 mr-2" />
-            Report
-          </Button>
-          <Button className="rounded-xl bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white shadow-lg shadow-[var(--color-accent)]/20 px-6 font-bold" asChild>
-            <Link href="/dashboard/withdrawals">Withdraw Funds</Link>
-          </Button>
-        </div>
-      </div>
-
-      {/* Main Balances */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2 border-none bg-gradient-to-br from-[var(--color-accent)] to-[var(--color-accent-hover)] text-white shadow-2xl shadow-[var(--color-accent)]/20 overflow-hidden relative rounded-[2rem]">
-           <div className="absolute top-0 right-0 p-8 opacity-10 rotate-12">
-             <TrendingUp className="h-48 w-48" />
+    <div
+      className="min-h-screen animate-in fade-in duration-500 pb-20 relative overflow-hidden"
+      style={{
+        background: "radial-gradient(ellipse 80% 60% at 80% 0%, rgba(251,146,60,0.03) 0%, transparent 50%), radial-gradient(ellipse 60% 50% at 0% 100%, rgba(186,230,253,0.03) 0%, transparent 55%), #f8f7f5",
+      }}
+    >
+      <div className="max-w-5xl mx-auto space-y-8 px-6 pt-10 relative z-10">
+        
+        {/* Header - Simpler */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+           <div className="flex items-center gap-4">
+              <Button asChild variant="ghost" size="icon" className="shrink-0 h-10 w-10 rounded-xl bg-white border border-stone-100 shadow-sm hover:bg-white active:scale-95 transition-all text-stone-500">
+                <Link href="/dashboard"><ArrowLeft className="h-5 w-5" /></Link>
+              </Button>
+              <div className="space-y-1">
+                 <h1 className="text-2xl font-bold text-stone-900 tracking-tight">My Wallet</h1>
+                 <p className="text-[11px] font-bold text-stone-400 capitalize pl-0.5">Manage your earnings and transfers</p>
+              </div>
            </div>
-           <CardHeader className="relative z-10 pb-2">
-             <CardDescription className="text-white/70 font-bold uppercase tracking-[0.2em] text-[10px]">Net Available Balance</CardDescription>
-             <CardTitle className="text-5xl font-black tabular-nums tracking-tighter mt-1">
-               {formatMoney(wallet.available_balance, "USD")}
-             </CardTitle>
-           </CardHeader>
-           <CardContent className="relative z-10 pt-4 flex flex-wrap gap-6">
-             <div className="p-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/10">
-               <p className="text-[10px] font-black uppercase text-white/60 mb-1">Pending Review</p>
-               <p className="text-xl font-black tabular-nums">{formatMoney(wallet.pending_balance, "USD")}</p>
-             </div>
-             <div className="p-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/10">
-               <p className="text-[10px] font-black uppercase text-white/60 mb-1">Lifetime Earned</p>
-               <p className="text-xl font-black tabular-nums">{formatMoney(wallet.total_earned, "USD")}</p>
-             </div>
-           </CardContent>
-           <div className="absolute bottom-0 left-0 w-full px-8 py-4 bg-black/5 backdrop-blur-sm border-t border-white/5 flex justify-between items-center">
-              <span className="text-[10px] font-bold text-white/80 uppercase">Next Payout Cycle: 24h</span>
-              <span className="text-[10px] font-bold text-white/80 uppercase">Verified Account</span>
+           
+           <div className="flex items-center gap-2">
+               <Button asChild variant="orange" className="h-11 px-6 rounded-xl font-black text-[11px] uppercase tracking-widest active:scale-95 transition-all shadow-sm">
+                <Link href="/dashboard/withdrawals">Withdraw Funds</Link>
+              </Button>
            </div>
-        </Card>
+        </div>
 
-        <Card className="border-[var(--color-border)] shadow-xl rounded-[2rem] bg-[var(--color-surface)] flex flex-col justify-center p-8 border-dashed border-2">
-          <div className="space-y-6">
-             <div className="flex items-center justify-between">
-                <span className="text-sm font-bold text-[var(--color-text-muted)] uppercase tracking-wider">Escrow Security</span>
-                <Clock className="h-4 w-4 text-amber-500" />
-             </div>
-             <p className="text-sm text-[var(--color-text-muted)] leading-relaxed">
-               Funds are held in <span className="text-[var(--color-text-primary)] font-bold">Pending</span> until 
-               orders are marked as completed by the buyer or system. 
-               This ensures marketplace integrity and safe releases.
-             </p>
-             <Button variant="outline" className="w-full rounded-xl font-bold" asChild>
-                <Link href="/dashboard/orders">View Fulfilled Orders</Link>
-             </Button>
-          </div>
-        </Card>
-      </div>
+        {/* Balance Card - Softer */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+           <GlassCard className="lg:col-span-2 p-10 rounded-[32px] border-white bg-white/60 shadow-sm relative overflow-hidden group">
+              <div className="space-y-10 relative z-10">
+                 <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                       <div className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" />
+                       <span className="text-[10px] font-bold text-stone-400 capitalize">Available to Withdraw</span>
+                    </div>
+                    <p className="text-6xl font-black text-stone-900 tracking-tight leading-none tabular-nums">
+                       {formatMoney(wallet.available_balance, "USD")}
+                    </p>
+                 </div>
+                 
+                 <div className="flex flex-wrap gap-4">
+                    <div className="px-6 py-4 rounded-2xl bg-white border border-stone-50 shadow-sm min-w-[140px]">
+                       <p className="text-[9px] font-bold uppercase tracking-widest text-stone-400 mb-1">Pending Clearance</p>
+                       <p className="text-xl font-bold text-stone-900 tabular-nums">{formatMoney(wallet.pending_balance, "USD")}</p>
+                    </div>
+                    <div className="px-6 py-4 rounded-2xl bg-white border border-stone-50 shadow-sm min-w-[140px]">
+                       <p className="text-[9px] font-bold uppercase tracking-widest text-stone-400 mb-1">Total Earned</p>
+                       <p className="text-xl font-bold text-stone-900 tabular-nums">{formatMoney(wallet.total_earned, "USD")}</p>
+                    </div>
+                 </div>
+              </div>
+              
+              <div className="absolute top-0 right-0 p-12 opacity-[0.03] group-hover:scale-110 transition-transform duration-1000">
+                 <Wallet className="h-40 w-40 text-stone-900" />
+              </div>
+           </GlassCard>
 
-      {/* Breakdown by Role */}
-      <h2 className="text-xl font-black text-[var(--color-text-primary)] uppercase tracking-widest pt-4">Earnings Breakdown</h2>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <StatCard 
-          title="Vendor Sales" 
-          value={formatMoney(agg.vendor, "USD")} 
-          icon={<Store className="h-5 w-5" />} 
-          iconColor="from-blue-600 to-cyan-400"
-          className="rounded-[1.5rem] shadow-lg border-none bg-gradient-to-br from-white to-[var(--color-surface-secondary)]/30"
-        />
-        <StatCard 
-          title="Affiliate Earnings" 
-          value={formatMoney(agg.affiliate, "USD")} 
-          icon={<Users className="h-5 w-5" />} 
-          iconColor="from-purple-600 to-pink-400"
-          className="rounded-[1.5rem] shadow-lg border-none bg-gradient-to-br from-white to-[var(--color-surface-secondary)]/30"
-        />
-        <StatCard 
-          title="Creator Rewards" 
-          value={formatMoney(agg.creator, "USD")} 
-          icon={<Sparkles className="h-5 w-5" />} 
-          iconColor="from-amber-600 to-yellow-400"
-          className="rounded-[1.5rem] shadow-lg border-none bg-gradient-to-br from-white to-[var(--color-surface-secondary)]/30"
-        />
-      </div>
+           <GlassCard className="p-8 rounded-[32px] bg-white border border-stone-100 shadow-sm flex flex-col justify-center space-y-6">
+              <div className="flex items-center gap-3">
+                 <div className="p-2 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-100">
+                    <ShieldCheck className="h-4 w-4" />
+                 </div>
+                 <h3 className="text-sm font-bold text-stone-900 uppercase tracking-widest">Secure Escrow</h3>
+              </div>
+              <p className="text-[13px] font-medium text-stone-500 leading-relaxed">
+                 Your funds are held securely until the order is successfully delivered to the buyer.
+              </p>
+              <Button asChild variant="outline" className="w-full h-11 rounded-xl border-stone-100 text-stone-900 font-bold text-[10px] uppercase tracking-widest active:scale-95 transition-all">
+                 <Link href="/dashboard/orders">View Active Orders</Link>
+              </Button>
+           </GlassCard>
+        </div>
 
-      {/* Transaction History */}
-      <Card className="border-[var(--color-border)]/50 shadow-2xl rounded-[2rem] overflow-hidden">
-        <CardHeader className="bg-[var(--color-surface-secondary)]/50 border-b border-[var(--color-border)]/50 px-8 py-6">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <CardTitle className="text-lg font-black uppercase tracking-tight flex items-center gap-2">
-                <History className="h-5 w-5 text-[var(--color-accent)]" />
-                Transaction Ledger
-              </CardTitle>
-              <CardDescription>Real-time record of all earnings and releases</CardDescription>
-            </div>
-            <div className="flex items-center gap-2 p-1 bg-[var(--color-surface-secondary)] rounded-xl border border-[var(--color-border)]/50">
-              {["all", "vendor", "affiliate", "creator"].map((tab) => (
-                <Button 
-                  key={tab}
-                  variant={activeTab === tab ? "default" : "ghost"}
-                  size="sm"
-                  className={cn("rounded-lg px-4 text-[10px] font-black uppercase", activeTab === tab ? "bg-[var(--color-accent)]" : "")}
-                  onClick={() => setActiveTab(tab)}
-                >
-                  {tab}
-                </Button>
+        {/* Earning Breakdown - Simple Row */}
+        <div className="space-y-4">
+           <h2 className="text-[11px] font-bold text-stone-400 uppercase tracking-widest pl-1">Earning Sources</h2>
+           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {[
+                 { label: "Product Sales", value: agg.vendor, icon: Store, color: "text-sky-500", bg: "bg-sky-50" },
+                 { label: "Affiliate Earnings", value: agg.affiliate, icon: Users, color: "text-purple-500", bg: "bg-purple-50" },
+                 { label: "Creator Bonuses", value: agg.creator, icon: Sparkles, color: "text-amber-500", bg: "bg-amber-50" },
+              ].map((stat, i) => (
+                 <div key={i} className="flex items-center gap-4 p-5 rounded-2xl bg-white border border-stone-50 shadow-sm">
+                    <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border border-white shadow-sm", stat.bg, stat.color)}>
+                       <stat.icon className="h-5 w-5" />
+                    </div>
+                    <div className="min-w-0">
+                       <p className="text-lg font-bold text-stone-900 tracking-tight leading-none">{formatMoney(stat.value, "USD")}</p>
+                       <p className="text-[10px] font-bold uppercase tracking-widest text-stone-400 mt-1.5 truncate">{stat.label}</p>
+                    </div>
+                 </div>
               ))}
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead>
-                <tr className="border-b border-[var(--color-border)]/30 bg-[var(--color-surface-secondary)]/20">
-                  <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-[var(--color-text-muted)]">Type / Reference</th>
-                  <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-[var(--color-text-muted)]">Date</th>
-                  <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-[var(--color-text-muted)] text-right">Amount</th>
-                  <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-[var(--color-text-muted)] text-center">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[var(--color-border)]/30">
-                {filteredTransactions.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} className="px-8 py-20 text-center grayscale opacity-50">
-                      <History className="h-12 w-12 mx-auto mb-4" />
-                      <p className="font-bold">No transactions found</p>
-                    </td>
-                  </tr>
-                ) : (
-                  filteredTransactions.map((tx: any) => (
-                    <tr key={tx.id} className="hover:bg-[var(--color-surface-secondary)]/10 transition-colors group">
-                      <td className="px-8 py-5">
-                        <div className="flex items-center gap-3">
-                          <div className={cn(
-                            "p-2 rounded-lg",
-                            tx.type === "vendor_earning" ? "bg-blue-100 text-blue-600" :
-                            tx.type === "affiliate_commission" ? "bg-purple-100 text-purple-600" :
-                            tx.type === "community_earning" ? "bg-amber-100 text-amber-600" :
-                            "bg-gray-100 text-gray-400"
-                          )}>
-                             {tx.type === "vendor_earning" ? <Store className="h-4 w-4" /> : 
-                              tx.type === "affiliate_commission" ? <Users className="h-4 w-4" /> :
-                              <Sparkles className="h-4 w-4" />}
-                          </div>
-                          <div>
-                            <p className="font-bold text-[var(--color-text-primary)] leading-none text-sm capitalize">
-                              {tx.type.replace(/_/g, " ")}
-                            </p>
-                            <p className="text-[10px] text-[var(--color-text-muted)] mt-1 font-medium">{tx.reference}</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-8 py-5 text-sm font-medium text-[var(--color-text-muted)]">
-                        {new Date(tx.created_at).toLocaleDateString()}
-                      </td>
-                      <td className="px-8 py-5 text-right">
-                        <p className={cn(
-                          "font-black text-lg tabular-nums",
-                          tx.type.includes('earning') || tx.type.includes('commission') ? "text-emerald-500" : "text-rose-500"
-                        )}>
-                          +{formatMoney(tx.amount, tx.currency || "USD")}
-                        </p>
-                      </td>
-                      <td className="px-8 py-5">
-                         <div className="flex justify-center">
-                            <Badge variant={tx.status === "completed" ? "success" : "warning"} className="rounded-full px-3 py-1 font-black uppercase text-[9px] tracking-widest">
-                               {tx.status}
-                            </Badge>
-                         </div>
-                      </td>
+           </div>
+        </div>
+
+        {/* Transaction History - Soft Table */}
+        <GlassCard className="rounded-[32px] border-white bg-white/60 shadow-sm overflow-hidden">
+           <div className="p-8 border-b border-stone-50 bg-white/40 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+              <div className="flex items-center gap-3">
+                 <div className="p-2 rounded-lg bg-white border border-stone-50 shadow-sm text-stone-300">
+                    <History className="h-4 w-4" />
+                 </div>
+                 <div>
+                    <h3 className="text-lg font-bold text-stone-900 tracking-tight">Transaction History</h3>
+                    <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mt-0.5">Recent account activity</p>
+                 </div>
+              </div>
+              <div className="flex gap-1.5 overflow-x-auto pb-1 items-center no-scrollbar">
+                 {["all", "vendor", "affiliate", "creator"].map((tab) => (
+                   <button 
+                     key={tab}
+                     className={cn(
+                       "px-5 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest whitespace-nowrap transition-all border", 
+                       activeTab === tab 
+                         ? "bg-stone-900 border-transparent text-white shadow-md" 
+                         : "bg-stone-50 border-stone-50 text-stone-400 hover:text-stone-900 hover:bg-white"
+                     )}
+                     onClick={() => setActiveTab(tab)}
+                   >
+                     {tab}
+                   </button>
+                 ))}
+              </div>
+           </div>
+           
+           <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                 <thead>
+                    <tr className="bg-stone-50/40">
+                       <th className="px-8 py-5 text-[10px] font-bold capitalize text-stone-400">Description</th>
+                       <th className="px-8 py-5 text-[10px] font-bold capitalize text-stone-400">Date</th>
+                       <th className="px-8 py-5 text-right text-[10px] font-bold capitalize text-stone-400">Amount</th>
+                       <th className="px-8 py-5 text-center text-[10px] font-bold capitalize text-stone-400">Status</th>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
+                 </thead>
+                 <tbody className="divide-y divide-stone-50">
+                    {filteredTransactions.length === 0 ? (
+                      <tr>
+                         <td colSpan={4} className="py-20 text-center">
+                            <p className="text-[11px] font-bold text-stone-300 uppercase tracking-widest">No activities found</p>
+                         </td>
+                      </tr>
+                    ) : (
+                      filteredTransactions.map((tx: any) => (
+                        <tr key={tx.id} className="hover:bg-white/60 transition-all duration-300 group">
+                           <td className="px-8 py-6">
+                              <div className="flex items-center gap-4">
+                                 <div className={cn(
+                                   "w-9 h-9 rounded-lg border flex items-center justify-center shrink-0 shadow-sm",
+                                   tx.type === "vendor_earning" ? "bg-sky-50 border-sky-100 text-sky-600" :
+                                   tx.type === "affiliate_commission" ? "bg-purple-50 border-purple-100 text-purple-600" :
+                                   "bg-stone-50 border-stone-100 text-stone-400"
+                                 )}>
+                                    {tx.type === "vendor_earning" ? <Store className="h-4 w-4" /> : 
+                                     tx.type === "affiliate_commission" ? <Users className="h-4 w-4" /> :
+                                     <Sparkles className="h-4 w-4" />}
+                                 </div>
+                                 <div className="min-w-0">
+                                    <p className="font-bold text-sm text-stone-900 truncate max-w-[180px] tracking-tight capitalize">
+                                      {tx.type.replace(/_/g, " ")}
+                                    </p>
+                                    <p className="text-[10px] text-stone-400 font-bold capitalize truncate max-w-[140px]">{tx.reference}</p>
+                                 </div>
+                              </div>
+                           </td>
+                           <td className="px-8 py-6 text-sm font-bold text-stone-400 tabular-nums">
+                              {new Date(tx.created_at).toLocaleDateString()}
+                           </td>
+                           <td className="px-8 py-6 text-right">
+                              <span className={cn(
+                                 "font-bold text-base tabular-nums tracking-tight",
+                                 tx.type.includes('earning') || tx.type.includes('commission') ? "text-emerald-600" : "text-stone-900"
+                              )}>
+                                 +{formatMoney(tx.amount, tx.currency || "USD")}
+                              </span>
+                           </td>
+                           <td className="px-8 py-6">
+                              <div className="flex justify-center">
+                                 <GlassPill color={tx.status === "completed" ? "emerald" : "orange"} className="font-bold text-[9px] px-4 py-1.5 uppercase tracking-widest border-none shadow-none">
+                                    {tx.status}
+                                 </GlassPill>
+                              </div>
+                           </td>
+                        </tr>
+                      ))
+                    )}
+                 </tbody>
+              </table>
+           </div>
+        </GlassCard>
+      </div>
     </div>
   );
 }

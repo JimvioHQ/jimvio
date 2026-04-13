@@ -28,18 +28,41 @@ const scaleIn = {
   show: { opacity: 1, scale: 1, transition: { type: "spring", damping: 24, stiffness: 180 } },
 };
 
-// ── Glass surface tokens (matches Navbar exactly) ──────────────
-const glassLight =
-  "bg-white/80 backdrop-blur-2xl border border-white/60 shadow-[0_8px_32px_rgba(0,0,0,0.06)]";
-const glassDark =
-  "bg-zinc-900/95 backdrop-blur-2xl border border-white/10 shadow-[0_8px_40px_rgba(0,0,0,0.35)]";
-const glassMid =
-  "bg-white/60 backdrop-blur-xl border border-white/50 shadow-[0_4px_20px_rgba(0,0,0,0.05)]";
+// ── Glass surface tokens — iPhone 17 max-intensity ──────────────
+const GLASS_LIGHT_STYLE: React.CSSProperties = {
+  background: "rgba(255,255,255,0.72)",
+  backdropFilter: "blur(40px) saturate(180%) brightness(105%)",
+  WebkitBackdropFilter: "blur(40px) saturate(180%) brightness(105%)",
+  border: "1px solid rgba(255,255,255,0.88)",
+  boxShadow: "0 8px 32px rgba(0,0,0,0.07), inset 0 1px 0 rgba(255,255,255,1), inset 0 -1px 0 rgba(255,255,255,0.3)",
+};
+const GLASS_DARK_STYLE: React.CSSProperties = {
+  background: "rgba(15,23,42,0.88)",
+  backdropFilter: "blur(48px) saturate(180%) brightness(95%)",
+  WebkitBackdropFilter: "blur(48px) saturate(180%) brightness(95%)",
+  border: "1px solid rgba(255,255,255,0.10)",
+  boxShadow: "0 16px 48px rgba(0,0,0,0.30), inset 0 1px 0 rgba(255,255,255,0.08)",
+};
+
+// Legacy Tailwind strings kept for minor uses
+const glassLight = "backdrop-blur-2xl";
+const glassDark = "backdrop-blur-2xl";
+const glassMid = "backdrop-blur-xl";
+
+// ── Specular top line ────────────────────────────────────────────
+function GlassSpecular() {
+  return (
+    <div
+      className="pointer-events-none absolute inset-x-0 top-0 h-px"
+      style={{ background: "linear-gradient(90deg, transparent 5%, rgba(255,255,255,0.95) 40%, rgba(255,255,255,0.7) 60%, transparent 95%)" }}
+    />
+  );
+}
 
 // ── Section eyebrow label ──────────────────────────────────────
 function Eyebrow({ text }: { text: string }) {
   return (
-    <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.25em] mb-2">{text}</p>
+    <p className="text-[10px] font-semibold text-stone-400 uppercase tracking-[0.25em] mb-2">{text}</p>
   );
 }
 
@@ -52,8 +75,15 @@ export function TrustBar({ items }: { items: TrustBarItem[] }) {
     <motion.div
       initial="hidden" whileInView="show" viewport={{ once: true, margin: "-60px" }}
       variants={stagger}
-      className={cn("relative z-10 border-y border-white/40 py-3 md:py-4", glassLight)}
+      className="relative z-10 py-3 md:py-4 overflow-hidden"
+      style={{
+        ...GLASS_LIGHT_STYLE,
+        borderRadius: 0,
+        borderLeft: "none",
+        borderRight: "none",
+      }}
     >
+      <GlassSpecular />
       <div className="max-w-[1536px] mx-auto px-4 sm:px-6 grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
         {items.map((item, idx) => {
           const Icon = TRUST_ICONS[idx % TRUST_ICONS.length];
@@ -61,13 +91,18 @@ export function TrustBar({ items }: { items: TrustBarItem[] }) {
             <motion.div key={idx} variants={fadeUp} className="flex items-center gap-2 md:gap-2.5 group">
               <motion.span
                 whileHover={{ scale: 1.12, rotate: -4 }}
-                className="shrink-0 h-8 w-8 flex items-center justify-center rounded-[10px] bg-orange-50/80 ring-1 ring-[#f97316]/15 group-hover:bg-orange-100 transition-colors"
+                className="relative shrink-0 h-8 w-8 flex items-center justify-center rounded-[10px] transition-all"
+                style={{
+                  background: "rgba(255,237,213,0.70)",
+                  border: "1px solid rgba(251,146,60,0.25)",
+                  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.9), 0 2px 6px rgba(249,115,22,0.08)",
+                }}
               >
-                <Icon className="h-4 w-4 text-[#f97316]" />
+                <Icon className="h-4 w-4 text-orange-500" />
               </motion.span>
               <div className="min-w-0">
-                <p className="text-[10px] md:text-[12px] font-black text-zinc-900 tracking-tight leading-tight truncate">{item.title}</p>
-                <p className="text-[8px] md:text-[10px] font-bold text-zinc-500 mt-0.5 truncate">{item.desc}</p>
+                <p className="text-[10px] md:text-[12px] font-semibold text-stone-900 tracking-tight leading-tight truncate">{item.title}</p>
+                <p className="text-[8px] md:text-[10px] text-stone-500 mt-0.5 truncate">{item.desc}</p>
               </div>
             </motion.div>
           );
@@ -97,7 +132,11 @@ export function RecommendedHeader() {
       </motion.div>
       <motion.div variants={fadeUp}>
         <motion.div whileHover={{ x: 4 }} whileTap={{ scale: 0.97 }}>
-          <Link href="/marketplace" className="inline-flex items-center gap-2 px-5 py-3 rounded-full bg-white/80 backdrop-blur-md border border-zinc-100 text-[13px] font-black text-zinc-600 hover:text-zinc-900 hover:bg-white hover:border-zinc-200 hover:shadow-md transition-all">
+          <Link
+            href="/marketplace"
+            className="inline-flex items-center gap-2 px-5 py-3 rounded-full text-[13px] font-semibold text-stone-600 hover:text-stone-900 transition-all"
+            style={GLASS_LIGHT_STYLE}
+          >
             Browse all <ChevronRight className="h-4 w-4" />
           </Link>
         </motion.div>
@@ -148,8 +187,14 @@ export function FlashDeals({ products }: { products: any[] }) {
     <motion.div
       initial="hidden" whileInView="show" viewport={{ once: true, margin: "-60px" }}
       variants={stagger}
-      className={cn("rounded-[36px] overflow-hidden relative", glassLight)}
+      className="rounded-[36px] overflow-hidden relative"
+      style={GLASS_LIGHT_STYLE}
     >
+      <GlassSpecular />
+      {/* Orange ambient bottom-right */}
+      <div className="pointer-events-none absolute bottom-0 right-0 w-64 h-64 rounded-full blur-3xl" style={{ background: "radial-gradient(circle, rgba(251,146,60,0.08), transparent 65%)" }} />
+      {/* Specular diagonal */}
+      <div className="pointer-events-none absolute -top-1/3 -left-1/4 w-1/2 h-full rotate-[-20deg]" style={{ background: "linear-gradient(135deg, rgba(255,255,255,0.35) 0%, transparent 60%)" }} />
       <div className="absolute top-0 right-0 p-4">
          <div className="flex items-center gap-1.5 px-3 py-1 bg-orange-500/10 rounded-full border border-orange-500/20">
             <span className="relative flex h-2 w-2">
@@ -244,8 +289,9 @@ export function TrendingSidePanel({ trendingCats, suppliers }: { trendingCats: T
       className="hidden lg:flex flex-col gap-4"
     >
       {/* Trending Now */}
-      <div className={cn("rounded-[32px] p-6 relative overflow-hidden", glassDark)}>
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_100%_0%,rgba(249,115,22,0.18),transparent)] pointer-events-none" />
+      <div className="rounded-[32px] p-6 relative overflow-hidden" style={GLASS_DARK_STYLE}>
+        <GlassSpecular />
+        <div className="pointer-events-none absolute inset-0" style={{ background: "radial-gradient(ellipse 80% 60% at 100% 0%, rgba(249,115,22,0.18), transparent)" }} />
         <p className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] mb-1 relative z-10">Hot This Week</p>
         <h3 className="text-[18px] font-black text-white mb-5 tracking-tight relative z-10">Trending Now</h3>
         <div className="space-y-2 relative z-10">
@@ -262,7 +308,8 @@ export function TrendingSidePanel({ trendingCats, suppliers }: { trendingCats: T
       </div>
 
       {/* Top Suppliers */}
-      <div className={cn("rounded-[32px] p-5", glassLight)}>
+      <div className="rounded-[32px] p-5 relative overflow-hidden" style={GLASS_LIGHT_STYLE}>
+        <GlassSpecular />
         <Eyebrow text="Top Suppliers" />
         <div className="space-y-3 mt-3">
           {suppliers.length === 0 ? (
@@ -305,8 +352,10 @@ export function IndustriesSection({ industries }: { industries: Industry[] }) {
     <motion.section
       initial="hidden" whileInView="show" viewport={{ once: true, margin: "-60px" }}
       variants={stagger}
-      className={cn("rounded-[40px] p-8 sm:p-12 relative overflow-hidden", glassLight)}
+      className="rounded-[40px] p-8 sm:p-12 relative overflow-hidden"
+      style={GLASS_LIGHT_STYLE}
     >
+      <GlassSpecular />
       <div className="pointer-events-none absolute -top-20 -right-20 h-64 w-64 rounded-full bg-orange-100/40 blur-3xl" />
       <motion.div variants={fadeUp} className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-10 relative z-10">
         <div>
@@ -374,9 +423,11 @@ export function AffiliatePanel({ valueProps, campaigns = [], spotlightCreator, t
     <motion.section
       initial="hidden" whileInView="show" viewport={{ once: true, margin: "-60px" }}
       variants={stagger}
-      className={cn("rounded-[40px] overflow-hidden grid grid-cols-1 lg:grid-cols-2 min-h-[460px] relative", glassDark)}
+      className="rounded-[40px] overflow-hidden grid grid-cols-1 lg:grid-cols-2 min-h-[460px] relative"
+      style={GLASS_DARK_STYLE}
     >
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_60%_at_0%_0%,rgba(249,115,22,0.10),transparent)] pointer-events-none" />
+      <GlassSpecular />
+      <div className="pointer-events-none absolute inset-0" style={{ background: "radial-gradient(ellipse 70% 60% at 0% 0%, rgba(249,115,22,0.12), transparent)" }} />
 
       {/* Left */}
       <motion.div variants={fadeUp} className="p-8 md:p-14 flex flex-col justify-center border-b lg:border-b-0 lg:border-r border-white/10 relative z-10">
@@ -478,7 +529,8 @@ export function MarketIntelligence({
       className="grid grid-cols-1 gap-6 lg:grid-cols-2"
     >
       {/* Market Pulse */}
-      <motion.div variants={fadeUp} className={cn("rounded-[32px] p-7 relative overflow-hidden", glassLight)}>
+      <motion.div variants={fadeUp} className="rounded-[32px] p-7 relative overflow-hidden" style={GLASS_LIGHT_STYLE}>
+        <GlassSpecular />
         <div className="absolute left-0 top-0 h-full w-1 rounded-r-full bg-gradient-to-b from-[#f97316] to-[#ea580c]" />
         <h4 className="mb-6 flex items-center gap-3 text-[22px] font-black text-zinc-900 tracking-tight pl-3">
           <span className="h-10 w-10 flex items-center justify-center rounded-xl bg-orange-50"><BarChart2 className="h-5 w-5 text-[#f97316]" /></span>
@@ -509,8 +561,9 @@ export function MarketIntelligence({
       </motion.div>
 
       {/* Hot Sourcing */}
-      <motion.div variants={fadeUp} className={cn("rounded-[32px] p-7 relative overflow-hidden", glassDark)}>
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_50%_at_100%_0%,rgba(249,115,22,0.15),transparent)]" />
+      <motion.div variants={fadeUp} className="rounded-[32px] p-7 relative overflow-hidden" style={GLASS_DARK_STYLE}>
+        <GlassSpecular />
+        <div className="pointer-events-none absolute inset-0" style={{ background: "radial-gradient(ellipse 70% 50% at 100% 0%, rgba(249,115,22,0.18), transparent)" }} />
         <div className="relative z-10 mb-5 flex items-center justify-between">
           <h4 className="flex items-center gap-2.5 text-[20px] font-black text-white tracking-tight">
             <span className="h-9 w-9 flex items-center justify-center rounded-xl bg-white/10"><TrendingUp className="h-5 w-5 text-[#f97316]" /></span>
@@ -561,7 +614,18 @@ export function HowItWorks() {
     { icon: <ShieldCheck className="h-5 w-5" />, title: "Global Sync", desc: "Real-time tracking and logistics integration across 180 countries." },
   ];
   return (
-    <div className="border-t border-white/30 bg-white/30 backdrop-blur-xl py-16 md:py-24">
+    <div
+      className="relative overflow-hidden py-16 md:py-24"
+      style={{
+        background: "rgba(255,255,255,0.60)",
+        backdropFilter: "blur(40px) saturate(180%) brightness(104%)",
+        WebkitBackdropFilter: "blur(40px) saturate(180%) brightness(104%)",
+        borderTop: "1px solid rgba(255,255,255,0.8)",
+        borderBottom: "1px solid rgba(255,255,255,0.6)",
+        boxShadow: "inset 0 1px 0 rgba(255,255,255,1), 0 -4px 32px rgba(0,0,0,0.03)",
+      }}
+    >
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px" style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,1) 50%, transparent)" }} />
       <div className="max-w-[1536px] mx-auto px-4 sm:px-6">
         <motion.div initial="hidden" whileInView="show" viewport={{ once: true }} variants={stagger}>
           <motion.div variants={fadeUp} className="text-center mb-12">
@@ -575,8 +639,10 @@ export function HowItWorks() {
                 <motion.div
                   whileHover={{ y: -6, scale: 1.02 }}
                   whileTap={{ scale: 0.97 }}
-                  className={cn("rounded-[28px] px-5 py-6 transition-all group cursor-default", glassLight)}
+                  className="rounded-[28px] px-5 py-6 transition-all group cursor-default relative overflow-hidden"
+                  style={GLASS_LIGHT_STYLE}
                 >
+                  <GlassSpecular />
                   <motion.div
                     whileHover={{ rotate: -6, scale: 1.15 }}
                     className="h-11 w-11 flex items-center justify-center rounded-2xl bg-orange-50 text-[#f97316] mb-4 group-hover:bg-[#f97316] group-hover:text-white transition-colors"
@@ -591,7 +657,11 @@ export function HowItWorks() {
           </div>
           <motion.div variants={fadeUp} className="mt-10 text-center">
             <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}>
-              <Button className="h-14 rounded-full bg-zinc-900 hover:bg-black px-10 text-[14px] font-black text-white shadow-xl transition-all" asChild>
+              <Button
+                variant="orange"
+                className="h-14 rounded-full px-10 text-[13px] font-black uppercase tracking-widest active:scale-95 transition-all shadow-sm"
+                asChild
+              >
                 <Link href="/marketplace">Initialize Trade Access →</Link>
               </Button>
             </motion.div>
@@ -605,8 +675,12 @@ export function HowItWorks() {
 // ── APP PROMO ─────────────────────────────────────────────────
 export function AppPromo() {
   return (
-    <div className={cn("border-t border-white/10 py-24 md:py-32 relative overflow-hidden", glassDark)}>
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_50%_at_20%_30%,rgba(249,115,22,0.12),transparent)]" />
+    <div
+      className="relative overflow-hidden py-24 md:py-32"
+      style={GLASS_DARK_STYLE}
+    >
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px" style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.15) 50%, transparent)" }} />
+      <div className="pointer-events-none absolute inset-0" style={{ background: "radial-gradient(ellipse 70% 50% at 20% 30%, rgba(249,115,22,0.14), transparent)" }} />
       <motion.div
         initial="hidden" whileInView="show" viewport={{ once: true, margin: "-80px" }}
         variants={stagger}
@@ -624,8 +698,17 @@ export function AppPromo() {
               { name: "Google Play", sub: "Get it on", icon: <PlayCircle className="h-6 w-6" /> },
             ].map(btn => (
               <motion.div key={btn.name} whileHover={{ y: -4, scale: 1.04 }} whileTap={{ scale: 0.97 }}>
-                <div className="flex items-center gap-3 px-7 py-4 bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl hover:bg-white/10 hover:border-[#f97316]/40 cursor-pointer transition-all group text-white">
-                  <div className="text-white/50 group-hover:text-[#f97316] transition-colors">{btn.icon}</div>
+                <div
+                className="flex items-center gap-3 px-7 py-4 rounded-[18px] cursor-pointer transition-all group text-white hover:scale-[1.03] active:scale-97"
+                style={{
+                  background: "rgba(255,255,255,0.07)",
+                  backdropFilter: "blur(24px) saturate(160%)",
+                  WebkitBackdropFilter: "blur(24px) saturate(160%)",
+                  border: "1px solid rgba(255,255,255,0.12)",
+                  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.1), 0 4px 16px rgba(0,0,0,0.15)",
+                }}
+              >
+                <div className="text-white/50 group-hover:text-orange-400 transition-colors">{btn.icon}</div>
                   <div>
                     <div className="text-[10px] text-white/30 font-black uppercase tracking-[0.2em]">{btn.sub}</div>
                     <div className="text-[17px] font-black tracking-tight">{btn.name}</div>
@@ -640,7 +723,14 @@ export function AppPromo() {
           <motion.div
             whileHover={{ scale: 1.08, rotate: 2 }}
             whileTap={{ scale: 0.97 }}
-            className="h-40 w-40 bg-white/5 backdrop-blur-xl border border-white/10 rounded-[32px] flex items-center justify-center mx-auto hover:border-[#f97316]/40 cursor-pointer group shadow-2xl transition-colors"
+            className="h-40 w-40 rounded-[32px] flex items-center justify-center mx-auto cursor-pointer group transition-all hover:scale-[1.06]"
+            style={{
+              background: "rgba(255,255,255,0.07)",
+              backdropFilter: "blur(24px) saturate(160%)",
+              WebkitBackdropFilter: "blur(24px) saturate(160%)",
+              border: "1px solid rgba(255,255,255,0.12)",
+              boxShadow: "inset 0 1px 0 rgba(255,255,255,0.12), 0 8px 32px rgba(0,0,0,0.20)",
+            }}
           >
             <motion.div
               animate={{ y: [0, -6, 0] }} transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}

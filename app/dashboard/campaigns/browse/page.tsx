@@ -6,11 +6,10 @@ import Link from "next/link";
 import { 
   Zap, Eye, DollarSign, Loader2, TrendingUp, Search, 
   Filter, Play, ShoppingBag, ArrowRight, ShieldCheck,
-  Video, Star
+  Video, Star, ExternalLink
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { GlassCard, GlassPill } from "@/components/ui/glass";
 import { Input } from "@/components/ui/input";
 import { useCurrency } from "@/context/CurrencyContext";
 import { createClient } from "@/lib/supabase/client";
@@ -49,24 +48,35 @@ export default function InfluencerBrowseCampaignsPage() {
   if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin text-[var(--color-accent)]" /></div>;
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div
+      className="min-h-screen animate-in fade-in duration-500 pb-12"
+      style={{
+        background: "radial-gradient(ellipse 80% 60% at 80% 0%, rgba(251,146,60,0.07) 0%, transparent 50%), radial-gradient(ellipse 60% 50% at 0% 100%, rgba(186,230,253,0.07) 0%, transparent 55%), #f0ede8",
+      }}
+    >
+      <div className="max-w-[1400px] mx-auto space-y-6 px-4 sm:px-6 pt-5">
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-2xl font-black text-[var(--color-text-primary)]">Campaign Marketplace</h1>
-          <p className="text-sm text-muted-c mt-1">Discover high-paying campaigns from verified vendors</p>
+          <h1 className="text-2xl font-bold tracking-tight text-stone-900 flex items-center gap-3">
+             <div className="p-2 rounded-[14px] bg-white/60 border border-white/80 shadow-sm shrink-0">
+               <Zap className="h-6 w-6 text-orange-500" />
+             </div>
+             Campaign Marketplace
+          </h1>
+          <p className="text-[12px] font-semibold text-stone-500 mt-1 uppercase tracking-widest pl-14">Discover high-paying campaigns from verified vendors</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-c" />
-            <Input 
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400 pointer-events-none" />
+            <input 
               placeholder="Search campaigns..." 
-              className="pl-9 w-64" 
+              className="pl-11 pr-4 h-11 w-64 rounded-[14px] bg-white/60 border border-white/80 text-[13px] font-semibold text-stone-900 placeholder:text-stone-400 focus:outline-none focus:border-stone-300 shadow-[inset_0_1px_4px_rgba(255,255,255,1)] transition-colors" 
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <Button variant="outline" size="icon">
-            <Filter className="h-4 w-4" />
+          <Button variant="outline" size="icon" className="h-11 w-11 rounded-[14px] bg-white border border-stone-200 shadow-[0_2px_8px_rgba(0,0,0,0.03)] active:scale-95 transition-all outline-none">
+            <Filter className="h-4 w-4 text-stone-600" />
           </Button>
         </div>
       </div>
@@ -78,80 +88,83 @@ export default function InfluencerBrowseCampaignsPage() {
           const commissionRate = c.commission_rate || product?.affiliate_commission_rate || 5;
 
           return (
-            <Card key={c.id} hover className="overflow-hidden border border-[var(--color-border)] group">
+            <GlassCard key={c.id} className="overflow-hidden group p-0 hover:shadow-lg transition-shadow duration-300">
               <div className="relative aspect-video">
                 <img 
                   src={product?.images?.[0] || "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&auto=format&fit=crop&q=60"} 
                   alt={product?.name}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-ink-darker/60 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                 <div className="absolute top-3 left-3 flex gap-2">
-                  <Badge className="bg-white/90 text-text-primary border-none font-bold">
+                  <div className="bg-white/90 backdrop-blur-md px-3 py-1 rounded-[10px] text-[10px] font-black uppercase tracking-widest text-stone-900 shadow-sm border border-white/20">
                     {c.campaign_type === "promotion" ? "Affiliate" : "Sponsorship"}
-                  </Badge>
+                  </div>
                   {c.is_featured && (
-                    <Badge className="bg-amber-400 text-amber-950 border-none font-bold">
+                    <div className="bg-amber-400 text-amber-950 px-3 py-1 rounded-[10px] text-[10px] font-black uppercase tracking-widest flex items-center shadow-sm">
                       <Zap className="h-3 w-3 mr-1 fill-current" /> Featured
-                    </Badge>
+                    </div>
                   )}
                 </div>
-                <div className="absolute bottom-3 left-3 right-3 text-white">
-                  <p className="text-xs font-bold capitalize tracking-widest opacity-80 mb-1">{vendor?.business_name}</p>
-                  <h3 className="text-lg font-black leading-tight line-clamp-1">{c.title}</h3>
+                <div className="absolute bottom-4 left-4 right-4 text-white">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-white/80 mb-1 flex items-center gap-1.5"><ShieldCheck className="h-3 w-3" /> {vendor?.business_name}</p>
+                  <h3 className="text-[16px] font-black leading-tight line-clamp-1 tracking-tight text-white drop-shadow-md">{c.title}</h3>
                 </div>
               </div>
 
-              <CardContent className="p-5">
-                <div className="flex items-center justify-between mb-4">
+              <div className="p-5">
+                <div className="flex items-center justify-between mb-5 bg-white/40 border border-white/60 shadow-[inset_0_1px_4px_rgba(255,255,255,1)] rounded-[14px] p-4">
                   <div>
-                    <p className="text-[10px] text-muted-c capitalize font-bold tracking-wider mb-1">Commission</p>
-                    <p className="text-xl font-black text-emerald-600">{commissionRate}%</p>
+                    <p className="text-[9px] font-bold uppercase tracking-widest text-stone-500 mb-1 flex items-center gap-1"><DollarSign className="h-3 w-3 text-emerald-500" /> Commission</p>
+                    <p className="text-[20px] font-black text-emerald-600 leading-none">{commissionRate}%</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-[10px] text-muted-c capitalize font-bold tracking-wider mb-1">Price</p>
-                    <p className="text-lg font-black text-[var(--color-text-primary)]">{formatMoney(Number(product?.price || 0), product?.currency)}</p>
+                    <p className="text-[9px] font-bold uppercase tracking-widest text-stone-500 mb-1 flex items-center gap-1 justify-end"><ShoppingBag className="h-3 w-3 text-orange-500" /> Price</p>
+                    <p className="text-[18px] font-black text-stone-900 leading-none tabular-nums">{formatMoney(Number(product?.price || 0), product?.currency)}</p>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 mb-5">
-                  <div className="bg-subtle/50 rounded-xl p-3 border border-base">
-                    <div className="flex items-center gap-1.5 text-muted-c mb-1 text-[10px] font-bold capitalize">
-                      <Eye className="h-3 w-3" /> Total Views
+                  <div className="bg-white/40 border border-white/80 shadow-[inset_0_1px_4px_rgba(255,255,255,1)] rounded-[14px] p-4">
+                    <div className="flex items-center gap-1.5 text-stone-500 mb-1.5 text-[9px] font-bold uppercase tracking-widest">
+                      <Eye className="h-3 w-3 text-sky-500" /> Total Views
                     </div>
-                    <p className="text-sm font-black text-[var(--color-text-primary)]">{(c.total_views || 0).toLocaleString()}</p>
+                    <p className="text-[16px] font-black text-stone-900 leading-none">{(c.total_views || 0).toLocaleString()}</p>
                   </div>
-                  <div className="bg-subtle/50 rounded-xl p-3 border border-base">
-                    <div className="flex items-center gap-1.5 text-muted-c mb-1 text-[10px] font-bold capitalize">
-                      <TrendingUp className="h-3 w-3" /> Conv. (All)
+                  <div className="bg-white/40 border border-white/80 shadow-[inset_0_1px_4px_rgba(255,255,255,1)] rounded-[14px] p-4">
+                    <div className="flex items-center gap-1.5 text-stone-500 mb-1.5 text-[9px] font-bold uppercase tracking-widest">
+                      <TrendingUp className="h-3 w-3 text-purple-500" /> Conv. (All)
                     </div>
-                    <p className="text-sm font-black text-[var(--color-text-primary)]">{c.total_conversions || 0}</p>
+                    <p className="text-[16px] font-black text-stone-900 leading-none">{c.total_conversions || 0}</p>
                   </div>
                 </div>
 
                 <div className="flex gap-2">
-                  <Button className="flex-1 bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] font-black rounded-xl">
+                  <Button className="flex-1 h-12 rounded-[14px] bg-stone-900 text-white font-bold text-[12px] uppercase tracking-widest shadow-[0_4px_16px_rgba(0,0,0,0.15)] active:scale-95 transition-all hover:bg-stone-800">
                     Apply Now
                   </Button>
-                  <Button variant="outline" size="icon" className="rounded-xl" asChild>
+                  <Button variant="outline" size="icon" className="h-12 w-12 rounded-[14px] bg-white border border-stone-200 shadow-[0_2px_8px_rgba(0,0,0,0.03)] active:scale-95 transition-all text-stone-600 hover:bg-stone-50" asChild>
                     <Link href={`/marketplace/${product?.slug}`}>
-                      <ShoppingBag className="h-4 w-4" />
+                      <ExternalLink className="h-5 w-5" />
                     </Link>
                   </Button>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </GlassCard>
           );
         })}
       </div>
 
       {filtered.length === 0 && (
-        <div className="text-center py-20 bg-subtle border border-dashed border-base rounded-2xl">
-          <Zap className="h-12 w-12 text-muted-c mx-auto mb-4" />
-          <h3 className="text-lg font-bold text-[var(--color-text-primary)]">No campaigns found</h3>
-          <p className="text-sm text-muted-c mt-1">Try adjusting your search or check back later.</p>
-        </div>
+        <GlassCard className="text-center py-24 mb-6 border-dashed flex flex-col items-center justify-center">
+          <div className="w-20 h-20 rounded-[24px] bg-white/60 border border-white/80 shadow-[inset_0_1px_4px_rgba(255,255,255,1)] flex items-center justify-center mb-5">
+            <Zap className="h-10 w-10 text-stone-300" />
+          </div>
+          <h3 className="text-[20px] font-black text-stone-900 tracking-tight">No campaigns found</h3>
+          <p className="text-[12px] font-semibold text-stone-500 uppercase tracking-widest mt-2">Try adjusting your search or check back later.</p>
+        </GlassCard>
       )}
+      </div>
     </div>
   );
 }

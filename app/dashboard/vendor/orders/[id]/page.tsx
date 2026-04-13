@@ -1,11 +1,12 @@
 "use client";
+export const dynamic = "force-dynamic";
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArrowLeft, Package, Clock, Loader2, CheckCircle, CheckCircle2, Truck, ShoppingBag, XCircle } from "lucide-react";
+import { ArrowLeft, Package, Clock, Loader2, CheckCircle, CheckCircle2, Truck, ShoppingBag, XCircle, User, Mail, Phone, MapPin, Zap, ExternalLink, Activity, Globe, ShieldCheck, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { GlassCard, GlassPill, GlassAmbientGlow } from "@/components/ui/glass";
 import { Badge } from "@/components/ui/badge";
 import { createClient } from "@/lib/supabase/client";
 import { useCurrency } from "@/context/CurrencyContext";
@@ -13,14 +14,14 @@ import { cn } from "@/lib/utils";
 import { updateVendorOrderStatus } from "@/lib/actions/vendor";
 import { toast } from "sonner";
 
-const statusConfig: Record<string, { label: string; variant: "success" | "warning" | "secondary" | "accent" | "default" }> = {
-  pending: { label: "Pending", variant: "warning" },
-  confirmed: { label: "Confirmed", variant: "default" },
-  processing: { label: "Processing", variant: "default" },
-  shipped: { label: "Shipped", variant: "accent" },
-  delivered: { label: "Delivered", variant: "success" },
-  completed: { label: "Completed", variant: "success" },
-  cancelled: { label: "Cancelled", variant: "secondary" },
+const statusConfig: Record<string, { label: string; variant: "success" | "warning" | "secondary" | "accent" | "default"; color: string }> = {
+  pending: { label: "Pending", variant: "warning", color: "text-amber-500" },
+  confirmed: { label: "Confirmed", variant: "default", color: "text-stone-900" },
+  processing: { label: "Processing", variant: "default", color: "text-stone-900" },
+  shipped: { label: "Shipped", variant: "accent", color: "text-blue-500" },
+  delivered: { label: "Delivered", variant: "success", color: "text-emerald-500" },
+  completed: { label: "Completed", variant: "success", color: "text-emerald-500" },
+  cancelled: { label: "Cancelled", variant: "secondary", color: "text-stone-400" },
 };
 
 export default function VendorOrderDetailPage() {
@@ -37,7 +38,7 @@ export default function VendorOrderDetailPage() {
     
     let trackingNumber: string | undefined;
     if (newStatus === "shipped") {
-      const input = window.prompt("STRICT REQUIREMENT:\nPlease enter the courier tracking number to mark this order as shipped:");
+      const input = window.prompt("Shipping Information:\nPlease enter the tracking number for this order:");
       if (!input || input.trim() === "") {
         toast.error("Tracking number is required to proceed.");
         return;
@@ -50,12 +51,12 @@ export default function VendorOrderDetailPage() {
       const res = await updateVendorOrderStatus(id, newStatus, trackingNumber);
       if (res.success) {
         setOrder({ ...order, status: newStatus });
-        toast.success(`Order status updated to ${newStatus}`);
+        toast.success(`Order marked as ${newStatus}`);
       } else {
-        toast.error(res.error || "Failed to update status: " + res.error);
+        toast.error(res.error || "Failed to update status");
       }
     } catch (e) {
-      toast.error("Something went wrong");
+      toast.error("Update failed. Please try again.");
     } finally {
       setUpdatingStatus(false);
     }
@@ -79,7 +80,7 @@ export default function VendorOrderDetailPage() {
         .from("order_items")
         .select(`
           id, product_name, product_image, quantity, unit_price, total_price, product_source,
-          orders ( id, order_number, status, total_amount, currency, created_at, shipping_address, profiles ( full_name, email ) )
+          orders ( id, order_number, status, total_amount, currency, created_at, shipping_address, profiles ( id, full_name, email ) )
         `)
         .eq("order_id", id)
         .in("vendor_id", vendorIds);
@@ -102,295 +103,271 @@ export default function VendorOrderDetailPage() {
     })();
   }, [id]);
 
-  if (loading) return <div className="py-12 text-center text-sm text-[var(--color-text-muted)]">Loading...</div>;
-  if (!order) return <div className="py-12 text-center"><p className="text-[var(--color-text-muted)]">Order not found.</p><Button asChild className="mt-4"><Link href="/dashboard/vendor/orders">Back to Orders</Link></Button></div>;
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center space-y-6" style={{ background: "#f8f7f5" }}>
+        <RefreshCw className="h-6 w-6 animate-spin text-orange-500" />
+        <p className="text-[11px] font-bold text-stone-400 uppercase tracking-widest pl-1">Loading Order...</p>
+      </div>
+    );
+  }
+
+  if (!order) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-6" style={{ background: "#f8f7f5" }}>
+        <GlassCard className="max-w-md w-full p-10 text-center rounded-[32px] border-white shadow-sm bg-white/60">
+          <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center mx-auto mb-8 border border-stone-100 shadow-sm">
+             <XCircle className="h-10 w-10 text-stone-100" />
+          </div>
+          <h2 className="text-2xl font-bold text-stone-900 mb-2 tracking-tight">Order Not Found</h2>
+          <p className="text-stone-500 text-sm mb-10 leading-relaxed font-medium">We couldn't find the order details you're looking for.</p>
+          <Button asChild className="w-full h-12 rounded-xl bg-stone-900 text-white hover:bg-black font-bold active:scale-95 transition-all text-sm shadow-lg">
+             <Link href="/dashboard/vendor/orders"><ArrowLeft className="h-4 w-4 mr-2" /> Back to Orders</Link>
+          </Button>
+        </GlassCard>
+      </div>
+    );
+  }
 
   const s = statusConfig[order.status] ?? statusConfig.pending;
   const vendorTotal = vendorItems.reduce((sum, i) => sum + Number(i.total_price), 0);
-  const orderCurrency = (order.currency as string | undefined)?.toUpperCase() || "RWF";
+  const orderCurrency = (order.currency as string | undefined)?.toUpperCase() || "USD";
 
   let mapAddress = "";
   let googleMapsUrl = "";
-  let qrCodeUrl = "";
   
   if (order.shipping_address) {
     const rawAddress = `${order.shipping_address.line1}, ${order.shipping_address.city}, ${order.shipping_address.countryCode || order.shipping_address.country}`;
     mapAddress = encodeURIComponent(rawAddress);
     googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${mapAddress}`;
-    qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(googleMapsUrl)}&color=000000&bgcolor=ffffff`;
   }
 
   return (
-    <div className="space-y-8 animate-fade-in pb-12 max-w-5xl">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[var(--color-surface)] border border-[var(--color-border)] p-4 rounded-3xl shadow-sm">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" className="rounded-full shadow-sm" asChild>
-            <Link href="/dashboard/vendor/orders"><ArrowLeft className="h-5 w-5" /></Link>
-          </Button>
-          <div>
-            <h1 className="text-2xl font-black bg-gradient-to-r from-[var(--color-text-primary)] to-[var(--color-text-muted)] bg-clip-text text-transparent">
-              Order {order.order_number}
-            </h1>
-            <p className="text-xs font-semibold text-[var(--color-text-muted)] mt-1 uppercase tracking-wider">
-              {new Date(order.created_at).toLocaleDateString(undefined, { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-            </p>
-          </div>
-        </div>
-        <Badge variant={s.variant} className="px-4 py-1.5 rounded-full text-xs uppercase font-black tracking-widest shadow-sm">
-          {s.label}
-        </Badge>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <div
+      className="min-h-screen animate-in fade-in duration-500 pb-20 relative overflow-hidden"
+      style={{
+        background: "radial-gradient(ellipse 80% 60% at 80% 0%, rgba(251,146,60,0.03) 0%, transparent 50%), radial-gradient(ellipse 60% 50% at 0% 100%, rgba(186,230,253,0.03) 0%, transparent 55%), #f8f7f5",
+      }}
+    >
+      <div className="max-w-6xl mx-auto space-y-8 px-6 pt-10 relative z-10">
         
-        {/* LEFT COLUMN: Items and Status Timeline */}
-        <div className="lg:col-span-2 space-y-8">
-          
-          {/* Status Visualizer */}
-          <Card className="border-[var(--color-border)]/50 shadow-sm rounded-3xl bg-gradient-to-br from-[var(--color-surface)] to-[var(--color-surface-secondary)]/20 overflow-hidden">
-            <CardContent className="p-6">
-              <div className="relative">
-                <div className="absolute top-1/2 left-0 w-full h-[2px] bg-[var(--color-border)] -translate-y-1/2 rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-[var(--color-accent)] transition-all duration-700 ease-in-out" 
-                    style={{ width: order.status === 'pending' ? '0%' : order.status === 'confirmed' ? '20%' : order.status === 'processing' ? '40%' : order.status === 'shipped' ? '60%' : order.status === 'delivered' ? '80%' : order.status === 'completed' ? '100%' : '0%' }}
-                  />
-                </div>
-                <div className="relative flex justify-between">
-                  {[
-                    { id: "confirmed", icon: <CheckCircle className="h-4 w-4" />, label: "Confirmed" },
-                    { id: "processing", icon: <Clock className="h-4 w-4" />, label: "Processing" },
-                    { id: "shipped", icon: <Truck className="h-4 w-4" />, label: "Shipped" },
-                    { id: "delivered", icon: <ShoppingBag className="h-4 w-4" />, label: "Delivered" },
-                    { id: "completed", icon: <CheckCircle2 className="h-4 w-4" />, label: "Completed" },
-                  ].map((step, idx) => {
-                    const statusOrder = ["pending", "confirmed", "processing", "shipped", "delivered", "completed"];
-                    const currentIdx = statusOrder.indexOf(order.status);
-                    const stepIdx = statusOrder.indexOf(step.id);
-                    const isPast = currentIdx >= stepIdx;
-                    const isActive = currentIdx === stepIdx;
-                    
-                    return (
-                      <div key={step.id} className="flex flex-col items-center gap-2">
-                        <div className={cn(
-                          "h-10 w-10 rounded-full flex items-center justify-center border-4 border-[var(--color-surface)] shadow-sm transition-all duration-500",
-                          isPast ? "bg-[var(--color-accent)] text-white" : "bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)]",
-                          isActive && "ring-4 ring-[var(--color-accent)]/20 scale-110"
-                        )}>
-                          {step.icon}
-                        </div>
-                        <span className={cn(
-                          "text-[10px] font-bold uppercase tracking-widest",
-                          isPast ? "text-[var(--color-text-primary)]" : "text-[var(--color-text-muted)]"
-                        )}>
-                          {step.label}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Items List */}
-          <Card className="border-[var(--color-border)]/50 shadow-sm rounded-3xl overflow-hidden">
-            <CardHeader className="bg-[var(--color-surface-secondary)]/30 border-b border-[var(--color-border)]/50 px-6 py-4">
-              <CardTitle className="text-sm font-black uppercase tracking-widest text-[var(--color-text-muted)]">Order Items</CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <ul className="divide-y divide-[var(--color-border)]/50">
-                {vendorItems.map((item: any) => (
-                  <li key={item.id} className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-6 hover:bg-[var(--color-surface-secondary)]/20 transition-colors">
-                    <div className="h-20 w-20 bg-[var(--color-surface-secondary)] rounded-2xl overflow-hidden shrink-0 border border-[var(--color-border)]/50 shadow-sm">
-                      {item.product_image ? (
-                        <img src={item.product_image} alt="" className="h-full w-full object-cover hover:scale-105 transition-transform" />
-                      ) : (
-                        <div className="h-full w-full flex items-center justify-center bg-gradient-to-br from-[var(--color-surface-secondary)] to-[var(--color-border)]"><Package className="h-8 w-8 text-[var(--color-text-muted)]" /></div>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0 space-y-1">
-                      <div className="flex items-center gap-2">
-                        <p className="font-bold text-[var(--color-text-primary)] text-lg truncate">{item.product_name}</p>
-                        {item.product_source === "cj" && (
-                          <Badge variant="secondary" className="text-[9px] px-2 py-0.5 rounded-full uppercase font-black bg-blue-500/10 text-blue-500 border border-blue-500/20">
-                            CJ Dropshipping
-                          </Badge>
-                        )}
-                      </div>
-                      <Badge variant="outline" className="text-xs font-semibold px-2 py-0.5 text-[var(--color-text-secondary)]">
-                        Qty: {item.quantity}
-                      </Badge>
-                    </div>
-                    <div className="text-right mt-4 sm:mt-0">
-                      <p className="text-sm font-semibold text-[var(--color-text-muted)] line-through opacity-50">{formatMoney(Number(item.total_price) * 1.2, orderCurrency)}</p>
-                      <p className="text-xl font-black text-[var(--color-text-primary)]">{formatMoney(Number(item.total_price), orderCurrency)}</p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-              <div className="p-6 border-t border-[var(--color-border)]/50 flex justify-between items-center bg-gradient-to-r from-[var(--color-surface-secondary)]/30 to-[var(--color-surface)]">
-                <span className="text-xs uppercase font-black tracking-widest text-[var(--color-text-muted)]">Subtotal</span>
-                <span className="text-2xl font-black bg-gradient-to-r from-[var(--color-accent)] to-[var(--color-accent-hover)] bg-clip-text text-transparent">
-                  {formatMoney(vendorTotal, orderCurrency)}
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* RIGHT COLUMN: Fulfillment Actions & Shipping */}
-        <div className="space-y-8">
-          
-          <Card className="border-[var(--color-border)]/50 shadow-sm rounded-3xl overflow-hidden bg-gradient-to-br from-[var(--color-surface)] to-[var(--color-surface-secondary)]/30 relative">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--color-accent)]/5 rounded-full blur-3xl" />
-            <CardHeader className="border-b border-[var(--color-border)]/50 px-6 py-4">
-              <CardTitle className="text-sm font-black uppercase tracking-widest text-[var(--color-text-primary)]">Update Status</CardTitle>
-            </CardHeader>
-            <CardContent className="p-6 space-y-3">
-              {[
-                { status: "confirmed", label: "Accept & Confirm", icon: <CheckCircle className="h-4 w-4" />, variant: "default" as const },
-                { status: "processing", label: "Mark as Processing", icon: <Clock className="h-4 w-4" />, variant: "secondary" as const },
-                { status: "shipped", label: "Mark as Shipped", icon: <Truck className="h-4 w-4" />, variant: "default" as const },
-                { status: "delivered", label: "Mark as Delivered", icon: <ShoppingBag className="h-4 w-4" />, variant: "success" as const },
-                { status: "cancelled", label: "Cancel Order", icon: <XCircle className="h-4 w-4" />, variant: "destructive" as const },
-              ].map((action) => (
-                <Button
-                  key={action.status}
-                  variant={order.status === action.status ? action.variant : "outline"}
-                  className={cn(
-                    "w-full justify-start gap-4 h-12 rounded-xl transition-all duration-300 shadow-sm",
-                    order.status === action.status 
-                      ? "ring-2 ring-offset-2 ring-[var(--color-accent)]/30 font-bold scale-[1.02]" 
-                      : "hover:bg-[var(--color-surface-secondary)] hover:scale-[1.01]"
-                  )}
-                  disabled={updatingStatus || order.status === action.status}
-                  onClick={() => handleStatusUpdate(action.status)}
-                >
-                  {updatingStatus && order.status !== action.status ? 
-                    <Loader2 className="h-4 w-4 animate-spin shrink-0" /> : 
-                    <div className={cn("shrink-0 p-1.5 rounded-lg", order.status === action.status ? "bg-white/20" : "bg-[var(--color-surface-secondary)]")}>{action.icon}</div>
-                  }
-                  <span className="flex-1 text-left">{action.label}</span>
-                  {order.status === action.status && <div className="h-2 w-2 rounded-full bg-current animate-pulse" />}
-                </Button>
-              ))}
-            </CardContent>
-          </Card>
-
-        </div>
-      </div>
-      
-      {/* FULL WIDTH BOTTOM ROW: Customer & Shipping */}
-      <Card className="border-[var(--color-border)]/50 shadow-sm rounded-3xl overflow-hidden relative group">
-        {/* Stamp decorative background */}
-        <div className="absolute -right-6 -top-6 text-[var(--color-border)] opacity-10 rotate-12 group-hover:rotate-0 transition-transform duration-700 pointer-events-none">
-          <Package className="h-32 w-32" />
-        </div>
-        
-        <CardHeader className="bg-[var(--color-surface-secondary)]/30 border-b border-[var(--color-border)]/50 px-6 py-4 flex flex-row items-center justify-between">
-          <CardTitle className="text-sm font-black uppercase tracking-widest text-[var(--color-text-primary)] flex items-center gap-2">
-            <Truck className="h-4 w-4 text-[var(--color-text-muted)]" /> Fulfillment Logistics & Customer
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-0 grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-[var(--color-border)]/50">
-          
-          <div className="flex flex-col h-full bg-gradient-to-br from-[var(--color-surface)] to-[var(--color-surface-secondary)]/20 relative z-10">
-            {/* Top half: Customer Identity */}
-            <div className="p-6 pb-4">
-              <p className="font-black text-2xl text-[var(--color-text-primary)]">{order.profiles?.full_name ?? "General Customer"}</p>
-              <p className="text-sm font-medium text-[var(--color-text-secondary)] mt-1 mb-4">{order.profiles?.email ?? "No Email Provided"}</p>
-              <Button variant="secondary" size="sm" className="rounded-xl gap-2 shadow-sm font-bold bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 hover:text-blue-700 border-none" asChild>
-                <Link href={`/dashboard/messages?buyer=${order.profiles?.id}`}>Chat with Buyer</Link>
+        {/* Header - Simpler */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+           <div className="flex items-center gap-4">
+              <Button asChild variant="ghost" size="icon" className="shrink-0 h-10 w-10 rounded-xl bg-white border border-stone-100 shadow-sm hover:bg-white active:scale-95 transition-all text-stone-500">
+                <Link href="/dashboard/vendor/orders"><ArrowLeft className="h-5 w-5" /></Link>
               </Button>
-            </div>
-            
-            {/* Bottom half: Shipping Label */}
-            {order.shipping_address && (
-              <div className="p-6 pt-4 flex-1">
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="h-6 w-1 bg-[var(--color-accent)] rounded-full" />
-                  <p className="text-xs font-black uppercase tracking-widest text-[var(--color-text-muted)]">Delivery Label</p>
-                </div>
-                
-                <div className="bg-[var(--color-surface-secondary)]/40 border border-[var(--color-border)]/50 p-5 rounded-2xl relative shadow-inner">
-                  {/* Fake barcode decor */}
-                  <div className="absolute right-4 top-4 opacity-20 flex gap-0.5">
-                     {[...Array(15)].map((_, i) => <div key={i} className="h-8 bg-[var(--color-text-primary)]" style={{ width: Math.random() > 0.5 ? '2px' : '4px' }} />)}
-                  </div>
-                  
-                  <div className="text-sm font-bold text-[var(--color-text-primary)] space-y-1 pr-16 relative z-10">
-                    <p className="text-lg font-black text-[var(--color-accent)] mb-2">
-                      {order.shipping_address.firstName || ""} {order.shipping_address.lastName || ""}
-                    </p>
-                    <p>{order.shipping_address.line1}</p>
-                    {order.shipping_address.line2 && <p>{order.shipping_address.line2}</p>}
-                    <p className="text-[var(--color-text-secondary)]">
-                      {order.shipping_address.city}
-                      {order.shipping_address.state ? `, ${order.shipping_address.state}` : ""}
-                      {order.shipping_address.zipCode ? ` ${order.shipping_address.zipCode}` : ""}
-                    </p>
-                    <p className="inline-block mt-3 bg-[var(--color-text-primary)] text-[var(--color-surface)] px-3 py-1 rounded-md text-xs font-black uppercase tracking-widest">
-                      {order.shipping_address.countryCode || order.shipping_address.country}
-                    </p>
-                  </div>
+              <div className="space-y-1">
+                 <h1 className="text-2xl font-bold text-stone-900 tracking-tight">Order #{order.order_number}</h1>
+                 <p className="text-[11px] font-bold text-stone-400 uppercase tracking-widest pl-0.5">
+                    Placed on {new Date(order.created_at).toLocaleDateString()}
+                 </p>
+              </div>
+           </div>
+           
+           <div className="flex items-center gap-3">
+              <GlassPill color={s.variant === 'warning' ? 'orange' : s.variant === 'success' ? 'emerald' : 'default'} className="px-6 py-2.5 rounded-full text-[10px] uppercase font-bold tracking-widest border-none shadow-none">
+                {s.label}
+              </GlassPill>
+           </div>
+        </div>
 
-                  {order.shipping_address.phone && (
-                    <div className="mt-5 pt-4 border-t border-[var(--color-border)]/50 flex items-center justify-between relative z-10">
-                      <span className="text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">Phone</span>
-                      <span className="text-sm font-black text-[var(--color-text-primary)]">{order.shipping_address.phone}</span>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+           
+           {/* Primary Content Column */}
+           <div className="lg:col-span-8 space-y-8">
+              
+              {/* Progress Tracker - Softer */}
+              <GlassCard className="p-8 rounded-[32px] border-white bg-white/60 shadow-sm overflow-hidden">
+                 <div className="relative mb-8">
+                    <div className="absolute top-1/2 left-0 w-full h-1 bg-stone-100 rounded-full -translate-y-1/2" />
+                    <div 
+                      className="absolute top-1/2 left-0 h-1 bg-orange-500 rounded-full -translate-y-1/2 transition-all duration-1000" 
+                      style={{ width: order.status === 'pending' ? '0%' : order.status === 'confirmed' ? '25%' : order.status === 'processing' ? '50%' : order.status === 'shipped' ? '75%' : order.status === 'delivered' || order.status === 'completed' ? '100%' : '0%' }}
+                    />
+                    <div className="relative flex justify-between">
+                      {[
+                        { id: "confirmed", icon: <CheckCircle className="h-4 w-4" />, label: "Confirm" },
+                        { id: "processing", icon: <Activity className="h-4 w-4" />, label: "Process" },
+                        { id: "shipped", icon: <Truck className="h-4 w-4" />, label: "Ship" },
+                        { id: "completed", icon: <ShoppingBag className="h-4 w-4" />, label: "Deliver" },
+                      ].map((step) => {
+                        const statusOrder = ["pending", "confirmed", "processing", "shipped", "delivered", "completed"];
+                        const currentIdx = statusOrder.indexOf(order.status);
+                        const stepIdx = statusOrder.indexOf(step.id);
+                        const isPast = currentIdx >= stepIdx;
+                        
+                        return (
+                          <div key={step.id} className="flex flex-col items-center gap-3">
+                            <div className={cn(
+                              "h-10 w-10 rounded-xl flex items-center justify-center border-2 border-white shadow-sm transition-all duration-700",
+                              isPast ? "bg-stone-900 text-white" : "bg-white text-stone-200"
+                            )}>
+                              {step.icon}
+                            </div>
+                            <span className={cn("text-[9px] font-bold uppercase tracking-widest", isPast ? "text-stone-900" : "text-stone-300")}>
+                              {step.label}
+                            </span>
+                          </div>
+                        );
+                      })}
                     </div>
-                  )}
-                  
-                  {/* QR Code */}
-                  {qrCodeUrl && (
-                     <div className="absolute top-4 right-4 z-10 border border-[var(--color-border)]/50 p-1 bg-white rounded-xl shadow-sm hover:scale-105 transition-transform">
-                       <a href={googleMapsUrl} target="_blank" rel="noopener noreferrer" title="Scan to open in Google Maps">
-                         <img src={qrCodeUrl} alt="Address QR Code" className="w-16 h-16 rounded-lg opacity-90" />
-                       </a>
-                     </div>
-                  )}
-                </div>
+                 </div>
+              </GlassCard>
+
+              {/* Order Items Table - Simpler */}
+              <GlassCard className="rounded-[32px] border-white bg-white/60 shadow-sm overflow-hidden">
+                 <div className="p-6 border-b border-stone-100 flex items-center justify-between">
+                    <h3 className="text-lg font-bold text-stone-900 tracking-tight">Order Items</h3>
+                    <Package className="h-5 w-5 text-stone-200" />
+                 </div>
+                 <div className="divide-y divide-stone-50">
+                    {vendorItems.map((item: any) => (
+                      <div key={item.id} className="flex items-center gap-6 p-6 hover:bg-white/40 transition-all duration-300">
+                        <div className="h-16 w-16 rounded-xl bg-white border border-stone-50 shadow-sm overflow-hidden p-0.5 shrink-0">
+                          {item.product_image ? (
+                            <img src={item.product_image} alt="" className="h-full w-full rounded-lg object-cover" />
+                          ) : (
+                            <div className="h-full w-full rounded-lg bg-stone-50 flex items-center justify-center"><Package className="h-5 w-5 text-stone-100" /></div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                           <div className="flex items-center gap-3 mb-1">
+                              <p className="font-bold text-base text-stone-900 tracking-tight truncate">{item.product_name}</p>
+                              {item.product_source === "cj" && <Badge variant="secondary" className="text-[10px] px-2 py-0">Dropship</Badge>}
+                           </div>
+                           <p className="text-[11px] font-bold text-stone-400 uppercase tracking-widest">
+                             {formatMoney(Number(item.unit_price), orderCurrency)} × {item.quantity}
+                           </p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className="text-lg font-bold text-stone-900 tracking-tight tabular-nums">{formatMoney(Number(item.total_price), orderCurrency)}</p>
+                        </div>
+                      </div>
+                    ))}
+                 </div>
+                 <div className="p-8 border-t border-stone-50 bg-stone-50/50 flex items-center justify-between">
+                    <p className="text-[11px] font-bold text-stone-400 uppercase tracking-widest">Order Total</p>
+                    <p className="text-3xl font-black text-stone-900 tracking-tight tabular-nums">
+                        {formatMoney(vendorTotal, orderCurrency)}
+                    </p>
+                 </div>
+              </GlassCard>
+           </div>
+
+           {/* Sidebar Control Column */}
+           <div className="lg:col-span-4 space-y-8">
+              
+              {/* Status Controls - Simple Buttons */}
+              <GlassCard className="p-6 rounded-[32px] border-white bg-stone-900 text-white shadow-lg space-y-6">
+                 <div>
+                    <h3 className="text-lg font-bold text-white tracking-tight">Update Status</h3>
+                    <p className="text-[10px] font-medium text-stone-500 uppercase tracking-widest mt-1">Change order fulfillment stage</p>
+                 </div>
+                 <div className="grid grid-cols-1 gap-2">
+                   {[
+                     { status: "confirmed", label: "Confirm Order", icon: <CheckCircle className="h-4 w-4" /> },
+                     { status: "processing", label: "Start Processing", icon: <Activity className="h-4 w-4" /> },
+                     { status: "shipped", label: "Mark as Shipped", icon: <Truck className="h-4 w-4" /> },
+                     { status: "delivered", label: "Mark as Delivered", icon: <MapPin className="h-4 w-4" /> },
+                     { status: "cancelled", label: "Cancel Order", icon: <XCircle className="h-4 w-4" /> },
+                   ].map((action) => (
+                     <Button
+                       key={action.status}
+                       disabled={updatingStatus || order.status === action.status}
+                       onClick={() => handleStatusUpdate(action.status)}
+                       className={cn(
+                         "w-full h-12 justify-start gap-4 rounded-xl transition-all font-bold text-[11px] uppercase tracking-widest border-none",
+                         order.status === action.status 
+                           ? "bg-white text-stone-900" 
+                           : "bg-white/5 text-stone-400 hover:bg-white/10 hover:text-white"
+                       )}
+                     >
+                        {updatingStatus && order.status !== action.status ? <Loader2 className="h-3 w-3 animate-spin" /> : action.icon}
+                        {action.label}
+                        {order.status === action.status && <CheckCircle2 className="ml-auto h-3.5 w-3.5 text-stone-900" />}
+                     </Button>
+                   ))}
+                 </div>
+              </GlassCard>
+
+              {/* Customer Info Card */}
+              <GlassCard className="p-8 rounded-[32px] border-white bg-white/60 shadow-sm space-y-8">
+                 <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-white border border-stone-100 flex items-center justify-center shadow-sm">
+                       <User className="h-5 w-5 text-stone-900" />
+                    </div>
+                    <div className="min-w-0">
+                       <h3 className="text-lg font-bold text-stone-900 tracking-tight truncate leading-none mb-1">{order.profiles?.full_name ?? "Guest User"}</h3>
+                       <p className="text-[10px] font-bold text-stone-400 uppercase truncate">{order.profiles?.email}</p>
+                    </div>
+                 </div>
+                 <Button asChild className="w-full h-12 rounded-xl bg-sky-500 text-white font-bold text-xs uppercase tracking-widest shadow-md hover:bg-sky-600 border-none active:scale-95 transition-all">
+                    <Link href={`/dashboard/messages?buyer=${order.profiles?.id}`}><Zap className="h-4 w-4 mr-2" /> Message Customer</Link>
+                 </Button>
+              </GlassCard>
+           </div>
+
+           {/* Shipping Section - Full Width */}
+           {order.shipping_address && (
+              <div className="lg:col-span-12">
+                 <GlassCard className="rounded-[40px] border-white bg-white/60 shadow-sm overflow-hidden">
+                    <div className="grid grid-cols-1 md:grid-cols-2">
+                       <div className="p-10 space-y-8 border-r border-stone-50">
+                          <div>
+                             <h3 className="text-xl font-bold text-stone-900 tracking-tight flex items-center gap-3">
+                                <MapPin className="h-5 w-5 text-stone-300" /> Shipping Address
+                             </h3>
+                             <p className="text-[11px] font-bold uppercase tracking-widest text-stone-400 mt-1">Customer Delivery Information</p>
+                          </div>
+                          
+                          <div className="p-8 rounded-2xl bg-white border border-stone-50 shadow-sm space-y-2">
+                             <p className="font-bold text-lg text-stone-900 mb-1">
+                                {order.shipping_address.firstName || ""} {order.shipping_address.lastName || ""}
+                             </p>
+                             <p className="text-stone-500 font-medium text-base">{order.shipping_address.line1}</p>
+                             {order.shipping_address.line2 && <p className="text-stone-500 font-medium text-base">{order.shipping_address.line2}</p>}
+                             <p className="text-base font-bold text-stone-700">
+                                {order.shipping_address.city}, {order.shipping_address.country}
+                             </p>
+                             <div className="flex flex-wrap gap-6 mt-6 pt-6 border-t border-stone-50">
+                                <div className="space-y-0.5">
+                                   <p className="text-[10px] font-bold text-stone-300 uppercase tracking-widest">Region</p>
+                                   <p className="text-sm font-bold text-stone-900 uppercase">{order.shipping_address.countryCode || "Global"}</p>
+                                </div>
+                                <div className="space-y-0.5">
+                                   <p className="text-[10px] font-bold text-stone-300 uppercase tracking-widest">Phone</p>
+                                   <p className="text-sm font-bold text-stone-900">{order.shipping_address.phone || "Not Provided"}</p>
+                                </div>
+                             </div>
+                          </div>
+                       </div>
+                       
+                       <div className="p-10">
+                          <div className="h-full min-h-[260px] space-y-6">
+                             <div className="h-full rounded-2xl overflow-hidden border-4 border-white shadow-sm">
+                                <iframe 
+                                  width="100%" 
+                                  height="100%" 
+                                  style={{ border: 0 }} 
+                                  loading="lazy" 
+                                  allowFullScreen 
+                                  src={`https://maps.google.com/maps?q=${mapAddress}&t=&z=14&ie=UTF8&iwloc=&output=embed`}
+                                />
+                             </div>
+                             <Button asChild variant="outline" className="w-full h-12 rounded-xl border-stone-100 text-stone-600 font-bold text-[11px] uppercase tracking-widest active:scale-95 transition-all">
+                                <a href={googleMapsUrl} target="_blank" rel="noopener noreferrer">
+                                   Open in Maps <ExternalLink className="h-4 w-4 ml-2" />
+                                </a>
+                             </Button>
+                          </div>
+                       </div>
+                    </div>
+                 </GlassCard>
               </div>
-            )}
-          </div>
-          
-          {/* Right side: Google Maps Interactive Pane */}
-          {order.shipping_address ? (
-            <div className="bg-[var(--color-surface-secondary)]/10 h-64 md:h-auto relative z-10 p-4">
-              <div className="w-full h-full rounded-2xl overflow-hidden border border-[var(--color-border)]/50 shadow-inner relative group">
-                <iframe 
-                  width="100%" 
-                  height="100%" 
-                  style={{ border: 0 }} 
-                  loading="lazy" 
-                  allowFullScreen 
-                  src={`https://maps.google.com/maps?q=${mapAddress}&t=&z=14&ie=UTF8&iwloc=&output=embed`}
-                />
-                
-                {/* Map Action Overlay */}
-                <div className="absolute top-0 w-full h-full pointer-events-none flex items-end justify-end p-4">
-                  <Button size="sm" variant="secondary" className="h-10 px-4 rounded-xl shadow-xl font-black text-sm bg-[var(--color-surface)]/95 backdrop-blur-md pointer-events-auto border border-[var(--color-border)] hover:bg-[var(--color-surface)] hover:scale-105 transition-all" asChild>
-                    <a href={googleMapsUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
-                       <Truck className="h-4 w-4" /> Open Directions
-                    </a>
-                  </Button>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center p-12 text-center bg-[var(--color-surface-secondary)]/10 h-full">
-               <div className="h-16 w-16 rounded-full bg-[var(--color-surface-secondary)] flex items-center justify-center mx-auto mb-4 border border-[var(--color-border)]/50 shadow-sm">
-                 <Package className="h-6 w-6 text-[var(--color-text-muted)]" />
-               </div>
-               <p className="text-lg font-black text-[var(--color-text-primary)]">No shipping required</p>
-               <p className="text-sm text-[var(--color-text-muted)] font-medium mt-1">This order only contains digital products.</p>
-            </div>
-          )}
-          
-        </CardContent>
-      </Card>
+           )}
+        </div>
+      </div>
     </div>
   );
 }

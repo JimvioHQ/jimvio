@@ -2,9 +2,9 @@
 
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
-import { MessageSquare, Store, ChevronRight, User, ArrowLeft } from "lucide-react";
+import { MessageSquare, Store, ChevronRight, User, ArrowLeft, MoreVertical, Search, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { GlassCard, GlassPill } from "@/components/ui/glass";
 import { createClient } from "@/lib/supabase/client";
 import { timeAgo } from "@/lib/utils";
 import { cn } from "@/lib/utils";
@@ -13,6 +13,7 @@ import { ChatInput } from "@/components/messages/chat-input";
 import { QuoteRequestModal } from "@/components/messages/quote-request-modal";
 import { QuoteReplyModal } from "@/components/messages/quote-reply-modal";
 import { ProductShareModal } from "@/components/messages/product-share-modal";
+import Link from "next/link";
 
 type Conversation = {
   id: string;
@@ -118,7 +119,7 @@ export default function MessagesPage() {
             const v = Array.isArray(o.vendors) ? o.vendors[0] : o.vendors;
             if (v?.id && !seen.has(v.id)) {
               seen.add(v.id);
-              vendors.push({ id: v.id, business_name: v.business_name ?? "Supplier", business_slug: v.business_slug ?? "" });
+              vendors.push({ id: v.id, business_name: v.business_name ?? "Store", business_slug: v.business_slug ?? "" });
             }
           });
           setVendorOptions(vendors);
@@ -237,7 +238,7 @@ export default function MessagesPage() {
   const otherPartyName = selectedConv
     ? selectedConv.is_vendor_side
       ? (selectedConv.buyer?.full_name ?? "Buyer")
-      : (selectedConv.vendors?.business_name ?? "Supplier")
+      : (selectedConv.vendors?.business_name ?? "Store Owner")
     : "";
   const otherPartyAvatar = selectedConv
     ? selectedConv.is_vendor_side
@@ -293,156 +294,183 @@ export default function MessagesPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <p className="text-sm text-[var(--color-text-muted)]">Loading…</p>
+      <div className="min-h-[50vh] flex flex-col items-center justify-center space-y-4">
+        <div className="w-8 h-8 border-4 border-stone-100 border-t-orange-500 rounded-full animate-spin" />
+        <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Loading Chats...</p>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-var(--navbar-height,108px)-2rem)] max-h-[800px]">
-      <div className="mb-2">
-        <h1 className="text-xl font-bold text-[var(--color-text-primary)]">Messages</h1>
-        <p className="text-sm text-[var(--color-text-muted)]">Chat with suppliers and negotiate</p>
+    <div
+      className="flex flex-col h-[calc(100vh-160px)] animate-in fade-in duration-500 max-w-7xl mx-auto"
+    >
+      {/* Header - Simpler */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+         <div className="space-y-1">
+            <h1 className="text-2xl font-bold text-stone-900 tracking-tight">Messages</h1>
+            <p className="text-[11px] font-bold text-stone-400 uppercase tracking-widest leading-none">Chat with vendors and customers</p>
+         </div>
       </div>
 
-      <Card className="flex-1 flex flex-col min-h-0 border-[var(--color-border)] overflow-hidden rounded-2xl shadow-sm">
-        <div className="flex flex-1 min-h-0 relative">
-          {/* Conversation list - on mobile hidden when chat is open */}
-          <div
-            className={cn(
-              "w-full md:w-80 flex flex-col border-b md:border-b-0 md:border-r border-[var(--color-border)] bg-[var(--color-surface)] z-10",
-              "absolute inset-0 md:relative md:flex",
-              mobileShowChat && "hidden md:flex"
-            )}
-          >
-            <div className="p-3 border-b border-[var(--color-border)] shrink-0">
-              <p className="text-xs font-medium text-[var(--color-text-muted)]">Conversations</p>
-            </div>
-            <div className="flex-1 overflow-y-auto">
-              {vendorOptions.length === 0 && conversations.length === 0 ? (
-                <div className="p-4 text-center text-sm text-[var(--color-text-muted)]">
-                  <Store className="h-10 w-10 mx-auto mb-2 text-[var(--color-border)]" />
-                  <p>Order from a supplier or use &quot;Chat with Supplier&quot; on a product to start.</p>
+      <div className="flex-1 flex overflow-hidden rounded-[32px] bg-white border border-stone-100 shadow-sm relative">
+          {/* Conversation List Sidebar */}
+          <div className={cn(
+             "w-full lg:w-80 border-r border-stone-50 flex flex-col shrink-0 lg:flex",
+             mobileShowChat && "hidden"
+          )}>
+             <div className="p-4 border-b border-stone-50 space-y-4">
+                <div className="relative">
+                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-stone-300" />
+                   <input 
+                      type="text" 
+                      placeholder="Search chats..." 
+                      className="w-full h-9 pl-9 pr-4 rounded-xl bg-stone-50/50 border-none text-[12px] placeholder:text-stone-300 focus:ring-2 focus:ring-stone-900/5 transition-all"
+                   />
                 </div>
-              ) : (
-                <>
-                  {conversations.map((c) => {
-                    const name = c.is_vendor_side ? (c.buyer?.full_name ?? "Buyer") : (c.vendors?.business_name ?? "Supplier");
-                    const avatar = c.is_vendor_side ? c.buyer?.avatar_url : c.vendors?.business_logo;
-                    return (
-                      <button
-                        key={c.id}
-                        type="button"
-                        onClick={() => { setSelectedId(c.id); setMobileShowChat(true); }}
-                        className={cn(
-                          "w-full flex items-center gap-3 p-3 text-left border-b border-[var(--color-border)]/50 hover:bg-[var(--color-surface-secondary)] transition-colors",
-                          selectedId === c.id && "bg-[var(--color-accent-light)]"
-                        )}
-                      >
-                        <div className="h-10 w-10 rounded-full bg-[var(--color-surface-secondary)] flex items-center justify-center overflow-hidden shrink-0">
-                          {avatar ? (
-                            <img src={avatar} alt="" className="w-full h-full object-cover" />
-                          ) : (
-                            c.is_vendor_side ? <User className="h-5 w-5 text-[var(--color-text-muted)]" /> : <Store className="h-5 w-5 text-[var(--color-text-muted)]" />
-                          )}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="font-medium text-[var(--color-text-primary)] truncate">{name}</p>
-                          <p className="text-xs text-[var(--color-text-muted)] truncate">{c.last_message ?? "No messages yet"}</p>
-                        </div>
-                        {c.last_at && <span className="text-xs text-[var(--color-text-muted)] shrink-0">{timeAgo(c.last_at)}</span>}
-                        <ChevronRight className="h-4 w-4 text-[var(--color-text-muted)] shrink-0" />
-                      </button>
-                    );
-                  })}
-                  {vendorOptions.filter((v) => !conversations.some((c) => c.vendor_id === v.id)).length > 0 && (
-                    <div className="p-2 border-t border-[var(--color-border)]">
-                      <p className="text-xs font-medium text-[var(--color-text-muted)] px-2 mb-2">Start conversation</p>
-                      {vendorOptions
-                        .filter((v) => !conversations.some((c) => c.vendor_id === v.id))
-                        .map((v) => (
-                          <button
-                            key={v.id}
-                            type="button"
-                            onClick={() => startConversation(v.id)}
-                            className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-[var(--color-surface-secondary)] text-left"
-                          >
-                            <Store className="h-4 w-4 text-[var(--color-border)]" />
-                            <span className="text-sm font-medium truncate">{v.business_name}</span>
-                          </button>
-                        ))}
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
+             </div>
+
+             <div className="flex-1 overflow-y-auto p-2 space-y-1 no-scrollbar">
+                {conversations.length === 0 ? (
+                   <div className="h-full flex flex-col items-center justify-center p-8 text-center space-y-4">
+                      <div className="w-12 h-12 rounded-2xl bg-stone-50 flex items-center justify-center text-stone-200">
+                         <MessageSquare className="h-6 w-6" />
+                      </div>
+                      <p className="text-[12px] font-bold text-stone-400 uppercase tracking-widest">No conversations</p>
+                   </div>
+                ) : (
+                   conversations.map(c => {
+                      const name = c.is_vendor_side ? (c.buyer?.full_name ?? "Buyer") : (c.vendors?.business_name ?? "Store");
+                      const avatar = c.is_vendor_side ? c.buyer?.avatar_url : c.vendors?.business_logo;
+                      const active = selectedId === c.id;
+                      
+                      return (
+                         <button
+                           key={c.id}
+                           onClick={() => { setSelectedId(c.id); setMobileShowChat(true); }}
+                           className={cn(
+                             "w-full flex items-center gap-3 p-3 rounded-2xl transition-all duration-200 group text-left",
+                             active ? "bg-stone-50 border border-stone-100" : "hover:bg-stone-50/50 border border-transparent"
+                           )}
+                         >
+                           <div className="w-10 h-10 rounded-xl overflow-hidden bg-stone-100 border border-stone-100 shrink-0">
+                              {avatar ? (
+                                <img src={avatar} alt="" className="w-full h-full object-cover" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-[10px] font-bold text-stone-400 uppercase">
+                                   {name[0]}
+                                </div>
+                              )}
+                           </div>
+                           <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between gap-2">
+                                 <span className="text-[13px] font-bold text-stone-900 truncate tracking-tight">{name}</span>
+                                 {c.last_at && <span className="text-[9px] font-bold text-stone-300 uppercase shrink-0">{timeAgo(c.last_at)}</span>}
+                              </div>
+                              <p className="text-[11px] font-medium text-stone-400 truncate mt-0.5">
+                                 {c.last_message}
+                              </p>
+                           </div>
+                         </button>
+                      );
+                   })
+                )}
+             </div>
           </div>
 
-          {/* Chat area - on mobile full screen when conversation selected */}
-          <div className={cn("flex-1 flex flex-col min-w-0 min-h-0", !selectedId ? "hidden" : mobileShowChat ? "flex" : "hidden md:flex")}>
-            {!selectedId ? (
-              <div className="flex-1 flex items-center justify-center p-8 text-center">
-                <div>
-                  <MessageSquare className="h-14 w-14 text-[var(--color-border)] mx-auto mb-4" />
-                  <p className="text-[var(--color-text-secondary)]">Select a conversation</p>
-                  <p className="text-sm text-[var(--color-text-muted)] mt-1">Or start a chat from a product page</p>
-                </div>
-              </div>
-            ) : (
-              <>
-                <div className="p-3 border-b border-[var(--color-border)] flex items-center gap-3 shrink-0">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="md:hidden h-9 w-9 rounded-full shrink-0"
-                    onClick={() => setMobileShowChat(false)}
-                  >
-                    <ArrowLeft className="h-4 w-4" />
-                  </Button>
-                  <div className="h-9 w-9 rounded-full bg-[var(--color-surface-secondary)] overflow-hidden shrink-0">
-                    {otherPartyAvatar ? <img src={otherPartyAvatar} alt="" className="w-full h-full object-cover" /> : <User className="h-4 w-4 m-2 text-[var(--color-text-muted)]" />}
-                  </div>
-                  <p className="font-medium text-[var(--color-text-primary)] truncate">{otherPartyName}</p>
-                </div>
-                <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                  {messages.map((m) => (
-                    <div key={m.id} className="space-y-1">
-                      <MessageBubble
-                        msg={m}
-                        isOwn={m.sender_id === userId}
-                        replyToMsg={m.reply_to_id ? messagesById[m.reply_to_id] : null}
-                        onReply={setReplyTo}
+          {/* Chat Area */}
+          <div className={cn(
+             "flex-1 flex flex-col min-w-0 bg-white",
+             !selectedId && "hidden lg:flex lg:bg-stone-50/30",
+             !mobileShowChat && "hidden lg:flex"
+          )}>
+             {selectedId ? (
+                <>
+                   {/* Chat Header */}
+                   <div className="h-16 flex items-center justify-between px-6 border-b border-stone-50 bg-white shrink-0">
+                      <div className="flex items-center gap-4">
+                         <Button 
+                           variant="ghost" 
+                           size="icon" 
+                           onClick={() => setMobileShowChat(false)}
+                           className="lg:hidden h-8 w-8 rounded-lg text-stone-400"
+                         >
+                            <ArrowLeft className="h-4 w-4" />
+                         </Button>
+                         <div className="w-8 h-8 rounded-lg overflow-hidden bg-stone-100 border border-stone-100 shrink-0">
+                            {otherPartyAvatar ? <img src={otherPartyAvatar} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-[10px] font-bold text-stone-400">{otherPartyName[0]}</div>}
+                         </div>
+                         <div className="min-w-0">
+                            <h3 className="text-[14px] font-bold text-stone-900 truncate tracking-tight leading-none">{otherPartyName}</h3>
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                               <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                               <span className="text-[9px] font-bold text-stone-400 uppercase tracking-widest">Active</span>
+                            </div>
+                         </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                         <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-stone-400 hover:text-stone-900">
+                            <Plus className="h-4 w-4" />
+                         </Button>
+                         <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-stone-400 hover:text-stone-900">
+                            <MoreVertical className="h-4 w-4" />
+                         </Button>
+                      </div>
+                   </div>
+
+                   {/* Messages Viewport */}
+                   <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-6 no-scrollbar">
+                      {messages.map(m => (
+                         <div key={m.id}>
+                            <MessageBubble 
+                              msg={m} 
+                              isOwn={m.sender_id === userId}
+                              replyToMsg={m.reply_to_id ? messagesById[m.reply_to_id] : null}
+                              onReply={setReplyTo}
+                            />
+                            {isVendor && m.sender_id !== userId && m.message_type === "quote_request" && !messages.some(r => r.reply_to_id === m.id) && (
+                               <div className="mt-4 flex justify-end">
+                                  <Button
+                                    size="sm"
+                                    onClick={() => { setQuoteReplyTarget(m); setShowQuoteReply(true); }}
+                                    className="h-8 rounded-lg bg-orange-600 text-white font-bold text-[10px] uppercase tracking-widest px-4 border-none shadow-sm hover:bg-orange-700"
+                                  >
+                                    Create Offer
+                                  </Button>
+                               </div>
+                            )}
+                         </div>
+                      ))}
+                      <div ref={messagesEndRef} />
+                   </div>
+
+                   {/* Input Area */}
+                   <div className="p-4 md:p-6 bg-white border-t border-stone-50">
+                      <ChatInput 
+                        conversationId={selectedId}
+                        userId={userId!}
+                        onSent={() => {}}
+                        replyTo={replyTo ? { id: replyTo.id } : null}
+                        onCancelReply={() => setReplyTo(null)}
+                        isVendor={isVendor}
+                        onRequestQuote={!isVendor ? () => setShowQuoteRequest(true) : undefined}
+                        onShareProduct={() => setShowProductShare(true)}
                       />
-                      {isVendor && m.sender_id !== userId && m.message_type === "quote_request" && !messages.some((r) => r.reply_to_id === m.id && (r.metadata as Record<string, string>)?.status) && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="rounded-lg text-xs"
-                          onClick={() => { setQuoteReplyTarget(m); setShowQuoteReply(true); }}
-                        >
-                          Reply with offer
-                        </Button>
-                      )}
-                    </div>
-                  ))}
-                  <div ref={messagesEndRef} />
+                   </div>
+                </>
+             ) : (
+                <div className="flex-1 flex flex-col items-center justify-center p-12 text-center space-y-4">
+                   <div className="w-16 h-16 rounded-[24px] bg-stone-50 border border-stone-100 flex items-center justify-center text-stone-200">
+                      <MessageSquare className="h-8 w-8" />
+                   </div>
+                   <div>
+                      <h2 className="text-[14px] font-bold text-stone-900 uppercase tracking-widest">Select a Conversation</h2>
+                      <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mt-1">Establish a link with vendors or customers</p>
+                   </div>
                 </div>
-                <ChatInput
-                  conversationId={selectedId}
-                  userId={userId!}
-                  onSent={() => {}}
-                  replyTo={replyTo ? { id: replyTo.id } : null}
-                  onCancelReply={() => setReplyTo(null)}
-                  isVendor={isVendor}
-                  onRequestQuote={!isVendor ? () => setShowQuoteRequest(true) : undefined}
-                  onShareProduct={() => setShowProductShare(true)}
-                />
-              </>
-            )}
+             )}
           </div>
-        </div>
-      </Card>
+      </div>
 
       {showQuoteRequest && (
         <QuoteRequestModal
@@ -496,7 +524,6 @@ export default function MessagesPage() {
           vendorId={selectedConv.vendor_id}
         />
       )}
-
     </div>
   );
 }

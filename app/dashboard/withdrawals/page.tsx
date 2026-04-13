@@ -2,15 +2,16 @@
 export const dynamic = "force-dynamic";
 
 import React, { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Wallet, ArrowDownRight, CreditCard, Banknote, History, Clock, CheckCircle, Smartphone } from "lucide-react";
+import { Wallet, ArrowDownRight, CreditCard, Banknote, History, Clock, CheckCircle, Smartphone, ArrowLeft, RefreshCw, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { GlassCard, GlassPill, GlassAmbientGlow } from "@/components/ui/glass";
 import { Input } from "@/components/ui/input";
 import { useCurrency } from "@/context/CurrencyContext";
 import { createClient } from "@/lib/supabase/client";
-import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 const PAYMENT_METHODS = [
   { id: "bank", label: "Bank Transfer", desc: "2–3 business days", icon: CreditCard },
@@ -82,7 +83,7 @@ export default function AffiliateWithdrawalsPage() {
   async function requestPayout() {
     const amount = parseFloat(requestAmount);
     if (amount < minPayout) {
-      toast.error(`Minimum payout is RWF ${minPayout.toLocaleString()}.`);
+      toast.error(`Minimum withdrawal is ${formatMoney(minPayout, "USD")}.`);
       return;
     }
     if (amount > balance.available) {
@@ -90,7 +91,7 @@ export default function AffiliateWithdrawalsPage() {
       return;
     }
     if (!payoutAccount.trim()) {
-      toast.error("Add and save your payout account first.");
+      toast.error("Please add and save your payout account first.");
       return;
     }
     setSubmitting(true);
@@ -110,7 +111,7 @@ export default function AffiliateWithdrawalsPage() {
       setSubmitting(false);
       return;
     }
-    toast.success("Payout requested. We'll process it within 2–3 business days.");
+    toast.success("Withdrawal requested successfully.");
     setRequestAmount("");
     setSubmitting(false);
     router.refresh();
@@ -119,116 +120,207 @@ export default function AffiliateWithdrawalsPage() {
   }
 
   if (loading) {
-    return <div className="flex items-center justify-center min-h-[40vh]"><p className="text-sm text-[var(--color-text-muted)]">Loading…</p></div>;
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center space-y-6" style={{ background: "#f8f7f5" }}>
+        <RefreshCw className="h-6 w-6 animate-spin text-orange-500" />
+        <p className="text-[11px] font-bold text-stone-400 uppercase tracking-widest pl-1">Syncing Balance...</p>
+      </div>
+    );
   }
 
   const canRequest = balance.available >= minPayout && payoutAccount.trim();
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div>
-        <h1 className="text-xl font-bold text-[var(--color-text-primary)]">Payouts</h1>
-        <p className="text-sm text-[var(--color-text-muted)] mt-0.5">
-          Withdraw your affiliate earnings. Minimum payout: RWF {minPayout.toLocaleString()}.
-        </p>
-      </div>
+    <div
+      className="min-h-screen animate-in fade-in duration-500 pb-20 relative overflow-hidden"
+      style={{
+        background: "radial-gradient(ellipse 80% 60% at 80% 0%, rgba(251,146,60,0.03) 0%, transparent 50%), radial-gradient(ellipse 60% 50% at 0% 100%, rgba(186,230,253,0.03) 0%, transparent 55%), #f8f7f5",
+      }}
+    >
+      <div className="max-w-4xl mx-auto space-y-8 px-6 pt-10 relative z-10">
+        
+        {/* Header - Simpler */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+           <div className="flex items-center gap-4">
+              <Button asChild variant="ghost" size="icon" className="shrink-0 h-10 w-10 rounded-xl bg-white border border-stone-100 shadow-sm hover:bg-white active:scale-95 transition-all text-stone-500">
+                <Link href="/dashboard"><ArrowLeft className="h-5 w-5" /></Link>
+              </Button>
+              <div className="space-y-1">
+                 <h1 className="text-2xl font-bold text-stone-900 tracking-tight">Withdraw Funds</h1>
+                 <p className="text-[11px] font-bold text-stone-400 capitalize">Manage your earnings and payouts</p>
+              </div>
+           </div>
+           
+           <div className="flex items-center gap-3 bg-white p-3 rounded-full border border-stone-100 shadow-sm px-5">
+              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse ml-1" />
+              <span className="text-[10px] font-bold uppercase tracking-widest text-stone-500">Secure Processing</span>
+           </div>
+        </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2 overflow-hidden border-[var(--color-border)]">
-          <CardContent className="p-6 sm:p-8">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-              <div className="space-y-2">
-                <span className="text-xs font-semibold text-[var(--color-text-muted)] uppercase tracking-wider">Available Balance</span>
-                <h2 className="text-3xl sm:text-4xl font-bold text-[var(--color-text-primary)]">{formatMoney(balance.available, "RWF")}</h2>
-                <div className="flex items-center gap-4 text-sm text-[var(--color-text-muted)]">
-                  <span className="flex items-center gap-1.5"><Clock className="h-4 w-4 text-amber-500" /> {formatMoney(balance.pending, "RWF")} Pending</span>
-                  <span className="flex items-center gap-1.5"><CheckCircle className="h-4 w-4 text-emerald-500" /> {formatMoney(balance.paid, "RWF")} Paid</span>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          
+          {/* Main Withdrawal Panel */}
+          <GlassCard className="lg:col-span-2 rounded-[32px] border-white bg-white/60 shadow-sm overflow-hidden flex flex-col">
+             <div className="p-8 sm:p-10 space-y-10 flex-1">
+                <div className="space-y-4">
+                   <div className="flex items-center gap-2">
+                       <Wallet className="h-4 w-4 text-orange-400" />
+                       <span className="text-[10px] font-bold text-stone-400 capitalize leading-none">Available Balance</span>
+                   </div>
+                   <h2 className="text-5xl font-black text-stone-900 tracking-tight leading-none tabular-nums">{formatMoney(balance.available, "USD")}</h2>
+                   <div className="flex flex-wrap items-center gap-3 pt-2">
+                     <GlassPill color="orange" className="font-bold py-1.5 px-4 text-[9px] border-none shadow-none bg-orange-50 text-orange-600 uppercase tracking-wider"><Clock className="h-3 w-3 mr-1.5" /> {formatMoney(balance.pending, "USD")} Pending</GlassPill>
+                     <GlassPill color="emerald" className="font-bold py-1.5 px-4 text-[9px] border-none shadow-none bg-emerald-50 text-emerald-600 uppercase tracking-wider"><CheckCircle className="h-3 w-3 mr-1.5" /> {formatMoney(balance.paid, "USD")} Paid</GlassPill>
+                   </div>
                 </div>
-              </div>
-              <div className="space-y-3 w-full md:max-w-[280px]">
-                <label className="text-sm font-medium text-[var(--color-text-primary)]">Request amount (RWF)</label>
-                <Input type="number" min={minPayout} step="0.01" value={requestAmount} onChange={e => setRequestAmount(e.target.value)} placeholder={`Min RWF ${minPayout}`} className="rounded-xl" />
-                <Button className="w-full rounded-xl touch-manipulation min-h-[44px]" disabled={!canRequest || submitting} onClick={requestPayout}>
-                  <ArrowDownRight className="h-4 w-4 mr-2" /> Request Payout
-                </Button>
-                {balance.available > 0 && balance.available < minPayout && (
-                  <p className="text-xs text-amber-600">Reach RWF {minPayout.toLocaleString()} to request a payout.</p>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
 
-        <Card>
-          <CardHeader className="pt-5 px-5 pb-0"><CardTitle className="text-sm">Payment method</CardTitle></CardHeader>
-          <CardContent className="p-5 space-y-4">
-            {PAYMENT_METHODS.map((m) => {
-              const Icon = m.icon;
-              return (
-                <button
-                  key={m.id}
-                  type="button"
-                  onClick={() => setPayoutMethod(m.id)}
-                  className={`w-full flex items-center gap-3 p-3 rounded-xl border text-left transition-colors ${payoutMethod === m.id ? "border-[var(--color-accent)] bg-[var(--color-accent-light)]" : "border-[var(--color-border)] hover:bg-[var(--color-surface-secondary)]"}`}
-                >
-                  <Icon className="h-5 w-5 text-[var(--color-accent)]" />
-                  <div>
-                    <p className="text-sm font-semibold text-[var(--color-text-primary)]">{m.label}</p>
-                    <p className="text-xs text-[var(--color-text-muted)]">{m.desc}</p>
-                  </div>
-                </button>
-              );
-            })}
-            <div>
-              <label className="text-xs font-medium text-[var(--color-text-muted)] block mb-1.5">
-                {payoutMethod === "bank" ? "Account number / IBAN" : payoutMethod === "paypal" ? "PayPal email" : "Phone number"}
-              </label>
-              <Input value={payoutAccount} onChange={e => setPayoutAccount(e.target.value)} placeholder={payoutMethod === "paypal" ? "email@example.com" : "+250 700 000 000"} className="rounded-xl" />
-              <Button variant="outline" size="sm" className="mt-2 rounded-xl" onClick={savePayoutMethod}>Save</Button>
-            </div>
-            <div className="space-y-2 pt-2 border-t border-[var(--color-border)]">
-              <div className="flex justify-between text-xs">
-                <span className="text-[var(--color-text-muted)]">Minimum payout</span>
-                <span className="font-semibold">RWF {minPayout.toLocaleString()}</span>
+                <div className="p-8 rounded-[24px] bg-stone-900 text-white space-y-6 shadow-xl relative overflow-hidden group">
+                   <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/10 blur-[60px] rounded-full translate-x-1/2 -translate-y-1/2" />
+                   
+                   <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-white/30 uppercase tracking-[0.2em] block pl-1">Withdrawal Amount (USD)</label>
+                      <Input 
+                        type="number" 
+                        min={minPayout} 
+                        step="0.01" 
+                        value={requestAmount} 
+                        onChange={e => setRequestAmount(e.target.value)} 
+                        placeholder={`Min: $${minPayout}`} 
+                        className="rounded-xl h-14 bg-white/5 border-white/10 font-bold text-xl shadow-inner text-white focus:ring-orange-500 px-6 transition-all focus:bg-white/10" 
+                      />
+                   </div>
+                   <Button 
+                     className="w-full h-14 rounded-xl bg-orange-500 text-white shadow-[0_8px_24px_rgba(249,115,22,0.3)] hover:bg-orange-600 active:scale-95 transition-all text-sm font-bold capitalize border-none" 
+                     disabled={!canRequest || submitting} 
+                     onClick={requestPayout}
+                   >
+                     {submitting ? "Processing..." : "Confirm Withdrawal"}
+                   </Button>
+                   <p className="text-[9px] font-bold text-white/20 uppercase tracking-[0.2em] text-center">
+                     Min threshold: {formatMoney(minPayout, "USD")}
+                   </p>
+                </div>
+             </div>
+          </GlassCard>
+
+          {/* Payout Method Sidebar */}
+          <GlassCard className="rounded-[32px] border-white bg-white/60 shadow-sm flex flex-col overflow-hidden">
+             <div className="p-8 border-b border-stone-50 bg-white/40">
+                <h3 className="text-lg font-bold text-stone-900 tracking-tight">Payout Method</h3>
+                <p className="text-[10px] font-bold text-stone-400 capitalize mt-0.5">Where you'll receive your funds</p>
+             </div>
+             <div className="p-8 space-y-4 flex-1">
+               {PAYMENT_METHODS.map((m) => {
+                 const Icon = m.icon;
+                 const active = payoutMethod === m.id;
+                 return (
+                   <button
+                     key={m.id}
+                     type="button"
+                     onClick={() => setPayoutMethod(m.id)}
+                     className={cn(
+                       "group w-full flex items-center gap-4 p-4 rounded-2xl border transition-all duration-300",
+                       active 
+                         ? "border-orange-200 bg-white shadow-sm" 
+                         : "border-stone-50 bg-white/40 hover:border-orange-100 hover:bg-white/60"
+                     )}
+                   >
+                     <div className={cn(
+                        "h-10 w-10 rounded-xl border flex items-center justify-center shrink-0 transition-colors shadow-sm",
+                        active ? "bg-orange-50 border-orange-100 text-orange-500" : "bg-white border-stone-50 text-stone-300 group-hover:text-stone-400"
+                     )}>
+                       <Icon className="h-5 w-5" />
+                     </div>
+                     <div className="text-left min-w-0">
+                       <p className="text-[13px] font-bold text-stone-900 tracking-tight">{m.label}</p>
+                       <p className="text-[9px] font-bold text-stone-400 uppercase tracking-widest truncate">{m.desc}</p>
+                     </div>
+                   </button>
+                 );
+               })}
+               
+               <div className="bg-white p-6 rounded-2xl border border-stone-50 shadow-sm mt-4 space-y-4">
+                 <label className="text-[10px] font-bold uppercase tracking-widest text-stone-400 block pl-1">
+                   {payoutMethod === "bank" ? "Account Details" : payoutMethod === "paypal" ? "PayPal Email" : "Phone Number"}
+                 </label>
+                 <Input 
+                    value={payoutAccount} 
+                    onChange={e => setPayoutAccount(e.target.value)} 
+                    placeholder={payoutMethod === "paypal" ? "your@email.com" : "+250 ..."} 
+                    className="rounded-xl h-11 bg-stone-50 border-stone-50 text-sm font-bold shadow-none focus:ring-0" 
+                 />
+                 <Button 
+                    variant="default"
+                    size="sm" 
+                    className="h-10 rounded-xl w-full bg-stone-900 text-white text-[10px] font-bold uppercase tracking-widest shadow-md hover:bg-black transition-all active:scale-95 border-none" 
+                    onClick={savePayoutMethod}
+                 >
+                    Save Method
+                 </Button>
+               </div>
+             </div>
+             <div className="p-6 bg-stone-50/50 border-t border-stone-50 text-center">
+                <p className="text-[9px] font-bold text-stone-400 uppercase tracking-widest">
+                   Processing time: 2–3 business days
+                </p>
+             </div>
+          </GlassCard>
+        </div>
+
+        {/* History Registry - Simpler padding */}
+        <GlassCard className="rounded-[32px] border-white bg-white/60 shadow-sm overflow-hidden">
+           <div className="p-8 border-b border-stone-50 bg-white/40 flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-white border border-stone-100 shadow-sm text-stone-300">
+                 <History className="h-4 w-4" />
               </div>
-            </div>
-          </CardContent>
-        </Card>
+              <div>
+                 <h3 className="text-lg font-bold text-stone-900 tracking-tight">Withdrawal History</h3>
+                 <p className="text-[10px] font-bold text-stone-400 capitalize mt-0.5">Your payout history</p>
+              </div>
+           </div>
+           
+           <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                 <thead>
+                    <tr className="bg-stone-50/40">
+                       <th className="px-8 py-5 text-[10px] font-bold text-stone-400 uppercase tracking-widest border-b border-stone-50">Date</th>
+                       <th className="px-8 py-5 text-[10px] font-bold text-stone-400 uppercase tracking-widest border-b border-stone-50">Method</th>
+                       <th className="px-8 py-5 text-right text-[10px] font-bold text-stone-400 uppercase tracking-widest border-b border-stone-50">Amount</th>
+                       <th className="px-8 py-5 text-center text-[10px] font-bold text-stone-400 uppercase tracking-widest border-b border-stone-50">Status</th>
+                    </tr>
+                 </thead>
+                 <tbody className="divide-y divide-stone-50">
+                    {payouts.length === 0 ? (
+                      <tr>
+                         <td colSpan={4} className="py-20 text-center">
+                            <p className="text-[11px] font-bold text-stone-300 uppercase tracking-widest">No past withdrawals found</p>
+                         </td>
+                      </tr>
+                    ) : payouts.map((p) => (
+                      <tr key={p.id} className="hover:bg-white/60 transition-all duration-300 group">
+                         <td className="px-8 py-6 text-sm font-bold text-stone-400 tabular-nums">
+                            {new Date(p.created_at).toLocaleDateString()}
+                         </td>
+                         <td className="px-8 py-6">
+                            <span className="capitalize font-bold text-sm text-stone-900 tracking-tight">{String(p.payout_method || "—").replace(/_/g, " ")}</span>
+                         </td>
+                         <td className="px-8 py-6 text-right">
+                            <span className="font-bold text-base text-stone-900 tabular-nums tracking-tight">{formatMoney(Number(p.amount ?? 0), "USD")}</span>
+                         </td>
+                         <td className="px-8 py-6">
+                            <div className="flex justify-center">
+                               <GlassPill color={p.status === "paid" ? "emerald" : p.status === "failed" ? "rose" : "orange"} className="font-bold text-[9px] px-4 py-1.5 uppercase tracking-widest border-none shadow-none">
+                                  {p.status || "pending"}
+                               </GlassPill>
+                            </div>
+                         </td>
+                      </tr>
+                    ))}
+                 </tbody>
+              </table>
+           </div>
+        </GlassCard>
       </div>
-
-      <Card>
-        <CardHeader className="pt-4 px-5 pb-3"><CardTitle className="text-md flex items-center gap-2"><History className="h-4 w-4" /> Payout history</CardTitle></CardHeader>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0" style={{ WebkitOverflowScrolling: "touch" }}>
-            <table className="table-base min-w-[400px]">
-              <thead>
-                <tr>
-                  <th className="pl-5">Date</th>
-                  <th>Method</th>
-                  <th className="text-right">Amount</th>
-                  <th className="pr-5">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {payouts.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} className="text-center py-12 text-[var(--color-text-muted)]">No payouts yet.</td>
-                  </tr>
-                ) : payouts.map((p) => (
-                  <tr key={p.id}>
-                    <td className="pl-5 text-sm">{new Date(p.created_at).toLocaleDateString()}</td>
-                    <td className="capitalize text-sm">{String(p.payout_method || "—").replace(/_/g, " ")}</td>
-                    <td className="text-right font-medium">{formatMoney(Number(p.amount ?? 0), "RWF")}</td>
-                    <td className="pr-5">
-                      <Badge variant={p.status === "paid" ? "success" : p.status === "failed" ? "destructive" : "warning"} className="text-[10px] py-0">{p.status || "pending"}</Badge>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }

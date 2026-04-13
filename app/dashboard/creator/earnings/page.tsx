@@ -6,11 +6,9 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { DollarSign, Eye, ShoppingCart, Wallet, ArrowRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { StatCard } from "@/components/ui/stat-card";
+import { GlassCard, GlassPill } from "@/components/ui/glass";
 import { useCurrency } from "@/context/CurrencyContext";
 import { createClient } from "@/lib/supabase/client";
-import { Badge } from "@/components/ui/badge";
 
 export default function CreatorEarningsPage() {
   const { formatMoney } = useCurrency();
@@ -52,55 +50,84 @@ export default function CreatorEarningsPage() {
   const paid = payouts.filter((p) => p.status === "paid").reduce((s, p) => s + Number(p.amount ?? 0), 0);
 
   return (
-    <div className="space-y-6 animate-fade-in pb-8">
+    <div
+      className="min-h-screen animate-in fade-in duration-500 pb-12"
+      style={{
+         background: "radial-gradient(ellipse 80% 60% at 80% 0%, rgba(251,146,60,0.07) 0%, transparent 50%), radial-gradient(ellipse 60% 50% at 0% 100%, rgba(186,230,253,0.07) 0%, transparent 55%), #f0ede8",
+      }}
+    >
+      <div className="max-w-[1400px] mx-auto space-y-6 px-4 sm:px-6 pt-5">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-[var(--color-text-primary)]">Creator Earnings</h1>
-          <p className="text-sm text-[var(--color-text-muted)] mt-0.5">Earnings from product sales, views, and payouts.</p>
+          <h1 className="text-2xl font-bold tracking-tight text-stone-900 flex items-center gap-3">
+             <div className="p-2 rounded-[14px] bg-white/60 border border-white/80 shadow-sm shrink-0">
+               <DollarSign className="h-6 w-6 text-emerald-500" />
+             </div>
+             Creator Earnings
+          </h1>
+          <p className="text-[12px] font-semibold text-stone-500 mt-1 uppercase tracking-widest pl-14">Earnings from product sales, views, and payouts</p>
         </div>
-        <Button asChild size="sm">
-          <Link href="/dashboard/withdrawals"><Wallet className="h-4 w-4 mr-1.5" /> Request Payout</Link>
+        <Button asChild className="h-11 px-6 rounded-[14px] font-bold text-[11px] uppercase tracking-widest bg-stone-900 text-white shadow-[0_4px_16px_rgba(0,0,0,0.15)] active:scale-95 transition-all">
+          <Link href="/dashboard/withdrawals"><Wallet className="h-4 w-4 mr-2 text-emerald-400" /> Request Payout</Link>
         </Button>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Earnings from sales" value={formatMoney(totalEarnings, "RWF")} icon={<ShoppingCart className="h-4 w-4" />} iconColor="from-emerald-600 to-teal-600" />
-        <StatCard title="Earnings from views" value={formatMoney(0, "RWF")} icon={<Eye className="h-4 w-4" />} iconColor="from-cyan-600 to-blue-600" />
-        <StatCard title="Pending / Available" value={formatMoney(available, "RWF")} icon={<DollarSign className="h-4 w-4" />} iconColor="from-amber-600 to-orange-600" />
-        <StatCard title="Paid out" value={formatMoney(paid, "RWF")} icon={<ArrowRight className="h-4 w-4" />} iconColor="from-purple-600 to-pink-600" />
+        <GlassCard className="p-5 flex flex-col justify-center">
+           <p className="text-[10px] font-bold uppercase tracking-widest text-stone-500 mb-1 flex items-center gap-1.5"><ShoppingCart className="h-4 w-4 text-emerald-500" /> Earnings from sales</p>
+           <p className="text-[24px] xl:text-[28px] font-black text-stone-900 tabular-nums leading-none tracking-tight break-all">{formatMoney(totalEarnings, "RWF")}</p>
+        </GlassCard>
+        <GlassCard className="p-5 flex flex-col justify-center">
+           <p className="text-[10px] font-bold uppercase tracking-widest text-stone-500 mb-1 flex items-center gap-1.5"><Eye className="h-4 w-4 text-blue-500" /> Earnings from views</p>
+           <p className="text-[24px] xl:text-[28px] font-black text-stone-900 tabular-nums leading-none tracking-tight break-all">{formatMoney(0, "RWF")}</p>
+        </GlassCard>
+        <GlassCard className="p-5 flex flex-col justify-center">
+           <p className="text-[10px] font-bold uppercase tracking-widest text-stone-500 mb-1 flex items-center gap-1.5"><DollarSign className="h-4 w-4 text-orange-500" /> Pending / Available</p>
+           <p className="text-[24px] xl:text-[28px] font-black text-stone-900 tabular-nums leading-none tracking-tight break-all">{formatMoney(available, "RWF")}</p>
+        </GlassCard>
+        <GlassCard className="p-5 flex flex-col justify-center">
+           <p className="text-[10px] font-bold uppercase tracking-widest text-stone-500 mb-1 flex items-center gap-1.5"><ArrowRight className="h-4 w-4 text-purple-500" /> Paid out</p>
+           <p className="text-[24px] xl:text-[28px] font-black text-stone-900 tabular-nums leading-none tracking-tight break-all">{formatMoney(paid, "RWF")}</p>
+        </GlassCard>
       </div>
 
-      <Card className="border-[var(--color-border)] shadow-[var(--shadow-sm)] overflow-hidden">
-        <CardHeader className="border-b border-[var(--color-border)] bg-[var(--color-surface-secondary)]/50 py-4 px-5">
-          <CardTitle className="text-base font-semibold">Payout history</CardTitle>
-          <p className="text-sm text-[var(--color-text-muted)] mt-0.5">Withdrawal requests and status.</p>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto" style={{ WebkitOverflowScrolling: "touch" }}>
-            <table className="w-full min-w-[400px] text-sm">
+      <GlassCard className="overflow-hidden bg-white/40 p-0">
+        <div className="border-b border-stone-200/50 bg-white/50 py-4 px-6 flex flex-col">
+          <h3 className="text-[14px] font-bold text-stone-900 tracking-tight flex items-center gap-2">
+            <Wallet className="h-4 w-4 text-emerald-500" />
+            Payout history
+          </h3>
+          <p className="text-[12px] font-semibold text-stone-500 uppercase tracking-widest mt-1">Withdrawal requests and status.</p>
+        </div>
+        <div className="p-0">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[500px] text-sm text-left">
               <thead>
-                <tr className="border-b border-[var(--color-border)] bg-[var(--color-surface-secondary)]/50">
-                  <th className="text-left font-medium text-[var(--color-text-muted)] py-3.5 pl-5 pr-3">Date</th>
-                  <th className="text-left font-medium text-[var(--color-text-muted)] py-3.5 px-3">Method</th>
-                  <th className="text-right font-medium text-[var(--color-text-muted)] py-3.5 px-3">Amount</th>
-                  <th className="text-center font-medium text-[var(--color-text-muted)] py-3.5 pl-3 pr-5 w-24">Status</th>
+                <tr className="border-b border-stone-200/50 bg-stone-50/50">
+                  <th className="py-4 px-6 text-[10px] font-bold uppercase tracking-widest text-stone-500">Date</th>
+                  <th className="py-4 px-6 text-[10px] font-bold uppercase tracking-widest text-stone-500">Method</th>
+                  <th className="py-4 px-6 text-right text-[10px] font-bold uppercase tracking-widest text-stone-500">Amount</th>
+                  <th className="py-4 px-6 text-center text-[10px] font-bold uppercase tracking-widest text-stone-500 w-28">Status</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-stone-200/50">
                 {payouts.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="text-center py-12 text-[var(--color-text-muted)]">
-                      No payouts yet. <Link href="/dashboard/withdrawals" className="text-[var(--color-accent)] hover:underline">Request a payout</Link> when you have available balance.
+                    <td colSpan={4} className="text-center py-12 text-[12px] font-semibold text-stone-500 uppercase tracking-widest">
+                       <div>No payouts yet.</div>
+                       <Link href="/dashboard/withdrawals" className="text-emerald-500 hover:underline mt-1 inline-block">Request a payout</Link> when you have available balance.
                     </td>
                   </tr>
                 ) : (
                   payouts.map((p) => (
-                    <tr key={p.id} className="border-b border-[var(--color-border)] last:border-b-0 hover:bg-[var(--color-surface-secondary)]/50">
-                      <td className="py-3.5 pl-5 pr-3">{new Date(p.created_at).toLocaleDateString()}</td>
-                      <td className="py-3.5 px-3 capitalize">{String(p.payout_method || "—").replace(/_/g, " ")}</td>
-                      <td className="py-3.5 px-3 text-right font-medium tabular-nums">{formatMoney(Number(p.amount ?? 0), "RWF")}</td>
-                      <td className="py-3.5 pl-3 pr-5 text-center">
-                        <Badge variant={p.status === "paid" ? "success" : p.status === "failed" ? "destructive" : "warning"} className="text-[10px] py-0.5">{p.status || "pending"}</Badge>
+                    <tr key={p.id} className="hover:bg-white/60 transition-colors group">
+                      <td className="py-4 px-6 text-[13px] font-bold text-stone-900">{new Date(p.created_at).toLocaleDateString()}</td>
+                      <td className="py-4 px-6 text-[13px] font-bold text-stone-600 capitalize">{String(p.payout_method || "—").replace(/_/g, " ")}</td>
+                      <td className="py-4 px-6 text-right font-black text-[14px] text-stone-900 tabular-nums">{formatMoney(Number(p.amount ?? 0), "RWF")}</td>
+                      <td className="py-4 px-6 text-center">
+                        <GlassPill color={p.status === "paid" ? "emerald" : p.status === "failed" ? "rose" : "orange"} className="text-[9px]">
+                           {p.status || "pending"}
+                        </GlassPill>
                       </td>
                     </tr>
                   ))
@@ -108,8 +135,9 @@ export default function CreatorEarningsPage() {
               </tbody>
             </table>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </GlassCard>
+      </div>
     </div>
   );
 }

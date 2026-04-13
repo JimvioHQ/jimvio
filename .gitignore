@@ -37,3 +37,6 @@ build_output.txt
 final_build_log.txt
 *.tmp
 Thumbs.db
+
+# Antigravity Scratch
+scratch/

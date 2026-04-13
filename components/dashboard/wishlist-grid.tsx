@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { Heart, Eye, Package, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { GlassCard } from "@/components/ui/glass";
 import { useCurrency } from "@/context/CurrencyContext";
 import { toggleWishlist } from "@/lib/actions/marketplace";
 import { toast } from "sonner";
@@ -50,26 +50,26 @@ export function WishlistGrid({ initialItems }: { initialItems: WishlistItem[] })
 
   if (items.length === 0) {
     return (
-      <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-12 text-center">
-        <Heart className="h-14 w-14 text-[var(--color-border)] mx-auto mb-4" />
-        <p className="font-medium text-[var(--color-text-primary)]">No saved products</p>
-        <p className="text-sm text-[var(--color-text-muted)] mt-1">Save products from the marketplace to see them here.</p>
-        <Button asChild className="mt-4">
+      <GlassCard className="p-12 text-center border-dashed">
+        <Heart className="h-14 w-14 text-stone-300 mx-auto mb-4" />
+        <p className="text-lg font-bold text-stone-900 tracking-tight">No saved products</p>
+        <p className="text-[12px] font-semibold text-stone-500 mt-1 uppercase tracking-widest">Save products from the marketplace to see them here.</p>
+        <Button asChild className="mt-6 h-11 px-8 rounded-[14px] bg-stone-900 text-white font-bold text-[11px] uppercase tracking-widest shadow-xl active:scale-95 transition-all hover:bg-stone-800">
           <Link href="/dashboard/marketplace">Browse Marketplace</Link>
         </Button>
-      </div>
+      </GlassCard>
     );
   }
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
+    <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
       {items.map(({ id: rowId, product }) => {
         const imgSrc = product.images?.[0];
         const moq = product.inventory_quantity ?? 1;
         return (
-          <Card key={rowId} className="overflow-hidden border-[var(--color-border)] hover:shadow-md transition-all group">
-            <Link href={`/marketplace/${product.slug}`} className="block">
-              <div className="aspect-[4/3] bg-[var(--color-surface-secondary)] flex items-center justify-center p-4 relative overflow-hidden">
+          <GlassCard key={rowId} className="overflow-hidden group hover:border-orange-200 transition-all p-2 bg-white/40">
+            <Link href={`/marketplace/${product.slug}`} className="block relative">
+              <div className="aspect-[4/3] rounded-[20px] bg-white/60 border border-white/80 flex items-center justify-center p-4 relative overflow-hidden shadow-[inset_0_1px_4px_rgba(255,255,255,1)]">
                 {imgSrc && !imageErrors[product.id] ? (
                   <img 
                     src={imgSrc} 
@@ -78,8 +78,8 @@ export function WishlistGrid({ initialItems }: { initialItems: WishlistItem[] })
                     onError={() => setImageErrors(prev => ({ ...prev, [product.id]: true }))}
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-zinc-50 dark:bg-zinc-900">
-                    <span className="text-5xl font-black text-zinc-200 dark:text-zinc-800 uppercase tracking-tighter">
+                  <div className="w-full h-full flex items-center justify-center">
+                    <span className="text-5xl font-black text-stone-200 uppercase tracking-tighter">
                       {product.name.charAt(0)}
                     </span>
                   </div>
@@ -89,7 +89,7 @@ export function WishlistGrid({ initialItems }: { initialItems: WishlistItem[] })
                   onClick={(e) => handleRemove(e, product.id)}
                   disabled={!!removingId}
                   className={cn(
-                    "absolute top-2 right-2 p-2 rounded-full shadow bg-white border border-[var(--color-border)] hover:bg-[var(--color-surface-secondary)] text-red-500 fill-red-500 transition-colors"
+                    "absolute top-3 right-3 p-2.5 rounded-full shadow-sm bg-white/80 border border-white hover:bg-white hover:scale-110 text-rose-500 fill-rose-500 transition-all backdrop-blur-md"
                   )}
                   title="Remove from saved"
                 >
@@ -97,28 +97,30 @@ export function WishlistGrid({ initialItems }: { initialItems: WishlistItem[] })
                 </button>
               </div>
             </Link>
-            <CardContent className="p-4">
-              <p className="font-medium text-[var(--color-text-primary)] line-clamp-2">{product.name}</p>
-              <p className="text-sm text-[var(--color-text-muted)] mt-0.5">{product.vendors?.business_name ?? "—"}</p>
-              <p className="font-semibold text-[var(--color-accent)] mt-1">{formatMoney(Number(product.price), product.currency)}</p>
-              <div className="flex items-center gap-2 mt-1 text-sm text-[var(--color-text-muted)]">
-                {product.rating != null && (
-                  <span className="flex items-center gap-0.5">
-                    <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" /> {Number(product.rating).toFixed(1)}
+            <div className="p-4 pt-5 pb-3">
+              <div className="flex flex-col gap-1 mb-3">
+                  <p className="text-[14px] font-bold text-stone-900 line-clamp-2 leading-tight tracking-tight">{product.name}</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-stone-400">{product.vendors?.business_name ?? "—"}</p>
+              </div>
+              <p className="text-[16px] font-bold text-stone-900 tracking-tight mb-2">{formatMoney(Number(product.price), product.currency)}</p>
+              <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-widest text-stone-500 border-t border-white/50 pt-3">
+                {product.rating != null ? (
+                  <span className="flex items-center gap-1">
+                    <Star className="h-3.5 w-3.5 fill-orange-400 text-orange-400" /> {Number(product.rating).toFixed(1)}
                     {product.review_count != null && ` (${product.review_count})`}
                   </span>
-                )}
+                ) : <span />}
                 <span>MOQ: {moq}</span>
               </div>
-              <div className="flex gap-2 mt-3">
-                <Button asChild variant="outline" size="sm" className="flex-1">
+              <div className="mt-4">
+                <Button asChild className="w-full h-10 rounded-[12px] bg-white text-stone-900 hover:bg-stone-50 font-bold text-[10px] uppercase tracking-widest shadow-[0_4px_16px_rgba(255,255,255,0.15)] transition-all">
                   <Link href={`/marketplace/${product.slug}`}>
-                    <Eye className="h-3.5 w-3.5 mr-1" /> View
+                    <Eye className="h-3.5 w-3.5 mr-2 text-stone-400" /> View Details
                   </Link>
                 </Button>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </GlassCard>
         );
       })}
     </div>

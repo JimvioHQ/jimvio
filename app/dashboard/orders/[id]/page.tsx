@@ -7,9 +7,8 @@ import {
   ArrowLeft, Package, Truck, MapPin, CheckCircle2, Clock, 
   CheckCircle, ShoppingBag, MessageSquare, Download, HelpCircle
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { GlassCard, GlassPill } from "@/components/ui/glass";
 import { useCurrency } from "@/context/CurrencyContext";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
@@ -110,25 +109,31 @@ export default function OrderDetailPage() {
   const s = statusConfig[order.status] ?? statusConfig.pending;
 
   return (
-    <div className="space-y-6">
+    <div
+      className="min-h-screen animate-in fade-in duration-500 pb-12"
+      style={{
+        background: "radial-gradient(ellipse 80% 60% at 80% 0%, rgba(251,146,60,0.07) 0%, transparent 50%), radial-gradient(ellipse 60% 50% at 0% 100%, rgba(186,230,253,0.07) 0%, transparent 55%), #f0ede8",
+      }}
+    >
+      <div className="max-w-6xl mx-auto space-y-6 px-4 sm:px-6 pt-5">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" asChild>
-          <Link href="/dashboard/orders"><ArrowLeft className="h-4 w-4" /></Link>
+        <Button variant="outline" size="icon" className="h-10 w-10 border border-white/80 rounded-[14px] bg-white text-stone-600 shadow-[inset_0_1px_4px_rgba(0,0,0,0.02)] active:scale-95 transition-all hover:bg-stone-50" asChild>
+          <Link href="/dashboard/orders"><ArrowLeft className="h-5 w-5" /></Link>
         </Button>
         <div>
-          <h1 className="text-xl font-bold text-[var(--color-text-primary)]">Order {order.order_number}</h1>
-          <p className="text-sm text-[var(--color-text-muted)]">{new Date(order.created_at).toLocaleString()}</p>
+          <h1 className="text-2xl font-bold tracking-tight text-stone-900">Order #{order.order_number}</h1>
+          <p className="text-[12px] font-semibold text-[var(--color-text-muted)] mt-0.5 uppercase tracking-widest">{new Date(order.created_at).toLocaleString()}</p>
         </div>
-        <Badge variant={s.variant} className="ml-auto">{s.label}</Badge>
+        <GlassPill color={s.variant as any} className="ml-auto px-4 py-1.5 text-[11px] font-bold shadow-[0_4px_16px_rgba(0,0,0,0.05)] border-white/80">{s.label}</GlassPill>
       </div>
 
       {/* Order Status Timeline */}
-      <Card className="border-[var(--color-border)] shadow-sm bg-gradient-to-br from-[var(--color-surface)] to-[var(--color-surface-secondary)]/30">
-        <CardContent className="p-6">
+      <GlassCard className="bg-white/40 border-dashed border-white/80">
+        <div className="p-6 sm:px-8 py-8">
           <div className="relative flex justify-between">
-            <div className="absolute top-5 left-8 right-8 h-0.5 bg-[var(--color-border)]/50 -z-0">
+            <div className="absolute top-5 left-8 right-8 h-1 bg-stone-200/50 -z-0 rounded-full overflow-hidden shadow-inner">
                <div 
-                 className="h-full bg-[var(--color-accent)] transition-all duration-1000" 
+                 className="h-full bg-emerald-500 transition-all duration-1000 shadow-[0_0_8px_rgba(16,185,129,0.8)]" 
                  style={{ 
                    width: order.status === "completed" ? "100%" : 
                           order.status === "delivered" ? "80%" : 
@@ -156,17 +161,17 @@ export default function OrderDetailPage() {
               return (
                 <div key={step.id} className="relative z-10 flex flex-col items-center gap-2">
                   <div className={cn(
-                    "w-10 h-10 rounded-full flex items-center justify-center transition-all duration-500 border-2",
-                    isPast && "bg-[var(--color-accent)] border-[var(--color-accent)] text-white shadow-lg",
-                    isCurrent && "bg-[var(--color-surface)] border-[var(--color-accent)] text-[var(--color-accent)] ring-4 ring-[var(--color-accent)]/10",
-                    isFuture && "bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-muted)]"
+                    "w-12 h-12 rounded-[16px] flex items-center justify-center transition-all duration-500 border border-white/80",
+                    isPast && "bg-emerald-500 border-emerald-400 text-white shadow-[0_4px_16px_rgba(16,185,129,0.3)] inset-0",
+                    isCurrent && "bg-white border-sky-400 text-sky-500 shadow-[0_4px_24px_rgba(14,165,233,0.2)]",
+                    isFuture && "bg-white/60 border-stone-200 text-stone-300 shadow-sm"
                   )}>
-                    {isPast ? <CheckCircle className="h-5 w-5" /> : step.icon}
+                    {isPast ? <CheckCircle className="h-6 w-6" /> : step.icon}
                   </div>
                   <div className="text-center">
                     <p className={cn(
-                      "text-[10px] sm:text-xs font-bold transition-colors",
-                      isCurrent ? "text-[var(--color-text-primary)]" : "text-[var(--color-text-muted)]"
+                      "text-[10px] sm:text-[11px] uppercase tracking-widest font-bold transition-colors mt-2",
+                      isCurrent || isPast ? "text-stone-900" : "text-stone-400"
                     )}>
                       {step.label}
                     </p>
@@ -175,85 +180,83 @@ export default function OrderDetailPage() {
               );
             })}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </GlassCard>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
-          <Card className="border-[var(--color-border)] shadow-sm">
-            <CardHeader className="pb-3 px-6">
-              <CardTitle className="text-base font-bold flex items-center gap-2">
-                <ShoppingBag className="h-4 w-4 text-[var(--color-accent)]" /> 
+          <GlassCard className="bg-white/40 overflow-hidden">
+            <div className="border-b border-stone-200/50 bg-white/40 pb-3 py-4 px-6">
+              <h3 className="text-[14px] font-bold text-stone-900 flex items-center gap-2">
+                <ShoppingBag className="h-4 w-4 text-orange-500" /> 
                 Order Items ({items.length})
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <ul className="divide-y divide-[var(--color-border)]/60">
+              </h3>
+            </div>
+            <div className="p-0">
+              <ul className="divide-y divide-stone-200/50">
                 {items.map((item: any) => (
-                  <li key={item.id} className="flex items-center gap-4 p-5 hover:bg-[var(--color-surface-secondary)]/30 transition-colors">
-                    <div className="h-16 w-16 rounded-xl overflow-hidden border border-[var(--color-border)]/50 shrink-0">
+                  <li key={item.id} className="flex items-center gap-4 p-5 hover:bg-white/60 transition-colors">
+                    <div className="h-16 w-16 rounded-[16px] overflow-hidden border border-white/80 shrink-0 bg-white shadow-[inset_0_1px_4px_rgba(0,0,0,0.03)] flex items-center justify-center">
                       {item.product_image ? (
-                        <img src={item.product_image} alt="" className="h-full w-full object-cover" />
+                        <img src={item.product_image} alt="" className="h-full w-full object-cover rounded-[14px]" />
                       ) : (
-                        <div className="h-full w-full bg-[var(--color-surface-secondary)] flex items-center justify-center">
-                          <Package className="h-8 w-8 text-[var(--color-border)]" />
-                        </div>
+                        <Package className="h-8 w-8 text-stone-300" />
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <p className="font-bold text-[var(--color-text-primary)] truncate">{item.product_name}</p>
+                        <p className="font-bold text-[14px] tracking-tight text-stone-900 truncate">{item.product_name}</p>
                         {item.product_source === "cj" && (
-                          <Badge variant="secondary" className="text-[9px] px-1.5 py-0 uppercase">
+                          <GlassPill color="default" className="text-[9px] px-1.5 py-0 uppercase tracking-widest shadow-none">
                             CJ Dropshipping
-                          </Badge>
+                          </GlassPill>
                         )}
                       </div>
-                      <p className="text-sm text-[var(--color-text-muted)] mt-0.5">
+                      <p className="text-[12px] font-semibold text-stone-500 mt-1">
                         {item.quantity} × {formatMoney(Number(item.unit_price), oc)}
                       </p>
                       {item.vendors?.business_name && (
                         <Link 
                           href={item.vendors.business_slug ? `/store/${item.vendors.business_slug}` : "#"} 
-                          className="mt-1 inline-flex items-center gap-1 text-[11px] font-bold text-[var(--color-accent)] uppercase tracking-wider"
+                          className="mt-1.5 inline-flex items-center gap-1 text-[10px] font-bold text-orange-600 uppercase tracking-wider"
                         >
                           {item.vendors.business_name} →
                         </Link>
                       )}
                     </div>
                     <div className="text-right">
-                      <p className="font-black text-[var(--color-text-primary)]">{formatMoney(Number(item.total_price), oc)}</p>
+                      <p className="font-black text-[16px] tracking-tighter text-stone-900">{formatMoney(Number(item.total_price), oc)}</p>
                     </div>
                   </li>
                 ))}
               </ul>
-            </CardContent>
-          </Card>
+            </div>
+          </GlassCard>
         </div>
 
         <div>
-          <Card className="border-[var(--color-border)]">
-            <CardHeader>
-              <CardTitle className="text-base">Summary</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          <GlassCard className="bg-white/40">
+            <div className="p-5 pb-0">
+              <h3 className="text-[14px] font-bold text-stone-900 tracking-tight">Summary</h3>
+            </div>
+            <div className="p-5 space-y-4">
               <div className="space-y-3">
-                <div className="flex justify-between text-sm">
-                  <span className="text-[var(--color-text-muted)] font-medium">Subtotal</span>
-                  <span className="font-bold">{formatMoney(Number(order.total_amount), oc)}</span>
+                <div className="flex justify-between text-[13px] font-semibold">
+                  <span className="text-stone-500">Subtotal</span>
+                  <span className="text-stone-900">{formatMoney(Number(order.total_amount), oc)}</span>
                 </div>
-                <div className="border-t border-[var(--color-border)]/60 pt-3 flex justify-between">
-                  <span className="font-bold text-[var(--color-text-primary)]">Total</span>
-                  <span className="font-black text-[var(--color-accent)] text-lg">{formatMoney(Number(order.total_amount), oc)}</span>
+                <div className="border-t border-stone-200/60 pt-3 flex justify-between items-center">
+                  <span className="font-bold text-[14px] tracking-wide text-stone-900">Total</span>
+                  <span className="font-black text-orange-600 text-[18px] tracking-tighter">{formatMoney(Number(order.total_amount), oc)}</span>
                 </div>
               </div>
 
                <div className="pt-4 space-y-2">
-                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-text-muted)] mb-3">Quick Actions</p>
+                 <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-stone-400 mb-3">Quick Actions</p>
                  
                  {order.status === "shipped" && (
                    <Button 
-                    className="w-full justify-start gap-3 rounded-xl h-12 font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-600/20 mb-2 transition-all hover:scale-[1.02]" 
+                    className="w-full justify-start gap-3 rounded-[14px] h-12 font-bold bg-emerald-500 hover:bg-emerald-600 text-white shadow-[0_4px_16px_rgba(16,185,129,0.3)] mb-2 transition-all active:scale-[0.98] border-none text-[11px] uppercase tracking-widest" 
                     onClick={() => handleUpdateStatus("delivered")}
                     disabled={updating}
                    >
@@ -263,46 +266,44 @@ export default function OrderDetailPage() {
 
                  {order.status === "delivered" && (
                    <Button 
-                    className="w-full justify-start gap-3 rounded-xl h-12 font-bold bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white shadow-lg shadow-[var(--color-accent)]/20 mb-2 transition-all hover:scale-[1.02]" 
+                    className="w-full justify-start gap-3 rounded-[14px] h-12 font-bold bg-stone-900 hover:bg-stone-800 text-white shadow-[0_4px_16px_rgba(0,0,0,0.15)] mb-2 transition-all active:scale-[0.98] border-none text-[11px] uppercase tracking-widest" 
                     onClick={() => handleUpdateStatus("completed")}
                     disabled={updating}
                    >
-                      <ShoppingBag className="h-4 w-4" /> {updating ? "Processing..." : "Confirm Delivery & Finalize"}
+                      <ShoppingBag className="h-4 w-4 text-emerald-400" /> {updating ? "Processing..." : "Confirm Delivery & Finalize"}
                    </Button>
                  )}
 
                  {order.payment_status !== "completed" && (
-                   <Button className="w-full justify-start gap-3 rounded-xl h-11 font-bold bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white shadow-lg shadow-[var(--color-accent)]/20" asChild>
+                   <Button className="w-full justify-start gap-3 rounded-[14px] h-12 font-bold bg-stone-900 hover:bg-stone-800 text-white shadow-[0_4px_16px_rgba(0,0,0,0.15)] transition-all active:scale-[0.98] border-none text-[11px] uppercase tracking-widest" asChild>
                       <Link href="/checkout">
-                        <ShoppingBag className="h-4 w-4" /> Complete Payment
+                        <ShoppingBag className="h-4 w-4 text-emerald-400" /> Complete Payment
                       </Link>
                    </Button>
                  )}
 
-                 <Button className="w-full justify-start gap-3 rounded-xl h-11 font-bold shadow-sm border-[var(--color-border)]" variant={order.payment_status !== "completed" || ["shipped", "delivered"].includes(order.status) ? "outline" : "default"} asChild>
+                 <Button className="w-full justify-start gap-3 rounded-[14px] h-11 font-bold shadow-[0_4px_16px_rgba(0,0,0,0.03)] border-white/80 bg-white hover:bg-stone-50 text-[11px] uppercase tracking-widest text-stone-600" asChild>
                     <Link href={`/dashboard/messages?vendor=${items[0]?.vendor_id}`}>
                       <MessageSquare className="h-4 w-4" /> Contact Vendor
                     </Link>
                  </Button>
-                 <Button className="w-full justify-start gap-3 rounded-xl h-11 font-bold" variant="outline" onClick={() => window.print()}>
+                 <Button className="w-full justify-start gap-3 rounded-[14px] h-11 font-bold border-white/80 shadow-[inset_0_1px_4px_rgba(255,255,255,1)] bg-white/60 hover:bg-white transition-all text-[11px] uppercase tracking-widest text-stone-600" onClick={() => window.print()}>
                     <Download className="h-4 w-4" /> Download Invoice
-                 </Button>
-                 <Button className="w-full justify-start gap-3 rounded-xl h-11 font-bold text-[var(--color-text-secondary)]" variant="ghost">
-                    <HelpCircle className="h-4 w-4" /> Get Help
                  </Button>
                </div>
 
-              <div className="pt-4 text-[10px] font-bold text-[var(--color-text-muted)] space-y-2 border-t border-[var(--color-border)]/60">
+              <div className="pt-5 text-[10px] font-bold text-stone-500 uppercase tracking-widest space-y-2.5 border-t border-stone-200/60">
                  <div className="flex items-center gap-2">
-                   <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                   <div className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
                    <span>Payment status: {(order.payment_status as string)?.toUpperCase()}</span>
                  </div>
-                {order.shipped_at && <div className="flex items-center gap-2"><Truck className="h-3 w-3" /> Shipped: {new Date(order.shipped_at).toLocaleDateString()}</div>}
-                {order.delivered_at && <div className="flex items-center gap-2"><CheckCircle2 className="h-3 w-3" /> Delivered: {new Date(order.delivered_at).toLocaleDateString()}</div>}
+                {order.shipped_at && <div className="flex items-center gap-2"><Truck className="h-3.5 w-3.5 text-stone-400" /> Shipped: {new Date(order.shipped_at).toLocaleDateString()}</div>}
+                {order.delivered_at && <div className="flex items-center gap-2"><CheckCircle2 className="h-3.5 w-3.5 text-stone-400" /> Delivered: {new Date(order.delivered_at).toLocaleDateString()}</div>}
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </GlassCard>
         </div>
+      </div>
       </div>
     </div>
   );

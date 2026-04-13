@@ -70,7 +70,7 @@ export function HeroRightPanel({ profile }: HeroRightPanelProps) {
             {/* Dashboard CTA */}
             <Link
               href="/dashboard"
-              className="flex items-center justify-center gap-1.5 w-full bg-orange-500 hover:bg-orange-600 text-white py-2.5 rounded-lg text-[12px] font-black transition-all shadow-md shadow-orange-500/20 active:scale-[0.98] mb-2"
+              className="flex items-center justify-center gap-1.5 w-full bg-orange-500/10 backdrop-blur-md border border-orange-500/30 text-orange-600 py-2.5 rounded-lg text-[12px] font-black transition-all shadow-sm active:scale-[0.98] mb-2 uppercase tracking-widest"
             >
               <LayoutDashboard className="h-3.5 w-3.5" />
               Dashboard
@@ -112,7 +112,7 @@ export function HeroRightPanel({ profile }: HeroRightPanelProps) {
 
             <Link
               href="/login"
-              className="block w-full bg-orange-500 hover:bg-orange-600 text-white text-center py-2.5 rounded-lg text-[12px] font-black mb-2.5 transition-all shadow-md shadow-orange-500/20 active:scale-[0.98]"
+              className="block w-full bg-orange-500/10 backdrop-blur-md border border-orange-500/30 text-orange-600 text-center py-2.5 rounded-lg text-[12px] font-black mb-2.5 transition-all shadow-sm active:scale-[0.98] uppercase tracking-widest"
             >
               Sign In
             </Link>

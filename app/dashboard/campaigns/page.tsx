@@ -3,14 +3,13 @@ export const dynamic = "force-dynamic";
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { Zap, Plus, Play, Pause, Users, Eye, DollarSign, Loader2, TrendingUp } from "lucide-react";
+import { Zap, Plus, Play, Pause, Users, Eye, DollarSign, Loader2, TrendingUp, Sparkles, Target, BarChart3, ChevronLeft, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { StatCard } from "@/components/ui/stat-card";
+import { GlassCard, GlassPill, GlassAmbientGlow } from "@/components/ui/glass";
 import { Progress } from "@/components/ui/progress";
 import { useCurrency } from "@/context/CurrencyContext";
 import { createClient } from "@/lib/supabase/client";
+import { cn } from "@/lib/utils";
 
 export default function CampaignsPage() {
   const { formatMoney } = useCurrency();
@@ -54,136 +53,232 @@ export default function CampaignsPage() {
   }
 
   const totalViews    = campaigns.reduce((s, c) => s + (c.total_views as number ?? 0), 0);
-  const totalConvs    = campaigns.reduce((s, c) => s + (c.total_conversions as number ?? 0), 0);
   const totalRevenue  = campaigns.reduce((s, c) => s + Number(c.total_revenue ?? 0), 0);
   const activeCampaigns = campaigns.filter(c => c.status === "active").length;
 
-  if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin text-[var(--color-accent)]" /></div>;
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center space-y-12 animate-in fade-in duration-700" style={{ background: "#f8f7f5" }}>
+        <div className="relative">
+          <div className="absolute inset-0 bg-orange-400/20 blur-3xl rounded-full scale-150 animate-pulse" />
+          <div className="relative w-24 h-24 rounded-[32px] bg-white border border-white shadow-2xl flex items-center justify-center overflow-hidden">
+            <div className="absolute inset-0 border-2 border-t-orange-500 border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin m-2" />
+            <Zap className="h-10 w-10 text-stone-900" />
+          </div>
+        </div>
+        <div className="text-center space-y-3">
+           <h2 className="text-[14px] font-black text-stone-900 uppercase tracking-[0.4em] pl-[0.4em]">Mission Hub</h2>
+           <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest pl-[0.1em]">Syncing Campaign Progress</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!vendor) return (
-    <div className="space-y-4">
-      <h1 className="text-xl font-bold text-[var(--color-text-primary)]">Campaigns</h1>
-      <div className="bg-subtle border border-base rounded-xl p-8 text-center">
-        <div className="text-4xl mb-3">🎯</div>
-        <h3 className="text-lg font-bold text-[var(--color-text-primary)] mb-2">Activate Vendor Role First</h3>
-        <Button asChild><Link href="/dashboard/roles">Activate Vendor Role</Link></Button>
+    <div className="max-w-4xl mx-auto py-24 text-center space-y-8 px-6">
+      <div className="w-24 h-24 rounded-[40px] flex items-center justify-center mx-auto text-4xl bg-white border border-white shadow-2xl">🎯</div>
+      <div className="space-y-3">
+         <h3 className="text-3xl font-black text-stone-900 tracking-tighter">Mission Hub Offline</h3>
+         <p className="text-stone-500 font-bold max-w-md mx-auto leading-relaxed">System requires active vendor status to create missions.</p>
       </div>
+      <Button asChild className="h-14 px-10 rounded-full bg-stone-900 text-white font-black text-[12px] uppercase tracking-widest shadow-2xl transition-all hover:bg-black">
+         <Link href="/dashboard/activate/vendor">Activate Vendor Store</Link>
+      </Button>
     </div>
   );
 
   return (
-    <div className="space-y-5 animate-fade-in">
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div>
-          <h1 className="text-xl font-bold text-[var(--color-text-primary)]">Influencer Campaigns</h1>
-          <p className="text-sm text-muted-c mt-0.5">Manage your viral marketing campaigns</p>
+    <div
+      className="min-h-screen animate-in fade-in duration-700 pb-20 relative overflow-hidden"
+      style={{
+        background: "radial-gradient(ellipse 80% 60% at 80% 0%, rgba(251,146,60,0.05) 0%, transparent 50%), radial-gradient(ellipse 60% 50% at 0% 100%, rgba(251,146,60,0.05) 0%, transparent 55%), #f8f7f5",
+      }}
+    >
+      <GlassAmbientGlow color="orange" position="top-right" />
+      <GlassAmbientGlow color="orange" position="bottom-left" />
+
+      <div className="max-w-7xl mx-auto space-y-12 px-6 pt-12 relative z-10">
+        
+        {/* Header Protocol */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
+           <div className="space-y-2">
+              <h1 className="text-4xl font-black text-stone-900 tracking-tighter flex items-center gap-4">
+                 <div className="p-2.5 rounded-[20px] bg-white border border-white shadow-2xl shrink-0">
+                    <Zap className="h-8 w-8 text-orange-500" />
+                 </div>
+                 Mission Hub
+                 <span className="text-stone-300 ml-2 font-black">{campaigns.length}</span>
+              </h1>
+              <p className="text-[11px] font-bold text-stone-400 uppercase tracking-[0.3em] pl-16">
+                 Manage your campaigns and engagement missions
+              </p>
+           </div>
+
+           <Button
+              className="h-14 px-8 rounded-full bg-orange-500 text-white font-black text-[11px] uppercase tracking-widest shadow-2xl active:scale-95 transition-all hover:bg-orange-600 border-none"
+              onClick={async () => {
+              const supabase = createClient();
+              const { data } = await supabase.from("influencer_campaigns").insert({
+                vendor_id: vendor.id, title: "New Campaign", status: "draft", campaign_type: "promotion",
+              }).select().single();
+              if (data) setCampaigns(prev => [data, ...prev]);
+           }}>
+              <Plus className="h-4 w-4 mr-2 text-white" /> Launch New Mission
+           </Button>
         </div>
-        <Button onClick={async () => {
-          const supabase = createClient();
-          const { data } = await supabase.from("influencer_campaigns").insert({
-            vendor_id: vendor.id, title: "New Campaign", status: "draft", campaign_type: "promotion",
-          }).select().single();
-          if (data) setCampaigns(prev => [data, ...prev]);
-        }}>
-          <Plus className="h-4 w-4" /> New Campaign
-        </Button>
+
+        {/* Breakdown Protocol */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+           <GlassCard className="p-8 flex flex-col justify-between rounded-[36px] bg-white/60 border-white shadow-xl">
+              <div className="w-12 h-12 rounded-[18px] bg-orange-50 border border-orange-100 flex items-center justify-center mb-6">
+                 <Zap className="h-6 w-6 text-orange-500" />
+              </div>
+               <div>
+                  <p className="text-3xl font-black text-stone-900 tracking-tighter leading-none">{campaigns.length}</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mt-2">Total Missions</p>
+               </div>
+           </GlassCard>
+           <GlassCard className="p-8 flex flex-col justify-between rounded-[36px] bg-white/60 border-white shadow-xl">
+              <div className="w-12 h-12 rounded-[18px] bg-orange-50 border border-orange-100 flex items-center justify-center mb-6">
+                 <Users className="h-6 w-6 text-orange-500" />
+              </div>
+               <div>
+                  <p className="text-3xl font-black text-stone-900 tracking-tighter leading-none">{activeCampaigns}</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mt-2">Active Missions</p>
+               </div>
+           </GlassCard>
+           <GlassCard className="p-8 flex flex-col justify-between rounded-[36px] bg-white/60 border-white shadow-xl">
+              <div className="w-12 h-12 rounded-[18px] bg-emerald-50 border border-emerald-100 flex items-center justify-center mb-6">
+                 <Eye className="h-6 w-6 text-emerald-500" />
+              </div>
+               <div>
+                  <p className="text-3xl font-black text-stone-900 tracking-tighter leading-none">{totalViews > 1000 ? `${(totalViews/1000).toFixed(1)}K` : totalViews}</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mt-2">Global Reach</p>
+               </div>
+           </GlassCard>
+           <GlassCard className="p-8 flex flex-col justify-between rounded-[36px] bg-white/60 border-white shadow-xl">
+              <div className="w-12 h-12 rounded-[18px] bg-amber-50 border border-amber-100 flex items-center justify-center mb-6">
+                 <DollarSign className="h-6 w-6 text-amber-500" />
+              </div>
+               <div>
+                  <p className="text-3xl font-black text-stone-900 tracking-tighter leading-none">{formatMoney(totalRevenue, "USD")}</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mt-2">Mission ROI</p>
+               </div>
+           </GlassCard>
+        </div>
+
+        {/* Registry Matrix */}
+        <div className="space-y-8 pt-4">
+           <h2 className="text-[11px] font-black uppercase tracking-[0.4em] text-stone-400 pl-2">Mission Catalog</h2>
+           
+           {campaigns.length === 0 ? (
+              <GlassCard className="py-24 text-center rounded-[56px] border-dashed border-white bg-white/20">
+                 <div className="w-24 h-24 bg-white rounded-[32px] flex items-center justify-center mx-auto mb-8 border border-white shadow-xl">
+                    <Target className="h-10 w-10 text-stone-100" />
+                 </div>
+                 <h3 className="text-2xl font-black text-stone-900 tracking-tighter">No Campaigns Found</h3>
+                 <p className="text-[11px] font-bold text-stone-400 uppercase tracking-widest mt-3 mb-10 max-w-[240px] mx-auto leading-relaxed">Create a push mission to engage with the creator grid.</p>
+                 <Button
+                    className="h-16 px-12 rounded-full font-black text-[11px] uppercase tracking-widest shadow-2xl active:scale-95 transition-all bg-orange-500 text-white hover:bg-orange-600 border-none"
+                    onClick={async () => {
+                    const supabase = createClient();
+                    const { data } = await supabase.from("influencer_campaigns").insert({
+                      vendor_id: vendor.id, title: "Initial Growth Mission", status: "draft", campaign_type: "promotion",
+                    }).select().single();
+                    if (data) setCampaigns([data]);
+                 }}>
+                    <Plus className="h-4 w-4 mr-2" /> Launch New Mission
+                 </Button>
+              </GlassCard>
+           ) : (
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                 {campaigns.map((c) => {
+                    const status = c.status as string;
+                    const budget = Number(c.budget ?? 0);
+                    const views  = c.total_views as number ?? 0;
+                    const convs  = c.total_conversions as number ?? 0;
+                    const rev    = Number(c.total_revenue ?? 0);
+                    const product= c.products as Record<string, unknown> | null;
+                    const isUpdating = updating === c.id;
+
+                    return (
+                       <GlassCard key={c.id as string} className="p-10 flex flex-col group hover:shadow-2xl hover:bg-white transition-all duration-500 rounded-[48px] bg-white/40 border-white relative overflow-hidden">
+                          <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/5 blur-[60px] rounded-full translate-x-1/2 -translate-y-1/2" />
+                          
+                          <div className="flex items-start justify-between mb-8">
+                             <div className="space-y-3">
+                                <div className="flex items-center gap-3">
+                                   <GlassPill color={status === "active" ? "emerald" : status === "draft" ? "default" : "orange"}>
+                                      {status}
+                                   </GlassPill>
+                                   <span className="text-[9px] font-black uppercase tracking-[0.2em] text-stone-300">
+                                      {c.start_date ? `${c.start_date} → ${c.end_date ?? '∞'}` : "Mission Pending"}
+                                   </span>
+                                </div>
+                                <h3 className="text-2xl font-black text-stone-900 tracking-tighter leading-none">{c.title as string}</h3>
+                                {product && (
+                                   <div className="flex items-center gap-2">
+                                      <div className="w-1.5 h-1.5 rounded-full bg-orange-500" />
+                                      <p className="text-[10px] font-black uppercase tracking-widest text-stone-400">Target Product: {product.name as string}</p>
+                                   </div>
+                                )}
+                             </div>
+                             
+                             <div className="flex gap-3">
+                                <Button asChild variant="ghost" size="icon" className="h-12 w-12 rounded-2xl bg-white border border-stone-100 shadow-sm hover:bg-white active:scale-95 transition-all text-stone-500">
+                                  <Link href={`/dashboard/vendor/campaigns/${c.id}`}><Settings className="h-4 w-4" /></Link>
+                                </Button>
+                                {status === "active" && (
+                                   <Button size="icon" variant="outline" className="h-12 w-12 rounded-2xl border-white bg-white/60 hover:bg-stone-900 hover:text-white transition-all active:scale-95 shadow-lg" disabled={isUpdating} onClick={() => toggleCampaign(c.id as string, status)}>
+                                      <Pause className="h-4 w-4" />
+                                   </Button>
+                                )}
+                                {(status === "paused" || status === "draft") && (
+                                   <Button size="sm" className={cn("h-12 px-6 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg active:scale-95 transition-all text-white border-none", status === 'draft' ? "bg-orange-500 hover:bg-orange-600" : "bg-orange-500 hover:bg-orange-600")} disabled={isUpdating} onClick={() => toggleCampaign(c.id as string, status === 'draft' ? 'active' : 'active')}>
+                                      <Play className="h-3.5 w-3.5 mr-2" /> {status === 'draft' ? "Launch" : "Resume"}
+                                   </Button>
+                                )}
+                             </div>
+                          </div>
+
+                          <div className="grid grid-cols-3 gap-4 mb-8">
+                             {[
+                                { label: "Reach", value: views > 1000 ? `${(views/1000).toFixed(1)}K` : views, icon: Eye, color: "text-sky-500", bg: "bg-sky-50" },
+                                { label: "Handoffs", value: convs, icon: Target, color: "text-indigo-500", bg: "bg-indigo-50" },
+                                { label: "Revenue", value: formatMoney(rev, "USD"), icon: DollarSign, color: "text-emerald-500", bg: "bg-emerald-50" },
+                             ].map((s, i) => (
+                                <div key={i} className="p-6 rounded-[32px] bg-white/60 border border-white text-center shadow-sm group-hover:scale-[1.02] transition-transform duration-500">
+                                   <div className={cn("w-10 h-10 rounded-2xl mx-auto mb-3 flex items-center justify-center", s.bg, s.color)}>
+                                      <s.icon className="h-5 w-5" />
+                                   </div>
+                                   <p className="text-lg font-black text-stone-900 tabular-nums tracking-tighter">{s.value}</p>
+                                   <p className="text-[8px] font-black uppercase tracking-widest text-stone-400 mt-1">{s.label}</p>
+                                </div>
+                             ))}
+                          </div>
+
+                          {budget > 0 && (
+                             <div className="p-6 rounded-[32px] bg-stone-50 border border-stone-100 group-hover:bg-orange-50/30 transition-colors">
+                                <div className="flex justify-between items-end mb-4 px-1">
+                                   <div className="space-y-1">
+                                      <p className="text-[9px] font-black uppercase tracking-[0.2em] text-stone-400">Budget Flow</p>
+                                      <p className="text-xs font-black text-stone-900 tracking-tight">Financial Health</p>
+                                   </div>
+                                   <div className="text-right">
+                                      <p className="text-xs font-black text-orange-600 tracking-tight">{formatMoney(rev, "USD")} / {formatMoney(budget, "USD")}</p>
+                                      <p className="text-[8px] font-black uppercase tracking-widest text-stone-400 mt-0.5">{Math.round((rev/budget)*100)}% Spent</p>
+                                   </div>
+                                </div>
+                                <Progress value={budget > 0 ? Math.min(100, (rev/budget)*100) : 0} className="h-2 bg-stone-200" indicatorClassName="bg-orange-500 rounded-full" />
+                             </div>
+                          )}
+                       </GlassCard>
+                    );
+                 })}
+              </div>
+           )}
+        </div>
       </div>
-
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Total Campaigns"   value={campaigns.length}               icon={<Zap        className="h-4 w-4" />} iconColor="from-pink-600 to-rose-600" />
-        <StatCard title="Active"            value={activeCampaigns}                 icon={<Users      className="h-4 w-4" />} iconColor="from-purple-600 to-primary-600" />
-        <StatCard title="Total Views"       value={totalViews.toLocaleString()}     icon={<Eye        className="h-4 w-4" />} iconColor="from-cyan-600 to-blue-600" />
-        <StatCard title="Campaign Revenue"  value={formatMoney(totalRevenue, "RWF")}    icon={<DollarSign className="h-4 w-4" />} iconColor="from-amber-600 to-orange-600" />
-      </div>
-
-      {campaigns.length === 0 ? (
-        <div className="bg-subtle border border-base rounded-xl p-8 text-center">
-          <div className="text-5xl mb-3">🎯</div>
-          <h3 className="text-lg font-bold text-base mb-2">No campaigns yet</h3>
-          <p className="text-sm text-muted-c mb-4">Create your first influencer campaign to start driving viral traffic to your products.</p>
-          <Button onClick={async () => {
-            const supabase = createClient();
-            const { data } = await supabase.from("influencer_campaigns").insert({
-              vendor_id: vendor.id, title: "My First Campaign", status: "draft", campaign_type: "promotion",
-            }).select().single();
-            if (data) setCampaigns([data]);
-          }}>
-            <Plus className="h-4 w-4" /> Create First Campaign
-          </Button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-          {campaigns.map((c) => {
-            const status = c.status as string;
-            const budget = Number(c.budget ?? 0);
-            const views  = c.total_views as number ?? 0;
-            const convs  = c.total_conversions as number ?? 0;
-            const rev    = Number(c.total_revenue ?? 0);
-            const product= c.products as Record<string, unknown> | null;
-            const isUpdating = updating === c.id;
-
-            return (
-              <Card key={c.id as string} hover>
-                <CardContent className="p-5">
-                  <div className="flex items-start justify-between mb-3">
-                    <div>
-                      <div className="flex items-center gap-2 mb-0.5">
-                        <Badge variant={status === "active" ? "success" : status === "draft" ? "secondary" : "warning"}>
-                          {status.charAt(0).toUpperCase() + status.slice(1)}
-                        </Badge>
-                        {!!c.start_date && <span className="text-xs text-muted-c">{c.start_date as string} → {(c.end_date as string) ?? "—"}</span>}
-                      </div>
-                      <h3 className="text-base font-bold text-base">{c.title as string}</h3>
-                      {product && <p className="text-xs text-muted-c mt-0.5">Product: {product.name as string}</p>}
-                    </div>
-                    <div className="flex gap-1.5">
-                      {status === "active" && (
-                        <Button size="icon-sm" variant="outline" loading={isUpdating} onClick={() => toggleCampaign(c.id as string, status)}>
-                          <Pause className="h-3.5 w-3.5" />
-                        </Button>
-                      )}
-                      {status === "paused" && (
-                        <Button size="icon-sm" variant="outline" loading={isUpdating} onClick={() => toggleCampaign(c.id as string, status)}>
-                          <Play className="h-3.5 w-3.5" />
-                        </Button>
-                      )}
-                      {status === "draft" && (
-                        <Button size="sm" loading={isUpdating} onClick={() => toggleCampaign(c.id as string, "paused")}>
-                          <Play className="h-3.5 w-3.5" /> Launch
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-3 mb-4">
-                    {[
-                      { label: "Views",   value: views > 0 ? `${(views/1000).toFixed(0)}K` : "0", icon: "👁" },
-                      { label: "Conv.",   value: convs.toString(),                                  icon: "✅" },
-                      { label: "Revenue", value: rev > 0 ? formatMoney(rev, "RWF") : formatMoney(0, "RWF"),          icon: "💰" },
-                    ].map((s, i) => (
-                      <div key={i} className="bg-subtle rounded-xl p-2.5 text-center">
-                        <div className="text-base mb-1">{s.icon}</div>
-                        <div className="text-xs font-bold text-base">{s.value}</div>
-                        <div className="text-xs text-muted-c">{s.label}</div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {budget > 0 && (
-                    <div>
-                      <div className="flex justify-between text-xs mb-1.5">
-                        <span className="text-muted-c">Budget used</span>
-                        <span className="text-base font-medium">{formatMoney(rev, "RWF")} / {formatMoney(budget, "RWF")}</span>
-                      </div>
-                      <Progress value={budget > 0 ? Math.min(100, (rev/budget)*100) : 0} className="h-2" />
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      )}
     </div>
   );
 }

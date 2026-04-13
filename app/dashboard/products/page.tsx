@@ -1,26 +1,23 @@
 "use client";
-export const dynamic = "force-dynamic";
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { 
   Plus, Search, TrendingUp, Edit, Trash2, 
-  Package, AlertCircle, Store, Layers, MousePointer 
+  Package, AlertCircle, Store, Layers, MousePointer, Eye, ShoppingBag, Box, RefreshCw
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { StatCard } from "@/components/ui/stat-card";
+import { GlassCard, GlassPill, GlassAmbientGlow } from "@/components/ui/glass";
 import { useCurrency } from "@/context/CurrencyContext";
 import { createClient } from "@/lib/supabase/client";
-import { TableRowSkeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
-const statusMap: Record<string, { label: string; variant: "success" | "warning" | "secondary" }> = {
-  active:   { label: "Active",   variant: "success"   },
-  paused:   { label: "Paused",   variant: "warning"   },
-  draft:    { label: "Draft",    variant: "secondary" },
-  archived: { label: "Archived", variant: "secondary" },
+const statusMap: Record<string, { label: string; color: "emerald" | "orange" | "rose" | "indigo" | "amber" }> = {
+  active:   { label: "Active",   color: "emerald" },
+  paused:   { label: "Paused",   color: "orange" },
+  draft:    { label: "Draft",    color: "indigo" },
+  archived: { label: "Archived", color: "rose" },
 };
 
 export default function ProductsPage() {
@@ -92,173 +89,243 @@ export default function ProductsPage() {
   const lowStock  = products.filter(p => !p.is_digital && (p.inventory_quantity as number) <= 5).length;
   const totalSales= products.reduce((s, p) => s + (p.sale_count as number ?? 0), 0);
 
+  if (loading && products.length === 0) {
+    return (
+       <div className="min-h-screen flex flex-col items-center justify-center space-y-12 animate-in fade-in duration-700" style={{ background: "#f8f7f5" }}>
+         <div className="relative">
+           <div className="absolute inset-0 bg-orange-400/20 blur-3xl rounded-full scale-150 animate-pulse" />
+           <div className="relative w-24 h-24 rounded-[32px] bg-white border border-white shadow-2xl flex items-center justify-center overflow-hidden">
+             <div className="absolute inset-0 border-2 border-t-orange-500 border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin m-2" />
+             <Box className="h-10 w-10 text-stone-900" />
+           </div>
+         </div>
+         <div className="text-center space-y-3">
+            <h2 className="text-[14px] font-black text-stone-900 uppercase tracking-[0.4em] pl-[0.4em]">Products Hub</h2>
+            <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest pl-[0.1em]">Reconciling Global Marketplace Inventory</p>
+         </div>
+       </div>
+    );
+  }
+
   if (!loading && !vendor) {
     return (
-      <div className="max-w-4xl mx-auto py-20 text-center space-y-6">
-        <div className="w-20 h-20 bg-zinc-50 border border-zinc-100 rounded-[32px] flex items-center justify-center mx-auto text-3xl shadow-xl">🏪</div>
-        <div>
-           <h3 className="text-xl font-black text-zinc-900">Vendor Activation Required</h3>
-           <p className="text-sm text-zinc-400 font-medium mt-2">Scale your business by deploying your first storefront.</p>
-        </div>
-        <Button asChild className="h-12 px-8 rounded-2xl bg-zinc-900 text-white hover:bg-black font-black uppercase text-xs tracking-widest active:scale-95 transition-all">
-           <Link href="/dashboard/vendor/setup">Activate Vendor Role</Link>
-        </Button>
+      <div className="min-h-screen flex items-center justify-center px-6" style={{ background: "#f8f7f5" }}>
+        <GlassCard className="max-w-md w-full p-10 text-center rounded-[48px] border-white bg-white/60 shadow-2xl">
+           <div className="w-24 h-24 bg-white rounded-[32px] flex items-center justify-center mx-auto mb-8 border border-stone-50 shadow-xl">
+              <Store className="h-10 w-10 text-stone-100" />
+           </div>
+           <h3 className="text-3xl font-black text-stone-900 tracking-tighter">Vendor Account Required</h3>
+           <p className="text-[11px] font-bold text-stone-400 uppercase tracking-widest mt-4 leading-relaxed">System requires active vendor status to access inventory management.</p>
+           <Button asChild className="w-full h-16 rounded-3xl bg-stone-900 text-white font-black text-[11px] uppercase tracking-widest shadow-2xl mt-10 hover:bg-black transition-all border-none">
+              <Link href="/dashboard/activate/vendor">Become a Vendor</Link>
+           </Button>
+        </GlassCard>
       </div>
     );
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8 animate-in slide-in-from-bottom-2 duration-500 fade-in pb-20">
-      
-      {/* ── HEADER ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 pt-4 px-2">
-         <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-zinc-950 flex items-center justify-center shadow-xl">
-               <Package className="h-6 w-6 text-white" />
-            </div>
-            <div>
-               <h1 className="text-2xl font-black text-zinc-900 tracking-tight flex items-center gap-2">
-                  Products
-                  <span className="text-zinc-300 font-bold">{products.length}</span>
-               </h1>
-               <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Master Catalog</p>
-            </div>
-         </div>
+    <div className="min-h-screen pb-24 relative overflow-hidden" style={{ background: "#f8f7f5" }}>
+      <GlassAmbientGlow color="orange" position="top-right" />
+      <GlassAmbientGlow color="indigo" position="bottom-left" />
 
-         <Link href="/dashboard/products/new">
-            <Button className="h-11 px-6 rounded-xl bg-zinc-900 text-white hover:bg-black font-black text-xs uppercase tracking-widest shadow-xl active:scale-95 transition-all">
-               <Plus className="h-4 w-4 mr-2" /> Add Product
-            </Button>
-         </Link>
+      <div className="max-w-6xl mx-auto space-y-12 px-6 pt-12 relative z-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+        
+        {/* Header Protocol */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
+           <div className="space-y-2">
+              <h1 className="text-4xl font-black text-stone-900 tracking-tighter flex items-center gap-4">
+                 <div className="p-2.5 rounded-[20px] bg-white border border-white shadow-2xl shrink-0">
+                    <Package className="h-8 w-8 text-orange-500" />
+                 </div>
+                 My Products
+                 <span className="text-stone-300 ml-2 font-black">{products.length}</span>
+              </h1>
+              <p className="text-[11px] font-bold text-stone-400 uppercase tracking-[0.3em] pl-16">
+                 Track and manage your marketplace inventory
+              </p>
+           </div>
+
+           <div className="flex items-center gap-4">
+              <Button className="h-14 px-8 rounded-full bg-stone-900 text-white font-black text-[11px] uppercase tracking-widest shadow-2xl active:scale-95 transition-all hover:bg-black border-none" asChild>
+                 <Link href="/dashboard/products/new"><Plus className="h-4 w-4 mr-3" /> Add Product</Link>
+              </Button>
+           </div>
+        </div>
+
+        {/* Stats Row */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+           <GlassCard className="p-8 flex flex-col justify-between rounded-[40px] bg-white/60 border-white shadow-xl group">
+              <div className="w-14 h-14 rounded-[22px] bg-orange-50 border border-orange-100 flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-700">
+                 <Store className="h-7 w-7 text-orange-500" />
+              </div>
+              <div>
+                 <p className="text-3xl font-black text-stone-900 tracking-tighter leading-none tabular-nums">{products.filter(p => p.status === "active").length}</p>
+                 <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mt-3">Active Items</p>
+              </div>
+           </GlassCard>
+           <GlassCard className="p-8 flex flex-col justify-between rounded-[40px] bg-white/60 border-white shadow-xl group">
+              <div className="w-14 h-14 rounded-[22px] bg-emerald-50 border border-emerald-100 flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-700">
+                 <TrendingUp className="h-7 w-7 text-emerald-500" />
+              </div>
+              <div>
+                 <p className="text-3xl font-black text-stone-900 tracking-tighter leading-none tabular-nums">{totalSales}</p>
+                 <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mt-3">Total Sales</p>
+              </div>
+           </GlassCard>
+           <GlassCard className="p-8 flex flex-col justify-between rounded-[40px] bg-white/60 border-white shadow-xl group">
+              <div className="w-14 h-14 rounded-[22px] bg-rose-50 border border-rose-100 flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-700">
+                 <AlertCircle className="h-7 w-7 text-rose-500" />
+              </div>
+              <div>
+                 <p className="text-3xl font-black text-rose-600 tracking-tighter leading-none tabular-nums">{lowStock}</p>
+                 <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mt-3">Low Stock Alerts</p>
+              </div>
+           </GlassCard>
+           <GlassCard className="p-8 flex flex-col justify-between rounded-[40px] bg-white border-white shadow-2xl group">
+              <div className="w-14 h-14 rounded-[22px] bg-stone-900 text-white flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-700">
+                 <MousePointer className="h-7 w-7" />
+              </div>
+              <div>
+                 <p className="text-3xl font-black text-stone-900 tracking-tighter leading-none tabular-nums">{products.filter(p => p.is_digital).length}</p>
+                 <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mt-3">Digital Files</p>
+              </div>
+           </GlassCard>
+        </div>
+
+        {/* Filters & Table Hub */}
+        <div className="space-y-8">
+           <div className="flex flex-col md:flex-row gap-6">
+              <div className="relative flex-1 group">
+                 <Search className="absolute left-6 top-1/2 -translate-y-1/2 h-5 w-5 text-stone-300 group-focus-within:text-orange-500 transition-colors" />
+                 <input
+                    placeholder="Search your products by name or SKU..."
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    className="w-full h-16 pl-14 pr-6 rounded-[28px] bg-white/60 border border-white text-[14px] font-bold tracking-tight text-stone-900 placeholder:text-stone-300 shadow-xl focus:outline-none focus:bg-white transition-all"
+                 />
+              </div>
+              <div className="flex gap-2 overflow-x-auto no-scrollbar scroll-smooth p-1 shrink-0">
+                 {["All", "Active", "Digital", "Physical", "Low Stock"].map((f) => (
+                    <button
+                       key={f}
+                       onClick={() => setFilter(f)}
+                       className={cn(
+                          "px-8 h-12 rounded-2xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all border shadow-sm",
+                          activeFilter === f
+                             ? "bg-stone-900 border-stone-900 text-white shadow-xl scale-105"
+                             : "bg-white/60 border-white text-stone-400 hover:text-stone-900 hover:bg-white"
+                       )}
+                    >
+                       {f}
+                    </button>
+                 ))}
+              </div>
+           </div>
+
+           <div className="space-y-4">
+              <div className="flex items-center justify-between px-2">
+                 <h2 className="text-[11px] font-bold uppercase tracking-[0.3em] text-stone-400">Inventory Registry</h2>
+                 <div className="flex items-center gap-2 text-[10px] font-bold text-stone-300 uppercase tracking-widest">
+                    <RefreshCw className="h-3 w-3 animate-spin-slow" />
+                    Marketplace Sync
+                 </div>
+              </div>
+              
+              {filtered.length === 0 ? (
+                 <GlassCard className="p-24 text-center rounded-[56px] border-white bg-white/20">
+                    <Package className="h-12 w-12 text-stone-100 mx-auto mb-8" />
+                    <h2 className="text-2xl font-black text-stone-900 tracking-tighter uppercase">No Products Found</h2>
+                    <p className="text-[11px] font-bold text-stone-400 uppercase tracking-widest mt-4">Start by adding your first product to the marketplace.</p>
+                 </GlassCard>
+              ) : (
+                 <div className="grid grid-cols-1 gap-6">
+                    {filtered.map((p) => {
+                      const s = statusMap[p.status as string] || { label: "Draft", color: "indigo" };
+                      const img = (p.images as string[])?.[0];
+
+                       return (
+                         <GlassCard key={p.id as string} className="group p-8 flex flex-col lg:flex-row lg:items-center gap-8 rounded-[48px] hover:shadow-2xl hover:bg-white transition-all duration-500">
+                            
+                            {/* Product Graphics */}
+                            <div className="w-24 h-24 rounded-[32px] bg-white border border-white shadow-xl flex items-center justify-center shrink-0 overflow-hidden relative group-hover:scale-105 transition-transform duration-700">
+                               {img ? (
+                                  <img src={img} alt={p.name as string} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                               ) : (
+                                  <Package className="h-10 w-10 text-stone-100" />
+                               )}
+                               {Boolean(p.is_digital) && (
+                                  <div className="absolute top-2 right-2 bg-indigo-500 text-white text-[7px] font-black px-2 py-1 rounded-lg border border-white/20 shadow-lg">
+                                     DIGITAL
+                                  </div>
+                               )}
+                            </div>
+
+                            <div className="flex-1 min-w-0 space-y-4">
+                               <div className="flex items-center gap-3">
+                                  <button onClick={() => toggleStatus(p.id as string, p.status as string)} className="active:scale-90 transition-all">
+                                     <GlassPill color={s.color} className="text-[8px] font-black uppercase tracking-[0.15em] px-4 py-1.5 border-none shadow-none ring-1 ring-white/50">{s.label}</GlassPill>
+                                  </button>
+                                  <span className="text-[10px] font-bold text-stone-300 uppercase tracking-widest">#{String(p.id).slice(0, 8)}</span>
+                               </div>
+                               <h3 className="text-2xl font-black text-stone-900 tracking-tighter truncate leading-none">{p.name as string}</h3>
+                               
+                               <div className="flex flex-wrap items-center gap-8 mt-2">
+                                  <div className="space-y-1">
+                                     <p className="text-[9px] font-bold text-stone-300 uppercase tracking-widest">Price Point</p>
+                                     <span className="text-xl font-black text-stone-900 tabular-nums tracking-tighter">{formatMoney(Number(p.price), (p.currency as string) || undefined)}</span>
+                                  </div>
+                                  <div className="space-y-1">
+                                     <p className="text-[9px] font-bold text-stone-300 uppercase tracking-widest">Sales Vol</p>
+                                     <div className="flex items-center gap-2">
+                                        <TrendingUp className="h-4 w-4 text-emerald-500" />
+                                        <span className="text-xl font-black text-stone-900">{(p.sale_count as number) || 0}</span>
+                                     </div>
+                                  </div>
+                                  {!p.is_digital && (
+                                     <div className="space-y-1">
+                                        <p className="text-[9px] font-bold text-stone-300 uppercase tracking-widest">Inv Levels</p>
+                                        <div className="flex items-center gap-2">
+                                           <div className={cn("w-2 h-2 rounded-full", (p.inventory_quantity as number) <= 5 ? "bg-rose-500 animate-pulse" : "bg-emerald-400")} />
+                                           <span className={cn(
+                                             "text-xl font-black tabular-nums",
+                                             (p.inventory_quantity as number) <= 5 ? "text-rose-500" : "text-stone-900"
+                                           )}>
+                                              {(p.inventory_quantity as number) || 0}
+                                           </span>
+                                        </div>
+                                     </div>
+                                  )}
+                               </div>
+                            </div>
+
+                            {/* Controls Hub */}
+                            <div className="flex items-center gap-4 shrink-0 w-full lg:w-auto">
+                               <Link href={`/dashboard/products/${p.id as string}/edit`} className="flex-1 lg:flex-none">
+                                  <div className="h-14 px-8 rounded-2xl bg-white border border-stone-50 hover:bg-stone-900 hover:text-white flex items-center justify-center gap-3 text-stone-600 transition-all cursor-pointer shadow-lg group-hover:shadow-xl active:scale-95">
+                                     <Edit className="h-4 w-4" />
+                                     <span className="text-[10px] font-black uppercase tracking-widest">Edit</span>
+                                  </div>
+                                </Link>
+                                <Link href={`/product/${p.slug}`} target="_blank" className="flex-1 lg:flex-none">
+                                  <div className="h-14 px-8 rounded-2xl bg-white border border-stone-50 hover:bg-orange-500 hover:text-white flex items-center justify-center gap-3 text-stone-400 transition-all cursor-pointer shadow-lg group-hover:shadow-xl active:scale-95">
+                                     <Eye className="h-4 w-4" />
+                                     <span className="text-[10px] font-black uppercase tracking-widest">View</span>
+                                  </div>
+                                </Link>
+                                <button onClick={() => deleteProduct(p.id as string)} className="w-14 h-14 rounded-2xl bg-white border border-stone-50 hover:bg-rose-500 hover:text-white flex items-center justify-center text-stone-300 transition-all cursor-pointer shadow-lg hover:shadow-xl active:scale-95">
+                                   <Trash2 className="h-5 w-5" />
+                                </button>
+                            </div>
+
+                         </GlassCard>
+                       );
+                    })}
+                 </div>
+              )}
+           </div>
+        </div>
       </div>
-
-      {/* ── STATS CARDS ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-         {[
-           { label: "Public Listings", value: products.filter(p => p.status === 'active').length, icon: Store, color: "text-blue-500", bg: "bg-blue-50" },
-           { label: "Lifetime Sales", value: totalSales, icon: TrendingUp, color: "text-emerald-500", bg: "bg-emerald-50" },
-           { label: "Inventory Alert", value: lowStock, icon: AlertCircle, color: "text-red-500", bg: "bg-red-50" },
-           { label: "Digital Goods", value: products.filter(p => p.is_digital).length, icon: MousePointer, color: "text-violet-500", bg: "bg-violet-50" },
-         ].map((stat, i) => (
-            <div key={i} className="bg-white border border-zinc-100 p-5 rounded-[28px] shadow-sm flex items-center gap-4 relative group overflow-hidden">
-               <div className={cn("absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity", stat.bg)} />
-               <div className={cn("relative w-10 h-10 rounded-xl flex items-center justify-center shrink-0", stat.bg, stat.color)}>
-                  <stat.icon className="h-5 w-5" />
-               </div>
-               <div className="relative">
-                  <p className="text-xl font-black text-zinc-900">{stat.value}</p>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">{stat.label}</p>
-               </div>
-            </div>
-         ))}
-      </div>
-
-      {/* ── SEARCH & FILTER ── */}
-      <div className="flex flex-col md:flex-row gap-4 px-2">
-         <div className="relative flex-1">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 pointer-events-none" />
-            <input
-               placeholder="Search product registry..."
-               value={search}
-               onChange={e => setSearch(e.target.value)}
-               className="w-full h-12 pl-11 pr-4 rounded-2xl bg-white border border-zinc-100 text-sm font-bold text-zinc-900 placeholder:text-zinc-300 focus:outline-none focus:ring-4 focus:ring-zinc-100 transition-all shadow-sm"
-            />
-         </div>
-         <div className="flex bg-zinc-50 border border-zinc-100 p-1 rounded-2xl overflow-x-auto">
-            {["All", "Active", "Digital", "Physical", "Low Stock"].map((f) => (
-               <button
-                  key={f}
-                  onClick={() => setFilter(f)}
-                  className={cn(
-                     "px-5 h-10 rounded-xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all",
-                     activeFilter === f ? "bg-zinc-900 text-white shadow-xl" : "text-zinc-400 hover:text-zinc-900"
-                  )}
-               >
-                  {f}
-               </button>
-            ))}
-         </div>
-      </div>
-
-      {/* ── PRODUCT REGISTRY ── */}
-      <div className="space-y-4">
-         <h2 className="text-xs font-black uppercase tracking-[0.2em] text-zinc-400 px-2">Catalog Registry</h2>
-         
-         {loading ? (
-            <div className="space-y-3">
-               {[1, 2, 3].map(i => <div key={i} className="h-24 rounded-[32px] bg-zinc-50 border border-zinc-100 animate-pulse" />)}
-            </div>
-         ) : filtered.length === 0 ? (
-            <div className="py-20 text-center rounded-[32px] bg-zinc-50 border border-zinc-100 border-dashed">
-               <Package className="h-10 w-10 text-zinc-300 mx-auto mb-4" />
-               <p className="text-sm font-bold text-zinc-500">No products found.</p>
-            </div>
-         ) : (
-            <div className="grid grid-cols-1 gap-3">
-               {filtered.map((p) => {
-                 const s = statusMap[p.status as string] || statusMap.draft;
-                 const img = (p.images as string[])?.[0];
-
-                  return (
-                    <div key={p.id as string} className="group bg-white border border-zinc-100 hover:border-zinc-300 rounded-[28px] p-4 pr-6 flex items-center gap-6 transition-all shadow-sm hover:shadow-md">
-                       
-                       {/* Identity */}
-                       <div className="w-16 h-16 rounded-2xl bg-zinc-50 border border-zinc-100 flex items-center justify-center shrink-0 overflow-hidden relative group-hover:border-zinc-300 transition-all">
-                          {img ? (
-                             <img src={img} alt={p.name as string} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                          ) : (
-                             <Package className="h-6 w-6 text-zinc-300" />
-                          )}
-                          {Boolean(p.is_digital) && <span className="absolute top-1 right-1 bg-violet-600 text-white text-[8px] font-black px-1.5 py-0.5 rounded-md shadow-lg">DIGITAL</span>}
-                       </div>
-
-                       <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                             <span className={cn(
-                                "text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md border",
-                                s.variant === 'success' ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
-                                s.variant === 'warning' ? "bg-amber-50 text-amber-600 border-amber-100" :
-                                "bg-zinc-50 text-zinc-500 border-zinc-200"
-                             )}>{s.label}</span>
-                             <span className="text-[8px] font-black uppercase tracking-widest text-zinc-300">{p.product_type as string}</span>
-                          </div>
-                          <h3 className="text-base font-black text-zinc-900 truncate">{p.name as string}</h3>
-                          <div className="flex items-center gap-4 mt-1">
-                             <span className="text-xs font-black text-zinc-900">{formatMoney(Number(p.price), (p.currency as string) || undefined)}</span>
-                             <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest flex items-center gap-1.5">
-                                <TrendingUp className="h-3 w-3" /> {(p.sale_count as number) || 0} Sold
-                             </span>
-                             {!p.is_digital && (
-                                <span className={cn(
-                                  "text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5",
-                                  (p.inventory_quantity as number) <= 5 ? "text-red-500" : "text-zinc-400"
-                                )}>
-                                   <Layers className="h-3 w-3" /> {(p.inventory_quantity as number) || 0} Stock
-                                </span>
-                             )}
-                          </div>
-                       </div>
-
-                       {/* Actions */}
-                       <div className="flex items-center gap-2 shrink-0">
-                          <Link href={`/dashboard/products/${p.id as string}/edit`}>
-                             <div className="w-10 h-10 rounded-xl bg-zinc-50 hover:bg-zinc-900 hover:text-white flex items-center justify-center text-zinc-400 transition-all cursor-pointer border border-zinc-100">
-                                <Edit className="h-4 w-4" />
-                             </div>
-                          </Link>
-                          <button onClick={() => deleteProduct(p.id as string)} className="w-10 h-10 rounded-xl bg-zinc-50 hover:bg-red-50 hover:text-red-600 flex items-center justify-center text-zinc-300 transition-all cursor-pointer border border-zinc-100 group-hover:opacity-100 opacity-0">
-                             <Trash2 className="h-4 w-4" />
-                          </button>
-                       </div>
-
-                    </div>
-                  );
-               })}
-            </div>
-         )}
-      </div>
-
     </div>
   );
 }
-

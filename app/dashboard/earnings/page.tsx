@@ -1,17 +1,14 @@
 "use client";
-export const dynamic = "force-dynamic";
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { DollarSign, ArrowUpRight, Clock, CheckCircle, Filter, Download, Wallet } from "lucide-react";
+import { DollarSign, ArrowUpRight, Clock, CheckCircle, Filter, Download, Wallet, TrendingUp, Zap, ArrowRight, ShieldCheck, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { StatCard } from "@/components/ui/stat-card";
+import { GlassCard, GlassPill, GlassAmbientGlow } from "@/components/ui/glass";
 import { useCurrency } from "@/context/CurrencyContext";
 import { createClient } from "@/lib/supabase/client";
-import { TableRowSkeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 
 export default function AffiliateEarningsPage() {
   const { formatMoney } = useCurrency();
@@ -31,7 +28,7 @@ export default function AffiliateEarningsPage() {
       const [affRes, commissionsRes, payoutsRes] = await Promise.all([
         supabase.from("affiliates").select("*").eq("user_id", user.id).maybeSingle(),
         supabase.from("affiliate_commissions")
-          .select("*, orders(order_number, total_amount, created_at)")
+          .select("*, orders(order_number, total_amount, created_at, currency)")
           .order("created_at", { ascending: false }),
         supabase.from("payouts").select("id, amount, status, payout_method, created_at, processed_at")
           .eq("user_id", user.id)
@@ -60,131 +57,239 @@ export default function AffiliateEarningsPage() {
   }, []);
 
   useEffect(() => {
-    if (!loading && hasAffiliate === false) router.replace("/dashboard/activate/affiliate");
+    if (!loading && hasAffiliate === false) router.replace("/dashboard/roles");
   }, [loading, hasAffiliate, router]);
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center space-y-12 animate-in fade-in duration-700" style={{ background: "#f8f7f5" }}>
+        <div className="relative">
+          <div className="absolute inset-0 bg-emerald-400/20 blur-3xl rounded-full scale-150 animate-pulse" />
+          <div className="relative w-24 h-24 rounded-[32px] bg-white border border-white shadow-2xl flex items-center justify-center overflow-hidden">
+            <div className="absolute inset-0 border-2 border-t-emerald-500 border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin m-2" />
+            <DollarSign className="h-10 w-10 text-stone-900" />
+          </div>
+        </div>
+        <div className="text-center space-y-3">
+           <h2 className="text-[14px] font-black text-stone-900 uppercase tracking-[0.4em] pl-[0.4em]">Earnings Hub</h2>
+           <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest pl-[0.1em]">Reconciling Your Commissions</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-6 animate-fade-in pb-8">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-[var(--color-text-primary)]">Earnings & Commissions</h1>
-          <p className="text-sm text-[var(--color-text-muted)] mt-0.5">Track your referral income and payout status.</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm"><Download className="h-4 w-4 mr-1.5" /> Export</Button>
-          <Button asChild size="sm"><Link href="/dashboard/withdrawals"><Wallet className="h-4 w-4 mr-1.5" /> Request Payout</Link></Button>
-        </div>
-      </div>
+    <div
+      className="min-h-screen animate-in fade-in duration-700 pb-24 relative overflow-hidden"
+      style={{
+        background: "radial-gradient(ellipse 80% 60% at 80% 0%, rgba(16,185,129,0.05) 0%, transparent 50%), radial-gradient(ellipse 60% 50% at 0% 100%, rgba(99,102,241,0.05) 0%, transparent 55%), #f8f7f5",
+      }}
+    >
+      <GlassAmbientGlow color="emerald" position="top-right" />
+      <GlassAmbientGlow color="indigo" position="bottom-left" />
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Pending earnings" value={formatMoney(stats.pending, "RWF")} icon={<Clock className="h-4 w-4" />} iconColor="from-amber-600 to-orange-600" />
-        <StatCard title="Available" value={formatMoney(stats.available, "RWF")} icon={<CheckCircle className="h-4 w-4" />} iconColor="from-emerald-600 to-teal-600" />
-        <StatCard title="Paid" value={formatMoney(stats.paid, "RWF")} icon={<ArrowUpRight className="h-4 w-4" />} iconColor="from-purple-600 to-pink-600" />
-        <StatCard title="Total earned" value={formatMoney(stats.total, "RWF")} icon={<DollarSign className="h-4 w-4" />} iconColor="from-blue-600 to-cyan-600" />
-      </div>
-
-      <div className="flex items-center gap-2 p-2 rounded-xl bg-[var(--color-surface-secondary)] border border-[var(--color-border)] overflow-x-auto" style={{ WebkitOverflowScrolling: "touch" }}>
-        <Button variant="secondary" size="sm" className="text-xs font-medium shrink-0">All time</Button>
-        <Button variant="ghost" size="sm" className="text-xs font-medium shrink-0">This month</Button>
-        <Button variant="ghost" size="sm" className="text-xs font-medium shrink-0">Pending</Button>
-        <Button variant="ghost" size="sm" className="text-xs font-medium shrink-0">Paid</Button>
-        <div className="ml-auto shrink-0">
-          <Button variant="ghost" size="sm" className="text-xs font-medium gap-1.5"><Filter className="h-3.5 w-3.5" /> Filters</Button>
+      <div className="max-w-[1440px] mx-auto space-y-12 px-8 pt-12 relative z-10">
+        
+        {/* Header Protocol */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
+           <div className="space-y-2">
+              <h1 className="text-4xl font-black text-stone-900 tracking-tighter flex items-center gap-4">
+                 <div className="p-2.5 rounded-[20px] bg-white border border-white shadow-2xl shrink-0">
+                    <TrendingUp className="h-8 w-8 text-emerald-500" />
+                 </div>
+                 My Earnings
+              </h1>
+              <p className="text-[11px] font-bold text-stone-400 uppercase tracking-[0.3em] pl-16">
+                 Track your commissions and payout history
+              </p>
+           </div>
+           <div className="flex items-center gap-3">
+              <Button variant="outline" className="h-14 px-8 rounded-full bg-white text-stone-900 border-white shadow-xl font-black text-[11px] uppercase tracking-widest active:scale-95 transition-all hover:bg-stone-50">
+                 <Download className="h-4 w-4 mr-3" /> Export Report
+              </Button>
+              <Button asChild className="h-14 px-8 rounded-full bg-stone-900 text-white shadow-2xl font-black text-[11px] uppercase tracking-widest active:scale-95 transition-all hover:bg-black">
+                 <Link href="/dashboard/withdrawals"><Wallet className="h-4 w-4 mr-3" /> Withdraw Funds</Link>
+              </Button>
+           </div>
         </div>
-      </div>
 
-      <Card className="border-[var(--color-border)] shadow-[var(--shadow-sm)] overflow-hidden">
-        <CardHeader className="border-b border-[var(--color-border)] bg-[var(--color-surface-secondary)]/50 py-4 px-5">
-          <CardTitle className="text-base font-semibold flex items-center gap-2">
-            <DollarSign className="h-5 w-5 text-[var(--color-accent)]" />
-            Commission history
-          </CardTitle>
-          <p className="text-sm text-[var(--color-text-muted)] mt-0.5">Earnings from referrals. Payouts are listed below.</p>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto" style={{ WebkitOverflowScrolling: "touch" }}>
-            <table className="w-full min-w-[520px] text-sm">
-              <thead>
-                <tr className="border-b border-[var(--color-border)] bg-[var(--color-surface-secondary)]/50">
-                  <th className="text-left font-medium text-[var(--color-text-muted)] py-3.5 pl-5 pr-3">Order</th>
-                  <th className="text-left font-medium text-[var(--color-text-muted)] py-3.5 px-3">Date</th>
-                  <th className="text-right font-medium text-[var(--color-text-muted)] py-3.5 px-3">Order amount</th>
-                  <th className="text-right font-medium text-[var(--color-text-muted)] py-3.5 px-3">Commission</th>
-                  <th className="text-center font-medium text-[var(--color-text-muted)] py-3.5 pl-3 pr-5 w-24">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading
-                  ? Array(5).fill(0).map((_, i) => <TableRowSkeleton key={i} cols={5} />)
-                  : earnings.length === 0
-                  ? (
+        {/* Breakdown Protocol */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+           <GlassCard className="p-8 flex flex-col justify-between rounded-[40px] bg-white/60 border-white shadow-xl group">
+              <div className="w-14 h-14 rounded-[22px] bg-amber-50 border border-amber-100 flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-700">
+                 <Clock className="h-7 w-7 text-amber-500" />
+              </div>
+              <div>
+                 <p className="text-3xl font-black text-stone-900 tracking-tighter leading-none tabular-nums">{formatMoney(stats.pending, "USD")}</p>
+                 <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mt-3">Pending Earnings</p>
+              </div>
+           </GlassCard>
+           <GlassCard className="p-8 flex flex-col justify-between rounded-[40px] bg-white/60 border-white shadow-xl group">
+              <div className="w-14 h-14 rounded-[22px] bg-emerald-50 border border-emerald-100 flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-700">
+                 <CheckCircle className="h-7 w-7 text-emerald-500" />
+              </div>
+              <div>
+                 <p className="text-3xl font-black text-stone-900 tracking-tighter leading-none tabular-nums">{formatMoney(stats.available, "USD")}</p>
+                 <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mt-3">Available Balance</p>
+              </div>
+           </GlassCard>
+           <GlassCard className="p-8 flex flex-col justify-between rounded-[40px] bg-white/60 border-white shadow-xl group">
+              <div className="w-14 h-14 rounded-[22px] bg-indigo-50 border border-indigo-100 flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-700">
+                 <ArrowUpRight className="h-7 w-7 text-indigo-500" />
+              </div>
+              <div>
+                 <p className="text-3xl font-black text-stone-900 tracking-tighter leading-none tabular-nums">{formatMoney(stats.paid, "USD")}</p>
+                 <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mt-3">Total Paid Out</p>
+              </div>
+           </GlassCard>
+           <GlassCard className="p-8 flex flex-col justify-between rounded-[40px] bg-white/60 border-white shadow-xl group">
+              <div className="w-14 h-14 rounded-[22px] bg-sky-50 border border-sky-100 flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-700">
+                 <Zap className="h-7 w-7 text-sky-500" />
+              </div>
+              <div>
+                 <p className="text-3xl font-black text-stone-900 tracking-tighter leading-none tabular-nums">{formatMoney(stats.total, "USD")}</p>
+                 <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mt-3">Lifetime Earnings</p>
+              </div>
+           </GlassCard>
+        </div>
+
+        {/* Global Registry Table */}
+        <GlassCard className="rounded-[48px] border-white bg-white/60 shadow-xl overflow-hidden">
+           <div className="p-10 border-b border-stone-100 flex flex-col md:flex-row items-center justify-between gap-6">
+              <div className="space-y-1">
+                 <h3 className="text-3xl font-black text-stone-900 tracking-tighter">Commission Log</h3>
+                 <p className="text-[11px] font-black uppercase tracking-widest text-stone-400">Detailed referral income mapping</p>
+              </div>
+              <div className="flex items-center gap-3 bg-white/60 p-1.5 rounded-[22px] border border-white shadow-lg backdrop-blur-3xl overflow-x-auto">
+                 {["All Time", "This Month", "Pending", "Settled"].map((label, i) => (
+                    <button key={i} className={cn(
+                       "h-11 px-6 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap",
+                       i === 0 ? "bg-stone-900 text-white shadow-xl" : "text-stone-400 hover:text-stone-900"
+                    )}>{label}</button>
+                 ))}
+                 <div className="w-px h-6 bg-stone-200 mx-2" />
+                 <Button variant="ghost" className="h-11 px-4 text-stone-400 hover:text-stone-900"><Filter className="h-4 w-4" /></Button>
+              </div>
+           </div>
+           
+           <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="bg-stone-50/40">
+                    <th className="py-8 pl-10 pr-6 text-[11px] font-black uppercase tracking-[0.3em] text-stone-400 border-b border-stone-100">Order Ref</th>
+                    <th className="py-8 px-6 text-[11px] font-black uppercase tracking-[0.3em] text-stone-400 border-b border-stone-100 text-center">Date</th>
+                    <th className="py-8 px-6 text-right text-[11px] font-black uppercase tracking-[0.3em] text-stone-400 border-b border-stone-100">Sale Amount</th>
+                    <th className="py-8 px-6 text-right text-[11px] font-black uppercase tracking-[0.3em] text-emerald-500 border-b border-stone-100">My Commission</th>
+                    <th className="py-8 px-6 text-center text-[11px] font-black uppercase tracking-[0.3em] text-stone-400 border-b border-stone-100">Status</th>
+                    <th className="py-8 pr-10 border-b border-stone-100" />
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-stone-100">
+                  {earnings.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="text-center py-14 px-5">
-                        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)] mb-3"><DollarSign className="h-6 w-6" /></div>
-                        <p className="font-medium text-[var(--color-text-primary)]">No commissions yet</p>
-                        <p className="text-sm text-[var(--color-text-muted)] mt-0.5">Promote your links to start earning.</p>
-                      </td>
+                       <td colSpan={6} className="py-24 text-center space-y-4">
+                          <div className="w-20 h-20 bg-white rounded-[32px] flex items-center justify-center mx-auto mb-6 border border-white shadow-xl text-stone-100">
+                             <DollarSign className="h-10 w-10 text-stone-100" />
+                          </div>
+                          <p className="text-xl font-black text-stone-900 tracking-tighter">No Commissions Yet</p>
+                          <p className="text-[11px] font-black text-stone-400 uppercase tracking-widest max-w-[240px] mx-auto leading-relaxed">Promote products and complete missions to start earning.</p>
+                       </td>
                     </tr>
-                  )
-                  : earnings.map((e) => (
-                    <tr key={e.id} className="border-b border-[var(--color-border)] last:border-b-0 hover:bg-[var(--color-surface-secondary)]/50 transition-colors">
-                      <td className="py-3.5 pl-5 pr-3 font-medium text-[var(--color-text-primary)]">#{e.orders?.order_number || String(e.id).slice(0, 8)}</td>
-                      <td className="py-3.5 px-3 text-[var(--color-text-muted)]">{new Date(e.created_at).toLocaleDateString()}</td>
-                      <td className="py-3.5 px-3 text-right tabular-nums">{formatMoney(Number(e.orders?.total_amount || 0), (e.orders?.currency as string) || "RWF")}</td>
-                      <td className="py-3.5 px-3 text-right font-semibold text-[var(--color-accent)] tabular-nums">{formatMoney(Number(e.commission_amount ?? e.amount ?? 0), "RWF")}</td>
-                      <td className="py-3.5 pl-3 pr-5 text-center">
-                        <Badge variant={e.status === "paid" ? "success" : e.status === "cancelled" ? "destructive" : "warning"} className="text-[10px] py-0.5">{e.status || "pending"}</Badge>
-                      </td>
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
+                  ) : (
+                    earnings.map(e => (
+                      <tr key={e.id} className="hover:bg-white/80 transition-all duration-500 group">
+                        <td className="pl-10 pr-6 py-10 font-black text-xl text-stone-900 tracking-tighter">
+                           #{e.orders?.order_number || String(e.id).slice(0, 8)}
+                        </td>
+                        <td className="px-6 py-10 text-center">
+                           <p className="text-[12px] font-black text-stone-900 tracking-tighter">{new Date(e.created_at).toLocaleDateString()}</p>
+                           <p className="text-[10px] font-black text-stone-300 uppercase tracking-widest mt-1">Order Date</p>
+                        </td>
+                        <td className="px-6 py-10 text-right">
+                           <p className="text-lg font-black text-stone-400 tabular-nums tracking-tighter">{formatMoney(Number(e.orders?.total_amount || 0), (e.orders?.currency as string) || "USD")}</p>
+                           <p className="text-[9px] font-black text-stone-300 uppercase tracking-widest mt-1">Sale Vol</p>
+                        </td>
+                        <td className="px-6 py-10 text-right">
+                           <p className="text-2xl font-black text-emerald-500 tabular-nums tracking-tighter">{formatMoney(Number(e.commission_amount ?? e.amount ?? 0), "USD")}</p>
+                           <p className="text-[9px] font-black text-emerald-400/60 uppercase tracking-widest mt-1">Commission</p>
+                        </td>
+                        <td className="px-6 py-10 text-center">
+                           <GlassPill color={e.status === "paid" ? "emerald" : e.status === "cancelled" ? "red" : "orange"} className="mx-auto px-4 py-2 font-black border-white shadow-sm ring-1 ring-white">
+                              {e.status?.toUpperCase() || "PENDING"}
+                           </GlassPill>
+                        </td>
+                        <td className="pr-10 py-10 text-right">
+                           <Button variant="ghost" size="icon" className="h-12 w-12 rounded-2xl bg-white border border-transparent group-hover:bg-stone-900 group-hover:text-white transition-all shadow-lg active:scale-90">
+                              <ArrowRight className="h-5 w-5" />
+                           </Button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+           </div>
+        </GlassCard>
 
-      <Card className="border-[var(--color-border)] shadow-[var(--shadow-sm)] overflow-hidden">
-        <CardHeader className="border-b border-[var(--color-border)] bg-[var(--color-surface-secondary)]/50 py-4 px-5">
-          <CardTitle className="text-base font-semibold">Payout history</CardTitle>
-          <p className="text-sm text-[var(--color-text-muted)] mt-0.5">Withdrawal requests and status.</p>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto" style={{ WebkitOverflowScrolling: "touch" }}>
-            <table className="w-full min-w-[400px] text-sm">
-              <thead>
-                <tr className="border-b border-[var(--color-border)] bg-[var(--color-surface-secondary)]/50">
-                  <th className="text-left font-medium text-[var(--color-text-muted)] py-3.5 pl-5 pr-3">Date</th>
-                  <th className="text-left font-medium text-[var(--color-text-muted)] py-3.5 px-3">Method</th>
-                  <th className="text-right font-medium text-[var(--color-text-muted)] py-3.5 px-3">Amount</th>
-                  <th className="text-center font-medium text-[var(--color-text-muted)] py-3.5 pl-3 pr-5 w-24">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? Array(2).fill(0).map((_, i) => <TableRowSkeleton key={i} cols={4} />)
-                  : payouts.length === 0
-                  ? (
+        {/* Settlement Registry */}
+        <GlassCard className="rounded-[48px] border-white bg-white/60 shadow-xl overflow-hidden mt-12">
+           <div className="p-10 border-b border-stone-100 flex items-center justify-between">
+              <div className="space-y-1">
+                 <h3 className="text-3xl font-black text-stone-900 tracking-tighter">Payout History</h3>
+                 <p className="text-[11px] font-black uppercase tracking-widest text-stone-400">All successful settlements to your accounts</p>
+              </div>
+              <History className="h-8 w-8 text-stone-100" />
+           </div>
+           
+           <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="bg-stone-50/40">
+                    <th className="py-8 pl-10 pr-6 text-[11px] font-black uppercase tracking-[0.3em] text-stone-400 border-b border-stone-100">Payout Date</th>
+                    <th className="py-8 px-6 text-[11px] font-black uppercase tracking-[0.3em] text-stone-400 border-b border-stone-100">Payment Method</th>
+                    <th className="py-8 px-6 text-right text-[11px] font-black uppercase tracking-[0.3em] text-stone-400 border-b border-stone-100">Amount</th>
+                    <th className="py-8 px-6 text-center text-[11px] font-black uppercase tracking-[0.3em] text-stone-400 border-b border-stone-100">Status</th>
+                    <th className="py-8 pr-10 border-b border-stone-100" />
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-stone-100">
+                  {payouts.length === 0 ? (
                     <tr>
-                      <td colSpan={4} className="text-center py-12 text-[var(--color-text-muted)]">
-                        No payouts yet. <Link href="/dashboard/withdrawals" className="text-[var(--color-accent)] hover:underline">Request a payout</Link> when you reach the minimum.
-                      </td>
+                       <td colSpan={5} className="py-20 text-center text-[11px] font-black text-stone-400 uppercase tracking-widest">
+                          No payout history. <Link href="/dashboard/withdrawals" className="text-emerald-500 hover:text-emerald-600 underline ml-2">Request your first withdrawal</Link>
+                       </td>
                     </tr>
-                  )
-                  : payouts.map((p) => (
-                    <tr key={p.id} className="border-b border-[var(--color-border)] last:border-b-0 hover:bg-[var(--color-surface-secondary)]/50 transition-colors">
-                      <td className="py-3.5 pl-5 pr-3">{new Date(p.created_at).toLocaleDateString()}</td>
-                      <td className="py-3.5 px-3 capitalize">{String(p.payout_method || "—").replace(/_/g, " ")}</td>
-                      <td className="py-3.5 px-3 text-right font-medium tabular-nums">{formatMoney(Number(p.amount ?? 0), "RWF")}</td>
-                      <td className="py-3.5 pl-3 pr-5 text-center">
-                        <Badge variant={p.status === "paid" ? "success" : p.status === "failed" ? "destructive" : "warning"} className="text-[10px] py-0.5">{p.status || "pending"}</Badge>
-                      </td>
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
+                  ) : (
+                    payouts.map(p => (
+                      <tr key={p.id} className="hover:bg-white/80 transition-all duration-500 group">
+                        <td className="pl-10 pr-6 py-8 font-black text-lg text-stone-900 tracking-tighter">
+                           {new Date(p.created_at).toLocaleDateString()}
+                        </td>
+                        <td className="px-6 py-8">
+                           <p className="text-[14px] font-black text-stone-900 tracking-tight capitalize">{String(p.payout_method || "—").replace(/_/g, " ")}</p>
+                           <p className="text-[9px] font-black text-stone-300 uppercase tracking-widest mt-1">Payment Hub</p>
+                        </td>
+                        <td className="px-6 py-8 text-right font-black text-2xl text-emerald-500 tabular-nums tracking-tighter">
+                           {formatMoney(Number(p.amount ?? 0), "USD")}
+                        </td>
+                        <td className="px-6 py-8 text-center text-center">
+                           <GlassPill color={p.status === "paid" ? "emerald" : p.status === "failed" ? "red" : "orange"} className="mx-auto px-4 py-2 font-black border-white shadow-sm ring-1 ring-white">
+                              {p.status?.toUpperCase() || "PENDING"}
+                           </GlassPill>
+                        </td>
+                        <td className="pr-10 py-8 text-right">
+                           <div className="w-12 h-12 rounded-2xl bg-white border border-stone-50 shadow-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                              <ShieldCheck className="h-5 w-5 text-emerald-400" />
+                           </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+           </div>
+        </GlassCard>
+      </div>
     </div>
   );
 }

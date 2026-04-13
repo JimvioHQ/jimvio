@@ -4,10 +4,9 @@ export const dynamic = "force-dynamic";
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, MousePointer, ShoppingCart, DollarSign, TrendingUp, BarChart3, Package } from "lucide-react";
+import { ArrowLeft, MousePointer, ShoppingCart, DollarSign, TrendingUp, BarChart3, Package, Zap, Target, ShieldCheck, Activity, Globe, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { StatCard } from "@/components/ui/stat-card";
+import { GlassCard, GlassPill, GlassAmbientGlow } from "@/components/ui/glass";
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
 } from "recharts";
@@ -41,11 +40,28 @@ export default function AffiliateAnalyticsPage() {
     load();
   }, []);
 
-  if (!loading && !affiliate) {
-    router.replace("/dashboard/activate/affiliate");
+  if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[40vh]">
-        <p className="text-sm text-[var(--color-text-muted)]">Redirecting…</p>
+      <div className="min-h-screen flex flex-col items-center justify-center space-y-6" style={{ background: "#f8f7f5" }}>
+        <RefreshCw className="h-6 w-6 animate-spin text-orange-500" />
+        <p className="text-[11px] font-bold text-stone-400 capitalize pl-1">Loading Analytics...</p>
+      </div>
+    );
+  }
+
+  if (!affiliate) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-6" style={{ background: "#f8f7f5" }}>
+        <GlassCard className="max-w-md w-full p-8 text-center rounded-[32px] border-white shadow-sm bg-white/60">
+          <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-6 border border-stone-100 shadow-sm">
+             <ShieldCheck className="h-7 w-7 text-stone-300" />
+          </div>
+          <h2 className="text-2xl font-bold text-stone-900 mb-3 tracking-tight">Access Denied</h2>
+          <p className="text-stone-500 text-sm mb-8 leading-relaxed font-medium">Please activate your affiliate account to view detailed analytics.</p>
+          <Button asChild className="w-full h-12 rounded-xl bg-stone-900 text-white font-bold hover:bg-black active:scale-95 transition-all text-sm shadow-lg">
+             <Link href="/dashboard/roles">Activate Now</Link>
+          </Button>
+        </GlassCard>
       </div>
     );
   }
@@ -54,133 +70,211 @@ export default function AffiliateAnalyticsPage() {
   const totalConversions = links.reduce((s, l) => s + (l.total_conversions ?? 0), 0);
   const totalEarnings = links.reduce((s, l) => s + Number(l.total_earnings ?? 0), 0);
 
-  const chartData = links.slice(0, 12).map((l, i) => {
+  const chartData = links.slice(0, 10).map((l, i) => {
     const name = (l.products as { name?: string })?.name ?? `Link ${i + 1}`;
     return {
-      month: name.length > 15 ? name.slice(0, 12) + "…" : name,
+      name: name.length > 12 ? name.slice(0, 10) + "…" : name,
       clicks: l.total_clicks ?? 0,
       conversions: l.total_conversions ?? 0,
-      earnings: Number(l.total_earnings ?? 0),
     };
   });
 
   const topByEarnings = [...links].sort((a, b) => Number(b.total_earnings ?? 0) - Number(a.total_earnings ?? 0)).slice(0, 5);
 
   return (
-    <div className="space-y-6 animate-fade-in pb-8">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" asChild className="shrink-0 rounded-xl">
-            <Link href="/dashboard/links"><ArrowLeft className="h-4 w-4" /></Link>
-          </Button>
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-[var(--color-text-primary)]">Affiliate Analytics</h1>
-            <p className="text-sm text-[var(--color-text-muted)] mt-0.5">Clicks, conversions, and top-performing products.</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Total Clicks" value={loading ? "—" : totalClicks.toLocaleString()} icon={<MousePointer className="h-4 w-4" />} iconColor="from-blue-600 to-cyan-600" />
-        <StatCard title="Conversions" value={loading ? "—" : totalConversions.toLocaleString()} icon={<ShoppingCart className="h-4 w-4" />} iconColor="from-emerald-600 to-teal-600" />
-        <StatCard title="Commission Earned" value={loading ? "—" : formatMoney(totalEarnings, "RWF")} icon={<DollarSign className="h-4 w-4" />} iconColor="from-amber-600 to-orange-600" />
-        <StatCard title="Active Links" value={loading ? "—" : links.length.toString()} icon={<TrendingUp className="h-4 w-4" />} iconColor="from-purple-600 to-pink-600" />
-      </div>
-
-      <Card className="border-[var(--color-border)] shadow-[var(--shadow-sm)] overflow-hidden">
-        <CardHeader className="border-b border-[var(--color-border)] bg-[var(--color-surface-secondary)]/50 py-4 px-5">
-          <CardTitle className="text-base font-semibold flex items-center gap-2">
-            <BarChart3 className="h-5 w-5 text-[var(--color-accent)]" />
-            Clicks by product
-          </CardTitle>
-          <p className="text-sm text-[var(--color-text-muted)] mt-0.5">Compare click volume across your promoted products.</p>
-        </CardHeader>
-        <CardContent className="pt-5 pb-5 px-5">
-          <div className="w-full" style={{ height: 350 }}>
-            {chartData.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20 text-center h-full">
-                <BarChart3 className="h-10 w-10 text-[var(--color-text-muted)] mb-2 opacity-50" />
-                <p className="text-sm text-[var(--color-text-muted)]">No data yet. Generate links to see real-time chart performance.</p>
+    <div
+      className="min-h-screen animate-in fade-in duration-500 pb-20 relative overflow-hidden"
+      style={{
+        background: "radial-gradient(ellipse 80% 60% at 80% 0%, rgba(251,146,60,0.04) 0%, transparent 50%), radial-gradient(ellipse 60% 50% at 0% 100%, rgba(186,230,253,0.04) 0%, transparent 55%), #f8f7f5",
+      }}
+    >
+      <div className="max-w-4xl mx-auto space-y-8 px-6 pt-10 relative z-10">
+        
+        {/* Header - Simpler */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+           <div className="flex items-center gap-4">
+              <Button asChild variant="ghost" size="icon" className="shrink-0 h-10 w-10 rounded-xl bg-white border border-stone-100 shadow-sm hover:bg-white active:scale-95 transition-all text-stone-500">
+                <Link href="/dashboard/links"><ArrowLeft className="h-5 w-5" /></Link>
+              </Button>
+              <div className="space-y-1">
+                 <h1 className="text-2xl font-bold text-stone-900 tracking-tight">Affiliate Analytics</h1>
+                 <p className="text-[11px] font-bold text-stone-400 capitalize pl-0.5">Performance Overview</p>
               </div>
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData} margin={{ left: -15, right: 0, top: 10, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
-                  <XAxis dataKey="month" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-                  <Tooltip
-                    cursor={{ fill: 'var(--color-surface-secondary)' }}
-                    contentStyle={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: 12, fontSize: 12 }}
-                  />
-                  <Bar dataKey="clicks" stackId="a" fill="var(--color-accent)" radius={[0, 0, 4, 4]} />
-                  <Bar dataKey="conversions" stackId="a" fill="#10B981" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+           </div>
+           
+           <div className="flex items-center gap-3 bg-white p-3 rounded-full border border-stone-100 shadow-sm">
+              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse ml-2" />
+              <span className="text-[10px] font-bold uppercase tracking-widest text-stone-500 pr-4">Active Monitoring</span>
+           </div>
+        </div>
 
-      <Card className="border-[var(--color-border)] shadow-[var(--shadow-sm)] overflow-hidden">
-        <CardHeader className="border-b border-[var(--color-border)] bg-[var(--color-surface-secondary)]/50 py-4 px-5">
-          <CardTitle className="text-base font-semibold flex items-center gap-2">
-            <Package className="h-5 w-5 text-[var(--color-accent)]" />
-            Top performing products (by earnings)
-          </CardTitle>
-          <p className="text-sm text-[var(--color-text-muted)] mt-0.5">Your best earners from affiliate referrals.</p>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto" style={{ WebkitOverflowScrolling: "touch" }}>
-            <table className="w-full min-w-[440px] text-sm">
-              <thead>
-                <tr className="border-b border-[var(--color-border)] bg-[var(--color-surface-secondary)]/50">
-                  <th className="text-left font-medium text-[var(--color-text-muted)] py-3.5 pl-5 pr-3">Product</th>
-                  <th className="text-right font-medium text-[var(--color-text-muted)] py-3.5 px-3 w-20">Clicks</th>
-                  <th className="text-right font-medium text-[var(--color-text-muted)] py-3.5 px-3 w-24">Conversions</th>
-                  <th className="text-right font-medium text-[var(--color-text-muted)] py-3.5 pl-3 pr-5 w-28">Earnings</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? null : topByEarnings.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} className="text-center py-12 text-[var(--color-text-muted)]">
-                      No links yet. <Link href="/dashboard/links" className="text-[var(--color-accent)] hover:underline">Create affiliate links</Link> to see top products.
-                    </td>
+        {/* Stats Grid - Smaller */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+           <GlassCard className="p-5 flex flex-col justify-between rounded-3xl bg-white/60 border-white shadow-sm transition-all hover:bg-white/80">
+              <div className="w-10 h-10 rounded-xl bg-sky-50 flex items-center justify-center mb-4">
+                 <MousePointer className="h-5 w-5 text-sky-500" />
+              </div>
+              <div>
+                 <p className="text-2xl font-black text-stone-900 tracking-tight tabular-nums">{totalClicks.toLocaleString()}</p>
+                 <p className="text-[9px] font-bold capitalize text-stone-400 mt-1">Total Clicks</p>
+              </div>
+           </GlassCard>
+           <GlassCard className="p-5 flex flex-col justify-between rounded-3xl bg-white/60 border-white shadow-sm transition-all hover:bg-white/80">
+              <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center mb-4">
+                 <ShoppingCart className="h-5 w-5 text-emerald-500" />
+              </div>
+              <div>
+                 <p className="text-2xl font-black text-stone-900 tracking-tight tabular-nums">{totalConversions.toLocaleString()}</p>
+                 <p className="text-[9px] font-bold capitalize text-stone-400 mt-1">Sales Made</p>
+              </div>
+           </GlassCard>
+           <GlassCard className="p-5 flex flex-col justify-between rounded-3xl bg-white/60 border-white shadow-sm transition-all hover:bg-white/80">
+              <div className="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center mb-4">
+                 <DollarSign className="h-5 w-5 text-orange-500" />
+              </div>
+              <div>
+                 <p className="text-2xl font-black text-emerald-600 tracking-tight tabular-nums">{formatMoney(totalEarnings, "USD")}</p>
+                 <p className="text-[9px] font-bold capitalize text-stone-400 mt-1">Total Earnings</p>
+              </div>
+           </GlassCard>
+           <GlassCard className="p-5 flex flex-col justify-between rounded-3xl bg-white/60 border-white shadow-sm transition-all hover:bg-white/80">
+              <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center mb-4">
+                 <TrendingUp className="h-5 w-5 text-purple-500" />
+              </div>
+              <div>
+                 <p className="text-2xl font-black text-stone-900 tracking-tight tabular-nums">{links.length}</p>
+                 <p className="text-[9px] font-bold capitalize text-stone-400 mt-1">Active Links</p>
+              </div>
+           </GlassCard>
+        </div>
+
+        {/* Charts - Soft size */}
+        <GlassCard className="rounded-[32px] border-white bg-white/60 shadow-sm overflow-hidden">
+           <div className="p-8 border-b border-stone-50 flex items-center justify-between">
+              <div>
+                 <h3 className="text-lg font-bold text-stone-900 tracking-tight">Performance Summary</h3>
+                 <p className="text-[10px] font-bold capitalize text-stone-400 mt-1">Clicks vs Sales by product</p>
+              </div>
+              <BarChart3 className="h-6 w-6 text-stone-300" />
+           </div>
+           <div className="p-8 h-[300px]">
+              {chartData.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-center py-10">
+                  <BarChart3 className="h-10 w-10 text-stone-100 mb-4" />
+                  <p className="text-[11px] font-bold text-stone-300 uppercase tracking-widest">No link activity detected yet</p>
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={chartData} margin={{ left: -15, right: 0, top: 10, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.03)" vertical={false} />
+                    <XAxis dataKey="name" tick={{ fontSize: 9, fill: "#a8a29e", fontWeight: 700 }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 9, fill: "#a8a29e", fontWeight: 700 }} axisLine={false} tickLine={false} />
+                    <Tooltip
+                      cursor={{ fill: 'rgba(255,146,60,0.03)' }}
+                      contentStyle={{ background: "#fff", border: "1px solid #f2f2f2", borderRadius: 16, fontSize: 10, fontWeight: 700, boxShadow: "0 10px 30px rgba(0,0,0,0.05)" }}
+                    />
+                    <Bar dataKey="clicks" stackId="a" fill="#38bdf8" radius={[0, 0, 4, 4]} />
+                    <Bar dataKey="conversions" stackId="a" fill="#10b981" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+           </div>
+        </GlassCard>
+
+        {/* Product Registry - Smaller padding */}
+        <GlassCard className="rounded-[32px] border-white bg-white/60 shadow-sm overflow-hidden">
+           <div className="p-8 border-b border-stone-50 flex items-center justify-between">
+              <div>
+                 <h3 className="text-lg font-bold text-stone-900 tracking-tight">Top Products</h3>
+                 <p className="text-[10px] font-bold capitalize text-stone-400 mt-1">Sorted by revenue generated</p>
+              </div>
+              <Activity className="h-6 w-6 text-stone-300" />
+           </div>
+           
+           <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="bg-stone-50/40">
+                    <th className="py-5 pl-8 pr-4 text-[10px] font-bold uppercase tracking-widest text-stone-400 border-b border-stone-50">Product</th>
+                    <th className="py-5 px-4 text-right text-[10px] font-bold uppercase tracking-widest text-stone-400 border-b border-stone-50">Clicks</th>
+                    <th className="py-5 px-4 text-right text-[10px] font-bold uppercase tracking-widest text-stone-400 border-b border-stone-50">Sales</th>
+                    <th className="py-5 pl-4 pr-8 text-right text-[10px] font-bold uppercase tracking-widest text-emerald-500 border-b border-stone-50">Revenue</th>
                   </tr>
-                ) : topByEarnings.map((l) => {
-                  const product = l.products as { name?: string; slug?: string; images?: string[] } | null;
-                  const imgSrc = product && Array.isArray(product.images) && product.images[0] ? product.images[0] : null;
-                  return (
-                    <tr key={l.id} className="border-b border-[var(--color-border)] last:border-b-0 hover:bg-[var(--color-surface-secondary)]/50 transition-colors">
-                      <td className="py-3.5 pl-5 pr-3">
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 shrink-0 rounded-lg overflow-hidden bg-[var(--color-surface-secondary)]">
-                            {imgSrc ? (
-                              <img src={imgSrc} alt="" className="w-full h-full object-cover" />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-[var(--color-text-muted)]"><Package className="h-4 w-4" /></div>
-                            )}
-                          </div>
-                          {product?.slug ? (
-                            <Link href={`/marketplace/${product.slug}`} className="font-medium text-[var(--color-text-primary)] hover:text-[var(--color-accent)] truncate block min-w-0">
-                              {product?.name ?? "—"}
-                            </Link>
-                          ) : (
-                            <span className="font-medium text-[var(--color-text-primary)]">{product?.name ?? "—"}</span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="py-3.5 px-3 text-right font-medium tabular-nums">{l.total_clicks ?? 0}</td>
-                      <td className="py-3.5 px-3 text-right font-medium tabular-nums">{l.total_conversions ?? 0}</td>
-                      <td className="py-3.5 pl-3 pr-5 text-right font-semibold text-[var(--color-accent)] tabular-nums">{formatMoney(Number(l.total_earnings ?? 0), "RWF")}</td>
+                </thead>
+                <tbody className="divide-y divide-stone-50">
+                  {topByEarnings.length === 0 ? (
+                    <tr>
+                       <td colSpan={4} className="py-20 text-center">
+                          <p className="text-[11px] font-bold text-stone-300 uppercase tracking-widest">Awaiting First Sale...</p>
+                       </td>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
+                  ) : (
+                    topByEarnings.map((l) => {
+                      const product = l.products as { name?: string; slug?: string; images?: string[] } | null;
+                      const imgSrc = product && Array.isArray(product.images) && product.images[0] ? product.images[0] : null;
+                      return (
+                        <tr key={l.id} className="hover:bg-white transition-all duration-300">
+                           <td className="py-6 pl-8 pr-4">
+                             <div className="flex items-center gap-4">
+                               <div className="w-12 h-12 shrink-0 rounded-xl bg-white border border-stone-50 shadow-sm overflow-hidden flex items-center justify-center p-1">
+                                 {imgSrc ? (
+                                   <img src={imgSrc} alt="" className="w-full h-full object-cover rounded-lg" />
+                                 ) : (
+                                   <Package className="h-5 w-5 text-stone-200" />
+                                 )}
+                               </div>
+                               <div className="min-w-0">
+                                  {product?.slug ? (
+                                    <Link href={`/marketplace/${product.slug}`} className="font-bold text-sm text-stone-900 hover:text-orange-600 transition-colors truncate block tracking-tight">
+                                      {product?.name ?? "Default Link"}
+                                    </Link>
+                                  ) : (
+                                    <span className="font-bold text-sm text-stone-900 tracking-tight">Manual Link</span>
+                                  )}
+                               </div>
+                             </div>
+                           </td>
+                           <td className="py-6 px-4 text-right">
+                             <p className="text-base font-bold text-stone-900 tabular-nums">{l.total_clicks ?? 0}</p>
+                           </td>
+                           <td className="py-6 px-4 text-right">
+                             <p className="text-base font-bold text-stone-900 tabular-nums">{l.total_conversions ?? 0}</p>
+                           </td>
+                           <td className="py-6 pl-4 pr-8 text-right">
+                             <p className="text-base font-bold text-emerald-600 tabular-nums">{formatMoney(Number(l.total_earnings ?? 0), "USD")}</p>
+                           </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+           </div>
+         </GlassCard>
+      </div>
     </div>
+  );
+}
+
+// Helper icons
+function RefreshCw(props: any) {
+  return (
+    <svg
+      {...props}
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+      <path d="M21 3v5h-5" />
+      <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+      <path d="M3 21v-5h5" />
+    </svg>
   );
 }

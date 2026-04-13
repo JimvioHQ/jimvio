@@ -140,11 +140,12 @@ export function useCurrency(): CurrencyContextValue {
   return ctx;
 }
 
-export function CurrencySelector({ className }: { className?: string }) {
+export function CurrencySelector({ className, style }: { className?: string; style?: React.CSSProperties }) {
   const { userCurrency, setUserCurrency } = useCurrency();
 
   return (
     <select
+      style={style}
       value={userCurrency}
       onChange={(e) => {
         const v = e.target.value;

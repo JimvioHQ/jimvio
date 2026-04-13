@@ -6,15 +6,15 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Package, Link2, Video, ShoppingBag, CheckCircle,
-  ArrowRight, Crown, Loader2
+  ArrowRight, Crown, Loader2, Sparkles, Rocket, Users, ShieldCheck, ArrowLeft, RefreshCw
 } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { GlassCard, GlassPill, GlassAmbientGlow } from "@/components/ui/glass";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import { useUserStore } from "@/lib/store/use-user-store";
 import { type DashboardRole } from "@/components/dashboard/sidebar";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 type RoleStatus = "active" | "inactive" | "loading";
 
@@ -28,49 +28,49 @@ interface RoleState {
 const allRoles = [
   {
     id: "buyer" as const,
-    label: "Buyer",
+    label: "Aesthetic Buyer",
     icon: <ShoppingBag className="h-6 w-6" />,
-    color: "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400",
-    badge: "Active by default",
-    badgeVariant: "success" as const,
-    description: "Access the full marketplace. Buy physical and digital products from verified vendors.",
-    features: ["Access 500K+ products", "Order tracking", "Digital downloads", "Wishlist", "Reviews"],
+    color: "text-sky-500",
+    bg: "bg-sky-50",
+    badge: "Public Access",
+    description: "Shop for curated products from verified creators and vendors around the globe.",
+    features: ["500K+ Products", "Order Tracking", "Digital Assets", "Wishlist Support"],
     alwaysActive: true,
     setupPath: null,
   },
   {
     id: "vendor" as const,
-    label: "Vendor",
+    label: "Business Vendor",
     icon: <Package className="h-6 w-6" />,
-    color: "bg-[var(--color-accent-light)] text-[var(--color-accent)]",
-    badge: "Free to activate",
-    badgeVariant: "default" as const,
-    description: "Open your own storefront. Sell physical or digital products globally. Manage inventory and get paid fast.",
-    features: ["Product catalog", "Order management", "Inventory tracking", "Affiliate programs", "Analytics", "Mobile money & bank payouts"],
+    color: "text-orange-500",
+    bg: "bg-orange-50",
+    badge: "Merchant Tools",
+    description: "List your products, manage inventory, and handle orders with a professional dashboard.",
+    features: ["Custom Storefront", "Inventory Manager", "Order Management", "Fast Payouts"],
     alwaysActive: false,
-    setupPath: "/dashboard/vendor/setup",
+    setupPath: "/dashboard/activate/vendor",
   },
   {
     id: "affiliate" as const,
-    label: "Affiliate",
+    label: "Growth Partner",
     icon: <Link2 className="h-6 w-6" />,
-    color: "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400",
-    badge: "Earn up to 50%",
-    badgeVariant: "success" as const,
-    description: "Generate unique affiliate links. Earn commissions automatically on every sale you drive.",
-    features: ["Unlimited links", "Click & conversion tracking", "Auto commissions", "Leaderboard", "Instant withdrawal"],
+    color: "text-emerald-500",
+    bg: "bg-emerald-50",
+    badge: "Earn Commission",
+    description: "Share products you love and earn a percentage of every sale you generate.",
+    features: ["Link Generator", "Sales Tracking", "Instant Earnings", "Top Products Hub"],
     alwaysActive: false,
     setupPath: null,
   },
   {
     id: "influencer" as const,
-    label: "Influencer",
+    label: "Content Creator",
     icon: <Video className="h-6 w-6" />,
-    color: "bg-pink-50 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400",
-    badge: "Promote & earn",
-    badgeVariant: "accent" as const,
-    description: "Join vendor campaigns. Download marketing clips, share on your platforms, earn per conversion.",
-    features: ["Browse campaigns", "Download viral clips", "Multi-platform tracking", "Campaign earnings"],
+    color: "text-indigo-500",
+    bg: "bg-indigo-50",
+    badge: "UGC Missions",
+    description: "Collaborate with brands on live missions. Create content and monetize your influence.",
+    features: ["Live Missions", "Brand Collaborations", "Video Uploads", "Campaign Bonuses"],
     alwaysActive: false,
     setupPath: null,
   },
@@ -102,6 +102,11 @@ export default function RolesPage() {
     const supabase = createClient();
 
     try {
+      if (roleId === "vendor") {
+         router.push(setupPath || "/dashboard/activate/vendor");
+         return;
+      }
+
       const { error: upsertError } = await supabase.from("user_roles").upsert(
         { user_id: userId, role: roleId, is_active: true },
         { onConflict: "user_id,role" }
@@ -119,14 +124,10 @@ export default function RolesPage() {
           display_name: prof?.full_name ?? "Influencer",
         }, { onConflict: "user_id" });
         if (error) throw error;
-      } else if (roleId === "vendor" && setupPath) {
-        router.push(setupPath);
-        return;
       }
 
       const { data: refreshedRoles, error: fetchErr } = await supabase.rpc('get_user_roles', { lookup_user_id: userId });
       
-      // Force update state with the known new role + whatever the server says
       let finalRoles: DashboardRole[] = refreshedRoles as DashboardRole[] || ["buyer"];
       if (!finalRoles.includes(roleId)) {
         finalRoles = [...finalRoles, roleId];
@@ -138,111 +139,115 @@ export default function RolesPage() {
       toast.success(`${roleId.charAt(0).toUpperCase() + roleId.slice(1)} role activated!`);
     } catch (err: any) {
       console.error("[RolesPage] activation failed:", err);
-      toast.error(err.message || "Failed to activate role");
+      toast.error(err.message || "Activation failed");
       setRoleLocalStatus(prev => ({ ...prev, [roleId]: "inactive" }));
     }
   }
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-[var(--color-accent)]" />
+      <div className="min-h-screen flex flex-col items-center justify-center space-y-6" style={{ background: "#f8f7f5" }}>
+        <RefreshCw className="h-6 w-6 animate-spin text-orange-500" />
+        <p className="text-[11px] font-bold text-stone-400 uppercase tracking-widest pl-1">Loading Roles...</p>
       </div>
     );
   }
 
-  const activeCount = activeRoles.length;
-
   return (
-    <div className="space-y-5 animate-fade-in">
-      <div>
-        <h1 className="text-xl font-bold text-[var(--color-text-primary)]">Activate Roles</h1>
-        <p className="text-sm text-muted-c mt-1">
-          {activeCount} of {allRoles.length} roles active — Activate any combination to unlock additional income streams.
-        </p>
-      </div>
-
-      {activeCount > 1 && (
-        <div className="flex flex-wrap gap-2">
-          {allRoles.filter(r => activeRoles.includes(r.id)).map(r => (
-            <span key={r.id} className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold ${r.color}`}>
-              {r.icon && React.cloneElement(r.icon as React.ReactElement<{ className?: string }>, { className: "h-3.5 w-3.5" })}
-              {r.label} <CheckCircle className="h-3 w-3" />
-            </span>
-          ))}
+    <div
+      className="min-h-screen animate-in fade-in duration-500 pb-20 relative overflow-hidden"
+      style={{
+        background: "radial-gradient(ellipse 80% 60% at 80% 0%, rgba(251,146,60,0.03) 0%, transparent 50%), radial-gradient(ellipse 60% 50% at 0% 100%, rgba(186,230,253,0.03) 0%, transparent 55%), #f8f7f5",
+      }}
+    >
+      <div className="max-w-4xl mx-auto space-y-8 px-6 pt-10 relative z-10">
+        
+        {/* Header - Simpler */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+           <div className="flex items-center gap-4">
+              <Button asChild variant="ghost" size="icon" className="shrink-0 h-10 w-10 rounded-xl bg-white border border-stone-100 shadow-sm hover:bg-white active:scale-95 transition-all text-stone-500">
+                <Link href="/dashboard"><ArrowLeft className="h-5 w-5" /></Link>
+              </Button>
+              <div className="space-y-1">
+                 <h1 className="text-2xl font-bold text-stone-900 tracking-tight">Account Roles</h1>
+                 <p className="text-[11px] font-bold text-stone-400 uppercase tracking-widest leading-none pl-0.5">Activate paths to earn and grow</p>
+              </div>
+           </div>
+           
+           <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-stone-100 shadow-sm">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-stone-400">{activeRoles.length} Active</span>
+           </div>
         </div>
-      )}
 
-      <div className="bg-[var(--color-accent-light)] border border-[var(--color-accent)]/30 rounded-xl px-4 py-3 flex items-start gap-3">
-        <Crown className="h-5 w-5 text-[var(--color-accent)] shrink-0 mt-0.5" />
-        <div>
-          <p className="text-sm font-semibold text-[var(--color-text-primary)]">One account, all roles</p>
-          <p className="text-xs text-muted-c mt-0.5">
-            Activate roles below, then switch between them using the role switcher in the sidebar. Each role unlocks a dedicated dashboard.
-          </p>
-        </div>
-      </div>
+        {/* Roles Grid - Softer Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {allRoles.map((r) => {
+            const isActive  = activeRoles.includes(r.id);
+            const isLoading = roleLocalStatus[r.id] === "loading";
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {allRoles.map((r) => {
-          const isActive  = activeRoles.includes(r.id);
-          const isLoading = roleLocalStatus[r.id] === "loading";
-
-          return (
-            <Card key={r.id} className={isActive ? "ring-2 ring-[var(--color-accent)]/30" : ""}>
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${r.color}`}>
-                      {r.icon}
+            return (
+              <GlassCard key={r.id} className={cn(
+                 "p-8 rounded-[32px] border-white transition-all duration-300 relative overflow-hidden flex flex-col h-full",
+                 isActive ? "bg-white shadow-md ring-1 ring-emerald-500/20" : "bg-white/60 hover:bg-white/80 shadow-sm"
+              )}>
+                 <div className="flex items-center justify-between mb-8">
+                    <div className={cn(
+                       "w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border border-white shadow-sm",
+                       isActive ? "bg-stone-900 text-white" : cn(r.bg, r.color)
+                    )}>
+                       {r.icon}
                     </div>
-                    <div>
-                      <div className="flex items-center gap-2 mb-0.5">
-                        <h3 className="font-bold text-[var(--color-text-primary)]">{r.label}</h3>
-                        {isActive && (
-                          <Badge variant="success" className="text-xs">
-                            <CheckCircle className="h-2.5 w-2.5" /> Active
-                          </Badge>
-                        )}
-                      </div>
-                      <Badge variant={r.badgeVariant} className="text-xs">{r.badge}</Badge>
-                    </div>
-                  </div>
-                </div>
-
-                <p className="text-sm text-muted-c mb-3 leading-relaxed">{r.description}</p>
-
-                <ul className="space-y-1 mb-4">
-                  {r.features.map((f, i) => (
-                    <li key={i} className="flex items-center gap-2 text-sm text-muted-c">
-                      <CheckCircle className="h-3.5 w-3.5 text-[var(--color-accent)] shrink-0" /> {f}
-                    </li>
-                  ))}
-                </ul>
-
-                {isActive ? (
-                  <div className="flex items-center gap-2 text-sm font-medium text-[var(--color-accent)]">
-                    <CheckCircle className="h-4 w-4" /> This role is active
-                    {r.id !== "buyer" && (
-                      <Link href="/dashboard" className="ml-auto text-xs text-muted-c hover:text-[var(--color-text-primary)] underline">
-                        Go to dashboard →
-                      </Link>
+                    {isActive ? (
+                       <GlassPill color="emerald" className="px-3 py-1 text-[8px] font-bold border-none shadow-none uppercase tracking-widest bg-emerald-50 text-emerald-600">Active</GlassPill>
+                    ) : (
+                       <GlassPill color="orange" className="px-3 py-1 text-[8px] font-bold border-none shadow-none uppercase tracking-widest bg-orange-50 text-orange-600">{r.badge}</GlassPill>
                     )}
-                  </div>
-                ) : (
-                  <Button
-                    className="w-full justify-center"
-                    loading={isLoading}
-                    onClick={() => activateRole(r.id, r.setupPath)}
-                  >
-                    {isLoading ? "Activating..." : `Activate ${r.label} Role`}
-                    {!isLoading && <ArrowRight className="h-4 w-4" />}
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
-          );
-        })}
+                 </div>
+
+                 <div className="space-y-2 mb-6">
+                    <h3 className="text-lg font-bold text-stone-900 tracking-tight">{r.label}</h3>
+                    <p className="text-[13px] font-medium text-stone-500 leading-relaxed">
+                       {r.description}
+                    </p>
+                 </div>
+
+                 <div className="space-y-2.5 mb-10 flex-1">
+                    {r.features.map((f, i) => (
+                       <div key={i} className="flex items-center gap-3 text-[11px] font-bold text-stone-400">
+                          <CheckCircle className="h-3.5 w-3.5 text-stone-200" />
+                          {f}
+                       </div>
+                    ))}
+                 </div>
+
+                 {isActive ? (
+                    <Button variant="outline" asChild className="w-full h-11 rounded-xl border-stone-100 text-stone-900 font-bold text-[10px] uppercase tracking-widest active:scale-95 transition-all">
+                       <Link href="/dashboard">View Dashboard <ArrowRight className="h-3 w-3 ml-2" /></Link>
+                    </Button>
+                 ) : (
+                    <Button
+                       onClick={() => activateRole(r.id, r.setupPath)}
+                       disabled={isLoading}
+                       className="w-full h-11 rounded-xl bg-stone-900 text-white hover:bg-black font-bold text-[10px] uppercase tracking-widest shadow-md active:scale-95 transition-all border-none"
+                    >
+                       {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Rocket className="h-3.5 w-3.5 mr-2" />}
+                       Activate Role
+                    </Button>
+                 )}
+              </GlassCard>
+            );
+          })}
+        </div>
+        
+        {/* Support Section - Soft */}
+        <div className="p-8 text-center rounded-[32px] bg-stone-900 text-white relative overflow-hidden shadow-xl">
+           <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/10 blur-3xl rounded-full" />
+           <p className="text-[11px] font-bold uppercase tracking-widest text-stone-400 mb-2">Need help?</p>
+           <h3 className="text-xl font-bold tracking-tight mb-6">Explore our guides and tutorials</h3>
+           <Button asChild className="h-11 px-8 rounded-xl bg-white text-stone-900 font-bold text-[10px] uppercase tracking-widest shadow-lg hover:bg-stone-50 active:scale-95 transition-all border-none">
+              <Link href="/help">View Documentation</Link>
+           </Button>
+        </div>
       </div>
     </div>
   );

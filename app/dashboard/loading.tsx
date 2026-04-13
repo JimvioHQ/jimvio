@@ -1,11 +1,19 @@
+"use client";
+
+import { RefreshCw } from "lucide-react";
+
 export default function DashboardLoading() {
   return (
-    <div className="flex h-screen items-center justify-center bg-slate-950">
-      <div className="flex flex-col items-center gap-4">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-500 to-accent-500 animate-pulse" />
-        <div className="h-1.5 w-32 bg-white/10 rounded-full overflow-hidden">
-          <div className="h-full bg-gradient-to-r from-brand-500 to-accent-500 animate-shimmer" />
-        </div>
+    <div className="flex flex-col h-screen items-center justify-center bg-[#f8f7f5] space-y-6">
+      <div className="relative">
+         <div className="absolute inset-0 bg-orange-400/20 blur-2xl rounded-full scale-150 animate-pulse" />
+         <div className="relative w-12 h-12 rounded-2xl bg-white border border-stone-100 shadow-sm flex items-center justify-center">
+            <RefreshCw className="h-5 w-5 text-orange-500 animate-spin" />
+         </div>
+      </div>
+      <div className="text-center space-y-1">
+         <p className="text-[11px] font-bold text-stone-900 uppercase tracking-[0.3em] pl-[0.3em]">Accessing System</p>
+         <p className="text-[9px] font-bold text-stone-400 uppercase tracking-widest pl-[0.1em]">Syncing secure nodes...</p>
       </div>
     </div>
   );

@@ -345,7 +345,7 @@ export function CommunityDetailView({
                        ))}
                     </div>
 
-                    <Button asChild className="w-full h-12 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-black text-sm shadow-lg shadow-orange-500/20 active:scale-95 transition-all">
+                    <Button asChild variant="orange" className="w-full h-12 rounded-xl font-black text-sm active:scale-95 transition-all uppercase tracking-widest">
                        <Link href={isLoggedIn ? `/communities/${community.slug}/subscribe?plan=${plan}` : loginNext}>
                           Join Now <ArrowRight className="ml-2 h-4 w-4" />
                        </Link>

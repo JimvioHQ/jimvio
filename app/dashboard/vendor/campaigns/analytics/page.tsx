@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
 import React, { useEffect, useState, useCallback } from "react";
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
 } from "recharts";
-import { BarChart3, Megaphone, Flag, Wallet, CheckCircle, Loader2 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { BarChart3, Megaphone, Flag, Wallet, CheckCircle, Loader2, Target, TrendingUp, RefreshCw } from "lucide-react";
+import { GlassCard, GlassPill, GlassAmbientGlow } from "@/components/ui/glass";
 import { useCurrency } from "@/context/CurrencyContext";
 
 export default function CampaignAnalyticsPage() {
@@ -29,87 +29,139 @@ export default function CampaignAnalyticsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-[var(--color-accent)]" />
-      </div>
+       <div className="min-h-screen flex flex-col items-center justify-center space-y-12 animate-in fade-in duration-700" style={{ background: "#f8f7f5" }}>
+         <div className="relative">
+           <div className="absolute inset-0 bg-orange-400/20 blur-3xl rounded-full scale-150 animate-pulse" />
+           <div className="relative w-24 h-24 rounded-[32px] bg-white border border-white shadow-2xl flex items-center justify-center overflow-hidden">
+             <div className="absolute inset-0 border-2 border-t-orange-500 border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin m-2" />
+             <BarChart3 className="h-10 w-10 text-stone-900" />
+           </div>
+         </div>
+         <div className="text-center space-y-3">
+            <h2 className="text-[14px] font-black text-stone-900 uppercase tracking-[0.4em] pl-[0.4em]">Analytics</h2>
+            <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest pl-[0.1em]">Aggregating Mission Intelligence</p>
+         </div>
+       </div>
     );
   }
 
   return (
-    <div className="space-y-6 animate-fade-in pb-12">
-      <div className="max-w-6xl mx-auto px-6">
-        <div className="mb-10">
-          <h1 className="text-3xl font-bold tracking-tight text-[var(--color-text-primary)]">Mission Intelligence</h1>
-          <p className="text-sm text-[var(--color-text-muted)] mt-1">Audit your UGC Escrow budget allocation and content verification throughput.</p>
+    <div className="min-h-screen pb-24 relative overflow-hidden" style={{ background: "#f8f7f5" }}>
+      <GlassAmbientGlow color="orange" position="top-right" />
+      <GlassAmbientGlow color="orange" position="bottom-left" />
+
+      <div className="max-w-6xl mx-auto space-y-12 px-6 pt-12 relative z-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+        
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
+           <div className="space-y-2">
+              <h1 className="text-4xl font-black text-stone-900 tracking-tighter flex items-center gap-4">
+                 <div className="p-2.5 rounded-[20px] bg-white border border-white shadow-2xl shrink-0">
+                    <BarChart3 className="h-8 w-8 text-orange-500" />
+                 </div>
+                 Campaign Performance
+              </h1>
+              <p className="text-[11px] font-bold text-stone-400 uppercase tracking-[0.3em] pl-16">
+                 Detailed overview of your campaign efficiency and reach
+              </p>
+           </div>
+           
+           <div className="flex items-center gap-4 bg-white/40 p-1.5 rounded-full border border-white shadow-xl backdrop-blur-xl">
+              <RefreshCw className="h-3.5 w-3.5 text-stone-400 ml-4 animate-spin-slow" />
+              <span className="text-[10px] font-black uppercase tracking-widest text-stone-900 pr-6 pl-2">Live Sync</span>
+           </div>
         </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <Card className="border-[var(--color-border)]">
-            <CardContent className="p-5 flex items-center gap-4">
-              <div className="p-3 rounded-2xl bg-orange-500/10 text-orange-500"><Megaphone className="h-6 w-6" /></div>
-              <div>
-                <p className="text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-1">Active Missions</p>
-                <p className="text-2xl font-black text-[var(--color-text-primary)]">{data?.activeCount ?? 0}</p>
+        {/* Stats Grid */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+           <GlassCard className="p-8 flex flex-col justify-between rounded-[40px] bg-white/60 border-white shadow-xl group">
+              <div className="w-14 h-14 rounded-[22px] bg-orange-50 border border-orange-100 flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-700">
+                 <Target className="h-7 w-7 text-orange-500" />
               </div>
-            </CardContent>
-          </Card>
-          <Card className="border-[var(--color-border)]">
-            <CardContent className="p-5 flex items-center gap-4">
-              <div className="p-3 rounded-2xl bg-rose-500/10 text-rose-500"><Flag className="h-6 w-6" /></div>
               <div>
-                <p className="text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-1">Total Submissions</p>
-                <p className="text-2xl font-black text-[var(--color-text-primary)]">{data?.totalSubmissions ?? 0}</p>
+                 <p className="text-3xl font-black text-stone-900 tracking-tighter leading-none tabular-nums">{data?.activeCount ?? 0}</p>
+                 <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mt-3">Active Missions</p>
               </div>
-            </CardContent>
-          </Card>
-          <Card className="border-[var(--color-border)]">
-            <CardContent className="p-5 flex items-center gap-4">
-              <div className="p-3 rounded-2xl bg-emerald-500/10 text-emerald-500"><CheckCircle className="h-6 w-6" /></div>
+           </GlassCard>
+           <GlassCard className="p-8 flex flex-col justify-between rounded-[40px] bg-white/60 border-white shadow-xl group">
+              <div className="w-14 h-14 rounded-[22px] bg-sky-50 border border-sky-100 flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-700">
+                 <Flag className="h-7 w-7 text-sky-500" />
+              </div>
               <div>
-                <p className="text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-1">Network Quality</p>
-                <p className="text-2xl font-black text-[var(--color-text-primary)]">{data?.qualityRate ?? 0}%</p>
+                 <p className="text-3xl font-black text-stone-900 tracking-tighter leading-none tabular-nums">{data?.totalSubmissions ?? 0}</p>
+                 <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mt-3">Submissions</p>
               </div>
-            </CardContent>
-          </Card>
-          <Card className="border-[var(--color-border)]">
-            <CardContent className="p-5 flex items-center gap-4">
-              <div className="p-3 rounded-2xl bg-indigo-500/10 text-indigo-500"><Wallet className="h-6 w-6" /></div>
+           </GlassCard>
+           <GlassCard className="p-8 flex flex-col justify-between rounded-[40px] bg-white/60 border-white shadow-xl group">
+              <div className="w-14 h-14 rounded-[22px] bg-emerald-50 border border-emerald-100 flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-700">
+                 <CheckCircle className="h-7 w-7 text-emerald-500" />
+              </div>
               <div>
-                <p className="text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-1">Escrow Burn</p>
-                <p className="text-2xl font-black text-[var(--color-text-primary)] truncate max-w-[140px]">
-                  {formatMoney(data?.totalSpent ?? 0, "RWF")}
-                </p>
+                 <p className="text-3xl font-black text-stone-900 tracking-tighter leading-none tabular-nums">{data?.qualityRate ?? 0}%</p>
+                 <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mt-3">Approval Rate</p>
               </div>
-            </CardContent>
-          </Card>
+           </GlassCard>
+           <GlassCard className="p-8 flex flex-col justify-between rounded-[40px] bg-white border-white shadow-2xl group">
+              <div className="w-14 h-14 rounded-[22px] bg-stone-900 text-white flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-700">
+                 <TrendingUp className="h-7 w-7" />
+              </div>
+              <div>
+                 <p className="text-3xl font-black text-emerald-600 tracking-tighter leading-none tabular-nums truncate max-w-full">
+                   {formatMoney(data?.totalSpent ?? 0, "USD")}
+                 </p>
+                 <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mt-3">Total Spent</p>
+              </div>
+           </GlassCard>
         </div>
 
-        <Card className="border-[var(--color-border)] overflow-hidden shadow-sm">
-          <CardHeader className="border-b border-[var(--color-border)] bg-[var(--color-surface-secondary)]/30 pb-4">
-            <CardTitle className="text-lg font-bold flex items-center gap-2 text-[var(--color-text-primary)]">
-              <BarChart3 className="h-5 w-5 text-indigo-500" />
-              Escrow Efficiency by Campaign
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-6 h-[450px]">
-            {data?.chartData && data.chartData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={data.chartData} layout="vertical" margin={{ top: 0, right: 20, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" horizontal={false} />
-                  <XAxis type="number" tick={{ fontSize: 12, fill: 'var(--color-text-muted)' }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v > 1000 ? (v/1000).toFixed(1) + 'k' : v}`} />
-                  <YAxis dataKey="campaign" type="category" width={150} tick={{ fontSize: 11, fill: 'var(--color-text-primary)', fontWeight: 'bold' }} axisLine={false} tickLine={false} />
-                  <Tooltip
-                    cursor={{ fill: 'var(--color-surface-secondary)' }}
-                    contentStyle={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: 16, fontSize: 13, fontWeight: "bold" }}
-                  />
-                  <Bar dataKey="deployed" name="Escrow Value" fill="var(--color-accent)" radius={[0, 6, 6, 0]} barSize={24} />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex items-center justify-center p-20 text-center text-[var(--color-text-muted)]">No historical data available</div>
-            )}
-          </CardContent>
-        </Card>
+        {/* Main Chart */}
+        <GlassCard className="rounded-[48px] border-white bg-white/60 shadow-xl overflow-hidden">
+           <div className="p-10 border-b border-stone-100 flex items-center justify-between">
+              <div className="space-y-1">
+                 <h3 className="text-3xl font-black text-stone-900 tracking-tighter">Budget Utilization</h3>
+                 <p className="text-[11px] font-black uppercase tracking-widest text-stone-400">Mission-critical expenditure metrics</p>
+              </div>
+              <BarChart3 className="h-8 w-8 text-stone-100" />
+           </div>
+           
+           <div className="p-10 h-[500px]">
+             {data?.chartData && data.chartData.length > 0 ? (
+               <ResponsiveContainer width="100%" height="100%">
+                 <BarChart data={data.chartData} layout="vertical" margin={{ top: 0, right: 40, left: 0, bottom: 0 }}>
+                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.04)" horizontal={false} />
+                   <XAxis 
+                     type="number" 
+                     tick={{ fontSize: 10, fill: "#a8a29e", fontWeight: 700 }} 
+                     axisLine={false} 
+                     tickLine={false} 
+                     tickFormatter={(v) => `${v > 1000 ? (v/1000).toFixed(1) + "k" : v}`} 
+                   />
+                   <YAxis 
+                     dataKey="campaign" 
+                     type="category" 
+                     width={180} 
+                     tick={{ fontSize: 12, fill: "#0f172a", fontWeight: 800 }} 
+                     axisLine={false} 
+                     tickLine={false} 
+                   />
+                   <Tooltip
+                     cursor={{ fill: "rgba(251,146,60,0.04)" }}
+                     contentStyle={{ background: "#fff", border: "1px solid #f2f2f2", borderRadius: 24, fontSize: 13, fontWeight: "bold", boxShadow: "0 20px 40px rgba(0,0,0,0.05)" }}
+                     labelStyle={{ color: "#0f172a", marginBottom: 4 }}
+                   />
+                   <Bar dataKey="deployed" name="Budget Spent" fill="#f97316" radius={[0, 12, 12, 0]} barSize={32} />
+                 </BarChart>
+               </ResponsiveContainer>
+             ) : (
+               <div className="flex flex-col items-center justify-center p-20 text-center space-y-4">
+                  <div className="w-20 h-20 bg-white rounded-[32px] border border-white shadow-xl flex items-center justify-center text-stone-100">
+                     <BarChart3 className="h-10 w-10" />
+                  </div>
+                  <p className="text-[11px] font-black text-stone-300 uppercase tracking-widest">No historical data available yet</p>
+               </div>
+             )}
+           </div>
+        </GlassCard>
 
       </div>
     </div>

@@ -1,15 +1,16 @@
 "use client";
+export const dynamic = "force-dynamic";
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { 
   Truck, Package, Search, Eye, MoreHorizontal, 
   MessageSquare, CheckCircle2, XCircle, ArrowRight, 
-  Download, Filter, Clock, DollarSign 
+  Download, Filter, Clock, DollarSign, RefreshCw, ChevronRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { GlassCard, GlassPill, GlassAmbientGlow } from "@/components/ui/glass";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -21,25 +22,19 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { useCurrency } from "@/context/CurrencyContext";
 import { cn } from "@/lib/utils";
-import { StatCard } from "@/components/ui/stat-card";
 import { updateOrderStatus } from "@/lib/actions/marketplace";
 import { toast } from "sonner";
 
-const statusConfig: Record<string, { label: string; variant: "success" | "warning" | "secondary" | "accent" | "default" }> = {
-  pending: { label: "Pending", variant: "warning" },
-  confirmed: { label: "Confirmed", variant: "default" },
-  processing: { label: "Processing", variant: "default" },
-  shipped: { label: "Shipped", variant: "accent" },
-  delivered: { label: "Delivered", variant: "success" },
-  completed: { label: "Completed", variant: "success" },
-  cancelled: { label: "Cancelled", variant: "secondary" },
+const statusConfig: Record<string, { label: string; variant: "success" | "warning" | "secondary" | "accent" | "default"; color: string }> = {
+  pending: { label: "Pending", variant: "warning", color: "text-amber-500" },
+  confirmed: { label: "Confirmed", variant: "default", color: "text-stone-900" },
+  processing: { label: "Processing", variant: "default", color: "text-stone-900" },
+  shipped: { label: "Shipped", variant: "accent", color: "text-blue-500" },
+  delivered: { label: "Delivered", variant: "success", color: "text-emerald-500" },
+  completed: { label: "Completed", variant: "success", color: "text-emerald-500" },
+  cancelled: { label: "Cancelled", variant: "secondary", color: "text-stone-400" },
 };
 
-/** 
- * If payment is completed but fulfillment status is still 'pending' 
- * (edge case where finalizeOrderPayment ran but status wasn't updated),
- * display as 'confirmed' so vendors know payment was received.
- */
 function resolveDisplayStatus(order: { status: string; payment_status?: string }): string {
   if (order.status === "pending" && order.payment_status === "completed") {
     return "confirmed";
@@ -91,7 +86,7 @@ export default function VendorOrdersPage() {
             status: o.status,
             payment_status: o.payment_status,
             created_at: o.created_at,
-            currency: (o as any).currency ?? "RWF",
+            currency: (o as any).currency ?? "USD",
             buyer: o.profiles,
             items: [],
             totalAmount: 0,
@@ -108,7 +103,6 @@ export default function VendorOrdersPage() {
       setOrders(orderList);
       setLoading(false);
 
-      // Real-time: subscribe to status changes on all vendor orders
       if (channel) await supabase.removeChannel(channel);
       const orderIds = orderList.map(o => o.id);
       if (orderIds.length > 0) {
@@ -142,16 +136,10 @@ export default function VendorOrdersPage() {
 
   const totalSalesUsd = orders
     .filter(o => o.status !== "cancelled" && o.status !== "failed")
-    .reduce((s, o) => {
-      // Very basic normalization for display sum if orders are mixed currency
-      const amt = Number(o.totalAmount || 0);
-      const isRwf = (o.currency || "").toUpperCase() === "RWF";
-      const rate = 1250; // simple fallback for dashboard sum
-      return s + (isRwf ? amt / rate : amt);
-    }, 0);
+    .reduce((s, o) => s + Number(o.totalAmount || 0), 0);
 
   const pendingFulfillment = orders.filter(o => ["pending", "confirmed", "processing"].includes(o.status)).length;
-  const completedSales = orders.filter(o => o.status === "delivered").length;
+  const completedSales = orders.filter(o => o.status === "delivered" || o.status === "completed").length;
 
   const filtered = orders.filter((o) => {
     const q = search.toLowerCase();
@@ -165,188 +153,200 @@ export default function VendorOrdersPage() {
     const matchFilter = filter === "All" || 
       (filter === "Pending" && ["pending", "confirmed", "processing"].includes(s)) ||
       (filter === "Shipped" && s === "shipped") ||
-      (filter === "Delivered" && s === "delivered");
+      (filter === "Delivered" && (s === "delivered" || s === "completed"));
 
     return matchSearch && matchFilter;
   });
 
   async function handleStatusChange(orderId: string, newStatus: string) {
-    if (!confirm(`Are you sure you want to mark this order as ${newStatus}?`)) return;
+    if (!confirm(`Confirm: Mark order as ${newStatus}?`)) return;
     const res = await updateOrderStatus(orderId, newStatus);
     if (res.success) {
       setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
-      toast.success(`Order status updated to ${newStatus}`);
+      toast.success(`Status updated to ${newStatus}`);
     } else {
-      toast.error(res.error || "Failed to update status");
+      toast.error(res.error || "Update failed");
     }
   }
 
-  if (!loading && !vendorId) {
+  if (loading) {
     return (
-      <div className="text-center py-20 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-3xl">
-        <Truck className="h-14 w-14 text-[var(--color-border)] mx-auto mb-4 opacity-20" />
-        <h2 className="text-xl font-black text-[var(--color-text-primary)]">Vendor registration required</h2>
-        <p className="text-sm text-[var(--color-text-muted)] mt-1 font-medium">Activate your vendor role to manage received orders.</p>
-        <Button asChild className="mt-6 rounded-xl px-8" variant="default"><Link href="/dashboard/activate/vendor">Become a Vendor</Link></Button>
+      <div className="min-h-screen flex flex-col items-center justify-center space-y-6" style={{ background: "#f8f7f5" }}>
+        <RefreshCw className="h-6 w-6 animate-spin text-orange-500" />
+        <p className="text-[11px] font-bold text-stone-400 uppercase tracking-widest pl-1">Syncing Orders...</p>
+      </div>
+    );
+  }
+
+  if (!vendorId) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-6" style={{ background: "#f8f7f5" }}>
+        <GlassCard className="max-w-md w-full p-10 text-center rounded-[32px] border-white shadow-sm bg-white/60">
+          <Truck className="h-10 w-10 text-stone-100 mx-auto mb-6" />
+          <h2 className="text-xl font-bold text-stone-900 mb-2">Vendor Role Needed</h2>
+          <p className="text-stone-500 text-sm mb-10 font-medium">Please activate your vendor account to view orders.</p>
+          <Button asChild className="w-full h-12 rounded-xl bg-stone-900 text-white font-bold active:scale-95 transition-all outline-none border-none">
+             <Link href="/dashboard/activate/vendor">Become a Vendor</Link>
+          </Button>
+        </GlassCard>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 animate-fade-in pb-10">
-      <div>
-        <h1 className="text-xl font-black text-[var(--color-text-primary)]">Orders Received</h1>
-        <p className="text-sm text-[var(--color-text-muted)] mt-0.5 font-medium">Manage fulfillment and track your store performance</p>
-      </div>
-
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Total Orders" value={orders.length} icon={<Package className="h-4 w-4" />} iconColor="from-blue-600 to-cyan-600" />
-        <StatCard title="To Fulfill" value={pendingFulfillment} icon={<Clock className="h-4 w-4" />} iconColor="from-amber-600 to-orange-600" />
-        <StatCard title="Total Sales" value={formatMoney(totalSalesUsd, "USD")} icon={<DollarSign className="h-4 w-4" />} iconColor="from-emerald-600 to-teal-600" />
-        <StatCard title="Completed" value={completedSales} icon={<CheckCircle2 className="h-4 w-4" />} iconColor="from-violet-600 to-purple-600" />
-      </div>
-
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="relative w-full sm:max-w-md">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--color-text-muted)]" />
-          <input
-            placeholder="Search order ID, buyer, or product..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full h-11 pl-10 pr-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] text-sm focus:ring-2 focus:ring-[var(--color-accent)]/20 transition-all outline-none shadow-sm"
-          />
+    <div
+      className="min-h-screen animate-in fade-in duration-500 pb-20 relative overflow-hidden"
+      style={{
+        background: "radial-gradient(ellipse 80% 60% at 80% 0%, rgba(251,146,60,0.03) 0%, transparent 50%), radial-gradient(ellipse 60% 50% at 0% 100%, rgba(186,230,253,0.03) 0%, transparent 55%), #f8f7f5",
+      }}
+    >
+      <div className="max-w-6xl mx-auto space-y-8 px-6 pt-10 relative z-10">
+        
+        <div>
+           <h1 className="text-2xl font-bold text-stone-900 tracking-tight">Orders Received</h1>
+           <p className="text-[11px] font-bold text-stone-400 uppercase tracking-widest mt-1 pl-0.5">Manage fulfillment and customer deliveries</p>
         </div>
-        <div className="flex items-center gap-1.5 p-1 bg-[var(--color-surface-secondary)]/50 border border-[var(--color-border)]/50 rounded-2xl">
-          {["All", "Pending", "Shipped", "Delivered"].map((f) => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={cn(
-                "px-4 py-1.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all",
-                filter === f 
-                  ? "bg-[var(--color-surface)] text-[var(--color-accent)] shadow-sm" 
-                  : "text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"
-              )}
-            >
-              {f}
-            </button>
-          ))}
-        </div>
-      </div>
 
-      <Card className="border-[var(--color-border)]/60 overflow-hidden rounded-3xl shadow-sm bg-[var(--color-surface)]">
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-[var(--color-border)]/60 bg-[var(--color-surface-secondary)]/30">
-                  <th className="text-left py-4 px-5 text-[10px] font-black uppercase tracking-widest text-[var(--color-text-muted)]">Order ID</th>
-                  <th className="text-left py-4 px-5 text-[10px] font-black uppercase tracking-widest text-[var(--color-text-muted)]">Buyer</th>
-                  <th className="text-left py-4 px-5 text-[10px] font-black uppercase tracking-widest text-[var(--color-text-muted)]">Products</th>
-                  <th className="text-right py-4 px-5 text-[10px] font-black uppercase tracking-widest text-[var(--color-text-muted)]">Quantity</th>
-                  <th className="text-right py-4 px-5 text-[10px] font-black uppercase tracking-widest text-[var(--color-text-muted)]">Amount</th>
-                  <th className="text-center py-4 px-5 text-[10px] font-black uppercase tracking-widest text-[var(--color-text-muted)]">Status</th>
-                  <th className="text-right py-4 px-5 text-[10px] font-black uppercase tracking-widest text-[var(--color-text-muted)]">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[var(--color-border)]/40">
-                {loading ? (
-                  <tr><td colSpan={7} className="py-20 text-center text-[var(--color-text-muted)]">Loading fulfillment data...</td></tr>
-                ) : filtered.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="py-20 text-center">
-                      <Package className="h-12 w-12 text-[var(--color-border)] mx-auto mb-2 opacity-20" />
-                      <p className="text-[var(--color-text-primary)] font-bold">No orders found</p>
-                      <p className="text-xs text-[var(--color-text-muted)] font-medium">Try adjusting your search or filters.</p>
-                    </td>
-                  </tr>
-                ) : (
-                  filtered.map((order) => {
-                    const displayStatus = resolveDisplayStatus(order);
-                    const s = statusConfig[displayStatus] ?? statusConfig.pending;
-                    const first = order.items[0];
-                    const productLabel = first ? (order.items.length > 1 ? `${first.product_name} +${order.items.length - 1} more` : first.product_name) : "—";
-                    return (
-                      <tr key={order.id} className="hover:bg-[var(--color-surface-secondary)]/40 transition-colors group">
-                        <td className="py-4 px-5">
-                          <span className="font-bold text-[var(--color-text-primary)] group-hover:text-[var(--color-accent)] transition-colors">
-                            {order.order_number}
-                          </span>
-                          <p className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase mt-0.5">
-                            {new Date(order.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
-                          </p>
-                        </td>
-                        <td className="py-4 px-5">
-                          <div className="flex flex-col">
-                            <span className="text-sm font-bold text-[var(--color-text-primary)]">{order.buyer?.full_name || "—"}</span>
-                            <span className="text-[10px] text-[var(--color-text-muted)] font-medium truncate max-w-[120px]">{order.buyer?.email}</span>
-                          </div>
-                        </td>
-                        <td className="py-4 px-5">
-                          <div className="flex flex-col gap-0.5">
-                            <span className="text-xs font-semibold text-[var(--color-text-secondary)] line-clamp-1">{productLabel}</span>
-                            {first?.product_source === "cj" && (
-                              <Badge variant="secondary" className="w-fit text-[9px] px-1.5 py-0 mt-0.5 uppercase">
-                                CJ Dropshipping
-                              </Badge>
-                            )}
-                          </div>
-                        </td>
-                        <td className="py-4 px-5 text-right font-medium">{order.totalQty ?? 0}</td>
-                        <td className="py-4 px-5 text-right font-black text-[var(--color-text-primary)]">
-                          {formatMoney(order.totalAmount ?? 0, order.currency ?? "RWF")}
-                        </td>
-                        <td className="py-4 px-5 text-center">
-                          <Badge variant={s.variant} className="flex items-center gap-1.5 w-fit mx-auto px-2.5 py-1 rounded-full text-[10px] uppercase font-black tracking-widest leading-none">
-                            {s.label}
-                          </Badge>
-                        </td>
-                        <td className="py-4 px-5 text-right">
-                          <div className="flex items-center justify-end">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-[var(--color-surface-secondary)] transition-colors">
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="w-52 rounded-xl shadow-xl border-[var(--color-border)] p-1.5">
-                                <DropdownMenuLabel className="text-[10px] font-black uppercase text-[var(--color-text-muted)] px-2 py-1.5">
-                                  Vendor Actions
-                                </DropdownMenuLabel>
-                                <DropdownMenuItem asChild>
-                                  <Link href={`/dashboard/vendor/orders/${order.id}`} className="flex items-center gap-2.5 cursor-pointer rounded-lg">
-                                    <Eye className="h-4 w-4 text-blue-500" /> 
-                                    <span className="text-sm font-medium">Fulfill Order</span>
-                                  </Link>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem asChild>
-                                  <Link href={`/dashboard/messages?buyer=${order.buyer?.id}`} className="flex items-center gap-2.5 cursor-pointer rounded-lg">
-                                    <MessageSquare className="h-4 w-4 text-emerald-500" /> 
-                                    <span className="text-sm font-medium">Contact Buyer</span>
-                                  </Link>
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator className="bg-[var(--color-border)]/50" />
-                                <DropdownMenuItem className="flex items-center gap-2.5 cursor-pointer rounded-lg text-amber-600" onClick={() => window.print()}>
-                                   <Download className="h-4 w-4" /> 
-                                   <span className="text-sm font-medium">Print Invoice</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem className="flex items-center gap-2.5 cursor-pointer rounded-lg text-rose-600" onClick={() => handleStatusChange(order.id, "cancelled")}>
-                                   <XCircle className="h-4 w-4" /> 
-                                   <span className="text-sm font-medium">Cancel Order</span>
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
-                        </td>
+        {/* Stat Row - Soft */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+           {[
+              { label: "Total Received", value: orders.length, icon: Package, color: "text-stone-400" },
+              { label: "To Fulfill", value: pendingFulfillment, icon: Clock, color: "text-orange-500" },
+              { label: "Total Revenue", value: formatMoney(totalSalesUsd, "USD"), icon: DollarSign, color: "text-emerald-500" },
+              { label: "Completed", value: completedSales, icon: CheckCircle2, color: "text-sky-500" },
+           ].map((stat, i) => (
+              <GlassCard key={i} className="p-6 rounded-2xl bg-white border-white shadow-sm flex flex-col justify-center gap-1">
+                 <div className="flex items-center gap-2 mb-1">
+                    <stat.icon className={cn("h-3.5 w-3.5", stat.color)} />
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-stone-400">{stat.label}</span>
+                 </div>
+                 <p className="text-2xl font-black text-stone-900 tabular-nums">{stat.value}</p>
+              </GlassCard>
+           ))}
+        </div>
+
+        {/* Search & Filter Row */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+           <div className="relative w-full sm:max-w-md">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400 pointer-events-none" />
+              <input
+                placeholder="Search orders, buyers, or products..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full h-11 pl-11 pr-4 rounded-xl bg-white border border-stone-100 text-[13px] font-medium text-stone-900 placeholder:text-stone-300 shadow-sm focus:outline-none focus:ring-4 focus:ring-stone-500/5 transition-all"
+              />
+           </div>
+           <div className="flex items-center gap-1.5 p-1 bg-white border border-stone-100 rounded-xl shadow-sm overflow-x-auto no-scrollbar">
+              {["All", "Pending", "Shipped", "Delivered"].map((f) => (
+                <button
+                  key={f}
+                  onClick={() => setFilter(f)}
+                  className={cn(
+                    "px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all",
+                    filter === f 
+                      ? "bg-stone-900 text-white shadow-md" 
+                      : "text-stone-400 hover:text-stone-900 hover:bg-stone-50"
+                  )}
+                >
+                  {f}
+                </button>
+              ))}
+           </div>
+        </div>
+
+        {/* Orders Table - Soft */}
+        <GlassCard className="rounded-[32px] border-white bg-white/60 shadow-sm overflow-hidden">
+           <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                 <thead>
+                    <tr className="bg-stone-50/40 border-b border-stone-50">
+                       <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-stone-400 text-[9px]">Order ID</th>
+                       <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-stone-400 text-[9px]">Buyer</th>
+                       <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-stone-400 text-[9px]">Products</th>
+                       <th className="px-8 py-5 text-right text-[10px] font-bold uppercase tracking-widest text-stone-400 text-[9px]">Amount</th>
+                       <th className="px-8 py-5 text-center text-[10px] font-bold uppercase tracking-widest text-stone-400 text-[9px]">Status</th>
+                       <th className="px-8 py-5 text-right text-[10px] font-bold uppercase tracking-widest text-stone-400 text-[9px]">Actions</th>
+                    </tr>
+                 </thead>
+                 <tbody className="divide-y divide-stone-50">
+                    {filtered.length === 0 ? (
+                      <tr>
+                         <td colSpan={6} className="py-20 text-center">
+                            <p className="text-[11px] font-bold text-stone-300 uppercase tracking-widest">No matching orders found</p>
+                         </td>
                       </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
+                    ) : (
+                      filtered.map((order) => {
+                         const displayStatus = resolveDisplayStatus(order);
+                         const s = statusConfig[displayStatus] ?? statusConfig.pending;
+                         const first = order.items[0];
+                         const productLabel = first ? (order.items.length > 1 ? `${first.product_name} +${order.items.length - 1} more` : first.product_name) : "—";
+                         
+                         return (
+                           <tr key={order.id} className="hover:bg-white/60 transition-all duration-300 group">
+                              <td className="px-8 py-6">
+                                 <p className="font-bold text-sm text-stone-900 tracking-tight group-hover:text-orange-600 transition-colors">
+                                    #{order.order_number}
+                                 </p>
+                                 <p className="text-[9px] font-bold text-stone-300 uppercase tracking-widest mt-1">
+                                    {new Date(order.created_at).toLocaleDateString()}
+                                 </p>
+                              </td>
+                              <td className="px-8 py-6">
+                                 <p className="font-bold text-[13px] text-stone-900 leading-none">{order.buyer?.full_name || "—"}</p>
+                                 <p className="text-[10px] font-medium text-stone-400 mt-1 truncate max-w-[140px]">{order.buyer?.email}</p>
+                              </td>
+                              <td className="px-8 py-6">
+                                 <p className="text-[12px] font-bold text-stone-800 tracking-tight truncate max-w-[180px]">{productLabel}</p>
+                                 {first?.product_source === "cj" && <Badge variant="secondary" className="text-[8px] px-1.5 py-0 mt-1 uppercase tracking-widest">Dropship</Badge>}
+                              </td>
+                              <td className="px-8 py-6 text-right font-black text-stone-900 tabular-nums">
+                                 {formatMoney(order.totalAmount ?? 0, order.currency ?? "USD")}
+                              </td>
+                              <td className="px-8 py-6">
+                                 <div className="flex justify-center">
+                                    <GlassPill color={s.variant as any} className="font-bold text-[8px] px-4 py-1.5 uppercase tracking-widest border-none shadow-none">
+                                       {s.label}
+                                    </GlassPill>
+                                 </div>
+                              </td>
+                              <td className="px-8 py-6 text-right">
+                                 <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                       <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl bg-white border border-stone-50 shadow-sm hover:border-stone-100 transition-all">
+                                          <MoreHorizontal className="h-4 w-4 text-stone-400" />
+                                       </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" className="w-52 rounded-2xl shadow-xl border-stone-50 p-2 bg-white/95 backdrop-blur-xl">
+                                       <DropdownMenuItem asChild className="rounded-xl cursor-pointer">
+                                          <Link href={`/dashboard/vendor/orders/${order.id}`} className="flex items-center gap-2.5">
+                                             <Eye className="h-4 w-4 text-stone-400" /> 
+                                             <span className="text-[12px] font-bold text-stone-800">Review Items</span>
+                                          </Link>
+                                       </DropdownMenuItem>
+                                       <DropdownMenuItem asChild className="rounded-xl cursor-pointer">
+                                          <Link href={`/dashboard/messages?buyer=${order.buyer?.id}`} className="flex items-center gap-2.5">
+                                             <MessageSquare className="h-4 w-4 text-emerald-400" /> 
+                                             <span className="text-[12px] font-bold text-stone-800">Message Buyer</span>
+                                          </Link>
+                                       </DropdownMenuItem>
+                                       <DropdownMenuSeparator className="bg-stone-50 my-1" />
+                                       <DropdownMenuItem className="flex items-center gap-2.5 cursor-pointer rounded-xl focus:bg-rose-50" onClick={() => handleStatusChange(order.id, "cancelled")}>
+                                          <XCircle className="h-4 w-4 text-rose-400" /> 
+                                          <span className="text-[12px] font-bold text-rose-500">Cancel Order</span>
+                                       </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                 </DropdownMenu>
+                              </td>
+                           </tr>
+                         )
+                      })
+                    )}
+                 </tbody>
+              </table>
+           </div>
+        </GlassCard>
+      </div>
     </div>
   );
 }

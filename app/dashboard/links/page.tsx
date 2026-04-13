@@ -4,16 +4,14 @@ export const dynamic = "force-dynamic";
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Link2, Plus, Copy, TrendingUp, DollarSign, MousePointer, ShoppingCart, ExternalLink, CheckCircle, Search, Trash2 } from "lucide-react";
+import { Link2, Plus, Copy, TrendingUp, DollarSign, MousePointer, ShoppingCart, ExternalLink, CheckCircle, Search, Trash2, Zap, Target, Activity, Globe, ShieldCheck, ArrowRight, ArrowLeft, RefreshCw, Layers, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { StatCard } from "@/components/ui/stat-card";
+import { GlassCard, GlassPill, GlassAmbientGlow } from "@/components/ui/glass";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { useCurrency } from "@/context/CurrencyContext";
 import { createClient } from "@/lib/supabase/client";
-import { TableRowSkeleton } from "@/components/ui/skeleton";
 
 type ProductRow = { id: string; name: string; slug: string; price: number; currency?: string | null; affiliate_commission_rate?: number; images?: string[] };
 
@@ -39,7 +37,7 @@ export default function AffiliateLinksPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data: aff } = await supabase.from("affiliates").select("*").eq("user_id", user.id).single();
+      const { data: aff } = await supabase.from("affiliates").select("*").eq("user_id", user.id).maybeSingle();
       setAffiliate(aff ?? null);
 
       if (aff) {
@@ -72,11 +70,28 @@ export default function AffiliateLinksPage() {
     q.then(({ data }) => setProducts((data ?? []) as ProductRow[]));
   }, [affiliate]);
 
-  if (!loading && !affiliate) {
-    router.replace("/dashboard/activate/affiliate");
+  if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[40vh]">
-        <p className="text-sm text-[var(--color-text-muted)]">Redirecting to activate affiliate…</p>
+      <div className="min-h-screen flex flex-col items-center justify-center space-y-6" style={{ background: "#f8f7f5" }}>
+        <RefreshCw className="h-6 w-6 animate-spin text-orange-500" />
+        <p className="text-[11px] font-bold text-stone-400 uppercase tracking-widest pl-1">Loading Affiliate Hub...</p>
+      </div>
+    );
+  }
+
+  if (!affiliate) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-6" style={{ background: "#f8f7f5" }}>
+        <GlassCard className="max-w-md w-full p-8 text-center rounded-[32px] border-white shadow-sm bg-white/60">
+          <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-6 border border-stone-100 shadow-sm">
+             <ShieldCheck className="h-7 w-7 text-stone-300" />
+          </div>
+          <h2 className="text-2xl font-bold text-stone-900 mb-3 tracking-tight">Access Restricted</h2>
+          <p className="text-stone-500 text-sm mb-8 leading-relaxed font-medium">Please activate your affiliate account to generate and manage links.</p>
+          <Button asChild className="w-full h-12 rounded-xl bg-stone-900 text-white font-bold hover:bg-black active:scale-95 transition-all text-sm shadow-lg">
+             <Link href="/dashboard/roles">Activate Now</Link>
+          </Button>
+        </GlassCard>
       </div>
     );
   }
@@ -98,7 +113,7 @@ export default function AffiliateLinksPage() {
       id, link_code, destination_url, full_url, commission_rate, is_active,
       total_clicks, unique_clicks, total_conversions, total_earnings, created_at,
       products ( id, name, slug, price, images )
-    `).single();
+    `).maybeSingle();
 
     if (!error && data) {
       setLinks(prev => [data, ...prev]);
@@ -124,7 +139,7 @@ export default function AffiliateLinksPage() {
       id, link_code, destination_url, full_url, commission_rate, is_active,
       total_clicks, unique_clicks, total_conversions, total_earnings, created_at,
       products ( id, name, slug, price, images )
-    `).single();
+    `).maybeSingle();
 
     if (!error && data) {
       setLinks(prev => [data, ...prev]);
@@ -144,7 +159,7 @@ export default function AffiliateLinksPage() {
   }
 
   async function deleteLink(id: string) {
-    if (!confirm("Are you sure you want to delete this affiliate link? All click data for this specific link will be lost.")) return;
+    if (!window.confirm("Are you sure you want to delete this link? All tracking data for this link will be lost.")) return;
     
     const supabase = createClient();
     const { error } = await supabase.from("affiliate_links").delete().eq("id", id);
@@ -164,272 +179,274 @@ export default function AffiliateLinksPage() {
     : products;
 
   return (
-    <div className="space-y-6 animate-fade-in pb-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-[var(--color-text-primary)]">Affiliate Links</h1>
-          <p className="text-sm text-[var(--color-text-muted)] mt-1">Create referral links and track clicks and earnings.</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[var(--color-surface-secondary)] border border-[var(--color-border)]">
-            <span className="text-xs font-medium text-[var(--color-text-muted)]">Code</span>
-            <code className="text-sm font-mono font-semibold text-[var(--color-accent)]">{affiliate?.affiliate_code as string ?? "—"}</code>
-            <button
-              type="button"
-              onClick={() => { const c = affiliate?.affiliate_code as string; if (c) copyLink(c); }}
-              className="p-1.5 rounded-lg hover:bg-[var(--color-surface)] transition-colors touch-manipulation"
-              title="Copy code"
-            >
-              {copied === (affiliate?.affiliate_code as string) ? <CheckCircle className="h-4 w-4 text-[var(--color-success)]" /> : <Copy className="h-4 w-4 text-[var(--color-text-muted)]" />}
-            </button>
-          </div>
-          <Button onClick={() => setShowNewForm(true)} size="default" className="shrink-0">
-            <Plus className="h-4 w-4 mr-2" /> Create Link
-          </Button>
-        </div>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Total Clicks" value={loading ? "—" : totalClicks.toLocaleString()} icon={<MousePointer className="h-4 w-4" />} iconColor="from-primary-600 to-accent-600" />
-        <StatCard title="Conversions" value={loading ? "—" : totalConvs.toLocaleString()} icon={<ShoppingCart className="h-4 w-4" />} iconColor="from-emerald-600 to-teal-600" />
-        <StatCard title="Commission Earned" value={loading ? "—" : formatMoney(totalEarnings, "RWF")} icon={<DollarSign className="h-4 w-4" />} iconColor="from-amber-600 to-orange-600" />
-        <StatCard title="Active Links" value={loading ? "—" : activeLinks.toString()} icon={<Link2 className="h-4 w-4" />} iconColor="from-blue-600 to-cyan-600" />
-      </div>
-
-      {/* Link generator */}
-      <Card className="border-[var(--color-border)] shadow-[var(--shadow-sm)] overflow-hidden">
-        <CardHeader className="border-b border-[var(--color-border)] bg-[var(--color-surface-secondary)]/50 py-4 px-5">
-          <CardTitle className="text-base font-semibold flex items-center gap-2">
-            <Link2 className="h-5 w-5 text-[var(--color-accent)]" />
-            Affiliate Link Generator
-          </CardTitle>
-          <p className="text-sm text-[var(--color-text-muted)] mt-0.5">Search a product, generate your link, then copy and share.</p>
-        </CardHeader>
-        <CardContent className="p-5 space-y-5">
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
-            {/* Search + product list */}
-            <div className="lg:col-span-3 space-y-3">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--color-text-muted)] pointer-events-none" />
-                <Input
-                  value={productSearch}
-                  onChange={e => setProductSearch(e.target.value)}
-                  placeholder="Search products…"
-                  className="pl-10 rounded-xl h-11 border-[var(--color-border)]"
-                />
+    <div
+      className="min-h-screen animate-in fade-in duration-500 pb-20 relative overflow-hidden"
+      style={{
+        background: "radial-gradient(ellipse 80% 60% at 80% 0%, rgba(251,146,60,0.04) 0%, transparent 50%), radial-gradient(ellipse 60% 50% at 0% 100%, rgba(186,230,253,0.04) 0%, transparent 55%), #f8f7f5",
+      }}
+    >
+      <div className="max-w-4xl mx-auto space-y-8 px-6 pt-10 relative z-10">
+        
+        {/* Header - Simpler */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+           <div className="flex items-center gap-4">
+              <Button asChild variant="ghost" size="icon" className="shrink-0 h-10 w-10 rounded-xl bg-white border border-stone-100 shadow-sm hover:bg-white active:scale-95 transition-all text-stone-500">
+                <Link href="/dashboard"><ArrowLeft className="h-5 w-5" /></Link>
+              </Button>
+              <div className="space-y-1">
+                 <h1 className="text-2xl font-bold text-stone-900 tracking-tight">Affiliate Program</h1>
+                 <p className="text-[11px] font-bold text-stone-400 uppercase tracking-widest">Share links and earn commissions</p>
               </div>
-              <div className="rounded-xl border border-[var(--color-border)] overflow-hidden max-h-[280px] overflow-y-auto">
-                {filteredProducts.slice(0, 25).map((p) => {
-                  const rate = p.affiliate_commission_rate ?? 0;
-                  const selected = selectedProduct?.id === p.id;
-                  return (
-                    <button
-                      key={p.id}
-                      type="button"
-                      onClick={() => setSelectedProduct(p)}
-                      className={cn(
-                        "w-full flex items-center gap-3 px-4 py-3 text-left transition-colors border-b border-[var(--color-border)] last:border-b-0",
-                        selected ? "bg-[var(--color-accent-light)] border-l-4 border-l-[var(--color-accent)]" : "hover:bg-[var(--color-surface-secondary)]"
-                      )}
-                    >
-                      <div className="w-10 h-10 shrink-0 rounded-lg overflow-hidden bg-[var(--color-surface-secondary)]">
-                        {Array.isArray(p.images) && p.images[0] ? (
-                          <img src={p.images[0]} alt="" className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-[var(--color-text-muted)]">
-                            <ShoppingCart className="h-5 w-5" />
-                          </div>
-                        )}
-                      </div>
-                      <span className="flex-1 min-w-0 font-medium text-sm text-[var(--color-text-primary)] truncate">{p.name}</span>
-                      <span className="text-sm text-[var(--color-text-muted)] shrink-0">{formatMoney(Number(p.price), p.currency)}</span>
-                      <span className={cn("text-xs font-medium shrink-0 px-2 py-0.5 rounded-full", rate > 0 ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400" : "bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)]")}>
-                        {rate > 0 ? `${rate}%` : "—"}
-                      </span>
-                    </button>
-                  );
-                })}
-                {filteredProducts.length === 0 && (
-                  <div className="px-4 py-8 text-center text-sm text-[var(--color-text-muted)]">No products found. Try a different search.</div>
-                )}
+           </div>
+           
+           <div className="flex items-center gap-4 px-5 py-2.5 rounded-full bg-white border border-stone-100 shadow-sm">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-stone-400">My Code:</span>
+              <code className="text-[13px] font-black text-orange-600 tracking-wider uppercase">{String(affiliate?.affiliate_code ?? "NONE")}</code>
+              <button 
+               onClick={() => copyLink(String(affiliate?.affiliate_code ?? ""))}
+               className="p-1 rounded-lg hover:bg-stone-50 transition-all text-stone-300 hover:text-orange-500"
+              >
+                 {copied === affiliate?.affiliate_code ? <CheckCircle className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
+              </button>
+           </div>
+        </div>
+
+        {/* Stats Grid - Smaller */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+           <div className="p-5 rounded-3xl bg-white border border-stone-100 shadow-sm flex flex-col justify-between h-32 transition-all hover:shadow-md group">
+              <div className="h-9 w-9 rounded-xl bg-sky-50 flex items-center justify-center text-sky-500 group-hover:scale-110 transition-transform">
+                 <MousePointer className="h-5 w-5" />
               </div>
-            </div>
-            {/* Selected + generate + result */}
-            <div className="lg:col-span-2 space-y-4">
-              {selectedProduct ? (
-                <>
-                  <div className="p-4 rounded-xl bg-[var(--color-surface-secondary)] border border-[var(--color-border)]">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="w-12 h-12 shrink-0 rounded-lg overflow-hidden bg-[var(--color-surface)]">
-                        {Array.isArray(selectedProduct.images) && selectedProduct.images[0] ? (
-                          <img src={selectedProduct.images[0]} alt="" className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-[var(--color-text-muted)]"><ShoppingCart className="h-6 w-6" /></div>
-                        )}
-                      </div>
-                      <p className="text-sm font-medium text-[var(--color-text-primary)] min-w-0">{selectedProduct.name}</p>
-                    </div>
-                    <p className="text-xs text-[var(--color-text-muted)]">
-                      {(selectedProduct.affiliate_commission_rate ?? 10)}% commission · You earn{" "}
-                      <span className="font-semibold text-[var(--color-accent)]">{formatMoney(Number(selectedProduct.price) * ((selectedProduct.affiliate_commission_rate ?? 10) / 100), selectedProduct.currency)}</span> per sale
-                    </p>
-                    <div className="flex gap-2 mt-3">
-                      <Button size="sm" onClick={createLinkFromProduct} disabled={creating} className="flex-1">
-                        <Link2 className="h-4 w-4 mr-1.5" /> Generate link
-                      </Button>
-                      <Button size="sm" variant="ghost" onClick={() => setSelectedProduct(null)}>Clear</Button>
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <div className="p-6 rounded-xl border border-dashed border-[var(--color-border)] text-center">
-                  <p className="text-sm text-[var(--color-text-muted)]">Select a product from the list to generate your affiliate link.</p>
-                </div>
-              )}
-              {generatedUrl && (
-                <div className="space-y-2">
-                  <label className="text-xs font-medium text-[var(--color-text-muted)]">Your link (copy and share)</label>
-                  <div className="flex gap-2">
-                    <input readOnly value={generatedUrl} className="flex-1 min-w-0 px-3 py-2.5 text-sm rounded-xl bg-[var(--color-surface-secondary)] border border-[var(--color-border)] text-[var(--color-text-primary)] truncate" />
-                    <Button size="default" variant="outline" onClick={() => copyLink(generatedUrl)} className="shrink-0 min-h-[44px] min-w-[44px] touch-manipulation">
-                      {copied === generatedUrl ? <CheckCircle className="h-5 w-5 text-[var(--color-success)]" /> : <><Copy className="h-4 w-4 mr-1.5" /> Copy</>}
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-          <div className="pt-3 border-t border-[var(--color-border)]">
-            <button type="button" onClick={() => setShowNewForm(true)} className="text-sm font-medium text-[var(--color-accent)] hover:underline">
-              Or add a custom URL
-            </button>
-          </div>
-        </CardContent>
-      </Card>
+              <div className="mt-4">
+                 <p className="text-2xl font-black text-stone-900 tracking-tight tabular-nums">{totalClicks.toLocaleString()}</p>
+                 <p className="text-[10px] font-bold uppercase tracking-widest text-stone-400">Clicks</p>
+              </div>
+           </div>
+           <div className="p-5 rounded-3xl bg-white border border-stone-100 shadow-sm flex flex-col justify-between h-32 transition-all hover:shadow-md group">
+              <div className="h-9 w-9 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-500 group-hover:scale-110 transition-transform">
+                 <ShoppingCart className="h-5 w-5" />
+              </div>
+              <div className="mt-4">
+                 <p className="text-2xl font-black text-stone-900 tracking-tight tabular-nums">{totalConvs.toLocaleString()}</p>
+                 <p className="text-[10px] font-bold uppercase tracking-widest text-stone-400">Sales</p>
+              </div>
+           </div>
+           <div className="p-5 rounded-3xl bg-white border border-stone-100 shadow-sm flex flex-col justify-between h-32 transition-all hover:shadow-md group">
+              <div className="h-9 w-9 rounded-xl bg-orange-50 flex items-center justify-center text-orange-500 group-hover:scale-110 transition-transform">
+                 <DollarSign className="h-5 w-5" />
+              </div>
+              <div className="mt-4">
+                 <p className="text-2xl font-black text-emerald-600 tracking-tight tabular-nums">{formatMoney(totalEarnings, "USD")}</p>
+                 <p className="text-[10px] font-bold uppercase tracking-widest text-stone-400">Total Profits</p>
+              </div>
+           </div>
+           <div className="p-5 rounded-3xl bg-white border border-stone-100 shadow-sm flex flex-col justify-between h-32 transition-all hover:shadow-md group">
+              <div className="h-9 w-9 rounded-xl bg-purple-50 flex items-center justify-center text-purple-500 group-hover:scale-110 transition-transform">
+                 <Link2 className="h-5 w-5" />
+              </div>
+              <div className="mt-4">
+                 <p className="text-2xl font-black text-stone-900 tracking-tight tabular-nums">{activeLinks}</p>
+                 <p className="text-[10px] font-bold uppercase tracking-widest text-stone-400">Active Links</p>
+              </div>
+           </div>
+        </div>
 
-      {/* Custom URL form */}
-      {showNewForm && (
-        <Card className="border-[var(--color-border)] shadow-[var(--shadow-sm)]">
-          <CardHeader className="border-b border-[var(--color-border)] py-4 px-5">
-            <CardTitle className="text-base">Create link from custom URL</CardTitle>
-            <p className="text-sm text-[var(--color-text-muted)] mt-0.5">Paste any product or page URL to attach your affiliate code.</p>
-          </CardHeader>
-          <CardContent className="p-5 space-y-4">
-            <div>
-              <label className="text-sm font-medium text-[var(--color-text-primary)] block mb-1.5">Destination URL</label>
-              <Input type="url" value={newUrl} onChange={e => setNewUrl(e.target.value)} placeholder="https://jimvio.com/marketplace/product-slug" className="rounded-xl" />
-            </div>
-            <div>
-              <label className="text-sm font-medium text-[var(--color-text-primary)] block mb-1.5">Commission rate (%)</label>
-              <Input type="number" value={newRate} onChange={e => setNewRate(e.target.value)} min={1} max={90} className="w-28 rounded-xl" />
-            </div>
-            <div className="flex gap-3">
-              <Button onClick={createLink} disabled={creating}><Link2 className="h-4 w-4 mr-1.5" /> Generate link</Button>
-              <Button variant="outline" onClick={() => setShowNewForm(false)}>Cancel</Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+        {/* Create Link Section - Compact */}
+        <section className="space-y-4">
+           <div className="flex items-center gap-2 px-1">
+              <div className="p-2 rounded-lg bg-white border border-stone-100 text-stone-400"><Plus className="h-4 w-4" /></div>
+              <h3 className="text-[14px] font-bold text-stone-900 tracking-tight">Create New Link</h3>
+           </div>
+           
+           <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
+              <div className="md:col-span-12">
+                 <GlassCard className="p-6 rounded-[24px] border-white/80 bg-white/60 shadow-sm">
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                       <div className="lg:col-span-7 space-y-6">
+                          <div className="relative">
+                            <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-300 pointer-events-none" />
+                            <Input
+                              value={productSearch}
+                              onChange={e => setProductSearch(e.target.value)}
+                              placeholder="Search products to promote..."
+                              className="h-12 rounded-xl bg-white border-stone-100 shadow-sm focus:ring-4 focus:ring-orange-500/5 focus:border-orange-400 text-sm font-bold tracking-tight px-12 transition-all"
+                            />
+                          </div>
+                          
+                          <div className="rounded-2xl border border-stone-100 bg-white/40 overflow-hidden max-h-[280px] overflow-y-auto custom-scrollbar">
+                            {filteredProducts.slice(0, 15).map((p) => {
+                              const rate = p.affiliate_commission_rate ?? 0;
+                              const selected = selectedProduct?.id === p.id;
+                              return (
+                                <button
+                                  key={p.id}
+                                  onClick={() => setSelectedProduct(p)}
+                                  className={cn(
+                                    "w-full flex items-center gap-4 p-3 text-left transition-all border-b border-stone-50 last:border-b-0",
+                                    selected ? "bg-orange-50 text-orange-900" : "hover:bg-white/60"
+                                  )}
+                                >
+                                  <div className="w-10 h-10 shrink-0 rounded-lg bg-white border border-stone-50 shadow-sm overflow-hidden flex items-center justify-center p-0.5">
+                                    {Array.isArray(p.images) && p.images[0] ? (
+                                      <img src={p.images[0]} alt="" className="w-full h-full object-cover rounded-md" />
+                                    ) : (
+                                      <Package className="h-4 w-4 text-stone-100" />
+                                    )}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                     <p className="font-bold text-[13px] truncate tracking-tight">{p.name}</p>
+                                     <p className="text-[9px] font-bold text-stone-400 uppercase tracking-widest">{formatMoney(Number(p.price), p.currency)} • {rate}% Comm.</p>
+                                  </div>
+                                  {selected && <CheckCircle className="h-4 w-4 text-orange-500 shrink-0" />}
+                                </button>
+                              );
+                            })}
+                          </div>
+                       </div>
 
-      {/* My links table */}
-      <Card className="border-[var(--color-border)] shadow-[var(--shadow-sm)] overflow-hidden">
-        <CardHeader className="border-b border-[var(--color-border)] bg-[var(--color-surface-secondary)]/50 py-4 px-5">
-          <div className="flex items-center justify-between flex-wrap gap-2">
-            <CardTitle className="text-base font-semibold">My Affiliate Links</CardTitle>
-            <Badge variant="secondary" className="font-medium">{links.length} {links.length === 1 ? "link" : "links"}</Badge>
-          </div>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto" style={{ WebkitOverflowScrolling: "touch" }}>
-            <table className="w-full min-w-[640px] text-sm">
-              <thead>
-                <tr className="border-b border-[var(--color-border)] bg-[var(--color-surface-secondary)]/50">
-                  <th className="text-left font-medium text-[var(--color-text-muted)] py-3.5 pl-5 pr-3">Product / URL</th>
-                  <th className="text-left font-medium text-[var(--color-text-muted)] py-3.5 px-3">Link</th>
-                  <th className="text-right font-medium text-[var(--color-text-muted)] py-3.5 px-3 w-20">Clicks</th>
-                  <th className="text-right font-medium text-[var(--color-text-muted)] py-3.5 px-3 w-20">Conv.</th>
-                  <th className="text-right font-medium text-[var(--color-text-muted)] py-3.5 px-3 w-24">Earnings</th>
-                  <th className="text-center font-medium text-[var(--color-text-muted)] py-3.5 px-3 w-20">Status</th>
-                  <th className="text-right font-medium text-[var(--color-text-muted)] py-3.5 pl-3 pr-5 w-12" />
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  Array(3).fill(0).map((_, i) => <TableRowSkeleton key={i} cols={7} />)
-                ) : links.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="text-center py-14 px-5">
-                      <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)] mb-3"><Link2 className="h-6 w-6" /></div>
-                      <p className="font-medium text-[var(--color-text-primary)]">No links yet</p>
-                      <p className="text-sm text-[var(--color-text-muted)] mt-0.5">Create your first affiliate link above to start earning.</p>
-                    </td>
-                  </tr>
-                ) : (
-                  links.map((l) => {
-                    const product = l.products as Record<string, unknown> | null;
-                    const fullUrl = (l as { full_url?: string }).full_url ?? "";
-                    const isCopied = copied === fullUrl || copied === (l.link_code as string);
-                    return (
-                      <tr key={l.id as string} className="border-b border-[var(--color-border)] last:border-b-0 hover:bg-[var(--color-surface-secondary)]/50 transition-colors">
-                        <td className="py-3.5 pl-5 pr-3">
-                          <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 shrink-0 rounded-lg overflow-hidden bg-[var(--color-surface-secondary)]">
-                              {product && Array.isArray(product.images) && product.images[0] ? (
-                                <img src={product.images[0] as string} alt="" className="w-full h-full object-cover" />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center text-[var(--color-text-muted)]"><ShoppingCart className="h-4 w-4" /></div>
-                              )}
-                            </div>
-                            <div className="min-w-0">
-                              <p className="font-medium text-[var(--color-text-primary)]">{product?.name as string ?? "Custom link"}</p>
-                              <p className="text-xs text-[var(--color-text-muted)] truncate max-w-[200px] mt-0.5">{(l.destination_url as string)?.replace(/^https?:\/\//, "")}</p>
-                            </div>
+                       <div className="lg:col-span-5">
+                          <div className="h-full rounded-2xl bg-stone-900/5 p-6 flex flex-col justify-center space-y-6">
+                             {selectedProduct ? (
+                               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                  <div className="flex items-center gap-4">
+                                     <div className="w-12 h-12 rounded-xl bg-white border border-stone-100 flex items-center justify-center overflow-hidden p-0.5 shadow-sm">
+                                        {Array.isArray(selectedProduct.images) && selectedProduct.images[0] ? (
+                                          <img src={selectedProduct.images[0]} alt="" className="w-full h-full object-cover rounded-md" />
+                                        ) : (
+                                          <Package className="h-5 w-5 text-stone-100" />
+                                        )}
+                                     </div>
+                                     <div className="flex-1 min-w-0">
+                                        <h4 className="text-[14px] font-bold text-stone-900 tracking-tight truncate">{selectedProduct.name}</h4>
+                                        <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mt-0.5">You earn {Math.round(selectedProduct.affiliate_commission_rate ?? 10)}% per sale</p>
+                                     </div>
+                                  </div>
+                                  <Button onClick={createLinkFromProduct} disabled={creating} className="h-12 w-full rounded-xl bg-stone-900 text-white font-bold text-xs uppercase tracking-widest shadow-lg active:scale-95 transition-all border-none group">
+                                     {creating ? <RefreshCw className="h-4 w-4 animate-spin text-orange-500" /> : "Create Affiliate Link"}
+                                  </Button>
+                               </div>
+                             ) : (
+                               <div className="text-center py-10 space-y-4">
+                                  <div className="w-12 h-12 rounded-2xl bg-white border border-stone-50 flex items-center justify-center mx-auto text-stone-100">
+                                     <Target className="h-5 w-5" />
+                                  </div>
+                                  <p className="text-[11px] font-bold uppercase tracking-widest text-stone-400">Select a product above</p>
+                               </div>
+                             )}
+
+                             {generatedUrl && (
+                                <div className="mt-4 p-5 rounded-2xl bg-white border border-stone-100 shadow-sm space-y-3 animate-in fade-in slide-in-from-bottom-2">
+                                   <p className="text-[10px] font-bold uppercase tracking-widest text-stone-400">Your Personal Link:</p>
+                                   <div className="flex gap-2">
+                                      <Input readOnly value={generatedUrl} className="h-10 rounded-lg bg-stone-50 border-stone-50 text-[12px] font-bold text-stone-900 tracking-tight px-4 focus:ring-0" />
+                                      <Button size="icon" onClick={() => copyLink(generatedUrl)} className="h-10 w-10 shrink-0 rounded-lg bg-stone-900 text-white shadow-md hover:bg-black border-none active:scale-95 transition-all">
+                                         {copied === generatedUrl ? <CheckCircle className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
+                                      </Button>
+                                   </div>
+                                </div>
+                             )}
                           </div>
-                        </td>
-                        <td className="py-3.5 px-3">
-                          <div className="flex items-center gap-2">
-                            <code className="text-xs font-mono text-[var(--color-accent)] bg-[var(--color-accent-light)]/50 px-2 py-1 rounded-lg truncate max-w-[120px]">{l.link_code as string}</code>
-                            <button
-                              type="button"
-                              onClick={() => copyLink(fullUrl || (l.link_code as string))}
-                              className="shrink-0 p-2 rounded-lg hover:bg-[var(--color-surface)] transition-colors touch-manipulation min-h-[40px] min-w-[40px] inline-flex items-center justify-center"
-                              title="Copy link"
-                            >
-                              {isCopied ? <CheckCircle className="h-4 w-4 text-[var(--color-success)]" /> : <Copy className="h-4 w-4 text-[var(--color-text-muted)]" />}
-                            </button>
-                          </div>
-                        </td>
-                        <td className="py-3.5 px-3 text-right font-medium tabular-nums">{((l.total_clicks as number) ?? 0).toLocaleString()}</td>
-                        <td className="py-3.5 px-3 text-right font-medium tabular-nums">{((l.total_conversions as number) ?? 0).toLocaleString()}</td>
-                        <td className="py-3.5 px-3 text-right font-semibold text-[var(--color-text-primary)]">{formatMoney(Number(l.total_earnings ?? 0), "RWF")}</td>
-                        <td className="py-3.5 px-3 text-center">
-                          <Badge variant={l.is_active ? "success" : "secondary"} className="text-[10px] py-0.5">{l.is_active ? "Active" : "Inactive"}</Badge>
-                        </td>
-                        <td className="py-3.5 pl-3 pr-5 text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            <a href={l.destination_url as string} target="_blank" rel="noopener noreferrer" className="inline-flex p-2 rounded-lg hover:bg-[var(--color-surface)] text-[var(--color-text-muted)] transition-colors" title="Open link">
-                              <ExternalLink className="h-4 w-4" />
-                            </a>
-                            <button 
-                              onClick={() => deleteLink(l.id as string)}
-                              className="inline-flex p-2 rounded-lg hover:bg-red-50 text-red-400 hover:text-red-600 transition-colors"
-                              title="Delete link"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
+                       </div>
+                    </div>
+                    
+                    <div className="mt-8 pt-6 border-t border-stone-50 flex items-center justify-between gap-4">
+                       <button 
+                         onClick={() => setShowNewForm(!showNewForm)}
+                         className="text-[11px] font-bold text-stone-400 uppercase tracking-widest hover:text-stone-900 transition-colors flex items-center gap-2"
+                       >
+                          <ExternalLink className="h-3.5 w-3.5" /> Use Custom URL
+                       </button>
+                    </div>
+                 </GlassCard>
+              </div>
+           </div>
+        </section>
+
+        {/* Links Registry - Simpler padding */}
+        <section className="space-y-4">
+           <div className="flex items-center justify-between px-1">
+              <div className="flex items-center gap-2">
+                 <div className="p-2 rounded-lg bg-white border border-stone-100 text-stone-400"><Layers className="h-4 w-4" /></div>
+                 <h2 className="text-[14px] font-bold text-stone-900 tracking-tight">Active Links ({links.length})</h2>
+              </div>
+           </div>
+           
+           <div className="rounded-[28px] border-white/80 bg-white/60 shadow-sm overflow-hidden">
+              <div className="overflow-x-auto">
+                 <table className="w-full text-left">
+                    <thead>
+                       <tr className="bg-stone-50/40">
+                          <th className="px-8 py-5 text-[10px] font-bold text-stone-400 uppercase tracking-widest border-b border-stone-50">Product</th>
+                          <th className="px-4 py-5 text-center text-[10px] font-bold text-stone-400 uppercase tracking-widest border-b border-stone-50">Link Code</th>
+                          <th className="px-4 py-5 text-right text-[10px] font-bold text-stone-400 uppercase tracking-widest border-b border-stone-50">Clicks</th>
+                          <th className="px-4 py-5 text-right text-[10px] font-bold text-stone-400 uppercase tracking-widest border-b border-stone-50">Sales</th>
+                          <th className="px-8 py-5 text-right text-[10px] font-bold text-stone-400 uppercase tracking-widest border-b border-stone-50">Earnings</th>
+                          <th className="px-8 py-5 text-right w-12 border-b border-stone-50">Action</th>
+                       </tr>
+                    </thead>
+                    <tbody className="divide-y divide-stone-50">
+                       {links.length === 0 ? (
+                         <tr>
+                            <td colSpan={6} className="py-16 text-center">
+                               <p className="text-[11px] font-bold text-stone-300 uppercase tracking-widest">No active links found. Create one above.</p>
+                            </td>
+                         </tr>
+                       ) : links.map((l) => {
+                         const product = l.products as Record<string, unknown> | null;
+                         const fullUrl = (l as { full_url?: string }).full_url ?? "";
+                         const isCopied = copied === fullUrl || copied === (l.link_code as string);
+                         return (
+                           <tr key={l.id as string} className="group hover:bg-white/60 transition-all duration-300">
+                              <td className="px-8 py-5">
+                                 <div className="flex items-center gap-4">
+                                    <div className="h-10 w-10 rounded-lg bg-white border border-stone-100 shadow-sm overflow-hidden p-0.5 shrink-0 transition-transform group-hover:scale-105">
+                                       {product && Array.isArray(product.images) && product.images[0] ? (
+                                         <img src={product.images[0] as string} alt="" className="w-full h-full object-cover rounded-md" />
+                                       ) : (
+                                         <Package className="h-4 w-4 text-stone-100" />
+                                       )}
+                                    </div>
+                                    <div className="min-w-0">
+                                       <p className="font-bold text-[13px] text-stone-900 tracking-tight truncate">{product?.name as string ?? "Custom Link"}</p>
+                                       <p className="text-[9px] font-bold text-stone-400 uppercase tracking-widest mt-0.5">ID: {(l.id as string).slice(0, 8)}</p>
+                                    </div>
+                                 </div>
+                              </td>
+                              <td className="px-4 py-5">
+                                 <div className="flex items-center justify-center gap-2">
+                                    <code className="px-2.5 py-1 rounded-lg bg-stone-50 border border-stone-100 text-[10px] font-bold text-orange-600 tracking-widest uppercase">{l.link_code as string}</code>
+                                    <button 
+                                      onClick={() => copyLink(fullUrl)}
+                                      className="p-1.5 rounded-lg hover:bg-white transition-all text-stone-300 hover:text-orange-500"
+                                    >
+                                       {isCopied ? <CheckCircle className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
+                                    </button>
+                                 </div>
+                              </td>
+                              <td className="px-4 py-5 text-right font-bold text-sm text-stone-900 tabular-nums">
+                                 {(l.total_clicks as number ?? 0).toLocaleString()}
+                              </td>
+                              <td className="px-4 py-5 text-right font-bold text-sm text-stone-900 tabular-nums">
+                                 {(l.total_conversions as number ?? 0).toLocaleString()}
+                              </td>
+                              <td className="px-8 py-5 text-right">
+                                 <p className="text-sm font-bold text-emerald-600 tabular-nums">{formatMoney(Number(l.total_earnings ?? 0), "USD")}</p>
+                              </td>
+                              <td className="px-8 py-5 text-right">
+                                 <div className="flex items-center justify-end gap-2 text-stone-300">
+                                    <button onClick={() => deleteLink(l.id as string)} className="p-2 hover:bg-rose-50 hover:text-rose-500 rounded-lg transition-all"><Trash2 className="h-4 w-4" /></button>
+                                    <a href={l.destination_url as string} target="_blank" rel="noopener noreferrer" className="p-2 hover:bg-sky-50 hover:text-sky-500 rounded-lg transition-all"><ExternalLink className="h-4 w-4" /></a>
+                                 </div>
+                              </td>
+                           </tr>
+                         )
+                       })}
+                    </tbody>
+                 </table>
+              </div>
+           </div>
+        </section>
+      </div>
     </div>
   );
 }

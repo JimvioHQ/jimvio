@@ -38,11 +38,13 @@ export default async function PublicLayout({ children }: { children: React.React
   const marketing = platformSettings?.marketing ?? PLATFORM_SETTINGS_DEFAULTS.marketing;
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen" style={{ background: "#f8f7f5" }}>
       <Suspense fallback={<div className="min-h-[var(--navbar-height)]" aria-hidden />}>
         <Navbar user={profile} marketing={marketing} />
       </Suspense>
-      <main className="flex-1 pt-[var(--navbar-height)] pb-0 md:pb-0">{children}</main>
+      <main className="flex-1 pt-[var(--navbar-height)] pb-0 md:pb-0 relative isolation-auto">
+        {children}
+      </main>
       <Footer contact={platformSettings?.contact} />
       {/* Global AI & Chat widgets */}
       <AISourcingAssistant />

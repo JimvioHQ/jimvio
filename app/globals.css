@@ -117,18 +117,18 @@
 
 @layer base {
   :root {
-    /* Premium Orange & White palette */
-    --color-bg: #ffffff;
+    /* Premium Stone & White palette (Jimvio Command Center) */
+    --color-bg: #f8f7f5;
     --color-surface: #ffffff;
-    --color-surface-secondary: #fafafa;
-    --color-border: #f0f0f0;
-    --color-border-strong: #e5e5e5;
+    --color-surface-secondary: #f3f2f0;
+    --color-border: #eeedea;
+    --color-border-strong: #e1dfda;
     /* Logo “Jim” purple — primary ink (must read as purple, not gray-black) */
-    --color-text-primary: #433360;
-    --color-bg-dark: #2d2248;
-    --color-bg-darker: #1a1428;
-    --color-text-secondary: #4b5563;
-    --color-text-muted: #9ca3af;
+    --color-text-primary: #1c1917;
+    --color-bg-dark: #1c1917;
+    --color-bg-darker: #0c0a09;
+    --color-text-secondary: #44403c;
+    --color-text-muted: #a8a29e;
     --color-accent: #f97316;
     --color-accent-hover: #ea580c;
     --color-accent-light: #fff7ed;

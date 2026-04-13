@@ -1,38 +1,35 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from "react";
 import { 
   CheckCircle2, XCircle, Clock, 
   ExternalLink, Video, Check,
   Search, Filter, Play,
-  MoreVertical, RefreshCcw, Loader2, Sparkles, AlertCircle, Calendar
-} from 'lucide-react';
-import type { UGCSubmission } from '@/types/ugc';
-import { Button } from '@/components/ui/button';
-import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
-import Link from 'next/link';
+  MoreVertical, RefreshCcw, Loader2, Sparkles, AlertCircle, Calendar, ArrowRight
+} from "lucide-react";
+import type { UGCSubmission } from "@/types/ugc";
+import { Button } from "@/components/ui/button";
+import { GlassCard, GlassPill, GlassAmbientGlow } from "@/components/ui/glass";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import Link from "next/link";
 
-const STATUS_CONFIG: Record<string, { icon: any, color: string, bg: string, label: string }> = {
-  pending:  { icon: Clock,        color: 'text-amber-500',   bg: 'bg-amber-500/10',    label: 'Pending Review' },
-  approved: { icon: CheckCircle2, color: 'text-emerald-500', bg: 'bg-emerald-500/10',  label: 'Approved' },
-  rejected: { icon: XCircle,      color: 'text-red-500',     bg: 'bg-red-500/10',      label: 'Rejected' },
+const STATUS_CONFIG: Record<string, { icon: any, color: "orange" | "emerald" | "rose" | "indigo", label: string }> = {
+  pending:  { icon: Clock,        color: "orange",    label: "Pending Review" },
+  approved: { icon: CheckCircle2, color: "emerald",  label: "Approved" },
+  rejected: { icon: XCircle,      color: "rose",      label: "Rejected" },
 };
-
-function formatCompactNumber(number: number) {
-  return Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 }).format(number);
-}
 
 export default function VendorSubmissionsPage() {
   const [submissions, setSubmissions] = useState<UGCSubmission[]>([]);
   const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState<string>('pending');
+  const [statusFilter, setStatusFilter] = useState<string>("pending");
   const [processingId, setProcessingId] = useState<string | null>(null);
 
   const loadSubmissions = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/ugc/submissions?status=${statusFilter === 'all' ? '' : statusFilter}`);
+      const res = await fetch(`/api/ugc/submissions?status=${statusFilter === "all" ? "" : statusFilter}`);
       if (res.ok) {
         const json = await res.json();
         setSubmissions(json.data ?? []);
@@ -46,188 +43,195 @@ export default function VendorSubmissionsPage() {
     loadSubmissions();
   }, [loadSubmissions]);
 
-  const handleUpdateStatus = async (id: string, status: 'approved' | 'rejected') => {
+  const handleUpdateStatus = async (id: string, status: "approved" | "rejected") => {
     setProcessingId(id);
     try {
       const res = await fetch(`/api/ugc/submissions/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status }),
       });
       if (res.ok) {
-        toast.success(`Content asset successfully ${status}!`);
+        toast.success(`Content successfully ${status}!`);
         loadSubmissions();
       } else {
-        toast.error('Failed to update submission status');
+        toast.error("Failed to update status");
       }
     } finally {
       setProcessingId(null);
     }
   };
 
-  const pendingCount = submissions.filter(s => s.status === 'pending').length;
+  const pendingCount = submissions.filter(s => s.status === "pending").length;
+
+  if (loading && submissions.length === 0) {
+    return (
+       <div className="min-h-screen flex flex-col items-center justify-center space-y-12 animate-in fade-in duration-700" style={{ background: "#f8f7f5" }}>
+         <div className="relative">
+           <div className="absolute inset-0 bg-orange-400/20 blur-3xl rounded-full scale-150 animate-pulse" />
+           <div className="relative w-24 h-24 rounded-[32px] bg-white border border-white shadow-2xl flex items-center justify-center overflow-hidden">
+             <div className="absolute inset-0 border-2 border-t-orange-500 border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin m-2" />
+             <Video className="h-10 w-10 text-stone-900" />
+           </div>
+         </div>
+         <div className="text-center space-y-3">
+            <h2 className="text-[14px] font-black text-stone-900 uppercase tracking-[0.4em] pl-[0.4em]">Submissions</h2>
+            <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest pl-[0.1em]">Reconciling Incoming Content</p>
+         </div>
+       </div>
+    );
+  }
 
   return (
-    <div className="space-y-6 animate-in slide-in-from-bottom-2 duration-500 fade-in pb-12">
-      <div className="max-w-6xl mx-auto px-6">
+    <div className="min-h-screen pb-24 relative overflow-hidden" style={{ background: "#f8f7f5" }}>
+      <GlassAmbientGlow color="orange" position="top-right" />
+      <GlassAmbientGlow color="indigo" position="bottom-left" />
+
+      <div className="max-w-6xl mx-auto space-y-12 px-6 pt-12 relative z-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
         
         {/* Header Section */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10 pt-4 border-b border-[var(--color-border)] pb-8">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight text-[var(--color-text-primary)] mb-1.5 flex items-center gap-3">
-              Content Pipeline
-              {statusFilter === 'pending' && pendingCount > 0 && (
-                <span className="bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400 text-[10px] uppercase px-2 py-0.5 rounded-full font-black animate-pulse">
-                  {pendingCount} Action Required
-                </span>
-              )}
-            </h1>
-            <p className="text-sm font-medium text-[var(--color-text-muted)]">Review creator content, enforce guidelines, and approve assets for deployment.</p>
-          </div>
-          
-          {/* Quick Filters */}
-          <div className="flex bg-[var(--color-surface-secondary)] p-1 rounded-xl border border-[var(--color-border)] shrink-0 self-start md:self-auto">
-            {['pending', 'approved', 'rejected', 'all'].map((f) => (
-              <button
-                key={f}
-                onClick={() => setStatusFilter(f)}
-                className={cn(
-                  "px-5 py-2 rounded-lg text-xs font-bold capitalize transition-all duration-200",
-                  statusFilter === f
-                    ? "bg-[var(--color-surface)] text-[var(--color-text-primary)] shadow-sm"
-                    : "text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface)]/50"
-                )}
-              >
-                {f}
-              </button>
-            ))}
-          </div>
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
+           <div className="space-y-2">
+              <h1 className="text-4xl font-black text-stone-900 tracking-tighter flex items-center gap-4">
+                 <div className="p-2.5 rounded-[20px] bg-white border border-white shadow-2xl shrink-0">
+                    <Video className="h-8 w-8 text-orange-500" />
+                 </div>
+                 Mission Submissions
+              </h1>
+              <p className="text-[11px] font-bold text-stone-400 uppercase tracking-[0.3em] pl-16">
+                 Review and verify creator content for your missions
+              </p>
+           </div>
+           
+           <div className="flex flex-wrap items-center gap-2 bg-white/40 p-1.5 rounded-[22px] border border-white shadow-xl backdrop-blur-xl shrink-0">
+              {["pending", "approved", "rejected", "all"].map((f) => (
+                 <button
+                    key={f}
+                    onClick={() => setStatusFilter(f)}
+                    className={cn(
+                       "px-6 h-11 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all",
+                       statusFilter === f
+                          ? "bg-stone-900 text-white shadow-xl"
+                          : "text-stone-400 hover:text-stone-900"
+                    )}
+                 >
+                    {f}
+                    {f === "pending" && pendingCount > 0 && (
+                       <span className="ml-2 bg-orange-500 text-white text-[8px] px-1.5 py-0.5 rounded-full ring-2 ring-white">
+                          {pendingCount}
+                       </span>
+                    )}
+                 </button>
+              ))}
+           </div>
         </div>
 
         {/* Content Feed */}
-        <div className="space-y-4">
-          {loading ? (
-             <div className="space-y-3">
-               {[1, 2, 3].map((i) => <div key={i} className="h-32 rounded-[24px] bg-[var(--color-surface-secondary)] animate-pulse" />)}
-             </div>
-          ) : submissions.length === 0 ? (
-            <div className="text-center py-24 bg-[var(--color-surface)] rounded-[24px] border border-[var(--color-border)] shadow-sm">
-              <div className="h-20 w-20 bg-[var(--color-surface-secondary)] border border-[var(--color-border)] rounded-full flex items-center justify-center mx-auto mb-5">
-                 <CheckCircle2 className="h-10 w-10 text-emerald-500" />
-              </div>
-              <h3 className="text-xl font-bold text-[var(--color-text-primary)] mb-2">You're all caught up!</h3>
-              <p className="text-sm text-[var(--color-text-muted)] max-w-sm mx-auto mb-6">No {statusFilter !== 'all' ? statusFilter : ''} assets right now. You have reviewed the entire pipeline.</p>
-              <Link href="/dashboard/vendor/campaigns">
-                <Button className="font-bold bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white shadow-md">Return to Missions</Button>
-              </Link>
-            </div>
+        <div className="space-y-6">
+          {submissions.length === 0 ? (
+            <GlassCard className="p-24 text-center rounded-[56px] border-white bg-white/20">
+               <div className="w-24 h-24 bg-white rounded-[32px] flex items-center justify-center mx-auto mb-8 border border-white shadow-xl">
+                  <CheckCircle2 className="h-10 w-10 text-stone-100" />
+               </div>
+               <h2 className="text-3xl font-black text-stone-900 tracking-tighter">You're All Caught Up</h2>
+               <p className="text-[11px] font-black text-stone-400 uppercase tracking-widest mt-4 max-w-xs mx-auto leading-relaxed">
+                  No {statusFilter !== "all" ? statusFilter : ""} assets require review right now.
+               </p>
+               <Button asChild className="h-16 px-12 rounded-3xl bg-stone-900 text-white font-black text-[11px] uppercase tracking-widest shadow-2xl mt-10 hover:bg-black transition-all border-none">
+                  <Link href="/dashboard/vendor/campaigns">Back to Missions</Link>
+               </Button>
+            </GlassCard>
           ) : (
-            <div className="grid grid-cols-1 gap-4">
+            <div className="grid grid-cols-1 gap-6">
               {submissions.map((sub) => {
                 const conf = STATUS_CONFIG[sub.status] || STATUS_CONFIG.pending;
-                const Icon = conf.icon;
                 const isProcessing = processingId === sub.id;
-
                 const campaign = sub.campaign as any;
-                const isFixed = campaign?.payment_model === 'fixed_per_content';
 
                 return (
-                  <div 
+                  <GlassCard 
                     key={sub.id} 
-                    className="group bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[24px] p-5 md:p-6 hover:shadow-md hover:border-[var(--color-accent)]/30 transition-all duration-300"
+                    className="group bg-white/60 border-white rounded-[40px] p-8 hover:shadow-2xl transition-all duration-500"
                   >
-                    <div className="flex flex-col lg:flex-row gap-6">
+                    <div className="flex flex-col lg:flex-row gap-8 items-start lg:items-center">
                       
                       {/* Creator Profile */}
-                      <div className="flex items-center gap-4 lg:w-[280px] shrink-0">
-                        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center text-white font-black shadow-inner">
-                          {sub.influencer?.display_name?.[0]?.toUpperCase() || 'C'}
+                      <div className="flex items-center gap-5 lg:w-[280px] shrink-0">
+                        <div className="w-16 h-16 rounded-[22px] bg-stone-900 flex items-center justify-center text-white font-black shadow-xl shrink-0 group-hover:scale-110 transition-transform duration-700">
+                          {sub.influencer?.display_name?.[0]?.toUpperCase() || "C"}
                         </div>
                         <div className="min-w-0">
-                          <p className="text-sm font-bold text-[var(--color-text-primary)] truncate mb-0.5">
-                            {sub.influencer?.display_name || 'Anonymous Creator'}
+                          <p className="text-lg font-black text-stone-900 truncate tracking-tight mb-1">
+                            {sub.influencer?.display_name || "Anonymous Creator"}
                           </p>
-                          <div className="flex items-center gap-2 text-[11px] font-bold tracking-wider text-[var(--color-text-muted)] uppercase">
-                            <span className="text-[var(--color-accent)] bg-[var(--color-accent-light)] px-1.5 py-0.5 rounded-md">{sub.platform}</span>
-                            <span>•</span>
-                            <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {new Date(sub.created_at).toLocaleDateString()}</span>
+                          <div className="flex items-center gap-3">
+                             <span className="text-[9px] font-black uppercase tracking-widest text-orange-500 bg-orange-50 px-2.5 py-1 rounded-lg border border-orange-100">{sub.platform}</span>
+                             <span className="text-[10px] font-bold text-stone-300 uppercase tracking-widest flex items-center gap-1.5"><Calendar className="w-3 h-3" /> {new Date(sub.created_at).toLocaleDateString()}</span>
                           </div>
                         </div>
                       </div>
 
-                      {/* Campaign Insight */}
-                      <div className="flex-1 min-w-0 bg-[var(--color-surface-secondary)] rounded-2xl p-4 border border-[var(--color-border)] flex flex-col justify-center">
-                        <div className="flex items-center justify-between mb-2">
-                           <p className="text-xs font-semibold text-[var(--color-text-muted)]">Mission Brief</p>
+                      {/* Details Segment */}
+                      <div className="flex-1 min-w-0 grid grid-cols-1 md:grid-cols-2 gap-6 bg-stone-50/50 rounded-[32px] p-6 border border-stone-100/50">
+                        <div>
+                           <p className="text-[10px] font-bold text-stone-300 uppercase tracking-widest mb-1.5">Mission Title</p>
+                           <p className="text-[14px] text-stone-900 font-black truncate tracking-tight">
+                             {campaign?.title || "Standard Campaign"}
+                           </p>
                            <a 
                              href={sub.post_url} 
                              target="_blank" 
                              rel="noopener noreferrer"
-                             className="inline-flex items-center gap-1.5 text-xs text-blue-500 hover:text-blue-600 font-bold transition-colors"
+                             className="inline-flex items-center gap-1.5 text-[11px] text-blue-500 hover:text-blue-600 font-bold tracking-tight mt-2 transition-colors"
                            >
-                             <Video className="w-3.5 h-3.5" /> Watch Link <ExternalLink className="w-3 h-3" />
+                             Watch Review <ExternalLink className="w-3 h-3" />
                            </a>
                         </div>
-                        <p className="text-sm text-[var(--color-text-primary)] font-bold truncate">
-                          {campaign?.title || 'Unknown Campaign'}
-                        </p>
-                      </div>
-
-                      {/* Payment Overview */}
-                      <div className="flex-1 min-w-0 bg-[var(--color-surface-secondary)] rounded-2xl p-4 border border-[var(--color-border)] flex flex-col justify-center">
-                        <p className="text-xs font-semibold text-[var(--color-text-muted)] mb-2">Creator Reward Profile</p>
-                        <div className="flex items-end gap-2">
-                           <p className="text-xl font-black text-[var(--color-text-primary)]">
-                             {isFixed ? `$${campaign?.fixed_rate}` : `$${campaign?.rate_per_1k_views}`}
-                           </p>
-                           <p className="text-xs font-bold text-[var(--color-text-muted)] pb-1">
-                             {isFixed ? 'Flat Payout' : 'per 1K Verified Views'}
-                           </p>
+                        <div>
+                           <p className="text-[10px] font-bold text-stone-300 uppercase tracking-widest mb-1.5">Reward Profile</p>
+                           <div className="flex items-baseline gap-2">
+                              <p className="text-xl font-black text-stone-900 tracking-tighter">
+                                {campaign?.payment_model === "fixed_per_content" ? `$${campaign?.fixed_rate}` : `$${campaign?.rate_per_1k_views}`}
+                              </p>
+                              <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">
+                                {campaign?.payment_model === "fixed_per_content" ? "Fixed" : "per 1K Views"}
+                              </p>
+                           </div>
                         </div>
                       </div>
 
                       {/* Controls */}
-                      <div className="flex items-center justify-end gap-3 lg:w-[220px] shrink-0 border-t lg:border-t-0 border-[var(--color-border)] pt-4 lg:pt-0">
-                        {sub.status === 'pending' ? (
-                          <div className="flex items-center gap-2 w-full">
+                      <div className="flex items-center justify-end gap-3 lg:w-[240px] shrink-0 w-full">
+                        {sub.status === "pending" ? (
+                          <div className="flex items-center gap-3 w-full">
                             <Button 
                               disabled={isProcessing}
-                              onClick={() => handleUpdateStatus(sub.id, 'rejected')}
+                              onClick={() => handleUpdateStatus(sub.id, "rejected")}
                               variant="ghost"
-                              className="flex-1 rounded-xl text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-500/10 h-11 font-bold text-xs"
+                              className="flex-1 h-14 rounded-2xl text-rose-500 hover:bg-rose-50 font-black text-[11px] uppercase tracking-widest border border-transparent hover:border-rose-100 transition-all"
                             >
                               Reject
                             </Button>
                             <Button 
                               disabled={isProcessing}
-                              onClick={() => handleUpdateStatus(sub.id, 'approved')}
-                              className="flex-1 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold h-11 text-xs shadow-md shadow-emerald-500/20 active:scale-95 transition-all"
+                              onClick={() => handleUpdateStatus(sub.id, "approved")}
+                              className="flex-1 h-14 rounded-2xl bg-stone-900 text-white font-black text-[11px] uppercase tracking-widest shadow-2xl active:scale-95 transition-all hover:bg-black border-none"
                             >
-                              {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Approve'}
+                              {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : "Approve"}
                             </Button>
                           </div>
                         ) : (
                           <div className="flex flex-col items-end w-full">
-                            <span className={cn("inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider", conf.bg, conf.color)}>
-                              <Icon className="w-4 h-4" />
-                              {conf.label}
-                            </span>
-                            {sub.status === 'approved' && (
-                              <p className="text-[10px] text-[var(--color-text-muted)] font-bold mt-1.5 flex items-center gap-1">
-                                <Button variant="ghost" size="sm" className="h-7 px-2 text-[10px] gap-1" asChild>
-                                  <a href={sub.post_url} target="_blank" rel="noopener noreferrer">
-                                    <Play className="h-3 w-3" />
-                                    Watch content
-                                  </a>
-                                </Button>
-                              </p>
-                            )}
+                             <GlassPill color={conf.color} className="px-5 py-2.5 font-black text-[10px] uppercase tracking-[0.15em] shadow-none border-none">
+                                <conf.icon className="w-4 h-4 mr-2" />
+                                {conf.label}
+                             </GlassPill>
                           </div>
                         )}
                       </div>
 
                     </div>
-                  </div>
+                  </GlassCard>
                 );
               })}
             </div>

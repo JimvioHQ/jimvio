@@ -18,6 +18,8 @@ const buttonVariants = cva(
           "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-secondary)] border border-transparent",
         destructive:
           "bg-red-600 text-white hover:bg-red-700 shadow-md",
+        orange:
+          "bg-orange-500/10 backdrop-blur-md border border-orange-500/30 text-orange-600 hover:bg-orange-500/20 shadow-[0_2px_10px_rgba(249,115,22,0.10)]",
         glass:
           "bg-white/10 backdrop-blur-md border border-white/20 text-white hover:bg-white/20 shadow-glass",
         success:

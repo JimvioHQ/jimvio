@@ -3,9 +3,9 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Video, ArrowLeft, CheckCircle, User, Share2, FileCheck } from "lucide-react";
+import { Video, ArrowLeft, CheckCircle, User, Share2, FileCheck, ChevronRight, Loader2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { GlassCard, GlassPill } from "@/components/ui/glass";
 import { createClient } from "@/lib/supabase/client";
 import { useUserStore } from "@/lib/store/use-user-store";
 import { cn } from "@/lib/utils";
@@ -86,12 +86,17 @@ export default function ActivateCreatorPage() {
 
   if (loading || influencer) {
     return (
-      <div className="min-h-[60vh] flex items-center justify-center bg-gradient-to-b from-[var(--color-surface-secondary)] to-[var(--color-bg)]">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-[var(--color-accent)]/20 flex items-center justify-center">
-            <Video className="h-5 w-5 text-[var(--color-accent)] animate-pulse" />
+      <div className="min-h-screen flex flex-col items-center justify-center space-y-8 animate-in fade-in duration-700" style={{ background: "#f0ede8" }}>
+        <div className="relative">
+          <div className="absolute inset-0 bg-violet-400/20 blur-2xl rounded-full scale-150 animate-pulse" />
+          <div className="relative w-20 h-20 rounded-[24px] bg-white/40 backdrop-blur-md border border-white/80 shadow-2xl flex items-center justify-center overflow-hidden">
+            <div className="absolute inset-0 border-2 border-t-violet-500 border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin m-2" />
+            <Video className="h-8 w-8 text-stone-900" />
           </div>
-          <p className="text-sm text-[var(--color-text-muted)]">Loading…</p>
+        </div>
+        <div className="text-center">
+           <h2 className="text-[12px] font-black text-stone-900 uppercase tracking-[0.4em] mb-2 pl-[0.4em]">Initializing</h2>
+           <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Deploying Creator Interface</p>
         </div>
       </div>
     );
@@ -100,85 +105,143 @@ export default function ActivateCreatorPage() {
   const canActivate = agreedToGuidelines;
 
   return (
-    <div className="min-h-[80vh] bg-gradient-to-b from-[var(--color-surface-secondary)] to-[var(--color-bg)]">
-      <div className="max-w-xl mx-auto px-4 py-8 sm:py-12">
-        <div className="flex items-start gap-4 mb-8">
-          <Button variant="ghost" size="icon" asChild className="shrink-0 mt-0.5 rounded-full hover:bg-white/80">
-            <Link href="/dashboard"><ArrowLeft className="h-5 w-5" /></Link>
-          </Button>
-          <div className="min-w-0">
-            <h1 className="text-2xl sm:text-3xl font-bold text-[var(--color-text-primary)] tracking-tight flex items-center gap-2">
-              <span className="flex items-center justify-center w-10 h-10 rounded-xl bg-[var(--color-accent)] text-white shadow-lg shadow-[var(--color-accent)]/25">
-                <Video className="h-5 w-5" />
-              </span>
-              Become a Creator
-            </h1>
-            <p className="text-[var(--color-text-secondary)] mt-1.5 text-base">
-              Promote products using short video clips and earn from views and product sales.
-            </p>
-          </div>
+    <div
+      className="min-h-screen animate-in fade-in duration-500 pb-20"
+      style={{
+         background: "radial-gradient(ellipse 80% 60% at 80% 0%, rgba(139,92,246,0.06) 0%, transparent 50%), radial-gradient(ellipse 60% 50% at 0% 100%, rgba(219,39,119,0.06) 0%, transparent 55%), #f0ede8",
+      }}
+    >
+      <div className="max-w-2xl mx-auto px-6 pt-12">
+        <div className="flex flex-col items-center text-center mb-12">
+           <Link href="/dashboard" className="mb-8 group">
+              <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/40 border border-white/80 text-stone-500 hover:text-stone-900 transition-all shadow-sm">
+                 <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
+                 <span className="text-[10px] font-bold uppercase tracking-widest">Return to Dashboard</span>
+              </div>
+           </Link>
+           
+           <div className="w-20 h-20 rounded-[28px] bg-white border border-white shadow-2xl flex items-center justify-center mb-6 relative group overflow-hidden">
+              <div className="absolute inset-0 bg-violet-500 opacity-0 group-hover:opacity-10 transition-opacity" />
+              <Video className="h-10 w-10 text-stone-900 group-hover:scale-110 transition-transform duration-500" />
+           </div>
+           
+           <h1 className="text-4xl font-black text-stone-900 tracking-tighter mb-3">Become a Creator</h1>
+           <p className="text-stone-600 font-semibold max-w-sm">
+              Monetize your creative vision through immersive short video clips and global distribution.
+           </p>
         </div>
 
-        <Card className="border-[var(--color-border)] shadow-[var(--shadow-md)] rounded-2xl overflow-hidden">
-          <CardContent className="p-6 sm:p-8">
-            <p className="text-sm font-semibold text-[var(--color-text-primary)] mb-3">Requirements</p>
-            <ul className="space-y-3">
-              <li className={cn(
-                "flex items-center gap-3 p-3 rounded-xl border",
-                profileComplete ? "bg-[var(--color-success-light)]/30 border-[var(--color-success)]/30" : "bg-[var(--color-surface-secondary)] border-[var(--color-border)]"
+        <GlassCard className="p-10 relative overflow-hidden">
+           <div className="absolute top-0 right-0 w-32 h-32 bg-violet-500/5 blur-3xl rounded-full translate-x-1/2 -translate-y-1/2" />
+           
+           <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-stone-400 mb-6 pl-1 border-l-2 border-stone-200">Creative Onboarding</h3>
+           
+           <div className="space-y-4">
+              <div className={cn(
+                 "flex items-center justify-between p-5 rounded-[20px] transition-all border",
+                 profileComplete ? "bg-white/60 border-emerald-200/50 shadow-[inset_0_1px_4px_rgba(255,255,255,1)]" : "bg-white/40 border-stone-200/50"
               )}>
-                {profileComplete ? <CheckCircle className="h-5 w-5 text-[var(--color-success)] shrink-0" /> : <User className="h-5 w-5 text-[var(--color-text-muted)] shrink-0" />}
-                <span className={cn("text-sm", profileComplete ? "text-[var(--color-text-primary)]" : "text-[var(--color-text-muted)]")}>
-                  Profile completed
-                </span>
-                {!profileComplete && (
-                  <span className="text-xs text-[var(--color-text-muted)] ml-auto">Add name in Profile settings</span>
+                 <div className="flex items-center gap-4">
+                    <div className={cn(
+                       "w-12 h-12 rounded-[14px] flex items-center justify-center shadow-sm border",
+                       profileComplete ? "bg-emerald-100 border-emerald-200 text-emerald-600" : "bg-amber-50 border-amber-200 text-amber-500"
+                    )}>
+                       <User className="h-5 w-5" />
+                    </div>
+                    <div>
+                       <p className="text-[14px] font-bold text-stone-900 leading-tight">Identity Profile</p>
+                       <p className="text-[11px] font-semibold text-stone-500">Complete personal bio</p>
+                    </div>
+                 </div>
+                 {profileComplete ? (
+                    <CheckCircle className="h-5 w-5 text-emerald-500" />
+                 ) : (
+                    <GlassPill color="orange" className="text-[8px] px-2 py-0.5">COMPLETION REQUIRED</GlassPill>
+                 )}
+              </div>
+
+              <div className={cn(
+                 "flex items-center justify-between p-5 rounded-[20px] transition-all border",
+                 hasSocialAccount ? "bg-white/60 border-emerald-200/50 shadow-[inset_0_1px_4px_rgba(255,255,255,1)]" : "bg-white/40 border-stone-200/50 opacity-60"
+              )}>
+                 <div className="flex items-center gap-4">
+                    <div className={cn(
+                       "w-12 h-12 rounded-[14px] flex items-center justify-center shadow-sm border",
+                       hasSocialAccount ? "bg-emerald-100 border-emerald-200 text-emerald-600" : "bg-stone-50 border-stone-200 text-stone-400"
+                    )}>
+                       <Share2 className="h-5 w-5" />
+                    </div>
+                    <div>
+                       <p className="text-[14px] font-bold text-stone-900 leading-tight">Social Connectivity</p>
+                       <p className="text-[11px] font-semibold text-stone-500">Linking distribution channels</p>
+                    </div>
+                 </div>
+                 {hasSocialAccount ? (
+                    <CheckCircle className="h-5 w-5 text-emerald-500" />
+                 ) : (
+                    <GlassPill color="sky" className="text-[8px] px-2 py-0.5">OPTIONAL START</GlassPill>
+                 )}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setAgreedToGuidelines(!agreedToGuidelines)}
+                className={cn(
+                   "flex items-center justify-between p-5 rounded-[20px] transition-all border w-full text-left group/btn",
+                   agreedToGuidelines ? "bg-white/60 border-emerald-200/50 shadow-[inset_0_1px_4px_rgba(255,255,255,1)]" : "bg-white/60 border-stone-200 hover:border-violet-300"
                 )}
-              </li>
-              <li className={cn(
-                "flex items-center gap-3 p-3 rounded-xl border",
-                hasSocialAccount ? "bg-[var(--color-success-light)]/30 border-[var(--color-success)]/30" : "bg-[var(--color-surface-secondary)] border-[var(--color-border)]"
-              )}>
-                {hasSocialAccount ? <CheckCircle className="h-5 w-5 text-[var(--color-success)] shrink-0" /> : <Share2 className="h-5 w-5 text-[var(--color-text-muted)] shrink-0" />}
-                <span className={cn("text-sm", hasSocialAccount ? "text-[var(--color-text-primary)]" : "text-[var(--color-text-muted)]")}>
-                  At least one social account connected
-                </span>
-                {!hasSocialAccount && (
-                  <span className="text-xs text-[var(--color-text-muted)] ml-auto">You can add this in Creator Studio</span>
-                )}
-              </li>
-              <li className={cn(
-                "flex items-center gap-3 p-3 rounded-xl border",
-                agreedToGuidelines ? "bg-[var(--color-success-light)]/30 border-[var(--color-success)]/30" : "bg-[var(--color-surface-secondary)] border-[var(--color-border)]"
-              )}>
-                <button
-                  type="button"
-                  onClick={() => setAgreedToGuidelines(!agreedToGuidelines)}
-                  className="flex items-center gap-3 w-full text-left"
-                >
-                  {agreedToGuidelines ? <CheckCircle className="h-5 w-5 text-[var(--color-success)] shrink-0" /> : <FileCheck className="h-5 w-5 text-[var(--color-text-muted)] shrink-0" />}
-                  <span className={cn("text-sm", agreedToGuidelines ? "text-[var(--color-text-primary)]" : "text-[var(--color-text-muted)]")}>
-                    Agree to creator guidelines
-                  </span>
-                </button>
-              </li>
-            </ul>
-            <p className="text-xs text-[var(--color-text-muted)] mt-4">
-              After activation you can upload product clips, track views and engagement, and earn from sales and views.
-            </p>
-            <Button
-              className="mt-6 rounded-xl w-full sm:w-auto min-w-[200px]"
-              size="lg"
+              >
+                 <div className="flex items-center gap-4">
+                    <div className={cn(
+                       "w-12 h-12 rounded-[14px] flex items-center justify-center shadow-sm border transition-colors",
+                       agreedToGuidelines ? "bg-emerald-100 border-emerald-200 text-emerald-600" : "bg-violet-50 border-violet-100 text-violet-500 group-hover/btn:bg-violet-100"
+                    )}>
+                       <FileCheck className="h-5 w-5" />
+                    </div>
+                    <div>
+                       <p className="text-[14px] font-bold text-stone-900 leading-tight">Creator Guidelines</p>
+                       <p className="text-[11px] font-semibold text-stone-500 uppercase tracking-widest text-[9px] mt-0.5">Agreement to protocol</p>
+                    </div>
+                 </div>
+                 {agreedToGuidelines ? <CheckCircle className="h-5 w-5 text-emerald-500" /> : <div className="w-5 h-5 rounded-full border-2 border-stone-200 group-hover/btn:border-violet-300 transition-colors" />}
+              </button>
+           </div>
+
+           <div className="mt-10 p-5 rounded-[18px] bg-stone-50/50 border border-stone-100/50">
+              <div className="flex items-start gap-3">
+                 <Sparkles className="h-4 w-4 text-violet-500 shrink-0 mt-0.5" />
+                 <p className="text-[11px] font-semibold text-stone-500 leading-relaxed uppercase tracking-widest pl-1">
+                    Authorization allows for asset deployment, engagement tracking, and conversion-based monetization.
+                 </p>
+              </div>
+           </div>
+
+           <Button
+              className={cn(
+                "mt-10 h-14 w-full rounded-[18px] font-black text-[12px] uppercase tracking-[0.2em] shadow-2xl transition-all active:scale-95",
+                canActivate ? "bg-stone-900 text-white hover:bg-black shadow-stone-900/20" : "bg-stone-100 text-stone-300 border border-stone-200 shadow-none pointer-events-none"
+              )}
               onClick={handleActivate}
               disabled={!canActivate || activating}
-            >
-              {activating ? "Activating…" : "Activate Creator Role"}
-            </Button>
-            {!canActivate && (
-              <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">Please agree to the creator guidelines to activate.</p>
-            )}
-          </CardContent>
-        </Card>
+           >
+              {activating ? (
+                <div className="flex items-center gap-3">
+                   <Loader2 className="h-4 w-4 animate-spin" />
+                   Initializing Nodes...
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                   Activate Creator Role <ChevronRight className="h-4 w-4" />
+                </div>
+              )}
+           </Button>
+           
+           {!canActivate && (
+              <p className="text-center text-[10px] font-bold text-violet-500 uppercase tracking-widest mt-4">
+                 Mandatory: Accept creator guidelines to unlock distribution nodes.
+              </p>
+           )}
+        </GlassCard>
       </div>
     </div>
   );

@@ -20,6 +20,7 @@ import {
   X,
   ShoppingBag,
   Percent,
+  ChevronRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MarketplaceSearch, marketplaceHref } from "@/components/marketplace/marketplace-search";
@@ -32,7 +33,80 @@ import { TopCreatorsSection } from "@/components/marketplace/top-creators-sectio
 import { PopularStoresSection } from "@/components/marketplace/popular-stores-section";
 import { FollowButton } from "@/components/marketplace/follow-button";
 import { LocalizedPrice } from "@/components/currency/localized-price";
+import { GlassCard as GlobalGlassCard, GlassAmbientGlow } from "@/components/ui/glass";
 
+/* ─── Glass primitives (local, self-contained) ─── */
+function GlassCard({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <GlobalGlassCard className={className} withSpecular>
+      {children}
+    </GlobalGlassCard>
+  );
+}
+
+/* Glass filter pill */
+function FilterPill({
+  active,
+  href,
+  icon: Icon,
+  label,
+}: {
+  active: boolean;
+  href: string;
+  icon?: React.ElementType;
+  label: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className={cn(
+        "inline-flex items-center gap-2 px-4 py-2 rounded-full text-[12px] font-semibold transition-all whitespace-nowrap border backdrop-blur-xl",
+        active
+          ? "bg-orange-500 border-orange-400 text-white shadow-[0_4px_12px_rgba(249,115,22,0.3)]"
+          : "bg-white/60 border-white/70 text-stone-600 hover:bg-white/80 hover:text-orange-600 shadow-[0_2px_8px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.9)]"
+      )}
+    >
+      {Icon && <Icon className="h-3.5 w-3.5 shrink-0" />}
+      {label}
+    </Link>
+  );
+}
+
+/* Liquid sort button */
+function SortPill({
+  active,
+  href,
+  icon: Icon,
+  label,
+}: {
+  active: boolean;
+  href: string;
+  icon: React.ElementType;
+  label: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className={cn(
+        "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold border transition-all backdrop-blur-xl",
+        active
+          ? "bg-orange-500/10 border-orange-400/30 text-orange-600"
+          : "bg-white/50 border-white/60 text-stone-500 hover:text-orange-600 hover:bg-white/70"
+      )}
+    >
+      <Icon className="h-3.5 w-3.5" />
+      {label}
+    </Link>
+  );
+}
+
+/* ─── Types ─── */
 interface Product {
   id: string;
   name: string;
@@ -76,9 +150,7 @@ interface MarketplaceClientProps {
   topCreators?: any[];
   popularStores?: any[];
   hasShopifyProducts?: boolean;
-  /** Pre-fetched cart product IDs from server for batch status */
   cartProductIds?: string[];
-  /** Pre-fetched followed vendor IDs from server for batch status */
   followedVendorIds?: string[];
   marketplaceStats?: {
     activeVendors: number;
@@ -88,12 +160,12 @@ interface MarketplaceClientProps {
   };
 }
 
-export function MarketplaceClient({ 
-  initialProducts, 
-  categories, 
-  total, 
-  currentPage, 
-  limit, 
+export function MarketplaceClient({
+  initialProducts,
+  categories,
+  total,
+  currentPage,
+  limit,
   params,
   viralClips = [],
   topCreators = [],
@@ -130,12 +202,7 @@ export function MarketplaceClient({
 
   const activeCategoryName = categories.find((c) => c.slug === params.cat)?.name;
 
-  // Mobile: mixed feed only when not searching (keeps results scannable)
-  type FeedItem =
-    | { type: "product"; data: Product }
-    | { type: "store"; data: (typeof popularStores)[number] }
-    | { type: "creator"; data: (typeof topCreators)[number] }
-    | { type: "clip"; data: (typeof viralClips)[number] };
+  type FeedItem = { type: "product"; data: Product };
   const mixedFeed = useMemo(() => {
     return initialProducts.map((p) => ({ type: "product" as const, data: p }));
   }, [initialProducts]);
@@ -146,47 +213,62 @@ export function MarketplaceClient({
       : null;
 
   return (
-    <div className="min-h-screen bg-[var(--color-bg)] overflow-hidden">
+    <div className="min-h-screen relative overflow-hidden" style={{ background: "#f8f7f5" }}>
+      {/* Signature Jimvio Glows */}
+      <GlassAmbientGlow color="amber" position="top-right" className="opacity-40" />
+      <GlassAmbientGlow color="indigo" position="bottom-left" className="opacity-20" />
+      {/* ── Hero ── */}
       <motion.div
         initial={{ opacity: 0, y: -12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35, ease: "easeOut" }}
-        className="relative z-40 border-b border-zinc-200 bg-gradient-to-br from-zinc-50 via-white to-orange-50/30"
+        transition={{ duration: 0.4, ease: "easeOut" }}
+        className="relative z-40"
       >
-        <div className="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 rounded-full bg-orange-400/5 blur-[80px] pointer-events-none" />
-        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-8 sm:py-12 relative z-10">
-          <div className="flex items-center gap-2 mb-6 text-[13px] font-bold text-zinc-400">
-            <Link href="/" className="hover:text-[#f97316] transition-colors">
-              Home
-            </Link>
-            <span aria-hidden className="text-zinc-300">/</span>
-            <span className="text-zinc-800">Marketplace</span>
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 pt-8 pb-4 sm:pt-10 sm:pb-5">
+          {/* Breadcrumb */}
+          <div className="flex items-center gap-1.5 mb-5 text-[11px] font-semibold text-stone-400">
+            <Link href="/" className="hover:text-orange-500 transition-colors">Home</Link>
+            <ChevronRight className="h-3 w-3" />
+            <span className="text-stone-700">Marketplace</span>
           </div>
 
-          <div className="flex flex-col gap-6">
-            <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-8">
-              <div className="min-w-0 space-y-3">
-                <div className="inline-flex items-center gap-2 rounded-full bg-orange-100/50 border border-orange-200/50 px-3.5 py-1.5 text-[11px] font-black text-[#f97316] mb-2 shadow-sm">
-                  <span className="h-2 w-2 rounded-full bg-[#f97316] shadow-[0_0_8px_#f97316] animate-pulse" />
-                  {statLine ?? "Live marketplace pulse"}
+          {/* Hero glass card */}
+          <GlassCard className="px-5 py-6 sm:px-8 sm:py-8 mb-4">
+            <div
+              className="pointer-events-none absolute top-0 right-0 w-64 h-64 rounded-full blur-3xl"
+              style={{ background: "radial-gradient(circle, rgba(251,146,60,0.10), transparent 70%)" }}
+            />
+            <div className="relative flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+              <div className="space-y-3">
+                {/* Live badge */}
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-orange-50/80 border border-orange-200/60 backdrop-blur-xl shadow-sm">
+                  <span className="h-1.5 w-1.5 rounded-full bg-orange-500 shadow-[0_0_6px_rgba(249,115,22,0.9)] animate-pulse" />
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-orange-600">
+                    {statLine ?? "Live marketplace"}
+                  </span>
                 </div>
-                <h1 className="text-4xl sm:text-[44px] font-black text-zinc-900 tracking-tighter leading-tight">
-                  Discover <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#f97316] to-[#ea580c]">premium</span> products
+                <h1 className="text-3xl sm:text-[40px] font-bold text-stone-900 tracking-tight leading-tight">
+                  Discover{" "}
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-orange-600">
+                    premium
+                  </span>{" "}
+                  products
                 </h1>
-                <p className="text-[15px] font-medium text-zinc-500 max-w-xl leading-relaxed">
-                  Shop straight from verified vendors worldwide. Physical, digital, software and more.
+                <p className="text-[14px] text-stone-500 max-w-lg leading-relaxed">
+                  Shop from verified vendors worldwide — physical, digital, software and more.
                 </p>
               </div>
-              <div className="flex flex-col sm:flex-row gap-4 w-full flex-1 max-w-2xl shrink-0 items-stretch sm:items-center lg:justify-end">
+
+              {/* Search + Sort */}
+              <div className="flex flex-col sm:flex-row gap-3 w-full lg:max-w-xl shrink-0">
                 <MarketplaceSearch currentParams={paramsRecord} className="w-full" />
                 <SortSelect currentSort={params.sort} />
               </div>
             </div>
-          </div>
-        </div>
+          </GlassCard>
 
-        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-3 border-t border-[var(--color-border)] overflow-x-auto no-scrollbar">
-          <div className="flex items-center gap-2 min-w-min pb-1">
+          {/* Type filter pills */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
             {(
               [
                 { label: "All types", type: null as string | null, catalog: null as string | null, icon: Sparkles },
@@ -199,51 +281,39 @@ export function MarketplaceClient({
                 t.catalog === "shopify"
                   ? marketplaceHref(paramsRecord, { catalog: "shopify", type: null })
                   : t.type
-                    ? marketplaceHref(paramsRecord, { type: t.type, catalog: null })
-                    : marketplaceHref(paramsRecord, { type: null, catalog: null });
+                  ? marketplaceHref(paramsRecord, { type: t.type, catalog: null })
+                  : marketplaceHref(paramsRecord, { type: null, catalog: null });
               const active =
                 t.catalog === "shopify"
                   ? params.catalog === "shopify"
                   : !params.catalog && (t.type ? params.type === t.type : !params.type);
-              const Icon = t.icon;
               return (
-                <Link
-                  key={t.label}
-                  href={href}
-                  className={cn(
-                    "inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-black transition-all whitespace-nowrap shadow-sm border",
-                    active
-                      ? "bg-zinc-900 border-zinc-900 text-white shadow-md shadow-zinc-900/10 scale-105"
-                      : "bg-white border-zinc-200 text-zinc-600 hover:border-zinc-300 hover:text-zinc-900 hover:bg-zinc-50 active:scale-95",
-                  )}
-                >
-                  <Icon className={cn("h-4 w-4 shrink-0", active && "text-[#f97316]")} />
-                  {t.label}
-                </Link>
+                <FilterPill key={t.label} active={active} href={href} icon={t.icon} label={t.label} />
               );
             })}
-            <Link
+            <FilterPill
+              active={params.affiliate === "1"}
               href={
                 params.affiliate === "1"
                   ? marketplaceHref(paramsRecord, { affiliate: null })
                   : marketplaceHref(paramsRecord, { affiliate: "1" })
               }
-              className={cn(
-                "inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-black transition-all whitespace-nowrap shadow-sm border",
-                params.affiliate === "1"
-                  ? "bg-gradient-to-br from-[#f97316] to-[#ea580c] text-white border-transparent shadow-[#f97316]/30 scale-105"
-                  : "bg-white border-zinc-200 text-zinc-600 hover:border-[#f97316]/50 hover:text-[#f97316] hover:bg-orange-50 active:scale-95",
-              )}
-            >
-              <Percent className="h-4 w-4" />
-              Affiliate picks
-            </Link>
+              icon={Percent}
+              label="Affiliate picks"
+            />
           </div>
         </div>
       </motion.div>
 
-      {/* Mobile sticky search + categories */}
-      <div className="lg:hidden sticky top-0 z-[100] bg-[var(--color-surface)]/95 backdrop-blur-xl border-b border-[var(--color-border)] pt-3 pb-2 px-4 space-y-2">
+      {/* ── Mobile sticky search + categories ── */}
+      <div
+        className="lg:hidden sticky top-0 z-[100] px-4 pt-3 pb-2 space-y-2 border-b border-white/50"
+        style={{
+          background: "rgba(245,244,241,0.85)",
+          backdropFilter: "blur(20px)",
+          WebkitBackdropFilter: "blur(20px)",
+        }}
+      >
         <MarketplaceSearch currentParams={paramsRecord} className="w-full" />
         <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
           {[{ slug: null as string | null, name: "All" }, ...categories].map((cat) => (
@@ -251,10 +321,10 @@ export function MarketplaceClient({
               key={cat.slug ?? "all"}
               href={marketplaceHref(paramsRecord, { cat: cat.slug ?? null })}
               className={cn(
-                "shrink-0 px-3.5 py-1.5 rounded-full text-[11px] font-bold transition-all border",
+                "shrink-0 px-3.5 py-1.5 rounded-full text-[11px] font-semibold transition-all border backdrop-blur-xl",
                 (!params.cat && !cat.slug) || params.cat === cat.slug
-                  ? "bg-[var(--color-accent)] text-white border-[var(--color-accent)] shadow-sm shadow-orange-500/20"
-                  : "bg-[var(--color-surface-secondary)] text-[var(--color-text-secondary)] border-[var(--color-border)] hover:border-[var(--color-accent)]/50",
+                  ? "bg-orange-500 text-white border-orange-400 shadow-[0_2px_8px_rgba(249,115,22,0.25)]"
+                  : "bg-white/60 border-white/70 text-stone-500 hover:text-orange-500"
               )}
             >
               {cat.name}
@@ -263,20 +333,23 @@ export function MarketplaceClient({
         </div>
       </div>
 
-      <div className="max-w-[1400px] mx-auto px-6 py-8 lg:py-12 flex flex-col lg:flex-row gap-8">
-        {/* ── LEFT SIDEBAR (desktop only: categories + trust) ── */}
-        <motion.aside 
-          initial={{ opacity: 0, x: -30 }}
+      {/* ── Main layout ── */}
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-6 lg:py-8 flex flex-col lg:flex-row gap-6">
+
+        {/* ── LEFT SIDEBAR (desktop) ── */}
+        <motion.aside
+          initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, delay: 0.3 }}
-          className="hidden lg:block lg:w-64 shrink-0"
+          transition={{ duration: 0.4, delay: 0.15 }}
+          className="hidden lg:block lg:w-60 shrink-0"
         >
-          <div className="sticky top-40 space-y-8">
-            <div className="space-y-4 bg-white border border-zinc-200 rounded-3xl p-5 shadow-sm">
-              <h3 className="text-[11px] font-black text-zinc-400 uppercase tracking-[0.2em] flex items-center gap-2">
+          <div className="sticky top-24 space-y-4">
+            {/* Category glass card */}
+            <GlassCard className="p-4">
+              <h3 className="text-[9px] font-bold uppercase tracking-[0.2em] text-stone-400 mb-3">
                 Categories
               </h3>
-              <div className="flex flex-col gap-1.5">
+              <div className="flex flex-col gap-0.5">
                 {[{ slug: null as string | null, name: "All categories" }, ...categories].map((cat) => {
                   const isActive = (!params.cat && !cat.slug) || params.cat === cat.slug;
                   return (
@@ -284,150 +357,142 @@ export function MarketplaceClient({
                       key={cat.slug || "all"}
                       href={marketplaceHref(paramsRecord, { cat: cat.slug ?? null })}
                       className={cn(
-                        "flex items-center justify-between py-2.5 px-4 rounded-xl text-[13px] font-bold transition-all duration-300",
+                        "flex items-center justify-between py-2 px-3 rounded-[14px] text-[12px] font-semibold transition-all",
                         isActive
-                          ? "bg-gradient-to-r from-orange-50 to-white text-[#f97316] border border-orange-100 shadow-sm"
-                          : "text-zinc-600 hover:bg-zinc-50 border border-transparent hover:border-zinc-100",
+                          ? "bg-orange-50/80 text-orange-600 border border-orange-200/50"
+                          : "text-stone-500 hover:bg-white/60 hover:text-stone-800 border border-transparent"
                       )}
                     >
                       <span>{cat.name}</span>
                       {isActive && (
-                        <div className="w-1.5 h-1.5 rounded-full bg-[#f97316] shadow-[0_0_8px_#f97316]" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-orange-500 shadow-[0_0_6px_rgba(249,115,22,0.8)]" />
                       )}
                     </Link>
                   );
                 })}
               </div>
-            </div>
+            </GlassCard>
 
-            <div className="p-6 rounded-3xl border border-orange-200 bg-gradient-to-b from-orange-50/50 to-white space-y-4 shadow-sm relative overflow-hidden group">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-[#f97316]/10 blur-2xl rounded-full translate-x-1/2 -translate-y-1/2 group-hover:scale-150 transition-transform duration-700" />
-              <div className="h-10 w-10 rounded-xl bg-white border border-orange-100 shadow-sm flex items-center justify-center relative z-10">
-                <ShieldCheck className="h-5 w-5 text-[#f97316]" />
+            {/* Support card */}
+            <GlassCard className="p-5">
+              <div
+                className="pointer-events-none absolute top-0 right-0 w-20 h-20 rounded-full blur-2xl"
+                style={{ background: "radial-gradient(circle, rgba(251,146,60,0.15), transparent)" }}
+              />
+              <div
+                className="h-9 w-9 rounded-[12px] flex items-center justify-center mb-3 relative z-10"
+                style={{
+                  background: "linear-gradient(135deg, rgba(251,146,60,0.9), rgba(234,88,12,0.8))",
+                  boxShadow: "0 4px_12px rgba(251,146,60,0.3)",
+                }}
+              >
+                <ShieldCheck className="h-4 w-4 text-white" />
               </div>
-              <div className="relative z-10">
-                <h4 className="text-[15px] font-black text-zinc-900 mb-1.5">Buyer support</h4>
-                <p className="text-[13px] text-zinc-500 font-medium leading-relaxed">
-                  Questions about an order or seller? Reach our team anytime.
-                </p>
-              </div>
-              <Button size="sm" variant="outline" className="w-full rounded-xl h-10 text-[13px] font-black border-zinc-200 hover:bg-white hover:text-[#f97316] hover:border-[#f97316]/50 shadow-sm relative z-10 transition-all duration-300" asChild>
-                <Link href="/contact">Contact Support</Link>
-              </Button>
-            </div>
+              <h4 className="text-[13px] font-bold text-stone-900 mb-1 relative z-10">Buyer support</h4>
+              <p className="text-[11px] text-stone-500 leading-relaxed mb-3 relative z-10">
+                Questions about an order or seller? Reach us anytime.
+              </p>
+              <Link
+                href="/contact"
+                className="block w-full py-2 px-4 rounded-full bg-white/70 border border-white/80 text-[11px] font-semibold text-stone-700 text-center hover:bg-white hover:text-orange-600 transition-all shadow-sm backdrop-blur-xl relative z-10"
+              >
+                Contact Support
+              </Link>
+            </GlassCard>
           </div>
         </motion.aside>
 
         {/* ── PRODUCT GRID AREA ── */}
         <div className="flex-1 min-w-0">
-          <div className="mb-6 flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3">
+          {/* Sort row + count */}
+          <div className="mb-4 flex flex-col sm:flex-row sm:items-center gap-3">
             <div className="flex flex-wrap items-center gap-2">
-              <Link
+              <SortPill
+                active={currentSort === "trending"}
                 href={marketplaceHref(paramsRecord, { sort: "trending" })}
-                className={cn(
-                  "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors",
-                  currentSort === "trending"
-                    ? "border-[var(--color-accent)] bg-[var(--color-accent-light)] text-[var(--color-accent)]"
-                    : "border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-secondary)] hover:border-[var(--color-text-primary)]",
-                )}
-              >
-                <TrendingUp className="h-3.5 w-3.5" />
-                Trending
-              </Link>
-              <Link
+                icon={TrendingUp}
+                label="Trending"
+              />
+              <SortPill
+                active={currentSort === "newest"}
                 href={marketplaceHref(paramsRecord, { sort: "newest" })}
-                className={cn(
-                  "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors",
-                  currentSort === "newest"
-                    ? "border-[var(--color-accent)] bg-[var(--color-accent-light)] text-[var(--color-accent)]"
-                    : "border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-secondary)] hover:border-[var(--color-text-primary)]",
-                )}
-              >
-                <Clock className="h-3.5 w-3.5" />
-                New
-              </Link>
+                icon={Clock}
+                label="New"
+              />
             </div>
-            <p className="text-sm text-[var(--color-text-muted)] sm:ml-auto tabular-nums">
-              <span className="font-medium text-[var(--color-text-primary)]">{total}</span> result{total === 1 ? "" : "s"}
+            <p className="text-[12px] text-stone-400 sm:ml-auto tabular-nums">
+              <span className="font-semibold text-stone-700">{total}</span> result{total === 1 ? "" : "s"}
             </p>
           </div>
 
+          {/* Active filter chips */}
           {(params.q ||
             params.cat ||
             params.type ||
             params.catalog ||
             params.affiliate === "1" ||
             (params.sort && params.sort !== "trending")) && (
-            <div className="mb-6 flex flex-wrap items-center gap-2">
-              <span className="text-xs text-[var(--color-text-muted)] mr-1">Filters:</span>
+            <div className="mb-4 flex flex-wrap items-center gap-2">
+              <span className="text-[10px] font-semibold text-stone-400 uppercase tracking-widest">Filters:</span>
               {params.q?.trim() ? (
                 <Link
                   href={marketplaceHref(paramsRecord, { q: null })}
-                  className="inline-flex items-center gap-1 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-1 text-xs font-medium text-[var(--color-text-primary)] hover:border-[var(--color-accent)]"
+                  className="inline-flex items-center gap-1 rounded-full bg-white/60 border border-white/70 backdrop-blur-xl px-3 py-1 text-[11px] font-semibold text-stone-700 hover:border-orange-300 hover:text-orange-600 transition-all shadow-sm"
                 >
-                  “{params.q.trim()}”
-                  <X className="h-3 w-3 opacity-60" />
+                  "{params.q.trim()}" <X className="h-3 w-3 opacity-50" />
                 </Link>
               ) : null}
               {activeCategoryName ? (
                 <Link
                   href={marketplaceHref(paramsRecord, { cat: null })}
-                  className="inline-flex items-center gap-1 rounded-full border border-[var(--color-border)] px-2.5 py-1 text-xs font-medium hover:border-[var(--color-accent)]"
+                  className="inline-flex items-center gap-1 rounded-full bg-white/60 border border-white/70 backdrop-blur-xl px-3 py-1 text-[11px] font-semibold text-stone-700 hover:border-orange-300 hover:text-orange-600 transition-all shadow-sm"
                 >
-                  {activeCategoryName}
-                  <X className="h-3 w-3 opacity-60" />
+                  {activeCategoryName} <X className="h-3 w-3 opacity-50" />
                 </Link>
               ) : null}
               {params.type ? (
                 <Link
                   href={marketplaceHref(paramsRecord, { type: null })}
-                  className="inline-flex items-center gap-1 rounded-full border border-[var(--color-border)] px-2.5 py-1 text-xs font-medium hover:border-[var(--color-accent)]"
+                  className="inline-flex items-center gap-1 rounded-full bg-white/60 border border-white/70 backdrop-blur-xl px-3 py-1 text-[11px] font-semibold text-stone-700 hover:border-orange-300 hover:text-orange-600 transition-all shadow-sm"
                 >
-                  {typeLabels[params.type] ?? params.type}
-                  <X className="h-3 w-3 opacity-60" />
+                  {typeLabels[params.type] ?? params.type} <X className="h-3 w-3 opacity-50" />
                 </Link>
               ) : null}
               {params.affiliate === "1" ? (
                 <Link
                   href={marketplaceHref(paramsRecord, { affiliate: null })}
-                  className="inline-flex items-center gap-1 rounded-full border border-[var(--color-border)] px-2.5 py-1 text-xs font-medium hover:border-[var(--color-accent)]"
+                  className="inline-flex items-center gap-1 rounded-full bg-white/60 border border-white/70 backdrop-blur-xl px-3 py-1 text-[11px] font-semibold text-stone-700 hover:border-orange-300 hover:text-orange-600 transition-all shadow-sm"
                 >
-                  Affiliate
-                  <X className="h-3 w-3 opacity-60" />
+                  Affiliate <X className="h-3 w-3 opacity-50" />
                 </Link>
               ) : null}
               {params.sort && params.sort !== "trending" ? (
                 <Link
                   href={marketplaceHref(paramsRecord, { sort: null })}
-                  className="inline-flex items-center gap-1 rounded-full border border-[var(--color-border)] px-2.5 py-1 text-xs font-medium hover:border-[var(--color-accent)]"
+                  className="inline-flex items-center gap-1 rounded-full bg-white/60 border border-white/70 backdrop-blur-xl px-3 py-1 text-[11px] font-semibold text-stone-700 hover:border-orange-300 hover:text-orange-600 transition-all shadow-sm"
                 >
-                  Sort: {params.sort.replace(/_/g, " ")}
-                  <X className="h-3 w-3 opacity-60" />
+                  Sort: {params.sort.replace(/_/g, " ")} <X className="h-3 w-3 opacity-50" />
                 </Link>
               ) : null}
-              <Link
-                href="/marketplace"
-                className="text-xs font-semibold text-[var(--color-accent)] hover:underline ml-1"
-              >
+              <Link href="/marketplace" className="text-[11px] font-semibold text-orange-500 hover:text-orange-600 ml-1">
                 Clear all
               </Link>
             </div>
           )}
 
-          <div className="mb-6">
-            <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">
-              {params.q?.trim()
-                ? `Results for “${params.q.trim()}”`
-                : params.cat || params.type
-                  ? "Filtered products"
-                  : "All products"}
-            </h2>
-          </div>
+          {/* Section heading */}
+          <h2 className="text-[14px] font-bold text-stone-700 mb-4">
+            {params.q?.trim()
+              ? `Results for "${params.q.trim()}"`
+              : params.cat || params.type
+              ? "Filtered products"
+              : "All products"}
+          </h2>
 
           <AnimatePresence mode="wait">
             {initialProducts.length > 0 || mixedFeed.length > 0 ? (
-              <div key={JSON.stringify(params)} className="space-y-10">
-                {/* Mobile: 2-col feed; row-based layout only inside store cards (store's products in rows) */}
+              <div key={JSON.stringify(params)} className="space-y-8">
+                {/* Mobile: 2-col grid */}
                 <div className="lg:hidden grid grid-cols-2 gap-3 sm:gap-4 auto-rows-auto items-start">
                   {mixedFeed.map((item, idx) => (
                     <motion.div
@@ -441,41 +506,39 @@ export function MarketplaceClient({
                   ))}
                 </div>
 
-                {/* Desktop: first row, clips section, second row */}
-                <div className="hidden lg:block space-y-10">
+                {/* Desktop: stacked rows */}
+                <div className="hidden lg:block space-y-8">
                   <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className={cn("grid grid-cols-2 sm:grid-cols-2 gap-x-5 gap-y-6", gridCols)}
+                    className={cn("grid grid-cols-2 sm:grid-cols-2 gap-x-5 gap-y-5", gridCols)}
                   >
                     {firstRow.map((p, idx) => (
                       <motion.div
                         key={p.id}
                         layout
-                        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                        initial={{ opacity: 0, scale: 0.96, y: 16 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
-                        transition={{ duration: 0.4, delay: (idx % 8) * 0.05, ease: [0.23, 1, 0.32, 1] }}
+                        transition={{ duration: 0.35, delay: (idx % 8) * 0.04, ease: [0.23, 1, 0.32, 1] }}
                       >
                         <ProductCardClient p={p} initialInCart={cartSet.has(p.id)} />
                       </motion.div>
                     ))}
                   </motion.div>
 
-
-
                   {secondRow.length > 0 && (
                     <motion.div
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
-                      className={cn("grid grid-cols-2 sm:grid-cols-2 gap-x-5 gap-y-6", gridCols)}
+                      className={cn("grid grid-cols-2 sm:grid-cols-2 gap-x-5 gap-y-5", gridCols)}
                     >
                       {secondRow.map((p, idx) => (
                         <motion.div
                           key={p.id}
                           layout
-                          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                          initial={{ opacity: 0, scale: 0.96, y: 16 }}
                           animate={{ opacity: 1, scale: 1, y: 0 }}
-                          transition={{ duration: 0.4, delay: (idx % 8) * 0.05, ease: [0.23, 1, 0.32, 1] }}
+                          transition={{ duration: 0.35, delay: (idx % 8) * 0.04, ease: [0.23, 1, 0.32, 1] }}
                         >
                           <ProductCardClient p={p} initialInCart={cartSet.has(p.id)} />
                         </motion.div>
@@ -485,34 +548,51 @@ export function MarketplaceClient({
                 </div>
               </div>
             ) : (
+              /* Empty state */
               <motion.div
                 initial={{ opacity: 0, scale: 0.98 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl p-12 sm:p-16 text-center"
+                className="relative overflow-hidden rounded-[28px] bg-white/50 border border-white/70 backdrop-blur-2xl shadow-[0_4px_24px_rgba(0,0,0,0.05)] p-12 sm:p-16 text-center"
               >
-                <div className="h-16 w-16 bg-[var(--color-surface-secondary)] rounded-full flex items-center justify-center mx-auto mb-6 border border-[var(--color-border)]">
-                  <Search className="h-7 w-7 text-[var(--color-text-muted)]" />
+                <div className="pointer-events-none absolute -top-1/2 -left-1/4 w-3/4 h-3/4 bg-gradient-to-br from-white/60 to-transparent rotate-[-20deg]" />
+                <div className="relative z-10">
+                  <div
+                    className="h-16 w-16 rounded-[20px] flex items-center justify-center mx-auto mb-5"
+                    style={{
+                      background: "rgba(251,146,60,0.08)",
+                      border: "1px solid rgba(251,146,60,0.15)",
+                    }}
+                  >
+                    <Search className="h-7 w-7 text-orange-400" />
+                  </div>
+                  <h3 className="text-[18px] font-bold text-stone-800 mb-2">No products match</h3>
+                  <p className="text-[13px] text-stone-500 mb-8 max-w-sm mx-auto leading-relaxed">
+                    Try a different search term, clear your filters, or browse all categories.
+                  </p>
+                  <Link href="/marketplace">
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-orange-500/10 backdrop-blur-md border border-orange-500/20 text-orange-600 text-[13px] font-black uppercase tracking-widest shadow-sm hover:bg-orange-500/20 transition-all hover:scale-105 active:scale-95"
+                    >
+                      View all products
+                    </button>
+                  </Link>
                 </div>
-                <h3 className="text-lg font-semibold text-[var(--color-text-primary)] mb-2">No products match</h3>
-                <p className="text-sm text-[var(--color-text-secondary)] mb-8 max-w-sm mx-auto">
-                  Try a different search term, clear filters, or browse all categories.
-                </p>
-                <Link href="/marketplace">
-                  <Button size="lg" className="rounded-xl">
-                    View all products
-                  </Button>
-                </Link>
               </motion.div>
             )}
           </AnimatePresence>
 
+          {/* Pagination */}
           {totalPages > 1 && initialProducts.length > 0 && (
             <div className="flex items-center justify-center gap-2 mt-10 pb-8">
               {currentPage > 1 ? (
                 <Link href={marketplaceHref(paramsRecord, { page: String(currentPage - 1) })}>
-                  <Button variant="secondary" size="sm">
+                  <button
+                    type="button"
+                    className="px-4 py-2 rounded-full bg-white/60 border border-white/70 backdrop-blur-xl text-[12px] font-semibold text-stone-600 shadow-sm hover:bg-white/80 hover:text-orange-600 transition-all"
+                  >
                     Previous
-                  </Button>
+                  </button>
                 </Link>
               ) : null}
               {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
@@ -523,10 +603,10 @@ export function MarketplaceClient({
                     <button
                       type="button"
                       className={cn(
-                        "min-w-[40px] h-10 px-2 rounded-lg text-sm font-medium transition-colors",
+                        "min-w-[40px] h-10 px-3 rounded-full text-[12px] font-black transition-all border backdrop-blur-xl",
                         pg === currentPage
-                          ? "bg-[var(--color-accent)] text-white"
-                          : "bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-[var(--color-text-primary)]",
+                          ? "bg-orange-500/10 border-orange-500/30 text-orange-600 shadow-sm"
+                          : "bg-white/60 border-white/70 text-stone-600 hover:bg-white/80 hover:text-orange-600"
                       )}
                     >
                       {pg}
@@ -536,36 +616,37 @@ export function MarketplaceClient({
               })}
               {currentPage < totalPages ? (
                 <Link href={marketplaceHref(paramsRecord, { page: String(currentPage + 1) })}>
-                  <Button variant="secondary" size="sm">
+                  <button
+                    type="button"
+                    className="px-4 py-2 rounded-full bg-white/60 border border-white/70 backdrop-blur-xl text-[12px] font-semibold text-stone-600 shadow-sm hover:bg-white/80 hover:text-orange-600 transition-all"
+                  >
                     Next
-                  </Button>
+                  </button>
                 </Link>
               ) : null}
             </div>
           )}
         </div>
-
-
       </div>
 
-      {/* Clip modal (mobile grid taps) */}
+      {/* ── Clip modal ── */}
       {modalClip && (
         <>
           <div
-            className="fixed inset-0 z-[1000] overscroll-none bg-ink-darker/80 backdrop-blur-sm animate-in fade-in duration-200"
+            className="fixed inset-0 z-[1000] overscroll-none bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
             onClick={closeModalClip}
             aria-hidden
           />
           <div className="fixed inset-0 z-[1001] flex items-center justify-center p-4 pointer-events-none">
-            <div className="pointer-events-auto w-full max-w-lg flex flex-col gap-0 bg-[#121212] rounded-2xl overflow-hidden shadow-2xl border border-white/10 relative">
+            <div className="pointer-events-auto w-full max-w-lg flex flex-col gap-0 bg-white/10 backdrop-blur-2xl rounded-[28px] overflow-hidden shadow-2xl border border-white/20 relative">
               <button
                 type="button"
                 onClick={closeModalClip}
-                className="absolute top-3 right-3 z-20 w-10 h-10 rounded-full bg-ink-darker/50 flex items-center justify-center text-white hover:bg-ink-darker/70"
+                className="absolute top-3 right-3 z-20 w-9 h-9 rounded-full bg-black/30 backdrop-blur-xl flex items-center justify-center text-white hover:bg-black/50 transition-all"
               >
-                <X className="h-5 w-5" />
+                <X className="h-4 w-4" />
               </button>
-              <div className="aspect-[9/16] max-h-[50vh] relative bg-ink-dark">
+              <div className="aspect-[9/16] max-h-[50vh] relative bg-stone-900">
                 {modalClip.video_url?.includes("youtube.com") || modalClip.video_url?.includes("youtu.be") ? (
                   <iframe
                     src={String(modalClip.video_url).replace("watch?v=", "embed/") + "?autoplay=1&mute=1&loop=1&controls=0"}
@@ -579,33 +660,33 @@ export function MarketplaceClient({
                     style={{
                       backgroundImage: modalClip.thumbnail_url
                         ? `url(${modalClip.thumbnail_url})`
-                        : "linear-gradient(to bottom, var(--color-bg-dark), #431407)",
+                        : "linear-gradient(to bottom, #1c1917, #431407)",
                     }}
                   />
                 )}
-                <div className="absolute inset-0 bg-gradient-to-t from-ink-darker/80 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
                 <div className="absolute bottom-4 left-4 right-12 flex items-center gap-3">
-                  <Avatar className="h-10 w-10 border-2 border-[var(--color-accent)]">
+                  <Avatar className="h-10 w-10 border-2 border-orange-400">
                     <AvatarImage src={(modalClip.vendors as { logo_url?: string; business_logo?: string } | undefined)?.logo_url ?? (modalClip.vendors as { business_logo?: string } | undefined)?.business_logo} />
-                    <AvatarFallback className="bg-[var(--color-accent)] text-white font-black">
+                    <AvatarFallback className="bg-orange-500 text-white font-bold">
                       {modalClip.vendors?.business_name?.[0] ?? "V"}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
-                    <p className="text-white font-black truncate">{modalClip.vendors?.business_name ?? "Creator"}</p>
-                    <p className="text-[11px] text-white/70">{(modalClip.total_views ?? 0).toLocaleString()} views</p>
+                    <p className="text-white font-bold truncate">{modalClip.vendors?.business_name ?? "Creator"}</p>
+                    <p className="text-[11px] text-white/60">{(modalClip.total_views ?? 0).toLocaleString()} views</p>
                   </div>
                   {modalClip.vendors?.id && (
                     <FollowButton
                       vendorId={modalClip.vendors.id}
-                      className="rounded-full h-9 px-4 text-xs font-black bg-[var(--color-accent)] border-0 text-white hover:bg-[var(--color-accent-hover)] shrink-0"
+                      className="rounded-full h-9 px-4 text-xs font-bold bg-orange-500 border-0 text-white hover:bg-orange-400 shrink-0"
                     />
                   )}
                 </div>
               </div>
               {modalClip.products && (
-                <div className="p-4 border-t border-white/10 flex items-center gap-4 bg-ink-darker">
-                  <div className="w-14 h-14 rounded-xl bg-white/10 flex items-center justify-center overflow-hidden shrink-0">
+                <div className="p-4 border-t border-white/10 flex items-center gap-4 bg-white/5 backdrop-blur-xl">
+                  <div className="w-14 h-14 rounded-[16px] bg-white/10 flex items-center justify-center overflow-hidden shrink-0">
                     {Array.isArray(modalClip.products.images) && modalClip.products.images[0] ? (
                       <img src={modalClip.products.images[0]} alt="" className="w-full h-full object-cover" />
                     ) : (
@@ -613,17 +694,20 @@ export function MarketplaceClient({
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-white font-black text-sm truncate">{modalClip.products.name}</p>
+                    <p className="text-white font-bold text-sm truncate">{modalClip.products.name}</p>
                     <LocalizedPrice
                       amount={Number(modalClip.products.price)}
                       currency={(modalClip.products as { currency?: string | null }).currency}
-                      className="text-[var(--color-accent)] font-black"
+                      className="text-orange-400 font-bold"
                     />
                   </div>
                   <Link href={`/marketplace/${(modalClip.products as { slug?: string }).slug ?? ""}?buy=1`} onClick={closeModalClip}>
-                    <Button className="rounded-xl h-10 px-5 bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] font-black text-white text-xs">
-                      Buy Product
-                    </Button>
+                    <button
+                      type="button"
+                      className="px-5 py-2.5 rounded-full bg-orange-500 text-white text-[12px] font-semibold hover:bg-orange-400 transition-all shadow-lg"
+                    >
+                      Buy Now
+                    </button>
                   </Link>
                 </div>
               )}

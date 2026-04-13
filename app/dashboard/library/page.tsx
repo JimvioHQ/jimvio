@@ -1,10 +1,10 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Download, Package, Search, ExternalLink, Video, FileText } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import Link from "next/link";
+import { Download, Package, Search, ExternalLink, Video, FileText, ArrowRight, RefreshCw } from "lucide-react";
+import { GlassCard, GlassPill, GlassAmbientGlow } from "@/components/ui/glass";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
@@ -19,9 +19,6 @@ export default function DigitalLibraryPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Fetch items from orders that have digital assets
-      // In Jimvio, influencers also have a library of clips.
-      // For now, let's fetch 'order_items' where product might have a digital_file_url
       const { data } = await supabase
         .from("order_items")
         .select(`
@@ -29,7 +26,7 @@ export default function DigitalLibraryPage() {
           orders!inner ( status, buyer_id )
         `)
         .eq("orders.buyer_id", user.id)
-        .eq("orders.status", "delivered"); // Only show for delivered/paid orders
+        .eq("orders.status", "delivered");
 
       setItems(data ?? []);
       setLoading(false);
@@ -41,75 +38,106 @@ export default function DigitalLibraryPage() {
     i.product_name?.toLowerCase().includes(search.toLowerCase())
   );
 
-  return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-bold text-[var(--color-text-primary)]">Digital Library</h1>
-          <p className="text-sm text-[var(--color-text-muted)] mt-0.5">Access your purchased clips, templates, and digital assets</p>
-        </div>
-        <div className="relative w-full md:w-72">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--color-text-muted)]" />
-          <input
-            placeholder="Search assets..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full h-10 pl-9 pr-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent)]/20 transition-all"
-          />
-        </div>
-      </div>
+  if (loading && items.length === 0) {
+    return (
+       <div className="min-h-screen flex flex-col items-center justify-center space-y-12 animate-in fade-in duration-700" style={{ background: "#f8f7f5" }}>
+         <div className="relative">
+           <div className="absolute inset-0 bg-orange-400/20 blur-3xl rounded-full scale-150 animate-pulse" />
+           <div className="relative w-24 h-24 rounded-[32px] bg-white border border-white shadow-2xl flex items-center justify-center overflow-hidden">
+             <div className="absolute inset-0 border-2 border-t-orange-500 border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin m-2" />
+             <Video className="h-10 w-10 text-stone-900" />
+           </div>
+         </div>
+         <div className="text-center space-y-3">
+            <h2 className="text-[14px] font-black text-stone-900 uppercase tracking-[0.4em] pl-[0.4em]">Digital Library</h2>
+            <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest pl-[0.1em]">Syncing Purchased Assets</p>
+         </div>
+       </div>
+    );
+  }
 
-      {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[1,2,3].map(i => <div key={i} className="h-64 rounded-2xl bg-[var(--color-surface-secondary)] animate-pulse" />)}
+  return (
+    <div className="min-h-screen pb-24 relative overflow-hidden" style={{ background: "#f8f7f5" }}>
+      <GlassAmbientGlow color="orange" position="top-right" />
+      <GlassAmbientGlow color="indigo" position="bottom-left" />
+
+      <div className="max-w-[1400px] mx-auto space-y-12 px-6 pt-12 relative z-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+        
+        {/* Header Section */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
+           <div className="space-y-2">
+              <h1 className="text-4xl font-black text-stone-900 tracking-tighter flex items-center gap-4">
+                 <div className="p-2.5 rounded-[20px] bg-white border border-white shadow-2xl shrink-0">
+                    <Video className="h-8 w-8 text-orange-500" />
+                 </div>
+                 Digital Library
+              </h1>
+              <p className="text-[11px] font-bold text-stone-400 uppercase tracking-[0.3em] pl-16">
+                 Access your purchased viral clips and digital assets
+              </p>
+           </div>
+           
+           <div className="relative w-full md:w-80">
+              <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-300 pointer-events-none" />
+              <input
+                 placeholder="Search your library..."
+                 value={search}
+                 onChange={(e) => setSearch(e.target.value)}
+                 className="w-full h-14 pl-12 pr-6 rounded-2xl bg-white border border-white text-[13px] font-bold text-stone-900 placeholder:text-stone-300 shadow-xl focus:outline-none focus:bg-white transition-all"
+              />
+           </div>
         </div>
-      ) : filtered.length === 0 ? (
-        <div className="text-center py-20 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-3xl">
-          <div className="w-16 h-16 bg-[var(--color-surface-secondary)] rounded-full flex items-center justify-center mx-auto mb-4">
-            <Video className="h-8 w-8 text-[var(--color-text-muted)]" />
-          </div>
-          <h3 className="text-lg font-bold text-[var(--color-text-primary)]">Your library is empty</h3>
-          <p className="text-[var(--color-text-muted)] max-w-xs mx-auto mt-2 text-sm leading-relaxed">
-            Digital purchases like viral clips, course materials, and templates will appear here once your order is confirmed.
-          </p>
-          <Button asChild className="mt-6 rounded-xl px-8" variant="default">
-            <a href="/dashboard/marketplace">Browse Digital Assets</a>
-          </Button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filtered.map((item) => (
-            <Card key={item.id} className="overflow-hidden border border-[var(--color-border)] hover:shadow-xl transition-all group rounded-2xl">
-              <div className="aspect-video relative bg-[var(--color-surface-secondary)]">
-                {item.product_image ? (
-                  <img src={item.product_image} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center"><Package className="h-10 w-10 text-[var(--color-border)]" /></div>
-                )}
-                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                   <Button size="sm" variant="secondary" className="rounded-full h-9 w-9 p-0"><Download className="h-4 w-4" /></Button>
-                   <Button size="sm" variant="secondary" className="rounded-full h-9 w-9 p-0"><ExternalLink className="h-4 w-4" /></Button>
-                </div>
-                <Badge className="absolute top-2 right-2 bg-black/60 backdrop-blur-md border-white/10 text-[10px] font-black uppercase tracking-widest">Digital</Badge>
+
+        {filtered.length === 0 ? (
+           <GlassCard className="p-24 text-center rounded-[56px] border-white bg-white/20">
+              <div className="w-24 h-24 bg-white rounded-[32px] flex items-center justify-center mx-auto mb-8 border border-white shadow-xl">
+                 <Video className="h-10 w-10 text-stone-100" />
               </div>
-              <CardContent className="p-4">
-                <h4 className="font-bold text-[var(--color-text-primary)] truncate">{item.product_name}</h4>
-                <div className="flex items-center gap-2 mt-2">
-                  <Badge variant="outline" className="text-[9px] uppercase font-black text-[var(--color-text-muted)]">
-                     <FileText className="h-3 w-3 mr-1" /> MP4 / Asset
-                  </Badge>
-                  <span className="text-[10px] text-[var(--color-text-muted)] font-medium">Added {new Date(item.created_at).toLocaleDateString()}</span>
-                </div>
-              </CardContent>
-              <CardFooter className="p-4 pt-0">
-                <Button className="w-full justify-center gap-2 rounded-xl text-xs font-black uppercase tracking-widest h-10 shadow-lg hover:shadow-accent/20" variant="default">
-                   <Download className="h-4 w-4" /> Download Files
-                </Button>
-              </CardFooter>
-            </Card>
-          ))}
-        </div>
-      )}
+              <h2 className="text-3xl font-black text-stone-900 tracking-tighter uppercase">Library is Empty</h2>
+              <p className="text-[11px] font-bold text-stone-400 uppercase tracking-widest mt-4 max-w-sm mx-auto leading-relaxed">
+                 Digital purchases like viral clips, course materials, and templates will appear here after delivery.
+              </p>
+              <Button asChild className="h-16 px-12 rounded-3xl bg-stone-900 text-white font-black text-[11px] uppercase tracking-widest shadow-2xl mt-10 hover:bg-black transition-all border-none">
+                 <Link href="/marketplace">Explore Marketplace</Link>
+              </Button>
+           </GlassCard>
+        ) : (
+           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+              {filtered.map((item) => (
+                <GlassCard key={item.id} className="overflow-hidden p-0 rounded-[40px] border-white bg-white/60 hover:shadow-2xl hover:bg-white transition-all duration-500 group">
+                  <div className="aspect-[4/3] relative bg-stone-100">
+                    {item.product_image ? (
+                      <img src={item.product_image} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center"><Package className="h-10 w-10 text-stone-200" /></div>
+                    )}
+                    <div className="absolute inset-0 bg-stone-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3 backdrop-blur-[2px]">
+                       <Button size="icon" className="rounded-2xl h-14 w-14 bg-white text-stone-900 hover:bg-white border-0 shadow-2xl hover:scale-110 transition-all"><Download className="h-6 w-6" /></Button>
+                       <Button size="icon" className="rounded-2xl h-14 w-14 bg-white text-stone-900 hover:bg-white border-0 shadow-2xl hover:scale-110 transition-all"><ExternalLink className="h-6 w-6" /></Button>
+                    </div>
+                    <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-xl px-4 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-[0.2em] text-stone-900 shadow-xl border border-white/20">
+                        Asset Node
+                    </div>
+                  </div>
+                  <div className="p-8">
+                    <h4 className="font-black text-xl text-stone-900 truncate tracking-tighter mb-4">{item.product_name}</h4>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-stone-400 bg-stone-50 px-3 py-1.5 rounded-lg">
+                         <FileText className="h-3.5 w-3.5" /> MP4 Archive
+                      </div>
+                      <span className="text-[10px] font-bold text-stone-300 uppercase tracking-widest">{new Date(item.created_at).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                  <div className="p-8 pt-0">
+                    <Button className="w-full justify-center gap-3 rounded-2xl text-[11px] font-black uppercase tracking-widest h-14 bg-stone-900 text-white shadow-xl hover:bg-black active:scale-95 transition-all border-none">
+                       <Download className="h-4 w-4" /> Download Files
+                    </Button>
+                  </div>
+                </GlassCard>
+              ))}
+           </div>
+        )}
+      </div>
     </div>
   );
 }

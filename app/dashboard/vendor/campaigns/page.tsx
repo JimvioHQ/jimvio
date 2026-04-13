@@ -1,28 +1,29 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import Link from 'next/link';
-import type { UGCCampaign } from '@/types/ugc';
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import type { UGCCampaign } from "@/types/ugc";
 import { 
   Plus, Eye, Target, Video, Wallet, ArrowRight,
   TrendingUp, CircleDollarSign, BarChart3, AlertCircle, Trash2,
-  Loader2, Megaphone
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
+  Loader2, Megaphone, RefreshCw
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { GlassCard, GlassPill, GlassAmbientGlow } from "@/components/ui/glass";
 import { toast } from "sonner";
-import { useCurrency } from '@/context/CurrencyContext';
+import { useCurrency } from "@/context/CurrencyContext";
 
-const STATUS_STYLES: Record<string, { bg: string, text: string, border: string, dot: string }> = {
-  active:    { bg: 'bg-emerald-500/10', text: 'text-emerald-600 dark:text-emerald-400', border: 'border-emerald-500/20', dot: 'bg-emerald-500' },
-  draft:     { bg: 'bg-zinc-500/10',    text: 'text-zinc-600 dark:text-zinc-400',       border: 'border-zinc-500/20',    dot: 'bg-zinc-400' },
-  paused:    { bg: 'bg-amber-500/10',   text: 'text-amber-600 dark:text-amber-400',     border: 'border-amber-500/20',   dot: 'bg-amber-500' },
-  completed: { bg: 'bg-blue-500/10',    text: 'text-blue-600 dark:text-blue-400',       border: 'border-blue-500/20',    dot: 'bg-blue-500' },
-  cancelled: { bg: 'bg-red-500/10',     text: 'text-red-600 dark:text-red-400',         border: 'border-red-500/20',     dot: 'bg-red-500' },
+const STATUS_STYLES: Record<string, { color: "emerald" | "orange" | "rose" | "indigo" | "amber" }> = {
+  active:    { color: "emerald" },
+  draft:     { color: "indigo" },
+  paused:    { color: "orange" },
+  completed: { color: "emerald" },
+  cancelled: { color: "rose" },
 };
 
 function formatCompactNumber(number: number) {
-  return Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 }).format(number);
+  return Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 }).format(number);
 }
 
 export default function BrandCampaignsPage() {
@@ -31,45 +32,16 @@ export default function BrandCampaignsPage() {
   const [loading, setLoading] = useState(true);
   const [fundingId, setFundingId] = useState<string | null>(null);
 
-  async function handleFundCampaign(id: string) {
-    if (!confirm("Are you sure you want to deposit the campaign budget into Jimvio Escrow via MoMo to activate this campaign?")) return;
-    setFundingId(id);
-    
-    try {
-      const depRes = await fetch(`/api/ugc/campaigns/${id}/deposit`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: '250781234567' })
-      });
-      const depJson = await depRes.json();
-      if (!depRes.ok) throw new Error(depJson.error || 'Failed to deposit');
-
-      const actRes = await fetch(`/api/ugc/campaigns/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'active' })
-      });
-      if (!actRes.ok) throw new Error('Failed to activate campaign');
-      
-      toast.success("Campaign successfully funded and activated!");
-      window.location.reload();
-    } catch (e: any) {
-      toast.error("Error: " + e.message);
-    } finally {
-      setFundingId(null);
-    }
-  }
-
   async function handleDeleteCampaign(id: string) {
-    if (!confirm("Are you sure you want to delete this campaign? This action cannot be undone.")) return;
+    if (!confirm("Are you sure you want to delete this mission? This action cannot be undone.")) return;
     try {
-      const res = await fetch(`/api/ugc/campaigns/${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/ugc/campaigns/${id}`, { method: "DELETE" });
       if (res.ok) {
         setCampaigns(prev => prev.filter(c => c.id !== id));
-        toast.success("Campaign archived");
+        toast.success("Mission archived");
       } else {
         const json = await res.json();
-        toast.error("Error: " + (json.error || 'Failed to delete campaign'));
+        toast.error("Error: " + (json.error || "Failed to delete mission"));
       }
     } catch (e: any) {
       toast.error("Error: " + e.message);
@@ -77,7 +49,7 @@ export default function BrandCampaignsPage() {
   }
 
   useEffect(() => {
-    fetch('/api/ugc/campaigns?status=all&limit=50&mine=true')
+    fetch("/api/ugc/campaigns?status=all&limit=50&mine=true")
       .then((r) => r.json())
       .then((j) => setCampaigns(j.data ?? []))
       .finally(() => setLoading(false));
@@ -88,129 +60,174 @@ export default function BrandCampaignsPage() {
   const totalViews  = campaigns.reduce((s, c) => s + (c.total_views_tracked ?? 0), 0);
 
   if (loading) return (
-    <div className="flex flex-col items-center justify-center min-h-[40vh] space-y-4">
-      <Loader2 className="h-8 w-8 text-[var(--color-accent)] animate-spin" />
-      <p className="text-xs font-black uppercase tracking-widest text-zinc-400">Loading Missions...</p>
-    </div>
+     <div className="min-h-screen flex flex-col items-center justify-center space-y-12 animate-in fade-in duration-700" style={{ background: "#f8f7f5" }}>
+       <div className="relative">
+         <div className="absolute inset-0 bg-orange-400/20 blur-3xl rounded-full scale-150 animate-pulse" />
+         <div className="relative w-24 h-24 rounded-[32px] bg-white border border-white shadow-2xl flex items-center justify-center overflow-hidden">
+           <div className="absolute inset-0 border-2 border-t-orange-500 border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin m-2" />
+           <Target className="h-10 w-10 text-stone-900" />
+         </div>
+       </div>
+       <div className="text-center space-y-3">
+          <h2 className="text-[14px] font-black text-stone-900 uppercase tracking-[0.4em] pl-[0.4em]">Mission Hub</h2>
+          <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest pl-[0.1em]">Reconciling Campaign Metrics</p>
+       </div>
+     </div>
   );
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8 animate-in slide-in-from-bottom-2 duration-500 fade-in pb-20">
-      
-      {/* ── HEADER ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 pt-4 px-2">
-         <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-zinc-950 flex items-center justify-center shadow-xl">
-               <Target className="h-6 w-6 text-white" />
-            </div>
-            <div>
-               <h1 className="text-2xl font-black text-zinc-900 tracking-tight flex items-center gap-2">
-                  Content Missions
-                  <span className="text-zinc-300 font-bold">{campaigns.length}</span>
-               </h1>
-               <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Growth Center</p>
-            </div>
-         </div>
+    <div className="min-h-screen pb-24 relative overflow-hidden" style={{ background: "#f8f7f5" }}>
+      <GlassAmbientGlow color="orange" position="top-right" />
+      <GlassAmbientGlow color="orange" position="bottom-left" />
 
-         <Link href="/dashboard/vendor/campaigns/new">
-            <Button className="h-11 px-6 rounded-xl bg-zinc-900 text-white hover:bg-black font-black text-xs uppercase tracking-widest shadow-xl active:scale-95 transition-all">
-               <Plus className="h-4 w-4 mr-2" /> Launch Mission
-            </Button>
-         </Link>
+      <div className="max-w-6xl mx-auto space-y-12 px-6 pt-12 relative z-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+        
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
+           <div className="space-y-2">
+              <h1 className="text-4xl font-black text-stone-900 tracking-tighter flex items-center gap-4">
+                 <div className="p-2.5 rounded-[20px] bg-white border border-white shadow-2xl shrink-0">
+                    <Target className="h-8 w-8 text-orange-500" />
+                 </div>
+                 Mission Hub
+              </h1>
+              <p className="text-[11px] font-bold text-stone-400 uppercase tracking-[0.3em] pl-16">
+                 Track and manage your growth campaigns
+              </p>
+           </div>
+           
+           <div className="flex items-center gap-3">
+              <Button asChild className="h-14 px-8 rounded-full bg-stone-900 text-white shadow-2xl font-black text-[11px] uppercase tracking-widest active:scale-95 transition-all hover:bg-black border-none">
+                 <Link href="/dashboard/vendor/campaigns/new">
+                    <Plus className="h-4 w-4 mr-3" /> Launch Mission
+                 </Link>
+              </Button>
+           </div>
+        </div>
+
+        {/* Stats Row */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+           <GlassCard className="p-8 flex flex-col justify-between rounded-[40px] bg-white/60 border-white shadow-xl group">
+              <div className="w-14 h-14 rounded-[22px] bg-sky-50 border border-sky-100 flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-700">
+                 <Video className="h-7 w-7 text-sky-500" />
+              </div>
+              <div>
+                 <p className="text-3xl font-black text-stone-900 tracking-tighter leading-none tabular-nums">{campaigns.filter(c => c.status === "active").length}</p>
+                 <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mt-3">Active Missions</p>
+              </div>
+           </GlassCard>
+           <GlassCard className="p-8 flex flex-col justify-between rounded-[40px] bg-white/60 border-white shadow-xl group">
+              <div className="w-14 h-14 rounded-[22px] bg-emerald-50 border border-emerald-100 flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-700">
+                 <CircleDollarSign className="h-7 w-7 text-emerald-500" />
+              </div>
+              <div>
+                 <p className="text-3xl font-black text-emerald-600 tracking-tighter leading-none tabular-nums">{formatMoney(totalSpent, "USD")}</p>
+                 <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mt-3">Total Spend</p>
+              </div>
+           </GlassCard>
+           <GlassCard className="p-8 flex flex-col justify-between rounded-[40px] bg-white/60 border-white shadow-xl group">
+              <div className="w-14 h-14 rounded-[22px] bg-amber-50 border border-amber-100 flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-700">
+                 <Eye className="h-7 w-7 text-amber-500" />
+              </div>
+              <div>
+                 <p className="text-3xl font-black text-stone-900 tracking-tighter leading-none tabular-nums">{formatCompactNumber(totalViews)}</p>
+                 <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mt-3">Verified Outreach</p>
+              </div>
+           </GlassCard>
+        </div>
+
+        {/* Mission List */}
+        <div className="space-y-6">
+           <div className="flex items-center justify-between px-2">
+              <h2 className="text-[11px] font-bold uppercase tracking-[0.3em] text-stone-400">Campaign Registry</h2>
+              <div className="flex items-center gap-2 text-[10px] font-bold text-stone-300 uppercase tracking-widest">
+                 <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                 Platform Sync Active
+              </div>
+           </div>
+           
+           {campaigns.length === 0 ? (
+              <GlassCard className="p-24 text-center rounded-[56px] border-white bg-white/20">
+                 <div className="w-24 h-24 bg-white rounded-[32px] flex items-center justify-center mx-auto mb-8 border border-white shadow-xl">
+                    <Megaphone className="h-10 w-10 text-stone-100" />
+                 </div>
+                 <h2 className="text-3xl font-black text-stone-900 tracking-tighter">No Missions Found</h2>
+                 <p className="text-[11px] font-black text-stone-400 uppercase tracking-widest mt-4 max-w-xs mx-auto leading-relaxed">
+                    Start your growth journey by launching your first content mission.
+                 </p>
+                 <Button asChild className="h-16 px-12 rounded-3xl bg-stone-900 text-white font-black text-[11px] uppercase tracking-widest shadow-2xl mt-10 hover:bg-black transition-all border-none">
+                    <Link href="/dashboard/vendor/campaigns/new">Launch First Mission</Link>
+                 </Button>
+              </GlassCard>
+           ) : (
+              <div className="grid grid-cols-1 gap-4">
+                 {campaigns.map((c) => {
+                   const sStyle = STATUS_STYLES[c.status] || { color: "indigo" };
+                   const spendPct = Math.min(100, ((c.spent_budget ?? 0) / (c.total_budget || 1)) * 100);
+                   const pendingReviews = (c.submission_count ?? 0) - (c.approved_count ?? 0);
+
+                    return (
+                      <GlassCard key={c.id} className="group bg-white/60 border-white hover:bg-white rounded-[40px] p-6 pr-10 flex flex-col lg:flex-row lg:items-center gap-8 transition-all duration-500 shadow-sm hover:shadow-xl">
+                         
+                         {/* Identity */}
+                         <div className="flex-1 min-w-0 flex items-center gap-6 border-stone-50 lg:border-r lg:pr-8">
+                            <div className="w-16 h-16 rounded-[22px] bg-stone-50 border border-stone-100 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-700">
+                               <Video className="h-6 w-6 text-stone-300" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                               <div className="flex flex-wrap items-center gap-2 mb-2">
+                                  <GlassPill color={sStyle.color} className="text-[8px] font-black uppercase tracking-widest px-3 py-1 border-none bg-stone-900/5 shadow-none">{c.status}</GlassPill>
+                                  <span className="text-[8px] font-black uppercase tracking-widest text-stone-400 bg-stone-50 px-3 py-1 rounded-full border border-stone-100">{c.campaign_type}</span>
+                               </div>
+                               <h3 className="text-xl font-black text-stone-900 tracking-tighter truncate leading-none">{c.title}</h3>
+                               <p className="text-[10px] font-bold text-stone-300 uppercase tracking-widest mt-2">Started {new Date(c.created_at).toLocaleDateString()}</p>
+                            </div>
+                         </div>
+
+                         {/* Progress Card */}
+                         <div className="w-full lg:w-56 shrink-0 flex flex-col justify-center gap-3">
+                            <div className="flex justify-between items-end">
+                               <span className="text-[10px] font-bold uppercase tracking-widest text-stone-400">Budget Usage</span>
+                               <span className="text-[11px] font-black text-stone-900 tabular-nums">{spendPct.toFixed(1)}%</span>
+                            </div>
+                            <div className="h-2 w-full bg-stone-50 rounded-full overflow-hidden border border-stone-100 p-0.5">
+                               <div className={cn("h-full rounded-full transition-all duration-1000", spendPct > 85 ? "bg-orange-500" : "bg-emerald-500")} style={{ width: `${spendPct}%` }} />
+                            </div>
+                         </div>
+
+                         {/* Actions Indicator */}
+                         <div className="flex items-center gap-4">
+                            <Link href={c.status === "draft" ? `/dashboard/vendor/campaigns/${c.id}` : `/dashboard/vendor/campaigns/${c.id}/submissions`} className="shrink-0 flex-1 lg:flex-none">
+                               <div className={cn(
+                                  "h-14 px-8 rounded-2xl border flex items-center gap-4 transition-all hover:shadow-xl relative",
+                                  pendingReviews > 0 
+                                     ? "bg-stone-900 text-white border-stone-900 shadow-stone-900/20" 
+                                     : "bg-white border-white text-stone-600 hover:border-stone-100 shadow-sm"
+                               )}>
+                                  <span className="text-[11px] font-black uppercase tracking-widest">{c.status === "draft" ? "Finalize" : "Manage"}</span>
+                                  <ArrowRight className="h-4 w-4 opacity-50" />
+                                  {pendingReviews > 0 && (
+                                     <span className="absolute -top-3 -right-3 h-7 w-7 rounded-2xl bg-orange-500 text-white text-[10px] flex items-center justify-center font-black ring-4 ring-white shadow-lg animate-bounce">
+                                        {pendingReviews}
+                                     </span>
+                                  )}
+                               </div>
+                            </Link>
+
+                            {/* Archival */}
+                            <button onClick={() => handleDeleteCampaign(c.id)} className="w-12 h-12 rounded-2xl flex items-center justify-center text-stone-300 hover:text-rose-500 hover:bg-rose-50 transition-all opacity-0 group-hover:opacity-100 border border-transparent hover:border-rose-100 shadow-sm hover:shadow-lg">
+                               <Trash2 className="h-5 w-5" />
+                            </button>
+                         </div>
+
+                      </GlassCard>
+                    );
+                 })}
+              </div>
+           )}
+        </div>
+
       </div>
-
-      {/* ── STATS CARDS ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-         {[
-           { label: "Active Deployments", value: campaigns.filter(c => c.status === 'active').length, icon: Video, color: "text-blue-500", bg: "bg-blue-50" },
-           { label: "Budget Burned", value: formatMoney(totalSpent, "USD"), icon: CircleDollarSign, color: "text-emerald-500", bg: "bg-emerald-50" },
-           { label: "Verified Outreach", value: formatCompactNumber(totalViews), icon: Eye, color: "text-amber-500", bg: "bg-amber-50" },
-         ].map((stat, i) => (
-            <div key={i} className="bg-white border border-zinc-100 p-5 rounded-[28px] shadow-sm flex items-center gap-4 relative group overflow-hidden">
-               <div className={cn("absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity", stat.bg)} />
-               <div className={cn("relative w-10 h-10 rounded-xl flex items-center justify-center shrink-0", stat.bg, stat.color)}>
-                  <stat.icon className="h-5 w-5" />
-               </div>
-               <div className="relative">
-                  <p className="text-xl font-black text-zinc-900">{stat.value}</p>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">{stat.label}</p>
-               </div>
-            </div>
-         ))}
-      </div>
-
-      {/* ── MISSION LIST ── */}
-      <div className="space-y-4">
-         <h2 className="text-xs font-black uppercase tracking-[0.2em] text-zinc-400 px-2">Active Registry</h2>
-         
-         {campaigns.length === 0 ? (
-            <div className="py-20 text-center rounded-[32px] bg-zinc-50 border border-zinc-100 border-dashed">
-               <Megaphone className="h-10 w-10 text-zinc-300 mx-auto mb-4" />
-               <p className="text-sm font-bold text-zinc-500">No missions found. Start your first campaign.</p>
-            </div>
-         ) : (
-            <div className="grid grid-cols-1 gap-3">
-               {campaigns.map((c) => {
-                 const sStyle = STATUS_STYLES[c.status] || STATUS_STYLES.draft;
-                 const spendPct = Math.min(100, ((c.spent_budget ?? 0) / (c.total_budget || 1)) * 100);
-                 const pendingReviews = (c.submission_count ?? 0) - (c.approved_count ?? 0);
-
-                  return (
-                    <div key={c.id} className="group bg-white border border-zinc-100 hover:border-zinc-300 rounded-[28px] p-4 pr-6 flex flex-col md:flex-row md:items-center gap-6 transition-all shadow-sm hover:shadow-md">
-                       
-                       {/* Identity */}
-                       <div className="flex-1 min-w-0 flex items-center gap-4 border-r border-zinc-100 md:pr-6">
-                          <div className="w-12 h-12 rounded-2xl bg-zinc-50 border border-zinc-100 flex items-center justify-center shrink-0">
-                             <Video className="h-5 w-5 text-zinc-400" />
-                          </div>
-                          <div className="min-w-0">
-                             <div className="flex items-center gap-2 mb-1">
-                                <span className={cn("text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md border", sStyle.bg, sStyle.text, sStyle.border)}>{c.status}</span>
-                                <span className="text-[8px] font-black uppercase tracking-widest text-zinc-400 bg-zinc-50 px-2 py-0.5 rounded-md border border-zinc-100">{c.campaign_type}</span>
-                             </div>
-                             <h3 className="text-base font-black text-zinc-900 truncate">{c.title}</h3>
-                             <p className="text-[10px] font-bold text-zinc-300 uppercase tracking-widest mt-0.5">Launched {new Date(c.created_at).toLocaleDateString()}</p>
-                          </div>
-                       </div>
-
-                       {/* Progress Card */}
-                       <div className="w-full md:w-48 shrink-0 flex flex-col justify-center gap-2">
-                          <div className="flex justify-between items-end">
-                             <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Escrow Sync</span>
-                             <span className="text-xs font-black text-zinc-900">{formatCompactNumber(spendPct)}%</span>
-                          </div>
-                          <div className="h-1.5 w-full bg-zinc-50 rounded-full overflow-hidden border border-zinc-100">
-                             <div className={cn("h-full transition-all", spendPct > 85 ? "bg-amber-500" : "bg-zinc-900")} style={{ width: `${spendPct}%` }} />
-                          </div>
-                       </div>
-
-                       {/* Review Indicator */}
-                       <Link href={c.status === 'draft' ? `/dashboard/vendor/campaigns/${c.id}` : `/dashboard/vendor/campaigns/${c.id}/submissions`} className="shrink-0">
-                          <div className={cn(
-                             "h-10 px-5 rounded-xl border flex items-center gap-3 transition-all cursor-pointer relative",
-                             pendingReviews > 0 ? "bg-red-50 border-red-100 text-red-600" : "bg-white border-zinc-100 text-zinc-600 hover:border-zinc-300"
-                          )}>
-                             <span className="text-[10px] font-black uppercase tracking-widest">{c.status === 'draft' ? 'Finalize' : 'Review'}</span>
-                             <ArrowRight className="h-3.5 w-3.5 opacity-50" />
-                             {pendingReviews > 0 && <span className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-red-600 text-white text-[8px] flex items-center justify-center font-black ring-4 ring-white">{pendingReviews}</span>}
-                          </div>
-                       </Link>
-
-                       {/* Archival */}
-                       <button onClick={() => handleDeleteCampaign(c.id)} className="w-8 h-8 rounded-full flex items-center justify-center text-zinc-300 hover:text-red-500 hover:bg-red-50 transition-all opacity-0 group-hover:opacity-100">
-                          <Trash2 className="h-4 w-4" />
-                       </button>
-
-                    </div>
-                  );
-               })}
-            </div>
-         )}
-      </div>
-
     </div>
   );
 }
-
-
-

@@ -4,8 +4,11 @@ import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   ShoppingCart, Package, DollarSign, Globe, Plus, Video, ArrowRight,
-  Truck, Wallet, Heart, Zap, CheckCircle, ArrowUpRight, Sparkles, Activity,
-  History as HistoryIcon, Link2, Users, ChevronRight,
+  Truck, Wallet, Heart, Zap, Sparkles, Activity,
+  Link2, Users, ChevronRight, MessageSquare, Store,
+  Target, Globe2, Radio, Camera,
+  Users2, LayoutGrid, Settings, Search, Box, TrendingUp, LayoutDashboard,
+  Eye, EyeOff, ArrowUpRight,
 } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -15,6 +18,7 @@ import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { useCurrency } from "@/context/CurrencyContext";
 import { useUserStore } from "@/lib/store/use-user-store";
+import { GlassAmbientGlow } from "@/components/ui/glass";
 
 /* ─── Types ─── */
 interface DashStats {
@@ -24,153 +28,84 @@ interface DashStats {
   missionsJoined: number; mySubmissions: number;
   communitiesJoined: number; communitiesCreated: number;
 }
-interface RecentOrder {
-  id: string; order_number: string; status: string;
-  total_amount: number; currency: string; created_at: string;
-}
 
-/* ─── Glass primitives ─── */
+/* ═══════════════════════════════════════════════
+   REUSABLE COMPONENTS
+   ═══════════════════════════════════════════════ */
 
-/** Frosted glass card with liquid-glass shimmer */
-function GlassCard({
-  children, className, dark = false, href,
-}: {
-  children: React.ReactNode; className?: string; dark?: boolean; href?: string;
-}) {
-  const base = cn(
-    "relative overflow-hidden rounded-[28px] border transition-all duration-300",
-    dark
-      ? "bg-[#0a0806]/80 border-white/8 shadow-[0_8px_32px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.06)]"
-      : "bg-white/55 border-white/70 shadow-[0_4px_24px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,0.9)]",
-    "backdrop-blur-2xl",
-    className
-  );
-  // Specular shine overlay
-  const shine = (
-    <div className="pointer-events-none absolute inset-0 rounded-[28px] overflow-hidden">
-      <div className={cn(
-        "absolute -top-1/2 -left-1/2 w-full h-3/4 rotate-[-25deg]",
-        dark
-          ? "bg-gradient-to-br from-white/[0.04] to-transparent"
-          : "bg-gradient-to-br from-white/80 to-transparent"
-      )} />
-      <div className={cn(
-        "absolute bottom-0 right-0 w-1/2 h-1/2 rounded-full blur-2xl",
-        dark ? "bg-orange-500/5" : "bg-orange-100/40"
-      )} />
-    </div>
-  );
-
-  if (href) {
-    return (
-      <Link href={href} className={cn(base, "block group active:scale-[0.985]")}>
-        {shine}{children}
-      </Link>
-    );
-  }
-  return <div className={base}>{shine}{children}</div>;
-}
-
-/** Pill / chip in liquid glass style */
-function GlassPill({
-  children, color = "neutral",
-}: {
-  children: React.ReactNode;
-  color?: "neutral" | "orange" | "sky" | "emerald" | "indigo" | "amber" | "rose";
-}) {
-  const colors = {
-    neutral: "bg-white/40 border-white/60 text-stone-600",
-    orange: "bg-orange-50/60 border-orange-200/60 text-orange-700",
-    sky: "bg-sky-50/60 border-sky-200/60 text-sky-700",
-    emerald: "bg-emerald-50/60 border-emerald-200/60 text-emerald-700",
-    indigo: "bg-indigo-50/60 border-indigo-200/60 text-indigo-700",
-    amber: "bg-amber-50/60 border-amber-200/60 text-amber-700",
-    rose: "bg-rose-50/60 border-rose-200/60 text-rose-700",
-  };
-  return (
-    <span className={cn(
-      "inline-flex items-center gap-1.5 px-3 py-1 rounded-full border backdrop-blur-xl text-[11px] font-semibold shadow-sm",
-      colors[color]
-    )}>
-      {children}
-    </span>
-  );
-}
-
-/** Liquid stat bubble */
-function LiquidStat({
-  value, label, icon, gradient,
-}: {
-  value: string | number; label: string; icon: React.ReactNode; gradient: string;
+/** iOS 17 Stat Card */
+function StatCard({ value, label, icon, color }: {
+  value: string | number; label: string; icon: React.ReactNode; color: string;
 }) {
   return (
-    <div className="relative overflow-hidden rounded-[22px] p-4 backdrop-blur-xl border border-white/30 shadow-[0_2px_16px_rgba(0,0,0,0.08),inset_0_1px_0_rgba(255,255,255,0.7)] bg-white/40">
-      <div className="pointer-events-none absolute inset-0 rounded-[22px]">
-        <div className="absolute -top-1/3 -right-1/4 w-20 h-20 rounded-full blur-2xl opacity-30" style={{ background: gradient }} />
+    <div className="relative group overflow-hidden rounded-[28px] bg-white/70 backdrop-blur-2xl border border-white/60 shadow-[0_4px_24px_rgb(0,0,0,0.04)] hover:shadow-[0_12px_36px_rgb(0,0,0,0.08)] transition-all duration-500 p-5 flex flex-col justify-between min-h-[140px]">
+      <div className={cn("w-11 h-11 rounded-[16px] flex items-center justify-center shrink-0 border border-white shadow-sm group-hover:scale-110 transition-transform duration-500", color)}>
+        {icon as React.ReactNode}
       </div>
-      <div
-        className="mb-2.5 h-8 w-8 rounded-[12px] flex items-center justify-center text-white shadow-md"
-        style={{ background: gradient }}
-      >
-        {icon}
+      <div className="mt-3">
+        <p className="text-[26px] font-black text-stone-900 tabular-nums tracking-tighter leading-none">{value}</p>
+        <p className="mt-2 text-[9px] font-black text-stone-400 uppercase tracking-widest truncate">{label}</p>
       </div>
-      <p className="text-xl font-bold text-stone-900 tabular-nums leading-none tracking-tight">{value}</p>
-      <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-widest text-stone-400">{label}</p>
     </div>
   );
 }
 
-/** Action button row — liquid glass */
-function LiquidAction({ href, icon, label }: { href: string; icon: React.ReactNode; label: string }) {
+/** Action Row Button */
+function ActionRow({ href, icon, label, highlight = false }: {
+  href: string; icon: React.ReactNode; label: string; highlight?: boolean;
+}) {
   return (
     <Link href={href} className="group block">
-      <div className="flex items-center gap-3 px-4 py-3 rounded-[18px] bg-white/50 border border-white/70 backdrop-blur-xl shadow-[0_2px_8px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.9)] transition-all hover:bg-white/70 hover:shadow-md active:scale-[0.98]">
-        <div className="h-7 w-7 rounded-[10px] bg-white/80 border border-white/60 flex items-center justify-center text-stone-500 group-hover:text-orange-600 shadow-sm transition-colors shrink-0">
-          {icon}
+      <div className={cn(
+        "flex items-center gap-4 px-5 py-3.5 rounded-[20px] border transition-all duration-300 active:scale-[0.97]",
+        highlight
+          ? "bg-orange-500/12 border-orange-500/25 hover:bg-orange-500/20 shadow-sm"
+          : "bg-white/75 border-white/50 hover:bg-white hover:shadow-md shadow-sm"
+      )}>
+        <div className={cn(
+          "h-9 w-9 rounded-[14px] flex items-center justify-center shrink-0 border border-white shadow-sm",
+          highlight ? "bg-white/80 text-orange-600" : "bg-stone-50/80 text-stone-400 group-hover:text-stone-800"
+        )}>
+          {icon as React.ReactNode}
         </div>
-        <span className="text-[12px] font-semibold text-stone-700 group-hover:text-stone-900 flex-1 truncate transition-colors">{label}</span>
-        <ChevronRight className="h-3.5 w-3.5 text-stone-300 group-hover:text-orange-500 group-hover:translate-x-0.5 transition-all shrink-0" />
+        <span className={cn(
+          "text-[11px] font-black flex-1 truncate uppercase tracking-widest",
+          highlight ? "text-orange-700" : "text-stone-600 group-hover:text-stone-900"
+        )}>{label}</span>
+        <ChevronRight className={cn(
+          "h-4 w-4 transition-transform group-hover:translate-x-1",
+          highlight ? "text-orange-400" : "text-stone-300"
+        )} />
       </div>
     </Link>
   );
 }
 
-/* ─── Section wrapper ─── */
-function LiquidSection({
-  title, icon, pill, children, actionHref, pillColor,
-}: {
-  title: string; icon: React.ReactNode; pill?: string;
-  children: React.ReactNode; actionHref?: string;
-  pillColor?: "neutral" | "orange" | "sky" | "emerald" | "indigo" | "amber" | "rose";
+/** Section Header */
+function SectionHeader({ title, icon, actionHref, actionLabel = "View All" }: {
+  title: string; icon: React.ReactNode; actionHref?: string; actionLabel?: string;
 }) {
   return (
-    <section className="space-y-3">
-      <div className="flex items-center justify-between px-1">
-        <div className="flex items-center gap-2">
-          <GlassPill color={pillColor ?? "neutral"}>
-            {icon}
-            <span>{title}</span>
-          </GlassPill>
+    <div className="flex items-center justify-between px-1 mb-4">
+      <div className="flex items-center gap-2.5">
+        <div className="text-orange-500 bg-orange-50 p-1.5 rounded-[12px] border border-orange-100">
+          {icon as React.ReactNode}
         </div>
-        {actionHref && (
-          <Link
-            href={actionHref}
-            className="flex items-center gap-0.5 text-[11px] font-semibold text-stone-400 hover:text-orange-500 transition-colors"
-          >
-            Manage <ChevronRight className="h-3 w-3" />
-          </Link>
-        )}
+        <h2 className="text-[12px] font-black text-stone-900 uppercase tracking-widest">{title}</h2>
       </div>
-      <GlassCard className="p-4">
-        <div className="relative z-10 space-y-3">
-          {children}
-        </div>
-      </GlassCard>
-    </section>
+      {actionHref && (
+        <Link href={actionHref} className="text-[10px] font-black text-orange-500 hover:text-orange-600 transition-colors uppercase tracking-widest">
+          {actionLabel}
+        </Link>
+      )}
+    </div>
   );
 }
 
-/* ─── Main page ─── */
+/* ═══════════════════════════════════════════════
+   MAIN DASHBOARD
+   ═══════════════════════════════════════════════ */
+
 export default function DashboardPage() {
   const { formatMoney } = useCurrency();
   const { activeRoles, fetchRoles } = useUserStore();
@@ -184,26 +119,25 @@ export default function DashboardPage() {
   });
   const [walletBalance, setWalletBalance] = useState({ available: 0, pending: 0 });
   const [loading, setLoading] = useState(true);
-  const [greeting, setGreeting] = useState("Good day");
+  const [greeting, setGreeting] = useState("Hello");
+  const [balanceHidden, setBalanceHidden] = useState(true);
 
   const chartData = useMemo(() => {
     const total = stats.vendorRevenue + stats.affiliateEarnings;
+    const base = total || 450;
     return [
-      { name: "M", v: total * 0.10 },
-      { name: "T", v: total * 0.15 },
-      { name: "W", v: total * 0.08 },
-      { name: "T", v: total * 0.25 },
-      { name: "F", v: total * 0.20 },
-      { name: "S", v: total * 0.35 },
-      { name: "S", v: total * 0.40 },
+      { name: "Mon", v: base * 0.12 }, { name: "Tue", v: base * 0.18 },
+      { name: "Wed", v: base * 0.14 }, { name: "Thu", v: base * 0.28 },
+      { name: "Fri", v: base * 0.22 }, { name: "Sat", v: base * 0.38 },
+      { name: "Sun", v: base * 0.45 },
     ];
   }, [stats.vendorRevenue, stats.affiliateEarnings]);
 
   useEffect(() => {
     const h = new Date().getHours();
-    if (h < 12) setGreeting("Good morning");
-    else if (h < 18) setGreeting("Good afternoon");
-    else setGreeting("Good evening");
+    if (h < 12) setGreeting("Good Morning");
+    else if (h < 18) setGreeting("Good Afternoon");
+    else setGreeting("Good Evening");
   }, []);
 
   useEffect(() => {
@@ -259,8 +193,7 @@ export default function DashboardPage() {
       ]);
 
       setStats({
-        orders: ordersRes.count ?? 0,
-        wishlist: wishlistRes.count ?? 0,
+        orders: ordersRes.count ?? 0, wishlist: wishlistRes.count ?? 0,
         affiliateEarnings: Number(affiliateRes.data?.total_earnings ?? 0),
         affiliateLinks: affLinks.count ?? 0,
         vendorRevenue, vendorOrders, vendorProducts,
@@ -274,207 +207,316 @@ export default function DashboardPage() {
     load();
   }, [fetchRoles, activeRoles.length]); // eslint-disable-line
 
-  const firstName = (profile?.full_name as string)?.split(" ")[0] ?? "there";
+  const firstName = (profile?.full_name as string)?.split(" ")[0] ?? "User";
 
-  return (
-    /* Liquid glass page bg — soft warm white with subtle gradient atmosphere */
-    <div
-      className="min-h-screen pb-10"
-      style={{
-        background: "radial-gradient(ellipse 80% 60% at 60% -10%, rgba(251,146,60,0.09) 0%, transparent 70%), radial-gradient(ellipse 60% 50% at 10% 80%, rgba(186,230,253,0.12) 0%, transparent 60%), #f5f4f1",
-      }}
-    >
-      <div className="max-w-2xl mx-auto px-3 pt-5 pb-8 sm:px-5 sm:pt-7 space-y-4 sm:space-y-5">
-
-        {/* ── Hero glass card ── */}
-        <GlassCard dark className="px-5 py-6 sm:px-7 sm:py-7">
-          <div className="relative z-10 flex flex-col gap-4">
-            {/* Greeting badge */}
-            <div className="inline-flex items-center gap-1.5 self-start px-2.5 py-1 rounded-full bg-white/[0.07] border border-white/[0.12]">
-              <Sparkles className="h-3 w-3 text-orange-400" />
-              <span className="text-[9px] font-semibold uppercase tracking-[0.18em] text-orange-200/50">{greeting}</span>
-            </div>
-
-            {/* Name + roles */}
-            <div>
-              <h1 className="text-[32px] sm:text-[38px] font-bold text-white leading-none tracking-[-0.02em]">
-                {firstName}
-                <span className="text-orange-400/40 ml-1">·</span>
-              </h1>
-              <p className="text-[12px] text-white/30 font-medium mt-1.5">
-                {activeRoles.length} {activeRoles.length === 1 ? "role" : "roles"} active
-              </p>
-              <div className="flex flex-wrap gap-1.5 mt-3">
-                {activeRoles.map(r => (
-                  <span key={r} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/[0.06] border border-white/[0.10] text-[9px] font-semibold uppercase tracking-widest text-white/60">
-                    <span className="h-1.5 w-1.5 rounded-full bg-orange-500 shadow-[0_0_5px_rgba(249,115,22,0.8)]" />
-                    {r}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            {/* Wallet strip */}
-            <Link href="/dashboard/wallet" className="group block mt-1">
-              <div className="flex items-center justify-between rounded-[20px] bg-white/[0.05] border border-white/[0.09] px-4 py-3.5 hover:bg-white/[0.09] transition-all">
-                <div className="flex items-center gap-3">
-                  <div className="h-8 w-8 rounded-[12px] bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center shadow-lg shadow-orange-900/30 shrink-0">
-                    <Wallet className="h-4 w-4 text-white" />
-                  </div>
-                  <div>
-                    <p className="text-[9px] font-semibold uppercase tracking-widest text-white/25">Wallet</p>
-                    <p className="text-[18px] font-bold text-white tabular-nums leading-tight">
-                      {loading ? "—" : formatMoney(walletBalance.available, "USD")}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="text-right">
-                    <p className="text-[9px] font-semibold uppercase tracking-widest text-white/20">Escrow</p>
-                    <p className="text-xs font-semibold text-white/40 tabular-nums">{formatMoney(walletBalance.pending, "USD")}</p>
-                  </div>
-                  <ArrowUpRight className="h-4 w-4 text-white/20 group-hover:text-orange-400 transition-colors" />
-                </div>
-              </div>
-            </Link>
-
-            {/* CTA */}
-            <Link
-              href="/dashboard/marketplace"
-              className="inline-flex items-center justify-center gap-2 self-start px-5 py-2.5 rounded-full bg-orange-500 hover:bg-orange-400 text-white text-[12px] font-bold shadow-[0_4px_16px_rgba(249,115,22,0.35)] transition-all hover:scale-105 active:scale-95 border-t border-white/20"
-            >
-              Explore Marketplace
-              <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
+  /* ─── Loading State ─── */
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center space-y-10 animate-in fade-in duration-700" style={{ background: "#f8f7f5" }}>
+        <div className="relative">
+          <div className="absolute inset-0 bg-orange-400/20 blur-3xl rounded-full scale-150 animate-pulse" />
+          <div className="relative w-20 h-20 rounded-[28px] bg-white border border-white shadow-2xl flex items-center justify-center overflow-hidden">
+            <div className="absolute inset-0 border-2 border-t-orange-500 border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin m-2" />
+            <LayoutDashboard className="h-8 w-8 text-stone-800" />
           </div>
-        </GlassCard>
+        </div>
+        <div className="text-center space-y-2">
+          <h2 className="text-[13px] font-black text-stone-900 uppercase tracking-[0.3em]">Loading Dashboard</h2>
+          <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Setting things up...</p>
+        </div>
+      </div>
+    );
+  }
 
-        {/* ── Horizontal scroll nav pills ── */}
-        <div className="flex gap-2 overflow-x-auto pb-1 -mx-3 px-3 sm:mx-0 sm:px-0 scrollbar-hide">
+  /* ─── Main Render ─── */
+  return (
+    <div className="min-h-screen pb-24 relative overflow-hidden" style={{ background: "#f8f7f5" }}>
+      <GlassAmbientGlow color="orange" position="top-right" />
+      <GlassAmbientGlow color="indigo" position="bottom-left" />
+
+      <div className="max-w-7xl mx-auto space-y-8 px-5 sm:px-6 pt-8 relative z-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+
+        {/* ════════════════════════════════════
+            GREETING
+        ════════════════════════════════════ */}
+        <div className="space-y-1.5">
+          <h1 className="text-3xl sm:text-4xl font-black text-stone-900 tracking-tighter">
+            {greeting}, <span className="text-orange-600">{firstName}</span>
+          </h1>
+          <p className="text-[11px] font-bold text-stone-400 uppercase tracking-[0.25em]">
+            Your dashboard overview
+          </p>
+        </div>
+
+        {/* ════════════════════════════════════
+            MY WALLET — Large Featured Card
+        ════════════════════════════════════ */}
+        <Link href="/dashboard/wallet" className="block outline-none group">
+          <div className="relative overflow-hidden rounded-[32px] bg-gradient-to-br from-orange-500 via-orange-400 to-amber-400 p-7 sm:p-9 shadow-[0_16px_50px_rgba(249,115,22,0.3)] hover:shadow-[0_24px_60px_rgba(249,115,22,0.4)] transition-all duration-500 active:scale-[0.98]">
+            {/* Decorative blurs */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-white/15 blur-[90px] rounded-full translate-x-1/3 -translate-y-1/3" />
+            <div className="absolute bottom-0 left-0 w-40 h-40 bg-amber-300/20 blur-[50px] rounded-full -translate-x-1/4 translate-y-1/4" />
+
+            <div className="relative z-10">
+              {/* Header row */}
+              <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center gap-3">
+                  <div className="h-11 w-11 rounded-[16px] bg-white/20 backdrop-blur-xl flex items-center justify-center text-white border border-white/15">
+                    <Wallet className="h-5 w-5" />
+                  </div>
+                  <span className="text-[11px] font-black text-white/90 uppercase tracking-widest">My Wallet</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); setBalanceHidden(v => !v); }}
+                  className="h-9 w-9 rounded-full bg-white/15 backdrop-blur-md flex items-center justify-center text-white/80 hover:bg-white/25 transition-all active:scale-90 border border-white/10"
+                  aria-label={balanceHidden ? "Show balance" : "Hide balance"}
+                >
+                  {balanceHidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+
+              {/* Balance */}
+              <div className="mb-5">
+                <p className="text-[10px] font-bold text-white/65 uppercase tracking-widest mb-1.5">Available Balance</p>
+                <p className="text-4xl sm:text-5xl font-black text-white tabular-nums tracking-tighter leading-none">
+                  {balanceHidden ? "• • • • • •" : formatMoney(walletBalance.available, "USD")}
+                </p>
+              </div>
+
+              {/* Footer row */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="h-2 w-2 rounded-full bg-white/50 animate-pulse" />
+                  <span className="text-[11px] font-semibold text-white/65">
+                    {balanceHidden ? "•••" : formatMoney(walletBalance.pending, "USD")} pending
+                  </span>
+                </div>
+                <div className="h-9 w-9 rounded-full bg-white/20 flex items-center justify-center group-hover:bg-white/30 transition-colors">
+                  <ArrowUpRight className="h-4 w-4 text-white group-hover:scale-110 transition-transform" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </Link>
+
+        {/* ════════════════════════════════════
+            QUICK ACTIONS
+        ════════════════════════════════════ */}
+        <div className="grid grid-cols-4 gap-2.5 sm:gap-3">
           {[
-            { href: "/dashboard/marketplace", icon: <Globe className="h-3 w-3" />, label: "Market" },
-            { href: "/dashboard/orders", icon: <Truck className="h-3 w-3" />, label: "Orders" },
-            { href: "/dashboard/withdrawals", icon: <DollarSign className="h-3 w-3" />, label: "Payout" },
-            { href: "/dashboard/wallet", icon: <HistoryIcon className="h-3 w-3" />, label: "Ledger" },
-          ].map(({ href, icon, label }) => (
-            <Link
-              key={label}
-              href={href}
-              className="flex items-center gap-1.5 shrink-0 px-4 py-2 rounded-full bg-white/60 border border-white/70 backdrop-blur-xl text-[11px] font-semibold text-stone-600 shadow-[0_2px_8px_rgba(0,0,0,0.05),inset_0_1px_0_rgba(255,255,255,0.9)] hover:bg-white/80 hover:text-orange-600 transition-all"
-            >
-              {icon}
-              {label}
+            { href: "/dashboard/wallet", icon: <Wallet />, label: "Add Funds", color: "text-orange-500" },
+            { href: "/dashboard/messages", icon: <MessageSquare />, label: "Messages", color: "text-stone-500" },
+            { href: "/dashboard/settings", icon: <Settings />, label: "Settings", color: "text-stone-500" },
+            { href: "/support", icon: <Heart />, label: "Help", color: "text-rose-400" },
+          ].map(item => (
+            <Link key={item.href} href={item.href} className="flex flex-col items-center justify-center gap-2 p-3.5 sm:p-5 rounded-[24px] bg-white/70 backdrop-blur-2xl border border-white/60 shadow-sm hover:shadow-md transition-all active:scale-95 group">
+              {React.cloneElement(item.icon as React.ReactElement<{ className?: string }>, { className: cn("h-5 w-5 sm:h-6 sm:w-6 group-hover:scale-110 transition-transform", item.color) })}
+              <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-stone-500">{item.label}</span>
             </Link>
           ))}
         </div>
 
-        {/* ── Revenue chart glass card ── */}
-        <GlassCard className="p-4 sm:p-5">
-          <div className="relative z-10">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-stone-400">This week</p>
-                <p className="text-[15px] font-bold text-stone-900 mt-0.5 tracking-tight">Financial Pulse</p>
+        {/* ════════════════════════════════════
+            MAIN GRID
+        ════════════════════════════════════ */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+
+          {/* ─── LEFT COLUMN ─── */}
+          <div className="lg:col-span-8 space-y-8">
+
+            {/* Earnings Chart */}
+            <div className="rounded-[36px] bg-white/60 backdrop-blur-[60px] saturate-[180%] border border-white/60 shadow-[0_6px_30px_rgb(0,0,0,0.04)] p-7 sm:p-9 overflow-hidden">
+              <div className="flex items-center justify-between mb-7">
+                <div className="space-y-1">
+                  <h3 className="text-lg font-black text-stone-900 tracking-tight">Earnings Overview</h3>
+                  <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">
+                    {chartData[6].v > chartData[0].v ? "Growing this week" : "Steady activity"}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 bg-emerald-50 px-3.5 py-1.5 rounded-xl border border-emerald-100">
+                  <TrendingUp className="h-3.5 w-3.5 text-emerald-500" />
+                  <span className="text-[9px] font-black text-emerald-700 uppercase tracking-widest">This Week</span>
+                </div>
               </div>
-              <span className="px-2.5 py-1 rounded-full bg-emerald-50/80 border border-emerald-200/50 text-emerald-700 text-[9px] font-semibold uppercase tracking-widest backdrop-blur-xl">
-                Live
-              </span>
+              <div className="h-[170px] -ml-5 -mr-1">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={chartData}>
+                    <defs>
+                      <linearGradient id="colorVal" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#f97316" stopOpacity={0.12} />
+                        <stop offset="95%" stopColor="#f97316" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.03)" />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: "#d1d5db", fontSize: 10, fontWeight: 800 }} />
+                    <YAxis hide />
+                    <Tooltip contentStyle={{ borderRadius: "16px", border: "none", boxShadow: "0 16px 40px rgba(0,0,0,0.1)", fontSize: "11px", fontWeight: 800, padding: "10px 16px" }} />
+                    <Area type="monotone" dataKey="v" stroke="#f97316" strokeWidth={3} fillOpacity={1} fill="url(#colorVal)"
+                      dot={{ r: 3.5, fill: "#fff", stroke: "#f97316", strokeWidth: 2.5 }}
+                      activeDot={{ r: 6, fill: "#f97316", stroke: "#fff", strokeWidth: 3 }}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
             </div>
-            <div className="h-[130px] sm:h-[150px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={chartData} margin={{ top: 4, right: 0, left: -16, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="gIncome" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#f97316" stopOpacity={0.15} />
-                      <stop offset="95%" stopColor="#f97316" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="0" vertical={false} stroke="rgba(0,0,0,0.04)" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: "#c4bcb4", fontSize: 9, fontWeight: 600 }} />
-                  <YAxis hide />
-                  <Tooltip
-                    contentStyle={{
-                      borderRadius: "14px", border: "1px solid rgba(255,255,255,0.7)",
-                      background: "rgba(255,255,255,0.85)", backdropFilter: "blur(16px)",
-                      fontSize: "11px", fontWeight: 600, boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
-                    }}
-                    cursor={{ stroke: "rgba(249,115,22,0.2)", strokeWidth: 1 }}
-                  />
-                  <Area type="monotone" dataKey="v" stroke="#f97316" strokeWidth={2} fillOpacity={1} fill="url(#gIncome)" dot={false} activeDot={{ r: 4, fill: "#f97316", strokeWidth: 0 }} />
-                </AreaChart>
-              </ResponsiveContainer>
+
+            {/* ─── ROLE-BASED SECTIONS ─── */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+
+              {/* 1. BUYER — Always visible */}
+              <div className="space-y-4">
+                <SectionHeader title="My Shopping" icon={<ShoppingCart />} actionHref="/dashboard/orders" />
+                <div className="grid grid-cols-2 gap-3">
+                  <StatCard value={stats.orders} label="My Orders" icon={<Package />} color="bg-orange-50 text-orange-600" />
+                  <StatCard value={stats.wishlist} label="Wishlist" icon={<Heart />} color="bg-rose-50 text-rose-500" />
+                </div>
+                <div className="space-y-2.5">
+                  <ActionRow href="/dashboard/orders" icon={<Truck />} label="Track My Orders" />
+                  <ActionRow href="/" icon={<Globe />} label="Browse Products" highlight />
+                </div>
+              </div>
+
+              {/* 2. VENDOR — Conditional */}
+              {activeRoles.includes("vendor") && (
+                <div className="space-y-4">
+                  <SectionHeader title="My Store" icon={<Store />} actionHref="/dashboard/vendor/store" />
+                  <div className="grid grid-cols-2 gap-3">
+                    <StatCard value={stats.vendorProducts} label="Products" icon={<Box />} color="bg-violet-50 text-violet-600" />
+                    <StatCard value={formatMoney(stats.vendorRevenue, "USD")} label="Revenue" icon={<DollarSign />} color="bg-emerald-50 text-emerald-600" />
+                  </div>
+                  <div className="space-y-2.5">
+                    <ActionRow href="/dashboard/vendor/orders" icon={<Package />} label="Manage Orders" />
+                    <ActionRow href="/dashboard/products/new" icon={<Plus />} label="Add New Product" highlight />
+                  </div>
+                </div>
+              )}
+
+              {/* 3. INFLUENCER / CREATOR — Conditional */}
+              {activeRoles.includes("influencer") && (
+                <div className="space-y-4">
+                  <SectionHeader title="Creator Hub" icon={<Video />} actionHref="/dashboard/influencer" />
+                  <div className="grid grid-cols-2 gap-3">
+                    <StatCard value={stats.missionsJoined} label="Missions Joined" icon={<Target />} color="bg-indigo-50 text-indigo-600" />
+                    <StatCard value={stats.mySubmissions} label="My Uploads" icon={<Camera />} color="bg-pink-50 text-pink-500" />
+                  </div>
+                  <div className="space-y-2.5">
+                    <ActionRow href="/ugc" icon={<Search />} label="Find Missions" highlight />
+                    <ActionRow href="/dashboard/influencer/analytics" icon={<Activity />} label="My Analytics" />
+                  </div>
+                </div>
+              )}
+
+              {/* 4. MISSION OWNER — Conditional (vendor with campaigns) */}
+              {activeRoles.includes("vendor") && stats.activeMissions > 0 && (
+                <div className="space-y-4">
+                  <SectionHeader title="My Missions" icon={<Zap />} actionHref="/dashboard/vendor/campaigns" />
+                  <div className="grid grid-cols-2 gap-3">
+                    <StatCard value={stats.activeMissions} label="Active Missions" icon={<Radio />} color="bg-amber-50 text-amber-600" />
+                    <StatCard value={stats.totalSubmissionsReceived} label="Submissions" icon={<Camera />} color="bg-sky-50 text-sky-600" />
+                  </div>
+                  <div className="space-y-2.5">
+                    <ActionRow href="/dashboard/vendor/campaigns/new" icon={<Plus />} label="Create Mission" highlight />
+                    <ActionRow href="/dashboard/vendor/campaigns" icon={<LayoutGrid />} label="View All Missions" />
+                  </div>
+                </div>
+              )}
+
+              {/* 5. AFFILIATE — Conditional */}
+              {activeRoles.includes("affiliate") && (
+                <div className="space-y-4">
+                  <SectionHeader title="Affiliate Hub" icon={<Link2 />} actionHref="/dashboard/links" />
+                  <div className="grid grid-cols-2 gap-3">
+                    <StatCard value={formatMoney(stats.affiliateEarnings, "USD")} label="Earnings" icon={<DollarSign />} color="bg-emerald-50 text-emerald-600" />
+                    <StatCard value={stats.affiliateLinks} label="Active Links" icon={<Link2 />} color="bg-sky-50 text-sky-600" />
+                  </div>
+                  <div className="space-y-2.5">
+                    <ActionRow href="/dashboard/links" icon={<Plus />} label="Create Link" highlight />
+                    <ActionRow href="/dashboard/affiliate/analytics" icon={<TrendingUp />} label="View Performance" />
+                  </div>
+                </div>
+              )}
             </div>
           </div>
-        </GlassCard>
 
-        {/* ── Buyer ── */}
-        <LiquidSection title="Buyer" icon={<ShoppingCart className="h-3 w-3" />} pillColor="sky">
-          <div className="grid grid-cols-2 gap-3">
-            <LiquidStat value={loading ? "…" : stats.orders} label="Orders" icon={<ShoppingCart className="h-3.5 w-3.5" />} gradient="linear-gradient(135deg,#3b82f6,#1d4ed8)" />
-            <LiquidStat value={loading ? "…" : stats.wishlist} label="Saved" icon={<Heart className="h-3.5 w-3.5" />} gradient="linear-gradient(135deg,#f43f5e,#e11d48)" />
+          {/* ─── RIGHT COLUMN ─── */}
+          <div className="lg:col-span-4 space-y-8">
+
+            {/* 6. COMMUNITIES — Always visible */}
+            <div className="space-y-4">
+              <SectionHeader title="Communities" icon={<Users2 />} actionHref="/communities" />
+              <div className="space-y-3">
+                <div className="flex items-center gap-5 p-5 rounded-[28px] bg-white/70 backdrop-blur-2xl border border-white/60 shadow-sm hover:shadow-md transition-all duration-500 group">
+                  <div className="w-12 h-12 rounded-[18px] bg-sky-50 border border-sky-100 text-sky-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-500">
+                    <Globe2 className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-black text-stone-900 tracking-tighter leading-none">{stats.communitiesJoined}</p>
+                    <p className="text-[9px] font-black text-stone-400 uppercase tracking-widest mt-1.5">Joined</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-5 p-5 rounded-[28px] bg-white/70 backdrop-blur-2xl border border-white/60 shadow-sm hover:shadow-md transition-all duration-500 group">
+                  <div className="w-12 h-12 rounded-[18px] bg-orange-50 border border-orange-100 text-orange-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-500">
+                    <Plus className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-black text-stone-900 tracking-tighter leading-none">{stats.communitiesCreated}</p>
+                    <p className="text-[9px] font-black text-stone-400 uppercase tracking-widest mt-1.5">Created</p>
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-2.5">
+                <ActionRow href="/communities" icon={<Users />} label="Explore Communities" />
+                <ActionRow href="/communities/create" icon={<Plus />} label="Start a Community" highlight />
+              </div>
+            </div>
+
+            {/* Learn & Grow */}
+            <div className="p-7 rounded-[36px] bg-gradient-to-br from-orange-500 via-orange-400 to-amber-400 overflow-hidden relative group border border-white/15 shadow-[0_12px_36px_rgba(249,115,22,0.2)]">
+              <div className="absolute top-0 right-0 w-48 h-48 bg-white/15 blur-[70px] rounded-full translate-x-1/3 -translate-y-1/3 group-hover:bg-white/25 transition-all duration-1000" />
+              <div className="relative z-10 space-y-4">
+                <div className="flex items-center gap-2.5">
+                  <div className="bg-white/20 p-1.5 rounded-[10px] backdrop-blur-md border border-white/15 text-white">
+                    <Sparkles className="h-3.5 w-3.5" />
+                  </div>
+                  <span className="text-[10px] font-black text-white/90 uppercase tracking-widest">Learn &amp; Grow</span>
+                </div>
+                <h3 className="text-xl font-black text-white leading-tight tracking-tighter">Grow your business with Jimvio</h3>
+                <p className="text-white/80 text-[12px] leading-relaxed font-semibold">
+                  Guides, tips, and strategies to sell more and reach new customers.
+                </p>
+                <Button asChild className="w-full bg-white/95 text-orange-600 hover:bg-white hover:scale-[1.01] active:scale-95 h-11 rounded-[16px] font-black text-[11px] uppercase tracking-widest transition-all border-none shadow-md">
+                  <Link href="/help">Explore Guides <ArrowRight className="h-4 w-4 ml-2" /></Link>
+                </Button>
+              </div>
+            </div>
+
+            {/* Your Roles */}
+            <div className="p-6 rounded-[32px] bg-white/50 backdrop-blur-[40px] saturate-200 border border-white/40 shadow-sm space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-black text-stone-400 uppercase tracking-widest">Your Roles</span>
+                <Link href="/dashboard/roles" className="text-[10px] font-black text-orange-500 uppercase tracking-widest hover:text-orange-600 transition-colors">
+                  Manage
+                </Link>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {activeRoles.map(role => (
+                  <div key={role} className="px-4 py-2 rounded-[14px] bg-white/80 backdrop-blur-md border border-white/70 text-stone-800 font-black text-[10px] uppercase tracking-widest shadow-sm capitalize">
+                    {role}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Help Link */}
+            <div className="flex items-center justify-center pt-1">
+              <Link href="/support" className="flex items-center gap-2.5 text-stone-400 hover:text-orange-600 transition-colors group">
+                <MessageSquare className="h-4 w-4 group-hover:scale-110 transition-transform" />
+                <span className="text-[11px] font-black uppercase tracking-widest">Need Help?</span>
+              </Link>
+            </div>
           </div>
-          <div className="grid grid-cols-2 gap-2">
-            <LiquidAction href="/dashboard/marketplace" icon={<Globe className="h-3.5 w-3.5" />} label="Marketplace" />
-            <LiquidAction href="/dashboard/orders" icon={<Truck className="h-3.5 w-3.5" />} label="Track Orders" />
-          </div>
-        </LiquidSection>
-
-        {/* ── Vendor missions ── */}
-        {activeRoles.includes("vendor") && (
-          <LiquidSection title="Missions" icon={<Sparkles className="h-3 w-3" />} pillColor="orange" actionHref="/dashboard/vendor/campaigns">
-            <div className="grid grid-cols-2 gap-3">
-              <LiquidStat value={stats.activeMissions} label="Active" icon={<Activity className="h-3.5 w-3.5" />} gradient="linear-gradient(135deg,#f97316,#c2410c)" />
-              <LiquidStat value={stats.totalSubmissionsReceived} label="Received" icon={<Video className="h-3.5 w-3.5" />} gradient="linear-gradient(135deg,#f59e0b,#d97706)" />
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <LiquidAction href="/dashboard/vendor/campaigns/new" icon={<Plus className="h-3.5 w-3.5" />} label="New Mission" />
-              <LiquidAction href="/dashboard/vendor/submissions" icon={<Video className="h-3.5 w-3.5" />} label="Review Queue" />
-            </div>
-          </LiquidSection>
-        )}
-
-        {/* ── Influencer / Creator ── */}
-        {activeRoles.includes("influencer") && (
-          <LiquidSection title="Creator" icon={<Zap className="h-3 w-3" />} pillColor="indigo" actionHref="/dashboard/influencer">
-            <div className="grid grid-cols-2 gap-3">
-              <LiquidStat value={stats.missionsJoined} label="Joined" icon={<Package className="h-3.5 w-3.5" />} gradient="linear-gradient(135deg,#6366f1,#4338ca)" />
-              <LiquidStat value={stats.mySubmissions} label="Clips" icon={<CheckCircle className="h-3.5 w-3.5" />} gradient="linear-gradient(135deg,#14b8a6,#0f766e)" />
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <LiquidAction href="/ugc" icon={<Globe className="h-3.5 w-3.5" />} label="Explore Missions" />
-              <LiquidAction href="/dashboard/influencer" icon={<Video className="h-3.5 w-3.5" />} label="Creator Studio" />
-            </div>
-          </LiquidSection>
-        )}
-
-        {/* ── Affiliate ── */}
-        {activeRoles.includes("affiliate") && (
-          <LiquidSection title="Affiliate" icon={<Link2 className="h-3 w-3" />} pillColor="amber" actionHref="/dashboard/links">
-            <div className="grid grid-cols-2 gap-3">
-              <LiquidStat value={loading ? "…" : formatMoney(stats.affiliateEarnings, "USD")} label="Earnings" icon={<DollarSign className="h-3.5 w-3.5" />} gradient="linear-gradient(135deg,#f59e0b,#b45309)" />
-              <LiquidStat value={loading ? "…" : stats.affiliateLinks} label="Links" icon={<Link2 className="h-3.5 w-3.5" />} gradient="linear-gradient(135deg,#f97316,#c2410c)" />
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <LiquidAction href="/dashboard/links" icon={<Plus className="h-3.5 w-3.5" />} label="My Links" />
-              <LiquidAction href="/dashboard/affiliate/analytics" icon={<Activity className="h-3.5 w-3.5" />} label="Performance" />
-            </div>
-          </LiquidSection>
-        )}
-
-        {/* ── Community ── */}
-        {(stats.communitiesJoined > 0 || stats.communitiesCreated > 0) && (
-          <LiquidSection title="Community" icon={<Users className="h-3 w-3" />} pillColor="emerald" actionHref="/dashboard/community/analytics">
-            <div className="grid grid-cols-2 gap-3">
-              <LiquidStat value={stats.communitiesJoined} label="Joined" icon={<Users className="h-3.5 w-3.5" />} gradient="linear-gradient(135deg,#10b981,#059669)" />
-              <LiquidStat value={stats.communitiesCreated} label="Owned" icon={<Plus className="h-3.5 w-3.5" />} gradient="linear-gradient(135deg,#14b8a6,#0d9488)" />
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <LiquidAction href="/communities" icon={<Globe className="h-3.5 w-3.5" />} label="Browse Hub" />
-              <LiquidAction href="/communities/create" icon={<Plus className="h-3.5 w-3.5" />} label="Create Space" />
-            </div>
-          </LiquidSection>
-        )}
-
+        </div>
       </div>
     </div>
   );

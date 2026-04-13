@@ -338,7 +338,7 @@ export function CommunitySubscribeClient({
                  else handleComplete();
               }}
               className={cn(
-                "h-14 px-10 rounded-2xl bg-orange-500 hover:bg-orange-600 active:scale-[0.98] disabled:opacity-50 text-white font-black text-sm transition-all shadow-xl shadow-orange-500/20 flex items-center gap-3"
+                "h-14 px-10 rounded-2xl bg-orange-500/10 backdrop-blur-md border border-orange-500/30 active:scale-[0.98] disabled:opacity-50 text-orange-600 font-black text-sm transition-all shadow-sm flex items-center gap-3 uppercase tracking-widest"
               )}
             >
               {submitting ? (
