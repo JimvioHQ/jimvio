@@ -81,48 +81,48 @@ export default function WalletDashboardPage() {
            </div>
         </div>
 
-        {/* Balance Card - Softer */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-           <GlassCard className="lg:col-span-2 p-10 rounded-[32px] border-white bg-white/60 shadow-sm relative overflow-hidden group">
-              <div className="space-y-10 relative z-10">
-                 <div className="space-y-4">
+        {/* Balance Card - Softer & Compact */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-8">
+           <GlassCard className="lg:col-span-2 p-6 sm:p-10 rounded-2xl sm:rounded-[32px] border-white bg-white/60 shadow-sm relative overflow-hidden group">
+              <div className="space-y-6 sm:space-y-10 relative z-10">
+                 <div className="space-y-2 sm:space-y-4">
                     <div className="flex items-center gap-2">
                        <div className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" />
-                       <span className="text-[10px] font-bold text-stone-400 capitalize">Available to Withdraw</span>
+                       <span className="text-[9px] sm:text-[10px] font-bold text-stone-400 uppercase tracking-widest opacity-80">Available to Withdraw</span>
                     </div>
-                    <p className="text-6xl font-black text-stone-900 tracking-tight leading-none tabular-nums">
+                    <p className="text-3xl sm:text-5xl font-black text-stone-900 tracking-tight leading-none tabular-nums">
                        {formatMoney(wallet.available_balance, "USD")}
                     </p>
                  </div>
                  
-                 <div className="flex flex-wrap gap-4">
-                    <div className="px-6 py-4 rounded-2xl bg-white border border-stone-50 shadow-sm min-w-[140px]">
-                       <p className="text-[9px] font-bold uppercase tracking-widest text-stone-400 mb-1">Pending Clearance</p>
-                       <p className="text-xl font-bold text-stone-900 tabular-nums">{formatMoney(wallet.pending_balance, "USD")}</p>
+                 <div className="flex flex-wrap gap-3 sm:gap-4">
+                    <div className="px-5 py-3 sm:px-6 sm:py-4 rounded-xl sm:rounded-2xl bg-white border border-stone-50 shadow-sm min-w-[120px] sm:min-w-[140px]">
+                       <p className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-stone-300 mb-1">Pending Clearance</p>
+                       <p className="text-lg sm:text-xl font-black text-stone-900 tabular-nums tracking-tight">{formatMoney(wallet.pending_balance, "USD")}</p>
                     </div>
-                    <div className="px-6 py-4 rounded-2xl bg-white border border-stone-50 shadow-sm min-w-[140px]">
-                       <p className="text-[9px] font-bold uppercase tracking-widest text-stone-400 mb-1">Total Earned</p>
-                       <p className="text-xl font-bold text-stone-900 tabular-nums">{formatMoney(wallet.total_earned, "USD")}</p>
+                    <div className="px-5 py-3 sm:px-6 sm:py-4 rounded-xl sm:rounded-2xl bg-white border border-stone-50 shadow-sm min-w-[120px] sm:min-w-[140px]">
+                       <p className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-stone-300 mb-1">Total Earned</p>
+                       <p className="text-lg sm:text-xl font-black text-stone-900 tabular-nums tracking-tight">{formatMoney(wallet.total_earned, "USD")}</p>
                     </div>
                  </div>
               </div>
               
-              <div className="absolute top-0 right-0 p-12 opacity-[0.03] group-hover:scale-110 transition-transform duration-1000">
-                 <Wallet className="h-40 w-40 text-stone-900" />
+              <div className="absolute top-0 right-0 p-8 sm:p-12 opacity-[0.03] group-hover:scale-110 transition-transform duration-1000">
+                 <Wallet className="h-32 w-32 sm:h-40 sm:w-40 text-stone-900" />
               </div>
            </GlassCard>
-
-           <GlassCard className="p-8 rounded-[32px] bg-white border border-stone-100 shadow-sm flex flex-col justify-center space-y-6">
+ 
+           <GlassCard className="p-6 sm:p-8 rounded-2xl sm:rounded-[32px] bg-white border border-stone-100 shadow-sm flex flex-col justify-center space-y-4 sm:space-y-6">
               <div className="flex items-center gap-3">
                  <div className="p-2 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-100">
                     <ShieldCheck className="h-4 w-4" />
                  </div>
-                 <h3 className="text-sm font-bold text-stone-900 uppercase tracking-widest">Secure Escrow</h3>
+                 <h3 className="text-[10px] sm:text-sm font-black text-stone-900 uppercase tracking-widest">Secure Escrow</h3>
               </div>
-              <p className="text-[13px] font-medium text-stone-500 leading-relaxed">
+              <p className="text-[12px] sm:text-[13px] font-medium text-stone-500 leading-relaxed opacity-80">
                  Your funds are held securely until the order is successfully delivered to the buyer.
               </p>
-              <Button asChild variant="outline" className="w-full h-11 rounded-xl border-stone-100 text-stone-900 font-bold text-[10px] uppercase tracking-widest active:scale-95 transition-all">
+              <Button asChild variant="outline" className="w-full h-10 sm:h-11 rounded-xl border-stone-100 text-stone-900 font-bold text-[9px] sm:text-[10px] uppercase tracking-widest active:scale-95 transition-all">
                  <Link href="/dashboard/orders">View Active Orders</Link>
               </Button>
            </GlassCard>
@@ -130,80 +130,80 @@ export default function WalletDashboardPage() {
 
         {/* Earning Breakdown - Simple Row */}
         <div className="space-y-4">
-           <h2 className="text-[11px] font-bold text-stone-400 uppercase tracking-widest pl-1">Earning Sources</h2>
-           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+           <h2 className="text-[10px] sm:text-[11px] font-bold text-stone-400 uppercase tracking-widest pl-1 opacity-60">Earning Sources</h2>
+           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
               {[
                  { label: "Product Sales", value: agg.vendor, icon: Store, color: "text-sky-500", bg: "bg-sky-50" },
                  { label: "Affiliate Earnings", value: agg.affiliate, icon: Users, color: "text-purple-500", bg: "bg-purple-50" },
                  { label: "Creator Bonuses", value: agg.creator, icon: Sparkles, color: "text-amber-500", bg: "bg-amber-50" },
               ].map((stat, i) => (
-                 <div key={i} className="flex items-center gap-4 p-5 rounded-2xl bg-white border border-stone-50 shadow-sm">
+                 <div key={i} className="flex items-center gap-4 p-4 rounded-xl sm:rounded-2xl bg-white border border-stone-50 shadow-sm">
                     <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border border-white shadow-sm", stat.bg, stat.color)}>
                        <stat.icon className="h-5 w-5" />
                     </div>
                     <div className="min-w-0">
-                       <p className="text-lg font-bold text-stone-900 tracking-tight leading-none">{formatMoney(stat.value, "USD")}</p>
-                       <p className="text-[10px] font-bold uppercase tracking-widest text-stone-400 mt-1.5 truncate">{stat.label}</p>
+                       <p className="text-lg font-black text-stone-900 tracking-tight leading-none tabular-nums">{formatMoney(stat.value, "USD")}</p>
+                       <p className="text-[9px] font-bold uppercase tracking-widest text-stone-400 mt-1.5 truncate opacity-70">{stat.label}</p>
                     </div>
                  </div>
               ))}
            </div>
         </div>
 
-        {/* Transaction History - Soft Table */}
-        <GlassCard className="rounded-[32px] border-white bg-white/60 shadow-sm overflow-hidden">
-           <div className="p-8 border-b border-stone-50 bg-white/40 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+        {/* Transaction History - Soft Table - Mobile Optimized */}
+        <GlassCard className="rounded-2xl sm:rounded-[32px] border-white bg-white/60 shadow-sm overflow-hidden max-sm:-mx-4 max-sm:rounded-none max-sm:border-x-0">
+           <div className="p-5 sm:p-8 border-b border-stone-50 bg-white/40 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
               <div className="flex items-center gap-3">
                  <div className="p-2 rounded-lg bg-white border border-stone-50 shadow-sm text-stone-300">
                     <History className="h-4 w-4" />
                  </div>
                  <div>
-                    <h3 className="text-lg font-bold text-stone-900 tracking-tight">Transaction History</h3>
-                    <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mt-0.5">Recent account activity</p>
+                    <h3 className="text-base sm:text-lg font-black text-stone-900 tracking-tight leading-none">Transaction History</h3>
+                    <p className="text-[9px] sm:text-[10px] font-bold text-stone-400 uppercase tracking-widest mt-1.5 opacity-60">Recent account activity</p>
                  </div>
               </div>
-              <div className="flex gap-1.5 overflow-x-auto pb-1 items-center no-scrollbar">
+              <div className="flex gap-1 overflow-x-auto pb-1 items-center no-scrollbar">
                  {["all", "vendor", "affiliate", "creator"].map((tab) => (
-                   <button 
-                     key={tab}
-                     className={cn(
-                       "px-5 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest whitespace-nowrap transition-all border", 
-                       activeTab === tab 
-                         ? "bg-stone-900 border-transparent text-white shadow-md" 
-                         : "bg-stone-50 border-stone-50 text-stone-400 hover:text-stone-900 hover:bg-white"
-                     )}
-                     onClick={() => setActiveTab(tab)}
-                   >
-                     {tab}
-                   </button>
+                    <button 
+                      key={tab}
+                      className={cn(
+                        "px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest whitespace-nowrap transition-all border", 
+                        activeTab === tab 
+                          ? "bg-stone-900 border-transparent text-white shadow-sm active:scale-95" 
+                          : "bg-stone-50 border-stone-50 text-stone-400 hover:text-stone-900 hover:bg-white"
+                      )}
+                      onClick={() => setActiveTab(tab)}
+                    >
+                      {tab}
+                    </button>
                  ))}
               </div>
            </div>
            
            <div className="overflow-x-auto">
-              <table className="w-full text-left">
+              <table className="w-full text-left whitespace-nowrap">
                  <thead>
-                    <tr className="bg-stone-50/40">
-                       <th className="px-8 py-5 text-[10px] font-bold capitalize text-stone-400">Description</th>
-                       <th className="px-8 py-5 text-[10px] font-bold capitalize text-stone-400">Date</th>
-                       <th className="px-8 py-5 text-right text-[10px] font-bold capitalize text-stone-400">Amount</th>
-                       <th className="px-8 py-5 text-center text-[10px] font-bold capitalize text-stone-400">Status</th>
+                    <tr className="bg-stone-50/40 border-b border-stone-50">
+                       <th className="px-4 sm:px-8 py-4 text-[9px] font-black uppercase tracking-widest text-stone-400">Description</th>
+                       <th className="px-4 sm:px-8 py-4 text-[9px] font-black uppercase tracking-widest text-stone-400">Date</th>
+                       <th className="px-4 sm:px-8 py-4 text-right text-[9px] font-black uppercase tracking-widest text-stone-400">Amount</th>
+                       <th className="px-4 sm:px-8 py-4 text-center text-[9px] font-black uppercase tracking-widest text-stone-400">Status</th>
                     </tr>
                  </thead>
-                 <tbody className="divide-y divide-stone-50">
+                 <tbody className="divide-y divide-stone-50/60">
                     {filteredTransactions.length === 0 ? (
                       <tr>
-                         <td colSpan={4} className="py-20 text-center">
-                            <p className="text-[11px] font-bold text-stone-300 uppercase tracking-widest">No activities found</p>
+                         <td colSpan={4} className="py-16 text-center">
+                            <p className="text-[10px] font-black text-stone-300 uppercase tracking-widest">No activities found</p>
                          </td>
                       </tr>
                     ) : (
                       filteredTransactions.map((tx: any) => (
                         <tr key={tx.id} className="hover:bg-white/60 transition-all duration-300 group">
-                           <td className="px-8 py-6">
-                              <div className="flex items-center gap-4">
+                           <td className="px-4 sm:px-8 py-5">
+                              <div className="flex items-center gap-3 sm:gap-4">
                                  <div className={cn(
-                                   "w-9 h-9 rounded-lg border flex items-center justify-center shrink-0 shadow-sm",
+                                   "w-8 h-8 sm:w-9 sm:h-9 rounded-lg border flex items-center justify-center shrink-0 shadow-sm",
                                    tx.type === "vendor_earning" ? "bg-sky-50 border-sky-100 text-sky-600" :
                                    tx.type === "affiliate_commission" ? "bg-purple-50 border-purple-100 text-purple-600" :
                                    "bg-stone-50 border-stone-100 text-stone-400"
@@ -213,27 +213,27 @@ export default function WalletDashboardPage() {
                                      <Sparkles className="h-4 w-4" />}
                                  </div>
                                  <div className="min-w-0">
-                                    <p className="font-bold text-sm text-stone-900 truncate max-w-[180px] tracking-tight capitalize">
+                                    <p className="font-black text-[13px] sm:text-sm text-stone-900 truncate max-w-[140px] sm:max-w-[180px] tracking-tight capitalize leading-none">
                                       {tx.type.replace(/_/g, " ")}
                                     </p>
-                                    <p className="text-[10px] text-stone-400 font-bold capitalize truncate max-w-[140px]">{tx.reference}</p>
+                                    <p className="text-[9px] text-stone-300 font-bold capitalize truncate max-w-[140px] mt-1">{tx.reference}</p>
                                  </div>
                               </div>
                            </td>
-                           <td className="px-8 py-6 text-sm font-bold text-stone-400 tabular-nums">
+                           <td className="px-4 sm:px-8 py-5 text-[11px] font-black text-stone-400 tabular-nums">
                               {new Date(tx.created_at).toLocaleDateString()}
                            </td>
-                           <td className="px-8 py-6 text-right">
+                           <td className="px-4 sm:px-8 py-5 text-right">
                               <span className={cn(
-                                 "font-bold text-base tabular-nums tracking-tight",
+                                 "font-black text-sm sm:text-base tabular-nums tracking-tight",
                                  tx.type.includes('earning') || tx.type.includes('commission') ? "text-emerald-600" : "text-stone-900"
-                              )}>
+                               )}>
                                  +{formatMoney(tx.amount, tx.currency || "USD")}
                               </span>
                            </td>
-                           <td className="px-8 py-6">
+                           <td className="px-4 sm:px-8 py-5">
                               <div className="flex justify-center">
-                                 <GlassPill color={tx.status === "completed" ? "emerald" : "orange"} className="font-bold text-[9px] px-4 py-1.5 uppercase tracking-widest border-none shadow-none">
+                                 <GlassPill color={tx.status === "completed" ? "emerald" : "orange"} className="font-black text-[8px] px-3.5 py-1 uppercase tracking-widest border-none shadow-none ring-1 ring-stone-100">
                                     {tx.status}
                                  </GlassPill>
                               </div>

@@ -92,10 +92,19 @@ export default async function HomePage() {
   const shopifyFeatured = (shopifyFeaturedRes?.products ?? []).slice(0, LIMIT);
   const nonShopifyFeatured = (featured ?? []).slice(0, LIMIT);
   const recommended: any[] = [];
+  const seenIds = new Set<string>();
   const maxLen = Math.max(nonShopifyFeatured.length, shopifyFeatured.length);
   for (let i = 0; i < maxLen && recommended.length < LIMIT; i++) {
-    if (i < nonShopifyFeatured.length) recommended.push(nonShopifyFeatured[i]);
-    if (i < shopifyFeatured.length && recommended.length < LIMIT) recommended.push(shopifyFeatured[i]);
+    const p1 = nonShopifyFeatured[i];
+    if (p1 && !seenIds.has(p1.id)) {
+      recommended.push(p1);
+      seenIds.add(p1.id);
+    }
+    const p2 = shopifyFeatured[i];
+    if (p2 && recommended.length < LIMIT && !seenIds.has(p2.id)) {
+      recommended.push(p2);
+      seenIds.add(p2.id);
+    }
   }
 
   const sidebarCats = (categories.length > 0 ? categories : [

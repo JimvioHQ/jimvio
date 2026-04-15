@@ -13,6 +13,7 @@ import { LocalizedPrice } from "@/components/currency/localized-price";
 export function marketplaceHref(
   current: Record<string, string | undefined>,
   updates: Record<string, string | undefined | null>,
+  basePath = "/marketplace"
 ): string {
   const out: Record<string, string> = {};
   for (const [k, v] of Object.entries(current)) {
@@ -32,15 +33,17 @@ export function marketplaceHref(
     if (v != null && v !== "") p.set(k, v);
   }
   const s = p.toString();
-  return s ? `/marketplace?${s}` : "/marketplace";
+  return s ? `${basePath}?${s}` : basePath;
 }
 
 export function MarketplaceSearch({
   currentParams,
   className,
+  basePath = "/marketplace"
 }: {
   currentParams: Record<string, string | undefined>;
   className?: string;
+  basePath?: string;
 }) {
   const router = useRouter();
   const [q, setQ] = useState(currentParams.q ?? "");
@@ -122,9 +125,25 @@ export function MarketplaceSearch({
         value={q}
         onChange={(e) => handleType(e.target.value)}
         onFocus={() => q.trim() && setShowDropdown(true)}
-        placeholder="Search marketplace..."
+        placeholder="Search for amazing products..."
         autoComplete="off"
-        className="w-full h-[52px] pl-11 pr-12 rounded-2xl border border-zinc-200 bg-white/70 backdrop-blur-xl text-[15px] font-medium text-zinc-900 placeholder:text-zinc-400 placeholder:font-normal focus:outline-none focus:ring-4 focus:ring-[#f97316]/10 focus:border-[#f97316]/40 hover:border-[#f97316]/30 hover:bg-white transition-all shadow-sm"
+        className={cn(
+          "w-full h-[56px] pl-12 pr-12 rounded-full",
+          "border border-white/80 bg-white/60",
+          "shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgba(249,115,22,0.08)]",
+          "text-[16px] font-bold text-stone-900 tracking-tight",
+          "placeholder:text-stone-400 placeholder:font-semibold",
+          "focus:outline-none focus:ring-4 focus:ring-orange-500/20 focus:border-orange-500/50 focus:bg-white",
+          "transition-all duration-300 ease-out",
+          "apple-glass-blur"
+        )}
+        style={{ backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)" }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            setShowDropdown(false);
+            router.push(marketplaceHref(currentParams, { q: q.trim() || null }, basePath));
+          }
+        }}
       />
       
       {q.trim() && (
@@ -143,24 +162,25 @@ export function MarketplaceSearch({
       <AnimatePresence>
         {showDropdown && (q.trim().length > 0) && (
           <motion.div
-            initial={{ opacity: 0, y: 10, scale: 0.98 }}
+            initial={{ opacity: 0, y: 16, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 5, scale: 0.98 }}
-            className="absolute top-full left-0 right-0 mt-3 bg-white/95 backdrop-blur-2xl border border-zinc-100 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] overflow-hidden"
+            exit={{ opacity: 0, y: 8, scale: 0.98 }}
+            transition={{ type: "spring", stiffness: 400, damping: 30 }}
+            className="absolute top-full left-0 right-0 mt-3 bg-white/95 backdrop-blur-3xl border border-stone-200/50 rounded-[28px] shadow-[0_30px_60px_rgba(0,0,0,0.12)] overflow-hidden"
           >
             <div className="p-2">
               {suggestions.length > 0 ? (
                 <div className="space-y-1">
-                  <div className="px-4 py-2 text-[11px] font-black text-zinc-400 uppercase tracking-widest flex items-center justify-between">
-                    Quick Results
-                    {isLoading && <Loader2 className="h-3 w-3 animate-spin text-[#f97316]" />}
+                  <div className="px-5 py-3 text-[11px] font-black text-stone-400 uppercase tracking-widest flex items-center justify-between">
+                    Top Matches
+                    {isLoading && <Loader2 className="h-3 w-3 animate-spin text-orange-500" />}
                   </div>
                   {suggestions.map((p) => (
                     <Link
                       key={p.id}
                       href={`/marketplace/${p.slug}`}
                       onClick={() => setShowDropdown(false)}
-                      className="flex items-center gap-3 p-3 rounded-[18px] hover:bg-zinc-50 transition-colors group/item"
+                      className="flex items-center gap-4 px-3 py-2.5 rounded-[20px] hover:bg-stone-50 transition-colors group/item mx-2"
                     >
                       <div className="h-10 w-10 rounded-xl overflow-hidden bg-zinc-100 border border-zinc-100 shrink-0 group-hover/item:border-[#f97316]/20">
                         {p.image ? (
@@ -172,23 +192,24 @@ export function MarketplaceSearch({
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h4 className="text-[14px] font-bold text-zinc-900 truncate group-hover/item:text-[#f97316] transition-colors">
+                        <h4 className="text-[15px] font-black text-stone-900 truncate group-hover/item:text-orange-500 transition-colors">
                           {p.name}
                         </h4>
                         <div className="flex items-center gap-2">
-                             <LocalizedPrice amount={p.price} currency={p.currency} className="text-[13px] font-black text-[#f97316]" />
-                             <span className="text-[11px] text-zinc-400 font-medium">· marketplace</span>
+                             <LocalizedPrice amount={p.price} currency={p.currency} className="text-[14px] font-black text-orange-500" />
+                             <span className="text-[12px] text-stone-400 font-semibold">· in store</span>
                         </div>
                       </div>
-                      <ArrowRight className="h-4 w-4 text-zinc-300 -translate-x-2 opacity-0 group-hover/item:translate-x-0 group-hover/item:opacity-100 transition-all" />
+                      <ArrowRight className="h-5 w-5 text-stone-300 -translate-x-3 opacity-0 group-hover/item:translate-x-0 group-hover/item:opacity-100 transition-all" />
                     </Link>
                   ))}
                   <Link
-                    href={marketplaceHref(currentParams, { q: q.trim() })}
+                    href={marketplaceHref(currentParams, { q: q.trim() }, basePath)}
                     onClick={() => setShowDropdown(false)}
-                    className="flex items-center justify-center gap-2 w-full py-3 mt-1 text-[13px] font-black text-white bg-zinc-900 hover:bg-black rounded-2xl transition-all"
+                    className="group flex items-center justify-between w-[calc(100%-16px)] mx-2 my-2 py-4 px-6 text-[14px] font-black text-white bg-stone-900 hover:bg-black rounded-2xl transition-all shadow-md hover:shadow-lg hover:shadow-stone-900/20"
                   >
-                    View all results for "{q.trim()}"
+                    <span>View all results for "{q.trim()}"</span>
+                    <ArrowRight className="h-4 w-4 transform group-hover:translate-x-1 transition-transform" />
                   </Link>
                 </div>
               ) : !isLoading ? (

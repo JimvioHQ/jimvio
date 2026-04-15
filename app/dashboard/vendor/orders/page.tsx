@@ -200,27 +200,27 @@ export default function VendorOrdersPage() {
         background: "radial-gradient(ellipse 80% 60% at 80% 0%, rgba(251,146,60,0.03) 0%, transparent 50%), radial-gradient(ellipse 60% 50% at 0% 100%, rgba(186,230,253,0.03) 0%, transparent 55%), #f8f7f5",
       }}
     >
-      <div className="max-w-6xl mx-auto space-y-8 px-6 pt-10 relative z-10">
+      <div className="max-w-6xl mx-auto space-y-4 sm:space-y-8 px-4 sm:px-6 pt-4 sm:pt-10 relative z-10">
         
         <div>
-           <h1 className="text-2xl font-bold text-stone-900 tracking-tight">Orders Received</h1>
-           <p className="text-[11px] font-bold text-stone-400 uppercase tracking-widest mt-1 pl-0.5">Manage fulfillment and customer deliveries</p>
+           <h1 className="text-xl sm:text-2xl font-black text-stone-900 tracking-tight">Orders Received</h1>
+           <p className="text-[10px] sm:text-[11px] font-bold text-stone-400 uppercase tracking-widest mt-0.5 pl-0.5 opacity-80">Manage fulfillment and customer deliveries</p>
         </div>
 
-        {/* Stat Row - Soft */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Stat Row - Soft & Compact */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
            {[
               { label: "Total Received", value: orders.length, icon: Package, color: "text-stone-400" },
               { label: "To Fulfill", value: pendingFulfillment, icon: Clock, color: "text-orange-500" },
               { label: "Total Revenue", value: formatMoney(totalSalesUsd, "USD"), icon: DollarSign, color: "text-emerald-500" },
               { label: "Completed", value: completedSales, icon: CheckCircle2, color: "text-sky-500" },
            ].map((stat, i) => (
-              <GlassCard key={i} className="p-6 rounded-2xl bg-white border-white shadow-sm flex flex-col justify-center gap-1">
-                 <div className="flex items-center gap-2 mb-1">
-                    <stat.icon className={cn("h-3.5 w-3.5", stat.color)} />
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-stone-400">{stat.label}</span>
+              <GlassCard key={i} className="p-4 sm:p-5 rounded-xl sm:rounded-2xl bg-white/80 border-white shadow-sm flex flex-col justify-center gap-0.5 sm:gap-1">
+                 <div className="flex items-center gap-2 mb-0.5 sm:mb-1">
+                    <stat.icon className={cn("h-3 w-3 sm:h-3.5 sm:w-3.5", stat.color)} />
+                    <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-stone-400">{stat.label}</span>
                  </div>
-                 <p className="text-2xl font-black text-stone-900 tabular-nums">{stat.value}</p>
+                 <p className="text-lg sm:text-2xl font-black text-stone-900 tabular-nums">{stat.value}</p>
               </GlassCard>
            ))}
         </div>
@@ -254,21 +254,21 @@ export default function VendorOrdersPage() {
            </div>
         </div>
 
-        {/* Orders Table - Soft */}
-        <GlassCard className="rounded-[32px] border-white bg-white/60 shadow-sm overflow-hidden">
+        {/* Orders Table - Full-width Mobile */}
+        <GlassCard className="rounded-2xl sm:rounded-[32px] border-white max-sm:-mx-4 max-sm:rounded-none max-sm:border-x-0 bg-white/60 shadow-sm overflow-hidden">
            <div className="overflow-x-auto">
-              <table className="w-full text-left">
+              <table className="w-full text-left min-w-[700px] sm:min-w-0">
                  <thead>
-                    <tr className="bg-stone-50/40 border-b border-stone-50">
-                       <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-stone-400 text-[9px]">Order ID</th>
-                       <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-stone-400 text-[9px]">Buyer</th>
-                       <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-stone-400 text-[9px]">Products</th>
-                       <th className="px-8 py-5 text-right text-[10px] font-bold uppercase tracking-widest text-stone-400 text-[9px]">Amount</th>
-                       <th className="px-8 py-5 text-center text-[10px] font-bold uppercase tracking-widest text-stone-400 text-[9px]">Status</th>
-                       <th className="px-8 py-5 text-right text-[10px] font-bold uppercase tracking-widest text-stone-400 text-[9px]">Actions</th>
+                    <tr className="bg-stone-50/40 border-b border-stone-100/50">
+                       <th className="px-4 sm:px-8 py-4 sm:py-5 text-[9px] font-bold uppercase tracking-widest text-stone-400">Order ID</th>
+                       <th className="px-4 sm:px-8 py-4 sm:py-5 text-[9px] font-bold uppercase tracking-widest text-stone-400">Buyer</th>
+                       <th className="px-4 sm:px-8 py-4 sm:py-5 text-[9px] font-bold uppercase tracking-widest text-stone-400">Products</th>
+                       <th className="px-4 sm:px-8 py-4 sm:py-5 text-right text-[9px] font-bold uppercase tracking-widest text-stone-400">Amount</th>
+                       <th className="px-4 sm:px-8 py-4 sm:py-5 text-center text-[9px] font-bold uppercase tracking-widest text-stone-400">Status</th>
+                       <th className="px-4 sm:px-8 py-4 sm:py-5 text-right text-[9px] font-bold uppercase tracking-widest text-stone-400">Actions</th>
                     </tr>
                  </thead>
-                 <tbody className="divide-y divide-stone-50">
+                 <tbody className="divide-y divide-stone-100/50">
                     {filtered.length === 0 ? (
                       <tr>
                          <td colSpan={6} className="py-20 text-center">
@@ -280,37 +280,37 @@ export default function VendorOrdersPage() {
                          const displayStatus = resolveDisplayStatus(order);
                          const s = statusConfig[displayStatus] ?? statusConfig.pending;
                          const first = order.items[0];
-                         const productLabel = first ? (order.items.length > 1 ? `${first.product_name} +${order.items.length - 1} more` : first.product_name) : "—";
+                         const productLabel = first ? (order.items.length > 1 ? `${first.product_name} +${order.items.length - 1}` : first.product_name) : "—";
                          
                          return (
                            <tr key={order.id} className="hover:bg-white/60 transition-all duration-300 group">
-                              <td className="px-8 py-6">
-                                 <p className="font-bold text-sm text-stone-900 tracking-tight group-hover:text-orange-600 transition-colors">
+                              <td className="px-4 sm:px-8 py-5 sm:py-6">
+                                 <p className="font-bold text-[13px] sm:text-sm text-stone-900 tracking-tight group-hover:text-orange-600 transition-colors">
                                     #{order.order_number}
                                  </p>
-                                 <p className="text-[9px] font-bold text-stone-300 uppercase tracking-widest mt-1">
+                                 <p className="text-[9px] font-bold text-stone-300 uppercase tracking-widest mt-0.5">
                                     {new Date(order.created_at).toLocaleDateString()}
                                  </p>
                               </td>
-                              <td className="px-8 py-6">
-                                 <p className="font-bold text-[13px] text-stone-900 leading-none">{order.buyer?.full_name || "—"}</p>
-                                 <p className="text-[10px] font-medium text-stone-400 mt-1 truncate max-w-[140px]">{order.buyer?.email}</p>
+                              <td className="px-4 sm:px-8 py-5 sm:py-6">
+                                 <p className="font-bold text-[13px] text-stone-900 leading-none">{order.buyer?.full_name?.split(' ')[0] || "—"}</p>
+                                 <p className="text-[10px] font-medium text-stone-400 mt-1 truncate max-w-[100px] sm:max-w-[140px]">{order.buyer?.email}</p>
                               </td>
-                              <td className="px-8 py-6">
-                                 <p className="text-[12px] font-bold text-stone-800 tracking-tight truncate max-w-[180px]">{productLabel}</p>
-                                 {first?.product_source === "cj" && <Badge variant="secondary" className="text-[8px] px-1.5 py-0 mt-1 uppercase tracking-widest">Dropship</Badge>}
+                              <td className="px-4 sm:px-8 py-5 sm:py-6">
+                                 <p className="text-[12px] font-bold text-stone-700 tracking-tight truncate max-w-[140px] sm:max-w-[180px]">{productLabel}</p>
+                                 {first?.product_source === "cj" && <Badge variant="secondary" className="text-[7px] px-1.5 py-0 mt-1 uppercase tracking-widest font-black opacity-60">Dropship</Badge>}
                               </td>
-                              <td className="px-8 py-6 text-right font-black text-stone-900 tabular-nums">
+                              <td className="px-4 sm:px-8 py-5 sm:py-6 text-right font-black text-stone-900 tabular-nums">
                                  {formatMoney(order.totalAmount ?? 0, order.currency ?? "USD")}
                               </td>
-                              <td className="px-8 py-6">
+                              <td className="px-4 sm:px-8 py-5 sm:py-6">
                                  <div className="flex justify-center">
-                                    <GlassPill color={s.variant as any} className="font-bold text-[8px] px-4 py-1.5 uppercase tracking-widest border-none shadow-none">
+                                    <GlassPill color={s.variant as any} className="font-black text-[7px] sm:text-[8px] px-3 sm:px-4 py-1.5 uppercase tracking-widest border-none shadow-none scale-90 sm:scale-100">
                                        {s.label}
                                     </GlassPill>
                                  </div>
                               </td>
-                              <td className="px-8 py-6 text-right">
+                              <td className="px-4 sm:px-8 py-5 sm:py-6 text-right">
                                  <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                        <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl bg-white border border-stone-50 shadow-sm hover:border-stone-100 transition-all">

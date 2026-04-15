@@ -53,7 +53,7 @@ export const getMarketplaceCategories = cache(async () => {
     ),
   ];
   if (ids.length === 0) {
-    return getCategories();
+    return [];
   }
   const { data } = await db
     .from("product_categories")
@@ -62,8 +62,7 @@ export const getMarketplaceCategories = cache(async () => {
     .eq("is_active", true)
     .order("sort_order", { ascending: true })
     .order("name", { ascending: true });
-  const used = data ?? [];
-  return used.length > 0 ? used : getCategories();
+  return data ?? [];
 });
 
 // ─────────────────────────────────────────────────────────────
@@ -102,7 +101,7 @@ export async function getProducts(query: ProductQuery = {}) {
       sale_count, view_count, wishlist_count, inventory_quantity,
       created_at, source, currency,
       vendors ( id, business_name, business_slug, rating, verification_status, business_country ),
-      product_categories ( id, name, slug )
+      product_categories${category ? '!inner' : ''} ( id, name, slug )
     `, { count: "exact" })
     .eq("status", "active")
     .eq("is_active", true);

@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import {
   MessageCircle, ShoppingCart,
-  Heart, Star, Zap, Tag, TrendingUp, Trash2, CheckCircle2,
+  Heart, Star, Zap, Package, TrendingUp, Trash2, CheckCircle2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { addToCart, checkProductInCart, removeProductFromCart } from "@/lib/actions/marketplace";
@@ -147,42 +147,26 @@ export function ProductCardClient({
 
   return (
     <>
-      {/* ══════════════════════════════════════
-          LIQUID GLASS CARD — iPhone 17 style
-          Matches dashboard GlassCard exactly
-      ══════════════════════════════════════ */}
+      {/* ══════════════════════════════════
+          PRODUCT CARD — App Store Style
+          Clean white card with orange accents
+      ══════════════════════════════════ */}
       <div
         className={cn(
-          // Base glass shell — identical to dashboard GlassCard
           "group relative flex flex-col h-full overflow-hidden",
-          "rounded-[28px] border backdrop-blur-2xl",
+          "rounded-[20px] border bg-white",
           "transition-all duration-300",
           inCart
-            ? [
-                "bg-white/55 border-emerald-200/60",
-                "shadow-[0_4px_24px_rgba(16,185,129,0.10),inset_0_1px_0_rgba(255,255,255,0.9)]",
-              ]
-            : [
-                "bg-white/55 border-white/70",
-                "shadow-[0_4px_24px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,0.9)]",
-                "hover:shadow-[0_8px_40px_rgba(249,115,22,0.10),inset_0_1px_0_rgba(255,255,255,0.9)]",
-                "hover:border-orange-100/80",
-              ]
+            ? "border-orange-200 shadow-[0_4px_20px_rgba(249,115,22,0.12)]"
+            : "border-stone-100 shadow-[0_2px_12px_rgba(0,0,0,0.06)] hover:shadow-[0_8px_32px_rgba(249,115,22,0.12)] hover:border-orange-100"
         )}
       >
-        {/* ── Specular shine overlay (top-left diagonal) ── */}
-        <div className="pointer-events-none absolute inset-0 rounded-[28px] overflow-hidden z-10">
-          <div className="absolute -top-1/2 -left-1/2 w-full h-3/4 rotate-[-25deg] bg-gradient-to-br from-white/80 to-transparent" />
-          {/* Orange ambient glow  */}
-          <div className="absolute bottom-0 right-0 w-1/2 h-1/2 rounded-full blur-2xl bg-orange-100/40" />
-        </div>
-
         {/* ── Image area ── */}
         <Link
           href={`${detailBasePath}/${p.slug}`}
           className={cn(
             "relative block w-full overflow-hidden flex-shrink-0",
-            "rounded-t-[28px]",
+            "rounded-t-[20px] bg-stone-50",
             compact ? "aspect-[1.1/1]" : "aspect-square",
           )}
         >
@@ -192,201 +176,185 @@ export function ProductCardClient({
               alt={p.name}
               fill
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-              className="object-cover group-hover:scale-[1.06] transition-transform duration-500 ease-[cubic-bezier(0.23,1,0.32,1)]"
+              className="object-cover group-hover:scale-[1.05] transition-transform duration-500 ease-[cubic-bezier(0.23,1,0.32,1)]"
               priority={false}
               onError={() => setImageError(true)}
             />
           ) : (
-            /* Fallback — glass-tinted initial letter */
             <div
               className="absolute inset-0 flex items-center justify-center"
-              style={{
-                background: "linear-gradient(135deg, rgba(245,244,241,1) 0%, rgba(255,237,213,0.4) 100%)",
-              }}
+              style={{ background: "linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)" }}
             >
-              <span className="text-5xl font-black uppercase tracking-tighter text-orange-200/80 group-hover:scale-110 transition-transform duration-500">
+              <span className="text-5xl font-black uppercase tracking-tighter text-orange-300 group-hover:scale-110 transition-transform duration-500">
                 {p.name.charAt(0)}
               </span>
             </div>
           )}
 
-          {/* Hover dark scrim */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-400 z-10" />
+          {/* Hover scrim */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10" />
 
-          {/* TOP-LEFT badges */}
-          <div className="absolute top-2.5 left-2.5 flex flex-col gap-1.5 z-20">
-            {inCart && cartChecked && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/90 backdrop-blur-xl px-2.5 py-1 text-[10px] font-bold text-white shadow-[0_2px_8px_rgba(16,185,129,0.4)]">
-                <CheckCircle2 className="h-3 w-3" /> In Cart
+          {/* TOP-LEFT: discount % badge */}
+          {discount > 0 && (
+            <div className="absolute top-2 left-2 z-20">
+              <span className="inline-flex items-center rounded-[8px] bg-red-500 px-2 py-0.5 text-[10px] font-black text-white shadow-sm">
+                {discount}% OFF
               </span>
-            )}
-            {discount > 0 && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-red-500/90 backdrop-blur-xl px-2.5 py-1 text-[10px] font-bold text-white shadow-[0_2px_8px_rgba(239,68,68,0.35)]">
-                <Tag className="h-3 w-3" /> -{discount}%
+            </div>
+          )}
+
+          {/* TOP-RIGHT: vendor name chip */}
+          {p.vendors?.business_name && (
+            <div className="absolute top-2 right-2 z-20">
+              <span
+                className="inline-flex items-center rounded-[8px] px-2 py-0.5 text-[9px] font-black text-white uppercase tracking-wide shadow-sm"
+                style={{ background: "rgba(30,30,30,0.75)", backdropFilter: "blur(8px)" }}
+              >
+                {p.vendors.business_name.slice(0, 6)}
               </span>
-            )}
-            {isDigital && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-violet-500/90 backdrop-blur-xl px-2.5 py-1 text-[10px] font-bold text-white shadow-[0_2px_8px_rgba(139,92,246,0.35)]">
-                <Zap className="h-3 w-3" /> Digital
+            </div>
+          )}
+
+          {/* SALE overlay banner (when discounted and no image) */}
+          {discount > 0 && !imgSrc && (
+            <div className="absolute top-1/3 left-0 right-0 flex items-center justify-center z-20">
+              <span
+                className="px-4 py-1 rounded-full text-[11px] font-black text-white uppercase tracking-widest"
+                style={{ background: "linear-gradient(90deg, #f97316, #ea580c)" }}
+              >
+                SALE
+              </span>
+            </div>
+          )}
+
+          {/* BOTTOM-RIGHT: type badge (DIGITAL / PHYSICAL) */}
+          <div className="absolute bottom-2 right-2 z-20">
+            {isDigital ? (
+              <span
+                className="inline-flex items-center gap-1 rounded-[8px] px-2 py-0.5 text-[9px] font-black text-white uppercase tracking-wide shadow-sm"
+                style={{ background: "linear-gradient(135deg, #f97316, #ea580c)" }}
+              >
+                <Zap className="h-2.5 w-2.5" /> DIGITAL
+              </span>
+            ) : (
+              <span
+                className="inline-flex items-center gap-1 rounded-[8px] px-2 py-0.5 text-[9px] font-black uppercase tracking-wide shadow-sm"
+                style={{ background: "rgba(255,255,255,0.85)", backdropFilter: "blur(8px)", color: "#78716c" }}
+              >
+                <Package className="h-2.5 w-2.5" /> PHYSICAL
               </span>
             )}
           </div>
 
-          {/* TOP-RIGHT: wishlist button */}
-          {showWishlist && (
-            <button
-              type="button"
-              onClick={handleWishlist}
-              className={cn(
-                "absolute top-2.5 right-2.5 z-20",
-                "h-8 w-8 rounded-full flex items-center justify-center",
-                "bg-white/80 backdrop-blur-xl border border-white/70 shadow-md",
-                "hover:scale-110 active:scale-95 transition-all duration-150",
-                inWishlist && "bg-red-50/90 border-red-200/50"
-              )}
-            >
-              <Heart
-                className={cn(
-                  "h-3.5 w-3.5 transition-all duration-300",
-                  wishlistAnimating && "scale-125",
-                  inWishlist ? "fill-red-500 text-red-500" : "text-stone-500"
-                )}
-              />
-            </button>
-          )}
-
           {/* BOTTOM hover actions — slide up */}
           <div className={cn(
-            "absolute left-2.5 right-2.5 z-20 flex gap-2",
-            "transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]",
+            "absolute left-2 right-2 z-20 flex gap-1.5",
+            "transition-all duration-400 ease-[cubic-bezier(0.16,1,0.3,1)]",
             compact
               ? "bottom-2 translate-y-[200%] group-hover:translate-y-0"
-              : "bottom-2.5 translate-y-[160%] group-hover:translate-y-0"
+              : "bottom-10 translate-y-[200%] group-hover:translate-y-0"
           )}>
-            {/* Chat button */}
+            {/* Chat */}
             <button
               type="button"
               onClick={handleChat}
               className={cn(
-                "flex-1 flex items-center justify-center gap-1.5",
-                "rounded-[14px] font-semibold",
-                "bg-white/90 backdrop-blur-xl text-stone-700",
-                "border border-white/70 shadow-[0_4px_16px_rgba(0,0,0,0.12)]",
-                "hover:bg-white hover:text-orange-600 active:scale-95 transition-all",
-                compact ? "h-8 text-[10px]" : "h-9 text-[11px]"
+                "flex-1 flex items-center justify-center gap-1",
+                "rounded-[10px] font-semibold bg-white/90 backdrop-blur-md text-stone-700",
+                "border border-white/80 shadow-sm hover:text-orange-600 active:scale-95 transition-all",
+                compact ? "h-7 text-[9px]" : "h-8 text-[10px]"
               )}
             >
-              <MessageCircle className={compact ? "h-3 w-3" : "h-3.5 w-3.5"} />
+              <MessageCircle className={compact ? "h-2.5 w-2.5" : "h-3 w-3"} />
               Chat
             </button>
-
-            {/* Cart button */}
+            {/* Cart */}
             <button
               type="button"
               onClick={handleCartToggle}
               disabled={loading}
-              title={inCart ? "Click to remove from cart" : "Add to cart"}
               className={cn(
-                "flex-1 flex items-center justify-center gap-1.5",
-                "rounded-[14px] font-semibold text-white",
-                "active:scale-95 transition-all disabled:opacity-60 shadow-lg group/cartbtn",
-                compact ? "h-8 text-[10px]" : "h-9 text-[11px]",
+                "flex-1 flex items-center justify-center gap-1",
+                "rounded-[10px] font-semibold text-white",
+                "active:scale-95 transition-all disabled:opacity-60 shadow-sm group/cartbtn",
+                compact ? "h-7 text-[9px]" : "h-8 text-[10px]",
                 inCart
-                  ? "bg-emerald-500 hover:bg-red-500 shadow-[0_4px_16px_rgba(16,185,129,0.4)]"
-                  : "bg-gradient-to-br from-[#f97316] to-[#ea580c] hover:from-orange-400 hover:to-orange-500 shadow-[0_4px_16px_rgba(249,115,22,0.40)]"
+                  ? "bg-emerald-500 hover:bg-red-500"
+                  : "bg-gradient-to-br from-[#f97316] to-[#ea580c]"
               )}
             >
               {loading ? (
-                <span className={cn("border-2 border-white/40 border-t-white rounded-full animate-spin", compact ? "h-3 w-3" : "h-3.5 w-3.5")} />
+                <span className={cn("border-2 border-white/40 border-t-white rounded-full animate-spin", compact ? "h-2.5 w-2.5" : "h-3 w-3")} />
               ) : inCart ? (
                 <>
-                  <CheckCircle2 className={cn("group-hover/cartbtn:hidden", compact ? "h-3 w-3" : "h-3.5 w-3.5")} />
+                  <CheckCircle2 className={cn("group-hover/cartbtn:hidden", compact ? "h-2.5 w-2.5" : "h-3 w-3")} />
                   <span className="group-hover/cartbtn:hidden">{compact ? "In" : "In Cart"}</span>
-                  <Trash2 className={cn("hidden group-hover/cartbtn:block", compact ? "h-3 w-3" : "h-3.5 w-3.5")} />
-                  <span className="hidden group-hover/cartbtn:block">{compact ? "Del" : "Remove"}</span>
+                  <Trash2 className={cn("hidden group-hover/cartbtn:block", compact ? "h-2.5 w-2.5" : "h-3 w-3")} />
+                  <span className="hidden group-hover/cartbtn:block">Remove</span>
                 </>
               ) : (
-                <><ShoppingCart className={compact ? "h-3 w-3" : "h-3.5 w-3.5"} /> Add</>
+                <><ShoppingCart className={compact ? "h-2.5 w-2.5" : "h-3 w-3"} /> Add</>
               )}
             </button>
           </div>
         </Link>
 
         {/* ── Info area ── */}
-        <div className="relative z-10 flex flex-col flex-1 px-3.5 pt-3 pb-3.5 gap-1.5">
-
+        <div className="flex flex-col flex-1 px-3 pt-2.5 pb-3 gap-1">
           {/* Product name */}
           <Link href={`${detailBasePath}/${p.slug}`} className="min-w-0">
             <h3 className={cn(
-              "font-semibold text-stone-800 leading-[1.25] group-hover:text-orange-600 transition-colors duration-200",
-              compact ? "text-[11px] line-clamp-1" : "text-[12.5px] sm:text-[13px] line-clamp-2"
+              "font-semibold text-stone-800 leading-[1.3] group-hover:text-orange-600 transition-colors duration-200",
+              compact ? "text-[11px] line-clamp-1" : "text-[12px] sm:text-[12.5px] line-clamp-2"
             )}>
               {p.name}
             </h3>
           </Link>
 
-          {/* Star rating */}
-          {stars > 0 && (
-            <div className="flex items-center gap-1">
-              <div className="flex items-center gap-0.5">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <Star
-                    key={i}
-                    className={cn(
-                      "h-2.5 w-2.5",
-                      i < stars ? "fill-amber-400 text-amber-400" : "text-stone-200 fill-stone-200"
-                    )}
-                  />
-                ))}
-              </div>
-              {p.review_count ? (
-                <span className="text-[9px] text-stone-400 font-medium">({p.review_count})</span>
-              ) : null}
-            </div>
-          )}
-
-          {/* Price row */}
-          <div className="mt-auto pt-2.5 flex items-end justify-between gap-2 border-t border-white/60">
-            <div className="min-w-0">
-              <LocalizedPrice
-                amount={price}
-                currency={p.currency}
-                className="text-[13px] sm:text-[14px] font-bold text-orange-600 tabular-nums"
-              />
-              {discount > 0 && (
-                <p className="text-[10px] text-stone-400 line-through tabular-nums">
-                  <LocalizedPrice amount={compareAt} currency={p.currency} className="inline" />
-                </p>
-              )}
-            </div>
-
-            {/* Affiliate commission badge */}
-            {p.affiliate_enabled && commissionRate && (
-              <span className="shrink-0 inline-flex items-center gap-0.5 rounded-full bg-orange-50/80 border border-orange-200/50 text-orange-600 px-2 py-0.5 text-[9px] font-bold backdrop-blur-xl">
-                <TrendingUp className="h-2.5 w-2.5" />{commissionRate}%
-              </span>
+          {/* Price */}
+          <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+            <LocalizedPrice amount={price} currency={p.currency} className={cn("font-black tracking-tight text-stone-900", compact ? "text-[16px]" : "text-[19px]")} />
+            {discount > 0 && (
+              <LocalizedPrice amount={compareAt} currency={p.currency} className="text-[12px] font-bold text-stone-400 line-through md:inline-block" />
             )}
           </div>
 
-          {/* Mobile CTA button */}
+          {/* Star rating */}
+          {stars > 0 && (
+            <div className="flex items-center gap-1">
+              <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+              <span className="text-[11px] font-semibold text-stone-600">{(p.rating ?? 0).toFixed(1)}</span>
+              {p.review_count ? (
+                <span className="text-[10px] text-stone-400">({p.review_count})</span>
+              ) : null}
+              {/* Affiliate badge */}
+              {p.affiliate_enabled && commissionRate && (
+                <span className="ml-auto inline-flex items-center gap-0.5 rounded-full bg-orange-50 border border-orange-200/60 text-orange-600 px-1.5 py-0.5 text-[9px] font-bold">
+                  <TrendingUp className="h-2.5 w-2.5" />{commissionRate}%
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* Mobile Add to Cart */}
           <button
             type="button"
             onClick={handleCartToggle}
             disabled={loading}
             className={cn(
-              "sm:hidden mt-1 w-full h-9 rounded-[14px] text-[11px] font-semibold text-white transition-all",
+              "sm:hidden mt-1 w-full h-8 rounded-[12px] text-[11px] font-bold text-white transition-all active:scale-[0.97]",
               inCart
-                ? "bg-emerald-500 hover:bg-red-500"
-                : "bg-gradient-to-br from-[#f97316] to-[#ea580c] hover:from-orange-400 hover:to-orange-500",
-              "shadow-[0_3px_12px_rgba(249,115,22,0.30)] active:scale-[0.97]"
+                ? "bg-emerald-500"
+                : "bg-gradient-to-br from-[#f97316] to-[#ea580c]",
+              "shadow-[0_3px_10px_rgba(249,115,22,0.25)]"
             )}
           >
             {loading ? (
               <span className="h-3.5 w-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin inline-block" />
             ) : inCart ? (
-              <><Trash2 className="h-3 w-3 inline mr-1.5" />Remove from Cart</>
+              <><Trash2 className="h-3 w-3 inline mr-1" />Remove</>
             ) : (
-              <><ShoppingCart className="h-3 w-3 inline mr-1.5" />Add to Cart</>
+              <><ShoppingCart className="h-3 w-3 inline mr-1" />Add to Cart</>
             )}
           </button>
         </div>

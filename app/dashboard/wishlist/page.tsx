@@ -24,19 +24,19 @@ export default async function WishlistPage() {
   return (
     <div
       className="min-h-screen animate-in fade-in duration-500 pb-12"
-      style={{
-        background: "radial-gradient(ellipse 80% 60% at 80% 0%, rgba(251,146,60,0.07) 0%, transparent 50%), radial-gradient(ellipse 60% 50% at 0% 100%, rgba(186,230,253,0.07) 0%, transparent 55%), #f0ede8",
-      }}
+      style={{ background: "#f8f7f5" }}
     >
-      <div className="max-w-6xl mx-auto space-y-8 px-4 sm:px-6 pt-5">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-stone-900 flex items-center gap-3">
-             <div className="p-2 rounded-[14px] bg-white/60 border border-white/80 shadow-sm shrink-0">
-               <Heart className="h-6 w-6 text-rose-500" />
-             </div>
-             Saved Products
-          </h1>
-          <p className="text-[12px] font-semibold text-stone-500 mt-1 uppercase tracking-widest pl-14">Products you’ve bookmarked</p>
+      <div className="max-w-6xl mx-auto space-y-6 sm:space-y-10 px-4 sm:px-6 pt-6 sm:pt-12 relative z-10">
+        <div className="flex items-center gap-4">
+           <div className="p-2.5 rounded-2xl bg-white border border-stone-50 shadow-sm shrink-0">
+              <Heart className="h-6 w-6 text-rose-500 fill-rose-500/10" />
+           </div>
+           <div className="space-y-0.5">
+              <h1 className="text-xl sm:text-2xl font-black text-stone-900 tracking-tight">Saved Items</h1>
+              <p className="text-[10px] sm:text-[11px] font-bold text-stone-400 uppercase tracking-widest leading-none pl-0.5 opacity-80">
+                 Manage your bookmarked marketplace products
+              </p>
+           </div>
         </div>
         <WishlistGrid initialItems={items} />
       </div>

@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import {
   Twitter, Youtube, Mail,
-  ShieldCheck, CreditCard, Lock, ArrowUp, ChevronRight,
+  ShieldCheck, CreditCard, Lock, ChevronRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ContactSettings } from "@/lib/platform-settings-shared";
@@ -283,23 +283,6 @@ export function Footer({ contact: contactProp }: { contact?: ContactSettings }) 
         </div>
       </div>
 
-      {/* ── Back to top — orange glass pill ── */}
-      <button
-        type="button"
-        onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-        aria-label="Back to top"
-        className="fixed bottom-8 right-8 z-[200] flex items-center justify-center transition-all hover:-translate-y-1.5 active:scale-90"
-        style={{
-          width: 48, height: 48, borderRadius: "50%",
-          background: "linear-gradient(135deg, rgba(249,115,22,0.95), rgba(234,88,12,0.9))",
-          border: "1px solid rgba(255,255,255,0.3)",
-          boxShadow: "0 8px 28px rgba(249,115,22,0.50), inset 0 1px 0 rgba(255,255,255,0.30)",
-        }}
-      >
-        {/* Inner specular */}
-        <div className="absolute inset-0 rounded-full" style={{ background: "linear-gradient(135deg, rgba(255,255,255,0.25) 0%, transparent 50%)" }} />
-        <ArrowUp className="relative z-10 h-5 w-5 text-white stroke-[2.5px]" />
-      </button>
     </footer>
   );
 }

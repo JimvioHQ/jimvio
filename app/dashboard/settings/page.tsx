@@ -154,40 +154,40 @@ export default function SettingsPage() {
         background: "radial-gradient(ellipse 80% 60% at 80% 0%, rgba(251,146,60,0.03) 0%, transparent 50%), radial-gradient(ellipse 60% 50% at 0% 100%, rgba(186,230,253,0.03) 0%, transparent 55%), #f8f7f5",
       }}
     >
-      <div className="max-w-4xl mx-auto space-y-8 px-6 pt-10 relative z-10">
+      <div className="max-w-4xl mx-auto space-y-6 sm:space-y-10 px-4 sm:px-6 pt-6 sm:pt-12 relative z-10">
         
         {/* Header - Simpler */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-           <div className="flex items-center gap-4">
-              <Button asChild variant="ghost" size="icon" className="shrink-0 h-10 w-10 rounded-xl bg-white border border-stone-100 shadow-sm hover:bg-white active:scale-95 transition-all text-stone-500">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-6">
+           <div className="flex items-center gap-3 sm:gap-4">
+              <Button asChild variant="ghost" size="icon" className="shrink-0 h-9 w-9 sm:h-10 sm:w-10 rounded-xl bg-white border border-stone-100 shadow-sm hover:bg-white active:scale-95 transition-all text-stone-500">
                 <Link href="/dashboard"><ArrowLeft className="h-4 w-4" /></Link>
               </Button>
-              <div className="space-y-1">
-                 <h1 className="text-2xl font-bold text-stone-900 tracking-tight">Account Settings</h1>
-                 <p className="text-[11px] font-bold text-stone-400 capitalize pl-0.5">Manage your profile and business</p>
+              <div className="space-y-0.5">
+                 <h1 className="text-xl sm:text-2xl font-black text-stone-900 tracking-tight">Account Settings</h1>
+                 <p className="text-[10px] sm:text-[11px] font-bold text-stone-400 uppercase tracking-widest leading-none pl-0.5 opacity-80">Manage your profile and business</p>
               </div>
            </div>
            
-           <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-stone-100 shadow-sm">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-stone-400 truncate max-w-[150px]">{userEmail}</span>
+           <div className="flex items-center gap-2 px-4 py-1.5 sm:py-2 rounded-full bg-white border border-stone-100 shadow-sm opacity-60">
+              <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-stone-400 truncate max-w-[120px] sm:max-w-[150px]">{userEmail}</span>
            </div>
         </div>
 
-        <Tabs defaultValue="profile" className="space-y-8">
-           <TabsList className="flex items-center gap-2 p-1 rounded-2xl bg-white/60 border border-stone-100 w-fit overflow-x-auto no-scrollbar">
-               <TabsTrigger value="profile" className="px-6 py-2.5 rounded-xl text-[11px] font-bold capitalize data-[state=active]:bg-orange-500 data-[state=active]:text-white data-[state=active]:shadow-[0_4px_12px_rgba(249,115,22,0.25)] shadow-none transition-all flex items-center gap-2">
-                 <User className="h-3.5 w-3.5" /> Profile
+        <Tabs defaultValue="profile" className="space-y-6 sm:space-y-8">
+           <TabsList className="flex items-center gap-1 p-1 rounded-2xl bg-white/60 border border-stone-100 w-fit overflow-x-auto no-scrollbar max-sm:w-full">
+               <TabsTrigger value="profile" className="px-4 sm:px-6 py-2 rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-stone-900 data-[state=active]:text-white shadow-none transition-all flex items-center gap-2">
+                 <User className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Profile
                </TabsTrigger>
                {vendor && (
-                 <TabsTrigger value="vendor" className="px-6 py-2.5 rounded-xl text-[11px] font-bold capitalize data-[state=active]:bg-orange-500 data-[state=active]:text-white data-[state=active]:shadow-[0_4px_12px_rgba(249,115,22,0.25)] shadow-none transition-all flex items-center gap-2">
-                   <Store className="h-3.5 w-3.5" /> Storefront
+                 <TabsTrigger value="vendor" className="px-4 sm:px-6 py-2 rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-stone-900 data-[state=active]:text-white shadow-none transition-all flex items-center gap-2">
+                   <Store className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Business
                  </TabsTrigger>
                )}
-               <TabsTrigger value="notifications" className="px-6 py-2.5 rounded-xl text-[11px] font-bold capitalize data-[state=active]:bg-orange-500 data-[state=active]:text-white data-[state=active]:shadow-[0_4px_12px_rgba(249,115,22,0.25)] shadow-none transition-all flex items-center gap-2">
-                 <Bell className="h-3.5 w-3.5" /> Alerts
+               <TabsTrigger value="notifications" className="px-4 sm:px-6 py-2 rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-stone-900 data-[state=active]:text-white shadow-none transition-all flex items-center gap-2">
+                 <Bell className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Alerts
                </TabsTrigger>
-               <TabsTrigger value="security" className="px-6 py-2.5 rounded-xl text-[11px] font-bold capitalize data-[state=active]:bg-orange-500 data-[state=active]:text-white data-[state=active]:shadow-[0_4px_12px_rgba(249,115,22,0.25)] shadow-none transition-all flex items-center gap-2">
-                 <Shield className="h-3.5 w-3.5" /> Security
+               <TabsTrigger value="security" className="px-4 sm:px-6 py-2 rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-stone-900 data-[state=active]:text-white shadow-none transition-all flex items-center gap-2">
+                 <Shield className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Security
                </TabsTrigger>
            </TabsList>
 

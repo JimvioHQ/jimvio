@@ -9,102 +9,24 @@ import {
   Package,
   Zap,
   ShieldCheck,
-  Globe,
   Sparkles,
   TrendingUp,
   Clock,
   Star,
-  Play,
-  Eye,
-  UserPlus,
-  X,
   ShoppingBag,
-  Percent,
+  X,
   ChevronRight,
+  MapPin,
+  Tag,
+  Award,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MarketplaceSearch, marketplaceHref } from "@/components/marketplace/marketplace-search";
-import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ProductCardClient } from "@/components/marketplace/product-card-client";
-import { SortSelect } from "@/components/marketplace/sort-select";
-import { TrendingProductClipsSection } from "@/components/marketplace/trending-product-clips-section";
-import { TopCreatorsSection } from "@/components/marketplace/top-creators-section";
-import { PopularStoresSection } from "@/components/marketplace/popular-stores-section";
 import { FollowButton } from "@/components/marketplace/follow-button";
 import { LocalizedPrice } from "@/components/currency/localized-price";
-import { GlassCard as GlobalGlassCard, GlassAmbientGlow } from "@/components/ui/glass";
-
-/* ─── Glass primitives (local, self-contained) ─── */
-function GlassCard({
-  children,
-  className,
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <GlobalGlassCard className={className} withSpecular>
-      {children}
-    </GlobalGlassCard>
-  );
-}
-
-/* Glass filter pill */
-function FilterPill({
-  active,
-  href,
-  icon: Icon,
-  label,
-}: {
-  active: boolean;
-  href: string;
-  icon?: React.ElementType;
-  label: string;
-}) {
-  return (
-    <Link
-      href={href}
-      className={cn(
-        "inline-flex items-center gap-2 px-4 py-2 rounded-full text-[12px] font-semibold transition-all whitespace-nowrap border backdrop-blur-xl",
-        active
-          ? "bg-orange-500 border-orange-400 text-white shadow-[0_4px_12px_rgba(249,115,22,0.3)]"
-          : "bg-white/60 border-white/70 text-stone-600 hover:bg-white/80 hover:text-orange-600 shadow-[0_2px_8px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.9)]"
-      )}
-    >
-      {Icon && <Icon className="h-3.5 w-3.5 shrink-0" />}
-      {label}
-    </Link>
-  );
-}
-
-/* Liquid sort button */
-function SortPill({
-  active,
-  href,
-  icon: Icon,
-  label,
-}: {
-  active: boolean;
-  href: string;
-  icon: React.ElementType;
-  label: string;
-}) {
-  return (
-    <Link
-      href={href}
-      className={cn(
-        "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold border transition-all backdrop-blur-xl",
-        active
-          ? "bg-orange-500/10 border-orange-400/30 text-orange-600"
-          : "bg-white/50 border-white/60 text-stone-500 hover:text-orange-600 hover:bg-white/70"
-      )}
-    >
-      <Icon className="h-3.5 w-3.5" />
-      {label}
-    </Link>
-  );
-}
+import { GlassAmbientGlow } from "@/components/ui/glass";
 
 /* ─── Types ─── */
 interface Product {
@@ -160,6 +82,237 @@ interface MarketplaceClientProps {
   };
 }
 
+/* ─── Hero Deal Banner ─── */
+function HeroDealBanner({ params, basePath }: { params: Record<string, string | undefined>, basePath?: string }) {
+  const type = params.type;
+  const isAll = !type;
+  const isDigital = type === "digital";
+  const isPhysical = type === "physical";
+
+  return (
+    <div className="relative overflow-hidden rounded-[28px] mx-0 mb-6 shadow-[0_8px_32px_rgba(251,146,60,0.15)] border border-white/60">
+      {/* Background with premium orange/peach gradient */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background: "linear-gradient(145deg, #fff3e0 0%, #ffedd5 40%, #ffedd5 70%, #fff7ed 100%)",
+        }}
+      />
+      
+      {/* Ambient glowing orbs for depth */}
+      <div className="absolute -top-10 -left-10 w-48 h-48 rounded-full mix-blend-multiply opacity-50 blur-2xl" style={{ background: "radial-gradient(circle, #fcd34d 0%, transparent 70%)" }} />
+      <div className="absolute top-10 -right-12 w-56 h-56 rounded-full mix-blend-multiply opacity-40 blur-2xl" style={{ background: "radial-gradient(circle, #fb923c 0%, transparent 70%)" }} />
+      <div className="absolute -bottom-16 left-1/4 w-40 h-40 rounded-full mix-blend-multiply opacity-30 blur-2xl" style={{ background: "radial-gradient(circle, #f97316 0%, transparent 70%)" }} />
+
+      {/* ── Dynamic Decorative Elements (Real Images) ── */}
+      
+      {/* 1. DIGITAL ITEMS */}
+      {(isAll || isDigital) && (
+        <>
+          <div className={cn(
+            "absolute z-0 flex items-center justify-center filter drop-shadow-2xl transition-all duration-[2000ms]",
+            isDigital ? "top-4 left-4 sm:left-12 rotate-[-5deg] scale-110" : "top-2 -left-8 sm:left-0 rotate-[-12deg] scale-90 sm:scale-100",
+            "animate-[bounce_6s_infinite]"
+          )}>
+            <div className="relative w-48 h-48 sm:w-80 sm:h-80 overflow-visible flex items-center justify-center">
+               <img src="/digital-cart.png" alt="3D Digital Cart" className="w-full h-full object-contain filter drop-shadow-[0_20px_30px_rgba(0,0,0,0.3)]" />
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* 2. DELIVERY CAR (Center) */}
+      {isAll && (
+        <div className="absolute z-0 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-20 sm:opacity-30 blur-[2px] pointer-events-none mix-blend-overlay w-[400px] sm:w-[600px] h-[400px] sm:h-[600px] rounded-full overflow-hidden">
+          <img src="https://images.unsplash.com/photo-1617469165786-8a07f0f6707f?q=80&w=800&auto=format&fit=crop" alt="Delivery Van" className="w-full h-full object-cover rounded-full filter contrast-125" />
+        </div>
+      )}
+
+      {/* 3. PHYSICAL ITEMS */}
+      {(isAll || isPhysical) && (
+        <>
+          <div className={cn(
+            "absolute z-0 flex items-center justify-center filter drop-shadow-2xl transition-all duration-[2000ms]",
+            isPhysical ? "bottom-4 left-4 sm:left-12 rotate-[5deg] scale-110" : "bottom-[-20px] -right-8 sm:-right-4 rotate-[15deg] scale-90 sm:scale-110",
+            "animate-[bounce_5s_infinite_0.5s]"
+          )}>
+            <div className="relative w-48 h-48 sm:w-80 sm:h-80 overflow-visible flex items-center justify-center">
+               <img src="https://png.pngtree.com/png-clipart/20250225/original/pngtree-shopping-cart-filled-with-electronic-gadgets-and-colorful-bags-looks-modern-png-image_20511724.png" alt="3D Shopping Cart" className="w-full h-full object-contain filter drop-shadow-[0_20px_30px_rgba(0,0,0,0.3)] mix-blend-multiply contrast-125" />
+            </div>
+          </div>
+        </>
+      )}
+
+      <div className="relative z-10 px-4 py-8 sm:py-10 flex flex-col items-center text-center">
+        {/* Title */}
+        <h2 className="text-[26px] sm:text-[32px] font-black text-stone-900 tracking-tight leading-tight mb-1">
+          <span className="inline-block animate-[spin_4s_linear_infinite] mr-2">🌟</span> 
+          Top Deals Today!
+        </h2>
+        
+        {/* Subtitle */}
+        <p className="text-[14px] sm:text-[16px] text-stone-600 font-medium mb-5">
+          Best offers waiting for you!
+        </p>
+        
+        {/* Delivery Badge */}
+        <div className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white/70 backdrop-blur-md border border-white shadow-sm mb-6">
+          <MapPin className="h-4 w-4 text-emerald-500" />
+          <span className="text-[12px] font-bold text-stone-700">Worldwide Delivery Available</span>
+        </div>
+
+        {/* Action Button */}
+        <Link
+          href={marketplaceHref(params, { sort: "trending" }, basePath)}
+          className="group relative inline-flex items-center justify-center overflow-hidden rounded-full p-4 px-8 font-black text-white shadow-[0_8px_20px_rgba(249,115,22,0.4)] transition-transform hover:scale-105 active:scale-95"
+        >
+          <span className="absolute inset-0 bg-gradient-to-r from-orange-400 via-orange-500 to-amber-500" />
+          <span className="absolute inset-0 opacity-0 transition-opacity group-hover:opacity-20 flex" style={{ background: "linear-gradient(to right, transparent, white, transparent)" }} />
+          <span className="relative z-10 text-[15px] tracking-wide">Check Offers</span>
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Product Type Tabs (Segmented Control) ─── */
+function TypeTabs({ params, basePath }: { params: Record<string, string | undefined>; basePath?: string; }) {
+  const isDigital = params.type === "digital";
+  const isPhysical = params.type === "physical";
+  const isAll = !params.type;
+
+  const tabs = [
+    { label: "All", type: null as string | null },
+    { label: "Digital Products", type: "digital" },
+    { label: "Physical Products", type: "physical" },
+  ];
+
+  return (
+    <div className="flex justify-center w-full">
+      <div className="flex items-center p-1.5 rounded-[18px] bg-stone-200/60 backdrop-blur-md shadow-inner border border-stone-200/50 w-full md:w-auto overflow-hidden">
+        {tabs.map((tab) => {
+          const isActive = tab.type === null ? isAll : params.type === tab.type;
+          const href = tab.type
+            ? marketplaceHref(params, { type: tab.type, catalog: null }, basePath)
+            : marketplaceHref(params, { type: null, catalog: null }, basePath);
+
+          return (
+            <Link
+              key={tab.label}
+              href={href}
+              className={cn(
+                "relative flex-1 md:flex-none shrink-0 flex items-center justify-center px-3 sm:px-6 py-2.5 rounded-[14px] text-[13px] sm:text-[14px] font-bold transition-all whitespace-nowrap z-10",
+                isActive
+                  ? "text-stone-900"
+                  : "text-stone-500 hover:text-stone-800 hover:bg-stone-100/50"
+              )}
+            >
+              {isActive && (
+                <motion.div
+                  layoutId="activeTabIndicator"
+                  className="absolute inset-0 bg-white rounded-[14px] shadow-[0_2px_10px_rgba(0,0,0,0.06)] border border-white"
+                  style={{ zIndex: -1 }}
+                  transition={{ type: "spring", stiffness: 450, damping: 35 }}
+                />
+              )}
+              {tab.label}
+            </Link>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ─── Category Chip ─── */
+function CategoryChip({
+  label,
+  active,
+  href,
+  icon,
+}: {
+  label: string;
+  active: boolean;
+  href: string;
+  icon?: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className={cn(
+        "shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-[12px] font-semibold transition-all border whitespace-nowrap",
+        active
+          ? "bg-orange-500 text-white border-orange-400 shadow-[0_4px_12px_rgba(249,115,22,0.30)]"
+          : "bg-white border-stone-200 text-stone-600 hover:border-orange-300 hover:text-orange-600 shadow-sm"
+      )}
+    >
+      {icon && <span className="text-base leading-none">{icon}</span>}
+      {label}
+    </Link>
+  );
+}
+
+/* ─── Sort Pill ─── */
+function SortPill({
+  active,
+  href,
+  icon: Icon,
+  label,
+}: {
+  active: boolean;
+  href: string;
+  icon?: React.ElementType;
+  label: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className={cn(
+        "shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-[12px] font-semibold border transition-all whitespace-nowrap",
+        active
+          ? "bg-orange-500 text-white border-orange-400 shadow-[0_4px_12px_rgba(249,115,22,0.30)]"
+          : "bg-white border-stone-200 text-stone-500 hover:border-orange-300 hover:text-orange-600 shadow-sm"
+      )}
+    >
+      {Icon && <Icon className="h-3.5 w-3.5" />}
+      {label}
+    </Link>
+  );
+}
+
+/* ─── Category icon map ─── */
+const CATEGORY_ICONS: Record<string, string> = {
+  electronics: "⚡",
+  fashion: "👗",
+  apparel: "👚",
+  home: "🏠",
+  furniture: "🛋️",
+  beauty: "💄",
+  health: "💊",
+  food: "🍎",
+  sports: "⚽",
+  toys: "🧸",
+  books: "📚",
+  automotive: "🚗",
+  garden: "🌿",
+  jewelry: "💎",
+  music: "🎵",
+  art: "🎨",
+  travel: "✈️",
+  pets: "🐾",
+  baby: "🍼",
+  tools: "🔧",
+};
+
+function getCategoryIcon(slug: string, name: string): string | undefined {
+  const s = `${slug} ${name}`.toLowerCase();
+  for (const [key, icon] of Object.entries(CATEGORY_ICONS)) {
+    if (s.includes(key)) return icon;
+  }
+  return undefined;
+}
+
+/* ─── Main Component ─── */
 export function MarketplaceClient({
   initialProducts,
   categories,
@@ -174,196 +327,106 @@ export function MarketplaceClient({
   cartProductIds = [],
   followedVendorIds = [],
   marketplaceStats,
-}: MarketplaceClientProps) {
+  basePath = "/marketplace",
+}: MarketplaceClientProps & { basePath?: string }) {
   const cartSet = useMemo(() => new Set(cartProductIds), [cartProductIds]);
   const followSet = useMemo(() => new Set(followedVendorIds), [followedVendorIds]);
   const totalPages = Math.ceil(total / limit);
-  const firstRowCount = 8;
-  const firstRow = initialProducts.slice(0, firstRowCount);
-  const secondRow = initialProducts.slice(firstRowCount);
-  const gridCols = "lg:grid-cols-4";
+
   const [modalClip, setModalClip] = useState<(typeof viralClips)[number] | null>(null);
   const closeModalClip = useCallback(() => setModalClip(null), []);
   useBodyScrollLock(!!modalClip);
   useEscapeClose(!!modalClip, closeModalClip);
 
   const paramsRecord = params as Record<string, string | undefined>;
-  const isSearchMode = Boolean(params.q?.trim());
   const currentSort = params.sort ?? "trending";
 
-  const typeLabels: Record<string, string> = {
-    physical: "Physical",
-    digital: "Digital",
-    software: "Software",
-    course: "Courses",
-    template: "Templates",
-    ebook: "Ebooks",
-  };
-
-  const activeCategoryName = categories.find((c) => c.slug === params.cat)?.name;
-
-  type FeedItem = { type: "product"; data: Product };
-  const mixedFeed = useMemo(() => {
-    return initialProducts.map((p) => ({ type: "product" as const, data: p }));
-  }, [initialProducts]);
+  const mixedFeed = useMemo(
+    () => initialProducts.map((p) => ({ type: "product" as const, data: p })),
+    [initialProducts]
+  );
 
   const statLine =
     marketplaceStats && (marketplaceStats.activeVendors > 0 || marketplaceStats.activeListings > 0)
-      ? `${marketplaceStats.activeVendorsLabel} sellers · ${marketplaceStats.activeListingsLabel} listings`
+      ? `${marketplaceStats.activeListingsLabel} listings available`
       : null;
 
   return (
-    <div className="min-h-screen relative overflow-hidden" style={{ background: "#f8f7f5" }}>
-      {/* Signature Jimvio Glows */}
-      <GlassAmbientGlow color="amber" position="top-right" className="opacity-40" />
-      <GlassAmbientGlow color="indigo" position="bottom-left" className="opacity-20" />
-      {/* ── Hero ── */}
-      <motion.div
-        initial={{ opacity: 0, y: -12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, ease: "easeOut" }}
-        className="relative z-40"
-      >
-        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 pt-8 pb-4 sm:pt-10 sm:pb-5">
-          {/* Breadcrumb */}
-          <div className="flex items-center gap-1.5 mb-5 text-[11px] font-semibold text-stone-400">
-            <Link href="/" className="hover:text-orange-500 transition-colors">Home</Link>
-            <ChevronRight className="h-3 w-3" />
-            <span className="text-stone-700">Marketplace</span>
-          </div>
+    <div className="min-h-screen relative" style={{ background: "#f5f5f7" }}>
+      <GlassAmbientGlow color="amber" position="top-right" className="opacity-30" />
 
-          {/* Hero glass card */}
-          <GlassCard className="px-5 py-6 sm:px-8 sm:py-8 mb-4">
-            <div
-              className="pointer-events-none absolute top-0 right-0 w-64 h-64 rounded-full blur-3xl"
-              style={{ background: "radial-gradient(circle, rgba(251,146,60,0.10), transparent 70%)" }}
-            />
-            <div className="relative flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-              <div className="space-y-3">
-                {/* Live badge */}
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-orange-50/80 border border-orange-200/60 backdrop-blur-xl shadow-sm">
-                  <span className="h-1.5 w-1.5 rounded-full bg-orange-500 shadow-[0_0_6px_rgba(249,115,22,0.9)] animate-pulse" />
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-orange-600">
-                    {statLine ?? "Live marketplace"}
-                  </span>
-                </div>
-                <h1 className="text-3xl sm:text-[40px] font-bold text-stone-900 tracking-tight leading-tight">
-                  Discover{" "}
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-orange-600">
-                    premium
-                  </span>{" "}
-                  products
-                </h1>
-                <p className="text-[14px] text-stone-500 max-w-lg leading-relaxed">
-                  Shop from verified vendors worldwide — physical, digital, software and more.
-                </p>
-              </div>
-
-              {/* Search + Sort */}
-              <div className="flex flex-col sm:flex-row gap-3 w-full lg:max-w-xl shrink-0">
-                <MarketplaceSearch currentParams={paramsRecord} className="w-full" />
-                <SortSelect currentSort={params.sort} />
-              </div>
-            </div>
-          </GlassCard>
-
-          {/* Type filter pills */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
-            {(
-              [
-                { label: "All types", type: null as string | null, catalog: null as string | null, icon: Sparkles },
-                { label: "Physical", type: "physical", catalog: null, icon: Package },
-                { label: "Digital", type: "digital", catalog: null, icon: Zap },
-                { label: "Software", type: "software", catalog: null, icon: Globe },
-              ] as const
-            ).map((t) => {
-              const href =
-                t.catalog === "shopify"
-                  ? marketplaceHref(paramsRecord, { catalog: "shopify", type: null })
-                  : t.type
-                  ? marketplaceHref(paramsRecord, { type: t.type, catalog: null })
-                  : marketplaceHref(paramsRecord, { type: null, catalog: null });
-              const active =
-                t.catalog === "shopify"
-                  ? params.catalog === "shopify"
-                  : !params.catalog && (t.type ? params.type === t.type : !params.type);
-              return (
-                <FilterPill key={t.label} active={active} href={href} icon={t.icon} label={t.label} />
-              );
-            })}
-            <FilterPill
-              active={params.affiliate === "1"}
-              href={
-                params.affiliate === "1"
-                  ? marketplaceHref(paramsRecord, { affiliate: null })
-                  : marketplaceHref(paramsRecord, { affiliate: "1" })
-              }
-              icon={Percent}
-              label="Affiliate picks"
-            />
-          </div>
-        </div>
-      </motion.div>
-
-      {/* ── Mobile sticky search + categories ── */}
+      {/* ── Sticky Top Bar ── */}
       <div
-        className="lg:hidden sticky top-0 z-[100] px-4 pt-3 pb-2 space-y-2 border-b border-white/50"
+        className="sticky top-0 z-50 border-b border-white/80 shadow-[0_4px_20px_rgba(0,0,0,0.03)]"
         style={{
-          background: "rgba(245,244,241,0.85)",
-          backdropFilter: "blur(20px)",
-          WebkitBackdropFilter: "blur(20px)",
+          background: "rgba(250,250,250,0.85)",
+          backdropFilter: "blur(32px)",
+          WebkitBackdropFilter: "blur(32px)",
         }}
       >
-        <MarketplaceSearch currentParams={paramsRecord} className="w-full" />
-        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-          {[{ slug: null as string | null, name: "All" }, ...categories].map((cat) => (
-            <Link
-              key={cat.slug ?? "all"}
-              href={marketplaceHref(paramsRecord, { cat: cat.slug ?? null })}
-              className={cn(
-                "shrink-0 px-3.5 py-1.5 rounded-full text-[11px] font-semibold transition-all border backdrop-blur-xl",
-                (!params.cat && !cat.slug) || params.cat === cat.slug
-                  ? "bg-orange-500 text-white border-orange-400 shadow-[0_2px_8px_rgba(249,115,22,0.25)]"
-                  : "bg-white/60 border-white/70 text-stone-500 hover:text-orange-500"
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 pt-3 pb-3">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-3 md:gap-6">
+            
+            {/* Search bar */}
+            <div className="w-full md:max-w-[420px] lg:max-w-[500px]">
+              <MarketplaceSearch currentParams={paramsRecord} className="w-full" basePath={basePath} />
+            </div>
+
+            {/* Right side controls */}
+            <div className="w-full md:w-auto flex flex-col md:flex-row items-center gap-4">
+              
+              {/* Segmented Type tabs */}
+              <div className="w-full md:w-auto">
+                <TypeTabs params={paramsRecord} basePath={basePath} />
+              </div>
+
+              {/* Stats Badge (Desktop Only) */}
+              {statLine && (
+                <div className="hidden lg:flex items-center gap-3 pl-5 border-l border-stone-200">
+                  <div className="relative flex h-2.5 w-2.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-stone-400 leading-none">Live DB</span>
+                    <span className="text-[13px] font-bold text-stone-700 leading-tight block mt-0.5">{statLine}</span>
+                  </div>
+                </div>
               )}
-            >
-              {cat.name}
-            </Link>
-          ))}
+              
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* ── Main layout ── */}
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-6 lg:py-8 flex flex-col lg:flex-row gap-6">
+      {/* ── Main Content ── */}
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-5 lg:py-6 flex flex-col lg:flex-row gap-6">
 
         {/* ── LEFT SIDEBAR (desktop) ── */}
-        <motion.aside
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.4, delay: 0.15 }}
-          className="hidden lg:block lg:w-60 shrink-0"
-        >
-          <div className="sticky top-24 space-y-4">
-            {/* Category glass card */}
-            <GlassCard className="p-4">
-              <h3 className="text-[9px] font-bold uppercase tracking-[0.2em] text-stone-400 mb-3">
+        <aside className="hidden lg:block lg:w-56 shrink-0">
+          <div className="sticky top-[130px] space-y-4">
+            {/* Category card */}
+            <div className="bg-white rounded-[20px] border border-stone-100 shadow-sm p-4">
+              <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-stone-400 mb-3">
                 Categories
               </h3>
               <div className="flex flex-col gap-0.5">
                 {[{ slug: null as string | null, name: "All categories" }, ...categories].map((cat) => {
                   const isActive = (!params.cat && !cat.slug) || params.cat === cat.slug;
+                  const icon = cat.slug ? getCategoryIcon(cat.slug, cat.name) : "🛍️";
                   return (
                     <Link
                       key={cat.slug || "all"}
-                      href={marketplaceHref(paramsRecord, { cat: cat.slug ?? null })}
+                      href={marketplaceHref(paramsRecord, { cat: cat.slug ?? null }, basePath)}
                       className={cn(
-                        "flex items-center justify-between py-2 px-3 rounded-[14px] text-[12px] font-semibold transition-all",
+                        "flex items-center gap-2.5 py-2 px-3 rounded-[12px] text-[12px] font-semibold transition-all",
                         isActive
-                          ? "bg-orange-50/80 text-orange-600 border border-orange-200/50"
-                          : "text-stone-500 hover:bg-white/60 hover:text-stone-800 border border-transparent"
+                          ? "bg-orange-50 text-orange-600 border border-orange-200/60"
+                          : "text-stone-500 hover:bg-stone-50 hover:text-stone-800 border border-transparent"
                       )}
                     >
-                      <span>{cat.name}</span>
+                      {icon && <span className="text-base leading-none">{icon}</span>}
+                      <span className="flex-1 truncate">{cat.name}</span>
                       {isActive && (
                         <span className="w-1.5 h-1.5 rounded-full bg-orange-500 shadow-[0_0_6px_rgba(249,115,22,0.8)]" />
                       )}
@@ -371,225 +434,225 @@ export function MarketplaceClient({
                   );
                 })}
               </div>
-            </GlassCard>
+            </div>
 
             {/* Support card */}
-            <GlassCard className="p-5">
+            <div className="bg-white rounded-[20px] border border-stone-100 shadow-sm p-5 relative overflow-hidden">
               <div
-                className="pointer-events-none absolute top-0 right-0 w-20 h-20 rounded-full blur-2xl"
-                style={{ background: "radial-gradient(circle, rgba(251,146,60,0.15), transparent)" }}
+                className="pointer-events-none absolute top-0 right-0 w-24 h-24 rounded-full blur-2xl opacity-40"
+                style={{ background: "radial-gradient(circle, #fb923c, transparent)" }}
               />
               <div
                 className="h-9 w-9 rounded-[12px] flex items-center justify-center mb-3 relative z-10"
-                style={{
-                  background: "linear-gradient(135deg, rgba(251,146,60,0.9), rgba(234,88,12,0.8))",
-                  boxShadow: "0 4px_12px rgba(251,146,60,0.3)",
-                }}
+                style={{ background: "linear-gradient(135deg, #f97316, #ea580c)" }}
               >
                 <ShieldCheck className="h-4 w-4 text-white" />
               </div>
-              <h4 className="text-[13px] font-bold text-stone-900 mb-1 relative z-10">Buyer support</h4>
+              <h4 className="text-[13px] font-bold text-stone-900 mb-1 relative z-10">Buyer Support</h4>
               <p className="text-[11px] text-stone-500 leading-relaxed mb-3 relative z-10">
                 Questions about an order or seller? Reach us anytime.
               </p>
               <Link
                 href="/contact"
-                className="block w-full py-2 px-4 rounded-full bg-white/70 border border-white/80 text-[11px] font-semibold text-stone-700 text-center hover:bg-white hover:text-orange-600 transition-all shadow-sm backdrop-blur-xl relative z-10"
+                className="block w-full py-2 px-4 rounded-full bg-orange-50 border border-orange-200/60 text-[11px] font-semibold text-orange-600 text-center hover:bg-orange-100 transition-all relative z-10"
               >
                 Contact Support
               </Link>
-            </GlassCard>
-          </div>
-        </motion.aside>
-
-        {/* ── PRODUCT GRID AREA ── */}
-        <div className="flex-1 min-w-0">
-          {/* Sort row + count */}
-          <div className="mb-4 flex flex-col sm:flex-row sm:items-center gap-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <SortPill
-                active={currentSort === "trending"}
-                href={marketplaceHref(paramsRecord, { sort: "trending" })}
-                icon={TrendingUp}
-                label="Trending"
-              />
-              <SortPill
-                active={currentSort === "newest"}
-                href={marketplaceHref(paramsRecord, { sort: "newest" })}
-                icon={Clock}
-                label="New"
-              />
             </div>
-            <p className="text-[12px] text-stone-400 sm:ml-auto tabular-nums">
-              <span className="font-semibold text-stone-700">{total}</span> result{total === 1 ? "" : "s"}
-            </p>
+          </div>
+        </aside>
+
+        {/* ── PRODUCT AREA ── */}
+        <div className="flex-1 min-w-0 space-y-4">
+
+          {/* Hero Deal Banner */}
+          <HeroDealBanner params={paramsRecord} basePath={basePath} />
+
+          {/* Category chips (mobile + desktop) */}
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+            <CategoryChip
+              label="All"
+              active={!params.cat}
+              href={marketplaceHref(paramsRecord, { cat: null }, basePath)}
+              icon="🛍️"
+            />
+            {categories.slice(0, 12).map((cat) => (
+              <CategoryChip
+                key={cat.slug}
+                label={cat.name}
+                active={params.cat === cat.slug}
+                href={marketplaceHref(paramsRecord, { cat: cat.slug }, basePath)}
+                icon={getCategoryIcon(cat.slug, cat.name)}
+              />
+            ))}
+          </div>
+
+          {/* Sort pills */}
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+            <SortPill
+              active={currentSort === "trending"}
+              href={marketplaceHref(paramsRecord, { sort: "trending" }, basePath)}
+              icon={TrendingUp}
+              label="Trending"
+            />
+            <SortPill
+              active={currentSort === "newest"}
+              href={marketplaceHref(paramsRecord, { sort: "newest" }, basePath)}
+              icon={Clock}
+              label="New"
+            />
+            <SortPill
+              active={currentSort === "best_selling"}
+              href={marketplaceHref(paramsRecord, { sort: "best_selling" }, basePath)}
+              icon={Award}
+              label="Best Selling"
+            />
+            <SortPill
+              active={currentSort === "price_asc"}
+              href={marketplaceHref(paramsRecord, { sort: "price_asc" }, basePath)}
+              label="Price ↑"
+            />
+            <SortPill
+              active={currentSort === "price_desc"}
+              href={marketplaceHref(paramsRecord, { sort: "price_desc" }, basePath)}
+              label="Price ↓"
+            />
           </div>
 
           {/* Active filter chips */}
-          {(params.q ||
-            params.cat ||
-            params.type ||
-            params.catalog ||
-            params.affiliate === "1" ||
-            (params.sort && params.sort !== "trending")) && (
-            <div className="mb-4 flex flex-wrap items-center gap-2">
+          {(params.q || params.cat || params.affiliate === "1") && (
+            <div className="flex flex-wrap items-center gap-2">
               <span className="text-[10px] font-semibold text-stone-400 uppercase tracking-widest">Filters:</span>
               {params.q?.trim() ? (
                 <Link
-                  href={marketplaceHref(paramsRecord, { q: null })}
-                  className="inline-flex items-center gap-1 rounded-full bg-white/60 border border-white/70 backdrop-blur-xl px-3 py-1 text-[11px] font-semibold text-stone-700 hover:border-orange-300 hover:text-orange-600 transition-all shadow-sm"
+                  href={marketplaceHref(paramsRecord, { q: null }, basePath)}
+                  className="inline-flex items-center gap-1 rounded-full bg-white border border-stone-200 px-3 py-1 text-[11px] font-semibold text-stone-700 hover:border-orange-300 hover:text-orange-600 transition-all shadow-sm"
                 >
                   "{params.q.trim()}" <X className="h-3 w-3 opacity-50" />
                 </Link>
               ) : null}
-              {activeCategoryName ? (
+              {params.cat ? (
                 <Link
-                  href={marketplaceHref(paramsRecord, { cat: null })}
-                  className="inline-flex items-center gap-1 rounded-full bg-white/60 border border-white/70 backdrop-blur-xl px-3 py-1 text-[11px] font-semibold text-stone-700 hover:border-orange-300 hover:text-orange-600 transition-all shadow-sm"
+                  href={marketplaceHref(paramsRecord, { cat: null }, basePath)}
+                  className="inline-flex items-center gap-1 rounded-full bg-white border border-stone-200 px-3 py-1 text-[11px] font-semibold text-stone-700 hover:border-orange-300 hover:text-orange-600 transition-all shadow-sm"
                 >
-                  {activeCategoryName} <X className="h-3 w-3 opacity-50" />
-                </Link>
-              ) : null}
-              {params.type ? (
-                <Link
-                  href={marketplaceHref(paramsRecord, { type: null })}
-                  className="inline-flex items-center gap-1 rounded-full bg-white/60 border border-white/70 backdrop-blur-xl px-3 py-1 text-[11px] font-semibold text-stone-700 hover:border-orange-300 hover:text-orange-600 transition-all shadow-sm"
-                >
-                  {typeLabels[params.type] ?? params.type} <X className="h-3 w-3 opacity-50" />
+                  {categories.find((c) => c.slug === params.cat)?.name ?? params.cat}{" "}
+                  <X className="h-3 w-3 opacity-50" />
                 </Link>
               ) : null}
               {params.affiliate === "1" ? (
                 <Link
-                  href={marketplaceHref(paramsRecord, { affiliate: null })}
-                  className="inline-flex items-center gap-1 rounded-full bg-white/60 border border-white/70 backdrop-blur-xl px-3 py-1 text-[11px] font-semibold text-stone-700 hover:border-orange-300 hover:text-orange-600 transition-all shadow-sm"
+                  href={marketplaceHref(paramsRecord, { affiliate: null }, basePath)}
+                  className="inline-flex items-center gap-1 rounded-full bg-white border border-stone-200 px-3 py-1 text-[11px] font-semibold text-stone-700 hover:border-orange-300 hover:text-orange-600 transition-all shadow-sm"
                 >
                   Affiliate <X className="h-3 w-3 opacity-50" />
                 </Link>
               ) : null}
-              {params.sort && params.sort !== "trending" ? (
-                <Link
-                  href={marketplaceHref(paramsRecord, { sort: null })}
-                  className="inline-flex items-center gap-1 rounded-full bg-white/60 border border-white/70 backdrop-blur-xl px-3 py-1 text-[11px] font-semibold text-stone-700 hover:border-orange-300 hover:text-orange-600 transition-all shadow-sm"
-                >
-                  Sort: {params.sort.replace(/_/g, " ")} <X className="h-3 w-3 opacity-50" />
-                </Link>
-              ) : null}
-              <Link href="/marketplace" className="text-[11px] font-semibold text-orange-500 hover:text-orange-600 ml-1">
+              <Link href={basePath} className="text-[11px] font-semibold text-orange-500 hover:text-orange-600 ml-1">
                 Clear all
               </Link>
             </div>
           )}
 
-          {/* Section heading */}
-          <h2 className="text-[14px] font-bold text-stone-700 mb-4">
-            {params.q?.trim()
-              ? `Results for "${params.q.trim()}"`
-              : params.cat || params.type
-              ? "Filtered products"
-              : "All products"}
-          </h2>
+          {/* Result count + section heading */}
+          <div className="flex items-center justify-between">
+            <h2 className="text-[15px] font-bold text-stone-800">
+              {params.q?.trim()
+                ? `Results for "${params.q.trim()}"`
+                : params.type === "digital"
+                ? "Digital Products"
+                : params.type === "physical"
+                ? "Physical Products"
+                : params.cat
+                ? (categories.find((c) => c.slug === params.cat)?.name ?? "Products")
+                : "All Products"}
+            </h2>
+            <span className="text-[12px] text-stone-400 tabular-nums">
+              <span className="font-semibold text-stone-600">{total}</span>{" "}
+              result{total === 1 ? "" : "s"}
+            </span>
+          </div>
 
+          {/* Product grid */}
           <AnimatePresence mode="wait">
-            {initialProducts.length > 0 || mixedFeed.length > 0 ? (
-              <div key={JSON.stringify(params)} className="space-y-8">
-                {/* Mobile: 2-col grid */}
-                <div className="lg:hidden grid grid-cols-2 gap-3 sm:gap-4 auto-rows-auto items-start">
+            {mixedFeed.length > 0 ? (
+              <motion.div
+                key={JSON.stringify(params)}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.25 }}
+              >
+                <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                   {mixedFeed.map((item, idx) => (
                     <motion.div
                       key={`product-${item.data.id}-${idx}`}
-                      initial={{ opacity: 0, y: 12 }}
+                      initial={{ opacity: 0, y: 16 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: idx * 0.03 }}
+                      transition={{
+                        delay: Math.min(idx * 0.04, 0.4),
+                        duration: 0.32,
+                        ease: [0.23, 1, 0.32, 1],
+                      }}
                     >
                       <ProductCardClient p={item.data} initialInCart={cartSet.has(item.data.id)} />
                     </motion.div>
                   ))}
                 </div>
 
-                {/* Desktop: stacked rows */}
-                <div className="hidden lg:block space-y-8">
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className={cn("grid grid-cols-2 sm:grid-cols-2 gap-x-5 gap-y-5", gridCols)}
-                  >
-                    {firstRow.map((p, idx) => (
-                      <motion.div
-                        key={p.id}
-                        layout
-                        initial={{ opacity: 0, scale: 0.96, y: 16 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        transition={{ duration: 0.35, delay: (idx % 8) * 0.04, ease: [0.23, 1, 0.32, 1] }}
-                      >
-                        <ProductCardClient p={p} initialInCart={cartSet.has(p.id)} />
-                      </motion.div>
-                    ))}
-                  </motion.div>
-
-                  {secondRow.length > 0 && (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className={cn("grid grid-cols-2 sm:grid-cols-2 gap-x-5 gap-y-5", gridCols)}
+                {/* Recommended section label */}
+                {initialProducts.length >= 8 && (
+                  <div className="mt-8 flex items-center justify-between">
+                    <h3 className="text-[15px] font-bold text-stone-800 flex items-center gap-2">
+                      <Sparkles className="h-4 w-4 text-orange-500" />
+                      Recommended for you
+                    </h3>
+                    <Link
+                      href="/marketplace"
+                      className="inline-flex items-center gap-1 text-[12px] font-semibold text-orange-500 hover:text-orange-600"
                     >
-                      {secondRow.map((p, idx) => (
-                        <motion.div
-                          key={p.id}
-                          layout
-                          initial={{ opacity: 0, scale: 0.96, y: 16 }}
-                          animate={{ opacity: 1, scale: 1, y: 0 }}
-                          transition={{ duration: 0.35, delay: (idx % 8) * 0.04, ease: [0.23, 1, 0.32, 1] }}
-                        >
-                          <ProductCardClient p={p} initialInCart={cartSet.has(p.id)} />
-                        </motion.div>
-                      ))}
-                    </motion.div>
-                  )}
-                </div>
-              </div>
+                      {total} Items <ChevronRight className="h-3.5 w-3.5" />
+                    </Link>
+                  </div>
+                )}
+              </motion.div>
             ) : (
               /* Empty state */
               <motion.div
                 initial={{ opacity: 0, scale: 0.98 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="relative overflow-hidden rounded-[28px] bg-white/50 border border-white/70 backdrop-blur-2xl shadow-[0_4px_24px_rgba(0,0,0,0.05)] p-12 sm:p-16 text-center"
+                className="bg-white rounded-[24px] border border-stone-100 shadow-sm p-12 sm:p-16 text-center"
               >
-                <div className="pointer-events-none absolute -top-1/2 -left-1/4 w-3/4 h-3/4 bg-gradient-to-br from-white/60 to-transparent rotate-[-20deg]" />
-                <div className="relative z-10">
-                  <div
-                    className="h-16 w-16 rounded-[20px] flex items-center justify-center mx-auto mb-5"
-                    style={{
-                      background: "rgba(251,146,60,0.08)",
-                      border: "1px solid rgba(251,146,60,0.15)",
-                    }}
-                  >
-                    <Search className="h-7 w-7 text-orange-400" />
-                  </div>
-                  <h3 className="text-[18px] font-bold text-stone-800 mb-2">No products match</h3>
-                  <p className="text-[13px] text-stone-500 mb-8 max-w-sm mx-auto leading-relaxed">
-                    Try a different search term, clear your filters, or browse all categories.
-                  </p>
-                  <Link href="/marketplace">
-                    <button
-                      type="button"
-                      className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-orange-500/10 backdrop-blur-md border border-orange-500/20 text-orange-600 text-[13px] font-black uppercase tracking-widest shadow-sm hover:bg-orange-500/20 transition-all hover:scale-105 active:scale-95"
-                    >
-                      View all products
-                    </button>
-                  </Link>
+                <div className="h-16 w-16 rounded-[20px] flex items-center justify-center mx-auto mb-5"
+                  style={{ background: "rgba(249,115,22,0.08)", border: "1px solid rgba(249,115,22,0.15)" }}
+                >
+                  <Search className="h-7 w-7 text-orange-400" />
                 </div>
+                <h3 className="text-[18px] font-bold text-stone-800 mb-2">No products match</h3>
+                <p className="text-[13px] text-stone-500 mb-8 max-w-sm mx-auto leading-relaxed">
+                  Try a different search term, clear your filters, or browse all categories.
+                </p>
+                <Link href={basePath}>
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-white text-[13px] font-bold transition-all hover:scale-105 active:scale-95 shadow-[0_4px_16px_rgba(249,115,22,0.35)]"
+                    style={{ background: "linear-gradient(135deg, #f97316, #ea580c)" }}
+                  >
+                    View all products
+                  </button>
+                </Link>
               </motion.div>
             )}
           </AnimatePresence>
 
           {/* Pagination */}
           {totalPages > 1 && initialProducts.length > 0 && (
-            <div className="flex items-center justify-center gap-2 mt-10 pb-8">
+            <div className="flex items-center justify-center gap-2 mt-8 pb-8">
               {currentPage > 1 ? (
-                <Link href={marketplaceHref(paramsRecord, { page: String(currentPage - 1) })}>
+                <Link href={marketplaceHref(paramsRecord, { page: String(currentPage - 1) }, basePath)}>
                   <button
                     type="button"
-                    className="px-4 py-2 rounded-full bg-white/60 border border-white/70 backdrop-blur-xl text-[12px] font-semibold text-stone-600 shadow-sm hover:bg-white/80 hover:text-orange-600 transition-all"
+                    className="px-4 py-2 rounded-full bg-white border border-stone-200 text-[12px] font-semibold text-stone-600 shadow-sm hover:border-orange-300 hover:text-orange-600 transition-all"
                   >
                     Previous
                   </button>
@@ -599,14 +662,14 @@ export function MarketplaceClient({
                 const pg = Math.max(1, currentPage - 2) + i;
                 if (pg > totalPages) return null;
                 return (
-                  <Link key={pg} href={marketplaceHref(paramsRecord, { page: String(pg) })}>
+                  <Link key={pg} href={marketplaceHref(paramsRecord, { page: String(pg) }, basePath)}>
                     <button
                       type="button"
                       className={cn(
-                        "min-w-[40px] h-10 px-3 rounded-full text-[12px] font-black transition-all border backdrop-blur-xl",
+                        "min-w-[40px] h-10 px-3 rounded-full text-[12px] font-black transition-all border",
                         pg === currentPage
-                          ? "bg-orange-500/10 border-orange-500/30 text-orange-600 shadow-sm"
-                          : "bg-white/60 border-white/70 text-stone-600 hover:bg-white/80 hover:text-orange-600"
+                          ? "bg-orange-500 border-orange-400 text-white shadow-[0_4px_12px_rgba(249,115,22,0.30)]"
+                          : "bg-white border-stone-200 text-stone-600 hover:border-orange-300 hover:text-orange-600"
                       )}
                     >
                       {pg}
@@ -615,10 +678,10 @@ export function MarketplaceClient({
                 );
               })}
               {currentPage < totalPages ? (
-                <Link href={marketplaceHref(paramsRecord, { page: String(currentPage + 1) })}>
+                <Link href={marketplaceHref(paramsRecord, { page: String(currentPage + 1) }, basePath)}>
                   <button
                     type="button"
-                    className="px-4 py-2 rounded-full bg-white/60 border border-white/70 backdrop-blur-xl text-[12px] font-semibold text-stone-600 shadow-sm hover:bg-white/80 hover:text-orange-600 transition-all"
+                    className="px-4 py-2 rounded-full bg-white border border-stone-200 text-[12px] font-semibold text-stone-600 shadow-sm hover:border-orange-300 hover:text-orange-600 transition-all"
                   >
                     Next
                   </button>
@@ -633,12 +696,12 @@ export function MarketplaceClient({
       {modalClip && (
         <>
           <div
-            className="fixed inset-0 z-[1000] overscroll-none bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+            className="fixed inset-0 z-[1000] bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
             onClick={closeModalClip}
             aria-hidden
           />
           <div className="fixed inset-0 z-[1001] flex items-center justify-center p-4 pointer-events-none">
-            <div className="pointer-events-auto w-full max-w-lg flex flex-col gap-0 bg-white/10 backdrop-blur-2xl rounded-[28px] overflow-hidden shadow-2xl border border-white/20 relative">
+            <div className="pointer-events-auto w-full max-w-lg flex flex-col bg-white/10 backdrop-blur-2xl rounded-[28px] overflow-hidden shadow-2xl border border-white/20 relative">
               <button
                 type="button"
                 onClick={closeModalClip}
@@ -667,7 +730,9 @@ export function MarketplaceClient({
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
                 <div className="absolute bottom-4 left-4 right-12 flex items-center gap-3">
                   <Avatar className="h-10 w-10 border-2 border-orange-400">
-                    <AvatarImage src={(modalClip.vendors as { logo_url?: string; business_logo?: string } | undefined)?.logo_url ?? (modalClip.vendors as { business_logo?: string } | undefined)?.business_logo} />
+                    <AvatarImage
+                      src={(modalClip.vendors as { logo_url?: string; business_logo?: string } | undefined)?.logo_url ?? (modalClip.vendors as { business_logo?: string } | undefined)?.business_logo}
+                    />
                     <AvatarFallback className="bg-orange-500 text-white font-bold">
                       {modalClip.vendors?.business_name?.[0] ?? "V"}
                     </AvatarFallback>
@@ -701,10 +766,14 @@ export function MarketplaceClient({
                       className="text-orange-400 font-bold"
                     />
                   </div>
-                  <Link href={`/marketplace/${(modalClip.products as { slug?: string }).slug ?? ""}?buy=1`} onClick={closeModalClip}>
+                  <Link
+                    href={`/marketplace/${(modalClip.products as { slug?: string }).slug ?? ""}?buy=1`}
+                    onClick={closeModalClip}
+                  >
                     <button
                       type="button"
-                      className="px-5 py-2.5 rounded-full bg-orange-500 text-white text-[12px] font-semibold hover:bg-orange-400 transition-all shadow-lg"
+                      className="px-5 py-2.5 rounded-full text-white text-[12px] font-semibold hover:opacity-90 transition-all shadow-lg"
+                      style={{ background: "linear-gradient(135deg, #f97316, #ea580c)" }}
                     >
                       Buy Now
                     </button>

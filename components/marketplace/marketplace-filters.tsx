@@ -21,10 +21,6 @@ export function MarketplaceFilters({
         {([
           { label: "Physical", value: "physical" },
           { label: "Digital", value: "digital" },
-          { label: "Courses", value: "course" },
-          { label: "Software", value: "software" },
-          { label: "Templates", value: "template" },
-          { label: "Ebooks", value: "ebook" },
           { label: "Shopify catalog", value: "shopify", href: "/marketplace?catalog=shopify" },
         ] as FilterItem[]).map((t) => {
           const href = "href" in t ? t.href : `/marketplace?type=${t.value}`;

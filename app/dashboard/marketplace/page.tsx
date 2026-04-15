@@ -1,7 +1,6 @@
-import React from "react";
-import { getCategories, getProducts, getTopVendors, type ProductQuery } from "@/services/db";
+import { getMarketplaceCategories, getProducts, getTopVendors, type ProductQuery } from "@/services/db";
 import { getCartProductIds, getFollowedVendorIds } from "@/lib/actions/marketplace";
-import { DashboardMarketplaceClient } from "@/components/dashboard/dashboard-marketplace-client";
+import { MarketplaceClient } from "@/components/marketplace/marketplace-client";
 
 interface PageProps {
   searchParams: Promise<{
@@ -37,7 +36,7 @@ export default async function DashboardMarketplacePage({ searchParams }: PagePro
   };
 
   const [categories, coreResult, vendors, cartProductIds, followedVendorIds] = await Promise.all([
-    getCategories().catch(() => []),
+    getMarketplaceCategories().catch(() => []),
     getProducts(query).catch(() => ({ products: [], total: 0 })),
     getTopVendors(6).catch(() => []),
     getCartProductIds().catch(() => []),
@@ -82,7 +81,7 @@ export default async function DashboardMarketplacePage({ searchParams }: PagePro
   );
 
   return (
-    <DashboardMarketplaceClient
+    <MarketplaceClient
       initialProducts={products}
       categories={categories}
       total={coreResult.total ?? 0}
@@ -92,6 +91,7 @@ export default async function DashboardMarketplacePage({ searchParams }: PagePro
       popularStores={popularStores}
       cartProductIds={cartProductIds}
       followedVendorIds={followedVendorIds}
+      basePath="/dashboard/marketplace"
     />
   );
 }
