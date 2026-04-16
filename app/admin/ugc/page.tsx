@@ -30,11 +30,11 @@ export default function AdminUGCPage() {
   const totalSubs   = campaigns.reduce((a, c) => a + (c.submission_count ?? 0), 0);
 
   return (
-    <div className="min-h-screen bg-[#f8f7f5] p-8">
+    <div className="min-h-screen bg-[var(--color-bg)] p-8">
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-black text-stone-900 tracking-tight">Campaign Operations</h1>
+            <h1 className="text-3xl font-black text-stone-900 dark:text-white tracking-tight">Campaign Operations</h1>
             <p className="text-sm text-stone-500 font-medium">Platform-wide UGC & clipping management</p>
           </div>
           <Link
@@ -53,16 +53,16 @@ export default function AdminUGCPage() {
             { label: 'Total Spent',     value: `$${totalSpent.toLocaleString()}`, accent: '#f59e0b' },
             { label: 'Total Views',     value: `${(totalViews / 1000).toFixed(1)}K`, accent: '#ec4899' },
           ].map((s) => (
-            <div key={s.label} className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
+            <div key={s.label} className="rounded-2xl border border-stone-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 shadow-sm">
                <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mb-1">{s.label}</p>
-               <p className="text-3xl font-black text-stone-900 leading-none">{s.value}</p>
+               <p className="text-3xl font-black text-stone-900 dark:text-white leading-none">{s.value}</p>
             </div>
           ))}
         </div>
 
         <div className="flex flex-wrap gap-3 mb-8">
           {['active','draft','paused','completed','cancelled'].map((s) => (
-            <div key={s} className="flex-1 min-w-[120px] rounded-xl bg-white border border-stone-100 p-4 shadow-sm text-center">
+            <div key={s} className="flex-1 min-w-[120px] rounded-xl bg-white dark:bg-zinc-900 border border-stone-100 dark:border-zinc-800 p-4 shadow-sm text-center">
               <p className={`text-xl font-black ${STATUS_COLORS[s]}`}>{byStatus(s)}</p>
               <p className="text-[10px] text-stone-400 font-bold uppercase tracking-wider mt-1">{s}</p>
             </div>
@@ -70,13 +70,13 @@ export default function AdminUGCPage() {
         </div>
 
         {/* Campaign Table */}
-        <div className="bg-white rounded-3xl border border-stone-200 shadow-sm overflow-hidden">
-          <div className="px-6 py-4 border-b border-stone-100 bg-stone-50/50">
+        <div className="bg-white dark:bg-zinc-900 rounded-3xl border border-stone-200 dark:border-zinc-800 shadow-sm overflow-hidden">
+          <div className="px-6 py-4 border-b border-stone-100 dark:border-zinc-800 bg-stone-50/50">
              <h2 className="text-sm font-black text-stone-700 uppercase tracking-widest">Active Campaigns</h2>
           </div>
           {loading ? (
             <div className="p-8 space-y-4">
-              {[1,2,3,4,5].map(i => <div key={i} className="h-12 rounded-xl bg-stone-50 animate-pulse" />)}
+              {[1,2,3,4,5].map(i => <div key={i} className="h-12 rounded-xl bg-stone-50 dark:bg-zinc-900/50 animate-pulse" />)}
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -92,7 +92,7 @@ export default function AdminUGCPage() {
                   {campaigns.map((c) => (
                     <tr key={c.id} className="hover:bg-stone-50/50 transition-colors">
                       <td className="px-6 py-4">
-                        <Link href={`/dashboard/vendor/campaigns/${c.id}`} className="font-bold text-stone-900 hover:text-orange-600 transition-colors">
+                        <Link href={`/dashboard/vendor/campaigns/${c.id}`} className="font-bold text-stone-900 dark:text-white hover:text-orange-600 transition-colors">
                           {c.title}
                         </Link>
                       </td>
@@ -102,7 +102,7 @@ export default function AdminUGCPage() {
                           {c.campaign_type}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-stone-900 font-bold">
+                      <td className="px-6 py-4 text-stone-900 dark:text-white font-bold">
                         {(c.total_views_tracked || 0).toLocaleString()} <span className="text-[10px] text-stone-400 font-medium">views</span>
                       </td>
                       <td className="px-6 py-4">
@@ -119,7 +119,7 @@ export default function AdminUGCPage() {
                            </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-stone-900 font-bold">{c.submission_count ?? 0}</td>
+                      <td className="px-6 py-4 text-stone-900 dark:text-white font-bold">{c.submission_count ?? 0}</td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
                            <div className={`w-2 h-2 rounded-full ${STATUS_COLORS[c.status].replace('text-', 'bg-')}`} />

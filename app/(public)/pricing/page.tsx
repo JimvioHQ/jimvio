@@ -101,7 +101,7 @@ export default function PricingPage() {
           <span className="text-sm text-white/50">Monthly</span>
           <div className="relative">
             <div className="w-12 h-6 bg-brand-600 rounded-full" />
-            <div className="absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow" />
+            <div className="absolute top-1 left-1 w-4 h-4 bg-white dark:bg-zinc-900 rounded-full shadow" />
           </div>
           <span className="text-sm text-white">Yearly</span>
           <Badge variant="success" className="text-xs">Save 20%</Badge>
@@ -109,7 +109,7 @@ export default function PricingPage() {
       </section>
 
       {/* Plans */}
-      <section className="py-10 px-4">
+      <section className="py-10 px-4 dark:bg-black">
         <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
           {plans.map((plan, i) => (
             <Card
@@ -163,8 +163,8 @@ export default function PricingPage() {
                 <ul className="space-y-2.5">
                   {plan.features.map((feature, fi) => (
                     <li key={fi} className="flex items-start gap-2.5 text-sm">
-                      <Check className="h-4 w-4 text-emerald-400 flex-shrink-0 mt-0.5" />
-                      <span className="text-white/70">{feature}</span>
+                      <Check className="h-4 w-4 text-emerald-40 flex-shrink-0 mt-0.5" />
+                      <span className="text-black/10 dark:text-white">{feature}</span>
                     </li>
                   ))}
                 </ul>

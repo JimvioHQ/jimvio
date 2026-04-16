@@ -52,7 +52,7 @@ export function WishlistGrid({ initialItems }: { initialItems: WishlistItem[] })
     return (
       <GlassCard className="p-12 text-center border-dashed">
         <Heart className="h-14 w-14 text-stone-300 mx-auto mb-4" />
-        <p className="text-lg font-bold text-stone-900 tracking-tight">No saved products</p>
+        <p className="text-lg font-bold text-stone-900 dark:text-white tracking-tight">No saved products</p>
         <p className="text-[12px] font-semibold text-stone-500 mt-1 uppercase tracking-widest">Save products from the marketplace to see them here.</p>
         <Button asChild className="mt-6 h-11 px-8 rounded-[14px] bg-stone-900 text-white font-bold text-[11px] uppercase tracking-widest shadow-xl active:scale-95 transition-all hover:bg-stone-800">
           <Link href="/dashboard/marketplace">Browse Marketplace</Link>
@@ -67,9 +67,9 @@ export function WishlistGrid({ initialItems }: { initialItems: WishlistItem[] })
         const imgSrc = product.images?.[0];
         const moq = product.inventory_quantity ?? 1;
         return (
-          <GlassCard key={rowId} className="overflow-hidden group hover:border-orange-200 transition-all p-1.5 bg-white/60 border-white shadow-sm rounded-2xl sm:rounded-3xl">
+          <GlassCard key={rowId} className="overflow-hidden group hover:border-orange-200 transition-all p-1.5 bg-white dark:bg-zinc-900/60 border-white shadow-sm rounded-2xl sm:rounded-3xl">
             <Link href={`/marketplace/${product.slug}`} className="block relative">
-              <div className="aspect-[4/3] rounded-xl sm:rounded-2xl bg-white border border-stone-50 flex items-center justify-center p-3 relative overflow-hidden shadow-sm">
+              <div className="aspect-[4/3] rounded-xl sm:rounded-2xl bg-white dark:bg-zinc-900 border border-stone-50 flex items-center justify-center p-3 relative overflow-hidden shadow-sm">
                 {imgSrc && !imageErrors[product.id] ? (
                   <img 
                     src={imgSrc} 
@@ -78,7 +78,7 @@ export function WishlistGrid({ initialItems }: { initialItems: WishlistItem[] })
                     onError={() => setImageErrors(prev => ({ ...prev, [product.id]: true }))}
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-stone-50">
+                  <div className="w-full h-full flex items-center justify-center bg-stone-50 dark:bg-zinc-900/50">
                     <span className="text-4xl font-black text-stone-200 uppercase tracking-tighter">
                       {product.name.charAt(0)}
                     </span>
@@ -89,7 +89,7 @@ export function WishlistGrid({ initialItems }: { initialItems: WishlistItem[] })
                   onClick={(e) => handleRemove(e, product.id)}
                   disabled={!!removingId}
                   className={cn(
-                    "absolute top-2 right-2 p-2 rounded-full shadow-md bg-white border border-stone-100 hover:bg-rose-50 hover:text-rose-600 text-rose-500 fill-rose-500 transition-all backdrop-blur-md active:scale-90"
+                    "absolute top-2 right-2 p-2 rounded-full shadow-md bg-white dark:bg-zinc-900 border border-stone-100 dark:border-zinc-800 hover:bg-rose-50 hover:text-rose-600 text-rose-500 fill-rose-500 transition-all backdrop-blur-md active:scale-90"
                   )}
                   title="Remove from saved"
                 >
@@ -99,10 +99,10 @@ export function WishlistGrid({ initialItems }: { initialItems: WishlistItem[] })
             </Link>
             <div className="p-3 sm:p-4 pt-4 sm:pt-5 pb-2 sm:pb-3">
               <div className="flex flex-col gap-0.5 mb-2 sm:mb-3">
-                  <p className="text-[12px] sm:text-[13px] font-black text-stone-900 line-clamp-1 leading-tight tracking-tight group-hover:text-orange-600 transition-colors uppercase">{product.name}</p>
+                  <p className="text-[12px] sm:text-[13px] font-black text-stone-900 dark:text-white line-clamp-1 leading-tight tracking-tight group-hover:text-orange-600 transition-colors uppercase">{product.name}</p>
                   <p className="text-[8px] sm:text-[9px] font-bold uppercase tracking-widest text-stone-400 opacity-60 truncate">{product.vendors?.business_name ?? "—"}</p>
               </div>
-              <p className="text-[14px] sm:text-[16px] font-black text-stone-900 tracking-tight mb-2 tabular-nums">{formatMoney(Number(product.price), product.currency)}</p>
+              <p className="text-[14px] sm:text-[16px] font-black text-stone-900 dark:text-white tracking-tight mb-2 tabular-nums">{formatMoney(Number(product.price), product.currency)}</p>
               <div className="flex items-center justify-between text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-stone-400 border-t border-stone-50 pt-3 opacity-80">
                 {product.rating != null ? (
                   <span className="flex items-center gap-1">
@@ -112,7 +112,7 @@ export function WishlistGrid({ initialItems }: { initialItems: WishlistItem[] })
                 <span>MOQ: {moq}</span>
               </div>
               <div className="mt-3 sm:mt-4">
-                <Button asChild className="w-full h-8 sm:h-10 rounded-lg sm:rounded-xl bg-white text-stone-900 border border-stone-100 hover:bg-stone-50 font-black text-[8px] sm:text-[9px] uppercase tracking-widest shadow-sm transition-all active:scale-95">
+                <Button asChild className="w-full h-8 sm:h-10 rounded-lg sm:rounded-xl bg-white dark:bg-zinc-900 text-stone-900 dark:text-white border border-stone-100 dark:border-zinc-800 hover:bg-stone-50 dark:bg-zinc-900/50 font-black text-[8px] sm:text-[9px] uppercase tracking-widest shadow-sm transition-all active:scale-95">
                   <Link href={`/marketplace/${product.slug}`}>
                     <Eye className="h-3 w-3 mr-2 text-stone-400" /> View Details
                   </Link>

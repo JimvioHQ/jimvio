@@ -5,44 +5,10 @@ import { CurrencyProvider } from "@/context/CurrencyContext";
 import { Toaster } from "sonner";
 import NextTopLoader from "nextjs-toploader";
 
-const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "https://jimvio.com";
+import { constructMetadata } from "@/lib/seo";
+import { JimvioJsonLd } from "@/components/seo/JimvioJsonLd";
 
-export const metadata: Metadata = {
-  title: {
-    default: "Jimvio – Global Creator-Commerce Ecosystem",
-    template: "%s | Jimvio",
-  },
-  description:
-    "Buy, sell, affiliate, and influence. Jimvio is the global creator-commerce platform built for Africa and beyond.",
-  keywords: ["marketplace", "ecommerce", "affiliate", "influencer", "B2B", "Rwanda", "Africa"],
-  authors: [{ name: "Jimvio" }],
-  creator: "Jimvio",
-  metadataBase: new URL(siteUrl),
-  openGraph: {
-    type: "website",
-    locale: "en_US",
-    url: siteUrl,
-    title: "Jimvio – Global Creator-Commerce Ecosystem",
-    description: "The all-in-one platform for buyers, vendors, affiliates, and influencers.",
-    siteName: "Jimvio",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Jimvio – Global Creator-Commerce Ecosystem",
-    description: "The all-in-one platform for buyers, vendors, affiliates, and influencers.",
-    creator: "@jimvio",
-  },
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: { index: true, follow: true, "max-video-preview": -1 },
-  },
-  icons: {
-    icon: "/jimvio-logo.png",
-    shortcut: "/jimvio-logo.png",
-    apple: "/jimvio-logo.png",
-  },
-};
+export const metadata = constructMetadata();
 
 import { ReferralTracker } from "@/components/affiliate/referral-tracker";
 
@@ -54,6 +20,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         className="font-sans antialiased min-h-screen bg-[var(--color-bg)] text-[var(--color-text-primary)] transition-colors duration-200"
       >
         <ThemeProvider>
+          <JimvioJsonLd />
           <NextTopLoader color="#f97316" height={3} showSpinner={false} easing="ease" speed={200} shadow="0 0 10px #f97316,0 0 5px #f97316" />
           <ReferralTracker />
           <CurrencyProvider>{children} </CurrencyProvider>

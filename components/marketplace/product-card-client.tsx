@@ -154,11 +154,10 @@ export function ProductCardClient({
       <div
         className={cn(
           "group relative flex flex-col h-full overflow-hidden",
-          "rounded-[20px] border bg-white",
-          "transition-all duration-300",
+          "rounded-[20px] border bg-surface transition-all duration-300",
           inCart
-            ? "border-orange-200 shadow-[0_4px_20px_rgba(249,115,22,0.12)]"
-            : "border-stone-100 shadow-[0_2px_12px_rgba(0,0,0,0.06)] hover:shadow-[0_8px_32px_rgba(249,115,22,0.12)] hover:border-orange-100"
+            ? "border-orange-500/30 shadow-[var(--shadow-glow)]"
+            : "border-border shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-lg)] hover:border-orange-500/20"
         )}
       >
         {/* ── Image area ── */}
@@ -166,7 +165,7 @@ export function ProductCardClient({
           href={`${detailBasePath}/${p.slug}`}
           className={cn(
             "relative block w-full overflow-hidden flex-shrink-0",
-            "rounded-t-[20px] bg-stone-50",
+            "rounded-t-[20px] bg-surface-secondary/50",
             compact ? "aspect-[1.1/1]" : "aspect-square",
           )}
         >
@@ -182,10 +181,9 @@ export function ProductCardClient({
             />
           ) : (
             <div
-              className="absolute inset-0 flex items-center justify-center"
-              style={{ background: "linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)" }}
+              className="absolute inset-0 flex items-center justify-center bg-orange-100/30 dark:bg-orange-950/20"
             >
-              <span className="text-5xl font-black uppercase tracking-tighter text-orange-300 group-hover:scale-110 transition-transform duration-500">
+              <span className="text-5xl font-black uppercase tracking-tighter text-orange-300 dark:text-orange-500/40 group-hover:scale-110 transition-transform duration-500">
                 {p.name.charAt(0)}
               </span>
             </div>
@@ -238,8 +236,7 @@ export function ProductCardClient({
               </span>
             ) : (
               <span
-                className="inline-flex items-center gap-1 rounded-[8px] px-2 py-0.5 text-[9px] font-black uppercase tracking-wide shadow-sm"
-                style={{ background: "rgba(255,255,255,0.85)", backdropFilter: "blur(8px)", color: "#78716c" }}
+                className="inline-flex items-center gap-1 rounded-[8px] px-2 py-0.5 text-[9px] font-black uppercase tracking-wide bg-surface/80 dark:bg-zinc-800/80 backdrop-blur-md border border-border text-stone-500 dark:text-stone-400 shadow-sm"
               >
                 <Package className="h-2.5 w-2.5" /> PHYSICAL
               </span>
@@ -260,8 +257,8 @@ export function ProductCardClient({
               onClick={handleChat}
               className={cn(
                 "flex-1 flex items-center justify-center gap-1",
-                "rounded-[10px] font-semibold bg-white/90 backdrop-blur-md text-stone-700",
-                "border border-white/80 shadow-sm hover:text-orange-600 active:scale-95 transition-all",
+                "rounded-[10px] font-semibold bg-surface/90 dark:bg-zinc-800/90 backdrop-blur-md text-stone-700 dark:text-stone-200",
+                "border border-border shadow-sm hover:text-orange-600 active:scale-95 transition-all text-stone-700 dark:text-stone-200",
                 compact ? "h-7 text-[9px]" : "h-8 text-[10px]"
               )}
             >
@@ -304,7 +301,7 @@ export function ProductCardClient({
           {/* Product name */}
           <Link href={`${detailBasePath}/${p.slug}`} className="min-w-0">
             <h3 className={cn(
-              "font-semibold text-stone-800 leading-[1.3] group-hover:text-orange-600 transition-colors duration-200",
+              "font-semibold text-stone-800 dark:text-white leading-[1.3] group-hover:text-orange-600 transition-colors duration-200",
               compact ? "text-[11px] line-clamp-1" : "text-[12px] sm:text-[12.5px] line-clamp-2"
             )}>
               {p.name}
@@ -313,9 +310,9 @@ export function ProductCardClient({
 
           {/* Price */}
           <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-            <LocalizedPrice amount={price} currency={p.currency} className={cn("font-black tracking-tight text-stone-900", compact ? "text-[16px]" : "text-[19px]")} />
+            <LocalizedPrice amount={price} currency={p.currency} className={cn("font-black tracking-tight text-stone-900 dark:text-white", compact ? "text-[16px]" : "text-[19px]")} />
             {discount > 0 && (
-              <LocalizedPrice amount={compareAt} currency={p.currency} className="text-[12px] font-bold text-stone-400 line-through md:inline-block" />
+              <LocalizedPrice amount={compareAt} currency={p.currency} className="text-[12px] font-bold text-stone-400 dark:text-stone-500 line-through md:inline-block" />
             )}
           </div>
 
@@ -323,13 +320,13 @@ export function ProductCardClient({
           {stars > 0 && (
             <div className="flex items-center gap-1">
               <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
-              <span className="text-[11px] font-semibold text-stone-600">{(p.rating ?? 0).toFixed(1)}</span>
+              <span className="text-[11px] font-semibold text-stone-600 dark:text-stone-300">{(p.rating ?? 0).toFixed(1)}</span>
               {p.review_count ? (
-                <span className="text-[10px] text-stone-400">({p.review_count})</span>
+                <span className="text-[10px] text-stone-400 dark:text-stone-500">({p.review_count})</span>
               ) : null}
               {/* Affiliate badge */}
               {p.affiliate_enabled && commissionRate && (
-                <span className="ml-auto inline-flex items-center gap-0.5 rounded-full bg-orange-50 border border-orange-200/60 text-orange-600 px-1.5 py-0.5 text-[9px] font-bold">
+                <span className="ml-auto inline-flex items-center gap-0.5 rounded-full bg-orange-100/50 dark:bg-orange-500/10 border border-orange-200/50 dark:border-orange-500/20 text-orange-600 dark:text-orange-500 px-1.5 py-0.5 text-[9px] font-bold">
                   <TrendingUp className="h-2.5 w-2.5" />{commissionRate}%
                 </span>
               )}

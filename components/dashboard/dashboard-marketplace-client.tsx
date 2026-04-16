@@ -167,7 +167,7 @@ export function DashboardMarketplaceClient({
   const selectedSort = SORT_OPTIONS.find((o) => o.value === (params.sort ?? "trending")) ?? SORT_OPTIONS[0];
 
   return (
-    <div className="min-h-screen bg-[#f8f7f5] pb-24 relative overflow-hidden">
+    <div className="min-h-screen bg-[var(--color-bg)] pb-24 relative overflow-hidden">
       <CartAside isOpen={cartOpen} onClose={() => setCartOpen(false)} />
       
       <div className="max-w-6xl mx-auto px-6 pt-10 relative z-10 space-y-8">
@@ -176,14 +176,14 @@ export function DashboardMarketplaceClient({
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
            <div className="space-y-4">
               <div className="flex items-center gap-3">
-                 <Button asChild variant="ghost" size="icon" className="h-10 w-10 rounded-xl bg-white border border-stone-100 shadow-sm hover:bg-white active:scale-95 transition-all text-stone-500">
+                 <Button asChild variant="ghost" size="icon" className="h-10 w-10 rounded-xl bg-white dark:bg-zinc-900 border border-stone-100 dark:border-zinc-800 shadow-sm hover:bg-white dark:bg-zinc-900 active:scale-95 transition-all text-stone-500">
                     <Link href="/dashboard"><ArrowLeft className="h-4 w-4" /></Link>
                  </Button>
                  <div className="h-1.5 w-1.5 rounded-full bg-stone-200" />
                  <span className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Marketplace</span>
               </div>
               <div className="space-y-1">
-                 <h1 className="text-3xl font-black text-stone-900 tracking-tight">Product Discovery</h1>
+                 <h1 className="text-3xl font-black text-stone-900 dark:text-white tracking-tight">Product Discovery</h1>
                  <p className="text-[12px] font-medium text-stone-500 leading-none">Find and save the best products from our community</p>
               </div>
            </div>
@@ -191,7 +191,7 @@ export function DashboardMarketplaceClient({
            <div className="flex items-center gap-3">
               <button
                 onClick={() => setCartOpen(true)}
-                className="relative flex items-center justify-center h-12 w-12 bg-white border border-stone-100 rounded-2xl text-stone-900 shadow-sm hover:bg-stone-50 active:scale-95 transition-all group"
+                className="relative flex items-center justify-center h-12 w-12 bg-white dark:bg-zinc-900 border border-stone-100 dark:border-zinc-800 rounded-2xl text-stone-900 dark:text-white shadow-sm hover:bg-stone-50 dark:bg-zinc-900/50 active:scale-95 transition-all group"
               >
                 <ShoppingBag className="h-5 w-5" />
                 {cartCount > 0 && (
@@ -205,13 +205,13 @@ export function DashboardMarketplaceClient({
                  <button
                    onClick={() => setSortOpen(!sortOpen)}
                    className={cn(
-                     "flex items-center gap-3 px-6 h-12 bg-white rounded-2xl border border-stone-100 shadow-sm transition-all text-[12px] font-bold text-stone-600 hover:border-stone-900 active:scale-95 whitespace-nowrap",
-                     sortOpen && "ring-4 ring-stone-900/5 border-stone-200"
+                     "flex items-center gap-3 px-6 h-12 bg-white dark:bg-zinc-900 rounded-2xl border border-stone-100 dark:border-zinc-800 shadow-sm transition-all text-[12px] font-bold text-stone-600 hover:border-stone-900 active:scale-95 whitespace-nowrap",
+                     sortOpen && "ring-4 ring-stone-900/5 border-stone-200 dark:border-zinc-800"
                    )}
                  >
                    <ListFilter className="h-4 w-4 text-stone-300" />
                    <span className="text-stone-300">Sort:</span>
-                   <span className="text-stone-900">{selectedSort.label}</span>
+                   <span className="text-stone-900 dark:text-white">{selectedSort.label}</span>
                    <ChevronDown className={cn("h-4 w-4 text-stone-300 transition-transform", sortOpen && "rotate-180")} />
                  </button>
                  <AnimatePresence>
@@ -222,7 +222,7 @@ export function DashboardMarketplaceClient({
                          initial={{ opacity: 0, scale: 0.95, y: 10 }}
                          animate={{ opacity: 1, scale: 1, y: 0 }}
                          exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                         className="absolute right-0 top-14 w-52 bg-white rounded-2xl border border-stone-100 shadow-xl p-2 z-[120]"
+                         className="absolute right-0 top-14 w-52 bg-white dark:bg-zinc-900 rounded-2xl border border-stone-100 dark:border-zinc-800 shadow-xl p-2 z-[120]"
                        >
                          {SORT_OPTIONS.map((option) => (
                            <button
@@ -235,7 +235,7 @@ export function DashboardMarketplaceClient({
                                "w-full flex items-center justify-between px-5 py-3 rounded-xl text-[11px] font-bold uppercase tracking-wider transition-all",
                                selectedSort.value === option.value
                                  ? "bg-stone-900 text-white"
-                                 : "text-stone-400 hover:bg-stone-50 hover:text-stone-900"
+                                 : "text-stone-400 hover:bg-stone-50 dark:bg-zinc-900/50 hover:text-stone-900 dark:text-white"
                              )}
                            >
                              {option.label}
@@ -259,7 +259,7 @@ export function DashboardMarketplaceClient({
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && updateParams({ q: searchInput || undefined })}
-                className="h-12 pl-12 pr-4 rounded-xl bg-white border-stone-100 shadow-sm focus:ring-4 focus:ring-stone-500/5 transition-all text-sm font-medium"
+                className="h-12 pl-12 pr-4 rounded-xl bg-white dark:bg-zinc-900 border-stone-100 dark:border-zinc-800 shadow-sm focus:ring-4 focus:ring-stone-500/5 transition-all text-sm font-medium"
               />
            </div>
            <div className="lg:col-span-5 flex gap-2 overflow-x-auto no-scrollbar pb-1">
@@ -278,7 +278,7 @@ export function DashboardMarketplaceClient({
                       "flex items-center gap-2 px-6 py-2 rounded-full text-[11px] font-bold uppercase tracking-widest border transition-all whitespace-nowrap",
                       active
                         ? "bg-stone-900 text-white border-stone-900 shadow-md"
-                        : "bg-white text-stone-400 border-stone-100 hover:bg-stone-50 hover:text-stone-900"
+                        : "bg-white dark:bg-zinc-900 text-stone-400 border-stone-100 dark:border-zinc-800 hover:bg-stone-50 dark:bg-zinc-900/50 hover:text-stone-900 dark:text-white"
                     )}
                   >
                     <span className={cn(active ? "text-orange-400" : "text-stone-200")}>{t.icon}</span>
@@ -305,8 +305,8 @@ export function DashboardMarketplaceClient({
                           className={cn(
                             "flex items-center justify-between px-5 py-2.5 rounded-xl text-sm font-bold transition-all text-left group",
                             active 
-                              ? "bg-white text-stone-900 shadow-sm border border-stone-100 scale-[1.02]" 
-                              : "text-stone-400 hover:text-stone-900 hover:bg-stone-50"
+                              ? "bg-white dark:bg-zinc-900 text-stone-900 dark:text-white shadow-sm border border-stone-100 dark:border-zinc-800 scale-[1.02]" 
+                              : "text-stone-400 hover:text-stone-900 dark:text-white hover:bg-stone-50 dark:bg-zinc-900/50"
                           )}
                         >
                           {cat.name}
@@ -318,10 +318,10 @@ export function DashboardMarketplaceClient({
               </section>
 
               {/* Quick Filters */}
-              <GlassCard className="p-6 rounded-[28px] border-white bg-white/60 shadow-sm space-y-6">
+              <GlassCard className="p-6 rounded-[28px] border-white bg-white dark:bg-zinc-900/60 shadow-sm space-y-6">
                  <div className="flex items-center gap-2">
                     <Filter className="h-3.5 w-3.5 text-stone-300" />
-                    <h3 className="text-[10px] font-bold text-stone-900 uppercase tracking-widest">Filter Results</h3>
+                    <h3 className="text-[10px] font-bold text-stone-900 dark:text-white uppercase tracking-widest">Filter Results</h3>
                  </div>
                  
                  <div className="space-y-4 text-left">
@@ -332,13 +332,13 @@ export function DashboardMarketplaceClient({
                              placeholder="Min" 
                              defaultValue={params.min}
                              onBlur={(e) => updateParams({ min: e.target.value || undefined })}
-                             className="h-9 rounded-lg bg-white border-stone-100 text-[12px] font-bold focus:ring-4 focus:ring-stone-500/5"
+                             className="h-9 rounded-lg bg-white dark:bg-zinc-900 border-stone-100 dark:border-zinc-800 text-[12px] font-bold focus:ring-4 focus:ring-stone-500/5"
                           />
                           <Input 
                              placeholder="Max" 
                              defaultValue={params.max}
                              onBlur={(e) => updateParams({ max: e.target.value || undefined })}
-                             className="h-9 rounded-lg bg-white border-stone-100 text-[12px] font-bold focus:ring-4 focus:ring-stone-500/5"
+                             className="h-9 rounded-lg bg-white dark:bg-zinc-900 border-stone-100 dark:border-zinc-800 text-[12px] font-bold focus:ring-4 focus:ring-stone-500/5"
                           />
                        </div>
                     </div>
@@ -348,7 +348,7 @@ export function DashboardMarketplaceClient({
                        <select
                          value={params.country ?? ""}
                          onChange={(e) => updateParams({ country: e.target.value || undefined })}
-                         className="w-full h-9 rounded-lg bg-white border border-stone-100 text-[12px] font-bold focus:ring-4 focus:ring-stone-500/5 outline-none px-2"
+                         className="w-full h-9 rounded-lg bg-white dark:bg-zinc-900 border border-stone-100 dark:border-zinc-800 text-[12px] font-bold focus:ring-4 focus:ring-stone-500/5 outline-none px-2"
                        >
                          <option value="">All Countries</option>
                          {countries.map(c => <option key={c} value={c}>{c}</option>)}
@@ -365,7 +365,7 @@ export function DashboardMarketplaceClient({
                  <p className="text-[11px] text-stone-400 font-medium leading-relaxed mb-6">
                     Your payments are held securely until the product is delivered and confirmed.
                  </p>
-                 <Button asChild variant="ghost" className="h-9 px-4 rounded-lg bg-white/5 text-white hover:bg-white/10 hover:text-white font-bold text-[9px] uppercase tracking-widest transition-all">
+                 <Button asChild variant="ghost" className="h-9 px-4 rounded-lg bg-white dark:bg-zinc-900/5 text-white hover:bg-white dark:bg-zinc-900/10 hover:text-white font-bold text-[9px] uppercase tracking-widest transition-all">
                     <Link href="/help">Learn More</Link>
                  </Button>
               </div>
@@ -377,7 +377,7 @@ export function DashboardMarketplaceClient({
               <div className="flex items-center justify-between px-1">
                  <div className="space-y-0.5">
                     <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Showing {filteredProducts.length} items</p>
-                    <h2 className="text-xl font-bold text-stone-900 tracking-tight">{params.q ? `Results for "${params.q}"` : "Featured Finds"}</h2>
+                    <h2 className="text-xl font-bold text-stone-900 dark:text-white tracking-tight">{params.q ? `Results for "${params.q}"` : "Featured Finds"}</h2>
                  </div>
                  <div className="flex items-center gap-3">
                     <History className="h-4 w-4 text-stone-200" />
@@ -405,9 +405,9 @@ export function DashboardMarketplaceClient({
                     ))}
                  </div>
               ) : (
-                 <div className="py-24 text-center rounded-[32px] border-dashed border-stone-200 bg-white/20">
+                 <div className="py-24 text-center rounded-[32px] border-dashed border-stone-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/20">
                     <Search className="h-12 w-12 text-stone-100 mx-auto mb-6" />
-                    <h3 className="text-xl font-bold text-stone-900 mb-2">No matching products</h3>
+                    <h3 className="text-xl font-bold text-stone-900 dark:text-white mb-2">No matching products</h3>
                     <p className="text-sm font-medium text-stone-400 mb-8 max-w-xs mx-auto">
                        Try refining your search or clearing the filters to discover more.
                     </p>
@@ -424,7 +424,7 @@ export function DashboardMarketplaceClient({
               {totalPages > 1 && filteredProducts.length > 0 && (
                 <div className="flex items-center justify-center gap-2 pt-10">
                    {currentPage > 1 && (
-                      <Button variant="ghost" className="h-10 px-6 rounded-xl text-[10px] font-bold uppercase tracking-widest text-stone-400 hover:text-stone-900" onClick={() => updateParams({ page: String(currentPage - 1) })}>
+                      <Button variant="ghost" className="h-10 px-6 rounded-xl text-[10px] font-bold uppercase tracking-widest text-stone-400 hover:text-stone-900 dark:text-white" onClick={() => updateParams({ page: String(currentPage - 1) })}>
                          Previous
                       </Button>
                    )}
@@ -437,7 +437,7 @@ export function DashboardMarketplaceClient({
                           onClick={() => updateParams({ page: String(pg) })}
                           className={cn(
                             "w-10 h-10 rounded-xl text-[11px] font-bold transition-all",
-                            pg === currentPage ? "bg-stone-900 text-white shadow-md" : "bg-white text-stone-400 border border-stone-100 hover:bg-stone-50"
+                            pg === currentPage ? "bg-stone-900 text-white shadow-md" : "bg-white dark:bg-zinc-900 text-stone-400 border border-stone-100 dark:border-zinc-800 hover:bg-stone-50 dark:bg-zinc-900/50"
                           )}
                         >
                            {pg}
@@ -445,7 +445,7 @@ export function DashboardMarketplaceClient({
                       );
                    })}
                    {currentPage < totalPages && (
-                      <Button variant="ghost" className="h-10 px-6 rounded-xl text-[10px] font-bold uppercase tracking-widest text-stone-400 hover:text-stone-900" onClick={() => updateParams({ page: String(currentPage + 1) })}>
+                      <Button variant="ghost" className="h-10 px-6 rounded-xl text-[10px] font-bold uppercase tracking-widest text-stone-400 hover:text-stone-900 dark:text-white" onClick={() => updateParams({ page: String(currentPage + 1) })}>
                          Next
                       </Button>
                    )}

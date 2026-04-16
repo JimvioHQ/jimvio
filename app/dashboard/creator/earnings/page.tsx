@@ -59,8 +59,8 @@ export default function CreatorEarningsPage() {
       <div className="max-w-[1400px] mx-auto space-y-6 px-4 sm:px-6 pt-5">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-stone-900 flex items-center gap-3">
-             <div className="p-2 rounded-[14px] bg-white/60 border border-white/80 shadow-sm shrink-0">
+          <h1 className="text-2xl font-bold tracking-tight text-stone-900 dark:text-white flex items-center gap-3">
+             <div className="p-2 rounded-[14px] bg-white dark:bg-zinc-900/60 border border-white/80 shadow-sm shrink-0">
                <DollarSign className="h-6 w-6 text-emerald-500" />
              </div>
              Creator Earnings
@@ -75,25 +75,25 @@ export default function CreatorEarningsPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <GlassCard className="p-5 flex flex-col justify-center">
            <p className="text-[10px] font-bold uppercase tracking-widest text-stone-500 mb-1 flex items-center gap-1.5"><ShoppingCart className="h-4 w-4 text-emerald-500" /> Earnings from sales</p>
-           <p className="text-[24px] xl:text-[28px] font-black text-stone-900 tabular-nums leading-none tracking-tight break-all">{formatMoney(totalEarnings, "RWF")}</p>
+           <p className="text-[24px] xl:text-[28px] font-black text-stone-900 dark:text-white tabular-nums leading-none tracking-tight break-all">{formatMoney(totalEarnings, "RWF")}</p>
         </GlassCard>
         <GlassCard className="p-5 flex flex-col justify-center">
            <p className="text-[10px] font-bold uppercase tracking-widest text-stone-500 mb-1 flex items-center gap-1.5"><Eye className="h-4 w-4 text-blue-500" /> Earnings from views</p>
-           <p className="text-[24px] xl:text-[28px] font-black text-stone-900 tabular-nums leading-none tracking-tight break-all">{formatMoney(0, "RWF")}</p>
+           <p className="text-[24px] xl:text-[28px] font-black text-stone-900 dark:text-white tabular-nums leading-none tracking-tight break-all">{formatMoney(0, "RWF")}</p>
         </GlassCard>
         <GlassCard className="p-5 flex flex-col justify-center">
            <p className="text-[10px] font-bold uppercase tracking-widest text-stone-500 mb-1 flex items-center gap-1.5"><DollarSign className="h-4 w-4 text-orange-500" /> Pending / Available</p>
-           <p className="text-[24px] xl:text-[28px] font-black text-stone-900 tabular-nums leading-none tracking-tight break-all">{formatMoney(available, "RWF")}</p>
+           <p className="text-[24px] xl:text-[28px] font-black text-stone-900 dark:text-white tabular-nums leading-none tracking-tight break-all">{formatMoney(available, "RWF")}</p>
         </GlassCard>
         <GlassCard className="p-5 flex flex-col justify-center">
            <p className="text-[10px] font-bold uppercase tracking-widest text-stone-500 mb-1 flex items-center gap-1.5"><ArrowRight className="h-4 w-4 text-purple-500" /> Paid out</p>
-           <p className="text-[24px] xl:text-[28px] font-black text-stone-900 tabular-nums leading-none tracking-tight break-all">{formatMoney(paid, "RWF")}</p>
+           <p className="text-[24px] xl:text-[28px] font-black text-stone-900 dark:text-white tabular-nums leading-none tracking-tight break-all">{formatMoney(paid, "RWF")}</p>
         </GlassCard>
       </div>
 
-      <GlassCard className="overflow-hidden bg-white/40 p-0">
-        <div className="border-b border-stone-200/50 bg-white/50 py-4 px-6 flex flex-col">
-          <h3 className="text-[14px] font-bold text-stone-900 tracking-tight flex items-center gap-2">
+      <GlassCard className="overflow-hidden bg-white dark:bg-zinc-900/40 p-0">
+        <div className="border-b border-stone-200/50 bg-white dark:bg-zinc-900/50 py-4 px-6 flex flex-col">
+          <h3 className="text-[14px] font-bold text-stone-900 dark:text-white tracking-tight flex items-center gap-2">
             <Wallet className="h-4 w-4 text-emerald-500" />
             Payout history
           </h3>
@@ -120,10 +120,10 @@ export default function CreatorEarningsPage() {
                   </tr>
                 ) : (
                   payouts.map((p) => (
-                    <tr key={p.id} className="hover:bg-white/60 transition-colors group">
-                      <td className="py-4 px-6 text-[13px] font-bold text-stone-900">{new Date(p.created_at).toLocaleDateString()}</td>
+                    <tr key={p.id} className="hover:bg-white dark:bg-zinc-900/60 transition-colors group">
+                      <td className="py-4 px-6 text-[13px] font-bold text-stone-900 dark:text-white">{new Date(p.created_at).toLocaleDateString()}</td>
                       <td className="py-4 px-6 text-[13px] font-bold text-stone-600 capitalize">{String(p.payout_method || "—").replace(/_/g, " ")}</td>
-                      <td className="py-4 px-6 text-right font-black text-[14px] text-stone-900 tabular-nums">{formatMoney(Number(p.amount ?? 0), "RWF")}</td>
+                      <td className="py-4 px-6 text-right font-black text-[14px] text-stone-900 dark:text-white tabular-nums">{formatMoney(Number(p.amount ?? 0), "RWF")}</td>
                       <td className="py-4 px-6 text-center">
                         <GlassPill color={p.status === "paid" ? "emerald" : p.status === "failed" ? "rose" : "orange"} className="text-[9px]">
                            {p.status || "pending"}

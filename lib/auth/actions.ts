@@ -53,12 +53,18 @@ export async function signUp(formData: FormData) {
       return { error: "Email and password are required." };
     }
 
+    const next = (formData.get("next") as string)?.trim() || undefined;
+    let callbackUrl = `${getPublicAppUrl()}/auth/callback`;
+    if (next) {
+      callbackUrl += `?next=${encodeURIComponent(next)}`;
+    }
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: { full_name: fullName },
-        emailRedirectTo: `${getPublicAppUrl()}/auth/callback`,
+        emailRedirectTo: callbackUrl,
       },
     });
 
@@ -109,14 +115,20 @@ export async function signIn(formData: FormData) {
   redirect(path);
 }
 
-export async function signInWithGoogle(): Promise<void> {
+export async function signInWithGoogle(nextOrFormData?: string | FormData): Promise<void> {
+  const nextPath = typeof nextOrFormData === 'string' ? nextOrFormData : undefined;
   let redirectUrl: string | undefined;
   try {
     const supabase = await createClient();
+    let callbackUrl = `${getPublicAppUrl()}/auth/callback`;
+    if (nextPath) {
+      callbackUrl += `?next=${encodeURIComponent(nextPath)}`;
+    }
+
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${getPublicAppUrl()}/auth/callback`,
+        redirectTo: callbackUrl,
       },
     });
     if (error) {

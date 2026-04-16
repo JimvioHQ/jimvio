@@ -295,8 +295,8 @@ export default function MessagesPage() {
   if (loading) {
     return (
       <div className="min-h-[50vh] flex flex-col items-center justify-center space-y-4">
-        <div className="w-8 h-8 border-4 border-stone-100 border-t-orange-500 rounded-full animate-spin" />
-        <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Loading Chats...</p>
+        <div className="w-8 h-8 border-4 border-border border-t-orange-500 rounded-full animate-spin" />
+        <p className="text-[10px] font-bold text-stone-400 dark:text-stone-500 uppercase tracking-widest">Loading Chats...</p>
       </div>
     );
   }
@@ -308,35 +308,35 @@ export default function MessagesPage() {
       {/* Header - Simpler */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
          <div className="space-y-1">
-            <h1 className="text-2xl font-bold text-stone-900 tracking-tight">Messages</h1>
-            <p className="text-[11px] font-bold text-stone-400 uppercase tracking-widest leading-none">Chat with vendors and customers</p>
+            <h1 className="text-2xl font-bold text-stone-900 dark:text-white tracking-tight">Messages</h1>
+            <p className="text-[11px] font-bold text-stone-400 dark:text-stone-500 uppercase tracking-widest leading-none">Chat with vendors and customers</p>
          </div>
       </div>
 
-      <div className="flex-1 flex overflow-hidden rounded-[32px] bg-white border border-stone-100 shadow-sm relative">
+      <div className="flex-1 flex overflow-hidden rounded-[32px] bg-surface dark:bg-zinc-900 border border-border shadow-sm relative">
           {/* Conversation List Sidebar */}
           <div className={cn(
-             "w-full lg:w-80 border-r border-stone-50 flex flex-col shrink-0 lg:flex",
+             "w-full lg:w-80 border-r border-border flex flex-col shrink-0 lg:flex",
              mobileShowChat && "hidden"
           )}>
-             <div className="p-4 border-b border-stone-50 space-y-4">
+             <div className="p-4 border-b border-border space-y-4">
                 <div className="relative">
-                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-stone-300" />
+                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-stone-300 dark:text-stone-700" />
                    <input 
                       type="text" 
                       placeholder="Search chats..." 
-                      className="w-full h-9 pl-9 pr-4 rounded-xl bg-stone-50/50 border-none text-[12px] placeholder:text-stone-300 focus:ring-2 focus:ring-stone-900/5 transition-all"
+                      className="w-full h-9 pl-9 pr-4 rounded-xl bg-surface-secondary dark:bg-zinc-800 border-none text-[12px] placeholder:text-stone-300 dark:placeholder:text-stone-700 text-stone-900 dark:text-white focus:ring-2 focus:ring-orange-500/20 transition-all"
                    />
                 </div>
              </div>
 
-             <div className="flex-1 overflow-y-auto p-2 space-y-1 no-scrollbar">
+             <div className="flex-1 overflow-y-auto p-2 space-y-1 no-scrollbar text-stone-900 dark:text-white">
                 {conversations.length === 0 ? (
                    <div className="h-full flex flex-col items-center justify-center p-8 text-center space-y-4">
-                      <div className="w-12 h-12 rounded-2xl bg-stone-50 flex items-center justify-center text-stone-200">
+                      <div className="w-12 h-12 rounded-2xl bg-surface-secondary dark:bg-zinc-800 flex items-center justify-center text-stone-200 dark:text-stone-800 dark:text-zinc-200">
                          <MessageSquare className="h-6 w-6" />
                       </div>
-                      <p className="text-[12px] font-bold text-stone-400 uppercase tracking-widest">No conversations</p>
+                      <p className="text-[12px] font-bold text-stone-400 dark:text-stone-500 uppercase tracking-widest">No conversations</p>
                    </div>
                 ) : (
                    conversations.map(c => {
@@ -350,24 +350,24 @@ export default function MessagesPage() {
                            onClick={() => { setSelectedId(c.id); setMobileShowChat(true); }}
                            className={cn(
                              "w-full flex items-center gap-3 p-3 rounded-2xl transition-all duration-200 group text-left",
-                             active ? "bg-stone-50 border border-stone-100" : "hover:bg-stone-50/50 border border-transparent"
+                             active ? "bg-surface-secondary dark:bg-zinc-800 border border-border" : "hover:bg-surface-secondary/50 dark:hover:bg-zinc-800/20 border border-transparent"
                            )}
                          >
-                           <div className="w-10 h-10 rounded-xl overflow-hidden bg-stone-100 border border-stone-100 shrink-0">
+                           <div className="w-10 h-10 rounded-xl overflow-hidden bg-surface-secondary dark:bg-zinc-800 border border-border shrink-0">
                               {avatar ? (
                                 <img src={avatar} alt="" className="w-full h-full object-cover" />
                               ) : (
-                                <div className="w-full h-full flex items-center justify-center text-[10px] font-bold text-stone-400 uppercase">
+                                <div className="w-full h-full flex items-center justify-center text-[10px] font-bold text-stone-400 dark:text-stone-600 uppercase">
                                    {name[0]}
                                 </div>
                               )}
                            </div>
                            <div className="flex-1 min-w-0">
                               <div className="flex items-center justify-between gap-2">
-                                 <span className="text-[13px] font-bold text-stone-900 truncate tracking-tight">{name}</span>
-                                 {c.last_at && <span className="text-[9px] font-bold text-stone-300 uppercase shrink-0">{timeAgo(c.last_at)}</span>}
+                                 <span className="text-[13px] font-bold text-stone-900 dark:text-white truncate tracking-tight">{name}</span>
+                                 {c.last_at && <span className="text-[9px] font-bold text-stone-300 dark:text-stone-700 uppercase shrink-0">{timeAgo(c.last_at)}</span>}
                               </div>
-                              <p className="text-[11px] font-medium text-stone-400 truncate mt-0.5">
+                              <p className="text-[11px] font-medium text-stone-400 dark:text-stone-500 truncate mt-0.5">
                                  {c.last_message}
                               </p>
                            </div>
@@ -380,39 +380,39 @@ export default function MessagesPage() {
 
           {/* Chat Area */}
           <div className={cn(
-             "flex-1 flex flex-col min-w-0 bg-white",
-             !selectedId && "hidden lg:flex lg:bg-stone-50/30",
+             "flex-1 flex flex-col min-w-0 bg-surface dark:bg-zinc-900",
+             !selectedId && "hidden lg:flex lg:bg-surface-secondary/30 dark:lg:bg-zinc-950/30",
              !mobileShowChat && "hidden lg:flex"
           )}>
              {selectedId ? (
                 <>
                    {/* Chat Header */}
-                   <div className="h-16 flex items-center justify-between px-6 border-b border-stone-50 bg-white shrink-0">
+                   <div className="h-16 flex items-center justify-between px-6 border-b border-border bg-surface dark:bg-zinc-900 shrink-0">
                       <div className="flex items-center gap-4">
                          <Button 
                            variant="ghost" 
                            size="icon" 
                            onClick={() => setMobileShowChat(false)}
-                           className="lg:hidden h-8 w-8 rounded-lg text-stone-400"
+                           className="lg:hidden h-8 w-8 rounded-lg text-stone-400 dark:text-stone-600"
                          >
                             <ArrowLeft className="h-4 w-4" />
                          </Button>
-                         <div className="w-8 h-8 rounded-lg overflow-hidden bg-stone-100 border border-stone-100 shrink-0">
-                            {otherPartyAvatar ? <img src={otherPartyAvatar} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-[10px] font-bold text-stone-400">{otherPartyName[0]}</div>}
+                         <div className="w-8 h-8 rounded-lg overflow-hidden bg-surface-secondary dark:bg-zinc-800 border border-border shrink-0">
+                            {otherPartyAvatar ? <img src={otherPartyAvatar} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-[10px] font-bold text-stone-400 dark:text-stone-600">{otherPartyName[0]}</div>}
                          </div>
                          <div className="min-w-0">
-                            <h3 className="text-[14px] font-bold text-stone-900 truncate tracking-tight leading-none">{otherPartyName}</h3>
+                            <h3 className="text-[14px] font-bold text-stone-900 dark:text-white truncate tracking-tight leading-none">{otherPartyName}</h3>
                             <div className="flex items-center gap-1.5 mt-0.5">
                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                               <span className="text-[9px] font-bold text-stone-400 uppercase tracking-widest">Active</span>
+                               <span className="text-[9px] font-bold text-stone-400 dark:text-stone-500 uppercase tracking-widest">Active</span>
                             </div>
                          </div>
                       </div>
                       <div className="flex items-center gap-2">
-                         <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-stone-400 hover:text-stone-900">
+                         <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-stone-400 dark:text-stone-600 hover:text-stone-900 dark:text-white dark:hover:text-white">
                             <Plus className="h-4 w-4" />
                          </Button>
-                         <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-stone-400 hover:text-stone-900">
+                         <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-stone-400 dark:text-stone-600 hover:text-stone-900 dark:text-white dark:hover:text-white">
                             <MoreVertical className="h-4 w-4" />
                          </Button>
                       </div>
@@ -445,7 +445,7 @@ export default function MessagesPage() {
                    </div>
 
                    {/* Input Area */}
-                   <div className="p-4 md:p-6 bg-white border-t border-stone-50">
+                   <div className="p-4 md:p-6 bg-surface dark:bg-zinc-900 border-t border-border">
                       <ChatInput 
                         conversationId={selectedId}
                         userId={userId!}
@@ -459,13 +459,13 @@ export default function MessagesPage() {
                    </div>
                 </>
              ) : (
-                <div className="flex-1 flex flex-col items-center justify-center p-12 text-center space-y-4">
-                   <div className="w-16 h-16 rounded-[24px] bg-stone-50 border border-stone-100 flex items-center justify-center text-stone-200">
+                <div className="flex-1 flex flex-col items-center justify-center p-12 text-center space-y-4 text-stone-900 dark:text-white">
+                   <div className="w-16 h-16 rounded-[24px] bg-surface-secondary dark:bg-zinc-800 border border-border flex items-center justify-center text-stone-200 dark:text-stone-800 dark:text-zinc-200">
                       <MessageSquare className="h-8 w-8" />
                    </div>
                    <div>
-                      <h2 className="text-[14px] font-bold text-stone-900 uppercase tracking-widest">Select a Conversation</h2>
-                      <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mt-1">Establish a link with vendors or customers</p>
+                      <h2 className="text-[14px] font-bold text-stone-900 dark:text-white uppercase tracking-widest">Select a Conversation</h2>
+                      <p className="text-[10px] font-bold text-stone-400 dark:text-stone-500 uppercase tracking-widest mt-1">Establish a link with vendors or customers</p>
                    </div>
                 </div>
              )}

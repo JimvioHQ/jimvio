@@ -76,7 +76,7 @@ export default async function CreatorModerationPage({
   return (
     <div className="w-full max-w-4xl mx-auto px-4 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-black text-zinc-900 mb-2">
+        <h1 className="text-3xl font-black text-zinc-900 dark:text-white mb-2">
           Moderation & Safety
         </h1>
         <p className="text-zinc-500">

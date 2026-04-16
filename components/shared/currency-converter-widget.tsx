@@ -70,7 +70,7 @@ export function CurrencyConverterWidget({ className, variant = "full" }: Currenc
           <select
             value={toCurrency}
             onChange={(e) => setToCurrency(e.target.value as CurrencyCode)}
-            className="h-8 text-[12px] font-bold rounded-lg border border-orange-200 bg-white px-2 text-zinc-700 focus:ring-2 focus:ring-orange-400"
+            className="h-8 text-[12px] font-bold rounded-lg border border-orange-200 dark:border-orange-900/50 bg-white dark:bg-zinc-900 px-2 text-zinc-700 dark:text-zinc-200 focus:ring-2 focus:ring-orange-400"
           >
             {(Object.keys(SUPPORTED_CURRENCIES) as CurrencyCode[]).map((code) => (
               <option key={code} value={code}>
@@ -85,18 +85,18 @@ export function CurrencyConverterWidget({ className, variant = "full" }: Currenc
 
   return (
     <div className={cn(
-      "rounded-2xl border border-gradient bg-gradient-to-br from-white/95 to-orange-50/30 p-5 sm:p-6 backdrop-blur-sm shadow-[0_8px_32px_rgba(249,115,22,0.08)] border-[#f97316]/20",
+      "rounded-2xl border border-gradient bg-gradient-to-br from-white/95 to-orange-50/30 dark:from-zinc-900/95 dark:to-orange-950/20 p-5 sm:p-6 backdrop-blur-sm shadow-[0_8px_32px_rgba(249,115,22,0.08)] border-[#f97316]/20",
       className
     )}>
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-sm font-black text-zinc-900">Currency Converter</h3>
+        <h3 className="text-sm font-black text-zinc-900 dark:text-white">Currency Converter</h3>
         <TrendingUp className="h-4 w-4 text-[#f97316]" />
       </div>
 
       <div className="space-y-4">
         {/* From Currency */}
         <div className="space-y-2">
-          <label className="text-xs font-bold text-zinc-600">From</label>
+          <label className="text-xs font-bold text-zinc-600 dark:text-zinc-400">From</label>
           <div className="flex gap-2">
             <div className="flex-1">
               <input
@@ -104,13 +104,13 @@ export function CurrencyConverterWidget({ className, variant = "full" }: Currenc
                 value={fromAmount}
                 onChange={(e) => setFromAmount(e.target.value)}
                 placeholder="Enter amount"
-                className="h-10 w-full rounded-lg border border-zinc-200 bg-white px-3 text-sm font-semibold text-zinc-900 placeholder:text-zinc-400 focus:border-[#f97316] focus:ring-2 focus:ring-[#f97316]/20"
+                className="h-10 w-full rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900/50 px-3 text-sm font-semibold text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:border-[#f97316] focus:ring-2 focus:ring-[#f97316]/20"
               />
             </div>
             <select
               value={fromCurrency}
               onChange={(e) => setFromCurrency(e.target.value as CurrencyCode)}
-              className="w-[100px] rounded-lg border border-zinc-200 bg-white px-2 text-sm font-bold text-zinc-900 focus:border-[#f97316] focus:ring-2 focus:ring-[#f97316]/20"
+              className="w-[100px] rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900/50 px-2 text-sm font-bold text-zinc-900 dark:text-white focus:border-[#f97316] focus:ring-2 focus:ring-[#f97316]/20"
             >
               {(Object.keys(SUPPORTED_CURRENCIES) as CurrencyCode[]).map((code) => (
                 <option key={code} value={code}>
@@ -125,7 +125,7 @@ export function CurrencyConverterWidget({ className, variant = "full" }: Currenc
         <div className="flex justify-center">
           <button
             onClick={handleSwap}
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-orange-50 border border-orange-200 text-orange-600 hover:bg-orange-100 transition-all active:scale-95"
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-900/50 text-orange-600 dark:text-orange-400 hover:bg-orange-100 dark:hover:bg-orange-900/40 transition-all active:scale-95"
             title="Swap currencies"
           >
             <ArrowRightLeft className="h-4 w-4" />
@@ -134,7 +134,7 @@ export function CurrencyConverterWidget({ className, variant = "full" }: Currenc
 
         {/* To Currency */}
         <div className="space-y-2">
-          <label className="text-xs font-bold text-zinc-600">To</label>
+          <label className="text-xs font-bold text-zinc-600 dark:text-zinc-400">To</label>
           <div className="flex gap-2">
             <div className="flex-1">
               <input
@@ -142,13 +142,13 @@ export function CurrencyConverterWidget({ className, variant = "full" }: Currenc
                 value={toAmount}
                 readOnly
                 placeholder="Converted amount"
-                className="h-10 w-full rounded-lg border border-zinc-200 bg-orange-50/30 px-3 text-sm font-semibold text-zinc-900 placeholder:text-zinc-400 cursor-not-allowed"
+                className="h-10 w-full rounded-lg border border-zinc-200 dark:border-zinc-700 bg-orange-50/30 dark:bg-zinc-900/30 px-3 text-sm font-semibold text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-600 cursor-not-allowed"
               />
             </div>
             <select
               value={toCurrency}
               onChange={(e) => setToCurrency(e.target.value as CurrencyCode)}
-              className="w-[100px] rounded-lg border border-zinc-200 bg-white px-2 text-sm font-bold text-zinc-900 focus:border-[#f97316] focus:ring-2 focus:ring-[#f97316]/20"
+              className="w-[100px] rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900/50 px-2 text-sm font-bold text-zinc-900 dark:text-white focus:border-[#f97316] focus:ring-2 focus:ring-[#f97316]/20"
             >
               {(Object.keys(SUPPORTED_CURRENCIES) as CurrencyCode[]).map((code) => (
                 <option key={code} value={code}>

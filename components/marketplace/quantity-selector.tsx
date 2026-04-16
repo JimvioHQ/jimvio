@@ -13,23 +13,23 @@ interface QuantitySelectorProps {
 
 export function QuantitySelector({ quantity, onChange, max = 99, min = 1 }: QuantitySelectorProps) {
   return (
-    <div className="flex items-center gap-0.5 bg-zinc-50 border border-zinc-200 rounded-lg p-0.5 h-10">
+    <div className="flex items-center gap-0.5 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-lg p-0.5 h-10">
       <Button
         variant="ghost"
         size="icon"
-        className="h-8 w-8 rounded-md text-zinc-400 hover:bg-white hover:text-[var(--color-accent)] transition-all"
+        className="h-8 w-8 rounded-md text-zinc-400 hover:bg-surface dark:hover:bg-zinc-800 hover:text-[var(--color-accent)] transition-all"
         onClick={() => onChange(Math.max(min, quantity - 1))}
         disabled={quantity <= min}
       >
         <Minus className="h-3 w-3" />
       </Button>
-      <div className="w-8 text-center font-black text-sm text-zinc-800">
+      <div className="w-8 text-center font-black text-sm text-zinc-800 dark:text-zinc-200">
         {quantity}
       </div>
       <Button
         variant="ghost"
         size="icon"
-        className="h-8 w-8 rounded-md text-zinc-400 hover:bg-white hover:text-[var(--color-accent)] transition-all"
+        className="h-8 w-8 rounded-md text-zinc-400 hover:bg-surface dark:hover:bg-zinc-800 hover:text-[var(--color-accent)] transition-all"
         onClick={() => onChange(Math.min(max, quantity + 1))}
         disabled={quantity >= max}
       >

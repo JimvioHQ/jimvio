@@ -224,7 +224,7 @@ export default function BrandCampaignDetailPage() {
                 <div className="relative z-10 space-y-6">
                    <div className="flex items-center justify-between">
                       <h2 className="text-sm font-black uppercase tracking-[0.2em] text-zinc-500">Budget Utilization</h2>
-                      <div className="px-3 py-1 rounded-full bg-white/10 border border-white/10 text-[10px] font-black">
+                      <div className="px-3 py-1 rounded-full bg-white dark:bg-zinc-900/10 border border-white/10 text-[10px] font-black">
                          {budgetPct.toFixed(1)}% CONSUMED
                       </div>
                    </div>
@@ -234,7 +234,7 @@ export default function BrandCampaignDetailPage() {
                          <p className="text-4xl font-black tracking-tight">{formatMoney(campaign.spent_budget || 0, "RWF")}</p>
                          <p className="text-sm font-bold text-zinc-500">Target: {formatMoney(campaign.total_budget, "RWF")}</p>
                       </div>
-                      <div className="h-3 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
+                      <div className="h-3 w-full bg-white dark:bg-zinc-900/5 rounded-full overflow-hidden border border-white/5">
                          <div 
                            className="h-full bg-gradient-to-r from-violet-500 to-fuchsia-500 transition-all duration-1000"
                            style={{ width: `${budgetPct}%` }}
@@ -349,7 +349,7 @@ export default function BrandCampaignDetailPage() {
               
               <Link
                 href={`/dashboard/vendor/campaigns/${id}/submissions`}
-                className="group flex flex-col p-8 rounded-[40px] bg-white text-zinc-950 shadow-2xl relative overflow-hidden transition-all hover:scale-[1.02] active:scale-95"
+                className="group flex flex-col p-8 rounded-[40px] bg-white dark:bg-zinc-900 text-zinc-950 shadow-2xl relative overflow-hidden transition-all hover:scale-[1.02] active:scale-95"
               >
                 <div className="absolute top-0 right-0 w-32 h-32 bg-violet-500/10 blur-3xl rounded-full" />
                 <span className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 mb-6 group-hover:text-violet-600 transition-colors">Action Required</span>

@@ -30,18 +30,18 @@ const scaleIn = {
 
 // ── Glass surface tokens — iPhone 17 max-intensity ──────────────
 const GLASS_LIGHT_STYLE: React.CSSProperties = {
-  background: "rgba(255,255,255,0.72)",
-  backdropFilter: "blur(40px) saturate(180%) brightness(105%)",
-  WebkitBackdropFilter: "blur(40px) saturate(180%) brightness(105%)",
-  border: "1px solid rgba(255,255,255,0.88)",
-  boxShadow: "0 8px 32px rgba(0,0,0,0.07), inset 0 1px 0 rgba(255,255,255,1), inset 0 -1px 0 rgba(255,255,255,0.3)",
+  background: "var(--glass-bg)",
+  backdropFilter: "var(--glass-blur) saturate(180%)",
+  WebkitBackdropFilter: "var(--glass-blur) saturate(180%)",
+  border: "1px solid var(--glass-border)",
+  boxShadow: "var(--glass-shadow)",
 };
 const GLASS_DARK_STYLE: React.CSSProperties = {
-  background: "rgba(15,23,42,0.88)",
-  backdropFilter: "blur(48px) saturate(180%) brightness(95%)",
-  WebkitBackdropFilter: "blur(48px) saturate(180%) brightness(95%)",
-  border: "1px solid rgba(255,255,255,0.10)",
-  boxShadow: "0 16px 48px rgba(0,0,0,0.30), inset 0 1px 0 rgba(255,255,255,0.08)",
+  background: "var(--glass-bg)",
+  backdropFilter: "var(--glass-blur) saturate(180%)",
+  WebkitBackdropFilter: "var(--glass-blur) saturate(180%)",
+  border: "1px solid var(--glass-border)",
+  boxShadow: "var(--glass-shadow)",
 };
 
 // Legacy Tailwind strings kept for minor uses
@@ -62,7 +62,7 @@ function GlassSpecular() {
 // ── Section eyebrow label ──────────────────────────────────────
 function Eyebrow({ text }: { text: string }) {
   return (
-    <p className="text-[10px] font-semibold text-stone-400 uppercase tracking-[0.25em] mb-2">{text}</p>
+    <p className="text-[10px] font-semibold text-stone-400 dark:text-stone-500 uppercase tracking-[0.25em] mb-2">{text}</p>
   );
 }
 
@@ -91,18 +91,13 @@ export function TrustBar({ items }: { items: TrustBarItem[] }) {
             <motion.div key={idx} variants={fadeUp} className="flex items-center gap-2 md:gap-2.5 group">
               <motion.span
                 whileHover={{ scale: 1.12, rotate: -4 }}
-                className="relative shrink-0 h-8 w-8 flex items-center justify-center rounded-[10px] transition-all"
-                style={{
-                  background: "rgba(255,237,213,0.70)",
-                  border: "1px solid rgba(251,146,60,0.25)",
-                  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.9), 0 2px 6px rgba(249,115,22,0.08)",
-                }}
+                className="relative shrink-0 h-8 w-8 flex items-center justify-center rounded-[10px] transition-all bg-orange-100/50 dark:bg-orange-500/10 border border-orange-200/50 dark:border-orange-500/20 shadow-sm"
               >
                 <Icon className="h-4 w-4 text-orange-500" />
               </motion.span>
               <div className="min-w-0">
-                <p className="text-[10px] md:text-[12px] font-semibold text-stone-900 tracking-tight leading-tight truncate">{item.title}</p>
-                <p className="text-[8px] md:text-[10px] text-stone-500 mt-0.5 truncate">{item.desc}</p>
+                <p className="text-[10px] md:text-[12px] font-semibold text-stone-900 dark:text-white tracking-tight leading-tight truncate">{item.title}</p>
+                <p className="text-[8px] md:text-[10px] text-stone-500 dark:text-stone-400 mt-0.5 truncate">{item.desc}</p>
               </div>
             </motion.div>
           );
@@ -122,19 +117,19 @@ export function RecommendedHeader() {
     >
       <motion.div variants={fadeUp}>
         <Eyebrow text="Hand-Picked Listings" />
-        <h2 className="text-[28px] sm:text-[34px] font-black text-zinc-900 leading-tight tracking-tight flex items-center gap-3">
-          <span className="h-10 w-10 flex items-center justify-center rounded-2xl bg-orange-50 ring-1 ring-[#f97316]/15">
+        <h2 className="text-[28px] sm:text-[34px] font-black text-zinc-900 dark:text-white leading-tight tracking-tight flex items-center gap-3">
+          <span className="h-10 w-10 flex items-center justify-center rounded-2xl bg-orange-100/50 dark:bg-orange-500/10 ring-1 ring-orange-500/15">
             <Star className="h-5 w-5 fill-[#f97316] text-[#f97316]" />
           </span>
           Recommended Picks
         </h2>
-        <p className="mt-2 text-[14px] font-bold text-zinc-400">Curated from verified suppliers — updated as inventory changes.</p>
+        <p className="mt-2 text-[14px] font-bold text-zinc-400 dark:text-stone-500">Curated from verified suppliers — updated as inventory changes.</p>
       </motion.div>
       <motion.div variants={fadeUp}>
         <motion.div whileHover={{ x: 4 }} whileTap={{ scale: 0.97 }}>
           <Link
             href="/marketplace"
-            className="inline-flex items-center gap-2 px-5 py-3 rounded-full text-[13px] font-semibold text-stone-600 hover:text-stone-900 transition-all"
+            className="inline-flex items-center gap-2 px-5 py-3 rounded-full text-[13px] font-semibold text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:text-white dark:hover:text-white transition-all backdrop-blur-md border border-border"
             style={GLASS_LIGHT_STYLE}
           >
             Browse all <ChevronRight className="h-4 w-4" />
@@ -162,18 +157,18 @@ export function CategorySidebar({ cats }: { cats: SidebarCat[] }) {
         {cats.slice(0, 8).map((cat, idx) => (
           <motion.div key={idx} whileHover={{ x: 4 }} whileTap={{ scale: 0.98 }}>
             <Link href={`/marketplace?cat=${encodeURIComponent(cat.slug)}`}
-              className="flex items-center gap-3 px-3 py-3 rounded-2xl hover:bg-white/70 transition-all group">
-              <div className="h-9 w-9 rounded-xl bg-orange-50 flex items-center justify-center group-hover:bg-[#f97316] transition-colors">
+              className="flex items-center gap-3 px-3 py-3 rounded-2xl hover:bg-surface-secondary/70 transition-all group">
+              <div className="h-9 w-9 rounded-xl bg-orange-100/50 dark:bg-orange-500/10 flex items-center justify-center group-hover:bg-[#f97316] transition-colors">
                 <span className="text-[#f97316] group-hover:text-white transition-colors">{cat.icon}</span>
               </div>
-              <span className="text-[13px] font-black text-zinc-700 group-hover:text-zinc-900 flex-1">{cat.label}</span>
-              <ChevronRight className="h-3.5 w-3.5 text-zinc-300 group-hover:text-zinc-500" />
+              <span className="text-[13px] font-black text-zinc-700 dark:text-stone-300 group-hover:text-zinc-900 dark:text-white dark:group-hover:text-white flex-1">{cat.label}</span>
+              <ChevronRight className="h-3.5 w-3.5 text-zinc-300 dark:text-stone-600 group-hover:text-zinc-500" />
             </Link>
           </motion.div>
         ))}
       </div>
       <div className="px-4 pb-4">
-        <Link href="/marketplace" className="block w-full text-center py-3 rounded-2xl text-[12px] font-black text-[#f97316] border border-orange-100/80 hover:bg-orange-50/80 transition-all backdrop-blur-sm">
+        <Link href="/marketplace" className="block w-full text-center py-3 rounded-2xl text-[12px] font-black text-[#f97316] border border-orange-500/20 hover:bg-orange-500/10 transition-all backdrop-blur-sm">
           View All Categories →
         </Link>
       </div>
@@ -205,13 +200,13 @@ export function FlashDeals({ products }: { products: any[] }) {
          </div>
       </div>
 
-      <div className="px-6 py-6 border-b border-white/40 flex items-center gap-4">
-        <div className="h-12 w-12 rounded-2xl bg-orange-50 flex items-center justify-center shadow-inner">
+      <div className="px-6 py-6 border-b border-border flex items-center gap-4">
+        <div className="h-12 w-12 rounded-2xl bg-orange-100/50 dark:bg-orange-500/10 flex items-center justify-center shadow-inner">
           <Zap className="h-6 w-6 text-[#f97316] fill-[#f97316] animate-pulse" />
         </div>
         <div>
-          <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.25em] mb-1">Live · Refreshed daily</p>
-          <h3 className="text-[22px] font-black text-zinc-900 leading-tight tracking-tight">Flash Trade Deals</h3>
+          <p className="text-[10px] font-black text-zinc-400 dark:text-stone-500 uppercase tracking-[0.25em] mb-1">Live · Refreshed daily</p>
+          <h3 className="text-[22px] font-black text-zinc-900 dark:text-white leading-tight tracking-tight">Flash Trade Deals</h3>
         </div>
       </div>
 
@@ -224,8 +219,8 @@ export function FlashDeals({ products }: { products: any[] }) {
           return (
             <motion.div key={p.id} variants={scaleIn}>
               <motion.div whileHover={{ y: -6, scale: 1.03 }} whileTap={{ scale: 0.97 }}>
-                <Link href={`/marketplace/${p.slug}`} className="group block rounded-[28px] p-3 bg-white/40 hover:bg-white transition-all border border-transparent hover:border-white hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] backdrop-blur-sm">
-                  <div className="aspect-square bg-white rounded-2xl mb-4 flex items-center justify-center relative overflow-hidden border border-zinc-100/50 shadow-sm">
+                <Link href={`/marketplace/${p.slug}`} className="group block rounded-[28px] p-3 bg-surface-secondary/40 dark:bg-surface/40 hover:bg-surface-secondary dark:hover:bg-surface transition-all border border-border hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] backdrop-blur-sm">
+                  <div className="aspect-square bg-white dark:bg-zinc-800 rounded-2xl mb-4 flex items-center justify-center relative overflow-hidden border border-zinc-100/50 dark:border-zinc-700/50 shadow-sm">
                     {img ? (
                       <img
                         src={img}
@@ -233,7 +228,7 @@ export function FlashDeals({ products }: { products: any[] }) {
                         className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
                       />
                     ) : (
-                      <Package className="h-8 w-8 text-zinc-200" />
+                      <Package className="h-8 w-8 text-zinc-200 dark:text-zinc-700 dark:text-zinc-300" />
                     )}
                     
                     <div className="absolute top-2.5 right-2.5 bg-[#f97316] text-white text-[11px] font-black px-2.5 py-1 rounded-xl shadow-lg shadow-orange-500/40 border border-white/20">
@@ -242,12 +237,12 @@ export function FlashDeals({ products }: { products: any[] }) {
                   </div>
 
                   <div className="space-y-2 px-1">
-                    <h4 className="text-[13px] font-black text-zinc-800 line-clamp-1 group-hover:text-orange-600 transition-colors uppercase tracking-tight">
+                    <h4 className="text-[13px] font-black text-zinc-800 dark:text-white line-clamp-1 group-hover:text-orange-600 transition-colors uppercase tracking-tight">
                       {p.name || "Refined Goods"}
                     </h4>
                     
                     <div className="flex items-baseline gap-1.5">
-                       <span className="text-[16px] font-black text-zinc-950 tracking-tighter">
+                       <span className="text-[16px] font-black text-zinc-950 dark:text-white tracking-tighter">
                          {formatDisplayMoney(Number(p.price), (p as any).currency ?? "RWF")}
                        </span>
                     </div>
@@ -257,7 +252,7 @@ export function FlashDeals({ products }: { products: any[] }) {
                           <span className="text-[9px] font-black text-orange-600 uppercase tracking-widest">{heat}% Sold</span>
                           {heat > 80 && <span className="text-[9px] font-black text-orange-500 animate-pulse uppercase">Hot</span>}
                        </div>
-                       <div className="w-full h-2 bg-zinc-100 rounded-full overflow-hidden border border-zinc-50 shadow-inner">
+                       <div className="w-full h-2 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden border border-zinc-50 dark:border-zinc-700 shadow-inner">
                           <motion.div 
                             initial={{ width: 0 }}
                             whileInView={{ width: `${heat}%` }}
@@ -298,7 +293,7 @@ export function TrendingSidePanel({ trendingCats, suppliers }: { trendingCats: T
           {trendingCats.map((item) => (
             <motion.div key={item.slug} whileHover={{ x: 4 }} whileTap={{ scale: 0.98 }}>
               <Link href={`/marketplace?cat=${encodeURIComponent(item.slug)}`}
-                className="flex items-center gap-3 bg-white/5 rounded-2xl px-4 py-3 hover:bg-white/10 border border-white/5 hover:border-white/15 transition-all group">
+                className="flex items-center gap-3 bg-white dark:bg-zinc-900/5 rounded-2xl px-4 py-3 hover:bg-white dark:bg-zinc-900/10 border border-white/5 hover:border-white/15 transition-all group">
                 <span className="text-[13px] font-black text-white/80 flex-1">{item.name}</span>
                 <span className="text-[10px] text-zinc-500 font-black">{item.product_count != null && item.product_count > 0 ? `${item.product_count}` : "→"}</span>
               </Link>
@@ -318,12 +313,12 @@ export function TrendingSidePanel({ trendingCats, suppliers }: { trendingCats: T
             suppliers.map((v) => (
               <motion.div key={v.business_slug ?? v.business_name} whileHover={{ x: 3 }}>
                 <Link href={v.business_slug ? `/vendors/${v.business_slug}` : "/vendors"} className="flex items-center gap-3 group">
-                  <div className="h-9 w-9 rounded-full bg-orange-50 flex items-center justify-center text-[#f97316] text-[12px] font-black group-hover:bg-[#f97316] group-hover:text-white transition-colors">
+                  <div className="h-9 w-9 rounded-full bg-orange-100/50 dark:bg-orange-500/10 flex items-center justify-center text-[#f97316] text-[12px] font-black group-hover:bg-[#f97316] group-hover:text-white transition-colors">
                     {(v.business_name ?? "?")[0]}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[13px] font-black text-zinc-800 truncate group-hover:text-[#f97316] transition-colors">{v.business_name}</p>
-                    <p className="text-[10px] font-bold text-zinc-400">⭐ {Number(v.rating ?? 0).toFixed(1) || "—"} · Active</p>
+                    <p className="text-[13px] font-black text-zinc-800 dark:text-stone-300 truncate group-hover:text-[#f97316] transition-colors">{v.business_name}</p>
+                    <p className="text-[10px] font-bold text-zinc-400 dark:text-stone-500">⭐ {Number(v.rating ?? 0).toFixed(1) || "—"} · Active</p>
                   </div>
                 </Link>
               </motion.div>
@@ -360,8 +355,8 @@ export function IndustriesSection({ industries }: { industries: Industry[] }) {
       <motion.div variants={fadeUp} className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-10 relative z-10">
         <div>
           <Eyebrow text="Browse by Sector" />
-          <h2 className="text-[28px] sm:text-[34px] font-black text-zinc-900 tracking-tight leading-tight flex items-center gap-3">
-            <span className="h-11 w-11 flex items-center justify-center rounded-2xl bg-orange-50">
+          <h2 className="text-[28px] sm:text-[34px] font-black text-zinc-900 dark:text-white tracking-tight leading-tight flex items-center gap-3">
+            <span className="h-11 w-11 flex items-center justify-center rounded-2xl bg-orange-100/50 dark:bg-orange-500/10">
               <Menu className="h-6 w-6 text-[#f97316]" />
             </span>
             Global Industries
@@ -392,7 +387,7 @@ export function IndustriesSection({ industries }: { industries: Industry[] }) {
                   <div className="absolute inset-0 p-5 flex flex-col items-center justify-center text-center z-10">
                     <motion.div
                       whileHover={{ rotate: -6, scale: 1.2 }}
-                      className="h-12 w-12 rounded-2xl bg-white/15 backdrop-blur-md flex items-center justify-center mb-3 text-white hover:bg-[#f97316] transition-colors"
+                      className="h-12 w-12 rounded-2xl bg-white dark:bg-zinc-900/15 backdrop-blur-md flex items-center justify-center mb-3 text-white hover:bg-[#f97316] transition-colors"
                     >
                       <Icon className="h-6 w-6" />
                     </motion.div>
@@ -431,7 +426,7 @@ export function AffiliatePanel({ valueProps, campaigns = [], spotlightCreator, t
 
       {/* Left */}
       <motion.div variants={fadeUp} className="p-8 md:p-14 flex flex-col justify-center border-b lg:border-b-0 lg:border-r border-white/10 relative z-10">
-        <span className="inline-block w-fit px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-[10px] font-black text-white/80 uppercase tracking-[0.2em] mb-6">
+        <span className="inline-block w-fit px-4 py-1.5 rounded-full bg-white dark:bg-zinc-900/10 backdrop-blur-md border border-white/10 text-[10px] font-black text-white/80 uppercase tracking-[0.2em] mb-6">
           Partner with Jimvio
         </span>
         <h3 className="text-[30px] md:text-[40px] font-black text-white leading-tight mb-6 tracking-tight">
@@ -450,12 +445,12 @@ export function AffiliatePanel({ valueProps, campaigns = [], spotlightCreator, t
         </div>
         <div className="flex flex-col sm:flex-row gap-3">
           <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
-            <Button className="h-14 px-8 rounded-full bg-white text-zinc-900 font-black text-[14px] hover:bg-zinc-100 shadow-xl w-full sm:w-auto" asChild>
+            <Button className="h-14 px-8 rounded-full bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white font-black text-[14px] hover:bg-zinc-100 shadow-xl w-full sm:w-auto" asChild>
               <Link href="/register?role=affiliate">Start Earning →</Link>
             </Button>
           </motion.div>
           <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
-            <Button variant="outline" className="h-14 px-8 rounded-full border-white/15 text-white font-black text-[14px] hover:bg-white/10 w-full sm:w-auto" asChild>
+            <Button variant="outline" className="h-14 px-8 rounded-full border-white/15 text-white font-black text-[14px] hover:bg-white dark:bg-zinc-900/10 w-full sm:w-auto" asChild>
               <Link href="/dashboard">Creator Hub →</Link>
             </Button>
           </motion.div>
@@ -473,7 +468,7 @@ export function AffiliatePanel({ valueProps, campaigns = [], spotlightCreator, t
                 <motion.span key={`${t}-${i}`} whileHover={{ scale: 1.06, y: -2 }} whileTap={{ scale: 0.97 }}
                   className={cn(
                     "px-4 py-2 rounded-2xl text-[11px] font-black border uppercase tracking-[0.12em] cursor-default transition-colors",
-                    i === 0 ? "bg-[#f97316] text-white border-[#f97316]" : "bg-white/5 text-white/60 border-white/10 hover:border-[#f97316]/40 hover:text-[#f97316]"
+                    i === 0 ? "bg-[#f97316] text-white border-[#f97316]" : "bg-white dark:bg-zinc-900/5 text-white/60 border-white/10 hover:border-[#f97316]/40 hover:text-[#f97316]"
                   )}>
                   {t}
                 </motion.span>
@@ -482,7 +477,7 @@ export function AffiliatePanel({ valueProps, campaigns = [], spotlightCreator, t
           </>
         )}
         {/* Creator spotlight */}
-        <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-[28px] p-5 flex items-center gap-4 mb-8 border-l-4 border-l-[#f97316]">
+        <div className="bg-white dark:bg-zinc-900/5 backdrop-blur-md border border-white/10 rounded-[28px] p-5 flex items-center gap-4 mb-8 border-l-4 border-l-[#f97316]">
           {spotlightCreator ? (
             <>
               <Avatar className="h-12 w-12 border-2 border-white/15 shrink-0">
@@ -532,8 +527,8 @@ export function MarketIntelligence({
       <motion.div variants={fadeUp} className="rounded-[32px] p-7 relative overflow-hidden" style={GLASS_LIGHT_STYLE}>
         <GlassSpecular />
         <div className="absolute left-0 top-0 h-full w-1 rounded-r-full bg-gradient-to-b from-[#f97316] to-[#ea580c]" />
-        <h4 className="mb-6 flex items-center gap-3 text-[22px] font-black text-zinc-900 tracking-tight pl-3">
-          <span className="h-10 w-10 flex items-center justify-center rounded-xl bg-orange-50"><BarChart2 className="h-5 w-5 text-[#f97316]" /></span>
+        <h4 className="mb-6 flex items-center gap-3 text-[22px] font-black text-zinc-900 dark:text-white tracking-tight pl-3">
+          <span className="h-10 w-10 flex items-center justify-center rounded-xl bg-orange-100/50 dark:bg-orange-500/10"><BarChart2 className="h-5 w-5 text-[#f97316]" /></span>
           Market Pulse
         </h4>
         <div className="space-y-5 pl-3">
@@ -544,10 +539,10 @@ export function MarketIntelligence({
             <motion.div key={i} whileHover={{ x: 4 }} className="flex items-center gap-4 group">
               <div className="flex-1">
                 <div className="flex justify-between items-center mb-2">
-                  <span className="text-[13px] font-black text-zinc-800 group-hover:text-[#f97316] transition-colors">{cat.name} Market</span>
-                  <span className="text-[11px] font-black px-2 py-0.5 rounded-lg bg-emerald-50 text-emerald-600">↑ {8 + i}%</span>
+                  <span className="text-[13px] font-black text-zinc-800 dark:text-stone-300 group-hover:text-[#f97316] transition-colors">{cat.name} Market</span>
+                  <span className="text-[11px] font-black px-2 py-0.5 rounded-lg bg-emerald-100/50 dark:bg-emerald-500/10 text-emerald-600">↑ {8 + i}%</span>
                 </div>
-                <div className="h-2 w-full bg-zinc-100 rounded-full overflow-hidden">
+                <div className="h-2 w-full bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
                   <motion.div
                     initial={{ width: 0 }} whileInView={{ width: `${60 + (i * 10)}%` }}
                     viewport={{ once: true }} transition={{ duration: 1, delay: i * 0.15, ease: "easeOut" }}
@@ -566,7 +561,7 @@ export function MarketIntelligence({
         <div className="pointer-events-none absolute inset-0" style={{ background: "radial-gradient(ellipse 70% 50% at 100% 0%, rgba(249,115,22,0.18), transparent)" }} />
         <div className="relative z-10 mb-5 flex items-center justify-between">
           <h4 className="flex items-center gap-2.5 text-[20px] font-black text-white tracking-tight">
-            <span className="h-9 w-9 flex items-center justify-center rounded-xl bg-white/10"><TrendingUp className="h-5 w-5 text-[#f97316]" /></span>
+            <span className="h-9 w-9 flex items-center justify-center rounded-xl bg-white dark:bg-zinc-900/10"><TrendingUp className="h-5 w-5 text-[#f97316]" /></span>
             Hot Sourcing
           </h4>
           <span className="text-[9px] font-black uppercase tracking-[0.2em] text-zinc-500">Live</span>
@@ -575,7 +570,7 @@ export function MarketIntelligence({
           {categories.slice(0, 8).map((cat: any) => (
             <motion.div key={cat.id} whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.97 }}>
               <Link href={`/marketplace?cat=${encodeURIComponent(cat.slug)}`}>
-                <span className="inline-flex cursor-pointer rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm px-3 py-1.5 text-[11px] font-black text-white/70 hover:border-[#f97316]/40 hover:text-white transition-all">
+                <span className="inline-flex cursor-pointer rounded-xl border border-white/10 bg-white dark:bg-zinc-900/5 backdrop-blur-sm px-3 py-1.5 text-[11px] font-black text-white/70 hover:border-[#f97316]/40 hover:text-white transition-all">
                   {cat.name}
                 </span>
               </Link>
@@ -586,8 +581,8 @@ export function MarketIntelligence({
           {trending.slice(0, 3).map((prod: any, i: number) => (
             <motion.div key={prod.id ?? i} whileHover={{ x: 4 }} whileTap={{ scale: 0.98 }}>
               <Link href={`/marketplace/${prod.slug}`} className="group block">
-                <div className="flex gap-3 rounded-2xl border border-white/5 bg-white/5 backdrop-blur-sm p-3 hover:border-[#f97316]/30 hover:bg-white/8 transition-all">
-                  <div className="h-12 w-12 shrink-0 rounded-xl bg-white/5 flex items-center justify-center overflow-hidden">
+                <div className="flex gap-3 rounded-2xl border border-white/5 bg-white dark:bg-zinc-900/5 backdrop-blur-sm p-3 hover:border-[#f97316]/30 hover:bg-white dark:bg-zinc-900/8 transition-all">
+                  <div className="h-12 w-12 shrink-0 rounded-xl bg-white dark:bg-zinc-900/5 flex items-center justify-center overflow-hidden">
                     {prod.images?.[0] ? <img src={prod.images[0]} className="h-full w-full object-cover" alt="" /> : <Package className="h-5 w-5 text-white/20" />}
                   </div>
                   <div className="min-w-0 flex-1">
@@ -617,12 +612,12 @@ export function HowItWorks() {
     <div
       className="relative overflow-hidden py-16 md:py-24"
       style={{
-        background: "rgba(255,255,255,0.60)",
+        background: "var(--color-bg)",
         backdropFilter: "blur(40px) saturate(180%) brightness(104%)",
         WebkitBackdropFilter: "blur(40px) saturate(180%) brightness(104%)",
-        borderTop: "1px solid rgba(255,255,255,0.8)",
-        borderBottom: "1px solid rgba(255,255,255,0.6)",
-        boxShadow: "inset 0 1px 0 rgba(255,255,255,1), 0 -4px 32px rgba(0,0,0,0.03)",
+        borderTop: "1px solid var(--border)",
+        borderBottom: "1px solid var(--border)",
+        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05), 0 -4px 32px rgba(0,0,0,0.03)",
       }}
     >
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px" style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,1) 50%, transparent)" }} />
@@ -630,8 +625,8 @@ export function HowItWorks() {
         <motion.div initial="hidden" whileInView="show" viewport={{ once: true }} variants={stagger}>
           <motion.div variants={fadeUp} className="text-center mb-12">
             <Eyebrow text="How it works" />
-            <h2 className="text-[30px] sm:text-[38px] font-black text-zinc-900 tracking-tight">The Jimvio Protocol</h2>
-            <p className="mt-3 text-[15px] font-bold text-zinc-400 max-w-md mx-auto">Simplifying global trade for the modern era</p>
+            <h2 className="text-[30px] sm:text-[38px] font-black text-zinc-900 dark:text-white tracking-tight">The Jimvio Protocol</h2>
+            <p className="mt-3 text-[15px] font-bold text-zinc-400 dark:text-stone-500 max-w-md mx-auto">Simplifying global trade for the modern era</p>
           </motion.div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {steps.map((s, idx) => (
@@ -645,12 +640,12 @@ export function HowItWorks() {
                   <GlassSpecular />
                   <motion.div
                     whileHover={{ rotate: -6, scale: 1.15 }}
-                    className="h-11 w-11 flex items-center justify-center rounded-2xl bg-orange-50 text-[#f97316] mb-4 group-hover:bg-[#f97316] group-hover:text-white transition-colors"
+                    className="h-11 w-11 flex items-center justify-center rounded-2xl bg-orange-100/50 dark:bg-orange-500/10 text-[#f97316] mb-4 group-hover:bg-[#f97316] group-hover:text-white transition-colors"
                   >
                     {s.icon}
                   </motion.div>
-                  <h4 className="text-[16px] font-black text-zinc-900 mb-1.5 tracking-tight">{s.title}</h4>
-                  <p className="text-[12px] font-bold text-zinc-400 leading-relaxed">{s.desc}</p>
+                  <h4 className="text-[16px] font-black text-zinc-900 dark:text-white mb-1.5 tracking-tight">{s.title}</h4>
+                  <p className="text-[12px] font-bold text-zinc-400 dark:text-stone-500 leading-relaxed">{s.desc}</p>
                 </motion.div>
               </motion.div>
             ))}

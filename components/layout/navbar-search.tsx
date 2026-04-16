@@ -47,16 +47,16 @@ const INPUT_FOCUSED: React.CSSProperties = {
 };
 /* Light mode variant */
 const INPUT_LIGHT: React.CSSProperties = {
-  background: "rgba(255,255,255,0.68)",
+  background: "var(--color-surface)",
   backdropFilter: "blur(32px) saturate(180%)",
   WebkitBackdropFilter: "blur(32px) saturate(180%)",
-  border: "1px solid rgba(255,255,255,0.90)",
-  boxShadow: "0 2px 10px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,1)",
+  border: "1px solid var(--color-border)",
+  boxShadow: "0 2px 10px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.1)",
 };
 const INPUT_LIGHT_FOCUSED: React.CSSProperties = {
-  background: "rgba(255,255,255,0.82)",
-  border: "1px solid rgba(251,146,60,0.35)",
-  boxShadow: "0 0 24px rgba(249,115,22,0.12), inset 0 1px 0 rgba(255,255,255,1)",
+  background: "var(--color-surface)",
+  border: "1px solid var(--color-border)",
+  boxShadow: "0 0 24px rgba(249,115,22,0.12), inset 0 1px 0 rgba(255,255,255,0.1)",
 };
 
 export function NavbarSearch({
@@ -158,7 +158,7 @@ export function NavbarSearch({
           }}
           placeholder={!isDesktop && !focused && !searchQ ? "" : (placeholder ?? "Search…")}
           className="flex-1 min-w-0 bg-transparent border-0 outline-none px-2 text-[13px] font-semibold placeholder:font-normal"
-          style={{ color: "#1c1917", caretColor: "#f97316" }}
+          style={{ color: "var(--color-text-primary)", caretColor: "#f97316" }}
         />
 
         {/* Clear */}
@@ -210,11 +210,11 @@ export function NavbarSearch({
             transition={{ type: "spring", damping: 32, stiffness: 320 }}
             className="w-full max-w-[780px] relative z-10 rounded-[28px] overflow-hidden"
             style={{
-              background: "rgba(255,255,255,0.82)",
+              background: "var(--color-surface)",
               backdropFilter: "blur(48px) saturate(200%) brightness(108%)",
               WebkitBackdropFilter: "blur(48px) saturate(200%) brightness(108%)",
-              border: "1px solid rgba(255,255,255,0.88)",
-              boxShadow: "0 32px 80px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,1)",
+              border: "1px solid var(--color-border)",
+              boxShadow: "0 32px 80px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.05)",
             }}
           >
             {/* Specular */}
@@ -227,7 +227,7 @@ export function NavbarSearch({
             {/* Header */}
             <div className="flex items-center gap-3 px-5 py-4 border-b border-black/[0.05]">
               <Search className="h-5 w-5 text-orange-500 shrink-0" />
-              <p className="text-[15px] font-semibold text-stone-900 flex-1 truncate">
+              <p className="text-[15px] font-semibold text-stone-900 dark:text-stone-100 flex-1 truncate">
                 {searchQ ? `"${searchQ}"` : "Search marketplace"}
               </p>
               <button
@@ -267,7 +267,7 @@ export function NavbarSearch({
                             style={{ background: "rgba(249,115,22,0.08)", border: "1px solid rgba(249,115,22,0.15)" }}>
                             <Package className="h-3.5 w-3.5 text-orange-500" />
                           </div>
-                          <span className="text-[13px] font-semibold text-stone-700 group-hover:text-stone-900 flex-1 truncate transition-colors">{p.name}</span>
+                          <span className="text-[13px] font-semibold text-stone-700 dark:text-stone-300 group-hover:text-stone-900 dark:text-white dark:group-hover:text-white flex-1 truncate transition-colors">{p.name}</span>
                           <ArrowRight className="h-3.5 w-3.5 text-stone-300 -translate-x-1 opacity-0 group-hover:translate-x-0 group-hover:opacity-100 transition-all shrink-0" />
                         </button>
                       ))}
@@ -281,7 +281,7 @@ export function NavbarSearch({
                       style={{ background: "rgba(0,0,0,0.04)" }}>
                       <Search className="h-7 w-7 text-stone-200" />
                     </div>
-                    <p className="text-[14px] font-semibold text-stone-700">No matches found</p>
+                    <p className="text-[14px] font-semibold text-stone-700 dark:text-stone-300">No matches found</p>
                     <p className="text-[12px] text-stone-400 mt-1">Try a different term or press Enter for full results</p>
                   </div>
                 )}
@@ -304,7 +304,7 @@ export function NavbarSearch({
                         <button
                           key={v.id}
                           onClick={() => { router.push(`/vendors/${v.business_slug}`); close(); setFocused(false); }}
-                          className="w-full flex items-center gap-2 px-2.5 py-2 rounded-[11px] text-left transition-all text-[12px] font-semibold text-stone-600 hover:text-stone-900"
+                          className="w-full flex items-center gap-2 px-2.5 py-2 rounded-[11px] text-left transition-all text-[12px] font-semibold text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:text-white dark:hover:text-stone-200"
                           onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "rgba(0,0,0,0.04)"}
                           onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = ""}
                         >
@@ -323,7 +323,7 @@ export function NavbarSearch({
                       <button
                         key={l.href}
                         onClick={() => { router.push(l.href); close(); setFocused(false); }}
-                        className="w-full flex items-center justify-between px-2.5 py-2 rounded-[11px] text-[12px] font-semibold text-stone-500 hover:text-stone-800 transition-colors group"
+                        className="w-full flex items-center justify-between px-2.5 py-2 rounded-[11px] text-[12px] font-semibold text-stone-500 dark:text-stone-400 hover:text-stone-800 dark:text-zinc-200 dark:hover:text-stone-200 transition-colors group"
                         onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "rgba(0,0,0,0.04)"}
                         onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = ""}
                       >
@@ -341,11 +341,11 @@ export function NavbarSearch({
               onClick={() => commit(searchQ)}
               className="w-full flex items-center justify-center gap-2 px-5 py-3.5 text-[12px] font-black uppercase tracking-widest text-orange-600 transition-all hover:bg-orange-500/10"
               style={{
-                background: "rgba(251,146,60,0.12)",
+                background: "var(--color-surface-secondary)",
                 backdropFilter: "blur(20px) saturate(160%)",
                 WebkitBackdropFilter: "blur(20px) saturate(160%)",
-                borderTop: "1px solid rgba(251,146,60,0.35)",
-                boxShadow: "inset 0 1px 0 rgba(255,255,255,0.9)",
+                borderTop: "1px solid var(--color-border)",
+                boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)",
               }}
             >
               View all results for "{searchQ || "everything"}"

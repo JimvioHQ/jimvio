@@ -39,14 +39,14 @@ export function TopCreatorsSection({ creators, className }: TopCreatorsSectionPr
     <section className={cn("space-y-6", className)}>
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-[20px] sm:text-[22px] font-extrabold text-text-primary flex items-center gap-2.5 tracking-tight">
+          <h2 className="text-[20px] sm:text-[22px] font-extrabold text-text-primary dark:text-white flex items-center gap-2.5 tracking-tight">
             Influencers to follow
           </h2>
-          <p className="text-[12px] text-[#6b7280] font-medium mt-0.5">Trending creators sharing products</p>
+          <p className="text-[12px] text-[#6b7280] dark:text-zinc-400 font-medium mt-0.5">Trending creators sharing products</p>
         </div>
         <Link
           href="/influencers/browse"
-          className="text-[11px] font-black text-[#f97316] uppercase tracking-[0.2em] flex items-center gap-2 hover:gap-3 transition-all shrink-0 bg-orange-50 px-4 py-2 rounded-full border border-orange-100"
+          className="text-[11px] font-black text-[#f97316] uppercase tracking-[0.2em] flex items-center gap-2 hover:gap-3 transition-all shrink-0 bg-orange-50 dark:bg-orange-950/30 px-4 py-2 rounded-full border border-orange-100 dark:border-orange-900/50"
         >
           View All Creators <ChevronRight className="h-3.5 w-3.5" />
         </Link>
@@ -59,22 +59,22 @@ export function TopCreatorsSection({ creators, className }: TopCreatorsSectionPr
           return (
             <div
               key={c.id}
-              className="group flex flex-col items-center text-center p-5 rounded-2xl bg-white border border-[#f0f0f0] shadow-sm hover:shadow-lg hover:border-[#f97316]/20 transition-all duration-300"
+              className="group flex flex-col items-center text-center p-5 rounded-2xl bg-white dark:bg-zinc-900 border border-[#f0f0f0] dark:border-zinc-800 shadow-sm hover:shadow-lg hover:border-[#f97316]/20 dark:hover:border-orange-900/50 transition-all duration-300"
             >
               <Link href={profileUrl} className="flex flex-col items-center flex-1 min-w-0 w-full">
-                <Avatar className="h-16 w-16 sm:h-20 sm:w-20 border-2 border-[#fff7ed] group-hover:border-[#f97316]/30 transition-colors mb-3">
+                <Avatar className="h-16 w-16 sm:h-20 sm:w-20 border-2 border-[#fff7ed] dark:border-zinc-800 group-hover:border-[#f97316]/30 transition-colors mb-3">
                   <AvatarImage src={c.avatar_url ?? undefined} />
                   <AvatarFallback className="bg-[#f97316] text-white font-black text-lg">
                     {c.full_name?.[0] ?? "C"}
                   </AvatarFallback>
                 </Avatar>
-                <h3 className="text-[13px] font-black text-text-primary truncate w-full mb-0.5">
+                <h3 className="text-[13px] font-black text-text-primary dark:text-white truncate w-full mb-0.5">
                   {c.full_name ?? "Creator"}
                 </h3>
-                <p className="text-[11px] text-[#6b7280] font-bold mb-3">
+                <p className="text-[11px] text-[#6b7280] dark:text-zinc-400 font-bold mb-3">
                   {followers} followers
                 </p>
-                <p className="text-[10px] text-[#9ca3af] line-clamp-2 mb-4 flex-1 min-h-[2.5rem]">
+                <p className="text-[10px] text-[#9ca3af] dark:text-zinc-500 line-clamp-2 mb-4 flex-1 min-h-[2.5rem]">
                   B2B creator
                 </p>
               </Link>

@@ -123,7 +123,7 @@ export function ProductActionModule({ product, vendor, currentPath }: ProductAct
       <div className="grid grid-cols-2 gap-2">
         <ProductChatTrigger
           variant="outline"
-          className="h-9 text-xs font-bold rounded-lg border border-zinc-200 hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] transition-all"
+          className="h-9 text-xs font-bold rounded-lg border border-zinc-200 dark:border-zinc-800 hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] transition-all"
           vendor={vendor ?? undefined}
           product={{ ...product, images: product.images }}
           currentPath={currentPath}
@@ -140,7 +140,7 @@ export function ProductActionModule({ product, vendor, currentPath }: ProductAct
             "h-9 text-xs font-bold rounded-lg border transition-all",
             inWishlist
               ? "border-red-200 bg-red-50 text-red-500 hover:bg-red-100"
-              : "border-zinc-200 hover:border-zinc-300"
+              : "border-zinc-200 dark:border-zinc-800 hover:border-zinc-300"
           )}
         >
           {wishlistLoading ? (

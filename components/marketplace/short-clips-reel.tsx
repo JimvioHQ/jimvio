@@ -71,7 +71,7 @@ export function ShortClipsReel({ videos, className }: ShortClipsReelProps) {
             </span>
             Live Feed
           </div>
-          <h2 className="text-[28px] md:text-[34px] font-black leading-none text-zinc-900 tracking-[-0.03em]">
+          <h2 className="text-[28px] md:text-[34px] font-black leading-none text-zinc-900 dark:text-white tracking-[-0.03em]">
             Creator <span className="text-orange-600">Shorts</span>
           </h2>
           <p className="text-[13px] font-medium text-zinc-400">Discover and shop trending creator content</p>
@@ -91,7 +91,7 @@ export function ShortClipsReel({ videos, className }: ShortClipsReelProps) {
         {videos.map((video) => (
           <div
             key={video.id}
-            className="shrink-0 group relative flex flex-col overflow-hidden rounded-[20px] bg-white border border-zinc-100 shadow-[0_8px_30px_-12px_rgba(0,0,0,0.06)] hover:shadow-[0_15px_40px_-12px_rgba(249,115,22,0.1)] hover:border-orange-100/50 transition-all duration-500 hover:-translate-y-1.5"
+            className="shrink-0 group relative flex flex-col overflow-hidden rounded-[20px] bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 shadow-[0_8px_30px_-12px_rgba(0,0,0,0.06)] hover:shadow-[0_15px_40px_-12px_rgba(249,115,22,0.1)] hover:border-orange-100/50 transition-all duration-500 hover:-translate-y-1.5"
             style={{ width: "clamp(160px, 45vw, 190px)" }}
           >
             {/* ── VIDEO PLAYER PORTION ── */}
@@ -130,7 +130,7 @@ export function ShortClipsReel({ videos, className }: ShortClipsReelProps) {
               {/* Bottom Video Metadata */}
               <div className="absolute inset-x-0 bottom-0 p-3 pt-4 space-y-1">
                 <div className="flex items-center gap-1.5">
-                  <div className="h-5 w-5 rounded-full border-2 border-white/40 overflow-hidden bg-white/10 backdrop-blur-md shadow-lg transition-transform group-hover:scale-110">
+                  <div className="h-5 w-5 rounded-full border-2 border-white/40 overflow-hidden bg-white dark:bg-zinc-900/10 backdrop-blur-md shadow-lg transition-transform group-hover:scale-110">
                     {video.creator.avatar ? (
                       <img src={video.creator.avatar} alt={video.creator.name} className="h-full w-full object-cover" />
                     ) : (
@@ -162,7 +162,7 @@ export function ShortClipsReel({ videos, className }: ShortClipsReelProps) {
 
               {/* Play Button Overlay */}
               <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none">
-                <div className="h-16 w-16 rounded-full bg-white/20 backdrop-blur-xl border border-white/30 flex items-center justify-center scale-75 group-hover:scale-100 transition-all duration-500 shadow-2xl">
+                <div className="h-16 w-16 rounded-full bg-white dark:bg-zinc-900/20 backdrop-blur-xl border border-white/30 flex items-center justify-center scale-75 group-hover:scale-100 transition-all duration-500 shadow-2xl">
                   <Play className="h-7 w-7 text-white fill-white ml-1 shadow-lg" />
                 </div>
               </div>
@@ -174,7 +174,7 @@ export function ShortClipsReel({ videos, className }: ShortClipsReelProps) {
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex-1 min-w-0">
-                      <p className="text-[11px] font-black text-zinc-900 truncate leading-none">
+                      <p className="text-[11px] font-black text-zinc-900 dark:text-white truncate leading-none">
                         {video.product.name}
                       </p>
                       <p className="text-[7px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">Verified Shop</p>
@@ -198,7 +198,7 @@ export function ShortClipsReel({ videos, className }: ShortClipsReelProps) {
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex-1 min-w-0">
-                      <p className="text-[11px] font-black text-zinc-900 truncate leading-none">
+                      <p className="text-[11px] font-black text-zinc-900 dark:text-white truncate leading-none">
                         {video.community.name}
                       </p>
                       <p className="text-[8px] font-bold text-indigo-500 mt-0.5 uppercase tracking-wide">
@@ -215,7 +215,7 @@ export function ShortClipsReel({ videos, className }: ShortClipsReelProps) {
                 </div>
               ) : (
                 <div className="space-y-1.5">
-                  <p className="text-[11px] font-black text-zinc-900 truncate tracking-tight">
+                  <p className="text-[11px] font-black text-zinc-900 dark:text-white truncate tracking-tight">
                     Visit Sponsor Link
                   </p>
                   <a 

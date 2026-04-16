@@ -27,7 +27,7 @@ function GlassBadge({
   color?: "neutral" | "orange" | "red" | "violet" | "amber";
 }) {
   const styles = {
-    neutral: "bg-white/70 border-white/70 text-stone-600",
+    neutral: "bg-surface dark:bg-zinc-900/70 border-border dark:border-white/10 text-stone-600 dark:text-stone-400",
     orange:  "bg-orange-50/80 border-orange-200/50 text-orange-700",
     red:     "bg-red-500/90 border-transparent text-white shadow-[0_2px_8px_rgba(239,68,68,0.35)]",
     violet:  "bg-violet-500/90 border-transparent text-white shadow-[0_2px_8px_rgba(139,92,246,0.35)]",
@@ -35,7 +35,7 @@ function GlassBadge({
   };
   return (
     <span className={cn(
-      "inline-flex items-center gap-1 rounded-full border backdrop-blur-xl px-2.5 py-1 text-[10px] font-bold",
+      "inline-flex items-center gap-1 rounded-full border backdrop-blur-xl px-2.5 py-1 text-[10px] font-bold dark:border-opacity-30",
       styles[color]
     )}>
       {children}
@@ -62,10 +62,10 @@ export function ProductCard({ product, viewMode = "grid" }: ProductCardProps) {
         <div className={cn(
           "flex gap-4 p-4 group cursor-pointer overflow-hidden",
           "rounded-[28px] border backdrop-blur-2xl",
-          "bg-white/55 border-white/70",
-          "shadow-[0_4px_24px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,0.9)]",
-          "hover:shadow-[0_8px_40px_rgba(249,115,22,0.10),inset_0_1px_0_rgba(255,255,255,0.9)]",
-          "hover:border-orange-100/80 transition-all duration-300 relative"
+          "bg-white dark:bg-zinc-900/55 border-white/70 dark:border-white/10",
+          "shadow-[0_4px_24px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,0.9)] dark:shadow-[0_4px_24px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.05)]",
+          "hover:shadow-[0_8px_40px_rgba(249,115,22,0.10),inset_0_1px_0_rgba(255,255,255,0.9)] dark:hover:shadow-[0_8px_40px_rgba(249,115,22,0.2),inset_0_1px_0_rgba(255,255,255,0.05)]",
+          "hover:border-orange-100/80 dark:hover:border-orange-500/30 transition-all duration-300 relative"
         )}>
           {/* Specular shine */}
           <div className="pointer-events-none absolute inset-0 rounded-[28px] overflow-hidden">
@@ -85,8 +85,8 @@ export function ProductCard({ product, viewMode = "grid" }: ProductCardProps) {
               />
             ) : (
               <div
-                className="w-full h-full flex items-center justify-center"
-                style={{ background: "linear-gradient(135deg, #f5f4f1, rgba(255,237,213,0.5))" }}
+              className="w-full h-full flex items-center justify-center"
+                style={{ background: "var(--color-surface-secondary)" }}
               >
                 <span className="text-2xl font-black text-orange-200/80 uppercase">
                   {product.name.charAt(0)}
@@ -100,7 +100,7 @@ export function ProductCard({ product, viewMode = "grid" }: ProductCardProps) {
             <p className="text-[10px] font-semibold text-stone-400 mb-1 uppercase tracking-widest">
               {(product as { vendors?: { business_name?: string } }).vendors?.business_name || "Jimvio Store"}
             </p>
-            <h3 className="font-semibold text-[13px] text-stone-800 mb-2 line-clamp-2 group-hover:text-orange-600 transition-colors leading-snug">
+            <h3 className="font-semibold text-[13px] text-stone-800 dark:text-zinc-200 mb-2 line-clamp-2 group-hover:text-orange-600 transition-colors leading-snug">
               {product.name}
             </h3>
             <div className="flex items-center gap-2 mb-2.5">
@@ -144,7 +144,7 @@ export function ProductCard({ product, viewMode = "grid" }: ProductCardProps) {
             <button
               type="button"
               onClick={(e) => { e.preventDefault(); setWishlisted(!wishlisted); }}
-              className="h-8 w-full rounded-full bg-white/70 border border-white/80 backdrop-blur-xl flex items-center justify-center hover:border-red-200 transition-all"
+              className="h-8 w-full rounded-full bg-surface dark:bg-zinc-900/70 border border-border backdrop-blur-xl flex items-center justify-center hover:border-red-200 dark:hover:border-red-800 transition-all"
             >
               <Heart className={cn("h-3.5 w-3.5 transition-colors", wishlisted ? "fill-red-500 text-red-500" : "text-stone-400")} />
             </button>
@@ -163,10 +163,10 @@ export function ProductCard({ product, viewMode = "grid" }: ProductCardProps) {
       <div className={cn(
         "group relative overflow-hidden cursor-pointer",
         "rounded-[28px] border backdrop-blur-2xl",
-        "bg-white/55 border-white/70",
-        "shadow-[0_4px_24px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,0.9)]",
-        "hover:shadow-[0_8px_40px_rgba(249,115,22,0.10),inset_0_1px_0_rgba(255,255,255,0.9)]",
-        "hover:border-orange-100/80 transition-all duration-300",
+        "bg-white dark:bg-zinc-900/55 border-white/70 dark:border-white/10",
+        "shadow-[0_4px_24px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,0.9)] dark:shadow-[0_4px_24px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.05)]",
+        "hover:shadow-[0_8px_40px_rgba(249,115,22,0.10),inset_0_1px_0_rgba(255,255,255,0.9)] dark:hover:shadow-[0_8px_40px_rgba(249,115,22,0.2),inset_0_1px_0_rgba(255,255,255,0.05)]",
+        "hover:border-orange-100/80 dark:hover:border-orange-500/30 transition-all duration-300",
       )}>
         {/* ── Specular shine (matches dashboard GlassCard shine) ── */}
         <div className="pointer-events-none absolute inset-0 rounded-[28px] overflow-hidden z-10">
@@ -207,10 +207,10 @@ export function ProductCard({ product, viewMode = "grid" }: ProductCardProps) {
           {/* Wishlist button */}
           <button
             type="button"
-            className="absolute top-2.5 right-2.5 z-20 h-8 w-8 rounded-full bg-white/80 backdrop-blur-xl border border-white/70 shadow-md flex items-center justify-center hover:scale-110 active:scale-95 transition-all"
+            className="absolute top-2.5 right-2.5 z-20 h-8 w-8 rounded-full bg-surface dark:bg-zinc-900/80 backdrop-blur-xl border border-border shadow-md flex items-center justify-center hover:scale-110 active:scale-95 transition-all"
             onClick={(e) => { e.preventDefault(); setWishlisted(!wishlisted); }}
           >
-            <Heart className={cn("h-3.5 w-3.5 transition-colors", wishlisted ? "fill-red-500 text-red-500" : "text-stone-500")} />
+            <Heart className={cn("h-3.5 w-3.5 transition-colors", wishlisted ? "fill-red-500 text-red-500" : "text-stone-500 dark:text-zinc-400")} />
           </button>
 
           {/* Hover CTA */}
@@ -229,7 +229,7 @@ export function ProductCard({ product, viewMode = "grid" }: ProductCardProps) {
           {product.affiliate_enabled && (
             <GlassBadge color="orange">Affiliate</GlassBadge>
           )}
-          <h3 className="font-semibold text-[13px] text-stone-800 mt-1.5 mb-2.5 line-clamp-1 group-hover:text-orange-600 transition-colors leading-tight">
+          <h3 className="font-semibold text-[13px] text-stone-800 dark:text-zinc-200 mt-1.5 mb-2.5 line-clamp-1 group-hover:text-orange-600 transition-colors leading-tight">
             {product.name}
           </h3>
           <div className="flex items-center justify-between">

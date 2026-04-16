@@ -22,19 +22,19 @@ const STATUS_CONFIG: Record<string, { label: string; color: "orange" | "emerald"
 };
 
 const PLATFORM_ICONS: Record<string, any> = {
-  tiktok:    { icon: Play,  color: "text-stone-900", bg: "bg-stone-50" },
+  tiktok:    { icon: Play,  color: "text-stone-900 dark:text-white", bg: "bg-stone-50 dark:bg-zinc-900/50" },
   instagram: { icon: Camera, color: "text-orange-500", bg: "bg-orange-50" },
   youtube:   { icon: Play,  color: "text-red-500", bg: "bg-red-50" },
-  x:         { icon: MessageSquare, color: "text-stone-800", bg: "bg-stone-100" },
+  x:         { icon: MessageSquare, color: "text-stone-800 dark:text-zinc-200", bg: "bg-stone-100" },
 };
 
 function SubmissionCard({ sub, onDelete }: { sub: UGCSubmission; onDelete: (id: string) => void }) {
   const { formatMoney } = useCurrency();
   const cfg = STATUS_CONFIG[sub.status] || STATUS_CONFIG.pending;
-  const pCfg = PLATFORM_ICONS[sub.platform] || { icon: Video, color: "text-stone-500", bg: "bg-stone-50" };
+  const pCfg = PLATFORM_ICONS[sub.platform] || { icon: Video, color: "text-stone-500", bg: "bg-stone-50 dark:bg-zinc-900/50" };
 
   return (
-    <GlassCard className="p-8 rounded-[40px] bg-white border-white hover:shadow-2xl hover:shadow-orange-500/5 transition-all duration-500 relative group">
+    <GlassCard className="p-8 rounded-[40px] bg-white dark:bg-zinc-900 border-white hover:shadow-2xl hover:shadow-orange-500/5 transition-all duration-500 relative group">
       <div className="flex flex-col md:flex-row gap-8 items-start">
         {/* Platform Display */}
         <div className={cn("w-20 h-20 rounded-[24px] flex items-center justify-center shrink-0 border border-white shadow-xl group-hover:scale-110 transition-transform duration-700", pCfg.bg)}>
@@ -44,7 +44,7 @@ function SubmissionCard({ sub, onDelete }: { sub: UGCSubmission; onDelete: (id: 
         <div className="flex-1 space-y-6 w-full min-w-0">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
              <div className="space-y-2">
-                <h3 className="text-xl font-black text-stone-900 tracking-tighter leading-none">
+                <h3 className="text-xl font-black text-stone-900 dark:text-white tracking-tighter leading-none">
                    {sub.campaign?.title ?? "Standard Mission"}
                 </h3>
                 <div className="flex items-center gap-2">
@@ -89,7 +89,7 @@ function SubmissionCard({ sub, onDelete }: { sub: UGCSubmission; onDelete: (id: 
                <p className="text-[10px] font-bold text-stone-300 uppercase tracking-widest">Views Earned</p>
                <div className="flex items-center gap-2">
                   <TrendingUp className="h-4 w-4 text-orange-500" />
-                  <span className="text-lg font-black text-stone-900 tabular-nums">{(sub.total_views_earned ?? 0).toLocaleString()}</span>
+                  <span className="text-lg font-black text-stone-900 dark:text-white tabular-nums">{(sub.total_views_earned ?? 0).toLocaleString()}</span>
                </div>
             </div>
             <div className="space-y-1">
@@ -103,7 +103,7 @@ function SubmissionCard({ sub, onDelete }: { sub: UGCSubmission; onDelete: (id: 
                <p className="text-[10px] font-bold text-stone-300 uppercase tracking-widest">Submitted Date</p>
                <div className="flex items-center gap-2">
                   <Clock className="h-4 w-4 text-stone-300" />
-                  <span className="text-lg font-black text-stone-900">
+                  <span className="text-lg font-black text-stone-900 dark:text-white">
                      {new Date(sub.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                   </span>
                </div>
@@ -166,16 +166,16 @@ export default function DashboardSubmissionsPage() {
 
   if (loading && submissions.length === 0) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center space-y-12 animate-in fade-in duration-700" style={{ background: "#f8f7f5" }}>
+      <div className="min-h-screen flex flex-col items-center justify-center space-y-12 animate-in fade-in duration-700" style={{ background: "var(--color-bg)" }}>
         <div className="relative">
           <div className="absolute inset-0 bg-orange-400/20 blur-3xl rounded-full scale-150 animate-pulse" />
-          <div className="relative w-24 h-24 rounded-[32px] bg-white border border-white shadow-2xl flex items-center justify-center overflow-hidden">
+          <div className="relative w-24 h-24 rounded-[32px] bg-white dark:bg-zinc-900 border border-white shadow-2xl flex items-center justify-center overflow-hidden">
             <div className="absolute inset-0 border-2 border-t-orange-500 border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin m-2" />
-            <Video className="h-10 w-10 text-stone-900" />
+            <Video className="h-10 w-10 text-stone-900 dark:text-white" />
           </div>
         </div>
         <div className="text-center space-y-3">
-           <h2 className="text-[14px] font-black text-stone-900 uppercase tracking-[0.4em] pl-[0.4em]">Submissions</h2>
+           <h2 className="text-[14px] font-black text-stone-900 dark:text-white uppercase tracking-[0.4em] pl-[0.4em]">Submissions</h2>
            <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest pl-[0.1em]">Reconciling Content Performance</p>
         </div>
       </div>
@@ -183,7 +183,7 @@ export default function DashboardSubmissionsPage() {
   }
 
   return (
-    <div className="min-h-screen pb-24 relative overflow-hidden" style={{ background: "#f8f7f5" }}>
+    <div className="min-h-screen pb-24 relative overflow-hidden" style={{ background: "var(--color-bg)" }}>
       <GlassAmbientGlow color="orange" position="top-right" />
       <GlassAmbientGlow color="orange" position="bottom-left" />
 
@@ -192,8 +192,8 @@ export default function DashboardSubmissionsPage() {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
            <div className="space-y-2">
-              <h1 className="text-4xl font-black text-stone-900 tracking-tighter flex items-center gap-4">
-                 <div className="p-2.5 rounded-[20px] bg-white border border-white shadow-2xl shrink-0">
+              <h1 className="text-4xl font-black text-stone-900 dark:text-white tracking-tighter flex items-center gap-4">
+                 <div className="p-2.5 rounded-[20px] bg-white dark:bg-zinc-900 border border-white shadow-2xl shrink-0">
                     <Video className="h-8 w-8 text-orange-500" />
                  </div>
                  My Submissions
@@ -202,42 +202,42 @@ export default function DashboardSubmissionsPage() {
                  Track your content performance and earned rewards
               </p>
            </div>
-           <div className="flex items-center gap-4 bg-white/40 p-1.5 rounded-full border border-white shadow-xl backdrop-blur-xl">
+           <div className="flex items-center gap-4 bg-white dark:bg-zinc-900/40 p-1.5 rounded-full border border-white shadow-xl backdrop-blur-xl">
               <div className="w-3 h-3 rounded-full bg-orange-500 ml-4 animate-pulse shadow-[0_0_12px_rgba(249,115,22,0.5)]" />
-              <span className="text-[10px] font-black uppercase tracking-widest text-stone-900 pr-6 pl-2">Sync Active</span>
+              <span className="text-[10px] font-black uppercase tracking-widest text-stone-900 dark:text-white pr-6 pl-2">Sync Active</span>
            </div>
         </div>
 
         {/* Stats Row */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-           <GlassCard className="p-8 flex flex-col justify-between rounded-[40px] bg-white/60 border-white shadow-xl transition-all hover:scale-105 duration-700">
-              <div className="w-14 h-14 rounded-[22px] bg-stone-50 border border-stone-100 flex items-center justify-center mb-6">
-                 <Video className="h-7 w-7 text-stone-900" />
+           <GlassCard className="p-8 flex flex-col justify-between rounded-[40px] bg-white dark:bg-zinc-900/60 border-white shadow-xl transition-all hover:scale-105 duration-700">
+              <div className="w-14 h-14 rounded-[22px] bg-stone-50 dark:bg-zinc-900/50 border border-stone-100 dark:border-zinc-800 flex items-center justify-center mb-6">
+                 <Video className="h-7 w-7 text-stone-900 dark:text-white" />
               </div>
               <div>
-                 <p className="text-3xl font-black text-stone-900 tracking-tighter leading-none tabular-nums">{stats.total.toLocaleString()}</p>
+                 <p className="text-3xl font-black text-stone-900 dark:text-white tracking-tighter leading-none tabular-nums">{stats.total.toLocaleString()}</p>
                  <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mt-2">Total Submissions</p>
               </div>
            </GlassCard>
-           <GlassCard className="p-8 flex flex-col justify-between rounded-[40px] bg-white/60 border-white shadow-xl transition-all hover:scale-105 duration-700">
+           <GlassCard className="p-8 flex flex-col justify-between rounded-[40px] bg-white dark:bg-zinc-900/60 border-white shadow-xl transition-all hover:scale-105 duration-700">
               <div className="w-14 h-14 rounded-[22px] bg-emerald-50 border border-emerald-100 flex items-center justify-center mb-6">
                  <CheckCircle className="h-7 w-7 text-emerald-500" />
               </div>
               <div>
-                 <p className="text-3xl font-black text-stone-900 tracking-tighter leading-none tabular-nums">{stats.approved.toLocaleString()}</p>
+                 <p className="text-3xl font-black text-stone-900 dark:text-white tracking-tighter leading-none tabular-nums">{stats.approved.toLocaleString()}</p>
                  <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mt-2">Approved Videos</p>
               </div>
            </GlassCard>
-           <GlassCard className="p-8 flex flex-col justify-between rounded-[40px] bg-white/60 border-white shadow-xl transition-all hover:scale-105 duration-700">
+           <GlassCard className="p-8 flex flex-col justify-between rounded-[40px] bg-white dark:bg-zinc-900/60 border-white shadow-xl transition-all hover:scale-105 duration-700">
               <div className="w-14 h-14 rounded-[22px] bg-orange-50 border border-orange-100 flex items-center justify-center mb-6">
                  <Clock className="h-7 w-7 text-orange-500" />
               </div>
               <div>
-                 <p className="text-3xl font-black text-stone-900 tracking-tighter leading-none tabular-nums">{stats.pending.toLocaleString()}</p>
+                 <p className="text-3xl font-black text-stone-900 dark:text-white tracking-tighter leading-none tabular-nums">{stats.pending.toLocaleString()}</p>
                  <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mt-2">Pending Review</p>
               </div>
            </GlassCard>
-           <GlassCard className="p-8 flex flex-col justify-between rounded-[40px] bg-white border-white shadow-2xl transition-all hover:scale-105 duration-700">
+           <GlassCard className="p-8 flex flex-col justify-between rounded-[40px] bg-white dark:bg-zinc-900 border-white shadow-2xl transition-all hover:scale-105 duration-700">
               <div className="w-14 h-14 rounded-[22px] bg-stone-900 text-white flex items-center justify-center mb-6">
                  <DollarSign className="h-7 w-7" />
               </div>
@@ -259,7 +259,7 @@ export default function DashboardSubmissionsPage() {
                        "px-8 h-12 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border shrink-0 shadow-sm",
                        statusFilter === f
                           ? "bg-stone-900 border-stone-900 text-white shadow-xl shadow-stone-900/10"
-                          : "bg-white border-white text-stone-400 hover:text-stone-900"
+                          : "bg-white dark:bg-zinc-900 border-white text-stone-400 hover:text-stone-900 dark:text-white"
                     )}
                  >
                     {f}
@@ -268,7 +268,7 @@ export default function DashboardSubmissionsPage() {
            </div>
            
            <div className="flex items-center gap-3">
-              <div className="h-12 w-12 flex items-center justify-center rounded-2xl bg-white border border-white text-stone-400 shadow-sm">
+              <div className="h-12 w-12 flex items-center justify-center rounded-2xl bg-white dark:bg-zinc-900 border border-white text-stone-400 shadow-sm">
                  <Filter className="h-4 w-4" />
               </div>
               <Button asChild className="h-12 px-8 rounded-2xl bg-orange-500 text-white font-black text-[10px] uppercase tracking-widest shadow-xl shadow-orange-500/20 active:scale-95 transition-all border-none">
@@ -281,15 +281,15 @@ export default function DashboardSubmissionsPage() {
         {loading ? (
            <div className="space-y-6">
               {[1, 2, 3].map((i) => (
-                 <div key={i} className="h-48 rounded-[48px] bg-white border border-white animate-pulse shadow-sm" />
+                 <div key={i} className="h-48 rounded-[48px] bg-white dark:bg-zinc-900 border border-white animate-pulse shadow-sm" />
               ))}
            </div>
         ) : submissions.length === 0 ? (
-           <GlassCard className="p-24 text-center rounded-[56px] border-white bg-white/20">
-              <div className="w-24 h-24 bg-white rounded-[32px] flex items-center justify-center mx-auto mb-8 border border-white shadow-xl">
+           <GlassCard className="p-24 text-center rounded-[56px] border-white bg-white dark:bg-zinc-900/20">
+              <div className="w-24 h-24 bg-white dark:bg-zinc-900 rounded-[32px] flex items-center justify-center mx-auto mb-8 border border-white shadow-xl">
                  <Video className="h-10 w-10 text-stone-100" />
               </div>
-              <h2 className="text-3xl font-black text-stone-900 tracking-tighter">No Activity Logged</h2>
+              <h2 className="text-3xl font-black text-stone-900 dark:text-white tracking-tighter">No Activity Logged</h2>
               <p className="text-[11px] font-black text-stone-400 uppercase tracking-widest mt-4 max-w-xs mx-auto leading-relaxed">
                  You haven't submitted any content yet. Explore missions to start earning.
               </p>

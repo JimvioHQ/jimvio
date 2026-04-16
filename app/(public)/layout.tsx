@@ -38,7 +38,7 @@ export default async function PublicLayout({ children }: { children: React.React
   const marketing = platformSettings?.marketing ?? PLATFORM_SETTINGS_DEFAULTS.marketing;
 
   return (
-    <div className="flex flex-col min-h-screen" style={{ background: "#f8f7f5" }}>
+    <div className="flex flex-col min-h-screen" style={{ background: "var(--color-bg)" }}>
       <Suspense fallback={<div className="min-h-[var(--navbar-height)]" aria-hidden />}>
         <Navbar user={profile} marketing={marketing} />
       </Suspense>

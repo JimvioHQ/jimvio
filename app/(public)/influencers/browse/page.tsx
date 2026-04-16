@@ -11,14 +11,14 @@ export default async function InfluencersBrowsePage() {
   const niches = ["All Categories", "Fashion & Beauty", "Tech & Gadgets", "Home & Lifestyle", "Food & Drink", "Travel"];
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white dark:bg-zinc-900">
       {/* Premium Hero Header */}
       <div className="relative overflow-hidden bg-zinc-950 pt-32 pb-20 px-4">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(249,115,22,0.1),transparent_50%)]" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,rgba(139,92,246,0.1),transparent_50%)]" />
         
         <div className="max-w-[1400px] mx-auto relative z-10">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-orange-400 text-[10px] font-black uppercase tracking-widest mb-6">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white dark:bg-zinc-900/5 border border-white/10 text-orange-400 text-[10px] font-black uppercase tracking-widest mb-6">
             <Sparkles className="h-3 w-3 animate-pulse" /> Global Creator Network
           </div>
           <h1 className="text-4xl md:text-6xl font-black text-white mb-6 tracking-tight">
@@ -72,10 +72,10 @@ export default async function InfluencersBrowsePage() {
             <Link
               key={v.id}
               href={`/influencers/${v.business_slug}`}
-              className="group relative bg-white border border-zinc-100 rounded-[32px] overflow-hidden hover:shadow-2xl hover:border-orange-200 transition-all duration-500"
+              className="group relative bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-[32px] overflow-hidden hover:shadow-2xl hover:border-orange-200 transition-all duration-500"
             >
               {/* Card Header Visual */}
-              <div className="h-28 bg-zinc-50 group-hover:bg-orange-50 transition-colors relative">
+              <div className="h-28 bg-zinc-50 dark:bg-zinc-900/50 group-hover:bg-orange-50 transition-colors relative">
                 <div className="absolute -bottom-10 left-6">
                   <div className="relative">
                     <Avatar className="h-20 w-20 border-4 border-white shadow-xl ring-1 ring-zinc-100 group-hover:scale-110 transition-transform duration-500">
@@ -84,14 +84,14 @@ export default async function InfluencersBrowsePage() {
                         {v.business_name?.charAt(0)}
                       </AvatarFallback>
                     </Avatar>
-                    <div className="absolute -bottom-1 -right-1 bg-white p-1 rounded-full shadow-lg">
+                    <div className="absolute -bottom-1 -right-1 bg-white dark:bg-zinc-900 p-1 rounded-full shadow-lg">
                       <BadgeCheck className="h-5 w-5 text-blue-500 fill-blue-500 stroke-white" />
                     </div>
                   </div>
                 </div>
                 <div className="absolute top-4 right-4 flex gap-1">
                    {['tiktok', 'instagram'].map(p => (
-                     <div key={p} className="h-8 w-8 rounded-full bg-white/80 backdrop-blur shadow-sm flex items-center justify-center">
+                     <div key={p} className="h-8 w-8 rounded-full bg-white dark:bg-zinc-900/80 backdrop-blur shadow-sm flex items-center justify-center">
                        <Video className="h-3.5 w-3.5 text-zinc-600" />
                      </div>
                    ))}
@@ -101,7 +101,7 @@ export default async function InfluencersBrowsePage() {
               {/* Card Body */}
               <div className="pt-14 p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-xl font-black text-zinc-900 truncate leading-none">
+                  <h3 className="text-xl font-black text-zinc-900 dark:text-white truncate leading-none">
                     {v.business_name}
                   </h3>
                 </div>
@@ -119,7 +119,7 @@ export default async function InfluencersBrowsePage() {
 
                 <div className="flex items-center gap-2 mb-6">
                   {["Fashion", "Style"].map(tag => (
-                    <span key={tag} className="px-3 py-1 rounded-full bg-zinc-50 text-[10px] font-black text-zinc-400 uppercase tracking-tight">#{tag}</span>
+                    <span key={tag} className="px-3 py-1 rounded-full bg-zinc-50 dark:bg-zinc-900/50 text-[10px] font-black text-zinc-400 uppercase tracking-tight">#{tag}</span>
                   ))}
                 </div>
 
@@ -133,7 +133,7 @@ export default async function InfluencersBrowsePage() {
 
         {/* Empty State / Load More */}
         <div className="mt-20 text-center">
-           <Button variant="outline" className="h-14 rounded-3xl px-10 border-zinc-200 font-black text-zinc-900 hover:bg-zinc-50">
+           <Button variant="outline" className="h-14 rounded-3xl px-10 border-zinc-200 dark:border-zinc-800 font-black text-zinc-900 dark:text-white hover:bg-zinc-50 dark:bg-zinc-900/50">
              Discover More Creators
            </Button>
         </div>

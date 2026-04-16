@@ -4,18 +4,18 @@ import { cn } from "@/lib/utils";
 // ── Glass Design Tokens ──────────────────────────────────────────
 export const GLASS_TOKENS = {
   light: {
-    background: "rgba(255, 255, 255, 0.72)",
-    backdropFilter: "blur(40px) saturate(180%) brightness(105%)",
-    WebkitBackdropFilter: "blur(40px) saturate(180%) brightness(105%)",
-    border: "1px solid rgba(255, 255, 255, 0.88)",
-    boxShadow: "0 8px 32px rgba(0,0,0,0.07), inset 0 1px 0 rgba(255,255,255,1), inset 0 -1px 0 rgba(255,255,255,0.3)",
+    background: "var(--glass-bg)",
+    backdropFilter: "var(--glass-blur) saturate(180%)",
+    WebkitBackdropFilter: "var(--glass-blur) saturate(180%)",
+    border: "1px solid var(--glass-border)",
+    boxShadow: "var(--glass-shadow)",
   },
   dark: {
-    background: "rgba(15, 23, 42, 0.88)",
-    backdropFilter: "blur(48px) saturate(180%) brightness(95%)",
-    WebkitBackdropFilter: "blur(48px) saturate(180%) brightness(95%)",
-    border: "1px solid rgba(255, 255, 255, 0.10)",
-    boxShadow: "0 16px 48px rgba(0,0,0,0.30), inset 0 1px 0 rgba(255,255,255,0.08)",
+    background: "var(--glass-bg)",
+    backdropFilter: "var(--glass-blur) saturate(180%)",
+    WebkitBackdropFilter: "var(--glass-blur) saturate(180%)",
+    border: "1px solid var(--glass-border)",
+    boxShadow: "var(--glass-shadow)",
   },
   pillLight: {
     background: "rgba(255, 255, 255, 0.72)",
@@ -130,16 +130,16 @@ export function GlassPill({
   color?: "default" | "orange" | "emerald" | "blue" | "red" | "indigo" | "amber" | "rose" | "sky" | "purple";
 } & React.HTMLAttributes<HTMLDivElement>) {
   const variants = {
-    default: "bg-white/70 border-white/80 text-stone-600 shadow-sm",
-    orange:  "bg-orange-50/80 border-orange-100 text-orange-600 shadow-[0_2px_8px_rgba(251,146,60,0.1)]",
-    emerald: "bg-emerald-50/80 border-emerald-100 text-emerald-600 shadow-[0_2px_8px_rgba(16,185,129,0.1)]",
-    blue:    "bg-blue-50/80 border-blue-100 text-blue-600 shadow-[0_2px_8px_rgba(59,130,246,0.1)]",
-    red:     "bg-rose-50/80 border-rose-100 text-rose-600 shadow-[0_2px_8px_rgba(244,63,94,0.1)]",
-    indigo:  "bg-indigo-50/80 border-indigo-100 text-indigo-600 shadow-[0_2px_8px_rgba(99,102,241,0.1)]",
-    amber:   "bg-amber-50/80 border-amber-100 text-amber-600 shadow-[0_2px_8px_rgba(245,158,11,0.1)]",
-    rose:    "bg-rose-50/80 border-rose-100 text-rose-600 shadow-[0_2px_8px_rgba(244,63,94,0.1)]",
-    sky:     "bg-sky-50/80 border-sky-100 text-sky-600 shadow-[0_2px_8px_rgba(14,165,233,0.1)]",
-    purple:  "bg-purple-50/80 border-purple-100 text-purple-600 shadow-[0_2px_8px_rgba(168,85,247,0.1)]",
+    default: "bg-surface/70 border-border text-stone-600 dark:text-stone-400 shadow-sm",
+    orange:  "bg-orange-50/80 dark:bg-orange-500/10 border-orange-100 dark:border-orange-500/20 text-orange-600 dark:text-orange-500 shadow-[0_2px_8px_rgba(251,146,60,0.1)]",
+    emerald: "bg-emerald-50/80 dark:bg-emerald-500/10 border-emerald-100 dark:border-emerald-500/20 text-emerald-600 dark:text-emerald-500 shadow-[0_2px_8px_rgba(16,185,129,0.1)]",
+    blue:    "bg-blue-50/80 dark:bg-blue-500/10 border-blue-100 dark:border-blue-500/20 text-blue-600 dark:text-blue-400 shadow-[0_2px_8px_rgba(59,130,246,0.1)]",
+    red:     "bg-rose-50/80 dark:bg-rose-500/10 border-rose-100 dark:border-rose-500/20 text-rose-600 dark:text-rose-400 shadow-[0_2px_8px_rgba(244,63,94,0.1)]",
+    indigo:  "bg-indigo-50/80 dark:bg-indigo-500/10 border-indigo-100 dark:border-indigo-500/20 text-indigo-600 dark:text-indigo-400 shadow-[0_2px_8px_rgba(99,102,241,0.1)]",
+    amber:   "bg-amber-50/80 dark:bg-amber-500/10 border-amber-100 dark:border-amber-500/20 text-amber-600 dark:text-amber-500 shadow-[0_2px_8px_rgba(245,158,11,0.1)]",
+    rose:    "bg-rose-50/80 dark:bg-rose-500/10 border-rose-100 dark:border-rose-500/20 text-rose-600 dark:text-rose-400 shadow-[0_2px_8px_rgba(244,63,94,0.1)]",
+    sky:     "bg-sky-50/80 dark:bg-sky-500/10 border-sky-100 dark:border-sky-500/20 text-sky-600 dark:text-sky-400 shadow-[0_2px_8px_rgba(14,165,233,0.1)]",
+    purple:  "bg-purple-50/80 dark:bg-purple-500/10 border-purple-100 dark:border-purple-500/20 text-purple-600 dark:text-purple-400 shadow-[0_2px_8px_rgba(168,85,247,0.1)]",
   };
 
   return (

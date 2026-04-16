@@ -10,6 +10,7 @@ import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { CurrencySelector } from "@/context/CurrencyContext";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -56,7 +57,7 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
   }, [fetchRoles]);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#f8f7f5]">
+    <div className="flex h-screen overflow-hidden bg-background">
       <Sidebar
         user={user}
         activeRoles={activeRoles}
@@ -71,13 +72,7 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
             HEADER — Frosted Glass iOS 17
         ══════════════════════════════════════ */}
         <header
-          className="sticky top-0 z-40 shrink-0"
-          style={{
-            background: "rgba(248,247,245,0.75)",
-            backdropFilter: "blur(40px) saturate(180%)",
-            WebkitBackdropFilter: "blur(40px) saturate(180%)",
-            borderBottom: "1px solid rgba(0,0,0,0.05)",
-          }}
+          className="sticky top-0 z-40 shrink-0 bg-surface/80 dark:bg-zinc-950/80 backdrop-blur-[20px] border-b border-border"
         >
           <div className="flex items-center justify-between gap-3 px-4 sm:px-6 h-[60px] max-w-[1400px] mx-auto w-full">
             
@@ -85,11 +80,7 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
             <div className={cn("lg:hidden flex items-center gap-3", mobileMenuOpen && "invisible")}>
                <button
                  onClick={() => setMobileMenuOpen(true)}
-                 className="flex items-center justify-center h-9 w-9 rounded-[14px] transition-all active:scale-95 hover:shadow-sm"
-                 style={{
-                   background: "rgba(0,0,0,0.04)",
-                   border: "1px solid rgba(0,0,0,0.06)",
-                 }}
+                 className="flex items-center justify-center h-9 w-9 rounded-[14px] transition-all active:scale-95 hover:shadow-sm bg-surface-secondary dark:bg-zinc-800 border border-border"
                >
                   <Menu className="h-[18px] w-[18px] text-stone-500" />
                </button>
@@ -99,100 +90,81 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
             </div>
 
             {/* Desktop: Search */}
-            <div className="hidden lg:flex flex-1 items-center gap-4">
-               <div className="relative max-w-sm w-full group">
-                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-300 group-focus-within:text-orange-500 transition-colors" />
+            <div className="hidden lg:flex flex-1 items-center max-w-sm">
+               <div className="relative w-full group">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400 group-focus-within:text-orange-500 transition-colors" />
                   <input 
                     type="text" 
-                    placeholder="Search dashboard..." 
-                    className="w-full h-10 pl-10 pr-4 rounded-[16px] text-[13px] font-medium placeholder:text-stone-300 focus:outline-none focus:ring-2 focus:ring-orange-500/15 transition-all"
-                    style={{
-                      background: "rgba(0,0,0,0.03)",
-                      border: "1px solid rgba(0,0,0,0.05)",
-                    }}
+                    placeholder="Search anything..." 
+                    className="w-full h-10 pl-10 pr-4 rounded-xl text-[13px] font-medium bg-neutral-100 dark:bg-zinc-900 border border-transparent focus:border-orange-500/30 focus:bg-white dark:focus:bg-zinc-800 transition-all outline-none text-neutral-900 dark:text-zinc-100 placeholder:text-neutral-400"
                   />
                </div>
             </div>
 
             {/* Right: Actions */}
-            <div className="flex items-center gap-2 sm:gap-3">
+            <div className="flex items-center gap-1.5 sm:gap-2">
+               {/* Theme Toggle */}
+                <ThemeToggle />
+
                {/* Currency */}
-               <div className="hidden sm:block">
-                  <CurrencySelector
-                    className="h-9 rounded-[14px] text-[11px] font-bold text-stone-600 px-3 hover:shadow-sm transition-all border-none"
-                    style={{
-                      background: "rgba(0,0,0,0.03)",
-                      border: "1px solid rgba(0,0,0,0.05)",
-                    }}
-                  />
-               </div>
+                <div className="hidden sm:block">
+                   <CurrencySelector
+                     className="h-9 rounded-xl text-[11px] font-bold bg-neutral-100 dark:bg-zinc-900 border-none px-3 text-neutral-600 dark:text-zinc-400 hover:bg-neutral-200 dark:hover:bg-zinc-800 transition-colors"
+                   />
+                </div>
                
                {/* Notifications */}
                <Link
                  href="/dashboard/notifications"
-                 className="flex items-center justify-center h-9 w-9 rounded-[14px] text-stone-400 hover:text-stone-800 transition-all active:scale-95 relative hover:shadow-sm"
-                 style={{
-                   background: "rgba(0,0,0,0.03)",
-                   border: "1px solid rgba(0,0,0,0.05)",
-                 }}
+                 className="flex items-center justify-center h-9 w-9 rounded-[14px] text-stone-400 dark:text-stone-500 hover:text-stone-800 dark:text-zinc-200 dark:hover:text-stone-200 transition-all active:scale-95 relative hover:shadow-sm bg-surface-secondary dark:bg-zinc-800 border border-border"
                >
                   <Bell className="h-4 w-4" />
-                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-orange-500 rounded-full border-[1.5px] border-white" />
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-orange-500 rounded-full border-[1.5px] border-white dark:border-zinc-900" />
                </Link>
 
                {/* User Menu */}
-               <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button
-                      className="flex items-center gap-2 p-1 pl-1 pr-2.5 rounded-full transition-all hover:shadow-sm active:scale-95"
-                      style={{
-                        background: "rgba(255,255,255,0.8)",
-                        border: "1px solid rgba(0,0,0,0.06)",
-                      }}
-                    >
-                       <div className="w-7 h-7 rounded-full overflow-hidden border-[1.5px] border-orange-200 shrink-0"
-                         style={{ background: user.avatar_url ? "transparent" : "linear-gradient(135deg, #f97316, #a855f7)" }}
-                       >
-                          {user.avatar_url ? (
-                            <img src={user.avatar_url} alt="" className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-[10px] font-bold text-white">
-                               {user.email?.[0]?.toUpperCase() || 'U'}
-                            </div>
-                          )}
-                       </div>
-                       <span className="hidden sm:block text-[11px] font-bold text-stone-700 truncate max-w-[80px]">
-                          {user.full_name?.split(' ')[0] || user.email.split('@')[0]}
-                       </span>
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent
-                    align="end"
-                    className="w-56 rounded-[20px] p-2 shadow-xl"
-                    style={{
-                      background: "rgba(255,255,255,0.85)",
-                      backdropFilter: "blur(40px) saturate(180%)",
-                      WebkitBackdropFilter: "blur(40px) saturate(180%)",
-                      border: "1px solid rgba(0,0,0,0.06)",
-                    }}
-                  >
-                    <DropdownMenuLabel className="px-3 py-2">
-                       <p className="text-xs font-bold text-stone-900">{user.full_name || 'My Account'}</p>
-                       <p className="text-[10px] font-medium text-stone-400 truncate">{user.email}</p>
-                    </DropdownMenuLabel>
+                <DropdownMenu>
+                   <DropdownMenuTrigger asChild>
+                     <button
+                       className="flex items-center gap-2 p-1 pl-1 pr-2.5 rounded-full transition-all hover:shadow-sm active:scale-95 bg-surface dark:bg-zinc-800 border border-border"
+                     >
+                        <div className="w-7 h-7 rounded-full overflow-hidden border-[1.5px] border-orange-200 dark:border-orange-500/30 shrink-0"
+                          style={{ background: user.avatar_url ? "transparent" : "linear-gradient(135deg, #f97316, #a855f7)" }}
+                        >
+                           {user.avatar_url ? (
+                             <img src={user.avatar_url} alt="" className="w-full h-full object-cover" />
+                           ) : (
+                             <div className="w-full h-full flex items-center justify-center text-[10px] font-bold text-white">
+                                {user.email?.[0]?.toUpperCase() || 'U'}
+                             </div>
+                           )}
+                        </div>
+                        <span className="hidden sm:block text-[11px] font-bold text-stone-700 dark:text-stone-300 truncate max-w-[80px]">
+                           {user.full_name?.split(' ')[0] || user.email.split('@')[0]}
+                        </span>
+                     </button>
+                   </DropdownMenuTrigger>
+                   <DropdownMenuContent
+                     align="end"
+                     className="w-56 rounded-[20px] p-2 shadow-xl border border-border bg-surface/90 dark:bg-zinc-900/90 backdrop-blur-xl"
+                   >
+                     <DropdownMenuLabel className="px-3 py-2">
+                        <p className="text-xs font-bold text-stone-900 dark:text-white">{user.full_name || 'My Account'}</p>
+                        <p className="text-[10px] font-medium text-stone-400 dark:text-stone-500 truncate">{user.email}</p>
+                     </DropdownMenuLabel>
                     <DropdownMenuSeparator className="bg-stone-100/60" />
-                    <DropdownMenuItem asChild className="rounded-[14px] focus:bg-orange-50/50 cursor-pointer">
-                       <Link href="/dashboard/settings" className="flex items-center gap-2.5 p-2.5">
-                          <UserRound className="h-4 w-4 text-stone-400" />
-                          <span className="text-[12px] font-bold text-stone-700">Profile Settings</span>
-                       </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild className="rounded-[14px] focus:bg-orange-50/50 cursor-pointer">
-                       <Link href="/dashboard/wallet" className="flex items-center gap-2.5 p-2.5">
-                          <Wallet className="h-4 w-4 text-orange-500" />
-                          <span className="text-[12px] font-bold text-stone-700">My Wallet</span>
-                       </Link>
-                    </DropdownMenuItem>
+                     <DropdownMenuItem asChild className="rounded-[14px] focus:bg-orange-500/10 cursor-pointer">
+                        <Link href="/dashboard/settings" className="flex items-center gap-2.5 p-2.5">
+                           <UserRound className="h-4 w-4 text-stone-400 dark:text-stone-500" />
+                           <span className="text-[12px] font-bold text-stone-700 dark:text-stone-300">Profile Settings</span>
+                        </Link>
+                     </DropdownMenuItem>
+                     <DropdownMenuItem asChild className="rounded-[14px] focus:bg-orange-500/10 cursor-pointer">
+                        <Link href="/dashboard/wallet" className="flex items-center gap-2.5 p-2.5">
+                           <Wallet className="h-4 w-4 text-orange-500" />
+                           <span className="text-[12px] font-bold text-stone-700 dark:text-stone-300">My Wallet</span>
+                        </Link>
+                     </DropdownMenuItem>
                     <DropdownMenuSeparator className="bg-stone-100/60" />
                     <div className="p-1">
                        <SignOutButton variant="menu" />
@@ -212,16 +184,9 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
         {/* ══════════════════════════════════════
             MOBILE BOTTOM NAV — Frosted Bar
         ══════════════════════════════════════ */}
-        <nav
-          className="lg:hidden fixed bottom-5 left-5 right-5 z-40 rounded-[22px] overflow-hidden"
-          style={{
-            background: "rgba(255,255,255,0.82)",
-            backdropFilter: "blur(40px) saturate(180%)",
-            WebkitBackdropFilter: "blur(40px) saturate(180%)",
-            border: "1px solid rgba(255,255,255,0.6)",
-            boxShadow: "0 12px 40px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04)",
-          }}
-        >
+         <nav
+           className="lg:hidden fixed bottom-5 left-5 right-5 z-40 rounded-[22px] overflow-hidden bg-surface/90 dark:bg-zinc-900/90 backdrop-blur-xl border border-border shadow-lg"
+         >
           <div className="flex items-center justify-around h-[60px]">
             <BottomNavLink href="/dashboard" icon={<LayoutDashboard className="h-5 w-5" />} label="Home" />
             <BottomNavLink
@@ -241,13 +206,13 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
 
 function BottomNavMore({ onClick }: { onClick: () => void }) {
   return (
-    <button
-      onClick={onClick}
-      className="flex flex-col items-center justify-center gap-1 flex-1 text-stone-400 hover:text-stone-900 transition-all active:scale-95"
-    >
-      <Menu className="h-5 w-5" />
-      <span className="text-[9px] font-bold uppercase tracking-widest">More</span>
-    </button>
+     <button
+       onClick={onClick}
+       className="flex flex-col items-center justify-center gap-1 flex-1 text-stone-400 dark:text-stone-500 hover:text-stone-900 dark:text-white dark:hover:text-stone-200 transition-all active:scale-95"
+     >
+       <Menu className="h-5 w-5" />
+       <span className="text-[9px] font-bold uppercase tracking-widest">More</span>
+     </button>
   );
 }
 
@@ -270,10 +235,10 @@ function BottomNavLink({
   return (
     <Link
       href={href}
-      className={cn(
-        "flex flex-col items-center justify-center gap-1 flex-1 transition-all active:scale-95",
-        isActive ? "text-orange-600" : "text-stone-400"
-      )}
+       className={cn(
+         "flex flex-col items-center justify-center gap-1 flex-1 transition-all active:scale-95",
+         isActive ? "text-orange-600" : "text-stone-400 dark:text-stone-500"
+       )}
     >
       {icon}
       <span className="text-[9px] font-bold uppercase tracking-widest leading-none">
@@ -284,13 +249,13 @@ function BottomNavLink({
 }
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
-  return (
-    <Suspense fallback={
-       <div className="flex flex-col h-screen items-center justify-center bg-[#f8f7f5] space-y-4">
-          <div className="w-10 h-10 border-4 border-stone-100 border-t-orange-500 rounded-full animate-spin" />
-          <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Loading...</p>
-       </div>
-    }>
+   return (
+     <Suspense fallback={
+        <div className="flex flex-col h-screen items-center justify-center bg-background space-y-4">
+           <div className="w-10 h-10 border-4 border-stone-100 dark:border-zinc-800 border-t-orange-500 rounded-full animate-spin" />
+           <p className="text-[10px] font-bold text-stone-400 dark:text-stone-500 uppercase tracking-widest">Loading...</p>
+        </div>
+     }>
       <DashboardShellContent>{children}</DashboardShellContent>
     </Suspense>
   );

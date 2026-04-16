@@ -119,7 +119,7 @@ export default async function HomePage() {
   const heroKeywords = platformSettings.marketing.trending_search_keywords.slice(0, 4);
 
   return (
-    <div className="min-h-screen pb-14 md:pb-0 relative overflow-hidden" style={{ background: "#f8f7f5" }}>
+    <div className="min-h-screen pb-14 md:pb-0 relative overflow-hidden" style={{ background: "var(--color-bg)" }}>
       {/* Dynamic Ambient Glows — Dashboard Signature */}
       <GlassAmbientGlow color="orange" position="top-right" className="opacity-40" />
       <GlassAmbientGlow color="indigo" position="bottom-left" className="opacity-30" />

@@ -31,7 +31,7 @@ const allRoles = [
     label: "Aesthetic Buyer",
     icon: <ShoppingBag className="h-6 w-6" />,
     color: "text-sky-500",
-    bg: "bg-sky-50",
+    bg: "bg-sky-500/10",
     badge: "Public Access",
     description: "Shop for curated products from verified creators and vendors around the globe.",
     features: ["500K+ Products", "Order Tracking", "Digital Assets", "Wishlist Support"],
@@ -43,7 +43,7 @@ const allRoles = [
     label: "Business Vendor",
     icon: <Package className="h-6 w-6" />,
     color: "text-orange-500",
-    bg: "bg-orange-50",
+    bg: "bg-orange-500/10",
     badge: "Merchant Tools",
     description: "List your products, manage inventory, and handle orders with a professional dashboard.",
     features: ["Custom Storefront", "Inventory Manager", "Order Management", "Fast Payouts"],
@@ -55,7 +55,7 @@ const allRoles = [
     label: "Growth Partner",
     icon: <Link2 className="h-6 w-6" />,
     color: "text-emerald-500",
-    bg: "bg-emerald-50",
+    bg: "bg-emerald-500/10",
     badge: "Earn Commission",
     description: "Share products you love and earn a percentage of every sale you generate.",
     features: ["Link Generator", "Sales Tracking", "Instant Earnings", "Top Products Hub"],
@@ -67,7 +67,7 @@ const allRoles = [
     label: "Content Creator",
     icon: <Video className="h-6 w-6" />,
     color: "text-indigo-500",
-    bg: "bg-indigo-50",
+    bg: "bg-indigo-500/10",
     badge: "UGC Missions",
     description: "Collaborate with brands on live missions. Create content and monetize your influence.",
     features: ["Live Missions", "Brand Collaborations", "Video Uploads", "Campaign Bonuses"],
@@ -146,38 +146,33 @@ export default function RolesPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center space-y-6" style={{ background: "#f8f7f5" }}>
+      <div className="min-h-screen flex flex-col items-center justify-center space-y-6" style={{ background: "var(--color-bg)" }}>
         <RefreshCw className="h-6 w-6 animate-spin text-orange-500" />
-        <p className="text-[11px] font-bold text-stone-400 uppercase tracking-widest pl-1">Loading Roles...</p>
+        <p className="text-[11px] font-bold text-stone-400 dark:text-stone-500 uppercase tracking-widest pl-1">Loading Roles...</p>
       </div>
     );
   }
 
   return (
-    <div
-      className="min-h-screen animate-in fade-in duration-500 pb-20 relative overflow-hidden"
-      style={{
-        background: "radial-gradient(ellipse 80% 60% at 80% 0%, rgba(251,146,60,0.03) 0%, transparent 50%), radial-gradient(ellipse 60% 50% at 0% 100%, rgba(186,230,253,0.03) 0%, transparent 55%), #f8f7f5",
-      }}
-    >
+    <div className="min-h-screen animate-in fade-in duration-500 pb-20 relative overflow-hidden bg-background">
       <div className="max-w-4xl mx-auto space-y-8 px-6 pt-10 relative z-10">
         
         {/* Header - Simpler */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-           <div className="flex items-center gap-4">
-              <Button asChild variant="ghost" size="icon" className="shrink-0 h-10 w-10 rounded-xl bg-white border border-stone-100 shadow-sm hover:bg-white active:scale-95 transition-all text-stone-500">
-                <Link href="/dashboard"><ArrowLeft className="h-5 w-5" /></Link>
-              </Button>
-              <div className="space-y-1">
-                 <h1 className="text-2xl font-bold text-stone-900 tracking-tight">Account Roles</h1>
-                 <p className="text-[11px] font-bold text-stone-400 uppercase tracking-widest leading-none pl-0.5">Activate paths to earn and grow</p>
-              </div>
-           </div>
-           
-           <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-stone-100 shadow-sm">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-stone-400">{activeRoles.length} Active</span>
-           </div>
-        </div>
+         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+            <div className="flex items-center gap-4">
+               <Button asChild variant="ghost" size="icon" className="shrink-0 h-10 w-10 rounded-xl bg-surface dark:bg-zinc-800 border border-border shadow-sm hover:bg-surface dark:hover:bg-zinc-700 active:scale-95 transition-all text-stone-500 dark:text-stone-400">
+                 <Link href="/dashboard"><ArrowLeft className="h-5 w-5" /></Link>
+               </Button>
+               <div className="space-y-1">
+                  <h1 className="text-2xl font-bold text-stone-900 dark:text-white tracking-tight">Account Roles</h1>
+                  <p className="text-[11px] font-bold text-stone-400 dark:text-stone-500 uppercase tracking-widest leading-none pl-0.5">Activate paths to earn and grow</p>
+               </div>
+            </div>
+            
+            <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-surface dark:bg-zinc-800 border border-border shadow-sm">
+               <span className="text-[10px] font-bold uppercase tracking-widest text-stone-400 dark:text-stone-500">{activeRoles.length} Active</span>
+            </div>
+         </div>
 
         {/* Roles Grid - Softer Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -187,16 +182,16 @@ export default function RolesPage() {
 
             return (
               <GlassCard key={r.id} className={cn(
-                 "p-8 rounded-[32px] border-white transition-all duration-300 relative overflow-hidden flex flex-col h-full",
-                 isActive ? "bg-white shadow-md ring-1 ring-emerald-500/20" : "bg-white/60 hover:bg-white/80 shadow-sm"
+                 "p-8 rounded-[32px] border-border transition-all duration-300 relative overflow-hidden flex flex-col h-full",
+                 isActive ? "bg-surface dark:bg-zinc-800 shadow-md ring-1 ring-emerald-500/20" : "bg-surface/60 dark:bg-zinc-800/40 hover:bg-surface/80 dark:hover:bg-zinc-800 shadow-sm"
               )}>
-                 <div className="flex items-center justify-between mb-8">
-                    <div className={cn(
-                       "w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border border-white shadow-sm",
-                       isActive ? "bg-stone-900 text-white" : cn(r.bg, r.color)
-                    )}>
-                       {r.icon}
-                    </div>
+                  <div className="flex items-center justify-between mb-8">
+                     <div className={cn(
+                        "w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border border-border bg-white dark:bg-zinc-900 shadow-sm",
+                        isActive ? "bg-stone-900 dark:bg-white dark:bg-zinc-900 text-white dark:text-stone-900 dark:text-white" : cn(r.bg, r.color)
+                     )}>
+                        {r.icon}
+                     </div>
                     {isActive ? (
                        <GlassPill color="emerald" className="px-3 py-1 text-[8px] font-bold border-none shadow-none uppercase tracking-widest bg-emerald-50 text-emerald-600">Active</GlassPill>
                     ) : (
@@ -204,47 +199,47 @@ export default function RolesPage() {
                     )}
                  </div>
 
-                 <div className="space-y-2 mb-6">
-                    <h3 className="text-lg font-bold text-stone-900 tracking-tight">{r.label}</h3>
-                    <p className="text-[13px] font-medium text-stone-500 leading-relaxed">
-                       {r.description}
-                    </p>
-                 </div>
+                  <div className="space-y-2 mb-6">
+                     <h3 className="text-lg font-bold text-stone-900 dark:text-white tracking-tight">{r.label}</h3>
+                     <p className="text-[13px] font-medium text-stone-500 dark:text-stone-400 leading-relaxed">
+                        {r.description}
+                     </p>
+                  </div>
 
-                 <div className="space-y-2.5 mb-10 flex-1">
-                    {r.features.map((f, i) => (
-                       <div key={i} className="flex items-center gap-3 text-[11px] font-bold text-stone-400">
-                          <CheckCircle className="h-3.5 w-3.5 text-stone-200" />
-                          {f}
-                       </div>
-                    ))}
-                 </div>
+                  <div className="space-y-2.5 mb-10 flex-1">
+                     {r.features.map((f, i) => (
+                        <div key={i} className="flex items-center gap-3 text-[11px] font-bold text-stone-400 dark:text-stone-500">
+                           <CheckCircle className="h-3.5 w-3.5 text-stone-200 dark:text-zinc-800 dark:text-zinc-200" />
+                           {f}
+                        </div>
+                     ))}
+                  </div>
 
-                 {isActive ? (
-                    <Button variant="outline" asChild className="w-full h-11 rounded-xl border-stone-100 text-stone-900 font-bold text-[10px] uppercase tracking-widest active:scale-95 transition-all">
-                       <Link href="/dashboard">View Dashboard <ArrowRight className="h-3 w-3 ml-2" /></Link>
-                    </Button>
-                 ) : (
-                    <Button
-                       onClick={() => activateRole(r.id, r.setupPath)}
-                       disabled={isLoading}
-                       className="w-full h-11 rounded-xl bg-stone-900 text-white hover:bg-black font-bold text-[10px] uppercase tracking-widest shadow-md active:scale-95 transition-all border-none"
-                    >
-                       {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Rocket className="h-3.5 w-3.5 mr-2" />}
-                       Activate Role
-                    </Button>
-                 )}
+                  {isActive ? (
+                     <Button variant="outline" asChild className="w-full h-11 rounded-xl border-border text-stone-900 dark:text-white font-bold text-[10px] uppercase tracking-widest active:scale-95 transition-all">
+                        <Link href="/dashboard">View Dashboard <ArrowRight className="h-3 w-3 ml-2" /></Link>
+                     </Button>
+                  ) : (
+                     <Button
+                        onClick={() => activateRole(r.id, r.setupPath)}
+                        disabled={isLoading}
+                        className="w-full h-11 rounded-xl bg-stone-900 dark:bg-white dark:bg-zinc-900 text-white dark:text-stone-900 dark:text-white hover:bg-black dark:hover:bg-stone-200 font-bold text-[10px] uppercase tracking-widest shadow-md active:scale-95 transition-all border-none"
+                     >
+                        {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Rocket className="h-3.5 w-3.5 mr-2" />}
+                        Activate Role
+                     </Button>
+                  )}
               </GlassCard>
             );
           })}
         </div>
         
         {/* Support Section - Soft */}
-        <div className="p-8 text-center rounded-[32px] bg-stone-900 text-white relative overflow-hidden shadow-xl">
+        <div className="p-8 text-center rounded-[32px] bg-stone-900 dark:bg-zinc-800 text-white relative overflow-hidden shadow-xl border border-white/10">
            <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/10 blur-3xl rounded-full" />
-           <p className="text-[11px] font-bold uppercase tracking-widest text-stone-400 mb-2">Need help?</p>
+           <p className="text-[11px] font-bold uppercase tracking-widest text-stone-400 dark:text-stone-500 mb-2">Need help?</p>
            <h3 className="text-xl font-bold tracking-tight mb-6">Explore our guides and tutorials</h3>
-           <Button asChild className="h-11 px-8 rounded-xl bg-white text-stone-900 font-bold text-[10px] uppercase tracking-widest shadow-lg hover:bg-stone-50 active:scale-95 transition-all border-none">
+           <Button asChild className="h-11 px-8 rounded-xl bg-white dark:bg-zinc-900 text-stone-900 dark:text-white font-bold text-[10px] uppercase tracking-widest shadow-lg hover:bg-stone-50 dark:bg-zinc-900/50 active:scale-95 transition-all border-none">
               <Link href="/help">View Documentation</Link>
            </Button>
         </div>

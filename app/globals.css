@@ -17,7 +17,7 @@
   .home-page-bg {
     background:
       radial-gradient(ellipse 140% 100% at 50% -20%, rgba(249, 115, 22, 0.09), transparent 60%),
-      linear-gradient(180deg, #fafafa 0%, #ffffff 35%, #f8f7fc 65%, #f3f1f8 100%);
+      linear-gradient(180deg, var(--color-bg) 0%, var(--color-surface) 100%);
   }
 
   .home-hero-shell {
@@ -32,9 +32,8 @@
   .home-hero-stage {
     background:
       radial-gradient(ellipse 100% 85% at 50% -25%, rgba(249, 115, 22, 0.09), transparent 52%),
-      radial-gradient(ellipse 70% 55% at 100% 0%, rgba(67, 51, 96, 0.05), transparent 48%),
-      radial-gradient(ellipse 60% 50% at 0% 100%, rgba(255, 247, 237, 0.9), transparent 45%),
-      linear-gradient(180deg, #ffffff 0%, #fcfcfd 38%, #f8f7fc 100%);
+      radial-gradient(ellipse 70% 55% at 100% 0%, rgba(249, 115, 22, 0.05), transparent 48%),
+      linear-gradient(180deg, var(--color-surface) 0%, var(--color-bg) 100%);
     box-shadow: none;
   }
 
@@ -58,7 +57,7 @@
   }
 
   .home-hero-panel {
-    @apply border border-[#ebe8f2] bg-white/95 backdrop-blur-xl;
+    @apply border border-border bg-surface/95 backdrop-blur-xl;
     box-shadow: none;
   }
 
@@ -80,7 +79,7 @@
   }
 
   .home-surface {
-    @apply rounded-[1.5rem] bg-white/95 backdrop-blur-lg border border-[#e8e6f0] shadow-[0_8px_32px_-12px_rgba(43,34,72,0.2)];
+    @apply rounded-[1.5rem] bg-surface/95 backdrop-blur-lg border border-border shadow-[var(--shadow-lg)];
   }
 
   .home-section-eyebrow {
@@ -175,6 +174,38 @@
     --glass-blur: 20px;
   }
 
+  .dark {
+    /* Deep Obsidian & Charcoal palette (Jimvio Dark Mode) */
+    --color-bg: #0c0a09;
+    --color-surface: #1c1917;
+    --color-surface-secondary: #292524;
+    --color-border: #292524;
+    --color-border-strong: #44403c;
+    --color-text-primary: #fafaf9;
+    --color-text-secondary: #d6d3d1;
+    --color-text-muted: #78716c;
+    --color-bg-dark: #0c0a09;
+    --color-bg-darker: #000000;
+    
+    --color-accent-light: #2d1007; /* Deep burnt orange/brown */
+    --color-accent-subtle: #1c0b05;
+
+    --color-success-light: #064e3b;
+    --color-warning-light: #451a03;
+    --color-danger-light: #450a0a;
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 12px 30px rgba(0, 0, 0, 0.5);
+    --shadow-xl: 0 20px 40px rgba(0, 0, 0, 0.6);
+    --shadow-glow: 0 0 40px rgba(249, 115, 22, 0.1);
+
+    --glass-bg: rgba(28, 25, 23, 0.75);
+    --glass-border: rgba(255, 255, 255, 0.06);
+    --glass-shadow: 0 12px 48px rgba(0, 0, 0, 0.5);
+    --glass-blur: 24px;
+  }
+
   /* Two-row navbar (link strip + bar) from lg — keep in sync with components/layout/navbar.tsx */
   @media (min-width: 1024px) {
     :root {
@@ -260,7 +291,15 @@
 
 @layer components {
   .premium-card {
-    @apply bg-white border border-[#f0f0f0] shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-lg)] hover:-translate-y-1 transition-all duration-300 rounded-[var(--radius-md)];
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    transition: all 0.3s ease;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+  }
+  .premium-card:hover {
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-4px);
   }
 
   .glass-card {

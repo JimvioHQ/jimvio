@@ -56,7 +56,7 @@ export function ProductQuickPopup({ product, vendor, open, onClose, className }:
       <div
         className={cn(
           "fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[1001] w-[calc(100%-2rem)] max-w-md",
-          "bg-white rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200",
+          "bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200",
           className
         )}
         onClick={(e) => e.stopPropagation()}

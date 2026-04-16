@@ -160,7 +160,7 @@ export function CommunityDetailView({
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white dark:bg-zinc-950">
       {/* ── STUNNING HERO ── */}
       <section className="relative">
         <div className="h-[280px] sm:h-[400px] w-full relative overflow-hidden">
@@ -170,16 +170,16 @@ export function CommunityDetailView({
             <div className="absolute inset-0 bg-gradient-to-tr from-[#1a1428] via-[#433360] to-[#f97316]/20" />
           )}
           <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" />
-          <div className="absolute inset-0 bg-gradient-to-t from-white via-transparent to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-white dark:from-zinc-950 via-transparent to-transparent" />
         </div>
 
         <div className="max-w-7xl mx-auto px-6 -mt-32 sm:-mt-44 relative z-10 flex flex-col items-center text-center">
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="p-1.5 rounded-[40px] bg-white shadow-2xl"
+            className="p-1.5 rounded-[40px] bg-white dark:bg-zinc-900 shadow-2xl"
           >
-            <div className="h-24 w-24 sm:h-36 sm:w-36 rounded-[34px] bg-zinc-100 overflow-hidden border-4 border-white">
+            <div className="h-24 w-24 sm:h-36 sm:w-36 rounded-[34px] bg-zinc-100 dark:bg-zinc-800 overflow-hidden border-4 border-white dark:border-zinc-900">
               {community.avatar_url ? (
                 <img src={community.avatar_url} alt="" className="h-full w-full object-cover" />
               ) : (
@@ -196,28 +196,28 @@ export function CommunityDetailView({
             transition={{ delay: 0.2 }}
             className="mt-6 space-y-3"
           >
-            <h1 className="text-4xl sm:text-6xl font-black text-[#1a1428] tracking-tighter leading-none">
+            <h1 className="text-4xl sm:text-6xl font-black text-stone-900 dark:text-white tracking-tighter leading-none">
               {community.name}
             </h1>
-            <p className="text-base sm:text-xl font-bold text-zinc-400 max-w-2xl mx-auto leading-relaxed">
+            <p className="text-base sm:text-xl font-bold text-zinc-400 dark:text-zinc-500 max-w-2xl mx-auto leading-relaxed">
               {community.tagline}
             </p>
           </motion.div>
 
           <div className="mt-8 flex flex-wrap items-center justify-center gap-2">
-            <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-orange-50 border border-orange-100 shadow-sm">
+            <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-orange-50 dark:bg-orange-950/30 border border-orange-100 dark:border-orange-900/50 shadow-sm">
                 <Users className="h-4 w-4 text-orange-600" />
-                <span className="text-sm font-black text-orange-700">{formatNumber(community.member_count ?? 0)} Members</span>
+                <span className="text-sm font-black text-orange-700 dark:text-orange-400">{formatNumber(community.member_count ?? 0)} Members</span>
             </div>
             {community.category && (
-              <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-zinc-50 border border-zinc-100 shadow-sm">
+              <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 shadow-sm">
                   <Zap className="h-4 w-4 text-purple-600" />
-                  <span className="text-sm font-black text-zinc-600 uppercase tracking-widest text-[10px]">{community.category}</span>
+                  <span className="text-sm font-black text-zinc-600 dark:text-zinc-300 uppercase tracking-widest text-[10px]">{community.category}</span>
               </div>
             )}
-            <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 border border-blue-100 shadow-sm">
+            <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/50 shadow-sm">
                 <Globe className="h-4 w-4 text-blue-600" />
-                <span className="text-sm font-black text-blue-700">Online Community</span>
+                <span className="text-sm font-black text-blue-700 dark:text-blue-400">Online Community</span>
             </div>
           </div>
         </div>
@@ -232,15 +232,15 @@ export function CommunityDetailView({
           <section className="space-y-6">
             <div className="flex items-center gap-3">
               <div className="w-1 h-8 bg-orange-500 rounded-full" />
-              <h2 className="text-2xl font-black text-[#1a1428]">Experience Excellence</h2>
+              <h2 className="text-2xl font-black text-stone-900 dark:text-white">Experience Excellence</h2>
             </div>
-            <p className="text-lg font-medium text-zinc-500 leading-relaxed whitespace-pre-wrap">
+            <p className="text-lg font-medium text-zinc-500 dark:text-zinc-400 leading-relaxed whitespace-pre-wrap">
               {community.long_description || (community.description !== community.tagline ? community.description : null) || "This community is a curated professional space designed for high-impact networking, skill-sharing, and collective growth. Join us to unlock exclusive resources and connect with verified peers."}
             </p>
             {community.tags && (
               <div className="flex flex-wrap gap-2 pt-4">
                 {community.tags.map(t => (
-                  <span key={t} className="px-3 py-1 rounded-lg bg-zinc-50 border border-zinc-100 text-xs font-black text-zinc-400 uppercase tracking-widest">
+                  <span key={t} className="px-3 py-1 rounded-lg bg-zinc-50 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 text-xs font-black text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">
                     #{t}
                   </span>
                 ))}
@@ -249,28 +249,28 @@ export function CommunityDetailView({
           </section>
 
           <section className="space-y-8">
-            <h2 className="text-2xl font-black text-[#1a1428]">Curated Spaces</h2>
+            <h2 className="text-2xl font-black text-stone-900 dark:text-white">Curated Spaces</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-               {spaces === null ? [1,2,3,4].map(i => <div key={i} className="h-32 rounded-3xl bg-zinc-50 animate-pulse" />) : 
+               {spaces === null ? [1,2,3,4].map(i => <div key={i} className="h-32 rounded-3xl bg-zinc-50 dark:bg-zinc-800 animate-pulse" />) : 
                 spaces.length === 0 ? (
-                  <div className="col-span-full p-12 rounded-[32px] bg-zinc-50/50 border-2 border-dashed border-zinc-100 text-center">
-                     <p className="text-sm font-bold text-zinc-400">Host is currently curating this environment. Check back soon.</p>
+                  <div className="col-span-full p-12 rounded-[32px] bg-zinc-50/50 dark:bg-zinc-800/30 border-2 border-dashed border-zinc-100 dark:border-zinc-700 text-center">
+                     <p className="text-sm font-bold text-zinc-400 dark:text-zinc-500">Host is currently curating this environment. Check back soon.</p>
                   </div>
                 ) : (
                   spaces.map(s => {
                     const Icon = spaceIcon(s.icon);
                     return (
-                      <div key={s.id} className="p-6 rounded-[32px] border border-zinc-100 bg-white hover:shadow-xl hover:shadow-orange-500/5 transition-all group cursor-pointer">
+                      <div key={s.id} className="p-6 rounded-[32px] border border-zinc-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:shadow-xl hover:shadow-orange-500/5 transition-all group cursor-pointer">
                         <div className="flex items-start justify-between">
-                          <div className="h-12 w-12 rounded-2xl bg-orange-50 text-orange-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                          <div className="h-12 w-12 rounded-2xl bg-orange-50 dark:bg-orange-950/30 text-orange-600 flex items-center justify-center group-hover:scale-110 transition-transform">
                             <Icon className="h-6 w-6" />
                           </div>
-                          <div className="flex items-center gap-1 text-[10px] font-black text-zinc-300 uppercase">
+                          <div className="flex items-center gap-1 text-[10px] font-black text-zinc-300 dark:text-zinc-600 uppercase">
                             <ShieldCheck className="h-3 w-3" /> Secure Access
                           </div>
                         </div>
-                        <h3 className="text-lg font-black text-[#1a1428] mt-4">{s.name}</h3>
-                        <p className="text-sm font-medium text-zinc-400 mt-1 line-clamp-2">{s.description || "Member-exclusive access rooms."}</p>
+                        <h3 className="text-lg font-black text-stone-900 dark:text-white mt-4">{s.name}</h3>
+                        <p className="text-sm font-medium text-zinc-400 dark:text-zinc-500 mt-1 line-clamp-2">{s.description || "Member-exclusive access rooms."}</p>
                       </div>
                     )
                   })
@@ -283,30 +283,30 @@ export function CommunityDetailView({
         {/* Right Side: Action Card */}
         <aside className="lg:col-span-4">
           <div className="sticky top-24 space-y-6">
-            <div className="rounded-[32px] border border-orange-200 bg-white overflow-hidden shadow-xl shadow-orange-500/5">
+            <div className="rounded-[32px] border border-orange-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden shadow-xl shadow-orange-500/5">
             <div className="p-6 relative">
               
               <div className="relative z-10 flex flex-col gap-5">
                 <div>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Membership</p>
-                  <h3 className="text-xl font-black text-[#1a1428] mt-1">Join Community</h3>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 dark:text-zinc-500">Membership</p>
+                  <h3 className="text-xl font-black text-stone-900 dark:text-white mt-1">Join Community</h3>
                 </div>
 
                 {isMember ? (
                   <div className="space-y-4">
-                    <div className="p-4 rounded-2xl bg-orange-50 border border-orange-100">
-                      <p className="text-xs font-black text-orange-700">ACTIVE MEMBERSHIP</p>
-                      <p className="text-xs font-bold text-orange-600/70 mt-0.5">Joined in {memberSince}</p>
+                    <div className="p-4 rounded-2xl bg-orange-50 dark:bg-orange-950/30 border border-orange-100 dark:border-orange-900/50">
+                      <p className="text-xs font-black text-orange-700 dark:text-orange-400">ACTIVE MEMBERSHIP</p>
+                      <p className="text-xs font-bold text-orange-600/70 dark:text-orange-500/70 mt-0.5">Joined in {memberSince}</p>
                     </div>
-                    <Button asChild className="w-full h-14 rounded-2xl bg-[#1a1428] text-white font-black text-base shadow-xl hover:opacity-90">
+                    <Button asChild className="w-full h-14 rounded-2xl bg-stone-900 dark:bg-white dark:bg-zinc-900 text-white dark:text-stone-900 dark:text-white font-black text-base shadow-xl hover:opacity-90">
                        <Link href={`/communities/${community.slug}/workspace`}>Open Workspace <ArrowRight className="ml-2 h-4 w-4" /></Link>
                     </Button>
                   </div>
                 ) : isFree ? (
                   <div className="space-y-6">
-                    <div className="p-5 rounded-2xl bg-emerald-50 border border-emerald-100">
-                       <p className="text-xs font-black text-emerald-700 uppercase tracking-widest">Free Access</p>
-                       <p className="text-sm font-bold text-emerald-600 mt-1">This community is open to everyone. Join now to start participating.</p>
+                    <div className="p-5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/50">
+                       <p className="text-xs font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-widest">Free Access</p>
+                       <p className="text-sm font-bold text-emerald-600 dark:text-emerald-500 mt-1">This community is open to everyone. Join now to start participating.</p>
                     </div>
                     <Button 
                       onClick={handleJoin}
@@ -318,12 +318,12 @@ export function CommunityDetailView({
                   </div>
                 ) : (
                   <>
-                    <div className="flex p-1 bg-zinc-100 rounded-2xl">
+                    <div className="flex p-1 bg-zinc-100 dark:bg-zinc-800 rounded-2xl">
                       {["monthly", "yearly", "lifetime"].map(p => (
                         <button 
                           key={p} 
                           onClick={() => setPlan(p as PlanKey)}
-                          className={cn("flex-1 h-10 rounded-xl text-[10px] font-black uppercase tracking-tighter transition-all", plan === p ? "bg-white text-orange-600 shadow-sm" : "text-zinc-400 hover:text-zinc-600")}
+                          className={cn("flex-1 h-10 rounded-xl text-[10px] font-black uppercase tracking-tighter transition-all", plan === p ? "bg-white dark:bg-zinc-700 text-orange-600 shadow-sm" : "text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300")}
                         >
                           {p}
                         </button>
@@ -331,15 +331,15 @@ export function CommunityDetailView({
                     </div>
 
                     <div className="text-center py-2">
-                       <p className="text-4xl font-black text-[#1a1428] tracking-tighter tabular-nums">
+                       <p className="text-4xl font-black text-stone-900 dark:text-white tracking-tighter tabular-nums">
                          {formatDisplayMoney(priceForPlan(plan), currency)}
                        </p>
-                       <p className="text-[11px] font-bold text-zinc-400 mt-1">{plan === "monthly" ? "Every month" : plan === "yearly" ? "Billed annually" : "One-time access"}</p>
+                       <p className="text-[11px] font-bold text-zinc-400 dark:text-zinc-500 mt-1">{plan === "monthly" ? "Every month" : plan === "yearly" ? "Billed annually" : "One-time access"}</p>
                     </div>
 
                     <div className="space-y-3">
                        {["Full workspace access", "Direct creator chat", "Priority support"].map(line => (
-                        <div key={line} className="flex gap-3 text-sm font-bold text-zinc-500">
+                        <div key={line} className="flex gap-3 text-sm font-bold text-zinc-500 dark:text-zinc-400">
                            <Check className="h-4 w-4 text-orange-500 shrink-0" /> {line}
                         </div>
                        ))}
@@ -355,25 +355,25 @@ export function CommunityDetailView({
               </div>
             </div>
             
-            <div className="px-6 py-3 bg-zinc-50 flex items-center justify-between text-zinc-400 text-[9px] font-black italic tracking-widest leading-none border-t border-zinc-100">
+            <div className="px-6 py-3 bg-zinc-50 dark:bg-zinc-800 flex items-center justify-between text-zinc-400 dark:text-zinc-500 text-[9px] font-black italic tracking-widest leading-none border-t border-zinc-100 dark:border-zinc-700">
                 <span>SECURED BY JIMVIO</span>
                 <ShieldCheck className="h-3 w-3" />
             </div>
           </div>
 
-            <div className="rounded-[24px] border border-zinc-100 p-6 space-y-4 bg-white">
-             <h3 className="text-sm font-black uppercase tracking-widest text-zinc-400">Top Members</h3>
+            <div className="rounded-[24px] border border-zinc-100 dark:border-zinc-800 p-6 space-y-4 bg-white dark:bg-zinc-900">
+             <h3 className="text-sm font-black uppercase tracking-widest text-zinc-400 dark:text-zinc-500">Top Members</h3>
              <div className="flex -space-x-3">
                 {[1,2,3,4,5].map(i => (
-                  <div key={i} className="h-12 w-12 rounded-full border-4 border-white bg-zinc-100 flex items-center justify-center text-xs font-black text-zinc-300">
+                  <div key={i} className="h-12 w-12 rounded-full border-4 border-white dark:border-zinc-900 bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-xs font-black text-zinc-300 dark:text-zinc-600">
                     <Users className="h-4 w-4" />
                   </div>
                 ))}
-                <div className="h-12 w-12 rounded-full border-4 border-white bg-orange-100 flex items-center justify-center text-xs font-black text-orange-600">
+                <div className="h-12 w-12 rounded-full border-4 border-white dark:border-zinc-900 bg-orange-100 dark:bg-orange-950/50 flex items-center justify-center text-xs font-black text-orange-600 dark:text-orange-400">
                   +{formatNumber(community.member_count ?? 0)}
                 </div>
              </div>
-             <p className="text-xs font-bold text-zinc-500 leading-relaxed">Join {formatNumber(community.member_count ?? 0)} others who are already upgrading their careers here.</p>
+             <p className="text-xs font-bold text-zinc-500 dark:text-zinc-400 leading-relaxed">Join {formatNumber(community.member_count ?? 0)} others who are already upgrading their careers here.</p>
           </div>
           </div>
         </aside>

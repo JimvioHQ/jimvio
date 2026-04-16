@@ -6,9 +6,33 @@ import { formatDisplayMoney } from "@/lib/utils";
 import { ChevronRight, Package, ShieldCheck, Star } from "lucide-react";
 import { GlassCard, GlassAmbientGlow } from "@/components/ui/glass";
 import { ProductDetailActions } from "./product-detail-actions";
+import { constructMetadata } from "@/lib/seo";
+import { ProductJsonLd } from "@/components/seo/ProductJsonLd";
+
+const siteUrl = "https://jimvio.com";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
+}
+
+export async function generateMetadata({ params }: PageProps) {
+  const { slug } = await params;
+  const product = await getProductBySlug(slug);
+  
+  if (!product) {
+    return constructMetadata({
+      title: "Product Not Found",
+      description: "The requested product could not be found.",
+    });
+  }
+
+  return constructMetadata({
+    title: product.name,
+    description: product.description || `Buy ${product.name} on Jimvio. Premium B2B quality and global reach.`,
+    image: product.images?.[0] || "/jimvio-og.png",
+    path: `/products/${slug}`,
+    type: "product",
+  });
 }
 
 export default async function ProductBySlugPage({ params }: PageProps) {
@@ -27,26 +51,37 @@ export default async function ProductBySlugPage({ params }: PageProps) {
   const mainImage = product.images?.[0] || null;
 
   return (
-    <div className="min-h-screen relative overflow-hidden" style={{ background: "#f8f7f5" }}>
+    <div className="min-h-screen relative overflow-hidden" style={{ background: "var(--color-bg)" }}>
+      <ProductJsonLd 
+        siteUrl={siteUrl}
+        product={{
+          name: product.name,
+          description: product.description || undefined,
+          images: product.images || undefined,
+          price: Number(product.price),
+          currency: product.currency || "USD",
+          vendorName: vendor?.business_name,
+        }}
+      />
       {/* Premium Dashboard Accents */}
       <GlassAmbientGlow color="orange" position="top-right" className="opacity-30" />
       <GlassAmbientGlow color="indigo" position="bottom-left" className="opacity-10" />
 
       {/* Breadcrumb Strip */}
-      <div className="relative z-20 border-b border-stone-200/60 bg-white/40 backdrop-blur-md">
+      <div className="relative z-20 border-b border-stone-200/60 bg-white dark:bg-zinc-900/40 backdrop-blur-md">
         <div className="max-w-[var(--container-max)] mx-auto px-4 sm:px-6 py-4 flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-stone-400">
           <Link href="/" className="hover:text-orange-500 transition-colors">Home</Link>
           <ChevronRight className="h-3 w-3" />
           <Link href="/marketplace" className="hover:text-orange-500 transition-colors">Marketplace</Link>
           <ChevronRight className="h-3 w-3" />
-          <span className="text-stone-900 border-b border-orange-500 pb-0.5">{product.name}</span>
+          <span className="text-stone-900 dark:text-white border-b border-orange-500 pb-0.5">{product.name}</span>
         </div>
       </div>
 
       <div className="max-w-[var(--container-max)] mx-auto px-4 sm:px-6 py-10 lg:py-16 relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-[1fr,420px] gap-12 items-start">
           {/* Image Section */}
-          <GlassCard className="aspect-square bg-white flex items-center justify-center overflow-hidden group border-white/80 shadow-2xl">
+          <GlassCard className="aspect-square bg-white dark:bg-zinc-900 flex items-center justify-center overflow-hidden group border-white/80 shadow-2xl">
             {mainImage ? (
               <img 
                 src={mainImage} 
@@ -70,7 +105,7 @@ export default async function ProductBySlugPage({ params }: PageProps) {
                  </span>
               </div>
               
-              <h1 className="text-4xl sm:text-5xl font-black text-stone-900 leading-[1.1] tracking-tight">
+              <h1 className="text-4xl sm:text-5xl font-black text-stone-900 dark:text-white leading-[1.1] tracking-tight">
                 {product.name}
               </h1>
 
@@ -93,7 +128,7 @@ export default async function ProductBySlugPage({ params }: PageProps) {
                 <div className="flex items-center justify-between gap-4 relative z-10">
                   <div className="flex-1 min-w-0">
                     <p className="text-[10px] font-black uppercase tracking-[0.2em] text-stone-400 mb-1">Authenticated Vendor</p>
-                    <Link href={`/vendors/${vendor.business_slug}`} className="text-[18px] font-black text-stone-900 hover:text-orange-500 transition-colors truncate block">
+                    <Link href={`/vendors/${vendor.business_slug}`} className="text-[18px] font-black text-stone-900 dark:text-white hover:text-orange-500 transition-colors truncate block">
                       {vendor.business_name}
                     </Link>
                     <div className="flex items-center gap-3 mt-2">
@@ -118,7 +153,7 @@ export default async function ProductBySlugPage({ params }: PageProps) {
             </div>
 
             {/* Action Terminal */}
-            <GlassCard className="p-1.5 rounded-[32px] bg-white/40 border-white/80 overflow-hidden">
+            <GlassCard className="p-1.5 rounded-[32px] bg-white dark:bg-zinc-900/40 border-white/80 overflow-hidden">
                <ProductDetailActions
                 productId={product.id}
                 vendorId={product.vendor_id}

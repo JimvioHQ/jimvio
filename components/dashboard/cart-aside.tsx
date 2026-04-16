@@ -97,13 +97,13 @@ export function CartAside({ isOpen, onClose }: CartAsideProps) {
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed top-0 right-0 bottom-0 w-full max-w-[400px] bg-white shadow-2xl z-[201] flex flex-col border-l border-zinc-100"
+            className="fixed top-0 right-0 bottom-0 w-full max-w-[400px] bg-white dark:bg-zinc-900 shadow-2xl z-[201] flex flex-col border-l border-zinc-100 dark:border-zinc-800"
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-100">
+            <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-100 dark:border-zinc-800">
               <div className="flex items-center gap-2">
-                <ShoppingBag className="h-5 w-5 text-zinc-900" />
-                <h2 className="text-lg font-black text-zinc-900">Your Cart</h2>
+                <ShoppingBag className="h-5 w-5 text-zinc-900 dark:text-white" />
+                <h2 className="text-lg font-black text-zinc-900 dark:text-white">Your Cart</h2>
                 <span className="bg-zinc-100 text-zinc-500 text-[10px] font-black px-2 py-0.5 rounded-full">
                   {cartCount}
                 </span>
@@ -125,10 +125,10 @@ export function CartAside({ isOpen, onClose }: CartAsideProps) {
                 </div>
               ) : orders.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-center">
-                  <div className="h-16 w-16 bg-zinc-50 rounded-2xl flex items-center justify-center mb-4">
+                  <div className="h-16 w-16 bg-zinc-50 dark:bg-zinc-900/50 rounded-2xl flex items-center justify-center mb-4">
                     <ShoppingCart className="h-8 w-8 text-zinc-200" />
                   </div>
-                  <h3 className="text-base font-black text-zinc-800">Your cart is empty</h3>
+                  <h3 className="text-base font-black text-zinc-800 dark:text-zinc-200">Your cart is empty</h3>
                   <p className="text-sm text-zinc-400 font-medium px-10 mt-1">
                     Add products from the marketplace to see them here.
                   </p>
@@ -154,7 +154,7 @@ export function CartAside({ isOpen, onClose }: CartAsideProps) {
                       <div className="space-y-4">
                         {order.order_items.map((item: any) => (
                           <div key={item.id} className="flex gap-4 group">
-                            <div className="relative h-16 w-16 shrink-0 bg-zinc-50 rounded-xl border border-zinc-100 overflow-hidden">
+                            <div className="relative h-16 w-16 shrink-0 bg-zinc-50 dark:bg-zinc-900/50 rounded-xl border border-zinc-100 dark:border-zinc-800 overflow-hidden">
                               {item.product_image && !imageErrors[item.id] ? (
                                 <Image
                                   src={item.product_image}
@@ -171,7 +171,7 @@ export function CartAside({ isOpen, onClose }: CartAsideProps) {
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex justify-between items-start gap-2">
-                                <h4 className="text-[13px] font-bold text-zinc-800 leading-tight line-clamp-2">
+                                <h4 className="text-[13px] font-bold text-zinc-800 dark:text-zinc-200 leading-tight line-clamp-2">
                                   {item.product_name}
                                 </h4>
                                 <button
@@ -183,7 +183,7 @@ export function CartAside({ isOpen, onClose }: CartAsideProps) {
                               </div>
                               <div className="flex items-center justify-between mt-2">
                                 <div className="flex items-center gap-2">
-                                  <div className="flex items-center h-6 border border-zinc-100 rounded-lg overflow-hidden bg-zinc-50/50">
+                                  <div className="flex items-center h-6 border border-zinc-100 dark:border-zinc-800 rounded-lg overflow-hidden bg-zinc-50/50">
                                     <button 
                                       onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)}
                                       className="px-2 h-full hover:bg-zinc-100 transition-colors"
@@ -201,7 +201,7 @@ export function CartAside({ isOpen, onClose }: CartAsideProps) {
                                     </button>
                                   </div>
                                 </div>
-                                <span className="text-[13px] font-black text-zinc-900">
+                                <span className="text-[13px] font-black text-zinc-900 dark:text-white">
                                   {formatMoney(item.total_price, order.currency ?? "USD")}
                                 </span>
                               </div>
@@ -218,11 +218,11 @@ export function CartAside({ isOpen, onClose }: CartAsideProps) {
 
             {/* Footer Summary */}
             {orders.length > 0 && (
-              <div className="p-6 bg-zinc-50/50 border-t border-zinc-100 space-y-4">
+              <div className="p-6 bg-zinc-50/50 border-t border-zinc-100 dark:border-zinc-800 space-y-4">
                 <div className="space-y-1.5">
                   <div className="flex justify-between text-xs font-medium text-zinc-500">
                     <span>Subtotal</span>
-                    <span className="text-zinc-900 font-bold">{totalsLabel}</span>
+                    <span className="text-zinc-900 dark:text-white font-bold">{totalsLabel}</span>
                   </div>
                   <div className="flex justify-between text-xs font-medium text-zinc-500">
                     <span>Shipping estim.</span>
@@ -230,7 +230,7 @@ export function CartAside({ isOpen, onClose }: CartAsideProps) {
                   </div>
                 </div>
                 <div className="pt-4 border-t border-zinc-200/50 flex items-center justify-between">
-                  <span className="text-sm font-black text-zinc-900">Est. Total</span>
+                  <span className="text-sm font-black text-zinc-900 dark:text-white">Est. Total</span>
                   <span className="text-xl font-black text-[var(--color-accent)]">{totalsLabel}</span>
                 </div>
                 <div className="grid grid-cols-1 gap-3 pt-2">

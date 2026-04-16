@@ -90,13 +90,10 @@ function HeroDealBanner({ params, basePath }: { params: Record<string, string | 
   const isPhysical = type === "physical";
 
   return (
-    <div className="relative overflow-hidden rounded-[28px] mx-0 mb-6 shadow-[0_8px_32px_rgba(251,146,60,0.15)] border border-white/60">
-      {/* Background with premium orange/peach gradient */}
+    <div className="relative overflow-hidden rounded-[28px] mx-0 mb-6 shadow-lg border border-border">
+      {/* Background with premium dynamic gradient */}
       <div
-        className="absolute inset-0"
-        style={{
-          background: "linear-gradient(145deg, #fff3e0 0%, #ffedd5 40%, #ffedd5 70%, #fff7ed 100%)",
-        }}
+        className="absolute inset-0 bg-gradient-to-br from-orange-50 dark:from-orange-950/10 via-surface dark:via-zinc-900 to-orange-50/50 dark:to-orange-900/5"
       />
       
       {/* Ambient glowing orbs for depth */}
@@ -145,20 +142,20 @@ function HeroDealBanner({ params, basePath }: { params: Record<string, string | 
 
       <div className="relative z-10 px-4 py-8 sm:py-10 flex flex-col items-center text-center">
         {/* Title */}
-        <h2 className="text-[26px] sm:text-[32px] font-black text-stone-900 tracking-tight leading-tight mb-1">
+        <h2 className="text-[26px] sm:text-[32px] font-black text-stone-900 dark:text-white tracking-tight leading-tight mb-1">
           <span className="inline-block animate-[spin_4s_linear_infinite] mr-2">🌟</span> 
           Top Deals Today!
         </h2>
         
         {/* Subtitle */}
-        <p className="text-[14px] sm:text-[16px] text-stone-600 font-medium mb-5">
+        <p className="text-[14px] sm:text-[16px] text-stone-600 dark:text-stone-400 font-medium mb-5">
           Best offers waiting for you!
         </p>
         
         {/* Delivery Badge */}
-        <div className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white/70 backdrop-blur-md border border-white shadow-sm mb-6">
+        <div className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-surface/70 backdrop-blur-md border border-border shadow-sm mb-6">
           <MapPin className="h-4 w-4 text-emerald-500" />
-          <span className="text-[12px] font-bold text-stone-700">Worldwide Delivery Available</span>
+          <span className="text-[12px] font-bold text-stone-700 dark:text-stone-300">Worldwide Delivery Available</span>
         </div>
 
         {/* Action Button */}
@@ -189,7 +186,7 @@ function TypeTabs({ params, basePath }: { params: Record<string, string | undefi
 
   return (
     <div className="flex justify-center w-full">
-      <div className="flex items-center p-1.5 rounded-[18px] bg-stone-200/60 backdrop-blur-md shadow-inner border border-stone-200/50 w-full md:w-auto overflow-hidden">
+      <div className="flex items-center p-1.5 rounded-[18px] bg-surface-secondary/60 dark:bg-zinc-800/60 backdrop-blur-md shadow-inner border border-border w-full md:w-auto overflow-hidden">
         {tabs.map((tab) => {
           const isActive = tab.type === null ? isAll : params.type === tab.type;
           const href = tab.type
@@ -203,14 +200,14 @@ function TypeTabs({ params, basePath }: { params: Record<string, string | undefi
               className={cn(
                 "relative flex-1 md:flex-none shrink-0 flex items-center justify-center px-3 sm:px-6 py-2.5 rounded-[14px] text-[13px] sm:text-[14px] font-bold transition-all whitespace-nowrap z-10",
                 isActive
-                  ? "text-stone-900"
-                  : "text-stone-500 hover:text-stone-800 hover:bg-stone-100/50"
+                  ? "text-stone-900 dark:text-white"
+                  : "text-stone-500 hover:text-stone-800 dark:text-zinc-200 dark:hover:text-stone-300 hover:bg-surface/50"
               )}
             >
               {isActive && (
                 <motion.div
                   layoutId="activeTabIndicator"
-                  className="absolute inset-0 bg-white rounded-[14px] shadow-[0_2px_10px_rgba(0,0,0,0.06)] border border-white"
+                  className="absolute inset-0 bg-surface dark:bg-zinc-800 rounded-[14px] shadow-[0_2px_10px_rgba(0,0,0,0.12)] border border-border"
                   style={{ zIndex: -1 }}
                   transition={{ type: "spring", stiffness: 450, damping: 35 }}
                 />
@@ -240,10 +237,10 @@ function CategoryChip({
     <Link
       href={href}
       className={cn(
-        "shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-[12px] font-semibold transition-all border whitespace-nowrap",
+        "shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-[12px] font-semibold transition-all border whitespace-nowrap shadow-sm",
         active
           ? "bg-orange-500 text-white border-orange-400 shadow-[0_4px_12px_rgba(249,115,22,0.30)]"
-          : "bg-white border-stone-200 text-stone-600 hover:border-orange-300 hover:text-orange-600 shadow-sm"
+          : "bg-surface dark:bg-zinc-900 border-border text-stone-600 dark:text-stone-300 hover:border-orange-300 dark:hover:border-orange-500 hover:text-orange-600 dark:hover:text-orange-500"
       )}
     >
       {icon && <span className="text-base leading-none">{icon}</span>}
@@ -268,10 +265,10 @@ function SortPill({
     <Link
       href={href}
       className={cn(
-        "shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-[12px] font-semibold border transition-all whitespace-nowrap",
+        "shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-[12px] font-semibold border transition-all whitespace-nowrap shadow-sm",
         active
           ? "bg-orange-500 text-white border-orange-400 shadow-[0_4px_12px_rgba(249,115,22,0.30)]"
-          : "bg-white border-stone-200 text-stone-500 hover:border-orange-300 hover:text-orange-600 shadow-sm"
+          : "bg-surface dark:bg-zinc-900 border-border text-stone-500 dark:text-stone-300 hover:border-orange-300 dark:hover:border-orange-500 hover:text-orange-600 dark:hover:text-orange-500"
       )}
     >
       {Icon && <Icon className="h-3.5 w-3.5" />}
@@ -352,16 +349,16 @@ export function MarketplaceClient({
       : null;
 
   return (
-    <div className="min-h-screen relative" style={{ background: "#f5f5f7" }}>
+    <div className="min-h-screen relative" style={{ background: "var(--color-bg)" }}>
       <GlassAmbientGlow color="amber" position="top-right" className="opacity-30" />
 
       {/* ── Sticky Top Bar ── */}
       <div
-        className="sticky top-0 z-50 border-b border-white/80 shadow-[0_4px_20px_rgba(0,0,0,0.03)]"
+        className="sticky top-0 z-50 border-b border-border shadow-[0_4px_20px_rgba(0,0,0,0.03)]"
         style={{
-          background: "rgba(250,250,250,0.85)",
-          backdropFilter: "blur(32px)",
-          WebkitBackdropFilter: "blur(32px)",
+          background: "var(--glass-bg)",
+          backdropFilter: "var(--glass-blur)",
+          WebkitBackdropFilter: "var(--glass-blur)",
         }}
       >
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 pt-3 pb-3">
@@ -382,14 +379,14 @@ export function MarketplaceClient({
 
               {/* Stats Badge (Desktop Only) */}
               {statLine && (
-                <div className="hidden lg:flex items-center gap-3 pl-5 border-l border-stone-200">
+                <div className="hidden lg:flex items-center gap-3 pl-5 border-l border-border">
                   <div className="relative flex h-2.5 w-2.5">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-stone-400 leading-none">Live DB</span>
-                    <span className="text-[13px] font-bold text-stone-700 leading-tight block mt-0.5">{statLine}</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-stone-400 dark:text-stone-600 leading-none">Live DB</span>
+                    <span className="text-[13px] font-bold text-stone-700 dark:text-stone-300 leading-tight block mt-0.5">{statLine}</span>
                   </div>
                 </div>
               )}
@@ -406,8 +403,8 @@ export function MarketplaceClient({
         <aside className="hidden lg:block lg:w-56 shrink-0">
           <div className="sticky top-[130px] space-y-4">
             {/* Category card */}
-            <div className="bg-white rounded-[20px] border border-stone-100 shadow-sm p-4">
-              <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-stone-400 mb-3">
+            <div className="bg-surface dark:bg-zinc-900 rounded-[20px] border border-border shadow-sm p-4">
+              <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-stone-400 dark:text-stone-500 mb-3">
                 Categories
               </h3>
               <div className="flex flex-col gap-0.5">
@@ -421,8 +418,8 @@ export function MarketplaceClient({
                       className={cn(
                         "flex items-center gap-2.5 py-2 px-3 rounded-[12px] text-[12px] font-semibold transition-all",
                         isActive
-                          ? "bg-orange-50 text-orange-600 border border-orange-200/60"
-                          : "text-stone-500 hover:bg-stone-50 hover:text-stone-800 border border-transparent"
+                          ? "bg-orange-500/10 text-orange-600 border border-orange-500/20"
+                          : "text-stone-500 dark:text-stone-400 hover:bg-surface-secondary dark:hover:bg-zinc-800 hover:text-stone-800 dark:text-zinc-200 dark:hover:text-white border border-transparent"
                       )}
                     >
                       {icon && <span className="text-base leading-none">{icon}</span>}
@@ -437,9 +434,9 @@ export function MarketplaceClient({
             </div>
 
             {/* Support card */}
-            <div className="bg-white rounded-[20px] border border-stone-100 shadow-sm p-5 relative overflow-hidden">
+            <div className="bg-surface dark:bg-zinc-900 rounded-[20px] border border-border shadow-sm p-5 relative overflow-hidden">
               <div
-                className="pointer-events-none absolute top-0 right-0 w-24 h-24 rounded-full blur-2xl opacity-40"
+                className="pointer-events-none absolute top-0 right-0 w-24 h-24 rounded-full blur-2xl opacity-40 dark:opacity-20"
                 style={{ background: "radial-gradient(circle, #fb923c, transparent)" }}
               />
               <div
@@ -448,13 +445,13 @@ export function MarketplaceClient({
               >
                 <ShieldCheck className="h-4 w-4 text-white" />
               </div>
-              <h4 className="text-[13px] font-bold text-stone-900 mb-1 relative z-10">Buyer Support</h4>
-              <p className="text-[11px] text-stone-500 leading-relaxed mb-3 relative z-10">
+              <h4 className="text-[13px] font-bold text-stone-900 dark:text-white mb-1 relative z-10">Buyer Support</h4>
+              <p className="text-[11px] text-stone-500 dark:text-stone-400 leading-relaxed mb-3 relative z-10">
                 Questions about an order or seller? Reach us anytime.
               </p>
               <Link
                 href="/contact"
-                className="block w-full py-2 px-4 rounded-full bg-orange-50 border border-orange-200/60 text-[11px] font-semibold text-orange-600 text-center hover:bg-orange-100 transition-all relative z-10"
+                className="block w-full py-2 px-4 rounded-full bg-orange-50 dark:bg-orange-950/20 border border-orange-200/60 dark:border-orange-500/20 text-[11px] font-semibold text-orange-600 dark:text-orange-400 text-center hover:bg-orange-100 dark:hover:bg-orange-900/40 transition-all relative z-10"
               >
                 Contact Support
               </Link>
@@ -526,7 +523,7 @@ export function MarketplaceClient({
               {params.q?.trim() ? (
                 <Link
                   href={marketplaceHref(paramsRecord, { q: null }, basePath)}
-                  className="inline-flex items-center gap-1 rounded-full bg-white border border-stone-200 px-3 py-1 text-[11px] font-semibold text-stone-700 hover:border-orange-300 hover:text-orange-600 transition-all shadow-sm"
+                  className="inline-flex items-center gap-1 rounded-full bg-surface dark:bg-zinc-900 border border-border px-3 py-1 text-[11px] font-semibold text-stone-700 dark:text-stone-300 hover:border-orange-300 dark:hover:border-orange-700 hover:text-orange-600 dark:hover:text-orange-400 transition-all shadow-sm"
                 >
                   "{params.q.trim()}" <X className="h-3 w-3 opacity-50" />
                 </Link>
@@ -534,7 +531,7 @@ export function MarketplaceClient({
               {params.cat ? (
                 <Link
                   href={marketplaceHref(paramsRecord, { cat: null }, basePath)}
-                  className="inline-flex items-center gap-1 rounded-full bg-white border border-stone-200 px-3 py-1 text-[11px] font-semibold text-stone-700 hover:border-orange-300 hover:text-orange-600 transition-all shadow-sm"
+                  className="inline-flex items-center gap-1 rounded-full bg-surface dark:bg-zinc-900 border border-border px-3 py-1 text-[11px] font-semibold text-stone-700 dark:text-stone-300 hover:border-orange-300 dark:hover:border-orange-700 hover:text-orange-600 dark:hover:text-orange-400 transition-all shadow-sm"
                 >
                   {categories.find((c) => c.slug === params.cat)?.name ?? params.cat}{" "}
                   <X className="h-3 w-3 opacity-50" />
@@ -543,7 +540,7 @@ export function MarketplaceClient({
               {params.affiliate === "1" ? (
                 <Link
                   href={marketplaceHref(paramsRecord, { affiliate: null }, basePath)}
-                  className="inline-flex items-center gap-1 rounded-full bg-white border border-stone-200 px-3 py-1 text-[11px] font-semibold text-stone-700 hover:border-orange-300 hover:text-orange-600 transition-all shadow-sm"
+                  className="inline-flex items-center gap-1 rounded-full bg-surface dark:bg-zinc-900 border border-border px-3 py-1 text-[11px] font-semibold text-stone-700 dark:text-stone-300 hover:border-orange-300 dark:hover:border-orange-700 hover:text-orange-600 dark:hover:text-orange-400 transition-all shadow-sm"
                 >
                   Affiliate <X className="h-3 w-3 opacity-50" />
                 </Link>
@@ -556,7 +553,7 @@ export function MarketplaceClient({
 
           {/* Result count + section heading */}
           <div className="flex items-center justify-between">
-            <h2 className="text-[15px] font-bold text-stone-800">
+            <h2 className="text-[15px] font-bold text-stone-800 dark:text-white">
               {params.q?.trim()
                 ? `Results for "${params.q.trim()}"`
                 : params.type === "digital"
@@ -567,8 +564,8 @@ export function MarketplaceClient({
                 ? (categories.find((c) => c.slug === params.cat)?.name ?? "Products")
                 : "All Products"}
             </h2>
-            <span className="text-[12px] text-stone-400 tabular-nums">
-              <span className="font-semibold text-stone-600">{total}</span>{" "}
+            <span className="text-[12px] text-stone-400 dark:text-stone-500 tabular-nums">
+              <span className="font-semibold text-stone-600 dark:text-stone-300">{total}</span>{" "}
               result{total === 1 ? "" : "s"}
             </span>
           </div>
@@ -603,9 +600,9 @@ export function MarketplaceClient({
                 {/* Recommended section label */}
                 {initialProducts.length >= 8 && (
                   <div className="mt-8 flex items-center justify-between">
-                    <h3 className="text-[15px] font-bold text-stone-800 flex items-center gap-2">
-                      <Sparkles className="h-4 w-4 text-orange-500" />
-                      Recommended for you
+                    <h3 className="text-[15px] font-bold text-stone-800 dark:text-white flex items-center gap-2">
+                       <Sparkles className="h-4 w-4 text-orange-500" />
+                       Recommended for you
                     </h3>
                     <Link
                       href="/marketplace"
@@ -621,15 +618,15 @@ export function MarketplaceClient({
               <motion.div
                 initial={{ opacity: 0, scale: 0.98 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="bg-white rounded-[24px] border border-stone-100 shadow-sm p-12 sm:p-16 text-center"
+                className="bg-surface dark:bg-zinc-900 rounded-[24px] border border-border shadow-sm p-12 sm:p-16 text-center"
               >
                 <div className="h-16 w-16 rounded-[20px] flex items-center justify-center mx-auto mb-5"
                   style={{ background: "rgba(249,115,22,0.08)", border: "1px solid rgba(249,115,22,0.15)" }}
                 >
                   <Search className="h-7 w-7 text-orange-400" />
                 </div>
-                <h3 className="text-[18px] font-bold text-stone-800 mb-2">No products match</h3>
-                <p className="text-[13px] text-stone-500 mb-8 max-w-sm mx-auto leading-relaxed">
+                <h3 className="text-[18px] font-bold text-stone-800 dark:text-white mb-2">No products match</h3>
+                <p className="text-[13px] text-stone-500 dark:text-stone-400 mb-8 max-w-sm mx-auto leading-relaxed">
                   Try a different search term, clear your filters, or browse all categories.
                 </p>
                 <Link href={basePath}>
@@ -652,7 +649,7 @@ export function MarketplaceClient({
                 <Link href={marketplaceHref(paramsRecord, { page: String(currentPage - 1) }, basePath)}>
                   <button
                     type="button"
-                    className="px-4 py-2 rounded-full bg-white border border-stone-200 text-[12px] font-semibold text-stone-600 shadow-sm hover:border-orange-300 hover:text-orange-600 transition-all"
+                    className="px-4 py-2 rounded-full bg-surface dark:bg-zinc-900 border border-border text-[12px] font-semibold text-stone-600 dark:text-stone-300 shadow-sm hover:border-orange-300 dark:hover:border-orange-700 hover:text-orange-600 dark:hover:text-orange-400 transition-all"
                   >
                     Previous
                   </button>
@@ -669,7 +666,7 @@ export function MarketplaceClient({
                         "min-w-[40px] h-10 px-3 rounded-full text-[12px] font-black transition-all border",
                         pg === currentPage
                           ? "bg-orange-500 border-orange-400 text-white shadow-[0_4px_12px_rgba(249,115,22,0.30)]"
-                          : "bg-white border-stone-200 text-stone-600 hover:border-orange-300 hover:text-orange-600"
+                          : "bg-surface dark:bg-zinc-900 border-border text-stone-600 dark:text-stone-300 hover:border-orange-300 dark:hover:border-orange-700 hover:text-orange-600 dark:hover:text-orange-400"
                       )}
                     >
                       {pg}
@@ -681,7 +678,7 @@ export function MarketplaceClient({
                 <Link href={marketplaceHref(paramsRecord, { page: String(currentPage + 1) }, basePath)}>
                   <button
                     type="button"
-                    className="px-4 py-2 rounded-full bg-white border border-stone-200 text-[12px] font-semibold text-stone-600 shadow-sm hover:border-orange-300 hover:text-orange-600 transition-all"
+                    className="px-4 py-2 rounded-full bg-surface dark:bg-zinc-900 border border-border text-[12px] font-semibold text-stone-600 dark:text-stone-300 shadow-sm hover:border-orange-300 dark:hover:border-orange-700 hover:text-orange-600 dark:hover:text-orange-400 transition-all"
                   >
                     Next
                   </button>
@@ -701,7 +698,7 @@ export function MarketplaceClient({
             aria-hidden
           />
           <div className="fixed inset-0 z-[1001] flex items-center justify-center p-4 pointer-events-none">
-            <div className="pointer-events-auto w-full max-w-lg flex flex-col bg-white/10 backdrop-blur-2xl rounded-[28px] overflow-hidden shadow-2xl border border-white/20 relative">
+            <div className="pointer-events-auto w-full max-w-lg flex flex-col bg-zinc-900/10 dark:bg-black/40 backdrop-blur-2xl rounded-[28px] overflow-hidden shadow-2xl border border-white/20 dark:border-white/10 relative">
               <button
                 type="button"
                 onClick={closeModalClip}
@@ -750,8 +747,8 @@ export function MarketplaceClient({
                 </div>
               </div>
               {modalClip.products && (
-                <div className="p-4 border-t border-white/10 flex items-center gap-4 bg-white/5 backdrop-blur-xl">
-                  <div className="w-14 h-14 rounded-[16px] bg-white/10 flex items-center justify-center overflow-hidden shrink-0">
+                <div className="p-4 border-t border-white/10 flex items-center gap-4 bg-zinc-900/5 dark:bg-white dark:bg-zinc-900/5 backdrop-blur-xl">
+                  <div className="w-14 h-14 rounded-[16px] bg-white dark:bg-zinc-900/10 flex items-center justify-center overflow-hidden shrink-0">
                     {Array.isArray(modalClip.products.images) && modalClip.products.images[0] ? (
                       <img src={modalClip.products.images[0]} alt="" className="w-full h-full object-cover" />
                     ) : (

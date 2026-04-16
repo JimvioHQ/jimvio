@@ -1,13 +1,18 @@
 "use client";
 
-import React, { useState, useTransition } from "react";
+import React, { useState, useTransition, Suspense } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Mail, Lock, Eye, EyeOff, User, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { signUp, signInWithGoogle } from "@/lib/auth/actions";
+import { isNextRedirectError } from "@/lib/auth/redirect-error";
 
-export default function RegisterPage() {
+function RegisterForm() {
+  const searchParams = useSearchParams();
+  const next = searchParams.get("next") ?? searchParams.get("redirect") ?? "";
+
   const [showPw, setShowPw] = useState(false);
   const [error, setError]   = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -17,10 +22,16 @@ export default function RegisterPage() {
     e.preventDefault();
     setError(null);
     const fd = new FormData(e.currentTarget);
+    if (next) fd.set("next", next);
     startTransition(async () => {
-      const res = await signUp(fd);
-      if (res?.error)   setError(res.error);
-      if (res?.success) setSuccess(res.success);
+      try {
+        const res = await signUp(fd);
+        if (res?.error)   setError(res.error);
+        if (res?.success) setSuccess(res.success);
+      } catch (err: unknown) {
+        if (isNextRedirectError(err)) throw err;
+        setError(err instanceof Error ? err.message : "Registration failed.");
+      }
     });
   }
 
@@ -30,7 +41,7 @@ export default function RegisterPage() {
         <div className="w-16 h-16 rounded-full bg-green-50 flex items-center justify-center mx-auto mb-6 ring-4 ring-green-50">
           <CheckCircle className="h-8 w-8 text-green-500" />
         </div>
-        <h2 className="text-2xl font-black text-zinc-900 mb-2 tracking-tight">Check your email</h2>
+        <h2 className="text-2xl font-black text-zinc-900 dark:text-white mb-2 tracking-tight">Check your email</h2>
         <p className="text-[14px] font-medium text-zinc-500 mb-8 max-w-xs mx-auto">{success}</p>
         <Link href="/login">
           <Button className="w-full h-12 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-white font-bold text-[14px] shadow-sm transition-all">
@@ -44,7 +55,7 @@ export default function RegisterPage() {
   return (
     <div className="w-full">
       <div className="space-y-3 mb-10">
-        <h1 className="text-3xl font-black tracking-tight text-zinc-900">Create an account</h1>
+        <h1 className="text-3xl font-black tracking-tight text-zinc-900 dark:text-white">Create an account</h1>
         <p className="text-[14px] font-medium text-zinc-500">
           Join Jimvio — completely free to sign up.
         </p>
@@ -53,9 +64,15 @@ export default function RegisterPage() {
       <div className="space-y-6">
         <Button
           type="button"
-          onClick={() => startTransition(async () => { await signInWithGoogle(); })}
+          onClick={() => startTransition(async () => { 
+            try {
+              await signInWithGoogle(next); 
+            } catch (err: unknown) {
+              if (isNextRedirectError(err)) throw err;
+            }
+          })}
           disabled={pending}
-          className="w-full h-12 bg-white hover:bg-zinc-50 text-zinc-700 border border-zinc-200 shadow-sm rounded-xl font-bold transition-all flex items-center justify-center gap-3"
+          className="w-full h-12 bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-800 shadow-sm rounded-xl font-bold transition-all flex items-center justify-center gap-3"
         >
           <svg className="h-5 w-5" viewBox="0 0 24 24" aria-hidden>
             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -67,9 +84,9 @@ export default function RegisterPage() {
         </Button>
 
         <div className="relative flex items-center py-2">
-          <div className="flex-grow border-t border-zinc-200"></div>
+          <div className="flex-grow border-t border-zinc-200 dark:border-zinc-800"></div>
           <span className="flex-shrink-0 mx-4 text-[12px] font-medium text-zinc-500">or sign up with email</span>
-          <div className="flex-grow border-t border-zinc-200"></div>
+          <div className="flex-grow border-t border-zinc-200 dark:border-zinc-800"></div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
@@ -80,7 +97,7 @@ export default function RegisterPage() {
           )}
 
           <div className="space-y-1.5">
-            <label htmlFor="full_name" className="block text-[13px] font-bold text-zinc-800">
+            <label htmlFor="full_name" className="block text-[13px] font-bold text-zinc-800 dark:text-zinc-200">
               Full Name
             </label>
             <div className="relative group">
@@ -89,7 +106,7 @@ export default function RegisterPage() {
                 id="full_name"
                 name="full_name"
                 placeholder="Jane Doe"
-                className="pl-11 h-12 rounded-xl border-zinc-200 bg-white text-[15px] text-zinc-900 placeholder:text-zinc-400 focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all shadow-sm"
+                className="pl-11 h-12 rounded-xl border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-[15px] text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all shadow-sm"
                 required
                 autoComplete="name"
                 disabled={pending}
@@ -98,7 +115,7 @@ export default function RegisterPage() {
           </div>
 
           <div className="space-y-1.5">
-            <label htmlFor="email" className="block text-[13px] font-bold text-zinc-800">
+            <label htmlFor="email" className="block text-[13px] font-bold text-zinc-800 dark:text-zinc-200">
               Email Address
             </label>
             <div className="relative group">
@@ -108,7 +125,7 @@ export default function RegisterPage() {
                 type="email"
                 name="email"
                 placeholder="you@example.com"
-                className="pl-11 h-12 rounded-xl border-zinc-200 bg-white text-[15px] text-zinc-900 placeholder:text-zinc-400 focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all shadow-sm"
+                className="pl-11 h-12 rounded-xl border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-[15px] text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all shadow-sm"
                 required
                 autoComplete="email"
                 disabled={pending}
@@ -117,7 +134,7 @@ export default function RegisterPage() {
           </div>
 
           <div className="space-y-1.5">
-            <label htmlFor="password" className="block text-[13px] font-bold text-zinc-800">
+            <label htmlFor="password" className="block text-[13px] font-bold text-zinc-800 dark:text-zinc-200">
               Password
             </label>
             <div className="relative group">
@@ -127,7 +144,7 @@ export default function RegisterPage() {
                 type={showPw ? "text" : "password"}
                 name="password"
                 placeholder="8+ characters minimum"
-                className="pl-11 pr-11 h-12 rounded-xl border-zinc-200 bg-white text-[15px] text-zinc-900 placeholder:text-zinc-400 focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all shadow-sm"
+                className="pl-11 pr-11 h-12 rounded-xl border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-[15px] text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all shadow-sm"
                 required
                 minLength={8}
                 autoComplete="new-password"
@@ -136,7 +153,7 @@ export default function RegisterPage() {
               <button
                 type="button"
                 onClick={() => setShowPw(!showPw)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-700 p-1 rounded-lg transition-colors"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-700 dark:text-zinc-300 p-1 rounded-lg transition-colors"
                 aria-label={showPw ? "Hide password" : "Show password"}
               >
                 {showPw ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
@@ -158,18 +175,35 @@ export default function RegisterPage() {
 
           <p className="text-[12px] text-zinc-500 text-center leading-relaxed font-medium mx-auto pt-2">
              By joining, you agree to our{" "}
-            <Link href="/terms" className="text-zinc-700 hover:text-orange-600 transition-colors underline underline-offset-2 decoration-zinc-300">Terms</Link> &{" "}
-            <Link href="/privacy" className="text-zinc-700 hover:text-orange-600 transition-colors underline underline-offset-2 decoration-zinc-300">Privacy Policy</Link>.
+            <Link href="/terms" className="text-zinc-700 dark:text-zinc-300 hover:text-orange-600 transition-colors underline underline-offset-2 decoration-zinc-300">Terms</Link> &{" "}
+            <Link href="/privacy" className="text-zinc-700 dark:text-zinc-300 hover:text-orange-600 transition-colors underline underline-offset-2 decoration-zinc-300">Privacy Policy</Link>.
           </p>
         </form>
       </div>
 
       <p className="text-center text-[13px] font-medium text-zinc-600 mt-8">
         Already have an account?{" "}
-        <Link href="/login" className="font-bold text-orange-600 hover:text-orange-500 transition-colors">
+        <Link href={next ? `/login?next=${encodeURIComponent(next)}` : "/login"} className="font-bold text-orange-600 hover:text-orange-500 transition-colors">
           Sign in
         </Link>
       </p>
     </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="w-full space-y-6 animate-pulse">
+          <div className="h-8 bg-zinc-100 dark:bg-zinc-800 rounded-lg w-3/4 mx-auto" />
+          <div className="h-11 bg-zinc-100 dark:bg-zinc-800 rounded-xl" />
+          <div className="h-11 bg-zinc-100 dark:bg-zinc-800 rounded-xl" />
+          <div className="h-11 bg-zinc-100 dark:bg-zinc-800 rounded-xl" />
+        </div>
+      }
+    >
+      <RegisterForm />
+    </Suspense>
   );
 }

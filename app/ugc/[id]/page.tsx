@@ -34,10 +34,7 @@ const PLATFORM_META: Record<string, { icon: any; label: string }> = {
 /* ── tiny reusable section header ── */
 function SectionLabel({ children }: { children: React.ReactNode }) {
    return (
-      <p
-         className="text-[10px] font-bold uppercase tracking-[0.18em] mb-3"
-         style={{ color: 'rgba(0,0,0,0.35)' }}
-      >
+      <p className="text-[10px] font-bold uppercase tracking-[0.18em] mb-3 text-stone-500 dark:text-stone-400">
          {children}
       </p>
    );
@@ -52,14 +49,7 @@ function LightCard({
    className?: string;
 }) {
    return (
-      <div
-         className={cn('rounded-2xl p-6', className)}
-         style={{
-            background: '#ffffff',
-            border: '1px solid rgba(0,0,0,0.05)',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.04)',
-         }}
-      >
+      <div className={cn('rounded-2xl p-6 bg-surface dark:bg-zinc-900 border border-border shadow-sm', className)}>
          {children}
       </div>
    );
@@ -97,11 +87,8 @@ export default function CampaignDetailPage() {
    /* ── Loading ── */
    if (loading) {
       return (
-         <div className="min-h-screen flex items-center justify-center" style={{ background: '#f8f7f5' }}>
-            <div
-               className="w-10 h-10 rounded-full border-2 border-t-transparent animate-spin"
-               style={{ borderColor: 'rgba(249,115,22,0.2)', borderTopColor: '#f97316' }}
-            />
+         <div className="min-h-screen flex items-center justify-center bg-surface dark:bg-zinc-900">
+            <div className="w-10 h-10 rounded-full border-2 border-t-orange-500 border-orange-500/20 animate-spin" />
          </div>
       );
    }
@@ -109,12 +96,9 @@ export default function CampaignDetailPage() {
    /* ── Not found ── */
    if (!campaign) {
       return (
-         <div
-            className="min-h-screen flex flex-col items-center justify-center gap-4"
-            style={{ background: '#f8f7f5' }}
-         >
-            <p className="text-stone-900 font-black text-xl">Campaign not found</p>
-            <Link href="/ugc" className="text-sm font-bold" style={{ color: '#f97316' }}>
+         <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-surface dark:bg-zinc-900">
+            <p className="text-stone-900 dark:text-white font-black text-xl">Campaign not found</p>
+            <Link href="/ugc" className="text-sm font-bold text-orange-500 hover:text-orange-600">
                ← Back to campaigns
             </Link>
          </div>
@@ -142,62 +126,39 @@ export default function CampaignDetailPage() {
    }
 
    return (
-      <div className="min-h-screen pb-28" style={{ background: '#f8f7f5' }}>
+      <div className="min-h-screen pb-28 bg-surface dark:bg-zinc-900">
 
          {/* ══════════════════════════════════
           HERO BANNER
       ══════════════════════════════════ */}
-         <div className="relative w-full overflow-hidden" style={{ height: 380 }}>
+         <div className="relative w-full overflow-hidden h-[380px] bg-surface dark:bg-zinc-900">
             {/* bg */}
-            <div
-               className="absolute inset-0"
-               style={{ background: '#ffffff' }}
-            />
+            <div className="absolute inset-0 bg-surface dark:bg-zinc-900" />
             {banner && (
                <Image
                   src={banner}
                   alt={campaign.title}
                   fill
-                  className="object-cover"
-                  style={{ opacity: 0.15 }}
+                  className="object-cover opacity-15"
                   priority
                />
             )}
             {/* Vignettes */}
-            <div className="absolute inset-0 bg-gradient-to-t from-[#f8f7f5] via-[#f8f7f5]/40 to-transparent" />
-            <div className="absolute inset-0 bg-gradient-to-r from-white via-transparent to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-surface via-surface/40 to-transparent dark:from-zinc-900 dark:via-zinc-900/40" />
+            <div className="absolute inset-0 bg-gradient-to-r from-surface dark:from-zinc-900 via-transparent to-transparent" />
 
             {/* Orange glow spot behind logo */}
-            <div
-               className="absolute"
-               style={{
-                  width: 260,
-                  height: 260,
-                  borderRadius: '50%',
-                  background: 'radial-gradient(circle,rgba(249,115,22,0.18),transparent 70%)',
-                  bottom: -40,
-                  left: 60,
-                  filter: 'blur(30px)',
-               }}
-            />
+            <div className="absolute w-[260px] h-[260px] rounded-full bg-orange-500/20 blur-[30px] -bottom-10 left-16" />
 
             {/* Content */}
             <div className="relative z-10 max-w-7xl mx-auto px-6 h-full flex flex-col justify-between py-6">
                {/* Back nav */}
                <Link
                   href="/ugc"
-                  className="flex items-center gap-2 w-fit text-sm font-bold transition-opacity hover:opacity-70"
-                  style={{ color: 'rgba(0,0,0,0.45)' }}
+                  className="flex items-center gap-2 w-fit text-sm font-bold transition-opacity hover:opacity-70 text-stone-500 dark:text-stone-400"
                >
-                  <div
-                     className="w-8 h-8 rounded-xl flex items-center justify-center"
-                     style={{
-                        background: '#fff',
-                        border: '1px solid rgba(0,0,0,0.06)',
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-                     }}
-                  >
-                     <ArrowLeft className="h-3.5 w-3.5 text-stone-900" />
+                  <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-surface dark:bg-zinc-900 border border-border shadow-sm">
+                     <ArrowLeft className="h-3.5 w-3.5 text-stone-900 dark:text-white" />
                   </div>
                   Back to Campaigns
                </Link>
@@ -207,26 +168,15 @@ export default function CampaignDetailPage() {
                   <div className="flex items-end gap-5">
                      {/* Logo */}
                      <div className="relative flex-shrink-0">
-                        <div
-                           className="absolute inset-0 rounded-2xl"
-                           style={{
-                              background: 'rgba(249,115,22,0.25)',
-                              filter: 'blur(18px)',
-                              transform: 'scale(1.2)',
-                           }}
-                        />
+                        <div className="absolute inset-0 rounded-2xl bg-orange-500/20 blur-[18px] scale-110" />
                         {campaign.vendor?.business_logo ? (
                            <img
                               src={campaign.vendor.business_logo}
-                              className="relative w-20 h-20 rounded-2xl object-cover"
-                              style={{ border: '2px solid #fff', boxShadow: '0 10px 30px rgba(0,0,0,0.08)' }}
+                              className="relative w-20 h-20 rounded-2xl object-cover border-2 border-surface dark:border-zinc-900 shadow-xl"
                               alt=""
                            />
                         ) : (
-                           <div
-                              className="relative w-20 h-20 rounded-2xl flex items-center justify-center text-2xl font-black text-white"
-                              style={{ background: 'linear-gradient(135deg,#f97316,#ea580c)', boxShadow: '0 10px 30px rgba(249,115,22,0.2)' }}
-                           >
+                           <div className="relative w-20 h-20 rounded-2xl flex items-center justify-center text-2xl font-black text-white bg-gradient-to-br from-orange-400 to-orange-600 shadow-xl shadow-orange-500/20">
                               {campaign.vendor?.business_name?.[0] ?? 'B'}
                            </div>
                         )}
@@ -235,71 +185,38 @@ export default function CampaignDetailPage() {
                      {/* Title block */}
                      <div className="space-y-2">
                         <div className="flex items-center gap-2 flex-wrap">
-                           <span
-                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider"
-                              style={{
-                                 background: 'rgba(52,211,153,0.1)',
-                                 border: '1px solid rgba(52,211,153,0.2)',
-                                 color: '#059669',
-                              }}
-                           >
-                              <span
-                                 className="w-1.5 h-1.5 rounded-full"
-                                 style={{ background: '#10b981' }}
-                              />
+                           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-500/10 border border-emerald-500/20 text-emerald-600">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                               {campaign.status}
                            </span>
-                           <span
-                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider"
-                              style={{
-                                 background: isUGC
-                                    ? 'rgba(249,115,22,0.1)'
-                                    : 'rgba(99,102,241,0.1)',
-                                 border: isUGC
-                                    ? '1px solid rgba(249,115,22,0.2)'
-                                    : '1px solid rgba(99,102,241,0.2)',
-                                 color: isUGC ? '#ea580c' : '#4f46e5',
-                              }}
-                           >
+                           <span className={cn("inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider", isUGC ? "bg-orange-500/10 border border-orange-500/20 text-orange-600" : "bg-indigo-500/10 border border-indigo-500/20 text-indigo-500")}>
                               <Zap className="h-2.5 w-2.5" />
                               {campaign.campaign_type}
                            </span>
                         </div>
 
-                        <h1
-                           className="text-3xl md:text-5xl font-black text-stone-900 leading-none"
-                           style={{ letterSpacing: '-0.03em' }}
-                        >
+                        <h1 className="text-3xl md:text-5xl font-black text-stone-900 dark:text-white leading-none tracking-tighter">
                            {campaign.title}
                         </h1>
 
-                        <p
-                           className="text-xs font-semibold flex items-center gap-1.5"
-                           style={{ color: 'rgba(0,0,0,0.45)' }}
-                        >
+                        <p className="text-xs font-semibold flex items-center gap-1.5 text-stone-500 dark:text-stone-400">
                            by{' '}
-                           <span style={{ color: 'rgba(0,0,0,0.7)' }}>
+                           <span className="text-stone-700 dark:text-stone-300">
                               {campaign.vendor?.business_name}
                            </span>
-                           <CheckCircle className="h-3 w-3" style={{ color: '#3b82f6', fill: '#3b82f6' }} />
+                           <CheckCircle className="h-3 w-3 text-blue-500 fill-blue-500" />
                         </p>
                      </div>
                   </div>
 
                   {/* CTA buttons */}
                   <div className="flex items-center gap-3 flex-shrink-0">
-                     <button
-                        className="w-11 h-11 rounded-xl flex items-center justify-center transition-all bg-white border border-stone-200 text-stone-500 hover:text-orange-500 shadow-sm"
-                     >
+                     <button className="w-11 h-11 rounded-xl flex items-center justify-center transition-all bg-surface dark:bg-zinc-900 border border-border text-stone-500 shadow-sm hover:text-orange-500 hover:bg-stone-50 dark:hover:bg-zinc-800">
                         <Share2 className="h-4 w-4" />
                      </button>
                      <Link
                         href={isJoined ? `/dashboard/ugc/${id}` : `/dashboard/ugc/${id}/join`}
-                        className="inline-flex items-center gap-2 px-7 py-3 rounded-xl text-sm font-black text-white transition-all hover:brightness-110 active:scale-95"
-                        style={{
-                           background: 'linear-gradient(135deg,#f97316,#ea580c)',
-                           boxShadow: '0 4px 20px rgba(249,115,22,0.3)',
-                        }}
+                        className="inline-flex items-center gap-2 px-7 py-3 rounded-xl text-sm font-black text-white transition-all hover:brightness-110 active:scale-95 bg-gradient-to-br from-orange-400 to-orange-600 shadow-lg shadow-orange-500/30"
                      >
                         {isJoined ? 'Go to Dashboard' : 'Join Campaign'}
                         <ArrowUpRight className="h-4 w-4" />
@@ -320,10 +237,7 @@ export default function CampaignDetailPage() {
                {/* Overview */}
                <LightCard>
                   <SectionLabel>Campaign Overview</SectionLabel>
-                  <p
-                     className="text-sm leading-relaxed whitespace-pre-line"
-                     style={{ color: 'rgba(0,0,0,0.6)' }}
-                  >
+                  <p className="text-sm leading-relaxed whitespace-pre-line text-stone-600 dark:text-stone-300">
                      {campaign.description}
                   </p>
                </LightCard>
@@ -341,43 +255,38 @@ export default function CampaignDetailPage() {
                            campaign.payment_model === 'fixed_per_content'
                               ? '/ submission'
                               : '/ 1K views',
-                        accent: '#f97316',
+                        accent: 'text-orange-500',
                      },
                      {
                         label: 'Total Budget',
                         value: formatMoney(campaign.total_budget, 'USD'),
                         sub: 'campaign cap',
-                        accent: '#a78bfa',
+                        accent: 'text-indigo-400',
                      },
                      {
                         label: 'Submissions',
                         value: String(campaign.submission_count ?? 0),
                         sub: 'total joined',
-                        accent: '#34d399',
+                        accent: 'text-emerald-500',
                      },
                      {
                         label: 'Approved',
                         value: String(campaign.approved_count ?? 0),
                         sub: 'content pieces',
-                        accent: '#60a5fa',
+                        accent: 'text-blue-400',
                      },
                   ].map((stat) => (
                      <div
                         key={stat.label}
-                        className="rounded-2xl p-4 flex flex-col gap-1"
-                        style={{
-                           background: '#ffffff',
-                           border: '1px solid rgba(0,0,0,0.05)',
-                           boxShadow: '0 4px 12px rgba(0,0,0,0.03)',
-                        }}
+                        className="rounded-2xl p-4 flex flex-col gap-1 bg-surface dark:bg-zinc-900 border border-border shadow-sm"
                      >
-                        <p className="text-[9px] font-bold uppercase tracking-widest" style={{ color: 'rgba(0,0,0,0.4)' }}>
+                        <p className="text-[9px] font-bold uppercase tracking-widest text-stone-500 dark:text-stone-400">
                            {stat.label}
                         </p>
-                        <p className="text-2xl font-black" style={{ color: stat.accent, letterSpacing: '-0.03em' }}>
+                        <p className={cn("text-2xl font-black tracking-tighter", stat.accent)}>
                            {stat.value}
                         </p>
-                        <p className="text-[10px]" style={{ color: 'rgba(0,0,0,0.3)' }}>
+                        <p className="text-[10px] text-stone-400 dark:text-stone-500">
                            {stat.sub}
                         </p>
                      </div>
@@ -388,24 +297,18 @@ export default function CampaignDetailPage() {
                <LightCard>
                   <div className="flex items-center justify-between mb-3">
                      <SectionLabel>Budget Usage</SectionLabel>
-                     <span className="text-xs font-bold" style={{ color: 'rgba(0,0,0,0.4)' }}>
+                     <span className="text-xs font-bold text-stone-500 dark:text-stone-400">
                         {formatMoney(campaign.spent_budget ?? 0, 'USD')} /{' '}
                         {formatMoney(campaign.total_budget, 'USD')}
                      </span>
                   </div>
-                  <div
-                     className="h-2 w-full rounded-full overflow-hidden"
-                     style={{ background: 'rgba(0,0,0,0.05)' }}
-                  >
+                  <div className="h-2 w-full rounded-full overflow-hidden bg-stone-100 dark:bg-zinc-800">
                      <div
-                        className="h-full rounded-full transition-all duration-1000"
-                        style={{
-                           width: `${budgetPct}%`,
-                           background: 'linear-gradient(90deg,#f97316,#fb923c)',
-                        }}
+                        className="h-full rounded-full transition-all duration-1000 bg-gradient-to-r from-orange-500 to-orange-400"
+                        style={{ width: `${budgetPct}%` }}
                      />
                   </div>
-                  <p className="text-[10px] font-bold mt-2" style={{ color: 'rgba(0,0,0,0.3)' }}>
+                  <p className="text-[10px] font-bold mt-2 text-stone-400 dark:text-stone-500">
                      {Math.round(budgetPct)}% of budget allocated
                   </p>
                </LightCard>
@@ -424,17 +327,11 @@ export default function CampaignDetailPage() {
                            {/* Duration */}
                            {(campaign.min_duration || campaign.max_duration) && (
                               <div>
-                                 <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: 'rgba(0,0,0,0.4)' }}>
+                                 <p className="text-[10px] font-bold uppercase tracking-widest mb-2 text-stone-500 dark:text-stone-400">
                                     Duration
                                  </p>
-                                 <div
-                                    className="inline-flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-sm font-bold text-stone-900"
-                                    style={{
-                                       background: '#f8f7f5',
-                                       border: '1px solid #eeedea',
-                                    }}
-                                 >
-                                    <Calendar className="h-4 w-4" style={{ color: '#ea580c' }} />
+                                 <div className="inline-flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-sm font-bold text-stone-900 dark:text-white bg-surface dark:bg-zinc-900 border border-border">
+                                    <Calendar className="h-4 w-4 text-orange-500" />
                                     {campaign.min_duration ?? 0}s — {campaign.max_duration ?? '∞'}s
                                  </div>
                               </div>
@@ -443,27 +340,20 @@ export default function CampaignDetailPage() {
                            {/* Music track */}
                            {campaign.campaign_type === 'music_clipping' && campaign.music_track_url && (
                               <div>
-                                 <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: 'rgba(0,0,0,0.4)' }}>
+                                 <p className="text-[10px] font-bold uppercase tracking-widest mb-2 text-stone-500 dark:text-stone-400">
                                     Required Audio
                                  </p>
                                  <a
                                     href={campaign.music_track_url}
                                     target="_blank"
-                                    className="flex items-center gap-3 p-3 rounded-xl transition-all hover:bg-orange-50/50"
-                                    style={{
-                                       background: 'rgba(249,115,22,0.05)',
-                                       border: '1px solid rgba(249,115,22,0.1)',
-                                    }}
+                                    className="flex items-center gap-3 p-3 rounded-xl transition-all hover:bg-orange-500/10 bg-orange-500/5 border border-orange-500/20"
                                  >
-                                    <div
-                                       className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
-                                       style={{ background: '#fff', border: '1px solid rgba(249,115,22,0.15)' }}
-                                    >
-                                       <Music className="h-4 w-4" style={{ color: '#ea580c' }} />
+                                    <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 bg-surface dark:bg-zinc-900 border border-orange-500/20">
+                                       <Music className="h-4 w-4 text-orange-500" />
                                     </div>
                                     <div>
-                                       <p className="text-sm font-black text-stone-900">Listen to Track</p>
-                                       <p className="text-xs font-bold" style={{ color: '#ea580c' }}>
+                                       <p className="text-sm font-black text-stone-900 dark:text-white">Listen to Track</p>
+                                       <p className="text-xs font-bold text-orange-500">
                                           {campaign.music_artist_name || 'Original Audio'}
                                        </p>
                                     </div>
@@ -474,27 +364,20 @@ export default function CampaignDetailPage() {
                            {/* Promotion target */}
                            {campaign.campaign_type === 'promotion' && campaign.promotion_target && (
                               <div>
-                                 <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: 'rgba(255,255,255,0.28)' }}>
+                                 <p className="text-[10px] font-bold uppercase tracking-widest mb-2 text-stone-500 dark:text-stone-400">
                                     Promotion Target
                                  </p>
                                  <a
                                     href={campaign.promotion_target_url || '#'}
                                     target="_blank"
-                                    className="flex items-center gap-3 p-3 rounded-xl transition-all hover:brightness-125"
-                                    style={{
-                                       background: 'rgba(99,102,241,0.08)',
-                                       border: '1px solid rgba(99,102,241,0.18)',
-                                    }}
+                                    className="flex items-center gap-3 p-3 rounded-xl transition-all hover:brightness-125 bg-indigo-500/10 border border-indigo-500/20"
                                  >
-                                    <div
-                                       className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
-                                       style={{ background: 'rgba(99,102,241,0.15)' }}
-                                    >
-                                       <Target className="h-4 w-4" style={{ color: '#a5b4fc' }} />
+                                    <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 bg-indigo-500/20">
+                                       <Target className="h-4 w-4 text-indigo-400" />
                                     </div>
                                     <div>
-                                       <p className="text-sm font-black text-white">{campaign.promotion_target}</p>
-                                       <p className="text-xs" style={{ color: '#a5b4fc' }}>View Target Link</p>
+                                       <p className="text-sm font-black text-stone-900 dark:text-white">{campaign.promotion_target}</p>
+                                       <p className="text-xs text-indigo-400">View Target Link</p>
                                     </div>
                                  </a>
                               </div>
@@ -506,19 +389,14 @@ export default function CampaignDetailPage() {
                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     {(campaign.required_hashtags?.length ?? 0) > 0 && (
                                        <div>
-                                          <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: 'rgba(0,0,0,0.4)' }}>
+                                          <p className="text-[10px] font-bold uppercase tracking-widest mb-2 text-stone-500 dark:text-stone-400">
                                              Hashtags
                                           </p>
                                           <div className="flex flex-wrap gap-2">
                                              {campaign.required_hashtags.map((tag, i) => (
                                                 <span
                                                    key={i}
-                                                   className="px-3 py-1.5 rounded-xl text-xs font-bold"
-                                                   style={{
-                                                      background: 'rgba(249,115,22,0.06)',
-                                                      border: '1px solid rgba(249,115,22,0.15)',
-                                                      color: '#ea580c',
-                                                   }}
+                                                   className="px-3 py-1.5 rounded-xl text-xs font-bold bg-orange-500/10 border border-orange-500/20 text-orange-600"
                                                 >
                                                    #{tag.replace(/^#/, '')}
                                                 </span>
@@ -528,18 +406,14 @@ export default function CampaignDetailPage() {
                                     )}
                                     {(campaign.required_mentions?.length ?? 0) > 0 && (
                                        <div>
-                                          <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: 'rgba(0,0,0,0.4)' }}>
+                                          <p className="text-[10px] font-bold uppercase tracking-widest mb-2 text-stone-500 dark:text-stone-400">
                                              Mentions
                                           </p>
                                           <div className="flex flex-wrap gap-2">
                                              {campaign.required_mentions.map((m, i) => (
                                                 <span
                                                    key={i}
-                                                   className="px-3 py-1.5 rounded-xl text-xs font-bold text-stone-900"
-                                                   style={{
-                                                      background: '#f8f7f5',
-                                                      border: '1px solid #eeedea',
-                                                   }}
+                                                   className="px-3 py-1.5 rounded-xl text-xs font-bold text-stone-900 dark:text-white bg-surface dark:bg-zinc-900 border border-border"
                                                 >
                                                    @{m.replace(/^@/, '')}
                                                 </span>
@@ -553,24 +427,16 @@ export default function CampaignDetailPage() {
                            {/* Keywords */}
                            {(campaign.required_keywords?.length ?? 0) > 0 && (
                               <div>
-                                 <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: 'rgba(0,0,0,0.4)' }}>
+                                 <p className="text-[10px] font-bold uppercase tracking-widest mb-2 text-stone-500 dark:text-stone-400">
                                     Keywords
                                  </p>
                                  <div className="flex flex-wrap gap-2">
                                     {campaign.required_keywords.map((k, i) => (
                                        <div
                                           key={i}
-                                          className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold"
-                                          style={{
-                                             background: 'rgba(52,211,153,0.06)',
-                                             border: '1px solid rgba(52,211,153,0.15)',
-                                             color: '#059669',
-                                          }}
+                                          className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-500/10 border border-emerald-500/20 text-emerald-600"
                                        >
-                                          <span
-                                             className="w-1.5 h-1.5 rounded-full"
-                                             style={{ background: '#10b981' }}
-                                          />
+                                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                                           {k}
                                        </div>
                                     ))}
@@ -580,17 +446,11 @@ export default function CampaignDetailPage() {
 
                            {/* Legacy text guidelines */}
                            {campaign.content_guidelines && (
-                              <div
-                                 className="pt-4 mt-2"
-                                 style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}
-                              >
-                                 <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: 'rgba(0,0,0,0.4)' }}>
+                              <div className="pt-4 mt-2 border-t border-border">
+                                 <p className="text-[10px] font-bold uppercase tracking-widest mb-2 text-stone-500 dark:text-stone-400">
                                     Specific Guidelines
                                  </p>
-                                 <p
-                                    className="text-sm leading-relaxed whitespace-pre-line font-medium"
-                                    style={{ color: 'rgba(0,0,0,0.6)' }}
-                                 >
+                                 <p className="text-sm leading-relaxed whitespace-pre-line font-medium text-stone-600 dark:text-stone-300">
                                     {campaign.content_guidelines}
                                  </p>
                               </div>
@@ -608,26 +468,16 @@ export default function CampaignDetailPage() {
                            <button
                               key={i}
                               onClick={() => setActiveVideo(m.url)}
-                              className="group relative overflow-hidden rounded-2xl w-full text-left"
-                              style={{
-                                 aspectRatio: '16/9',
-                                 background: '#fff',
-                                 border: '1px solid rgba(0,0,0,0.06)',
-                              }}
+                              className="group relative overflow-hidden rounded-2xl w-full text-left bg-surface dark:bg-zinc-900 border border-border"
+                              style={{ aspectRatio: '16/9' }}
                            >
                               <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent z-10" />
                               <div className="absolute inset-0 flex items-center justify-center z-20">
-                                 <div
-                                    className="w-12 h-12 rounded-full flex items-center justify-center transition-transform group-hover:scale-110 shadow-lg"
-                                    style={{ background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(8px)' }}
-                                 >
-                                    <Play className="h-5 w-5 text-stone-900 fill-stone-900" />
+                                 <div className="w-12 h-12 rounded-full flex items-center justify-center transition-transform group-hover:scale-110 shadow-lg bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md">
+                                    <Play className="h-5 w-5 text-stone-900 dark:text-white fill-stone-900 dark:fill-white" />
                                  </div>
                               </div>
-                              <div
-                                 className="absolute bottom-3 left-3 right-3 z-20 text-[10px] font-bold truncate"
-                                 style={{ color: 'rgba(0,0,0,0.4)' }}
-                              >
+                              <div className="absolute bottom-3 left-3 right-3 z-20 text-[10px] font-bold truncate text-stone-200 dark:text-stone-300">
                                  {m.url}
                               </div>
                            </button>
@@ -641,38 +491,22 @@ export default function CampaignDetailPage() {
             <div className="space-y-4">
 
                {/* Payout card */}
-               <div
-                  className="rounded-2xl p-6 relative overflow-hidden"
-                  style={{
-                     background: 'linear-gradient(160deg, #ffffff 0%, #fcfbf9 100%)',
-                     border: '1px solid rgba(249,115,22,0.2)',
-                     boxShadow: '0 10px 30px rgba(0,0,0,0.05)',
-                  }}
-               >
+               <div className="rounded-2xl p-6 relative overflow-hidden bg-surface dark:bg-zinc-900 border border-orange-500/20 shadow-sm">
                   {/* Glow */}
-                  <div
-                     className="absolute top-0 right-0 w-40 h-40 pointer-events-none"
-                     style={{
-                        background: 'radial-gradient(circle,rgba(249,115,22,0.08),transparent 70%)',
-                        filter: 'blur(20px)',
-                     }}
-                  />
+                  <div className="absolute top-0 right-0 w-40 h-40 pointer-events-none rounded-full bg-orange-500/10 blur-[20px]" />
                   <div className="relative z-10">
-                     <p className="text-[9px] font-bold uppercase tracking-widest mb-1" style={{ color: 'rgba(0,0,0,0.4)' }}>
+                     <p className="text-[9px] font-bold uppercase tracking-widest mb-1 text-stone-500 dark:text-stone-400">
                         {campaign.payment_model === 'fixed_per_content'
                            ? 'Fixed Reward'
                            : 'Earn per 1K views'}
                      </p>
                      <div className="flex items-baseline gap-2 mb-1">
-                        <span
-                           className="text-4xl font-black"
-                           style={{ color: '#ea580c', letterSpacing: '-0.04em' }}
-                        >
+                        <span className="text-4xl font-black text-orange-500 tracking-tighter">
                            {campaign.payment_model === 'fixed_per_content'
                               ? formatMoney(campaign.fixed_rate ?? 0, 'USD')
                               : formatMoney(campaign.rate_per_1k_views, 'USD')}
                         </span>
-                        <span className="text-sm font-medium" style={{ color: 'rgba(0,0,0,0.4)' }}>
+                        <span className="text-sm font-medium text-stone-500 dark:text-stone-400">
                            {campaign.payment_model === 'fixed_per_content'
                               ? '/ submission'
                               : '/ 1K views'}
@@ -680,18 +514,9 @@ export default function CampaignDetailPage() {
                      </div>
 
                      {campaign.max_payout_per_sub && (
-                        <div
-                           className="flex items-center gap-2 px-3 py-2 rounded-xl mt-3 mb-5"
-                           style={{
-                              background: '#fff',
-                              border: '1px solid #eeedea',
-                           }}
-                        >
-                           <span
-                              className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                              style={{ background: '#f97316' }}
-                           />
-                           <p className="text-[11px] font-bold" style={{ color: 'rgba(0,0,0,0.5)' }}>
+                        <div className="flex items-center gap-2 px-3 py-2 rounded-xl mt-3 mb-5 bg-surface dark:bg-zinc-800 border border-border">
+                           <span className="w-1.5 h-1.5 rounded-full flex-shrink-0 bg-orange-500" />
+                           <p className="text-[11px] font-bold text-stone-600 dark:text-stone-300">
                               Max {formatMoney(campaign.max_payout_per_sub, 'USD')} / submission
                            </p>
                         </div>
@@ -700,24 +525,13 @@ export default function CampaignDetailPage() {
                      {campaign.status === 'active' ? (
                         <Link
                            href={isJoined ? `/dashboard/ugc/${id}` : `/dashboard/ugc/${id}/join`}
-                           className="flex items-center justify-center gap-2 w-full py-3.5 rounded-xl text-sm font-black text-white transition-all hover:brightness-110 active:scale-95 mt-4"
-                           style={{
-                              background: 'linear-gradient(135deg,#f97316,#ea580c)',
-                              boxShadow: '0 4px 20px rgba(249,115,22,0.35)',
-                           }}
+                           className="flex items-center justify-center gap-2 w-full py-3.5 rounded-xl text-sm font-black text-white transition-all hover:brightness-110 active:scale-95 mt-4 bg-gradient-to-br from-orange-400 to-orange-600 shadow-lg shadow-orange-500/30"
                         >
                            {isJoined ? 'Go to Dashboard' : 'Join Campaign'}
                            <ArrowUpRight className="h-4 w-4" />
                         </Link>
                      ) : (
-                        <div
-                           className="w-full py-3.5 mt-4 text-center rounded-xl text-sm font-black uppercase tracking-widest"
-                           style={{
-                              background: 'rgba(255,255,255,0.04)',
-                              border: '1px solid rgba(255,255,255,0.07)',
-                              color: 'rgba(255,255,255,0.25)',
-                           }}
-                        >
+                        <div className="w-full py-3.5 mt-4 text-center rounded-xl text-sm font-black uppercase tracking-widest bg-stone-100 dark:bg-zinc-800 border border-border text-stone-500 dark:text-stone-400">
                            Campaign {campaign.status}
                         </div>
                      )}
@@ -733,37 +547,24 @@ export default function CampaignDetailPage() {
                         return (
                            <div
                               key={p}
-                              className="flex items-center justify-between px-3 py-2.5 rounded-xl transition-colors hover:bg-stone-50"
-                              style={{
-                                 background: '#ffffff',
-                                 border: '1px solid rgba(0,0,0,0.06)',
-                              }}
+                              className="flex items-center justify-between px-3 py-2.5 rounded-xl transition-colors hover:bg-stone-50 dark:hover:bg-zinc-800/50 bg-surface dark:bg-zinc-900 border border-border"
                            >
                               <div className="flex items-center gap-3">
-                                 <div
-                                    className="w-8 h-8 rounded-lg flex items-center justify-center"
-                                    style={{ background: '#f8f7f5', border: '1px solid #eeedea' }}
-                                 >
-                                    <meta.icon className="h-4 w-4" style={{ color: 'rgba(0,0,0,0.4)' }} />
+                                 <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-surface dark:bg-zinc-900 border border-border">
+                                    <meta.icon className="h-4 w-4 text-stone-500 dark:text-stone-400" />
                                  </div>
-                                 <span className="text-sm font-bold text-stone-900">{meta.label}</span>
+                                 <span className="text-sm font-bold text-stone-900 dark:text-white">{meta.label}</span>
                               </div>
-                              <CheckCircle className="h-4 w-4" style={{ color: '#10b981', fill: '#10b981', opacity: 0.8 }} />
+                              <CheckCircle className="h-4 w-4 text-emerald-500 fill-emerald-500/20" />
                            </div>
                         );
                      })}
                   </div>
 
                   {campaign.requires_face && (
-                     <div
-                        className="flex items-center gap-3 px-3 py-2.5 rounded-xl mt-3"
-                        style={{
-                           background: 'rgba(251,191,36,0.1)',
-                           border: '1px solid rgba(251,191,36,0.2)',
-                        }}
-                     >
-                        <Users className="h-4 w-4 flex-shrink-0" style={{ color: '#d97706' }} />
-                        <p className="text-[11px] font-black uppercase tracking-wide" style={{ color: '#b45309' }}>
+                     <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl mt-3 bg-amber-500/10 border border-amber-500/20">
+                        <Users className="h-4 w-4 flex-shrink-0 text-amber-600" />
+                        <p className="text-[11px] font-black uppercase tracking-wide text-amber-700 dark:text-amber-500">
                            Face required in content
                         </p>
                      </div>
@@ -777,20 +578,20 @@ export default function CampaignDetailPage() {
                      <div className="space-y-3">
                         {campaign.starts_at && (
                            <div className="flex items-center justify-between">
-                              <span className="text-xs font-bold uppercase tracking-wide" style={{ color: 'rgba(0,0,0,0.4)' }}>
+                              <span className="text-xs font-bold uppercase tracking-wide text-stone-500 dark:text-stone-400">
                                  Starts
                               </span>
-                              <span className="text-sm font-black text-stone-900">
+                              <span className="text-sm font-black text-stone-900 dark:text-white">
                                  {new Date(campaign.starts_at).toLocaleDateString()}
                               </span>
                            </div>
                         )}
                         {campaign.ends_at && (
                            <div className="flex items-center justify-between">
-                              <span className="text-xs font-bold uppercase tracking-wide" style={{ color: 'rgba(0,0,0,0.4)' }}>
+                              <span className="text-xs font-bold uppercase tracking-wide text-stone-500 dark:text-stone-400">
                                  Ends
                               </span>
-                              <span className="text-sm font-black text-stone-900">
+                              <span className="text-sm font-black text-stone-900 dark:text-white">
                                  {new Date(campaign.ends_at).toLocaleDateString()}
                               </span>
                            </div>

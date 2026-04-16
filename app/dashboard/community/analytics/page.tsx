@@ -61,16 +61,16 @@ export default function CommunityAnalyticsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center space-y-12 animate-in fade-in duration-700" style={{ background: "#f8f7f5" }}>
+      <div className="min-h-screen flex flex-col items-center justify-center space-y-12 animate-in fade-in duration-700" style={{ background: "var(--color-bg)" }}>
         <div className="relative">
           <div className="absolute inset-0 bg-orange-400/20 blur-3xl rounded-full scale-150 animate-pulse" />
-          <div className="relative w-24 h-24 rounded-[32px] bg-white border border-white shadow-2xl flex items-center justify-center overflow-hidden">
+          <div className="relative w-24 h-24 rounded-[32px] bg-white dark:bg-zinc-900 border border-white shadow-2xl flex items-center justify-center overflow-hidden">
             <div className="absolute inset-0 border-2 border-t-orange-500 border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin m-2" />
-            <Users className="h-10 w-10 text-stone-900" />
+            <Users className="h-10 w-10 text-stone-900 dark:text-white" />
           </div>
         </div>
         <div className="text-center space-y-3">
-           <h2 className="text-[14px] font-black text-stone-900 uppercase tracking-[0.4em] pl-[0.4em]">Community Analytics</h2>
+           <h2 className="text-[14px] font-black text-stone-900 dark:text-white uppercase tracking-[0.4em] pl-[0.4em]">Community Analytics</h2>
            <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest pl-[0.1em]">Syncing Social Engagement</p>
         </div>
       </div>
@@ -81,7 +81,7 @@ export default function CommunityAnalyticsPage() {
     <div
       className="min-h-screen animate-in fade-in duration-700 pb-24 relative overflow-hidden"
       style={{
-        background: "radial-gradient(ellipse 80% 60% at 80% 0%, rgba(251,146,60,0.05) 0%, transparent 50%), radial-gradient(ellipse 60% 50% at 0% 100%, rgba(186,230,253,0.05) 0%, transparent 55%), #f8f7f5",
+        background: "radial-gradient(ellipse 80% 60% at 80% 0%, rgba(251,146,60,0.05) 0%, transparent 50%), radial-gradient(ellipse 60% 50% at 0% 100%, rgba(186,230,253,0.05) 0%, transparent 55%), var(--color-bg)",
       }}
     >
       <GlassAmbientGlow color="orange" position="top-right" />
@@ -92,8 +92,8 @@ export default function CommunityAnalyticsPage() {
         {/* Header Protocol */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
            <div className="space-y-2">
-              <h1 className="text-4xl font-black text-stone-900 tracking-tighter flex items-center gap-4">
-                 <div className="p-2.5 rounded-[20px] bg-white border border-white shadow-2xl shrink-0">
+              <h1 className="text-4xl font-black text-stone-900 dark:text-white tracking-tighter flex items-center gap-4">
+                 <div className="p-2.5 rounded-[20px] bg-white dark:bg-zinc-900 border border-white shadow-2xl shrink-0">
                     <Users className="h-8 w-8 text-orange-500" />
                  </div>
                  Community Analytics
@@ -102,33 +102,33 @@ export default function CommunityAnalyticsPage() {
                  Real-time Network Growth & Engagement Stats
               </p>
            </div>
-           <div className="flex items-center gap-4 bg-white/40 p-1.5 rounded-full border border-white shadow-xl backdrop-blur-xl">
+           <div className="flex items-center gap-4 bg-white dark:bg-zinc-900/40 p-1.5 rounded-full border border-white shadow-xl backdrop-blur-xl">
               <div className="w-3 h-3 rounded-full bg-orange-500 ml-4 animate-pulse shadow-[0_0_12px_rgba(249,115,22,0.5)]" />
-              <span className="text-[10px] font-black uppercase tracking-widest text-stone-900 pr-6 pl-2">Live Monitoring Active</span>
+              <span className="text-[10px] font-black uppercase tracking-widest text-stone-900 dark:text-white pr-6 pl-2">Live Monitoring Active</span>
            </div>
         </div>
 
         {/* Intelligence Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-           <GlassCard className="p-8 flex flex-col justify-between rounded-[40px] bg-white/60 border-white shadow-xl group transition-all duration-700 hover:scale-105">
+           <GlassCard className="p-8 flex flex-col justify-between rounded-[40px] bg-white dark:bg-zinc-900/60 border-white shadow-xl group transition-all duration-700 hover:scale-105">
               <div className="w-14 h-14 rounded-[22px] bg-orange-50 border border-orange-100 flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-700">
                  <Users className="h-7 w-7 text-orange-500" />
               </div>
               <div>
-                 <p className="text-4xl font-black text-stone-900 tracking-tighter leading-none tabular-nums">{data?.totalMembers ?? 0}</p>
+                 <p className="text-4xl font-black text-stone-900 dark:text-white tracking-tighter leading-none tabular-nums">{data?.totalMembers ?? 0}</p>
                  <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mt-3">Total Members</p>
               </div>
            </GlassCard>
-           <GlassCard className="p-8 flex flex-col justify-between rounded-[40px] bg-white/60 border-white shadow-xl group transition-all duration-700 hover:scale-105">
+           <GlassCard className="p-8 flex flex-col justify-between rounded-[40px] bg-white dark:bg-zinc-900/60 border-white shadow-xl group transition-all duration-700 hover:scale-105">
               <div className="w-14 h-14 rounded-[22px] bg-sky-50 border border-sky-100 flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-700">
                  <MessageSquare className="h-7 w-7 text-sky-500" />
               </div>
               <div>
-                 <p className="text-4xl font-black text-stone-900 tracking-tighter leading-none tabular-nums">{data?.totalPosts ?? 0}</p>
+                 <p className="text-4xl font-black text-stone-900 dark:text-white tracking-tighter leading-none tabular-nums">{data?.totalPosts ?? 0}</p>
                  <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mt-3">Daily Posts</p>
               </div>
            </GlassCard>
-           <GlassCard className="p-8 flex flex-col justify-between rounded-[40px] bg-white/60 border-white shadow-xl group transition-all duration-700 hover:scale-105">
+           <GlassCard className="p-8 flex flex-col justify-between rounded-[40px] bg-white dark:bg-zinc-900/60 border-white shadow-xl group transition-all duration-700 hover:scale-105">
               <div className="w-14 h-14 rounded-[22px] bg-emerald-50 border border-emerald-100 flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-700">
                  <Activity className="h-7 w-7 text-emerald-500" />
               </div>
@@ -137,22 +137,22 @@ export default function CommunityAnalyticsPage() {
                  <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mt-3">Activity Rate</p>
               </div>
            </GlassCard>
-           <GlassCard className="p-8 flex flex-col justify-between rounded-[40px] bg-white/60 border-white shadow-xl group transition-all duration-700 hover:scale-105">
+           <GlassCard className="p-8 flex flex-col justify-between rounded-[40px] bg-white dark:bg-zinc-900/60 border-white shadow-xl group transition-all duration-700 hover:scale-105">
               <div className="w-14 h-14 rounded-[22px] bg-indigo-50 border border-indigo-100 flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-700">
                  <ShieldCheck className="h-7 w-7 text-indigo-500" />
               </div>
               <div>
-                 <p className="text-4xl font-black text-stone-900 tracking-tighter leading-none tabular-nums">{data?.moderatorCount ?? 0}</p>
+                 <p className="text-4xl font-black text-stone-900 dark:text-white tracking-tighter leading-none tabular-nums">{data?.moderatorCount ?? 0}</p>
                  <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mt-3">Moderators</p>
               </div>
            </GlassCard>
         </div>
 
         {/* High-Fidelity Chart Matrix */}
-        <GlassCard className="rounded-[56px] border-white bg-white/60 shadow-2xl overflow-hidden group">
-           <div className="p-12 border-b border-stone-100 flex flex-col md:flex-row items-center justify-between gap-8">
+        <GlassCard className="rounded-[56px] border-white bg-white dark:bg-zinc-900/60 shadow-2xl overflow-hidden group">
+           <div className="p-12 border-b border-stone-100 dark:border-zinc-800 flex flex-col md:flex-row items-center justify-between gap-8">
               <div className="space-y-1">
-                 <h3 className="text-3xl font-black text-stone-900 tracking-tighter">Engagement Trends</h3>
+                 <h3 className="text-3xl font-black text-stone-900 dark:text-white tracking-tighter">Engagement Trends</h3>
                  <p className="text-[11px] font-black uppercase tracking-widest text-stone-400">Daily member growth and interaction mapping</p>
               </div>
               <div className="flex items-center gap-6">
@@ -205,7 +205,7 @@ export default function CommunityAnalyticsPage() {
                     Invite more members and moderate discussions to increase your community's influence and engagement score.
                  </p>
               </div>
-              <Button className="h-20 px-12 rounded-[32px] bg-white text-stone-900 font-black text-[12px] uppercase tracking-[0.3em] shadow-2xl active:scale-95 transition-all hover:bg-stone-50 border-none">
+              <Button className="h-20 px-12 rounded-[32px] bg-white dark:bg-zinc-900 text-stone-900 dark:text-white font-black text-[12px] uppercase tracking-[0.3em] shadow-2xl active:scale-95 transition-all hover:bg-stone-50 dark:bg-zinc-900/50 border-none">
                  Grow Community <ArrowRight className="h-5 w-5 ml-4" />
               </Button>
            </div>

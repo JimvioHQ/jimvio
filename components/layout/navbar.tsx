@@ -10,7 +10,7 @@ import {
   User, ShoppingCart, MessageCircle, Menu, X, Globe, HelpCircle,
   LayoutDashboard, Settings, LogOut, TrendingUp, Video, Factory, Plus,
   Home, ShoppingBag, Package, Users, Search, Command, ChevronDown,
-  ChevronRight, Sparkles, Zap, Play, Megaphone, Clapperboard,
+  ChevronRight, Sparkles, Zap, Play, Megaphone, Clapperboard, Sun,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,7 @@ import { cn } from "@/lib/utils";
 import { signOut } from "@/lib/auth/actions";
 import { useCartStore } from "@/lib/store/use-cart-store";
 import { useAIStore } from "@/lib/store/use-ai-store";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import type { MarketingSettings, NavLinkConfig } from "@/lib/platform-settings-shared";
 import { NavbarSearch } from "@/components/layout/navbar-search";
 import { CurrencySelector } from "@/context/CurrencyContext";
@@ -32,22 +33,20 @@ import { CurrencyConverterWidget } from "@/components/shared/currency-converter-
    iPhone 17 Liquid Glass Design Tokens
    ───────────────────────────────────────────────────────── */
 
-/** Light mode navbar — like iOS Control Centre: frosted white over light bg */
+/** Liquid Glass Design Tokens — adapted for dynamic theme */
 const GLASS_LIGHT = {
-  body: "rgba(255,255,255,0.68)",
-  border: "rgba(255,255,255,0.90)",
-  blur: "blur(48px) saturate(200%) brightness(106%)",
-  shadow: "0 8px 32px rgba(0,0,0,0.09), inset 0 1px 0 rgba(255,255,255,1), inset 0 -1px 0 rgba(255,255,255,0.35)",
-  shadowDeep: "0 24px 64px rgba(0,0,0,0.14), inset 0 1px 0 rgba(255,255,255,1)",
+  body: "var(--glass-bg)",
+  border: "var(--glass-border)",
+  blur: "var(--glass-blur) saturate(160%)",
+  shadow: "var(--glass-shadow), inset 0 1px 0 rgba(255,255,255,0.05)",
+  shadowDeep: "0 24px 64px rgba(0,0,0,0.14), inset 0 1px 0 rgba(255,255,255,0.05)",
 };
 
-/** Dark glass — for dropdowns and mobile drawer over blurred backdrop */
 const GLASS_DARK = {
-  /**Make it light not dark */
-  body: "rgba(255,255,255,0.68)",
-  border: "rgba(255,255,255,0.90)",
-  blur: "blur(48px) saturate(160%)",
-  shadow: "0 24px 64px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.10)",
+  body: "var(--glass-bg)",
+  border: "var(--glass-border)",
+  blur: "var(--glass-blur) saturate(160%)",
+  shadow: "var(--glass-shadow)",
 };
 
 /* Specular line — the 1px bright edge every glass element has */
@@ -55,7 +54,7 @@ function SpecularLine({ rounded = false }: { rounded?: boolean }) {
   return (
     <div
       className={cn("pointer-events-none absolute inset-x-0 top-0 h-px z-10", rounded && "rounded-t-[inherit]")}
-      style={{ background: "linear-gradient(90deg,transparent 5%,rgba(255,255,255,0.85) 40%,rgba(255,255,255,0.55) 60%,transparent 95%)" }}
+      style={{ background: "linear-gradient(90deg,transparent 5%,rgba(255,255,255,0.3) 40%,rgba(255,255,255,0.1) 60%,transparent 95%)" }}
     />
   );
 }
@@ -71,7 +70,7 @@ function SpecularSweep() {
         className="absolute"
         style={{
           top: "-50%", left: "-25%", width: "55%", height: "100%",
-          background: "linear-gradient(135deg, rgba(255,255,255,0.18) 0%, transparent 55%)",
+          background: "linear-gradient(135deg, rgba(255,255,255,0.08) 0%, transparent 55%)",
           transform: "rotate(-15deg)",
         }}
       />
@@ -95,29 +94,29 @@ const GlassPill = React.forwardRef<any, {
 }, ref) => {
   const base: React.CSSProperties = active
     ? {
-      background: "rgba(251,146,60,0.12)",
-      backdropFilter: "blur(24px) saturate(160%)",
-      WebkitBackdropFilter: "blur(24px) saturate(160%)",
-      border: "1px solid rgba(251,146,60,0.35)",
-      boxShadow: "0 2px 10px rgba(249,115,22,0.12), inset 0 1px 0 rgba(255,255,255,0.7)",
-      color: "#ea580c",
+      background: "var(--glass-bg)",
+      backdropFilter: GLASS_LIGHT.blur,
+      WebkitBackdropFilter: GLASS_LIGHT.blur,
+      border: "1px solid var(--glass-border)",
+      boxShadow: "0 2px 10px rgba(249,115,22,0.12), inset 0 1px 0 rgba(255,255,255,0.1)",
+      color: "var(--color-accent)",
     }
     : orange
       ? {
-        background: "rgba(255,237,213,0.65)",
-        backdropFilter: "blur(24px) saturate(160%)",
-        WebkitBackdropFilter: "blur(24px) saturate(160%)",
-        border: "1px solid rgba(251,146,60,0.30)",
-        boxShadow: "0 2px 12px rgba(249,115,22,0.10), inset 0 1px 0 rgba(255,255,255,0.8)",
-        color: "#c2410c",
+        background: "var(--glass-bg)",
+        backdropFilter: GLASS_LIGHT.blur,
+        WebkitBackdropFilter: GLASS_LIGHT.blur,
+        border: "1px solid var(--glass-border)",
+        boxShadow: "0 2px 12px rgba(249,115,22,0.10), inset 0 1px 0 rgba(255,255,255,0.1)",
+        color: "var(--color-text-primary)",
       }
       : {
         background: GLASS_LIGHT.body,
         backdropFilter: GLASS_LIGHT.blur,
         WebkitBackdropFilter: GLASS_LIGHT.blur,
         border: `1px solid ${GLASS_LIGHT.border}`,
-        boxShadow: "0 2px 10px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,1)",
-        color: "#44403c",
+        boxShadow: GLASS_LIGHT.shadow,
+        color: "var(--color-text-primary)",
       };
 
   const cls = cn(
@@ -154,7 +153,7 @@ const GlassCircle = React.forwardRef<any, {
     backdropFilter: GLASS_LIGHT.blur,
     WebkitBackdropFilter: GLASS_LIGHT.blur,
     border: `1px solid ${GLASS_LIGHT.border}`,
-    boxShadow: "0 2px 10px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,1)",
+    boxShadow: GLASS_LIGHT.shadow,
     ...styleProp,
   };
   const cls = cn(
@@ -281,18 +280,13 @@ export function Navbar({ user, marketing }: NavbarProps) {
     setMobileOpen(false);
   }, [router, searchQ]);
 
-  /* ── Navbar shell glass styles (light mode, changes on scroll) ── */
+  /* ── Navbar shell glass styles (always applies) ── */
   const shellStyle: React.CSSProperties = {
-    background: scrolled ? "rgba(255,255,255,0.75)" : "rgba(255,255,255,0.65)",
-    backdropFilter: GLASS_LIGHT.blur,
-    WebkitBackdropFilter: GLASS_LIGHT.blur,
-    borderBottom: "1px solid rgba(255,255,255,0.70)",
-    borderTop: scrolled ? "1px solid rgba(255,255,255,0.90)" : "none",
-    borderLeft: scrolled ? "1px solid rgba(255,255,255,0.88)" : "none",
-    borderRight: scrolled ? "1px solid rgba(255,255,255,0.88)" : "none",
-    boxShadow: scrolled
-      ? "0 16px 56px rgba(0,0,0,0.11), inset 0 1px 0 rgba(255,255,255,1), inset 0 -1px 0 rgba(255,255,255,0.4)"
-      : "0 2px 16px rgba(0,0,0,0.05), inset 0 1px 0 rgba(255,255,255,0.9)",
+    background: "var(--glass-bg)",
+    backdropFilter: "blur(var(--glass-blur)) saturate(160%)",
+    WebkitBackdropFilter: "blur(var(--glass-blur)) saturate(160%)",
+    borderBottom: "1px solid var(--color-border)",
+    boxShadow: scrolled ? "var(--glass-shadow)" : "none",
   };
 
   return (
@@ -310,18 +304,18 @@ export function Navbar({ user, marketing }: NavbarProps) {
         {/* ── Desktop top strip ── */}
         <motion.div
           style={{ height: topBarH, opacity: topBarOpacity, overflow: "hidden" }}
-          className="hidden md:flex items-center justify-between px-8 md:px-12 shrink-0 border-b border-white/40"
+          className="hidden md:flex items-center justify-between px-8 md:px-12 shrink-0 border-b border-white/5 dark:border-white/10"
         >
           <div className="flex items-center gap-5">
-            <span className="flex items-center gap-1.5 text-[9px] font-semibold text-stone-400 tracking-widest uppercase">
+            <span className="flex items-center gap-1.5 text-[9px] font-semibold text-stone-500 dark:text-stone-400 tracking-widest uppercase">
               <Globe className="h-3 w-3 text-orange-500" />
               {(marketing.locale_strip?.trim() || "EN · USD")}
             </span>
-            <CurrencySelector className="h-5 bg-transparent border-0 px-1 text-[10px] font-semibold text-stone-400 hover:text-stone-700 transition-colors" />
+            <CurrencySelector className="h-5 bg-transparent border-0 px-1 text-[10px] font-semibold text-stone-500 dark:text-stone-400 hover:text-stone-800 dark:text-zinc-200 dark:hover:text-stone-200 transition-colors" />
           </div>
           <div className="flex items-center gap-5">
-            <Link href="/help" className="text-[9px] font-semibold tracking-widest text-stone-400 hover:text-orange-500 transition-colors uppercase">Help center</Link>
-            <Link href="/vendors" className="text-[9px] font-semibold tracking-widest text-stone-400 hover:text-stone-700 transition-colors uppercase">Suppliers</Link>
+            <Link href="/help" className="text-[9px] font-semibold tracking-widest text-stone-500 dark:text-stone-400 hover:text-orange-500 transition-colors uppercase">Help center</Link>
+            <Link href="/vendors" className="text-[9px] font-semibold tracking-widest text-stone-500 dark:text-stone-400 hover:text-stone-800 dark:text-zinc-200 dark:hover:text-stone-200 transition-colors uppercase">Suppliers</Link>
           </div>
         </motion.div>
 
@@ -344,10 +338,10 @@ export function Navbar({ user, marketing }: NavbarProps) {
             >
               <DropdownMenu open={exploreOpen} onOpenChange={setExploreOpen} modal={false}>
                 <DropdownMenuTrigger asChild>
-                  <GlassPill className="px-3.5 py-2 text-[13px] font-semibold text-stone-600 hover:text-stone-900 group">
+                  <GlassPill className="px-3.5 py-2 text-[13px] font-semibold text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:text-white dark:hover:text-white group">
                     <Globe className="h-3.5 w-3.5 text-orange-500 shrink-0" />
                     Explore
-                    <ChevronDown className={cn("h-3 w-3 text-stone-400 transition-transform duration-300", exploreOpen && "rotate-180")} />
+                    <ChevronDown className={cn("h-3 w-3 text-stone-400 dark:text-stone-600 transition-transform duration-300", exploreOpen && "rotate-180")} />
                   </GlassPill>
                 </DropdownMenuTrigger>
 
@@ -356,12 +350,12 @@ export function Navbar({ user, marketing }: NavbarProps) {
                   onMouseEnter={() => { if (exploreTimer.current) clearTimeout(exploreTimer.current); setExploreOpen(true); }}
                   onMouseLeave={() => { exploreTimer.current = setTimeout(() => setExploreOpen(false), 140); }}
                   sideOffset={10}
-                  className="w-72 p-2 rounded-[24px] border border-white/60 outline-none overflow-hidden"
+                  className="w-72 p-2 rounded-[24px] border border-white/10 dark:border-white/5 outline-none overflow-hidden"
                   style={{
-                    background: "rgba(255,255,255,0.85)",
+                    background: "var(--color-surface)",
                     backdropFilter: "blur(40px) saturate(180%)",
                     WebkitBackdropFilter: "blur(40px) saturate(180%)",
-                    boxShadow: "0 20px 50px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,1)",
+                    boxShadow: "0 20px 50px rgba(0,0,0,0.12)",
                   }}
                 >
                   <SpecularLine rounded />
@@ -373,8 +367,8 @@ export function Navbar({ user, marketing }: NavbarProps) {
                         className="relative flex items-center gap-3 p-3 rounded-[16px] group/item transition-all"
                         style={{ outline: "none" }}
                         onMouseEnter={e => {
-                          (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.07)";
-                          (e.currentTarget as HTMLElement).style.border = "1px solid rgba(255,255,255,0.10)";
+                          (e.currentTarget as HTMLElement).style.background = "var(--color-surface-secondary)";
+                          (e.currentTarget as HTMLElement).style.border = "1px solid var(--color-border)";
                         }}
                         onMouseLeave={e => {
                           (e.currentTarget as HTMLElement).style.background = "";
@@ -385,17 +379,17 @@ export function Navbar({ user, marketing }: NavbarProps) {
                         <div
                           className="h-9 w-9 rounded-[12px] flex items-center justify-center shrink-0"
                           style={{
-                            background: "rgba(249,115,22,0.06)",
-                            border: "1px solid rgba(249,115,22,0.12)",
-                            boxShadow: "inset 0 1px 0 rgba(255,255,255,0.8)",
+                            background: "var(--color-surface-secondary)",
+                            border: "1px solid var(--color-border)",
+                            boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)",
                             color: s.color,
                           }}
                         >
                           <s.icon className="h-4 w-4" />
                         </div>
                         <div className="min-w-0">
-                          <p className="text-[13px] font-semibold text-stone-800 leading-none mb-0.5">{s.title}</p>
-                          <p className="text-[11px] text-stone-400 truncate">{s.desc}</p>
+                          <p className="text-[13px] font-semibold text-stone-800 dark:text-stone-200 leading-none mb-0.5">{s.title}</p>
+                          <p className="text-[11px] text-stone-400 dark:text-stone-500 truncate">{s.desc}</p>
                         </div>
                       </Link>
                     </DropdownMenuItem>
@@ -410,8 +404,8 @@ export function Navbar({ user, marketing }: NavbarProps) {
               return (
                 <GlassPill key={item.href} href={item.href} active={active}
                   className="px-3.5 py-2 text-[13px] font-semibold group">
-                  <Icon className={cn("h-3.5 w-3.5 shrink-0", active ? "text-orange-500" : "text-stone-400 group-hover:text-stone-600")} />
-                  <span className={active ? "text-orange-700" : "text-stone-600 group-hover:text-stone-900"}>{item.label}</span>
+                  <Icon className={cn("h-3.5 w-3.5 shrink-0", active ? "text-orange-500" : "text-stone-400 group-hover:text-orange-600")} />
+                  <span className={active ? "text-orange-700" : "text-stone-600 group-hover:text-orange-500 dark:text-white"}>{item.label}</span>
                 </GlassPill>
               );
             })}
@@ -448,9 +442,13 @@ export function Navbar({ user, marketing }: NavbarProps) {
               <ShoppingCart className="h-[18px] w-[18px] text-stone-600" />
             </GlassCircle>
 
+            {/* Theme Toggle */}
+            <div className="hidden min-[1100px]:flex mr-1">
+              <ThemeToggle />
+            </div>
+
             {/* Divider */}
-            <div className="hidden lg:block h-6 w-px mx-1"
-              style={{ background: "rgba(255,255,255,0.7)", boxShadow: "1px 0 0 rgba(0,0,0,0.04)" }} />
+            <div className="hidden lg:block h-6 w-px mx-1 bg-border/40" />
 
             {/* User menu */}
             <div className="hidden sm:block">
@@ -463,8 +461,8 @@ export function Navbar({ user, marketing }: NavbarProps) {
                         background: GLASS_LIGHT.body,
                         backdropFilter: GLASS_LIGHT.blur,
                         WebkitBackdropFilter: GLASS_LIGHT.blur,
-                        border: `1px solid ${GLASS_LIGHT.border}`,
-                        boxShadow: "0 4px 14px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,1)",
+                        border: `1px solid var(--color-border)`,
+                        boxShadow: GLASS_LIGHT.shadow,
                       }}
                     >
                       <SpecularSweep />
@@ -474,33 +472,28 @@ export function Navbar({ user, marketing }: NavbarProps) {
                           {user.full_name?.[0]}
                         </AvatarFallback>
                       </Avatar>
-                      <span className="hidden xl:block text-[13px] font-semibold text-stone-800 max-w-[110px] truncate">
+                      <span className="hidden xl:block text-[13px] font-semibold text-stone-800 dark:text-white max-w-[110px] truncate">
                         {user.full_name?.split(" ")[0]}
                       </span>
-                      <ChevronDown className="hidden xl:block h-3 w-3 text-stone-400" />
+                      <ChevronDown className="hidden xl:block h-3 w-3 text-stone-400 dark:text-stone-600" />
                     </button>
                   </DropdownMenuTrigger>
 
                   {/* Dark glass user dropdown */}
                   <DropdownMenuContent
                     align="end"
-                    className="w-60 p-2 mt-2 rounded-[28px] border border-white/60 outline-none overflow-hidden"
+                    className="w-60 p-2 mt-2 rounded-[28px] border border-border outline-none overflow-hidden"
                     style={{
-                      background: "rgba(255,255,255,0.85)",
+                      background: "var(--glass-bg)",
                       backdropFilter: "blur(40px) saturate(180%)",
                       WebkitBackdropFilter: "blur(40px) saturate(180%)",
-                      boxShadow: "0 20px 50px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,1)",
+                      boxShadow: "0 20px 50px rgba(0,0,0,0.12)",
                     }}
                   >
                     <SpecularLine rounded />
                     <SpecularSweep />
 
-                    <div className="px-3 py-3 rounded-[20px] mb-2"
-                      style={{
-                        background: "rgba(249,115,22,0.05)",
-                        border: "1px solid rgba(249,115,22,0.10)",
-                        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.7)",
-                      }}>
+                    <div className="px-3 py-3 rounded-[20px] mb-2 bg-orange-500/5 dark:bg-orange-500/10 border border-orange-500/10 shadow-inner">
                       <div className="flex items-center gap-2.5">
                         <Avatar className="h-8 w-8 ring-2 ring-white shrink-0">
                           <AvatarImage src={user.avatar_url ?? undefined} />
@@ -509,7 +502,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
                           </AvatarFallback>
                         </Avatar>
                         <div className="min-w-0">
-                          <p className="text-[13px] font-semibold text-stone-900 truncate leading-tight">{user.full_name}</p>
+                          <p className="text-[13px] font-semibold text-stone-900 dark:text-white truncate leading-tight">{user.full_name}</p>
                           <p className="text-[10px] text-stone-400 truncate">{user.email}</p>
                         </div>
                       </div>
@@ -523,8 +516,8 @@ export function Navbar({ user, marketing }: NavbarProps) {
                         className="p-0 focus:bg-transparent rounded-[13px] cursor-pointer">
                         <Link
                           href={item.href}
-                          className="flex items-center gap-2.5 px-3 py-2.5 rounded-[13px] text-[13px] font-semibold text-stone-600 hover:text-stone-900 transition-colors"
-                          onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "rgba(0,0,0,0.03)"}
+                          className="flex items-center gap-2.5 px-3 py-2.5 rounded-[13px] text-[13px] font-semibold text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:text-white dark:hover:text-white transition-colors"
+                          onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "var(--color-surface-secondary)"}
                           onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = ""}
                         >
                           <item.icon className="h-4 w-4 shrink-0" />
@@ -537,18 +530,27 @@ export function Navbar({ user, marketing }: NavbarProps) {
 
                     <DropdownMenuItem
                       onSelect={async () => { await signOut(); window.location.href = "/"; }}
-                      className="flex items-center gap-2.5 px-3 py-2.5 rounded-[13px] text-[13px] font-semibold text-red-400 hover:text-red-300 cursor-pointer focus:bg-transparent"
-                      onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "rgba(239,68,68,0.10)"}
-                      onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = ""}
+                      className="flex items-center gap-2.5 px-3 py-2.5 rounded-[13px] text-[13px] font-semibold text-red-500 hover:bg-red-500/10 cursor-pointer focus:bg-transparent transition-colors"
                     >
                       <LogOut className="h-4 w-4 shrink-0" />
                       Logout
+                    </DropdownMenuItem>
+
+                    {/* Theme toggle inside menu for smaller desktop screens */}
+                    <DropdownMenuItem
+                      className="min-[1100px]:hidden flex items-center justify-between px-3 py-2.5 rounded-[13px] text-[13px] font-semibold text-stone-600 dark:text-stone-300 focus:bg-transparent"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <Sun className="h-4 w-4 text-stone-400" />
+                        Night Mode
+                      </div>
+                      <ThemeToggle />
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               ) : (
                 <div className="flex items-center gap-2 shrink-0">
-                  <GlassPill href="/login" className="px-4 py-2 text-[13px] font-semibold text-stone-600 hover:text-stone-900 shrink-0 whitespace-nowrap">
+                  <GlassPill href="/login" className="px-4 py-2 text-[13px] font-semibold text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:text-white dark:hover:text-white shrink-0 whitespace-nowrap">
                     Log In
                   </GlassPill>
                   <Link
@@ -559,7 +561,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
                       backdropFilter: "blur(20px) saturate(160%)",
                       WebkitBackdropFilter: "blur(20px) saturate(160%)",
                       border: "1px solid rgba(251,146,60,0.35)",
-                      boxShadow: "0 2px 10px rgba(249,115,22,0.10), inset 0 1px 0 rgba(255,255,255,0.9)",
+                      boxShadow: "0 2px 10px rgba(249,115,22,0.10), inset 0 1px 0 rgba(255,255,255,0.05)",
                     }}
                   >
                     Join Free
@@ -570,7 +572,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
 
             {/* Mobile hamburger */}
             <GlassCircle className="md:hidden" onClick={() => setMobileOpen(true)}>
-              <Menu className="h-5 w-5 text-stone-700" />
+              <Menu className="h-5 w-5 text-stone-700 dark:text-stone-300" />
             </GlassCircle>
           </div>
         </div>
@@ -607,17 +609,17 @@ export function Navbar({ user, marketing }: NavbarProps) {
                 transition={{ type: "spring", damping: 32, stiffness: 300 }}
                 className="fixed inset-y-0 right-0 w-full z-[9999] flex flex-col pointer-events-auto overflow-hidden"
                 style={{
-                  background: GLASS_DARK.body,
+                  background: "var(--glass-bg)",
                   backdropFilter: "blur(52px) saturate(160%)",
                   WebkitBackdropFilter: "blur(52px) saturate(160%)",
-                  borderLeft: `1px solid ${GLASS_DARK.border}`,
+                  borderLeft: "1px solid var(--glass-border)",
                   boxShadow: "-8px 0 60px rgba(0,0,0,0.50)",
                 }}
               >
                 <SpecularLine />
                 {/* Full-height left specular edge */}
                 <div className="pointer-events-none absolute inset-y-0 left-0 w-px z-10"
-                  style={{ background: "linear-gradient(180deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.05) 40%, transparent 80%)" }} />
+                  style={{ background: "linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 40%, transparent 80%)" }} />
                 <SpecularSweep />
 
                 {/* Drawer header */}
@@ -631,14 +633,14 @@ export function Navbar({ user, marketing }: NavbarProps) {
                     {/* Cart + messages in drawer header */}
                     <button onClick={() => { router.push("/cart"); setMobileOpen(false); }}
                       className="relative flex items-center justify-center h-10 w-10 rounded-full transition-all active:scale-90"
-                      style={{ background: "rgba(251,146,60,0.08)", border: "1px solid rgba(251,146,60,0.35)" }}>
+                      style={{ background: "rgba(251,146,60,0.12)", border: "1px solid rgba(251,146,60,0.35)" }}>
                       <ShoppingCart className="h-4 w-4 text-orange-600" />
                       {cartCount > 0 && <span className="absolute -top-1 -right-1 h-[17px] min-w-[17px] bg-orange-500 text-white text-[9px] font-bold flex items-center justify-center rounded-full ring-2 ring-white">{cartCount}</span>}
                     </button>
                     <button
                       onClick={() => setMobileOpen(false)}
                       className="flex h-10 w-10 items-center justify-center rounded-full transition-all active:scale-90"
-                      style={{ background: "rgba(251,146,60,0.08)", border: "1px solid rgba(251,146,60,0.35)", color: "#ea580c" }}
+                      style={{ background: "rgba(251,146,60,0.12)", border: "1px solid rgba(251,146,60,0.35)", color: "#f97316" }}
                     >
                       <X className="h-5 w-5" />
                     </button>
@@ -656,9 +658,17 @@ export function Navbar({ user, marketing }: NavbarProps) {
                       isScrolled={scrolled} variant="mobile" runSearch={runSearch} navLinks={navLinks} />
                   </div>
 
-                  {/* Currency widget */}
                   <div className="mb-3">
                     <CurrencyConverterWidget variant="compact" className="mx-0" />
+                  </div>
+
+                  {/* Theme toggle mobile */}
+                  <div className="mb-3 flex items-center justify-between px-4 py-3 rounded-[20px] bg-surface/10 dark:bg-white dark:bg-zinc-900/5 border border-border shadow-sm">
+                    <div className="flex items-center gap-3">
+                      <Sun className="h-5 w-5 text-stone-400" />
+                      <span className="text-[14px] font-semibold text-stone-900 dark:text-white/70">Theme Mode</span>
+                    </div>
+                    <ThemeToggle />
                   </div>
 
                   {/* AI mode CTA — orange glass */}
@@ -690,7 +700,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
 
                   {/* Nav links */}
                   <div className="pt-1 space-y-1">
-                    <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.18em", textTransform: "uppercase", color: "rgba(0,0,0,0.42)", paddingLeft: 4, paddingBottom: 4 }}>
+                    <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-stone-400 dark:text-stone-600 px-1 pb-1">
                       Navigate
                     </p>
                     {mobileLinks.map(item => (
@@ -707,7 +717,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
 
                   {/* Help */}
                   <div className="pt-1 space-y-1">
-                    <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.18em", textTransform: "uppercase", color: "rgba(0,0,0,0.42)", paddingLeft: 4, paddingBottom: 4 }}>
+                    <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-stone-400 dark:text-stone-600 px-1 pb-1">
                       More
                     </p>
                     <DrawerLink href="/help" label="Help center"
@@ -719,14 +729,14 @@ export function Navbar({ user, marketing }: NavbarProps) {
                 {/* Footer — user identity */}
                 <div
                   className="shrink-0 px-3 py-3"
-                  style={{ borderTop: "1px solid rgba(255,255,255,0.07)", background: "rgba(255,255,255,0.02)" }}
+                  style={{ borderTop: "1px solid var(--color-border)", background: "var(--color-surface-secondary)" }}
                 >
                   {user ? (
                     <div className="flex items-center gap-3 p-3 rounded-[20px]"
                       style={{
-                        background: "rgba(255,255,255,0.06)",
-                        border: "1px solid rgba(255,255,255,0.10)",
-                        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.10)",
+                        background: "var(--color-surface)",
+                        border: "1px solid var(--color-border)",
+                        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)",
                       }}>
                       <Avatar className="h-9 w-9 ring-2 ring-white/15 shrink-0">
                         <AvatarImage src={user.avatar_url ?? undefined} />
@@ -749,8 +759,8 @@ export function Navbar({ user, marketing }: NavbarProps) {
                   ) : (
                     <div className="grid grid-cols-2 gap-2.5">
                       <Link href="/login" onClick={() => setMobileOpen(false)}
-                        className="h-12 rounded-full flex items-center justify-center text-[14px] font-semibold text-white/70 transition-all active:scale-95"
-                        style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.10)" }}>
+                        className="h-12 rounded-full flex items-center justify-center text-[14px] font-semibold text-stone-600 dark:text-white/70 transition-all active:scale-95"
+                        style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
                         Log In
                       </Link>
                       <Link href="/register" onClick={() => setMobileOpen(false)}
@@ -760,7 +770,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
                           backdropFilter: "blur(20px) saturate(160%)",
                           WebkitBackdropFilter: "blur(20px) saturate(160%)",
                           border: "1px solid rgba(251,146,60,0.35)",
-                          boxShadow: "0 2px 10px rgba(249,115,22,0.10), inset 0 1px 0 rgba(255,255,255,0.9)",
+                          boxShadow: "0 2px 10px rgba(249,115,22,0.10), inset 0 1px 0 rgba(255,255,255,0.05)",
                         }}>
                         Join Free
                       </Link>
@@ -791,28 +801,28 @@ function DrawerLink({
       style={active ? {
         background: "rgba(251,146,60,0.12)",
         border: "1px solid rgba(251,146,60,0.25)",
-        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.8)",
+        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)",
       } : {
-        background: "rgba(0,0,0,0.03)",
+        background: "var(--color-surface-secondary)",
         border: "1px solid transparent",
       }}
-      onMouseEnter={e => !active && ((e.currentTarget as HTMLElement).style.background = "rgba(0,0,0,0.05)")}
-      onMouseLeave={e => !active && ((e.currentTarget as HTMLElement).style.background = "rgba(0,0,0,0.03)")}
+      onMouseEnter={e => !active && ((e.currentTarget as HTMLElement).style.background = "var(--color-surface)")}
+      onMouseLeave={e => !active && ((e.currentTarget as HTMLElement).style.background = "var(--color-surface-secondary)")}
     >
       {/* Icon bubble */}
       <span
         className="flex items-center justify-center h-9 w-9 rounded-[13px] shrink-0"
         style={{
-          background: active ? "rgba(251,146,60,0.18)" : "rgba(0,0,0,0.04)",
-          border: "1px solid rgba(0,0,0,0.06)",
-          boxShadow: "inset 0 1px 0 rgba(255,255,255,0.7)",
-          color: active ? "#ea580c" : "rgba(0,0,0,0.45)",
+          background: active ? "rgba(251,146,60,0.18)" : "var(--color-surface)",
+          border: "1px solid var(--color-border)",
+          boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)",
+          color: active ? "#ea580c" : "var(--color-text-muted)",
         }}
       >
         {icon}
       </span>
       <span className="text-[14px] font-bold flex-1"
-        style={{ color: active ? "#c2410c" : "#44403c" }}>
+        style={{ color: active ? "#f97316" : "var(--color-text-primary)" }}>
         {label}
       </span>
       {active && <span className="h-1.5 w-1.5 rounded-full bg-orange-500 shrink-0" style={{ boxShadow: "0 0 6px rgba(249,115,22,0.8)" }} />}

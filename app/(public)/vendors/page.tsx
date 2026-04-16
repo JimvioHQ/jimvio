@@ -23,7 +23,7 @@ export default async function VendorsPage() {
   return (
     <div className="min-h-screen bg-[var(--color-bg)]">
       {/* Hero Header */}
-      <section className="bg-white border-b border-[var(--color-border)] py-16">
+      <section className="bg-white dark:bg-zinc-900 border-b border-[var(--color-border)] py-16">
         <div className="max-w-[var(--container-max)] mx-auto px-4 sm:px-6">
           <div className="max-w-3xl">
             <Badge className="bg-[var(--color-accent-light)] text-[var(--color-accent)] border-none mb-4 px-3 py-1">
@@ -60,7 +60,7 @@ export default async function VendorsPage() {
             { icon: <ShieldCheck />, label: "Gold Suppliers", desc: "Top tier verified premium vendors" },
             { icon: <Award />, label: "Award Winning", desc: "Recognized for product quality and service" }
           ].map((item, i) => (
-            <div key={i} className="bg-white border border-[var(--color-border)] rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
+            <div key={i} className="bg-white dark:bg-zinc-900 border border-[var(--color-border)] rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
               <div className="h-12 w-12 rounded-xl bg-[var(--color-accent-light)] text-[var(--color-accent)] flex items-center justify-center mb-6">
                 {item.icon}
               </div>
@@ -78,7 +78,7 @@ export default async function VendorsPage() {
       <section className="py-10 max-w-[var(--container-max)] mx-auto px-4 sm:px-6 mb-20">
         <div className="flex items-center justify-between mb-10">
           <h2 className="text-2xl font-black text-[var(--color-text-primary)]">Verified Suppliers</h2>
-          <select className="bg-white border border-[var(--color-border)] rounded-lg px-4 py-2 text-sm font-bold">
+          <select className="bg-white dark:bg-zinc-900 border border-[var(--color-border)] rounded-lg px-4 py-2 text-sm font-bold">
             <option>Top Sales</option>
             <option>Highest Rated</option>
             <option>Newest</option>
@@ -87,7 +87,7 @@ export default async function VendorsPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {vendors.map((vendor: any) => (
-            <div key={vendor.id} className="bg-white border border-[var(--color-border)] rounded-2xl p-6 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+            <div key={vendor.id} className="bg-white dark:bg-zinc-900 border border-[var(--color-border)] rounded-2xl p-6 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
               <div className="flex items-start gap-5">
                 <div className="h-24 w-24 rounded-2xl bg-[var(--color-accent-light)] border border-[var(--color-accent-subtle)] flex items-center justify-center text-[var(--color-accent)] font-black text-3xl overflow-hidden shrink-0">
                   {vendor.business_logo ? (

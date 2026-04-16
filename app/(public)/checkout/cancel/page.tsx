@@ -24,7 +24,7 @@ function CancelContent() {
       <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-orange-500/5 rounded-full blur-[120px] translate-y-1/2 -translate-x-1/2" />
 
       <div className="max-w-[540px] w-full relative z-10">
-        <div className="bg-white rounded-[40px] border border-zinc-100 p-10 md:p-14 shadow-[0_32px_96px_-16px_rgba(0,0,0,0.06)] text-center">
+        <div className="bg-white dark:bg-zinc-900 rounded-[40px] border border-zinc-100 dark:border-zinc-800 p-10 md:p-14 shadow-[0_32px_96px_-16px_rgba(0,0,0,0.06)] text-center">
           
           {/* Icon */}
           <div className="mx-auto mb-10 w-24 h-24 rounded-[32px] bg-red-50 flex items-center justify-center relative">
@@ -60,13 +60,13 @@ function CancelContent() {
              )}
 
              <div className="grid grid-cols-2 gap-3 pt-2">
-                <Button asChild variant="outline" className="h-14 rounded-2xl border-zinc-100 hover:bg-zinc-50 text-zinc-600 font-bold text-[13px] gap-2">
+                <Button asChild variant="outline" className="h-14 rounded-2xl border-zinc-100 dark:border-zinc-800 hover:bg-zinc-50 dark:bg-zinc-900/50 text-zinc-600 font-bold text-[13px] gap-2">
                   <Link href="/marketplace">
                     <ShoppingBag className="h-4 w-4" />
                     Shop More
                   </Link>
                 </Button>
-                <Button asChild variant="outline" className="h-14 rounded-2xl border-zinc-100 hover:bg-zinc-50 text-zinc-600 font-bold text-[13px] gap-2">
+                <Button asChild variant="outline" className="h-14 rounded-2xl border-zinc-100 dark:border-zinc-800 hover:bg-zinc-50 dark:bg-zinc-900/50 text-zinc-600 font-bold text-[13px] gap-2">
                   <Link href="/">
                     <Home className="h-4 w-4" />
                     Go Home

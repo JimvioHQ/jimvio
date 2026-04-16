@@ -86,17 +86,17 @@ export default function BuyingLeadsPage() {
 
   if (loading && leads.length === 0) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center space-y-12 animate-in fade-in duration-700" style={{ background: "#f8f7f5" }}>
+      <div className="min-h-screen flex flex-col items-center justify-center space-y-12 animate-in fade-in duration-700" style={{ background: "var(--color-bg)" }}>
         <div className="relative">
           <div className="absolute inset-0 bg-orange-400/20 blur-3xl rounded-full scale-150 animate-pulse" />
-          <div className="relative w-24 h-24 rounded-[32px] bg-white border border-white shadow-2xl flex items-center justify-center overflow-hidden">
+          <div className="relative w-24 h-24 rounded-[32px] bg-surface dark:bg-zinc-900 border border-border shadow-2xl flex items-center justify-center overflow-hidden">
             <div className="absolute inset-0 border-2 border-t-orange-500 border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin m-2" />
-            <FileText className="h-10 w-10 text-stone-900" />
+            <FileText className="h-10 w-10 text-stone-900 dark:text-white" />
           </div>
         </div>
         <div className="text-center space-y-3">
-           <h2 className="text-[14px] font-black text-stone-900 uppercase tracking-[0.4em] pl-[0.4em]">Buying Requests</h2>
-           <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest pl-[0.1em]">Syncing Acquisition Leads</p>
+           <h2 className="text-[14px] font-black text-stone-900 dark:text-white uppercase tracking-[0.4em] pl-[0.4em]">Buying Requests</h2>
+           <p className="text-[10px] font-bold text-stone-400 dark:text-stone-500 uppercase tracking-widest pl-[0.1em]">Syncing Acquisition Leads</p>
         </div>
       </div>
     );
@@ -105,9 +105,7 @@ export default function BuyingLeadsPage() {
   return (
     <div
       className="min-h-screen animate-in fade-in duration-700 pb-24 relative overflow-hidden"
-      style={{
-        background: "radial-gradient(ellipse 80% 60% at 80% 0%, rgba(251,146,60,0.05) 0%, transparent 50%), radial-gradient(ellipse 60% 50% at 0% 100%, rgba(251,146,60,0.05) 0%, transparent 55%), #f8f7f5",
-      }}
+      style={{ background: "var(--color-bg)" }}
     >
       <GlassAmbientGlow color="orange" position="top-right" />
       <GlassAmbientGlow color="orange" position="bottom-left" />
@@ -117,20 +115,20 @@ export default function BuyingLeadsPage() {
         {/* Header Protocol */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
            <div className="space-y-2">
-              <h1 className="text-4xl font-black text-stone-900 tracking-tighter flex items-center gap-4">
-                 <div className="p-2.5 rounded-[20px] bg-white border border-white shadow-2xl shrink-0">
+              <h1 className="text-4xl font-black text-stone-900 dark:text-white tracking-tighter flex items-center gap-4">
+                 <div className="p-2.5 rounded-[20px] bg-surface dark:bg-zinc-900 border border-border shadow-2xl shrink-0">
                     <FileText className="h-8 w-8 text-orange-500" />
                  </div>
                  Requests & Payouts
               </h1>
-              <p className="text-[11px] font-bold text-stone-400 uppercase tracking-[0.3em] pl-16">
+              <p className="text-[11px] font-bold text-stone-400 dark:text-stone-500 uppercase tracking-[0.3em] pl-16">
                  Global Sourcing Hub & Buyer Request History
               </p>
            </div>
            
-           <div className="flex items-center gap-4 bg-white/40 p-1.5 rounded-full border border-white shadow-xl backdrop-blur-xl">
+           <div className="flex items-center gap-4 bg-surface dark:bg-zinc-900/40 p-1.5 rounded-full border border-border shadow-xl backdrop-blur-xl">
               <div className="w-3 h-3 rounded-full bg-orange-500 ml-4 animate-pulse shadow-[0_0_12px_rgba(249,115,22,0.5)]" />
-              <span className="text-[10px] font-black uppercase tracking-widest text-stone-900 pr-6 pl-2">Syncing Global Sourcing</span>
+              <span className="text-[10px] font-black uppercase tracking-widest text-stone-900 dark:text-white pr-6 pl-2">Syncing Global Sourcing</span>
            </div>
         </div>
 
@@ -138,10 +136,10 @@ export default function BuyingLeadsPage() {
            
            {/* Primary Input Logic */}
            <div className="lg:col-span-12">
-              <GlassCard className="p-12 rounded-[56px] border-white bg-white/60 shadow-2xl relative overflow-hidden">
+              <GlassCard className="p-12 rounded-[56px] border-white bg-white dark:bg-zinc-900/60 shadow-2xl relative overflow-hidden">
                  <div className="flex items-center justify-between mb-12">
                     <div className="space-y-1">
-                       <h3 className="text-2xl font-black text-stone-900 tracking-tighter">Create New Request</h3>
+                       <h3 className="text-2xl font-black text-stone-900 dark:text-white tracking-tighter">Create New Request</h3>
                        <p className="text-[11px] font-black uppercase tracking-widest text-stone-400">Request a specific product for vendors to offer</p>
                     </div>
                     <Plus className="h-8 w-8 text-stone-100" />
@@ -155,7 +153,7 @@ export default function BuyingLeadsPage() {
                          value={form.product_name}
                          onChange={(e) => setForm((f) => ({ ...f, product_name: e.target.value }))}
                          placeholder="e.g. HIGH-DENSITY ORGANIC COTTON"
-                         className="h-16 rounded-[24px] bg-white border-white shadow-xl focus:ring-8 focus:ring-orange-500/5 focus:border-orange-400 text-xl font-black tracking-tighter px-8 transition-all"
+                         className="h-16 rounded-[24px] bg-white dark:bg-zinc-900 border-white shadow-xl focus:ring-8 focus:ring-orange-500/5 focus:border-orange-400 text-xl font-black tracking-tighter px-8 transition-all"
                          required
                        />
                     </div>
@@ -166,7 +164,7 @@ export default function BuyingLeadsPage() {
                          value={form.category}
                          onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
                          placeholder="e.g. RAW MATERIALS"
-                         className="h-16 rounded-[24px] bg-white/40 border-stone-100 focus:bg-white text-sm font-black tracking-widest px-8 transition-all"
+                         className="h-16 rounded-[24px] bg-surface dark:bg-zinc-900/40 border-border focus:bg-surface dark:focus:bg-zinc-900 text-sm font-black tracking-widest px-8 transition-all"
                        />
                     </div>
                     
@@ -178,7 +176,7 @@ export default function BuyingLeadsPage() {
                          min={1}
                          value={form.quantity_needed}
                          onChange={(e) => setForm((f) => ({ ...f, quantity_needed: Number(e.target.value) || 1 }))}
-                         className="h-16 rounded-[24px] bg-white/40 border-stone-100 focus:bg-white text-sm font-black tracking-widest px-8 transition-all tabular-nums"
+                         className="h-16 rounded-[24px] bg-white dark:bg-zinc-900/40 border-stone-100 dark:border-zinc-800 focus:bg-white dark:bg-zinc-900 text-sm font-black tracking-widest px-8 transition-all tabular-nums"
                        />
                     </div>
                     
@@ -193,7 +191,7 @@ export default function BuyingLeadsPage() {
                              value={form.budget_min ?? ""}
                              onChange={(e) => setForm((f) => ({ ...f, budget_min: e.target.value ? Number(e.target.value) : undefined }))}
                              placeholder="MIN"
-                             className="h-16 rounded-[24px] bg-white/40 border-stone-100 focus:bg-white text-sm font-black tracking-widest pl-14 transition-all"
+                             className="h-16 rounded-[24px] bg-surface dark:bg-zinc-900/40 border-border focus:bg-surface dark:focus:bg-zinc-900 text-sm font-black tracking-widest pl-14 transition-all"
                           />
                        </div>
                     </div>
@@ -209,7 +207,7 @@ export default function BuyingLeadsPage() {
                              value={form.budget_max ?? ""}
                              onChange={(e) => setForm((f) => ({ ...f, budget_max: e.target.value ? Number(e.target.value) : undefined }))}
                              placeholder="MAX"
-                             className="h-16 rounded-[24px] bg-white/40 border-stone-100 focus:bg-white text-sm font-black tracking-widest pl-14 transition-all"
+                             className="h-16 rounded-[24px] bg-surface dark:bg-zinc-900/40 border-border focus:bg-surface dark:focus:bg-zinc-900 text-sm font-black tracking-widest pl-14 transition-all"
                           />
                        </div>
                     </div>
@@ -223,7 +221,7 @@ export default function BuyingLeadsPage() {
                              value={form.delivery_country}
                              onChange={(e) => setForm((f) => ({ ...f, delivery_country: e.target.value }))}
                              placeholder="DESTINATION HUB"
-                             className="h-16 rounded-[24px] bg-white/40 border-stone-100 focus:bg-white text-sm font-black tracking-widest pl-14 transition-all"
+                             className="h-16 rounded-[24px] bg-surface dark:bg-zinc-900/40 border-border focus:bg-surface dark:focus:bg-zinc-900 text-sm font-black tracking-widest pl-14 transition-all"
                           />
                        </div>
                     </div>
@@ -236,7 +234,7 @@ export default function BuyingLeadsPage() {
                          onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
                          placeholder="Define technical requirements, quality standards, and timelines..."
                          rows={4}
-                         className="rounded-[32px] bg-white/40 border-stone-100 focus:bg-white text-[14px] font-black leading-relaxed tracking-tight px-8 py-6 transition-all min-h-[160px] resize-none"
+                         className="rounded-[32px] bg-surface dark:bg-zinc-900/40 border-border focus:bg-surface dark:focus:bg-zinc-900 text-[14px] font-black leading-relaxed tracking-tight px-8 py-6 transition-all min-h-[160px] resize-none"
                        />
                     </div>
                     
@@ -257,23 +255,23 @@ export default function BuyingLeadsPage() {
            <div className="lg:col-span-12 space-y-8">
               <div className="flex items-center justify-between px-4">
                  <div className="space-y-1">
-                    <h2 className="text-3xl font-black text-stone-900 tracking-tighter">Your Requests</h2>
+                    <h2 className="text-3xl font-black text-stone-900 dark:text-white tracking-tighter">Your Requests</h2>
                     <p className="text-[11px] font-black uppercase tracking-[0.3em] text-stone-400 flex items-center gap-3">
                        <History className="h-4 w-4" /> Global Pulse Log ({leads.length} Items)
                     </p>
                  </div>
-                 <div className="flex items-center gap-3 bg-white/60 p-1.5 rounded-full border border-white shadow-lg">
+                 <div className="flex items-center gap-3 bg-white dark:bg-zinc-900/60 p-1.5 rounded-full border border-white shadow-lg">
                     <div className="px-6 py-2 rounded-full bg-stone-900 text-white font-black text-[9px] uppercase tracking-widest shadow-xl">ALL</div>
-                    <div className="px-6 py-2 rounded-full text-stone-400 font-black text-[9px] uppercase tracking-widest hover:text-stone-900 transition-colors">ACTIVE</div>
+                    <div className="px-6 py-2 rounded-full text-stone-400 font-black text-[9px] uppercase tracking-widest hover:text-stone-900 dark:text-white transition-colors">ACTIVE</div>
                  </div>
               </div>
 
               {leads.length === 0 ? (
-                 <GlassCard className="py-32 text-center rounded-[56px] border-dashed border-orange-200 bg-white/20">
-                    <div className="w-24 h-24 bg-white rounded-[40px] flex items-center justify-center mx-auto mb-10 border border-white shadow-xl">
+                 <GlassCard className="py-32 text-center rounded-[56px] border-dashed border-orange-200 bg-white dark:bg-zinc-900/20">
+                    <div className="w-24 h-24 bg-white dark:bg-zinc-900 rounded-[40px] flex items-center justify-center mx-auto mb-10 border border-white shadow-xl">
                        <Target className="h-10 w-10 text-stone-100" />
                     </div>
-                    <h3 className="text-2xl font-black text-stone-900 tracking-tighter">No Active Requests</h3>
+                    <h3 className="text-2xl font-black text-stone-900 dark:text-white tracking-tighter">No Active Requests</h3>
                     <p className="text-[11px] font-black text-stone-400 uppercase tracking-widest max-w-[280px] mx-auto leading-relaxed">System requires request parameters to broadcast to global suppliers.</p>
                  </GlassCard>
               ) : (
@@ -281,12 +279,12 @@ export default function BuyingLeadsPage() {
                     {leads.map((lead) => (
                       <GlassCard 
                         key={lead.id} 
-                        className="p-10 rounded-[48px] bg-white/70 border-white shadow-xl hover:shadow-2xl hover:-translate-y-2 transition-all duration-700 group flex flex-col justify-between h-full"
+                        className="p-10 rounded-[48px] bg-white dark:bg-zinc-900/70 border-white shadow-xl hover:shadow-2xl hover:-translate-y-2 transition-all duration-700 group flex flex-col justify-between h-full"
                       >
                         <div className="space-y-8">
                            <div className="flex items-start justify-between">
                               <div className="space-y-3">
-                                 <h4 className="text-2xl font-black text-stone-900 tracking-tighter group-hover:text-orange-600 transition-colors">{lead.product_name}</h4>
+                                 <h4 className="text-2xl font-black text-stone-900 dark:text-white tracking-tighter group-hover:text-orange-600 transition-colors">{lead.product_name}</h4>
                                  <div className="flex flex-wrap gap-3">
                                     {lead.category && <GlassPill color="default" className="px-3 py-1 font-black text-[9px] h-auto">{lead.category.toUpperCase()}</GlassPill>}
                                     <GlassPill color="orange" className="px-3 py-1 font-black text-[9px] h-auto flex items-center gap-2"><Package className="h-3 w-3" /> QTY: {lead.quantity_needed}</GlassPill>
@@ -310,7 +308,7 @@ export default function BuyingLeadsPage() {
                         </div>
 
                         {lead.buying_lead_offers && lead.buying_lead_offers.length > 0 && (
-                          <div className="mt-10 pt-10 border-t border-stone-100 space-y-6">
+                          <div className="mt-10 pt-10 border-t border-border space-y-6">
                             <div className="flex items-center justify-between">
                                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-orange-500">Supplier Offers</p>
                                <span className="text-[10px] font-black text-stone-300 uppercase tracking-widest">{lead.buying_lead_offers.length} Offers</span>
@@ -319,9 +317,9 @@ export default function BuyingLeadsPage() {
                               {lead.buying_lead_offers.slice(0, 3).map((offer) => {
                                 const vendor = Array.isArray(offer.vendors) ? offer.vendors[0] : offer.vendors;
                                 return (
-                                <li key={offer.id} className="p-4 bg-white/60 rounded-2xl border border-white shadow-sm flex items-center justify-between group/offer hover:bg-white transition-all">
+                                <li key={offer.id} className="p-4 bg-white dark:bg-zinc-900/60 rounded-2xl border border-white shadow-sm flex items-center justify-between group/offer hover:bg-white dark:bg-zinc-900 transition-all">
                                   <div className="space-y-1">
-                                     <p className="text-[11px] font-black text-stone-900 tracking-widest uppercase truncate max-w-[180px]">{vendor?.business_name ?? "ANON_SUPPLIER"}</p>
+                                     <p className="text-[11px] font-black text-stone-900 dark:text-white tracking-widest uppercase truncate max-w-[180px]">{vendor?.business_name ?? "ANON_SUPPLIER"}</p>
                                      <p className="text-[10px] font-black text-stone-400 truncate max-w-[200px] leading-none uppercase">{offer.message ?? "NO_MESSAGE_LOGGED"}</p>
                                   </div>
                                   <div className="text-right shrink-0">
@@ -335,7 +333,7 @@ export default function BuyingLeadsPage() {
                           </div>
                         )}
                         
-                        <div className="mt-10 pt-10 border-t border-stone-100 flex items-center justify-between">
+                        <div className="mt-10 pt-10 border-t border-stone-100 dark:border-zinc-800 flex items-center justify-between">
                            <div className="flex items-center gap-3">
                               <MapPin className="h-4 w-4 text-stone-300" />
                               <span className="text-[10px] font-black text-stone-400 uppercase tracking-widest">{lead.delivery_country || "GLOBAL"}</span>

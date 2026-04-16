@@ -69,7 +69,8 @@ function GlobeCanvas() {
       texCanvas.height = texSize / 2;
       const ctx = texCanvas.getContext("2d")!;
 
-      ctx.fillStyle = "#dceefb";
+      const isDark = document.documentElement.classList.contains("dark");
+      ctx.fillStyle = isDark ? "#1e1e2e" : "#dceefb";
       ctx.fillRect(0, 0, texSize, texSize / 2);
 
       const continents = [
@@ -141,11 +142,12 @@ function GlobeCanvas() {
       scene.add(new THREE.Points(pg, new THREE.PointsMaterial({ color: 0xf97316, size: 0.024, transparent: true, opacity: 0.5 })));
 
       /* Lights */
-      scene.add(new THREE.AmbientLight(0xffffff, 0.55));
-      const sun = new THREE.DirectionalLight(0xfff8f0, 1.15);
+      /* theme-aware lights */
+      scene.add(new THREE.AmbientLight(isDark ? 0x222222 : 0xffffff, isDark ? 0.7 : 0.55));
+      const sun = new THREE.DirectionalLight(isDark ? 0xffbb66 : 0xfff8f0, isDark ? 1.4 : 1.15);
       sun.position.set(4, 2, 3);
       scene.add(sun);
-      const fill = new THREE.DirectionalLight(0xe8f4ff, 0.3);
+      const fill = new THREE.DirectionalLight(isDark ? 0x444466 : 0xe8f4ff, isDark ? 0.6 : 0.3);
       fill.position.set(-3, -1, -2);
       scene.add(fill);
 
@@ -229,7 +231,7 @@ function VideoMarquee({ videos, mobile = false }: { videos: any[]; mobile?: bool
             
             <div className="absolute inset-x-0 bottom-0 p-2 sm:p-3 bg-gradient-to-t from-black/60 to-transparent">
               <div className="flex items-center gap-1.5">
-                <div className="h-4 w-4 sm:h-5 sm:w-5 rounded-full border border-white/50 bg-white/20 backdrop-blur-md overflow-hidden shrink-0">
+                <div className="h-4 w-4 sm:h-5 sm:w-5 rounded-full border border-white/50 bg-white dark:bg-zinc-900/20 backdrop-blur-md overflow-hidden shrink-0">
                   {v.creator?.avatar && <img src={v.creator.avatar} alt="" className="h-full w-full object-cover" />}
                 </div>
                 <p className="text-[8px] sm:text-[9px] font-black text-white truncate drop-shadow-md">{v.title}</p>
@@ -298,7 +300,7 @@ export function HomepageHero({
               >
                 <Sparkles className="h-6 w-6 text-orange-600" />
               </div>
-              <DialogTitle className="text-2xl sm:text-3xl font-bold text-stone-900 tracking-tight">
+              <DialogTitle className="text-2xl sm:text-3xl font-bold text-stone-900 dark:text-white tracking-tight">
                 How do you want to <span className="text-orange-600">Earn?</span>
               </DialogTitle>
               <p className="text-xs text-stone-500 mt-2 max-w-[280px] mx-auto leading-relaxed">
@@ -338,7 +340,7 @@ export function HomepageHero({
                     <Icon className="h-5 w-5" />
                   </div>
                   <div>
-                    <h3 className="text-[13px] font-semibold text-stone-900">{label}</h3>
+                    <h3 className="text-[13px] font-semibold text-stone-900 dark:text-white">{label}</h3>
                     <p className="text-[9px] font-semibold text-stone-400 uppercase tracking-widest mt-0.5">{stat}</p>
                     <p className="text-[11px] text-stone-500 mt-1 leading-snug">{desc}</p>
                   </div>
@@ -362,8 +364,8 @@ export function HomepageHero({
       <section
         className="flex flex-col lg:hidden w-full relative overflow-hidden pb-8 px-5 min-h-[400px] justify-center text-center"
         style={{
-          background: "radial-gradient(ellipse 80% 60% at 70% -10%, rgba(251,146,60,0.06) 0%, transparent 55%), radial-gradient(ellipse 60% 50% at 10% 100%, rgba(186,230,253,0.05) 0%, transparent 55%), #f8f7f5",
-          borderBottom: "1px solid rgba(255,255,255,0.7)",
+          background: "radial-gradient(ellipse 80% 60% at 70% -10%, rgba(251,146,60,0.06) 0%, transparent 55%), radial-gradient(ellipse 60% 50% at 10% 100%, rgba(186,230,253,0.05) 0%, transparent 55%), var(--color-bg)",
+          borderBottom: "1px solid var(--color-border)",
         }}
       >
         {/* Ambient glow orbs */}
@@ -388,11 +390,11 @@ export function HomepageHero({
               <span className="h-1.5 w-1.5 rounded-full bg-orange-500 animate-pulse shadow-[0_0_6px_rgba(249,115,22,0.8)]" />
               Global Creator & Sourcing Network
             </div>
-            <h1 className="text-[32px] leading-[1.05] font-black text-stone-900 tracking-tight">
+            <h1 className="text-[32px] leading-[1.05] font-black text-stone-900 dark:text-white tracking-tight">
               Where products and <br />
               creators drive <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 via-orange-600 to-amber-600">global growth.</span>
             </h1>
-            <p className="text-[14px] text-stone-400 font-bold leading-relaxed max-w-[280px] mx-auto">
+            <p className="text-[14px] text-stone-400 dark:text-stone-500 font-bold leading-relaxed max-w-[280px] mx-auto">
               Build, promote, and scale your empire.
             </p>
           </div>
@@ -464,8 +466,8 @@ export function HomepageHero({
       <section
         className="hidden lg:flex flex-col items-center justify-center w-full min-h-[600px] lg:min-h-[680px] relative overflow-hidden"
         style={{
-          background: "radial-gradient(ellipse 80% 60% at 80% -10%, rgba(251,146,60,0.06) 0%, transparent 55%), radial-gradient(ellipse 60% 50% at 0% 100%, rgba(186,230,253,0.05) 0%, transparent 55%), #f8f7f5",
-          borderBottom: "1px solid rgba(255,255,255,0.7)",
+          background: "radial-gradient(ellipse 80% 60% at 80% -10%, rgba(251,146,60,0.06) 0%, transparent 55%), radial-gradient(ellipse 60% 50% at 0% 100%, rgba(186,230,253,0.05) 0%, transparent 55%), var(--color-bg)",
+          borderBottom: "1px solid var(--color-border)",
         }}
       >
         {/* Ambient glow orbs */}
@@ -481,8 +483,8 @@ export function HomepageHero({
 
         {/* Hero bg image */}
         <div className="absolute inset-0 z-0 select-none pointer-events-none">
-          <Image src="/hero-bg.png" alt="Global Growth Background" fill className="object-cover opacity-[0.18] saturate-[1.2] scale-105" priority />
-          <div className="absolute inset-0" style={{ background: "linear-gradient(to right, rgba(240,237,232,0.85) 30%, rgba(240,237,232,0.3) 60%, transparent)" }} />
+          <Image src="/hero-bg.png" alt="Global Growth Background" fill className="object-cover opacity-[0.18] dark:opacity-[0.08] saturate-[1.2] scale-105" priority />
+          <div className="absolute inset-0 bg-gradient-to-r from-[var(--color-bg)]/85 via-[var(--color-bg)]/30 to-transparent" />
         </div>
 
         <div className="relative z-10 w-full max-w-[1440px] mx-auto px-12 grid grid-cols-1 lg:grid-cols-2 items-center gap-20">
@@ -506,11 +508,11 @@ export function HomepageHero({
             </motion.div>
 
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.5 }} className="space-y-4">
-              <h1 className="text-5xl xl:text-6xl font-bold text-stone-900 tracking-tight leading-[1.05]">
+              <h1 className="text-5xl xl:text-6xl font-bold text-stone-900 dark:text-white tracking-tight leading-[1.05]">
                 Where products & creators drive <br />
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 via-orange-600 to-amber-600">global growth.</span>
               </h1>
-              <p className="text-base text-stone-600 leading-relaxed max-w-lg">
+              <p className="text-base text-stone-600 dark:text-stone-400 leading-relaxed max-w-lg">
                 Build, promote, and scale your global presence. The premium ecosystem for professional suppliers and verified creators.
               </p>
             </motion.div>
@@ -569,7 +571,7 @@ export function HomepageHero({
                   onMouseLeave={e => { (e.currentTarget as HTMLElement).style.boxShadow = "0 4px 16px rgba(0,0,0,0.07), inset 0 1px 0 rgba(255,255,255,1)"; (e.currentTarget as HTMLElement).style.borderColor = "rgba(255,255,255,0.88)"; }}
                 >
                   <item.icon className="h-4 w-4 text-stone-500 group-hover:text-orange-500 transition-colors" />
-                  <span className="text-[12px] font-semibold text-stone-700 group-hover:text-stone-900 transition-colors">{item.text}</span>
+                  <span className="text-[12px] font-semibold text-stone-700 group-hover:text-stone-900 dark:text-white transition-colors">{item.text}</span>
                   <ChevronRight className="h-3.5 w-3.5 text-stone-300 group-hover:text-orange-400 group-hover:translate-x-0.5 transition-all" />
                 </Link>
               ))}

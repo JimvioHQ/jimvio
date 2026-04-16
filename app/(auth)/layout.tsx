@@ -5,13 +5,13 @@ import { ArrowLeft } from "lucide-react";
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-screen bg-white">
+    <div className="flex min-h-screen bg-white dark:bg-zinc-950">
       {/* 
         ========================================
         LEFT COLUMN (Forms)
         ========================================
       */}
-      <div className="flex flex-1 flex-col justify-center px-6 py-12 lg:flex-none lg:w-1/2 xl:w-5/12 bg-white relative">
+      <div className="flex flex-1 flex-col justify-center px-6 py-12 lg:flex-none lg:w-1/2 xl:w-5/12 bg-white dark:bg-zinc-900 relative">
         <div className="mx-auto w-full max-w-[420px]">
           
           <div className="mb-8">

@@ -584,7 +584,7 @@ export function CourseRoom({
                         onClick={() => setCurrentSlide(i)}
                         className={cn(
                           "rounded-full transition-all",
-                          i === currentSlide ? "w-4 h-1.5 bg-white" : "w-1.5 h-1.5 bg-white/50"
+                          i === currentSlide ? "w-4 h-1.5 bg-white dark:bg-zinc-900" : "w-1.5 h-1.5 bg-white dark:bg-zinc-900/50"
                         )}
                       />
                     ))}

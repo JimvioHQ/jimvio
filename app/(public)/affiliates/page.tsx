@@ -58,7 +58,7 @@ export default async function AffiliatesPage() {
   return (
     <div className="bg-[var(--color-bg)] min-h-screen">
       {/* Hero */}
-      <section className="relative py-24 px-4 overflow-hidden bg-white border-b border-[var(--color-border)]">
+      <section className="relative py-24 px-4 overflow-hidden bg-white dark:bg-zinc-950 border-b border-[var(--color-border)]">
         <div className="absolute top-0 right-0 w-1/3 h-full bg-gradient-to-l from-[var(--color-accent)]/5 to-transparent" />
         <div className="relative z-10 max-w-6xl mx-auto flex flex-col items-center text-center">
           <Badge className="bg-[var(--color-accent-light)] text-[var(--color-accent)] border-none mb-6 px-4 py-1.5 capitalize tracking-widest font-black text-[10px]">
@@ -84,7 +84,7 @@ export default async function AffiliatesPage() {
           
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full max-w-4xl">
             {statsGrid.map((s, i) => (
-              <div key={i} className="bg-white border border-[var(--color-border)] p-6 rounded-2xl shadow-sm">
+              <div key={i} className="bg-white dark:bg-zinc-900 border border-[var(--color-border)] p-6 rounded-2xl shadow-sm">
                 <p className="text-2xl font-black text-[var(--color-text-primary)] mb-1">{s.value}</p>
                 <p className="text-[10px] text-[var(--color-text-muted)] font-black capitalize tracking-widest">{s.label}</p>
               </div>
@@ -120,7 +120,7 @@ export default async function AffiliatesPage() {
               icon: <DollarSign className="h-6 w-6" />
             }
           ].map((item, i) => (
-            <div key={i} className="relative bg-white border border-[var(--color-border)] p-8 rounded-3xl shadow-sm hover:shadow-md transition-shadow group">
+            <div key={i} className="relative bg-white dark:bg-zinc-900 border border-[var(--color-border)] p-8 rounded-3xl shadow-sm hover:shadow-md transition-shadow group">
               <span className="absolute top-4 right-8 text-5xl font-black text-[var(--color-accent)] opacity-5 group-hover:opacity-10 transition-opacity">{item.step}</span>
               <div className="h-12 w-12 rounded-xl bg-[var(--color-accent-light)] text-[var(--color-accent)] flex items-center justify-center mb-6">
                 {item.icon}
@@ -154,7 +154,7 @@ export default async function AffiliatesPage() {
               topProducts.map((p) => (
                 <div
                   key={p.id}
-                  className="bg-white border border-[var(--color-border)] rounded-2xl p-6 shadow-sm hover:shadow-xl transition-all duration-300"
+                  className="bg-white dark:bg-zinc-900 border border-[var(--color-border)] rounded-2xl p-6 shadow-sm hover:shadow-xl transition-all duration-300"
                 >
                   <div className="flex justify-between items-start mb-6">
                     <div>
@@ -200,7 +200,7 @@ export default async function AffiliatesPage() {
           <h2 className="text-3xl font-black text-[var(--color-text-primary)]">Affiliate Leaderboard</h2>
         </div>
         
-        <div className="bg-white border border-[var(--color-border)] rounded-3xl overflow-hidden shadow-xl">
+        <div className="bg-white dark:bg-zinc-900 border border-[var(--color-border)] rounded-3xl overflow-hidden shadow-xl">
           {topEarners.length > 0 ? (
             <div className="divide-y divide-[var(--color-border)]">
               {topEarners.map((aff: any, idx: number) => (

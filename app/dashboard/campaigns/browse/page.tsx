@@ -57,8 +57,8 @@ export default function InfluencerBrowseCampaignsPage() {
       <div className="max-w-[1400px] mx-auto space-y-6 px-4 sm:px-6 pt-5">
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-stone-900 flex items-center gap-3">
-             <div className="p-2 rounded-[14px] bg-white/60 border border-white/80 shadow-sm shrink-0">
+          <h1 className="text-2xl font-bold tracking-tight text-stone-900 dark:text-white flex items-center gap-3">
+             <div className="p-2 rounded-[14px] bg-white dark:bg-zinc-900/60 border border-white/80 shadow-sm shrink-0">
                <Zap className="h-6 w-6 text-orange-500" />
              </div>
              Campaign Marketplace
@@ -70,12 +70,12 @@ export default function InfluencerBrowseCampaignsPage() {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400 pointer-events-none" />
             <input 
               placeholder="Search campaigns..." 
-              className="pl-11 pr-4 h-11 w-64 rounded-[14px] bg-white/60 border border-white/80 text-[13px] font-semibold text-stone-900 placeholder:text-stone-400 focus:outline-none focus:border-stone-300 shadow-[inset_0_1px_4px_rgba(255,255,255,1)] transition-colors" 
+              className="pl-11 pr-4 h-11 w-64 rounded-[14px] bg-white dark:bg-zinc-900/60 border border-white/80 text-[13px] font-semibold text-stone-900 dark:text-white placeholder:text-stone-400 focus:outline-none focus:border-stone-300 shadow-[inset_0_1px_4px_rgba(255,255,255,1)] transition-colors" 
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <Button variant="outline" size="icon" className="h-11 w-11 rounded-[14px] bg-white border border-stone-200 shadow-[0_2px_8px_rgba(0,0,0,0.03)] active:scale-95 transition-all outline-none">
+          <Button variant="outline" size="icon" className="h-11 w-11 rounded-[14px] bg-white dark:bg-zinc-900 border border-stone-200 dark:border-zinc-800 shadow-[0_2px_8px_rgba(0,0,0,0.03)] active:scale-95 transition-all outline-none">
             <Filter className="h-4 w-4 text-stone-600" />
           </Button>
         </div>
@@ -97,7 +97,7 @@ export default function InfluencerBrowseCampaignsPage() {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                 <div className="absolute top-3 left-3 flex gap-2">
-                  <div className="bg-white/90 backdrop-blur-md px-3 py-1 rounded-[10px] text-[10px] font-black uppercase tracking-widest text-stone-900 shadow-sm border border-white/20">
+                  <div className="bg-white dark:bg-zinc-900/90 backdrop-blur-md px-3 py-1 rounded-[10px] text-[10px] font-black uppercase tracking-widest text-stone-900 dark:text-white shadow-sm border border-white/20">
                     {c.campaign_type === "promotion" ? "Affiliate" : "Sponsorship"}
                   </div>
                   {c.is_featured && (
@@ -113,29 +113,29 @@ export default function InfluencerBrowseCampaignsPage() {
               </div>
 
               <div className="p-5">
-                <div className="flex items-center justify-between mb-5 bg-white/40 border border-white/60 shadow-[inset_0_1px_4px_rgba(255,255,255,1)] rounded-[14px] p-4">
+                <div className="flex items-center justify-between mb-5 bg-white dark:bg-zinc-900/40 border border-white/60 shadow-[inset_0_1px_4px_rgba(255,255,255,1)] rounded-[14px] p-4">
                   <div>
                     <p className="text-[9px] font-bold uppercase tracking-widest text-stone-500 mb-1 flex items-center gap-1"><DollarSign className="h-3 w-3 text-emerald-500" /> Commission</p>
                     <p className="text-[20px] font-black text-emerald-600 leading-none">{commissionRate}%</p>
                   </div>
                   <div className="text-right">
                     <p className="text-[9px] font-bold uppercase tracking-widest text-stone-500 mb-1 flex items-center gap-1 justify-end"><ShoppingBag className="h-3 w-3 text-orange-500" /> Price</p>
-                    <p className="text-[18px] font-black text-stone-900 leading-none tabular-nums">{formatMoney(Number(product?.price || 0), product?.currency)}</p>
+                    <p className="text-[18px] font-black text-stone-900 dark:text-white leading-none tabular-nums">{formatMoney(Number(product?.price || 0), product?.currency)}</p>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 mb-5">
-                  <div className="bg-white/40 border border-white/80 shadow-[inset_0_1px_4px_rgba(255,255,255,1)] rounded-[14px] p-4">
+                  <div className="bg-white dark:bg-zinc-900/40 border border-white/80 shadow-[inset_0_1px_4px_rgba(255,255,255,1)] rounded-[14px] p-4">
                     <div className="flex items-center gap-1.5 text-stone-500 mb-1.5 text-[9px] font-bold uppercase tracking-widest">
                       <Eye className="h-3 w-3 text-sky-500" /> Total Views
                     </div>
-                    <p className="text-[16px] font-black text-stone-900 leading-none">{(c.total_views || 0).toLocaleString()}</p>
+                    <p className="text-[16px] font-black text-stone-900 dark:text-white leading-none">{(c.total_views || 0).toLocaleString()}</p>
                   </div>
-                  <div className="bg-white/40 border border-white/80 shadow-[inset_0_1px_4px_rgba(255,255,255,1)] rounded-[14px] p-4">
+                  <div className="bg-white dark:bg-zinc-900/40 border border-white/80 shadow-[inset_0_1px_4px_rgba(255,255,255,1)] rounded-[14px] p-4">
                     <div className="flex items-center gap-1.5 text-stone-500 mb-1.5 text-[9px] font-bold uppercase tracking-widest">
                       <TrendingUp className="h-3 w-3 text-purple-500" /> Conv. (All)
                     </div>
-                    <p className="text-[16px] font-black text-stone-900 leading-none">{c.total_conversions || 0}</p>
+                    <p className="text-[16px] font-black text-stone-900 dark:text-white leading-none">{c.total_conversions || 0}</p>
                   </div>
                 </div>
 
@@ -143,7 +143,7 @@ export default function InfluencerBrowseCampaignsPage() {
                   <Button className="flex-1 h-12 rounded-[14px] bg-stone-900 text-white font-bold text-[12px] uppercase tracking-widest shadow-[0_4px_16px_rgba(0,0,0,0.15)] active:scale-95 transition-all hover:bg-stone-800">
                     Apply Now
                   </Button>
-                  <Button variant="outline" size="icon" className="h-12 w-12 rounded-[14px] bg-white border border-stone-200 shadow-[0_2px_8px_rgba(0,0,0,0.03)] active:scale-95 transition-all text-stone-600 hover:bg-stone-50" asChild>
+                  <Button variant="outline" size="icon" className="h-12 w-12 rounded-[14px] bg-white dark:bg-zinc-900 border border-stone-200 dark:border-zinc-800 shadow-[0_2px_8px_rgba(0,0,0,0.03)] active:scale-95 transition-all text-stone-600 hover:bg-stone-50 dark:bg-zinc-900/50" asChild>
                     <Link href={`/marketplace/${product?.slug}`}>
                       <ExternalLink className="h-5 w-5" />
                     </Link>
@@ -157,10 +157,10 @@ export default function InfluencerBrowseCampaignsPage() {
 
       {filtered.length === 0 && (
         <GlassCard className="text-center py-24 mb-6 border-dashed flex flex-col items-center justify-center">
-          <div className="w-20 h-20 rounded-[24px] bg-white/60 border border-white/80 shadow-[inset_0_1px_4px_rgba(255,255,255,1)] flex items-center justify-center mb-5">
+          <div className="w-20 h-20 rounded-[24px] bg-white dark:bg-zinc-900/60 border border-white/80 shadow-[inset_0_1px_4px_rgba(255,255,255,1)] flex items-center justify-center mb-5">
             <Zap className="h-10 w-10 text-stone-300" />
           </div>
-          <h3 className="text-[20px] font-black text-stone-900 tracking-tight">No campaigns found</h3>
+          <h3 className="text-[20px] font-black text-stone-900 dark:text-white tracking-tight">No campaigns found</h3>
           <p className="text-[12px] font-semibold text-stone-500 uppercase tracking-widest mt-2">Try adjusting your search or check back later.</p>
         </GlassCard>
       )}

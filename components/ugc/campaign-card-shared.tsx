@@ -62,10 +62,9 @@ export function SharedCampaignCard({ c }: CampaignCardProps) {
   const isUGC = c.campaign_type === "ugc";
 
   return (
-    //turn  into light mode
     <Link
       href={`/ugc/${c.id}`}
-      className="group flex flex-col rounded-2xl overflow-hidden border border-stone-100 bg-white hover:border-orange-200 hover:bg-stone-50/50 transition-all duration-300"
+      className="group flex flex-col rounded-2xl overflow-hidden border border-stone-100 dark:border-stone-800 bg-white dark:bg-black hover:border-orange-200 dark:hover:border-orange-900 hover:bg-black/10 dark:hover:bg-stone-800/50 transition-all duration-300"
       style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.04)" }}
     >
       {/* ── Compact banner image ── */}
@@ -85,9 +84,9 @@ export function SharedCampaignCard({ c }: CampaignCardProps) {
             className="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-700 opacity-90 group-hover:opacity-100"
           />
         )}
-        {/* Light vignette */}
-        <div className="absolute inset-0 bg-gradient-to-t from-white via-white/20 to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-r from-white/40 via-transparent to-transparent" />
+        {/* Vignette - adapts to theme */}
+        <div className="absolute inset-0 bg-gradient-to-t from-white dark:from-stone-900 via-white/20 dark:via-stone-900/20 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-r from-white/40 dark:from-stone-900/40 via-transparent to-transparent" />
 
         {/* Campaign type pill — top-left */}
         <div className="absolute top-3 left-3">
@@ -154,17 +153,17 @@ export function SharedCampaignCard({ c }: CampaignCardProps) {
               style={{ color: "#3b82f6", fill: "#3b82f6" }}
             />
           </div>
-          <span className="text-[11px] font-semibold text-stone-500 truncate">
+          <span className="text-[11px] font-semibold text-stone-500 dark:text-stone-400 truncate">
             {vendor?.business_name ?? "Brand"}
           </span>
-          <span className="ml-auto text-[10px] text-stone-400 font-medium flex-shrink-0">
+          <span className="ml-auto text-[10px] text-stone-400 dark:text-stone-500 font-medium flex-shrink-0">
             {c.created_at ? formatTimeAgo(c.created_at) : ""}
           </span>
         </div>
 
         {/* Title */}
         <h3
-          className="text-[13px] font-bold text-stone-900 leading-snug line-clamp-2 tracking-tight"
+          className="text-[13px] font-bold text-stone-900 dark:text-white leading-snug line-clamp-2 tracking-tight"
           style={{ letterSpacing: "-0.01em" }}
         >
           {c.title}
@@ -172,23 +171,22 @@ export function SharedCampaignCard({ c }: CampaignCardProps) {
 
         {/* Stats row */}
         <div
-          className="grid grid-cols-2 gap-2 rounded-xl p-3"
-          style={{ background: "#f8f7f5", border: "1px solid #eeedea" }}
+          className="grid grid-cols-2 gap-2 rounded-xl p-3 bg-[var(--color-bg)] dark:bg-stone-800 border border-[#eeedea] dark:border-stone-700"
         >
           <div>
-            <p className="text-[9px] font-bold uppercase tracking-widest text-stone-400 mb-0.5">
+            <p className="text-[9px] font-bold uppercase tracking-widest text-stone-400 dark:text-stone-500 mb-0.5">
               Payout
             </p>
-            <p className="text-[13px] font-black text-stone-900">
+            <p className="text-[13px] font-black text-stone-900 dark:text-white">
               {formatMoney(c.rate_per_1k_views, "USD")}
-              <span className="text-[9px] text-stone-400 font-medium ml-1">/1k</span>
+              <span className="text-[9px] text-stone-400 dark:text-stone-500 font-medium ml-1">/1k</span>
             </p>
           </div>
           <div>
-            <p className="text-[9px] font-bold uppercase tracking-widest text-stone-400 mb-0.5">
+            <p className="text-[9px] font-bold uppercase tracking-widest text-stone-400 dark:text-stone-500 mb-0.5">
               Budget
             </p>
-            <p className="text-[13px] font-black text-stone-900">
+            <p className="text-[13px] font-black text-stone-900 dark:text-white">
               {formatMoney(c.total_budget, "USD")}
             </p>
           </div>
@@ -198,19 +196,18 @@ export function SharedCampaignCard({ c }: CampaignCardProps) {
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5">
-              <Users className="h-3 w-3 text-stone-400" />
-              <span className="text-[10px] text-stone-400 font-medium">
+              <Users className="h-3 w-3 text-stone-400 dark:text-stone-500" />
+              <span className="text-[10px] text-stone-400 dark:text-stone-500 font-medium">
                 {c.submission_count ?? 0} submissions
               </span>
             </div>
-            <span className="text-[10px] font-bold text-stone-500">
+            <span className="text-[10px] font-bold text-stone-500 dark:text-stone-400">
               {Math.round(budgetPct)}% used
             </span>
           </div>
           {/* Track */}
           <div
-            className="h-1 w-full rounded-full overflow-hidden"
-            style={{ background: "#eeedea" }}
+            className="h-1 w-full rounded-full overflow-hidden bg-[#eeedea] dark:bg-stone-700"
           >
             <div
               className="h-full rounded-full transition-all duration-1000"

@@ -44,8 +44,8 @@ export default function BuyerAnalyticsPage() {
     >
       <div className="max-w-[1400px] mx-auto space-y-6 px-4 sm:px-6 pt-5">
         <div className="mb-10">
-          <h1 className="text-2xl font-bold tracking-tight text-stone-900 flex items-center gap-3">
-             <div className="p-2 rounded-[14px] bg-white/60 border border-white/80 shadow-sm shrink-0">
+          <h1 className="text-2xl font-bold tracking-tight text-stone-900 dark:text-white flex items-center gap-3">
+             <div className="p-2 rounded-[14px] bg-white dark:bg-zinc-900/60 border border-white/80 shadow-sm shrink-0">
                <BarChart3 className="h-6 w-6 text-orange-500" />
              </div>
              Buyer Insights
@@ -56,7 +56,7 @@ export default function BuyerAnalyticsPage() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <GlassCard className="p-5 flex flex-col justify-center">
              <p className="text-[10px] font-bold uppercase tracking-widest text-stone-500 mb-1 flex items-center gap-1.5"><ShoppingCart className="h-4 w-4 text-blue-500" /> Total Purchases</p>
-             <p className="text-[28px] font-bold text-stone-900 tabular-nums leading-none">{data?.totalPurchases ?? 0}</p>
+             <p className="text-[28px] font-bold text-stone-900 dark:text-white tabular-nums leading-none">{data?.totalPurchases ?? 0}</p>
           </GlassCard>
           <GlassCard className="p-5 flex flex-col justify-center">
              <p className="text-[10px] font-bold uppercase tracking-widest text-stone-500 mb-1 flex items-center gap-1.5"><DollarSign className="h-4 w-4 text-emerald-500" /> Total Spent</p>
@@ -64,17 +64,17 @@ export default function BuyerAnalyticsPage() {
           </GlassCard>
           <GlassCard className="p-5 flex flex-col justify-center">
              <p className="text-[10px] font-bold uppercase tracking-widest text-stone-500 mb-1 flex items-center gap-1.5"><Video className="h-4 w-4 text-purple-500" /> Library Assets</p>
-             <p className="text-[28px] font-bold text-stone-900 tabular-nums leading-none">{data?.libraryCount ?? 0}</p>
+             <p className="text-[28px] font-bold text-stone-900 dark:text-white tabular-nums leading-none">{data?.libraryCount ?? 0}</p>
           </GlassCard>
           <GlassCard className="p-5 flex flex-col justify-center">
              <p className="text-[10px] font-bold uppercase tracking-widest text-stone-500 mb-1 flex items-center gap-1.5"><Heart className="h-4 w-4 text-pink-500" /> Wishlist</p>
-             <p className="text-[28px] font-bold text-stone-900 tabular-nums leading-none">{data?.wishlistCount ?? 0}</p>
+             <p className="text-[28px] font-bold text-stone-900 dark:text-white tabular-nums leading-none">{data?.wishlistCount ?? 0}</p>
           </GlassCard>
         </div>
 
-        <GlassCard className="overflow-hidden bg-white/40">
-          <div className="border-b border-stone-200/50 bg-white/40 py-4 px-6 flex flex-col">
-            <h3 className="text-[14px] font-bold text-stone-900 tracking-tight flex items-center gap-2">
+        <GlassCard className="overflow-hidden bg-white dark:bg-zinc-900/40">
+          <div className="border-b border-stone-200/50 bg-white dark:bg-zinc-900/40 py-4 px-6 flex flex-col">
+            <h3 className="text-[14px] font-bold text-stone-900 dark:text-white tracking-tight flex items-center gap-2">
               <BarChart3 className="h-4 w-4 text-orange-500" />
               Spending & Purchase History
             </h3>

@@ -67,30 +67,30 @@ export function HeroSearch() {
           className={cn(
             "relative flex items-center h-16 sm:h-18 rounded-full transition-all duration-300 overflow-hidden",
             isFocused 
-              ? "bg-white border-2 border-orange-500 shadow-[0_20px_60px_rgba(249,115,22,0.1)]" 
-              : "bg-white/60 backdrop-blur-md border border-zinc-200"
+              ? "bg-white dark:bg-zinc-900 border-2 border-orange-500 shadow-[0_20px_60px_rgba(249,115,22,0.1)]" 
+              : "bg-white dark:bg-zinc-900/60 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200 dark:border-zinc-700"
           )}
         >
           <div className="flex-1 flex items-center px-6 sm:px-8 h-full">
-             <Search className="h-5 w-5 text-zinc-400 mr-3" />
+             <Search className="h-5 w-5 text-zinc-400 dark:text-zinc-500 mr-3" />
              <input
                type="text"
                value={q}
                onFocus={() => setIsFocused(true)}
                onChange={(e) => setQ(e.target.value)}
                placeholder="Search products, suppliers, or ask Jimvio AI..."
-               className="flex-1 bg-transparent border-0 outline-none text-[15px] sm:text-[17px] font-bold text-zinc-900 placeholder:text-zinc-400 placeholder:font-medium h-full"
+               className="flex-1 bg-transparent border-0 outline-none text-[15px] sm:text-[17px] font-bold text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-600 placeholder:font-medium h-full"
                onKeyDown={(e) => {
                  if (e.key === "Enter") handleSearch();
                }}
              />
              <div className="flex items-center gap-1 shrink-0">
-                <button type="button" onClick={() => openAI()} className="p-2 hover:bg-zinc-100 rounded-full text-zinc-400 transition-colors flex items-center gap-1 group">
+                <button type="button" onClick={() => openAI()} className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full text-zinc-400 transition-colors flex items-center gap-1 group">
                    <Sparkles size={16} className="text-orange-400" />
-                   <span className="text-[10px] font-black uppercase text-zinc-400">AI</span>
+                   <span className="text-[10px] font-black uppercase text-zinc-400 dark:text-zinc-500">AI</span>
                 </button>
-                <div className="h-4 w-px bg-zinc-200 mx-1" />
-                <button type="button" className="p-2 hover:bg-zinc-100 rounded-full text-zinc-400 transition-colors">
+                <div className="h-4 w-px bg-zinc-200 dark:bg-zinc-700 mx-1" />
+                <button type="button" className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full text-zinc-400 dark:text-zinc-500 transition-colors">
                    <Paperclip size={18} />
                 </button>
              </div>
@@ -112,22 +112,22 @@ export function HeroSearch() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 5 }}
-              className="absolute top-full left-0 right-0 mt-3 bg-white rounded-3xl border border-zinc-100 shadow-[0_32px_80px_rgba(0,0,0,0.1)] overflow-hidden"
+              className="absolute top-full left-0 right-0 mt-3 bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-100 dark:border-zinc-800 shadow-[0_32px_80px_rgba(0,0,0,0.1)] overflow-hidden"
             >
               <div className="p-4 space-y-4 max-h-[400px] overflow-y-auto no-scrollbar">
                 {results.products.length > 0 && (
                    <div className="grid grid-cols-1 gap-1">
                       {results.products.slice(0, 5).map(p => (
-                         <button key={p.id} onClick={() => router.push(`/marketplace/${p.slug}`)} className="flex items-center gap-3 p-3 rounded-2xl hover:bg-zinc-50 text-left transition-all">
-                            <Search className="h-4 w-4 text-zinc-300" />
-                            <span className="text-[14px] font-bold text-zinc-700 truncate">{p.name}</span>
+                         <button key={p.id} onClick={() => router.push(`/marketplace/${p.slug}`)} className="flex items-center gap-3 p-3 rounded-2xl hover:bg-zinc-50 dark:bg-zinc-900/50 dark:hover:bg-zinc-800 text-left transition-all">
+                            <Search className="h-4 w-4 text-zinc-300 dark:text-zinc-600" />
+                            <span className="text-[14px] font-bold text-zinc-700 dark:text-zinc-200 truncate">{p.name}</span>
                          </button>
                       ))}
                    </div>
                 )}
                 <button   
                   onClick={() => openAI()}
-                  className="w-full h-12 rounded-2xl bg-orange-50 text-orange-600 text-[12px] font-black flex items-center justify-center gap-2 border border-orange-100 hover:bg-orange-100 transition-all"
+                  className="w-full h-12 rounded-2xl bg-orange-50 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400 text-[12px] font-black flex items-center justify-center gap-2 border border-orange-100 dark:border-orange-900/50 hover:bg-orange-100 dark:hover:bg-orange-950/50 transition-all"
                 >
                    <Sparkles size={14} /> Ask AI to find best deals for "{q}"
                 </button>

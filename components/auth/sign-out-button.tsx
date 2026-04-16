@@ -36,7 +36,7 @@ export const SignOutButton = React.forwardRef<HTMLButtonElement, Props>(function
         disabled={pending}
         onClick={handleClick}
         className={cn(
-          "p-1.5 rounded-lg text-[var(--color-text-muted)] hover:bg-red-50 hover:text-red-600 transition-colors",
+          "p-1.5 rounded-lg text-stone-400 dark:text-stone-500 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 transition-colors",
           className
         )}
         title="Sign out"
@@ -54,7 +54,7 @@ export const SignOutButton = React.forwardRef<HTMLButtonElement, Props>(function
       disabled={pending}
       onClick={handleClick}
       className={cn(
-        "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-red-600 outline-none hover:bg-red-50 dark:hover:bg-red-950/30",
+        "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-red-600 outline-none hover:bg-red-50 dark:hover:bg-red-900/20",
         className
       )}
     >

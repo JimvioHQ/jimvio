@@ -38,13 +38,13 @@ function StatCard({ value, label, icon, color }: {
   value: string | number; label: string; icon: React.ReactNode; color: string;
 }) {
   return (
-    <div className="relative group overflow-hidden rounded-[28px] bg-white/70 backdrop-blur-2xl border border-white/60 shadow-[0_4px_24px_rgb(0,0,0,0.04)] hover:shadow-[0_12px_36px_rgb(0,0,0,0.08)] transition-all duration-500 p-5 flex flex-col justify-between min-h-[140px]">
-      <div className={cn("w-11 h-11 rounded-[16px] flex items-center justify-center shrink-0 border border-white shadow-sm group-hover:scale-110 transition-transform duration-500", color)}>
+    <div className="relative group overflow-hidden rounded-[28px] bg-surface/70 dark:bg-zinc-800/40 backdrop-blur-2xl border border-border shadow-[0_4px_24px_rgb(0,0,0,0.04)] hover:shadow-[0_12px_36px_rgb(0,0,0,0.08)] transition-all duration-500 p-5 flex flex-col justify-between min-h-[140px]">
+      <div className={cn("w-11 h-11 rounded-[16px] flex items-center justify-center shrink-0 border border-border bg-surface dark:bg-zinc-900 shadow-sm group-hover:scale-110 transition-transform duration-500", color)}>
         {icon as React.ReactNode}
       </div>
       <div className="mt-3">
-        <p className="text-[26px] font-black text-stone-900 tabular-nums tracking-tighter leading-none">{value}</p>
-        <p className="mt-2 text-[9px] font-black text-stone-400 uppercase tracking-widest truncate">{label}</p>
+        <p className="text-[26px] font-black text-stone-900 dark:text-white tabular-nums tracking-tighter leading-none">{value}</p>
+        <p className="mt-2 text-[9px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest truncate">{label}</p>
       </div>
     </div>
   );
@@ -59,22 +59,22 @@ function ActionRow({ href, icon, label, highlight = false }: {
       <div className={cn(
         "flex items-center gap-4 px-5 py-3.5 rounded-[20px] border transition-all duration-300 active:scale-[0.97]",
         highlight
-          ? "bg-orange-500/12 border-orange-500/25 hover:bg-orange-500/20 shadow-sm"
-          : "bg-white/75 border-white/50 hover:bg-white hover:shadow-md shadow-sm"
+          ? "bg-orange-500/12 dark:bg-orange-500/10 border-orange-500/25 hover:bg-orange-500/20 shadow-sm"
+          : "bg-surface/75 dark:bg-zinc-800/40 border-border hover:bg-surface dark:hover:bg-zinc-800 hover:shadow-md shadow-sm"
       )}>
         <div className={cn(
-          "h-9 w-9 rounded-[14px] flex items-center justify-center shrink-0 border border-white shadow-sm",
-          highlight ? "bg-white/80 text-orange-600" : "bg-stone-50/80 text-stone-400 group-hover:text-stone-800"
+          "h-9 w-9 rounded-[14px] flex items-center justify-center shrink-0 border border-border shadow-sm",
+          highlight ? "bg-surface dark:bg-zinc-700 text-orange-600" : "bg-surface dark:bg-zinc-900 text-stone-400 dark:text-stone-500 group-hover:text-stone-800 dark:text-zinc-200 dark:group-hover:text-stone-200"
         )}>
           {icon as React.ReactNode}
         </div>
         <span className={cn(
           "text-[11px] font-black flex-1 truncate uppercase tracking-widest",
-          highlight ? "text-orange-700" : "text-stone-600 group-hover:text-stone-900"
+          highlight ? "text-orange-700 dark:text-orange-500" : "text-stone-600 dark:text-stone-300 group-hover:text-stone-900 dark:text-white dark:group-hover:text-white"
         )}>{label}</span>
         <ChevronRight className={cn(
           "h-4 w-4 transition-transform group-hover:translate-x-1",
-          highlight ? "text-orange-400" : "text-stone-300"
+          highlight ? "text-orange-400" : "text-stone-300 dark:text-stone-600"
         )} />
       </div>
     </Link>
@@ -88,10 +88,10 @@ function SectionHeader({ title, icon, actionHref, actionLabel = "View All" }: {
   return (
     <div className="flex items-center justify-between px-1 mb-4">
       <div className="flex items-center gap-2.5">
-        <div className="text-orange-500 bg-orange-50 p-1.5 rounded-[12px] border border-orange-100">
+        <div className="text-orange-500 bg-orange-100/50 dark:bg-orange-500/10 p-1.5 rounded-[12px] border border-orange-200/50 dark:border-orange-500/20">
           {icon as React.ReactNode}
         </div>
-        <h2 className="text-[12px] font-black text-stone-900 uppercase tracking-widest">{title}</h2>
+        <h2 className="text-[12px] font-black text-stone-900 dark:text-white uppercase tracking-widest">{title}</h2>
       </div>
       {actionHref && (
         <Link href={actionHref} className="text-[10px] font-black text-orange-500 hover:text-orange-600 transition-colors uppercase tracking-widest">
@@ -212,17 +212,17 @@ export default function DashboardPage() {
   /* ─── Loading State ─── */
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center space-y-10 animate-in fade-in duration-700" style={{ background: "#f8f7f5" }}>
+      <div className="min-h-screen flex flex-col items-center justify-center space-y-10 animate-in fade-in duration-700" style={{ background: "var(--color-bg)" }}>
         <div className="relative">
           <div className="absolute inset-0 bg-orange-400/20 blur-3xl rounded-full scale-150 animate-pulse" />
-          <div className="relative w-20 h-20 rounded-[28px] bg-white border border-white shadow-2xl flex items-center justify-center overflow-hidden">
+          <div className="relative w-20 h-20 rounded-[28px] bg-surface dark:bg-zinc-800 border border-border shadow-2xl flex items-center justify-center overflow-hidden">
             <div className="absolute inset-0 border-2 border-t-orange-500 border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin m-2" />
-            <LayoutDashboard className="h-8 w-8 text-stone-800" />
+            <LayoutDashboard className="h-8 w-8 text-stone-800 dark:text-white" />
           </div>
         </div>
         <div className="text-center space-y-2">
-          <h2 className="text-[13px] font-black text-stone-900 uppercase tracking-[0.3em]">Loading Dashboard</h2>
-          <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Setting things up...</p>
+          <h2 className="text-[13px] font-black text-stone-900 dark:text-white uppercase tracking-[0.3em]">Loading Dashboard</h2>
+          <p className="text-[10px] font-bold text-stone-400 dark:text-stone-500 uppercase tracking-widest">Setting things up...</p>
         </div>
       </div>
     );
@@ -230,20 +230,20 @@ export default function DashboardPage() {
 
   /* ─── Main Render ─── */
   return (
-    <div className="min-h-screen pb-24 relative overflow-hidden" style={{ background: "#f8f7f5" }}>
+    <div className="min-h-screen pb-24 relative overflow-hidden" style={{ background: "var(--color-bg)" }}>
       <GlassAmbientGlow color="orange" position="top-right" />
       <GlassAmbientGlow color="indigo" position="bottom-left" />
 
-      <div className="max-w-7xl mx-auto space-y-8 px-5 sm:px-6 pt-8 relative z-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <div className="max-w-7xl mx-auto space-y-8 px-0 sm:px-6 pt-5 relative z-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
 
         {/* ════════════════════════════════════
             GREETING
         ════════════════════════════════════ */}
-        <div className="space-y-1.5">
-          <h1 className="text-3xl sm:text-4xl font-black text-stone-900 tracking-tighter">
+        <div className="space-y-1.5 px-4 sm:px-0">
+          <h1 className="text-3xl sm:text-4xl font-black text-stone-900 dark:text-white tracking-tighter">
             {greeting}, <span className="text-orange-600">{firstName}</span>
           </h1>
-          <p className="text-[11px] font-bold text-stone-400 uppercase tracking-[0.25em]">
+          <p className="text-[11px] font-bold text-stone-400 dark:text-stone-500 uppercase tracking-[0.25em]">
             Your dashboard overview
           </p>
         </div>
@@ -252,91 +252,90 @@ export default function DashboardPage() {
             MY WALLET — Large Featured Card
         ════════════════════════════════════ */}
         <Link href="/dashboard/wallet" className="block outline-none group">
-          <div className="relative overflow-hidden rounded-[32px] bg-gradient-to-br from-orange-500 via-orange-400 to-amber-400 p-7 sm:p-9 shadow-[0_16px_50px_rgba(249,115,22,0.3)] hover:shadow-[0_24px_60px_rgba(249,115,22,0.4)] transition-all duration-500 active:scale-[0.98]">
-            {/* Decorative blurs */}
-            <div className="absolute top-0 right-0 w-64 h-64 bg-white/15 blur-[90px] rounded-full translate-x-1/3 -translate-y-1/3" />
-            <div className="absolute bottom-0 left-0 w-40 h-40 bg-amber-300/20 blur-[50px] rounded-full -translate-x-1/4 translate-y-1/4" />
+          <div className="relative overflow-hidden rounded-[32px] bg-neutral-900 dark:bg-zinc-900 p-8 sm:p-10 shadow-2xl transition-all duration-500 active:scale-[0.98]">
+            {/* Ambient Accent Glows */}
+            <div className="absolute -top-20 -right-20 w-80 h-80 bg-orange-500/15 blur-[100px] rounded-full group-hover:bg-orange-500/25 transition-all duration-1000" />
+            <div className="absolute -bottom-20 -left-20 w-60 h-60 bg-indigo-500/10 blur-[80px] rounded-full" />
 
             <div className="relative z-10">
               {/* Header row */}
-              <div className="flex items-center justify-between mb-5">
-                <div className="flex items-center gap-3">
-                  <div className="h-11 w-11 rounded-[16px] bg-white/20 backdrop-blur-xl flex items-center justify-center text-white border border-white/15">
-                    <Wallet className="h-5 w-5" />
+              <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center gap-4">
+                  <div className="h-12 w-12 rounded-2xl bg-orange-500 shadow-lg shadow-orange-500/30 flex items-center justify-center text-white">
+                    <Wallet className="h-5.5 w-5.5" />
                   </div>
-                  <span className="text-[11px] font-black text-white/90 uppercase tracking-widest">My Wallet</span>
+                  <div>
+                    <span className="text-[10px] font-black text-white/50 uppercase tracking-[0.2em] block">My Portfolio</span>
+                    <span className="text-sm font-bold text-white">Jimvio Wallet</span>
+                  </div>
                 </div>
                 <button
                   type="button"
                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); setBalanceHidden(v => !v); }}
-                  className="h-9 w-9 rounded-full bg-white/15 backdrop-blur-md flex items-center justify-center text-white/80 hover:bg-white/25 transition-all active:scale-90 border border-white/10"
+                  className="h-10 w-10 rounded-full bg-white/5 hover:bg-white/10 backdrop-blur-md flex items-center justify-center text-white/60 transition-all border border-white/5"
                   aria-label={balanceHidden ? "Show balance" : "Hide balance"}
                 >
                   {balanceHidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
 
-              {/* Balance */}
-              <div className="mb-5">
-                <p className="text-[10px] font-bold text-white/65 uppercase tracking-widest mb-1.5">Available Balance</p>
-                <p className="text-4xl sm:text-5xl font-black text-white tabular-nums tracking-tighter leading-none">
-                  {balanceHidden ? "• • • • • •" : formatMoney(walletBalance.available, "USD")}
-                </p>
-              </div>
-
-              {/* Footer row */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="h-2 w-2 rounded-full bg-white/50 animate-pulse" />
-                  <span className="text-[11px] font-semibold text-white/65">
-                    {balanceHidden ? "•••" : formatMoney(walletBalance.pending, "USD")} pending
-                  </span>
+              {/* Balance Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 items-end">
+                <div>
+                  <p className="text-[10px] font-black text-orange-500 uppercase tracking-widest mb-2">Available to spend</p>
+                  <p className="text-5xl sm:text-6xl font-black text-white tabular-nums tracking-tighter leading-none">
+                    {balanceHidden ? "••••••" : formatMoney(walletBalance.available, "USD")}
+                  </p>
                 </div>
-                <div className="h-9 w-9 rounded-full bg-white/20 flex items-center justify-center group-hover:bg-white/30 transition-colors">
-                  <ArrowUpRight className="h-4 w-4 text-white group-hover:scale-110 transition-transform" />
+                <div className="sm:text-right space-y-2">
+                   <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/5">
+                      <div className="h-1.5 w-1.5 rounded-full bg-orange-500 animate-pulse" />
+                      <span className="text-xs font-bold text-white/70">
+                        {balanceHidden ? "••••" : formatMoney(walletBalance.pending, "USD")} pending
+                      </span>
+                   </div>
+                   <div className="flex items-center sm:justify-end gap-2 text-white/40 text-[10px] uppercase font-bold tracking-widest">
+                     Manage Wallet <ArrowUpRight className="h-3 w-3" />
+                   </div>
                 </div>
               </div>
             </div>
           </div>
         </Link>
 
-        {/* ════════════════════════════════════
-            QUICK ACTIONS
-        ════════════════════════════════════ */}
-        <div className="grid grid-cols-4 gap-2.5 sm:gap-3">
+        {/* QUICK ACTIONS */}
+        <div className="grid grid-cols-4 gap-2 px-4 sm:px-0">
           {[
             { href: "/dashboard/wallet", icon: <Wallet />, label: "Add Funds", color: "text-orange-500" },
             { href: "/dashboard/messages", icon: <MessageSquare />, label: "Messages", color: "text-stone-500" },
             { href: "/dashboard/settings", icon: <Settings />, label: "Settings", color: "text-stone-500" },
             { href: "/support", icon: <Heart />, label: "Help", color: "text-rose-400" },
           ].map(item => (
-            <Link key={item.href} href={item.href} className="flex flex-col items-center justify-center gap-2 p-3.5 sm:p-5 rounded-[24px] bg-white/70 backdrop-blur-2xl border border-white/60 shadow-sm hover:shadow-md transition-all active:scale-95 group">
+            <Link key={item.href} href={item.href} className="flex flex-col items-center justify-center gap-2 p-3.5 sm:p-5 rounded-[24px] bg-surface dark:bg-zinc-800/40 backdrop-blur-2xl border border-border shadow-sm hover:shadow-md transition-all active:scale-95 group">
               {React.cloneElement(item.icon as React.ReactElement<{ className?: string }>, { className: cn("h-5 w-5 sm:h-6 sm:w-6 group-hover:scale-110 transition-transform", item.color) })}
-              <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-stone-500">{item.label}</span>
+              <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-stone-500 dark:text-stone-400">{item.label}</span>
             </Link>
           ))}
         </div>
 
-        {/* ════════════════════════════════════
-            MAIN GRID
-        ════════════════════════════════════ */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        {/* MAIN GRID */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 px-4 sm:px-0">
 
           {/* ─── LEFT COLUMN ─── */}
           <div className="lg:col-span-8 space-y-8">
 
             {/* Earnings Chart */}
-            <div className="rounded-[36px] bg-white/60 backdrop-blur-[60px] saturate-[180%] border border-white/60 shadow-[0_6px_30px_rgb(0,0,0,0.04)] p-7 sm:p-9 overflow-hidden">
+            <div className="rounded-[36px] bg-surface dark:bg-zinc-800/40 backdrop-blur-[60px] saturate-[180%] border border-border shadow-[0_6px_30px_rgb(0,0,0,0.04)] p-7 sm:p-9 overflow-hidden">
               <div className="flex items-center justify-between mb-7">
                 <div className="space-y-1">
-                  <h3 className="text-lg font-black text-stone-900 tracking-tight">Earnings Overview</h3>
-                  <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">
+                  <h3 className="text-lg font-black text-stone-900 dark:text-white tracking-tight">Earnings Overview</h3>
+                  <p className="text-[10px] font-bold text-stone-400 dark:text-stone-500 uppercase tracking-widest">
                     {chartData[6].v > chartData[0].v ? "Growing this week" : "Steady activity"}
                   </p>
                 </div>
-                <div className="flex items-center gap-2 bg-emerald-50 px-3.5 py-1.5 rounded-xl border border-emerald-100">
+                <div className="flex items-center gap-2 bg-emerald-500/10 dark:bg-emerald-500/10 px-3.5 py-1.5 rounded-xl border border-emerald-500/10 dark:border-emerald-500/20">
                   <TrendingUp className="h-3.5 w-3.5 text-emerald-500" />
-                  <span className="text-[9px] font-black text-emerald-700 uppercase tracking-widest">This Week</span>
+                  <span className="text-[9px] font-black text-emerald-600 dark:text-emerald-500 uppercase tracking-widest">This Week</span>
                 </div>
               </div>
               <div className="h-[170px] -ml-5 -mr-1">
@@ -348,10 +347,10 @@ export default function DashboardPage() {
                         <stop offset="95%" stopColor="#f97316" stopOpacity={0} />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.03)" />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: "#d1d5db", fontSize: 10, fontWeight: 800 }} />
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" opacity={0.3} />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: "var(--color-text-muted)", fontSize: 10, fontWeight: 800 }} />
                     <YAxis hide />
-                    <Tooltip contentStyle={{ borderRadius: "16px", border: "none", boxShadow: "0 16px 40px rgba(0,0,0,0.1)", fontSize: "11px", fontWeight: 800, padding: "10px 16px" }} />
+                    <Tooltip contentStyle={{ background: "var(--color-surface)", borderRadius: "16px", border: "1px solid var(--color-border)", boxShadow: "0 16px 40px rgba(0,0,0,0.1)", fontSize: "11px", fontWeight: 800, padding: "10px 16px", color: "var(--color-text)" }} />
                     <Area type="monotone" dataKey="v" stroke="#f97316" strokeWidth={3} fillOpacity={1} fill="url(#colorVal)"
                       dot={{ r: 3.5, fill: "#fff", stroke: "#f97316", strokeWidth: 2.5 }}
                       activeDot={{ r: 6, fill: "#f97316", stroke: "#fff", strokeWidth: 3 }}
@@ -368,8 +367,8 @@ export default function DashboardPage() {
               <div className="space-y-4">
                 <SectionHeader title="My Shopping" icon={<ShoppingCart />} actionHref="/dashboard/orders" />
                 <div className="grid grid-cols-2 gap-3">
-                  <StatCard value={stats.orders} label="My Orders" icon={<Package />} color="bg-orange-50 text-orange-600" />
-                  <StatCard value={stats.wishlist} label="Wishlist" icon={<Heart />} color="bg-rose-50 text-rose-500" />
+                  <StatCard value={stats.orders} label="My Orders" icon={<Package />} color="bg-orange-500/10 text-orange-600 dark:text-orange-400" />
+                  <StatCard value={stats.wishlist} label="Wishlist" icon={<Heart />} color="bg-rose-500/10 text-rose-500 dark:text-rose-400" />
                 </div>
                 <div className="space-y-2.5">
                   <ActionRow href="/dashboard/orders" icon={<Truck />} label="Track My Orders" />
@@ -382,8 +381,8 @@ export default function DashboardPage() {
                 <div className="space-y-4">
                   <SectionHeader title="My Store" icon={<Store />} actionHref="/dashboard/vendor/store" />
                   <div className="grid grid-cols-2 gap-3">
-                    <StatCard value={stats.vendorProducts} label="Products" icon={<Box />} color="bg-violet-50 text-violet-600" />
-                    <StatCard value={formatMoney(stats.vendorRevenue, "USD")} label="Revenue" icon={<DollarSign />} color="bg-emerald-50 text-emerald-600" />
+                    <StatCard value={stats.vendorProducts} label="Products" icon={<Box />} color="bg-violet-500/10 text-violet-600 dark:text-violet-400" />
+                    <StatCard value={formatMoney(stats.vendorRevenue, "USD")} label="Revenue" icon={<DollarSign />} color="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" />
                   </div>
                   <div className="space-y-2.5">
                     <ActionRow href="/dashboard/vendor/orders" icon={<Package />} label="Manage Orders" />
@@ -397,8 +396,8 @@ export default function DashboardPage() {
                 <div className="space-y-4">
                   <SectionHeader title="Creator Hub" icon={<Video />} actionHref="/dashboard/influencer" />
                   <div className="grid grid-cols-2 gap-3">
-                    <StatCard value={stats.missionsJoined} label="Missions Joined" icon={<Target />} color="bg-indigo-50 text-indigo-600" />
-                    <StatCard value={stats.mySubmissions} label="My Uploads" icon={<Camera />} color="bg-pink-50 text-pink-500" />
+                    <StatCard value={stats.missionsJoined} label="Missions Joined" icon={<Target />} color="bg-indigo-500/10 text-indigo-600 dark:text-indigo-400" />
+                    <StatCard value={stats.mySubmissions} label="My Uploads" icon={<Camera />} color="bg-pink-500/10 text-pink-500 dark:text-pink-400" />
                   </div>
                   <div className="space-y-2.5">
                     <ActionRow href="/ugc" icon={<Search />} label="Find Missions" highlight />
@@ -412,8 +411,8 @@ export default function DashboardPage() {
                 <div className="space-y-4">
                   <SectionHeader title="My Missions" icon={<Zap />} actionHref="/dashboard/vendor/campaigns" />
                   <div className="grid grid-cols-2 gap-3">
-                    <StatCard value={stats.activeMissions} label="Active Missions" icon={<Radio />} color="bg-amber-50 text-amber-600" />
-                    <StatCard value={stats.totalSubmissionsReceived} label="Submissions" icon={<Camera />} color="bg-sky-50 text-sky-600" />
+                    <StatCard value={stats.activeMissions} label="Active Missions" icon={<Radio />} color="bg-amber-500/10 text-amber-600 dark:text-amber-400" />
+                    <StatCard value={stats.totalSubmissionsReceived} label="Submissions" icon={<Camera />} color="bg-sky-500/10 text-sky-600 dark:text-sky-400" />
                   </div>
                   <div className="space-y-2.5">
                     <ActionRow href="/dashboard/vendor/campaigns/new" icon={<Plus />} label="Create Mission" highlight />
@@ -427,8 +426,8 @@ export default function DashboardPage() {
                 <div className="space-y-4">
                   <SectionHeader title="Affiliate Hub" icon={<Link2 />} actionHref="/dashboard/links" />
                   <div className="grid grid-cols-2 gap-3">
-                    <StatCard value={formatMoney(stats.affiliateEarnings, "USD")} label="Earnings" icon={<DollarSign />} color="bg-emerald-50 text-emerald-600" />
-                    <StatCard value={stats.affiliateLinks} label="Active Links" icon={<Link2 />} color="bg-sky-50 text-sky-600" />
+                    <StatCard value={formatMoney(stats.affiliateEarnings, "USD")} label="Earnings" icon={<DollarSign />} color="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" />
+                    <StatCard value={stats.affiliateLinks} label="Active Links" icon={<Link2 />} color="bg-sky-500/10 text-sky-600 dark:text-sky-400" />
                   </div>
                   <div className="space-y-2.5">
                     <ActionRow href="/dashboard/links" icon={<Plus />} label="Create Link" highlight />
@@ -446,22 +445,22 @@ export default function DashboardPage() {
             <div className="space-y-4">
               <SectionHeader title="Communities" icon={<Users2 />} actionHref="/communities" />
               <div className="space-y-3">
-                <div className="flex items-center gap-5 p-5 rounded-[28px] bg-white/70 backdrop-blur-2xl border border-white/60 shadow-sm hover:shadow-md transition-all duration-500 group">
-                  <div className="w-12 h-12 rounded-[18px] bg-sky-50 border border-sky-100 text-sky-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-500">
+                <div className="flex items-center gap-5 p-5 rounded-[28px] bg-surface dark:bg-zinc-800/40 backdrop-blur-2xl border border-border shadow-sm hover:shadow-md transition-all duration-500 group">
+                  <div className="w-12 h-12 rounded-[18px] bg-sky-500/10 dark:bg-sky-500/10 border border-border text-sky-600 dark:text-sky-500 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-500">
                     <Globe2 className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="text-2xl font-black text-stone-900 tracking-tighter leading-none">{stats.communitiesJoined}</p>
-                    <p className="text-[9px] font-black text-stone-400 uppercase tracking-widest mt-1.5">Joined</p>
+                    <p className="text-2xl font-black text-stone-900 dark:text-white tracking-tighter leading-none">{stats.communitiesJoined}</p>
+                    <p className="text-[9px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest mt-1.5">Joined</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-5 p-5 rounded-[28px] bg-white/70 backdrop-blur-2xl border border-white/60 shadow-sm hover:shadow-md transition-all duration-500 group">
-                  <div className="w-12 h-12 rounded-[18px] bg-orange-50 border border-orange-100 text-orange-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-500">
+                <div className="flex items-center gap-5 p-5 rounded-[28px] bg-surface dark:bg-zinc-800/40 backdrop-blur-2xl border border-border shadow-sm hover:shadow-md transition-all duration-500 group">
+                  <div className="w-12 h-12 rounded-[18px] bg-orange-500/10 dark:bg-orange-500/10 border border-border text-orange-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-500">
                     <Plus className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="text-2xl font-black text-stone-900 tracking-tighter leading-none">{stats.communitiesCreated}</p>
-                    <p className="text-[9px] font-black text-stone-400 uppercase tracking-widest mt-1.5">Created</p>
+                    <p className="text-2xl font-black text-stone-900 dark:text-white tracking-tighter leading-none">{stats.communitiesCreated}</p>
+                    <p className="text-[9px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest mt-1.5">Created</p>
                   </div>
                 </div>
               </div>
@@ -473,10 +472,10 @@ export default function DashboardPage() {
 
             {/* Learn & Grow */}
             <div className="p-7 rounded-[36px] bg-gradient-to-br from-orange-500 via-orange-400 to-amber-400 overflow-hidden relative group border border-white/15 shadow-[0_12px_36px_rgba(249,115,22,0.2)]">
-              <div className="absolute top-0 right-0 w-48 h-48 bg-white/15 blur-[70px] rounded-full translate-x-1/3 -translate-y-1/3 group-hover:bg-white/25 transition-all duration-1000" />
+              <div className="absolute top-0 right-0 w-48 h-48 bg-white dark:bg-zinc-900/15 blur-[70px] rounded-full translate-x-1/3 -translate-y-1/3 group-hover:bg-white dark:bg-zinc-900/25 transition-all duration-1000" />
               <div className="relative z-10 space-y-4">
                 <div className="flex items-center gap-2.5">
-                  <div className="bg-white/20 p-1.5 rounded-[10px] backdrop-blur-md border border-white/15 text-white">
+                  <div className="bg-white dark:bg-zinc-900/20 p-1.5 rounded-[10px] backdrop-blur-md border border-white/15 text-white">
                     <Sparkles className="h-3.5 w-3.5" />
                   </div>
                   <span className="text-[10px] font-black text-white/90 uppercase tracking-widest">Learn &amp; Grow</span>
@@ -485,23 +484,23 @@ export default function DashboardPage() {
                 <p className="text-white/80 text-[12px] leading-relaxed font-semibold">
                   Guides, tips, and strategies to sell more and reach new customers.
                 </p>
-                <Button asChild className="w-full bg-white/95 text-orange-600 hover:bg-white hover:scale-[1.01] active:scale-95 h-11 rounded-[16px] font-black text-[11px] uppercase tracking-widest transition-all border-none shadow-md">
+                <Button asChild className="w-full bg-white dark:bg-zinc-900/95 text-orange-600 hover:bg-white dark:bg-zinc-900 hover:scale-[1.01] active:scale-95 h-11 rounded-[16px] font-black text-[11px] uppercase tracking-widest transition-all border-none shadow-md">
                   <Link href="/help">Explore Guides <ArrowRight className="h-4 w-4 ml-2" /></Link>
                 </Button>
               </div>
             </div>
 
             {/* Your Roles */}
-            <div className="p-6 rounded-[32px] bg-white/50 backdrop-blur-[40px] saturate-200 border border-white/40 shadow-sm space-y-4">
+            <div className="p-6 rounded-[32px] bg-surface dark:bg-zinc-800/40 backdrop-blur-[40px] saturate-200 border border-border shadow-sm space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-black text-stone-400 uppercase tracking-widest">Your Roles</span>
+                <span className="text-[11px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest">Your Roles</span>
                 <Link href="/dashboard/roles" className="text-[10px] font-black text-orange-500 uppercase tracking-widest hover:text-orange-600 transition-colors">
                   Manage
                 </Link>
               </div>
               <div className="flex flex-wrap gap-2">
                 {activeRoles.map(role => (
-                  <div key={role} className="px-4 py-2 rounded-[14px] bg-white/80 backdrop-blur-md border border-white/70 text-stone-800 font-black text-[10px] uppercase tracking-widest shadow-sm capitalize">
+                  <div key={role} className="px-4 py-2 rounded-[14px] bg-surface dark:bg-zinc-700/80 backdrop-blur-md border border-border text-stone-800 dark:text-stone-200 font-black text-[10px] uppercase tracking-widest shadow-sm capitalize">
                     {role}
                   </div>
                 ))}

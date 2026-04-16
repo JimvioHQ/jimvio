@@ -10,16 +10,16 @@ interface CampaignScrollRowProps {
 }
 
 export function CampaignScrollRow({ campaigns }: CampaignScrollRowProps) {
-  if (!campaigns?.length) return <section className="p-4 bg-red-50 text-red-500 font-bold">Debug: No campaigns returned from DB</section>;
+  if (!campaigns?.length) return null;
 
   return (
     <section className="scroll-mt-32">
        <div className="flex items-center justify-between mb-4">
         <div>
-          <h2 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+          <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
             <Megaphone className="h-5 w-5 text-orange-500" /> Live UGC Missions
           </h2>
-          <p className="text-xs font-bold text-slate-400">Apply to promote trending products & earn instantly.</p>
+          <p className="text-xs font-bold text-slate-400 dark:text-slate-500">Apply to promote trending products & earn instantly.</p>
         </div>
         <Link href="/ugc" className="text-xs font-black text-orange-600 hover:text-orange-700 transition-colors">
           View all Missions →

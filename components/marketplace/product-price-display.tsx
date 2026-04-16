@@ -71,7 +71,7 @@ export function ProductBuyBoxPrice({
         <LocalizedPrice
           amount={price}
           currency={currency}
-          className="text-3xl font-black text-zinc-900 tracking-tight"
+          className="text-3xl font-black text-zinc-900 dark:text-white tracking-tight"
         />
         {hasDiscount && (
           <LocalizedPrice

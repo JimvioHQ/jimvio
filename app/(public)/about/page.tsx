@@ -8,7 +8,7 @@ export default function AboutPage() {
   return (
     <div className="bg-[var(--color-bg)] min-h-screen">
       {/* Hero */}
-      <section className="bg-white py-24 border-b border-[var(--color-border)] relative overflow-hidden">
+      <section className="bg-white dark:bg-zinc-950 py-24 border-b border-[var(--color-border)] relative overflow-hidden">
         <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-orange-50 to-transparent" />
         <div className="max-w-6xl mx-auto px-4 sm:px-6 relative z-10 flex flex-col items-center text-center">
           <Badge className="bg-[var(--color-accent-light)] text-[var(--color-accent)] border-none mb-6 px-4 py-1.5 capitalize tracking-widest font-black text-[10px]">
@@ -72,7 +72,7 @@ export default function AboutPage() {
                <div className="absolute inset-0 flex items-center justify-center">
                   <Globe className="h-40 w-40 text-white opacity-20 group-hover:scale-110 transition-transform duration-700" />
                </div>
-               <div className="absolute bottom-10 left-10 p-8 bg-white/10 backdrop-blur-xl rounded-3xl border border-white/20">
+               <div className="absolute bottom-10 left-10 p-8 bg-white dark:bg-zinc-900/10 backdrop-blur-xl rounded-3xl border border-white/20">
                   <p className="text-white font-black text-2xl mb-1">Kigali, Rwanda</p>
                   <p className="text-white/60 text-sm font-bold capitalize tracking-widest">Global HQ</p>
                </div>

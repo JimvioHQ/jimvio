@@ -359,7 +359,7 @@ export default function VendorSetupPage() {
             <label className="cursor-pointer">
               <input type="checkbox" className="sr-only" checked={form.affiliate_enabled} onChange={e => updateField("affiliate_enabled", e.target.checked)} />
               <div className={`w-11 h-6 rounded-full transition-colors ${form.affiliate_enabled ? "bg-[var(--color-accent)]" : "bg-[var(--color-surface-secondary)]"}`}>
-                <div className={`w-4 h-4 rounded-full bg-white shadow-sm m-1 transition-transform ${form.affiliate_enabled ? "translate-x-5" : "translate-x-0"}`} />
+                <div className={`w-4 h-4 rounded-full bg-white dark:bg-zinc-900 shadow-sm m-1 transition-transform ${form.affiliate_enabled ? "translate-x-5" : "translate-x-0"}`} />
               </div>
             </label>
           </div>

@@ -115,7 +115,7 @@ function MediaCarousel({ media }: { media: UGCPostMedia[] }) {
                 onClick={() => setIndex(i)}
                 className={cn(
                   "w-1.5 h-1.5 rounded-full transition-all",
-                  i === index ? "bg-white w-4" : "bg-white/50"
+                  i === index ? "bg-white dark:bg-zinc-900 w-4" : "bg-white dark:bg-zinc-900/50"
                 )}
               />
             ))}
@@ -316,7 +316,7 @@ export function UGCPostCard({ post, currentUserId, onDelete, className }: UGCPos
                 </Badge>
               )}
               {post.is_featured && (
-                <Badge className="text-[10px] py-0 px-1.5 font-medium bg-amber-100 text-amber-700 border-amber-200">
+                <Badge className="text-[10px] py-0 px-1.5 font-medium bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-500 border-amber-200 dark:border-amber-900/50">
                   Featured
                 </Badge>
               )}
@@ -336,7 +336,7 @@ export function UGCPostCard({ post, currentUserId, onDelete, className }: UGCPos
               {isOwner && (
                 <button
                   onClick={handleDelete}
-                  className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors"
+                  className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
                 >
                   <Trash2 className="h-4 w-4" /> Delete post
                 </button>
@@ -402,7 +402,7 @@ export function UGCPostCard({ post, currentUserId, onDelete, className }: UGCPos
             className={cn(
               "flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all active:scale-95",
               liked
-                ? "text-red-500 bg-red-50 hover:bg-red-100"
+                ? "text-red-500 bg-red-50 dark:bg-red-950/30 hover:bg-red-100 dark:hover:bg-red-900/40"
                 : "text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
             )}
           >

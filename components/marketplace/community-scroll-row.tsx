@@ -16,10 +16,10 @@ export function CommunityScrollRow({ communities }: CommunityScrollRowProps) {
     <section className="scroll-mt-32">
        <div className="flex items-center justify-between mb-4">
         <div>
-          <h2 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+          <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
             <Users className="h-5 w-5 text-indigo-600" /> Trending Communities
           </h2>
-          <p className="text-xs font-bold text-slate-400">Join elite groups to learn, share, & scale together.</p>
+          <p className="text-xs font-bold text-slate-400 dark:text-slate-500">Join elite groups to learn, share, & scale together.</p>
         </div>
         <Link href="/communities" className="text-xs font-black text-indigo-600 hover:text-indigo-700 transition-colors">
           Discovery →

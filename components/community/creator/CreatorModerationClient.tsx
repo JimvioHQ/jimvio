@@ -147,7 +147,7 @@ export function CreatorModerationClient({
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-lg font-bold text-zinc-900 mb-4">Moderation</h2>
+        <h2 className="text-lg font-bold text-zinc-900 dark:text-white mb-4">Moderation</h2>
         <p className="text-sm text-zinc-500 mb-6">
           Manage community members, suspend inappropriate behavior, and maintain a healthy community.
         </p>
@@ -158,10 +158,10 @@ export function CreatorModerationClient({
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-zinc-200/60 bg-zinc-50/50">
-                <th className="text-left px-4 py-3 font-bold text-zinc-700">Member</th>
-                <th className="text-left px-4 py-3 font-bold text-zinc-700">Role</th>
-                <th className="text-left px-4 py-3 font-bold text-zinc-700">Status</th>
-                <th className="text-right px-4 py-3 font-bold text-zinc-700">Actions</th>
+                <th className="text-left px-4 py-3 font-bold text-zinc-700 dark:text-zinc-300">Member</th>
+                <th className="text-left px-4 py-3 font-bold text-zinc-700 dark:text-zinc-300">Role</th>
+                <th className="text-left px-4 py-3 font-bold text-zinc-700 dark:text-zinc-300">Status</th>
+                <th className="text-right px-4 py-3 font-bold text-zinc-700 dark:text-zinc-300">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -182,7 +182,7 @@ export function CreatorModerationClient({
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex flex-col gap-0.5">
-                        <span className="font-medium text-zinc-900">
+                        <span className="font-medium text-zinc-900 dark:text-white">
                           {member.profile?.full_name || member.profile?.username || "Unknown"}
                         </span>
                         {member.profile?.username && (
@@ -283,7 +283,7 @@ export function CreatorModerationClient({
 
           <div className="space-y-4">
             <div>
-              <label className="text-sm font-bold text-zinc-700 block mb-2">
+              <label className="text-sm font-bold text-zinc-700 dark:text-zinc-300 block mb-2">
                 Reason (optional)
               </label>
               <Textarea

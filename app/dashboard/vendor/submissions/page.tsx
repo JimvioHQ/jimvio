@@ -66,16 +66,16 @@ export default function VendorSubmissionsPage() {
 
   if (loading && submissions.length === 0) {
     return (
-       <div className="min-h-screen flex flex-col items-center justify-center space-y-12 animate-in fade-in duration-700" style={{ background: "#f8f7f5" }}>
+       <div className="min-h-screen flex flex-col items-center justify-center space-y-12 animate-in fade-in duration-700" style={{ background: "var(--color-bg)" }}>
          <div className="relative">
            <div className="absolute inset-0 bg-orange-400/20 blur-3xl rounded-full scale-150 animate-pulse" />
-           <div className="relative w-24 h-24 rounded-[32px] bg-white border border-white shadow-2xl flex items-center justify-center overflow-hidden">
+           <div className="relative w-24 h-24 rounded-[32px] bg-white dark:bg-zinc-900 border border-white shadow-2xl flex items-center justify-center overflow-hidden">
              <div className="absolute inset-0 border-2 border-t-orange-500 border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin m-2" />
-             <Video className="h-10 w-10 text-stone-900" />
+             <Video className="h-10 w-10 text-stone-900 dark:text-white" />
            </div>
          </div>
          <div className="text-center space-y-3">
-            <h2 className="text-[14px] font-black text-stone-900 uppercase tracking-[0.4em] pl-[0.4em]">Submissions</h2>
+            <h2 className="text-[14px] font-black text-stone-900 dark:text-white uppercase tracking-[0.4em] pl-[0.4em]">Submissions</h2>
             <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest pl-[0.1em]">Reconciling Incoming Content</p>
          </div>
        </div>
@@ -83,7 +83,7 @@ export default function VendorSubmissionsPage() {
   }
 
   return (
-    <div className="min-h-screen pb-24 relative overflow-hidden" style={{ background: "#f8f7f5" }}>
+    <div className="min-h-screen pb-24 relative overflow-hidden" style={{ background: "var(--color-bg)" }}>
       <GlassAmbientGlow color="orange" position="top-right" />
       <GlassAmbientGlow color="indigo" position="bottom-left" />
 
@@ -92,8 +92,8 @@ export default function VendorSubmissionsPage() {
         {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
            <div className="space-y-2">
-              <h1 className="text-4xl font-black text-stone-900 tracking-tighter flex items-center gap-4">
-                 <div className="p-2.5 rounded-[20px] bg-white border border-white shadow-2xl shrink-0">
+              <h1 className="text-4xl font-black text-stone-900 dark:text-white tracking-tighter flex items-center gap-4">
+                 <div className="p-2.5 rounded-[20px] bg-white dark:bg-zinc-900 border border-white shadow-2xl shrink-0">
                     <Video className="h-8 w-8 text-orange-500" />
                  </div>
                  Mission Submissions
@@ -103,7 +103,7 @@ export default function VendorSubmissionsPage() {
               </p>
            </div>
            
-           <div className="flex flex-wrap items-center gap-2 bg-white/40 p-1.5 rounded-[22px] border border-white shadow-xl backdrop-blur-xl shrink-0">
+           <div className="flex flex-wrap items-center gap-2 bg-white dark:bg-zinc-900/40 p-1.5 rounded-[22px] border border-white shadow-xl backdrop-blur-xl shrink-0">
               {["pending", "approved", "rejected", "all"].map((f) => (
                  <button
                     key={f}
@@ -112,7 +112,7 @@ export default function VendorSubmissionsPage() {
                        "px-6 h-11 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all",
                        statusFilter === f
                           ? "bg-stone-900 text-white shadow-xl"
-                          : "text-stone-400 hover:text-stone-900"
+                          : "text-stone-400 hover:text-stone-900 dark:text-white"
                     )}
                  >
                     {f}
@@ -129,11 +129,11 @@ export default function VendorSubmissionsPage() {
         {/* Content Feed */}
         <div className="space-y-6">
           {submissions.length === 0 ? (
-            <GlassCard className="p-24 text-center rounded-[56px] border-white bg-white/20">
-               <div className="w-24 h-24 bg-white rounded-[32px] flex items-center justify-center mx-auto mb-8 border border-white shadow-xl">
+            <GlassCard className="p-24 text-center rounded-[56px] border-white bg-white dark:bg-zinc-900/20">
+               <div className="w-24 h-24 bg-white dark:bg-zinc-900 rounded-[32px] flex items-center justify-center mx-auto mb-8 border border-white shadow-xl">
                   <CheckCircle2 className="h-10 w-10 text-stone-100" />
                </div>
-               <h2 className="text-3xl font-black text-stone-900 tracking-tighter">You're All Caught Up</h2>
+               <h2 className="text-3xl font-black text-stone-900 dark:text-white tracking-tighter">You're All Caught Up</h2>
                <p className="text-[11px] font-black text-stone-400 uppercase tracking-widest mt-4 max-w-xs mx-auto leading-relaxed">
                   No {statusFilter !== "all" ? statusFilter : ""} assets require review right now.
                </p>
@@ -151,7 +151,7 @@ export default function VendorSubmissionsPage() {
                 return (
                   <GlassCard 
                     key={sub.id} 
-                    className="group bg-white/60 border-white rounded-[40px] p-8 hover:shadow-2xl transition-all duration-500"
+                    className="group bg-white dark:bg-zinc-900/60 border-white rounded-[40px] p-8 hover:shadow-2xl transition-all duration-500"
                   >
                     <div className="flex flex-col lg:flex-row gap-8 items-start lg:items-center">
                       
@@ -161,7 +161,7 @@ export default function VendorSubmissionsPage() {
                           {sub.influencer?.display_name?.[0]?.toUpperCase() || "C"}
                         </div>
                         <div className="min-w-0">
-                          <p className="text-lg font-black text-stone-900 truncate tracking-tight mb-1">
+                          <p className="text-lg font-black text-stone-900 dark:text-white truncate tracking-tight mb-1">
                             {sub.influencer?.display_name || "Anonymous Creator"}
                           </p>
                           <div className="flex items-center gap-3">
@@ -175,7 +175,7 @@ export default function VendorSubmissionsPage() {
                       <div className="flex-1 min-w-0 grid grid-cols-1 md:grid-cols-2 gap-6 bg-stone-50/50 rounded-[32px] p-6 border border-stone-100/50">
                         <div>
                            <p className="text-[10px] font-bold text-stone-300 uppercase tracking-widest mb-1.5">Mission Title</p>
-                           <p className="text-[14px] text-stone-900 font-black truncate tracking-tight">
+                           <p className="text-[14px] text-stone-900 dark:text-white font-black truncate tracking-tight">
                              {campaign?.title || "Standard Campaign"}
                            </p>
                            <a 
@@ -190,7 +190,7 @@ export default function VendorSubmissionsPage() {
                         <div>
                            <p className="text-[10px] font-bold text-stone-300 uppercase tracking-widest mb-1.5">Reward Profile</p>
                            <div className="flex items-baseline gap-2">
-                              <p className="text-xl font-black text-stone-900 tracking-tighter">
+                              <p className="text-xl font-black text-stone-900 dark:text-white tracking-tighter">
                                 {campaign?.payment_model === "fixed_per_content" ? `$${campaign?.fixed_rate}` : `$${campaign?.rate_per_1k_views}`}
                               </p>
                               <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">

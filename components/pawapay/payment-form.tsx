@@ -48,12 +48,12 @@ export function PawaPayPaymentForm({ amount = 1000, currency = "RWF", orderId, c
   }
 
   return (
-    <div className={cn("w-full bg-white rounded-3xl overflow-hidden border border-zinc-100 shadow-xl", className)}>
-      <div className="p-6 bg-zinc-50 border-b border-zinc-100">
-        <h2 className="text-xl font-black text-zinc-900 flex items-center gap-2">
-          <Smartphone className="h-5 w-5 text-orange-500" /> Mobile Money
+    <div className={cn("w-full bg-white dark:bg-zinc-900 rounded-3xl overflow-hidden border border-zinc-100 dark:border-zinc-800 shadow-xl", className)}>
+      <div className="p-6 bg-zinc-50 dark:bg-zinc-800/80 border-b border-zinc-100 dark:border-zinc-800">
+        <h2 className="text-xl font-black text-zinc-900 dark:text-white flex items-center gap-2">
+          <Smartphone className="h-5 w-5 text-orange-500 dark:text-orange-400" /> Mobile Money
         </h2>
-        <p className="text-xs font-bold text-zinc-400 mt-1 uppercase tracking-widest leading-none">Fast & Secure Checkout</p>
+        <p className="text-xs font-bold text-zinc-400 dark:text-zinc-500 mt-1 uppercase tracking-widest leading-none">Fast & Secure Checkout</p>
       </div>
 
       <div className="p-8 text-center space-y-6">
@@ -64,10 +64,10 @@ export function PawaPayPaymentForm({ amount = 1000, currency = "RWF", orderId, c
         </div>
 
         <div className="space-y-2">
-          <p className="text-sm font-bold text-zinc-500 max-w-[240px] mx-auto">
+          <p className="text-sm font-bold text-zinc-500 dark:text-zinc-400 max-w-[240px] mx-auto">
             Pay safely using MTN, Airtel or other local mobile money providers.
           </p>
-          <div className="flex items-center justify-center gap-1.5 text-[10px] text-zinc-300 font-bold uppercase tracking-widest">
+          <div className="flex items-center justify-center gap-1.5 text-[10px] text-zinc-400 dark:text-zinc-500 font-bold uppercase tracking-widest">
             <ShieldCheck className="h-3 w-3" /> Encrypted Transaction
           </div>
         </div>
@@ -88,7 +88,7 @@ export function PawaPayPaymentForm({ amount = 1000, currency = "RWF", orderId, c
             )}
           </Button>
           
-          <p className="mt-4 text-[10px] font-bold text-zinc-300 uppercase tracking-[2px] w-full text-center">
+          <p className="mt-4 text-[10px] font-bold text-zinc-400 dark:text-zinc-600 uppercase tracking-[2px] w-full text-center">
             Powered by pawaPay
           </p>
         </div>

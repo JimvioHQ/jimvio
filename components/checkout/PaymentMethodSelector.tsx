@@ -136,23 +136,7 @@ function PayPalBrand() {
   );
 }
 
-/* ──────────────────────────────────────────────────
-   LIQUID ORANGE GLASS — card styles
-   ────────────────────────────────────────────────── */
-const IDLE: React.CSSProperties = {
-  background: "rgba(255,255,255,0.55)",
-  backdropFilter: "blur(20px) saturate(160%)",
-  WebkitBackdropFilter: "blur(20px) saturate(160%)",
-  border: "1px solid rgba(255,255,255,0.85)",
-  boxShadow: "0 2px 10px rgba(249,115,22,0.04), inset 0 1px 0 rgba(255,255,255,0.95)",
-};
-const ACTIVE: React.CSSProperties = {
-  background: "rgba(249,115,22,0.07)",
-  backdropFilter: "blur(24px) saturate(180%)",
-  WebkitBackdropFilter: "blur(24px) saturate(180%)",
-  border: "1px solid rgba(249,115,22,0.32)",
-  boxShadow: "0 4px 18px rgba(249,115,22,0.14), inset 0 1px 0 rgba(255,255,255,0.80)",
-};
+/* Payment card styling replaced with Tailwind */
 
 interface MethodDef {
   id: "pesapal" | "nowpayments" | "flutterwave" | "paypal" | "pawapay";
@@ -222,39 +206,39 @@ export function PaymentMethodSelector({
             key={m.id}
             type="button"
             onClick={() => onSelect(m.id)}
-            className="relative w-full text-left transition-all duration-200 active:scale-[0.985] rounded-[18px] overflow-hidden"
-            style={active ? ACTIVE : IDLE}
+            className={cn(
+               "relative w-full text-left transition-all duration-200 active:scale-[0.985] rounded-[18px] overflow-hidden backdrop-blur-md",
+               active 
+                  ? "bg-orange-50/80 dark:bg-orange-500/10 border border-orange-500/40 shadow-sm shadow-orange-500/10"
+                  : "bg-surface dark:bg-zinc-900 border border-border shadow-sm hover:border-orange-500/20"
+            )}
           >
             {/* Active top shimmer line */}
             {active && (
               <div
-                className="pointer-events-none absolute inset-x-0 top-0 h-px"
-                style={{ background: "linear-gradient(90deg,transparent,rgba(249,115,22,0.5) 50%,transparent)" }}
+                className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-orange-500/50 to-transparent"
               />
             )}
 
             <div className="flex items-center gap-3 px-4 py-3">
               {/* Icon circle */}
               <div
-                className="flex-shrink-0 flex items-center justify-center rounded-[11px]"
-                style={{
-                  width: 36, height: 36,
-                  background: active ? "rgba(249,115,22,0.13)" : "rgba(255,255,255,0.80)",
-                  border: active ? "1px solid rgba(249,115,22,0.28)" : "1px solid rgba(255,255,255,0.95)",
-                  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.9)",
-                  color: active ? "#ea580c" : "#a8a29e",
-                  transition: "all 0.2s",
-                }}
+                className={cn(
+                   "flex-shrink-0 flex items-center justify-center rounded-[11px] w-9 h-9 border flex-shrink-0",
+                   active 
+                      ? "bg-orange-500/10 border-orange-500/30 text-orange-600 dark:text-orange-500" 
+                      : "bg-surface dark:bg-zinc-800 border-border text-stone-400 dark:text-stone-500"
+                )}
               >
                 {m.icon}
               </div>
 
               {/* Title + logos */}
               <div className="flex-1 min-w-0">
-                <p
-                  className="text-[12.5px] font-semibold leading-none mb-2"
-                  style={{ color: active ? "#c2410c" : "#57534e" }}
-                >
+                <p className={cn(
+                   "text-[12.5px] font-semibold leading-none mb-2",
+                   active ? "text-orange-700 dark:text-orange-500" : "text-stone-600 dark:text-stone-300"
+                )}>
                   {m.title}
                 </p>
                 <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
@@ -264,13 +248,12 @@ export function PaymentMethodSelector({
 
               {/* Radio button */}
               <div
-                className="flex-shrink-0 flex items-center justify-center rounded-full transition-all duration-200"
-                style={{
-                  width: 21, height: 21,
-                  background: active ? "#f97316" : "transparent",
-                  border: active ? "2px solid #f97316" : "2px solid rgba(249,115,22,0.22)",
-                  boxShadow: active ? "0 2px 8px rgba(249,115,22,0.38)" : "none",
-                }}
+                className={cn(
+                   "flex-shrink-0 flex items-center justify-center rounded-full transition-all duration-200 w-[21px] h-[21px] border-2",
+                   active 
+                      ? "bg-orange-500 border-orange-500 shadow-sm shadow-orange-500/40" 
+                      : "bg-transparent border-orange-500/20 dark:border-stone-700"
+                )}
               >
                 {active && (
                   <svg width="9" height="7" viewBox="0 0 9 7" fill="none">

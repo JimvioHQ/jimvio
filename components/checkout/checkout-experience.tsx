@@ -7,7 +7,7 @@ import {
    ChevronRight, TrendingUp, CreditCard, CheckCircle2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ShippingForm, type ShippingFormValues } from "@/components/checkout/ShippingForm";
+import ShippingForm, { type ShippingFormValues } from "@/components/checkout/ShippingForm";
 import { PaymentMethodSelector } from "@/components/checkout/PaymentMethodSelector";
 import { updatePendingOrdersShipping } from "@/lib/actions/checkout";
 import { toast } from "sonner";
@@ -177,13 +177,13 @@ export function CheckoutExperience({ orders, profile, mode = "cart" }: CheckoutE
 
    if (!orders.length) {
       return (
-         <div className="min-h-[60vh] flex flex-col items-center justify-center p-12 text-center bg-[#f8f7f5]">
-            <GlassCard className="max-w-md w-full p-12 rounded-[40px] bg-white shadow-2xl">
-               <div className="w-16 h-16 bg-orange-50 rounded-[22px] flex items-center justify-center mx-auto mb-6">
-                  <Package className="h-8 w-8 text-orange-400" />
+         <div className="min-h-[60vh] flex flex-col items-center justify-center p-12 text-center bg-surface dark:bg-zinc-950">
+            <GlassCard className="max-w-md w-full p-12 rounded-[40px] bg-surface dark:bg-zinc-900 border border-border shadow-2xl flex flex-col items-center">
+               <div className="w-16 h-16 bg-orange-50 dark:bg-orange-500/10 rounded-[22px] flex items-center justify-center mb-6">
+                  <Package className="h-8 w-8 text-orange-400 dark:text-orange-500" />
                </div>
-               <h2 className="text-2xl font-bold mb-3">Your cart is empty</h2>
-               <Button asChild className="w-full h-12 rounded-2xl bg-orange-500 hover:bg-orange-600">
+               <h2 className="text-2xl font-bold mb-3 text-stone-900 dark:text-white">Your cart is empty</h2>
+               <Button asChild className="w-full h-12 rounded-2xl bg-orange-500 hover:bg-orange-600 text-white mt-4">
                   <Link href="/marketplace">Browse Marketplace</Link>
                </Button>
             </GlassCard>
@@ -192,33 +192,33 @@ export function CheckoutExperience({ orders, profile, mode = "cart" }: CheckoutE
    }
 
    return (
-      <div className="min-h-screen pb-24 relative bg-[#f8f7f5] overflow-x-hidden">
+      <div className="min-h-screen pb-24 relative bg-surface-secondary dark:bg-[var(--color-bg)] overflow-x-hidden">
          <GlassAmbientGlow color="orange" position="top-right" className="opacity-40" />
 
          <div className="max-w-6xl mx-auto px-4 pt-2 relative z-10">
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
                <div className="flex items-center gap-3">
-                  <div className="p-2.5 rounded-2xl bg-white border shadow-xl">
+                  <div className="p-2.5 rounded-2xl bg-surface dark:bg-zinc-900 border border-border shadow-xl">
                      <ShieldCheck className="h-6 w-6 text-orange-500" />
                   </div>
                   <div>
-                     <h1 className="text-2xl font-bold tracking-tight">Checkout</h1>
-                     <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Secure Checkout</p>
+                     <h1 className="text-2xl font-bold tracking-tight text-stone-900 dark:text-white">Checkout</h1>
+                     <p className="text-[10px] font-bold text-stone-400 dark:text-stone-500 uppercase tracking-widest">Secure Checkout</p>
                   </div>
                </div>
 
-               <div className="flex items-center gap-2 bg-white/60 backdrop-blur-xl p-1.5 rounded-full border shadow-sm">
+               <div className="flex items-center gap-2 bg-surface/60 dark:bg-zinc-900/60 backdrop-blur-xl p-1.5 rounded-full border border-border shadow-sm">
                   {STEPS.map((s, idx) => (
                      <React.Fragment key={s.n}>
                         <div className={cn(
                            "flex items-center gap-2 px-4 h-9 rounded-full transition-all text-[11px] font-semibold",
-                           currentStep === s.n ? "bg-black text-white shadow-lg" : "text-stone-400"
+                           currentStep === s.n ? "bg-black dark:bg-white text-white dark:text-black shadow-lg" : "text-stone-400 dark:text-stone-500"
                         )}>
                            <s.icon className="h-3.5 w-3.5" />
                            <span className="hidden sm:inline">{s.label}</span>
                         </div>
-                        {idx < STEPS.length - 1 && <ChevronRight className="h-3 w-3 text-stone-300" />}
+                        {idx < STEPS.length - 1 && <ChevronRight className="h-3 w-3 text-stone-300 dark:text-stone-700" />}
                      </React.Fragment>
                   ))}
                </div>
@@ -227,7 +227,7 @@ export function CheckoutExperience({ orders, profile, mode = "cart" }: CheckoutE
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
                {/* Main Column */}
                <div className="lg:col-span-8 space-y-6">
-                  <GlassCard className="p-4 sm:p-8 rounded-[36px] bg-white shadow-xl relative overflow-hidden">
+                  <GlassCard className="p-4 sm:p-8 rounded-[36px] bg-surface dark:bg-zinc-900 border border-border shadow-xl relative overflow-hidden text-stone-900 dark:text-white">
                      {currentStep === 1 && (
                         <div className="space-y-8">
                            <SectionTitle>Shipping details</SectionTitle>
@@ -235,21 +235,21 @@ export function CheckoutExperience({ orders, profile, mode = "cart" }: CheckoutE
                               values={shipping}
                               onChange={(p) => setShipping((s) => ({ ...s, ...p }))}
                            />
-                           <div className="pt-6 border-t">
+                           <div className="pt-6 border-t border-border">
                               <SectionTitle>Review Items</SectionTitle>
                               <div className="space-y-3 mt-4">
                                  {selectedOrders.flatMap(o => o.order_items).map((item: any) => (
-                                    <div key={item.id} className="flex gap-4 items-center p-3 bg-stone-50 rounded-2xl border border-transparent hover:border-stone-200 transition-all">
-                                       <div className="w-14 h-14 bg-white rounded-xl shadow-sm overflow-hidden flex shrink-0">
+                                    <div key={item.id} className="flex gap-4 items-center p-3 bg-surface-secondary dark:bg-zinc-800/50 rounded-2xl border border-transparent hover:border-border transition-all">
+                                       <div className="w-14 h-14 bg-surface dark:bg-zinc-800 rounded-xl shadow-sm overflow-hidden flex shrink-0">
                                           {item.product_image ? (
                                              <img src={item.product_image} className="w-full h-full object-cover" />
                                           ) : (
-                                             <Package className="m-auto w-5 h-5 text-stone-200" />
+                                             <Package className="m-auto w-5 h-5 text-stone-200 dark:text-stone-800 dark:text-zinc-200" />
                                           )}
                                        </div>
                                        <div className="flex-1 min-w-0">
-                                          <p className="text-sm font-semibold truncate">{item.product_name}</p>
-                                          <p className="text-xs text-stone-400">Qty {item.quantity}</p>
+                                          <p className="text-sm font-semibold truncate text-stone-900 dark:text-white">{item.product_name}</p>
+                                          <p className="text-xs text-stone-400 dark:text-stone-500">Qty {item.quantity}</p>
                                        </div>
                                        <p className="text-sm font-bold">{formatMoney(item.unit_price, currency)}</p>
                                     </div>
@@ -280,22 +280,22 @@ export function CheckoutExperience({ orders, profile, mode = "cart" }: CheckoutE
                            <SectionTitle>Review & Confirm</SectionTitle>
                            <div className="grid sm:grid-cols-2 gap-4">
                               <ReviewBlock title="Shipping to">
-                                 <p className="font-semibold">{shipping.firstName} {shipping.lastName}</p>
-                                 <p className="text-stone-500 text-xs">{shipping.email}</p>
-                                 <p className="text-stone-500 text-xs">{shipping.phone}</p>
+                                 <p className="font-semibold text-stone-900 dark:text-white">{shipping.firstName} {shipping.lastName}</p>
+                                 <p className="text-stone-500 dark:text-stone-400 text-xs">{shipping.email}</p>
+                                 <p className="text-stone-500 dark:text-stone-400 text-xs">{shipping.phone}</p>
                               </ReviewBlock>
                               <ReviewBlock title="Delivery Address">
-                                 <p className="font-semibold">{shipping.address1 || "Digital Delivery"}</p>
-                                 <p className="text-stone-500 text-xs">{shipping.city}, {shipping.country}</p>
+                                 <p className="font-semibold text-stone-900 dark:text-white">{shipping.address1 || "Digital Delivery"}</p>
+                                 <p className="text-stone-500 dark:text-stone-400 text-xs">{shipping.city}, {shipping.country}</p>
                               </ReviewBlock>
                            </div>
                            <ReviewBlock title="Selected Payment">
                               <div className="flex justify-between items-center">
                                  <div className="flex items-center gap-2">
-                                    <div className="p-2 bg-white shadow-sm border rounded-lg">
+                                    <div className="p-2 bg-surface dark:bg-zinc-800 shadow-sm border border-border rounded-lg">
                                        <CreditCard className="h-4 w-4 text-orange-500" />
                                     </div>
-                                    <span className="font-semibold text-sm">{paymentLabel(payment)}</span>
+                                    <span className="font-semibold text-sm text-stone-900 dark:text-white">{paymentLabel(payment)}</span>
                                  </div>
                                  <button onClick={() => setCurrentStep(2)} className="text-xs font-bold text-orange-500">Change</button>
                               </div>
@@ -308,14 +308,14 @@ export function CheckoutExperience({ orders, profile, mode = "cart" }: CheckoutE
                   <div className="flex items-center justify-between">
                      <button
                         onClick={back}
-                        className={cn("text-xs font-bold text-stone-400 flex items-center gap-1", currentStep === 1 && "invisible")}
+                        className={cn("text-xs font-bold text-stone-400 dark:text-stone-500 flex items-center gap-1", currentStep === 1 && "invisible")}
                      >
                         <ChevronLeft className="h-4 w-4" /> Back
                      </button>
 
                      {currentStep < 3 ? (
-                        <Button onClick={next} className="h-12 px-8 rounded-2xl bg-black text-white shadow-xl">
-                           Continue <ArrowRight className="h-4 w-4 ml-2 text-orange-400" />
+                        <Button onClick={next} className="h-12 px-8 rounded-2xl bg-black dark:bg-white text-white dark:text-black shadow-xl">
+                           Continue <ArrowRight className="h-4 w-4 ml-2 text-orange-400 dark:text-orange-500" />
                         </Button>
                      ) : (
                         <Button
@@ -331,22 +331,22 @@ export function CheckoutExperience({ orders, profile, mode = "cart" }: CheckoutE
 
                {/* Sidebar */}
                <div className="lg:col-span-4">
-                  <div className="p-6 rounded-[32px] bg-[#0e0906] text-white shadow-2xl relative overflow-hidden">
+                  <div className="p-6 rounded-[32px] bg-[#0e0906] dark:bg-zinc-900 text-white shadow-2xl relative overflow-hidden border border-[#0e0906] dark:border-border">
                      <div className="relative z-10">
                         <div className="flex justify-between items-center mb-6">
-                           <p className="text-[9px] font-bold uppercase tracking-widest text-white/40">Grand Total</p>
+                           <p className="text-[9px] font-bold uppercase tracking-widest text-white/40 dark:text-stone-400">Grand Total</p>
                            <TrendingUp className="h-4 w-4 text-orange-500" />
                         </div>
-                        <p className="text-4xl font-bold tracking-tight">
+                        <p className="text-4xl font-bold tracking-tight text-white">
                            {formatMoney(total, currency).replace(/[^\d.,]/g, "").trim()}
                            <span className="text-lg text-orange-500 ml-2">{userCurrency}</span>
                         </p>
-                        <div className="mt-8 pt-4 border-t border-white/10 space-y-3">
-                           <div className="flex justify-between text-xs text-white/60">
+                        <div className="mt-8 pt-4 border-t border-white/10 dark:border-zinc-800 space-y-3">
+                           <div className="flex justify-between text-xs text-white/60 dark:text-stone-400">
                               <span>Subtotal</span>
-                              <span>{formatMoney(subtotal, currency)}</span>
+                              <span className="text-white">{formatMoney(subtotal, currency)}</span>
                            </div>
-                           <div className="flex justify-between text-xs text-green-400">
+                           <div className="flex justify-between text-xs text-green-400 dark:text-emerald-500">
                               <span>Shipping</span>
                               <span>Free</span>
                            </div>
@@ -366,8 +366,8 @@ function SectionTitle({ children }: any) {
 
 function ReviewBlock({ title, children }: { title: string; children: React.ReactNode }) {
    return (
-      <div className="p-4 rounded-2xl bg-stone-50 border border-stone-100">
-         <p className="text-[10px] font-bold text-stone-400 uppercase mb-2">{title}</p>
+      <div className="p-4 rounded-2xl bg-surface-secondary dark:bg-zinc-800/40 border border-border">
+         <p className="text-[10px] font-bold text-stone-400 dark:text-stone-500 uppercase mb-2">{title}</p>
          <div className="text-sm">{children}</div>
       </div>
    );

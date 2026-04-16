@@ -27,8 +27,8 @@ import { toast } from "sonner";
 
 const statusConfig: Record<string, { label: string; variant: "success" | "warning" | "secondary" | "accent" | "default"; color: string }> = {
   pending: { label: "Pending", variant: "warning", color: "text-amber-500" },
-  confirmed: { label: "Confirmed", variant: "default", color: "text-stone-900" },
-  processing: { label: "Processing", variant: "default", color: "text-stone-900" },
+  confirmed: { label: "Confirmed", variant: "default", color: "text-stone-900 dark:text-white" },
+  processing: { label: "Processing", variant: "default", color: "text-stone-900 dark:text-white" },
   shipped: { label: "Shipped", variant: "accent", color: "text-blue-500" },
   delivered: { label: "Delivered", variant: "success", color: "text-emerald-500" },
   completed: { label: "Completed", variant: "success", color: "text-emerald-500" },
@@ -171,7 +171,7 @@ export default function VendorOrdersPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center space-y-6" style={{ background: "#f8f7f5" }}>
+      <div className="min-h-screen flex flex-col items-center justify-center space-y-6" style={{ background: "var(--color-bg)" }}>
         <RefreshCw className="h-6 w-6 animate-spin text-orange-500" />
         <p className="text-[11px] font-bold text-stone-400 uppercase tracking-widest pl-1">Syncing Orders...</p>
       </div>
@@ -180,10 +180,10 @@ export default function VendorOrdersPage() {
 
   if (!vendorId) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-6" style={{ background: "#f8f7f5" }}>
-        <GlassCard className="max-w-md w-full p-10 text-center rounded-[32px] border-white shadow-sm bg-white/60">
-          <Truck className="h-10 w-10 text-stone-100 mx-auto mb-6" />
-          <h2 className="text-xl font-bold text-stone-900 mb-2">Vendor Role Needed</h2>
+      <div className="min-h-screen flex items-center justify-center px-6" style={{ background: "var(--color-bg)" }}>
+        <GlassCard className="max-w-md w-full p-10 text-center rounded-[32px] border-border shadow-sm bg-surface dark:bg-zinc-900/60">
+          <Truck className="h-10 w-10 text-stone-400 dark:text-stone-600 mx-auto mb-6" />
+          <h2 className="text-xl font-bold text-stone-900 dark:text-white mb-2">Vendor Role Needed</h2>
           <p className="text-stone-500 text-sm mb-10 font-medium">Please activate your vendor account to view orders.</p>
           <Button asChild className="w-full h-12 rounded-xl bg-stone-900 text-white font-bold active:scale-95 transition-all outline-none border-none">
              <Link href="/dashboard/activate/vendor">Become a Vendor</Link>
@@ -197,13 +197,13 @@ export default function VendorOrdersPage() {
     <div
       className="min-h-screen animate-in fade-in duration-500 pb-20 relative overflow-hidden"
       style={{
-        background: "radial-gradient(ellipse 80% 60% at 80% 0%, rgba(251,146,60,0.03) 0%, transparent 50%), radial-gradient(ellipse 60% 50% at 0% 100%, rgba(186,230,253,0.03) 0%, transparent 55%), #f8f7f5",
+        background: "radial-gradient(ellipse 80% 60% at 80% 0%, rgba(251,146,60,0.03) 0%, transparent 50%), radial-gradient(ellipse 60% 50% at 0% 100%, rgba(186,230,253,0.03) 0%, transparent 55%), var(--color-bg)",
       }}
     >
       <div className="max-w-6xl mx-auto space-y-4 sm:space-y-8 px-4 sm:px-6 pt-4 sm:pt-10 relative z-10">
         
         <div>
-           <h1 className="text-xl sm:text-2xl font-black text-stone-900 tracking-tight">Orders Received</h1>
+           <h1 className="text-xl sm:text-2xl font-black text-stone-900 dark:text-white tracking-tight">Orders Received</h1>
            <p className="text-[10px] sm:text-[11px] font-bold text-stone-400 uppercase tracking-widest mt-0.5 pl-0.5 opacity-80">Manage fulfillment and customer deliveries</p>
         </div>
 
@@ -215,12 +215,12 @@ export default function VendorOrdersPage() {
               { label: "Total Revenue", value: formatMoney(totalSalesUsd, "USD"), icon: DollarSign, color: "text-emerald-500" },
               { label: "Completed", value: completedSales, icon: CheckCircle2, color: "text-sky-500" },
            ].map((stat, i) => (
-              <GlassCard key={i} className="p-4 sm:p-5 rounded-xl sm:rounded-2xl bg-white/80 border-white shadow-sm flex flex-col justify-center gap-0.5 sm:gap-1">
+              <GlassCard key={i} className="p-4 sm:p-5 rounded-xl sm:rounded-2xl bg-surface dark:bg-zinc-900/80 border-border shadow-sm flex flex-col justify-center gap-0.5 sm:gap-1">
                  <div className="flex items-center gap-2 mb-0.5 sm:mb-1">
                     <stat.icon className={cn("h-3 w-3 sm:h-3.5 sm:w-3.5", stat.color)} />
                     <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-stone-400">{stat.label}</span>
                  </div>
-                 <p className="text-lg sm:text-2xl font-black text-stone-900 tabular-nums">{stat.value}</p>
+                 <p className="text-lg sm:text-2xl font-black text-stone-900 dark:text-white tabular-nums">{stat.value}</p>
               </GlassCard>
            ))}
         </div>
@@ -233,10 +233,10 @@ export default function VendorOrdersPage() {
                 placeholder="Search orders, buyers, or products..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full h-11 pl-11 pr-4 rounded-xl bg-white border border-stone-100 text-[13px] font-medium text-stone-900 placeholder:text-stone-300 shadow-sm focus:outline-none focus:ring-4 focus:ring-stone-500/5 transition-all"
+                className="w-full h-11 pl-11 pr-4 rounded-xl bg-surface dark:bg-zinc-900 border border-border text-[13px] font-medium text-stone-900 dark:text-white placeholder:text-stone-300 dark:placeholder:text-stone-700 shadow-sm focus:outline-none focus:ring-4 focus:ring-stone-500/5 transition-all"
               />
            </div>
-           <div className="flex items-center gap-1.5 p-1 bg-white border border-stone-100 rounded-xl shadow-sm overflow-x-auto no-scrollbar">
+           <div className="flex items-center gap-1.5 p-1 bg-surface dark:bg-zinc-900 border border-border rounded-xl shadow-sm overflow-x-auto no-scrollbar">
               {["All", "Pending", "Shipped", "Delivered"].map((f) => (
                 <button
                   key={f}
@@ -245,7 +245,7 @@ export default function VendorOrdersPage() {
                     "px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all",
                     filter === f 
                       ? "bg-stone-900 text-white shadow-md" 
-                      : "text-stone-400 hover:text-stone-900 hover:bg-stone-50"
+                      : "text-stone-400 hover:text-stone-900 dark:text-white hover:bg-stone-50 dark:bg-zinc-900/50"
                   )}
                 >
                   {f}
@@ -255,11 +255,11 @@ export default function VendorOrdersPage() {
         </div>
 
         {/* Orders Table - Full-width Mobile */}
-        <GlassCard className="rounded-2xl sm:rounded-[32px] border-white max-sm:-mx-4 max-sm:rounded-none max-sm:border-x-0 bg-white/60 shadow-sm overflow-hidden">
+        <GlassCard className="rounded-2xl sm:rounded-[32px] border-border max-sm:-mx-4 max-sm:rounded-none max-sm:border-x-0 bg-surface dark:bg-zinc-900/60 shadow-sm overflow-hidden">
            <div className="overflow-x-auto">
               <table className="w-full text-left min-w-[700px] sm:min-w-0">
                  <thead>
-                    <tr className="bg-stone-50/40 border-b border-stone-100/50">
+                    <tr className="bg-surface-secondary/40 border-b border-border/50">
                        <th className="px-4 sm:px-8 py-4 sm:py-5 text-[9px] font-bold uppercase tracking-widest text-stone-400">Order ID</th>
                        <th className="px-4 sm:px-8 py-4 sm:py-5 text-[9px] font-bold uppercase tracking-widest text-stone-400">Buyer</th>
                        <th className="px-4 sm:px-8 py-4 sm:py-5 text-[9px] font-bold uppercase tracking-widest text-stone-400">Products</th>
@@ -283,9 +283,9 @@ export default function VendorOrdersPage() {
                          const productLabel = first ? (order.items.length > 1 ? `${first.product_name} +${order.items.length - 1}` : first.product_name) : "—";
                          
                          return (
-                           <tr key={order.id} className="hover:bg-white/60 transition-all duration-300 group">
+                           <tr key={order.id} className="hover:bg-surface-secondary dark:hover:bg-zinc-800 transition-all duration-300 group">
                               <td className="px-4 sm:px-8 py-5 sm:py-6">
-                                 <p className="font-bold text-[13px] sm:text-sm text-stone-900 tracking-tight group-hover:text-orange-600 transition-colors">
+                                 <p className="font-bold text-[13px] sm:text-sm text-stone-900 dark:text-white tracking-tight group-hover:text-orange-600 transition-colors">
                                     #{order.order_number}
                                  </p>
                                  <p className="text-[9px] font-bold text-stone-300 uppercase tracking-widest mt-0.5">
@@ -293,14 +293,14 @@ export default function VendorOrdersPage() {
                                  </p>
                               </td>
                               <td className="px-4 sm:px-8 py-5 sm:py-6">
-                                 <p className="font-bold text-[13px] text-stone-900 leading-none">{order.buyer?.full_name?.split(' ')[0] || "—"}</p>
+                                 <p className="font-bold text-[13px] text-stone-900 dark:text-white leading-none">{order.buyer?.full_name?.split(' ')[0] || "—"}</p>
                                  <p className="text-[10px] font-medium text-stone-400 mt-1 truncate max-w-[100px] sm:max-w-[140px]">{order.buyer?.email}</p>
                               </td>
                               <td className="px-4 sm:px-8 py-5 sm:py-6">
                                  <p className="text-[12px] font-bold text-stone-700 tracking-tight truncate max-w-[140px] sm:max-w-[180px]">{productLabel}</p>
                                  {first?.product_source === "cj" && <Badge variant="secondary" className="text-[7px] px-1.5 py-0 mt-1 uppercase tracking-widest font-black opacity-60">Dropship</Badge>}
                               </td>
-                              <td className="px-4 sm:px-8 py-5 sm:py-6 text-right font-black text-stone-900 tabular-nums">
+                              <td className="px-4 sm:px-8 py-5 sm:py-6 text-right font-black text-stone-900 dark:text-white tabular-nums">
                                  {formatMoney(order.totalAmount ?? 0, order.currency ?? "USD")}
                               </td>
                               <td className="px-4 sm:px-8 py-5 sm:py-6">
@@ -313,25 +313,25 @@ export default function VendorOrdersPage() {
                               <td className="px-4 sm:px-8 py-5 sm:py-6 text-right">
                                  <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
-                                       <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl bg-white border border-stone-50 shadow-sm hover:border-stone-100 transition-all">
+                                       <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl bg-surface dark:bg-zinc-900 border border-border shadow-sm hover:border-orange-500/20 transition-all">
                                           <MoreHorizontal className="h-4 w-4 text-stone-400" />
                                        </Button>
                                     </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end" className="w-52 rounded-2xl shadow-xl border-stone-50 p-2 bg-white/95 backdrop-blur-xl">
+                                    <DropdownMenuContent align="end" className="w-52 rounded-2xl shadow-xl border-border p-2 bg-surface dark:bg-zinc-900/95 backdrop-blur-xl">
                                        <DropdownMenuItem asChild className="rounded-xl cursor-pointer">
                                           <Link href={`/dashboard/vendor/orders/${order.id}`} className="flex items-center gap-2.5">
                                              <Eye className="h-4 w-4 text-stone-400" /> 
-                                             <span className="text-[12px] font-bold text-stone-800">Review Items</span>
+                                             <span className="text-[12px] font-bold text-stone-800 dark:text-zinc-200">Review Items</span>
                                           </Link>
                                        </DropdownMenuItem>
                                        <DropdownMenuItem asChild className="rounded-xl cursor-pointer">
                                           <Link href={`/dashboard/messages?buyer=${order.buyer?.id}`} className="flex items-center gap-2.5">
                                              <MessageSquare className="h-4 w-4 text-emerald-400" /> 
-                                             <span className="text-[12px] font-bold text-stone-800">Message Buyer</span>
+                                             <span className="text-[12px] font-bold text-stone-800 dark:text-zinc-200">Message Buyer</span>
                                           </Link>
                                        </DropdownMenuItem>
-                                       <DropdownMenuSeparator className="bg-stone-50 my-1" />
-                                       <DropdownMenuItem className="flex items-center gap-2.5 cursor-pointer rounded-xl focus:bg-rose-50" onClick={() => handleStatusChange(order.id, "cancelled")}>
+                                       <DropdownMenuSeparator className="bg-border my-1" />
+                                       <DropdownMenuItem className="flex items-center gap-2.5 cursor-pointer rounded-xl focus:bg-rose-50 dark:focus:bg-rose-500/10" onClick={() => handleStatusChange(order.id, "cancelled")}>
                                           <XCircle className="h-4 w-4 text-rose-400" /> 
                                           <span className="text-[12px] font-bold text-rose-500">Cancel Order</span>
                                        </DropdownMenuItem>

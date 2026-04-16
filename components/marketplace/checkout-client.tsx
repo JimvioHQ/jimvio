@@ -97,13 +97,13 @@ export function CheckoutClient({ orders, total }: CheckoutClientProps) {
   if (payment) {
     return (
       <div className="max-w-[var(--container-max)] mx-auto">
-        <div className="bg-white rounded-3xl border border-[var(--color-border)] shadow-sm overflow-hidden p-8">
+        <div className="bg-white dark:bg-zinc-900 rounded-3xl border border-[var(--color-border)] shadow-sm overflow-hidden p-8">
           <div className="flex items-center gap-3 mb-6">
             <div className="h-12 w-12 bg-amber-100 rounded-xl flex items-center justify-center">
               <Bitcoin className="h-6 w-6 text-amber-600" />
             </div>
             <div>
-              <h2 className="text-xl font-black text-zinc-900">Pay with {payment.payCurrency.toUpperCase()}</h2>
+              <h2 className="text-xl font-black text-zinc-900 dark:text-white">Pay with {payment.payCurrency.toUpperCase()}</h2>
               <p className="text-sm text-zinc-500">Send exactly {payment.payAmount} {payment.payCurrency.toUpperCase()}</p>
             </div>
           </div>
@@ -115,7 +115,7 @@ export function CheckoutClient({ orders, total }: CheckoutClientProps) {
                 <input
                   readOnly
                   value={payment.payAddress}
-                  className="flex-1 px-4 py-3 rounded-xl border border-[var(--color-border)] bg-zinc-50 text-sm font-mono"
+                  className="flex-1 px-4 py-3 rounded-xl border border-[var(--color-border)] bg-zinc-50 dark:bg-zinc-900/50 text-sm font-mono"
                 />
                 <Button variant="outline" size="icon" onClick={copyAddress} className="shrink-0">
                   <Copy className="h-4 w-4" />
@@ -123,9 +123,9 @@ export function CheckoutClient({ orders, total }: CheckoutClientProps) {
               </div>
             </div>
 
-            <div className="p-4 bg-zinc-50 rounded-xl border border-zinc-100">
+            <div className="p-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-xl border border-zinc-100 dark:border-zinc-800">
               <p className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1">Amount due</p>
-              <p className="text-2xl font-black text-zinc-900">
+              <p className="text-2xl font-black text-zinc-900 dark:text-white">
                 {payment.payAmount} {payment.payCurrency.toUpperCase()}
               </p>
               <p className="text-sm text-zinc-500 mt-1">≈ {formatPrice(payment.priceAmount)} (USD)</p>
@@ -148,14 +148,14 @@ export function CheckoutClient({ orders, total }: CheckoutClientProps) {
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
       <div className="lg:col-span-2 space-y-6">
         {orders.map((order) => (
-          <div key={order.id} className="bg-white rounded-2xl border border-[var(--color-border)] p-6">
+          <div key={order.id} className="bg-white dark:bg-zinc-900 rounded-2xl border border-[var(--color-border)] p-6">
             <div className="space-y-3">
               {order.order_items.map((item) => (
                 <div key={item.id} className="flex justify-between items-center">
                   <div className="flex items-center gap-3">
                     <Package className="h-8 w-8 text-zinc-300" />
                     <div>
-                      <p className="font-medium text-zinc-900">{item.product_name}</p>
+                      <p className="font-medium text-zinc-900 dark:text-white">{item.product_name}</p>
                       <p className="text-xs text-zinc-500">Qty: {item.quantity}</p>
                     </div>
                   </div>
@@ -168,14 +168,14 @@ export function CheckoutClient({ orders, total }: CheckoutClientProps) {
       </div>
 
       <div className="lg:col-span-1">
-        <div className="sticky top-40 bg-white rounded-2xl border border-[var(--color-border)] p-6 shadow-sm">
-          <h3 className="text-lg font-bold text-zinc-900 mb-4">Order Summary</h3>
+        <div className="sticky top-40 bg-white dark:bg-zinc-900 rounded-2xl border border-[var(--color-border)] p-6 shadow-sm">
+          <h3 className="text-lg font-bold text-zinc-900 dark:text-white mb-4">Order Summary</h3>
           <div className="space-y-2 mb-6">
             <div className="flex justify-between text-sm">
               <span className="text-zinc-500">Subtotal</span>
               <span>{formatCartTotalsLabel(orders)}</span>
             </div>
-            <div className="border-t border-zinc-100 pt-4 mt-4">
+            <div className="border-t border-zinc-100 dark:border-zinc-800 pt-4 mt-4">
               <div className="flex justify-between font-bold">
                 <span>Total</span>
                 <span className="text-[var(--color-accent)]">{formatCartTotalsLabel(orders)}</span>
@@ -189,7 +189,7 @@ export function CheckoutClient({ orders, total }: CheckoutClientProps) {
               <select
                 value={payCurrency}
                 onChange={(e) => setPayCurrency(e.target.value)}
-                className="w-full h-12 px-4 rounded-xl border border-[var(--color-border)] bg-white text-sm font-medium"
+                className="w-full h-12 px-4 rounded-xl border border-[var(--color-border)] bg-white dark:bg-zinc-900 text-sm font-medium"
               >
                 {PAY_CURRENCIES.map((c) => (
                   <option key={c.id} value={c.id}>

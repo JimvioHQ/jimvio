@@ -18,7 +18,7 @@ export function ImageGallery({ images, productName, isFeatured, savings }: Image
   return (
     <div className="space-y-3">
       {/* Main Image */}
-      <div className="relative aspect-square bg-white rounded-xl border border-zinc-200 overflow-hidden group cursor-zoom-in">
+      <div className="relative aspect-square bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-hidden group cursor-zoom-in">
         {mainImage ? (
           <img
             src={mainImage}
@@ -26,7 +26,7 @@ export function ImageGallery({ images, productName, isFeatured, savings }: Image
             className="w-full h-full object-contain p-4 group-hover:scale-105 transition-transform duration-500 ease-out"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-6xl font-black text-zinc-200 bg-zinc-50 uppercase select-none">
+          <div className="w-full h-full flex items-center justify-center text-6xl font-black text-zinc-200 dark:text-zinc-800 dark:text-zinc-200 bg-zinc-50 dark:bg-zinc-900/50 uppercase select-none">
             {productName[0]}
           </div>
         )}
@@ -54,10 +54,10 @@ export function ImageGallery({ images, productName, isFeatured, savings }: Image
               key={i}
               onClick={() => setActiveIndex(i)}
               className={cn(
-                "h-14 w-14 shrink-0 rounded-lg border-2 overflow-hidden bg-white p-1 cursor-pointer transition-all",
+                "h-14 w-14 shrink-0 rounded-lg border-2 overflow-hidden bg-white dark:bg-zinc-900 p-1 cursor-pointer transition-all",
                 i === activeIndex
                   ? "border-[var(--color-accent)] shadow-sm ring-2 ring-[var(--color-accent)]/20"
-                  : "border-zinc-200 hover:border-zinc-400 opacity-70 hover:opacity-100"
+                  : "border-zinc-200 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-500 opacity-70 hover:opacity-100"
               )}
             >
               <img src={img} alt="" className="w-full h-full object-contain" />

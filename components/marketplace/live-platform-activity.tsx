@@ -54,7 +54,7 @@ export function LivePlatformActivity({
       {stats.map((stat, i) => (
         <div 
           key={i}
-          className="relative group p-5 rounded-3xl bg-white border border-[#ebe8f2] shadow-sm hover:shadow-xl hover:border-orange-500/20 transition-all duration-300"
+          className="relative group p-5 rounded-3xl bg-white dark:bg-zinc-900 border border-[#ebe8f2] shadow-sm hover:shadow-xl hover:border-orange-500/20 transition-all duration-300"
         >
           <div className={cn(
             "w-12 h-12 rounded-2xl flex items-center justify-center mb-4 transition-transform group-hover:scale-110 group-hover:rotate-3 duration-300 shadow-inner",

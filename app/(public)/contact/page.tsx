@@ -11,7 +11,7 @@ export default async function ContactPage() {
   return (
     <div className="bg-[var(--color-bg)] min-h-screen">
       {/* Header */}
-      <section className="bg-white border-b border-[var(--color-border)] py-20">
+      <section className="bg-white dark:bg-zinc-900 border-b border-[var(--color-border)] py-20">
         <div className="max-w-[var(--container-max)] mx-auto px-4 sm:px-6 text-center">
           <Badge className="bg-[var(--color-accent-light)] text-[var(--color-accent)] border-none mb-6 px-4 py-1.5 capitalize tracking-widest font-black text-[10px]">
             Support & Inquiry
@@ -65,10 +65,10 @@ export default async function ContactPage() {
                     {contact.hq_line2}
                   </p>
                   <div className="flex gap-4">
-                    <a href={contact.social_x} target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-white border border-[var(--color-border)] rounded-lg flex items-center justify-center text-[var(--color-text-muted)] hover:text-[var(--color-accent)] transition-colors"><Twitter className="h-5 w-5" /></a>
-                    <a href={contact.social_youtube} target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-white border border-[var(--color-border)] rounded-lg flex items-center justify-center text-[var(--color-text-muted)] hover:text-[var(--color-accent)] transition-colors"><Youtube className="h-5 w-5" /></a>
-                    <a href={contact.social_instagram} target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-white border border-[var(--color-border)] rounded-lg flex items-center justify-center text-[var(--color-text-muted)] hover:text-[var(--color-accent)] transition-colors"><Globe className="h-5 w-5" /></a>
-                    <a href={contact.social_tiktok} target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-white border border-[var(--color-border)] rounded-lg flex items-center justify-center text-[var(--color-text-muted)] hover:text-[var(--color-accent)] transition-colors"><Send className="h-5 w-5" /></a>
+                    <a href={contact.social_x} target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-white dark:bg-zinc-900 border border-[var(--color-border)] rounded-lg flex items-center justify-center text-[var(--color-text-muted)] hover:text-[var(--color-accent)] transition-colors"><Twitter className="h-5 w-5" /></a>
+                    <a href={contact.social_youtube} target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-white dark:bg-zinc-900 border border-[var(--color-border)] rounded-lg flex items-center justify-center text-[var(--color-text-muted)] hover:text-[var(--color-accent)] transition-colors"><Youtube className="h-5 w-5" /></a>
+                    <a href={contact.social_instagram} target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-white dark:bg-zinc-900 border border-[var(--color-border)] rounded-lg flex items-center justify-center text-[var(--color-text-muted)] hover:text-[var(--color-accent)] transition-colors"><Globe className="h-5 w-5" /></a>
+                    <a href={contact.social_tiktok} target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-white dark:bg-zinc-900 border border-[var(--color-border)] rounded-lg flex items-center justify-center text-[var(--color-text-muted)] hover:text-[var(--color-accent)] transition-colors"><Send className="h-5 w-5" /></a>
                   </div>
                 </div>
               </div>
@@ -76,7 +76,7 @@ export default async function ContactPage() {
           </div>
 
           {/* Contact Form */}
-          <div className="bg-white border border-[var(--color-border)] rounded-[2.5rem] p-10 shadow-2xl">
+          <div className="bg-white dark:bg-zinc-900 border border-[var(--color-border)] rounded-[2.5rem] p-10 shadow-2xl">
             <h3 className="text-2xl font-black text-[var(--color-text-primary)] mb-8">Send a Message</h3>
             <form className="space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -91,7 +91,7 @@ export default async function ContactPage() {
               </div>
               <div className="space-y-2">
                 <label className="text-xs font-black capitalize tracking-widest text-[var(--color-text-muted)]">Subject</label>
-                <select className="w-full h-12 border-2 rounded-xl px-4 bg-white font-bold outline-none focus:border-[var(--color-accent)] transition-colors">
+                <select className="w-full h-12 border-2 rounded-xl px-4 bg-white dark:bg-zinc-900 font-bold outline-none focus:border-[var(--color-accent)] transition-colors">
                   <option>Sourcing Inquiry</option>
                   <option>Vendor Verification</option>
                   <option>Affiliate Partnership</option>
@@ -116,7 +116,7 @@ export default async function ContactPage() {
         <div className="max-w-[var(--container-max)] mx-auto px-4 sm:px-6 text-center">
             <h2 className="text-3xl font-black text-[var(--color-text-primary)] mb-4">Everywhere You Are</h2>
             <p className="text-[var(--color-text-secondary)] mb-12">With local offices in 6 continents, our expertise is truly global.</p>
-            <div className="aspect-[21/9] bg-white border border-[var(--color-border)] rounded-[3rem] shadow-sm flex items-center justify-center">
+            <div className="aspect-[21/9] bg-white dark:bg-zinc-900 border border-[var(--color-border)] rounded-[3rem] shadow-sm flex items-center justify-center">
                 <div className="text-center">
                     <Globe className="h-20 w-20 text-[var(--color-accent-light)] mx-auto mb-4" />
                     <p className="text-[var(--color-text-muted)] font-black capitalize tracking-[0.3em]">Interactive Map Incoming</p>

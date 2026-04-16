@@ -48,7 +48,7 @@ export function LoginForm() {
   return (
     <div className="w-full">
       <div className="space-y-3 mb-10">
-        <h1 className="text-3xl font-black tracking-tight text-zinc-900">Welcome back</h1>
+        <h1 className="text-3xl font-black tracking-tight text-zinc-900 dark:text-white">Welcome back</h1>
         <p className="text-[14px] font-medium text-zinc-500">
           Sign in to your account to continue
         </p>
@@ -60,14 +60,14 @@ export function LoginForm() {
           onClick={() =>
             startTransition(async () => {
               try {
-                await signInWithGoogle();
+                await signInWithGoogle(next);
               } catch (err: unknown) {
                 if (isNextRedirectError(err)) throw err;
               }
             })
           }
           disabled={pending}
-          className="w-full h-12 bg-white hover:bg-zinc-50 text-zinc-700 border border-zinc-200 shadow-sm rounded-xl font-bold transition-all flex items-center justify-center gap-3"
+          className="w-full h-12 bg-white dark:bg-zinc-900 dark:bg-zinc-900 hover:bg-zinc-50 dark:bg-zinc-900/50 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-800 shadow-sm rounded-xl font-bold transition-all flex items-center justify-center gap-3"
         >
           <svg className="h-5 w-5" viewBox="0 0 24 24" aria-hidden>
             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -79,9 +79,9 @@ export function LoginForm() {
         </Button>
 
         <div className="relative flex items-center py-2">
-          <div className="flex-grow border-t border-zinc-200"></div>
+          <div className="flex-grow border-t border-zinc-200 dark:border-zinc-800"></div>
           <span className="flex-shrink-0 mx-4 text-[12px] font-medium text-zinc-500">or sign in with email</span>
-          <div className="flex-grow border-t border-zinc-200"></div>
+          <div className="flex-grow border-t border-zinc-200 dark:border-zinc-800"></div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
@@ -92,7 +92,7 @@ export function LoginForm() {
           ) : null}
 
           <div className="space-y-1.5">
-            <label htmlFor="email" className="block text-[13px] font-bold text-zinc-800">
+            <label htmlFor="email" className="block text-[13px] font-bold text-zinc-800 dark:text-zinc-200">
               Email Address
             </label>
             <div className="relative group">
@@ -102,7 +102,7 @@ export function LoginForm() {
                 type="email"
                 name="email"
                 placeholder="you@example.com"
-                className="pl-11 h-12 rounded-xl border-zinc-200 bg-white text-[15px] text-zinc-900 placeholder:text-zinc-400 focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all shadow-sm"
+                className="pl-11 h-12 rounded-xl border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-[15px] text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all shadow-sm"
                 required
                 autoComplete="email"
                 disabled={pending}
@@ -112,7 +112,7 @@ export function LoginForm() {
 
           <div className="space-y-1.5">
             <div className="flex items-center justify-between gap-2">
-              <label htmlFor="password" className="block text-[13px] font-bold text-zinc-800">
+              <label htmlFor="password" className="block text-[13px] font-bold text-zinc-800 dark:text-zinc-200">
                 Password
               </label>
               <Link href="/forgot-password" className="text-[13px] font-semibold text-orange-600 hover:text-orange-500 transition-colors">
@@ -126,7 +126,7 @@ export function LoginForm() {
                 type={showPw ? "text" : "password"}
                 name="password"
                 placeholder="••••••••"
-                className="pl-11 pr-11 h-12 rounded-xl border-zinc-200 bg-white text-[15px] text-zinc-900 placeholder:text-zinc-400 focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all shadow-sm"
+                className="pl-11 pr-11 h-12 rounded-xl border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-[15px] text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all shadow-sm"
                 required
                 autoComplete="current-password"
                 disabled={pending}
@@ -134,7 +134,7 @@ export function LoginForm() {
               <button
                 type="button"
                 onClick={() => setShowPw(!showPw)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-700 p-1 rounded-lg transition-colors"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-700 dark:text-zinc-300 p-1 rounded-lg transition-colors"
                 aria-label={showPw ? "Hide password" : "Show password"}
               >
                 {showPw ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
