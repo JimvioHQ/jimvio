@@ -201,17 +201,7 @@ export function ProductCardClient({
             </div>
           )}
 
-          {/* TOP-RIGHT: vendor name chip */}
-          {p.vendors?.business_name && (
-            <div className="absolute top-2 right-2 z-20">
-              <span
-                className="inline-flex items-center rounded-[8px] px-2 py-0.5 text-[9px] font-black text-white uppercase tracking-wide shadow-sm"
-                style={{ background: "rgba(30,30,30,0.75)", backdropFilter: "blur(8px)" }}
-              >
-                {p.vendors.business_name.slice(0, 6)}
-              </span>
-            </div>
-          )}
+          {/* TOP-RIGHT: removed vendor chip */}
 
           {/* SALE overlay banner (when discounted and no image) */}
           {discount > 0 && !imgSrc && (
@@ -225,23 +215,7 @@ export function ProductCardClient({
             </div>
           )}
 
-          {/* BOTTOM-RIGHT: type badge (DIGITAL / PHYSICAL) */}
-          <div className="absolute bottom-2 right-2 z-20">
-            {isDigital ? (
-              <span
-                className="inline-flex items-center gap-1 rounded-[8px] px-2 py-0.5 text-[9px] font-black text-white uppercase tracking-wide shadow-sm"
-                style={{ background: "linear-gradient(135deg, #f97316, #ea580c)" }}
-              >
-                <Zap className="h-2.5 w-2.5" /> DIGITAL
-              </span>
-            ) : (
-              <span
-                className="inline-flex items-center gap-1 rounded-[8px] px-2 py-0.5 text-[9px] font-black uppercase tracking-wide bg-surface/80 dark:bg-surface-secondary/80 backdrop-blur-md border border-border text-stone-500 dark:text-text-muted shadow-sm"
-              >
-                <Package className="h-2.5 w-2.5" /> PHYSICAL
-              </span>
-            )}
-          </div>
+          {/* BOTTOM-RIGHT: removed type badge */}
 
           {/* BOTTOM hover actions — slide up */}
           <div className={cn(
@@ -316,20 +290,12 @@ export function ProductCardClient({
             )}
           </div>
 
-          {/* Star rating */}
-          {stars > 0 && (
-            <div className="flex items-center gap-1">
-              <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
-              <span className="text-[11px] font-semibold text-stone-600 dark:text-stone-300">{(p.rating ?? 0).toFixed(1)}</span>
-              {p.review_count ? (
-                <span className="text-[10px] text-stone-400 dark:text-text-muted">({p.review_count})</span>
-              ) : null}
-              {/* Affiliate badge */}
-              {p.affiliate_enabled && commissionRate && (
-                <span className="ml-auto inline-flex items-center gap-0.5 rounded-full bg-orange-100/50 dark:bg-orange-500/10 border border-orange-200/50 dark:border-orange-500/20 text-orange-600 dark:text-orange-500 px-1.5 py-0.5 text-[9px] font-bold">
-                  <TrendingUp className="h-2.5 w-2.5" />{commissionRate}%
-                </span>
-              )}
+          {/* Rating area removed */}
+          {p.affiliate_enabled && commissionRate && (
+            <div className="flex items-center">
+              <span className="inline-flex items-center gap-0.5 rounded-full bg-orange-100/50 dark:bg-orange-500/10 border border-orange-200/50 dark:border-orange-500/20 text-orange-600 dark:text-orange-500 px-1.5 py-0.5 text-[9px] font-bold">
+                <TrendingUp className="h-2.5 w-2.5" />{commissionRate}%
+              </span>
             </div>
           )}
 

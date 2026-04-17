@@ -70,5 +70,8 @@ export function constructMetadata({
       shortcut: "/favicon.ico",
       apple: "/jimvio-logo.png",
     },
+    verification: {
+      google: "X3BENzfRf3Px2mMhw41lZgkOwJNs_BMpYSw2y_t6LO8",
+    },
   };
 }

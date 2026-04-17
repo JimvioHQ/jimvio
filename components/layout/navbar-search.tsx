@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { Search, Package, Loader2, Store, Command, ArrowRight, X } from "lucide-react";
+import { Search, Package, Loader2, Store, Command, ArrowRight, X, SlidersHorizontal } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import type { NavLinkConfig } from "@/lib/platform-settings-shared";
@@ -123,12 +123,12 @@ export function NavbarSearch({
   const inputStyle = focused ? INPUT_LIGHT_FOCUSED : INPUT_LIGHT;
 
   return (
-    <div ref={containerRef} className={cn("relative", isDesktop ? "flex-initial" : "flex-1 w-full")}>
+    <div ref={containerRef} className={cn("relative flex items-center", isDesktop ? "flex-initial gap-2" : "flex-1 w-full")}>
       <motion.div
-        animate={{ width: isDesktop ? expandedW : "100%" }}
+        animate={{ width: isDesktop ? expandedW : "auto" }}
         transition={{ type: "spring", damping: 32, stiffness: 320 }}
-        className="relative flex items-center h-11 rounded-full overflow-hidden transition-all duration-200"
-        style={inputStyle}
+        className={cn("relative flex items-center h-11 rounded-full overflow-hidden transition-all duration-200", !isDesktop && "flex-1")}
+        style={isDesktop ? inputStyle : { background: "transparent" }}
       >
         {/* Top specular on input */}
         <div
@@ -193,9 +193,19 @@ export function NavbarSearch({
         </AnimatePresence>
       </motion.div>
 
+      {/* Integrated Filter button for mobile */}
+      {!isDesktop && (
+        <button
+          onClick={() => { /* Action */ }}
+          className="h-full px-4 flex items-center justify-center border-l border-black/5 dark:border-white/10 text-orange-500 active:bg-black/5 transition-colors"
+        >
+          <SlidersHorizontal className="h-5 w-5" />
+        </button>
+      )}
+
       {/* ── Results portal ── */}
       {showPanel && portalReady && createPortal(
-        <div className="fixed inset-0 z-[190] flex items-start justify-center pt-24 sm:pt-28 px-3">
+        <div className="fixed inset-0 z-[10001] flex items-start justify-center pt-32 sm:pt-28 px-3">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}

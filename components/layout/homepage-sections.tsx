@@ -425,32 +425,32 @@ export function AffiliatePanel({ valueProps, campaigns = [], spotlightCreator, t
       <div className="pointer-events-none absolute inset-0" style={{ background: "radial-gradient(ellipse 70% 60% at 0% 0%, rgba(249,115,22,0.12), transparent)" }} />
 
       {/* Left */}
-      <motion.div variants={fadeUp} className="p-8 md:p-14 flex flex-col justify-center border-b lg:border-b-0 lg:border-r border-white/10 relative z-10">
-        <span className="inline-block w-fit px-4 py-1.5 rounded-full bg-white dark:bg-surface/10 backdrop-blur-md border border-white/10 text-[10px] font-black text-white/80 uppercase tracking-[0.2em] mb-6">
+      <motion.div variants={fadeUp} className="p-8 md:p-14 flex flex-col justify-center border-b lg:border-b-0 lg:border-r border-zinc-200 dark:border-white/10 relative z-10">
+        <span className="inline-block w-fit px-4 py-1.5 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-[10px] font-black uppercase tracking-[0.2em] mb-6 shadow-xl">
           Partner with Jimvio
         </span>
-        <h3 className="text-[30px] md:text-[40px] font-black text-white leading-tight mb-6 tracking-tight">
+        <h3 className="text-[32px] md:text-[40px] font-black text-zinc-950 dark:text-white leading-tight mb-6 tracking-tight">
           Turn Your Network<br />Into Global Trade
         </h3>
-        <p className="text-[15px] text-white/50 font-bold leading-relaxed mb-8 max-w-md">
+        <p className="text-[15px] text-zinc-600 dark:text-white/50 font-bold leading-relaxed mb-8 max-w-md">
           Earn high-ticket commissions on every bulk deal referred through our creator-friendly B2B ecosystem.
         </p>
         <div className="space-y-3 mb-10">
           {valueProps.map((t) => (
-            <motion.div key={t} whileHover={{ x: 5 }} className="flex items-center gap-3 text-[14px] font-bold text-white/70">
+            <motion.div key={t} whileHover={{ x: 5 }} className="flex items-center gap-3 text-[14px] font-bold text-zinc-900 dark:text-white/70">
               <div className="h-6 w-6 rounded-xl bg-[#f97316]/20 text-[#f97316] flex items-center justify-center text-[11px] font-black border border-[#f97316]/30 shrink-0">✓</div>
               {t}
             </motion.div>
           ))}
         </div>
         <div className="flex flex-col sm:flex-row gap-3">
-          <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
-            <Button className="h-14 px-8 rounded-full bg-white dark:bg-surface text-zinc-900 dark:text-white font-black text-[14px] hover:bg-zinc-100 shadow-xl w-full sm:w-auto" asChild>
+          <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex-1 sm:flex-initial">
+            <Button className="h-14 px-8 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-950 font-black text-[14px] hover:bg-zinc-800 dark:hover:bg-zinc-100 shadow-2xl w-full px-10" asChild>
               <Link href="/register?role=affiliate">Start Earning →</Link>
             </Button>
           </motion.div>
-          <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
-            <Button variant="outline" className="h-14 px-8 rounded-full border-white/15 text-white font-black text-[14px] hover:bg-white dark:bg-surface/10 w-full sm:w-auto" asChild>
+          <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex-1 sm:flex-initial">
+            <Button variant="outline" className="h-14 px-8 rounded-full border-zinc-200 dark:border-white/15 text-zinc-900 dark:text-white font-black text-[14px] hover:bg-zinc-50 dark:hover:bg-white/10 w-full" asChild>
               <Link href="/dashboard">Creator Hub →</Link>
             </Button>
           </motion.div>
@@ -460,21 +460,23 @@ export function AffiliatePanel({ valueProps, campaigns = [], spotlightCreator, t
       {/* Right */}
       <motion.div variants={fadeUp} className="p-8 md:p-14 flex flex-col justify-center relative z-10">
         {chips.length > 0 && (
-          <>
-            <h3 className="text-[20px] font-black text-white mb-2 tracking-tight">Active Categories</h3>
-            <p className="text-[13px] text-white/40 font-bold mb-6">Bridging manufacturers and authentic voices.</p>
-            <div className="flex flex-wrap gap-2 mb-8">
+          <div className="mb-10">
+            <h3 className="text-[22px] font-black text-zinc-950 dark:text-white mb-2 tracking-tight">Active Categories</h3>
+            <p className="text-[13px] text-zinc-500 dark:text-white/40 font-bold mb-6">Bridging manufacturers and authentic voices.</p>
+            <div className="flex flex-wrap gap-2.5">
               {chips.map((t, i) => (
                 <motion.span key={`${t}-${i}`} whileHover={{ scale: 1.06, y: -2 }} whileTap={{ scale: 0.97 }}
                   className={cn(
-                    "px-4 py-2 rounded-2xl text-[11px] font-black border uppercase tracking-[0.12em] cursor-default transition-colors",
-                    i === 0 ? "bg-[#f97316] text-white border-[#f97316]" : "bg-white dark:bg-surface/5 text-white/60 border-white/10 hover:border-[#f97316]/40 hover:text-[#f97316]"
+                    "px-4 py-2.5 rounded-2xl text-[11px] font-black border capitalize tracking-[0.12em] cursor-default transition-all shadow-sm",
+                    i === 0 
+                      ? "bg-orange-500 text-white border-orange-500 shadow-orange-500/20" 
+                      : "bg-white dark:bg-white/5 text-zinc-700 dark:text-white border-zinc-200 dark:border-white/10 hover:border-orange-500/40 hover:text-orange-500"
                   )}>
                   {t}
                 </motion.span>
               ))}
             </div>
-          </>
+          </div>
         )}
         {/* Creator spotlight */}
         <div className="bg-white dark:bg-surface/5 backdrop-blur-md border border-white/10 rounded-[28px] p-5 flex items-center gap-4 mb-8 border-l-4 border-l-[#f97316]">
@@ -495,7 +497,7 @@ export function AffiliatePanel({ valueProps, campaigns = [], spotlightCreator, t
               </div>
             </>
           ) : (
-            <p className="text-sm text-white/40 font-bold w-full text-center py-2">Be the first top earner — share products you love.</p>
+            <p className="text-sm text-zinc-900 dark:text-white/40 font-bold w-full text-center py-2">Be the first top earner — share products you love.</p>
           )}
         </div>
         <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}>
@@ -694,19 +696,17 @@ export function AppPromo() {
             ].map(btn => (
               <motion.div key={btn.name} whileHover={{ y: -4, scale: 1.04 }} whileTap={{ scale: 0.97 }}>
                 <div
-                className="flex items-center gap-3 px-7 py-4 rounded-[18px] cursor-pointer transition-all group text-white hover:scale-[1.03] active:scale-97"
+                className="flex items-center gap-4 px-8 py-4 rounded-[22px] cursor-pointer transition-all group border border-zinc-200 dark:border-white/10 shadow-xl"
                 style={{
-                  background: "rgba(255,255,255,0.07)",
+                  background: "var(--color-surface-secondary)",
                   backdropFilter: "blur(24px) saturate(160%)",
                   WebkitBackdropFilter: "blur(24px) saturate(160%)",
-                  border: "1px solid rgba(255,255,255,0.12)",
-                  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.1), 0 4px 16px rgba(0,0,0,0.15)",
                 }}
               >
-                <div className="text-white/50 group-hover:text-orange-400 transition-colors">{btn.icon}</div>
-                  <div>
-                    <div className="text-[10px] text-white/30 font-black uppercase tracking-[0.2em]">{btn.sub}</div>
-                    <div className="text-[17px] font-black tracking-tight">{btn.name}</div>
+                <div className="text-zinc-400 dark:text-white/50 group-hover:text-orange-500 transition-colors shrink-0">{btn.icon}</div>
+                  <div className="min-w-0">
+                    <div className="text-[10px] text-zinc-500 dark:text-white/30 font-black uppercase tracking-[0.2em]">{btn.sub}</div>
+                    <div className="text-[18px] font-black tracking-tight text-zinc-950 dark:text-white leading-none mt-1">{btn.name}</div>
                   </div>
                 </div>
               </motion.div>

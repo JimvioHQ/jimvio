@@ -97,21 +97,12 @@ export function ProductCard({ product, viewMode = "grid" }: ProductCardProps) {
 
           {/* Info */}
           <div className="flex-1 min-w-0 py-1 relative z-10">
-            <p className="text-[10px] font-semibold text-stone-400 mb-1 uppercase tracking-widest">
-              {(product as { vendors?: { business_name?: string } }).vendors?.business_name || "Jimvio Store"}
-            </p>
+            {/* Vendor name removed */}
             <h3 className="font-semibold text-[13px] text-stone-800 dark:text-text-secondary mb-2 line-clamp-2 group-hover:text-orange-600 transition-colors leading-snug">
               {product.name}
             </h3>
             <div className="flex items-center gap-2 mb-2.5">
-              {product.rating !== undefined && product.rating > 0 && (
-                <div className="flex items-center gap-1">
-                  <Star className="h-3.5 w-3.5 text-amber-400 fill-amber-400" />
-                  <span className="text-[11px] text-stone-500 font-medium">{product.rating}</span>
-                  <span className="text-[10px] text-stone-400">({product.review_count || 0})</span>
-                </div>
-              )}
-              {product.is_digital && <GlassBadge color="violet"><Zap className="h-2.5 w-2.5" />Digital</GlassBadge>}
+              {/* Rating and Digital badges removed */}
               {product.affiliate_enabled && <GlassBadge color="orange">Affiliate</GlassBadge>}
             </div>
             <div className="flex items-center gap-2">
@@ -247,12 +238,7 @@ export function ProductCard({ product, viewMode = "grid" }: ProductCardProps) {
                 />
               )}
             </div>
-            {product.rating !== undefined && product.rating > 0 && (
-              <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                <Star className="h-2.5 w-2.5 text-amber-400 fill-amber-400" />
-                <span className="text-[10px] font-semibold text-stone-500">{product.rating}</span>
-              </div>
-            )}
+            {/* Rating removed */}
           </div>
         </div>
       </div>
