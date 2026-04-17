@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { Search, Zap, Loader2, Sparkles, Paperclip } from "lucide-react";
+import { Search, Loader2, Sparkles, Paperclip } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { AISourcingAssistant } from "./ai-sourcing-assistant";
@@ -14,7 +14,11 @@ export function HeroSearch() {
   const [isFocused, setIsFocused] = useState(false);
   const [isAIMode, setIsAIMode] = useState(false);
   const [initialAIQuery, setInitialAIQuery] = useState("");
-  const [results, setResults] = useState<{ products: any[], vendors: any[], categories: any[] }>({ products: [], vendors: [], categories: [] });
+  const [results, setResults] = useState<{ products: any[]; vendors: any[]; categories: any[] }>({
+    products: [],
+    vendors: [],
+    categories: [],
+  });
   const [portalReady, setPortalReady] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -29,8 +33,8 @@ export function HeroSearch() {
     }
     const id = setTimeout(() => {
       fetch(`/api/search/suggestions?q=${encodeURIComponent(q)}`)
-        .then(r => r.json())
-        .then(d => setResults(d));
+        .then((r) => r.json())
+        .then((d) => setResults(d));
     }, 300);
     return () => clearTimeout(id);
   }, [q]);
@@ -56,80 +60,102 @@ export function HeroSearch() {
   };
 
   return (
-    <div ref={containerRef} className="w-full max-w-[800px] z-[100] relative mx-auto">
-      {/* TRIGGER SEARCH BAR */}
-      <div className="relative">
-        <motion.div
-          animate={{ 
-             scale: isFocused ? 1.01 : 1,
-             y: isFocused ? -2 : 0
-          }}
+    <div ref={containerRef} className="w-full z-[100] relative">
+      {/* ── Search bar — matches HTML prototype search-wrap / search-bar ── */}
+      <div
+        className="px-[52px] py-3 border-b border-black/[.07] dark:border-white/[.06] bg-white dark:bg-[#0f0e0c]"
+      >
+        <div
           className={cn(
-            "relative flex items-center h-16 sm:h-18 rounded-full transition-all duration-300 overflow-hidden",
-            isFocused 
-              ? "bg-white dark:bg-surface border-2 border-orange-500 shadow-[0_20px_60px_rgba(249,115,22,0.1)]" 
-              : "bg-white dark:bg-surface/60 dark:bg-surface/60 backdrop-blur-md border border-zinc-200 dark:border-border-strong"
+            "flex items-center h-[52px] rounded-full transition-all duration-200 overflow-hidden",
+            "bg-[#f5f4f1] dark:bg-[#1c1811]",
+            isFocused
+              ? "border border-[#f97316]/60 shadow-[0_0_0_3px_rgba(249,115,22,0.08)]"
+              : "border border-black/10 dark:border-white/10"
           )}
         >
-          <div className="flex-1 flex items-center px-6 sm:px-8 h-full">
-             <Search className="h-5 w-5 text-zinc-400 dark:text-text-muted mr-3" />
-             <input
-               type="text"
-               value={q}
-               onFocus={() => setIsFocused(true)}
-               onChange={(e) => setQ(e.target.value)}
-               placeholder="Search products, suppliers, or ask Jimvio AI..."
-               className="flex-1 bg-transparent border-0 outline-none text-[15px] sm:text-[17px] font-bold text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-600 placeholder:font-medium h-full"
-               onKeyDown={(e) => {
-                 if (e.key === "Enter") handleSearch();
-               }}
-             />
-             <div className="flex items-center gap-1 shrink-0">
-                <button type="button" onClick={() => openAI()} className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full text-zinc-400 transition-colors flex items-center gap-1 group">
-                   <Sparkles size={16} className="text-orange-400" />
-                   <span className="text-[10px] font-black uppercase text-zinc-400 dark:text-text-muted">AI</span>
-                </button>
-                <div className="h-4 w-px bg-zinc-200 dark:bg-zinc-700 mx-1" />
-                <button type="button" className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full text-zinc-400 dark:text-text-muted transition-colors">
-                   <Paperclip size={18} />
-                </button>
-             </div>
+          {/* Search icon */}
+          <div className="pl-[22px] pr-[10px] shrink-0">
+            <Search className="h-[15px] w-[15px] text-[#b0a898] dark:text-[#a89f93]" strokeWidth={2.5} />
           </div>
 
+          {/* Input */}
+          <input
+            type="text"
+            value={q}
+            onFocus={() => setIsFocused(true)}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Search products, suppliers, or ask Jimvio AI…"
+            className="flex-1 bg-transparent border-0 outline-none text-[14px] text-[#1c1811] dark:text-[#f0e8dc] placeholder:text-[#a89f93] font-normal h-full"
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleSearch();
+            }}
+          />
+
+          {/* AI button */}
+          <button
+            type="button"
+            onClick={() => openAI()}
+            className="flex items-center gap-1 px-[10px] py-[6px] rounded-full border-none bg-transparent text-[#a89f93] text-[10px] font-bold uppercase tracking-[.06em] hover:text-[#f97316] transition-colors shrink-0"
+          >
+            <svg width={12} height={12} viewBox="0 0 24 24" fill="#f97316" stroke="none">
+              <path d="M12 2L9.5 9.5 2 12l7.5 2.5L12 22l2.5-7.5L22 12l-7.5-2.5z" />
+            </svg>
+            AI
+          </button>
+
+          {/* Divider */}
+          <div className="w-px h-5 bg-black/10 dark:bg-white/10 shrink-0" />
+
+          {/* Attachment / extra icon */}
+          <div className="px-2 shrink-0">
+            <Paperclip className="h-[15px] w-[15px] text-[#b0a898] dark:text-[#a89f93]" strokeWidth={2} />
+          </div>
+
+          {/* Explore button */}
           <button
             type="button"
             onClick={() => handleSearch()}
-            className="h-full px-6 sm:px-8 bg-zinc-900 hover:bg-black text-white text-[13px] sm:text-[15px] font-black transition-colors"
+            className="h-[38px] px-5 mr-1 rounded-full bg-[#1c1811] hover:bg-black dark:bg-[#f0e8dc] dark:text-[#1c1811] text-white text-[12px] font-bold tracking-[.04em] transition-colors shrink-0"
           >
             Explore
           </button>
-        </motion.div>
+        </div>
 
-        {/* DROPDOWN */}
+        {/* Dropdown */}
         <AnimatePresence>
           {q.length >= 2 && isFocused && (
             <motion.div
-              initial={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 5 }}
-              className="absolute top-full left-0 right-0 mt-3 bg-white dark:bg-surface rounded-3xl border border-zinc-100 dark:border-border shadow-[0_32px_80px_rgba(0,0,0,0.1)] overflow-hidden"
+              exit={{ opacity: 0, y: 4 }}
+              className="absolute left-[52px] right-[52px] mt-2 bg-white dark:bg-[#1c1811] rounded-[20px] border border-black/[.07] dark:border-white/[.08] shadow-[0_16px_48px_rgba(0,0,0,0.1)] overflow-hidden z-50"
             >
-              <div className="p-4 space-y-4 max-h-[400px] overflow-y-auto no-scrollbar">
+              <div className="p-3 space-y-1 max-h-[360px] overflow-y-auto no-scrollbar">
                 {results.products.length > 0 && (
-                   <div className="grid grid-cols-1 gap-1">
-                      {results.products.slice(0, 5).map(p => (
-                         <button key={p.id} onClick={() => router.push(`/marketplace/${p.slug}`)} className="flex items-center gap-3 p-3 rounded-2xl hover:bg-zinc-50 dark:bg-surface/50 dark:hover:bg-zinc-800 text-left transition-all">
-                            <Search className="h-4 w-4 text-zinc-300 dark:text-zinc-600" />
-                            <span className="text-[14px] font-bold text-zinc-700 dark:text-text-secondary truncate">{p.name}</span>
-                         </button>
-                      ))}
-                   </div>
+                  <div className="flex flex-col gap-0.5">
+                    {results.products.slice(0, 5).map((p) => (
+                      <button
+                        key={p.id}
+                        onClick={() => router.push(`/marketplace/${p.slug}`)}
+                        className="flex items-center gap-3 p-3 rounded-xl hover:bg-[#f5f4f1] dark:hover:bg-[#252219] text-left transition-all"
+                      >
+                        <Search className="h-[14px] w-[14px] text-[#c8c0b5]" />
+                        <span className="text-[13px] font-medium text-[#3c3429] dark:text-[#d4ccbf] truncate">
+                          {p.name}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
                 )}
-                <button   
+                <button
                   onClick={() => openAI()}
-                  className="w-full h-12 rounded-2xl bg-orange-50 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400 text-[12px] font-black flex items-center justify-center gap-2 border border-orange-100 dark:border-orange-900/50 hover:bg-orange-100 dark:hover:bg-orange-950/50 transition-all"
+                  className="w-full h-11 rounded-xl bg-[#fff5eb] dark:bg-[rgba(249,115,22,0.08)] text-[#c2410c] dark:text-[#fb923c] text-[11px] font-bold flex items-center justify-center gap-2 border border-[#fed7aa] dark:border-[rgba(249,115,22,0.18)] hover:bg-[#ffedd5] transition-all"
                 >
-                   <Sparkles size={14} /> Ask AI to find best deals for "{q}"
+                  <svg width={13} height={13} viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                    <path d="M12 2L9.5 9.5 2 12l7.5 2.5L12 22l2.5-7.5L22 12l-7.5-2.5z" />
+                  </svg>
+                  Ask AI to find best deals for &ldquo;{q}&rdquo;
                 </button>
               </div>
             </motion.div>
@@ -137,15 +163,12 @@ export function HeroSearch() {
         </AnimatePresence>
       </div>
 
-      {/* AI MODE OVERLAY - PORTALED TO DOCUMENT BODY */}
-      {portalReady && createPortal(
-        <AnimatePresence>
-          {isAIMode && (
-            <AISourcingAssistant />
-          )}
-        </AnimatePresence>,
-        document.body
-      )}
+      {/* AI overlay portal */}
+      {portalReady &&
+        createPortal(
+          <AnimatePresence>{isAIMode && <AISourcingAssistant />}</AnimatePresence>,
+          document.body
+        )}
     </div>
   );
 }

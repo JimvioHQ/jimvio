@@ -9,6 +9,7 @@ import {
   getViralClips, getCampaigns, getPlatformStats, getTopCreators, getProducts,
   getPublicCommunities, getShortVideos,
 } from "@/services/db";
+import { getProfile } from "@/lib/auth/actions";
 import { getCartProductIds } from "@/lib/actions/marketplace";
 import { ProductCardClient } from "@/components/marketplace/product-card-client";
 import { TrendingProductClipsSection } from "@/components/marketplace/trending-product-clips-section";
@@ -52,7 +53,7 @@ export default async function HomePage() {
     categories, featured, trending, vendors,
     viralClips, platformStats, topCreators,
     shopifyFeaturedRes, platformSettingsMaybe, campaigns,
-    cartProductIds, communitiesList, videos,
+    cartProductIds, communitiesList, videos, profile,
   ] = await Promise.all([
     getCategories().catch(() => []),
     getFeaturedProducts(24).catch(() => []),
@@ -67,6 +68,7 @@ export default async function HomePage() {
     getCartProductIds().catch(() => []),
     getPublicCommunities(12).catch(() => []),
     getShortVideos(10).catch(() => []),
+    getProfile(),
   ]);
 
   const cartSet = new Set(cartProductIds);
@@ -127,7 +129,6 @@ export default async function HomePage() {
       <div className="relative z-10">
         {/* ── HERO ── */}
         <HomepageHero
-          trustBarItems={trustBarItems}
           heroKeywords={heroKeywords}
           heroCampaigns={heroCampaigns}
           socialBar={{ successRate: socialBar.successRate }}
@@ -137,12 +138,10 @@ export default async function HomePage() {
           spotlightCreator={spotlightCreator}
           primaryCta={platformSettings.marketing.primary_cta}
           platformStats={platformStats as any}
+          profile={profile}
         />
 
-        {/* ── TRUST BAR ── */}
-        <div className="hidden lg:block relative z-20 -mt-8 px-6">
-          <TrustBar items={trustBarItems} />
-        </div>
+
 
         {/* ── MAIN CONTENT ── */}
         <div className="max-w-[1536px] mx-auto px-4 sm:px-6 pt-8 pb-12 md:pt-16 md:pb-24 space-y-20">
