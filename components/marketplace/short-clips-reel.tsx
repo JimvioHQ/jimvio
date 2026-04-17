@@ -171,19 +171,19 @@ export function ShortClipsReel({ videos, className }: ShortClipsReelProps) {
             </Link>
 
             {/* ── CONVERSION SECTION (Grounded UI) ── */}
-            <div className="p-3 bg-stone-50/50 dark:bg-surface-secondary/40 backdrop-blur-sm border-t border-stone-100 dark:border-border space-y-2 relative z-10">
+            <div className="p-3 bg-stone-50/80 dark:bg-bg/90 backdrop-blur-xl border-t border-stone-100 dark:border-white/5 space-y-2 relative z-10">
               {video.video_type === "product" && video.product ? (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex-1 min-w-0">
-                      <p className="text-[12px] font-black text-stone-900 dark:text-white truncate leading-none tracking-tight">
+                      <p className="text-[12px] font-black text-stone-900 dark:text-text-primary truncate leading-none tracking-tight">
                         {video.product.name}
                       </p>
-                      <p className="text-[7px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">Verified Shop</p>
+                      <p className="text-[8px] font-bold text-stone-400 dark:text-text-muted uppercase tracking-widest mt-1">Verified Shop</p>
                     </div>
                     {video.product.price != null && (
-                      <div className="shrink-0 px-2 py-1 rounded-lg bg-orange-500/10 border border-orange-500/20">
-                        <p className="text-[12px] font-black text-orange-500 leading-none">
+                      <div className="shrink-0 px-2.5 py-1 rounded-lg bg-orange-500/10 dark:bg-orange-500/20 border border-orange-500/20 dark:border-orange-500/30">
+                        <p className="text-[12px] font-black text-orange-600 dark:text-primary leading-none">
                           {video.product.currency || "$"}{Number(video.product.price).toFixed(0)}
                         </p>
                       </div>
@@ -200,10 +200,10 @@ export function ShortClipsReel({ videos, className }: ShortClipsReelProps) {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex-1 min-w-0">
-                      <p className="text-[12px] font-black text-stone-900 dark:text-white truncate leading-none">
+                      <p className="text-[12px] font-black text-stone-900 dark:text-text-primary truncate leading-none">
                         {video.community.name}
                       </p>
-                      <p className="text-[9px] font-bold text-orange-500 mt-1 uppercase tracking-wide">
+                      <p className="text-[9px] font-bold text-primary mt-1 uppercase tracking-wide">
                         {formatCount(video.community.member_count || 0)} Members
                       </p>
                     </div>
