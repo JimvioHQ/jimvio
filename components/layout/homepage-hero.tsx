@@ -270,7 +270,7 @@ export function HomepageHero({
 
             <button
               onClick={() => openAssistant()}
-              className="h-[48px] rounded-[14px] flex items-center justify-center gap-3 font-bold text-[#3c3429] dark:text-[#d4ccbf] text-[12px] uppercase tracking-[.07em] transition-all bg-white/80 dark:bg-white/10 border border-white/90 dark:border-white/10 backdrop-blur-xl"
+              className="h-[48px] rounded-[14px] flex items-center justify-center gap-3 font-bold text-[#3c3429] dark:text-stone-200 text-[12px] uppercase tracking-[.07em] transition-all bg-white/90 dark:bg-white/[0.05] border border-white/80 dark:border-white/[0.08] backdrop-blur-2xl shadow-sm dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)]"
             >
               <Sparkles className="h-4 w-4 fill-[#f97316] stroke-none" />
               Activate AI Mode
@@ -286,7 +286,7 @@ export function HomepageHero({
               <Link
                 key={item.text}
                 href={item.href}
-                className="shrink-0 flex items-center gap-[6px] px-[14px] py-[8px] rounded-full font-bold text-[10px] uppercase tracking-[.05em] text-[#3c3429] dark:text-[#d4ccbf] transition-all bg-white/80 dark:bg-white/10 border border-white/90 dark:border-white/10 backdrop-blur-md"
+                className="shrink-0 flex items-center gap-[6px] px-[14px] py-[8px] rounded-full font-bold text-[10px] uppercase tracking-[.05em] text-[#3c3429] dark:text-stone-300 transition-all bg-white/90 dark:bg-white/[0.05] border border-white/80 dark:border-white/[0.08] backdrop-blur-2xl shadow-sm"
               >
                 <item.icon className="h-[11px] w-[11px] text-[#f97316]" />
                 {item.text}
