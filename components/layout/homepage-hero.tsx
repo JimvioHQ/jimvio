@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { HeroSearch } from "@/components/marketplace/hero-search";
 import { HeroRightPanel } from "./hero-right-panel";
+import { HeroStoryCard } from "@/components/marketplace/hero-story-card";
 
 type Supplier = { business_name?: string; business_slug?: string; rating?: number };
 type SpotlightCreator = { full_name?: string; total_earnings?: number; total_clicks?: number; total_conversions?: number } | null | undefined;
@@ -269,12 +270,7 @@ export function HomepageHero({
 
             <button
               onClick={() => openAssistant()}
-              className="h-[48px] rounded-[14px] flex items-center justify-center gap-3 font-bold text-[#3c3429] dark:text-[#d4ccbf] text-[12px] uppercase tracking-[.07em] transition-all"
-              style={{
-                background: "rgba(255,255,255,0.8)",
-                border: "0.5px solid rgba(255,255,255,0.9)",
-                backdropFilter: "blur(16px)",
-              }}
+              className="h-[48px] rounded-[14px] flex items-center justify-center gap-3 font-bold text-[#3c3429] dark:text-[#d4ccbf] text-[12px] uppercase tracking-[.07em] transition-all bg-white/80 dark:bg-white/10 border border-white/90 dark:border-white/10 backdrop-blur-xl"
             >
               <Sparkles className="h-4 w-4 fill-[#f97316] stroke-none" />
               Activate AI Mode
@@ -290,12 +286,7 @@ export function HomepageHero({
               <Link
                 key={item.text}
                 href={item.href}
-                className="shrink-0 flex items-center gap-[6px] px-[14px] py-[8px] rounded-full font-bold text-[10px] uppercase tracking-[.05em] text-[#3c3429] dark:text-[#d4ccbf] transition-all"
-                style={{
-                  background: "rgba(255,255,255,0.8)",
-                  border: "0.5px solid rgba(255,255,255,0.9)",
-                  backdropFilter: "blur(12px)",
-                }}
+                className="shrink-0 flex items-center gap-[6px] px-[14px] py-[8px] rounded-full font-bold text-[10px] uppercase tracking-[.05em] text-[#3c3429] dark:text-[#d4ccbf] transition-all bg-white/80 dark:bg-white/10 border border-white/90 dark:border-white/10 backdrop-blur-md"
               >
                 <item.icon className="h-[11px] w-[11px] text-[#f97316]" />
                 {item.text}
@@ -303,9 +294,14 @@ export function HomepageHero({
             ))}
           </div>
 
-          {/* Mobile marquee */}
-          <div className="w-full mt-1">
-            <VideoMarquee videos={videos} mobile />
+          {/* Mobile Featured Mission/Marquee */}
+          <div className="w-full mt-2 flex flex-col gap-6">
+            <div className="w-[160px] mx-auto">
+               <HeroStoryCard viralClips={viralClips} />
+            </div>
+            <div className="w-full">
+              <VideoMarquee videos={videos} mobile />
+            </div>
           </div>
         </div>
       </section>
@@ -427,15 +423,21 @@ export function HomepageHero({
                 </motion.div>
               </div>
 
-              {/* Right column: marquee */}
+              {/* Right column: Featured Story + Marquee */}
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.5, duration: 0.7 }}
-                className="relative z-10 flex items-center justify-center overflow-hidden"
+                className="relative z-10 flex items-center gap-10 pr-[52px] py-[32px] overflow-hidden"
               >
+                {/* Featured Story Card (The Mission) */}
+                <div className="w-[180px] shrink-0 drop-shadow-2xl">
+                  <HeroStoryCard viralClips={viralClips} />
+                </div>
+
+                {/* Video Marquee */}
                 <div
-                  className="w-full h-full"
+                  className="flex-1 h-full"
                   style={{
                     maskImage: "linear-gradient(to right, transparent, black 10%, black 90%, transparent)",
                     WebkitMaskImage: "linear-gradient(to right, transparent, black 10%, black 90%, transparent)",

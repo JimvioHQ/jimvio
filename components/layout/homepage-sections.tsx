@@ -419,13 +419,13 @@ export function AffiliatePanel({ valueProps, campaigns = [], spotlightCreator, t
       initial="hidden" whileInView="show" viewport={{ once: true, margin: "-60px" }}
       variants={stagger}
       className="rounded-[40px] overflow-hidden grid grid-cols-1 lg:grid-cols-2 min-h-[460px] relative"
-      style={GLASS_DARK_STYLE}
+      style={GLASS_LIGHT_STYLE}
     >
       <GlassSpecular />
       <div className="pointer-events-none absolute inset-0" style={{ background: "radial-gradient(ellipse 70% 60% at 0% 0%, rgba(249,115,22,0.12), transparent)" }} />
 
       {/* Left */}
-      <motion.div variants={fadeUp} className="p-8 md:p-14 flex flex-col justify-center border-b lg:border-b-0 lg:border-r border-zinc-200 dark:border-white/10 relative z-10">
+      <motion.div variants={fadeUp} className="p-8 md:p-14 flex flex-col justify-center border-b lg:border-b-0 lg:border-r border-black/5 dark:border-white/10 relative z-10">
         <span className="inline-block w-fit px-4 py-1.5 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-[10px] font-black uppercase tracking-[0.2em] mb-6 shadow-xl">
           Partner with Jimvio
         </span>
@@ -450,7 +450,7 @@ export function AffiliatePanel({ valueProps, campaigns = [], spotlightCreator, t
             </Button>
           </motion.div>
           <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex-1 sm:flex-initial">
-            <Button variant="outline" className="h-14 px-8 rounded-full border-zinc-200 dark:border-white/15 text-zinc-900 dark:text-white font-black text-[14px] hover:bg-zinc-50 dark:hover:bg-white/10 w-full" asChild>
+            <Button variant="outline" className="h-14 px-8 rounded-full border-black/10 dark:border-white/15 text-zinc-950 dark:text-white font-black text-[14px] hover:bg-black/5 dark:hover:bg-white/10 w-full" asChild>
               <Link href="/dashboard">Creator Hub →</Link>
             </Button>
           </motion.div>
@@ -470,7 +470,7 @@ export function AffiliatePanel({ valueProps, campaigns = [], spotlightCreator, t
                     "px-4 py-2.5 rounded-2xl text-[11px] font-black border capitalize tracking-[0.12em] cursor-default transition-all shadow-sm",
                     i === 0 
                       ? "bg-orange-500 text-white border-orange-500 shadow-orange-500/20" 
-                      : "bg-white dark:bg-white/5 text-zinc-700 dark:text-white border-zinc-200 dark:border-white/10 hover:border-orange-500/40 hover:text-orange-500"
+                      : "bg-black/5 dark:bg-white/5 text-zinc-700 dark:text-white border-black/5 dark:border-white/10 hover:border-orange-500/40 hover:text-orange-500"
                   )}>
                   {t}
                 </motion.span>
@@ -479,21 +479,21 @@ export function AffiliatePanel({ valueProps, campaigns = [], spotlightCreator, t
           </div>
         )}
         {/* Creator spotlight */}
-        <div className="bg-white dark:bg-surface/5 backdrop-blur-md border border-white/10 rounded-[28px] p-5 flex items-center gap-4 mb-8 border-l-4 border-l-[#f97316]">
+        <div className="bg-white/50 dark:bg-white/5 backdrop-blur-md border border-black/5 dark:border-white/10 rounded-[28px] p-5 flex items-center gap-4 mb-8 border-l-4 border-l-[#f97316]">
           {spotlightCreator ? (
             <>
-              <Avatar className="h-12 w-12 border-2 border-white/15 shrink-0">
+               <Avatar className="h-12 w-12 border-2 border-black/5 dark:border-white/15 shrink-0">
                 <AvatarFallback className="bg-[#f97316] text-white font-black text-[16px]">
                   {(spotlightCreator.full_name ?? "C")[0]}
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
-                <p className="text-[15px] font-black text-white truncate">{spotlightCreator.full_name ?? "Top creator"}</p>
-                <p className="text-[11px] text-white/40 font-black uppercase tracking-[0.1em]">{Number(spotlightCreator.total_conversions ?? 0).toLocaleString()} conversions</p>
+                <p className="text-[15px] font-black text-zinc-950 dark:text-white truncate">{spotlightCreator.full_name ?? "Top creator"}</p>
+                <p className="text-[11px] text-zinc-500 dark:text-white/40 font-black uppercase tracking-[0.1em]">{Number(spotlightCreator.total_conversions ?? 0).toLocaleString()} conversions</p>
               </div>
               <div className="text-right shrink-0">
                 <div className="text-[18px] font-black text-[#f97316]">{formatDisplayMoney(Number(spotlightCreator.total_earnings ?? 0), "RWF")}</div>
-                <p className="text-[9px] text-white/30 font-black uppercase tracking-[0.15em]">Earnings</p>
+                <p className="text-[9px] text-zinc-400 dark:text-white/30 font-black uppercase tracking-[0.15em]">Earnings</p>
               </div>
             </>
           ) : (
@@ -558,12 +558,12 @@ export function MarketIntelligence({
       </motion.div>
 
       {/* Hot Sourcing */}
-      <motion.div variants={fadeUp} className="rounded-[32px] p-7 relative overflow-hidden" style={GLASS_DARK_STYLE}>
+      <motion.div variants={fadeUp} className="rounded-[32px] p-7 relative overflow-hidden" style={GLASS_LIGHT_STYLE}>
         <GlassSpecular />
         <div className="pointer-events-none absolute inset-0" style={{ background: "radial-gradient(ellipse 70% 50% at 100% 0%, rgba(249,115,22,0.18), transparent)" }} />
         <div className="relative z-10 mb-5 flex items-center justify-between">
-          <h4 className="flex items-center gap-2.5 text-[20px] font-black text-white tracking-tight">
-            <span className="h-9 w-9 flex items-center justify-center rounded-xl bg-white dark:bg-surface/10"><TrendingUp className="h-5 w-5 text-[#f97316]" /></span>
+          <h4 className="flex items-center gap-2.5 text-[20px] font-black text-zinc-900 dark:text-white tracking-tight">
+            <span className="h-9 w-9 flex items-center justify-center rounded-xl bg-orange-100/50 dark:bg-white/10"><TrendingUp className="h-5 w-5 text-[#f97316]" /></span>
             Hot Sourcing
           </h4>
           <span className="text-[9px] font-black uppercase tracking-[0.2em] text-zinc-500">Live</span>
@@ -572,7 +572,7 @@ export function MarketIntelligence({
           {categories.slice(0, 8).map((cat: any) => (
             <motion.div key={cat.id} whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.97 }}>
               <Link href={`/marketplace?cat=${encodeURIComponent(cat.slug)}`}>
-                <span className="inline-flex cursor-pointer rounded-xl border border-white/10 bg-white dark:bg-surface/5 backdrop-blur-sm px-3 py-1.5 text-[11px] font-black text-white/70 hover:border-[#f97316]/40 hover:text-white transition-all">
+                <span className="inline-flex cursor-pointer rounded-xl border border-black/5 dark:border-white/10 bg-black/5 dark:bg-white/5 backdrop-blur-sm px-3 py-1.5 text-[11px] font-black text-zinc-600 dark:text-white/70 hover:border-[#f97316]/40 hover:text-zinc-900 dark:hover:text-white transition-all">
                   {cat.name}
                 </span>
               </Link>
@@ -583,13 +583,13 @@ export function MarketIntelligence({
           {trending.slice(0, 3).map((prod: any, i: number) => (
             <motion.div key={prod.id ?? i} whileHover={{ x: 4 }} whileTap={{ scale: 0.98 }}>
               <Link href={`/marketplace/${prod.slug}`} className="group block">
-                <div className="flex gap-3 rounded-2xl border border-white/5 bg-white dark:bg-surface/5 backdrop-blur-sm p-3 hover:border-[#f97316]/30 hover:bg-white dark:bg-surface/8 transition-all">
-                  <div className="h-12 w-12 shrink-0 rounded-xl bg-white dark:bg-surface/5 flex items-center justify-center overflow-hidden">
-                    {prod.images?.[0] ? <img src={prod.images[0]} className="h-full w-full object-cover" alt="" /> : <Package className="h-5 w-5 text-white/20" />}
+                <div className="flex gap-3 rounded-2xl border border-black/5 dark:border-white/5 bg-black/5 dark:bg-white/5 backdrop-blur-sm p-3 hover:border-[#f97316]/30 hover:bg-black/[0.08] dark:hover:bg-white/8 transition-all">
+                  <div className="h-12 w-12 shrink-0 rounded-xl bg-white dark:bg-white/5 flex items-center justify-center overflow-hidden border border-black/5 dark:border-white/10">
+                    {prod.images?.[0] ? <img src={prod.images[0]} className="h-full w-full object-cover" alt="" /> : <Package className="h-5 w-5 text-zinc-300 dark:text-white/20" />}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <h5 className="line-clamp-1 text-[12px] font-black text-white/80 group-hover:text-[#f97316] transition-colors">{prod.name}</h5>
-                    <p className="text-[10px] text-zinc-500 font-bold mt-0.5">{formatDisplayMoney(Number(prod.price ?? 0), (prod as any).currency ?? "RWF")}</p>
+                    <h5 className="line-clamp-1 text-[12px] font-black text-zinc-800 dark:text-white/80 group-hover:text-[#f97316] transition-colors">{prod.name}</h5>
+                    <p className="text-[10px] text-zinc-500 dark:text-zinc-400 font-bold mt-0.5">{formatDisplayMoney(Number(prod.price ?? 0), (prod as any).currency ?? "RWF")}</p>
                   </div>
                   <span className="shrink-0 self-center rounded-xl bg-[#f97316] px-2 py-1 text-[9px] font-black uppercase tracking-wider text-white">Live</span>
                 </div>
