@@ -52,7 +52,7 @@ function ClipCard({
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen(clip); }
       }}
-      className="group relative shrink-0 cursor-pointer overflow-hidden rounded-2xl border border-[#ebe8f2] bg-[#1a1428] text-left ring-1 ring-[#433360]/10 transition-all duration-300 hover:border-[#f97316]/35 hover:ring-[#f97316]/20 active:scale-[0.99]"
+      className="group relative shrink-0 cursor-pointer overflow-hidden rounded-2xl border border-border bg-surface text-left ring-1 ring-white/5 transition-all duration-300 hover:border-primary/50 hover:ring-primary/20 active:scale-[0.99] shadow-lg shadow-black/20"
       style={{ width }}
     >
       <div className="relative aspect-[9/16]">
@@ -64,7 +64,7 @@ function ClipCard({
               : "linear-gradient(to bottom, var(--color-bg-dark), #431407)",
           }}
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0f0a18]/95 via-[#1a1428]/25 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-bg/95 via-bg/25 to-transparent" />
 
         {/* Vendor row */}
         <div className="absolute left-2.5 right-2.5 top-2.5 z-10 flex min-w-0 items-center gap-1.5">
@@ -75,7 +75,7 @@ function ClipCard({
                 {clip.vendors?.business_name?.[0] ?? "V"}
               </AvatarFallback>
             </Avatar>
-            <div className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-[1.5px] border-[#1a1428] bg-emerald-500" />
+            <div className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-[1.5px] border-surface bg-emerald-500 shadow-sm" />
           </div>
           <span className="min-w-0 truncate text-[10px] font-black leading-tight text-white drop-shadow-md">
             {clip.vendors?.business_name ?? "Creator"}
@@ -89,9 +89,9 @@ function ClipCard({
             <span className="text-[9px] font-black tabular-nums text-white">{(clip.total_views ?? 0).toLocaleString()}</span>
           </div>
           {clip.products && (
-            <div className="flex items-center justify-between gap-1.5 rounded-xl bg-white dark:bg-surface/95 px-2 py-1 backdrop-blur-md shadow-lg">
-              <span className="min-w-0 truncate text-[9px] font-black text-[#1a1428]">{clip.products.name}</span>
-              <ShoppingBag className="h-3 w-3 shrink-0 text-[#f97316]" />
+            <div className="flex items-center justify-between gap-1.5 rounded-xl bg-white dark:bg-surface-secondary px-2 py-1 backdrop-blur-md shadow-lg border border-border">
+              <span className="min-w-0 truncate text-[9px] font-black text-bg-dark dark:text-text-primary">{clip.products.name}</span>
+              <ShoppingBag className="h-3 w-3 shrink-0 text-primary" />
             </div>
           )}
           {clip.vendors?.id && (
@@ -152,27 +152,27 @@ export function TrendingProductClipsSection({ clips, className, title = "Trendin
             aria-hidden
           />
           <div className="min-w-0">
-            <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-[#f97316]/25 bg-[#fff7ed]/80 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-[#c2410c] sm:text-[11px]">
-              <Play className="h-3 w-3 shrink-0 fill-[#f97316] text-[#f97316]" aria-hidden />
+            <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/5 dark:bg-primary/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-primary sm:text-[11px] shadow-sm">
+              <Play className="h-3 w-3 shrink-0 fill-primary text-primary" aria-hidden />
               Creator storefront
             </div>
             <h2 className="font-outfit flex flex-wrap items-center gap-3 text-[26px] font-black leading-[1.1] tracking-tight text-text-primary sm:gap-3.5 sm:text-[30px] md:text-[34px]">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#fff7ed] to-[#ffedd5] ring-1 ring-[#f97316]/20 sm:h-11 sm:w-11">
-                <Play className="h-5 w-5 fill-[#f97316] text-[#f97316] sm:h-[1.35rem] sm:w-[1.35rem]" />
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-surface to-bg ring-1 ring-primary/20 sm:h-11 sm:w-11 shadow-inner">
+                <Play className="h-5 w-5 fill-primary text-primary sm:h-[1.35rem] sm:w-[1.35rem]" />
               </span>
               <span>{title}</span>
             </h2>
-            <p className="mt-2 max-w-xl text-[13px] font-medium leading-relaxed text-[#6b7280] sm:text-[14px]">
+            <p className="mt-2 max-w-xl text-[13px] font-medium leading-relaxed text-text-muted sm:text-[14px]">
               Short clips from verified sellers — tap to watch, follow, or shop the featured product.
             </p>
           </div>
         </div>
         <Link
           href="/marketplace"
-          className="group inline-flex w-full shrink-0 items-center justify-center gap-2.5 rounded-2xl border border-[#ebe8f2] bg-white dark:bg-surface px-5 py-3 text-[12px] font-black uppercase tracking-[0.12em] text-[#433360] transition-all hover:border-[#f97316]/35 hover:bg-[#fff7ed] sm:w-auto"
+          className="group inline-flex w-full shrink-0 items-center justify-center gap-2.5 rounded-2xl border border-border bg-white dark:bg-surface px-5 py-3 text-[12px] font-black uppercase tracking-[0.12em] text-text-primary transition-all hover:border-primary/50 hover:bg-surface-secondary sm:w-auto shadow-sm"
         >
           <span>See all clips</span>
-          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[#f97316] to-[#ea580c] text-white transition-transform group-hover:translate-x-0.5">
+          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-primary to-accent text-bg-dark font-black transition-transform group-hover:translate-x-0.5">
             <ChevronRight className="h-4 w-4" />
           </span>
         </Link>
