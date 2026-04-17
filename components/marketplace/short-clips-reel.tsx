@@ -71,18 +71,20 @@ export function ShortClipsReel({ videos, className }: ShortClipsReelProps) {
             </span>
             Live Feed
           </div>
-          <h2 className="text-[28px] md:text-[34px] font-black leading-none text-zinc-900 dark:text-white tracking-[-0.03em]">
-            Creator <span className="text-orange-600">Shorts</span>
+          <h2 className="text-[32px] md:text-[40px] font-black leading-none text-stone-900 dark:text-white tracking-tighter">
+            Creator <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-orange-600">Shorts</span>
           </h2>
-          <p className="text-[13px] font-medium text-zinc-400">Discover and shop trending creator content</p>
+          <p className="text-[14px] font-bold text-stone-400 dark:text-text-muted">Discover and shop trending creator content</p>
         </div>
 
         <Link
           href="/shorts"
-          className="group flex items-center gap-2.5 px-5 py-3 rounded-2xl bg-zinc-950 hover:bg-black text-white text-[12px] font-black uppercase tracking-[0.12em] transition-all active:scale-[0.97] shadow-lg shadow-zinc-950/10"
+          className="group flex items-center gap-2.5 px-6 py-3.5 rounded-2xl bg-stone-950 dark:bg-surface border border-white/5 text-white text-[12px] font-black uppercase tracking-[0.15em] transition-all active:scale-[0.97] shadow-xl hover:bg-black dark:hover:bg-bg"
         >
           Watch All
-          <Play className="h-3 w-3 fill-white group-hover:translate-x-0.5 transition-transform" />
+          <div className="h-4 w-4 rounded-full bg-orange-500 flex items-center justify-center p-0.5 group-hover:scale-110 transition-transform">
+            <Play className="h-2 w-2 fill-white stroke-none ml-0.5" />
+          </div>
         </Link>
       </div>
 
@@ -91,13 +93,13 @@ export function ShortClipsReel({ videos, className }: ShortClipsReelProps) {
         {videos.map((video) => (
           <div
             key={video.id}
-            className="shrink-0 group relative flex flex-col overflow-hidden rounded-[20px] bg-white dark:bg-surface border border-zinc-100 dark:border-border shadow-[0_8px_30px_-12px_rgba(0,0,0,0.06)] hover:shadow-[0_15px_40px_-12px_rgba(249,115,22,0.1)] hover:border-orange-100/50 transition-all duration-500 hover:-translate-y-1.5"
-            style={{ width: "clamp(150px, 42vw, 180px)" }}
+            className="shrink-0 group relative flex flex-col overflow-hidden rounded-[24px] bg-white dark:bg-surface border border-stone-100 dark:border-border shadow-[0_8px_30px_-12px_rgba(0,0,0,0.06)] hover:shadow-[0_20px_50px_-12px_rgba(249,115,22,0.15)] hover:border-orange-500/30 transition-all duration-500 hover:-translate-y-2"
+            style={{ width: "clamp(155px, 44vw, 190px)" }}
           >
             {/* ── VIDEO PLAYER PORTION ── */}
             <Link 
               href={`/shorts?clip=${video.id}`} 
-              className="block relative aspect-[9/11] overflow-hidden rounded-t-[23px] bg-zinc-100 dark:bg-surface-secondary"
+              className="block relative aspect-[9/12] overflow-hidden rounded-t-[24px] bg-stone-100 dark:bg-bg"
             >
               <div
                 className="absolute inset-0 bg-cover bg-center transition-transform duration-1000 group-hover:scale-110"
@@ -169,61 +171,61 @@ export function ShortClipsReel({ videos, className }: ShortClipsReelProps) {
             </Link>
 
             {/* ── CONVERSION SECTION (Grounded UI) ── */}
-            <div className="p-2.5 bg-zinc-50/40 dark:bg-surface-secondary/40 backdrop-blur-sm border-t border-zinc-50 dark:border-border space-y-1.5 relative z-10">
+            <div className="p-3 bg-stone-50/50 dark:bg-surface-secondary/40 backdrop-blur-sm border-t border-stone-100 dark:border-border space-y-2 relative z-10">
               {video.video_type === "product" && video.product ? (
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex-1 min-w-0">
-                      <p className="text-[11px] font-black text-zinc-900 dark:text-white truncate leading-none">
+                      <p className="text-[12px] font-black text-stone-900 dark:text-white truncate leading-none tracking-tight">
                         {video.product.name}
                       </p>
                       <p className="text-[7px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">Verified Shop</p>
                     </div>
                     {video.product.price != null && (
-                      <div className="shrink-0 px-1.5 py-0.5 rounded-lg bg-orange-50/50 dark:bg-orange-500/10 border border-orange-100/50 dark:border-orange-500/20">
-                        <p className="text-[11px] font-black text-orange-600 leading-none">
-                          {video.product.currency || "USD"}{Number(video.product.price).toFixed(2)}
+                      <div className="shrink-0 px-2 py-1 rounded-lg bg-orange-500/10 border border-orange-500/20">
+                        <p className="text-[12px] font-black text-orange-500 leading-none">
+                          {video.product.currency || "$"}{Number(video.product.price).toFixed(0)}
                         </p>
                       </div>
                     )}
                   </div>
                   <Link 
                     href={`/marketplace/${video.product.slug}?buy=1`}
-                    className="flex items-center justify-center gap-1.5 w-full h-8 rounded-lg bg-zinc-950 hover:bg-black text-white text-[10px] font-black uppercase tracking-wider transition-all transform active:scale-[0.96] shadow-xl shadow-zinc-900/10"
+                    className="flex items-center justify-center gap-2 w-full h-10 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-[11px] font-black uppercase tracking-widest transition-all transform active:scale-[0.96] shadow-xl shadow-orange-600/10"
                   >
-                    Buy Product <ChevronRight className="h-2 w-2 text-orange-500" />
+                    Buy Product <ChevronRight className="h-3 w-3" />
                   </Link>
                 </div>
               ) : video.video_type === "community" && video.community ? (
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex-1 min-w-0">
-                      <p className="text-[11px] font-black text-zinc-900 dark:text-white truncate leading-none">
+                      <p className="text-[12px] font-black text-stone-900 dark:text-white truncate leading-none">
                         {video.community.name}
                       </p>
-                      <p className="text-[8px] font-bold text-indigo-500 mt-0.5 uppercase tracking-wide">
+                      <p className="text-[9px] font-bold text-orange-500 mt-1 uppercase tracking-wide">
                         {formatCount(video.community.member_count || 0)} Members
                       </p>
                     </div>
                   </div>
                   <Link 
                     href={`/groups/community/${video.community.slug}`}
-                    className="flex items-center justify-center gap-1.5 w-full h-8 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-black uppercase tracking-wider transition-all transform active:scale-[0.96] shadow-xl shadow-indigo-600/10"
+                    className="flex items-center justify-center gap-2 w-full h-10 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-[11px] font-black uppercase tracking-widest transition-all transform active:scale-[0.96] shadow-xl shadow-orange-600/10"
                   >
-                    Join Now <ArrowRight className="h-2 w-2" />
+                    Join Now <ArrowRight className="h-3 w-3" />
                   </Link>
                 </div>
               ) : (
-                <div className="space-y-1.5">
-                  <p className="text-[11px] font-black text-zinc-900 dark:text-white truncate tracking-tight">
+                <div className="space-y-2">
+                  <p className="text-[12px] font-black text-stone-900 dark:text-white truncate tracking-tight">
                     Visit Sponsor Link
                   </p>
                   <a 
                     href={video.external_link || "#"}
                     target="_blank"
-                    className="flex items-center justify-center gap-1.5 w-full h-8 rounded-lg bg-orange-600 hover:bg-orange-700 text-white text-[10px] font-black uppercase tracking-wider transition-all active:scale-[0.96] shadow-xl shadow-orange-600/10"
+                    className="flex items-center justify-center gap-2 w-full h-10 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-[11px] font-black uppercase tracking-widest transition-all active:scale-[0.96] shadow-xl shadow-orange-600/10"
                   >
-                    Explore <ExternalLink className="h-2 w-2" />
+                    Explore <ExternalLink className="h-3 w-3" />
                   </a>
                 </div>
               )}
