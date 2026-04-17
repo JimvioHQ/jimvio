@@ -142,20 +142,20 @@ function GlobeCanvas() {
       scene.add(new THREE.Points(pg, new THREE.PointsMaterial({ color: 0xf97316, size: 0.024, transparent: true, opacity: 0.5 })));
 
       /* Lights */
-      /* theme-aware lights */
-      scene.add(new THREE.AmbientLight(isDark ? 0x222222 : 0xffffff, isDark ? 0.7 : 0.55));
-      const sun = new THREE.DirectionalLight(isDark ? 0xffbb66 : 0xfff8f0, isDark ? 1.4 : 1.15);
-      sun.position.set(4, 2, 3);
+      scene.add(new THREE.AmbientLight(isDark ? 0x1A1A1A : 0xffffff, isDark ? 1.2 : 0.8));
+      const sun = new THREE.DirectionalLight(isDark ? 0xFFB86C : 0xfff8f0, isDark ? 2.5 : 1.5);
+      sun.position.set(5, 3, 5);
       scene.add(sun);
-      const fill = new THREE.DirectionalLight(isDark ? 0x444466 : 0xe8f4ff, isDark ? 0.6 : 0.3);
-      fill.position.set(-3, -1, -2);
-      scene.add(fill);
+      
+      const rim = new THREE.PointLight(0xFF6E6E, isDark ? 3 : 1, 10);
+      rim.position.set(-5, 2, -3);
+      scene.add(rim);
 
       /* Mouse parallax */
       let mx = 0, my = 0;
       const onMouse = (e: MouseEvent) => {
-        mx = (e.clientX / window.innerWidth - 0.5) * 0.45;
-        my = (e.clientY / window.innerHeight - 0.5) * 0.28;
+        mx = (e.clientX / window.innerWidth - 0.5) * 0.8;
+        my = (e.clientY / window.innerHeight - 0.5) * 0.4;
       };
       window.addEventListener("mousemove", onMouse);
 
@@ -163,9 +163,9 @@ function GlobeCanvas() {
       const animate = () => {
         animId = requestAnimationFrame(animate);
         const t = clock.getElapsedTime();
-        globe.rotation.y = t * 0.075 + mx * 0.55;
-        globe.rotation.x = my * 0.28;
-        camera.position.x = Math.sin(t * 0.04) * 0.06;
+        globe.rotation.y = t * 0.12 + mx * 0.6;
+        globe.rotation.x = Math.sin(t * 0.2) * 0.1 + my * 0.4;
+        camera.position.z = 3.2 + Math.sin(t * 0.5) * 0.15;
         renderer.render(scene, camera);
       };
       animate();
@@ -470,21 +470,22 @@ export function HomepageHero({
           borderBottom: "1px solid var(--color-border)",
         }}
       >
-        {/* Ambient glow orbs */}
-        <div className="pointer-events-none absolute top-0 right-1/4 w-[600px] h-[600px] rounded-full" style={{ background: "radial-gradient(circle, rgba(251,146,60,0.05), transparent 65%)", filter: "blur(80px)" }} />
-        <div className="pointer-events-none absolute bottom-0 left-0 w-[400px] h-[400px] rounded-full" style={{ background: "radial-gradient(circle, rgba(99,102,241,0.03), transparent 65%)", filter: "blur(60px)" }} />
+        {/* Ambient glow orbs - Liquid Magic */}
+        <div className="pointer-events-none absolute top-[-10%] right-[10%] w-[600px] h-[600px] rounded-full animate-blob filter blur-[120px] opacity-40 mix-blend-screen dark:mix-blend-soft-light" style={{ background: "radial-gradient(circle, #FFB86C, transparent 70%)" }} />
+        <div className="pointer-events-none absolute bottom-[-10%] left-[5%] w-[500px] h-[500px] rounded-full animate-blob animation-delay-2000 filter blur-[120px] opacity-30 mix-blend-screen dark:mix-blend-soft-light" style={{ background: "radial-gradient(circle, #FF6E6E, transparent 70%)" }} />
+        <div className="pointer-events-none absolute top-[20%] left-[30%] w-[400px] h-[400px] rounded-full animate-blob animation-delay-4000 filter blur-[100px] opacity-20 mix-blend-screen dark:mix-blend-soft-light" style={{ background: "radial-gradient(circle, #3b82f6, transparent 70%)" }} />
+
         {/* Top specular */}
         <div className="absolute inset-x-0 top-0 h-px" style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.9) 50%, transparent)" }} />
 
         {/* Globe 3D */}
-        <div className="absolute inset-0 z-0">
+        <div className="absolute inset-0 z-0 opacity-80 dark:opacity-60">
           <GlobeCanvas />
         </div>
 
         {/* Hero bg image */}
         <div className="absolute inset-0 z-0 select-none pointer-events-none">
-          <Image src="/hero-bg.png" alt="Global Growth Background" fill className="object-cover opacity-[0.18] dark:opacity-[0.08] saturate-[1.2] scale-105" priority />
-          <div className="absolute inset-0 bg-gradient-to-r from-[var(--color-bg)]/85 via-[var(--color-bg)]/30 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[var(--color-bg)] via-[var(--color-bg)]/40 to-transparent" />
         </div>
 
         <div className="relative z-10 w-full max-w-[1440px] mx-auto px-12 grid grid-cols-1 lg:grid-cols-2 items-center gap-20">
@@ -508,45 +509,54 @@ export function HomepageHero({
             </motion.div>
 
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.5 }} className="space-y-4">
-              <h1 className="text-5xl xl:text-6xl font-bold text-stone-900 dark:text-white tracking-tight leading-[1.05]">
-                Where products & creators drive <br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 via-orange-600 to-amber-600">global growth.</span>
+              <h1 className="text-6xl xl:text-7xl font-bold text-stone-900 dark:text-white tracking-tighter leading-[0.95]">
+                Where products & creators <br />
+                <span className="relative inline-block">
+                  <span className="absolute -inset-1 bg-gradient-to-r from-[#FFB86C] to-[#FF6E6E] blur-2xl opacity-20 animate-pulse-glow" />
+                  <span className="relative text-transparent bg-clip-text bg-gradient-to-r from-[#FFB86C] via-[#FF6E6E] to-[#f97316] animate-gradient-shift">
+                    drive global growth.
+                  </span>
+                </span>
               </h1>
-              <p className="text-base text-stone-600 dark:text-text-muted leading-relaxed max-w-lg">
-                Build, promote, and scale your global presence. The premium ecosystem for professional suppliers and verified creators.
+              <p className="text-[17px] text-stone-600 dark:text-text-muted leading-relaxed max-w-lg font-medium">
+                The high-performance ecosystem for professional suppliers and verified creators. Scale your empire across Africa and beyond.
               </p>
             </motion.div>
 
-            <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25, duration: 0.5 }} className="flex items-center gap-3 pt-1">
-              {/* Primary CTA */}
-              <div
-                className="rounded-[18px] overflow-hidden"
-                style={{
-                  background: "rgba(251,146,60,0.12)",
-                  backdropFilter: "blur(20px) saturate(160%)",
-                  WebkitBackdropFilter: "blur(20px) saturate(160%)",
-                  border: "1px solid rgba(251,146,60,0.35)",
-                  boxShadow: "0 2px 12px rgba(249,115,22,0.10), inset 0 1px 0 rgba(255,255,255,0.9)",
-                }}
-              >
-                <StartEarnDialog className="h-14 px-10 rounded-[18px] bg-transparent hover:bg-orange-500/10 border-none text-orange-600 text-[13px] font-black uppercase tracking-widest active:scale-95 transition-all">
-                  Start Earning Now →
-                </StartEarnDialog>
+            <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25, duration: 0.5 }} className="flex items-center gap-4 pt-4">
+              {/* Primary CTA - Glassmorphic Glow */}
+              <div className="relative group">
+                <div className="absolute -inset-1.5 bg-gradient-to-r from-[#FFB86C] to-[#FF6E6E] rounded-[24px] blur opacity-30 group-hover:opacity-60 transition duration-500 animate-pulse" />
+                <div
+                  className="relative rounded-[20px] overflow-hidden"
+                  style={{
+                    background: "rgba(255,255,255,0.08)",
+                    backdropFilter: "blur(24px) saturate(160%)",
+                    WebkitBackdropFilter: "blur(24px) saturate(160%)",
+                    border: "1px solid rgba(255,255,255,0.15)",
+                    boxShadow: "0 8px 32px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.2)",
+                  }}
+                >
+                  <StartEarnDialog className="h-16 px-12 rounded-[20px] bg-[#FFB86C] hover:bg-[#ff9d3d] border-none text-black text-[14px] font-black uppercase tracking-widest active:scale-95 transition-all shadow-xl">
+                    Start Earning Now →
+                  </StartEarnDialog>
+                </div>
               </div>
-              {/* AI bubble */}
+
+              {/* AI bubble - Floating Glass */}
               <button
                 onClick={() => openAssistant()}
-                className="group h-14 w-14 flex items-center justify-center rounded-[18px] transition-all hidden sm:flex"
+                className="group h-16 w-16 flex items-center justify-center rounded-[20px] transition-all hidden sm:flex animate-float"
                 title="Launch AI Sourcing"
                 style={{
-                  background: "rgba(255,255,255,0.72)",
-                  backdropFilter: "blur(24px) saturate(160%)",
-                  WebkitBackdropFilter: "blur(24px) saturate(160%)",
-                  border: "1px solid rgba(255,255,255,0.88)",
-                  boxShadow: "0 4px 16px rgba(0,0,0,0.07), inset 0 1px 0 rgba(255,255,255,1)",
+                  background: "rgba(255,255,255,0.05)",
+                  backdropFilter: "blur(32px) saturate(180%)",
+                  WebkitBackdropFilter: "blur(32px) saturate(180%)",
+                  border: "1px solid rgba(255,255,255,0.12)",
+                  boxShadow: "0 10px 40px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.1)",
                 }}
               >
-                <Sparkles className="h-6 w-6 fill-orange-500 stroke-none group-hover:scale-110 transition-transform" />
+                <Sparkles className="h-7 w-7 fill-[#FFB86C] stroke-none group-hover:scale-125 transition-transform" />
               </button>
             </motion.div>
 

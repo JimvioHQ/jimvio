@@ -37,7 +37,7 @@ export function SharedCommunityCard({ c, rank, showQuickActions = true }: Commun
   return (
     <article className="group relative rounded-[32px] border border-stone-200/60 bg-white dark:bg-bg dark:border-border overflow-hidden shadow-sm hover:shadow-xl hover:border-orange-500/30 transition-all duration-500 hover:-translate-y-1 flex flex-col h-full">
       {/* Cover */}
-      <div className="relative h-44 bg-stone-50 dark:bg-surface shrink-0">
+      <div className="relative h-28 sm:h-44 bg-stone-50 dark:bg-surface shrink-0">
         {c.cover_image ? (
           <Image src={c.cover_image} alt="" fill className="object-cover group-hover:scale-110 transition-transform duration-700" sizes="33vw" unoptimized />
         ) : (
@@ -75,12 +75,12 @@ export function SharedCommunityCard({ c, rank, showQuickActions = true }: Commun
       </div>
 
       {/* Avatar overlap */}
-      <div className="relative px-5">
-        <div className="absolute -top-10 left-5 h-20 w-20 rounded-[28px] border-[4px] border-white dark:border-bg bg-white dark:bg-surface overflow-hidden shadow-2xl z-10 transition-transform group-hover:scale-110 duration-500">
+      <div className="relative px-4 sm:px-5">
+        <div className="absolute -top-8 sm:-top-10 left-4 sm:left-5 h-16 w-16 sm:h-20 sm:w-20 rounded-[20px] sm:rounded-[28px] border-[3px] sm:border-[4px] border-white dark:border-bg bg-white dark:bg-surface overflow-hidden shadow-2xl z-10 transition-transform group-hover:scale-110 duration-500">
           {(c.avatar_url || c.image_url) ? (
             <Image src={c.avatar_url || c.image_url || ''} alt="" width={80} height={80} className="object-cover h-full w-full" unoptimized />
           ) : (
-            <div className="h-full w-full flex items-center justify-center text-orange-600 font-black text-2xl bg-orange-50 dark:bg-surface-secondary">
+            <div className="h-full w-full flex items-center justify-center text-orange-600 font-black text-xl sm:text-2xl bg-orange-50 dark:bg-surface-secondary">
               {c.name?.[0] ?? "?"}
             </div>
           )}
@@ -88,10 +88,10 @@ export function SharedCommunityCard({ c, rank, showQuickActions = true }: Commun
       </div>
 
       {/* Body */}
-      <div className="flex flex-col flex-1 p-5 pt-12 gap-3">
+      <div className="flex flex-col flex-1 p-4 sm:p-5 pt-10 sm:pt-12 gap-2 sm:gap-3">
         <div>
-          <h2 className="font-black text-stone-900 dark:text-text-primary text-[18px] leading-tight line-clamp-1 group-hover:text-orange-600 transition-colors tracking-tight">{c.name}</h2>
-          <p className="text-[12px] text-stone-500 dark:text-text-secondary mt-1 line-clamp-2 leading-relaxed font-medium">
+          <h2 className="font-black text-stone-900 dark:text-text-primary text-[15px] sm:text-[18px] leading-tight line-clamp-1 group-hover:text-orange-600 transition-colors tracking-tight">{c.name}</h2>
+          <p className="text-[11px] sm:text-[12px] text-stone-500 dark:text-text-secondary mt-0.5 sm:mt-1 line-clamp-2 leading-relaxed font-medium">
             {c.tagline || 'Exclusive community for elite members.'}
           </p>
         </div>
@@ -116,28 +116,28 @@ export function SharedCommunityCard({ c, rank, showQuickActions = true }: Commun
         </div>
 
         {/* Price + CTA Stacking for narrow width */}
-        <div className="mt-auto pt-4 border-t border-stone-100 dark:border-border space-y-3">
+        <div className="mt-auto pt-3 sm:pt-4 border-t border-stone-100 dark:border-border space-y-2 sm:space-y-3">
           <div className="flex items-center justify-between">
             {c.is_free ? (
-              <span className="text-[11px] font-black text-orange-600 uppercase tracking-widest bg-orange-50 dark:bg-orange-900/20 px-2 py-0.5 rounded-lg">
+              <span className="text-[10px] sm:text-[11px] font-black text-orange-600 uppercase tracking-widest bg-orange-50 dark:bg-orange-900/20 px-2 py-0.5 rounded-lg">
                 Free Access
               </span>
             ) : c.monthly_price ? (
               <div className="flex items-baseline gap-1">
-                 <span className="text-[16px] font-black text-stone-950 dark:text-white">
+                 <span className="text-[14px] sm:text-[16px] font-black text-stone-950 dark:text-white">
                    {c.currency || "$"}{Number(c.monthly_price).toFixed(0)}
                  </span>
-                 <span className="text-[10px] font-bold text-stone-400 uppercase">/mo</span>
+                 <span className="text-[9px] sm:text-[10px] font-bold text-stone-400 uppercase">/mo</span>
               </div>
             ) : (
-              <span className="text-[11px] font-black text-stone-400 uppercase">Private HUB</span>
+              <span className="text-[10px] sm:text-[11px] font-black text-stone-400 uppercase">Private HUB</span>
             )}
           </div>
 
           <Button
             asChild
             variant="orange"
-            className="w-full rounded-[20px] font-black text-[13px] h-10 transition-all uppercase tracking-widest"
+            className="w-full rounded-[16px] sm:rounded-[20px] font-black text-[12px] sm:text-[13px] h-9 sm:h-10 transition-all uppercase tracking-widest"
           >
             <Link href={`/communities/${c.slug}`}>
               Join Community <ArrowRight size={14} className="ml-2 group-hover:translate-x-1 transition-transform" />

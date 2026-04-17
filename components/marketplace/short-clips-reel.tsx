@@ -64,7 +64,7 @@ export function ShortClipsReel({ videos, className }: ShortClipsReelProps) {
       {/* ── Standard Premium Header ── */}
       <div className="flex items-end justify-between px-2">
         <div className="space-y-1.5">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-orange-50 text-[10px] font-black uppercase tracking-[0.14em] text-orange-600 border border-orange-100/50 shadow-sm">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-orange-50 dark:bg-orange-500/10 text-[10px] font-black uppercase tracking-[0.14em] text-orange-600 border border-orange-100/50 dark:border-orange-500/20 shadow-sm">
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-500 opacity-60" />
               <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-600" />
@@ -92,12 +92,12 @@ export function ShortClipsReel({ videos, className }: ShortClipsReelProps) {
           <div
             key={video.id}
             className="shrink-0 group relative flex flex-col overflow-hidden rounded-[20px] bg-white dark:bg-surface border border-zinc-100 dark:border-border shadow-[0_8px_30px_-12px_rgba(0,0,0,0.06)] hover:shadow-[0_15px_40px_-12px_rgba(249,115,22,0.1)] hover:border-orange-100/50 transition-all duration-500 hover:-translate-y-1.5"
-            style={{ width: "clamp(160px, 45vw, 190px)" }}
+            style={{ width: "clamp(150px, 42vw, 180px)" }}
           >
             {/* ── VIDEO PLAYER PORTION ── */}
             <Link 
               href={`/shorts?clip=${video.id}`} 
-              className="block relative aspect-[9/11] overflow-hidden rounded-t-[23px] bg-zinc-100"
+              className="block relative aspect-[9/11] overflow-hidden rounded-t-[23px] bg-zinc-100 dark:bg-surface-secondary"
             >
               <div
                 className="absolute inset-0 bg-cover bg-center transition-transform duration-1000 group-hover:scale-110"
@@ -130,11 +130,11 @@ export function ShortClipsReel({ videos, className }: ShortClipsReelProps) {
               {/* Bottom Video Metadata */}
               <div className="absolute inset-x-0 bottom-0 p-3 pt-4 space-y-1">
                 <div className="flex items-center gap-1.5">
-                  <div className="h-5 w-5 rounded-full border-2 border-white/40 overflow-hidden bg-white dark:bg-surface/10 backdrop-blur-md shadow-lg transition-transform group-hover:scale-110">
+                  <div className="h-5 w-5 rounded-full border-2 border-white/40 overflow-hidden bg-white dark:bg-surface/20 backdrop-blur-md shadow-lg transition-transform group-hover:scale-110">
                     {video.creator.avatar ? (
                       <img src={video.creator.avatar} alt={video.creator.name} className="h-full w-full object-cover" />
                     ) : (
-                      <div className="h-full w-full bg-zinc-800 flex items-center justify-center text-[8px] font-black text-white uppercase">
+                      <div className="h-full w-full bg-zinc-800 dark:bg-surface-secondary flex items-center justify-center text-[8px] font-black text-white uppercase">
                         {video.creator.name[0]}
                       </div>
                     )}
@@ -169,7 +169,7 @@ export function ShortClipsReel({ videos, className }: ShortClipsReelProps) {
             </Link>
 
             {/* ── CONVERSION SECTION (Grounded UI) ── */}
-            <div className="p-2.5 bg-zinc-50/40 backdrop-blur-sm border-t border-zinc-50 space-y-1.5 relative z-10">
+            <div className="p-2.5 bg-zinc-50/40 dark:bg-surface-secondary/40 backdrop-blur-sm border-t border-zinc-50 dark:border-border space-y-1.5 relative z-10">
               {video.video_type === "product" && video.product ? (
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between gap-2">
@@ -180,7 +180,7 @@ export function ShortClipsReel({ videos, className }: ShortClipsReelProps) {
                       <p className="text-[7px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">Verified Shop</p>
                     </div>
                     {video.product.price != null && (
-                      <div className="shrink-0 px-1.5 py-0.5 rounded-lg bg-orange-50/50 border border-orange-100/50">
+                      <div className="shrink-0 px-1.5 py-0.5 rounded-lg bg-orange-50/50 dark:bg-orange-500/10 border border-orange-100/50 dark:border-orange-500/20">
                         <p className="text-[11px] font-black text-orange-600 leading-none">
                           {video.product.currency || "USD"}{Number(video.product.price).toFixed(2)}
                         </p>
