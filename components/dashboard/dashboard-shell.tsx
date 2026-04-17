@@ -72,7 +72,7 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
             HEADER — Frosted Glass iOS 17
         ══════════════════════════════════════ */}
         <header
-          className="sticky top-0 z-40 shrink-0 bg-surface/80 dark:bg-zinc-950/80 backdrop-blur-[20px] border-b border-border"
+          className="sticky top-0 z-40 shrink-0 bg-surface/80 dark:bg-bg/80 backdrop-blur-[20px] border-b border-border"
         >
           <div className="flex items-center justify-between gap-3 px-4 sm:px-6 h-[60px] max-w-[1400px] mx-auto w-full">
             
@@ -80,7 +80,7 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
             <div className={cn("lg:hidden flex items-center gap-3", mobileMenuOpen && "invisible")}>
                <button
                  onClick={() => setMobileMenuOpen(true)}
-                 className="flex items-center justify-center h-9 w-9 rounded-[14px] transition-all active:scale-95 hover:shadow-sm bg-surface-secondary dark:bg-zinc-800 border border-border"
+                 className="flex items-center justify-center h-9 w-9 rounded-[14px] transition-all active:scale-95 hover:shadow-sm bg-surface-secondary dark:bg-surface-secondary border border-border"
                >
                   <Menu className="h-[18px] w-[18px] text-stone-500" />
                </button>
@@ -96,7 +96,7 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
                   <input 
                     type="text" 
                     placeholder="Search anything..." 
-                    className="w-full h-10 pl-10 pr-4 rounded-xl text-[13px] font-medium bg-neutral-100 dark:bg-zinc-900 border border-transparent focus:border-orange-500/30 focus:bg-white dark:focus:bg-zinc-800 transition-all outline-none text-neutral-900 dark:text-zinc-100 placeholder:text-neutral-400"
+                    className="w-full h-10 pl-10 pr-4 rounded-xl text-[13px] font-medium bg-neutral-100 dark:bg-surface border border-transparent focus:border-orange-500/30 focus:bg-white dark:focus:bg-zinc-800 transition-all outline-none text-neutral-900 dark:text-text-primary placeholder:text-neutral-400"
                   />
                </div>
             </div>
@@ -109,14 +109,14 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
                {/* Currency */}
                 <div className="hidden sm:block">
                    <CurrencySelector
-                     className="h-9 rounded-xl text-[11px] font-bold bg-neutral-100 dark:bg-zinc-900 border-none px-3 text-neutral-600 dark:text-zinc-400 hover:bg-neutral-200 dark:hover:bg-zinc-800 transition-colors"
+                     className="h-9 rounded-xl text-[11px] font-bold bg-neutral-100 dark:bg-surface border-none px-3 text-neutral-600 dark:text-text-muted hover:bg-neutral-200 dark:hover:bg-zinc-800 transition-colors"
                    />
                 </div>
                
                {/* Notifications */}
                <Link
                  href="/dashboard/notifications"
-                 className="flex items-center justify-center h-9 w-9 rounded-[14px] text-stone-400 dark:text-stone-500 hover:text-stone-800 dark:text-zinc-200 dark:hover:text-stone-200 transition-all active:scale-95 relative hover:shadow-sm bg-surface-secondary dark:bg-zinc-800 border border-border"
+                 className="flex items-center justify-center h-9 w-9 rounded-[14px] text-stone-400 dark:text-text-muted hover:text-stone-800 dark:text-text-secondary dark:hover:text-stone-200 transition-all active:scale-95 relative hover:shadow-sm bg-surface-secondary dark:bg-surface-secondary border border-border"
                >
                   <Bell className="h-4 w-4" />
                   <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-orange-500 rounded-full border-[1.5px] border-white dark:border-zinc-900" />
@@ -126,7 +126,7 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
                 <DropdownMenu>
                    <DropdownMenuTrigger asChild>
                      <button
-                       className="flex items-center gap-2 p-1 pl-1 pr-2.5 rounded-full transition-all hover:shadow-sm active:scale-95 bg-surface dark:bg-zinc-800 border border-border"
+                       className="flex items-center gap-2 p-1 pl-1 pr-2.5 rounded-full transition-all hover:shadow-sm active:scale-95 bg-surface dark:bg-surface-secondary border border-border"
                      >
                         <div className="w-7 h-7 rounded-full overflow-hidden border-[1.5px] border-orange-200 dark:border-orange-500/30 shrink-0"
                           style={{ background: user.avatar_url ? "transparent" : "linear-gradient(135deg, #f97316, #a855f7)" }}
@@ -146,16 +146,16 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
                    </DropdownMenuTrigger>
                    <DropdownMenuContent
                      align="end"
-                     className="w-56 rounded-[20px] p-2 shadow-xl border border-border bg-surface/90 dark:bg-zinc-900/90 backdrop-blur-xl"
+                     className="w-56 rounded-[20px] p-2 shadow-xl border border-border bg-surface/90 dark:bg-surface/90 backdrop-blur-xl"
                    >
                      <DropdownMenuLabel className="px-3 py-2">
                         <p className="text-xs font-bold text-stone-900 dark:text-white">{user.full_name || 'My Account'}</p>
-                        <p className="text-[10px] font-medium text-stone-400 dark:text-stone-500 truncate">{user.email}</p>
+                        <p className="text-[10px] font-medium text-stone-400 dark:text-text-muted truncate">{user.email}</p>
                      </DropdownMenuLabel>
                     <DropdownMenuSeparator className="bg-stone-100/60" />
                      <DropdownMenuItem asChild className="rounded-[14px] focus:bg-orange-500/10 cursor-pointer">
                         <Link href="/dashboard/settings" className="flex items-center gap-2.5 p-2.5">
-                           <UserRound className="h-4 w-4 text-stone-400 dark:text-stone-500" />
+                           <UserRound className="h-4 w-4 text-stone-400 dark:text-text-muted" />
                            <span className="text-[12px] font-bold text-stone-700 dark:text-stone-300">Profile Settings</span>
                         </Link>
                      </DropdownMenuItem>
@@ -185,7 +185,7 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
             MOBILE BOTTOM NAV — Frosted Bar
         ══════════════════════════════════════ */}
          <nav
-           className="lg:hidden fixed bottom-5 left-5 right-5 z-40 rounded-[22px] overflow-hidden bg-surface/90 dark:bg-zinc-900/90 backdrop-blur-xl border border-border shadow-lg"
+           className="lg:hidden fixed bottom-5 left-5 right-5 z-40 rounded-[22px] overflow-hidden bg-surface/90 dark:bg-surface/90 backdrop-blur-xl border border-border shadow-lg"
          >
           <div className="flex items-center justify-around h-[60px]">
             <BottomNavLink href="/dashboard" icon={<LayoutDashboard className="h-5 w-5" />} label="Home" />
@@ -208,7 +208,7 @@ function BottomNavMore({ onClick }: { onClick: () => void }) {
   return (
      <button
        onClick={onClick}
-       className="flex flex-col items-center justify-center gap-1 flex-1 text-stone-400 dark:text-stone-500 hover:text-stone-900 dark:text-white dark:hover:text-stone-200 transition-all active:scale-95"
+       className="flex flex-col items-center justify-center gap-1 flex-1 text-stone-400 dark:text-text-muted hover:text-stone-900 dark:text-white dark:hover:text-stone-200 transition-all active:scale-95"
      >
        <Menu className="h-5 w-5" />
        <span className="text-[9px] font-bold uppercase tracking-widest">More</span>
@@ -237,7 +237,7 @@ function BottomNavLink({
       href={href}
        className={cn(
          "flex flex-col items-center justify-center gap-1 flex-1 transition-all active:scale-95",
-         isActive ? "text-orange-600" : "text-stone-400 dark:text-stone-500"
+         isActive ? "text-orange-600" : "text-stone-400 dark:text-text-muted"
        )}
     >
       {icon}
@@ -252,8 +252,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
    return (
      <Suspense fallback={
         <div className="flex flex-col h-screen items-center justify-center bg-background space-y-4">
-           <div className="w-10 h-10 border-4 border-stone-100 dark:border-zinc-800 border-t-orange-500 rounded-full animate-spin" />
-           <p className="text-[10px] font-bold text-stone-400 dark:text-stone-500 uppercase tracking-widest">Loading...</p>
+           <div className="w-10 h-10 border-4 border-stone-100 dark:border-border border-t-orange-500 rounded-full animate-spin" />
+           <p className="text-[10px] font-bold text-stone-400 dark:text-text-muted uppercase tracking-widest">Loading...</p>
         </div>
      }>
       <DashboardShellContent>{children}</DashboardShellContent>

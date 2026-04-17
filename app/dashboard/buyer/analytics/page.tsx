@@ -45,7 +45,7 @@ export default function BuyerAnalyticsPage() {
       <div className="max-w-[1400px] mx-auto space-y-6 px-4 sm:px-6 pt-5">
         <div className="mb-10">
           <h1 className="text-2xl font-bold tracking-tight text-stone-900 dark:text-white flex items-center gap-3">
-             <div className="p-2 rounded-[14px] bg-white dark:bg-zinc-900/60 border border-white/80 shadow-sm shrink-0">
+             <div className="p-2 rounded-[14px] bg-white dark:bg-surface/60 border border-white/80 shadow-sm shrink-0">
                <BarChart3 className="h-6 w-6 text-orange-500" />
              </div>
              Buyer Insights
@@ -72,8 +72,8 @@ export default function BuyerAnalyticsPage() {
           </GlassCard>
         </div>
 
-        <GlassCard className="overflow-hidden bg-white dark:bg-zinc-900/40">
-          <div className="border-b border-stone-200/50 bg-white dark:bg-zinc-900/40 py-4 px-6 flex flex-col">
+        <GlassCard className="overflow-hidden bg-white dark:bg-surface/40">
+          <div className="border-b border-stone-200/50 bg-white dark:bg-surface/40 py-4 px-6 flex flex-col">
             <h3 className="text-[14px] font-bold text-stone-900 dark:text-white tracking-tight flex items-center gap-2">
               <BarChart3 className="h-4 w-4 text-orange-500" />
               Spending & Purchase History

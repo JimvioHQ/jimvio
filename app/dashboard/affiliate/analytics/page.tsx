@@ -52,8 +52,8 @@ export default function AffiliateAnalyticsPage() {
   if (!affiliate) {
     return (
       <div className="min-h-screen flex items-center justify-center px-6" style={{ background: "var(--color-bg)" }}>
-        <GlassCard className="max-w-md w-full p-8 text-center rounded-[32px] border-white shadow-sm bg-white dark:bg-zinc-900/60">
-          <div className="w-16 h-16 bg-white dark:bg-zinc-900 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-stone-100 dark:border-zinc-800 shadow-sm">
+        <GlassCard className="max-w-md w-full p-8 text-center rounded-[32px] border-white shadow-sm bg-white dark:bg-surface/60">
+          <div className="w-16 h-16 bg-white dark:bg-surface rounded-2xl flex items-center justify-center mx-auto mb-6 border border-stone-100 dark:border-border shadow-sm">
              <ShieldCheck className="h-7 w-7 text-stone-300" />
           </div>
           <h2 className="text-2xl font-bold text-stone-900 dark:text-white mb-3 tracking-tight">Access Denied</h2>
@@ -93,7 +93,7 @@ export default function AffiliateAnalyticsPage() {
         {/* Header - Simpler */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
            <div className="flex items-center gap-4">
-              <Button asChild variant="ghost" size="icon" className="shrink-0 h-10 w-10 rounded-xl bg-white dark:bg-zinc-900 border border-stone-100 dark:border-zinc-800 shadow-sm hover:bg-white dark:bg-zinc-900 active:scale-95 transition-all text-stone-500">
+              <Button asChild variant="ghost" size="icon" className="shrink-0 h-10 w-10 rounded-xl bg-white dark:bg-surface border border-stone-100 dark:border-border shadow-sm hover:bg-white dark:bg-surface active:scale-95 transition-all text-stone-500">
                 <Link href="/dashboard/links"><ArrowLeft className="h-5 w-5" /></Link>
               </Button>
               <div className="space-y-1">
@@ -102,7 +102,7 @@ export default function AffiliateAnalyticsPage() {
               </div>
            </div>
            
-           <div className="flex items-center gap-3 bg-white dark:bg-zinc-900 p-3 rounded-full border border-stone-100 dark:border-zinc-800 shadow-sm">
+           <div className="flex items-center gap-3 bg-white dark:bg-surface p-3 rounded-full border border-stone-100 dark:border-border shadow-sm">
               <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse ml-2" />
               <span className="text-[10px] font-bold uppercase tracking-widest text-stone-500 pr-4">Active Monitoring</span>
            </div>
@@ -110,7 +110,7 @@ export default function AffiliateAnalyticsPage() {
 
         {/* Stats Grid - Smaller */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-           <GlassCard className="p-5 flex flex-col justify-between rounded-3xl bg-white dark:bg-zinc-900/60 border-white shadow-sm transition-all hover:bg-white dark:bg-zinc-900/80">
+           <GlassCard className="p-5 flex flex-col justify-between rounded-3xl bg-white dark:bg-surface/60 border-white shadow-sm transition-all hover:bg-white dark:bg-surface/80">
               <div className="w-10 h-10 rounded-xl bg-sky-50 flex items-center justify-center mb-4">
                  <MousePointer className="h-5 w-5 text-sky-500" />
               </div>
@@ -119,7 +119,7 @@ export default function AffiliateAnalyticsPage() {
                  <p className="text-[9px] font-bold capitalize text-stone-400 mt-1">Total Clicks</p>
               </div>
            </GlassCard>
-           <GlassCard className="p-5 flex flex-col justify-between rounded-3xl bg-white dark:bg-zinc-900/60 border-white shadow-sm transition-all hover:bg-white dark:bg-zinc-900/80">
+           <GlassCard className="p-5 flex flex-col justify-between rounded-3xl bg-white dark:bg-surface/60 border-white shadow-sm transition-all hover:bg-white dark:bg-surface/80">
               <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center mb-4">
                  <ShoppingCart className="h-5 w-5 text-emerald-500" />
               </div>
@@ -128,7 +128,7 @@ export default function AffiliateAnalyticsPage() {
                  <p className="text-[9px] font-bold capitalize text-stone-400 mt-1">Sales Made</p>
               </div>
            </GlassCard>
-           <GlassCard className="p-5 flex flex-col justify-between rounded-3xl bg-white dark:bg-zinc-900/60 border-white shadow-sm transition-all hover:bg-white dark:bg-zinc-900/80">
+           <GlassCard className="p-5 flex flex-col justify-between rounded-3xl bg-white dark:bg-surface/60 border-white shadow-sm transition-all hover:bg-white dark:bg-surface/80">
               <div className="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center mb-4">
                  <DollarSign className="h-5 w-5 text-orange-500" />
               </div>
@@ -137,7 +137,7 @@ export default function AffiliateAnalyticsPage() {
                  <p className="text-[9px] font-bold capitalize text-stone-400 mt-1">Total Earnings</p>
               </div>
            </GlassCard>
-           <GlassCard className="p-5 flex flex-col justify-between rounded-3xl bg-white dark:bg-zinc-900/60 border-white shadow-sm transition-all hover:bg-white dark:bg-zinc-900/80">
+           <GlassCard className="p-5 flex flex-col justify-between rounded-3xl bg-white dark:bg-surface/60 border-white shadow-sm transition-all hover:bg-white dark:bg-surface/80">
               <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center mb-4">
                  <TrendingUp className="h-5 w-5 text-purple-500" />
               </div>
@@ -149,7 +149,7 @@ export default function AffiliateAnalyticsPage() {
         </div>
 
         {/* Charts - Soft size */}
-        <GlassCard className="rounded-[32px] border-white bg-white dark:bg-zinc-900/60 shadow-sm overflow-hidden">
+        <GlassCard className="rounded-[32px] border-white bg-white dark:bg-surface/60 shadow-sm overflow-hidden">
            <div className="p-8 border-b border-stone-50 flex items-center justify-between">
               <div>
                  <h3 className="text-lg font-bold text-stone-900 dark:text-white tracking-tight">Performance Summary</h3>
@@ -182,7 +182,7 @@ export default function AffiliateAnalyticsPage() {
         </GlassCard>
 
         {/* Product Registry - Smaller padding */}
-        <GlassCard className="rounded-[32px] border-white bg-white dark:bg-zinc-900/60 shadow-sm overflow-hidden">
+        <GlassCard className="rounded-[32px] border-white bg-white dark:bg-surface/60 shadow-sm overflow-hidden">
            <div className="p-8 border-b border-stone-50 flex items-center justify-between">
               <div>
                  <h3 className="text-lg font-bold text-stone-900 dark:text-white tracking-tight">Top Products</h3>
@@ -213,10 +213,10 @@ export default function AffiliateAnalyticsPage() {
                       const product = l.products as { name?: string; slug?: string; images?: string[] } | null;
                       const imgSrc = product && Array.isArray(product.images) && product.images[0] ? product.images[0] : null;
                       return (
-                        <tr key={l.id} className="hover:bg-white dark:bg-zinc-900 transition-all duration-300">
+                        <tr key={l.id} className="hover:bg-white dark:bg-surface transition-all duration-300">
                            <td className="py-6 pl-8 pr-4">
                              <div className="flex items-center gap-4">
-                               <div className="w-12 h-12 shrink-0 rounded-xl bg-white dark:bg-zinc-900 border border-stone-50 shadow-sm overflow-hidden flex items-center justify-center p-1">
+                               <div className="w-12 h-12 shrink-0 rounded-xl bg-white dark:bg-surface border border-stone-50 shadow-sm overflow-hidden flex items-center justify-center p-1">
                                  {imgSrc ? (
                                    <img src={imgSrc} alt="" className="w-full h-full object-cover rounded-lg" />
                                  ) : (

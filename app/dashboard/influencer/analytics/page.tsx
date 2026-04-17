@@ -146,7 +146,7 @@ export default function CreatorAnalyticsPage() {
       <div className="min-h-screen flex flex-col items-center justify-center space-y-12 animate-in fade-in duration-700" style={{ background: "var(--color-bg)" }}>
         <div className="relative">
           <div className="absolute inset-0 bg-orange-400/20 blur-3xl rounded-full scale-150 animate-pulse" />
-          <div className="relative w-24 h-24 rounded-[32px] bg-white dark:bg-zinc-900 border border-white shadow-2xl flex items-center justify-center overflow-hidden">
+          <div className="relative w-24 h-24 rounded-[32px] bg-white dark:bg-surface border border-white shadow-2xl flex items-center justify-center overflow-hidden">
             <div className="absolute inset-0 border-2 border-t-orange-500 border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin m-2" />
             <Video className="h-10 w-10 text-stone-900 dark:text-white" />
           </div>
@@ -182,7 +182,7 @@ export default function CreatorAnalyticsPage() {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
            <div className="space-y-1">
               <h1 className="text-2xl font-bold text-stone-900 dark:text-white tracking-tight flex items-center gap-3">
-                 <div className="p-2 rounded-xl bg-white dark:bg-zinc-900 border border-border shadow-sm shrink-0">
+                 <div className="p-2 rounded-xl bg-white dark:bg-surface border border-border shadow-sm shrink-0">
                     <Video className="h-6 w-6 text-orange-500" />
                  </div>
                  Influencer Analytics
@@ -193,7 +193,7 @@ export default function CreatorAnalyticsPage() {
            </div>
            
            <div className="flex flex-col sm:flex-row items-center gap-4">
-              <div className="flex items-center gap-1 bg-white dark:bg-zinc-900/40 p-1 rounded-lg border border-border shadow-sm backdrop-blur-xl">
+              <div className="flex items-center gap-1 bg-white dark:bg-surface/40 p-1 rounded-lg border border-border shadow-sm backdrop-blur-xl">
                  {DAY_OPTIONS.map((d) => (
                     <button
                       key={d}
@@ -217,7 +217,7 @@ export default function CreatorAnalyticsPage() {
 
         {/* Primary KPI Matrix */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-           <div className="p-6 flex flex-col justify-between rounded-xl bg-white dark:bg-zinc-900/40 border border-border shadow-sm group">
+           <div className="p-6 flex flex-col justify-between rounded-xl bg-white dark:bg-surface/40 border border-border shadow-sm group">
               <div className="w-11 h-11 rounded-lg bg-sky-50 border border-sky-100 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                  <Eye className="h-6 w-6 text-sky-500" />
               </div>
@@ -226,7 +226,7 @@ export default function CreatorAnalyticsPage() {
                  <p className="text-[10px] font-bold uppercase tracking-widest text-stone-400 mt-2">Total Views</p>
               </div>
            </div>
-           <div className="p-6 flex flex-col justify-between rounded-xl bg-white dark:bg-zinc-900/40 border border-border shadow-sm group">
+           <div className="p-6 flex flex-col justify-between rounded-xl bg-white dark:bg-surface/40 border border-border shadow-sm group">
               <div className="w-11 h-11 rounded-lg bg-rose-50 border border-rose-100 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                  <CheckCircle className="h-6 w-6 text-rose-500" />
               </div>
@@ -235,7 +235,7 @@ export default function CreatorAnalyticsPage() {
                  <p className="text-[10px] font-bold uppercase tracking-widest text-stone-400 mt-2">Approved</p>
               </div>
            </div>
-           <div className="p-6 flex flex-col justify-between rounded-xl bg-white dark:bg-zinc-900/40 border border-border shadow-sm group">
+           <div className="p-6 flex flex-col justify-between rounded-xl bg-white dark:bg-surface/40 border border-border shadow-sm group">
               <div className="w-11 h-11 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                  <ShoppingBag className="h-6 w-6 text-emerald-500" />
               </div>
@@ -244,7 +244,7 @@ export default function CreatorAnalyticsPage() {
                  <p className="text-[10px] font-bold uppercase tracking-widest text-stone-400 mt-2">Sales</p>
               </div>
            </div>
-           <div className="p-6 flex flex-col justify-between rounded-xl bg-white dark:bg-zinc-900/40 border border-border shadow-sm group">
+           <div className="p-6 flex flex-col justify-between rounded-xl bg-white dark:bg-surface/40 border border-border shadow-sm group">
               <div className="w-11 h-11 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                  <DollarSign className="h-6 w-6 text-indigo-500" />
               </div>
@@ -265,7 +265,7 @@ export default function CreatorAnalyticsPage() {
              { label: "Pending", value: formatMoney(stats?.pendingEarnings ?? 0, "USD"), icon: Clock, color: "text-amber-400", isText: true },
              { label: "Rate", value: `${(stats?.conversionRate ?? 0).toFixed(1)}%`, icon: Activity, color: "text-emerald-400", isText: true },
            ].map((item, i) => (
-             <div key={i} className="p-4 text-center group bg-white dark:bg-zinc-900/40 hover:bg-white dark:bg-zinc-900 transition-all border border-transparent hover:border-border shadow-sm rounded-xl">
+             <div key={i} className="p-4 text-center group bg-white dark:bg-surface/40 hover:bg-white dark:bg-surface transition-all border border-transparent hover:border-border shadow-sm rounded-xl">
                 <div className={cn("flex items-center justify-center mb-3 transition-transform group-hover:scale-110", item.color)}>
                   <item.icon className="h-5 w-5" />
                 </div>
@@ -279,7 +279,7 @@ export default function CreatorAnalyticsPage() {
 
          {/* Analytics Visualization */}
          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-           <div className="lg:col-span-8 rounded-xl border border-border bg-white dark:bg-zinc-900/40 shadow-sm overflow-hidden group">
+           <div className="lg:col-span-8 rounded-xl border border-border bg-white dark:bg-surface/40 shadow-sm overflow-hidden group">
               <div className="p-6 border-b border-border flex items-center justify-between">
                  <div>
                     <h3 className="text-lg font-bold text-stone-900 dark:text-white">Growth Trends</h3>
@@ -310,7 +310,7 @@ export default function CreatorAnalyticsPage() {
               </div>
            </div>
 
-           <div className="lg:col-span-4 rounded-xl border border-border bg-white dark:bg-zinc-900/40 shadow-sm overflow-hidden flex flex-col">
+           <div className="lg:col-span-4 rounded-xl border border-border bg-white dark:bg-surface/40 shadow-sm overflow-hidden flex flex-col">
               <div className="p-6 border-b border-border">
                  <h3 className="text-lg font-bold text-stone-900 dark:text-white">Actions</h3>
                  <p className="text-[10px] uppercase tracking-widest text-stone-400">Shortcuts</p>
@@ -321,7 +321,7 @@ export default function CreatorAnalyticsPage() {
                    { href: "/dashboard/influencer/videos", label: "My Content", icon: Target, color: "text-sky-500", bg: "bg-sky-50", desc: "Track submissions" },
                    { href: "/dashboard/withdrawals", label: "Payout Request", icon: Wallet, color: "text-emerald-500", bg: "bg-emerald-50", desc: "Withdraw earnings" },
                  ].map((item, i) => (
-                   <Link key={i} href={item.href} className="flex items-center gap-4 p-4 rounded-xl bg-white dark:bg-zinc-900 border border-border hover:border-orange-200 transition-all shadow-sm group">
+                   <Link key={i} href={item.href} className="flex items-center gap-4 p-4 rounded-xl bg-white dark:bg-surface border border-border hover:border-orange-200 transition-all shadow-sm group">
                      <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center shrink-0 shadow-sm", item.bg, item.color)}>
                         <item.icon className="h-5 w-5" />
                      </div>
@@ -338,7 +338,7 @@ export default function CreatorAnalyticsPage() {
 
         {/* Top Content */}
         {topSubmissions.length > 0 && (
-          <div className="rounded-xl border border-border bg-white dark:bg-zinc-900/40 shadow-sm overflow-hidden">
+          <div className="rounded-xl border border-border bg-white dark:bg-surface/40 shadow-sm overflow-hidden">
              <div className="p-6 border-b border-border flex items-center justify-between">
                 <div className="space-y-1">
                    <h3 className="text-lg font-bold text-stone-900 dark:text-white">Top Missions</h3>
@@ -350,11 +350,11 @@ export default function CreatorAnalyticsPage() {
              </div>
              <div className="divide-y divide-border">
                 {topSubmissions.map((sub, idx) => (
-                   <div key={sub.id} className="flex flex-col sm:flex-row sm:items-center p-6 hover:bg-white dark:bg-zinc-900 transition-colors group">
+                   <div key={sub.id} className="flex flex-col sm:flex-row sm:items-center p-6 hover:bg-white dark:bg-surface transition-colors group">
                       <div className="flex items-center gap-6 flex-1 min-w-0">
                          <div className={cn(
                            "flex items-center justify-center w-8 h-8 rounded-lg text-[12px] font-bold border shrink-0 transition-transform group-hover:scale-110",
-                           idx === 0 ? "bg-stone-900 text-white border-stone-900" : "bg-white dark:bg-zinc-900 text-stone-400 border-border"
+                           idx === 0 ? "bg-stone-900 text-white border-stone-900" : "bg-white dark:bg-surface text-stone-400 border-border"
                          )}>
                             {idx + 1}
                          </div>

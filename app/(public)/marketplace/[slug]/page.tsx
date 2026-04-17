@@ -74,9 +74,9 @@ export default async function ProductDetailPage({ params }: PageProps) {
   };
 
   return (
-    <div className="min-h-screen bg-surface-secondary dark:bg-zinc-950">
+    <div className="min-h-screen bg-surface-secondary dark:bg-bg">
       {/* Breadcrumb */}
-      <div className="bg-surface/95 dark:bg-zinc-900/95 backdrop-blur-xl border-b border-border sticky top-[var(--navbar-height,64px)] z-30">
+      <div className="bg-surface/95 dark:bg-surface/95 backdrop-blur-xl border-b border-border sticky top-[var(--navbar-height,64px)] z-30">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-11">
           <nav className="flex items-center gap-1 text-[10px] font-semibold text-zinc-400 dark:text-zinc-600 min-w-0">
             <Link href="/" className="hover:text-[var(--color-accent)] transition-colors shrink-0">Home</Link>
@@ -116,9 +116,9 @@ export default async function ProductDetailPage({ params }: PageProps) {
                     { icon: <Truck className="h-3.5 w-3.5 text-blue-500" />, label: "Fast Ship" },
                     { icon: <RefreshCw className="h-3.5 w-3.5 text-purple-500" />, label: "14-Day Return" },
                   ].map(({ icon, label }) => (
-                    <div key={label} className="flex items-center justify-center gap-1.5 border border-border bg-surface dark:bg-zinc-900 rounded-lg px-2 py-2">
+                    <div key={label} className="flex items-center justify-center gap-1.5 border border-border bg-surface dark:bg-surface rounded-lg px-2 py-2">
                       {icon}
-                      <span className="text-[9px] font-black uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{label}</span>
+                      <span className="text-[9px] font-black uppercase tracking-wide text-zinc-500 dark:text-text-muted">{label}</span>
                     </div>
                   ))}
                 </div>
@@ -133,7 +133,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
                       {product.product_type}
                     </span>
                   )}
-                  <span className="text-[9px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-surface-secondary dark:bg-zinc-800 text-zinc-400 dark:text-zinc-600">
+                  <span className="text-[9px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-surface-secondary dark:bg-surface-secondary text-zinc-400 dark:text-zinc-600">
                     Direct Sourcing
                   </span>
                 </div>
@@ -147,7 +147,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
                 <div className="flex flex-wrap items-center gap-3 py-2.5 border-y border-border">
                   <div className="flex items-center gap-1">
                     {Array.from({ length: 5 }).map((_, i) => (
-                      <Star key={i} className={cn("h-3.5 w-3.5 fill-current", i < 4 ? "text-amber-400" : "text-zinc-200 dark:text-zinc-800 dark:text-zinc-200")} />
+                      <Star key={i} className={cn("h-3.5 w-3.5 fill-current", i < 4 ? "text-amber-400" : "text-zinc-200 dark:text-zinc-800 dark:text-text-secondary")} />
                     ))}
                     <span className="text-xs font-bold text-zinc-700 dark:text-zinc-300 ml-1">4.8</span>
                   </div>
@@ -175,7 +175,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
 
                 {/* Short description */}
                 {product.description && (
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed line-clamp-4">
+                  <p className="text-xs text-zinc-500 dark:text-text-muted leading-relaxed line-clamp-4">
                     {product.description}
                   </p>
                 )}
@@ -192,17 +192,17 @@ export default async function ProductDetailPage({ params }: PageProps) {
                     { icon: <Truck className="h-3.5 w-3.5 text-blue-500" />, label: "Fast Ship" },
                     { icon: <RefreshCw className="h-3.5 w-3.5 text-purple-500" />, label: "14-Day Return" },
                   ].map(({ icon, label }) => (
-                    <div key={label} className="flex flex-col items-center gap-1 border border-border bg-surface dark:bg-zinc-900 rounded-lg px-2 py-2.5 text-center">
+                    <div key={label} className="flex flex-col items-center gap-1 border border-border bg-surface dark:bg-surface rounded-lg px-2 py-2.5 text-center">
                       {icon}
-                      <span className="text-[8px] font-black uppercase tracking-wide text-zinc-500 dark:text-zinc-500">{label}</span>
+                      <span className="text-[8px] font-black uppercase tracking-wide text-zinc-500 dark:text-text-muted">{label}</span>
                     </div>
                   ))}
                 </div>
 
                 {/* Vendor inline (desktop) */}
                 {vendor && (
-                  <div className="hidden md:flex items-center gap-3 p-2.5 rounded-lg border border-border bg-surface dark:bg-zinc-900 mt-auto">
-                    <div className="h-8 w-8 rounded-md border border-border overflow-hidden shrink-0 bg-surface-secondary dark:bg-zinc-800 flex items-center justify-center">
+                  <div className="hidden md:flex items-center gap-3 p-2.5 rounded-lg border border-border bg-surface dark:bg-surface mt-auto">
+                    <div className="h-8 w-8 rounded-md border border-border overflow-hidden shrink-0 bg-surface-secondary dark:bg-surface-secondary flex items-center justify-center">
                       {vendor.business_logo ? (
                         <img src={vendor.business_logo} alt={vendor.business_name ?? ""} className="w-full h-full object-cover" />
                       ) : (
@@ -224,7 +224,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
             </div>
 
             {/* Tabs */}
-            <div className="bg-surface dark:bg-zinc-900 rounded-xl border border-border shadow-sm overflow-hidden">
+            <div className="bg-surface dark:bg-surface rounded-xl border border-border shadow-sm overflow-hidden">
               <Tabs defaultValue="overview">
                 <div className="border-b border-border px-4">
                   <TabsList className="bg-transparent h-auto p-0 gap-0">
@@ -243,7 +243,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
                 <div className="p-5 sm:p-7">
                   <TabsContent value="overview" className="mt-0 focus-visible:outline-none">
                     <h3 className="text-sm font-black text-zinc-900 dark:text-white mb-3">Product Description</h3>
-                    <div className="text-xs leading-6 text-zinc-500 dark:text-zinc-400 whitespace-pre-wrap">
+                    <div className="text-xs leading-6 text-zinc-500 dark:text-text-muted whitespace-pre-wrap">
                       {product.description || "No description available."}
                     </div>
                   </TabsContent>
@@ -268,7 +268,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
                   <TabsContent value="vendor" className="mt-0 focus-visible:outline-none">
                     {vendor ? (
                       <div className="flex flex-col sm:flex-row gap-5 items-start">
-                        <div className="h-16 w-16 rounded-xl border-2 border-border overflow-hidden bg-surface-secondary dark:bg-zinc-800 flex items-center justify-center shrink-0">
+                        <div className="h-16 w-16 rounded-xl border-2 border-border overflow-hidden bg-surface-secondary dark:bg-surface-secondary flex items-center justify-center shrink-0">
                           {vendor.business_logo ? (
                             <img src={vendor.business_logo} alt={vendor.business_name ?? ""} className="w-full h-full object-cover" />
                           ) : (
@@ -280,10 +280,10 @@ export default async function ProductDetailPage({ params }: PageProps) {
                             <h4 className="text-base font-black text-zinc-900 dark:text-white">{vendor.business_name ?? "Official Merchant"}</h4>
                             <Badge className="bg-green-50 dark:bg-green-950/20 text-green-700 dark:text-green-500 border-none font-black text-[9px] uppercase tracking-wider">Top Rated</Badge>
                           </div>
-                          <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
+                          <p className="text-xs text-zinc-500 dark:text-text-muted leading-relaxed">
                             {(vendor as any).business_description ?? "A verified Jimvio merchant dedicated to global sourcing and logistics excellence."}
                           </p>
-                          <div className="flex flex-wrap gap-4 text-xs text-zinc-500 dark:text-zinc-400">
+                          <div className="flex flex-wrap gap-4 text-xs text-zinc-500 dark:text-text-muted">
                             <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5 text-[var(--color-accent)]" /> {(vendor as any).business_country ?? "Regional"}</span>
                             <span className="flex items-center gap-1"><CheckCircle2 className="h-3.5 w-3.5 text-green-500" /> 99.2% Success</span>
                           </div>
@@ -321,12 +321,12 @@ export default async function ProductDetailPage({ params }: PageProps) {
                                 {new Date(rev.created_at).toLocaleDateString()}
                               </span>
                             </div>
-                            <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed pl-10">{rev.content}</p>
+                            <p className="text-xs text-zinc-500 dark:text-text-muted leading-relaxed pl-10">{rev.content}</p>
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <div className="mt-8 text-center py-12 bg-surface-secondary dark:bg-zinc-900 rounded-xl border-2 border-dashed border-border">
+                      <div className="mt-8 text-center py-12 bg-surface-secondary dark:bg-surface rounded-xl border-2 border-dashed border-border">
                         <MessageSquare className="h-10 w-10 text-zinc-300 dark:text-zinc-700 dark:text-zinc-300 mx-auto mb-2" />
                         <p className="text-xs text-zinc-400 dark:text-zinc-600 font-semibold">No reviews yet — be the first!</p>
                       </div>
@@ -342,7 +342,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
             <div className="sticky top-[calc(var(--navbar-height,64px)+56px)] space-y-4">
 
               {/* Buy Box */}
-              <div className="bg-surface dark:bg-zinc-900 rounded-xl border border-border shadow-sm p-5 space-y-5">
+              <div className="bg-surface dark:bg-surface rounded-xl border border-border shadow-sm p-5 space-y-5">
                 {/* Price */}
                 <div className="space-y-1.5">
                   <ProductBuyBoxPrice
@@ -368,7 +368,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
                     { icon: <RefreshCw className="h-3.5 w-3.5 text-purple-400" />, text: "14-day return policy" },
                     { icon: <Package className="h-3.5 w-3.5 text-blue-400" />, text: "Tracked global shipping" },
                   ].map(({ icon, text }) => (
-                    <div key={text} className="flex items-center gap-2 text-[10px] text-zinc-400 dark:text-zinc-500 font-medium">
+                    <div key={text} className="flex items-center gap-2 text-[10px] text-zinc-400 dark:text-text-muted font-medium">
                       {icon} {text}
                     </div>
                   ))}
@@ -376,10 +376,10 @@ export default async function ProductDetailPage({ params }: PageProps) {
               </div>
 
               {/* Vendor Card */}
-              <div className="bg-surface dark:bg-zinc-900 rounded-xl border border-border shadow-sm p-5 space-y-4">
+              <div className="bg-surface dark:bg-surface rounded-xl border border-border shadow-sm p-5 space-y-4">
                 {/* Header */}
                 <div className="flex items-center gap-3">
-                  <div className="h-12 w-12 rounded-lg border-2 border-border overflow-hidden bg-surface-secondary dark:bg-zinc-800 flex items-center justify-center shrink-0">
+                  <div className="h-12 w-12 rounded-lg border-2 border-border overflow-hidden bg-surface-secondary dark:bg-surface-secondary flex items-center justify-center shrink-0">
                     {vendor?.business_logo ? (
                       <img src={vendor.business_logo} alt={vendor.business_name ?? ""} className="w-full h-full object-cover" />
                     ) : (
@@ -397,7 +397,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
                   </div>
                 </div>
                 {/* Stats */}
-                <div className="grid grid-cols-3 gap-2 bg-surface-secondary dark:bg-zinc-800/50 rounded-lg p-2.5">
+                <div className="grid grid-cols-3 gap-2 bg-surface-secondary dark:bg-surface-secondary/50 rounded-lg p-2.5">
                   <div className="text-center">
                     <div className="flex items-center justify-center gap-0.5 text-sm font-black text-zinc-800 dark:text-white">
                       <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
@@ -424,7 +424,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-[10px]">
                     <span className="text-zinc-400 dark:text-zinc-600">Origin</span>
-                    <span className="font-semibold text-zinc-600 dark:text-zinc-400 flex items-center gap-1">
+                    <span className="font-semibold text-zinc-600 dark:text-text-muted flex items-center gap-1">
                       <Globe className="h-3 w-3 text-blue-400" />
                       {(vendor as any)?.business_country ?? "Regional"}
                     </span>

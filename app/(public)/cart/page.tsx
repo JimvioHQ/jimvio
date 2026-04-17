@@ -19,7 +19,7 @@ export default async function CartPage() {
       <GlassAmbientGlow color="sky" position="bottom-left" className="opacity-20" />
 
       {/* Dispatch Terminal Header */}
-      <div className="relative z-20 border-b border-border bg-surface/40 dark:bg-zinc-900/40 backdrop-blur-md mb-8">
+      <div className="relative z-20 border-b border-border bg-surface/40 dark:bg-surface/40 backdrop-blur-md mb-8">
         <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-4">
             <nav className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-stone-400 dark:text-stone-600">
@@ -43,7 +43,7 @@ export default async function CartPage() {
                     </span>
                   )}
                 </h1>
-                <p className="text-[14px] text-stone-400 dark:text-stone-500 font-bold mt-1">Review your selections before finalizing trade authorization.</p>
+                <p className="text-[14px] text-stone-400 dark:text-text-muted font-bold mt-1">Review your selections before finalizing trade authorization.</p>
               </div>
             </div>
           </div>

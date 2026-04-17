@@ -47,13 +47,13 @@ export default function CampaignDashboardPage() {
   }, [id]);
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-zinc-900/50">
+    <div className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-surface/50">
        <div className="w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
     </div>
   );
 
   if (!campaign) return (
-    <div className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-zinc-900/50 font-black text-zinc-500">
+    <div className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-surface/50 font-black text-zinc-500">
        Campaign not found
     </div>
   );
@@ -74,7 +74,7 @@ export default function CampaignDashboardPage() {
                <Link href="/ugc" className="flex items-center gap-2 text-white/50 hover:text-white transition-all text-sm font-black uppercase tracking-widest">
                   <ArrowLeft className="h-4 w-4" /> Back to Explore
                </Link>
-               <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white dark:bg-zinc-900/5 border border-white/10 text-[10px] font-black uppercase tracking-[0.2em] text-white/60">
+               <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white dark:bg-surface/5 border border-white/10 text-[10px] font-black uppercase tracking-[0.2em] text-white/60">
                   <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
                   Live Campaign Access
                </div>
@@ -82,7 +82,7 @@ export default function CampaignDashboardPage() {
 
             <div className="flex flex-col md:flex-row items-end md:items-center justify-between gap-10">
                <div className="flex items-center gap-6">
-                  <div className="w-20 h-20 rounded-3xl bg-white dark:bg-zinc-900 p-0.5 shadow-2xl shrink-0">
+                  <div className="w-20 h-20 rounded-3xl bg-white dark:bg-surface p-0.5 shadow-2xl shrink-0">
                      <img src={campaign.media?.[0]?.url || "/hero-bg.png"} className="w-full h-full object-cover rounded-[22px]" alt="" />
                   </div>
                   <div className="space-y-1">
@@ -94,7 +94,7 @@ export default function CampaignDashboardPage() {
                </div>
 
                <div className="flex items-center gap-4 w-full md:w-auto">
-                  <Button asChild size="lg" className="flex-1 md:flex-none h-16 px-10 rounded-2xl bg-white dark:bg-zinc-900 text-zinc-950 hover:bg-zinc-100 font-black text-base shadow-2xl active:scale-95 transition-all">
+                  <Button asChild size="lg" className="flex-1 md:flex-none h-16 px-10 rounded-2xl bg-white dark:bg-surface text-zinc-950 hover:bg-zinc-100 font-black text-base shadow-2xl active:scale-95 transition-all">
                      <Link href={`/ugc/${id}/submit`}>
                         <Plus className="h-5 w-5 mr-1" /> Submit Content
                      </Link>
@@ -113,7 +113,7 @@ export default function CampaignDashboardPage() {
                { label: 'Submissions', val: submissions.length, icon: Share2, color: 'text-blue-500' },
                { label: 'Approved', val: stats.approvedCount, icon: CheckCircle, color: 'text-zinc-900 dark:text-white' },
             ].map((s, i) => (
-               <div key={i} className="p-6 rounded-[32px] bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 shadow-xl shadow-zinc-200/50 flex flex-col justify-center gap-1 group hover:border-orange-100 transition-all">
+               <div key={i} className="p-6 rounded-[32px] bg-white dark:bg-surface border border-zinc-100 dark:border-border shadow-xl shadow-zinc-200/50 flex flex-col justify-center gap-1 group hover:border-orange-100 transition-all">
                   <div className="flex items-center justify-between w-full mb-1">
                      <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">{s.label}</span>
                      <s.icon className={cn("h-4 w-4 opacity-40", s.color)} />
@@ -134,15 +134,15 @@ export default function CampaignDashboardPage() {
                </div>
 
                {submissions.length === 0 ? (
-                  <div className="p-20 text-center bg-white dark:bg-zinc-900 border border-dashed border-zinc-200 dark:border-zinc-800 rounded-[40px] space-y-4">
-                     <div className="w-20 h-20 bg-zinc-50 dark:bg-zinc-900/50 rounded-full flex items-center justify-center mx-auto">
+                  <div className="p-20 text-center bg-white dark:bg-surface border border-dashed border-zinc-200 dark:border-border rounded-[40px] space-y-4">
+                     <div className="w-20 h-20 bg-zinc-50 dark:bg-surface/50 rounded-full flex items-center justify-center mx-auto">
                         <Share2 className="h-8 w-8 text-zinc-300" />
                      </div>
                      <div>
                         <p className="text-lg font-black text-zinc-900 dark:text-white">No submissions yet</p>
                         <p className="text-sm font-medium text-zinc-500 max-w-xs mx-auto">Create and post your first piece of content to start earning!</p>
                      </div>
-                     <Button asChild variant="outline" className="h-12 rounded-2xl border-zinc-100 dark:border-zinc-800 px-8 font-black">
+                     <Button asChild variant="outline" className="h-12 rounded-2xl border-zinc-100 dark:border-border px-8 font-black">
                         <Link href={`/ugc/${id}/submit`}>Submit Now →</Link>
                      </Button>
                   </div>
@@ -151,7 +151,7 @@ export default function CampaignDashboardPage() {
                      {submissions.map((s) => {
                         const cfg = STATUS_CONFIG[s.status] || STATUS_CONFIG.pending;
                         return (
-                           <div key={s.id} className="p-4 rounded-[32px] bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 shadow-sm hover:shadow-lg transition-all group overflow-hidden">
+                           <div key={s.id} className="p-4 rounded-[32px] bg-white dark:bg-surface border border-zinc-100 dark:border-border shadow-sm hover:shadow-lg transition-all group overflow-hidden">
                               <div className="flex items-center gap-5">
                                  {/* Media Thumbnail or Placeholder */}
                                  <div className="w-20 h-28 rounded-2xl bg-zinc-100 flex items-center justify-center shrink-0 relative overflow-hidden">
@@ -169,7 +169,7 @@ export default function CampaignDashboardPage() {
                                           <cfg.icon className="h-3 w-3" />
                                           {cfg.label}
                                        </div>
-                                       <button className="h-8 w-8 rounded-full hover:bg-zinc-50 dark:bg-zinc-900/50 flex items-center justify-center transition-colors">
+                                       <button className="h-8 w-8 rounded-full hover:bg-zinc-50 dark:bg-surface/50 flex items-center justify-center transition-colors">
                                           <MoreVertical className="h-4 w-4 text-zinc-400" />
                                        </button>
                                     </div>
@@ -204,12 +204,12 @@ export default function CampaignDashboardPage() {
 
             {/* Campaign Sidebar Info */}
             <div className="lg:col-span-4 space-y-6">
-               <div className="p-8 rounded-[40px] bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 shadow-sm space-y-8">
+               <div className="p-8 rounded-[40px] bg-white dark:bg-surface border border-zinc-100 dark:border-border shadow-sm space-y-8">
                   <div className="space-y-4">
                      <h3 className="text-sm font-black text-zinc-900 dark:text-white uppercase tracking-widest flex items-center gap-2">
                         <TrendingUp className="h-4 w-4 text-orange-500" /> Quick Snapshot
                      </h3>
-                     <div className="p-5 rounded-3xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-100 dark:border-zinc-800 flex flex-col justify-center gap-1">
+                     <div className="p-5 rounded-3xl bg-zinc-50 dark:bg-surface/50 border border-zinc-100 dark:border-border flex flex-col justify-center gap-1">
                         <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Your Current Tier</span>
                         <p className="text-xl font-black text-zinc-900 dark:text-white leading-tight">Master Creator</p>
                      </div>
@@ -222,7 +222,7 @@ export default function CampaignDashboardPage() {
                            {Math.round(((campaign.spent_budget ?? 0) / (campaign.total_budget || 1)) * 100)}%
                         </span>
                      </div>
-                     <div className="h-2 w-full bg-zinc-50 dark:bg-zinc-900/50 rounded-full overflow-hidden border border-zinc-100 dark:border-zinc-800">
+                     <div className="h-2 w-full bg-zinc-50 dark:bg-surface/50 rounded-full overflow-hidden border border-zinc-100 dark:border-border">
                         <div 
                            className="h-full bg-gradient-to-r from-orange-400 to-orange-600 transition-all duration-1000"
                            style={{ width: `${Math.min(100, (campaign.spent_budget ?? 0) / (campaign.total_budget || 1) * 100)}%` }}
@@ -230,8 +230,8 @@ export default function CampaignDashboardPage() {
                      </div>
                   </div>
 
-                  <div className="pt-6 border-t border-zinc-100 dark:border-zinc-800 flex flex-col gap-3">
-                     <Button asChild variant="outline" className="h-12 rounded-2xl border-zinc-100 dark:border-zinc-800 font-black text-xs uppercase tracking-widest hover:bg-zinc-50 dark:bg-zinc-900/50">
+                  <div className="pt-6 border-t border-zinc-100 dark:border-border flex flex-col gap-3">
+                     <Button asChild variant="outline" className="h-12 rounded-2xl border-zinc-100 dark:border-border font-black text-xs uppercase tracking-widest hover:bg-zinc-50 dark:bg-surface/50">
                         <Link href={`/ugc/${id}`}>View Campaign Details</Link>
                      </Button>
                      <Button asChild variant="ghost" className="h-12 rounded-2xl font-black text-xs uppercase tracking-widest text-zinc-400 hover:text-zinc-600">

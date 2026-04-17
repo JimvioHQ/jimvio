@@ -68,7 +68,7 @@ export default async function ProductBySlugPage({ params }: PageProps) {
       <GlassAmbientGlow color="indigo" position="bottom-left" className="opacity-10" />
 
       {/* Breadcrumb Strip */}
-      <div className="relative z-20 border-b border-stone-200/60 bg-white dark:bg-zinc-900/40 backdrop-blur-md">
+      <div className="relative z-20 border-b border-stone-200/60 bg-white dark:bg-surface/40 backdrop-blur-md">
         <div className="max-w-[var(--container-max)] mx-auto px-4 sm:px-6 py-4 flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-stone-400">
           <Link href="/" className="hover:text-orange-500 transition-colors">Home</Link>
           <ChevronRight className="h-3 w-3" />
@@ -81,7 +81,7 @@ export default async function ProductBySlugPage({ params }: PageProps) {
       <div className="max-w-[var(--container-max)] mx-auto px-4 sm:px-6 py-10 lg:py-16 relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-[1fr,420px] gap-12 items-start">
           {/* Image Section */}
-          <GlassCard className="aspect-square bg-white dark:bg-zinc-900 flex items-center justify-center overflow-hidden group border-white/80 shadow-2xl">
+          <GlassCard className="aspect-square bg-white dark:bg-surface flex items-center justify-center overflow-hidden group border-white/80 shadow-2xl">
             {mainImage ? (
               <img 
                 src={mainImage} 
@@ -153,7 +153,7 @@ export default async function ProductBySlugPage({ params }: PageProps) {
             </div>
 
             {/* Action Terminal */}
-            <GlassCard className="p-1.5 rounded-[32px] bg-white dark:bg-zinc-900/40 border-white/80 overflow-hidden">
+            <GlassCard className="p-1.5 rounded-[32px] bg-white dark:bg-surface/40 border-white/80 overflow-hidden">
                <ProductDetailActions
                 productId={product.id}
                 vendorId={product.vendor_id}

@@ -36,7 +36,7 @@ export const SignOutButton = React.forwardRef<HTMLButtonElement, Props>(function
         disabled={pending}
         onClick={handleClick}
         className={cn(
-          "p-1.5 rounded-lg text-stone-400 dark:text-stone-500 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 transition-colors",
+          "p-1.5 rounded-lg text-stone-400 dark:text-text-muted hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 transition-colors",
           className
         )}
         title="Sign out"

@@ -115,7 +115,7 @@ function MediaCarousel({ media }: { media: UGCPostMedia[] }) {
                 onClick={() => setIndex(i)}
                 className={cn(
                   "w-1.5 h-1.5 rounded-full transition-all",
-                  i === index ? "bg-white dark:bg-zinc-900 w-4" : "bg-white dark:bg-zinc-900/50"
+                  i === index ? "bg-white dark:bg-surface w-4" : "bg-white dark:bg-surface/50"
                 )}
               />
             ))}

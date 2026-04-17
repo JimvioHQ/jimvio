@@ -67,19 +67,19 @@ export default function UGCBrowserPage() {
               placeholder="Search campaigns..."
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-              className="w-full h-10 pl-9 pr-4 text-sm font-medium text-stone-900 dark:text-white outline-none transition-all bg-stone-50 dark:bg-zinc-900/60 border border-border rounded-xl focus:border-orange-500 focus:bg-surface placeholder:text-stone-400"
+              className="w-full h-10 pl-9 pr-4 text-sm font-medium text-stone-900 dark:text-white outline-none transition-all bg-stone-50 dark:bg-surface/60 border border-border rounded-xl focus:border-orange-500 focus:bg-surface placeholder:text-stone-400"
             />
           </div>
 
           {/* Filters */}
           <div className="flex items-center gap-2 overflow-x-auto no-scrollbar w-full md:w-auto">
             {/* Type tabs */}
-            <div className="flex items-center gap-1 p-1 rounded-xl flex-shrink-0 bg-stone-50 dark:bg-zinc-900/60 border border-border">
+            <div className="flex items-center gap-1 p-1 rounded-xl flex-shrink-0 bg-stone-50 dark:bg-surface/60 border border-border">
               {(['all', 'clipping', 'ugc'] as const).map((f) => (
                 <button
                   key={f}
                   onClick={() => { setFilter(f); setPage(1); }}
-                  className={cn("px-4 py-1.5 rounded-lg text-xs font-bold transition-all", filter === f ? "bg-orange-500 text-white shadow-md shadow-orange-500/30" : "text-stone-500 dark:text-stone-400 hover:text-stone-900 dark:hover:text-white")}
+                  className={cn("px-4 py-1.5 rounded-lg text-xs font-bold transition-all", filter === f ? "bg-orange-500 text-white shadow-md shadow-orange-500/30" : "text-stone-500 dark:text-text-muted hover:text-stone-900 dark:hover:text-white")}
                 >
                   {f === 'all' ? 'All' : f === 'clipping' ? 'Clipping' : 'UGC'}
                 </button>
@@ -87,20 +87,20 @@ export default function UGCBrowserPage() {
             </div>
 
             {/* Divider */}
-            <div className="w-px h-6 hidden md:block bg-stone-200 dark:bg-zinc-800" />
+            <div className="w-px h-6 hidden md:block bg-stone-200 dark:bg-surface-secondary" />
 
             {/* Platform buttons */}
             {[Youtube, Play, Instagram, Share2].map((Icon, i) => (
               <button
                 key={i}
-                className="w-9 h-9 rounded-xl flex items-center justify-center transition-all flex-shrink-0 bg-surface dark:bg-zinc-900 border border-border text-stone-400 shadow-sm hover:bg-orange-500/10 hover:text-orange-500 hover:border-orange-500/30"
+                className="w-9 h-9 rounded-xl flex items-center justify-center transition-all flex-shrink-0 bg-surface dark:bg-surface border border-border text-stone-400 shadow-sm hover:bg-orange-500/10 hover:text-orange-500 hover:border-orange-500/30"
               >
                 <Icon className="h-3.5 w-3.5" />
               </button>
             ))}
 
             {/* Total badge */}
-            <div className="ml-auto flex-shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold bg-surface dark:bg-zinc-900 text-stone-500 dark:text-stone-400 border border-border shadow-sm">
+            <div className="ml-auto flex-shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold bg-surface dark:bg-surface text-stone-500 dark:text-text-muted border border-border shadow-sm">
               {total} campaigns
             </div>
           </div>
@@ -122,7 +122,7 @@ export default function UGCBrowserPage() {
             </div>
 
             <Link href={`/ugc/${featuredCampaign.id}`} className="group block">
-              <div className="relative w-full rounded-2xl md:rounded-[32px] overflow-hidden bg-surface dark:bg-zinc-900 border border-border shadow-xl group aspect-[4/4] sm:aspect-[16/9] md:aspect-[21/7]">
+              <div className="relative w-full rounded-2xl md:rounded-[32px] overflow-hidden bg-surface dark:bg-surface border border-border shadow-xl group aspect-[4/4] sm:aspect-[16/9] md:aspect-[21/7]">
                 {/* BG */}
                 <div className="absolute inset-0 bg-gradient-to-br from-stone-100 to-stone-200 dark:from-zinc-800 dark:to-zinc-900/50 opacity-10" />
                 {featuredCampaign.media?.find((m) => m.usage === "banner")?.url && (
@@ -155,7 +155,7 @@ export default function UGCBrowserPage() {
                         </div>
                       )}
                     </div>
-                    <span className="text-xs font-bold uppercase tracking-widest text-stone-500 dark:text-stone-400">
+                    <span className="text-xs font-bold uppercase tracking-widest text-stone-500 dark:text-text-muted">
                       {featuredCampaign.vendor?.business_name}
                     </span>
                     <span className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-orange-500/10 border border-orange-500/20 text-orange-600">
@@ -172,19 +172,19 @@ export default function UGCBrowserPage() {
                   {/* Stats */}
                   <div className="flex flex-row flex-wrap items-center gap-4 md:gap-6 mt-2 mb-2">
                     <div>
-                      <p className="text-[10px] md:text-[9px] font-bold uppercase tracking-widest mb-1 md:mb-0.5 text-stone-500 dark:text-stone-400">
+                      <p className="text-[10px] md:text-[9px] font-bold uppercase tracking-widest mb-1 md:mb-0.5 text-stone-500 dark:text-text-muted">
                         Payout Rate
                       </p>
                       <p className="text-xl md:text-2xl font-black text-orange-500 dark:text-white">
                         {formatMoney(featuredCampaign.rate_per_1k_views, "USD")}
-                        <span className="text-xs md:text-sm font-medium ml-1 text-orange-500 dark:text-stone-400">
+                        <span className="text-xs md:text-sm font-medium ml-1 text-orange-500 dark:text-text-muted">
                           / 1K views
                         </span>
                       </p>
                     </div>
-                    <div className="w-px h-8 self-center bg-stone-200 dark:bg-zinc-800 hidden md:block" />
+                    <div className="w-px h-8 self-center bg-stone-200 dark:bg-surface-secondary hidden md:block" />
                     <div>
-                      <p className="text-[10px] md:text-[9px] font-bold uppercase tracking-widest mb-1 md:mb-0.5 text-stone-500 dark:text-stone-400">
+                      <p className="text-[10px] md:text-[9px] font-bold uppercase tracking-widest mb-1 md:mb-0.5 text-stone-500 dark:text-text-muted">
                         Total Budget
                       </p>
                       <p className="text-xl md:text-2xl font-black text-orange-900 dark:text-white">
@@ -222,18 +222,18 @@ export default function UGCBrowserPage() {
               {Array.from({ length: 8 }).map((_, i) => (
                 <div
                   key={i}
-                  className="rounded-2xl animate-pulse bg-surface dark:bg-zinc-900 border border-border h-[280px]"
+                  className="rounded-2xl animate-pulse bg-surface dark:bg-surface border border-border h-[280px]"
                 />
               ))}
             </div>
           ) : campaigns.length === 0 ? (
             <div className="py-32 text-center space-y-4">
-              <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto bg-surface dark:bg-zinc-900 border border-border">
+              <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto bg-surface dark:bg-surface border border-border">
                 <Search className="h-6 w-6 text-stone-300 dark:text-stone-600" />
               </div>
               <div>
                 <p className="text-lg font-black text-stone-900 dark:text-white">No campaigns found</p>
-                <p className="text-sm mt-1 text-stone-500 dark:text-stone-400">
+                <p className="text-sm mt-1 text-stone-500 dark:text-text-muted">
                   Try adjusting your filters or search terms.
                 </p>
               </div>
@@ -252,7 +252,7 @@ export default function UGCBrowserPage() {
               <button
                 disabled={page === 1}
                 onClick={() => setPage((p) => p - 1)}
-                className="h-10 px-5 rounded-xl text-sm font-bold transition-all disabled:opacity-30 bg-surface dark:bg-zinc-900 border border-border text-stone-600 dark:text-stone-300 shadow-sm hover:bg-stone-50 dark:hover:bg-zinc-800"
+                className="h-10 px-5 rounded-xl text-sm font-bold transition-all disabled:opacity-30 bg-surface dark:bg-surface border border-border text-stone-600 dark:text-stone-300 shadow-sm hover:bg-stone-50 dark:hover:bg-zinc-800"
               >
                 ← Prev
               </button>
@@ -266,7 +266,7 @@ export default function UGCBrowserPage() {
                       "w-10 h-10 rounded-xl text-sm font-bold transition-all shadow-sm",
                       page === i + 1
                         ? "bg-orange-500 text-white border-orange-500/50 shadow-orange-500/30"
-                        : "bg-surface dark:bg-zinc-900 text-stone-600 dark:text-stone-400 border-border hover:bg-stone-50 dark:hover:bg-zinc-800"
+                        : "bg-surface dark:bg-surface text-stone-600 dark:text-text-muted border-border hover:bg-stone-50 dark:hover:bg-zinc-800"
                     )}
                   >
                     {i + 1}
@@ -277,7 +277,7 @@ export default function UGCBrowserPage() {
               <button
                 disabled={page === totalPages}
                 onClick={() => setPage((p) => p + 1)}
-                className="h-10 px-5 rounded-xl text-sm font-bold transition-all disabled:opacity-30 bg-surface dark:bg-zinc-900 border border-border text-stone-600 dark:text-stone-300 shadow-sm hover:bg-stone-50 dark:hover:bg-zinc-800"
+                className="h-10 px-5 rounded-xl text-sm font-bold transition-all disabled:opacity-30 bg-surface dark:bg-surface border border-border text-stone-600 dark:text-stone-300 shadow-sm hover:bg-stone-50 dark:hover:bg-zinc-800"
               >
                 Next →
               </button>

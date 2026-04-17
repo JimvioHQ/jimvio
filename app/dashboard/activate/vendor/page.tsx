@@ -279,7 +279,7 @@ export default function ActivateVendorPage() {
         
         {/* Header - Simpler */}
         <div className="flex flex-col items-center text-center space-y-4">
-           <Button asChild variant="ghost" className="rounded-full bg-white dark:bg-zinc-900 border border-stone-100 dark:border-zinc-800 shadow-sm hover:bg-stone-50 dark:bg-zinc-900/50 active:scale-95 transition-all h-10 px-6">
+           <Button asChild variant="ghost" className="rounded-full bg-white dark:bg-surface border border-stone-100 dark:border-border shadow-sm hover:bg-stone-50 dark:bg-surface/50 active:scale-95 transition-all h-10 px-6">
               <Link href="/dashboard" className="flex items-center gap-2">
                  <ArrowLeft className="h-4 w-4 text-stone-400" />
                  <span className="text-[10px] font-bold uppercase tracking-widest text-stone-600">Back</span>
@@ -287,7 +287,7 @@ export default function ActivateVendorPage() {
            </Button>
            
            <div className="space-y-2">
-              <div className="w-16 h-16 rounded-2xl bg-white dark:bg-zinc-900 border border-stone-50 shadow-sm flex items-center justify-center mx-auto relative group overflow-hidden">
+              <div className="w-16 h-16 rounded-2xl bg-white dark:bg-surface border border-stone-50 shadow-sm flex items-center justify-center mx-auto relative group overflow-hidden">
                  <Store className="h-7 w-7 text-stone-900 dark:text-white group-hover:scale-110 transition-transform duration-500" />
               </div>
               <h1 className="text-3xl font-bold text-stone-900 dark:text-white tracking-tight">Vendor Activation</h1>
@@ -299,7 +299,7 @@ export default function ActivateVendorPage() {
 
         {vendor ? (
           <div className="space-y-8">
-             <GlassCard className="p-8 rounded-[32px] border-white bg-white dark:bg-zinc-900/60 shadow-sm relative overflow-hidden">
+             <GlassCard className="p-8 rounded-[32px] border-white bg-white dark:bg-surface/60 shadow-sm relative overflow-hidden">
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-10 items-center">
                    <div className="md:col-span-4 flex justify-center">
                       <div className={cn(
@@ -348,8 +348,8 @@ export default function ActivateVendorPage() {
                         { icon: <Activity className="h-5 w-5" />, label: "Approval" },
                         { icon: <Rocket className="h-5 w-5" />, label: "Live Deployment" },
                       ].map((step, i) => (
-                        <div key={i} className="p-5 rounded-2xl bg-white dark:bg-zinc-900/40 border border-white shadow-sm flex flex-col items-center gap-3 text-center">
-                           <div className="w-10 h-10 rounded-xl bg-white dark:bg-zinc-900 border border-stone-50 flex items-center justify-center text-orange-500 shadow-sm">
+                        <div key={i} className="p-5 rounded-2xl bg-white dark:bg-surface/40 border border-white shadow-sm flex flex-col items-center gap-3 text-center">
+                           <div className="w-10 h-10 rounded-xl bg-white dark:bg-surface border border-stone-50 flex items-center justify-center text-orange-500 shadow-sm">
                               {step.icon}
                            </div>
                            <span className="text-[9px] font-bold uppercase tracking-widest text-stone-400">{step.label}</span>
@@ -358,24 +358,24 @@ export default function ActivateVendorPage() {
                    </div>
                 )}
 
-                <div className="mt-10 pt-8 border-t border-stone-100 dark:border-zinc-800 flex flex-wrap items-center justify-center md:justify-start gap-3">
+                <div className="mt-10 pt-8 border-t border-stone-100 dark:border-border flex flex-wrap items-center justify-center md:justify-start gap-3">
                    <Button asChild className="h-12 px-8 rounded-xl bg-stone-900 text-white font-bold text-xs uppercase tracking-widest shadow-lg hover:bg-black active:scale-95 transition-all border-none">
                       <Link href="/dashboard"><LayoutDashboard className="h-4 w-4 mr-2" /> Dashboard</Link>
                    </Button>
                    
                    {(statusKey === "approved" || statusKey === "verified") && (
                      <>
-                        <Button asChild variant="outline" className="h-12 px-8 rounded-xl border-stone-100 dark:border-zinc-800 text-stone-900 dark:text-white font-bold text-xs uppercase tracking-widest active:scale-95 transition-all">
+                        <Button asChild variant="outline" className="h-12 px-8 rounded-xl border-stone-100 dark:border-border text-stone-900 dark:text-white font-bold text-xs uppercase tracking-widest active:scale-95 transition-all">
                            <Link href="/dashboard/vendor/store"><Store className="h-4 w-4 mr-2" /> My Store</Link>
                         </Button>
-                        <Button asChild variant="outline" className="h-12 px-8 rounded-xl border-stone-100 dark:border-zinc-800 text-stone-900 dark:text-white font-bold text-xs uppercase tracking-widest active:scale-95 transition-all">
+                        <Button asChild variant="outline" className="h-12 px-8 rounded-xl border-stone-100 dark:border-border text-stone-900 dark:text-white font-bold text-xs uppercase tracking-widest active:scale-95 transition-all">
                            <Link href="/dashboard/products/new"><Plus className="h-4 w-4 mr-2 text-orange-500" /> New Product</Link>
                         </Button>
                      </>
                    )}
                    
                    {statusKey === "rejected" && (
-                     <Button asChild variant="outline" className="h-12 px-8 rounded-xl border-stone-100 dark:border-zinc-800 text-stone-900 dark:text-white font-bold text-xs uppercase tracking-widest active:scale-95 transition-all">
+                     <Button asChild variant="outline" className="h-12 px-8 rounded-xl border-stone-100 dark:border-border text-stone-900 dark:text-white font-bold text-xs uppercase tracking-widest active:scale-95 transition-all">
                         <Link href={`mailto:${supportEmail}`}>
                           <Mail className="h-4 w-4 mr-2 text-rose-500" /> Contact Us
                         </Link>
@@ -385,10 +385,10 @@ export default function ActivateVendorPage() {
              </GlassCard>
           </div>
         ) : (
-          <GlassCard className="p-0 rounded-[32px] border-white bg-white dark:bg-zinc-900/60 shadow-sm overflow-hidden">
+          <GlassCard className="p-0 rounded-[32px] border-white bg-white dark:bg-surface/60 shadow-sm overflow-hidden">
              
              {/* Simple Step Bar */}
-             <div className="p-8 border-b border-stone-100 dark:border-zinc-800 bg-white dark:bg-zinc-900/40 backdrop-blur-2xl">
+             <div className="p-8 border-b border-stone-100 dark:border-border bg-white dark:bg-surface/40 backdrop-blur-2xl">
                 <div className="flex items-center justify-between max-w-sm mx-auto relative px-4">
                    {FORM_STEPS.map((s, i) => {
                       const isActive = step === s.id;
@@ -399,7 +399,7 @@ export default function ActivateVendorPage() {
                                "w-12 h-12 rounded-2xl flex items-center justify-center text-sm font-bold transition-all duration-700 border-4 border-white shadow-md relative",
                                isActive && "bg-stone-900 text-white scale-110",
                                isDone && "bg-emerald-500 text-white",
-                               !isActive && !isDone && "bg-white dark:bg-zinc-900 text-stone-200"
+                               !isActive && !isDone && "bg-white dark:bg-surface text-stone-200"
                             )}>
                                {isDone ? <CheckCircle className="h-5 w-5" /> : <span>{s.id}</span>}
                             </div>
@@ -427,7 +427,7 @@ export default function ActivateVendorPage() {
                              value={form.business_name}
                              onChange={(e) => setForm((f) => ({ ...f, business_name: e.target.value }))}
                              placeholder="Your Business Name"
-                             className="h-12 rounded-xl bg-white dark:bg-zinc-900 border-stone-100 dark:border-zinc-800 shadow-sm focus:ring-4 focus:ring-orange-500/5 focus:border-orange-400 text-base font-bold px-5 transition-all"
+                             className="h-12 rounded-xl bg-white dark:bg-surface border-stone-100 dark:border-border shadow-sm focus:ring-4 focus:ring-orange-500/5 focus:border-orange-400 text-base font-bold px-5 transition-all"
                              required
                            />
                         </div>
@@ -438,7 +438,7 @@ export default function ActivateVendorPage() {
                                 value={form.business_type}
                                 onChange={(e) => setForm((f) => ({ ...f, business_type: e.target.value }))}
                                 placeholder="Retail, Wholesaler, etc."
-                                className="h-12 rounded-xl bg-white dark:bg-zinc-900 border-stone-100 dark:border-zinc-800 shadow-sm focus:ring-4 focus:ring-orange-500/5 focus:border-orange-400 text-sm font-bold px-5 transition-all"
+                                className="h-12 rounded-xl bg-white dark:bg-surface border-stone-100 dark:border-border shadow-sm focus:ring-4 focus:ring-orange-500/5 focus:border-orange-400 text-sm font-bold px-5 transition-all"
                               />
                            </div>
                            <div className="space-y-3">
@@ -450,17 +450,17 @@ export default function ActivateVendorPage() {
                                    onChange={(e) => { setCategorySearch(e.target.value); setCategoryDropdownOpen(true); }}
                                    onFocus={() => setCategoryDropdownOpen(true)}
                                    placeholder="Search categories..."
-                                   className="w-full h-12 pl-12 pr-6 rounded-xl border border-stone-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm text-sm font-bold focus:outline-none focus:ring-4 focus:ring-orange-500/5 focus:border-orange-400 transition-all placeholder:text-stone-100"
+                                   className="w-full h-12 pl-12 pr-6 rounded-xl border border-stone-100 dark:border-border bg-white dark:bg-surface shadow-sm text-sm font-bold focus:outline-none focus:ring-4 focus:ring-orange-500/5 focus:border-orange-400 transition-all placeholder:text-stone-100"
                                  />
                                  {categoryDropdownOpen && (
-                                   <div className="absolute top-full left-0 right-0 mt-2 max-h-56 overflow-auto rounded-xl border border-stone-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-xl z-50 p-2 animate-in fade-in zoom-in-95 duration-200">
+                                   <div className="absolute top-full left-0 right-0 mt-2 max-h-56 overflow-auto rounded-xl border border-stone-100 dark:border-border bg-white dark:bg-surface shadow-xl z-50 p-2 animate-in fade-in zoom-in-95 duration-200">
                                       {filteredCategories.map((c) => (
                                         <button
                                           key={c.id}
                                           type="button"
                                           onMouseDown={(e) => e.preventDefault()}
                                           onClick={() => { setSelectedCategorySlugs((prev) => new Set(prev).add(c.slug)); setCategorySearch(""); setCategoryDropdownOpen(false); }}
-                                          className={cn("w-full px-4 py-2.5 text-left text-xs font-bold rounded-lg transition-all flex items-center justify-between", selectedCategorySlugs.has(c.slug) ? "bg-orange-500 text-white" : "hover:bg-stone-50 dark:bg-zinc-900/50 text-stone-500")}
+                                          className={cn("w-full px-4 py-2.5 text-left text-xs font-bold rounded-lg transition-all flex items-center justify-between", selectedCategorySlugs.has(c.slug) ? "bg-orange-500 text-white" : "hover:bg-stone-50 dark:bg-surface/50 text-stone-500")}
                                         >
                                            {c.name}
                                            {selectedCategorySlugs.has(c.slug) && <CheckCircle className="h-4 w-4" />}
@@ -489,7 +489,7 @@ export default function ActivateVendorPage() {
                              onChange={(e) => setForm((f) => ({ ...f, business_description: e.target.value }))}
                              placeholder="What do you plan to sell on Jimvio?"
                              rows={3}
-                             className="rounded-xl bg-white dark:bg-zinc-900 border-stone-100 dark:border-zinc-800 shadow-sm focus:ring-4 focus:ring-orange-500/5 focus:border-orange-400 text-sm font-bold px-5 py-4 transition-all resize-none"
+                             className="rounded-xl bg-white dark:bg-surface border-stone-100 dark:border-border shadow-sm focus:ring-4 focus:ring-orange-500/5 focus:border-orange-400 text-sm font-bold px-5 py-4 transition-all resize-none"
                            />
                         </div>
                      </div>
@@ -510,7 +510,7 @@ export default function ActivateVendorPage() {
                              value={form.business_email}
                              onChange={(e) => setForm((f) => ({ ...f, business_email: e.target.value }))}
                              placeholder="support@yourstore.com"
-                             className="h-12 rounded-xl bg-white dark:bg-zinc-900 border-stone-100 dark:border-zinc-800 shadow-sm focus:ring-4 focus:ring-sky-500/5 focus:border-sky-400 text-base font-bold px-5"
+                             className="h-12 rounded-xl bg-white dark:bg-surface border-stone-100 dark:border-border shadow-sm focus:ring-4 focus:ring-sky-500/5 focus:border-sky-400 text-base font-bold px-5"
                            />
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -519,7 +519,7 @@ export default function ActivateVendorPage() {
                               <select
                                 value={form.business_country}
                                 onChange={(e) => setForm((f) => ({ ...f, business_country: e.target.value }))}
-                                className="h-12 w-full px-5 rounded-xl border border-stone-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm text-sm font-bold focus:outline-none focus:ring-4 focus:ring-sky-500/5 focus:border-sky-400 transition-all"
+                                className="h-12 w-full px-5 rounded-xl border border-stone-100 dark:border-border bg-white dark:bg-surface shadow-sm text-sm font-bold focus:outline-none focus:ring-4 focus:ring-sky-500/5 focus:border-sky-400 transition-all"
                               >
                                 <option value="RW">Rwanda</option>
                                 <option value="KE">Kenya</option>
@@ -534,7 +534,7 @@ export default function ActivateVendorPage() {
                                 value={form.business_phone}
                                 onChange={(e) => setForm((f) => ({ ...f, business_phone: e.target.value }))}
                                 placeholder="+250..."
-                                className="h-12 rounded-xl bg-white dark:bg-zinc-900 border-stone-100 dark:border-zinc-800 shadow-sm focus:ring-4 focus:ring-sky-500/5 focus:border-sky-400 text-sm font-bold px-5"
+                                className="h-12 rounded-xl bg-white dark:bg-surface border-stone-100 dark:border-border shadow-sm focus:ring-4 focus:ring-sky-500/5 focus:border-sky-400 text-sm font-bold px-5"
                               />
                            </div>
                         </div>
@@ -544,7 +544,7 @@ export default function ActivateVendorPage() {
                              value={form.business_address}
                              onChange={(e) => setForm((f) => ({ ...f, business_address: e.target.value }))}
                              placeholder="City, District, Street"
-                             className="h-12 rounded-xl bg-white dark:bg-zinc-900 border-stone-100 dark:border-zinc-800 shadow-sm focus:ring-4 focus:ring-sky-500/5 focus:border-sky-400 text-sm font-bold px-5"
+                             className="h-12 rounded-xl bg-white dark:bg-surface border-stone-100 dark:border-border shadow-sm focus:ring-4 focus:ring-sky-500/5 focus:border-sky-400 text-sm font-bold px-5"
                            />
                         </div>
                      </div>
@@ -564,7 +564,7 @@ export default function ActivateVendorPage() {
                           { label: "Support Email", value: form.business_email || "—" },
                           { label: "Country", value: form.business_country },
                         ].map((row, i) => (
-                          <div key={i} className="px-6 py-4 rounded-2xl bg-white dark:bg-zinc-900 border border-stone-100 dark:border-zinc-800 shadow-sm flex items-center justify-between group hover:border-orange-100 transition-all">
+                          <div key={i} className="px-6 py-4 rounded-2xl bg-white dark:bg-surface border border-stone-100 dark:border-border shadow-sm flex items-center justify-between group hover:border-orange-100 transition-all">
                              <span className="text-[10px] font-bold uppercase tracking-widest text-stone-400">{row.label}</span>
                              <span className="text-sm font-bold text-stone-900 dark:text-white">{row.value}</span>
                           </div>
@@ -580,7 +580,7 @@ export default function ActivateVendorPage() {
                 )}
 
                 {/* Footer Nav */}
-                <div className="flex items-center justify-between gap-4 pt-8 border-t border-stone-100 dark:border-zinc-800">
+                <div className="flex items-center justify-between gap-4 pt-8 border-t border-stone-100 dark:border-border">
                    <Button
                      type="button"
                      variant="ghost"

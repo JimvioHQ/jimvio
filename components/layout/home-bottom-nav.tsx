@@ -18,7 +18,7 @@ export function HomeBottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-zinc-900 border-t border-[#f0f0f0] safe-area-pb shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-surface border-t border-[#f0f0f0] safe-area-pb shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
       <div className="flex items-center justify-around h-14 px-2">
         {items.map(({ href, label, icon: Icon }) => {
           const isRoot = href === "/";

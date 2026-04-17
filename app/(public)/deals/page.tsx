@@ -46,7 +46,7 @@ export default async function FlashDealsPage() {
                   <span className="text-3xl font-black tracking-tighter">23:54:12</span>
                   <span className="text-[10px] text-white/40 capitalize font-black tracking-widest text-center mt-1">Time Remaining</span>
                 </div>
-                <div className="h-10 w-[1px] bg-white dark:bg-zinc-900/10" />
+                <div className="h-10 w-[1px] bg-white dark:bg-surface/10" />
                 <Button className="bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] font-black h-14 px-8 rounded-xl shadow-xl shadow-[var(--color-accent)]/20">
                   Shop All Deals
                 </Button>
@@ -56,7 +56,7 @@ export default async function FlashDealsPage() {
             <div className="hidden lg:block relative">
                <div className="h-64 w-64 bg-[var(--color-accent)] rounded-[3rem] rotate-12 flex items-center justify-center relative shadow-2xl">
                  <Percent className="h-32 w-32 text-white opacity-20 -rotate-12" />
-                 <div className="absolute -bottom-4 -left-4 bg-white dark:bg-zinc-900 text-text-primary px-6 py-4 rounded-2xl shadow-xl font-black text-2xl animate-bounce">
+                 <div className="absolute -bottom-4 -left-4 bg-white dark:bg-surface text-text-primary px-6 py-4 rounded-2xl shadow-xl font-black text-2xl animate-bounce">
                    UP TO 70% OFF
                  </div>
                </div>
@@ -66,7 +66,7 @@ export default async function FlashDealsPage() {
       </section>
 
       {/* Categories Filter Strip */}
-      <div className="bg-white dark:bg-zinc-900 border-b border-[var(--color-border)] sticky top-[130px] z-[50]">
+      <div className="bg-white dark:bg-surface border-b border-[var(--color-border)] sticky top-[130px] z-[50]">
         <div className="max-w-[var(--container-max)] mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
            <div className="flex items-center gap-8 overflow-x-auto no-scrollbar py-2">
              {["All Deals", "Electronics", "Fashion", "Home & Garden", "Beauty", "Machinery"].map((cat, i) => (
@@ -97,7 +97,7 @@ export default async function FlashDealsPage() {
         </div>
 
         {dealProducts.length === 0 && (
-          <div className="py-32 text-center bg-white dark:bg-zinc-900 border border-dashed border-[var(--color-border)] rounded-[2rem]">
+          <div className="py-32 text-center bg-white dark:bg-surface border border-dashed border-[var(--color-border)] rounded-[2rem]">
             <Clock className="h-12 w-12 text-[var(--color-text-muted)] mx-auto mb-4" />
             <p className="text-[var(--color-text-secondary)] font-medium">New deals arriving in 4 hours. Stay tuned!</p>
           </div>
@@ -117,12 +117,12 @@ export default async function FlashDealsPage() {
           </div>
           <div className="relative z-10">
             <div className="grid grid-cols-2 gap-4">
-              <div className="bg-white dark:bg-zinc-900/5 backdrop-blur-md p-6 rounded-2xl border border-white/10 text-center">
+              <div className="bg-white dark:bg-surface/5 backdrop-blur-md p-6 rounded-2xl border border-white/10 text-center">
                 <Package className="h-8 w-8 text-[var(--color-accent)] mx-auto mb-2" />
                 <p className="text-white font-black text-2xl">40+</p>
                 <p className="text-[10px] text-white/40 capitalize font-black">Containers/Month</p>
               </div>
-              <div className="bg-white dark:bg-zinc-900/5 backdrop-blur-md p-6 rounded-2xl border border-white/10 text-center">
+              <div className="bg-white dark:bg-surface/5 backdrop-blur-md p-6 rounded-2xl border border-white/10 text-center">
                 <Percent className="h-8 w-8 text-white mx-auto mb-2" />
                 <p className="text-white font-black text-2xl">42%</p>
                 <p className="text-[10px] text-white/40 capitalize font-black">Avg Savings</p>

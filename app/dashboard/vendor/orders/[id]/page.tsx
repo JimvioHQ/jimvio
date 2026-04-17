@@ -115,8 +115,8 @@ export default function VendorOrderDetailPage() {
   if (!order) {
     return (
       <div className="min-h-screen flex items-center justify-center px-6" style={{ background: "var(--color-bg)" }}>
-        <GlassCard className="max-w-md w-full p-10 text-center rounded-[32px] border-white shadow-sm bg-white dark:bg-zinc-900/60">
-          <div className="w-20 h-20 bg-white dark:bg-zinc-900 rounded-2xl flex items-center justify-center mx-auto mb-8 border border-stone-100 dark:border-zinc-800 shadow-sm">
+        <GlassCard className="max-w-md w-full p-10 text-center rounded-[32px] border-white shadow-sm bg-white dark:bg-surface/60">
+          <div className="w-20 h-20 bg-white dark:bg-surface rounded-2xl flex items-center justify-center mx-auto mb-8 border border-stone-100 dark:border-border shadow-sm">
              <XCircle className="h-10 w-10 text-stone-100" />
           </div>
           <h2 className="text-2xl font-bold text-stone-900 dark:text-white mb-2 tracking-tight">Order Not Found</h2>
@@ -154,7 +154,7 @@ export default function VendorOrderDetailPage() {
         {/* Header - Simpler */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
            <div className="flex items-center gap-4">
-              <Button asChild variant="ghost" size="icon" className="shrink-0 h-10 w-10 rounded-xl bg-white dark:bg-zinc-900 border border-stone-100 dark:border-zinc-800 shadow-sm hover:bg-white dark:bg-zinc-900 active:scale-95 transition-all text-stone-500">
+              <Button asChild variant="ghost" size="icon" className="shrink-0 h-10 w-10 rounded-xl bg-white dark:bg-surface border border-stone-100 dark:border-border shadow-sm hover:bg-white dark:bg-surface active:scale-95 transition-all text-stone-500">
                 <Link href="/dashboard/vendor/orders"><ArrowLeft className="h-5 w-5" /></Link>
               </Button>
               <div className="space-y-1">
@@ -178,7 +178,7 @@ export default function VendorOrderDetailPage() {
            <div className="lg:col-span-8 space-y-8">
               
               {/* Progress Tracker - Softer */}
-              <GlassCard className="p-8 rounded-[32px] border-white bg-white dark:bg-zinc-900/60 shadow-sm overflow-hidden">
+              <GlassCard className="p-8 rounded-[32px] border-white bg-white dark:bg-surface/60 shadow-sm overflow-hidden">
                  <div className="relative mb-8">
                     <div className="absolute top-1/2 left-0 w-full h-1 bg-stone-100 rounded-full -translate-y-1/2" />
                     <div 
@@ -201,7 +201,7 @@ export default function VendorOrderDetailPage() {
                           <div key={step.id} className="flex flex-col items-center gap-3">
                             <div className={cn(
                               "h-10 w-10 rounded-xl flex items-center justify-center border-2 border-white shadow-sm transition-all duration-700",
-                              isPast ? "bg-stone-900 text-white" : "bg-white dark:bg-zinc-900 text-stone-200"
+                              isPast ? "bg-stone-900 text-white" : "bg-white dark:bg-surface text-stone-200"
                             )}>
                               {step.icon}
                             </div>
@@ -216,19 +216,19 @@ export default function VendorOrderDetailPage() {
               </GlassCard>
 
               {/* Order Items Table - Simpler */}
-              <GlassCard className="rounded-[32px] border-white bg-white dark:bg-zinc-900/60 shadow-sm overflow-hidden">
-                 <div className="p-6 border-b border-stone-100 dark:border-zinc-800 flex items-center justify-between">
+              <GlassCard className="rounded-[32px] border-white bg-white dark:bg-surface/60 shadow-sm overflow-hidden">
+                 <div className="p-6 border-b border-stone-100 dark:border-border flex items-center justify-between">
                     <h3 className="text-lg font-bold text-stone-900 dark:text-white tracking-tight">Order Items</h3>
                     <Package className="h-5 w-5 text-stone-200" />
                  </div>
                  <div className="divide-y divide-stone-50">
                     {vendorItems.map((item: any) => (
-                      <div key={item.id} className="flex items-center gap-6 p-6 hover:bg-white dark:bg-zinc-900/40 transition-all duration-300">
-                        <div className="h-16 w-16 rounded-xl bg-white dark:bg-zinc-900 border border-stone-50 shadow-sm overflow-hidden p-0.5 shrink-0">
+                      <div key={item.id} className="flex items-center gap-6 p-6 hover:bg-white dark:bg-surface/40 transition-all duration-300">
+                        <div className="h-16 w-16 rounded-xl bg-white dark:bg-surface border border-stone-50 shadow-sm overflow-hidden p-0.5 shrink-0">
                           {item.product_image ? (
                             <img src={item.product_image} alt="" className="h-full w-full rounded-lg object-cover" />
                           ) : (
-                            <div className="h-full w-full rounded-lg bg-stone-50 dark:bg-zinc-900/50 flex items-center justify-center"><Package className="h-5 w-5 text-stone-100" /></div>
+                            <div className="h-full w-full rounded-lg bg-stone-50 dark:bg-surface/50 flex items-center justify-center"><Package className="h-5 w-5 text-stone-100" /></div>
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -279,8 +279,8 @@ export default function VendorOrderDetailPage() {
                        className={cn(
                          "w-full h-12 justify-start gap-4 rounded-xl transition-all font-bold text-[11px] uppercase tracking-widest border-none",
                          order.status === action.status 
-                           ? "bg-white dark:bg-zinc-900 text-stone-900 dark:text-white" 
-                           : "bg-white dark:bg-zinc-900/5 text-stone-400 hover:bg-white dark:bg-zinc-900/10 hover:text-white"
+                           ? "bg-white dark:bg-surface text-stone-900 dark:text-white" 
+                           : "bg-white dark:bg-surface/5 text-stone-400 hover:bg-white dark:bg-surface/10 hover:text-white"
                        )}
                      >
                         {updatingStatus && order.status !== action.status ? <Loader2 className="h-3 w-3 animate-spin" /> : action.icon}
@@ -292,9 +292,9 @@ export default function VendorOrderDetailPage() {
               </GlassCard>
 
               {/* Customer Info Card */}
-              <GlassCard className="p-8 rounded-[32px] border-white bg-white dark:bg-zinc-900/60 shadow-sm space-y-8">
+              <GlassCard className="p-8 rounded-[32px] border-white bg-white dark:bg-surface/60 shadow-sm space-y-8">
                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-white dark:bg-zinc-900 border border-stone-100 dark:border-zinc-800 flex items-center justify-center shadow-sm">
+                    <div className="w-12 h-12 rounded-xl bg-white dark:bg-surface border border-stone-100 dark:border-border flex items-center justify-center shadow-sm">
                        <User className="h-5 w-5 text-stone-900 dark:text-white" />
                     </div>
                     <div className="min-w-0">
@@ -311,7 +311,7 @@ export default function VendorOrderDetailPage() {
            {/* Shipping Section - Full Width */}
            {order.shipping_address && (
               <div className="lg:col-span-12">
-                 <GlassCard className="rounded-[40px] border-white bg-white dark:bg-zinc-900/60 shadow-sm overflow-hidden">
+                 <GlassCard className="rounded-[40px] border-white bg-white dark:bg-surface/60 shadow-sm overflow-hidden">
                     <div className="grid grid-cols-1 md:grid-cols-2">
                        <div className="p-10 space-y-8 border-r border-stone-50">
                           <div>
@@ -321,7 +321,7 @@ export default function VendorOrderDetailPage() {
                              <p className="text-[11px] font-bold uppercase tracking-widest text-stone-400 mt-1">Customer Delivery Information</p>
                           </div>
                           
-                          <div className="p-8 rounded-2xl bg-white dark:bg-zinc-900 border border-stone-50 shadow-sm space-y-2">
+                          <div className="p-8 rounded-2xl bg-white dark:bg-surface border border-stone-50 shadow-sm space-y-2">
                              <p className="font-bold text-lg text-stone-900 dark:text-white mb-1">
                                 {order.shipping_address.firstName || ""} {order.shipping_address.lastName || ""}
                              </p>
@@ -355,7 +355,7 @@ export default function VendorOrderDetailPage() {
                                   src={`https://maps.google.com/maps?q=${mapAddress}&t=&z=14&ie=UTF8&iwloc=&output=embed`}
                                 />
                              </div>
-                             <Button asChild variant="outline" className="w-full h-12 rounded-xl border-stone-100 dark:border-zinc-800 text-stone-600 font-bold text-[11px] uppercase tracking-widest active:scale-95 transition-all">
+                             <Button asChild variant="outline" className="w-full h-12 rounded-xl border-stone-100 dark:border-border text-stone-600 font-bold text-[11px] uppercase tracking-widest active:scale-95 transition-all">
                                 <a href={googleMapsUrl} target="_blank" rel="noopener noreferrer">
                                    Open in Maps <ExternalLink className="h-4 w-4 ml-2" />
                                 </a>

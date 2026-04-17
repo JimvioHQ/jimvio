@@ -70,7 +70,7 @@ export default async function VendorStorePage({ params }: PageProps) {
             {/* Vendor Header Card */}
             <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl p-8 shadow-xl">
               <div className="flex flex-col md:flex-row gap-8 items-start">
-                <div className="h-32 w-32 rounded-2xl bg-white dark:bg-zinc-900 shadow-lg border border-[var(--color-border)] p-2 shrink-0">
+                <div className="h-32 w-32 rounded-2xl bg-white dark:bg-surface shadow-lg border border-[var(--color-border)] p-2 shrink-0">
                   {vendor.business_logo ? (
                     <img src={vendor.business_logo} alt={vendor.business_name} className="w-full h-full object-cover rounded-xl" />
                   ) : (
@@ -145,7 +145,7 @@ export default async function VendorStorePage({ params }: PageProps) {
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--color-text-muted)]" />
                         <input placeholder="Search in this store..." className="w-full h-11 pl-10 pr-4 bg-[var(--color-surface-secondary)] border border-[var(--color-border)] rounded-xl text-sm outline-none focus:border-[var(--color-accent)]" />
                       </div>
-                      <select className="h-11 px-4 border border-[var(--color-border)] rounded-xl text-sm font-bold bg-white dark:bg-zinc-900">
+                      <select className="h-11 px-4 border border-[var(--color-border)] rounded-xl text-sm font-bold bg-white dark:bg-surface">
                         <option>Sort by: Newest</option>
                         <option>Sort by: Bestselling</option>
                         <option>Sort by: Price Low to High</option>
@@ -174,7 +174,7 @@ export default async function VendorStorePage({ params }: PageProps) {
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-ink-darker/80 to-transparent" />
                             <div className="absolute inset-0 flex items-center justify-center">
-                              <div className="w-14 h-14 rounded-full bg-white dark:bg-zinc-900/20 flex items-center justify-center group-hover:bg-[var(--color-accent)] transition-colors">
+                              <div className="w-14 h-14 rounded-full bg-white dark:bg-surface/20 flex items-center justify-center group-hover:bg-[var(--color-accent)] transition-colors">
                                 <Play className="h-7 w-7 text-white fill-white ml-1" />
                               </div>
                             </div>
@@ -270,7 +270,7 @@ export default async function VendorStorePage({ params }: PageProps) {
             <div className="bg-ink-dark text-white rounded-2xl p-6">
               <h4 className="font-black text-lg mb-3">Custom Sourcing</h4>
               <p className="text-white/60 text-sm mb-6">Need something custom built? This supplier offers OEM/ODM services.</p>
-              <Button className="w-full bg-white dark:bg-zinc-900 text-text-primary hover:bg-white dark:bg-zinc-900/90 font-black h-12 rounded-xl">
+              <Button className="w-full bg-white dark:bg-surface text-text-primary hover:bg-white dark:bg-surface/90 font-black h-12 rounded-xl">
                 Send RFQ
               </Button>
             </div>

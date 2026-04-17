@@ -72,7 +72,7 @@ function RegisterForm() {
             }
           })}
           disabled={pending}
-          className="w-full h-12 bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-800 shadow-sm rounded-xl font-bold transition-all flex items-center justify-center gap-3"
+          className="w-full h-12 bg-white dark:bg-surface hover:bg-zinc-50 dark:hover:bg-zinc-900/50 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-border shadow-sm rounded-xl font-bold transition-all flex items-center justify-center gap-3"
         >
           <svg className="h-5 w-5" viewBox="0 0 24 24" aria-hidden>
             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -84,9 +84,9 @@ function RegisterForm() {
         </Button>
 
         <div className="relative flex items-center py-2">
-          <div className="flex-grow border-t border-zinc-200 dark:border-zinc-800"></div>
+          <div className="flex-grow border-t border-zinc-200 dark:border-border"></div>
           <span className="flex-shrink-0 mx-4 text-[12px] font-medium text-zinc-500">or sign up with email</span>
-          <div className="flex-grow border-t border-zinc-200 dark:border-zinc-800"></div>
+          <div className="flex-grow border-t border-zinc-200 dark:border-border"></div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
@@ -97,7 +97,7 @@ function RegisterForm() {
           )}
 
           <div className="space-y-1.5">
-            <label htmlFor="full_name" className="block text-[13px] font-bold text-zinc-800 dark:text-zinc-200">
+            <label htmlFor="full_name" className="block text-[13px] font-bold text-zinc-800 dark:text-text-secondary">
               Full Name
             </label>
             <div className="relative group">
@@ -106,7 +106,7 @@ function RegisterForm() {
                 id="full_name"
                 name="full_name"
                 placeholder="Jane Doe"
-                className="pl-11 h-12 rounded-xl border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-[15px] text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all shadow-sm"
+                className="pl-11 h-12 rounded-xl border-zinc-200 dark:border-border bg-white dark:bg-surface text-[15px] text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all shadow-sm"
                 required
                 autoComplete="name"
                 disabled={pending}
@@ -115,7 +115,7 @@ function RegisterForm() {
           </div>
 
           <div className="space-y-1.5">
-            <label htmlFor="email" className="block text-[13px] font-bold text-zinc-800 dark:text-zinc-200">
+            <label htmlFor="email" className="block text-[13px] font-bold text-zinc-800 dark:text-text-secondary">
               Email Address
             </label>
             <div className="relative group">
@@ -125,7 +125,7 @@ function RegisterForm() {
                 type="email"
                 name="email"
                 placeholder="you@example.com"
-                className="pl-11 h-12 rounded-xl border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-[15px] text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all shadow-sm"
+                className="pl-11 h-12 rounded-xl border-zinc-200 dark:border-border bg-white dark:bg-surface text-[15px] text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all shadow-sm"
                 required
                 autoComplete="email"
                 disabled={pending}
@@ -134,7 +134,7 @@ function RegisterForm() {
           </div>
 
           <div className="space-y-1.5">
-            <label htmlFor="password" className="block text-[13px] font-bold text-zinc-800 dark:text-zinc-200">
+            <label htmlFor="password" className="block text-[13px] font-bold text-zinc-800 dark:text-text-secondary">
               Password
             </label>
             <div className="relative group">
@@ -144,7 +144,7 @@ function RegisterForm() {
                 type={showPw ? "text" : "password"}
                 name="password"
                 placeholder="8+ characters minimum"
-                className="pl-11 pr-11 h-12 rounded-xl border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-[15px] text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all shadow-sm"
+                className="pl-11 pr-11 h-12 rounded-xl border-zinc-200 dark:border-border bg-white dark:bg-surface text-[15px] text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all shadow-sm"
                 required
                 minLength={8}
                 autoComplete="new-password"
@@ -196,10 +196,10 @@ export default function RegisterPage() {
     <Suspense
       fallback={
         <div className="w-full space-y-6 animate-pulse">
-          <div className="h-8 bg-zinc-100 dark:bg-zinc-800 rounded-lg w-3/4 mx-auto" />
-          <div className="h-11 bg-zinc-100 dark:bg-zinc-800 rounded-xl" />
-          <div className="h-11 bg-zinc-100 dark:bg-zinc-800 rounded-xl" />
-          <div className="h-11 bg-zinc-100 dark:bg-zinc-800 rounded-xl" />
+          <div className="h-8 bg-zinc-100 dark:bg-surface-secondary rounded-lg w-3/4 mx-auto" />
+          <div className="h-11 bg-zinc-100 dark:bg-surface-secondary rounded-xl" />
+          <div className="h-11 bg-zinc-100 dark:bg-surface-secondary rounded-xl" />
+          <div className="h-11 bg-zinc-100 dark:bg-surface-secondary rounded-xl" />
         </div>
       }
     >

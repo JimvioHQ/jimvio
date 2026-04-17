@@ -35,13 +35,13 @@ export function SharedCommunityCard({ c, rank, showQuickActions = true }: Commun
   const isNew = c.created_at && Date.now() - new Date(c.created_at).getTime() < 7 * 24 * 60 * 60 * 1000;
 
   return (
-    <article className="group relative rounded-[32px] border border-stone-200/60 bg-white dark:bg-stone-900 dark:border-stone-800 overflow-hidden shadow-sm hover:shadow-xl hover:border-orange-500/30 transition-all duration-500 hover:-translate-y-1 flex flex-col h-full">
+    <article className="group relative rounded-[32px] border border-stone-200/60 bg-white dark:bg-bg dark:border-border overflow-hidden shadow-sm hover:shadow-xl hover:border-orange-500/30 transition-all duration-500 hover:-translate-y-1 flex flex-col h-full">
       {/* Cover */}
-      <div className="relative h-44 bg-stone-50 dark:bg-stone-800 shrink-0">
+      <div className="relative h-44 bg-stone-50 dark:bg-surface shrink-0">
         {c.cover_image ? (
           <Image src={c.cover_image} alt="" fill className="object-cover group-hover:scale-110 transition-transform duration-700" sizes="33vw" unoptimized />
         ) : (
-          <div className="absolute inset-0 bg-gradient-to-br from-orange-50/50 via-stone-50 to-white dark:from-orange-900/20 dark:via-stone-800 dark:to-stone-900" />
+          <div className="absolute inset-0 bg-gradient-to-br from-orange-50/50 via-stone-50 to-white dark:from-orange-900/20 dark:via-surface dark:to-bg" />
         )}
 
         {/* Overlays */}
@@ -76,11 +76,11 @@ export function SharedCommunityCard({ c, rank, showQuickActions = true }: Commun
 
       {/* Avatar overlap */}
       <div className="relative px-5">
-        <div className="absolute -top-10 left-5 h-20 w-20 rounded-[28px] border-[4px] border-white dark:border-stone-900 bg-white dark:bg-stone-800 overflow-hidden shadow-2xl z-10 transition-transform group-hover:scale-110 duration-500">
+        <div className="absolute -top-10 left-5 h-20 w-20 rounded-[28px] border-[4px] border-white dark:border-bg bg-white dark:bg-surface overflow-hidden shadow-2xl z-10 transition-transform group-hover:scale-110 duration-500">
           {(c.avatar_url || c.image_url) ? (
             <Image src={c.avatar_url || c.image_url || ''} alt="" width={80} height={80} className="object-cover h-full w-full" unoptimized />
           ) : (
-            <div className="h-full w-full flex items-center justify-center text-orange-600 font-black text-2xl bg-orange-50 dark:bg-stone-700">
+            <div className="h-full w-full flex items-center justify-center text-orange-600 font-black text-2xl bg-orange-50 dark:bg-surface-secondary">
               {c.name?.[0] ?? "?"}
             </div>
           )}
@@ -90,8 +90,8 @@ export function SharedCommunityCard({ c, rank, showQuickActions = true }: Commun
       {/* Body */}
       <div className="flex flex-col flex-1 p-5 pt-12 gap-3">
         <div>
-          <h2 className="font-black text-stone-900 dark:text-stone-100 text-[18px] leading-tight line-clamp-1 group-hover:text-orange-600 transition-colors tracking-tight">{c.name}</h2>
-          <p className="text-[12px] text-stone-500 dark:text-stone-400 mt-1 line-clamp-2 leading-relaxed font-medium">
+          <h2 className="font-black text-stone-900 dark:text-text-primary text-[18px] leading-tight line-clamp-1 group-hover:text-orange-600 transition-colors tracking-tight">{c.name}</h2>
+          <p className="text-[12px] text-stone-500 dark:text-text-secondary mt-1 line-clamp-2 leading-relaxed font-medium">
             {c.tagline || 'Exclusive community for elite members.'}
           </p>
         </div>
@@ -99,16 +99,16 @@ export function SharedCommunityCard({ c, rank, showQuickActions = true }: Commun
         {/* Meta tags */}
         <div className="flex items-center gap-2 flex-wrap">
           {c.category && (
-            <span className="text-[9px] font-black uppercase tracking-[0.15em] px-2 py-1 rounded-lg bg-stone-50 dark:bg-stone-800 text-stone-400 dark:text-stone-500 border border-stone-100 dark:border-stone-700">
+            <span className="text-[9px] font-black uppercase tracking-[0.15em] px-2 py-1 rounded-lg bg-stone-50 dark:bg-surface text-stone-400 dark:text-text-muted border border-stone-100 dark:border-border-strong">
               {c.category}
             </span>
           )}
           <div className="flex items-center gap-3 ml-1">
-            <span className="text-[11px] font-bold text-stone-600 dark:text-stone-300 flex items-center gap-1.5">
+            <span className="text-[11px] font-bold text-stone-600 dark:text-text-secondary flex items-center gap-1.5">
               <Users size={12} className="text-orange-500" />
               {formatNumber(c.member_count ?? 0)}
             </span>
-            <span className="text-[11px] font-bold text-stone-500 dark:text-stone-400 flex items-center gap-1.5">
+            <span className="text-[11px] font-bold text-stone-500 dark:text-text-muted flex items-center gap-1.5">
               <MessageSquare size={12} className="text-indigo-400" />
               {formatNumber(c.post_count ?? 0)}
             </span>
@@ -116,7 +116,7 @@ export function SharedCommunityCard({ c, rank, showQuickActions = true }: Commun
         </div>
 
         {/* Price + CTA Stacking for narrow width */}
-        <div className="mt-auto pt-4 border-t border-stone-100 dark:border-stone-800 space-y-3">
+        <div className="mt-auto pt-4 border-t border-stone-100 dark:border-border space-y-3">
           <div className="flex items-center justify-between">
             {c.is_free ? (
               <span className="text-[11px] font-black text-orange-600 uppercase tracking-widest bg-orange-50 dark:bg-orange-900/20 px-2 py-0.5 rounded-lg">

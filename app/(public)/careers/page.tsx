@@ -24,7 +24,7 @@ export default function CareersPage() {
   return (
     <div className="bg-[var(--color-bg)] min-h-screen">
       {/* Hero */}
-      <section className="bg-white dark:bg-zinc-900 border-b border-[var(--color-border)] py-24 md:py-32 relative overflow-hidden">
+      <section className="bg-white dark:bg-surface border-b border-[var(--color-border)] py-24 md:py-32 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-1/3 h-full bg-gradient-to-l from-orange-50 to-transparent" />
         <div className="max-w-[var(--container-max)] mx-auto px-4 sm:px-6 relative z-10 text-center">
           <Badge className="bg-[var(--color-accent-light)] text-[var(--color-accent)] border-none mb-6 px-4 py-1.5 capitalize tracking-widest font-black text-[10px]">
@@ -88,7 +88,7 @@ export default function CareersPage() {
                 <div className="absolute inset-0 flex items-center justify-center">
                    <Sparkles className="h-40 w-40 text-white opacity-20 group-hover:rotate-12 transition-transform duration-700" />
                 </div>
-                <div className="absolute top-10 right-10 p-6 bg-white dark:bg-zinc-900/10 backdrop-blur-xl rounded-3xl border border-white/20">
+                <div className="absolute top-10 right-10 p-6 bg-white dark:bg-surface/10 backdrop-blur-xl rounded-3xl border border-white/20">
                    <p className="text-white font-black text-lg leading-tight">"The best work I've ever done with the best people I've ever met."</p>
                    <p className="text-white/60 text-xs mt-4 font-bold capitalize tracking-widest">— Marie, Lead Designer</p>
                 </div>
@@ -106,7 +106,7 @@ export default function CareersPage() {
 
         <div className="space-y-4">
           {jobs.map((job, i) => (
-            <div key={i} className="group bg-white dark:bg-zinc-900 border border-[var(--color-border)] p-8 rounded-[2rem] flex flex-col md:flex-row md:items-center justify-between gap-8 hover:border-[var(--color-accent)] hover:shadow-2xl hover:-translate-y-1 transition-all cursor-pointer">
+            <div key={i} className="group bg-white dark:bg-surface border border-[var(--color-border)] p-8 rounded-[2rem] flex flex-col md:flex-row md:items-center justify-between gap-8 hover:border-[var(--color-accent)] hover:shadow-2xl hover:-translate-y-1 transition-all cursor-pointer">
                <div className="space-y-2">
                   <div className="flex items-center gap-3">
                      <h4 className="text-xl font-black text-[var(--color-text-primary)] group-hover:text-[var(--color-accent)] transition-colors">{job.title}</h4>

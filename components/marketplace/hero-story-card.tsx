@@ -29,7 +29,7 @@ export function HeroStoryCard({ viralClips }: HeroStoryCardProps) {
         <div className="absolute inset-0 bg-gradient-to-t from-ink-darker/80 via-transparent to-transparent" />
         
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-16 h-16 rounded-full bg-white dark:bg-zinc-900/20 backdrop-blur-md border border-white/30 flex items-center justify-center text-white scale-90 group-hover/clip:scale-100 transition-transform">
+          <div className="w-16 h-16 rounded-full bg-white dark:bg-surface/20 backdrop-blur-md border border-white/30 flex items-center justify-center text-white scale-90 group-hover/clip:scale-100 transition-transform">
             <Play className="h-8 w-8 fill-white" />
           </div>
         </div>

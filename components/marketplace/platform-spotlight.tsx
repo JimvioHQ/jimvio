@@ -45,7 +45,7 @@
 //          <div className="absolute top-0 right-0 p-10 opacity-20 pointer-events-none group-hover:scale-110 transition-transform duration-700"><Users className="w-64 h-64 text-white -rotate-12" /></div>
          
 //          <div className="relative z-10 space-y-4">
-//             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white dark:bg-zinc-900/10 border border-white/20 text-white text-[10px] font-black uppercase tracking-widest">
+//             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white dark:bg-surface/10 border border-white/20 text-white text-[10px] font-black uppercase tracking-widest">
 //               <Globe className="w-3 h-3" /> Elite Network
 //             </div>
 //             <h2 className="text-3xl md:text-4xl font-black text-white tracking-tight leading-none max-w-sm">
@@ -58,7 +58,7 @@
 //          </div>
 
 //          <div className="relative z-10 pt-6">
-//             <Button asChild size="lg" className="rounded-2xl bg-white dark:bg-zinc-900 text-indigo-600 hover:bg-zinc-100 font-black px-8">
+//             <Button asChild size="lg" className="rounded-2xl bg-white dark:bg-surface text-indigo-600 hover:bg-zinc-100 font-black px-8">
 //               <Link href={community ? `/communities/${community.slug}` : "/communities"}>
 //                 Join Community <ArrowRight className="ml-2 w-4 h-4" />
 //               </Link>

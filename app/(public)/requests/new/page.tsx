@@ -66,7 +66,7 @@ export default function PostBuyingLeadPage() {
                     <List className="h-5 w-5 text-[var(--color-accent)]" />
                     Category
                   </div>
-                  <select className="w-full h-12 bg-white dark:bg-zinc-900 border-2 border-[var(--color-border)] rounded-lg px-4 text-sm focus:outline-none focus:border-[var(--color-accent)] transition-colors">
+                  <select className="w-full h-12 bg-white dark:bg-surface border-2 border-[var(--color-border)] rounded-lg px-4 text-sm focus:outline-none focus:border-[var(--color-accent)] transition-colors">
                     <option>Select a category</option>
                     <option>Electronics</option>
                     <option>Fashion & Apparel</option>
@@ -82,7 +82,7 @@ export default function PostBuyingLeadPage() {
                   </div>
                   <div className="flex gap-2">
                     <Input placeholder="Quantity" className="h-12 border-2" />
-                    <select className="w-24 bg-white dark:bg-zinc-900 border-2 border-[var(--color-border)] rounded-lg px-2 text-sm">
+                    <select className="w-24 bg-white dark:bg-surface border-2 border-[var(--color-border)] rounded-lg px-2 text-sm">
                       <option>PCS</option>
                       <option>KGs</option>
                       <option>TONS</option>
@@ -148,7 +148,7 @@ export default function PostBuyingLeadPage() {
               </ul>
             </div>
 
-            <div className="bg-white dark:bg-zinc-900 border border-[var(--color-border)] rounded-2xl p-6 shadow-sm">
+            <div className="bg-white dark:bg-surface border border-[var(--color-border)] rounded-2xl p-6 shadow-sm">
               <h4 className="font-bold text-[var(--color-text-primary)] mb-4 flex items-center gap-2">
                 <HelpCircle className="h-4 w-4 text-[var(--color-accent)]" /> Pro Tips
               </h4>
@@ -159,7 +159,7 @@ export default function PostBuyingLeadPage() {
 
             <div className="bg-[var(--color-surface-secondary)] rounded-2xl p-6 border border-[var(--color-border)]">
               <div className="flex items-center gap-4 mb-4">
-                <div className="h-10 w-10 rounded-full bg-white dark:bg-zinc-900 flex items-center justify-center">
+                <div className="h-10 w-10 rounded-full bg-white dark:bg-surface flex items-center justify-center">
                   <Smartphone className="h-5 w-5 text-[var(--color-accent)]" />
                 </div>
                 <div>

@@ -1122,7 +1122,7 @@ export function ChatRoom({ roomId, roomName, communityId, slug, hideHeader }: {
 
         {isChatting && (
           <div className="md:hidden absolute left-3 top-2.5 z-[30]">
-            <button type="button" className="flex h-10 w-10 items-center justify-center rounded-full bg-white dark:bg-zinc-900/80 shadow-md" style={{ color: WA.accent }} onClick={() => setForceShowList(true)}>
+            <button type="button" className="flex h-10 w-10 items-center justify-center rounded-full bg-white dark:bg-surface/80 shadow-md" style={{ color: WA.accent }} onClick={() => setForceShowList(true)}>
               <ChevronLeft size={24} />
             </button>
           </div>
@@ -1130,8 +1130,8 @@ export function ChatRoom({ roomId, roomName, communityId, slug, hideHeader }: {
 
         {(activeConvId || roomId) && hideHeader && (
           <div className="absolute right-4 top-2.5 z-[30] flex items-center gap-2">
-            <button onClick={() => startNativeCall('audio')} className="flex h-10 w-10 items-center justify-center rounded-full bg-white dark:bg-zinc-900/90 shadow-md border border-gray-200 hover:scale-105 transition-all"><Phone className="h-4 w-4" style={{ color: WA.accent }} /></button>
-            <button onClick={() => startNativeCall('video')} className="flex h-10 w-10 items-center justify-center rounded-full bg-white dark:bg-zinc-900/90 shadow-md border border-gray-200 hover:scale-105 transition-all"><Video className="h-4 w-4" style={{ color: WA.accent }} /></button>
+            <button onClick={() => startNativeCall('audio')} className="flex h-10 w-10 items-center justify-center rounded-full bg-white dark:bg-surface/90 shadow-md border border-gray-200 hover:scale-105 transition-all"><Phone className="h-4 w-4" style={{ color: WA.accent }} /></button>
+            <button onClick={() => startNativeCall('video')} className="flex h-10 w-10 items-center justify-center rounded-full bg-white dark:bg-surface/90 shadow-md border border-gray-200 hover:scale-105 transition-all"><Video className="h-4 w-4" style={{ color: WA.accent }} /></button>
           </div>
         )}
 
@@ -1289,7 +1289,7 @@ export function ChatRoom({ roomId, roomName, communityId, slug, hideHeader }: {
                 {pendingMain.length > 0 && (
                   <div className="flex flex-wrap gap-1.5 px-1 py-1.5 mb-1 rounded-lg" style={{ background: "rgba(0,0,0,0.04)" }}>
                     {pendingMain.map((a, i) => (
-                      <div key={a.url} className="flex items-center gap-1.5 px-2 py-1 bg-white dark:bg-zinc-900 rounded-md shadow-sm text-[11px] font-medium" style={{ border: `1px solid ${WA.border}` }}>
+                      <div key={a.url} className="flex items-center gap-1.5 px-2 py-1 bg-white dark:bg-surface rounded-md shadow-sm text-[11px] font-medium" style={{ border: `1px solid ${WA.border}` }}>
                         <FileIcon size={11} style={{ color: WA.accent }} />
                         <span className="truncate max-w-[90px]">{a.name}</span>
                         <button onClick={() => setPendingMain(p => p.filter((_, j) => j !== i))}><X size={12} className="hover:text-red-500" /></button>

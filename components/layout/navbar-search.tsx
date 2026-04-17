@@ -304,7 +304,7 @@ export function NavbarSearch({
                         <button
                           key={v.id}
                           onClick={() => { router.push(`/vendors/${v.business_slug}`); close(); setFocused(false); }}
-                          className="w-full flex items-center gap-2 px-2.5 py-2 rounded-[11px] text-left transition-all text-[12px] font-semibold text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:text-white dark:hover:text-stone-200"
+                          className="w-full flex items-center gap-2 px-2.5 py-2 rounded-[11px] text-left transition-all text-[12px] font-semibold text-stone-600 dark:text-text-muted hover:text-stone-900 dark:text-white dark:hover:text-stone-200"
                           onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "rgba(0,0,0,0.04)"}
                           onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = ""}
                         >
@@ -323,7 +323,7 @@ export function NavbarSearch({
                       <button
                         key={l.href}
                         onClick={() => { router.push(l.href); close(); setFocused(false); }}
-                        className="w-full flex items-center justify-between px-2.5 py-2 rounded-[11px] text-[12px] font-semibold text-stone-500 dark:text-stone-400 hover:text-stone-800 dark:text-zinc-200 dark:hover:text-stone-200 transition-colors group"
+                        className="w-full flex items-center justify-between px-2.5 py-2 rounded-[11px] text-[12px] font-semibold text-stone-500 dark:text-text-muted hover:text-stone-800 dark:text-text-secondary dark:hover:text-stone-200 transition-colors group"
                         onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "rgba(0,0,0,0.04)"}
                         onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = ""}
                       >

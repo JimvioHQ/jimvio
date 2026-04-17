@@ -128,12 +128,12 @@ export function CartClient({ initialOrders }: CartClientProps) {
   // ── EMPTY STATE ──
   if (orders.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center text-center py-24 bg-surface dark:bg-zinc-900 rounded-2xl border border-border shadow-sm">
-        <div className="h-20 w-20 bg-stone-50 dark:bg-zinc-800 border-2 border-dashed border-border rounded-2xl flex items-center justify-center mb-5">
+      <div className="flex flex-col items-center justify-center text-center py-24 bg-surface dark:bg-surface rounded-2xl border border-border shadow-sm">
+        <div className="h-20 w-20 bg-stone-50 dark:bg-surface-secondary border-2 border-dashed border-border rounded-2xl flex items-center justify-center mb-5">
           <ShoppingCart className="h-9 w-9 text-stone-300 dark:text-stone-600" />
         </div>
-        <h2 className="text-xl font-black text-zinc-800 dark:text-zinc-200 mb-2">Your cart is empty</h2>
-        <p className="text-sm text-stone-400 dark:text-stone-500 font-medium mb-8 max-w-xs">
+        <h2 className="text-xl font-black text-zinc-800 dark:text-text-secondary mb-2">Your cart is empty</h2>
+        <p className="text-sm text-stone-400 dark:text-text-muted font-medium mb-8 max-w-xs">
           You haven't added any products yet. Explore the marketplace to get started.
         </p>
         <Button asChild className="h-10 px-6 rounded-xl font-black text-xs uppercase tracking-widest bg-[var(--color-accent)] text-white hover:brightness-110 border-0">
@@ -159,18 +159,18 @@ export function CartClient({ initialOrders }: CartClientProps) {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.97, y: -8 }}
               transition={{ duration: 0.2 }}
-              className="bg-surface dark:bg-zinc-900 rounded-xl border border-border shadow-sm overflow-hidden"
+              className="bg-surface dark:bg-surface rounded-xl border border-border shadow-sm overflow-hidden"
             >
               {/* Vendor header */}
-              <div className="bg-stone-50 dark:bg-zinc-800 border-b border-border px-5 py-3 flex items-center justify-between">
+              <div className="bg-stone-50 dark:bg-surface-secondary border-b border-border px-5 py-3 flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <div className="h-8 w-8 bg-surface dark:bg-zinc-900 rounded-lg border border-border flex items-center justify-center">
-                    <Store className="h-4 w-4 text-stone-500 dark:text-stone-400" />
+                  <div className="h-8 w-8 bg-surface dark:bg-surface rounded-lg border border-border flex items-center justify-center">
+                    <Store className="h-4 w-4 text-stone-500 dark:text-text-muted" />
                   </div>
                   <div>
                     <Link
                       href={`/vendors/${order.vendors?.business_slug}`}
-                      className="text-xs font-black text-zinc-800 dark:text-zinc-200 hover:text-[var(--color-accent)] transition-colors flex items-center gap-1"
+                      className="text-xs font-black text-zinc-800 dark:text-text-secondary hover:text-[var(--color-accent)] transition-colors flex items-center gap-1"
                     >
                       {order.vendors?.business_name || "Official Store"}
                       <ChevronRight className="h-3 w-3" />
@@ -201,7 +201,7 @@ export function CartClient({ initialOrders }: CartClientProps) {
                     >
                       <div className="p-4 flex gap-4">
                         {/* Thumbnail */}
-                        <div className="relative h-20 w-20 shrink-0 bg-stone-50 dark:bg-zinc-800 rounded-lg border border-border overflow-hidden">
+                        <div className="relative h-20 w-20 shrink-0 bg-stone-50 dark:bg-surface-secondary rounded-lg border border-border overflow-hidden">
                           {item.product_image && !imageErrors[item.id] ? (
                             <Image
                               src={item.product_image}
@@ -221,14 +221,14 @@ export function CartClient({ initialOrders }: CartClientProps) {
                         {/* Details */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between gap-2 mb-2">
-                            <p className="text-xs font-black text-zinc-800 dark:text-zinc-200 line-clamp-2 leading-snug flex-1">
+                            <p className="text-xs font-black text-zinc-800 dark:text-text-secondary line-clamp-2 leading-snug flex-1">
                               {item.product_name}
                             </p>
                             {/* Remove button */}
                             <button
                               onClick={() => handleRemove(item.id)}
                               disabled={removingItems.includes(item.id)}
-                              className="h-7 w-7 shrink-0 rounded-lg flex items-center justify-center text-stone-300 dark:text-stone-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all disabled:opacity-50"
+                              className="h-7 w-7 shrink-0 rounded-lg flex items-center justify-center text-stone-300 dark:text-text-muted hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all disabled:opacity-50"
                               title="Remove"
                             >
                               {removingItems.includes(item.id) ? (
@@ -246,15 +246,15 @@ export function CartClient({ initialOrders }: CartClientProps) {
                           {/* Qty + line total */}
                           <div className="flex items-center justify-between">
                             {/* Compact qty stepper */}
-                            <div className="flex items-center gap-0.5 bg-stone-50 dark:bg-zinc-800 border border-border rounded-lg p-0.5">
+                            <div className="flex items-center gap-0.5 bg-stone-50 dark:bg-surface-secondary border border-border rounded-lg p-0.5">
                               <button
                                 onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)}
                                 disabled={item.quantity <= 1 || loadingItems.includes(item.id)}
-                                className="h-6 w-6 rounded-md flex items-center justify-center text-stone-400 dark:text-stone-500 hover:bg-surface dark:hover:bg-zinc-900 hover:text-stone-700 dark:hover:text-stone-300 disabled:opacity-30 transition-all"
+                                className="h-6 w-6 rounded-md flex items-center justify-center text-stone-400 dark:text-text-muted hover:bg-surface dark:hover:bg-zinc-900 hover:text-stone-700 dark:hover:text-stone-300 disabled:opacity-30 transition-all"
                               >
                                 <Minus className="h-2.5 w-2.5" />
                               </button>
-                              <span className="w-7 text-center text-xs font-black text-stone-800 dark:text-stone-200">
+                              <span className="w-7 text-center text-xs font-black text-stone-800 dark:text-text-secondary">
                                 {loadingItems.includes(item.id)
                                   ? <Loader2 className="h-3 w-3 animate-spin mx-auto" />
                                   : item.quantity
@@ -263,7 +263,7 @@ export function CartClient({ initialOrders }: CartClientProps) {
                               <button
                                 onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
                                 disabled={loadingItems.includes(item.id)}
-                                className="h-6 w-6 rounded-md flex items-center justify-center text-stone-400 dark:text-stone-500 hover:bg-surface dark:hover:bg-zinc-900 hover:text-stone-700 dark:hover:text-stone-300 disabled:opacity-30 transition-all"
+                                className="h-6 w-6 rounded-md flex items-center justify-center text-stone-400 dark:text-text-muted hover:bg-surface dark:hover:bg-zinc-900 hover:text-stone-700 dark:hover:text-stone-300 disabled:opacity-30 transition-all"
                               >
                                 <Plus className="h-2.5 w-2.5" />
                               </button>
@@ -282,8 +282,8 @@ export function CartClient({ initialOrders }: CartClientProps) {
 
               {/* Order subtotal */}
               <div className="bg-stone-50 dark:bg-[var(--color-bg)] border-t border-border px-5 py-2.5 flex items-center justify-between">
-                <span className="text-[10px] font-black uppercase tracking-widest text-stone-400 dark:text-stone-500">Order Subtotal</span>
-                <span className="text-xs font-black text-stone-800 dark:text-stone-200">
+                <span className="text-[10px] font-black uppercase tracking-widest text-stone-400 dark:text-text-muted">Order Subtotal</span>
+                <span className="text-xs font-black text-stone-800 dark:text-text-secondary">
                   {formatMoney(sumOrderItems(order.order_items), order.currency ?? "USD")}
                 </span>
               </div>
@@ -302,7 +302,7 @@ export function CartClient({ initialOrders }: CartClientProps) {
         <div className="sticky top-[calc(var(--navbar-height,64px)+56px)] space-y-4">
 
           {/* Summary card */}
-          <div className="bg-surface dark:bg-zinc-900 rounded-xl border border-border shadow-sm p-5 space-y-5">
+          <div className="bg-surface dark:bg-surface rounded-xl border border-border shadow-sm p-5 space-y-5">
             <h2 className="text-sm font-black text-stone-900 dark:text-white flex items-center gap-2">
               <Tag className="h-4 w-4 text-[var(--color-accent)]" />
               Order Summary
@@ -310,16 +310,16 @@ export function CartClient({ initialOrders }: CartClientProps) {
 
             <div className="space-y-3">
               <div className="flex justify-between text-xs">
-                <span className="text-stone-500 dark:text-stone-400">Items ({totalItems})</span>
-                <span className="font-black text-stone-800 dark:text-stone-200 text-right max-w-[10rem] truncate">{totalsLabel}</span>
+                <span className="text-stone-500 dark:text-text-muted">Items ({totalItems})</span>
+                <span className="font-black text-stone-800 dark:text-text-secondary text-right max-w-[10rem] truncate">{totalsLabel}</span>
               </div>
               <div className="flex justify-between text-xs">
-                <span className="text-stone-500 dark:text-stone-400">Shipping</span>
-                <span className="text-stone-400 dark:text-stone-500 font-semibold">At Checkout</span>
+                <span className="text-stone-500 dark:text-text-muted">Shipping</span>
+                <span className="text-stone-400 dark:text-text-muted font-semibold">At Checkout</span>
               </div>
               <div className="flex justify-between text-xs">
-                <span className="text-stone-500 dark:text-stone-400">Estimated Tax</span>
-                <span className="text-stone-800 dark:text-stone-200 font-bold">
+                <span className="text-stone-500 dark:text-text-muted">Estimated Tax</span>
+                <span className="text-stone-800 dark:text-text-secondary font-bold">
                   {hasMixedCurrencies ? "—" : formatMoney(0, orders[0]?.currency ?? "USD")}
                 </span>
               </div>
@@ -345,14 +345,14 @@ export function CartClient({ initialOrders }: CartClientProps) {
               <div className="flex items-center gap-3 bg-green-50 p-3 rounded-lg border border-green-100">
                 <ShieldCheck className="h-4 w-4 text-green-600 shrink-0" />
                 <div>
-                  <p className="text-[10px] font-black text-zinc-800 dark:text-zinc-200">Trade Assurance</p>
+                  <p className="text-[10px] font-black text-zinc-800 dark:text-text-secondary">Trade Assurance</p>
                   <p className="text-[9px] text-zinc-500">Jimvio escrow protects all payments</p>
                 </div>
               </div>
               <div className="flex items-center gap-3 bg-blue-50/60 p-3 rounded-lg border border-blue-100/60">
                 <HelpCircle className="h-4 w-4 text-blue-500 shrink-0" />
                 <div>
-                  <p className="text-[10px] font-black text-zinc-800 dark:text-zinc-200">Need Help?</p>
+                  <p className="text-[10px] font-black text-zinc-800 dark:text-text-secondary">Need Help?</p>
                   <p className="text-[9px] text-zinc-500">Contact our support curators</p>
                 </div>
               </div>

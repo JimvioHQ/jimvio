@@ -60,7 +60,7 @@ export default function CreatorEarningsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-stone-900 dark:text-white flex items-center gap-3">
-             <div className="p-2 rounded-[14px] bg-white dark:bg-zinc-900/60 border border-white/80 shadow-sm shrink-0">
+             <div className="p-2 rounded-[14px] bg-white dark:bg-surface/60 border border-white/80 shadow-sm shrink-0">
                <DollarSign className="h-6 w-6 text-emerald-500" />
              </div>
              Creator Earnings
@@ -91,8 +91,8 @@ export default function CreatorEarningsPage() {
         </GlassCard>
       </div>
 
-      <GlassCard className="overflow-hidden bg-white dark:bg-zinc-900/40 p-0">
-        <div className="border-b border-stone-200/50 bg-white dark:bg-zinc-900/50 py-4 px-6 flex flex-col">
+      <GlassCard className="overflow-hidden bg-white dark:bg-surface/40 p-0">
+        <div className="border-b border-stone-200/50 bg-white dark:bg-surface/50 py-4 px-6 flex flex-col">
           <h3 className="text-[14px] font-bold text-stone-900 dark:text-white tracking-tight flex items-center gap-2">
             <Wallet className="h-4 w-4 text-emerald-500" />
             Payout history
@@ -120,7 +120,7 @@ export default function CreatorEarningsPage() {
                   </tr>
                 ) : (
                   payouts.map((p) => (
-                    <tr key={p.id} className="hover:bg-white dark:bg-zinc-900/60 transition-colors group">
+                    <tr key={p.id} className="hover:bg-white dark:bg-surface/60 transition-colors group">
                       <td className="py-4 px-6 text-[13px] font-bold text-stone-900 dark:text-white">{new Date(p.created_at).toLocaleDateString()}</td>
                       <td className="py-4 px-6 text-[13px] font-bold text-stone-600 capitalize">{String(p.payout_method || "—").replace(/_/g, " ")}</td>
                       <td className="py-4 px-6 text-right font-black text-[14px] text-stone-900 dark:text-white tabular-nums">{formatMoney(Number(p.amount ?? 0), "RWF")}</td>

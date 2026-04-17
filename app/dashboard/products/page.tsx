@@ -101,7 +101,7 @@ export default function ProductsPage() {
          </div>
          <div className="text-center space-y-3">
             <h2 className="text-[14px] font-black text-stone-900 dark:text-white uppercase tracking-[0.4em] pl-[0.4em]">Products Hub</h2>
-            <p className="text-[10px] font-bold text-stone-400 dark:text-stone-500 uppercase tracking-widest pl-[0.1em]">Reconciling Global Marketplace Inventory</p>
+            <p className="text-[10px] font-bold text-stone-400 dark:text-text-muted uppercase tracking-widest pl-[0.1em]">Reconciling Global Marketplace Inventory</p>
          </div>
        </div>
     );
@@ -111,12 +111,12 @@ export default function ProductsPage() {
     return (
       <div className="min-h-screen flex items-center justify-center px-6" style={{ background: "var(--color-bg)" }}>
         <GlassCard className="max-w-md w-full p-10 text-center rounded-[48px] border-border bg-surface/60 shadow-2xl">
-           <div className="w-24 h-24 bg-surface dark:bg-zinc-800 rounded-[32px] flex items-center justify-center mx-auto mb-8 border border-border shadow-xl">
+           <div className="w-24 h-24 bg-surface dark:bg-surface-secondary rounded-[32px] flex items-center justify-center mx-auto mb-8 border border-border shadow-xl">
               <Store className="h-10 w-10 text-stone-100 dark:text-zinc-700 dark:text-zinc-300" />
            </div>
            <h3 className="text-3xl font-black text-stone-900 dark:text-white tracking-tighter">Vendor Account Required</h3>
-           <p className="text-[11px] font-bold text-stone-400 dark:text-stone-500 uppercase tracking-widest mt-4 leading-relaxed">System requires active vendor status to access inventory management.</p>
-           <Button asChild className="w-full h-16 rounded-3xl bg-stone-900 dark:bg-white dark:bg-zinc-900 dark:text-stone-900 dark:text-white text-white font-black text-[11px] uppercase tracking-widest shadow-2xl mt-10 hover:bg-black dark:hover:bg-stone-200 transition-all border-none">
+           <p className="text-[11px] font-bold text-stone-400 dark:text-text-muted uppercase tracking-widest mt-4 leading-relaxed">System requires active vendor status to access inventory management.</p>
+           <Button asChild className="w-full h-16 rounded-3xl bg-stone-900 dark:bg-white dark:bg-surface dark:text-stone-900 dark:text-white text-white font-black text-[11px] uppercase tracking-widest shadow-2xl mt-10 hover:bg-black dark:hover:bg-stone-200 transition-all border-none">
               <Link href="/dashboard/activate/vendor">Become a Vendor</Link>
            </Button>
         </GlassCard>
@@ -142,14 +142,14 @@ export default function ProductsPage() {
                     My Products
                     <span className="text-stone-300 dark:text-stone-600 ml-2 font-black text-lg">{products.length}</span>
                  </h1>
-                 <p className="text-[10px] sm:text-[11px] font-bold text-stone-400 dark:text-stone-500 uppercase tracking-widest leading-none pl-0.5 opacity-80">
+                 <p className="text-[10px] sm:text-[11px] font-bold text-stone-400 dark:text-text-muted uppercase tracking-widest leading-none pl-0.5 opacity-80">
                     Track and manage your marketplace inventory
                  </p>
               </div>
            </div>
 
            <div className="flex items-center gap-4">
-              <Button className="h-10 sm:h-11 px-6 sm:px-8 rounded-xl bg-stone-900 dark:bg-white dark:bg-zinc-900 dark:text-stone-900 dark:text-white text-white font-bold text-[10px] sm:text-[11px] uppercase tracking-widest shadow-lg active:scale-95 transition-all hover:bg-black dark:hover:bg-stone-200 border-none" asChild>
+              <Button className="h-10 sm:h-11 px-6 sm:px-8 rounded-xl bg-stone-900 dark:bg-white dark:bg-surface dark:text-stone-900 dark:text-white text-white font-bold text-[10px] sm:text-[11px] uppercase tracking-widest shadow-lg active:scale-95 transition-all hover:bg-black dark:hover:bg-stone-200 border-none" asChild>
                  <Link href="/dashboard/products/new"><Plus className="h-4 w-4 mr-2" /> Add Product</Link>
               </Button>
            </div>
@@ -157,40 +157,40 @@ export default function ProductsPage() {
 
         {/* Stats Row - Soft & Compact */}
          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
-           <GlassCard className="p-4 sm:p-6 flex flex-col justify-between rounded-2xl sm:rounded-3xl bg-surface/60 dark:bg-zinc-800/40 border-border shadow-sm group">
+           <GlassCard className="p-4 sm:p-6 flex flex-col justify-between rounded-2xl sm:rounded-3xl bg-surface/60 dark:bg-surface-secondary/40 border-border shadow-sm group">
               <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-orange-100/50 dark:bg-orange-500/10 border border-orange-200/50 dark:border-orange-500/20 flex items-center justify-center mb-6 sm:mb-8 group-hover:scale-110 transition-transform">
                  <Store className="h-5 w-5 sm:h-6 sm:w-6 text-orange-500" />
               </div>
               <div>
                  <p className="text-xl sm:text-2xl font-black text-stone-900 dark:text-white tracking-tight tabular-nums">{products.filter(p => p.status === "active").length}</p>
-                 <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-stone-400 dark:text-stone-500 mt-2">Active Items</p>
+                 <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-stone-400 dark:text-text-muted mt-2">Active Items</p>
               </div>
            </GlassCard>
-           <GlassCard className="p-4 sm:p-6 flex flex-col justify-between rounded-2xl sm:rounded-3xl bg-surface/60 dark:bg-zinc-800/40 border-border shadow-sm group">
+           <GlassCard className="p-4 sm:p-6 flex flex-col justify-between rounded-2xl sm:rounded-3xl bg-surface/60 dark:bg-surface-secondary/40 border-border shadow-sm group">
               <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-emerald-100/50 dark:bg-emerald-500/10 border border-emerald-200/50 dark:border-emerald-500/20 flex items-center justify-center mb-6 sm:mb-8 group-hover:scale-110 transition-transform">
                  <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-500" />
               </div>
               <div>
                  <p className="text-xl sm:text-2xl font-black text-stone-900 dark:text-white tracking-tight tabular-nums">{totalSales}</p>
-                 <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-stone-400 dark:text-stone-500 mt-2">Total Sales</p>
+                 <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-stone-400 dark:text-text-muted mt-2">Total Sales</p>
               </div>
            </GlassCard>
-           <GlassCard className="p-4 sm:p-6 flex flex-col justify-between rounded-2xl sm:rounded-3xl bg-surface/60 dark:bg-zinc-800/40 border-border shadow-sm group">
+           <GlassCard className="p-4 sm:p-6 flex flex-col justify-between rounded-2xl sm:rounded-3xl bg-surface/60 dark:bg-surface-secondary/40 border-border shadow-sm group">
               <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-rose-100/50 dark:bg-rose-500/10 border border-rose-200/50 dark:border-rose-500/20 flex items-center justify-center mb-6 sm:mb-8 group-hover:scale-110 transition-transform">
                  <AlertCircle className="h-5 w-5 sm:h-6 sm:w-6 text-rose-500" />
               </div>
               <div>
                  <p className="text-xl sm:text-2xl font-black text-rose-600 dark:text-rose-500 tracking-tight tabular-nums">{lowStock}</p>
-                 <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-stone-400 dark:text-stone-500 mt-2">Low Stock Alerts</p>
+                 <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-stone-400 dark:text-text-muted mt-2">Low Stock Alerts</p>
               </div>
            </GlassCard>
-           <GlassCard className="p-4 sm:p-6 flex flex-col justify-between rounded-2xl sm:rounded-3xl bg-surface/60 dark:bg-zinc-800/40 border-border shadow-sm group">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-stone-900 dark:bg-white dark:bg-zinc-900 text-white dark:text-stone-900 dark:text-white flex items-center justify-center mb-6 sm:mb-8 group-hover:scale-110 transition-transform">
+           <GlassCard className="p-4 sm:p-6 flex flex-col justify-between rounded-2xl sm:rounded-3xl bg-surface/60 dark:bg-surface-secondary/40 border-border shadow-sm group">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-stone-900 dark:bg-white dark:bg-surface text-white dark:text-stone-900 dark:text-white flex items-center justify-center mb-6 sm:mb-8 group-hover:scale-110 transition-transform">
                  <MousePointer className="h-5 w-5 sm:h-6 sm:w-6" />
               </div>
               <div>
                  <p className="text-xl sm:text-2xl font-black text-stone-900 dark:text-white tracking-tight tabular-nums">{products.filter(p => p.is_digital).length}</p>
-                 <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-stone-400 dark:text-stone-500 mt-2">Digital Files</p>
+                 <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-stone-400 dark:text-text-muted mt-2">Digital Files</p>
               </div>
            </GlassCard>
         </div>
@@ -204,7 +204,7 @@ export default function ProductsPage() {
                     placeholder="Search by name or SKU..."
                     value={search}
                     onChange={e => setSearch(e.target.value)}
-                    className="w-full h-11 sm:h-12 pl-12 pr-6 rounded-xl sm:rounded-2xl bg-surface/60 dark:bg-zinc-800/40 border border-border text-[13px] font-medium tracking-tight text-stone-900 dark:text-white placeholder:text-stone-300 dark:placeholder:text-stone-600 shadow-sm focus:outline-none focus:bg-surface dark:focus:bg-zinc-800 transition-all"
+                    className="w-full h-11 sm:h-12 pl-12 pr-6 rounded-xl sm:rounded-2xl bg-surface/60 dark:bg-surface-secondary/40 border border-border text-[13px] font-medium tracking-tight text-stone-900 dark:text-white placeholder:text-stone-300 dark:placeholder:text-stone-600 shadow-sm focus:outline-none focus:bg-surface dark:focus:bg-zinc-800 transition-all"
                  />
               </div>
               <div className="flex gap-1.5 overflow-x-auto no-scrollbar scroll-smooth p-0.5 shrink-0">
@@ -215,8 +215,8 @@ export default function ProductsPage() {
                        className={cn(
                           "px-6 h-10 sm:h-11 rounded-xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all border shadow-sm",
                           activeFilter === f
-                             ? "bg-stone-900 dark:bg-white dark:bg-zinc-900 border-stone-900 dark:border-white text-white dark:text-stone-900 dark:text-white shadow-md active:scale-95"
-                             : "bg-surface/60 dark:bg-zinc-800/40 border-border text-stone-400 dark:text-stone-500 hover:text-stone-900 dark:text-white dark:hover:text-stone-200 hover:bg-surface dark:hover:bg-zinc-800"
+                             ? "bg-stone-900 dark:bg-white dark:bg-surface border-stone-900 dark:border-white text-white dark:text-stone-900 dark:text-white shadow-md active:scale-95"
+                             : "bg-surface/60 dark:bg-surface-secondary/40 border-border text-stone-400 dark:text-text-muted hover:text-stone-900 dark:text-white dark:hover:text-stone-200 hover:bg-surface dark:hover:bg-zinc-800"
                        )}
                     >
                        {f}
@@ -235,10 +235,10 @@ export default function ProductsPage() {
               </div>
               
                {filtered.length === 0 ? (
-                  <GlassCard className="p-16 py-24 text-center rounded-[32px] border-border bg-surface/30 dark:bg-zinc-900/30">
-                     <Package className="h-10 w-10 text-stone-100 dark:text-zinc-800 dark:text-zinc-200 mx-auto mb-6 opacity-50" />
+                  <GlassCard className="p-16 py-24 text-center rounded-[32px] border-border bg-surface/30 dark:bg-surface/30">
+                     <Package className="h-10 w-10 text-stone-100 dark:text-zinc-800 dark:text-text-secondary mx-auto mb-6 opacity-50" />
                      <h2 className="text-xl font-black text-stone-900 dark:text-white tracking-tight uppercase">No Products Found</h2>
-                     <p className="text-[10px] font-bold text-stone-400 dark:text-stone-500 uppercase tracking-widest mt-3 opacity-80">Start by adding your first product to the marketplace.</p>
+                     <p className="text-[10px] font-bold text-stone-400 dark:text-text-muted uppercase tracking-widest mt-3 opacity-80">Start by adding your first product to the marketplace.</p>
                   </GlassCard>
                ) : (
                   <div className="grid grid-cols-1 gap-4 sm:gap-6">
@@ -247,10 +247,10 @@ export default function ProductsPage() {
                        const img = (p.images as string[])?.[0];
  
                         return (
-                          <GlassCard key={p.id as string} className="group p-4 sm:p-7 flex flex-col lg:flex-row lg:items-center gap-6 sm:gap-8 rounded-2xl sm:rounded-3xl hover:shadow-xl hover:bg-surface dark:hover:bg-zinc-800/80 transition-all duration-500 border-border max-sm:-mx-4 max-sm:rounded-none max-sm:border-x-0 bg-surface/80 dark:bg-zinc-800/60">
+                          <GlassCard key={p.id as string} className="group p-4 sm:p-7 flex flex-col lg:flex-row lg:items-center gap-6 sm:gap-8 rounded-2xl sm:rounded-3xl hover:shadow-xl hover:bg-surface dark:hover:bg-zinc-800/80 transition-all duration-500 border-border max-sm:-mx-4 max-sm:rounded-none max-sm:border-x-0 bg-surface/80 dark:bg-surface-secondary/60">
                              
                              {/* Product Graphics */}
-                             <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl sm:rounded-2xl bg-surface dark:bg-zinc-800 border border-border shadow-sm flex items-center justify-center shrink-0 overflow-hidden relative group-hover:scale-105 transition-transform duration-700">
+                             <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl sm:rounded-2xl bg-surface dark:bg-surface-secondary border border-border shadow-sm flex items-center justify-center shrink-0 overflow-hidden relative group-hover:scale-105 transition-transform duration-700">
                                 {img ? (
                                    <img src={img} alt={p.name as string} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
                                 ) : (
@@ -304,18 +304,18 @@ export default function ProductsPage() {
                              {/* Controls Hub - Soft & Compact */}
                              <div className="flex items-center gap-3 shrink-0 w-full lg:w-auto">
                                 <Link href={`/dashboard/products/${p.id as string}/edit`} className="flex-1 lg:flex-none">
-                                   <div className="h-10 sm:h-11 px-6 rounded-xl bg-surface dark:bg-zinc-800 border border-border hover:bg-stone-900 dark:hover:bg-white dark:bg-zinc-900 hover:text-white dark:hover:text-stone-900 dark:text-white flex items-center justify-center gap-2.5 text-stone-600 dark:text-stone-400 transition-all cursor-pointer shadow-sm group-hover:shadow-md active:scale-95">
+                                   <div className="h-10 sm:h-11 px-6 rounded-xl bg-surface dark:bg-surface-secondary border border-border hover:bg-stone-900 dark:hover:bg-white dark:bg-surface hover:text-white dark:hover:text-stone-900 dark:text-white flex items-center justify-center gap-2.5 text-stone-600 dark:text-text-muted transition-all cursor-pointer shadow-sm group-hover:shadow-md active:scale-95">
                                       <Edit className="h-3.5 w-3.5" />
                                       <span className="text-[10px] font-black uppercase tracking-widest">Edit</span>
                                    </div>
                                  </Link>
                                  <Link href={`/product/${p.slug}`} target="_blank" className="flex-1 lg:flex-none">
-                                   <div className="h-10 sm:h-11 px-6 rounded-xl bg-surface dark:bg-zinc-800 border border-border hover:bg-orange-500 hover:text-white flex items-center justify-center gap-2.5 text-stone-400 dark:text-stone-600 transition-all cursor-pointer shadow-sm group-hover:shadow-md active:scale-95">
+                                   <div className="h-10 sm:h-11 px-6 rounded-xl bg-surface dark:bg-surface-secondary border border-border hover:bg-orange-500 hover:text-white flex items-center justify-center gap-2.5 text-stone-400 dark:text-stone-600 transition-all cursor-pointer shadow-sm group-hover:shadow-md active:scale-95">
                                       <Eye className="h-3.5 w-3.5" />
                                       <span className="text-[10px] font-black uppercase tracking-widest">View</span>
                                    </div>
                                  </Link>
-                                 <button onClick={() => deleteProduct(p.id as string)} className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-surface dark:bg-zinc-800 border border-border hover:bg-rose-500 hover:text-white flex items-center justify-center text-stone-300 dark:text-stone-700 transition-all cursor-pointer shadow-sm hover:shadow-md active:scale-95">
+                                 <button onClick={() => deleteProduct(p.id as string)} className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-surface dark:bg-surface-secondary border border-border hover:bg-rose-500 hover:text-white flex items-center justify-center text-stone-300 dark:text-stone-700 transition-all cursor-pointer shadow-sm hover:shadow-md active:scale-95">
                                     <Trash2 className="h-4 w-4" />
                                  </button>
                              </div>

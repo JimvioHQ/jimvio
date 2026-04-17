@@ -38,13 +38,13 @@ function StatCard({ value, label, icon, color }: {
   value: string | number; label: string; icon: React.ReactNode; color: string;
 }) {
   return (
-    <div className="relative group overflow-hidden rounded-[28px] bg-surface/70 dark:bg-zinc-800/40 backdrop-blur-2xl border border-border shadow-[0_4px_24px_rgb(0,0,0,0.04)] hover:shadow-[0_12px_36px_rgb(0,0,0,0.08)] transition-all duration-500 p-5 flex flex-col justify-between min-h-[140px]">
-      <div className={cn("w-11 h-11 rounded-[16px] flex items-center justify-center shrink-0 border border-border bg-surface dark:bg-zinc-900 shadow-sm group-hover:scale-110 transition-transform duration-500", color)}>
+    <div className="relative group overflow-hidden rounded-[28px] bg-surface/70 dark:bg-surface-secondary/40 backdrop-blur-2xl border border-border shadow-[0_4px_24px_rgb(0,0,0,0.04)] hover:shadow-[0_12px_36px_rgb(0,0,0,0.08)] transition-all duration-500 p-5 flex flex-col justify-between min-h-[140px]">
+      <div className={cn("w-11 h-11 rounded-[16px] flex items-center justify-center shrink-0 border border-border bg-surface dark:bg-surface shadow-sm group-hover:scale-110 transition-transform duration-500", color)}>
         {icon as React.ReactNode}
       </div>
       <div className="mt-3">
         <p className="text-[26px] font-black text-stone-900 dark:text-white tabular-nums tracking-tighter leading-none">{value}</p>
-        <p className="mt-2 text-[9px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest truncate">{label}</p>
+        <p className="mt-2 text-[9px] font-black text-stone-400 dark:text-text-muted uppercase tracking-widest truncate">{label}</p>
       </div>
     </div>
   );
@@ -60,11 +60,11 @@ function ActionRow({ href, icon, label, highlight = false }: {
         "flex items-center gap-4 px-5 py-3.5 rounded-[20px] border transition-all duration-300 active:scale-[0.97]",
         highlight
           ? "bg-orange-500/12 dark:bg-orange-500/10 border-orange-500/25 hover:bg-orange-500/20 shadow-sm"
-          : "bg-surface/75 dark:bg-zinc-800/40 border-border hover:bg-surface dark:hover:bg-zinc-800 hover:shadow-md shadow-sm"
+          : "bg-surface/75 dark:bg-surface-secondary/40 border-border hover:bg-surface dark:hover:bg-zinc-800 hover:shadow-md shadow-sm"
       )}>
         <div className={cn(
           "h-9 w-9 rounded-[14px] flex items-center justify-center shrink-0 border border-border shadow-sm",
-          highlight ? "bg-surface dark:bg-zinc-700 text-orange-600" : "bg-surface dark:bg-zinc-900 text-stone-400 dark:text-stone-500 group-hover:text-stone-800 dark:text-zinc-200 dark:group-hover:text-stone-200"
+          highlight ? "bg-surface dark:bg-zinc-700 text-orange-600" : "bg-surface dark:bg-surface text-stone-400 dark:text-text-muted group-hover:text-stone-800 dark:text-text-secondary dark:group-hover:text-stone-200"
         )}>
           {icon as React.ReactNode}
         </div>
@@ -215,14 +215,14 @@ export default function DashboardPage() {
       <div className="min-h-screen flex flex-col items-center justify-center space-y-10 animate-in fade-in duration-700" style={{ background: "var(--color-bg)" }}>
         <div className="relative">
           <div className="absolute inset-0 bg-orange-400/20 blur-3xl rounded-full scale-150 animate-pulse" />
-          <div className="relative w-20 h-20 rounded-[28px] bg-surface dark:bg-zinc-800 border border-border shadow-2xl flex items-center justify-center overflow-hidden">
+          <div className="relative w-20 h-20 rounded-[28px] bg-surface dark:bg-surface-secondary border border-border shadow-2xl flex items-center justify-center overflow-hidden">
             <div className="absolute inset-0 border-2 border-t-orange-500 border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin m-2" />
             <LayoutDashboard className="h-8 w-8 text-stone-800 dark:text-white" />
           </div>
         </div>
         <div className="text-center space-y-2">
           <h2 className="text-[13px] font-black text-stone-900 dark:text-white uppercase tracking-[0.3em]">Loading Dashboard</h2>
-          <p className="text-[10px] font-bold text-stone-400 dark:text-stone-500 uppercase tracking-widest">Setting things up...</p>
+          <p className="text-[10px] font-bold text-stone-400 dark:text-text-muted uppercase tracking-widest">Setting things up...</p>
         </div>
       </div>
     );
@@ -243,7 +243,7 @@ export default function DashboardPage() {
           <h1 className="text-3xl sm:text-4xl font-black text-stone-900 dark:text-white tracking-tighter">
             {greeting}, <span className="text-orange-600">{firstName}</span>
           </h1>
-          <p className="text-[11px] font-bold text-stone-400 dark:text-stone-500 uppercase tracking-[0.25em]">
+          <p className="text-[11px] font-bold text-stone-400 dark:text-text-muted uppercase tracking-[0.25em]">
             Your dashboard overview
           </p>
         </div>
@@ -252,7 +252,7 @@ export default function DashboardPage() {
             MY WALLET — Large Featured Card
         ════════════════════════════════════ */}
         <Link href="/dashboard/wallet" className="block outline-none group">
-          <div className="relative overflow-hidden rounded-[32px] bg-neutral-900 dark:bg-zinc-900 p-8 sm:p-10 shadow-2xl transition-all duration-500 active:scale-[0.98]">
+          <div className="relative overflow-hidden rounded-[32px] bg-neutral-900 dark:bg-surface p-8 sm:p-10 shadow-2xl transition-all duration-500 active:scale-[0.98]">
             {/* Ambient Accent Glows */}
             <div className="absolute -top-20 -right-20 w-80 h-80 bg-orange-500/15 blur-[100px] rounded-full group-hover:bg-orange-500/25 transition-all duration-1000" />
             <div className="absolute -bottom-20 -left-20 w-60 h-60 bg-indigo-500/10 blur-[80px] rounded-full" />
@@ -311,9 +311,9 @@ export default function DashboardPage() {
             { href: "/dashboard/settings", icon: <Settings />, label: "Settings", color: "text-stone-500" },
             { href: "/support", icon: <Heart />, label: "Help", color: "text-rose-400" },
           ].map(item => (
-            <Link key={item.href} href={item.href} className="flex flex-col items-center justify-center gap-2 p-3.5 sm:p-5 rounded-[24px] bg-surface dark:bg-zinc-800/40 backdrop-blur-2xl border border-border shadow-sm hover:shadow-md transition-all active:scale-95 group">
+            <Link key={item.href} href={item.href} className="flex flex-col items-center justify-center gap-2 p-3.5 sm:p-5 rounded-[24px] bg-surface dark:bg-surface-secondary/40 backdrop-blur-2xl border border-border shadow-sm hover:shadow-md transition-all active:scale-95 group">
               {React.cloneElement(item.icon as React.ReactElement<{ className?: string }>, { className: cn("h-5 w-5 sm:h-6 sm:w-6 group-hover:scale-110 transition-transform", item.color) })}
-              <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-stone-500 dark:text-stone-400">{item.label}</span>
+              <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-stone-500 dark:text-text-muted">{item.label}</span>
             </Link>
           ))}
         </div>
@@ -325,11 +325,11 @@ export default function DashboardPage() {
           <div className="lg:col-span-8 space-y-8">
 
             {/* Earnings Chart */}
-            <div className="rounded-[36px] bg-surface dark:bg-zinc-800/40 backdrop-blur-[60px] saturate-[180%] border border-border shadow-[0_6px_30px_rgb(0,0,0,0.04)] p-7 sm:p-9 overflow-hidden">
+            <div className="rounded-[36px] bg-surface dark:bg-surface-secondary/40 backdrop-blur-[60px] saturate-[180%] border border-border shadow-[0_6px_30px_rgb(0,0,0,0.04)] p-7 sm:p-9 overflow-hidden">
               <div className="flex items-center justify-between mb-7">
                 <div className="space-y-1">
                   <h3 className="text-lg font-black text-stone-900 dark:text-white tracking-tight">Earnings Overview</h3>
-                  <p className="text-[10px] font-bold text-stone-400 dark:text-stone-500 uppercase tracking-widest">
+                  <p className="text-[10px] font-bold text-stone-400 dark:text-text-muted uppercase tracking-widest">
                     {chartData[6].v > chartData[0].v ? "Growing this week" : "Steady activity"}
                   </p>
                 </div>
@@ -445,22 +445,22 @@ export default function DashboardPage() {
             <div className="space-y-4">
               <SectionHeader title="Communities" icon={<Users2 />} actionHref="/communities" />
               <div className="space-y-3">
-                <div className="flex items-center gap-5 p-5 rounded-[28px] bg-surface dark:bg-zinc-800/40 backdrop-blur-2xl border border-border shadow-sm hover:shadow-md transition-all duration-500 group">
+                <div className="flex items-center gap-5 p-5 rounded-[28px] bg-surface dark:bg-surface-secondary/40 backdrop-blur-2xl border border-border shadow-sm hover:shadow-md transition-all duration-500 group">
                   <div className="w-12 h-12 rounded-[18px] bg-sky-500/10 dark:bg-sky-500/10 border border-border text-sky-600 dark:text-sky-500 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-500">
                     <Globe2 className="h-5 w-5" />
                   </div>
                   <div>
                     <p className="text-2xl font-black text-stone-900 dark:text-white tracking-tighter leading-none">{stats.communitiesJoined}</p>
-                    <p className="text-[9px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest mt-1.5">Joined</p>
+                    <p className="text-[9px] font-black text-stone-400 dark:text-text-muted uppercase tracking-widest mt-1.5">Joined</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-5 p-5 rounded-[28px] bg-surface dark:bg-zinc-800/40 backdrop-blur-2xl border border-border shadow-sm hover:shadow-md transition-all duration-500 group">
+                <div className="flex items-center gap-5 p-5 rounded-[28px] bg-surface dark:bg-surface-secondary/40 backdrop-blur-2xl border border-border shadow-sm hover:shadow-md transition-all duration-500 group">
                   <div className="w-12 h-12 rounded-[18px] bg-orange-500/10 dark:bg-orange-500/10 border border-border text-orange-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-500">
                     <Plus className="h-5 w-5" />
                   </div>
                   <div>
                     <p className="text-2xl font-black text-stone-900 dark:text-white tracking-tighter leading-none">{stats.communitiesCreated}</p>
-                    <p className="text-[9px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest mt-1.5">Created</p>
+                    <p className="text-[9px] font-black text-stone-400 dark:text-text-muted uppercase tracking-widest mt-1.5">Created</p>
                   </div>
                 </div>
               </div>
@@ -472,10 +472,10 @@ export default function DashboardPage() {
 
             {/* Learn & Grow */}
             <div className="p-7 rounded-[36px] bg-gradient-to-br from-orange-500 via-orange-400 to-amber-400 overflow-hidden relative group border border-white/15 shadow-[0_12px_36px_rgba(249,115,22,0.2)]">
-              <div className="absolute top-0 right-0 w-48 h-48 bg-white dark:bg-zinc-900/15 blur-[70px] rounded-full translate-x-1/3 -translate-y-1/3 group-hover:bg-white dark:bg-zinc-900/25 transition-all duration-1000" />
+              <div className="absolute top-0 right-0 w-48 h-48 bg-white dark:bg-surface/15 blur-[70px] rounded-full translate-x-1/3 -translate-y-1/3 group-hover:bg-white dark:bg-surface/25 transition-all duration-1000" />
               <div className="relative z-10 space-y-4">
                 <div className="flex items-center gap-2.5">
-                  <div className="bg-white dark:bg-zinc-900/20 p-1.5 rounded-[10px] backdrop-blur-md border border-white/15 text-white">
+                  <div className="bg-white dark:bg-surface/20 p-1.5 rounded-[10px] backdrop-blur-md border border-white/15 text-white">
                     <Sparkles className="h-3.5 w-3.5" />
                   </div>
                   <span className="text-[10px] font-black text-white/90 uppercase tracking-widest">Learn &amp; Grow</span>
@@ -484,23 +484,23 @@ export default function DashboardPage() {
                 <p className="text-white/80 text-[12px] leading-relaxed font-semibold">
                   Guides, tips, and strategies to sell more and reach new customers.
                 </p>
-                <Button asChild className="w-full bg-white dark:bg-zinc-900/95 text-orange-600 hover:bg-white dark:bg-zinc-900 hover:scale-[1.01] active:scale-95 h-11 rounded-[16px] font-black text-[11px] uppercase tracking-widest transition-all border-none shadow-md">
+                <Button asChild className="w-full bg-white dark:bg-surface/95 text-orange-600 hover:bg-white dark:bg-surface hover:scale-[1.01] active:scale-95 h-11 rounded-[16px] font-black text-[11px] uppercase tracking-widest transition-all border-none shadow-md">
                   <Link href="/help">Explore Guides <ArrowRight className="h-4 w-4 ml-2" /></Link>
                 </Button>
               </div>
             </div>
 
             {/* Your Roles */}
-            <div className="p-6 rounded-[32px] bg-surface dark:bg-zinc-800/40 backdrop-blur-[40px] saturate-200 border border-border shadow-sm space-y-4">
+            <div className="p-6 rounded-[32px] bg-surface dark:bg-surface-secondary/40 backdrop-blur-[40px] saturate-200 border border-border shadow-sm space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest">Your Roles</span>
+                <span className="text-[11px] font-black text-stone-400 dark:text-text-muted uppercase tracking-widest">Your Roles</span>
                 <Link href="/dashboard/roles" className="text-[10px] font-black text-orange-500 uppercase tracking-widest hover:text-orange-600 transition-colors">
                   Manage
                 </Link>
               </div>
               <div className="flex flex-wrap gap-2">
                 {activeRoles.map(role => (
-                  <div key={role} className="px-4 py-2 rounded-[14px] bg-surface dark:bg-zinc-700/80 backdrop-blur-md border border-border text-stone-800 dark:text-stone-200 font-black text-[10px] uppercase tracking-widest shadow-sm capitalize">
+                  <div key={role} className="px-4 py-2 rounded-[14px] bg-surface dark:bg-zinc-700/80 backdrop-blur-md border border-border text-stone-800 dark:text-text-secondary font-black text-[10px] uppercase tracking-widest shadow-sm capitalize">
                     {role}
                   </div>
                 ))}

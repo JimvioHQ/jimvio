@@ -130,7 +130,7 @@ export function GlassPill({
   color?: "default" | "orange" | "emerald" | "blue" | "red" | "indigo" | "amber" | "rose" | "sky" | "purple";
 } & React.HTMLAttributes<HTMLDivElement>) {
   const variants = {
-    default: "bg-surface/70 border-border text-stone-600 dark:text-stone-400 shadow-sm",
+    default: "bg-surface/70 border-border text-stone-600 dark:text-text-muted shadow-sm",
     orange:  "bg-orange-50/80 dark:bg-orange-500/10 border-orange-100 dark:border-orange-500/20 text-orange-600 dark:text-orange-500 shadow-[0_2px_8px_rgba(251,146,60,0.1)]",
     emerald: "bg-emerald-50/80 dark:bg-emerald-500/10 border-emerald-100 dark:border-emerald-500/20 text-emerald-600 dark:text-emerald-500 shadow-[0_2px_8px_rgba(16,185,129,0.1)]",
     blue:    "bg-blue-50/80 dark:bg-blue-500/10 border-blue-100 dark:border-blue-500/20 text-blue-600 dark:text-blue-400 shadow-[0_2px_8px_rgba(59,130,246,0.1)]",

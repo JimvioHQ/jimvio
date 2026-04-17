@@ -100,13 +100,13 @@ function FeaturedCard({ c }: { c: CommunityRow }) {
             {c.is_free ? (
               <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-400/20 text-emerald-300 border border-emerald-400/30">FREE</span>
             ) : (
-              <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-white dark:bg-zinc-900/10 text-white/70 border border-white/20">
+              <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-white dark:bg-surface/10 text-white/70 border border-white/20">
                 From {c.currency || "$"}{Number(c.monthly_price ?? 0).toFixed(0)}/mo
               </span>
             )}
           </div>
         </div>
-        <div className="shrink-0 flex items-center gap-2 px-4 py-2 rounded-2xl bg-white dark:bg-zinc-900 text-[var(--color-accent)] font-black text-sm group-hover:bg-[var(--color-accent)] group-hover:text-white transition-all shadow-lg">
+        <div className="shrink-0 flex items-center gap-2 px-4 py-2 rounded-2xl bg-white dark:bg-surface text-[var(--color-accent)] font-black text-sm group-hover:bg-[var(--color-accent)] group-hover:text-white transition-all shadow-lg">
           Join <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
         </div>
       </div>
@@ -292,7 +292,7 @@ export function CommunitiesDiscovery() {
               <SlidersHorizontal size={16} />
               <span className="hidden sm:inline">Filters</span>
               {activeFilters.length > 0 && (
-                <span className="h-5 w-5 rounded-full bg-white dark:bg-zinc-900/20 flex items-center justify-center text-[10px] font-black">
+                <span className="h-5 w-5 rounded-full bg-white dark:bg-surface/20 flex items-center justify-center text-[10px] font-black">
                   {activeFilters.length}
                 </span>
               )}
@@ -435,8 +435,8 @@ export function CommunitiesDiscovery() {
         {!loading && items.length > 0 && (
           <div className="mt-16 rounded-3xl bg-gradient-to-br from-[var(--color-accent)] to-[var(--color-accent-hover)] p-8 flex flex-col sm:flex-row items-center justify-between gap-6 text-white relative overflow-hidden">
             <div className="absolute inset-0 opacity-10">
-              <div className="absolute top-0 right-0 w-64 h-64 rounded-full bg-white dark:bg-zinc-900 blur-3xl" />
-              <div className="absolute bottom-0 left-0 w-48 h-48 rounded-full bg-white dark:bg-zinc-900 blur-2xl" />
+              <div className="absolute top-0 right-0 w-64 h-64 rounded-full bg-white dark:bg-surface blur-3xl" />
+              <div className="absolute bottom-0 left-0 w-48 h-48 rounded-full bg-white dark:bg-surface blur-2xl" />
             </div>
             <div className="relative z-10 text-center sm:text-left">
               <h3 className="font-black text-2xl leading-tight">Ready to build something?</h3>
@@ -445,7 +445,7 @@ export function CommunitiesDiscovery() {
             <div className="relative z-10 flex flex-col sm:flex-row gap-3 shrink-0">
               <Button
                 asChild
-                className="rounded-2xl bg-white dark:bg-zinc-900 text-[var(--color-accent)] hover:bg-white dark:bg-zinc-900/90 font-black shadow-xl hover:-translate-y-0.5 transition-all"
+                className="rounded-2xl bg-white dark:bg-surface text-[var(--color-accent)] hover:bg-white dark:bg-surface/90 font-black shadow-xl hover:-translate-y-0.5 transition-all"
               >
                 <Link href="/communities/create" className="text-white">
                   <Crown size={16} className="mr-2 text-white" /> Create for Free
@@ -454,7 +454,7 @@ export function CommunitiesDiscovery() {
               <Button
                 asChild
                 variant="outline"
-                className="rounded-2xl border-white/30 text-white hover:bg-white dark:bg-zinc-900/10 font-bold"
+                className="rounded-2xl border-white/30 text-white hover:bg-white dark:bg-surface/10 font-bold"
               >
                 <Link href="/pricing">See Pricing</Link>
               </Button>

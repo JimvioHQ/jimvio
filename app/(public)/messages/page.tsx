@@ -10,7 +10,7 @@ export default async function MessagesPage() {
   return (
     <div className="min-h-screen bg-[var(--color-bg)] pt-[var(--navbar-height)] pb-10">
       <div className="max-w-[var(--container-max)] mx-auto px-4 sm:px-6 h-[calc(100vh-var(--navbar-height)-3rem)]">
-        <div className="bg-white dark:bg-zinc-900 border border-[var(--color-border)] rounded-3xl shadow-xl h-full flex overflow-hidden">
+        <div className="bg-white dark:bg-surface border border-[var(--color-border)] rounded-3xl shadow-xl h-full flex overflow-hidden">
 
           <div className="w-full md:w-[350px] border-r border-[var(--color-border)] flex flex-col">
             <div className="p-6 border-b border-[var(--color-border)]">
@@ -56,7 +56,7 @@ export default async function MessagesPage() {
 
           <div className="flex-1 flex flex-col bg-[var(--color-surface-secondary)] min-w-0 hidden md:flex">
             <div className="flex-1 flex flex-col items-center justify-center text-center p-12">
-              <div className="h-24 w-24 bg-white dark:bg-zinc-900 rounded-3xl shadow-lg border border-[var(--color-border)] flex items-center justify-center mb-8">
+              <div className="h-24 w-24 bg-white dark:bg-surface rounded-3xl shadow-lg border border-[var(--color-border)] flex items-center justify-center mb-8">
                 <MessageSquare className="h-10 w-10 text-[var(--color-accent)]" />
               </div>
               <h2 className="text-2xl font-black text-[var(--color-text-primary)] mb-4">Your inbox</h2>

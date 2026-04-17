@@ -210,7 +210,7 @@ export function PaymentMethodSelector({
                "relative w-full text-left transition-all duration-200 active:scale-[0.985] rounded-[18px] overflow-hidden backdrop-blur-md",
                active 
                   ? "bg-orange-50/80 dark:bg-orange-500/10 border border-orange-500/40 shadow-sm shadow-orange-500/10"
-                  : "bg-surface dark:bg-zinc-900 border border-border shadow-sm hover:border-orange-500/20"
+                  : "bg-surface dark:bg-surface border border-border shadow-sm hover:border-orange-500/20"
             )}
           >
             {/* Active top shimmer line */}
@@ -227,7 +227,7 @@ export function PaymentMethodSelector({
                    "flex-shrink-0 flex items-center justify-center rounded-[11px] w-9 h-9 border flex-shrink-0",
                    active 
                       ? "bg-orange-500/10 border-orange-500/30 text-orange-600 dark:text-orange-500" 
-                      : "bg-surface dark:bg-zinc-800 border-border text-stone-400 dark:text-stone-500"
+                      : "bg-surface dark:bg-surface-secondary border-border text-stone-400 dark:text-text-muted"
                 )}
               >
                 {m.icon}
@@ -252,7 +252,7 @@ export function PaymentMethodSelector({
                    "flex-shrink-0 flex items-center justify-center rounded-full transition-all duration-200 w-[21px] h-[21px] border-2",
                    active 
                       ? "bg-orange-500 border-orange-500 shadow-sm shadow-orange-500/40" 
-                      : "bg-transparent border-orange-500/20 dark:border-stone-700"
+                      : "bg-transparent border-orange-500/20 dark:border-border-strong"
                 )}
               >
                 {active && (

@@ -109,7 +109,7 @@ export function CreatorClipsHero({ clips, className }: CreatorClipsHeroProps) {
               </div>
 
               <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                <div className="w-14 h-14 rounded-full bg-white dark:bg-zinc-900/25 backdrop-blur border-2 border-white/40 flex items-center justify-center">
+                <div className="w-14 h-14 rounded-full bg-white dark:bg-surface/25 backdrop-blur border-2 border-white/40 flex items-center justify-center">
                   <Play className="h-7 w-7 text-white fill-white ml-1" />
                 </div>
               </div>
@@ -156,7 +156,7 @@ export function CreatorClipsHero({ clips, className }: CreatorClipsHeroProps) {
               </div>
               {modalClip.products && (
                 <div className="p-4 border-t border-white/10 flex items-center gap-4 bg-ink-darker">
-                  <div className="w-14 h-14 rounded-xl bg-white dark:bg-zinc-900/10 flex items-center justify-center overflow-hidden shrink-0">
+                  <div className="w-14 h-14 rounded-xl bg-white dark:bg-surface/10 flex items-center justify-center overflow-hidden shrink-0">
                     {Array.isArray(modalClip.products.images) && modalClip.products.images[0] ? (
                       <img src={modalClip.products.images[0]} alt="" className="w-full h-full object-cover" />
                     ) : (

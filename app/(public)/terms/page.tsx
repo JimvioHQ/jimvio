@@ -39,7 +39,7 @@ export default function TermsPage() {
 
         <div className="space-y-8">
           {laws.map((law, i) => (
-            <div key={i} className="bg-white dark:bg-zinc-900 border border-[var(--color-border)] p-10 rounded-[2.5rem] shadow-sm hover:shadow-xl transition-all duration-500 group">
+            <div key={i} className="bg-white dark:bg-surface border border-[var(--color-border)] p-10 rounded-[2.5rem] shadow-sm hover:shadow-xl transition-all duration-500 group">
               <div className="flex flex-col md:flex-row gap-8">
                 <div className="h-14 w-14 shrink-0 rounded-2xl bg-amber-50 text-amber-500 flex items-center justify-center group-hover:bg-amber-500 group-hover:text-white transition-colors duration-500">
                   {i === 0 ? <FileText /> : i === 1 ? <Scale /> : i === 2 ? <Gavel /> : <Shield />}
@@ -55,9 +55,9 @@ export default function TermsPage() {
           ))}
 
           <div className="bg-orange-600 rounded-[3rem] p-12 text-white relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-white dark:bg-zinc-900/10 -mr-32 -mt-32 rounded-full" />
+            <div className="absolute top-0 right-0 w-64 h-64 bg-white dark:bg-surface/10 -mr-32 -mt-32 rounded-full" />
             <div className="relative z-10 flex flex-col md:flex-row items-center gap-10">
-              <div className="h-20 w-20 shrink-0 rounded-full bg-white dark:bg-zinc-900/20 flex items-center justify-center">
+              <div className="h-20 w-20 shrink-0 rounded-full bg-white dark:bg-surface/20 flex items-center justify-center">
                 <AlertTriangle className="h-10 w-10 text-white" />
               </div>
               <div className="space-y-4">
@@ -70,7 +70,7 @@ export default function TermsPage() {
           </div>
         </div>
 
-        <div className="mt-20 border-t border-[var(--color-border)] pt-10 flex flex-col md:flex-row justify-between items-center gap-6 dark:bg-zinc-900/20">
+        <div className="mt-20 border-t border-[var(--color-border)] pt-10 flex flex-col md:flex-row justify-between items-center gap-6 dark:bg-surface/20">
           <div className="flex items-center gap-2">
             <CheckSquare className="h-5 w-5 text-emerald-500" />
             <span className="text-sm font-bold text-[var(--color-text-secondary)]">I agree to these terms by using the site.</span>

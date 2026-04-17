@@ -71,7 +71,7 @@ export default function CampaignDashboardPage() {
       {/* ── TOP BAR (Cleaned up for Dashboard Layout) ── */}
       <div className="flex flex-col md:flex-row items-end md:items-center justify-between gap-6">
          <div className="flex items-center gap-6">
-            <div className="w-20 h-20 rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 p-0.5 shadow-xl shrink-0 overflow-hidden">
+            <div className="w-20 h-20 rounded-3xl bg-white dark:bg-surface border border-zinc-100 dark:border-border p-0.5 shadow-xl shrink-0 overflow-hidden">
                <img src={campaign.media?.[0]?.url || "/hero-bg.png"} className="w-full h-full object-cover rounded-[22px]" alt="" />
             </div>
             <div className="space-y-1">
@@ -101,7 +101,7 @@ export default function CampaignDashboardPage() {
             { label: 'Submissions', val: submissions.length, icon: Share2, color: 'text-blue-500' },
             { label: 'Approved', val: stats.approvedCount, icon: CheckCircle, color: 'text-zinc-900 dark:text-white' },
          ].map((s, i) => (
-            <div key={i} className="p-6 rounded-[32px] bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 shadow-sm flex flex-col justify-center gap-1 group hover:border-orange-100 transition-all">
+            <div key={i} className="p-6 rounded-[32px] bg-white dark:bg-surface border border-zinc-100 dark:border-border shadow-sm flex flex-col justify-center gap-1 group hover:border-orange-100 transition-all">
                <div className="flex items-center justify-between w-full mb-1">
                   <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">{s.label}</span>
                   <s.icon className={cn("h-4 w-4 opacity-40", s.color)} />
@@ -118,8 +118,8 @@ export default function CampaignDashboardPage() {
             </h2>
 
             {submissions.length === 0 ? (
-               <div className="p-20 text-center bg-white dark:bg-zinc-900 border border-dashed border-zinc-200 dark:border-zinc-800 rounded-[40px] space-y-4">
-                  <div className="w-20 h-20 bg-zinc-50 dark:bg-zinc-900/50 rounded-full flex items-center justify-center mx-auto">
+               <div className="p-20 text-center bg-white dark:bg-surface border border-dashed border-zinc-200 dark:border-border rounded-[40px] space-y-4">
+                  <div className="w-20 h-20 bg-zinc-50 dark:bg-surface/50 rounded-full flex items-center justify-center mx-auto">
                      <Share2 className="h-8 w-8 text-zinc-300" />
                   </div>
                   <div>
@@ -132,7 +132,7 @@ export default function CampaignDashboardPage() {
                   {submissions.map((s) => {
                      const cfg = STATUS_CONFIG[s.status] || STATUS_CONFIG.pending;
                      return (
-                        <div key={s.id} className="p-4 rounded-[32px] bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 shadow-sm transition-all group overflow-hidden">
+                        <div key={s.id} className="p-4 rounded-[32px] bg-white dark:bg-surface border border-zinc-100 dark:border-border shadow-sm transition-all group overflow-hidden">
                            <div className="flex items-center gap-5">
                               <div className="w-20 h-28 rounded-2xl bg-zinc-100 flex items-center justify-center shrink-0 relative overflow-hidden shadow-inner">
                                   {s.media?.[0]?.url ? (
@@ -147,7 +147,7 @@ export default function CampaignDashboardPage() {
                                        <cfg.icon className="h-3 w-3" />
                                        {cfg.label}
                                     </div>
-                                    <button className="h-8 w-8 rounded-full hover:bg-zinc-50 dark:bg-zinc-900/50 flex items-center justify-center transition-colors">
+                                    <button className="h-8 w-8 rounded-full hover:bg-zinc-50 dark:bg-surface/50 flex items-center justify-center transition-colors">
                                        <MoreVertical className="h-4 w-4 text-zinc-400" />
                                     </button>
                                  </div>
@@ -179,13 +179,13 @@ export default function CampaignDashboardPage() {
          </div>
 
          <div className="lg:col-span-4 space-y-6">
-            <div className="p-8 rounded-[40px] bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 shadow-sm space-y-8">
+            <div className="p-8 rounded-[40px] bg-white dark:bg-surface border border-zinc-100 dark:border-border shadow-sm space-y-8">
                <div className="space-y-3">
                   <div className="flex items-center justify-between px-1">
                      <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Goal Progress</span>
                      <span className="text-[10px] font-black text-zinc-900 dark:text-white">{Math.round(budgetPct)}%</span>
                   </div>
-                  <div className="h-2 w-full bg-zinc-50 dark:bg-zinc-900/50 rounded-full overflow-hidden border border-zinc-100 dark:border-zinc-800">
+                  <div className="h-2 w-full bg-zinc-50 dark:bg-surface/50 rounded-full overflow-hidden border border-zinc-100 dark:border-border">
                      <div 
                         className="h-full bg-orange-500 transition-all duration-1000"
                         style={{ width: `${budgetPct}%` }}
@@ -193,7 +193,7 @@ export default function CampaignDashboardPage() {
                   </div>
                </div>
 
-               <Button asChild variant="outline" className="w-full h-12 rounded-2xl border-zinc-100 dark:border-zinc-800 font-black text-xs uppercase tracking-widest">
+               <Button asChild variant="outline" className="w-full h-12 rounded-2xl border-zinc-100 dark:border-border font-black text-xs uppercase tracking-widest">
                   <Link href={`/ugc/${id}`}>View Campaign Brief</Link>
                </Button>
             </div>

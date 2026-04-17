@@ -35,7 +35,7 @@ export function SortSelect({ currentSort }: { currentSort?: string }) {
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          "flex items-center gap-3 px-5 h-12 bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 shadow-sm transition-all text-sm font-bold text-zinc-900 dark:text-white hover:border-ink-dark active:scale-95 whitespace-nowrap",
+          "flex items-center gap-3 px-5 h-12 bg-white dark:bg-surface rounded-2xl border border-zinc-100 dark:border-border shadow-sm transition-all text-sm font-bold text-zinc-900 dark:text-white hover:border-ink-dark active:scale-95 whitespace-nowrap",
           isOpen && "ring-2 ring-ink-dark border-ink-dark"
         )}
       >
@@ -57,7 +57,7 @@ export function SortSelect({ currentSort }: { currentSort?: string }) {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 10, scale: 0.95 }}
               transition={{ duration: 0.2, ease: "easeOut" }}
-              className="absolute right-0 top-14 w-64 bg-white dark:bg-zinc-900 rounded-[2rem] border border-zinc-100 dark:border-zinc-800 shadow-2xl shadow-black/10 p-3 z-[120] overflow-hidden"
+              className="absolute right-0 top-14 w-64 bg-white dark:bg-surface rounded-[2rem] border border-zinc-100 dark:border-border shadow-2xl shadow-black/10 p-3 z-[120] overflow-hidden"
             >
               <div className="space-y-1">
                 {SORT_OPTIONS.map((option) => (
@@ -68,7 +68,7 @@ export function SortSelect({ currentSort }: { currentSort?: string }) {
                       "w-full flex items-center justify-between px-5 py-3.5 rounded-2xl text-[13px] font-bold transition-all",
                       selectedOption.value === option.value 
                         ? "bg-ink-dark text-white shadow-xl shadow-ink-dark/20" 
-                        : "text-zinc-500 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 hover:text-text-primary"
+                        : "text-zinc-500 dark:text-text-muted hover:bg-zinc-50 dark:hover:bg-zinc-800 hover:text-text-primary"
                     )}
                   >
                     {option.label}

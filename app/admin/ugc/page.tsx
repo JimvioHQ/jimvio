@@ -53,7 +53,7 @@ export default function AdminUGCPage() {
             { label: 'Total Spent',     value: `$${totalSpent.toLocaleString()}`, accent: '#f59e0b' },
             { label: 'Total Views',     value: `${(totalViews / 1000).toFixed(1)}K`, accent: '#ec4899' },
           ].map((s) => (
-            <div key={s.label} className="rounded-2xl border border-stone-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 shadow-sm">
+            <div key={s.label} className="rounded-2xl border border-stone-200 dark:border-border bg-white dark:bg-surface p-6 shadow-sm">
                <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mb-1">{s.label}</p>
                <p className="text-3xl font-black text-stone-900 dark:text-white leading-none">{s.value}</p>
             </div>
@@ -62,7 +62,7 @@ export default function AdminUGCPage() {
 
         <div className="flex flex-wrap gap-3 mb-8">
           {['active','draft','paused','completed','cancelled'].map((s) => (
-            <div key={s} className="flex-1 min-w-[120px] rounded-xl bg-white dark:bg-zinc-900 border border-stone-100 dark:border-zinc-800 p-4 shadow-sm text-center">
+            <div key={s} className="flex-1 min-w-[120px] rounded-xl bg-white dark:bg-surface border border-stone-100 dark:border-border p-4 shadow-sm text-center">
               <p className={`text-xl font-black ${STATUS_COLORS[s]}`}>{byStatus(s)}</p>
               <p className="text-[10px] text-stone-400 font-bold uppercase tracking-wider mt-1">{s}</p>
             </div>
@@ -70,13 +70,13 @@ export default function AdminUGCPage() {
         </div>
 
         {/* Campaign Table */}
-        <div className="bg-white dark:bg-zinc-900 rounded-3xl border border-stone-200 dark:border-zinc-800 shadow-sm overflow-hidden">
-          <div className="px-6 py-4 border-b border-stone-100 dark:border-zinc-800 bg-stone-50/50">
+        <div className="bg-white dark:bg-surface rounded-3xl border border-stone-200 dark:border-border shadow-sm overflow-hidden">
+          <div className="px-6 py-4 border-b border-stone-100 dark:border-border bg-stone-50/50">
              <h2 className="text-sm font-black text-stone-700 uppercase tracking-widest">Active Campaigns</h2>
           </div>
           {loading ? (
             <div className="p-8 space-y-4">
-              {[1,2,3,4,5].map(i => <div key={i} className="h-12 rounded-xl bg-stone-50 dark:bg-zinc-900/50 animate-pulse" />)}
+              {[1,2,3,4,5].map(i => <div key={i} className="h-12 rounded-xl bg-stone-50 dark:bg-surface/50 animate-pulse" />)}
             </div>
           ) : (
             <div className="overflow-x-auto">

@@ -290,7 +290,7 @@ export default function NewCampaignPage() {
                            <Button type="button" onClick={() => { if (thumbnailInput.trim()) { const exists = form.media.find(m => m.usage === 'banner'); if (exists) { set('media', form.media.map(m => m.usage === 'banner' ? { ...m, url: thumbnailInput.trim() } : m)); } else { set('media', [...form.media, { type: 'image', url: thumbnailInput.trim(), usage: 'banner' }]); } setThumbnailInput(''); } }} className="flex-1 h-10 rounded-xl bg-zinc-800 text-white font-medium text-xs hover:bg-black">Set URL</Button>
                            <div className="relative flex-1">
                               <input type="file" id="thumbnail-upload" className="sr-only" accept="image/*" onChange={(e) => handleFileUpload(e, 'banner')} disabled={uploading} />
-                              <label htmlFor="thumbnail-upload" className={cn("flex items-center justify-center gap-2 w-full h-10 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] cursor-pointer hover:bg-zinc-50 dark:bg-zinc-900/50 transition-colors text-xs font-medium text-[var(--color-text-primary)] shadow-sm", uploading && "opacity-50 cursor-wait")}>
+                              <label htmlFor="thumbnail-upload" className={cn("flex items-center justify-center gap-2 w-full h-10 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] cursor-pointer hover:bg-zinc-50 dark:bg-surface/50 transition-colors text-xs font-medium text-[var(--color-text-primary)] shadow-sm", uploading && "opacity-50 cursor-wait")}>
                                  {uploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />} Upload
                               </label>
                            </div>
@@ -324,7 +324,7 @@ export default function NewCampaignPage() {
                            <Button type="button" onClick={() => { if (exampleInput.trim()) { set('media', [...form.media, { type: 'video', url: exampleInput.trim(), usage: 'example' }]); setExampleInput(''); } }} className="flex-1 h-10 rounded-xl bg-zinc-800 text-white font-medium text-xs hover:bg-black">Add URL</Button>
                            <div className="relative flex-1">
                               <input type="file" id="example-upload" className="sr-only" accept="image/*,video/*" onChange={(e) => handleFileUpload(e, 'example')} disabled={uploading} />
-                              <label htmlFor="example-upload" className={cn("flex items-center justify-center gap-2 w-full h-10 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] cursor-pointer hover:bg-zinc-50 dark:bg-zinc-900/50 transition-colors text-xs font-medium text-[var(--color-text-primary)] shadow-sm", uploading && "opacity-50 cursor-wait")}>
+                              <label htmlFor="example-upload" className={cn("flex items-center justify-center gap-2 w-full h-10 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] cursor-pointer hover:bg-zinc-50 dark:bg-surface/50 transition-colors text-xs font-medium text-[var(--color-text-primary)] shadow-sm", uploading && "opacity-50 cursor-wait")}>
                                  {uploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />} Upload
                               </label>
                            </div>
@@ -373,7 +373,7 @@ export default function NewCampaignPage() {
                        "relative w-full p-4 rounded-xl text-left transition-all border flex items-center gap-3",
                        form.campaign_type === t.value
                          ? "bg-violet-50 border-violet-200 ring-1 ring-violet-500/20"
-                         : "bg-[var(--color-surface)] border-[var(--color-border)] hover:border-zinc-300 hover:bg-zinc-50 dark:bg-zinc-900/50"
+                         : "bg-[var(--color-surface)] border-[var(--color-border)] hover:border-zinc-300 hover:bg-zinc-50 dark:bg-surface/50"
                      )}
                    >
                      <span className="text-xl shrink-0">{t.icon}</span>
@@ -388,14 +388,14 @@ export default function NewCampaignPage() {
                {/* Conditional Form Extensions */}
                {form.campaign_type === 'music_clipping' && (
                   <div className="mt-3 p-4 rounded-xl bg-orange-50 border border-orange-100 space-y-3 animate-fade-in">
-                     <InputGroup label="Audio Track URL" value={form.music_track_url} setter={(v) => set('music_track_url', v)} placeholder="Spotify, Sound Link..." type="url" bg="bg-white dark:bg-zinc-900" />
-                     <InputGroup label="Artist Name" value={form.music_artist_name} setter={(v) => set('music_artist_name', v)} placeholder="e.g. Drake" type="text" bg="bg-white dark:bg-zinc-900" />
+                     <InputGroup label="Audio Track URL" value={form.music_track_url} setter={(v) => set('music_track_url', v)} placeholder="Spotify, Sound Link..." type="url" bg="bg-white dark:bg-surface" />
+                     <InputGroup label="Artist Name" value={form.music_artist_name} setter={(v) => set('music_artist_name', v)} placeholder="e.g. Drake" type="text" bg="bg-white dark:bg-surface" />
                   </div>
                )}
                {form.campaign_type === 'promotion' && (
                   <div className="mt-3 p-4 rounded-xl bg-blue-50 border border-blue-100 space-y-3 animate-fade-in">
-                     <InputGroup label="Promo Target Name" value={form.promotion_target} setter={(v) => set('promotion_target', v)} placeholder="e.g. 50% Off Course" type="text" bg="bg-white dark:bg-zinc-900" />
-                     <InputGroup label="Target URL" value={form.promotion_target_url} setter={(v) => set('promotion_target_url', v)} placeholder="Destination Link" type="url" bg="bg-white dark:bg-zinc-900" />
+                     <InputGroup label="Promo Target Name" value={form.promotion_target} setter={(v) => set('promotion_target', v)} placeholder="e.g. 50% Off Course" type="text" bg="bg-white dark:bg-surface" />
+                     <InputGroup label="Target URL" value={form.promotion_target_url} setter={(v) => set('promotion_target_url', v)} placeholder="Destination Link" type="url" bg="bg-white dark:bg-surface" />
                   </div>
                )}
             </div>
@@ -409,18 +409,18 @@ export default function NewCampaignPage() {
                </div>
 
                <div className="relative z-10 space-y-5">
-                  <div className="flex bg-white dark:bg-zinc-900/10 p-1 rounded-xl">
-                    <button type="button" onClick={() => set('payment_model', 'per_views')} className={cn("flex-1 py-2 text-[10px] font-bold uppercase tracking-wide rounded-lg transition-all", form.payment_model === 'per_views' ? "bg-white dark:bg-zinc-900 text-black shadow-sm" : "hover:text-white text-zinc-400")}>Per Views</button>
-                    <button type="button" onClick={() => set('payment_model', 'fixed_per_content')} className={cn("flex-1 py-2 text-[10px] font-bold uppercase tracking-wide rounded-lg transition-all", form.payment_model === 'fixed_per_content' ? "bg-white dark:bg-zinc-900 text-black shadow-sm" : "hover:text-white text-zinc-400")}>Fixed Rate</button>
+                  <div className="flex bg-white dark:bg-surface/10 p-1 rounded-xl">
+                    <button type="button" onClick={() => set('payment_model', 'per_views')} className={cn("flex-1 py-2 text-[10px] font-bold uppercase tracking-wide rounded-lg transition-all", form.payment_model === 'per_views' ? "bg-white dark:bg-surface text-black shadow-sm" : "hover:text-white text-zinc-400")}>Per Views</button>
+                    <button type="button" onClick={() => set('payment_model', 'fixed_per_content')} className={cn("flex-1 py-2 text-[10px] font-bold uppercase tracking-wide rounded-lg transition-all", form.payment_model === 'fixed_per_content' ? "bg-white dark:bg-surface text-black shadow-sm" : "hover:text-white text-zinc-400")}>Fixed Rate</button>
                   </div>
 
                   <div className="space-y-4">
                      {form.payment_model === 'per_views' ? (
-                       <InputGroup label="Rate ($ USD / 1K Views)" value={form.rate_per_1k_views.toString()} setter={(v) => set('rate_per_1k_views', Number(v))} placeholder="3.00" type="number" step="0.1" align="font-semibold text-white focus:border-white" bg="bg-white dark:bg-zinc-900/5 border-white/10" labelColor="text-zinc-400" />
+                       <InputGroup label="Rate ($ USD / 1K Views)" value={form.rate_per_1k_views.toString()} setter={(v) => set('rate_per_1k_views', Number(v))} placeholder="3.00" type="number" step="0.1" align="font-semibold text-white focus:border-white" bg="bg-white dark:bg-surface/5 border-white/10" labelColor="text-zinc-400" />
                      ) : (
-                       <InputGroup label="Fixed Rate Per Asset ($ USD)" value={form.fixed_rate.toString()} setter={(v) => set('fixed_rate', Number(v))} placeholder="150" type="number" step="1" align="font-semibold text-white focus:border-[var(--color-accent)]" bg="bg-white dark:bg-zinc-900/5 border-white/10" labelColor="text-zinc-400" />
+                       <InputGroup label="Fixed Rate Per Asset ($ USD)" value={form.fixed_rate.toString()} setter={(v) => set('fixed_rate', Number(v))} placeholder="150" type="number" step="1" align="font-semibold text-white focus:border-[var(--color-accent)]" bg="bg-white dark:bg-surface/5 border-white/10" labelColor="text-zinc-400" />
                      )}
-                     <InputGroup label="Total Escrow Budget Limit ($ USD)" value={form.total_budget.toString()} setter={(v) => set('total_budget', Number(v))} placeholder="500" type="number" step="1" align="font-semibold text-white focus:border-white" bg="bg-white dark:bg-zinc-900/5 border-white/10" labelColor="text-zinc-400" />
+                     <InputGroup label="Total Escrow Budget Limit ($ USD)" value={form.total_budget.toString()} setter={(v) => set('total_budget', Number(v))} placeholder="500" type="number" step="1" align="font-semibold text-white focus:border-white" bg="bg-white dark:bg-surface/5 border-white/10" labelColor="text-zinc-400" />
                   </div>
 
                   <div className="pt-4 border-t border-white/10 flex items-center justify-between">
@@ -448,10 +448,10 @@ export default function NewCampaignPage() {
                   </div>
                </div>
 
-               <label className="flex items-center justify-between p-4 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] cursor-pointer hover:bg-zinc-50 dark:bg-zinc-900/50 transition-colors shadow-sm">
+               <label className="flex items-center justify-between p-4 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] cursor-pointer hover:bg-zinc-50 dark:bg-surface/50 transition-colors shadow-sm">
                   <span className="text-xs font-semibold text-[var(--color-text-primary)]">Require Face Visibility</span>
                   <div className={cn("w-10 h-6 rounded-full transition-all flex items-center px-1", form.requires_face ? "bg-[var(--color-accent)]" : "bg-zinc-200")}>
-                     <div className={cn("h-4 w-4 bg-white dark:bg-zinc-900 rounded-full transition-transform shadow-sm", form.requires_face ? "translate-x-4" : "translate-x-0")} />
+                     <div className={cn("h-4 w-4 bg-white dark:bg-surface rounded-full transition-transform shadow-sm", form.requires_face ? "translate-x-4" : "translate-x-0")} />
                   </div>
                </label>
 

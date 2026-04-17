@@ -139,13 +139,13 @@ export default function SettingsPage() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center space-y-6" style={{ background: "var(--color-bg)" }}>
         <RefreshCw className="h-6 w-6 animate-spin text-orange-500" />
-        <p className="text-[11px] font-bold text-stone-400 dark:text-stone-500 capitalize pl-1">Loading Settings...</p>
+        <p className="text-[11px] font-bold text-stone-400 dark:text-text-muted capitalize pl-1">Loading Settings...</p>
       </div>
     );
   }
 
-  const inputClass = "h-12 rounded-xl bg-surface dark:bg-zinc-800/80 border border-border focus:ring-4 focus:ring-orange-500/5 focus:border-orange-500 text-stone-900 dark:text-white font-bold placeholder:text-stone-300 dark:placeholder:text-stone-600 transition-all text-sm px-6 shadow-sm disabled:opacity-50";
-  const selectClass = "h-12 w-full px-6 rounded-xl border border-border bg-surface dark:bg-zinc-800/80 text-stone-900 dark:text-white font-bold text-sm focus:outline-none focus:ring-4 focus:ring-orange-500/5 focus:border-orange-500 transition-all shadow-sm appearance-none cursor-pointer";
+  const inputClass = "h-12 rounded-xl bg-surface dark:bg-surface-secondary/80 border border-border focus:ring-4 focus:ring-orange-500/5 focus:border-orange-500 text-stone-900 dark:text-white font-bold placeholder:text-stone-300 dark:placeholder:text-stone-600 transition-all text-sm px-6 shadow-sm disabled:opacity-50";
+  const selectClass = "h-12 w-full px-6 rounded-xl border border-border bg-surface dark:bg-surface-secondary/80 text-stone-900 dark:text-white font-bold text-sm focus:outline-none focus:ring-4 focus:ring-orange-500/5 focus:border-orange-500 transition-all shadow-sm appearance-none cursor-pointer";
 
   return (
     <div
@@ -158,34 +158,34 @@ export default function SettingsPage() {
         
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-6">
            <div className="flex items-center gap-3 sm:gap-4">
-              <Button asChild variant="ghost" size="icon" className="shrink-0 h-9 w-9 sm:h-10 sm:w-10 rounded-xl bg-surface dark:bg-zinc-800 border border-border shadow-sm hover:bg-surface dark:hover:bg-zinc-700 active:scale-95 transition-all text-stone-500 dark:text-stone-400">
+              <Button asChild variant="ghost" size="icon" className="shrink-0 h-9 w-9 sm:h-10 sm:w-10 rounded-xl bg-surface dark:bg-surface-secondary border border-border shadow-sm hover:bg-surface dark:hover:bg-zinc-700 active:scale-95 transition-all text-stone-500 dark:text-text-muted">
                 <Link href="/dashboard"><ArrowLeft className="h-4 w-4" /></Link>
               </Button>
               <div className="space-y-0.5">
                  <h1 className="text-xl sm:text-2xl font-black text-stone-900 dark:text-white tracking-tight">Account Settings</h1>
-                 <p className="text-[10px] sm:text-[11px] font-bold text-stone-400 dark:text-stone-500 uppercase tracking-widest leading-none pl-0.5 opacity-80">Manage your profile and business</p>
+                 <p className="text-[10px] sm:text-[11px] font-bold text-stone-400 dark:text-text-muted uppercase tracking-widest leading-none pl-0.5 opacity-80">Manage your profile and business</p>
               </div>
            </div>
            
-           <div className="flex items-center gap-2 px-4 py-1.5 sm:py-2 rounded-full bg-surface dark:bg-zinc-800 border border-border shadow-sm opacity-60">
-              <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-stone-400 dark:text-stone-500 truncate max-w-[120px] sm:max-w-[150px]">{userEmail}</span>
+           <div className="flex items-center gap-2 px-4 py-1.5 sm:py-2 rounded-full bg-surface dark:bg-surface-secondary border border-border shadow-sm opacity-60">
+              <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-stone-400 dark:text-text-muted truncate max-w-[120px] sm:max-w-[150px]">{userEmail}</span>
            </div>
         </div>
 
         <Tabs defaultValue="profile" className="space-y-6 sm:space-y-8">
-           <TabsList className="flex items-center gap-1 p-1 rounded-2xl bg-surface/60 dark:bg-zinc-800/40 border border-border w-fit overflow-x-auto no-scrollbar max-sm:w-full">
-               <TabsTrigger value="profile" className="px-4 sm:px-6 py-2 rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-stone-900 dark:data-[state=active]:bg-white dark:bg-zinc-900 dark:data-[state=active]:text-stone-900 dark:text-white data-[state=active]:text-white shadow-none transition-all flex items-center gap-2">
+           <TabsList className="flex items-center gap-1 p-1 rounded-2xl bg-surface/60 dark:bg-surface-secondary/40 border border-border w-fit overflow-x-auto no-scrollbar max-sm:w-full">
+               <TabsTrigger value="profile" className="px-4 sm:px-6 py-2 rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-stone-900 dark:data-[state=active]:bg-white dark:bg-surface dark:data-[state=active]:text-stone-900 dark:text-white data-[state=active]:text-white shadow-none transition-all flex items-center gap-2">
                  <User className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Profile
                </TabsTrigger>
                {vendor && (
-                 <TabsTrigger value="vendor" className="px-4 sm:px-6 py-2 rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-stone-900 dark:data-[state=active]:bg-white dark:bg-zinc-900 dark:data-[state=active]:text-stone-900 dark:text-white data-[state=active]:text-white shadow-none transition-all flex items-center gap-2">
+                 <TabsTrigger value="vendor" className="px-4 sm:px-6 py-2 rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-stone-900 dark:data-[state=active]:bg-white dark:bg-surface dark:data-[state=active]:text-stone-900 dark:text-white data-[state=active]:text-white shadow-none transition-all flex items-center gap-2">
                    <Store className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Business
                  </TabsTrigger>
                )}
-               <TabsTrigger value="notifications" className="px-4 sm:px-6 py-2 rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-stone-900 dark:data-[state=active]:bg-white dark:bg-zinc-900 dark:data-[state=active]:text-stone-900 dark:text-white data-[state=active]:text-white shadow-none transition-all flex items-center gap-2">
+               <TabsTrigger value="notifications" className="px-4 sm:px-6 py-2 rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-stone-900 dark:data-[state=active]:bg-white dark:bg-surface dark:data-[state=active]:text-stone-900 dark:text-white data-[state=active]:text-white shadow-none transition-all flex items-center gap-2">
                  <Bell className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Alerts
                </TabsTrigger>
-               <TabsTrigger value="security" className="px-4 sm:px-6 py-2 rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-stone-900 dark:data-[state=active]:bg-white dark:bg-zinc-900 dark:data-[state=active]:text-stone-900 dark:text-white data-[state=active]:text-white shadow-none transition-all flex items-center gap-2">
+               <TabsTrigger value="security" className="px-4 sm:px-6 py-2 rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-stone-900 dark:data-[state=active]:bg-white dark:bg-surface dark:data-[state=active]:text-stone-900 dark:text-white data-[state=active]:text-white shadow-none transition-all flex items-center gap-2">
                  <Shield className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Security
                </TabsTrigger>
            </TabsList>
@@ -193,10 +193,10 @@ export default function SettingsPage() {
           <TabsContent value="profile" className="mt-0 space-y-8 animate-in fade-in duration-500">
              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                 <div className="lg:col-span-4 space-y-6">
-                   <GlassCard className="p-8 rounded-[32px] border-border bg-surface/60 dark:bg-zinc-800/40 text-center space-y-6 overflow-hidden relative">
+                   <GlassCard className="p-8 rounded-[32px] border-border bg-surface/60 dark:bg-surface-secondary/40 text-center space-y-6 overflow-hidden relative">
                       <div className="relative group w-32 h-32 mx-auto">
                          <div className="absolute inset-0 bg-orange-400/20 blur-2xl rounded-full scale-125 opacity-0 group-hover:opacity-100 transition-opacity" />
-                         <div className="relative w-32 h-32 rounded-[28px] bg-surface dark:bg-zinc-900 border-4 border-surface dark:border-zinc-800 shadow-lg overflow-hidden shrink-0 mx-auto">
+                         <div className="relative w-32 h-32 rounded-[28px] bg-surface dark:bg-surface border-4 border-surface dark:border-border shadow-lg overflow-hidden shrink-0 mx-auto">
                             <CloudinaryAvatar src={profile.avatar_url} alt={profile.full_name} size={128} className="w-full h-full object-cover" />
                             <div className="absolute inset-0 bg-stone-950/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">
                                <CloudinaryUploadButton
@@ -211,23 +211,23 @@ export default function SettingsPage() {
                       </div>
                       <div>
                          <h3 className="text-lg font-bold text-stone-900 dark:text-white">{profile.full_name || "New Member"}</h3>
-                         <p className="text-[11px] font-bold text-stone-400 dark:text-stone-500 capitalize">@{profile.username || "unset"}</p>
+                         <p className="text-[11px] font-bold text-stone-400 dark:text-text-muted capitalize">@{profile.username || "unset"}</p>
                       </div>
-                      <p className="text-[12px] font-medium text-stone-500 dark:text-stone-400 leading-relaxed">
+                      <p className="text-[12px] font-medium text-stone-500 dark:text-text-muted leading-relaxed">
                          Update your personal details and how you appear to the community.
                       </p>
                    </GlassCard>
                 </div>
 
                 <div className="lg:col-span-8">
-                   <GlassCard className="p-8 space-y-8 rounded-[32px] border-border bg-surface/60 dark:bg-zinc-800/40 shadow-sm relative overflow-hidden">
+                   <GlassCard className="p-8 space-y-8 rounded-[32px] border-border bg-surface/60 dark:bg-surface-secondary/40 shadow-sm relative overflow-hidden">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                          <div className="space-y-2">
-                            <Label className="text-[10px] font-bold uppercase tracking-widest text-stone-400 dark:text-stone-500 ml-1">Full Name</Label>
+                            <Label className="text-[10px] font-bold uppercase tracking-widest text-stone-400 dark:text-text-muted ml-1">Full Name</Label>
                             <Input value={profile.full_name} onChange={e => setProfile(p => ({ ...p, full_name: e.target.value }))} className={inputClass} placeholder="Enter your name" />
                          </div>
                          <div className="space-y-2">
-                            <Label className="text-[10px] font-bold uppercase tracking-widest text-stone-400 dark:text-stone-500 ml-1">Username</Label>
+                            <Label className="text-[10px] font-bold uppercase tracking-widest text-stone-400 dark:text-text-muted ml-1">Username</Label>
                             <div className="relative">
                                <div className="absolute left-6 top-1/2 -translate-y-1/2 text-stone-300 dark:text-stone-700 font-bold text-sm">@</div>
                                <Input value={profile.username} onChange={e => setProfile(p => ({ ...p, username: e.target.value }))} className={cn(inputClass, "pl-12")} placeholder="username" />
@@ -236,20 +236,20 @@ export default function SettingsPage() {
                       </div>
 
                       <div className="space-y-2">
-                         <Label className="text-[10px] font-bold uppercase tracking-widest text-stone-400 dark:text-stone-500 ml-1">Bio</Label>
-                         <Textarea value={profile.bio} onChange={e => setProfile(p => ({ ...p, bio: e.target.value }))} placeholder="Tell us about yourself..." className="rounded-2xl bg-surface dark:bg-zinc-900/60 border-border focus:ring-4 focus:ring-orange-500/5 focus:border-orange-500 text-stone-900 dark:text-white font-bold text-sm px-6 py-4 resize-none min-h-[120px] shadow-sm shadow-stone-100/10 placeholder:text-stone-300 dark:placeholder:text-stone-700" />
+                         <Label className="text-[10px] font-bold uppercase tracking-widest text-stone-400 dark:text-text-muted ml-1">Bio</Label>
+                         <Textarea value={profile.bio} onChange={e => setProfile(p => ({ ...p, bio: e.target.value }))} placeholder="Tell us about yourself..." className="rounded-2xl bg-surface dark:bg-surface/60 border-border focus:ring-4 focus:ring-orange-500/5 focus:border-orange-500 text-stone-900 dark:text-white font-bold text-sm px-6 py-4 resize-none min-h-[120px] shadow-sm shadow-stone-100/10 placeholder:text-stone-300 dark:placeholder:text-stone-700" />
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                          <div className="space-y-2">
-                            <Label className="text-[10px] font-bold uppercase tracking-widest text-stone-400 dark:text-stone-500 ml-1">Website</Label>
+                            <Label className="text-[10px] font-bold uppercase tracking-widest text-stone-400 dark:text-text-muted ml-1">Website</Label>
                             <div className="relative">
                                <Globe className="absolute left-6 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-300 dark:text-stone-700" />
                                <Input value={profile.website} onChange={e => setProfile(p => ({ ...p, website: e.target.value }))} className={cn(inputClass, "pl-12")} placeholder="https://..." />
                             </div>
                          </div>
                          <div className="space-y-2">
-                            <Label className="text-[10px] font-bold uppercase tracking-widest text-stone-400 dark:text-stone-500 ml-1">Phone Number</Label>
+                            <Label className="text-[10px] font-bold uppercase tracking-widest text-stone-400 dark:text-text-muted ml-1">Phone Number</Label>
                             <div className="relative">
                                <Smartphone className="absolute left-6 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-300 dark:text-stone-700" />
                                <Input value={profile.phone} onChange={e => setProfile(p => ({ ...p, phone: e.target.value }))} className={cn(inputClass, "pl-12")} placeholder="+1..." />
@@ -281,10 +281,10 @@ export default function SettingsPage() {
             <TabsContent value="vendor" className="mt-0 space-y-8 animate-in fade-in duration-500">
                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                   <div className="lg:col-span-4 space-y-6">
-                     <GlassCard className="p-8 rounded-[32px] border-border bg-surface/60 dark:bg-zinc-800/40 text-center space-y-6 relative overflow-hidden">
+                     <GlassCard className="p-8 rounded-[32px] border-border bg-surface/60 dark:bg-surface-secondary/40 text-center space-y-6 relative overflow-hidden">
                         <div className="relative group w-32 h-32 mx-auto">
                            <div className="absolute inset-0 bg-stone-950/5 dark:bg-black/20 rounded-3xl border-2 border-dashed border-border transition-all opacity-0 group-hover:opacity-100" />
-                           <div className="relative w-full h-full rounded-2xl bg-surface dark:bg-zinc-900 border border-border shadow-md overflow-hidden flex flex-col items-center justify-center p-2">
+                           <div className="relative w-full h-full rounded-2xl bg-surface dark:bg-surface border border-border shadow-md overflow-hidden flex flex-col items-center justify-center p-2">
                               {vendor.business_logo ? (
                                  <CloudinaryImage src={vendor.business_logo} alt={vendor.business_name} fill className="object-cover" />
                               ) : (
@@ -303,39 +303,39 @@ export default function SettingsPage() {
                         </div>
                         <div>
                            <h3 className="text-lg font-bold text-stone-900 dark:text-white">{vendor.business_name || "New Store"}</h3>
-                           <p className="text-[11px] font-bold text-stone-400 dark:text-stone-500 capitalize">Active Vendor</p>
+                           <p className="text-[11px] font-bold text-stone-400 dark:text-text-muted capitalize">Active Vendor</p>
                         </div>
-                        <p className="text-[12px] font-medium text-stone-500 dark:text-stone-400 leading-relaxed">
+                        <p className="text-[12px] font-medium text-stone-500 dark:text-text-muted leading-relaxed">
                            Manage your business information and payout preferences.
                         </p>
                      </GlassCard>
                   </div>
 
                   <div className="lg:col-span-8">
-                     <GlassCard className="p-8 space-y-8 rounded-[32px] border-border bg-surface/60 dark:bg-zinc-800/40 shadow-sm relative overflow-hidden">
+                     <GlassCard className="p-8 space-y-8 rounded-[32px] border-border bg-surface/60 dark:bg-surface-secondary/40 shadow-sm relative overflow-hidden">
                         <section className="space-y-6">
                            <h3 className="text-[11px] font-bold text-stone-900 dark:text-white uppercase tracking-widest flex items-center gap-2">
                               <Building className="h-3.5 w-3.5 text-stone-400" /> Business Details
                            </h3>
                            <div className="space-y-6">
                               <div className="space-y-2">
-                                 <Label className="text-[10px] font-bold uppercase tracking-widest text-stone-400 dark:text-stone-500 ml-1">Store Name *</Label>
+                                 <Label className="text-[10px] font-bold uppercase tracking-widest text-stone-400 dark:text-text-muted ml-1">Store Name *</Label>
                                  <Input value={vendor.business_name} onChange={e => setVendor(v => v ? ({ ...v, business_name: e.target.value }) : null)} className={inputClass} />
                               </div>
                               <div className="space-y-2">
-                                 <Label className="text-[10px] font-bold uppercase tracking-widest text-stone-400 dark:text-stone-500 ml-1">Description</Label>
-                                 <Textarea value={vendor.business_description} onChange={e => setVendor(v => v ? ({ ...v, business_description: e.target.value }) : null)} className="rounded-2xl bg-surface dark:bg-zinc-900/60 border-border focus:ring-4 focus:ring-orange-500/5 focus:border-orange-500 text-stone-900 dark:text-white font-bold text-sm px-6 py-4 resize-none min-h-[100px] placeholder:text-stone-300 dark:placeholder:text-stone-700" />
+                                 <Label className="text-[10px] font-bold uppercase tracking-widest text-stone-400 dark:text-text-muted ml-1">Description</Label>
+                                 <Textarea value={vendor.business_description} onChange={e => setVendor(v => v ? ({ ...v, business_description: e.target.value }) : null)} className="rounded-2xl bg-surface dark:bg-surface/60 border-border focus:ring-4 focus:ring-orange-500/5 focus:border-orange-500 text-stone-900 dark:text-white font-bold text-sm px-6 py-4 resize-none min-h-[100px] placeholder:text-stone-300 dark:placeholder:text-stone-700" />
                               </div>
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                  <div className="space-y-2">
-                                    <Label className="text-[10px] font-bold uppercase tracking-widest text-stone-400 dark:text-stone-500 ml-1">Support Email *</Label>
+                                    <Label className="text-[10px] font-bold uppercase tracking-widest text-stone-400 dark:text-text-muted ml-1">Support Email *</Label>
                                     <div className="relative">
                                        <Mail className="absolute left-6 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-300 dark:text-stone-700" />
                                        <Input value={vendor.business_email} onChange={e => setVendor(v => v ? ({ ...v, business_email: e.target.value }) : null)} className={cn(inputClass, "pl-12")} />
                                     </div>
                                  </div>
                                  <div className="space-y-2">
-                                    <Label className="text-[10px] font-bold uppercase tracking-widest text-stone-400 dark:text-stone-500 ml-1">Business Address</Label>
+                                    <Label className="text-[10px] font-bold uppercase tracking-widest text-stone-400 dark:text-text-muted ml-1">Business Address</Label>
                                     <div className="relative">
                                        <MapPin className="absolute left-6 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-300 dark:text-stone-700" />
                                        <Input value={vendor.business_address} onChange={e => setVendor(v => v ? ({ ...v, business_address: e.target.value }) : null)} className={cn(inputClass, "pl-12")} />
@@ -351,16 +351,16 @@ export default function SettingsPage() {
                            </h3>
                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                               <div className="space-y-2 relative">
-                                 <Label className="text-[10px] font-bold uppercase tracking-widest text-stone-400 dark:text-stone-500 ml-1">Method</Label>
+                                 <Label className="text-[10px] font-bold uppercase tracking-widest text-stone-400 dark:text-text-muted ml-1">Method</Label>
                                  <select value={vendor.payout_method} onChange={e => setVendor(v => v ? ({ ...v, payout_method: e.target.value }) : null)} className={selectClass}>
-                                    <option value="bank" className="bg-surface dark:bg-zinc-900">Bank Transfer</option>
-                                    <option value="momo" className="bg-surface dark:bg-zinc-900">Mobile Money</option>
-                                    <option value="paypal" className="bg-surface dark:bg-zinc-900">PayPal</option>
+                                    <option value="bank" className="bg-surface dark:bg-surface">Bank Transfer</option>
+                                    <option value="momo" className="bg-surface dark:bg-surface">Mobile Money</option>
+                                    <option value="paypal" className="bg-surface dark:bg-surface">PayPal</option>
                                  </select>
                                  <div className="absolute right-6 top-[42px] pointer-events-none text-stone-300"><MoreVertical className="h-3.5 w-3.5" /></div>
                               </div>
                               <div className="space-y-2">
-                                 <Label className="text-[10px] font-bold uppercase tracking-widest text-stone-400 dark:text-stone-500 ml-1">Account Number / ID</Label>
+                                 <Label className="text-[10px] font-bold uppercase tracking-widest text-stone-400 dark:text-text-muted ml-1">Account Number / ID</Label>
                                  <div className="relative">
                                     <CreditCard className="absolute left-6 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-300 dark:text-stone-700" />
                                     <Input value={vendor.payout_account} onChange={e => setVendor(v => v ? ({ ...v, payout_account: e.target.value }) : null)} className={cn(inputClass, "pl-12 font-mono")} placeholder="Enter ID" />
@@ -373,14 +373,14 @@ export default function SettingsPage() {
                            <h3 className="text-[11px] font-bold text-stone-900 dark:text-white uppercase tracking-widest flex items-center gap-2">
                               <Zap className="h-3.5 w-3.5 text-stone-400" /> Affiliate Program
                            </h3>
-                           <div className="flex items-center justify-between p-6 rounded-2xl bg-surface dark:bg-zinc-900/60 border border-border shadow-sm transition-all group">
+                           <div className="flex items-center justify-between p-6 rounded-2xl bg-surface dark:bg-surface/60 border border-border shadow-sm transition-all group">
                               <div className="space-y-1">
                                  <p className="text-[13px] font-bold text-stone-900 dark:text-white">Enable Affiliates</p>
-                                 <p className="text-[10px] font-medium text-stone-400 dark:text-stone-500">Allow partners to promote your products</p>
+                                 <p className="text-[10px] font-medium text-stone-400 dark:text-text-muted">Allow partners to promote your products</p>
                               </div>
                               <label className="relative inline-flex items-center cursor-pointer">
                                  <input type="checkbox" className="sr-only peer" checked={vendor.affiliate_enabled} onChange={e => setVendor(v => v ? ({ ...v, affiliate_enabled: e.target.checked }) : null)} />
-                                 <div className="w-12 h-7 bg-stone-200 dark:bg-zinc-800 rounded-full peer peer-checked:after:translate-x-5 peer-checked:bg-orange-500 after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white dark:bg-zinc-900 after:rounded-full after:h-5 after:w-5 after:transition-all" />
+                                 <div className="w-12 h-7 bg-stone-200 dark:bg-surface-secondary rounded-full peer peer-checked:after:translate-x-5 peer-checked:bg-orange-500 after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white dark:bg-surface after:rounded-full after:h-5 after:w-5 after:transition-all" />
                               </label>
                            </div>
 
@@ -415,10 +415,10 @@ export default function SettingsPage() {
 
           <TabsContent value="notifications" className="mt-0 animate-in fade-in duration-500">
              <div className="max-w-2xl">
-                <GlassCard className="p-8 space-y-8 rounded-[32px] border-border bg-surface/60 dark:bg-zinc-800/40 shadow-sm relative overflow-hidden">
+                <GlassCard className="p-8 space-y-8 rounded-[32px] border-border bg-surface/60 dark:bg-surface-secondary/40 shadow-sm relative overflow-hidden">
                    <div className="space-y-2 mb-8">
                       <h3 className="text-lg font-bold text-stone-900 dark:text-white">Notification Preferences</h3>
-                      <p className="text-[11px] font-bold text-stone-400 dark:text-stone-500 uppercase tracking-widest">Choose when you want to be alerted</p>
+                      <p className="text-[11px] font-bold text-stone-400 dark:text-text-muted uppercase tracking-widest">Choose when you want to be alerted</p>
                    </div>
                    
                    <div className="space-y-6">
@@ -435,7 +435,7 @@ export default function SettingsPage() {
                             </div>
                             <label className="relative inline-flex items-center cursor-pointer">
                                <input type="checkbox" className="sr-only peer" defaultChecked={i < 2} />
-                               <div className="w-10 h-6 bg-stone-200 dark:bg-zinc-800 rounded-full peer peer-checked:after:translate-x-4 peer-checked:bg-orange-500 after:content-[''] after:absolute after:top-[3px] after:left-[3px] after:bg-white dark:bg-zinc-900 after:rounded-full after:h-4 after:w-4 after:transition-all shadow-inner" />
+                               <div className="w-10 h-6 bg-stone-200 dark:bg-surface-secondary rounded-full peer peer-checked:after:translate-x-4 peer-checked:bg-orange-500 after:content-[''] after:absolute after:top-[3px] after:left-[3px] after:bg-white dark:bg-surface after:rounded-full after:h-4 after:w-4 after:transition-all shadow-inner" />
                             </label>
                          </div>
                       ))}
@@ -446,22 +446,22 @@ export default function SettingsPage() {
 
           <TabsContent value="security" className="mt-0 animate-in fade-in duration-500">
              <div className="max-w-2xl">
-                <GlassCard className="p-8 space-y-8 rounded-[32px] border-border bg-surface/60 dark:bg-zinc-800/40 shadow-sm relative overflow-hidden">
+                <GlassCard className="p-8 space-y-8 rounded-[32px] border-border bg-surface/60 dark:bg-surface-secondary/40 shadow-sm relative overflow-hidden">
                    <div className="space-y-2 mb-8">
                       <h3 className="text-lg font-bold text-stone-900 dark:text-white">Account Security</h3>
-                      <p className="text-[11px] font-bold text-stone-400 dark:text-stone-500 uppercase tracking-widest">Protect your account and assets</p>
+                      <p className="text-[11px] font-bold text-stone-400 dark:text-text-muted uppercase tracking-widest">Protect your account and assets</p>
                    </div>
                    
                    <div className="space-y-6">
                       <div className="space-y-2">
-                        <Label className="text-[10px] font-bold uppercase tracking-widest text-stone-400 dark:text-stone-500 ml-1">Current Password</Label>
+                        <Label className="text-[10px] font-bold uppercase tracking-widest text-stone-400 dark:text-text-muted ml-1">Current Password</Label>
                         <Input type="password" value="••••••••••••" className={cn(inputClass, "opacity-40")} disabled />
                       </div>
                       <div className="space-y-2">
-                        <Label className="text-[10px] font-bold uppercase tracking-widest text-stone-400 dark:text-stone-500 ml-1">New Password</Label>
+                        <Label className="text-[10px] font-bold uppercase tracking-widest text-stone-400 dark:text-text-muted ml-1">New Password</Label>
                         <Input type="password" className={inputClass} placeholder="Leave blank to keep current" />
                       </div>
-                      <Button className="h-11 px-10 rounded-xl bg-stone-900 dark:bg-white dark:bg-zinc-900 text-white dark:text-stone-900 dark:text-white font-bold text-[10px] uppercase tracking-widest shadow-md hover:bg-black dark:hover:bg-stone-200 active:scale-95 transition-all border-none w-full">
+                      <Button className="h-11 px-10 rounded-xl bg-stone-900 dark:bg-white dark:bg-surface text-white dark:text-stone-900 dark:text-white font-bold text-[10px] uppercase tracking-widest shadow-md hover:bg-black dark:hover:bg-stone-200 active:scale-95 transition-all border-none w-full">
                          Update Password
                       </Button>
                    </div>

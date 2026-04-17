@@ -70,7 +70,7 @@ export function CurrencyConverterWidget({ className, variant = "full" }: Currenc
           <select
             value={toCurrency}
             onChange={(e) => setToCurrency(e.target.value as CurrencyCode)}
-            className="h-8 text-[12px] font-bold rounded-lg border border-orange-200 dark:border-orange-900/50 bg-white dark:bg-zinc-900 px-2 text-zinc-700 dark:text-zinc-200 focus:ring-2 focus:ring-orange-400"
+            className="h-8 text-[12px] font-bold rounded-lg border border-orange-200 dark:border-orange-900/50 bg-white dark:bg-surface px-2 text-zinc-700 dark:text-text-secondary focus:ring-2 focus:ring-orange-400"
           >
             {(Object.keys(SUPPORTED_CURRENCIES) as CurrencyCode[]).map((code) => (
               <option key={code} value={code}>
@@ -96,7 +96,7 @@ export function CurrencyConverterWidget({ className, variant = "full" }: Currenc
       <div className="space-y-4">
         {/* From Currency */}
         <div className="space-y-2">
-          <label className="text-xs font-bold text-zinc-600 dark:text-zinc-400">From</label>
+          <label className="text-xs font-bold text-zinc-600 dark:text-text-muted">From</label>
           <div className="flex gap-2">
             <div className="flex-1">
               <input
@@ -104,13 +104,13 @@ export function CurrencyConverterWidget({ className, variant = "full" }: Currenc
                 value={fromAmount}
                 onChange={(e) => setFromAmount(e.target.value)}
                 placeholder="Enter amount"
-                className="h-10 w-full rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900/50 px-3 text-sm font-semibold text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:border-[#f97316] focus:ring-2 focus:ring-[#f97316]/20"
+                className="h-10 w-full rounded-lg border border-zinc-200 dark:border-border-strong bg-white dark:bg-surface/50 px-3 text-sm font-semibold text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:border-[#f97316] focus:ring-2 focus:ring-[#f97316]/20"
               />
             </div>
             <select
               value={fromCurrency}
               onChange={(e) => setFromCurrency(e.target.value as CurrencyCode)}
-              className="w-[100px] rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900/50 px-2 text-sm font-bold text-zinc-900 dark:text-white focus:border-[#f97316] focus:ring-2 focus:ring-[#f97316]/20"
+              className="w-[100px] rounded-lg border border-zinc-200 dark:border-border-strong bg-white dark:bg-surface/50 px-2 text-sm font-bold text-zinc-900 dark:text-white focus:border-[#f97316] focus:ring-2 focus:ring-[#f97316]/20"
             >
               {(Object.keys(SUPPORTED_CURRENCIES) as CurrencyCode[]).map((code) => (
                 <option key={code} value={code}>
@@ -134,7 +134,7 @@ export function CurrencyConverterWidget({ className, variant = "full" }: Currenc
 
         {/* To Currency */}
         <div className="space-y-2">
-          <label className="text-xs font-bold text-zinc-600 dark:text-zinc-400">To</label>
+          <label className="text-xs font-bold text-zinc-600 dark:text-text-muted">To</label>
           <div className="flex gap-2">
             <div className="flex-1">
               <input
@@ -142,13 +142,13 @@ export function CurrencyConverterWidget({ className, variant = "full" }: Currenc
                 value={toAmount}
                 readOnly
                 placeholder="Converted amount"
-                className="h-10 w-full rounded-lg border border-zinc-200 dark:border-zinc-700 bg-orange-50/30 dark:bg-zinc-900/30 px-3 text-sm font-semibold text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-600 cursor-not-allowed"
+                className="h-10 w-full rounded-lg border border-zinc-200 dark:border-border-strong bg-orange-50/30 dark:bg-surface/30 px-3 text-sm font-semibold text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-600 cursor-not-allowed"
               />
             </div>
             <select
               value={toCurrency}
               onChange={(e) => setToCurrency(e.target.value as CurrencyCode)}
-              className="w-[100px] rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900/50 px-2 text-sm font-bold text-zinc-900 dark:text-white focus:border-[#f97316] focus:ring-2 focus:ring-[#f97316]/20"
+              className="w-[100px] rounded-lg border border-zinc-200 dark:border-border-strong bg-white dark:bg-surface/50 px-2 text-sm font-bold text-zinc-900 dark:text-white focus:border-[#f97316] focus:ring-2 focus:ring-[#f97316]/20"
             >
               {(Object.keys(SUPPORTED_CURRENCIES) as CurrencyCode[]).map((code) => (
                 <option key={code} value={code}>

@@ -29,8 +29,8 @@ export function ProductCardSkeleton() {
 /** Homepage marketplace grid skeleton — matches ProductCardClient layout */
 export function HomeProductCardSkeleton() {
   return (
-    <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-[#eee] dark:border-zinc-800 overflow-hidden flex flex-col h-full">
-      <Skeleton className="aspect-square w-full rounded-t-2xl bg-[#f5f5f5] dark:bg-zinc-800" />
+    <div className="bg-white dark:bg-surface rounded-2xl border border-[#eee] dark:border-border overflow-hidden flex flex-col h-full">
+      <Skeleton className="aspect-square w-full rounded-t-2xl bg-[#f5f5f5] dark:bg-surface-secondary" />
       <div className="p-4 sm:p-5 flex-1 flex flex-col gap-3">
         <div className="flex justify-between">
           <Skeleton className="h-3 w-24" />

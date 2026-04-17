@@ -181,7 +181,7 @@ export default function VendorOrdersPage() {
   if (!vendorId) {
     return (
       <div className="min-h-screen flex items-center justify-center px-6" style={{ background: "var(--color-bg)" }}>
-        <GlassCard className="max-w-md w-full p-10 text-center rounded-[32px] border-border shadow-sm bg-surface dark:bg-zinc-900/60">
+        <GlassCard className="max-w-md w-full p-10 text-center rounded-[32px] border-border shadow-sm bg-surface dark:bg-surface/60">
           <Truck className="h-10 w-10 text-stone-400 dark:text-stone-600 mx-auto mb-6" />
           <h2 className="text-xl font-bold text-stone-900 dark:text-white mb-2">Vendor Role Needed</h2>
           <p className="text-stone-500 text-sm mb-10 font-medium">Please activate your vendor account to view orders.</p>
@@ -215,7 +215,7 @@ export default function VendorOrdersPage() {
               { label: "Total Revenue", value: formatMoney(totalSalesUsd, "USD"), icon: DollarSign, color: "text-emerald-500" },
               { label: "Completed", value: completedSales, icon: CheckCircle2, color: "text-sky-500" },
            ].map((stat, i) => (
-              <GlassCard key={i} className="p-4 sm:p-5 rounded-xl sm:rounded-2xl bg-surface dark:bg-zinc-900/80 border-border shadow-sm flex flex-col justify-center gap-0.5 sm:gap-1">
+              <GlassCard key={i} className="p-4 sm:p-5 rounded-xl sm:rounded-2xl bg-surface dark:bg-surface/80 border-border shadow-sm flex flex-col justify-center gap-0.5 sm:gap-1">
                  <div className="flex items-center gap-2 mb-0.5 sm:mb-1">
                     <stat.icon className={cn("h-3 w-3 sm:h-3.5 sm:w-3.5", stat.color)} />
                     <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-stone-400">{stat.label}</span>
@@ -233,10 +233,10 @@ export default function VendorOrdersPage() {
                 placeholder="Search orders, buyers, or products..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full h-11 pl-11 pr-4 rounded-xl bg-surface dark:bg-zinc-900 border border-border text-[13px] font-medium text-stone-900 dark:text-white placeholder:text-stone-300 dark:placeholder:text-stone-700 shadow-sm focus:outline-none focus:ring-4 focus:ring-stone-500/5 transition-all"
+                className="w-full h-11 pl-11 pr-4 rounded-xl bg-surface dark:bg-surface border border-border text-[13px] font-medium text-stone-900 dark:text-white placeholder:text-stone-300 dark:placeholder:text-stone-700 shadow-sm focus:outline-none focus:ring-4 focus:ring-stone-500/5 transition-all"
               />
            </div>
-           <div className="flex items-center gap-1.5 p-1 bg-surface dark:bg-zinc-900 border border-border rounded-xl shadow-sm overflow-x-auto no-scrollbar">
+           <div className="flex items-center gap-1.5 p-1 bg-surface dark:bg-surface border border-border rounded-xl shadow-sm overflow-x-auto no-scrollbar">
               {["All", "Pending", "Shipped", "Delivered"].map((f) => (
                 <button
                   key={f}
@@ -245,7 +245,7 @@ export default function VendorOrdersPage() {
                     "px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all",
                     filter === f 
                       ? "bg-stone-900 text-white shadow-md" 
-                      : "text-stone-400 hover:text-stone-900 dark:text-white hover:bg-stone-50 dark:bg-zinc-900/50"
+                      : "text-stone-400 hover:text-stone-900 dark:text-white hover:bg-stone-50 dark:bg-surface/50"
                   )}
                 >
                   {f}
@@ -255,7 +255,7 @@ export default function VendorOrdersPage() {
         </div>
 
         {/* Orders Table - Full-width Mobile */}
-        <GlassCard className="rounded-2xl sm:rounded-[32px] border-border max-sm:-mx-4 max-sm:rounded-none max-sm:border-x-0 bg-surface dark:bg-zinc-900/60 shadow-sm overflow-hidden">
+        <GlassCard className="rounded-2xl sm:rounded-[32px] border-border max-sm:-mx-4 max-sm:rounded-none max-sm:border-x-0 bg-surface dark:bg-surface/60 shadow-sm overflow-hidden">
            <div className="overflow-x-auto">
               <table className="w-full text-left min-w-[700px] sm:min-w-0">
                  <thead>
@@ -313,21 +313,21 @@ export default function VendorOrdersPage() {
                               <td className="px-4 sm:px-8 py-5 sm:py-6 text-right">
                                  <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
-                                       <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl bg-surface dark:bg-zinc-900 border border-border shadow-sm hover:border-orange-500/20 transition-all">
+                                       <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl bg-surface dark:bg-surface border border-border shadow-sm hover:border-orange-500/20 transition-all">
                                           <MoreHorizontal className="h-4 w-4 text-stone-400" />
                                        </Button>
                                     </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end" className="w-52 rounded-2xl shadow-xl border-border p-2 bg-surface dark:bg-zinc-900/95 backdrop-blur-xl">
+                                    <DropdownMenuContent align="end" className="w-52 rounded-2xl shadow-xl border-border p-2 bg-surface dark:bg-surface/95 backdrop-blur-xl">
                                        <DropdownMenuItem asChild className="rounded-xl cursor-pointer">
                                           <Link href={`/dashboard/vendor/orders/${order.id}`} className="flex items-center gap-2.5">
                                              <Eye className="h-4 w-4 text-stone-400" /> 
-                                             <span className="text-[12px] font-bold text-stone-800 dark:text-zinc-200">Review Items</span>
+                                             <span className="text-[12px] font-bold text-stone-800 dark:text-text-secondary">Review Items</span>
                                           </Link>
                                        </DropdownMenuItem>
                                        <DropdownMenuItem asChild className="rounded-xl cursor-pointer">
                                           <Link href={`/dashboard/messages?buyer=${order.buyer?.id}`} className="flex items-center gap-2.5">
                                              <MessageSquare className="h-4 w-4 text-emerald-400" /> 
-                                             <span className="text-[12px] font-bold text-stone-800 dark:text-zinc-200">Message Buyer</span>
+                                             <span className="text-[12px] font-bold text-stone-800 dark:text-text-secondary">Message Buyer</span>
                                           </Link>
                                        </DropdownMenuItem>
                                        <DropdownMenuSeparator className="bg-border my-1" />

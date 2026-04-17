@@ -89,7 +89,7 @@ function ClipCard({
             <span className="text-[9px] font-black tabular-nums text-white">{(clip.total_views ?? 0).toLocaleString()}</span>
           </div>
           {clip.products && (
-            <div className="flex items-center justify-between gap-1.5 rounded-xl bg-white dark:bg-zinc-900/95 px-2 py-1 backdrop-blur-md shadow-lg">
+            <div className="flex items-center justify-between gap-1.5 rounded-xl bg-white dark:bg-surface/95 px-2 py-1 backdrop-blur-md shadow-lg">
               <span className="min-w-0 truncate text-[9px] font-black text-[#1a1428]">{clip.products.name}</span>
               <ShoppingBag className="h-3 w-3 shrink-0 text-[#f97316]" />
             </div>
@@ -116,7 +116,7 @@ function ClipCard({
 
         {/* Play button */}
         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20">
-          <div className="flex h-11 w-11 scale-90 items-center justify-center rounded-full border border-white/25 bg-white dark:bg-zinc-900/10 backdrop-blur-md transition-transform group-hover:scale-100">
+          <div className="flex h-11 w-11 scale-90 items-center justify-center rounded-full border border-white/25 bg-white dark:bg-surface/10 backdrop-blur-md transition-transform group-hover:scale-100">
             <Play className="ml-1 h-5 w-5 fill-white text-white" />
           </div>
         </div>
@@ -169,7 +169,7 @@ export function TrendingProductClipsSection({ clips, className, title = "Trendin
         </div>
         <Link
           href="/marketplace"
-          className="group inline-flex w-full shrink-0 items-center justify-center gap-2.5 rounded-2xl border border-[#ebe8f2] bg-white dark:bg-zinc-900 px-5 py-3 text-[12px] font-black uppercase tracking-[0.12em] text-[#433360] transition-all hover:border-[#f97316]/35 hover:bg-[#fff7ed] sm:w-auto"
+          className="group inline-flex w-full shrink-0 items-center justify-center gap-2.5 rounded-2xl border border-[#ebe8f2] bg-white dark:bg-surface px-5 py-3 text-[12px] font-black uppercase tracking-[0.12em] text-[#433360] transition-all hover:border-[#f97316]/35 hover:bg-[#fff7ed] sm:w-auto"
         >
           <span>See all clips</span>
           <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[#f97316] to-[#ea580c] text-white transition-transform group-hover:translate-x-0.5">
@@ -241,7 +241,7 @@ export function TrendingProductClipsSection({ clips, className, title = "Trendin
               </div>
               {modalClip.products && (
                 <div className="flex items-center gap-4 border-t border-white/10 bg-ink-darker p-4">
-                  <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white dark:bg-zinc-900/10">
+                  <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white dark:bg-surface/10">
                     {Array.isArray(modalClip.products.images) && modalClip.products.images[0] ? (
                       <img src={modalClip.products.images[0]} alt="" className="h-full w-full object-cover" />
                     ) : (

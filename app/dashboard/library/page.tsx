@@ -43,7 +43,7 @@ export default function DigitalLibraryPage() {
        <div className="min-h-screen flex flex-col items-center justify-center space-y-12 animate-in fade-in duration-700" style={{ background: "var(--color-bg)" }}>
          <div className="relative">
            <div className="absolute inset-0 bg-orange-400/20 blur-3xl rounded-full scale-150 animate-pulse" />
-           <div className="relative w-24 h-24 rounded-[32px] bg-surface dark:bg-zinc-900 border border-border shadow-2xl flex items-center justify-center overflow-hidden">
+           <div className="relative w-24 h-24 rounded-[32px] bg-surface dark:bg-surface border border-border shadow-2xl flex items-center justify-center overflow-hidden">
              <div className="absolute inset-0 border-2 border-t-orange-500 border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin m-2" />
              <Video className="h-10 w-10 text-stone-900 dark:text-white" />
            </div>
@@ -67,7 +67,7 @@ export default function DigitalLibraryPage() {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
            <div className="space-y-2">
               <h1 className="text-4xl font-black text-stone-900 dark:text-white tracking-tighter flex items-center gap-4">
-                 <div className="p-2.5 rounded-[20px] bg-surface dark:bg-zinc-900 border border-border shadow-2xl shrink-0">
+                 <div className="p-2.5 rounded-[20px] bg-surface dark:bg-surface border border-border shadow-2xl shrink-0">
                     <Video className="h-8 w-8 text-orange-500" />
                  </div>
                  Digital Library
@@ -83,14 +83,14 @@ export default function DigitalLibraryPage() {
                  placeholder="Search your library..."
                  value={search}
                  onChange={(e) => setSearch(e.target.value)}
-                 className="w-full h-14 pl-12 pr-6 rounded-2xl bg-surface dark:bg-zinc-900 border border-border text-[13px] font-bold text-stone-900 dark:text-white placeholder:text-stone-300 shadow-xl focus:outline-none focus:bg-surface-secondary dark:focus:bg-zinc-800 transition-all"
+                 className="w-full h-14 pl-12 pr-6 rounded-2xl bg-surface dark:bg-surface border border-border text-[13px] font-bold text-stone-900 dark:text-white placeholder:text-stone-300 shadow-xl focus:outline-none focus:bg-surface-secondary dark:focus:bg-zinc-800 transition-all"
               />
            </div>
         </div>
 
         {filtered.length === 0 ? (
-           <GlassCard className="p-24 text-center rounded-[56px] border-border bg-surface dark:bg-zinc-900/20">
-              <div className="w-24 h-24 bg-surface dark:bg-zinc-900 rounded-[32px] flex items-center justify-center mx-auto mb-8 border border-border shadow-xl">
+           <GlassCard className="p-24 text-center rounded-[56px] border-border bg-surface dark:bg-surface/20">
+              <div className="w-24 h-24 bg-surface dark:bg-surface rounded-[32px] flex items-center justify-center mx-auto mb-8 border border-border shadow-xl">
                  <Video className="h-10 w-10 text-stone-300 dark:text-stone-600" />
               </div>
               <h2 className="text-3xl font-black text-stone-900 dark:text-white tracking-tighter uppercase">Library is Empty</h2>
@@ -104,25 +104,25 @@ export default function DigitalLibraryPage() {
         ) : (
            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
               {filtered.map((item) => (
-                <GlassCard key={item.id} className="overflow-hidden p-0 rounded-[40px] border-border bg-surface dark:bg-zinc-900/60 hover:shadow-2xl hover:bg-surface-secondary dark:hover:bg-zinc-800 transition-all duration-500 group">
-                  <div className="aspect-[4/3] relative bg-stone-100 dark:bg-zinc-800">
+                <GlassCard key={item.id} className="overflow-hidden p-0 rounded-[40px] border-border bg-surface dark:bg-surface/60 hover:shadow-2xl hover:bg-surface-secondary dark:hover:bg-zinc-800 transition-all duration-500 group">
+                  <div className="aspect-[4/3] relative bg-stone-100 dark:bg-surface-secondary">
                     {item.product_image ? (
                       <img src={item.product_image} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center"><Package className="h-10 w-10 text-stone-200" /></div>
                     )}
                     <div className="absolute inset-0 bg-stone-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3 backdrop-blur-[2px]">
-                       <Button size="icon" className="rounded-2xl h-14 w-14 bg-surface dark:bg-zinc-900 text-stone-900 dark:text-white hover:bg-surface-secondary dark:hover:bg-zinc-800 border-0 shadow-2xl hover:scale-110 transition-all"><Download className="h-6 w-6" /></Button>
-                       <Button size="icon" className="rounded-2xl h-14 w-14 bg-surface dark:bg-zinc-900 text-stone-900 dark:text-white hover:bg-surface-secondary dark:hover:bg-zinc-800 border-0 shadow-2xl hover:scale-110 transition-all"><ExternalLink className="h-6 w-6" /></Button>
+                       <Button size="icon" className="rounded-2xl h-14 w-14 bg-surface dark:bg-surface text-stone-900 dark:text-white hover:bg-surface-secondary dark:hover:bg-zinc-800 border-0 shadow-2xl hover:scale-110 transition-all"><Download className="h-6 w-6" /></Button>
+                       <Button size="icon" className="rounded-2xl h-14 w-14 bg-surface dark:bg-surface text-stone-900 dark:text-white hover:bg-surface-secondary dark:hover:bg-zinc-800 border-0 shadow-2xl hover:scale-110 transition-all"><ExternalLink className="h-6 w-6" /></Button>
                     </div>
-                    <div className="absolute top-4 right-4 bg-surface/90 dark:bg-zinc-900/90 backdrop-blur-xl px-4 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-[0.2em] text-stone-900 dark:text-white shadow-xl border border-border">
+                    <div className="absolute top-4 right-4 bg-surface/90 dark:bg-surface/90 backdrop-blur-xl px-4 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-[0.2em] text-stone-900 dark:text-white shadow-xl border border-border">
                         Asset Node
                     </div>
                   </div>
                   <div className="p-8">
                     <h4 className="font-black text-xl text-stone-900 dark:text-white truncate tracking-tighter mb-4">{item.product_name}</h4>
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-stone-400 bg-surface-secondary dark:bg-zinc-800 px-3 py-1.5 rounded-lg">
+                      <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-stone-400 bg-surface-secondary dark:bg-surface-secondary px-3 py-1.5 rounded-lg">
                          <FileText className="h-3.5 w-3.5" /> MP4 Archive
                       </div>
                       <span className="text-[10px] font-bold text-stone-300 uppercase tracking-widest">{new Date(item.created_at).toLocaleDateString()}</span>

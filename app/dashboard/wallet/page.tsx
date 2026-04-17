@@ -36,7 +36,7 @@ export default function WalletDashboardPage() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center space-y-6" style={{ background: "var(--color-bg)" }}>
         <RefreshCw className="h-6 w-6 animate-spin text-orange-500" />
-        <p className="text-[11px] font-bold text-stone-400 dark:text-stone-500 capitalize pl-1">Accessing Wallet...</p>
+        <p className="text-[11px] font-bold text-stone-400 dark:text-text-muted capitalize pl-1">Accessing Wallet...</p>
       </div>
     );
   }
@@ -59,12 +59,12 @@ export default function WalletDashboardPage() {
         {/* Header - Simpler */}
          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
             <div className="flex items-center gap-4">
-               <Button asChild variant="ghost" size="icon" className="shrink-0 h-10 w-10 rounded-xl bg-surface dark:bg-zinc-800 border border-border shadow-sm hover:bg-surface dark:hover:bg-zinc-700 active:scale-95 transition-all text-stone-500 dark:text-stone-400">
+               <Button asChild variant="ghost" size="icon" className="shrink-0 h-10 w-10 rounded-xl bg-surface dark:bg-surface-secondary border border-border shadow-sm hover:bg-surface dark:hover:bg-zinc-700 active:scale-95 transition-all text-stone-500 dark:text-text-muted">
                  <Link href="/dashboard"><ArrowLeft className="h-5 w-5" /></Link>
                </Button>
                <div className="space-y-1">
                   <h1 className="text-2xl font-bold text-stone-900 dark:text-white tracking-tight">My Wallet</h1>
-                  <p className="text-[11px] font-bold text-stone-400 dark:text-stone-500 capitalize pl-0.5">Manage your earnings and transfers</p>
+                  <p className="text-[11px] font-bold text-stone-400 dark:text-text-muted capitalize pl-0.5">Manage your earnings and transfers</p>
                </div>
             </div>
             
@@ -77,12 +77,12 @@ export default function WalletDashboardPage() {
 
         {/* Balance Card - Softer & Compact */}
          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-8">
-            <GlassCard className="lg:col-span-2 p-6 sm:p-10 rounded-2xl sm:rounded-[32px] border-border bg-surface/60 dark:bg-zinc-800/40 shadow-sm relative overflow-hidden group">
+            <GlassCard className="lg:col-span-2 p-6 sm:p-10 rounded-2xl sm:rounded-[32px] border-border bg-surface/60 dark:bg-surface-secondary/40 shadow-sm relative overflow-hidden group">
                <div className="space-y-6 sm:space-y-10 relative z-10">
                   <div className="space-y-2 sm:space-y-4">
                      <div className="flex items-center gap-2">
                         <div className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" />
-                        <span className="text-[9px] sm:text-[10px] font-bold text-stone-400 dark:text-stone-500 uppercase tracking-widest opacity-80">Available to Withdraw</span>
+                        <span className="text-[9px] sm:text-[10px] font-bold text-stone-400 dark:text-text-muted uppercase tracking-widest opacity-80">Available to Withdraw</span>
                      </div>
                      <p className="text-3xl sm:text-5xl font-black text-stone-900 dark:text-white tracking-tight leading-none tabular-nums">
                         {formatMoney(wallet.available_balance, "USD")}
@@ -90,11 +90,11 @@ export default function WalletDashboardPage() {
                   </div>
                  
                   <div className="flex flex-wrap gap-3 sm:gap-4">
-                     <div className="px-5 py-3 sm:px-6 sm:py-4 rounded-xl sm:rounded-2xl bg-surface dark:bg-zinc-900 border border-border shadow-sm min-w-[120px] sm:min-w-[140px]">
+                     <div className="px-5 py-3 sm:px-6 sm:py-4 rounded-xl sm:rounded-2xl bg-surface dark:bg-surface border border-border shadow-sm min-w-[120px] sm:min-w-[140px]">
                         <p className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-stone-300 dark:text-stone-700 mb-1">Pending Clearance</p>
                         <p className="text-lg sm:text-xl font-black text-stone-900 dark:text-white tabular-nums tracking-tight">{formatMoney(wallet.pending_balance, "USD")}</p>
                      </div>
-                     <div className="px-5 py-3 sm:px-6 sm:py-4 rounded-xl sm:rounded-2xl bg-surface dark:bg-zinc-900 border border-border shadow-sm min-w-[120px] sm:min-w-[140px]">
+                     <div className="px-5 py-3 sm:px-6 sm:py-4 rounded-xl sm:rounded-2xl bg-surface dark:bg-surface border border-border shadow-sm min-w-[120px] sm:min-w-[140px]">
                         <p className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-stone-300 dark:text-stone-700 mb-1">Total Earned</p>
                         <p className="text-lg sm:text-xl font-black text-stone-900 dark:text-white tabular-nums tracking-tight">{formatMoney(wallet.total_earned, "USD")}</p>
                      </div>
@@ -106,14 +106,14 @@ export default function WalletDashboardPage() {
                </div>
            </GlassCard>
  
-            <GlassCard className="p-6 sm:p-8 rounded-2xl sm:rounded-[32px] bg-surface/60 dark:bg-zinc-800/40 border border-border shadow-sm flex flex-col justify-center space-y-4 sm:space-y-6">
+            <GlassCard className="p-6 sm:p-8 rounded-2xl sm:rounded-[32px] bg-surface/60 dark:bg-surface-secondary/40 border border-border shadow-sm flex flex-col justify-center space-y-4 sm:space-y-6">
                <div className="flex items-center gap-3">
                   <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-500 border border-emerald-500/20">
                      <ShieldCheck className="h-4 w-4" />
                   </div>
                   <h3 className="text-[10px] sm:text-sm font-black text-stone-900 dark:text-white uppercase tracking-widest">Secure Escrow</h3>
                </div>
-               <p className="text-[12px] sm:text-[13px] font-medium text-stone-500 dark:text-stone-400 leading-relaxed opacity-80">
+               <p className="text-[12px] sm:text-[13px] font-medium text-stone-500 dark:text-text-muted leading-relaxed opacity-80">
                   Your funds are held securely until the order is successfully delivered to the buyer.
                </p>
                <Button asChild variant="outline" className="w-full h-10 sm:h-11 rounded-xl border-border text-stone-900 dark:text-white font-bold text-[9px] sm:text-[10px] uppercase tracking-widest active:scale-95 transition-all">
@@ -124,20 +124,20 @@ export default function WalletDashboardPage() {
 
         {/* Earning Breakdown - Simple Row */}
          <div className="space-y-4">
-            <h2 className="text-[10px] sm:text-[11px] font-bold text-stone-400 dark:text-stone-500 uppercase tracking-widest pl-1 opacity-60">Earning Sources</h2>
+            <h2 className="text-[10px] sm:text-[11px] font-bold text-stone-400 dark:text-text-muted uppercase tracking-widest pl-1 opacity-60">Earning Sources</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
                {[
                   { label: "Product Sales", value: agg.vendor, icon: Store, color: "text-sky-500", bg: "bg-sky-500/10" },
                   { label: "Affiliate Earnings", value: agg.affiliate, icon: Users, color: "text-purple-500", bg: "bg-purple-500/10" },
                   { label: "Creator Bonuses", value: agg.creator, icon: Sparkles, color: "text-amber-500", bg: "bg-amber-500/10" },
                ].map((stat, i) => (
-                  <div key={i} className="flex items-center gap-4 p-4 rounded-xl sm:rounded-2xl bg-surface/60 dark:bg-zinc-800/40 border border-border shadow-sm">
+                  <div key={i} className="flex items-center gap-4 p-4 rounded-xl sm:rounded-2xl bg-surface/60 dark:bg-surface-secondary/40 border border-border shadow-sm">
                      <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border border-border shadow-sm", stat.bg, stat.color)}>
                         <stat.icon className="h-5 w-5" />
                      </div>
                      <div className="min-w-0">
                         <p className="text-lg font-black text-stone-900 dark:text-white tracking-tight leading-none tabular-nums">{formatMoney(stat.value, "USD")}</p>
-                        <p className="text-[9px] font-bold uppercase tracking-widest text-stone-400 dark:text-stone-500 mt-1.5 truncate opacity-70">{stat.label}</p>
+                        <p className="text-[9px] font-bold uppercase tracking-widest text-stone-400 dark:text-text-muted mt-1.5 truncate opacity-70">{stat.label}</p>
                      </div>
                   </div>
                ))}
@@ -145,15 +145,15 @@ export default function WalletDashboardPage() {
          </div>
 
         {/* Transaction History - Soft Table - Mobile Optimized */}
-         <GlassCard className="rounded-2xl sm:rounded-[32px] border-border bg-surface/60 dark:bg-zinc-800/40 shadow-sm overflow-hidden max-sm:-mx-4 max-sm:rounded-none max-sm:border-x-0">
-            <div className="p-5 sm:p-8 border-b border-border bg-surface/40 dark:bg-zinc-900/40 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+         <GlassCard className="rounded-2xl sm:rounded-[32px] border-border bg-surface/60 dark:bg-surface-secondary/40 shadow-sm overflow-hidden max-sm:-mx-4 max-sm:rounded-none max-sm:border-x-0">
+            <div className="p-5 sm:p-8 border-b border-border bg-surface/40 dark:bg-surface/40 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-surface dark:bg-zinc-800 border border-border shadow-sm text-stone-300 dark:text-stone-700">
+                  <div className="p-2 rounded-lg bg-surface dark:bg-surface-secondary border border-border shadow-sm text-stone-300 dark:text-stone-700">
                      <History className="h-4 w-4" />
                   </div>
                   <div>
                      <h3 className="text-base sm:text-lg font-black text-stone-900 dark:text-white tracking-tight leading-none">Transaction History</h3>
-                     <p className="text-[9px] sm:text-[10px] font-bold text-stone-400 dark:text-stone-500 uppercase tracking-widest mt-1.5 opacity-60">Recent account activity</p>
+                     <p className="text-[9px] sm:text-[10px] font-bold text-stone-400 dark:text-text-muted uppercase tracking-widest mt-1.5 opacity-60">Recent account activity</p>
                   </div>
                </div>
                <div className="flex gap-1 overflow-x-auto pb-1 items-center no-scrollbar">
@@ -163,8 +163,8 @@ export default function WalletDashboardPage() {
                        className={cn(
                          "px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest whitespace-nowrap transition-all border", 
                          activeTab === tab 
-                           ? "bg-stone-900 dark:bg-white dark:bg-zinc-900 border-transparent text-white dark:text-stone-900 dark:text-white shadow-sm active:scale-95" 
-                           : "bg-surface/60 dark:bg-zinc-800/60 border-border text-stone-400 dark:text-stone-500 hover:text-stone-900 dark:text-white dark:hover:text-white hover:bg-surface dark:hover:bg-zinc-700"
+                           ? "bg-stone-900 dark:bg-white dark:bg-surface border-transparent text-white dark:text-stone-900 dark:text-white shadow-sm active:scale-95" 
+                           : "bg-surface/60 dark:bg-surface-secondary/60 border-border text-stone-400 dark:text-text-muted hover:text-stone-900 dark:text-white dark:hover:text-white hover:bg-surface dark:hover:bg-zinc-700"
                        )}
                        onClick={() => setActiveTab(tab)}
                      >
@@ -177,11 +177,11 @@ export default function WalletDashboardPage() {
             <div className="overflow-x-auto">
                <table className="w-full text-left whitespace-nowrap">
                   <thead>
-                     <tr className="bg-surface/40 dark:bg-zinc-900/20 border-b border-border">
-                        <th className="px-4 sm:px-8 py-4 text-[9px] font-black uppercase tracking-widest text-stone-400 dark:text-stone-500">Description</th>
-                        <th className="px-4 sm:px-8 py-4 text-[9px] font-black uppercase tracking-widest text-stone-400 dark:text-stone-500">Date</th>
-                        <th className="px-4 sm:px-8 py-4 text-right text-[9px] font-black uppercase tracking-widest text-stone-400 dark:text-stone-500">Amount</th>
-                        <th className="px-4 sm:px-8 py-4 text-center text-[9px] font-black uppercase tracking-widest text-stone-400 dark:text-stone-500">Status</th>
+                     <tr className="bg-surface/40 dark:bg-surface/20 border-b border-border">
+                        <th className="px-4 sm:px-8 py-4 text-[9px] font-black uppercase tracking-widest text-stone-400 dark:text-text-muted">Description</th>
+                        <th className="px-4 sm:px-8 py-4 text-[9px] font-black uppercase tracking-widest text-stone-400 dark:text-text-muted">Date</th>
+                        <th className="px-4 sm:px-8 py-4 text-right text-[9px] font-black uppercase tracking-widest text-stone-400 dark:text-text-muted">Amount</th>
+                        <th className="px-4 sm:px-8 py-4 text-center text-[9px] font-black uppercase tracking-widest text-stone-400 dark:text-text-muted">Status</th>
                      </tr>
                   </thead>
                   <tbody className="divide-y divide-border/60">
@@ -200,7 +200,7 @@ export default function WalletDashboardPage() {
                                     "w-8 h-8 sm:w-9 sm:h-9 rounded-lg border flex items-center justify-center shrink-0 shadow-sm",
                                     tx.type === "vendor_earning" ? "bg-sky-500/10 border-sky-500/20 text-sky-600 dark:text-sky-400" :
                                     tx.type === "affiliate_commission" ? "bg-purple-500/10 border-purple-500/20 text-purple-600 dark:text-purple-400" :
-                                    "bg-surface dark:bg-zinc-800 border-border text-stone-400 dark:text-stone-500"
+                                    "bg-surface dark:bg-surface-secondary border-border text-stone-400 dark:text-text-muted"
                                   )}>
                                      {tx.type === "vendor_earning" ? <Store className="h-4 w-4" /> : 
                                       tx.type === "affiliate_commission" ? <Users className="h-4 w-4" /> :
@@ -214,7 +214,7 @@ export default function WalletDashboardPage() {
                                   </div>
                                </div>
                             </td>
-                            <td className="px-4 sm:px-8 py-5 text-[11px] font-black text-stone-400 dark:text-stone-500 tabular-nums">
+                            <td className="px-4 sm:px-8 py-5 text-[11px] font-black text-stone-400 dark:text-text-muted tabular-nums">
                                {new Date(tx.created_at).toLocaleDateString()}
                             </td>
                             <td className="px-4 sm:px-8 py-5 text-right">

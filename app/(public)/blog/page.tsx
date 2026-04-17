@@ -43,7 +43,7 @@ export default async function BlogListingPage() {
 
   return (
     <div className="bg-[var(--color-bg)] min-h-screen">
-      <section className="bg-white dark:bg-zinc-950 border-b border-[var(--color-border)] py-20 relative overflow-hidden">
+      <section className="bg-white dark:bg-bg border-b border-[var(--color-border)] py-20 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-1/3 h-full bg-gradient-to-l from-orange-50/50 to-transparent" />
         <div className="max-w-[var(--container-max)] mx-auto px-4 sm:px-6 relative z-10">
           <Badge className="bg-[var(--color-accent-light)] text-[var(--color-accent)] border-none mb-6 px-4 py-1.5 capitalize tracking-widest font-black text-[10px]">
@@ -115,7 +115,7 @@ export default async function BlogListingPage() {
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                   />
                   <div className="absolute top-2 left-2">
-                    <Badge className="bg-white dark:bg-zinc-900/80 backdrop-blur-md text-[var(--color-text-primary)] border-none text-[8px] font-black">
+                    <Badge className="bg-white dark:bg-surface/80 backdrop-blur-md text-[var(--color-text-primary)] border-none text-[8px] font-black">
                       {post.category}
                     </Badge>
                   </div>
@@ -166,7 +166,7 @@ export default async function BlogListingPage() {
                     <Button
                       variant="outline"
                       size="icon"
-                      className="h-8 w-8 rounded-full bg-white dark:bg-zinc-900/50 border-none backdrop-blur-md opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="h-8 w-8 rounded-full bg-white dark:bg-surface/50 border-none backdrop-blur-md opacity-0 group-hover:opacity-100 transition-opacity"
                       type="button"
                     >
                       <Bookmark className="h-4 w-4" />
@@ -174,7 +174,7 @@ export default async function BlogListingPage() {
                     <Button
                       variant="outline"
                       size="icon"
-                      className="h-8 w-8 rounded-full bg-white dark:bg-zinc-900/50 border-none backdrop-blur-md opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="h-8 w-8 rounded-full bg-white dark:bg-surface/50 border-none backdrop-blur-md opacity-0 group-hover:opacity-100 transition-opacity"
                       type="button"
                     >
                       <Share2 className="h-4 w-4" />
@@ -209,7 +209,7 @@ export default async function BlogListingPage() {
             <div className="flex flex-col sm:flex-row gap-4">
               <Input
                 placeholder="Enter your email address"
-                className="h-16 bg-white dark:bg-zinc-900/5 border-white/10 text-white placeholder:text-white/20 rounded-2xl px-6 text-lg"
+                className="h-16 bg-white dark:bg-surface/5 border-white/10 text-white placeholder:text-white/20 rounded-2xl px-6 text-lg"
               />
               <Button className="h-16 px-10 bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] font-black rounded-2xl text-lg">
                 Subscribe

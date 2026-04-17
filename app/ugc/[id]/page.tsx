@@ -34,7 +34,7 @@ const PLATFORM_META: Record<string, { icon: any; label: string }> = {
 /* ── tiny reusable section header ── */
 function SectionLabel({ children }: { children: React.ReactNode }) {
    return (
-      <p className="text-[10px] font-bold uppercase tracking-[0.18em] mb-3 text-stone-500 dark:text-stone-400">
+      <p className="text-[10px] font-bold uppercase tracking-[0.18em] mb-3 text-stone-500 dark:text-text-muted">
          {children}
       </p>
    );
@@ -49,7 +49,7 @@ function LightCard({
    className?: string;
 }) {
    return (
-      <div className={cn('rounded-2xl p-6 bg-surface dark:bg-zinc-900 border border-border shadow-sm', className)}>
+      <div className={cn('rounded-2xl p-6 bg-surface dark:bg-surface border border-border shadow-sm', className)}>
          {children}
       </div>
    );
@@ -87,7 +87,7 @@ export default function CampaignDetailPage() {
    /* ── Loading ── */
    if (loading) {
       return (
-         <div className="min-h-screen flex items-center justify-center bg-surface dark:bg-zinc-900">
+         <div className="min-h-screen flex items-center justify-center bg-surface dark:bg-surface">
             <div className="w-10 h-10 rounded-full border-2 border-t-orange-500 border-orange-500/20 animate-spin" />
          </div>
       );
@@ -96,7 +96,7 @@ export default function CampaignDetailPage() {
    /* ── Not found ── */
    if (!campaign) {
       return (
-         <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-surface dark:bg-zinc-900">
+         <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-surface dark:bg-surface">
             <p className="text-stone-900 dark:text-white font-black text-xl">Campaign not found</p>
             <Link href="/ugc" className="text-sm font-bold text-orange-500 hover:text-orange-600">
                ← Back to campaigns
@@ -126,14 +126,14 @@ export default function CampaignDetailPage() {
    }
 
    return (
-      <div className="min-h-screen pb-28 bg-surface dark:bg-zinc-900">
+      <div className="min-h-screen pb-28 bg-surface dark:bg-surface">
 
          {/* ══════════════════════════════════
           HERO BANNER
       ══════════════════════════════════ */}
-         <div className="relative w-full overflow-hidden h-[380px] bg-surface dark:bg-zinc-900">
+         <div className="relative w-full overflow-hidden h-[380px] bg-surface dark:bg-surface">
             {/* bg */}
-            <div className="absolute inset-0 bg-surface dark:bg-zinc-900" />
+            <div className="absolute inset-0 bg-surface dark:bg-surface" />
             {banner && (
                <Image
                   src={banner}
@@ -155,9 +155,9 @@ export default function CampaignDetailPage() {
                {/* Back nav */}
                <Link
                   href="/ugc"
-                  className="flex items-center gap-2 w-fit text-sm font-bold transition-opacity hover:opacity-70 text-stone-500 dark:text-stone-400"
+                  className="flex items-center gap-2 w-fit text-sm font-bold transition-opacity hover:opacity-70 text-stone-500 dark:text-text-muted"
                >
-                  <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-surface dark:bg-zinc-900 border border-border shadow-sm">
+                  <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-surface dark:bg-surface border border-border shadow-sm">
                      <ArrowLeft className="h-3.5 w-3.5 text-stone-900 dark:text-white" />
                   </div>
                   Back to Campaigns
@@ -199,7 +199,7 @@ export default function CampaignDetailPage() {
                            {campaign.title}
                         </h1>
 
-                        <p className="text-xs font-semibold flex items-center gap-1.5 text-stone-500 dark:text-stone-400">
+                        <p className="text-xs font-semibold flex items-center gap-1.5 text-stone-500 dark:text-text-muted">
                            by{' '}
                            <span className="text-stone-700 dark:text-stone-300">
                               {campaign.vendor?.business_name}
@@ -211,7 +211,7 @@ export default function CampaignDetailPage() {
 
                   {/* CTA buttons */}
                   <div className="flex items-center gap-3 flex-shrink-0">
-                     <button className="w-11 h-11 rounded-xl flex items-center justify-center transition-all bg-surface dark:bg-zinc-900 border border-border text-stone-500 shadow-sm hover:text-orange-500 hover:bg-stone-50 dark:hover:bg-zinc-800">
+                     <button className="w-11 h-11 rounded-xl flex items-center justify-center transition-all bg-surface dark:bg-surface border border-border text-stone-500 shadow-sm hover:text-orange-500 hover:bg-stone-50 dark:hover:bg-zinc-800">
                         <Share2 className="h-4 w-4" />
                      </button>
                      <Link
@@ -278,15 +278,15 @@ export default function CampaignDetailPage() {
                   ].map((stat) => (
                      <div
                         key={stat.label}
-                        className="rounded-2xl p-4 flex flex-col gap-1 bg-surface dark:bg-zinc-900 border border-border shadow-sm"
+                        className="rounded-2xl p-4 flex flex-col gap-1 bg-surface dark:bg-surface border border-border shadow-sm"
                      >
-                        <p className="text-[9px] font-bold uppercase tracking-widest text-stone-500 dark:text-stone-400">
+                        <p className="text-[9px] font-bold uppercase tracking-widest text-stone-500 dark:text-text-muted">
                            {stat.label}
                         </p>
                         <p className={cn("text-2xl font-black tracking-tighter", stat.accent)}>
                            {stat.value}
                         </p>
-                        <p className="text-[10px] text-stone-400 dark:text-stone-500">
+                        <p className="text-[10px] text-stone-400 dark:text-text-muted">
                            {stat.sub}
                         </p>
                      </div>
@@ -297,18 +297,18 @@ export default function CampaignDetailPage() {
                <LightCard>
                   <div className="flex items-center justify-between mb-3">
                      <SectionLabel>Budget Usage</SectionLabel>
-                     <span className="text-xs font-bold text-stone-500 dark:text-stone-400">
+                     <span className="text-xs font-bold text-stone-500 dark:text-text-muted">
                         {formatMoney(campaign.spent_budget ?? 0, 'USD')} /{' '}
                         {formatMoney(campaign.total_budget, 'USD')}
                      </span>
                   </div>
-                  <div className="h-2 w-full rounded-full overflow-hidden bg-stone-100 dark:bg-zinc-800">
+                  <div className="h-2 w-full rounded-full overflow-hidden bg-stone-100 dark:bg-surface-secondary">
                      <div
                         className="h-full rounded-full transition-all duration-1000 bg-gradient-to-r from-orange-500 to-orange-400"
                         style={{ width: `${budgetPct}%` }}
                      />
                   </div>
-                  <p className="text-[10px] font-bold mt-2 text-stone-400 dark:text-stone-500">
+                  <p className="text-[10px] font-bold mt-2 text-stone-400 dark:text-text-muted">
                      {Math.round(budgetPct)}% of budget allocated
                   </p>
                </LightCard>
@@ -327,10 +327,10 @@ export default function CampaignDetailPage() {
                            {/* Duration */}
                            {(campaign.min_duration || campaign.max_duration) && (
                               <div>
-                                 <p className="text-[10px] font-bold uppercase tracking-widest mb-2 text-stone-500 dark:text-stone-400">
+                                 <p className="text-[10px] font-bold uppercase tracking-widest mb-2 text-stone-500 dark:text-text-muted">
                                     Duration
                                  </p>
-                                 <div className="inline-flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-sm font-bold text-stone-900 dark:text-white bg-surface dark:bg-zinc-900 border border-border">
+                                 <div className="inline-flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-sm font-bold text-stone-900 dark:text-white bg-surface dark:bg-surface border border-border">
                                     <Calendar className="h-4 w-4 text-orange-500" />
                                     {campaign.min_duration ?? 0}s — {campaign.max_duration ?? '∞'}s
                                  </div>
@@ -340,7 +340,7 @@ export default function CampaignDetailPage() {
                            {/* Music track */}
                            {campaign.campaign_type === 'music_clipping' && campaign.music_track_url && (
                               <div>
-                                 <p className="text-[10px] font-bold uppercase tracking-widest mb-2 text-stone-500 dark:text-stone-400">
+                                 <p className="text-[10px] font-bold uppercase tracking-widest mb-2 text-stone-500 dark:text-text-muted">
                                     Required Audio
                                  </p>
                                  <a
@@ -348,7 +348,7 @@ export default function CampaignDetailPage() {
                                     target="_blank"
                                     className="flex items-center gap-3 p-3 rounded-xl transition-all hover:bg-orange-500/10 bg-orange-500/5 border border-orange-500/20"
                                  >
-                                    <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 bg-surface dark:bg-zinc-900 border border-orange-500/20">
+                                    <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 bg-surface dark:bg-surface border border-orange-500/20">
                                        <Music className="h-4 w-4 text-orange-500" />
                                     </div>
                                     <div>
@@ -364,7 +364,7 @@ export default function CampaignDetailPage() {
                            {/* Promotion target */}
                            {campaign.campaign_type === 'promotion' && campaign.promotion_target && (
                               <div>
-                                 <p className="text-[10px] font-bold uppercase tracking-widest mb-2 text-stone-500 dark:text-stone-400">
+                                 <p className="text-[10px] font-bold uppercase tracking-widest mb-2 text-stone-500 dark:text-text-muted">
                                     Promotion Target
                                  </p>
                                  <a
@@ -389,7 +389,7 @@ export default function CampaignDetailPage() {
                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     {(campaign.required_hashtags?.length ?? 0) > 0 && (
                                        <div>
-                                          <p className="text-[10px] font-bold uppercase tracking-widest mb-2 text-stone-500 dark:text-stone-400">
+                                          <p className="text-[10px] font-bold uppercase tracking-widest mb-2 text-stone-500 dark:text-text-muted">
                                              Hashtags
                                           </p>
                                           <div className="flex flex-wrap gap-2">
@@ -406,14 +406,14 @@ export default function CampaignDetailPage() {
                                     )}
                                     {(campaign.required_mentions?.length ?? 0) > 0 && (
                                        <div>
-                                          <p className="text-[10px] font-bold uppercase tracking-widest mb-2 text-stone-500 dark:text-stone-400">
+                                          <p className="text-[10px] font-bold uppercase tracking-widest mb-2 text-stone-500 dark:text-text-muted">
                                              Mentions
                                           </p>
                                           <div className="flex flex-wrap gap-2">
                                              {campaign.required_mentions.map((m, i) => (
                                                 <span
                                                    key={i}
-                                                   className="px-3 py-1.5 rounded-xl text-xs font-bold text-stone-900 dark:text-white bg-surface dark:bg-zinc-900 border border-border"
+                                                   className="px-3 py-1.5 rounded-xl text-xs font-bold text-stone-900 dark:text-white bg-surface dark:bg-surface border border-border"
                                                 >
                                                    @{m.replace(/^@/, '')}
                                                 </span>
@@ -427,7 +427,7 @@ export default function CampaignDetailPage() {
                            {/* Keywords */}
                            {(campaign.required_keywords?.length ?? 0) > 0 && (
                               <div>
-                                 <p className="text-[10px] font-bold uppercase tracking-widest mb-2 text-stone-500 dark:text-stone-400">
+                                 <p className="text-[10px] font-bold uppercase tracking-widest mb-2 text-stone-500 dark:text-text-muted">
                                     Keywords
                                  </p>
                                  <div className="flex flex-wrap gap-2">
@@ -447,7 +447,7 @@ export default function CampaignDetailPage() {
                            {/* Legacy text guidelines */}
                            {campaign.content_guidelines && (
                               <div className="pt-4 mt-2 border-t border-border">
-                                 <p className="text-[10px] font-bold uppercase tracking-widest mb-2 text-stone-500 dark:text-stone-400">
+                                 <p className="text-[10px] font-bold uppercase tracking-widest mb-2 text-stone-500 dark:text-text-muted">
                                     Specific Guidelines
                                  </p>
                                  <p className="text-sm leading-relaxed whitespace-pre-line font-medium text-stone-600 dark:text-stone-300">
@@ -468,12 +468,12 @@ export default function CampaignDetailPage() {
                            <button
                               key={i}
                               onClick={() => setActiveVideo(m.url)}
-                              className="group relative overflow-hidden rounded-2xl w-full text-left bg-surface dark:bg-zinc-900 border border-border"
+                              className="group relative overflow-hidden rounded-2xl w-full text-left bg-surface dark:bg-surface border border-border"
                               style={{ aspectRatio: '16/9' }}
                            >
                               <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent z-10" />
                               <div className="absolute inset-0 flex items-center justify-center z-20">
-                                 <div className="w-12 h-12 rounded-full flex items-center justify-center transition-transform group-hover:scale-110 shadow-lg bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md">
+                                 <div className="w-12 h-12 rounded-full flex items-center justify-center transition-transform group-hover:scale-110 shadow-lg bg-white/90 dark:bg-surface/90 backdrop-blur-md">
                                     <Play className="h-5 w-5 text-stone-900 dark:text-white fill-stone-900 dark:fill-white" />
                                  </div>
                               </div>
@@ -491,11 +491,11 @@ export default function CampaignDetailPage() {
             <div className="space-y-4">
 
                {/* Payout card */}
-               <div className="rounded-2xl p-6 relative overflow-hidden bg-surface dark:bg-zinc-900 border border-orange-500/20 shadow-sm">
+               <div className="rounded-2xl p-6 relative overflow-hidden bg-surface dark:bg-surface border border-orange-500/20 shadow-sm">
                   {/* Glow */}
                   <div className="absolute top-0 right-0 w-40 h-40 pointer-events-none rounded-full bg-orange-500/10 blur-[20px]" />
                   <div className="relative z-10">
-                     <p className="text-[9px] font-bold uppercase tracking-widest mb-1 text-stone-500 dark:text-stone-400">
+                     <p className="text-[9px] font-bold uppercase tracking-widest mb-1 text-stone-500 dark:text-text-muted">
                         {campaign.payment_model === 'fixed_per_content'
                            ? 'Fixed Reward'
                            : 'Earn per 1K views'}
@@ -506,7 +506,7 @@ export default function CampaignDetailPage() {
                               ? formatMoney(campaign.fixed_rate ?? 0, 'USD')
                               : formatMoney(campaign.rate_per_1k_views, 'USD')}
                         </span>
-                        <span className="text-sm font-medium text-stone-500 dark:text-stone-400">
+                        <span className="text-sm font-medium text-stone-500 dark:text-text-muted">
                            {campaign.payment_model === 'fixed_per_content'
                               ? '/ submission'
                               : '/ 1K views'}
@@ -514,7 +514,7 @@ export default function CampaignDetailPage() {
                      </div>
 
                      {campaign.max_payout_per_sub && (
-                        <div className="flex items-center gap-2 px-3 py-2 rounded-xl mt-3 mb-5 bg-surface dark:bg-zinc-800 border border-border">
+                        <div className="flex items-center gap-2 px-3 py-2 rounded-xl mt-3 mb-5 bg-surface dark:bg-surface-secondary border border-border">
                            <span className="w-1.5 h-1.5 rounded-full flex-shrink-0 bg-orange-500" />
                            <p className="text-[11px] font-bold text-stone-600 dark:text-stone-300">
                               Max {formatMoney(campaign.max_payout_per_sub, 'USD')} / submission
@@ -531,7 +531,7 @@ export default function CampaignDetailPage() {
                            <ArrowUpRight className="h-4 w-4" />
                         </Link>
                      ) : (
-                        <div className="w-full py-3.5 mt-4 text-center rounded-xl text-sm font-black uppercase tracking-widest bg-stone-100 dark:bg-zinc-800 border border-border text-stone-500 dark:text-stone-400">
+                        <div className="w-full py-3.5 mt-4 text-center rounded-xl text-sm font-black uppercase tracking-widest bg-stone-100 dark:bg-surface-secondary border border-border text-stone-500 dark:text-text-muted">
                            Campaign {campaign.status}
                         </div>
                      )}
@@ -547,11 +547,11 @@ export default function CampaignDetailPage() {
                         return (
                            <div
                               key={p}
-                              className="flex items-center justify-between px-3 py-2.5 rounded-xl transition-colors hover:bg-stone-50 dark:hover:bg-zinc-800/50 bg-surface dark:bg-zinc-900 border border-border"
+                              className="flex items-center justify-between px-3 py-2.5 rounded-xl transition-colors hover:bg-stone-50 dark:hover:bg-zinc-800/50 bg-surface dark:bg-surface border border-border"
                            >
                               <div className="flex items-center gap-3">
-                                 <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-surface dark:bg-zinc-900 border border-border">
-                                    <meta.icon className="h-4 w-4 text-stone-500 dark:text-stone-400" />
+                                 <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-surface dark:bg-surface border border-border">
+                                    <meta.icon className="h-4 w-4 text-stone-500 dark:text-text-muted" />
                                  </div>
                                  <span className="text-sm font-bold text-stone-900 dark:text-white">{meta.label}</span>
                               </div>
@@ -578,7 +578,7 @@ export default function CampaignDetailPage() {
                      <div className="space-y-3">
                         {campaign.starts_at && (
                            <div className="flex items-center justify-between">
-                              <span className="text-xs font-bold uppercase tracking-wide text-stone-500 dark:text-stone-400">
+                              <span className="text-xs font-bold uppercase tracking-wide text-stone-500 dark:text-text-muted">
                                  Starts
                               </span>
                               <span className="text-sm font-black text-stone-900 dark:text-white">
@@ -588,7 +588,7 @@ export default function CampaignDetailPage() {
                         )}
                         {campaign.ends_at && (
                            <div className="flex items-center justify-between">
-                              <span className="text-xs font-bold uppercase tracking-wide text-stone-500 dark:text-stone-400">
+                              <span className="text-xs font-bold uppercase tracking-wide text-stone-500 dark:text-text-muted">
                                  Ends
                               </span>
                               <span className="text-sm font-black text-stone-900 dark:text-white">

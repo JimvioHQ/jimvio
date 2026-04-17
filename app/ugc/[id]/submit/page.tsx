@@ -7,7 +7,7 @@ import { ArrowLeft, CheckCircle, Globe, Video, Instagram, Twitter, AlertCircle }
 import { Button } from '@/components/ui/button';
 
 const PLATFORMS = [
-  { id: 'tiktok', name: 'TikTok', icon: Video, color: 'text-zinc-900 dark:text-white border-zinc-200 dark:border-zinc-800 hover:border-zinc-900' },
+  { id: 'tiktok', name: 'TikTok', icon: Video, color: 'text-zinc-900 dark:text-white border-zinc-200 dark:border-border hover:border-zinc-900' },
   { id: 'instagram', name: 'Instagram', icon: Instagram, color: 'text-orange-500 border-orange-200 hover:border-orange-500' },
   { id: 'youtube', name: 'YouTube', icon: Globe, color: 'text-red-500 border-red-200 hover:border-red-500' },
   { id: 'x', name: 'X / Twitter', icon: Twitter, color: 'text-blue-500 border-blue-200 hover:border-blue-500' }
@@ -82,15 +82,15 @@ export default function PublicUGCSubmitPage() {
     <div className="max-w-3xl mx-auto space-y-8 animate-fade-in pb-20 mt-10">
       <div className="flex items-center justify-between">
          <Link href={`/ugc/${id}`} className="group flex items-center gap-2 text-zinc-500 hover:text-zinc-900 dark:text-white font-black text-sm transition-all w-fit mb-4">
-           <div className="h-8 w-8 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 flex items-center justify-center group-hover:bg-zinc-50 dark:bg-zinc-900/50 shadow-sm">
+           <div className="h-8 w-8 rounded-xl bg-white dark:bg-surface border border-zinc-100 dark:border-border flex items-center justify-center group-hover:bg-zinc-50 dark:bg-surface/50 shadow-sm">
               <ArrowLeft className="h-4 w-4" />
            </div>
            Back to Campaign
          </Link>
       </div>
 
-      <div className="bg-white dark:bg-zinc-900 rounded-[40px] border border-zinc-100 dark:border-zinc-800 shadow-xl overflow-hidden">
-         <div className="p-8 border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50">
+      <div className="bg-white dark:bg-surface rounded-[40px] border border-zinc-100 dark:border-border shadow-xl overflow-hidden">
+         <div className="p-8 border-b border-zinc-100 dark:border-border bg-zinc-50 dark:bg-surface/50">
             <h1 className="text-2xl font-black text-zinc-900 dark:text-white">Submit Your Content</h1>
             <p className="text-sm text-zinc-500 font-medium mt-1">Upload your live social media link for review and tracking.</p>
          </div>
@@ -112,8 +112,8 @@ export default function PublicUGCSubmitPage() {
                        onClick={() => setPlatform(p.id)}
                        className={`flex flex-col items-center justify-center p-6 rounded-3xl border-2 cursor-pointer transition-all ${
                          platform === p.id 
-                           ? `bg-zinc-50 dark:bg-zinc-900/50 border-orange-500 ring-4 ring-orange-100 shadow-md` 
-                           : `${p.color} bg-white dark:bg-zinc-900 opacity-60 hover:opacity-100`
+                           ? `bg-zinc-50 dark:bg-surface/50 border-orange-500 ring-4 ring-orange-100 shadow-md` 
+                           : `${p.color} bg-white dark:bg-surface opacity-60 hover:opacity-100`
                        }`}
                      >
                         <p.icon className={`h-8 w-8 mb-3 ${platform === p.id ? 'text-orange-500' : ''}`} />
@@ -130,7 +130,7 @@ export default function PublicUGCSubmitPage() {
                  value={postUrl}
                  onChange={(e) => setPostUrl(e.target.value)}
                  placeholder="e.g. https://www.tiktok.com/@user/video/123456"
-                 className="w-full h-14 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-2xl px-4 text-sm font-medium text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all"
+                 className="w-full h-14 bg-zinc-50 dark:bg-surface/50 border border-zinc-200 dark:border-border rounded-2xl px-4 text-sm font-medium text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all"
                  required
                />
                <p className="text-[11px] text-zinc-500 font-bold uppercase">Must be a publicly accessible live link.</p>
@@ -145,11 +145,11 @@ export default function PublicUGCSubmitPage() {
                  onChange={(e) => setCaption(e.target.value)}
                  rows={3}
                  placeholder="Any extra context for the brand..."
-                 className="w-full bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-2xl px-4 py-4 text-sm font-medium text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all resize-none"
+                 className="w-full bg-zinc-50 dark:bg-surface/50 border border-zinc-200 dark:border-border rounded-2xl px-4 py-4 text-sm font-medium text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all resize-none"
                />
             </div>
 
-            <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800">
+            <div className="pt-4 border-t border-zinc-100 dark:border-border">
                <Button 
                  type="submit" 
                  disabled={loading || !platform || !postUrl}

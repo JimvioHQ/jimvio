@@ -43,7 +43,7 @@ export function HeroRightPanel({ profile }: HeroRightPanelProps) {
 
       {/* ── Main card ── */}
       <div
-        className="rounded-2xl border border-white/50 bg-white dark:bg-zinc-900/50 p-4 shadow-[0_8px_32px_-12px_rgba(26,20,40,0.16)] ring-1 ring-white/40 backdrop-blur-2xl"
+        className="rounded-2xl border border-white/50 bg-white dark:bg-surface/50 p-4 shadow-[0_8px_32px_-12px_rgba(26,20,40,0.16)] ring-1 ring-white/40 backdrop-blur-2xl"
         style={{ boxShadow: "inset 0 1px 0 rgba(255,255,255,0.6), 0 8px 32px -12px rgba(26,20,40,0.16)" }}
       >
         {isLoggedIn ? (
@@ -52,7 +52,7 @@ export function HeroRightPanel({ profile }: HeroRightPanelProps) {
             <p className="text-[11px] text-zinc-400 mb-3 font-medium">Continue your sourcing and growth.</p>
 
             {/* User row */}
-            <div className="flex items-center gap-2.5 mb-3 p-2.5 bg-zinc-50/80 rounded-xl border border-zinc-100 dark:border-zinc-800">
+            <div className="flex items-center gap-2.5 mb-3 p-2.5 bg-zinc-50/80 rounded-xl border border-zinc-100 dark:border-border">
               <Avatar className="h-9 w-9 border border-orange-200/40 shrink-0">
                 <AvatarImage src={profile?.avatar_url ?? undefined} />
                 <AvatarFallback className="bg-orange-500 text-white text-[11px] font-bold">
@@ -80,14 +80,14 @@ export function HeroRightPanel({ profile }: HeroRightPanelProps) {
             <div className="grid grid-cols-2 gap-1.5 mb-2">
               <Link
                 href="/dashboard/orders"
-                className="flex items-center justify-center gap-1 py-2 border border-zinc-100 dark:border-zinc-800 rounded-lg hover:bg-orange-50 hover:border-orange-200 transition-all font-bold text-[11px] text-zinc-700 dark:text-zinc-300"
+                className="flex items-center justify-center gap-1 py-2 border border-zinc-100 dark:border-border rounded-lg hover:bg-orange-50 hover:border-orange-200 transition-all font-bold text-[11px] text-zinc-700 dark:text-zinc-300"
               >
                 <ShoppingBag className="h-3 w-3" />
                 Orders
               </Link>
               <Link
                 href="/dashboard/settings"
-                className="flex items-center justify-center gap-1 py-2 border border-zinc-100 dark:border-zinc-800 rounded-lg hover:bg-orange-50 hover:border-orange-200 transition-all font-bold text-[11px] text-zinc-700 dark:text-zinc-300"
+                className="flex items-center justify-center gap-1 py-2 border border-zinc-100 dark:border-border rounded-lg hover:bg-orange-50 hover:border-orange-200 transition-all font-bold text-[11px] text-zinc-700 dark:text-zinc-300"
               >
                 <Settings className="h-3 w-3" />
                 Settings
@@ -98,7 +98,7 @@ export function HeroRightPanel({ profile }: HeroRightPanelProps) {
             <form action={signOut}>
               <button
                 type="submit"
-                className="flex items-center justify-center gap-1.5 w-full py-2 border border-zinc-100 dark:border-zinc-800 rounded-lg hover:bg-zinc-50 dark:bg-zinc-900/50 text-[11px] font-bold text-zinc-400 transition-all"
+                className="flex items-center justify-center gap-1.5 w-full py-2 border border-zinc-100 dark:border-border rounded-lg hover:bg-zinc-50 dark:bg-surface/50 text-[11px] font-bold text-zinc-400 transition-all"
               >
                 <LogOut className="h-3 w-3" />
                 Sign out
@@ -126,7 +126,7 @@ export function HeroRightPanel({ profile }: HeroRightPanelProps) {
 
             {/* Divider */}
             <div className="relative text-center text-[9px] text-zinc-300 font-black uppercase tracking-[0.18em] my-3">
-              <span className="relative z-10 bg-white dark:bg-zinc-900/80 px-2.5">or access with</span>
+              <span className="relative z-10 bg-white dark:bg-surface/80 px-2.5">or access with</span>
               <div className="absolute inset-x-0 top-1/2 h-px bg-zinc-100" />
             </div>
 
@@ -135,14 +135,14 @@ export function HeroRightPanel({ profile }: HeroRightPanelProps) {
               <form action={signInWithGoogle}>
                 <button
                   type="submit"
-                  className="flex items-center justify-center gap-1.5 w-full py-2 border border-zinc-100 dark:border-zinc-800 rounded-lg hover:bg-zinc-50 dark:bg-zinc-900/50 hover:border-orange-200 transition-all font-bold text-[11px] text-zinc-700 dark:text-zinc-300"
+                  className="flex items-center justify-center gap-1.5 w-full py-2 border border-zinc-100 dark:border-border rounded-lg hover:bg-zinc-50 dark:bg-surface/50 hover:border-orange-200 transition-all font-bold text-[11px] text-zinc-700 dark:text-zinc-300"
                 >
                   <GoogleIcon /> Google
                 </button>
               </form>
               <Link
                 href="/login"
-                className="flex items-center justify-center gap-1.5 w-full py-2 border border-zinc-100 dark:border-zinc-800 rounded-lg hover:bg-zinc-50 dark:bg-zinc-900/50 hover:border-orange-200 transition-all font-bold text-[11px] text-zinc-700 dark:text-zinc-300"
+                className="flex items-center justify-center gap-1.5 w-full py-2 border border-zinc-100 dark:border-border rounded-lg hover:bg-zinc-50 dark:bg-surface/50 hover:border-orange-200 transition-all font-bold text-[11px] text-zinc-700 dark:text-zinc-300"
               >
                 <Linkedin className="h-3.5 w-3.5 text-[#0077b5]" /> LinkedIn
               </Link>
@@ -155,22 +155,22 @@ export function HeroRightPanel({ profile }: HeroRightPanelProps) {
       <div className="grid grid-cols-2 gap-2">
         <Link
           href={isLoggedIn ? "/dashboard/vendor/setup" : "/register?role=vendor"}
-          className="group rounded-xl border border-white/50 bg-white dark:bg-zinc-900/45 p-3.5 text-center shadow-sm ring-1 ring-white/30 backdrop-blur-xl transition-all hover:border-orange-300/50 hover:bg-orange-50/70 hover:shadow-md"
+          className="group rounded-xl border border-white/50 bg-white dark:bg-surface/45 p-3.5 text-center shadow-sm ring-1 ring-white/30 backdrop-blur-xl transition-all hover:border-orange-300/50 hover:bg-orange-50/70 hover:shadow-md"
           style={{ boxShadow: "inset 0 1px 0 rgba(255,255,255,0.55)" }}
         >
           <Factory className="h-5 w-5 text-orange-500 mx-auto mb-1.5 transition-transform group-hover:scale-110" />
-          <div className="text-[11px] font-black text-zinc-800 dark:text-zinc-200 mb-0.5">Supplier Store</div>
+          <div className="text-[11px] font-black text-zinc-800 dark:text-text-secondary mb-0.5">Supplier Store</div>
           <div className="text-[9px] text-orange-500 font-black uppercase tracking-widest flex items-center justify-center gap-0.5">
             Start <ChevronRight className="h-2.5 w-2.5" />
           </div>
         </Link>
         <Link
           href="/requests/new"
-          className="group rounded-xl border border-white/50 bg-white dark:bg-zinc-900/45 p-3.5 text-center shadow-sm ring-1 ring-white/30 backdrop-blur-xl transition-all hover:border-orange-300/50 hover:bg-orange-50/70 hover:shadow-md"
+          className="group rounded-xl border border-white/50 bg-white dark:bg-surface/45 p-3.5 text-center shadow-sm ring-1 ring-white/30 backdrop-blur-xl transition-all hover:border-orange-300/50 hover:bg-orange-50/70 hover:shadow-md"
           style={{ boxShadow: "inset 0 1px 0 rgba(255,255,255,0.55)" }}
         >
           <Megaphone className="h-5 w-5 text-orange-500 mx-auto mb-1.5 transition-transform group-hover:scale-110" />
-          <div className="text-[11px] font-black text-zinc-800 dark:text-zinc-200 mb-0.5">Post Lead</div>
+          <div className="text-[11px] font-black text-zinc-800 dark:text-text-secondary mb-0.5">Post Lead</div>
           <div className="text-[9px] text-orange-500 font-black uppercase tracking-widest flex items-center justify-center gap-0.5">
             Quotes <ChevronRight className="h-2.5 w-2.5" />
           </div>
@@ -191,7 +191,7 @@ export function HeroRightPanel({ profile }: HeroRightPanelProps) {
         </div>
 
         <div className="relative z-10 flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-white dark:bg-zinc-900/10 flex items-center justify-center text-white font-black text-[16px] group-hover:scale-110 transition-transform ring-2 ring-white/10 shrink-0">
+          <div className="w-8 h-8 rounded-full bg-white dark:bg-surface/10 flex items-center justify-center text-white font-black text-[16px] group-hover:scale-110 transition-transform ring-2 ring-white/10 shrink-0">
             $
           </div>
           <div className="flex-1 min-w-0">
@@ -200,7 +200,7 @@ export function HeroRightPanel({ profile }: HeroRightPanelProps) {
             </h5>
             <p className="text-[10px] text-white/60 font-bold">Uncapped Commissions</p>
           </div>
-          <div className="bg-white dark:bg-zinc-900/15 backdrop-blur-md text-white text-[10px] font-black px-2 py-0.5 rounded border border-white/10 shrink-0">
+          <div className="bg-white dark:bg-surface/15 backdrop-blur-md text-white text-[10px] font-black px-2 py-0.5 rounded border border-white/10 shrink-0">
             12%
           </div>
         </div>

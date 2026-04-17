@@ -29,7 +29,7 @@ export default async function InfluencerProfilePage({ params }: PageProps) {
   return (
     <div className="min-h-screen bg-[var(--color-bg)]">
       {/* Profile header — TikTok-style */}
-      <div className="bg-white dark:bg-zinc-900 border-b border-[var(--color-border)]">
+      <div className="bg-white dark:bg-surface border-b border-[var(--color-border)]">
         <div className="max-w-[900px] mx-auto px-4 py-8">
           <div className="flex flex-col sm:flex-row gap-6 items-start">
             <div className="shrink-0">
@@ -112,7 +112,7 @@ export default async function InfluencerProfilePage({ params }: PageProps) {
                     <Link
                       key={p.id}
                       href={`/marketplace/${p.slug}`}
-                      className="bg-white dark:bg-zinc-900 border border-[var(--color-border)] rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all"
+                      className="bg-white dark:bg-surface border border-[var(--color-border)] rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all"
                     >
                       <div className="aspect-square bg-[var(--color-surface-secondary)] relative">
                         {p.images?.[0] ? (
@@ -145,7 +145,7 @@ export default async function InfluencerProfilePage({ params }: PageProps) {
 
           <TabsContent value="about" className="mt-0">
             <div className="max-w-[900px] mx-auto p-4">
-              <div className="bg-white dark:bg-zinc-900 border border-[var(--color-border)] rounded-2xl p-6">
+              <div className="bg-white dark:bg-surface border border-[var(--color-border)] rounded-2xl p-6">
                 <h3 className="font-black text-[var(--color-text-primary)] mb-3">About</h3>
                 <p className="text-[var(--color-text-secondary)] leading-relaxed">
                   {vendor.business_description || `${vendor.business_name} is a verified creator and supplier on Jimvio. Browse videos and products above.`}

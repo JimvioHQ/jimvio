@@ -117,7 +117,7 @@ export default function OrderDetailPage() {
     >
       <div className="max-w-6xl mx-auto space-y-6 px-4 sm:px-6 pt-5">
       <div className="flex items-center gap-4">
-        <Button variant="outline" size="icon" className="h-10 w-10 border border-white/80 rounded-[14px] bg-white dark:bg-zinc-900 text-stone-600 shadow-[inset_0_1px_4px_rgba(0,0,0,0.02)] active:scale-95 transition-all hover:bg-stone-50 dark:bg-zinc-900/50" asChild>
+        <Button variant="outline" size="icon" className="h-10 w-10 border border-white/80 rounded-[14px] bg-white dark:bg-surface text-stone-600 shadow-[inset_0_1px_4px_rgba(0,0,0,0.02)] active:scale-95 transition-all hover:bg-stone-50 dark:bg-surface/50" asChild>
           <Link href="/dashboard/orders"><ArrowLeft className="h-5 w-5" /></Link>
         </Button>
         <div>
@@ -128,7 +128,7 @@ export default function OrderDetailPage() {
       </div>
 
       {/* Order Status Timeline */}
-      <GlassCard className="bg-white dark:bg-zinc-900/40 border-dashed border-white/80">
+      <GlassCard className="bg-white dark:bg-surface/40 border-dashed border-white/80">
         <div className="p-6 sm:px-8 py-8">
           <div className="relative flex justify-between">
             <div className="absolute top-5 left-8 right-8 h-1 bg-stone-200/50 -z-0 rounded-full overflow-hidden shadow-inner">
@@ -163,8 +163,8 @@ export default function OrderDetailPage() {
                   <div className={cn(
                     "w-12 h-12 rounded-[16px] flex items-center justify-center transition-all duration-500 border border-white/80",
                     isPast && "bg-emerald-500 border-emerald-400 text-white shadow-[0_4px_16px_rgba(16,185,129,0.3)] inset-0",
-                    isCurrent && "bg-white dark:bg-zinc-900 border-sky-400 text-sky-500 shadow-[0_4px_24px_rgba(14,165,233,0.2)]",
-                    isFuture && "bg-white dark:bg-zinc-900/60 border-stone-200 dark:border-zinc-800 text-stone-300 shadow-sm"
+                    isCurrent && "bg-white dark:bg-surface border-sky-400 text-sky-500 shadow-[0_4px_24px_rgba(14,165,233,0.2)]",
+                    isFuture && "bg-white dark:bg-surface/60 border-stone-200 dark:border-border text-stone-300 shadow-sm"
                   )}>
                     {isPast ? <CheckCircle className="h-6 w-6" /> : step.icon}
                   </div>
@@ -185,8 +185,8 @@ export default function OrderDetailPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
-          <GlassCard className="bg-white dark:bg-zinc-900/40 overflow-hidden">
-            <div className="border-b border-stone-200/50 bg-white dark:bg-zinc-900/40 pb-3 py-4 px-6">
+          <GlassCard className="bg-white dark:bg-surface/40 overflow-hidden">
+            <div className="border-b border-stone-200/50 bg-white dark:bg-surface/40 pb-3 py-4 px-6">
               <h3 className="text-[14px] font-bold text-stone-900 dark:text-white flex items-center gap-2">
                 <ShoppingBag className="h-4 w-4 text-orange-500" /> 
                 Order Items ({items.length})
@@ -195,8 +195,8 @@ export default function OrderDetailPage() {
             <div className="p-0">
               <ul className="divide-y divide-stone-200/50">
                 {items.map((item: any) => (
-                  <li key={item.id} className="flex items-center gap-4 p-5 hover:bg-white dark:bg-zinc-900/60 transition-colors">
-                    <div className="h-16 w-16 rounded-[16px] overflow-hidden border border-white/80 shrink-0 bg-white dark:bg-zinc-900 shadow-[inset_0_1px_4px_rgba(0,0,0,0.03)] flex items-center justify-center">
+                  <li key={item.id} className="flex items-center gap-4 p-5 hover:bg-white dark:bg-surface/60 transition-colors">
+                    <div className="h-16 w-16 rounded-[16px] overflow-hidden border border-white/80 shrink-0 bg-white dark:bg-surface shadow-[inset_0_1px_4px_rgba(0,0,0,0.03)] flex items-center justify-center">
                       {item.product_image ? (
                         <img src={item.product_image} alt="" className="h-full w-full object-cover rounded-[14px]" />
                       ) : (
@@ -235,7 +235,7 @@ export default function OrderDetailPage() {
         </div>
 
         <div>
-          <GlassCard className="bg-white dark:bg-zinc-900/40">
+          <GlassCard className="bg-white dark:bg-surface/40">
             <div className="p-5 pb-0">
               <h3 className="text-[14px] font-bold text-stone-900 dark:text-white tracking-tight">Summary</h3>
             </div>
@@ -282,12 +282,12 @@ export default function OrderDetailPage() {
                    </Button>
                  )}
 
-                 <Button className="w-full justify-start gap-3 rounded-[14px] h-11 font-bold shadow-[0_4px_16px_rgba(0,0,0,0.03)] border-white/80 bg-white dark:bg-zinc-900 hover:bg-stone-50 dark:bg-zinc-900/50 text-[11px] uppercase tracking-widest text-stone-600" asChild>
+                 <Button className="w-full justify-start gap-3 rounded-[14px] h-11 font-bold shadow-[0_4px_16px_rgba(0,0,0,0.03)] border-white/80 bg-white dark:bg-surface hover:bg-stone-50 dark:bg-surface/50 text-[11px] uppercase tracking-widest text-stone-600" asChild>
                     <Link href={`/dashboard/messages?vendor=${items[0]?.vendor_id}`}>
                       <MessageSquare className="h-4 w-4" /> Contact Vendor
                     </Link>
                  </Button>
-                 <Button className="w-full justify-start gap-3 rounded-[14px] h-11 font-bold border-white/80 shadow-[inset_0_1px_4px_rgba(255,255,255,1)] bg-white dark:bg-zinc-900/60 hover:bg-white dark:bg-zinc-900 transition-all text-[11px] uppercase tracking-widest text-stone-600" onClick={() => window.print()}>
+                 <Button className="w-full justify-start gap-3 rounded-[14px] h-11 font-bold border-white/80 shadow-[inset_0_1px_4px_rgba(255,255,255,1)] bg-white dark:bg-surface/60 hover:bg-white dark:bg-surface transition-all text-[11px] uppercase tracking-widest text-stone-600" onClick={() => window.print()}>
                     <Download className="h-4 w-4" /> Download Invoice
                  </Button>
                </div>

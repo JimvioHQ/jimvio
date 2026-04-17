@@ -32,9 +32,9 @@ export default function HelpCenterPage() {
   ];
 
   return (
-    <div className="bg-zinc-50 dark:bg-zinc-900/50 min-h-screen selection:bg-[#f97316]/20">
+    <div className="bg-zinc-50 dark:bg-surface/50 min-h-screen selection:bg-[#f97316]/20">
       {/* GLOSSY HEADER SECTION */}
-      <section className="relative pt-32 pb-44 overflow-hidden bg-white dark:bg-zinc-900 border-b border-zinc-100 dark:border-zinc-800">
+      <section className="relative pt-32 pb-44 overflow-hidden bg-white dark:bg-surface border-b border-zinc-100 dark:border-border">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full opacity-[0.03] pointer-events-none">
            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,#f97316,transparent_70%)]" />
         </div>
@@ -58,8 +58,8 @@ export default function HelpCenterPage() {
              <form className={cn(
                 "group flex h-16 sm:h-20 items-center rounded-[2rem] border transition-all p-2 pr-2.5",
                 isSearchFocused 
-                  ? "bg-white dark:bg-zinc-900 border-[#f97316] shadow-[0_25px_60px_-15px_rgba(249,115,22,0.2)] ring-4 ring-[#f97316]/5 scale-[1.02]" 
-                  : "bg-zinc-50 dark:bg-zinc-900/50 border-zinc-200 dark:border-zinc-800 shadow-sm hover:border-zinc-300"
+                  ? "bg-white dark:bg-surface border-[#f97316] shadow-[0_25px_60px_-15px_rgba(249,115,22,0.2)] ring-4 ring-[#f97316]/5 scale-[1.02]" 
+                  : "bg-zinc-50 dark:bg-surface/50 border-zinc-200 dark:border-border shadow-sm hover:border-zinc-300"
              )}>
                 <div className="flex h-full flex-1 items-center px-6">
                    <Search className={cn("mr-4 h-6 w-6 transition-colors", isSearchFocused ? "text-[#f97316]" : "text-zinc-400")} />
@@ -85,7 +85,7 @@ export default function HelpCenterPage() {
 
           <div className="flex flex-wrap justify-center gap-3 mt-10">
              {["Verification", "Shipping", "Refunds", "Payouts"].map(tag => (
-               <button key={tag} className="text-[12px] font-black text-zinc-500 hover:text-zinc-900 dark:text-white bg-zinc-50 dark:bg-zinc-900/50 hover:bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 px-5 py-2.5 rounded-full transition-all">{tag}</button>
+               <button key={tag} className="text-[12px] font-black text-zinc-500 hover:text-zinc-900 dark:text-white bg-zinc-50 dark:bg-surface/50 hover:bg-white dark:bg-surface border border-zinc-200 dark:border-border px-5 py-2.5 rounded-full transition-all">{tag}</button>
              ))}
           </div>
         </div>
@@ -101,7 +101,7 @@ export default function HelpCenterPage() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.1 }}
-              className="group relative bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 p-10 rounded-[2.5rem] shadow-xl shadow-black/[0.02] hover:shadow-2xl hover:shadow-black/[0.05] transition-all cursor-pointer overflow-hidden active:scale-95 duration-300"
+              className="group relative bg-white dark:bg-surface border border-zinc-100 dark:border-border p-10 rounded-[2.5rem] shadow-xl shadow-black/[0.02] hover:shadow-2xl hover:shadow-black/[0.05] transition-all cursor-pointer overflow-hidden active:scale-95 duration-300"
             >
               <div className={cn("h-16 w-16 rounded-[1.25rem] flex items-center justify-center mb-8 transition-transform group-hover:scale-110 group-hover:rotate-12", cat.color)}>
                  <cat.icon className="h-7 w-7" />
@@ -122,7 +122,7 @@ export default function HelpCenterPage() {
       </section>
 
       {/* REFINED FAQ SECTION */}
-      <section className="py-32 bg-white dark:bg-zinc-900 border-y border-zinc-100 dark:border-zinc-800">
+      <section className="py-32 bg-white dark:bg-surface border-y border-zinc-100 dark:border-border">
         <div className="max-w-4xl mx-auto px-6">
            <div className="text-center mb-20">
               <h2 className="text-4xl font-black text-zinc-900 dark:text-white mb-4 tracking-tight">Most Searched Topics</h2>
@@ -131,9 +131,9 @@ export default function HelpCenterPage() {
            
            <div className="space-y-4">
              {commonQuestions.map((q, i) => (
-               <div key={i} className="group flex items-center justify-between p-8 rounded-[2rem] bg-zinc-50 dark:bg-zinc-900/50 border border-transparent hover:border-[#f97316]/20 hover:bg-white dark:bg-zinc-900 transition-all cursor-pointer">
-                 <span className="text-[17px] font-bold text-zinc-800 dark:text-zinc-200 group-hover:text-zinc-900 dark:text-white">{q}</span>
-                 <div className="h-10 w-10 rounded-full bg-white dark:bg-zinc-900 shadow-sm flex items-center justify-center group-hover:bg-[#f97316] group-hover:text-white transition-all">
+               <div key={i} className="group flex items-center justify-between p-8 rounded-[2rem] bg-zinc-50 dark:bg-surface/50 border border-transparent hover:border-[#f97316]/20 hover:bg-white dark:bg-surface transition-all cursor-pointer">
+                 <span className="text-[17px] font-bold text-zinc-800 dark:text-text-secondary group-hover:text-zinc-900 dark:text-white">{q}</span>
+                 <div className="h-10 w-10 rounded-full bg-white dark:bg-surface shadow-sm flex items-center justify-center group-hover:bg-[#f97316] group-hover:text-white transition-all">
                     <ChevronRight className="h-5 w-5" />
                  </div>
                </div>
@@ -143,7 +143,7 @@ export default function HelpCenterPage() {
       </section>
 
       {/* HIGH-END CONTACT CTAs */}
-      <section className="py-40 bg-zinc-50 dark:bg-zinc-900/50">
+      <section className="py-40 bg-zinc-50 dark:bg-surface/50">
          <div className="max-w-7xl mx-auto px-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
                <div className="relative bg-zinc-900 p-16 rounded-[3rem] text-white overflow-hidden group">
@@ -153,19 +153,19 @@ export default function HelpCenterPage() {
                      </div>
                      <h2 className="text-4xl font-black mb-4 tracking-tight">Talk to our experts.</h2>
                      <p className="text-lg text-zinc-400 font-medium mb-10 max-w-sm">Get real-time assistance from our specialist team available 24/7.</p>
-                     <Button className="h-14 px-10 rounded-2xl bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white font-black hover:bg-zinc-100 transition-all text-base">Start Live Chat</Button>
+                     <Button className="h-14 px-10 rounded-2xl bg-white dark:bg-surface text-zinc-900 dark:text-white font-black hover:bg-zinc-100 transition-all text-base">Start Live Chat</Button>
                   </div>
                   <div className="absolute -bottom-20 -right-20 h-80 w-80 bg-[#f97316] opacity-[0.05] blur-[100px] group-hover:opacity-[0.1] transition-opacity" />
                </div>
 
-               <div className="relative bg-white dark:bg-zinc-900 p-16 rounded-[3rem] border border-zinc-100 dark:border-zinc-800 overflow-hidden group">
+               <div className="relative bg-white dark:bg-surface p-16 rounded-[3rem] border border-zinc-100 dark:border-border overflow-hidden group">
                    <div className="relative z-10">
-                      <div className="h-14 w-14 rounded-2xl bg-zinc-50 dark:bg-zinc-900/50 flex items-center justify-center mb-10 border border-zinc-100 dark:border-zinc-800">
+                      <div className="h-14 w-14 rounded-2xl bg-zinc-50 dark:bg-surface/50 flex items-center justify-center mb-10 border border-zinc-100 dark:border-border">
                          <Mail className="h-7 w-7 text-zinc-900 dark:text-white" />
                       </div>
                       <h2 className="text-4xl font-black text-zinc-900 dark:text-white mb-4 tracking-tight">Open a Support Case.</h2>
                       <p className="text-lg text-zinc-400 font-medium mb-10 max-w-sm">Detailed technical issues or specialized requests. We respond in &lt;12h.</p>
-                      <Button variant="outline" className="h-14 px-10 rounded-2xl border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-white font-black hover:bg-zinc-50 dark:bg-zinc-900/50 transition-all text-base">Submit a Ticket</Button>
+                      <Button variant="outline" className="h-14 px-10 rounded-2xl border-zinc-200 dark:border-border text-zinc-900 dark:text-white font-black hover:bg-zinc-50 dark:bg-surface/50 transition-all text-base">Submit a Ticket</Button>
                    </div>
                    <div className="absolute top-0 right-0 p-16 text-[#f97316] opacity-[0.02]">
                       <Mail className="h-64 w-64" />
@@ -176,7 +176,7 @@ export default function HelpCenterPage() {
       </section>
 
       {/* FOOTER-LIKE BADGES */}
-      <footer className="py-20 text-center border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
+      <footer className="py-20 text-center border-t border-zinc-200 dark:border-border bg-white dark:bg-surface">
          <div className="max-w-4xl mx-auto px-6">
             <div className="flex flex-wrap justify-center gap-12 grayscale opacity-40 hover:grayscale-0 hover:opacity-100 transition-all">
                <div className="flex items-center gap-2 font-black text-zinc-900 dark:text-white"><ShieldCheck className="h-5 w-5" /> Secured by Jimvio Shield</div>

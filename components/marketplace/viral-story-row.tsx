@@ -102,7 +102,7 @@ export function ViralStoryRow({ clips, initialActiveIndex = null, onClose, force
               <div className="flex items-center gap-2">
                 <div className="relative">
                   <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#f97316] to-[#7c2d12] flex items-center justify-center p-0.5">
-                    <div className="w-full h-full rounded-full bg-white dark:bg-zinc-900 flex items-center justify-center">
+                    <div className="w-full h-full rounded-full bg-white dark:bg-surface flex items-center justify-center">
                       <Play className="h-3 w-3 text-[#f97316] fill-[#f97316]" />
                     </div>
                   </div>
@@ -159,7 +159,7 @@ export function ViralStoryRow({ clips, initialActiveIndex = null, onClose, force
 
                 {/* Play Badge */}
                 <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                  <div className="w-12 h-12 rounded-full bg-white dark:bg-zinc-900/20 backdrop-blur-md border border-white/30 flex items-center justify-center">
+                  <div className="w-12 h-12 rounded-full bg-white dark:bg-surface/20 backdrop-blur-md border border-white/30 flex items-center justify-center">
                     <Play className="h-6 w-6 text-white fill-white" />
                   </div>
                 </div>
@@ -187,7 +187,7 @@ export function ViralStoryRow({ clips, initialActiveIndex = null, onClose, force
             {/* Close Button */}
             <button 
               onClick={closePlayer}
-              className="absolute top-6 right-6 z-[1100] w-10 h-10 rounded-full bg-ink-darker/50 backdrop-blur-md border border-white/10 flex items-center justify-center text-white hover:bg-white dark:bg-zinc-900/20 transition-all"
+              className="absolute top-6 right-6 z-[1100] w-10 h-10 rounded-full bg-ink-darker/50 backdrop-blur-md border border-white/10 flex items-center justify-center text-white hover:bg-white dark:bg-surface/20 transition-all"
             >
               <X className="h-6 w-6" />
             </button>
@@ -231,7 +231,7 @@ export function ViralStoryRow({ clips, initialActiveIndex = null, onClose, force
                     {/* Navigation Arrows (Mobile uses Swipe, Desktop uses Arrows) */}
                      <div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col gap-6 z-40">
                        <div className="flex flex-col items-center gap-1 group/btn">
-                          <button className="w-12 h-12 rounded-full bg-white dark:bg-zinc-900/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white hover:bg-[#f97316] transition-all">
+                          <button className="w-12 h-12 rounded-full bg-white dark:bg-surface/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white hover:bg-[#f97316] transition-all">
                              <Heart className="h-6 w-6" />
                           </button>
                           <span className="text-white text-[12px] font-black drop-shadow-lg">
@@ -239,7 +239,7 @@ export function ViralStoryRow({ clips, initialActiveIndex = null, onClose, force
                           </span>
                        </div>
                        <div className="flex flex-col items-center gap-1 group/btn">
-                          <button className="w-12 h-12 rounded-full bg-white dark:bg-zinc-900/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white hover:bg-[#f97316] transition-all">
+                          <button className="w-12 h-12 rounded-full bg-white dark:bg-surface/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white hover:bg-[#f97316] transition-all">
                              <MessageCircle className="h-6 w-6" />
                           </button>
                           <span className="text-white text-[12px] font-black drop-shadow-lg">
@@ -247,7 +247,7 @@ export function ViralStoryRow({ clips, initialActiveIndex = null, onClose, force
                           </span>
                        </div>
                        <div className="flex flex-col items-center gap-1 group/btn">
-                          <button className="w-12 h-12 rounded-full bg-white dark:bg-zinc-900/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white hover:bg-[#f97316] transition-all">
+                          <button className="w-12 h-12 rounded-full bg-white dark:bg-surface/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white hover:bg-[#f97316] transition-all">
                              <Bookmark className="h-6 w-6" />
                           </button>
                           <span className="text-white text-[12px] font-black drop-shadow-lg">
@@ -255,7 +255,7 @@ export function ViralStoryRow({ clips, initialActiveIndex = null, onClose, force
                           </span>
                        </div>
                        <div className="flex flex-col items-center gap-1 group/btn">
-                          <button className="w-12 h-12 rounded-full bg-white dark:bg-zinc-900/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white hover:bg-[#f97316] transition-all">
+                          <button className="w-12 h-12 rounded-full bg-white dark:bg-surface/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white hover:bg-[#f97316] transition-all">
                              <Share2 className="h-6 w-6" />
                           </button>
                           <span className="text-white text-[12px] font-black drop-shadow-lg">
@@ -281,7 +281,7 @@ export function ViralStoryRow({ clips, initialActiveIndex = null, onClose, force
                              className={cn(
                                "ml-2 px-4 py-1.5 rounded-full text-[12px] font-black transition-all",
                                followedVendors[clips[activeClipIndex].vendors?.id || ""] 
-                                 ? "bg-white dark:bg-zinc-900/10 text-white border border-white/20 hover:bg-white dark:bg-zinc-900/20" 
+                                 ? "bg-white dark:bg-surface/10 text-white border border-white/20 hover:bg-white dark:bg-surface/20" 
                                  : "bg-[#f97316] text-white hover:bg-[#ea580c]"
                              )}
                            >
@@ -301,13 +301,13 @@ export function ViralStoryRow({ clips, initialActiveIndex = null, onClose, force
                     <div className="absolute bottom-6 right-6 z-50 flex flex-col gap-2">
                        <button 
                         onClick={() => setActiveClipIndex((activeClipIndex - 1 + clips.length) % clips.length)}
-                        className="w-12 h-12 rounded-full bg-white dark:bg-zinc-900/10 backdrop-blur-md border border-white/10 flex items-center justify-center text-white hover:bg-[#f97316] transition-all"
+                        className="w-12 h-12 rounded-full bg-white dark:bg-surface/10 backdrop-blur-md border border-white/10 flex items-center justify-center text-white hover:bg-[#f97316] transition-all"
                        >
                          <ChevronUp className="h-6 w-6" />
                        </button>
                        <button 
                          onClick={() => setActiveClipIndex((activeClipIndex + 1) % clips.length)}
-                         className="w-12 h-12 rounded-full bg-white dark:bg-zinc-900/10 backdrop-blur-md border border-white/10 flex items-center justify-center text-white hover:bg-[#f97316] transition-all"
+                         className="w-12 h-12 rounded-full bg-white dark:bg-surface/10 backdrop-blur-md border border-white/10 flex items-center justify-center text-white hover:bg-[#f97316] transition-all"
                        >
                          <ChevronDown className="h-6 w-6" />
                        </button>
@@ -318,7 +318,7 @@ export function ViralStoryRow({ clips, initialActiveIndex = null, onClose, force
             </div>
 
             {/* Progress Bar (TikTok style) */}
-            <div className="h-1 w-full bg-white dark:bg-zinc-900/20">
+            <div className="h-1 w-full bg-white dark:bg-surface/20">
                <div className="h-full bg-[#f97316] w-2/3 animate-progress" />
             </div>
           </div>

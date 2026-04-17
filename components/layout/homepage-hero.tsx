@@ -231,7 +231,7 @@ function VideoMarquee({ videos, mobile = false }: { videos: any[]; mobile?: bool
             
             <div className="absolute inset-x-0 bottom-0 p-2 sm:p-3 bg-gradient-to-t from-black/60 to-transparent">
               <div className="flex items-center gap-1.5">
-                <div className="h-4 w-4 sm:h-5 sm:w-5 rounded-full border border-white/50 bg-white dark:bg-zinc-900/20 backdrop-blur-md overflow-hidden shrink-0">
+                <div className="h-4 w-4 sm:h-5 sm:w-5 rounded-full border border-white/50 bg-white dark:bg-surface/20 backdrop-blur-md overflow-hidden shrink-0">
                   {v.creator?.avatar && <img src={v.creator.avatar} alt="" className="h-full w-full object-cover" />}
                 </div>
                 <p className="text-[8px] sm:text-[9px] font-black text-white truncate drop-shadow-md">{v.title}</p>
@@ -394,7 +394,7 @@ export function HomepageHero({
               Where products and <br />
               creators drive <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 via-orange-600 to-amber-600">global growth.</span>
             </h1>
-            <p className="text-[14px] text-stone-400 dark:text-stone-500 font-bold leading-relaxed max-w-[280px] mx-auto">
+            <p className="text-[14px] text-stone-400 dark:text-text-muted font-bold leading-relaxed max-w-[280px] mx-auto">
               Build, promote, and scale your empire.
             </p>
           </div>
@@ -512,7 +512,7 @@ export function HomepageHero({
                 Where products & creators drive <br />
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 via-orange-600 to-amber-600">global growth.</span>
               </h1>
-              <p className="text-base text-stone-600 dark:text-stone-400 leading-relaxed max-w-lg">
+              <p className="text-base text-stone-600 dark:text-text-muted leading-relaxed max-w-lg">
                 Build, promote, and scale your global presence. The premium ecosystem for professional suppliers and verified creators.
               </p>
             </motion.div>

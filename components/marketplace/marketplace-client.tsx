@@ -148,7 +148,7 @@ function HeroDealBanner({ params, basePath }: { params: Record<string, string | 
         </h2>
         
         {/* Subtitle */}
-        <p className="text-[14px] sm:text-[16px] text-stone-600 dark:text-stone-400 font-medium mb-5">
+        <p className="text-[14px] sm:text-[16px] text-stone-600 dark:text-text-muted font-medium mb-5">
           Best offers waiting for you!
         </p>
         
@@ -186,7 +186,7 @@ function TypeTabs({ params, basePath }: { params: Record<string, string | undefi
 
   return (
     <div className="flex justify-center w-full">
-      <div className="flex items-center p-1.5 rounded-[18px] bg-surface-secondary/60 dark:bg-zinc-800/60 backdrop-blur-md shadow-inner border border-border w-full md:w-auto overflow-hidden">
+      <div className="flex items-center p-1.5 rounded-[18px] bg-surface-secondary/60 dark:bg-surface-secondary/60 backdrop-blur-md shadow-inner border border-border w-full md:w-auto overflow-hidden">
         {tabs.map((tab) => {
           const isActive = tab.type === null ? isAll : params.type === tab.type;
           const href = tab.type
@@ -201,13 +201,13 @@ function TypeTabs({ params, basePath }: { params: Record<string, string | undefi
                 "relative flex-1 md:flex-none shrink-0 flex items-center justify-center px-3 sm:px-6 py-2.5 rounded-[14px] text-[13px] sm:text-[14px] font-bold transition-all whitespace-nowrap z-10",
                 isActive
                   ? "text-stone-900 dark:text-white"
-                  : "text-stone-500 hover:text-stone-800 dark:text-zinc-200 dark:hover:text-stone-300 hover:bg-surface/50"
+                  : "text-stone-500 hover:text-stone-800 dark:text-text-secondary dark:hover:text-stone-300 hover:bg-surface/50"
               )}
             >
               {isActive && (
                 <motion.div
                   layoutId="activeTabIndicator"
-                  className="absolute inset-0 bg-surface dark:bg-zinc-800 rounded-[14px] shadow-[0_2px_10px_rgba(0,0,0,0.12)] border border-border"
+                  className="absolute inset-0 bg-surface dark:bg-surface-secondary rounded-[14px] shadow-[0_2px_10px_rgba(0,0,0,0.12)] border border-border"
                   style={{ zIndex: -1 }}
                   transition={{ type: "spring", stiffness: 450, damping: 35 }}
                 />
@@ -240,7 +240,7 @@ function CategoryChip({
         "shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-[12px] font-semibold transition-all border whitespace-nowrap shadow-sm",
         active
           ? "bg-orange-500 text-white border-orange-400 shadow-[0_4px_12px_rgba(249,115,22,0.30)]"
-          : "bg-surface dark:bg-zinc-900 border-border text-stone-600 dark:text-stone-300 hover:border-orange-300 dark:hover:border-orange-500 hover:text-orange-600 dark:hover:text-orange-500"
+          : "bg-surface dark:bg-surface border-border text-stone-600 dark:text-stone-300 hover:border-orange-300 dark:hover:border-orange-500 hover:text-orange-600 dark:hover:text-orange-500"
       )}
     >
       {icon && <span className="text-base leading-none">{icon}</span>}
@@ -268,7 +268,7 @@ function SortPill({
         "shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-[12px] font-semibold border transition-all whitespace-nowrap shadow-sm",
         active
           ? "bg-orange-500 text-white border-orange-400 shadow-[0_4px_12px_rgba(249,115,22,0.30)]"
-          : "bg-surface dark:bg-zinc-900 border-border text-stone-500 dark:text-stone-300 hover:border-orange-300 dark:hover:border-orange-500 hover:text-orange-600 dark:hover:text-orange-500"
+          : "bg-surface dark:bg-surface border-border text-stone-500 dark:text-stone-300 hover:border-orange-300 dark:hover:border-orange-500 hover:text-orange-600 dark:hover:text-orange-500"
       )}
     >
       {Icon && <Icon className="h-3.5 w-3.5" />}
@@ -403,8 +403,8 @@ export function MarketplaceClient({
         <aside className="hidden lg:block lg:w-56 shrink-0">
           <div className="sticky top-[130px] space-y-4">
             {/* Category card */}
-            <div className="bg-surface dark:bg-zinc-900 rounded-[20px] border border-border shadow-sm p-4">
-              <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-stone-400 dark:text-stone-500 mb-3">
+            <div className="bg-surface dark:bg-surface rounded-[20px] border border-border shadow-sm p-4">
+              <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-stone-400 dark:text-text-muted mb-3">
                 Categories
               </h3>
               <div className="flex flex-col gap-0.5">
@@ -419,7 +419,7 @@ export function MarketplaceClient({
                         "flex items-center gap-2.5 py-2 px-3 rounded-[12px] text-[12px] font-semibold transition-all",
                         isActive
                           ? "bg-orange-500/10 text-orange-600 border border-orange-500/20"
-                          : "text-stone-500 dark:text-stone-400 hover:bg-surface-secondary dark:hover:bg-zinc-800 hover:text-stone-800 dark:text-zinc-200 dark:hover:text-white border border-transparent"
+                          : "text-stone-500 dark:text-text-muted hover:bg-surface-secondary dark:hover:bg-zinc-800 hover:text-stone-800 dark:text-text-secondary dark:hover:text-white border border-transparent"
                       )}
                     >
                       {icon && <span className="text-base leading-none">{icon}</span>}
@@ -434,7 +434,7 @@ export function MarketplaceClient({
             </div>
 
             {/* Support card */}
-            <div className="bg-surface dark:bg-zinc-900 rounded-[20px] border border-border shadow-sm p-5 relative overflow-hidden">
+            <div className="bg-surface dark:bg-surface rounded-[20px] border border-border shadow-sm p-5 relative overflow-hidden">
               <div
                 className="pointer-events-none absolute top-0 right-0 w-24 h-24 rounded-full blur-2xl opacity-40 dark:opacity-20"
                 style={{ background: "radial-gradient(circle, #fb923c, transparent)" }}
@@ -446,7 +446,7 @@ export function MarketplaceClient({
                 <ShieldCheck className="h-4 w-4 text-white" />
               </div>
               <h4 className="text-[13px] font-bold text-stone-900 dark:text-white mb-1 relative z-10">Buyer Support</h4>
-              <p className="text-[11px] text-stone-500 dark:text-stone-400 leading-relaxed mb-3 relative z-10">
+              <p className="text-[11px] text-stone-500 dark:text-text-muted leading-relaxed mb-3 relative z-10">
                 Questions about an order or seller? Reach us anytime.
               </p>
               <Link
@@ -523,7 +523,7 @@ export function MarketplaceClient({
               {params.q?.trim() ? (
                 <Link
                   href={marketplaceHref(paramsRecord, { q: null }, basePath)}
-                  className="inline-flex items-center gap-1 rounded-full bg-surface dark:bg-zinc-900 border border-border px-3 py-1 text-[11px] font-semibold text-stone-700 dark:text-stone-300 hover:border-orange-300 dark:hover:border-orange-700 hover:text-orange-600 dark:hover:text-orange-400 transition-all shadow-sm"
+                  className="inline-flex items-center gap-1 rounded-full bg-surface dark:bg-surface border border-border px-3 py-1 text-[11px] font-semibold text-stone-700 dark:text-stone-300 hover:border-orange-300 dark:hover:border-orange-700 hover:text-orange-600 dark:hover:text-orange-400 transition-all shadow-sm"
                 >
                   "{params.q.trim()}" <X className="h-3 w-3 opacity-50" />
                 </Link>
@@ -531,7 +531,7 @@ export function MarketplaceClient({
               {params.cat ? (
                 <Link
                   href={marketplaceHref(paramsRecord, { cat: null }, basePath)}
-                  className="inline-flex items-center gap-1 rounded-full bg-surface dark:bg-zinc-900 border border-border px-3 py-1 text-[11px] font-semibold text-stone-700 dark:text-stone-300 hover:border-orange-300 dark:hover:border-orange-700 hover:text-orange-600 dark:hover:text-orange-400 transition-all shadow-sm"
+                  className="inline-flex items-center gap-1 rounded-full bg-surface dark:bg-surface border border-border px-3 py-1 text-[11px] font-semibold text-stone-700 dark:text-stone-300 hover:border-orange-300 dark:hover:border-orange-700 hover:text-orange-600 dark:hover:text-orange-400 transition-all shadow-sm"
                 >
                   {categories.find((c) => c.slug === params.cat)?.name ?? params.cat}{" "}
                   <X className="h-3 w-3 opacity-50" />
@@ -540,7 +540,7 @@ export function MarketplaceClient({
               {params.affiliate === "1" ? (
                 <Link
                   href={marketplaceHref(paramsRecord, { affiliate: null }, basePath)}
-                  className="inline-flex items-center gap-1 rounded-full bg-surface dark:bg-zinc-900 border border-border px-3 py-1 text-[11px] font-semibold text-stone-700 dark:text-stone-300 hover:border-orange-300 dark:hover:border-orange-700 hover:text-orange-600 dark:hover:text-orange-400 transition-all shadow-sm"
+                  className="inline-flex items-center gap-1 rounded-full bg-surface dark:bg-surface border border-border px-3 py-1 text-[11px] font-semibold text-stone-700 dark:text-stone-300 hover:border-orange-300 dark:hover:border-orange-700 hover:text-orange-600 dark:hover:text-orange-400 transition-all shadow-sm"
                 >
                   Affiliate <X className="h-3 w-3 opacity-50" />
                 </Link>
@@ -564,7 +564,7 @@ export function MarketplaceClient({
                 ? (categories.find((c) => c.slug === params.cat)?.name ?? "Products")
                 : "All Products"}
             </h2>
-            <span className="text-[12px] text-stone-400 dark:text-stone-500 tabular-nums">
+            <span className="text-[12px] text-stone-400 dark:text-text-muted tabular-nums">
               <span className="font-semibold text-stone-600 dark:text-stone-300">{total}</span>{" "}
               result{total === 1 ? "" : "s"}
             </span>
@@ -618,7 +618,7 @@ export function MarketplaceClient({
               <motion.div
                 initial={{ opacity: 0, scale: 0.98 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="bg-surface dark:bg-zinc-900 rounded-[24px] border border-border shadow-sm p-12 sm:p-16 text-center"
+                className="bg-surface dark:bg-surface rounded-[24px] border border-border shadow-sm p-12 sm:p-16 text-center"
               >
                 <div className="h-16 w-16 rounded-[20px] flex items-center justify-center mx-auto mb-5"
                   style={{ background: "rgba(249,115,22,0.08)", border: "1px solid rgba(249,115,22,0.15)" }}
@@ -626,7 +626,7 @@ export function MarketplaceClient({
                   <Search className="h-7 w-7 text-orange-400" />
                 </div>
                 <h3 className="text-[18px] font-bold text-stone-800 dark:text-white mb-2">No products match</h3>
-                <p className="text-[13px] text-stone-500 dark:text-stone-400 mb-8 max-w-sm mx-auto leading-relaxed">
+                <p className="text-[13px] text-stone-500 dark:text-text-muted mb-8 max-w-sm mx-auto leading-relaxed">
                   Try a different search term, clear your filters, or browse all categories.
                 </p>
                 <Link href={basePath}>
@@ -649,7 +649,7 @@ export function MarketplaceClient({
                 <Link href={marketplaceHref(paramsRecord, { page: String(currentPage - 1) }, basePath)}>
                   <button
                     type="button"
-                    className="px-4 py-2 rounded-full bg-surface dark:bg-zinc-900 border border-border text-[12px] font-semibold text-stone-600 dark:text-stone-300 shadow-sm hover:border-orange-300 dark:hover:border-orange-700 hover:text-orange-600 dark:hover:text-orange-400 transition-all"
+                    className="px-4 py-2 rounded-full bg-surface dark:bg-surface border border-border text-[12px] font-semibold text-stone-600 dark:text-stone-300 shadow-sm hover:border-orange-300 dark:hover:border-orange-700 hover:text-orange-600 dark:hover:text-orange-400 transition-all"
                   >
                     Previous
                   </button>
@@ -666,7 +666,7 @@ export function MarketplaceClient({
                         "min-w-[40px] h-10 px-3 rounded-full text-[12px] font-black transition-all border",
                         pg === currentPage
                           ? "bg-orange-500 border-orange-400 text-white shadow-[0_4px_12px_rgba(249,115,22,0.30)]"
-                          : "bg-surface dark:bg-zinc-900 border-border text-stone-600 dark:text-stone-300 hover:border-orange-300 dark:hover:border-orange-700 hover:text-orange-600 dark:hover:text-orange-400"
+                          : "bg-surface dark:bg-surface border-border text-stone-600 dark:text-stone-300 hover:border-orange-300 dark:hover:border-orange-700 hover:text-orange-600 dark:hover:text-orange-400"
                       )}
                     >
                       {pg}
@@ -678,7 +678,7 @@ export function MarketplaceClient({
                 <Link href={marketplaceHref(paramsRecord, { page: String(currentPage + 1) }, basePath)}>
                   <button
                     type="button"
-                    className="px-4 py-2 rounded-full bg-surface dark:bg-zinc-900 border border-border text-[12px] font-semibold text-stone-600 dark:text-stone-300 shadow-sm hover:border-orange-300 dark:hover:border-orange-700 hover:text-orange-600 dark:hover:text-orange-400 transition-all"
+                    className="px-4 py-2 rounded-full bg-surface dark:bg-surface border border-border text-[12px] font-semibold text-stone-600 dark:text-stone-300 shadow-sm hover:border-orange-300 dark:hover:border-orange-700 hover:text-orange-600 dark:hover:text-orange-400 transition-all"
                   >
                     Next
                   </button>
@@ -747,8 +747,8 @@ export function MarketplaceClient({
                 </div>
               </div>
               {modalClip.products && (
-                <div className="p-4 border-t border-white/10 flex items-center gap-4 bg-zinc-900/5 dark:bg-white dark:bg-zinc-900/5 backdrop-blur-xl">
-                  <div className="w-14 h-14 rounded-[16px] bg-white dark:bg-zinc-900/10 flex items-center justify-center overflow-hidden shrink-0">
+                <div className="p-4 border-t border-white/10 flex items-center gap-4 bg-zinc-900/5 dark:bg-white dark:bg-surface/5 backdrop-blur-xl">
+                  <div className="w-14 h-14 rounded-[16px] bg-white dark:bg-surface/10 flex items-center justify-center overflow-hidden shrink-0">
                     {Array.isArray(modalClip.products.images) && modalClip.products.images[0] ? (
                       <img src={modalClip.products.images[0]} alt="" className="w-full h-full object-cover" />
                     ) : (

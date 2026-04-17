@@ -189,7 +189,7 @@ export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobil
           <button
             type="button"
             onClick={() => onCollapsedChange(!collapsed)}
-            className="hidden lg:flex items-center justify-center transition-all hover:scale-105 active:scale-95 rounded-full bg-surface-secondary dark:bg-zinc-800 border border-border text-stone-400 dark:text-stone-500"
+            className="hidden lg:flex items-center justify-center transition-all hover:scale-105 active:scale-95 rounded-full bg-surface-secondary dark:bg-surface-secondary border border-border text-stone-400 dark:text-text-muted"
             style={{
                 width: 28, height: 28,
               }}
@@ -201,7 +201,7 @@ export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobil
             <button
               type="button"
               onClick={onMobileClose}
-              className="lg:hidden flex items-center justify-center transition-all active:scale-95 rounded-full bg-surface-secondary dark:bg-zinc-800 border border-border text-stone-400 dark:text-stone-500 hover:text-stone-800 dark:text-zinc-200 dark:hover:text-stone-200"
+              className="lg:hidden flex items-center justify-center transition-all active:scale-95 rounded-full bg-surface-secondary dark:bg-surface-secondary border border-border text-stone-400 dark:text-text-muted hover:text-stone-800 dark:text-text-secondary dark:hover:text-stone-200"
               style={{ width: 30, height: 30 }}
               aria-label="Close"
             >
@@ -219,7 +219,7 @@ export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobil
           transition={{ delay: 0.15 }}
           className="px-4 pt-4 pb-2"
         >
-          <div className="relative overflow-hidden rounded-2xl bg-neutral-900 dark:bg-zinc-900 border border-white/5 p-4 shadow-xl group">
+          <div className="relative overflow-hidden rounded-2xl bg-neutral-900 dark:bg-surface border border-white/5 p-4 shadow-xl group">
              {/* Gradient Accent */}
              <div className="absolute -right-4 -top-4 w-24 h-24 bg-orange-500/20 blur-2xl rounded-full transition-all group-hover:bg-orange-500/30" />
             
@@ -229,7 +229,7 @@ export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobil
                     <div className="w-5 h-5 rounded-md bg-orange-500/10 flex items-center justify-center text-orange-500 border border-orange-500/20">
                       <Wallet className="w-3 h-3" />
                     </div>
-                    <span className="text-[10px] font-bold text-neutral-400 dark:text-zinc-500 uppercase tracking-wider">Available Balance</span>
+                    <span className="text-[10px] font-bold text-neutral-400 dark:text-text-muted uppercase tracking-wider">Available Balance</span>
                   </div>
                   <button
                     onClick={() => setBalanceHidden(!balanceHidden)}
@@ -296,7 +296,7 @@ export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobil
                           fontSize: 9, fontWeight: 800, letterSpacing: "0.14em",
                           textTransform: "uppercase",
                         }}
-                        className="text-stone-400 dark:text-stone-500"
+                        className="text-stone-400 dark:text-text-muted"
                       >
                         {section.title}
                       </span>
@@ -323,7 +323,7 @@ export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobil
                         className={cn(
                           "flex items-center group relative overflow-hidden transition-all duration-300",
                           isActive 
-                            ? "bg-white dark:bg-zinc-800 shadow-sm shadow-black/5 dark:shadow-white/5" 
+                            ? "bg-white dark:bg-surface-secondary shadow-sm shadow-black/5 dark:shadow-white/5" 
                             : "hover:bg-neutral-100 dark:hover:bg-zinc-800/50"
                         )}
                         style={{
@@ -360,7 +360,7 @@ export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobil
                             "flex items-center justify-center flex-shrink-0 transition-all z-10",
                             isActive 
                               ? "text-orange-600" 
-                              : "text-neutral-400 group-hover:text-neutral-600 dark:text-zinc-500 dark:group-hover:text-zinc-300"
+                              : "text-neutral-400 group-hover:text-neutral-600 dark:text-text-muted dark:group-hover:text-zinc-300"
                           )}
                           style={{
                             width: 24,
@@ -375,13 +375,13 @@ export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobil
                             <span
                               className={cn(
                                 "flex-1 truncate group-hover:translate-x-0.5 transition-transform z-10 text-[13px] tracking-tight",
-                                isActive ? "font-bold text-stone-900 dark:text-white" : "font-semibold text-stone-600 dark:text-stone-400"
+                                isActive ? "font-bold text-stone-900 dark:text-white" : "font-semibold text-stone-600 dark:text-text-muted"
                               )}
                             >
                               {item.label}
                             </span>
                             {locked && (
-                               <span className="text-[9px] font-bold tracking-widest uppercase text-stone-400/40 dark:text-stone-500/40 flex-shrink-0">
+                               <span className="text-[9px] font-bold tracking-widest uppercase text-stone-400/40 dark:text-text-muted/40 flex-shrink-0">
                                  Unlock
                                </span>
                             )}
@@ -406,7 +406,7 @@ export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobil
     <div className="pointer-events-none absolute inset-0" style={{ borderRadius: "inherit" }}>
       {/* Main frosted glass body */}
       <div
-        className="absolute inset-0 bg-surface/80 dark:bg-zinc-950/80 backdrop-blur-[20px]"
+        className="absolute inset-0 bg-surface/80 dark:bg-bg/80 backdrop-blur-[20px]"
         style={{
           borderRadius: "inherit",
         }}
@@ -500,7 +500,7 @@ export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobil
               "fixed inset-y-0 left-0 z-50 lg:hidden relative overflow-hidden",
               "w-[min(15.5rem,88vw)]",
               "animate-in slide-in-from-left duration-250",
-              "bg-white dark:bg-zinc-950" 
+              "bg-white dark:bg-bg" 
             )}
             style={{ borderRadius: "0 28px 28px 0", boxShadow: "4px 0 40px rgba(0,0,0,0.15)" }}
           >

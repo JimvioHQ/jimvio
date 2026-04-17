@@ -102,10 +102,10 @@ function VideoCard({
     "bg-zinc-100 text-zinc-500";
 
   return (
-    <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 shadow-sm overflow-hidden group hover:shadow-md hover:border-zinc-200 dark:border-zinc-800 dark:hover:border-zinc-700 transition-all">
+    <div className="bg-white dark:bg-surface rounded-2xl border border-zinc-100 dark:border-border shadow-sm overflow-hidden group hover:shadow-md hover:border-zinc-200 dark:border-border dark:hover:border-zinc-700 transition-all">
       {/* Thumbnail */}
       <div
-        className="relative aspect-[9/14] bg-zinc-50 dark:bg-zinc-800 cursor-pointer overflow-hidden"
+        className="relative aspect-[9/14] bg-zinc-50 dark:bg-surface-secondary cursor-pointer overflow-hidden"
         onClick={() => onSelect(video.id)}
       >
         {thumb ? (
@@ -117,7 +117,7 @@ function VideoCard({
         )}
         {/* Play overlay */}
         <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-          <div className="h-12 w-12 rounded-full bg-white dark:bg-zinc-900/90 flex items-center justify-center shadow-lg">
+          <div className="h-12 w-12 rounded-full bg-white dark:bg-surface/90 flex items-center justify-center shadow-lg">
             <Play className="h-5 w-5 text-zinc-900 dark:text-white ml-0.5" />
           </div>
         </div>
@@ -150,7 +150,7 @@ function VideoCard({
           <StatPill value={fmtNum(video.click_count)} label="clicks" icon={<MousePointer className="h-3 w-3" />} color="bg-violet-50 text-violet-600" />
         </div>
 
-        <div className="flex items-center justify-between pt-1 border-t border-zinc-50 dark:border-zinc-800">
+        <div className="flex items-center justify-between pt-1 border-t border-zinc-50 dark:border-border">
           <span className="text-[11px] font-black text-emerald-600">
             {formatMoney(Number(video.total_earnings), "RWF")}
           </span>
@@ -158,7 +158,7 @@ function VideoCard({
             <button
               onClick={() => { setToggling(true); onTogglePause(video.id, video.status); }}
               disabled={toggling || video.status === "processing"}
-              className="h-7 w-7 rounded-lg flex items-center justify-center bg-zinc-50 dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors disabled:opacity-40"
+              className="h-7 w-7 rounded-lg flex items-center justify-center bg-zinc-50 dark:bg-surface-secondary hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors disabled:opacity-40"
               title={video.status === "active" ? "Pause" : "Activate"}
             >
               {toggling ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> :
@@ -283,7 +283,7 @@ function UploadTab({ onSuccess }: { onSuccess: () => void }) {
           "relative border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-colors",
           videoFile
             ? "border-emerald-400 bg-emerald-50/50"
-            : "border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 hover:border-[var(--color-accent)] hover:bg-orange-50/30"
+            : "border-zinc-200 dark:border-border bg-zinc-50 dark:bg-surface/50 hover:border-[var(--color-accent)] hover:bg-orange-50/30"
         )}
         onClick={() => document.getElementById("sv-video-input")?.click()}
       >
@@ -333,7 +333,7 @@ function UploadTab({ onSuccess }: { onSuccess: () => void }) {
           value={form.title}
           onChange={(e) => setForm(f => ({ ...f, title: e.target.value }))}
           placeholder="Give your video a catchy title…"
-          className="w-full h-11 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 dark:text-white px-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30 focus:border-[var(--color-accent)]"
+          className="w-full h-11 rounded-xl border border-zinc-200 dark:border-border-strong bg-white dark:bg-surface dark:text-white px-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30 focus:border-[var(--color-accent)]"
           maxLength={100}
         />
       </div>
@@ -346,7 +346,7 @@ function UploadTab({ onSuccess }: { onSuccess: () => void }) {
           onChange={(e) => setForm(f => ({ ...f, description: e.target.value }))}
           placeholder="Tell viewers what this is about…"
           rows={3}
-          className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 dark:text-white px-4 py-3 text-sm font-medium resize-none focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30 focus:border-[var(--color-accent)]"
+          className="w-full rounded-xl border border-zinc-200 dark:border-border-strong bg-white dark:bg-surface dark:text-white px-4 py-3 text-sm font-medium resize-none focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30 focus:border-[var(--color-accent)]"
           maxLength={500}
         />
       </div>
@@ -379,7 +379,7 @@ function UploadTab({ onSuccess }: { onSuccess: () => void }) {
                 "flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl border transition-all",
                 form.video_type === t.id
                   ? "border-[var(--color-accent)] bg-orange-50/50 dark:bg-orange-950/20 text-[var(--color-accent)] ring-1 ring-[var(--color-accent)]"
-                  : "border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-500 dark:text-zinc-400 hover:border-zinc-300 dark:hover:border-zinc-600"
+                  : "border-zinc-200 dark:border-border-strong bg-white dark:bg-surface text-zinc-500 dark:text-text-muted hover:border-zinc-300 dark:hover:border-zinc-600"
               )}
             >
               {t.icon}
@@ -400,7 +400,7 @@ function UploadTab({ onSuccess }: { onSuccess: () => void }) {
               required
               value={form.product_id}
               onChange={(e) => setForm(f => ({ ...f, product_id: e.target.value }))}
-              className="w-full h-12 rounded-xl border-2 border-zinc-100 dark:border-zinc-700 bg-white dark:bg-zinc-900 dark:text-white px-4 text-sm font-bold focus:outline-none focus:border-[var(--color-accent)] transition-all appearance-none cursor-pointer"
+              className="w-full h-12 rounded-xl border-2 border-zinc-100 dark:border-border-strong bg-white dark:bg-surface dark:text-white px-4 text-sm font-bold focus:outline-none focus:border-[var(--color-accent)] transition-all appearance-none cursor-pointer"
             >
               <option value="">Choose a product…</option>
               {products.map(p => (
@@ -436,7 +436,7 @@ function UploadTab({ onSuccess }: { onSuccess: () => void }) {
               required
               value={form.community_id}
               onChange={(e) => setForm(f => ({ ...f, community_id: e.target.value }))}
-              className="w-full h-12 rounded-xl border-2 border-zinc-100 dark:border-zinc-700 bg-white dark:bg-zinc-900 dark:text-white px-4 text-sm font-bold focus:outline-none focus:border-indigo-500 transition-all appearance-none cursor-pointer"
+              className="w-full h-12 rounded-xl border-2 border-zinc-100 dark:border-border-strong bg-white dark:bg-surface dark:text-white px-4 text-sm font-bold focus:outline-none focus:border-indigo-500 transition-all appearance-none cursor-pointer"
             >
               <option value="">Choose a community…</option>
               {communities.map(c => (
@@ -472,7 +472,7 @@ function UploadTab({ onSuccess }: { onSuccess: () => void }) {
                 required
                 onChange={(e) => setForm(f => ({ ...f, external_link: e.target.value }))}
                 placeholder="https://yourlink.com/promo"
-                className="w-full h-12 rounded-xl border-2 border-zinc-100 dark:border-zinc-700 bg-white dark:bg-zinc-900 dark:text-white px-4 text-sm font-bold focus:outline-none focus:border-amber-400 transition-all"
+                className="w-full h-12 rounded-xl border-2 border-zinc-100 dark:border-border-strong bg-white dark:bg-surface dark:text-white px-4 text-sm font-bold focus:outline-none focus:border-amber-400 transition-all"
               />
               <Zap className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-amber-300" />
             </div>
@@ -541,7 +541,7 @@ function AnalyticsTab({ videos }: { videos: ShortVideo[] }) {
         <select
           value={selectedId ?? ""}
           onChange={(e) => setSelectedId(e.target.value)}
-          className="w-full max-w-md h-11 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 dark:text-white px-4 text-sm font-medium"
+          className="w-full max-w-md h-11 rounded-xl border border-zinc-200 dark:border-border-strong bg-white dark:bg-surface dark:text-white px-4 text-sm font-medium"
         >
           {videos.map(v => (
             <option key={v.id} value={v.id}>{v.title}</option>
@@ -565,19 +565,19 @@ function AnalyticsTab({ videos }: { videos: ShortVideo[] }) {
               { label: "Click Rate", value: `${analytics.clickRate}%`, icon: <MousePointer className="h-4 w-4" />, color: "from-amber-500 to-orange-500" },
               { label: "Conversion", value: `${analytics.conversionRate}%`, icon: <TrendingUp className="h-4 w-4" />, color: "from-emerald-500 to-teal-500" },
             ].map(m => (
-              <div key={m.label} className="rounded-2xl border border-zinc-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 shadow-sm">
+              <div key={m.label} className="rounded-2xl border border-zinc-100 dark:border-border bg-white dark:bg-surface p-4 shadow-sm">
                 <div className={cn("h-8 w-8 rounded-xl text-white flex items-center justify-center mb-2 bg-gradient-to-br shadow-sm", m.color)}>
                   {m.icon}
                 </div>
                 <p className="text-xl font-black text-zinc-900 dark:text-white">{m.value}</p>
-                <p className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wide mt-0.5">{m.label}</p>
+                <p className="text-[10px] font-semibold text-zinc-400 dark:text-text-muted uppercase tracking-wide mt-0.5">{m.label}</p>
               </div>
             ))}
           </div>
 
           {/* Extra stats */}
-          <div className="rounded-2xl border border-zinc-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 shadow-sm">
-            <h3 className="text-xs font-black uppercase tracking-widest text-zinc-400 dark:text-zinc-500 mb-3">Performance Summary</h3>
+          <div className="rounded-2xl border border-zinc-100 dark:border-border bg-white dark:bg-surface p-5 shadow-sm">
+            <h3 className="text-xs font-black uppercase tracking-widest text-zinc-400 dark:text-text-muted mb-3">Performance Summary</h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm">
               <div>
                 <p className="text-[10px] text-zinc-400 font-semibold uppercase tracking-wide">Total Likes</p>
@@ -641,22 +641,22 @@ function EarningsTab() {
           { label: "From Clicks", value: data.clickEarnings, icon: <MousePointer className="h-4 w-4" />, color: "from-violet-500 to-purple-500" },
           { label: "From Sales", value: data.saleEarnings, icon: <DollarSign className="h-4 w-4" />, color: "from-emerald-500 to-teal-500" },
         ].map(b => (
-          <div key={b.label} className="rounded-2xl border border-zinc-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 shadow-sm text-center">
+          <div key={b.label} className="rounded-2xl border border-zinc-100 dark:border-border bg-white dark:bg-surface p-4 shadow-sm text-center">
             <div className={cn("h-8 w-8 rounded-xl text-white flex items-center justify-center mx-auto mb-2 bg-gradient-to-br", b.color)}>
               {b.icon}
             </div>
             <p className="font-black text-sm text-zinc-900 dark:text-white">{formatMoney(b.value, "RWF")}
             </p>
-            <p className="text-[9px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wide mt-0.5">{b.label}</p>
+            <p className="text-[9px] font-semibold text-zinc-400 dark:text-text-muted uppercase tracking-wide mt-0.5">{b.label}</p>
           </div>
         ))}
       </div>
 
       {/* Top earning videos */}
       {data.topVideos.length > 0 && (
-        <div className="rounded-2xl border border-zinc-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm overflow-hidden">
-          <div className="px-5 py-4 border-b border-zinc-50 dark:border-zinc-800">
-            <h3 className="text-xs font-black uppercase tracking-widest text-zinc-400 dark:text-zinc-500">Top Earning Videos</h3></div>
+        <div className="rounded-2xl border border-zinc-100 dark:border-border bg-white dark:bg-surface shadow-sm overflow-hidden">
+          <div className="px-5 py-4 border-b border-zinc-50 dark:border-border">
+            <h3 className="text-xs font-black uppercase tracking-widest text-zinc-400 dark:text-text-muted">Top Earning Videos</h3></div>
           <ul className="divide-y divide-zinc-50 dark:divide-zinc-800">
             {data.topVideos.map((v: any) => (
               <li key={v.id} className="flex items-center justify-between px-5 py-3.5">
@@ -677,7 +677,7 @@ function EarningsTab() {
       )}
 
       {/* Earnings rate explanation */}
-      <div className="rounded-2xl border border-zinc-100 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 p-5 space-y-2 text-xs text-zinc-500 dark:text-zinc-400">
+      <div className="rounded-2xl border border-zinc-100 dark:border-border bg-zinc-50 dark:bg-surface/50 p-5 space-y-2 text-xs text-zinc-500 dark:text-text-muted">
         <p className="font-black text-zinc-700 dark:text-zinc-300 text-sm">How earnings are calculated</p>
         <div className="flex items-start gap-2"><Zap className="h-3.5 w-3.5 shrink-0 text-blue-500 mt-0.5" /><span><b>Views:</b> FRw 200 per 1,000 valid views (≥5 seconds watched)</span></div>
         <div className="flex items-start gap-2"><MousePointer className="h-3.5 w-3.5 shrink-0 text-violet-500 mt-0.5" /><span><b>Clicks:</b> FRw 10 per product click on your video</span></div>
@@ -737,7 +737,7 @@ export function VideoStudio({ defaultTab = "videos" }: { defaultTab?: Tab }) {
           <h2 className="text-2xl font-black text-zinc-900 dark:text-white tracking-tight flex items-center gap-2">
             <Film className="h-6 w-6 text-[var(--color-accent)]" /> Video Studio
           </h2>
-          <p className="text-sm text-zinc-400 dark:text-zinc-500 font-medium mt-0.5">Upload, manage, and monetize your short videos</p>
+          <p className="text-sm text-zinc-400 dark:text-text-muted font-medium mt-0.5">Upload, manage, and monetize your short videos</p>
         </div>
         <Button
           onClick={() => setTab("upload")}
@@ -756,20 +756,20 @@ export function VideoStudio({ defaultTab = "videos" }: { defaultTab?: Tab }) {
           { label: "Engaged",   value: fmtNum(videos.reduce((s, v) => s + v.like_count + v.comment_count, 0)), icon: <Zap className="h-4 w-4" />, color: "from-pink-500 to-rose-500" },
           { label: "Earned",    value: `${Math.round(videos.reduce((s, v) => s + Number(v.total_earnings), 0)).toLocaleString()} RWF`, icon: <DollarSign className="h-4 w-4" />, color: "from-emerald-500 to-teal-500" },
         ].map(s => (
-          <div key={s.label} className="rounded-2xl border border-zinc-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 shadow-sm flex items-center gap-3">
+          <div key={s.label} className="rounded-2xl border border-zinc-100 dark:border-border bg-white dark:bg-surface p-4 shadow-sm flex items-center gap-3">
             <div className={cn("h-9 w-9 rounded-xl text-white flex items-center justify-center shrink-0 bg-gradient-to-br", s.color)}>
               {s.icon}
             </div>
             <div>
               <p className="text-lg font-black text-zinc-900 dark:text-white leading-tight">{s.value}</p>
-              <p className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wide">{s.label}</p>
+              <p className="text-[10px] font-semibold text-zinc-400 dark:text-text-muted uppercase tracking-wide">{s.label}</p>
             </div>
           </div>
         ))}
       </div>
 
       {/* Tab bar */}
-      <div className="flex gap-1 bg-zinc-100 dark:bg-zinc-800 rounded-2xl p-1">
+      <div className="flex gap-1 bg-zinc-100 dark:bg-surface-secondary rounded-2xl p-1">
         {TABS.map(t => (
           <button
             key={t.id}
@@ -778,7 +778,7 @@ export function VideoStudio({ defaultTab = "videos" }: { defaultTab?: Tab }) {
               "flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-black transition-all",
               tab === t.id
                 ? "bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm"
-                : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:text-zinc-300 dark:hover:text-zinc-200"
+                : "text-zinc-500 dark:text-text-muted hover:text-zinc-700 dark:text-zinc-300 dark:hover:text-zinc-200"
             )}
           >
             {t.icon}
@@ -802,7 +802,7 @@ export function VideoStudio({ defaultTab = "videos" }: { defaultTab?: Tab }) {
               <Loader2 className="h-5 w-5 animate-spin" /><span className="text-sm">Loading your videos…</span>
             </div>
           ) : videos.length === 0 ? (
-            <div className="py-20 text-center border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-2xl">
+            <div className="py-20 text-center border-2 border-dashed border-zinc-200 dark:border-border rounded-2xl">
               <Film className="h-12 w-12 mx-auto mb-3 text-zinc-200" />
               <p className="font-bold text-sm text-zinc-600 mb-1">No videos yet</p>
               <p className="text-xs text-zinc-400 mb-5">Upload your first short video and start earning</p>

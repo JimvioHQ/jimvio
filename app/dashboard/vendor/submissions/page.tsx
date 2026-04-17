@@ -69,7 +69,7 @@ export default function VendorSubmissionsPage() {
        <div className="min-h-screen flex flex-col items-center justify-center space-y-12 animate-in fade-in duration-700" style={{ background: "var(--color-bg)" }}>
          <div className="relative">
            <div className="absolute inset-0 bg-orange-400/20 blur-3xl rounded-full scale-150 animate-pulse" />
-           <div className="relative w-24 h-24 rounded-[32px] bg-white dark:bg-zinc-900 border border-white shadow-2xl flex items-center justify-center overflow-hidden">
+           <div className="relative w-24 h-24 rounded-[32px] bg-white dark:bg-surface border border-white shadow-2xl flex items-center justify-center overflow-hidden">
              <div className="absolute inset-0 border-2 border-t-orange-500 border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin m-2" />
              <Video className="h-10 w-10 text-stone-900 dark:text-white" />
            </div>
@@ -93,7 +93,7 @@ export default function VendorSubmissionsPage() {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
            <div className="space-y-2">
               <h1 className="text-4xl font-black text-stone-900 dark:text-white tracking-tighter flex items-center gap-4">
-                 <div className="p-2.5 rounded-[20px] bg-white dark:bg-zinc-900 border border-white shadow-2xl shrink-0">
+                 <div className="p-2.5 rounded-[20px] bg-white dark:bg-surface border border-white shadow-2xl shrink-0">
                     <Video className="h-8 w-8 text-orange-500" />
                  </div>
                  Mission Submissions
@@ -103,7 +103,7 @@ export default function VendorSubmissionsPage() {
               </p>
            </div>
            
-           <div className="flex flex-wrap items-center gap-2 bg-white dark:bg-zinc-900/40 p-1.5 rounded-[22px] border border-white shadow-xl backdrop-blur-xl shrink-0">
+           <div className="flex flex-wrap items-center gap-2 bg-white dark:bg-surface/40 p-1.5 rounded-[22px] border border-white shadow-xl backdrop-blur-xl shrink-0">
               {["pending", "approved", "rejected", "all"].map((f) => (
                  <button
                     key={f}
@@ -129,8 +129,8 @@ export default function VendorSubmissionsPage() {
         {/* Content Feed */}
         <div className="space-y-6">
           {submissions.length === 0 ? (
-            <GlassCard className="p-24 text-center rounded-[56px] border-white bg-white dark:bg-zinc-900/20">
-               <div className="w-24 h-24 bg-white dark:bg-zinc-900 rounded-[32px] flex items-center justify-center mx-auto mb-8 border border-white shadow-xl">
+            <GlassCard className="p-24 text-center rounded-[56px] border-white bg-white dark:bg-surface/20">
+               <div className="w-24 h-24 bg-white dark:bg-surface rounded-[32px] flex items-center justify-center mx-auto mb-8 border border-white shadow-xl">
                   <CheckCircle2 className="h-10 w-10 text-stone-100" />
                </div>
                <h2 className="text-3xl font-black text-stone-900 dark:text-white tracking-tighter">You're All Caught Up</h2>
@@ -151,7 +151,7 @@ export default function VendorSubmissionsPage() {
                 return (
                   <GlassCard 
                     key={sub.id} 
-                    className="group bg-white dark:bg-zinc-900/60 border-white rounded-[40px] p-8 hover:shadow-2xl transition-all duration-500"
+                    className="group bg-white dark:bg-surface/60 border-white rounded-[40px] p-8 hover:shadow-2xl transition-all duration-500"
                   >
                     <div className="flex flex-col lg:flex-row gap-8 items-start lg:items-center">
                       

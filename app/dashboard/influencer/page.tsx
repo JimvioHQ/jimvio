@@ -69,7 +69,7 @@ export default function InfluencerDashboardPage() {
   }, []);
 
   if (loading) return (
-    <div className="flex flex-col items-center justify-center py-24 text-stone-400 dark:text-stone-500 space-y-4" style={{ background: "var(--color-bg)", minHeight: "100vh" }}>
+    <div className="flex flex-col items-center justify-center py-24 text-stone-400 dark:text-text-muted space-y-4" style={{ background: "var(--color-bg)", minHeight: "100vh" }}>
       <Loader2 className="h-10 w-10 animate-spin text-orange-500" />
       <p className="text-sm font-medium">Powering up your hub...</p>
     </div>
@@ -78,12 +78,12 @@ export default function InfluencerDashboardPage() {
   if (!influencer) {
     return (
       <div className="min-h-screen flex items-center justify-center px-6" style={{ background: "var(--color-bg)" }}>
-        <GlassCard className="max-w-2xl w-full p-12 text-center rounded-[40px] border-border shadow-xl bg-surface dark:bg-zinc-900/60">
+        <GlassCard className="max-w-2xl w-full p-12 text-center rounded-[40px] border-border shadow-xl bg-surface dark:bg-surface/60">
           <div className="w-20 h-20 bg-gradient-to-br from-orange-500 to-orange-600 rounded-3xl flex items-center justify-center text-white text-3xl mx-auto mb-8 shadow-lg shadow-orange-900/20">
             <Globe />
           </div>
           <h2 className="text-2xl font-black text-stone-900 dark:text-white mb-4 tracking-tight">Become a Jimvio Creator</h2>
-          <p className="text-stone-500 dark:text-stone-400 mb-8 leading-relaxed font-medium">
+          <p className="text-stone-500 dark:text-text-muted mb-8 leading-relaxed font-medium">
             Unlock the ability to earn from your content. Browse brand campaigns, submit your content links, and get paid for the views you generate.
           </p>
           <Button size="lg" asChild className="font-bold rounded-2xl px-12 h-14 bg-orange-500 text-white hover:bg-orange-600 transition-all border-none shadow-lg">
@@ -121,7 +121,7 @@ export default function InfluencerDashboardPage() {
 
          <div className="flex items-center gap-3">
             <Link href="/dashboard/influencer/videos">
-               <Button className="h-11 px-6 rounded-[14px] bg-white dark:bg-zinc-900 text-stone-700 border border-stone-100 dark:border-zinc-800 font-bold text-[11px] uppercase tracking-widest shadow-sm hover:bg-stone-50 dark:bg-zinc-900/50 hover:text-stone-900 dark:text-white transition-all">
+               <Button className="h-11 px-6 rounded-[14px] bg-white dark:bg-surface text-stone-700 border border-stone-100 dark:border-border font-bold text-[11px] uppercase tracking-widest shadow-sm hover:bg-stone-50 dark:bg-surface/50 hover:text-stone-900 dark:text-white transition-all">
                   My Clips
                </Button>
             </Link>
@@ -141,7 +141,7 @@ export default function InfluencerDashboardPage() {
            { label: "Market Influence", value: stats.totalClicks, icon: MousePointer, color: "text-orange-600", bg: "bg-orange-500/10" },
            { label: "Active Missions", value: stats.activeCampaigns, icon: Target, color: "text-orange-600", bg: "bg-orange-500/10" },
          ].map((stat, i) => (
-            <GlassCard key={i} className="p-5 flex items-center gap-4 group hover:border-orange-200 transition-all bg-white dark:bg-zinc-900/60 border-white shadow-sm">
+            <GlassCard key={i} className="p-5 flex items-center gap-4 group hover:border-orange-200 transition-all bg-white dark:bg-surface/60 border-white shadow-sm">
                <div className={cn("absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity rounded-[24px]", stat.bg)} />
                <div className={cn("relative w-12 h-12 rounded-[14px] flex items-center justify-center shrink-0 border border-white/80 shadow-sm", stat.bg, stat.color)}>
                   <stat.icon className="h-5 w-5" />
@@ -159,11 +159,11 @@ export default function InfluencerDashboardPage() {
             <h2 className="text-[11px] font-bold uppercase tracking-[0.2em] text-stone-500 px-2">Recent Performance</h2>
             
             {recentSubmissions.length === 0 ? (
-               <GlassCard className="py-24 text-center border-dashed border-border bg-surface dark:bg-zinc-900/20">
+               <GlassCard className="py-24 text-center border-dashed border-border bg-surface dark:bg-surface/20">
                   <Film className="h-12 w-12 text-stone-300 dark:text-stone-700 mx-auto mb-4" />
                   <p className="text-lg font-bold text-stone-900 dark:text-white tracking-tight">No activity logs found.</p>
                   <Link href="/ugc" className="mt-6 inline-block">
-                     <Button className="h-11 px-8 rounded-[14px] bg-surface dark:bg-zinc-900 border border-border text-stone-700 dark:text-stone-300 font-bold text-[11px] uppercase tracking-widest shadow-sm hover:bg-surface-secondary dark:hover:bg-zinc-800 transition-all">Browse Missions →</Button>
+                     <Button className="h-11 px-8 rounded-[14px] bg-surface dark:bg-surface border border-border text-stone-700 dark:text-stone-300 font-bold text-[11px] uppercase tracking-widest shadow-sm hover:bg-surface-secondary dark:hover:bg-zinc-800 transition-all">Browse Missions →</Button>
                   </Link>
                </GlassCard>
             ) : (
@@ -173,8 +173,8 @@ export default function InfluencerDashboardPage() {
                     const isPending = sub.status === 'pending';
 
                     return (
-                       <GlassCard key={sub.id} className="p-4 pr-6 flex items-center gap-4 hover:border-orange-200 transition-all cursor-pointer bg-white dark:bg-zinc-900/60 border-white shadow-sm">
-                          <div className="w-12 h-12 rounded-[14px] bg-white dark:bg-zinc-900 border border-stone-100 dark:border-zinc-800 flex items-center justify-center shrink-0 shadow-sm transition-colors">
+                       <GlassCard key={sub.id} className="p-4 pr-6 flex items-center gap-4 hover:border-orange-200 transition-all cursor-pointer bg-white dark:bg-surface/60 border-white shadow-sm">
+                          <div className="w-12 h-12 rounded-[14px] bg-white dark:bg-surface border border-stone-100 dark:border-border flex items-center justify-center shrink-0 shadow-sm transition-colors">
                              <Video className="h-5 w-5 text-stone-400" />
                           </div>
                           <div className="flex-1 min-w-0">
@@ -190,7 +190,7 @@ export default function InfluencerDashboardPage() {
                              <p className="text-[15px] font-bold text-stone-900 dark:text-white tabular-nums">{formatMoney(sub.total_earnings || 0)}</p>
                              <p className="text-[9px] font-semibold text-stone-400 uppercase tracking-widest leading-none">Earned</p>
                           </div>
-                          <Link href={sub.post_url} target="_blank" className="ml-3 w-9 h-9 rounded-full bg-white dark:bg-zinc-900 border border-stone-100 dark:border-zinc-800 flex items-center justify-center text-stone-400 hover:bg-stone-900 hover:text-white transition-all shadow-sm">
+                          <Link href={sub.post_url} target="_blank" className="ml-3 w-9 h-9 rounded-full bg-white dark:bg-surface border border-stone-100 dark:border-border flex items-center justify-center text-stone-400 hover:bg-stone-900 hover:text-white transition-all shadow-sm">
                              <ExternalLink className="w-4 h-4" />
                           </Link>
                        </GlassCard>
@@ -202,7 +202,7 @@ export default function InfluencerDashboardPage() {
 
          {/* ── QUICK ACTIONS ── */}
          <div className="xl:col-span-1 space-y-6">
-            <div className="rounded-[28px] bg-stone-900 dark:bg-zinc-800 p-8 text-white shadow-xl relative overflow-hidden group">
+            <div className="rounded-[28px] bg-stone-900 dark:bg-surface-secondary p-8 text-white shadow-xl relative overflow-hidden group">
                <div className="absolute top-0 right-0 w-48 h-48 bg-orange-500 opacity-20 blur-3xl rounded-full translate-x-10 -translate-y-10 group-hover:opacity-30 transition-opacity" />
                <div className="relative z-10 space-y-5">
                   <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 text-[9px] font-bold uppercase tracking-widest border border-white/10 backdrop-blur-md">
@@ -216,7 +216,7 @@ export default function InfluencerDashboardPage() {
                </div>
             </div>
 
-            <GlassCard className="p-6 bg-white dark:bg-zinc-900/60 border-white shadow-sm">
+            <GlassCard className="p-6 bg-white dark:bg-surface/60 border-white shadow-sm">
                <h3 className="text-[10px] font-bold uppercase tracking-widest text-stone-500 mb-5">Influencer Pulse</h3>
                <div className="space-y-4">
                   {[
@@ -225,7 +225,7 @@ export default function InfluencerDashboardPage() {
                   ].map((item, i) => (
                     <div key={i} className="flex items-center justify-between group">
                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-[10px] bg-white dark:bg-zinc-900 border border-stone-100 dark:border-zinc-800 flex items-center justify-center text-stone-300 group-hover:text-orange-500 transition-colors shadow-sm">
+                          <div className="w-8 h-8 rounded-[10px] bg-white dark:bg-surface border border-stone-100 dark:border-border flex items-center justify-center text-stone-300 group-hover:text-orange-500 transition-colors shadow-sm">
                              <item.icon className="w-4 h-4" />
                           </div>
                           <span className="text-[11px] font-bold text-stone-600">{item.label}</span>

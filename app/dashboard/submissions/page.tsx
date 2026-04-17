@@ -22,19 +22,19 @@ const STATUS_CONFIG: Record<string, { label: string; color: "orange" | "emerald"
 };
 
 const PLATFORM_ICONS: Record<string, any> = {
-  tiktok:    { icon: Play,  color: "text-stone-900 dark:text-white", bg: "bg-stone-50 dark:bg-zinc-900/50" },
+  tiktok:    { icon: Play,  color: "text-stone-900 dark:text-white", bg: "bg-stone-50 dark:bg-surface/50" },
   instagram: { icon: Camera, color: "text-orange-500", bg: "bg-orange-50" },
   youtube:   { icon: Play,  color: "text-red-500", bg: "bg-red-50" },
-  x:         { icon: MessageSquare, color: "text-stone-800 dark:text-zinc-200", bg: "bg-stone-100" },
+  x:         { icon: MessageSquare, color: "text-stone-800 dark:text-text-secondary", bg: "bg-stone-100" },
 };
 
 function SubmissionCard({ sub, onDelete }: { sub: UGCSubmission; onDelete: (id: string) => void }) {
   const { formatMoney } = useCurrency();
   const cfg = STATUS_CONFIG[sub.status] || STATUS_CONFIG.pending;
-  const pCfg = PLATFORM_ICONS[sub.platform] || { icon: Video, color: "text-stone-500", bg: "bg-stone-50 dark:bg-zinc-900/50" };
+  const pCfg = PLATFORM_ICONS[sub.platform] || { icon: Video, color: "text-stone-500", bg: "bg-stone-50 dark:bg-surface/50" };
 
   return (
-    <GlassCard className="p-8 rounded-[40px] bg-white dark:bg-zinc-900 border-white hover:shadow-2xl hover:shadow-orange-500/5 transition-all duration-500 relative group">
+    <GlassCard className="p-8 rounded-[40px] bg-white dark:bg-surface border-white hover:shadow-2xl hover:shadow-orange-500/5 transition-all duration-500 relative group">
       <div className="flex flex-col md:flex-row gap-8 items-start">
         {/* Platform Display */}
         <div className={cn("w-20 h-20 rounded-[24px] flex items-center justify-center shrink-0 border border-white shadow-xl group-hover:scale-110 transition-transform duration-700", pCfg.bg)}>
@@ -169,7 +169,7 @@ export default function DashboardSubmissionsPage() {
       <div className="min-h-screen flex flex-col items-center justify-center space-y-12 animate-in fade-in duration-700" style={{ background: "var(--color-bg)" }}>
         <div className="relative">
           <div className="absolute inset-0 bg-orange-400/20 blur-3xl rounded-full scale-150 animate-pulse" />
-          <div className="relative w-24 h-24 rounded-[32px] bg-white dark:bg-zinc-900 border border-white shadow-2xl flex items-center justify-center overflow-hidden">
+          <div className="relative w-24 h-24 rounded-[32px] bg-white dark:bg-surface border border-white shadow-2xl flex items-center justify-center overflow-hidden">
             <div className="absolute inset-0 border-2 border-t-orange-500 border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin m-2" />
             <Video className="h-10 w-10 text-stone-900 dark:text-white" />
           </div>
@@ -193,7 +193,7 @@ export default function DashboardSubmissionsPage() {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
            <div className="space-y-2">
               <h1 className="text-4xl font-black text-stone-900 dark:text-white tracking-tighter flex items-center gap-4">
-                 <div className="p-2.5 rounded-[20px] bg-white dark:bg-zinc-900 border border-white shadow-2xl shrink-0">
+                 <div className="p-2.5 rounded-[20px] bg-white dark:bg-surface border border-white shadow-2xl shrink-0">
                     <Video className="h-8 w-8 text-orange-500" />
                  </div>
                  My Submissions
@@ -202,7 +202,7 @@ export default function DashboardSubmissionsPage() {
                  Track your content performance and earned rewards
               </p>
            </div>
-           <div className="flex items-center gap-4 bg-white dark:bg-zinc-900/40 p-1.5 rounded-full border border-white shadow-xl backdrop-blur-xl">
+           <div className="flex items-center gap-4 bg-white dark:bg-surface/40 p-1.5 rounded-full border border-white shadow-xl backdrop-blur-xl">
               <div className="w-3 h-3 rounded-full bg-orange-500 ml-4 animate-pulse shadow-[0_0_12px_rgba(249,115,22,0.5)]" />
               <span className="text-[10px] font-black uppercase tracking-widest text-stone-900 dark:text-white pr-6 pl-2">Sync Active</span>
            </div>
@@ -210,8 +210,8 @@ export default function DashboardSubmissionsPage() {
 
         {/* Stats Row */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-           <GlassCard className="p-8 flex flex-col justify-between rounded-[40px] bg-white dark:bg-zinc-900/60 border-white shadow-xl transition-all hover:scale-105 duration-700">
-              <div className="w-14 h-14 rounded-[22px] bg-stone-50 dark:bg-zinc-900/50 border border-stone-100 dark:border-zinc-800 flex items-center justify-center mb-6">
+           <GlassCard className="p-8 flex flex-col justify-between rounded-[40px] bg-white dark:bg-surface/60 border-white shadow-xl transition-all hover:scale-105 duration-700">
+              <div className="w-14 h-14 rounded-[22px] bg-stone-50 dark:bg-surface/50 border border-stone-100 dark:border-border flex items-center justify-center mb-6">
                  <Video className="h-7 w-7 text-stone-900 dark:text-white" />
               </div>
               <div>
@@ -219,7 +219,7 @@ export default function DashboardSubmissionsPage() {
                  <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mt-2">Total Submissions</p>
               </div>
            </GlassCard>
-           <GlassCard className="p-8 flex flex-col justify-between rounded-[40px] bg-white dark:bg-zinc-900/60 border-white shadow-xl transition-all hover:scale-105 duration-700">
+           <GlassCard className="p-8 flex flex-col justify-between rounded-[40px] bg-white dark:bg-surface/60 border-white shadow-xl transition-all hover:scale-105 duration-700">
               <div className="w-14 h-14 rounded-[22px] bg-emerald-50 border border-emerald-100 flex items-center justify-center mb-6">
                  <CheckCircle className="h-7 w-7 text-emerald-500" />
               </div>
@@ -228,7 +228,7 @@ export default function DashboardSubmissionsPage() {
                  <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mt-2">Approved Videos</p>
               </div>
            </GlassCard>
-           <GlassCard className="p-8 flex flex-col justify-between rounded-[40px] bg-white dark:bg-zinc-900/60 border-white shadow-xl transition-all hover:scale-105 duration-700">
+           <GlassCard className="p-8 flex flex-col justify-between rounded-[40px] bg-white dark:bg-surface/60 border-white shadow-xl transition-all hover:scale-105 duration-700">
               <div className="w-14 h-14 rounded-[22px] bg-orange-50 border border-orange-100 flex items-center justify-center mb-6">
                  <Clock className="h-7 w-7 text-orange-500" />
               </div>
@@ -237,7 +237,7 @@ export default function DashboardSubmissionsPage() {
                  <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mt-2">Pending Review</p>
               </div>
            </GlassCard>
-           <GlassCard className="p-8 flex flex-col justify-between rounded-[40px] bg-white dark:bg-zinc-900 border-white shadow-2xl transition-all hover:scale-105 duration-700">
+           <GlassCard className="p-8 flex flex-col justify-between rounded-[40px] bg-white dark:bg-surface border-white shadow-2xl transition-all hover:scale-105 duration-700">
               <div className="w-14 h-14 rounded-[22px] bg-stone-900 text-white flex items-center justify-center mb-6">
                  <DollarSign className="h-7 w-7" />
               </div>
@@ -259,7 +259,7 @@ export default function DashboardSubmissionsPage() {
                        "px-8 h-12 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border shrink-0 shadow-sm",
                        statusFilter === f
                           ? "bg-stone-900 border-stone-900 text-white shadow-xl shadow-stone-900/10"
-                          : "bg-white dark:bg-zinc-900 border-white text-stone-400 hover:text-stone-900 dark:text-white"
+                          : "bg-white dark:bg-surface border-white text-stone-400 hover:text-stone-900 dark:text-white"
                     )}
                  >
                     {f}
@@ -268,7 +268,7 @@ export default function DashboardSubmissionsPage() {
            </div>
            
            <div className="flex items-center gap-3">
-              <div className="h-12 w-12 flex items-center justify-center rounded-2xl bg-white dark:bg-zinc-900 border border-white text-stone-400 shadow-sm">
+              <div className="h-12 w-12 flex items-center justify-center rounded-2xl bg-white dark:bg-surface border border-white text-stone-400 shadow-sm">
                  <Filter className="h-4 w-4" />
               </div>
               <Button asChild className="h-12 px-8 rounded-2xl bg-orange-500 text-white font-black text-[10px] uppercase tracking-widest shadow-xl shadow-orange-500/20 active:scale-95 transition-all border-none">
@@ -281,12 +281,12 @@ export default function DashboardSubmissionsPage() {
         {loading ? (
            <div className="space-y-6">
               {[1, 2, 3].map((i) => (
-                 <div key={i} className="h-48 rounded-[48px] bg-white dark:bg-zinc-900 border border-white animate-pulse shadow-sm" />
+                 <div key={i} className="h-48 rounded-[48px] bg-white dark:bg-surface border border-white animate-pulse shadow-sm" />
               ))}
            </div>
         ) : submissions.length === 0 ? (
-           <GlassCard className="p-24 text-center rounded-[56px] border-white bg-white dark:bg-zinc-900/20">
-              <div className="w-24 h-24 bg-white dark:bg-zinc-900 rounded-[32px] flex items-center justify-center mx-auto mb-8 border border-white shadow-xl">
+           <GlassCard className="p-24 text-center rounded-[56px] border-white bg-white dark:bg-surface/20">
+              <div className="w-24 h-24 bg-white dark:bg-surface rounded-[32px] flex items-center justify-center mx-auto mb-8 border border-white shadow-xl">
                  <Video className="h-10 w-10 text-stone-100" />
               </div>
               <h2 className="text-3xl font-black text-stone-900 dark:text-white tracking-tighter">No Activity Logged</h2>

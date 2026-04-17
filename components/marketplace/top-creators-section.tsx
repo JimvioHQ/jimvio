@@ -42,7 +42,7 @@ export function TopCreatorsSection({ creators, className }: TopCreatorsSectionPr
           <h2 className="text-[20px] sm:text-[22px] font-extrabold text-text-primary dark:text-white flex items-center gap-2.5 tracking-tight">
             Influencers to follow
           </h2>
-          <p className="text-[12px] text-[#6b7280] dark:text-zinc-400 font-medium mt-0.5">Trending creators sharing products</p>
+          <p className="text-[12px] text-[#6b7280] dark:text-text-muted font-medium mt-0.5">Trending creators sharing products</p>
         </div>
         <Link
           href="/influencers/browse"
@@ -59,10 +59,10 @@ export function TopCreatorsSection({ creators, className }: TopCreatorsSectionPr
           return (
             <div
               key={c.id}
-              className="group flex flex-col items-center text-center p-5 rounded-2xl bg-white dark:bg-zinc-900 border border-[#f0f0f0] dark:border-zinc-800 shadow-sm hover:shadow-lg hover:border-[#f97316]/20 dark:hover:border-orange-900/50 transition-all duration-300"
+              className="group flex flex-col items-center text-center p-5 rounded-2xl bg-white dark:bg-surface border border-[#f0f0f0] dark:border-border shadow-sm hover:shadow-lg hover:border-[#f97316]/20 dark:hover:border-orange-900/50 transition-all duration-300"
             >
               <Link href={profileUrl} className="flex flex-col items-center flex-1 min-w-0 w-full">
-                <Avatar className="h-16 w-16 sm:h-20 sm:w-20 border-2 border-[#fff7ed] dark:border-zinc-800 group-hover:border-[#f97316]/30 transition-colors mb-3">
+                <Avatar className="h-16 w-16 sm:h-20 sm:w-20 border-2 border-[#fff7ed] dark:border-border group-hover:border-[#f97316]/30 transition-colors mb-3">
                   <AvatarImage src={c.avatar_url ?? undefined} />
                   <AvatarFallback className="bg-[#f97316] text-white font-black text-lg">
                     {c.full_name?.[0] ?? "C"}
@@ -71,10 +71,10 @@ export function TopCreatorsSection({ creators, className }: TopCreatorsSectionPr
                 <h3 className="text-[13px] font-black text-text-primary dark:text-white truncate w-full mb-0.5">
                   {c.full_name ?? "Creator"}
                 </h3>
-                <p className="text-[11px] text-[#6b7280] dark:text-zinc-400 font-bold mb-3">
+                <p className="text-[11px] text-[#6b7280] dark:text-text-muted font-bold mb-3">
                   {followers} followers
                 </p>
-                <p className="text-[10px] text-[#9ca3af] dark:text-zinc-500 line-clamp-2 mb-4 flex-1 min-h-[2.5rem]">
+                <p className="text-[10px] text-[#9ca3af] dark:text-text-muted line-clamp-2 mb-4 flex-1 min-h-[2.5rem]">
                   B2B creator
                 </p>
               </Link>

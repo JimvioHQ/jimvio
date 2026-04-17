@@ -35,7 +35,7 @@ export default function AffiliateLeaderboardPage() {
       <div className="min-h-screen flex flex-col items-center justify-center space-y-12 animate-in fade-in duration-700" style={{ background: "#f0ede8" }}>
         <div className="relative">
           <div className="absolute inset-0 bg-amber-400/20 blur-3xl rounded-full scale-150 animate-pulse" />
-          <div className="relative w-24 h-24 rounded-[32px] bg-white dark:bg-zinc-900 border border-white shadow-2xl flex items-center justify-center overflow-hidden">
+          <div className="relative w-24 h-24 rounded-[32px] bg-white dark:bg-surface border border-white shadow-2xl flex items-center justify-center overflow-hidden">
             <div className="absolute inset-0 border-2 border-t-amber-500 border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin m-2" />
             <Trophy className="h-10 w-10 text-stone-900 dark:text-white" />
           </div>
@@ -64,7 +64,7 @@ export default function AffiliateLeaderboardPage() {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
            <div className="space-y-2">
               <h1 className="text-4xl font-black text-stone-900 dark:text-white tracking-tighter flex items-center gap-4">
-                 <div className="p-2.5 rounded-[20px] bg-white dark:bg-zinc-900 border border-white shadow-2xl shrink-0">
+                 <div className="p-2.5 rounded-[20px] bg-white dark:bg-surface border border-white shadow-2xl shrink-0">
                     <Trophy className="h-8 w-8 text-amber-500" />
                  </div>
                  The Hall of Fame
@@ -85,8 +85,8 @@ export default function AffiliateLeaderboardPage() {
                 <GlassCard key={l.id} className={cn(
                   "relative overflow-hidden group transition-all duration-700 hover:-translate-y-4 rounded-[48px]",
                   i === 0 ? "h-[500px] border-amber-400/50 bg-amber-50/20 shadow-[0_20px_60px_rgba(251,191,36,0.15)] order-1 md:order-2" : 
-                  i === 1 ? "h-[440px] border-stone-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 order-2 md:order-1" : 
-                  "h-[400px] border-orange-200 bg-white dark:bg-zinc-900/60 order-3 md:order-3"
+                  i === 1 ? "h-[440px] border-stone-200 dark:border-border bg-white dark:bg-surface/60 order-2 md:order-1" : 
+                  "h-[400px] border-orange-200 bg-white dark:bg-surface/60 order-3 md:order-3"
                 )}>
                    <div className="absolute top-10 right-10 opacity-5 transition-transform group-hover:scale-125 duration-[2000ms]">
                       {i === 0 ? <Trophy className="h-40 w-40" /> : <Medal className="h-40 w-40" />}
@@ -146,7 +146,7 @@ export default function AffiliateLeaderboardPage() {
                        <span className="font-black text-xl text-orange-400 tabular-nums tracking-tighter">450K</span>
                     </div>
                  </div>
-                 <Button className="w-full bg-white dark:bg-zinc-900 text-stone-900 dark:text-white hover:bg-stone-50 dark:bg-zinc-900/50 font-black text-[11px] uppercase tracking-widest h-16 rounded-[28px] shadow-2xl active:scale-95 transition-all mt-4 border-none">
+                 <Button className="w-full bg-white dark:bg-surface text-stone-900 dark:text-white hover:bg-stone-50 dark:bg-surface/50 font-black text-[11px] uppercase tracking-widest h-16 rounded-[28px] shadow-2xl active:scale-95 transition-all mt-4 border-none">
                     Recalibrate Tier <Zap className="h-4 w-4 ml-3" />
                  </Button>
               </div>
@@ -154,13 +154,13 @@ export default function AffiliateLeaderboardPage() {
         </div>
 
         {/* Global Registry Log */}
-        <GlassCard className="rounded-[48px] border-white bg-white dark:bg-zinc-900/60 shadow-xl overflow-hidden">
-           <div className="p-10 border-b border-stone-100 dark:border-zinc-800 flex flex-col md:flex-row items-center justify-between gap-6">
+        <GlassCard className="rounded-[48px] border-white bg-white dark:bg-surface/60 shadow-xl overflow-hidden">
+           <div className="p-10 border-b border-stone-100 dark:border-border flex flex-col md:flex-row items-center justify-between gap-6">
               <div className="space-y-1">
                  <h3 className="text-3xl font-black text-stone-900 dark:text-white tracking-tighter">Global Rankings</h3>
                  <p className="text-[11px] font-black uppercase tracking-widest text-stone-400">Total trade flow & node performance registry</p>
               </div>
-              <div className="bg-white dark:bg-zinc-900/60 p-2 rounded-full border border-white shadow-xl flex items-center gap-2">
+              <div className="bg-white dark:bg-surface/60 p-2 rounded-full border border-white shadow-xl flex items-center gap-2">
                  <div className="px-6 py-2 rounded-full bg-stone-900 text-white text-[10px] font-black uppercase tracking-widest shadow-xl">Volume Flow</div>
                  <div className="px-6 py-2 rounded-full text-stone-400 text-[10px] font-black uppercase tracking-widest hover:text-stone-900 dark:text-white transition-colors cursor-pointer">Acquisition Yield</div>
               </div>
@@ -170,27 +170,27 @@ export default function AffiliateLeaderboardPage() {
               <table className="w-full text-left">
                 <thead>
                   <tr className="bg-stone-50/40">
-                    <th className="py-8 pl-10 w-24 text-[11px] font-black uppercase tracking-[0.3em] text-stone-400 border-b border-stone-100 dark:border-zinc-800">Pos</th>
-                    <th className="py-8 px-6 text-[11px] font-black uppercase tracking-[0.3em] text-stone-400 border-b border-stone-100 dark:border-zinc-800">Trade Proxy</th>
-                    <th className="py-8 px-6 text-right text-[11px] font-black uppercase tracking-[0.3em] text-stone-400 border-b border-stone-100 dark:border-zinc-800">Settled Volume</th>
-                    <th className="py-8 px-6 text-right text-[11px] font-black uppercase tracking-[0.3em] text-stone-400 border-b border-stone-100 dark:border-zinc-800">Pulse Count</th>
-                    <th className="py-8 px-6 text-right text-[11px] font-black uppercase tracking-[0.3em] text-emerald-500 border-b border-stone-100 dark:border-zinc-800">Yield Flux</th>
-                    <th className="py-8 pr-10 border-b border-stone-100 dark:border-zinc-800" />
+                    <th className="py-8 pl-10 w-24 text-[11px] font-black uppercase tracking-[0.3em] text-stone-400 border-b border-stone-100 dark:border-border">Pos</th>
+                    <th className="py-8 px-6 text-[11px] font-black uppercase tracking-[0.3em] text-stone-400 border-b border-stone-100 dark:border-border">Trade Proxy</th>
+                    <th className="py-8 px-6 text-right text-[11px] font-black uppercase tracking-[0.3em] text-stone-400 border-b border-stone-100 dark:border-border">Settled Volume</th>
+                    <th className="py-8 px-6 text-right text-[11px] font-black uppercase tracking-[0.3em] text-stone-400 border-b border-stone-100 dark:border-border">Pulse Count</th>
+                    <th className="py-8 px-6 text-right text-[11px] font-black uppercase tracking-[0.3em] text-emerald-500 border-b border-stone-100 dark:border-border">Yield Flux</th>
+                    <th className="py-8 pr-10 border-b border-stone-100 dark:border-border" />
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-stone-100">
                   {leaders.map((l, i) => (
-                    <tr key={l.id} className="hover:bg-white dark:bg-zinc-900/80 transition-all duration-500 group">
+                    <tr key={l.id} className="hover:bg-white dark:bg-surface/80 transition-all duration-500 group">
                       <td className="py-10 pl-10">
                          <div className={cn(
                            "flex items-center justify-center w-12 h-12 rounded-[18px] text-[14px] font-black border shadow-xl transition-transform group-hover:scale-110",
-                           i < 3 ? "bg-amber-100 text-amber-600 border-amber-200/50" : "bg-white dark:bg-zinc-900 text-stone-300 border-white shadow-none"
+                           i < 3 ? "bg-amber-100 text-amber-600 border-amber-200/50" : "bg-white dark:bg-surface text-stone-300 border-white shadow-none"
                          )}>{i+1}</div>
                       </td>
                       <td className="py-10 px-6">
                         <div className="flex items-center gap-6">
                           <Avatar className="h-14 w-14 border border-white shadow-xl rounded-2xl group-hover:scale-105 transition-transform duration-500">
-                            <AvatarFallback className="text-[14px] font-black bg-stone-50 dark:bg-zinc-900/50 text-stone-900 dark:text-white rounded-2xl">@{l.affiliate_code?.[0]?.toUpperCase()}</AvatarFallback>
+                            <AvatarFallback className="text-[14px] font-black bg-stone-50 dark:bg-surface/50 text-stone-900 dark:text-white rounded-2xl">@{l.affiliate_code?.[0]?.toUpperCase()}</AvatarFallback>
                           </Avatar>
                           <div>
                             <p className="text-xl font-black text-stone-900 dark:text-white tracking-tighter">@{l.affiliate_code}</p>
@@ -202,7 +202,7 @@ export default function AffiliateLeaderboardPage() {
                       <td className="py-10 px-6 text-right text-lg font-black text-stone-400 tabular-nums tracking-tighter">{(l.total_clicks || 0).toLocaleString()}</td>
                       <td className="py-10 px-6 text-right text-2xl font-black text-emerald-500 tabular-nums tracking-tighter">{(l.total_conversions || 0).toLocaleString()}</td>
                       <td className="py-10 pr-10 text-right">
-                         <Button variant="ghost" size="icon" className="h-12 w-12 rounded-2xl bg-white dark:bg-zinc-900 border border-transparent shadow-lg text-stone-300 group-hover:bg-stone-900 group-hover:text-white transition-all active:scale-90">
+                         <Button variant="ghost" size="icon" className="h-12 w-12 rounded-2xl bg-white dark:bg-surface border border-transparent shadow-lg text-stone-300 group-hover:bg-stone-900 group-hover:text-white transition-all active:scale-90">
                             <ArrowRight className="h-5 w-5" />
                          </Button>
                       </td>

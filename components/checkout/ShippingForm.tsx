@@ -210,7 +210,7 @@ function Field({
         {label}
       </label>
 
-      <div className="relative rounded-[14px] bg-white/55 dark:bg-zinc-900/50 backdrop-blur-md border border-white/80 dark:border-zinc-800 shadow-sm shadow-orange-500/5">
+      <div className="relative rounded-[14px] bg-white/55 dark:bg-surface/50 backdrop-blur-md border border-white/80 dark:border-border shadow-sm shadow-orange-500/5">
         {icon}
         {children}
       </div>

@@ -307,15 +307,15 @@ export function Navbar({ user, marketing }: NavbarProps) {
           className="hidden md:flex items-center justify-between px-8 md:px-12 shrink-0 border-b border-white/5 dark:border-white/10"
         >
           <div className="flex items-center gap-5">
-            <span className="flex items-center gap-1.5 text-[9px] font-semibold text-stone-500 dark:text-stone-400 tracking-widest uppercase">
+            <span className="flex items-center gap-1.5 text-[9px] font-semibold text-stone-500 dark:text-text-muted tracking-widest uppercase">
               <Globe className="h-3 w-3 text-orange-500" />
               {(marketing.locale_strip?.trim() || "EN · USD")}
             </span>
-            <CurrencySelector className="h-5 bg-transparent border-0 px-1 text-[10px] font-semibold text-stone-500 dark:text-stone-400 hover:text-stone-800 dark:text-zinc-200 dark:hover:text-stone-200 transition-colors" />
+            <CurrencySelector className="h-5 bg-transparent border-0 px-1 text-[10px] font-semibold text-stone-500 dark:text-text-muted hover:text-stone-800 dark:text-text-secondary dark:hover:text-stone-200 transition-colors" />
           </div>
           <div className="flex items-center gap-5">
-            <Link href="/help" className="text-[9px] font-semibold tracking-widest text-stone-500 dark:text-stone-400 hover:text-orange-500 transition-colors uppercase">Help center</Link>
-            <Link href="/vendors" className="text-[9px] font-semibold tracking-widest text-stone-500 dark:text-stone-400 hover:text-stone-800 dark:text-zinc-200 dark:hover:text-stone-200 transition-colors uppercase">Suppliers</Link>
+            <Link href="/help" className="text-[9px] font-semibold tracking-widest text-stone-500 dark:text-text-muted hover:text-orange-500 transition-colors uppercase">Help center</Link>
+            <Link href="/vendors" className="text-[9px] font-semibold tracking-widest text-stone-500 dark:text-text-muted hover:text-stone-800 dark:text-text-secondary dark:hover:text-stone-200 transition-colors uppercase">Suppliers</Link>
           </div>
         </motion.div>
 
@@ -388,8 +388,8 @@ export function Navbar({ user, marketing }: NavbarProps) {
                           <s.icon className="h-4 w-4" />
                         </div>
                         <div className="min-w-0">
-                          <p className="text-[13px] font-semibold text-stone-800 dark:text-stone-200 leading-none mb-0.5">{s.title}</p>
-                          <p className="text-[11px] text-stone-400 dark:text-stone-500 truncate">{s.desc}</p>
+                          <p className="text-[13px] font-semibold text-stone-800 dark:text-text-secondary leading-none mb-0.5">{s.title}</p>
+                          <p className="text-[11px] text-stone-400 dark:text-text-muted truncate">{s.desc}</p>
                         </div>
                       </Link>
                     </DropdownMenuItem>
@@ -663,7 +663,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
                   </div>
 
                   {/* Theme toggle mobile */}
-                  <div className="mb-3 flex items-center justify-between px-4 py-3 rounded-[20px] bg-surface/10 dark:bg-white dark:bg-zinc-900/5 border border-border shadow-sm">
+                  <div className="mb-3 flex items-center justify-between px-4 py-3 rounded-[20px] bg-surface/10 dark:bg-white dark:bg-surface/5 border border-border shadow-sm">
                     <div className="flex items-center gap-3">
                       <Sun className="h-5 w-5 text-stone-400" />
                       <span className="text-[14px] font-semibold text-stone-900 dark:text-white/70">Theme Mode</span>

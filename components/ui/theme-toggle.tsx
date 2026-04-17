@@ -27,7 +27,7 @@ export function ThemeToggle() {
       variant="ghost"
       size="icon"
       onClick={() => setTheme(theme === "light" ? "dark" : "light")}
-      className="relative w-10 h-10 rounded-full hover:bg-zinc-100 dark:hover:bg-white dark:bg-zinc-900/10 transition-all duration-300 group"
+      className="relative w-10 h-10 rounded-full hover:bg-zinc-100 dark:hover:bg-white dark:bg-surface/10 transition-all duration-300 group"
       aria-label="Toggle theme"
     >
       <div className="relative w-full h-full flex items-center justify-center">

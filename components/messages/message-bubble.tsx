@@ -54,7 +54,7 @@ export function MessageBubble({
       {replyToMsg && (
         <div className={cn(
           "px-3 py-1.5 border-l-2 text-xs",
-          isOwn ? "bg-white dark:bg-zinc-900/20 border-white/50" : "bg-ink-darker/5 border-[var(--color-border)]"
+          isOwn ? "bg-white dark:bg-surface/20 border-white/50" : "bg-ink-darker/5 border-[var(--color-border)]"
         )}>
           <p className="font-medium truncate">{replyToMsg.sender_id === msg.sender_id ? "You" : "Them"}</p>
           <p className="truncate text-[var(--color-text-muted)]"><PreviewText msg={replyToMsg} /></p>

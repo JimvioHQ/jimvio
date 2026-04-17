@@ -36,7 +36,7 @@ export default function PrivacyPolicyPage() {
           </p>
         </div>
 
-        <div className="bg-white dark:bg-zinc-900 border border-[var(--color-border)] rounded-[3rem] p-8 md:p-16 shadow-xl relative overflow-hidden">
+        <div className="bg-white dark:bg-surface border border-[var(--color-border)] rounded-[3rem] p-8 md:p-16 shadow-xl relative overflow-hidden">
            <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-50 rounded-bl-[4rem]" />
            
            <div className="space-y-16">

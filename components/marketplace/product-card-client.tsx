@@ -236,7 +236,7 @@ export function ProductCardClient({
               </span>
             ) : (
               <span
-                className="inline-flex items-center gap-1 rounded-[8px] px-2 py-0.5 text-[9px] font-black uppercase tracking-wide bg-surface/80 dark:bg-zinc-800/80 backdrop-blur-md border border-border text-stone-500 dark:text-stone-400 shadow-sm"
+                className="inline-flex items-center gap-1 rounded-[8px] px-2 py-0.5 text-[9px] font-black uppercase tracking-wide bg-surface/80 dark:bg-surface-secondary/80 backdrop-blur-md border border-border text-stone-500 dark:text-text-muted shadow-sm"
               >
                 <Package className="h-2.5 w-2.5" /> PHYSICAL
               </span>
@@ -257,8 +257,8 @@ export function ProductCardClient({
               onClick={handleChat}
               className={cn(
                 "flex-1 flex items-center justify-center gap-1",
-                "rounded-[10px] font-semibold bg-surface/90 dark:bg-zinc-800/90 backdrop-blur-md text-stone-700 dark:text-stone-200",
-                "border border-border shadow-sm hover:text-orange-600 active:scale-95 transition-all text-stone-700 dark:text-stone-200",
+                "rounded-[10px] font-semibold bg-surface/90 dark:bg-surface-secondary/90 backdrop-blur-md text-stone-700 dark:text-text-secondary",
+                "border border-border shadow-sm hover:text-orange-600 active:scale-95 transition-all text-stone-700 dark:text-text-secondary",
                 compact ? "h-7 text-[9px]" : "h-8 text-[10px]"
               )}
             >
@@ -312,7 +312,7 @@ export function ProductCardClient({
           <div className="flex items-center gap-2 mt-1.5 flex-wrap">
             <LocalizedPrice amount={price} currency={p.currency} className={cn("font-black tracking-tight text-stone-900 dark:text-white", compact ? "text-[16px]" : "text-[19px]")} />
             {discount > 0 && (
-              <LocalizedPrice amount={compareAt} currency={p.currency} className="text-[12px] font-bold text-stone-400 dark:text-stone-500 line-through md:inline-block" />
+              <LocalizedPrice amount={compareAt} currency={p.currency} className="text-[12px] font-bold text-stone-400 dark:text-text-muted line-through md:inline-block" />
             )}
           </div>
 
@@ -322,7 +322,7 @@ export function ProductCardClient({
               <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
               <span className="text-[11px] font-semibold text-stone-600 dark:text-stone-300">{(p.rating ?? 0).toFixed(1)}</span>
               {p.review_count ? (
-                <span className="text-[10px] text-stone-400 dark:text-stone-500">({p.review_count})</span>
+                <span className="text-[10px] text-stone-400 dark:text-text-muted">({p.review_count})</span>
               ) : null}
               {/* Affiliate badge */}
               {p.affiliate_enabled && commissionRate && (

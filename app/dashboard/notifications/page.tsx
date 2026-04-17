@@ -43,14 +43,14 @@ export default function NotificationsPage() {
       <div className="min-h-screen flex flex-col items-center justify-center space-y-12 animate-in fade-in duration-700" style={{ background: "var(--color-bg)" }}>
         <div className="relative">
           <div className="absolute inset-0 bg-orange-400/20 blur-3xl rounded-full scale-150 animate-pulse" />
-          <div className="relative w-24 h-24 rounded-[32px] bg-surface dark:bg-zinc-900 border border-border shadow-2xl flex items-center justify-center overflow-hidden">
+          <div className="relative w-24 h-24 rounded-[32px] bg-surface dark:bg-surface border border-border shadow-2xl flex items-center justify-center overflow-hidden">
             <div className="absolute inset-0 border-2 border-t-orange-500 border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin m-2" />
             <Bell className="h-10 w-10 text-stone-900 dark:text-white" />
           </div>
         </div>
         <div className="text-center space-y-3">
            <h2 className="text-[14px] font-black text-stone-900 dark:text-white uppercase tracking-[0.4em] pl-[0.4em]">Alert Hub</h2>
-           <p className="text-[10px] font-bold text-stone-400 dark:text-stone-500 uppercase tracking-widest pl-[0.1em]">Syncing Your Notifications</p>
+           <p className="text-[10px] font-bold text-stone-400 dark:text-text-muted uppercase tracking-widest pl-[0.1em]">Syncing Your Notifications</p>
         </div>
       </div>
     );
@@ -70,12 +70,12 @@ export default function NotificationsPage() {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
            <div className="space-y-2">
               <h1 className="text-4xl font-black text-stone-900 dark:text-white tracking-tighter flex items-center gap-4">
-                 <div className="p-2.5 rounded-[20px] bg-surface dark:bg-zinc-900 border border-border shadow-2xl shrink-0">
+                 <div className="p-2.5 rounded-[20px] bg-surface dark:bg-surface border border-border shadow-2xl shrink-0">
                     <Bell className="h-8 w-8 text-orange-500" />
                  </div>
                  Alerts
               </h1>
-              <p className="text-[11px] font-bold text-stone-400 dark:text-stone-500 uppercase tracking-[0.3em] pl-16">
+              <p className="text-[11px] font-bold text-stone-400 dark:text-text-muted uppercase tracking-[0.3em] pl-16">
                  Stay updated on orders, messages, and platform activity
               </p>
            </div>
@@ -83,7 +83,7 @@ export default function NotificationsPage() {
            <Button 
               variant="outline" 
               onClick={markAllRead} 
-              className="h-14 px-8 rounded-full bg-surface dark:bg-zinc-900 text-stone-900 dark:text-white border-border shadow-xl font-black text-[11px] uppercase tracking-widest active:scale-95 transition-all hover:bg-surface-secondary dark:hover:bg-zinc-800"
+              className="h-14 px-8 rounded-full bg-surface dark:bg-surface text-stone-900 dark:text-white border-border shadow-xl font-black text-[11px] uppercase tracking-widest active:scale-95 transition-all hover:bg-surface-secondary dark:hover:bg-zinc-800"
            >
               Mark All Read
            </Button>
@@ -92,8 +92,8 @@ export default function NotificationsPage() {
         {/* Signal Registry */}
         <div className="space-y-6">
            {notifications.length === 0 ? (
-              <GlassCard className="py-24 text-center rounded-[56px] border-dashed border-stone-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/20">
-                 <div className="w-24 h-24 bg-white dark:bg-zinc-900 rounded-[32px] flex items-center justify-center mx-auto mb-8 border border-white shadow-xl">
+              <GlassCard className="py-24 text-center rounded-[56px] border-dashed border-stone-200 dark:border-border bg-white dark:bg-surface/20">
+                 <div className="w-24 h-24 bg-white dark:bg-surface rounded-[32px] flex items-center justify-center mx-auto mb-8 border border-white shadow-xl">
                     <BellOff className="h-10 w-10 text-stone-100" />
                  </div>
                  <h3 className="text-2xl font-black text-stone-900 dark:text-white tracking-tighter">Everything Clear</h3>
@@ -102,15 +102,15 @@ export default function NotificationsPage() {
            ) : (
               <div className="space-y-4">
                  {notifications.map((n) => {
-                    const cat = categoryIcons[n.type] || { icon: <Bell className="h-5 w-5" />, color: "text-stone-400", bg: "bg-stone-50 dark:bg-zinc-900/50" };
+                    const cat = categoryIcons[n.type] || { icon: <Bell className="h-5 w-5" />, color: "text-stone-400", bg: "bg-stone-50 dark:bg-surface/50" };
                     return (
                        <GlassCard key={n.id} className={cn(
                           "p-8 rounded-[40px] flex items-start gap-8 transition-all duration-500 group border-transparent shadow-sm",
-                          n.read ? "bg-white dark:bg-zinc-900/40 border-white/60 hover:border-white hover:bg-white dark:bg-zinc-900/60" : "bg-white dark:bg-zinc-900 shadow-2xl shadow-orange-500/5 ring-2 ring-orange-500/10"
+                          n.read ? "bg-white dark:bg-surface/40 border-white/60 hover:border-white hover:bg-white dark:bg-surface/60" : "bg-white dark:bg-surface shadow-2xl shadow-orange-500/5 ring-2 ring-orange-500/10"
                        )}>
                           <div className={cn(
                              "h-16 w-16 rounded-[24px] flex items-center justify-center shrink-0 border border-white shadow-xl transition-transform duration-700 group-hover:scale-110",
-                             n.read ? "bg-white dark:bg-zinc-900/60 text-stone-400" : cn("bg-white dark:bg-zinc-900", cat.color)
+                             n.read ? "bg-white dark:bg-surface/60 text-stone-400" : cn("bg-white dark:bg-surface", cat.color)
                           )}>
                              {cat.icon}
                           </div>
@@ -150,7 +150,7 @@ export default function NotificationsPage() {
         </div>
 
         {/* Security Info */}
-        <GlassCard className="p-10 rounded-[56px] border-border bg-stone-900 dark:bg-zinc-800 text-white relative overflow-hidden shadow-2xl">
+        <GlassCard className="p-10 rounded-[56px] border-border bg-stone-900 dark:bg-surface-secondary text-white relative overflow-hidden shadow-2xl">
            <div className="absolute top-0 right-0 w-64 h-64 bg-orange-500/20 blur-[100px] rounded-full translate-x-1/2 -translate-y-1/2" />
            <div className="flex flex-col md:flex-row items-center justify-between gap-10">
               <div className="space-y-4 text-center md:text-left">

@@ -61,7 +61,7 @@ export default function CampaignsPage() {
       <div className="min-h-screen flex flex-col items-center justify-center space-y-12 animate-in fade-in duration-700" style={{ background: "var(--color-bg)" }}>
         <div className="relative">
           <div className="absolute inset-0 bg-orange-400/20 blur-3xl rounded-full scale-150 animate-pulse" />
-          <div className="relative w-24 h-24 rounded-[32px] bg-white dark:bg-zinc-900 border border-white shadow-2xl flex items-center justify-center overflow-hidden">
+          <div className="relative w-24 h-24 rounded-[32px] bg-white dark:bg-surface border border-white shadow-2xl flex items-center justify-center overflow-hidden">
             <div className="absolute inset-0 border-2 border-t-orange-500 border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin m-2" />
             <Zap className="h-10 w-10 text-stone-900 dark:text-white" />
           </div>
@@ -76,7 +76,7 @@ export default function CampaignsPage() {
 
   if (!vendor) return (
     <div className="max-w-4xl mx-auto py-24 text-center space-y-8 px-6">
-      <div className="w-24 h-24 rounded-[40px] flex items-center justify-center mx-auto text-4xl bg-white dark:bg-zinc-900 border border-white shadow-2xl">🎯</div>
+      <div className="w-24 h-24 rounded-[40px] flex items-center justify-center mx-auto text-4xl bg-white dark:bg-surface border border-white shadow-2xl">🎯</div>
       <div className="space-y-3">
          <h3 className="text-3xl font-black text-stone-900 dark:text-white tracking-tighter">Mission Hub Offline</h3>
          <p className="text-stone-500 font-bold max-w-md mx-auto leading-relaxed">System requires active vendor status to create missions.</p>
@@ -103,7 +103,7 @@ export default function CampaignsPage() {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
            <div className="space-y-2">
               <h1 className="text-4xl font-black text-stone-900 dark:text-white tracking-tighter flex items-center gap-4">
-                 <div className="p-2.5 rounded-[20px] bg-white dark:bg-zinc-900 border border-white shadow-2xl shrink-0">
+                 <div className="p-2.5 rounded-[20px] bg-white dark:bg-surface border border-white shadow-2xl shrink-0">
                     <Zap className="h-8 w-8 text-orange-500" />
                  </div>
                  Mission Hub
@@ -129,7 +129,7 @@ export default function CampaignsPage() {
 
         {/* Breakdown Protocol */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-           <GlassCard className="p-8 flex flex-col justify-between rounded-[36px] bg-white dark:bg-zinc-900/60 border-white shadow-xl">
+           <GlassCard className="p-8 flex flex-col justify-between rounded-[36px] bg-white dark:bg-surface/60 border-white shadow-xl">
               <div className="w-12 h-12 rounded-[18px] bg-orange-50 border border-orange-100 flex items-center justify-center mb-6">
                  <Zap className="h-6 w-6 text-orange-500" />
               </div>
@@ -138,7 +138,7 @@ export default function CampaignsPage() {
                   <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mt-2">Total Missions</p>
                </div>
            </GlassCard>
-           <GlassCard className="p-8 flex flex-col justify-between rounded-[36px] bg-white dark:bg-zinc-900/60 border-white shadow-xl">
+           <GlassCard className="p-8 flex flex-col justify-between rounded-[36px] bg-white dark:bg-surface/60 border-white shadow-xl">
               <div className="w-12 h-12 rounded-[18px] bg-orange-50 border border-orange-100 flex items-center justify-center mb-6">
                  <Users className="h-6 w-6 text-orange-500" />
               </div>
@@ -147,7 +147,7 @@ export default function CampaignsPage() {
                   <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mt-2">Active Missions</p>
                </div>
            </GlassCard>
-           <GlassCard className="p-8 flex flex-col justify-between rounded-[36px] bg-white dark:bg-zinc-900/60 border-white shadow-xl">
+           <GlassCard className="p-8 flex flex-col justify-between rounded-[36px] bg-white dark:bg-surface/60 border-white shadow-xl">
               <div className="w-12 h-12 rounded-[18px] bg-emerald-50 border border-emerald-100 flex items-center justify-center mb-6">
                  <Eye className="h-6 w-6 text-emerald-500" />
               </div>
@@ -156,7 +156,7 @@ export default function CampaignsPage() {
                   <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mt-2">Global Reach</p>
                </div>
            </GlassCard>
-           <GlassCard className="p-8 flex flex-col justify-between rounded-[36px] bg-white dark:bg-zinc-900/60 border-white shadow-xl">
+           <GlassCard className="p-8 flex flex-col justify-between rounded-[36px] bg-white dark:bg-surface/60 border-white shadow-xl">
               <div className="w-12 h-12 rounded-[18px] bg-amber-50 border border-amber-100 flex items-center justify-center mb-6">
                  <DollarSign className="h-6 w-6 text-amber-500" />
               </div>
@@ -172,8 +172,8 @@ export default function CampaignsPage() {
            <h2 className="text-[11px] font-black uppercase tracking-[0.4em] text-stone-400 pl-2">Mission Catalog</h2>
            
            {campaigns.length === 0 ? (
-              <GlassCard className="py-24 text-center rounded-[56px] border-dashed border-white bg-white dark:bg-zinc-900/20">
-                 <div className="w-24 h-24 bg-white dark:bg-zinc-900 rounded-[32px] flex items-center justify-center mx-auto mb-8 border border-white shadow-xl">
+              <GlassCard className="py-24 text-center rounded-[56px] border-dashed border-white bg-white dark:bg-surface/20">
+                 <div className="w-24 h-24 bg-white dark:bg-surface rounded-[32px] flex items-center justify-center mx-auto mb-8 border border-white shadow-xl">
                     <Target className="h-10 w-10 text-stone-100" />
                  </div>
                  <h3 className="text-2xl font-black text-stone-900 dark:text-white tracking-tighter">No Campaigns Found</h3>
@@ -202,7 +202,7 @@ export default function CampaignsPage() {
                     const isUpdating = updating === c.id;
 
                     return (
-                       <GlassCard key={c.id as string} className="p-10 flex flex-col group hover:shadow-2xl hover:bg-white dark:bg-zinc-900 transition-all duration-500 rounded-[48px] bg-white dark:bg-zinc-900/40 border-white relative overflow-hidden">
+                       <GlassCard key={c.id as string} className="p-10 flex flex-col group hover:shadow-2xl hover:bg-white dark:bg-surface transition-all duration-500 rounded-[48px] bg-white dark:bg-surface/40 border-white relative overflow-hidden">
                           <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/5 blur-[60px] rounded-full translate-x-1/2 -translate-y-1/2" />
                           
                           <div className="flex items-start justify-between mb-8">
@@ -225,11 +225,11 @@ export default function CampaignsPage() {
                              </div>
                              
                              <div className="flex gap-3">
-                                <Button asChild variant="ghost" size="icon" className="h-12 w-12 rounded-2xl bg-white dark:bg-zinc-900 border border-stone-100 dark:border-zinc-800 shadow-sm hover:bg-white dark:bg-zinc-900 active:scale-95 transition-all text-stone-500">
+                                <Button asChild variant="ghost" size="icon" className="h-12 w-12 rounded-2xl bg-white dark:bg-surface border border-stone-100 dark:border-border shadow-sm hover:bg-white dark:bg-surface active:scale-95 transition-all text-stone-500">
                                   <Link href={`/dashboard/vendor/campaigns/${c.id}`}><Settings className="h-4 w-4" /></Link>
                                 </Button>
                                 {status === "active" && (
-                                   <Button size="icon" variant="outline" className="h-12 w-12 rounded-2xl border-white bg-white dark:bg-zinc-900/60 hover:bg-stone-900 hover:text-white transition-all active:scale-95 shadow-lg" disabled={isUpdating} onClick={() => toggleCampaign(c.id as string, status)}>
+                                   <Button size="icon" variant="outline" className="h-12 w-12 rounded-2xl border-white bg-white dark:bg-surface/60 hover:bg-stone-900 hover:text-white transition-all active:scale-95 shadow-lg" disabled={isUpdating} onClick={() => toggleCampaign(c.id as string, status)}>
                                       <Pause className="h-4 w-4" />
                                    </Button>
                                 )}
@@ -247,7 +247,7 @@ export default function CampaignsPage() {
                                 { label: "Handoffs", value: convs, icon: Target, color: "text-indigo-500", bg: "bg-indigo-50" },
                                 { label: "Revenue", value: formatMoney(rev, "USD"), icon: DollarSign, color: "text-emerald-500", bg: "bg-emerald-50" },
                              ].map((s, i) => (
-                                <div key={i} className="p-6 rounded-[32px] bg-white dark:bg-zinc-900/60 border border-white text-center shadow-sm group-hover:scale-[1.02] transition-transform duration-500">
+                                <div key={i} className="p-6 rounded-[32px] bg-white dark:bg-surface/60 border border-white text-center shadow-sm group-hover:scale-[1.02] transition-transform duration-500">
                                    <div className={cn("w-10 h-10 rounded-2xl mx-auto mb-3 flex items-center justify-center", s.bg, s.color)}>
                                       <s.icon className="h-5 w-5" />
                                    </div>
@@ -258,7 +258,7 @@ export default function CampaignsPage() {
                           </div>
 
                           {budget > 0 && (
-                             <div className="p-6 rounded-[32px] bg-stone-50 dark:bg-zinc-900/50 border border-stone-100 dark:border-zinc-800 group-hover:bg-orange-50/30 transition-colors">
+                             <div className="p-6 rounded-[32px] bg-stone-50 dark:bg-surface/50 border border-stone-100 dark:border-border group-hover:bg-orange-50/30 transition-colors">
                                 <div className="flex justify-between items-end mb-4 px-1">
                                    <div className="space-y-1">
                                       <p className="text-[9px] font-black uppercase tracking-[0.2em] text-stone-400">Budget Flow</p>

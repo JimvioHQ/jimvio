@@ -19,19 +19,19 @@ export default async function InfluencersPage() {
       <div className="fixed bottom-0 left-0 right-0 z-30 bg-gradient-to-t from-ink-darker/90 to-transparent pt-12 pb-6 px-4 pointer-events-none md:pointer-events-auto">
         <div className="max-w-[1280px] mx-auto flex flex-wrap items-center justify-center gap-4 pointer-events-auto">
           <Link href="/influencers/browse">
-            <Button variant="secondary" className="rounded-2xl bg-white dark:bg-zinc-900/15 border border-white/20 text-white hover:bg-white dark:bg-zinc-900/25 font-bold gap-2">
+            <Button variant="secondary" className="rounded-2xl bg-white dark:bg-surface/15 border border-white/20 text-white hover:bg-white dark:bg-surface/25 font-bold gap-2">
               <Users className="h-4 w-4" />
               Creators
             </Button>
           </Link>
           <Link href="/marketplace">
-            <Button variant="secondary" className="rounded-2xl bg-white dark:bg-zinc-900/15 border border-white/20 text-white hover:bg-white dark:bg-zinc-900/25 font-bold gap-2">
+            <Button variant="secondary" className="rounded-2xl bg-white dark:bg-surface/15 border border-white/20 text-white hover:bg-white dark:bg-surface/25 font-bold gap-2">
               <Video className="h-4 w-4" />
               Explore Products
             </Button>
           </Link>
           <Link href="/vendors">
-            <Button variant="secondary" className="rounded-2xl bg-white dark:bg-zinc-900/15 border border-white/20 text-white hover:bg-white dark:bg-zinc-900/25 font-bold gap-2">
+            <Button variant="secondary" className="rounded-2xl bg-white dark:bg-surface/15 border border-white/20 text-white hover:bg-white dark:bg-surface/25 font-bold gap-2">
               <Store className="h-4 w-4" />
               Visit Stores
             </Button>

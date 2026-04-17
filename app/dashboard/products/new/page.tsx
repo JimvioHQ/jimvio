@@ -55,14 +55,14 @@ const PRODUCT_TYPES = [
 ];
 
 const inputBase =
-  "h-11 rounded-xl border bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus-visible:ring-2 focus-visible:ring-orange-500/40 focus-visible:border-orange-400 transition-all text-sm px-4 shadow-sm";
+  "h-11 rounded-xl border bg-white dark:bg-surface border-zinc-200 dark:border-border text-zinc-900 dark:text-text-primary placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus-visible:ring-2 focus-visible:ring-orange-500/40 focus-visible:border-orange-400 transition-all text-sm px-4 shadow-sm";
 
 const selectBase =
-  "h-11 w-full px-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/40 focus:border-orange-400 transition-all shadow-sm";
+  "h-11 w-full px-4 rounded-xl border border-zinc-200 dark:border-border bg-white dark:bg-surface text-zinc-900 dark:text-text-primary text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/40 focus:border-orange-400 transition-all shadow-sm";
 
-const labelBase = "text-[11px] font-semibold uppercase tracking-widest text-zinc-400 dark:text-zinc-500";
+const labelBase = "text-[11px] font-semibold uppercase tracking-widest text-zinc-400 dark:text-text-muted";
 
-const sectionTitle = "text-base font-bold text-zinc-800 dark:text-zinc-100";
+const sectionTitle = "text-base font-bold text-zinc-800 dark:text-text-primary";
 
 function SectionHeader({ icon: Icon, title, subtitle, color = "orange" }: { icon: React.ElementType; title: string; subtitle: string; color?: string }) {
   const colors: Record<string, string> = {
@@ -80,7 +80,7 @@ function SectionHeader({ icon: Icon, title, subtitle, color = "orange" }: { icon
       </div>
       <div>
         <p className={sectionTitle}>{title}</p>
-        <p className="text-[11px] text-zinc-400 dark:text-zinc-500 mt-0.5">{subtitle}</p>
+        <p className="text-[11px] text-zinc-400 dark:text-text-muted mt-0.5">{subtitle}</p>
       </div>
     </div>
   );
@@ -110,14 +110,14 @@ function ToggleCard({
     sky: "peer-checked:bg-sky-500",
   };
   return (
-    <label className="flex items-center justify-between gap-4 p-4 rounded-2xl border border-zinc-100 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/60 hover:border-zinc-200 dark:hover:border-zinc-700 cursor-pointer transition-all group">
+    <label className="flex items-center justify-between gap-4 p-4 rounded-2xl border border-zinc-100 dark:border-border bg-zinc-50 dark:bg-surface/60 hover:border-zinc-200 dark:hover:border-zinc-700 cursor-pointer transition-all group">
       <div className="flex items-center gap-3">
         <div className={cn("w-9 h-9 rounded-xl flex items-center justify-center shrink-0", bg[activeColor])}>
           <Icon className="h-4 w-4" />
         </div>
         <div>
-          <p className="text-[13px] font-semibold text-zinc-800 dark:text-zinc-100">{title}</p>
-          <p className="text-[11px] text-zinc-400 dark:text-zinc-500 leading-snug">{description}</p>
+          <p className="text-[13px] font-semibold text-zinc-800 dark:text-text-primary">{title}</p>
+          <p className="text-[11px] text-zinc-400 dark:text-text-muted leading-snug">{description}</p>
         </div>
       </div>
       <div className="relative shrink-0">
@@ -253,15 +253,15 @@ export default function NewProductPage() {
 
   if (success) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-6 bg-white dark:bg-zinc-950">
+      <div className="min-h-screen flex flex-col items-center justify-center gap-6 bg-white dark:bg-bg">
         <div className="relative">
           <div className="absolute inset-0 bg-emerald-400/20 blur-3xl rounded-full scale-150 animate-pulse" />
-          <div className="relative w-20 h-20 rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 shadow-2xl flex items-center justify-center">
+          <div className="relative w-20 h-20 rounded-3xl bg-white dark:bg-surface border border-zinc-100 dark:border-border shadow-2xl flex items-center justify-center">
             <CheckCircle2 className="h-10 w-10 text-emerald-500" />
           </div>
         </div>
         <div className="text-center">
-          <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-100">Product Added!</p>
+          <p className="text-sm font-semibold text-zinc-800 dark:text-text-primary">Product Added!</p>
           <p className="text-xs text-zinc-400 mt-1">Redirecting to inventory…</p>
         </div>
       </div>
@@ -269,13 +269,13 @@ export default function NewProductPage() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 pb-24">
+    <div className="min-h-screen bg-zinc-50 dark:bg-bg pb-24">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-6 space-y-6">
 
         {/* Top bar */}
         <div className="flex items-center justify-between">
           <Link href="/dashboard/products">
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 transition-all text-xs shadow-sm">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white dark:bg-surface border border-zinc-200 dark:border-border text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 transition-all text-xs shadow-sm">
               <ArrowLeft className="h-3.5 w-3.5" />
               Back
             </div>
@@ -287,7 +287,7 @@ export default function NewProductPage() {
         </div>
 
         {/* ── PRODUCT TYPE SWITCHER ── */}
-        <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 p-4 shadow-sm">
+        <div className="bg-white dark:bg-surface rounded-2xl border border-zinc-200 dark:border-border p-4 shadow-sm">
           <p className={cn(labelBase, "mb-3")}>Product Type</p>
           <div className="grid grid-cols-2 gap-3">
             {PRODUCT_TYPES.map((type) => {
@@ -304,7 +304,7 @@ export default function NewProductPage() {
                       ? type.color === "orange"
                         ? "border-orange-400 bg-orange-50 dark:bg-orange-500/10"
                         : "border-sky-400 bg-sky-50 dark:bg-sky-500/10"
-                      : "border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/60 hover:border-zinc-300 dark:hover:border-zinc-700"
+                      : "border-zinc-200 dark:border-border bg-zinc-50 dark:bg-surface/60 hover:border-zinc-300 dark:hover:border-zinc-700"
                   )}
                 >
                   <div
@@ -314,16 +314,16 @@ export default function NewProductPage() {
                         ? type.color === "orange"
                           ? "bg-orange-500 text-white"
                           : "bg-sky-500 text-white"
-                        : "bg-zinc-100 dark:bg-zinc-800 text-zinc-400"
+                        : "bg-zinc-100 dark:bg-surface-secondary text-zinc-400"
                     )}
                   >
                     <Icon className="h-5 w-5" />
                   </div>
                   <div className="min-w-0">
-                    <p className={cn("text-sm font-semibold", active ? "text-zinc-900 dark:text-zinc-100" : "text-zinc-500 dark:text-zinc-400")}>
+                    <p className={cn("text-sm font-semibold", active ? "text-zinc-900 dark:text-text-primary" : "text-zinc-500 dark:text-text-muted")}>
                       {type.label}
                     </p>
-                    <p className="text-[10px] text-zinc-400 dark:text-zinc-500 leading-snug hidden sm:block">{type.description}</p>
+                    <p className="text-[10px] text-zinc-400 dark:text-text-muted leading-snug hidden sm:block">{type.description}</p>
                   </div>
                   {active && (
                     <div className={cn("absolute top-2.5 right-2.5 w-2 h-2 rounded-full", type.color === "orange" ? "bg-orange-500" : "bg-sky-500")} />
@@ -338,12 +338,12 @@ export default function NewProductPage() {
         <form onSubmit={handleSubmit} className="space-y-4">
 
           {/* Images */}
-          <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 p-5 shadow-sm">
+          <div className="bg-white dark:bg-surface rounded-2xl border border-zinc-200 dark:border-border p-5 shadow-sm">
             <SectionHeader icon={ImageIcon} title="Images" subtitle="Upload high-quality product photos" color="orange" />
             {form.images.length > 0 && (
               <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3 mb-4">
                 {form.images.map((img, i) => (
-                  <div key={i} className="relative group aspect-square rounded-xl overflow-hidden border border-zinc-100 dark:border-zinc-800 shadow">
+                  <div key={i} className="relative group aspect-square rounded-xl overflow-hidden border border-zinc-100 dark:border-border shadow">
                     <CloudinaryImage src={img} alt={`Image ${i + 1}`} fill className="object-cover" />
                     <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                       <button type="button" onClick={() => removeImage(i)}
@@ -363,7 +363,7 @@ export default function NewProductPage() {
 
           {/* Store selector (multi-vendor) */}
           {userVendors.length > 1 && (
-            <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 p-5 shadow-sm">
+            <div className="bg-white dark:bg-surface rounded-2xl border border-zinc-200 dark:border-border p-5 shadow-sm">
               <div className="space-y-2">
                 <Label className={labelBase}>Store</Label>
                 <select value={selectedVendorId} onChange={(e) => setSelectedVendorId(e.target.value)} className={selectBase}>
@@ -376,7 +376,7 @@ export default function NewProductPage() {
           )}
 
           {/* Basic Info */}
-          <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 p-5 shadow-sm">
+          <div className="bg-white dark:bg-surface rounded-2xl border border-zinc-200 dark:border-border p-5 shadow-sm">
             <SectionHeader icon={FileText} title="Basic Information" subtitle="Product name, category, and description" color="sky" />
             <div className="space-y-4">
               <div>
@@ -404,7 +404,7 @@ export default function NewProductPage() {
                 </div>
                 <div>
                   <Label className={cn(labelBase, "mb-2 block")}>Slug (auto)</Label>
-                  <Input value={form.slug} readOnly className={cn(inputBase, "bg-zinc-50 dark:bg-zinc-800/60 text-zinc-400 cursor-not-allowed")} placeholder="auto-generated" />
+                  <Input value={form.slug} readOnly className={cn(inputBase, "bg-zinc-50 dark:bg-surface-secondary/60 text-zinc-400 cursor-not-allowed")} placeholder="auto-generated" />
                 </div>
               </div>
 
@@ -412,14 +412,14 @@ export default function NewProductPage() {
                 <Label htmlFor="short_description" className={cn(labelBase, "mb-2 block")}>Short Description</Label>
                 <Textarea id="short_description" value={form.short_description} onChange={(e) => handleChange("short_description", e.target.value)}
                   placeholder="One-line summary shown in listings…" rows={2}
-                  className="w-full rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/40 focus-visible:border-orange-400 transition-all text-sm px-4 py-3 resize-none shadow-sm" />
+                  className="w-full rounded-xl border border-zinc-200 dark:border-border bg-white dark:bg-surface text-zinc-900 dark:text-text-primary placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/40 focus-visible:border-orange-400 transition-all text-sm px-4 py-3 resize-none shadow-sm" />
               </div>
 
               <div>
                 <Label htmlFor="description" className={cn(labelBase, "mb-2 block")}>Full Description</Label>
                 <Textarea id="description" value={form.description} onChange={(e) => handleChange("description", e.target.value)}
                   placeholder="Full details, specs, and features…" rows={5}
-                  className="w-full rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/40 focus-visible:border-orange-400 transition-all text-sm px-4 py-3 resize-none shadow-sm" />
+                  className="w-full rounded-xl border border-zinc-200 dark:border-border bg-white dark:bg-surface text-zinc-900 dark:text-text-primary placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/40 focus-visible:border-orange-400 transition-all text-sm px-4 py-3 resize-none shadow-sm" />
               </div>
 
               <div>
@@ -434,13 +434,13 @@ export default function NewProductPage() {
           </div>
 
           {/* Pricing */}
-          <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 p-5 shadow-sm">
+          <div className="bg-white dark:bg-surface rounded-2xl border border-zinc-200 dark:border-border p-5 shadow-sm">
             <SectionHeader icon={DollarSign} title="Pricing" subtitle="Set your price and currency" color="emerald" />
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <Label htmlFor="price" className={cn(labelBase, "mb-2 block")}>Price *</Label>
                 <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 dark:text-zinc-400 font-semibold text-sm">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 dark:text-text-muted font-semibold text-sm">
                     {form.currency === "RWF" ? "Fr" : "$"}
                   </span>
                   <Input id="price" type="number" placeholder="0.00" min={0} step="0.01" value={form.price}
@@ -465,7 +465,7 @@ export default function NewProductPage() {
 
           {/* Physical: Inventory */}
           {activeType === "physical" && (
-            <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 p-5 shadow-sm">
+            <div className="bg-white dark:bg-surface rounded-2xl border border-zinc-200 dark:border-border p-5 shadow-sm">
               <SectionHeader icon={Layers} title="Inventory" subtitle="Manage stock levels" color="amber" />
               <div className="space-y-4">
                 <div className="max-w-xs">
@@ -487,10 +487,10 @@ export default function NewProductPage() {
 
           {/* Digital: File upload */}
           {activeType === "digital" && (
-            <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 p-5 shadow-sm">
+            <div className="bg-white dark:bg-surface rounded-2xl border border-zinc-200 dark:border-border p-5 shadow-sm">
               <SectionHeader icon={Zap} title="Digital File" subtitle="Upload the file customers will receive" color="indigo" />
               <div className="space-y-3">
-                <div className="rounded-xl border border-dashed border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900/60 overflow-hidden">
+                <div className="rounded-xl border border-dashed border-zinc-200 dark:border-border-strong bg-zinc-50 dark:bg-surface/60 overflow-hidden">
                   <CloudinaryUploadButton
                     folder="jimvio/digital-files"
                     resourceType="raw"
@@ -508,7 +508,7 @@ export default function NewProductPage() {
           )}
 
           {/* Promotion */}
-          <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 p-5 shadow-sm">
+          <div className="bg-white dark:bg-surface rounded-2xl border border-zinc-200 dark:border-border p-5 shadow-sm">
             <SectionHeader icon={Rocket} title="Promotion" subtitle="Boost sales with affiliates and influencers" color="rose" />
             <div className="space-y-3">
               <ToggleCard
@@ -543,7 +543,7 @@ export default function NewProductPage() {
           </div>
 
           {/* Status + Actions */}
-          <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 p-5 shadow-sm">
+          <div className="bg-white dark:bg-surface rounded-2xl border border-zinc-200 dark:border-border p-5 shadow-sm">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div className="flex-1 max-w-xs">
                 <Label htmlFor="status" className={cn(labelBase, "mb-2 block")}>Visibility</Label>
@@ -554,7 +554,7 @@ export default function NewProductPage() {
                 </select>
               </div>
               <div className="flex items-center gap-3 w-full sm:w-auto">
-                <Button type="button" variant="ghost" className="flex-1 sm:flex-none h-11 px-5 rounded-xl text-xs font-semibold border border-zinc-200 dark:border-zinc-800 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 transition-all" asChild>
+                <Button type="button" variant="ghost" className="flex-1 sm:flex-none h-11 px-5 rounded-xl text-xs font-semibold border border-zinc-200 dark:border-border text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 transition-all" asChild>
                   <Link href="/dashboard/products">Cancel</Link>
                 </Button>
                 <Button

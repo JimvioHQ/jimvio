@@ -63,7 +63,7 @@ export default function BrandCampaignsPage() {
      <div className="min-h-screen flex flex-col items-center justify-center space-y-12 animate-in fade-in duration-700" style={{ background: "var(--color-bg)" }}>
        <div className="relative">
          <div className="absolute inset-0 bg-orange-400/20 blur-3xl rounded-full scale-150 animate-pulse" />
-         <div className="relative w-24 h-24 rounded-[32px] bg-white dark:bg-zinc-900 border border-white shadow-2xl flex items-center justify-center overflow-hidden">
+         <div className="relative w-24 h-24 rounded-[32px] bg-white dark:bg-surface border border-white shadow-2xl flex items-center justify-center overflow-hidden">
            <div className="absolute inset-0 border-2 border-t-orange-500 border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin m-2" />
            <Target className="h-10 w-10 text-stone-900 dark:text-white" />
          </div>
@@ -86,7 +86,7 @@ export default function BrandCampaignsPage() {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
            <div className="space-y-2">
               <h1 className="text-4xl font-black text-stone-900 dark:text-white tracking-tighter flex items-center gap-4">
-                 <div className="p-2.5 rounded-[20px] bg-white dark:bg-zinc-900 border border-white shadow-2xl shrink-0">
+                 <div className="p-2.5 rounded-[20px] bg-white dark:bg-surface border border-white shadow-2xl shrink-0">
                     <Target className="h-8 w-8 text-orange-500" />
                  </div>
                  Mission Hub
@@ -107,7 +107,7 @@ export default function BrandCampaignsPage() {
 
         {/* Stats Row */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-           <GlassCard className="p-8 flex flex-col justify-between rounded-[40px] bg-white dark:bg-zinc-900/60 border-white shadow-xl group">
+           <GlassCard className="p-8 flex flex-col justify-between rounded-[40px] bg-white dark:bg-surface/60 border-white shadow-xl group">
               <div className="w-14 h-14 rounded-[22px] bg-sky-50 border border-sky-100 flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-700">
                  <Video className="h-7 w-7 text-sky-500" />
               </div>
@@ -116,7 +116,7 @@ export default function BrandCampaignsPage() {
                  <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mt-3">Active Missions</p>
               </div>
            </GlassCard>
-           <GlassCard className="p-8 flex flex-col justify-between rounded-[40px] bg-white dark:bg-zinc-900/60 border-white shadow-xl group">
+           <GlassCard className="p-8 flex flex-col justify-between rounded-[40px] bg-white dark:bg-surface/60 border-white shadow-xl group">
               <div className="w-14 h-14 rounded-[22px] bg-emerald-50 border border-emerald-100 flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-700">
                  <CircleDollarSign className="h-7 w-7 text-emerald-500" />
               </div>
@@ -125,7 +125,7 @@ export default function BrandCampaignsPage() {
                  <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mt-3">Total Spend</p>
               </div>
            </GlassCard>
-           <GlassCard className="p-8 flex flex-col justify-between rounded-[40px] bg-white dark:bg-zinc-900/60 border-white shadow-xl group">
+           <GlassCard className="p-8 flex flex-col justify-between rounded-[40px] bg-white dark:bg-surface/60 border-white shadow-xl group">
               <div className="w-14 h-14 rounded-[22px] bg-amber-50 border border-amber-100 flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-700">
                  <Eye className="h-7 w-7 text-amber-500" />
               </div>
@@ -147,8 +147,8 @@ export default function BrandCampaignsPage() {
            </div>
            
            {campaigns.length === 0 ? (
-              <GlassCard className="p-24 text-center rounded-[56px] border-white bg-white dark:bg-zinc-900/20">
-                 <div className="w-24 h-24 bg-white dark:bg-zinc-900 rounded-[32px] flex items-center justify-center mx-auto mb-8 border border-white shadow-xl">
+              <GlassCard className="p-24 text-center rounded-[56px] border-white bg-white dark:bg-surface/20">
+                 <div className="w-24 h-24 bg-white dark:bg-surface rounded-[32px] flex items-center justify-center mx-auto mb-8 border border-white shadow-xl">
                     <Megaphone className="h-10 w-10 text-stone-100" />
                  </div>
                  <h2 className="text-3xl font-black text-stone-900 dark:text-white tracking-tighter">No Missions Found</h2>
@@ -167,17 +167,17 @@ export default function BrandCampaignsPage() {
                    const pendingReviews = (c.submission_count ?? 0) - (c.approved_count ?? 0);
 
                     return (
-                      <GlassCard key={c.id} className="group bg-white dark:bg-zinc-900/60 border-white hover:bg-white dark:bg-zinc-900 rounded-[40px] p-6 pr-10 flex flex-col lg:flex-row lg:items-center gap-8 transition-all duration-500 shadow-sm hover:shadow-xl">
+                      <GlassCard key={c.id} className="group bg-white dark:bg-surface/60 border-white hover:bg-white dark:bg-surface rounded-[40px] p-6 pr-10 flex flex-col lg:flex-row lg:items-center gap-8 transition-all duration-500 shadow-sm hover:shadow-xl">
                          
                          {/* Identity */}
                          <div className="flex-1 min-w-0 flex items-center gap-6 border-stone-50 lg:border-r lg:pr-8">
-                            <div className="w-16 h-16 rounded-[22px] bg-stone-50 dark:bg-zinc-900/50 border border-stone-100 dark:border-zinc-800 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-700">
+                            <div className="w-16 h-16 rounded-[22px] bg-stone-50 dark:bg-surface/50 border border-stone-100 dark:border-border flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-700">
                                <Video className="h-6 w-6 text-stone-300" />
                             </div>
                             <div className="min-w-0 flex-1">
                                <div className="flex flex-wrap items-center gap-2 mb-2">
                                   <GlassPill color={sStyle.color} className="text-[8px] font-black uppercase tracking-widest px-3 py-1 border-none bg-stone-900/5 shadow-none">{c.status}</GlassPill>
-                                  <span className="text-[8px] font-black uppercase tracking-widest text-stone-400 bg-stone-50 dark:bg-zinc-900/50 px-3 py-1 rounded-full border border-stone-100 dark:border-zinc-800">{c.campaign_type}</span>
+                                  <span className="text-[8px] font-black uppercase tracking-widest text-stone-400 bg-stone-50 dark:bg-surface/50 px-3 py-1 rounded-full border border-stone-100 dark:border-border">{c.campaign_type}</span>
                                </div>
                                <h3 className="text-xl font-black text-stone-900 dark:text-white tracking-tighter truncate leading-none">{c.title}</h3>
                                <p className="text-[10px] font-bold text-stone-300 uppercase tracking-widest mt-2">Started {new Date(c.created_at).toLocaleDateString()}</p>
@@ -190,7 +190,7 @@ export default function BrandCampaignsPage() {
                                <span className="text-[10px] font-bold uppercase tracking-widest text-stone-400">Budget Usage</span>
                                <span className="text-[11px] font-black text-stone-900 dark:text-white tabular-nums">{spendPct.toFixed(1)}%</span>
                             </div>
-                            <div className="h-2 w-full bg-stone-50 dark:bg-zinc-900/50 rounded-full overflow-hidden border border-stone-100 dark:border-zinc-800 p-0.5">
+                            <div className="h-2 w-full bg-stone-50 dark:bg-surface/50 rounded-full overflow-hidden border border-stone-100 dark:border-border p-0.5">
                                <div className={cn("h-full rounded-full transition-all duration-1000", spendPct > 85 ? "bg-orange-500" : "bg-emerald-500")} style={{ width: `${spendPct}%` }} />
                             </div>
                          </div>
@@ -202,7 +202,7 @@ export default function BrandCampaignsPage() {
                                   "h-14 px-8 rounded-2xl border flex items-center gap-4 transition-all hover:shadow-xl relative",
                                   pendingReviews > 0 
                                      ? "bg-stone-900 text-white border-stone-900 shadow-stone-900/20" 
-                                     : "bg-white dark:bg-zinc-900 border-white text-stone-600 hover:border-stone-100 dark:border-zinc-800 shadow-sm"
+                                     : "bg-white dark:bg-surface border-white text-stone-600 hover:border-stone-100 dark:border-border shadow-sm"
                                )}>
                                   <span className="text-[11px] font-black uppercase tracking-widest">{c.status === "draft" ? "Finalize" : "Manage"}</span>
                                   <ArrowRight className="h-4 w-4 opacity-50" />

@@ -101,7 +101,7 @@ export default function PricingPage() {
           <span className="text-sm text-white/50">Monthly</span>
           <div className="relative">
             <div className="w-12 h-6 bg-brand-600 rounded-full" />
-            <div className="absolute top-1 left-1 w-4 h-4 bg-white dark:bg-zinc-900 rounded-full shadow" />
+            <div className="absolute top-1 left-1 w-4 h-4 bg-white dark:bg-surface rounded-full shadow" />
           </div>
           <span className="text-sm text-white">Yearly</span>
           <Badge variant="success" className="text-xs">Save 20%</Badge>

@@ -148,7 +148,7 @@ export default function RolesPage() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center space-y-6" style={{ background: "var(--color-bg)" }}>
         <RefreshCw className="h-6 w-6 animate-spin text-orange-500" />
-        <p className="text-[11px] font-bold text-stone-400 dark:text-stone-500 uppercase tracking-widest pl-1">Loading Roles...</p>
+        <p className="text-[11px] font-bold text-stone-400 dark:text-text-muted uppercase tracking-widest pl-1">Loading Roles...</p>
       </div>
     );
   }
@@ -160,17 +160,17 @@ export default function RolesPage() {
         {/* Header - Simpler */}
          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
             <div className="flex items-center gap-4">
-               <Button asChild variant="ghost" size="icon" className="shrink-0 h-10 w-10 rounded-xl bg-surface dark:bg-zinc-800 border border-border shadow-sm hover:bg-surface dark:hover:bg-zinc-700 active:scale-95 transition-all text-stone-500 dark:text-stone-400">
+               <Button asChild variant="ghost" size="icon" className="shrink-0 h-10 w-10 rounded-xl bg-surface dark:bg-surface-secondary border border-border shadow-sm hover:bg-surface dark:hover:bg-zinc-700 active:scale-95 transition-all text-stone-500 dark:text-text-muted">
                  <Link href="/dashboard"><ArrowLeft className="h-5 w-5" /></Link>
                </Button>
                <div className="space-y-1">
                   <h1 className="text-2xl font-bold text-stone-900 dark:text-white tracking-tight">Account Roles</h1>
-                  <p className="text-[11px] font-bold text-stone-400 dark:text-stone-500 uppercase tracking-widest leading-none pl-0.5">Activate paths to earn and grow</p>
+                  <p className="text-[11px] font-bold text-stone-400 dark:text-text-muted uppercase tracking-widest leading-none pl-0.5">Activate paths to earn and grow</p>
                </div>
             </div>
             
-            <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-surface dark:bg-zinc-800 border border-border shadow-sm">
-               <span className="text-[10px] font-bold uppercase tracking-widest text-stone-400 dark:text-stone-500">{activeRoles.length} Active</span>
+            <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-surface dark:bg-surface-secondary border border-border shadow-sm">
+               <span className="text-[10px] font-bold uppercase tracking-widest text-stone-400 dark:text-text-muted">{activeRoles.length} Active</span>
             </div>
          </div>
 
@@ -183,12 +183,12 @@ export default function RolesPage() {
             return (
               <GlassCard key={r.id} className={cn(
                  "p-8 rounded-[32px] border-border transition-all duration-300 relative overflow-hidden flex flex-col h-full",
-                 isActive ? "bg-surface dark:bg-zinc-800 shadow-md ring-1 ring-emerald-500/20" : "bg-surface/60 dark:bg-zinc-800/40 hover:bg-surface/80 dark:hover:bg-zinc-800 shadow-sm"
+                 isActive ? "bg-surface dark:bg-surface-secondary shadow-md ring-1 ring-emerald-500/20" : "bg-surface/60 dark:bg-surface-secondary/40 hover:bg-surface/80 dark:hover:bg-zinc-800 shadow-sm"
               )}>
                   <div className="flex items-center justify-between mb-8">
                      <div className={cn(
-                        "w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border border-border bg-white dark:bg-zinc-900 shadow-sm",
-                        isActive ? "bg-stone-900 dark:bg-white dark:bg-zinc-900 text-white dark:text-stone-900 dark:text-white" : cn(r.bg, r.color)
+                        "w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border border-border bg-white dark:bg-surface shadow-sm",
+                        isActive ? "bg-stone-900 dark:bg-white dark:bg-surface text-white dark:text-stone-900 dark:text-white" : cn(r.bg, r.color)
                      )}>
                         {r.icon}
                      </div>
@@ -201,15 +201,15 @@ export default function RolesPage() {
 
                   <div className="space-y-2 mb-6">
                      <h3 className="text-lg font-bold text-stone-900 dark:text-white tracking-tight">{r.label}</h3>
-                     <p className="text-[13px] font-medium text-stone-500 dark:text-stone-400 leading-relaxed">
+                     <p className="text-[13px] font-medium text-stone-500 dark:text-text-muted leading-relaxed">
                         {r.description}
                      </p>
                   </div>
 
                   <div className="space-y-2.5 mb-10 flex-1">
                      {r.features.map((f, i) => (
-                        <div key={i} className="flex items-center gap-3 text-[11px] font-bold text-stone-400 dark:text-stone-500">
-                           <CheckCircle className="h-3.5 w-3.5 text-stone-200 dark:text-zinc-800 dark:text-zinc-200" />
+                        <div key={i} className="flex items-center gap-3 text-[11px] font-bold text-stone-400 dark:text-text-muted">
+                           <CheckCircle className="h-3.5 w-3.5 text-stone-200 dark:text-zinc-800 dark:text-text-secondary" />
                            {f}
                         </div>
                      ))}
@@ -223,7 +223,7 @@ export default function RolesPage() {
                      <Button
                         onClick={() => activateRole(r.id, r.setupPath)}
                         disabled={isLoading}
-                        className="w-full h-11 rounded-xl bg-stone-900 dark:bg-white dark:bg-zinc-900 text-white dark:text-stone-900 dark:text-white hover:bg-black dark:hover:bg-stone-200 font-bold text-[10px] uppercase tracking-widest shadow-md active:scale-95 transition-all border-none"
+                        className="w-full h-11 rounded-xl bg-stone-900 dark:bg-white dark:bg-surface text-white dark:text-stone-900 dark:text-white hover:bg-black dark:hover:bg-stone-200 font-bold text-[10px] uppercase tracking-widest shadow-md active:scale-95 transition-all border-none"
                      >
                         {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Rocket className="h-3.5 w-3.5 mr-2" />}
                         Activate Role
@@ -235,11 +235,11 @@ export default function RolesPage() {
         </div>
         
         {/* Support Section - Soft */}
-        <div className="p-8 text-center rounded-[32px] bg-stone-900 dark:bg-zinc-800 text-white relative overflow-hidden shadow-xl border border-white/10">
+        <div className="p-8 text-center rounded-[32px] bg-stone-900 dark:bg-surface-secondary text-white relative overflow-hidden shadow-xl border border-white/10">
            <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/10 blur-3xl rounded-full" />
-           <p className="text-[11px] font-bold uppercase tracking-widest text-stone-400 dark:text-stone-500 mb-2">Need help?</p>
+           <p className="text-[11px] font-bold uppercase tracking-widest text-stone-400 dark:text-text-muted mb-2">Need help?</p>
            <h3 className="text-xl font-bold tracking-tight mb-6">Explore our guides and tutorials</h3>
-           <Button asChild className="h-11 px-8 rounded-xl bg-white dark:bg-zinc-900 text-stone-900 dark:text-white font-bold text-[10px] uppercase tracking-widest shadow-lg hover:bg-stone-50 dark:bg-zinc-900/50 active:scale-95 transition-all border-none">
+           <Button asChild className="h-11 px-8 rounded-xl bg-white dark:bg-surface text-stone-900 dark:text-white font-bold text-[10px] uppercase tracking-widest shadow-lg hover:bg-stone-50 dark:bg-surface/50 active:scale-95 transition-all border-none">
               <Link href="/help">View Documentation</Link>
            </Button>
         </div>

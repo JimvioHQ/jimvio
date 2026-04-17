@@ -145,8 +145,8 @@ export function CommunitySubscribeClient({
   ];
 
   return (
-    <div className="min-h-screen bg-zinc-50/50 dark:bg-zinc-950 flex items-center justify-center py-6 md:py-12 px-0 sm:px-4">
-      <div className="w-full max-w-5xl flex flex-col md:flex-row bg-white dark:bg-zinc-900 md:rounded-[32px] overflow-hidden shadow-[0_32px_128px_-16px_rgba(0,0,0,0.12)] border border-zinc-100 dark:border-zinc-800">
+    <div className="min-h-screen bg-zinc-50/50 dark:bg-bg flex items-center justify-center py-6 md:py-12 px-0 sm:px-4">
+      <div className="w-full max-w-5xl flex flex-col md:flex-row bg-white dark:bg-surface md:rounded-[32px] overflow-hidden shadow-[0_32px_128px_-16px_rgba(0,0,0,0.12)] border border-zinc-100 dark:border-border">
         
         {/* ── SIDEBAR ── */}
         <aside className="w-full md:w-[320px] lg:w-[360px] flex-shrink-0 bg-[#1a1428] flex flex-col gap-8 p-8 relative overflow-hidden">
@@ -154,7 +154,7 @@ export function CommunitySubscribeClient({
           
           {/* Brand */}
           <div className="relative z-10 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-white dark:bg-zinc-900/10 flex items-center justify-center border border-white/10">
+            <div className="w-10 h-10 rounded-2xl bg-white dark:bg-surface/10 flex items-center justify-center border border-white/10">
               <ShieldCheck className="h-5 w-5 text-orange-400" />
             </div>
             <div>
@@ -164,7 +164,7 @@ export function CommunitySubscribeClient({
           </div>
 
           {/* Totals */}
-          <div className="relative z-10 p-6 rounded-[24px] bg-white dark:bg-zinc-900/5 border border-white/10 backdrop-blur-sm">
+          <div className="relative z-10 p-6 rounded-[24px] bg-white dark:bg-surface/5 border border-white/10 backdrop-blur-sm">
             <p className="text-[10px] font-black tracking-widest uppercase text-white/30 mb-2">Plan Amount</p>
             <div className="flex items-baseline gap-2">
               <span className="text-4xl font-black text-white tracking-tighter tabular-nums">
@@ -178,7 +178,7 @@ export function CommunitySubscribeClient({
           {/* Membership Info */}
           <div className="relative z-10 flex-1 flex flex-col gap-6">
              <div className="flex gap-4 items-center">
-                <div className="h-12 w-12 rounded-xl border border-white/10 bg-white dark:bg-zinc-900/5 overflow-hidden shrink-0 flex items-center justify-center font-black text-white text-lg">
+                <div className="h-12 w-12 rounded-xl border border-white/10 bg-white dark:bg-surface/5 overflow-hidden shrink-0 flex items-center justify-center font-black text-white text-lg">
                    {community.avatar_url ? (
                      <img src={community.avatar_url} alt="" className="w-full h-full object-cover" />
                    ) : community.name[0]}
@@ -217,7 +217,7 @@ export function CommunitySubscribeClient({
             <div className="flex items-center gap-2 mb-6">
               {STEPS.map((step) => (
                 <div key={step.n} className="flex-1 flex flex-col gap-2">
-                  <div className={cn("h-1 rounded-full transition-all duration-500", step.n <= currentStep ? "bg-orange-500" : "bg-zinc-100 dark:bg-zinc-800")} />
+                  <div className={cn("h-1 rounded-full transition-all duration-500", step.n <= currentStep ? "bg-orange-500" : "bg-zinc-100 dark:bg-surface-secondary")} />
                   <p className={cn("text-[10px] font-black uppercase tracking-widest", step.n === currentStep ? "text-orange-500" : "text-zinc-400 dark:text-zinc-600")}>
                     {step.label}
                   </p>
@@ -253,16 +253,16 @@ export function CommunitySubscribeClient({
                         onClick={() => setPlan(key)}
                         className={cn(
                           "w-full flex items-center justify-between p-6 rounded-[24px] border-2 transition-all group",
-                          plan === key ? "border-orange-500 bg-orange-50/30 dark:bg-orange-950/20" : "border-zinc-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-zinc-200 dark:border-zinc-800 dark:hover:border-zinc-700"
+                          plan === key ? "border-orange-500 bg-orange-50/30 dark:bg-orange-950/20" : "border-zinc-100 dark:border-border bg-white dark:bg-surface hover:border-zinc-200 dark:border-border dark:hover:border-zinc-700"
                         )}
                       >
                          <div className="flex items-center gap-4">
-                            <div className={cn("w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all", plan === key ? "border-orange-500 bg-orange-500" : "border-zinc-200 dark:border-zinc-700")}>
+                            <div className={cn("w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all", plan === key ? "border-orange-500 bg-orange-500" : "border-zinc-200 dark:border-border-strong")}>
                                {plan === key && <Check className="h-3.5 w-3.5 text-white" strokeWidth={4} />}
                             </div>
                             <div className="text-left">
                                <p className="font-black text-zinc-900 dark:text-white">{label}</p>
-                               <p className="text-[11px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wide mt-0.5">
+                               <p className="text-[11px] font-bold text-zinc-400 dark:text-text-muted uppercase tracking-wide mt-0.5">
                                  {key === "lifetime" ? "Pay once, access forever" : `Billed every ${key === "monthly" ? "month" : "year"}`}
                                </p>
                             </div>
@@ -290,21 +290,21 @@ export function CommunitySubscribeClient({
                 {/* STEP 3: Finalize */}
                 {currentStep === 3 && (
                    <div className="space-y-6">
-                      <div className="rounded-[32px] bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-100 dark:border-zinc-800 p-8 text-center space-y-4">
+                      <div className="rounded-[32px] bg-zinc-50 dark:bg-surface/50 border border-zinc-100 dark:border-border p-8 text-center space-y-4">
                         <Users className="h-12 w-12 text-orange-500 mx-auto" />
                         <h3 className="text-xl font-black text-[#1a1428] dark:text-white">You&apos;re almost in.</h3>
-                        <p className="text-sm font-bold text-zinc-400 dark:text-zinc-500 max-w-xs mx-auto">
-                          Joining <span className="text-zinc-600 dark:text-zinc-200 font-black">{community.name}</span> on the <span className="text-orange-600 font-black">{plan}</span> plan.
+                        <p className="text-sm font-bold text-zinc-400 dark:text-text-muted max-w-xs mx-auto">
+                          Joining <span className="text-zinc-600 dark:text-text-secondary font-black">{community.name}</span> on the <span className="text-orange-600 font-black">{plan}</span> plan.
                         </p>
                       </div>
                       
-                      <div className="p-5 rounded-[24px] border border-zinc-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm flex items-center justify-between">
+                      <div className="p-5 rounded-[24px] border border-zinc-100 dark:border-border bg-white dark:bg-surface shadow-sm flex items-center justify-between">
                          <div>
-                            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 dark:text-zinc-500">Total to Pay</p>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 dark:text-text-muted">Total to Pay</p>
                             <p className="text-2xl font-black text-zinc-900 dark:text-white mt-1">{formatDisplayMoney(amount, currency)}</p>
                          </div>
                          <div className="text-right">
-                            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 dark:text-zinc-500">Method</p>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 dark:text-text-muted">Method</p>
                             <p className="text-sm font-black text-zinc-600 dark:text-zinc-300 mt-1">{payment ? payment.toUpperCase() : "..."}</p>
                          </div>
                       </div>
@@ -316,13 +316,13 @@ export function CommunitySubscribeClient({
           </div>
 
           {/* Footer Actions */}
-          <div className="px-8 pb-8 pt-6 border-t border-zinc-50 dark:border-zinc-800/50 flex items-center justify-between gap-4">
+          <div className="px-8 pb-8 pt-6 border-t border-zinc-50 dark:border-border/50 flex items-center justify-between gap-4">
             <button
               onClick={() => {
                  if (currentStep > 1) setCurrentStep((s) => (s - 1) as any);
                  else router.push(`/communities/${community.slug}`);
               }}
-              className="flex items-center gap-2 text-sm font-black text-zinc-400 dark:text-zinc-500 hover:text-zinc-900 dark:text-white dark:hover:text-white transition-all"
+              className="flex items-center gap-2 text-sm font-black text-zinc-400 dark:text-text-muted hover:text-zinc-900 dark:text-white dark:hover:text-white transition-all"
             >
               <ChevronLeft className="h-4 w-4" /> {currentStep === 1 ? "Cancel" : "Back"}
             </button>
