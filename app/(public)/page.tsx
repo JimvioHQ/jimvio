@@ -146,44 +146,7 @@ export default async function HomePage() {
 
           {/* ── LIVE CONTENT (Missions/Communities) — Prioritized ── */}
           <div className="space-y-12">
-            <CampaignScrollRow campaigns={campaigns.length > 0 ? campaigns : [
-              {
-                id: "demo-1",
-                title: "Viral Product Review | Tech Gadgets",
-                campaign_type: "ugc",
-                rate_per_1k_views: 5.00,
-                total_budget: 2500,
-                spent_budget: 1200,
-                submission_count: 34,
-                created_at: new Date().toISOString(),
-                allowed_platforms: ["tiktok", "instagram"],
-                vendor: { business_name: "TechNova Mobile", business_slug: "technova", logo_url: "https://images.unsplash.com/photo-1599305445671-ac291c95aba9?w=100&h=100&fit=crop" }
-              },
-              {
-                id: "demo-2",
-                title: "Fashion Haul & Lifestyle Showcase",
-                campaign_type: "ugc",
-                rate_per_1k_views: 12.00,
-                total_budget: 4500,
-                spent_budget: 1800,
-                submission_count: 56,
-                created_at: new Date(Date.now() - 86400000).toISOString(),
-                allowed_platforms: ["tiktok", "youtube"],
-                vendor: { business_name: "Luxe Fashion Hub", business_slug: "luxe-fashion", logo_url: "https://images.unsplash.com/photo-1541103554737-fe33e240b44c?w=100&h=100&fit=crop" }
-              },
-              {
-                id: "demo-3",
-                title: "Home Decor Aesthetic Reel Mission",
-                campaign_type: "ugc",
-                rate_per_1k_views: 6.50,
-                total_budget: 1000,
-                spent_budget: 150,
-                submission_count: 8,
-                created_at: new Date(Date.now() - 172800000).toISOString(),
-                allowed_platforms: ["instagram", "x"],
-                vendor: { business_name: "Modern Home", business_slug: "modern-home", logo_url: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=100&h=100&fit=crop" }
-              }
-            ] as any[]} />
+            <CampaignScrollRow campaigns={campaigns as any[]} />
             <ShortClipsReel videos={videos as any[]} />
             <CommunityScrollRow communities={communitiesList as any[]} />
           </div>

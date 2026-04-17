@@ -1,11 +1,11 @@
-import { getDB } from "./base";
+import { getDB, getAdminDB } from "./base";
 
 // ─────────────────────────────────────────────────────────────
 // INFLUENCER CAMPAIGNS
 // ─────────────────────────────────────────────────────────────
 
 export async function getCampaigns(limit = 12) {
-  const db = await getDB();
+  const db = getAdminDB();
   const { data, error } = await db
     .from("ugc_campaigns")
     .select(`

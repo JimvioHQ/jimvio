@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -531,7 +531,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
                         className="p-0 focus:bg-transparent rounded-[13px] cursor-pointer">
                         <Link
                           href={item.href}
-                          className="flex items-center gap-2.5 px-3 py-2.5 rounded-[13px] text-[13px] font-semibold text-stone-600  hover:text-stone-900 dark:text-white dark:hover:text-white transition-colors"
+                          className="flex items-center gap-2.5 px-3 py-2.5 rounded-[13px] text-[13px] font-semibold text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:text-white dark:hover:text-white transition-colors"
                           onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "var(--color-surface-secondary)"}
                           onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = ""}
                         >
@@ -565,7 +565,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
                 </DropdownMenu>
               ) : (
                 <div className="flex items-center gap-2 shrink-0">
-                  <GlassPill href="/login" className="px-4 py-2 text-[13px] font-semibold text-stone-600  hover:text-stone-900 dark:text-white dark:hover:text-white shrink-0 whitespace-nowrap">
+                  <GlassPill href="/login" className="px-4 py-2 text-[13px] font-semibold text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:text-white dark:hover:text-white shrink-0 whitespace-nowrap">
                     Log In
                   </GlassPill>
                   <Link
@@ -861,10 +861,10 @@ export function Navbar({ user, marketing }: NavbarProps) {
                 href={link.href}
                 className={cn(
                   "relative flex flex-col items-center justify-center flex-1 h-[85%] gap-1 transition-all duration-500 rounded-[28px]",
-                  active ? "text-orange-500 bg-orange-500/10 " : "text-zinc-700 hover:text-orange-500 dark:text-white/30 dark:hover:text-white/50 "
+                  active ? "text-orange-500 bg-orange-500/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]" : "text-zinc-700 hover:text-orange-500 dark:text-white/30 dark:hover:text-white/50 "
                 )}
               >
-                <link.icon className={cn("h-6 w-6 transition-transform duration-500", active ? "scale-110 " : "scale-100")} />
+                <link.icon className={cn("h-6 w-6 transition-transform duration-500", active ? "scale-110 dark:drop-shadow-[0_0_8px_rgba(249,115,22,0.4)]" : "scale-100")} />
                 <span className={cn("text-[9px] font-black capitalize tracking-[0.15em] transition-all", active ? "opacity-100" : "opacity-60")}>
                   {link.label}
                 </span>
@@ -885,7 +885,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
             <div className="relative">
               <div className="absolute inset-0 bg-white/20 rounded-full blur-[8px] opacity-0 group-active:opacity-100 transition-opacity" />
               <Menu className="h-6 w-6 stroke-[1.5px] relative z-10" />
-              <div className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-gradient-to-tr from-orange-600 to-orange-400 border-2 border-[#151515]" />
+              <div className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-gradient-to-tr from-orange-600 to-orange-400 border-2 border-[#151515] shadow-[0_0_10px_rgba(249,115,22,0.5)]" />
             </div>
             <span className="text-[9px] font-black capitalize tracking-[0.15em] opacity-60">Menu</span>
           </button>
@@ -912,7 +912,7 @@ function DrawerLink({
         "flex flex-col items-center justify-center gap-1.5 p-3 rounded-[24px] transition-all duration-500 active:scale-[0.9] group relative overflow-hidden",
         active
           ? `bg-${colorClass}-600/10 border border-${colorClass}-500/25 shadow-sm`
-          : "bg-white/[0.04] dark:bg-stone-900/40 border border-zinc-200 dark:border-white/[0.06] "
+          : "bg-white/[0.04] dark:bg-stone-900/40 border border-zinc-200 dark:border-white/[0.06] shadow-[0_2px_10px_rgba(0,0,0,0.02)]"
       )}
       style={{
         boxShadow: active
@@ -932,7 +932,7 @@ function DrawerLink({
         )}
       >
         {active && <div className="absolute inset-0 rounded-[18px] bg-white/20 animate-pulse" />}
-        <div className={cn("transition-all duration-500 relative z-10", active ? "text-white  scale-110" : "text-zinc-500 dark:text-white/40 group-hover:text-zinc-900 dark:group-hover:text-white")}>
+        <div className={cn("transition-all duration-500 relative z-10", active ? "text-white dark:drop-shadow-md scale-110" : "text-zinc-500 dark:text-white/40 group-hover:text-zinc-900 dark:group-hover:text-white")}>
           {icon}
         </div>
       </div>
