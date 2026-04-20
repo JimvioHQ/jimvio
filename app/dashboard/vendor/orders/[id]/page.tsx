@@ -79,7 +79,7 @@ export default function VendorOrderDetailPage() {
       const { data: items, error } = await supabase
         .from("order_items")
         .select(`
-          id, product_name, product_image, quantity, unit_price, total_price, product_source,
+          id, product_name, product_image, quantity, unit_price, total_price, product_source, product_type,
           orders ( id, order_number, status, total_amount, currency, created_at, shipping_address, profiles ( id, full_name, email ) )
         `)
         .eq("order_id", id)
@@ -234,6 +234,7 @@ export default function VendorOrderDetailPage() {
                         <div className="flex-1 min-w-0">
                            <div className="flex items-center gap-3 mb-1">
                               <p className="font-bold text-base text-stone-900 dark:text-white tracking-tight truncate">{item.product_name}</p>
+                              {item.product_type === "digital" && <Badge variant="secondary" className="bg-orange-500/10 text-orange-600 dark:text-orange-400 text-[10px] px-2 py-0 uppercase tracking-widest font-black border-orange-500/20">Digital</Badge>}
                               {item.product_source === "cj" && <Badge variant="secondary" className="text-[10px] px-2 py-0">Dropship</Badge>}
                            </div>
                            <p className="text-[11px] font-bold text-stone-400 uppercase tracking-widest">

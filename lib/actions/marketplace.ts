@@ -161,7 +161,7 @@ export async function getNavbarCounts() {
     const [cartResult, notificationResult] = await Promise.all([
       supabase
         .from("order_items")
-        .select("quantity, orders!inner(id)")
+        .select("quantity, orders!inner(id, metadata)")
         .eq("orders.buyer_id", user.id)
         .eq("orders.status", "pending"),
       supabase
@@ -178,7 +178,7 @@ export async function getNavbarCounts() {
       console.error("Error fetching notifications:", notificationResult.error);
     }
 
-    const totalItems = cartResult.data?.reduce((sum, item) => sum + Number(item.quantity || 0), 0) || 0;
+    const totalItems = cartResult.data?.filter(item => !(item.orders as any)?.metadata?.is_direct_checkout)?.reduce((sum, item) => sum + Number(item.quantity || 0), 0) || 0;
     const chatCount = notificationResult.count ?? 0;
 
     console.log(`[getNavbarCounts] Result: ${totalItems} cart, ${chatCount} chat`);
@@ -206,7 +206,7 @@ export async function addToCart(productId: string, vendorId: string, quantity: n
     const [productResult, orderResult] = await Promise.all([
       supabase
         .from("products")
-        .select("id, name, price, images, shopify_variant_id, shopify_product_id, currency, source, source_metadata, affiliate_enabled, affiliate_commission_rate")
+        .select("id, name, price, images, shopify_variant_id, shopify_product_id, currency, source, source_metadata, affiliate_enabled, affiliate_commission_rate, product_type, pricing_type, billing_period")
         .eq("id", productId)
         .single(),
       supabase
@@ -339,6 +339,7 @@ export async function addToCart(productId: string, vendorId: string, quantity: n
           order_id: orderId,
           product_id: productId,
           vendor_id: vendorId,
+          product_type: (product as any).product_type || "physical",
           product_name: product.name,
           product_image: product.images?.[0] || null,
           quantity: quantity,
@@ -351,6 +352,8 @@ export async function addToCart(productId: string, vendorId: string, quantity: n
           shopify_product_id: product.shopify_product_id ?? null,
           product_source: lineSource,
           source_metadata: lineMeta,
+          pricing_type: (product as any).pricing_type || "one_time",
+          billing_period: (product as any).billing_period || null,
           metadata: { video_id: lastVideoId }
         });
       
@@ -413,6 +416,9 @@ export async function getCart() {
       if (error) throw error;
 
       const list = (orders || []).filter((order) => {
+        // Exclude direct checkout digital items from the normal cart
+        if ((order.metadata as any)?.is_direct_checkout === true) return false;
+        
         const items = order.order_items as unknown[] | undefined;
         return Array.isArray(items) && items.length > 0;
       });
@@ -765,6 +771,114 @@ export async function updateOrderStatus(orderId: string, newStatus: string): Pro
     return { success: true };
   } catch (error: any) {
     console.error("Update order status error:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+export async function buyDirectCheckout(productId: string, vendorId: string, quantity: number = 1) {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return { success: false, error: "Authentication required" };
+    }
+
+    const { data: product, error: productError } = await supabase
+      .from("products")
+      .select("id, name, price, images, shopify_variant_id, shopify_product_id, currency, source, source_metadata, affiliate_enabled, affiliate_commission_rate, product_type, pricing_type, billing_period")
+      .eq("id", productId)
+      .single();
+
+    if (productError || !product) throw new Error("Product not found");
+
+    const productCurrency = product.currency?.toUpperCase() || "USD";
+    
+    // Create new direct checkout order immediately
+    const { data: order, error: createError } = await supabase
+      .from("orders")
+      .insert({
+        buyer_id: user.id,
+        vendor_id: vendorId,
+        status: "pending",
+        total_amount: product.price * quantity,
+        subtotal: product.price * quantity,
+        currency: productCurrency,
+        metadata: { is_direct_checkout: true }
+      })
+      .select()
+      .single();
+    
+    if (createError) throw createError;
+
+    const orderId = order.id;
+
+    // Handle affiliate tracking
+    const cookieStore = await cookies();
+    const lastVideoId = cookieStore.get("jimvio_last_video_id")?.value;
+    const refCode = cookieStore.get("jimvio_ref")?.value;
+    let affiliateId = null;
+    let commissionRate = (product as any).affiliate_commission_rate ?? (await getDefaultAffiliateCommissionPercent());
+
+    if (lastVideoId && !(order.metadata as any)?.video_id) {
+      await supabase
+        .from("orders")
+        .update({
+          metadata: { ...((order.metadata as any) || {}), video_id: lastVideoId }
+        })
+        .eq("id", orderId);
+    }
+
+    if (refCode && (product as any).affiliate_enabled) {
+      if (refCode.startsWith("LNK-")) {
+        const { data: link } = await supabase
+          .from("affiliate_links").select("affiliate_id, commission_rate").eq("link_code", refCode).maybeSingle();
+        if (link) {
+          affiliateId = link.affiliate_id;
+          commissionRate = link.commission_rate || commissionRate;
+        }
+      } else {
+        const { data: aff } = await supabase
+          .from("affiliates").select("id").eq("affiliate_code", refCode).maybeSingle();
+        if (aff) affiliateId = aff.id;
+      }
+    }
+
+    const price = Number(product.price);
+    const lineSource = normalizeProductSource((product as { source?: string | null }).source);
+    const lineMeta = (product as { source_metadata?: Record<string, unknown> | null }).source_metadata ?? {};
+    const totalPrice = price * quantity;
+    const initialCommAmount = affiliateId ? (totalPrice * (commissionRate || 10)) / 100 : 0;
+
+    const { error: insertError } = await supabase
+      .from("order_items")
+      .insert({
+        order_id: orderId,
+        product_id: productId,
+        vendor_id: vendorId,
+        product_type: product.product_type || "digital",
+        product_name: product.name,
+        product_image: product.images?.[0] || null,
+        quantity: quantity,
+        unit_price: price,
+        total_price: totalPrice,
+        affiliate_id: affiliateId,
+        affiliate_commission_rate: commissionRate,
+        affiliate_commission_amount: initialCommAmount,
+        shopify_variant_id: product.shopify_variant_id ?? null,
+        shopify_product_id: product.shopify_product_id ?? null,
+        product_source: lineSource,
+        source_metadata: lineMeta,
+        pricing_type: product.pricing_type || "one_time",
+        billing_period: product.billing_period || null,
+        metadata: { video_id: lastVideoId }
+      });
+    
+    if (insertError) throw insertError;
+
+    return { success: true, orderId: orderId };
+  } catch (error: any) {
+    console.error("Direct checkout error:", error);
     return { success: false, error: error.message };
   }
 }

@@ -11,9 +11,13 @@ import { cn } from "@/lib/utils";
 export function ProductDetailActions({
   productId,
   vendorId,
+  buttonText,
+  productType,
 }: {
   productId: string;
   vendorId: string;
+  buttonText?: string | null;
+  productType?: string | null;
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState<"cart" | "buy" | null>(null);
@@ -39,12 +43,16 @@ export function ProductDetailActions({
       <Button
         type="button"
         size="xl"
-        className={cn("flex-1 bg-[var(--color-success)] hover:opacity-90 text-white border-0")}
+        className={cn("flex-1 bg-orange-500 hover:bg-orange-600 text-white border-0 shadow-lg shadow-orange-500/20 active:scale-[0.98] transition-all")}
         disabled={loading !== null}
         onClick={() => void add("cart")}
       >
-        {loading === "cart" ? <Loader2 className="h-5 w-5 animate-spin" /> : <ShoppingCart className="h-5 w-5" />}
-        Add to cart
+        {loading === "cart" ? (
+          <Loader2 className="h-5 w-5 animate-spin" />
+        ) : (
+          <ShoppingCart className="h-5 w-5" />
+        )}
+        {buttonText || (productType === "digital" ? "Get Access" : "Add to cart")}
       </Button>
       <Button
         type="button"

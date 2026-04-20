@@ -25,7 +25,13 @@ interface Product {
   review_count?: number;
   inventory_quantity?: number;
   is_featured?: boolean;
+  /** @deprecated use product_type instead */
   is_digital?: boolean;
+  button_text?: string | null;
+  pricing_type?: string | null;
+  billing_period?: string | null;
+  /** Canonical product type — 'digital' | 'physical' */
+  product_type?: string;
   affiliate_enabled?: boolean;
   affiliate_commission_rate?: number | null;
   sale_count?: number;
@@ -76,7 +82,8 @@ export function ProductCardClient({
   const discount = compareAt > price && compareAt > 0
     ? Math.round(((compareAt - price) / compareAt) * 100)
     : 0;
-  const isDigital = p.is_digital;
+  // Derive isDigital from product_type (canonical) with is_digital as fallback
+  const isDigital = p.product_type === "digital" || (p.product_type === undefined && p.is_digital === true);
   const showWishlist = !!onToggleWishlist;
   const stars = Math.round(Number(p.rating ?? 0));
   const commissionRate = p.affiliate_commission_rate;
@@ -263,6 +270,10 @@ export function ProductCardClient({
                   <Trash2 className={cn("hidden group-hover/cartbtn:block", compact ? "h-2.5 w-2.5" : "h-3 w-3")} />
                   <span className="hidden group-hover/cartbtn:block">Remove</span>
                 </>
+              ) : p.button_text ? (
+                <><Zap className={compact ? "h-2.5 w-2.5" : "h-3 w-3"} />{p.button_text}</>
+              ) : isDigital ? (
+                <><Zap className={compact ? "h-2.5 w-2.5" : "h-3 w-3"} />Access</>
               ) : (
                 <><ShoppingCart className={compact ? "h-2.5 w-2.5" : "h-3 w-3"} /> Add</>
               )}
@@ -284,7 +295,12 @@ export function ProductCardClient({
 
           {/* Price */}
           <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-            <LocalizedPrice amount={price} currency={p.currency} className={cn("font-black tracking-tight text-stone-900 dark:text-white", compact ? "text-[16px]" : "text-[19px]")} />
+            <LocalizedPrice 
+              amount={price} 
+              currency={p.currency} 
+              period={p.pricing_type === "recurring" ? p.billing_period : null}
+              className={cn("font-black tracking-tight text-stone-900 dark:text-white", compact ? "text-[16px]" : "text-[19px]")} 
+            />
             {discount > 0 && (
               <LocalizedPrice amount={compareAt} currency={p.currency} className="text-[12px] font-bold text-stone-400 dark:text-text-muted line-through md:inline-block" />
             )}
@@ -317,7 +333,9 @@ export function ProductCardClient({
             ) : inCart ? (
               <><Trash2 className="h-3 w-3 inline mr-1" />Remove</>
             ) : (
-              <><ShoppingCart className="h-3 w-3 inline mr-1" />Add to Cart</>
+              isDigital
+                ? <><Zap className="h-3 w-3 inline mr-1" />Get Access</>
+                : <><ShoppingCart className="h-3 w-3 inline mr-1" />Add to Cart</>
             )}
           </button>
         </div>

@@ -10,6 +10,8 @@ export type OrderSummaryItem = {
   quantity: number;
   unit_price: number;
   total_price: number;
+  pricing_type?: string;
+  billing_period?: string;
 };
 
 export function OrderSummary({
@@ -43,7 +45,14 @@ export function OrderSummary({
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-sm font-medium text-[var(--color-text-primary)] line-clamp-2 leading-snug">{item.product_name}</p>
-              <p className="text-xs text-[var(--color-text-muted)] mt-0.5">Qty {item.quantity}</p>
+              <div className="flex items-center gap-2 mt-0.5">
+                <p className="text-xs text-[var(--color-text-muted)]">Qty {item.quantity}</p>
+                {item.pricing_type === 'recurring' && (
+                  <span className="text-[10px] font-bold text-orange-500 uppercase px-1.5 py-0.5 bg-orange-500/10 rounded-md">
+                    {item.billing_period}
+                  </span>
+                )}
+              </div>
             </div>
             <p className="text-sm font-semibold text-[var(--color-text-primary)] shrink-0 tabular-nums">
               {formatMoney(Number(item.total_price), c)}

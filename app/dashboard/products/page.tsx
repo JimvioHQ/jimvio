@@ -64,9 +64,9 @@ export default function ProductsPage() {
     if (search) result = result.filter(p => (p.name as string)?.toLowerCase().includes(search.toLowerCase()));
     if (activeFilter !== "All") {
       if (activeFilter === "Active")   result = result.filter(p => p.status === "active");
-      if (activeFilter === "Digital")  result = result.filter(p => p.is_digital === true);
-      if (activeFilter === "Physical") result = result.filter(p => p.is_digital === false);
-      if (activeFilter === "Low Stock")result = result.filter(p => !p.is_digital && (p.inventory_quantity as number) <= 5);
+      if (activeFilter === "Digital")  result = result.filter(p => p.product_type === "digital" || p.is_digital === true);
+      if (activeFilter === "Physical") result = result.filter(p => p.product_type === "physical" || (!p.product_type && p.is_digital === false));
+      if (activeFilter === "Low Stock")result = result.filter(p => p.product_type !== "digital" && !p.is_digital && (p.inventory_quantity as number) <= 5);
     }
     setFiltered(result);
   }, [search, activeFilter, products]);
@@ -86,7 +86,7 @@ export default function ProductsPage() {
   }
 
   const active    = products.filter(p => p.status === "active").length;
-  const lowStock  = products.filter(p => !p.is_digital && (p.inventory_quantity as number) <= 5).length;
+  const lowStock  = products.filter(p => p.product_type !== "digital" && !p.is_digital && (p.inventory_quantity as number) <= 5).length;
   const totalSales= products.reduce((s, p) => s + (p.sale_count as number ?? 0), 0);
 
   if (loading && products.length === 0) {

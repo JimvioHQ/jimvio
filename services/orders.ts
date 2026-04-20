@@ -31,7 +31,11 @@ export async function getBuyerOrders(userId: string) {
     .select(`
       id, order_number, status, payment_status, total_amount,
       currency, created_at, paid_at, shipped_at, delivered_at,
-      order_items ( id, product_name, product_image, quantity, unit_price, total_price, vendor_id, vendors ( id, business_name, business_slug ) )
+      order_items (
+        id, product_name, product_image, quantity, unit_price, total_price,
+        vendor_id, product_type, digital_download_url, access_granted_at,
+        vendors ( id, business_name, business_slug )
+      )
     `)
     .eq("buyer_id", userId)
     .order("created_at", { ascending: false });
@@ -45,7 +49,11 @@ export async function getOrderById(orderId: string, userId?: string) {
     .select(`
       id, order_number, status, payment_status, total_amount,
       currency, created_at, paid_at, shipped_at, delivered_at, buyer_id,
-      order_items ( id, product_name, product_image, quantity, unit_price, total_price, vendor_id, vendors ( id, business_name, business_slug ) )
+      order_items (
+        id, product_name, product_image, quantity, unit_price, total_price,
+        vendor_id, product_type, digital_download_url, access_granted_at,
+        vendors ( id, business_name, business_slug )
+      )
     `)
     .eq("id", orderId);
   if (userId) q = q.eq("buyer_id", userId);

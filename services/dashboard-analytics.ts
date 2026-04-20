@@ -10,10 +10,10 @@ export async function getBuyerDashboardStats(userId: string) {
     db.from("orders").select("total_amount, created_at").eq("buyer_id", userId).eq("payment_status", "completed"),
     db.from("wishlists").select("id", { count: "exact", head: true }).eq("user_id", userId),
     db.from("order_items")
-      .select("id, orders!inner(buyer_id, payment_status), products!inner(is_digital)", { count: "exact", head: true })
+      .select("id, orders!inner(buyer_id, payment_status), products!inner(product_type)", { count: "exact", head: true })
       .eq("orders.buyer_id", userId)
       .eq("orders.payment_status", "completed")
-      .eq("products.is_digital", true)
+      .eq("products.product_type", "digital")
   ]);
 
   const orders = ordersRes.data ?? [];

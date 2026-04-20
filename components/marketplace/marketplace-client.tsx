@@ -24,6 +24,8 @@ import { cn } from "@/lib/utils";
 import { MarketplaceSearch, marketplaceHref } from "@/components/marketplace/marketplace-search";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ProductCardClient } from "@/components/marketplace/product-card-client";
+import { ProductCardDigital } from "@/components/marketplace/product-card-digital";
+import { ProductCardPhysical } from "@/components/marketplace/product-card-physical";
 import { FollowButton } from "@/components/marketplace/follow-button";
 import { LocalizedPrice } from "@/components/currency/localized-price";
 import { GlassAmbientGlow } from "@/components/ui/glass";
@@ -80,6 +82,7 @@ interface MarketplaceClientProps {
     activeVendorsLabel: string;
     activeListingsLabel: string;
   };
+  uiVariant?: "all" | "digital" | "physical";
 }
 
 /* ─── Hero Deal Banner ─── */
@@ -93,7 +96,12 @@ function HeroDealBanner({ params, basePath }: { params: Record<string, string | 
     <div className="relative overflow-hidden rounded-[28px] mx-0 mb-6 shadow-lg border border-border">
       {/* Background with premium dynamic gradient */}
       <div
-        className="absolute inset-0 bg-gradient-to-br from-orange-50 dark:from-orange-950/10 via-surface dark:via-zinc-900 to-orange-50/50 dark:to-orange-900/5"
+        className={cn(
+          "absolute inset-0 bg-gradient-to-br transition-all duration-700",
+          isDigital 
+            ? "from-sky-50 dark:from-sky-950/20 via-white dark:via-[#0a0a0a] to-sky-50 dark:to-sky-900/10" 
+            : "from-orange-50 dark:from-orange-950/10 via-surface dark:via-zinc-900 to-orange-50/50 dark:to-orange-900/5"
+        )}
       />
       
       {/* Ambient glowing orbs for depth */}
@@ -179,10 +187,13 @@ function TypeTabs({ params, basePath }: { params: Record<string, string | undefi
   const isAll = !params.type;
 
   const tabs = [
-    { label: "All", type: null as string | null },
-    { label: "Digital Products", type: "digital" },
-    { label: "Physical Products", type: "physical" },
-  ];
+    { label: "All Items", type: null as string | null },
+    { label: "Digital", type: "digital" },
+    { label: "Physical", type: "physical" },
+  ].filter(tab => {
+    if (!params.type) return true; // Show all on main marketplace
+    return tab.type === params.type; // Only show current type on specialized pages
+  });
 
   return (
     <div className="flex justify-center w-full">
@@ -207,7 +218,12 @@ function TypeTabs({ params, basePath }: { params: Record<string, string | undefi
               {isActive && (
                 <motion.div
                   layoutId="activeTabIndicator"
-                  className="absolute inset-0 bg-surface dark:bg-surface-secondary rounded-[14px] shadow-[0_2px_10px_rgba(0,0,0,0.12)] border border-border"
+                  className={cn(
+                    "absolute inset-0 rounded-[14px] shadow-lg border",
+                    tab.type === "digital" ? "bg-sky-500/10 border-sky-500/20 shadow-sky-500/5" :
+                    tab.type === "physical" ? "bg-orange-500/10 border-orange-500/20 shadow-orange-500/5" :
+                    "bg-surface dark:bg-surface-secondary border-border"
+                  )}
                   style={{ zIndex: -1 }}
                   transition={{ type: "spring", stiffness: 450, damping: 35 }}
                 />
@@ -325,7 +341,30 @@ export function MarketplaceClient({
   followedVendorIds = [],
   marketplaceStats,
   basePath = "/marketplace",
+  uiVariant = "all",
 }: MarketplaceClientProps & { basePath?: string }) {
+  const DIGITAL_SLUG_PATTERNS = ["ebook", "course", "software", "template", "digital", "asset"];
+  const displayCategories = useMemo(() => {
+    if (params.type === "digital") {
+      const dCats = categories.filter(c => 
+        DIGITAL_SLUG_PATTERNS.some(p => `${c.slug} ${c.name}`.toLowerCase().includes(p))
+      );
+      if (dCats.length > 0) return dCats;
+      return [
+        { id: "template", slug: "template", name: "Templates" },
+        { id: "ebook", slug: "ebook", name: "E-Books" },
+        { id: "software", slug: "software", name: "Software" },
+        { id: "course", slug: "course", name: "Courses" }
+      ];
+    }
+    if (params.type === "physical") {
+      return categories.filter(c => 
+        !DIGITAL_SLUG_PATTERNS.some(p => `${c.slug} ${c.name}`.toLowerCase().includes(p))
+      );
+    }
+    return categories;
+  }, [categories, params.type]);
+
   const cartSet = useMemo(() => new Set(cartProductIds), [cartProductIds]);
   const followSet = useMemo(() => new Set(followedVendorIds), [followedVendorIds]);
   const totalPages = Math.ceil(total / limit);
@@ -348,9 +387,41 @@ export function MarketplaceClient({
       ? `${marketplaceStats.activeListingsLabel} listings available`
       : null;
 
+  const renderCat = (cat: { slug: string | null; name: string }) => {
+    const isActive = (!params.cat && !cat.slug) || params.cat === cat.slug;
+    const icon = cat.slug ? getCategoryIcon(cat.slug, cat.name) : "🛍️";
+    return (
+      <Link
+        key={cat.slug || "all"}
+        href={marketplaceHref(paramsRecord, { cat: cat.slug ?? null }, basePath)}
+        className={cn(
+          "flex items-center gap-2.5 py-2 px-3 rounded-[12px] text-[12px] font-semibold transition-all",
+          isActive
+            ? "bg-orange-500/10 text-orange-600 border border-orange-500/20"
+            : "text-stone-500 dark:text-text-muted hover:bg-surface-secondary dark:hover:bg-zinc-800 hover:text-stone-800 dark:text-text-secondary dark:hover:text-white border border-transparent"
+        )}
+      >
+        {icon && <span className="text-base leading-none">{icon}</span>}
+        <span className="flex-1 truncate">{cat.name}</span>
+        {isActive && (
+          <span className="w-1.5 h-1.5 rounded-full bg-orange-500 shadow-[0_0_6px_rgba(249,115,22,0.8)]" />
+        )}
+      </Link>
+    );
+  };
+
   return (
-    <div className="min-h-screen relative" style={{ background: "var(--color-bg)" }}>
-      <GlassAmbientGlow color="amber" position="top-right" className="opacity-30" />
+    <div className={cn(
+      "min-h-screen relative transition-colors duration-500",
+      uiVariant === "digital" 
+        ? "bg-[#fafcfe] dark:bg-[#050505]" 
+        : "bg-white dark:bg-bg"
+    )}>
+      <GlassAmbientGlow 
+        color={uiVariant === "digital" ? "sky" : uiVariant === "physical" ? "orange" : "amber"} 
+        position="top-right" 
+        className="opacity-30" 
+      />
 
       {/* ── Sticky Top Bar ── */}
       <div
@@ -379,14 +450,33 @@ export function MarketplaceClient({
 
               {/* Stats Badge (Desktop Only) */}
               {statLine && (
-                <div className="hidden lg:flex items-center gap-3 pl-5 border-l border-border">
+                <div className={cn(
+                  "hidden lg:flex items-center gap-3 pl-5 border-l",
+                  uiVariant === "digital" ? "border-sky-500/20" : "border-stone-200 dark:border-white/10"
+                )}>
                   <div className="relative flex h-2.5 w-2.5">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                    <span className={cn(
+                      "animate-ping absolute inline-flex h-full w-full rounded-full opacity-75",
+                      uiVariant === "digital" ? "bg-sky-400" : "bg-emerald-400"
+                    )}></span>
+                    <span className={cn(
+                      "relative inline-flex rounded-full h-2.5 w-2.5",
+                      uiVariant === "digital" ? "bg-sky-500 shadow-[0_0_8px_rgba(14,165,233,0.8)]" : "bg-emerald-500"
+                    )}></span>
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-stone-400 dark:text-stone-600 leading-none">Live DB</span>
-                    <span className="text-[13px] font-bold text-stone-700 dark:text-stone-300 leading-tight block mt-0.5">{statLine}</span>
+                    <span className={cn(
+                      "text-[10px] font-black uppercase tracking-widest leading-none",
+                      uiVariant === "digital" ? "text-sky-400/60" : "text-stone-400 dark:text-stone-600"
+                    )}>
+                      {uiVariant === "digital" ? "Network Node" : "Market Status"}
+                    </span>
+                    <span className={cn(
+                      "text-[13px] font-black leading-tight block mt-0.5",
+                      uiVariant === "digital" ? "text-white" : "text-stone-700 dark:text-stone-300"
+                    )}>
+                      {statLine}
+                    </span>
                   </div>
                 </div>
               )}
@@ -400,61 +490,89 @@ export function MarketplaceClient({
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-5 lg:py-6 flex flex-col lg:flex-row gap-6">
 
         {/* ── LEFT SIDEBAR (desktop) ── */}
-        <aside className="hidden lg:block lg:w-56 shrink-0">
-          <div className="sticky top-[130px] space-y-4">
-            {/* Category card */}
-            <div className="bg-surface dark:bg-surface rounded-[20px] border border-border shadow-sm p-4">
-              <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-stone-400 dark:text-text-muted mb-3">
-                Categories
-              </h3>
-              <div className="flex flex-col gap-0.5">
-                {[{ slug: null as string | null, name: "All categories" }, ...categories].map((cat) => {
-                  const isActive = (!params.cat && !cat.slug) || params.cat === cat.slug;
-                  const icon = cat.slug ? getCategoryIcon(cat.slug, cat.name) : "🛍️";
-                  return (
-                    <Link
-                      key={cat.slug || "all"}
-                      href={marketplaceHref(paramsRecord, { cat: cat.slug ?? null }, basePath)}
-                      className={cn(
-                        "flex items-center gap-2.5 py-2 px-3 rounded-[12px] text-[12px] font-semibold transition-all",
-                        isActive
-                          ? "bg-orange-500/10 text-orange-600 border border-orange-500/20"
-                          : "text-stone-500 dark:text-text-muted hover:bg-surface-secondary dark:hover:bg-zinc-800 hover:text-stone-800 dark:text-text-secondary dark:hover:text-white border border-transparent"
-                      )}
-                    >
-                      {icon && <span className="text-base leading-none">{icon}</span>}
-                      <span className="flex-1 truncate">{cat.name}</span>
-                      {isActive && (
-                        <span className="w-1.5 h-1.5 rounded-full bg-orange-500 shadow-[0_0_6px_rgba(249,115,22,0.8)]" />
-                      )}
-                    </Link>
-                  );
-                })}
+        <aside className="hidden lg:block lg:w-60 shrink-0">
+          <div className="sticky top-[130px] space-y-5">
+            {/* Main sidebar shell with variant-aware borders */}
+            <div className={cn(
+               "bg-surface dark:bg-surface rounded-[24px] border border-border shadow-sm overflow-hidden",
+               uiVariant === "digital" && "border-sky-500/20 shadow-[0_0_20px_rgba(14,165,233,0.05)]",
+               uiVariant === "physical" && "border-orange-500/10 shadow-[0_0_20px_rgba(249,115,22,0.05)]"
+            )}>
+              <div className="p-4">
+                <div className="mb-4">
+                  {renderCat({ slug: null, name: "All Browse" })}
+                </div>
+                
+                {uiVariant === "all" ? (
+                  <div className="space-y-5">
+                    {(() => {
+                      const digitals = displayCategories.filter(c => DIGITAL_SLUG_PATTERNS.some(p => `${c.slug} ${c.name}`.toLowerCase().includes(p)));
+                      if (digitals.length === 0) return null;
+                      return (
+                        <div>
+                          <div className="flex items-center gap-2 mb-2 px-3 py-1 bg-sky-50 dark:bg-sky-500/10 rounded-lg">
+                             <Zap className="h-3 w-3 text-sky-500" />
+                             <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-sky-600 dark:text-sky-400">Digital Hub</h3>
+                          </div>
+                          <div className="flex flex-col gap-0.5">
+                            {digitals.map(renderCat)}
+                          </div>
+                        </div>
+                      );
+                    })()}
+                    {(() => {
+                      const physicals = displayCategories.filter(c => !DIGITAL_SLUG_PATTERNS.some(p => `${c.slug} ${c.name}`.toLowerCase().includes(p)));
+                      if (physicals.length === 0) return null;
+                      return (
+                        <div>
+                          <div className="flex items-center gap-2 mb-2 px-3 py-1 bg-orange-50 dark:bg-orange-500/10 rounded-lg">
+                             <Package className="h-3 w-3 text-orange-500" />
+                             <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-600 dark:text-orange-400">Physical Goods</h3>
+                          </div>
+                          <div className="flex flex-col gap-0.5">
+                            {physicals.map(renderCat)}
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                ) : (
+                  <>
+                    <h3 className={cn(
+                      "text-[10px] font-black uppercase tracking-[0.2em] mb-3 px-3",
+                      uiVariant === "digital" ? "text-sky-400" : "text-stone-400 dark:text-stone-600"
+                    )}>
+                      {uiVariant === "digital" ? "Assets Directory" : "Product Catalog"}
+                    </h3>
+                    <div className="flex flex-col gap-0.5">
+                      {displayCategories.map(renderCat)}
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 
-            {/* Support card */}
-            <div className="bg-surface dark:bg-surface rounded-[20px] border border-border shadow-sm p-5 relative overflow-hidden">
-              <div
-                className="pointer-events-none absolute top-0 right-0 w-24 h-24 rounded-full blur-2xl opacity-40 dark:opacity-20"
-                style={{ background: "radial-gradient(circle, #fb923c, transparent)" }}
-              />
-              <div
-                className="h-9 w-9 rounded-[12px] flex items-center justify-center mb-3 relative z-10"
-                style={{ background: "linear-gradient(135deg, #f97316, #ea580c)" }}
-              >
-                <ShieldCheck className="h-4 w-4 text-white" />
+            {/* Contextual Info Card */}
+            <div className={cn(
+              "rounded-[24px] border p-5 relative overflow-hidden group",
+              uiVariant === "digital" ? "bg-sky-500/[0.03] border-sky-500/10" : "bg-orange-50 dark:bg-zinc-900 border-orange-200/50 dark:border-white/5"
+            )}>
+              <div className="relative z-10">
+                <div className={cn(
+                  "h-8 w-8 rounded-xl flex items-center justify-center mb-3",
+                  uiVariant === "digital" ? "bg-sky-500/20 text-sky-400" : "bg-orange-500 text-white"
+                )}>
+                  <ShieldCheck className="h-4 w-4" />
+                </div>
+                <h4 className="text-[13px] font-bold text-stone-900 dark:text-white mb-1">
+                   {uiVariant === "digital" ? "Verified License" : "Trust & Tracking"}
+                </h4>
+                <p className="text-[11px] text-stone-500 dark:text-stone-400 leading-relaxed italic">
+                   {uiVariant === "digital" 
+                     ? "Ownership confirmed on chain. Access your files instantly via your library."
+                     : "Secure door-to-door delivery. Track your package live from our network."}
+                </p>
               </div>
-              <h4 className="text-[13px] font-bold text-stone-900 dark:text-white mb-1 relative z-10">Buyer Support</h4>
-              <p className="text-[11px] text-stone-500 dark:text-text-muted leading-relaxed mb-3 relative z-10">
-                Questions about an order or seller? Reach us anytime.
-              </p>
-              <Link
-                href="/contact"
-                className="block w-full py-2 px-4 rounded-full bg-orange-50 dark:bg-orange-950/20 border border-orange-200/60 dark:border-orange-500/20 text-[11px] font-semibold text-orange-600 dark:text-orange-400 text-center hover:bg-orange-100 dark:hover:bg-orange-900/40 transition-all relative z-10"
-              >
-                Contact Support
-              </Link>
             </div>
           </div>
         </aside>
@@ -473,7 +591,7 @@ export function MarketplaceClient({
               href={marketplaceHref(paramsRecord, { cat: null }, basePath)}
               icon="🛍️"
             />
-            {categories.slice(0, 12).map((cat) => (
+            {displayCategories.slice(0, 12).map((cat) => (
               <CategoryChip
                 key={cat.slug}
                 label={cat.name}
@@ -533,7 +651,7 @@ export function MarketplaceClient({
                   href={marketplaceHref(paramsRecord, { cat: null }, basePath)}
                   className="inline-flex items-center gap-1 rounded-full bg-surface dark:bg-surface border border-border px-3 py-1 text-[11px] font-semibold text-stone-700 dark:text-stone-300 hover:border-orange-300 dark:hover:border-orange-700 hover:text-orange-600 dark:hover:text-orange-400 transition-all shadow-sm"
                 >
-                  {categories.find((c) => c.slug === params.cat)?.name ?? params.cat}{" "}
+                  {displayCategories.find((c) => c.slug === params.cat)?.name ?? params.cat}{" "}
                   <X className="h-3 w-3 opacity-50" />
                 </Link>
               ) : null}
@@ -561,7 +679,7 @@ export function MarketplaceClient({
                 : params.type === "physical"
                 ? "Physical Products"
                 : params.cat
-                ? (categories.find((c) => c.slug === params.cat)?.name ?? "Products")
+                ? (displayCategories.find((c) => c.slug === params.cat)?.name ?? "Products")
                 : "All Products"}
             </h2>
             <span className="text-[12px] text-stone-400 dark:text-text-muted tabular-nums">
@@ -580,22 +698,84 @@ export function MarketplaceClient({
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.25 }}
               >
-                <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                  {mixedFeed.map((item, idx) => (
-                    <motion.div
-                      key={`product-${item.data.id}-${idx}`}
-                      initial={{ opacity: 0, y: 16 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{
-                        delay: Math.min(idx * 0.04, 0.4),
-                        duration: 0.32,
-                        ease: [0.23, 1, 0.32, 1],
-                      }}
-                    >
-                      <ProductCardClient p={item.data} initialInCart={cartSet.has(item.data.id)} />
-                    </motion.div>
-                  ))}
-                </div>
+                {uiVariant === "all" ? (
+                  <div className="space-y-10">
+                    {(() => {
+                      const digitals = mixedFeed.filter(m => m.data.product_type === "digital" || m.data.is_digital);
+                      if (digitals.length === 0) return null;
+                      return (
+                        <div>
+                          <div className="flex items-center gap-2 mb-4 pb-2 border-b border-border/50">
+                            <Zap className="h-4 w-4 text-sky-500" />
+                            <h3 className="text-[13px] font-black uppercase tracking-[0.1em] text-sky-500">Digital Assets</h3>
+                          </div>
+                          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                            {digitals.map((item, idx) => (
+                              <motion.div
+                                key={`product-${item.data.id}-${idx}`}
+                                initial={{ opacity: 0, y: 16 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: Math.min(idx * 0.04, 0.4), duration: 0.32, ease: [0.23, 1, 0.32, 1] }}
+                              >
+                                <ProductCardDigital p={item.data} initialInCart={cartSet.has(item.data.id)} />
+                              </motion.div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    {(() => {
+                      const physicals = mixedFeed.filter(m => m.data.product_type !== "digital" && !m.data.is_digital);
+                      if (physicals.length === 0) return null;
+                      return (
+                        <div>
+                          <div className="flex items-center gap-2 mb-4 pb-2 border-b border-border/50">
+                            <Package className="h-4 w-4 text-orange-500" />
+                            <h3 className="text-[13px] font-black uppercase tracking-[0.1em] text-orange-500">Physical Goods</h3>
+                          </div>
+                          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                            {physicals.map((item, idx) => (
+                              <motion.div
+                                key={`product-${item.data.id}-${idx}`}
+                                initial={{ opacity: 0, y: 16 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: Math.min(idx * 0.04, 0.4), duration: 0.32, ease: [0.23, 1, 0.32, 1] }}
+                              >
+                                <ProductCardPhysical p={item.data} detailBasePath="/marketplace" initialInCart={cartSet.has(item.data.id)} />
+
+                              </motion.div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                    {mixedFeed.map((item, idx) => (
+                      <motion.div
+                        key={`product-${item.data.id}-${idx}`}
+                        initial={{ opacity: 0, y: 16 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{
+                          delay: Math.min(idx * 0.04, 0.4),
+                          duration: 0.32,
+                          ease: [0.23, 1, 0.32, 1],
+                        }}
+                      >
+                        {uiVariant === "digital" ? (
+                           <ProductCardDigital p={item.data} detailBasePath="/marketplace" initialInCart={cartSet.has(item.data.id)} />
+                        ) : uiVariant === "physical" ? (
+                           <ProductCardPhysical p={item.data} detailBasePath="/marketplace" initialInCart={cartSet.has(item.data.id)} />
+                        ) : (
+                           <ProductCardClient p={item.data} detailBasePath="/marketplace" initialInCart={cartSet.has(item.data.id)} />
+                        )}
+
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
 
                 {/* Recommended section label */}
                 {initialProducts.length >= 8 && (

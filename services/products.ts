@@ -99,7 +99,8 @@ export async function getProducts(query: ProductQuery = {}) {
       images, rating, review_count, is_featured, is_digital,
       product_type, status, affiliate_enabled, affiliate_commission_rate,
       sale_count, view_count, wishlist_count, inventory_quantity,
-      created_at, source, currency,
+      created_at, source, currency, button_text,
+      pricing_type, billing_period,
       vendors ( id, business_name, business_slug, rating, verification_status, business_country ),
       product_categories${category ? '!inner' : ''} ( id, name, slug )
     `, { count: "exact" })
@@ -184,7 +185,8 @@ export async function getVendorProducts(vendorId: string) {
     .select(`
       id, name, slug, price, compare_at_price, status, product_type,
       images, inventory_quantity, sale_count, rating, review_count,
-      affiliate_enabled, affiliate_commission_rate, is_active, created_at, currency
+      affiliate_enabled, affiliate_commission_rate, is_active, created_at, currency,
+      pricing_type, billing_period
     `)
     .eq("vendor_id", vendorId)
     .order("created_at", { ascending: false });

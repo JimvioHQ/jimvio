@@ -27,10 +27,10 @@ export default function InventoryPage() {
       if (vend) {
         const { data } = await supabase
           .from("products")
-          .select("id, name, slug, status, product_type, is_digital, inventory_quantity, low_stock_threshold, sale_count, images")
+          .select("id, name, slug, status, product_type, inventory_quantity, low_stock_threshold, sale_count, images")
           .eq("vendor_id", vend.id)
           .eq("is_active", true)
-          .eq("is_digital", false)  
+          .eq("product_type", "physical")
           .order("inventory_quantity", { ascending: true });
         setProducts(data ?? []);
       }

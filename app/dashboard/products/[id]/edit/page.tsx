@@ -40,7 +40,7 @@ export default function EditProductPage() {
   const [loading, setLoading]  = useState(true);
   const [error, setError]      = useState<string | null>(null);
   const [success, setSuccess]  = useState(false);
-  const [categories, setCategories] = useState<Record<string, unknown>[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
 
   const [form, setForm] = useState({
     name: "", slug: "", short_description: "", description: "",
@@ -48,6 +48,9 @@ export default function EditProductPage() {
     inventory_quantity: "", affiliate_enabled: true,
     affiliate_commission_rate: "10", status: "draft",
     is_featured: false, tags: "", is_digital: false,
+    product_type: "physical",
+    pricing_type: "one_time", billing_period: "monthly",
+    digital_file_url: "", button_text: "",
     images: [] as string[],
   });
 
@@ -79,6 +82,11 @@ export default function EditProductPage() {
           is_featured:             p.is_featured ?? false,
           tags:                    (p.tags as string[])?.join(", ") ?? "",
           is_digital:              p.is_digital ?? false,
+          product_type:            p.product_type ?? (p.is_digital ? "digital" : "physical"),
+          pricing_type:            p.pricing_type ?? "one_time",
+          billing_period:          p.billing_period ?? "monthly",
+          digital_file_url:        p.digital_file_url ?? "",
+          button_text:             p.button_text ?? "",
           images:                  (p.images as string[]) || [],
         });
       }
@@ -88,8 +96,26 @@ export default function EditProductPage() {
     load();
   }, [productId, router]);
 
-  function handleChange(field: string, value: string | boolean) {
-    setForm(prev => ({ ...prev, [field]: value }));
+  function handleChange(field: string, value: any) {
+    setForm(prev => {
+      const updated = { ...prev, [field]: value };
+      
+      // AUTO LOGIC based on Category (matching new product logic)
+      if (field === "category_id" && updated.product_type === "digital") {
+        const cat = categories.find(c => c.id === value);
+        const name = cat?.name?.toLowerCase() || "";
+        const slug = cat?.slug?.toLowerCase() || "";
+        
+        if (slug.includes("course") || name.includes("course") || name.includes("training")) {
+           updated.pricing_type = "recurring";
+           updated.button_text = "Join";
+        } else if (slug.includes("software") || name.includes("software") || name.includes("app")) {
+           updated.pricing_type = "one_time";
+           updated.button_text = "Get access";
+        }
+      }
+      return updated;
+    });
   }
 
   function handleImageUpload(url: string) {
@@ -121,6 +147,11 @@ export default function EditProductPage() {
         affiliate_commission_rate: parseFloat(form.affiliate_commission_rate ?? "10"),
         status:                  form.status,
         is_featured:             form.is_featured,
+        product_type:            form.product_type,
+        pricing_type:            form.pricing_type,
+        billing_period:          form.pricing_type === "recurring" ? form.billing_period : null,
+        button_text:             form.button_text || null,
+        digital_file_url:        form.product_type === "digital" ? form.digital_file_url : null,
         tags:                    form.tags ? form.tags.split(",").map(t => t.trim()).filter(Boolean) : null,
         images:                  form.images,
       }).eq("id", productId);
@@ -257,7 +288,7 @@ export default function EditProductPage() {
                       <Input value={form.name} onChange={e => handleChange("name", e.target.value)} className={inputClass} required />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                       <div className="space-y-3">
                         <Label className="text-[11px] font-black uppercase tracking-widest text-stone-500 pl-1">Registry Category</Label>
                         <select value={form.category_id} onChange={e => handleChange("category_id", e.target.value)} className={selectClass}>
@@ -266,13 +297,17 @@ export default function EditProductPage() {
                         </select>
                       </div>
                       <div className="space-y-3">
-                        <Label className="text-[11px] font-black uppercase tracking-widest text-stone-500 pl-1">State Protocol</Label>
+                        <Label className="text-[11px] font-black uppercase tracking-widest text-stone-500 pl-1">Visibility Status</Label>
                         <select value={form.status} onChange={e => handleChange("status", e.target.value)} className={selectClass}>
                           <option value="draft">Storage Protocol (Draft)</option>
                           <option value="active">Live Distribution (Active)</option>
                           <option value="paused">Hibernation Mode (Paused)</option>
                           <option value="archived">Decommissioned (Archived)</option>
                         </select>
+                      </div>
+                      <div className="space-y-3 sm:col-span-2 lg:col-span-1">
+                        <Label className="text-[11px] font-black uppercase tracking-widest text-stone-500 pl-1">Product URL (Live)</Label>
+                        <Input value={`jimvio.com/products/${form.slug}`} readOnly className={cn(inputClass, "opacity-60 bg-stone-50 text-[13px] border-dashed")} />
                       </div>
                     </div>
 
@@ -326,6 +361,85 @@ export default function EditProductPage() {
                         <Input type="number" min="0" step="0.01" value={form.compare_at_price} onChange={e => handleChange("compare_at_price", e.target.value)} className={inputClass} />
                       </div>
                     </div>
+
+                    <div className="space-y-4 pt-4 border-t border-stone-100 dark:border-border/50">
+                      <Label className="text-[11px] font-black uppercase tracking-widest text-stone-500 pl-1">Pricing Model</Label>
+                      <div className="flex flex-wrap gap-4">
+                        <button
+                          type="button"
+                          onClick={() => handleChange("pricing_type", "one_time")}
+                          className={cn(
+                            "flex-1 min-w-[140px] p-5 rounded-[24px] border-2 text-left transition-all",
+                            form.pricing_type === "one_time"
+                              ? "border-emerald-500 bg-emerald-50/50 dark:bg-emerald-500/10"
+                              : "border-stone-100 dark:border-border hover:border-stone-200"
+                          )}
+                        >
+                          <div className="flex items-center gap-2 mb-1">
+                            <div className={cn("h-2.5 w-2.5 rounded-full", form.pricing_type === "one_time" ? "bg-emerald-500" : "bg-zinc-300")} />
+                            <span className="text-sm font-black text-stone-900 dark:text-white uppercase tracking-tight">Direct Pay</span>
+                          </div>
+                          <p className="text-[10px] text-stone-500 font-bold uppercase tracking-widest">Standard one-time purchase</p>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleChange("pricing_type", "recurring")}
+                          className={cn(
+                            "flex-1 min-w-[140px] p-5 rounded-[24px] border-2 text-left transition-all",
+                            form.pricing_type === "recurring"
+                              ? "border-indigo-500 bg-indigo-50/50 dark:bg-indigo-500/10"
+                              : "border-stone-100 dark:border-border hover:border-stone-200"
+                          )}
+                        >
+                          <div className="flex items-center gap-2 mb-1">
+                            <div className={cn("h-2.5 w-2.5 rounded-full", form.pricing_type === "recurring" ? "bg-indigo-500" : "bg-zinc-300")} />
+                            <span className="text-sm font-black text-stone-900 dark:text-white uppercase tracking-tight">Membership Plan</span>
+                          </div>
+                          <p className="text-[10px] text-stone-500 font-bold uppercase tracking-widest">Subscription or recurring bill</p>
+                        </button>
+                      </div>
+
+                      {form.pricing_type === "recurring" && (
+                        <div className="animate-in slide-in-from-top-2 duration-300 space-y-3 pb-2 pl-4 border-l-2 border-indigo-100">
+                          <Label className="text-[11px] font-black uppercase tracking-widest text-stone-500">Billing Period</Label>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                            {["weekly", "monthly", "quarterly", "yearly"].map((period) => (
+                              <button
+                                key={period}
+                                type="button"
+                                onClick={() => handleChange("billing_period", period)}
+                                className={cn(
+                                  "py-2.5 px-3 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-all",
+                                  form.billing_period === period
+                                    ? "bg-indigo-500 text-white border-indigo-500 shadow-lg shadow-indigo-500/20"
+                                    : "bg-white dark:bg-surface border-stone-200 dark:border-border text-stone-500 hover:border-indigo-300"
+                                )}
+                              >
+                                {period}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-3">
+                      <Label className="text-[11px] font-black uppercase tracking-widest text-stone-500 pl-1">Purchase button text <span className="opacity-60 font-normal">(Optional)</span></Label>
+                      <select value={form.button_text} onChange={e => handleChange("button_text", e.target.value)} className={selectClass}>
+                        <option value="">Default (Add / Access)</option>
+                        <option value="Join">Join</option>
+                        <option value="Call now">Call now</option>
+                        <option value="Complete order">Complete order</option>
+                        <option value="Contact us">Contact us</option>
+                        <option value="Donate now">Donate now</option>
+                        <option value="Get access">Get access</option>
+                        <option value="Get offer">Get offer</option>
+                        <option value="Order now">Order now</option>
+                        <option value="Purchase">Purchase</option>
+                        <option value="Shop now">Shop now</option>
+                        <option value="Sign up">Sign up</option>
+                      </select>
+                    </div>
                     
                     {!form.is_digital && (
                       <div className="space-y-3">
@@ -335,6 +449,36 @@ export default function EditProductPage() {
                     )}
                   </div>
                 </div>
+
+
+                {/* Digital Assets Section */}
+                {form.is_digital && (
+                  <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
+                    <div className="pb-4 border-t border-stone-100 dark:border-border pt-8">
+                      <h2 className="text-2xl font-black text-stone-900 dark:text-white tracking-tight flex items-center gap-3">
+                        <div className="p-2.5 rounded-2xl bg-indigo-50 text-indigo-500 shadow-sm border border-indigo-100 flex items-center justify-center">
+                           <Zap className="h-5 w-5" />
+                        </div>
+                        Digital Distribution
+                      </h2>
+                      <p className="text-[12px] font-semibold text-stone-400 uppercase tracking-widest mt-2 pl-[60px]">Update the asset file for delivery</p>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      <CloudinaryUploadButton 
+                        folder="jimvio/digital-files"
+                        resourceType="raw"
+                        onUploadSuccess={(url) => handleChange("digital_file_url", url)}
+                        buttonText="Upload New Asset File"
+                      />
+                      {form.digital_file_url && (
+                        <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 text-xs font-bold bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 px-4 py-3 rounded-2xl">
+                          <CheckCircle2 className="h-4 w-4" /> Asset file verified and ready for delivery
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {/* Affiliate Node */}
                 <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500 delay-300">

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -525,6 +525,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
 
                     {[
                       { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+                      { href: "/dashboard/library", icon: Video, label: "Digital Library" },
                       { href: "/dashboard/settings", icon: Settings, label: "My Account" },
                     ].map(item => (
                       <DropdownMenuItem key={item.href} asChild

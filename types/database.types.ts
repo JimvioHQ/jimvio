@@ -1,7 +1,7 @@
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 export type UserRole = 'buyer' | 'vendor' | 'affiliate' | 'influencer' | 'admin';
-export type ProductType = 'physical' | 'digital' | 'subscription' | 'course' | 'software' | 'template' | 'ebook';
+export type ProductType = 'physical' | 'digital';
 export type ProductStatus = 'draft' | 'active' | 'paused' | 'archived';
 export type OrderStatus = 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'refunded';
 export type PaymentStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'refunded' | 'cancelled';
@@ -54,6 +54,8 @@ export interface ProductCategory {
   created_at: string;
   /** From migration 024 — `jimvio` (seed/manual) or `shopify` (synced product types). */
   source?: "jimvio" | "shopify";
+  /** From migration 052 — canonical product type for this category. */
+  product_type?: 'physical' | 'digital';
 }
 
 export interface Vendor {

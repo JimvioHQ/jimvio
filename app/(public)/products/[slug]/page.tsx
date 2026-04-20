@@ -8,6 +8,7 @@ import { GlassCard, GlassAmbientGlow } from "@/components/ui/glass";
 import { ProductDetailActions } from "./product-detail-actions";
 import { constructMetadata } from "@/lib/seo";
 import { ProductJsonLd } from "@/components/seo/ProductJsonLd";
+import { LocalizedPrice } from "@/components/currency/localized-price";
 
 const siteUrl = "https://jimvio.com";
 
@@ -111,7 +112,11 @@ export default async function ProductBySlugPage({ params }: PageProps) {
 
               <div className="flex items-baseline gap-3">
                 <span className="text-4xl font-black text-orange-600">
-                  {formatDisplayMoney(Number(product.price), product.currency)}
+                  <LocalizedPrice 
+                    amount={Number(product.price)} 
+                    currency={product.currency} 
+                    period={product.pricing_type === "recurring" ? product.billing_period : null}
+                  />
                 </span>
                 <span className="text-sm font-bold text-stone-400 line-through opacity-50">
                    {product.compare_at_price ? formatDisplayMoney(Number(product.compare_at_price), product.currency) : ""}
@@ -157,6 +162,8 @@ export default async function ProductBySlugPage({ params }: PageProps) {
                <ProductDetailActions
                 productId={product.id}
                 vendorId={product.vendor_id}
+                buttonText={product.button_text}
+                productType={product.product_type}
               />
             </GlassCard>
 

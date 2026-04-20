@@ -2,11 +2,7 @@ import React from "react";
 import {
   getMarketplaceCategories,
   getProducts,
-  getViralClips,
-  getTopCreators,
-  getTopVendors,
   countActiveShopifyProducts,
-  countActiveVendors,
   countActiveListedProducts,
   type ProductQuery,
 } from "@/services/db";
@@ -17,7 +13,6 @@ import { MarketplaceClient } from "@/components/marketplace/marketplace-client";
 interface PageProps {
   searchParams: Promise<{
     cat?: string;
-    type?: string;
     catalog?: string;
     q?: string;
     sort?: string;
@@ -26,7 +21,7 @@ interface PageProps {
   }>;
 }
 
-export default async function MarketplacePage({ searchParams }: PageProps) {
+export default async function MarketplacePhysicalPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const currentPage = Math.max(1, parseInt(params.page ?? "1"));
   const limit = 24;
@@ -40,7 +35,7 @@ export default async function MarketplacePage({ searchParams }: PageProps) {
     category: params.cat,
     sort: (params.sort as ProductQuery["sort"]) ?? "trending",
     affiliate: params.affiliate === "1" ? true : undefined,
-    type: params.type,
+    type: "physical",
     catalog: isShopifyOnly ? "shopify" : undefined,
   };
 
@@ -63,6 +58,8 @@ export default async function MarketplacePage({ searchParams }: PageProps) {
     source: p.source || "jimvio",
   }));
 
+  const combinedParams = { ...params, type: "physical" };
+
   return (
     <MarketplaceClient
       initialProducts={products}
@@ -70,8 +67,9 @@ export default async function MarketplacePage({ searchParams }: PageProps) {
       total={total}
       currentPage={currentPage}
       limit={limit}
-      params={params}
-      uiVariant="all"
+      params={combinedParams}
+      uiVariant="physical"
+      basePath="/marketplace/physical"
       hasShopifyProducts={shopifyCount > 0}
       cartProductIds={cartProductIds}
       followedVendorIds={followedVendorIds}

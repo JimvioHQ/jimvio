@@ -37,9 +37,10 @@ export type ShippingFormValues = {
 type Props = {
   values: ShippingFormValues;
   onChange: (patch: Partial<ShippingFormValues>) => void;
+  hideAddress?: boolean;
 };
 
-export default function ShippingForm({ values, onChange }: Props) {
+export default function ShippingForm({ values, onChange, hideAddress = false }: Props) {
   const setField =
     (key: keyof ShippingFormValues) =>
       (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -118,78 +119,82 @@ export default function ShippingForm({ values, onChange }: Props) {
         </Field>
       </div>
 
-      {/* ADDRESS */}
-      <Field label="Street Address" icon={<MapPin className={iconCls} />}>
-        <Input
-          value={values.address1}
-          onChange={setField("address1")}
-          placeholder="123 Main Street"
-          required
-          className={inputCls}
-        />
-      </Field>
+      {!hideAddress && (
+        <>
+          {/* ADDRESS */}
+          <Field label="Street Address" icon={<MapPin className={iconCls} />}>
+            <Input
+              value={values.address1}
+              onChange={setField("address1")}
+              placeholder="123 Main Street"
+              required
+              className={inputCls}
+            />
+          </Field>
 
-      <Field
-        label="Apartment / Suite (optional)"
-        icon={<Building2 className={iconCls} />}
-      >
-        <Input
-          value={values.address2}
-          onChange={setField("address2")}
-          placeholder="Apt 4B"
-          className={inputCls}
-        />
-      </Field>
+          <Field
+            label="Apartment / Suite (optional)"
+            icon={<Building2 className={iconCls} />}
+          >
+            <Input
+              value={values.address2}
+              onChange={setField("address2")}
+              placeholder="Apt 4B"
+              className={inputCls}
+            />
+          </Field>
 
-      {/* COUNTRY + CITY */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <Field label="Country" icon={<Globe className={iconCls} />}>
-          <div className="relative">
-            <select
-              value={values.country}
-              onChange={setField("country")}
-              className={cn(
-                inputCls,
-                "appearance-none pr-8 cursor-pointer"
-              )}
-            >
-              {COUNTRIES.map((c) => (
-                <option key={c.code} value={c.name}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
+          {/* COUNTRY + CITY */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Field label="Country" icon={<Globe className={iconCls} />}>
+              <div className="relative">
+                <select
+                  value={values.country}
+                  onChange={setField("country")}
+                  className={cn(
+                    inputCls,
+                    "appearance-none pr-8 cursor-pointer"
+                  )}
+                >
+                  {COUNTRIES.map((c) => (
+                    <option key={c.code} value={c.name}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
 
-            <svg
-              className="absolute right-3 top-1/2 -translate-y-1/2 h-3 w-3 text-stone-400 pointer-events-none"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-            >
-              <path d="M6 8l4 4 4-4" />
-            </svg>
+                <svg
+                  className="absolute right-3 top-1/2 -translate-y-1/2 h-3 w-3 text-stone-400 pointer-events-none"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path d="M6 8l4 4 4-4" />
+                </svg>
+              </div>
+            </Field>
+
+            <Field label="City" icon={<MapPin className={iconCls} />}>
+              <Input
+                value={values.city}
+                onChange={setField("city")}
+                placeholder="Kigali"
+                required={!hideAddress}
+                className={inputCls}
+              />
+            </Field>
           </div>
-        </Field>
 
-        <Field label="City" icon={<MapPin className={iconCls} />}>
-          <Input
-            value={values.city}
-            onChange={setField("city")}
-            placeholder="Kigali"
-            required
-            className={inputCls}
-          />
-        </Field>
-      </div>
-
-      {/* ZIP */}
-      <Field label="ZIP / Postal Code" icon={<MapPin className={iconCls} />}>
-        <Input
-          value={values.zip}
-          onChange={setField("zip")}
-          placeholder="00000"
-          className={inputCls}
-        />
-      </Field>
+          {/* ZIP */}
+          <Field label="ZIP / Postal Code" icon={<MapPin className={iconCls} />}>
+            <Input
+              value={values.zip}
+              onChange={setField("zip")}
+              placeholder="00000"
+              className={inputCls}
+            />
+          </Field>
+        </>
+      )}
     </div>
   );
 }

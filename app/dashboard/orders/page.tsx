@@ -53,7 +53,7 @@ export default function BuyerOrdersPage() {
         .from("orders")
         .select(`
           id, order_number, status, total_amount, currency, created_at,
-          order_items ( id, product_name, quantity, unit_price, total_price, vendor_id, product_source, vendors ( id, business_name, business_slug ) )
+          order_items ( id, product_name, quantity, unit_price, total_price, vendor_id, product_source, product_type, vendors ( id, business_name, business_slug ) )
         `)
         .eq("buyer_id", user.id)
         .order("created_at", { ascending: false });
@@ -234,7 +234,10 @@ export default function BuyerOrdersPage() {
                                             {item.product_name[0]}
                                          </div>
                                          <div className="min-w-0 flex-1">
-                                            <p className="text-[13px] sm:text-[14px] font-bold text-stone-900 dark:text-white truncate tracking-tight">{item.product_name}</p>
+                                            <div className="flex items-center gap-2">
+                                              <p className="text-[13px] sm:text-[14px] font-bold text-stone-900 dark:text-white truncate tracking-tight">{item.product_name}</p>
+                                              {item.product_type === "digital" && <Badge variant="secondary" className="bg-orange-500/10 text-orange-600 dark:text-orange-400 text-[8px] px-1.5 py-0 uppercase tracking-widest font-black border-orange-500/20">Digital</Badge>}
+                                            </div>
                                             <p className="text-[9px] sm:text-[10px] font-medium text-stone-400 dark:text-text-muted mt-0.5">
                                                Qty: {item.quantity} • Sold by <span className="text-stone-700 dark:text-stone-300 font-bold">{item.vendors?.business_name || "Vendor"}</span>
                                             </p>

@@ -42,11 +42,11 @@ const sidebarSections: NavSection[] = [
     title: "Buyer",
     accentRgb: "56,189,248",
     items: [
-      { label: "Marketplace", href: "/dashboard/marketplace", icon: <Globe className="h-[14px] w-[14px]" /> },
+      { label: "All Items", href: "/marketplace", icon: <LayoutGrid className="h-[14px] w-[14px]" /> },
+      { label: "Digital Assets", href: "/marketplace/digital", icon: <Zap className="h-[14px] w-[14px]" /> },
+      { label: "Physical Goods", href: "/marketplace/physical", icon: <Package className="h-[14px] w-[14px]" /> },
       { label: "My Orders", href: "/dashboard/orders", icon: <ShoppingCart className="h-[14px] w-[14px]" /> },
       { label: "Digital Library", href: "/dashboard/library", icon: <Video className="h-[14px] w-[14px]" /> },
-      { label: "Wishlist", href: "/dashboard/wishlist", icon: <Heart className="h-[14px] w-[14px]" /> },
-      { label: "Analytics", href: "/dashboard/buyer/analytics", icon: <BarChart3 className="h-[14px] w-[14px]" /> },
     ],
   },
   {

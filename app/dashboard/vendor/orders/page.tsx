@@ -68,7 +68,7 @@ export default function VendorOrdersPage() {
       const { data } = await supabase
         .from("order_items")
         .select(`
-          id, product_name, quantity, unit_price, total_price, created_at, product_source, vendor_id,
+          id, product_name, quantity, unit_price, total_price, created_at, product_source, product_type, vendor_id,
           orders ( id, order_number, status, payment_status, created_at, currency, profiles ( id, full_name, email ) )
         `)
         .in("vendor_id", vendorIds)
@@ -297,8 +297,11 @@ export default function VendorOrdersPage() {
                                  <p className="text-[10px] font-medium text-stone-400 mt-1 truncate max-w-[100px] sm:max-w-[140px]">{order.buyer?.email}</p>
                               </td>
                               <td className="px-4 sm:px-8 py-5 sm:py-6">
-                                 <p className="text-[12px] font-bold text-stone-700 tracking-tight truncate max-w-[140px] sm:max-w-[180px]">{productLabel}</p>
-                                 {first?.product_source === "cj" && <Badge variant="secondary" className="text-[7px] px-1.5 py-0 mt-1 uppercase tracking-widest font-black opacity-60">Dropship</Badge>}
+                                 <p className="text-[12px] font-bold text-stone-700 dark:text-stone-300 tracking-tight truncate max-w-[140px] sm:max-w-[180px]">{productLabel}</p>
+                                 <div className="flex items-center gap-1.5 mt-1">
+                                   {first?.product_type === "digital" && <Badge variant="secondary" className="bg-orange-500/10 text-orange-600 dark:text-orange-400 text-[7px] px-1.5 py-0 uppercase tracking-widest font-black border-orange-500/20">Digital</Badge>}
+                                   {first?.product_source === "cj" && <Badge variant="secondary" className="text-[7px] px-1.5 py-0 uppercase tracking-widest font-black opacity-60">Dropship</Badge>}
+                                 </div>
                               </td>
                               <td className="px-4 sm:px-8 py-5 sm:py-6 text-right font-black text-stone-900 dark:text-white tabular-nums">
                                  {formatMoney(order.totalAmount ?? 0, order.currency ?? "USD")}

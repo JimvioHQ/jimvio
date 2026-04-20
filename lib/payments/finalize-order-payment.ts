@@ -4,6 +4,105 @@ import { getShopifyPlatformCommissionFallback } from "@/lib/platform-settings";
 import { creditVendorWalletsForNativeOrder } from "@/lib/payments/credit-vendors-for-native-order";
 import { dispatchNonShopifyFulfillmentIntegrations, isShopifyFulfillmentLine } from "@/lib/order-fulfillment/after-payment";
 
+/**
+ * Grants instant digital access after payment:
+ * - Copies products.digital_file_url → order_items.digital_download_url
+ * - Stamps order_items.access_granted_at
+ * - Sets order_items.product_type = 'digital'
+ * - Updates order status to 'delivered' if ALL items are digital
+ * Safe: logs warnings on failure, never throws.
+ */
+async function grantDigitalAccess(
+  db: SupabaseClient,
+  orderId: string,
+  buyerUserId: string | null | undefined,
+  paymentProvider: string | null | undefined
+): Promise<void> {
+  try {
+    // Fetch all order items with their product info
+    const { data: items } = await db
+      .from("order_items")
+      .select("id, product_id, digital_download_url")
+      .eq("order_id", orderId);
+
+    if (!items || items.length === 0) return;
+
+    // Fetch product details in one query for all products
+    const productIds = items
+      .map((i: { product_id: string | null }) => i.product_id)
+      .filter((id): id is string => !!id);
+
+    if (productIds.length === 0) return;
+
+    const { data: products } = await db
+      .from("products")
+      .select("id, product_type, digital_file_url")
+      .in("id", productIds);
+
+    const productMap = new Map(
+      (products ?? []).map((p: { id: string; product_type: string; digital_file_url: string | null }) =>
+        [p.id, p] as const
+      )
+    );
+
+    const now = new Date().toISOString();
+    let digitalCount = 0;
+
+    for (const item of items) {
+      const product = productMap.get(item.product_id ?? "");
+      if (!product || product.product_type !== "digital") continue;
+
+      digitalCount++;
+      const fileUrl = product.digital_file_url ?? null;
+
+      // Skip if already granted
+      if (item.digital_download_url) continue;
+
+      // Grant access: populate download URL + timestamp
+      const { error: grantErr } = await db
+        .from("order_items")
+        .update({
+          product_type: "digital",
+          digital_download_url: fileUrl,
+          access_granted_at: now,
+        })
+        .eq("id", item.id);
+
+      if (grantErr) {
+        console.warn(`[DigitalAccess] Failed to grant for order_item ${item.id}:`, grantErr.message);
+      }
+    }
+
+    // If ALL items are digital → instantly mark order as delivered
+    if (digitalCount > 0 && digitalCount === items.length) {
+      await db
+        .from("orders")
+        .update({ status: "delivered", delivered_at: now })
+        .eq("id", orderId);
+
+      // Send library notification
+      if (buyerUserId) {
+        await db.from("notifications").insert({
+          user_id: buyerUserId,
+          type: "order",
+          title: "Digital Access Granted! ⚡",
+          message: `Your digital purchase is ready. Access it anytime from your Library.`,
+          data: { order_id: orderId, type: "digital_access" },
+          action_url: `/dashboard/library`,
+        });
+      }
+
+      console.log(`[DigitalAccess] ✓ Instant delivery for order ${orderId}. ${digitalCount} digital items unlocked.`);
+    } else if (digitalCount > 0) {
+      // Mixed order: some digital, some physical — grant digital items only
+      console.log(`[DigitalAccess] ✓ Partial digital grant for order ${orderId}. ${digitalCount}/${items.length} items unlocked.`);
+    }
+  } catch (err) {
+    // Never break payment flow for digital access errors
+    console.warn(`[DigitalAccess] Non-fatal error for order ${orderId}:`, err);
+  }
+}
+
 export type FinalizePaymentContext = {
   providerTransactionId: string;
   providerReference: string;
@@ -147,6 +246,9 @@ export async function finalizeOrderPayment(
         shopify_variant_id: i.shopify_variant_id,
       })),
     });
+
+    // ── DIGITAL ACCESS: Grant instant download access for digital products
+    await grantDigitalAccess(db, orderId, ctx.notifyUserId, ctx.paymentProvider);
 
     await dispatchNonShopifyFulfillmentIntegrations(db, {
       orderId,

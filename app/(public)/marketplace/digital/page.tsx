@@ -2,11 +2,7 @@ import React from "react";
 import {
   getMarketplaceCategories,
   getProducts,
-  getViralClips,
-  getTopCreators,
-  getTopVendors,
   countActiveShopifyProducts,
-  countActiveVendors,
   countActiveListedProducts,
   type ProductQuery,
 } from "@/services/db";
@@ -17,7 +13,6 @@ import { MarketplaceClient } from "@/components/marketplace/marketplace-client";
 interface PageProps {
   searchParams: Promise<{
     cat?: string;
-    type?: string;
     catalog?: string;
     q?: string;
     sort?: string;
@@ -26,12 +21,11 @@ interface PageProps {
   }>;
 }
 
-export default async function MarketplacePage({ searchParams }: PageProps) {
+export default async function MarketplaceDigitalPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const currentPage = Math.max(1, parseInt(params.page ?? "1"));
   const limit = 24;
   const offset = (currentPage - 1) * limit;
-  const isShopifyOnly = params.catalog === "shopify";
 
   const query: ProductQuery = {
     limit,
@@ -40,15 +34,13 @@ export default async function MarketplacePage({ searchParams }: PageProps) {
     category: params.cat,
     sort: (params.sort as ProductQuery["sort"]) ?? "trending",
     affiliate: params.affiliate === "1" ? true : undefined,
-    type: params.type,
-    catalog: isShopifyOnly ? "shopify" : undefined,
+    type: "digital",
   };
 
-  const [categories, coreProductsResult, shopifyCount, listingCount, cartProductIds, followedVendorIds] =
+  const [categories, coreProductsResult, listingCount, cartProductIds, followedVendorIds] =
     await Promise.all([
       getMarketplaceCategories().catch(() => []),
       getProducts(query).catch(() => ({ products: [], total: 0 })),
-      countActiveShopifyProducts().catch(() => 0),
       countActiveListedProducts().catch(() => 0),
       getCartProductIds().catch(() => []),
       getFollowedVendorIds().catch(() => []),
@@ -63,6 +55,9 @@ export default async function MarketplacePage({ searchParams }: PageProps) {
     source: p.source || "jimvio",
   }));
 
+  // Create combined params object injecting type='digital'
+  const combinedParams = { ...params, type: "digital" };
+
   return (
     <MarketplaceClient
       initialProducts={products}
@@ -70,9 +65,9 @@ export default async function MarketplacePage({ searchParams }: PageProps) {
       total={total}
       currentPage={currentPage}
       limit={limit}
-      params={params}
-      uiVariant="all"
-      hasShopifyProducts={shopifyCount > 0}
+      params={combinedParams}
+      uiVariant="digital"
+      basePath="/marketplace/digital"
       cartProductIds={cartProductIds}
       followedVendorIds={followedVendorIds}
       marketplaceStats={{

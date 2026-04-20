@@ -8,18 +8,22 @@ const createProductSchema = z.object({
   short_description: z.string().max(500).optional(),
   description: z.string().optional(),
   category_id: z.string().uuid().optional(),
-  product_type: z.enum(["physical", "digital", "subscription", "course", "software", "template", "ebook"]),
+  // ── CANONICAL: only two product types allowed ──
+  product_type: z.enum(["physical", "digital"]),
   price: z.number().positive(),
   compare_at_price: z.number().positive().optional(),
   images: z.array(z.string()).default([]),
   inventory_quantity: z.number().int().min(0).default(0),
   track_inventory: z.boolean().default(true),
-  is_digital: z.boolean().default(false),
-  digital_file_url: z.string().url().optional(),
+  digital_file_url: z.string().url().optional().nullable(),
   affiliate_enabled: z.boolean().default(true),
   affiliate_commission_rate: z.number().min(0).max(100).optional(),
   tags: z.array(z.string()).optional(),
-});
+  currency: z.string().default("USD"),
+}).refine(
+  (d) => d.product_type !== "digital" || !!d.digital_file_url,
+  { message: "digital_file_url is required for digital products", path: ["digital_file_url"] }
+);
 
 export async function GET(req: NextRequest) {
   try {
@@ -101,6 +105,18 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const productData = createProductSchema.parse(body);
 
+    // Auto-derive type-specific fields from product_type
+    const isDigital = productData.product_type === "digital";
+    const derivedFields = {
+      is_digital: isDigital,
+      requires_shipping: !isDigital,
+      // Digital: zero inventory (unlimited access); Physical: keep submitted value
+      inventory_quantity: isDigital ? 0 : productData.inventory_quantity,
+      track_inventory: isDigital ? false : productData.track_inventory,
+      // Digital: keep file URL; Physical: null it out for safety
+      digital_file_url: isDigital ? (productData.digital_file_url ?? null) : null,
+    };
+
     let slug = slugify(productData.name);
     const { data: existingSlug } = await supabase.from("products").select("id").eq("slug", slug).single();
     if (existingSlug) slug = `${slug}-${Date.now()}`;
@@ -109,10 +125,10 @@ export async function POST(req: NextRequest) {
       .from("products")
       .insert({
         ...productData,
+        ...derivedFields, // derived fields override productData values
         vendor_id: vendor.id,
         slug,
         status: "draft",
-        currency: "USD",
         source: "vendor",
         source_metadata: {},
       })

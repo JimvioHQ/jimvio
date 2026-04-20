@@ -125,7 +125,13 @@ export function MarketplaceSearch({
         value={q}
         onChange={(e) => handleType(e.target.value)}
         onFocus={() => q.trim() && setShowDropdown(true)}
-        placeholder="Search for amazing products..."
+        placeholder={
+          currentParams.type === "digital" 
+            ? "Search for digital assets, courses & tools..." 
+            : currentParams.type === "physical"
+            ? "Search for physical products & gear..."
+            : "Search for amazing products..."
+        }
         autoComplete="off"
         className={cn(
           "w-full h-[56px] pl-12 pr-12 rounded-full",

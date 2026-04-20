@@ -23,6 +23,9 @@ export type CartItem = {
    quantity: number;
    unit_price: number;
    total_price: number;
+   product_type?: string; 
+   pricing_type?: string;
+   billing_period?: string;
 };
 
 export type CartOrder = {
@@ -101,11 +104,24 @@ export function CheckoutExperience({ orders, profile, mode = "cart" }: CheckoutE
       mode === "community" ||
       selectedOrders.some((o) => o.integration_source === "community");
 
+   const isAllDigital = selectedOrders.every(o => 
+      o.order_items.every(i => i.product_type === "digital")
+   );
+
+   const steps = useMemo(() => {
+     const s = [...STEPS];
+     if (isAllDigital || isCommunity) {
+       s[0] = { ...s[0], label: "Details" };
+     }
+     return s;
+   }, [isAllDigital, isCommunity]);
+
    /* ── Navigation ── */
    function next() {
       if (currentStep === 1) {
          const { firstName, email, phone, address1, city } = shipping;
-         if (!firstName || !email || !phone || (!isCommunity && (!address1 || !city))) {
+         const needsAddress = !isAllDigital && !isCommunity;
+         if (!firstName || !email || !phone || (needsAddress && (!address1 || !city))) {
             toast.error("Please fill required fields");
             return;
          }
@@ -127,10 +143,11 @@ export function CheckoutExperience({ orders, profile, mode = "cart" }: CheckoutE
    async function handleComplete() {
       setSubmitting(true);
       try {
+         const isDigitalOnly = isAllDigital || isCommunity;
          const save = await updatePendingOrdersShipping({
             ...shipping,
-            address1: shipping.address1 || (isCommunity ? "Digital Delivery" : ""),
-            city: shipping.city || (isCommunity ? "Online" : ""),
+            address1: shipping.address1 || (isDigitalOnly ? "Digital Delivery" : ""),
+            city: shipping.city || (isDigitalOnly ? "Online" : ""),
          });
 
          if (!save.success) throw new Error(save.error || "Could not save shipping details");
@@ -208,8 +225,8 @@ export function CheckoutExperience({ orders, profile, mode = "cart" }: CheckoutE
                   </div>
                </div>
 
-               <div className="flex items-center gap-2 bg-surface/60 dark:bg-surface/60 backdrop-blur-xl p-1.5 rounded-full border border-border shadow-sm">
-                  {STEPS.map((s, idx) => (
+                <div className="flex items-center gap-2 bg-surface/60 dark:bg-surface/60 backdrop-blur-xl p-1.5 rounded-full border border-border shadow-sm">
+                  {steps.map((s, idx) => (
                      <React.Fragment key={s.n}>
                         <div className={cn(
                            "flex items-center gap-2 px-4 h-9 rounded-full transition-all text-[11px] font-semibold",
@@ -218,7 +235,7 @@ export function CheckoutExperience({ orders, profile, mode = "cart" }: CheckoutE
                            <s.icon className="h-3.5 w-3.5" />
                            <span className="hidden sm:inline">{s.label}</span>
                         </div>
-                        {idx < STEPS.length - 1 && <ChevronRight className="h-3 w-3 text-stone-300 dark:text-stone-700" />}
+                        {idx < steps.length - 1 && <ChevronRight className="h-3 w-3 text-stone-300 dark:text-stone-700" />}
                      </React.Fragment>
                   ))}
                </div>
@@ -230,10 +247,11 @@ export function CheckoutExperience({ orders, profile, mode = "cart" }: CheckoutE
                   <GlassCard className="p-4 sm:p-8 rounded-[36px] bg-surface dark:bg-surface border border-border shadow-xl relative overflow-hidden text-stone-900 dark:text-white">
                      {currentStep === 1 && (
                         <div className="space-y-8">
-                           <SectionTitle>Shipping details</SectionTitle>
+                           <SectionTitle>{(isAllDigital || isCommunity) ? "Customer details" : "Shipping details"}</SectionTitle>
                            <ShippingForm
                               values={shipping}
                               onChange={(p) => setShipping((s) => ({ ...s, ...p }))}
+                              hideAddress={isAllDigital || isCommunity}
                            />
                            <div className="pt-6 border-t border-border">
                               <SectionTitle>Review Items</SectionTitle>
@@ -249,7 +267,14 @@ export function CheckoutExperience({ orders, profile, mode = "cart" }: CheckoutE
                                        </div>
                                        <div className="flex-1 min-w-0">
                                           <p className="text-sm font-semibold truncate text-stone-900 dark:text-white">{item.product_name}</p>
-                                          <p className="text-xs text-stone-400 dark:text-text-muted">Qty {item.quantity}</p>
+                                          <div className="flex items-center gap-2 mt-0.5">
+                                             <p className="text-[10px] text-stone-400 dark:text-text-muted">Qty {item.quantity}</p>
+                                             {item.pricing_type === 'recurring' && (
+                                                <span className="text-[9px] font-bold text-orange-500 uppercase px-1.5 py-0.5 bg-orange-500/10 rounded-md">
+                                                   {item.billing_period} Plan
+                                                </span>
+                                             )}
+                                          </div>
                                        </div>
                                        <p className="text-sm font-bold">{formatMoney(item.unit_price, currency)}</p>
                                     </div>

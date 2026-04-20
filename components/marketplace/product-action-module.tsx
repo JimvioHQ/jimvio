@@ -7,9 +7,10 @@ import {
   CheckCircle2,
   Heart,
   MessageSquare,
+  Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { addToCart, toggleWishlist, getWishlistProductIds } from "@/lib/actions/marketplace";
+import { addToCart, buyDirectCheckout, toggleWishlist, getWishlistProductIds } from "@/lib/actions/marketplace";
 import { useCartStore } from "@/lib/store/use-cart-store";
 import { QuantitySelector } from "./quantity-selector";
 import { ProductChatTrigger } from "./product-chat-trigger";
@@ -24,7 +25,13 @@ interface ProductActionModuleProps {
     images: string[] | null;
     vendor_id: string;
     currency?: string;
+    pricing_type?: string;
+    button_text?: string;
+    is_digital?: boolean;
   };
+  isDigital?: boolean;
+  buttonText?: string;
+  className?: string;
   vendor: {
     id: string;
     business_name: string | null;
@@ -34,7 +41,17 @@ interface ProductActionModuleProps {
   currentPath: string;
 }
 
-export function ProductActionModule({ product, vendor, currentPath }: ProductActionModuleProps) {
+export function ProductActionModule({ 
+  product, 
+  vendor, 
+  currentPath, 
+  isDigital: isDigitalProp,
+  buttonText,
+  className
+}: ProductActionModuleProps & { isDigital?: boolean, buttonText?: string, className?: string }) {
+  const isDigital = isDigitalProp || product.is_digital;
+  const btnText = buttonText || product.button_text || (isDigital ? "Get Access" : "Add to Cart");
+
   const [quantity, setQuantity] = useState(1);
   const [loading, setLoading] = useState(false);
   const [wishlistLoading, setWishlistLoading] = useState(false);
@@ -56,19 +73,31 @@ export function ProductActionModule({ product, vendor, currentPath }: ProductAct
     setLoading(true);
 
     try {
-      const result = await addToCart(product.id, product.vendor_id, quantity);
-      if (result.success) {
-        incrementCartCount(quantity);
-        setAdded(true);
-        setTimeout(() => setAdded(false), 2500);
-      } else if (result.error === "Authentication required") {
-        window.location.href = `/login?next=${window.location.pathname}`;
+      if (isDigital) {
+        const result = await buyDirectCheckout(product.id, product.vendor_id, 1);
+        if (result.success && result.orderId) {
+          window.location.href = `/checkout?order_id=${result.orderId}`;
+        } else if (result.error === "Authentication required") {
+          window.location.href = `/login?next=${window.location.pathname}`;
+        } else {
+          alert(result.error || "Failed to process direct checkout");
+          setLoading(false);
+        }
       } else {
-        alert(result.error || "Failed to add to cart");
+        const result = await addToCart(product.id, product.vendor_id, quantity);
+        if (result.success) {
+          incrementCartCount(quantity);
+          setAdded(true);
+          setTimeout(() => setAdded(false), 2500);
+        } else if (result.error === "Authentication required") {
+          window.location.href = `/login?next=${window.location.pathname}`;
+        } else {
+          alert(result.error || "Failed to add to cart");
+        }
+        setLoading(false);
       }
     } catch (error) {
       console.error("Cart addition failed:", error);
-    } finally {
       setLoading(false);
     }
   }
@@ -92,20 +121,25 @@ export function ProductActionModule({ product, vendor, currentPath }: ProductAct
   return (
     <div className="space-y-3">
       {/* Quantity + Add to Cart row */}
-      <div className="flex items-center gap-2">
-        <div className="shrink-0">
-          <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-1">Qty</p>
-          <QuantitySelector quantity={quantity} onChange={setQuantity} />
-        </div>
+      <div className={cn("flex items-center gap-2", className)}>
+        {!isDigital && (
+          <div className="shrink-0">
+            <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-1">Qty</p>
+            <QuantitySelector quantity={quantity} onChange={setQuantity} />
+          </div>
+        )}
         <Button
           size="sm"
           onClick={handleAddToCart}
           disabled={loading || added}
           className={cn(
             "flex-1 h-10 font-black text-xs rounded-lg transition-all duration-300 shadow-sm",
+            isDigital ? "h-12 rounded-xl text-sm" : "h-10",
             added
               ? "bg-green-600 hover:bg-green-700"
-              : "bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] shadow-[var(--color-accent)]/20"
+              : isDigital 
+                ? "bg-sky-500 hover:bg-sky-400 shadow-sky-500/20"
+                : "bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] shadow-[var(--color-accent)]/20"
           )}
         >
           {loading ? (
@@ -113,9 +147,9 @@ export function ProductActionModule({ product, vendor, currentPath }: ProductAct
           ) : added ? (
             <CheckCircle2 className="mr-1.5 h-4 w-4" />
           ) : (
-            <ShoppingCart className="mr-1.5 h-4 w-4" />
+             isDigital ? <Zap className="mr-1.5 h-4 w-4" /> : <ShoppingCart className="mr-1.5 h-4 w-4" />
           )}
-          {added ? "Added!" : "Add to Cart"}
+          {added ? "Added!" : btnText}
         </Button>
       </div>
 

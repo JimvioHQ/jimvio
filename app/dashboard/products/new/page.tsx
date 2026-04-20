@@ -4,24 +4,20 @@ export const dynamic = "force-dynamic";
 import React, { useState, useEffect, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Package,
   ArrowLeft,
-  Save,
   Zap,
   DollarSign,
-  Image as ImageIcon,
-  Box,
-  Sparkles,
   Loader2,
   CheckCircle2,
   Trash2,
   Layers,
-  FileText,
-  Tag,
-  Rocket,
   ShoppingBag,
   Globe,
-  ToggleLeft,
+  ChevronRight,
+  Upload,
+  Tag,
+  FileText,
+  Settings,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,134 +34,97 @@ function slugify(text: string) {
 }
 
 const PRODUCT_TYPES = [
-  {
-    id: "physical",
-    label: "Physical",
-    icon: ShoppingBag,
-    description: "Tangible goods shipped to customers",
-    color: "orange",
-  },
-  {
-    id: "digital",
-    label: "Digital",
-    icon: Globe,
-    description: "Downloads, templates, software & more",
-    color: "sky",
-  },
+  { id: "physical", label: "Physical", icon: ShoppingBag, description: "Tangible goods shipped to customers" },
+  { id: "digital",  label: "Digital",  icon: Globe,       description: "Downloads, templates, software & more" },
 ];
 
-const inputBase =
-  "h-11 rounded-xl border bg-white dark:bg-surface border-zinc-200 dark:border-border text-zinc-900 dark:text-text-primary placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus-visible:ring-2 focus-visible:ring-orange-500/40 focus-visible:border-orange-400 transition-all text-sm px-4 shadow-sm";
+const BILLING_PERIODS = ["weekly", "monthly", "quarterly", "yearly"];
 
-const selectBase =
-  "h-11 w-full px-4 rounded-xl border border-zinc-200 dark:border-border bg-white dark:bg-surface text-zinc-900 dark:text-text-primary text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/40 focus:border-orange-400 transition-all shadow-sm";
+const BUTTON_TEXTS = ["Join", "Get access", "Order now", "Purchase", "Sign up", "Download", "Subscribe"];
 
-const labelBase = "text-[11px] font-semibold uppercase tracking-widest text-zinc-400 dark:text-text-muted";
+const inputBase = "h-11 w-full rounded-lg border bg-[#0D0D0D] border-[#2A2A2A] text-white placeholder:text-zinc-600 focus-visible:ring-1 focus-visible:ring-blue-500 focus-visible:border-blue-500 transition-all text-sm px-4";
+const selectBase = "h-11 w-full px-4 rounded-lg border border-[#2A2A2A] bg-[#0D0D0D] text-white text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all appearance-none cursor-pointer";
+const labelBase = "text-[12px] font-semibold uppercase tracking-widest text-zinc-500 mb-2 block";
+const cardBase = "bg-[#111111] border border-[#222222] rounded-xl p-6";
 
-const sectionTitle = "text-base font-bold text-zinc-800 dark:text-text-primary";
-
-function SectionHeader({ icon: Icon, title, subtitle, color = "orange" }: { icon: React.ElementType; title: string; subtitle: string; color?: string }) {
-  const colors: Record<string, string> = {
-    orange: "bg-orange-50 dark:bg-orange-500/10 text-orange-500 ring-1 ring-orange-200 dark:ring-orange-500/20",
-    sky: "bg-sky-50 dark:bg-sky-500/10 text-sky-500 ring-1 ring-sky-200 dark:ring-sky-500/20",
-    emerald: "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-500 ring-1 ring-emerald-200 dark:ring-emerald-500/20",
-    amber: "bg-amber-50 dark:bg-amber-500/10 text-amber-500 ring-1 ring-amber-200 dark:ring-amber-500/20",
-    rose: "bg-rose-50 dark:bg-rose-500/10 text-rose-500 ring-1 ring-rose-200 dark:ring-rose-500/20",
-    indigo: "bg-indigo-50 dark:bg-indigo-500/10 text-indigo-500 ring-1 ring-indigo-200 dark:ring-indigo-500/20",
-  };
+function SectionHeader({ title, subtitle }: { title: string; subtitle: string }) {
   return (
-    <div className="flex items-start gap-3 mb-5">
-      <div className={cn("p-2 rounded-xl shrink-0", colors[color])}>
-        <Icon className="h-4 w-4" />
-      </div>
-      <div>
-        <p className={sectionTitle}>{title}</p>
-        <p className="text-[11px] text-zinc-400 dark:text-text-muted mt-0.5">{subtitle}</p>
-      </div>
+    <div className="mb-6">
+      <h2 className="text-lg font-bold text-white tracking-tight">{title}</h2>
+      <p className="text-sm text-zinc-500 mt-0.5">{subtitle}</p>
     </div>
   );
 }
 
-function ToggleCard({
-  icon: Icon,
-  title,
-  description,
-  checked,
-  onChange,
-  activeColor = "orange",
-}: {
-  icon: React.ElementType;
-  title: string;
-  description: string;
-  checked: boolean;
-  onChange: (v: boolean) => void;
-  activeColor?: string;
-}) {
-  const bg: Record<string, string> = {
-    orange: "bg-orange-50 dark:bg-orange-500/10 text-orange-500",
-    sky: "bg-sky-50 dark:bg-sky-500/10 text-sky-500",
-  };
-  const track: Record<string, string> = {
-    orange: "peer-checked:bg-orange-500",
-    sky: "peer-checked:bg-sky-500",
-  };
+function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
   return (
-    <label className="flex items-center justify-between gap-4 p-4 rounded-2xl border border-zinc-100 dark:border-border bg-zinc-50 dark:bg-surface/60 hover:border-zinc-200 dark:hover:border-zinc-700 cursor-pointer transition-all group">
-      <div className="flex items-center gap-3">
-        <div className={cn("w-9 h-9 rounded-xl flex items-center justify-center shrink-0", bg[activeColor])}>
-          <Icon className="h-4 w-4" />
-        </div>
-        <div>
-          <p className="text-[13px] font-semibold text-zinc-800 dark:text-text-primary">{title}</p>
-          <p className="text-[11px] text-zinc-400 dark:text-text-muted leading-snug">{description}</p>
-        </div>
+    <button
+      type="button"
+      onClick={() => onChange(!checked)}
+      className={cn(
+        "relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus:outline-none",
+        checked ? "bg-blue-600" : "bg-[#2A2A2A]"
+      )}
+    >
+      <span className={cn("inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-sm", checked ? "translate-x-6" : "translate-x-1")} />
+    </button>
+  );
+}
+
+function ToggleRow({ title, description, checked, onChange }: { title: string; description?: string; checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <div className="flex items-center justify-between py-3 border-b border-[#1A1A1A] last:border-0">
+      <div>
+        <p className="text-sm font-medium text-white">{title}</p>
+        {description && <p className="text-xs text-zinc-500 mt-0.5">{description}</p>}
       </div>
-      <div className="relative shrink-0">
-        <input type="checkbox" className="sr-only peer" checked={checked} onChange={(e) => onChange(e.target.checked)} />
-        <div
-          className={cn(
-            "w-11 h-6 rounded-full bg-zinc-200 dark:bg-zinc-700 transition-all",
-            "after:content-[''] after:absolute after:top-[3px] after:left-[3px] after:w-[18px] after:h-[18px] after:rounded-full after:bg-white after:shadow after:transition-all",
-            "peer-checked:after:translate-x-5",
-            track[activeColor]
-          )}
-        />
-      </div>
-    </label>
+      <Toggle checked={checked} onChange={onChange} />
+    </div>
+  );
+}
+
+function SelectWrapper({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="relative">
+      {children}
+      <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-600 rotate-90 pointer-events-none" />
+    </div>
   );
 }
 
 export default function NewProductPage() {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [vendor, setVendor] = useState<Record<string, unknown> | null>(null);
-  const [userVendors, setUserVendors] = useState<Record<string, unknown>[]>([]);
+  const [vendor, setVendor] = useState<any>(null);
   const [selectedVendorId, setSelectedVendorId] = useState<string>("");
-  const [categories, setCategories] = useState<Record<string, unknown>[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  const [activeType, setActiveType] = useState<"physical" | "digital">("physical");
+  const [currentStep, setCurrentStep] = useState(1);
 
   const [form, setForm] = useState({
     name: "",
     slug: "",
     short_description: "",
     description: "",
-    product_type: "physical",
-    price: "",
-    compare_at_price: "",
+    product_type: "physical" as "physical" | "digital",
+    price: "0",           // "0" = Free, anything else = Paid
     currency: "USD",
     category_id: "",
     is_digital: false,
+    pricing_type: "one_time" as "one_time" | "recurring",
+    billing_period: "monthly",
     digital_file_url: "",
     track_inventory: true,
     inventory_quantity: "0",
-    affiliate_enabled: true,
+    affiliate_enabled: false,
     affiliate_commission_rate: "10",
-    influencer_enabled: true,
     is_featured: false,
     status: "draft",
+    button_text: "",
     tags: "",
+    weight: "",
+    dimensions: "",
     images: [] as string[],
   });
 
@@ -176,35 +135,63 @@ export default function NewProductPage() {
       if (!user) { router.push("/login"); return; }
       const { data: vends } = await supabase.from("vendors").select("*").eq("user_id", user.id);
       if (!vends || vends.length === 0) { router.push("/dashboard/activate/vendor"); return; }
-      setUserVendors(vends);
       setVendor(vends[0]);
-      setSelectedVendorId(vends[0].id as string);
-      const { data: cats } = await supabase.from("product_categories").select("id, name, slug").eq("is_active", true).order("sort_order");
+      setSelectedVendorId(vends[0].id);
+      const { data: cats } = await supabase
+        .from("product_categories")
+        .select("id, name, slug, category_type")
+        .eq("is_active", true)
+        .order("sort_order");
       setCategories(cats ?? []);
     }
     load();
   }, [router]);
 
-  function handleChange(field: string, value: string | boolean) {
+  function handleChange(field: string, value: any) {
     setForm((prev) => {
       const updated = { ...prev, [field]: value };
-      if (field === "name") updated.slug = slugify(value as string);
-      if (field === "product_type")
-        updated.is_digital = ["digital", "course", "software", "template", "ebook"].includes(value as string);
+      if (field === "name") updated.slug = slugify(value);
+
+      if (field === "product_type") {
+        const isDigital = value === "digital";
+        updated.is_digital = isDigital;
+        // Reset pricing_type for physical (always one_time)
+        if (!isDigital) updated.pricing_type = "one_time";
+        // Reset category if it doesn't match new type
+        const currentCat = categories.find(c => c.id === updated.category_id);
+        if (currentCat) {
+          const catType = currentCat.category_type;
+          if (isDigital && catType === "physical") updated.category_id = "";
+          if (!isDigital && catType === "digital") updated.category_id = "";
+        }
+      }
+
+      // Auto-set button_text & pricing when a digital category is picked
+      if (field === "category_id" && updated.is_digital) {
+        const cat = categories.find(c => c.id === value);
+        const slug = cat?.slug?.toLowerCase() || "";
+        if (slug.includes("course") || slug.includes("ebook") || slug.includes("training")) {
+          updated.pricing_type = "recurring";
+          updated.button_text = updated.button_text || "Join";
+        } else if (slug.includes("software") || slug.includes("saas")) {
+          updated.pricing_type = "one_time";
+          updated.button_text = updated.button_text || "Get access";
+        } else if (slug.includes("template") || slug.includes("graphics") || slug.includes("photo")) {
+          updated.pricing_type = "one_time";
+          updated.button_text = updated.button_text || "Download";
+        }
+      }
+
       return updated;
     });
   }
 
-  function switchType(type: "physical" | "digital") {
-    setActiveType(type);
-    handleChange("product_type", type);
-    handleChange("is_digital", type === "digital");
-  }
+  const isFree = form.price === "0";
+  const isPaid = !isFree;
 
   function handleImageUpload(url: string) {
     setForm((prev) => ({ ...prev, images: [...prev.images, url] }));
   }
-
   function removeImage(index: number) {
     setForm((prev) => {
       const next = [...prev.images];
@@ -213,16 +200,21 @@ export default function NewProductPage() {
     });
   }
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleSubmit(e?: React.FormEvent) {
+    if (e) e.preventDefault();
     setError(null);
-    if (!vendor || !form.name || !form.price) { setError("Product name and price are required."); return; }
+    if (!vendor || !form.name) { setError("Product name is required."); return; }
+    if (isPaid && (!form.price || parseFloat(form.price) <= 0)) { setError("Please enter a valid price."); return; }
+
     startTransition(async () => {
       const supabase = createClient();
       let slug = form.slug || slugify(form.name);
       const { data: existing } = await supabase.from("products").select("id").eq("slug", slug).single();
       if (existing) slug = `${slug}-${Date.now()}`;
-      const payload: Record<string, unknown> = {
+
+      const price = isFree ? 0 : parseFloat(form.price);
+
+      const payload = {
         vendor_id: selectedVendorId,
         name: form.name,
         slug,
@@ -230,354 +222,540 @@ export default function NewProductPage() {
         description: form.description || null,
         product_type: form.product_type,
         status: form.status,
-        price: parseFloat(form.price),
-        compare_at_price: form.compare_at_price ? parseFloat(form.compare_at_price) : null,
+        price,
         currency: form.currency,
+        pricing_type: form.pricing_type,
+        billing_period: form.pricing_type === "recurring" ? form.billing_period : null,
         category_id: form.category_id || null,
         is_digital: form.is_digital,
-        digital_file_url: form.is_digital && form.digital_file_url ? form.digital_file_url : null,
+        digital_file_url: form.is_digital ? (form.digital_file_url || null) : null,
         track_inventory: !form.is_digital && form.track_inventory,
-        inventory_quantity: form.is_digital ? 0 : parseInt(form.inventory_quantity ?? "0"),
+        inventory_quantity: form.is_digital ? 0 : parseInt(form.inventory_quantity || "0"),
+        weight: !form.is_digital ? (parseFloat(form.weight) || null) : null,
+        dimensions: !form.is_digital ? (form.dimensions || null) : null,
         affiliate_enabled: form.affiliate_enabled,
-        affiliate_commission_rate: parseFloat(form.affiliate_commission_rate ?? "10"),
-        influencer_enabled: form.influencer_enabled,
+        affiliate_commission_rate: form.affiliate_enabled ? parseFloat(form.affiliate_commission_rate || "10") : null,
         is_featured: form.is_featured,
-        tags: form.tags ? form.tags.split(",").map((t) => t.trim()).filter(Boolean) : null,
+        button_text: form.button_text || null,
+        tags: form.tags ? form.tags.split(",").map(t => t.trim()).filter(Boolean) : null,
         images: form.images,
       };
+
       const { error: insertErr } = await supabase.from("products").insert(payload);
       if (insertErr) { setError(insertErr.message); }
-      else { setSuccess(true); setTimeout(() => router.push("/dashboard/products"), 1500); }
+      else { setSuccess(true); setTimeout(() => router.push("/dashboard/products"), 1800); }
     });
   }
 
   if (success) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-6 bg-white dark:bg-bg">
+      <div className="min-h-screen flex flex-col items-center justify-center gap-6 bg-[#060606]">
         <div className="relative">
-          <div className="absolute inset-0 bg-emerald-400/20 blur-3xl rounded-full scale-150 animate-pulse" />
-          <div className="relative w-20 h-20 rounded-3xl bg-white dark:bg-surface border border-zinc-100 dark:border-border shadow-2xl flex items-center justify-center">
-            <CheckCircle2 className="h-10 w-10 text-emerald-500" />
+          <div className="absolute inset-0 bg-blue-500/20 blur-3xl rounded-full scale-150 animate-pulse" />
+          <div className="relative w-20 h-20 rounded-2xl bg-[#111] border border-[#222] shadow-2xl flex items-center justify-center">
+            <CheckCircle2 className="h-10 w-10 text-blue-500" />
           </div>
         </div>
         <div className="text-center">
-          <p className="text-sm font-semibold text-zinc-800 dark:text-text-primary">Product Added!</p>
-          <p className="text-xs text-zinc-400 mt-1">Redirecting to inventory…</p>
+          <p className="text-base font-bold text-white">Product Published!</p>
+          <p className="text-sm text-zinc-500 mt-1">Redirecting to your products…</p>
         </div>
       </div>
     );
   }
 
-  return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-bg pb-24">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-6 space-y-6">
+  // Filtered categories based on product type
+  const filteredCategories = categories.filter(c => {
+    const catType = c.category_type;
+    if (form.product_type === "digital") return catType === "digital";
+    // For physical: show physical and 'both', also show uncategorized (no category_type)
+    return catType === "physical" || catType === "both" || !catType;
+  });
 
-        {/* Top bar */}
+  const steps = ["Type & Info", "Gallery & Pricing", "Delivery & Publish"];
+
+  return (
+    <div className="min-h-screen bg-[#060606] text-white pb-24">
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 pt-8 space-y-6">
+
+        {/* ── Header ── */}
         <div className="flex items-center justify-between">
-          <Link href="/dashboard/products">
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white dark:bg-surface border border-zinc-200 dark:border-border text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 transition-all text-xs shadow-sm">
-              <ArrowLeft className="h-3.5 w-3.5" />
-              Back
+          <div className="flex items-center gap-3">
+            <Link href="/dashboard/products">
+              <div className="p-2 rounded-lg bg-[#111] border border-[#222] hover:bg-[#1A1A1A] transition-all">
+                <ArrowLeft className="h-4 w-4 text-zinc-400" />
+              </div>
+            </Link>
+            <div>
+              <h1 className="text-lg font-bold text-white">New Product</h1>
+              <div className="flex items-center gap-1.5 mt-1">
+                {steps.map((_, i) => (
+                  <div
+                    key={i}
+                    className={cn("h-1 rounded-full transition-all duration-300",
+                      i + 1 === currentStep ? "w-8 bg-blue-500" :
+                      i + 1 < currentStep  ? "w-4 bg-blue-500/40" :
+                                             "w-4 bg-[#222]"
+                    )}
+                  />
+                ))}
+                <span className="text-[10px] text-zinc-600 ml-1 font-medium">
+                  {steps[currentStep - 1]}
+                </span>
+              </div>
             </div>
-          </Link>
-          <div className="flex items-center gap-2 text-zinc-400">
-            <Package className="h-4 w-4" />
-            <span className="text-[11px] uppercase tracking-widest">New Product</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" className="text-sm text-zinc-500 hover:text-white h-9" onClick={() => router.push("/dashboard/products")}>
+              Cancel
+            </Button>
+            {currentStep < 3 ? (
+              <Button
+                className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-5 h-9 text-sm font-medium"
+                onClick={() => setCurrentStep(s => s + 1)}
+              >
+                Next
+              </Button>
+            ) : (
+              <Button
+                className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-5 h-9 text-sm font-medium disabled:opacity-50"
+                onClick={() => handleSubmit()}
+                disabled={isPending}
+              >
+                {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Publish"}
+              </Button>
+            )}
           </div>
         </div>
 
-        {/* ── PRODUCT TYPE SWITCHER ── */}
-        <div className="bg-white dark:bg-surface rounded-2xl border border-zinc-200 dark:border-border p-4 shadow-sm">
-          <p className={cn(labelBase, "mb-3")}>Product Type</p>
-          <div className="grid grid-cols-2 gap-3">
-            {PRODUCT_TYPES.map((type) => {
-              const active = activeType === type.id;
-              const Icon = type.icon;
-              return (
-                <button
-                  key={type.id}
-                  type="button"
-                  onClick={() => switchType(type.id as "physical" | "digital")}
-                  className={cn(
-                    "relative flex items-center gap-3 px-4 py-3.5 rounded-xl border-2 text-left transition-all duration-200",
-                    active
-                      ? type.color === "orange"
-                        ? "border-orange-400 bg-orange-50 dark:bg-orange-500/10"
-                        : "border-sky-400 bg-sky-50 dark:bg-sky-500/10"
-                      : "border-zinc-200 dark:border-border bg-zinc-50 dark:bg-surface/60 hover:border-zinc-300 dark:hover:border-zinc-700"
-                  )}
-                >
-                  <div
+        {/* ── STEP 1: Type & Basic Info ── */}
+        {currentStep === 1 && (
+          <div className="space-y-4 animate-in fade-in duration-300">
+            {/* Product Type */}
+            <div className={cardBase}>
+              <SectionHeader title="Product Type" subtitle="What kind of product are you creating?" />
+              <div className="grid grid-cols-2 gap-3">
+                {PRODUCT_TYPES.map((type) => (
+                  <button
+                    key={type.id}
+                    type="button"
+                    onClick={() => handleChange("product_type", type.id)}
                     className={cn(
-                      "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-all",
-                      active
-                        ? type.color === "orange"
-                          ? "bg-orange-500 text-white"
-                          : "bg-sky-500 text-white"
-                        : "bg-zinc-100 dark:bg-surface-secondary text-zinc-400"
+                      "flex items-center gap-3 p-4 rounded-xl border-2 text-left transition-all",
+                      form.product_type === type.id
+                        ? "border-blue-600 bg-blue-600/5"
+                        : "border-[#222] hover:border-[#333]"
                     )}
                   >
-                    <Icon className="h-5 w-5" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className={cn("text-sm font-semibold", active ? "text-zinc-900 dark:text-text-primary" : "text-zinc-500 dark:text-text-muted")}>
-                      {type.label}
-                    </p>
-                    <p className="text-[10px] text-zinc-400 dark:text-text-muted leading-snug hidden sm:block">{type.description}</p>
-                  </div>
-                  {active && (
-                    <div className={cn("absolute top-2.5 right-2.5 w-2 h-2 rounded-full", type.color === "orange" ? "bg-orange-500" : "bg-sky-500")} />
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* ── MAIN FORM ── */}
-        <form onSubmit={handleSubmit} className="space-y-4">
-
-          {/* Images */}
-          <div className="bg-white dark:bg-surface rounded-2xl border border-zinc-200 dark:border-border p-5 shadow-sm">
-            <SectionHeader icon={ImageIcon} title="Images" subtitle="Upload high-quality product photos" color="orange" />
-            {form.images.length > 0 && (
-              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3 mb-4">
-                {form.images.map((img, i) => (
-                  <div key={i} className="relative group aspect-square rounded-xl overflow-hidden border border-zinc-100 dark:border-border shadow">
-                    <CloudinaryImage src={img} alt={`Image ${i + 1}`} fill className="object-cover" />
-                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <button type="button" onClick={() => removeImage(i)}
-                        className="bg-white/90 hover:bg-rose-500 text-rose-500 hover:text-white rounded-full p-1.5 transition-all">
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
+                    <div className={cn("p-2 rounded-lg shrink-0", form.product_type === type.id ? "bg-blue-600 text-white" : "bg-[#1A1A1A] text-zinc-500")}>
+                      <type.icon className="h-4 w-4" />
                     </div>
-                    {i === 0 && (
-                      <div className="absolute bottom-1.5 left-1.5 bg-black/60 text-white text-[9px] px-1.5 py-0.5 rounded-md font-semibold">Cover</div>
-                    )}
-                  </div>
+                    <div>
+                      <p className="text-sm font-bold text-white">{type.label}</p>
+                      <p className="text-[11px] text-zinc-500 mt-0.5 leading-snug">{type.description}</p>
+                    </div>
+                  </button>
                 ))}
               </div>
-            )}
-            <CloudinaryDropzone folder="jimvio/products" onUploadSuccess={handleImageUpload} label="Upload Images" sublabel="JPG / PNG / WEBP · Max 10MB" />
-          </div>
-
-          {/* Store selector (multi-vendor) */}
-          {userVendors.length > 1 && (
-            <div className="bg-white dark:bg-surface rounded-2xl border border-zinc-200 dark:border-border p-5 shadow-sm">
-              <div className="space-y-2">
-                <Label className={labelBase}>Store</Label>
-                <select value={selectedVendorId} onChange={(e) => setSelectedVendorId(e.target.value)} className={selectBase}>
-                  {userVendors.map((v) => (
-                    <option key={v.id as string} value={v.id as string}>{v.business_name as string}</option>
-                  ))}
-                </select>
-              </div>
             </div>
-          )}
 
-          {/* Basic Info */}
-          <div className="bg-white dark:bg-surface rounded-2xl border border-zinc-200 dark:border-border p-5 shadow-sm">
-            <SectionHeader icon={FileText} title="Basic Information" subtitle="Product name, category, and description" color="sky" />
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="name" className={cn(labelBase, "mb-2 block")}>Product Name *</Label>
-                <Input id="name" value={form.name} onChange={(e) => handleChange("name", e.target.value)} placeholder="e.g. iPhone 15 Pro Max 256GB" className={inputBase} required />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Basic Info */}
+            <div className={cardBase}>
+              <SectionHeader title="Basic Information" subtitle="Name, category, and URL slug." />
+              <div className="space-y-5">
                 <div>
-                  <Label htmlFor="category_id" className={cn(labelBase, "mb-2 block")}>Category</Label>
-                  <select id="category_id" value={form.category_id} onChange={(e) => handleChange("category_id", e.target.value)} className={selectBase}>
-                    <option value="">Uncategorized</option>
-                    {activeType === "physical" && categories.map((cat) => (
-                      <option key={cat.id as string} value={cat.id as string}>{cat.name as string}</option>
-                    ))}
-                    {activeType === "digital" && (
-                      <>
-                        <option value="template">Templates</option>
-                        <option value="ebook">E-Books</option>
-                        <option value="software">Software</option>
-                        <option value="course">Courses</option>
-                      </>
+                  <Label className={labelBase}>Product Name *</Label>
+                  <Input
+                    value={form.name}
+                    onChange={e => handleChange("name", e.target.value)}
+                    placeholder={form.product_type === "digital" ? "e.g. Social Media Templates Pack" : "e.g. Wireless Earbuds Pro"}
+                    className={inputBase}
+                  />
+                </div>
+
+                <div>
+                  <Label className={labelBase}>Short Description</Label>
+                  <Input
+                    value={form.short_description}
+                    onChange={e => handleChange("short_description", e.target.value)}
+                    placeholder="One-line summary shown in search results"
+                    className={inputBase}
+                  />
+                </div>
+
+                <div>
+                  <Label className={labelBase}>
+                    Category
+                    {filteredCategories.length === 0 && (
+                      <span className="ml-2 text-amber-500 normal-case font-normal">(Run migration 057 in Supabase to load categories)</span>
                     )}
-                  </select>
+                  </Label>
+                  <SelectWrapper>
+                    <select
+                      value={form.category_id}
+                      onChange={e => handleChange("category_id", e.target.value)}
+                      className={selectBase}
+                    >
+                      <option value="">Select a category</option>
+                      {filteredCategories.map(c => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
+                  </SelectWrapper>
                 </div>
+
                 <div>
-                  <Label className={cn(labelBase, "mb-2 block")}>Slug (auto)</Label>
-                  <Input value={form.slug} readOnly className={cn(inputBase, "bg-zinc-50 dark:bg-surface-secondary/60 text-zinc-400 cursor-not-allowed")} placeholder="auto-generated" />
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="short_description" className={cn(labelBase, "mb-2 block")}>Short Description</Label>
-                <Textarea id="short_description" value={form.short_description} onChange={(e) => handleChange("short_description", e.target.value)}
-                  placeholder="One-line summary shown in listings…" rows={2}
-                  className="w-full rounded-xl border border-zinc-200 dark:border-border bg-white dark:bg-surface text-zinc-900 dark:text-text-primary placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/40 focus-visible:border-orange-400 transition-all text-sm px-4 py-3 resize-none shadow-sm" />
-              </div>
-
-              <div>
-                <Label htmlFor="description" className={cn(labelBase, "mb-2 block")}>Full Description</Label>
-                <Textarea id="description" value={form.description} onChange={(e) => handleChange("description", e.target.value)}
-                  placeholder="Full details, specs, and features…" rows={5}
-                  className="w-full rounded-xl border border-zinc-200 dark:border-border bg-white dark:bg-surface text-zinc-900 dark:text-text-primary placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/40 focus-visible:border-orange-400 transition-all text-sm px-4 py-3 resize-none shadow-sm" />
-              </div>
-
-              <div>
-                <Label htmlFor="tags" className={cn(labelBase, "mb-2 block")}>Tags <span className="normal-case font-normal opacity-60">(comma-separated)</span></Label>
-                <div className="relative">
-                  <Tag className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-400 pointer-events-none" />
-                  <Input id="tags" value={form.tags} onChange={(e) => handleChange("tags", e.target.value)}
-                    placeholder="e.g. electronics, smartphone, apple" className={cn(inputBase, "pl-10")} />
+                  <Label className={labelBase}>Product URL</Label>
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600 text-sm select-none">jimvio.com/p/</span>
+                    <Input value={form.slug} readOnly className={cn(inputBase, "pl-[115px] opacity-50 cursor-default")} />
+                  </div>
                 </div>
               </div>
             </div>
           </div>
+        )}
 
-          {/* Pricing */}
-          <div className="bg-white dark:bg-surface rounded-2xl border border-zinc-200 dark:border-border p-5 shadow-sm">
-            <SectionHeader icon={DollarSign} title="Pricing" subtitle="Set your price and currency" color="emerald" />
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div>
-                <Label htmlFor="price" className={cn(labelBase, "mb-2 block")}>Price *</Label>
-                <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 dark:text-text-muted font-semibold text-sm">
-                    {form.currency === "RWF" ? "Fr" : "$"}
-                  </span>
-                  <Input id="price" type="number" placeholder="0.00" min={0} step="0.01" value={form.price}
-                    onChange={(e) => handleChange("price", e.target.value)}
-                    className={cn(inputBase, "pl-9 font-semibold")} required />
+        {/* ── STEP 2: Gallery & Pricing ── */}
+        {currentStep === 2 && (
+          <div className="space-y-4 animate-in fade-in duration-300">
+            {/* Gallery */}
+            <div className={cardBase}>
+              <SectionHeader title="Gallery" subtitle="Upload product images." />
+              <div className="bg-[#0A0A0A] rounded-xl border-2 border-dashed border-[#222] hover:border-[#333] transition-colors">
+                <CloudinaryDropzone folder="jimvio/products" onUploadSuccess={handleImageUpload} label="Drop images here or click to upload" />
+              </div>
+              {form.images.length > 0 && (
+                <div className="grid grid-cols-4 gap-3 mt-4">
+                  {form.images.map((img, i) => (
+                    <div key={i} className="relative aspect-square rounded-lg overflow-hidden border border-[#222]">
+                      <CloudinaryImage src={img} alt="Preview" fill className="object-cover" />
+                      <button
+                        onClick={() => removeImage(i)}
+                        className="absolute top-1 right-1 p-1 bg-black/70 text-white rounded-full hover:bg-rose-600 transition-colors"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
                 </div>
-              </div>
-              <div>
-                <Label htmlFor="compare_at_price" className={cn(labelBase, "mb-2 block")}>Compare-at Price</Label>
-                <Input id="compare_at_price" type="number" placeholder="Original price" min={0} step="0.01" value={form.compare_at_price}
-                  onChange={(e) => handleChange("compare_at_price", e.target.value)} className={inputBase} />
-              </div>
-              <div>
-                <Label htmlFor="currency" className={cn(labelBase, "mb-2 block")}>Currency</Label>
-                <select id="currency" value={form.currency} onChange={(e) => handleChange("currency", e.target.value)} className={selectBase}>
-                  <option value="USD">USD – US Dollar</option>
-                  <option value="RWF">RWF – Rwandan Franc</option>
-                </select>
-              </div>
+              )}
             </div>
-          </div>
 
-          {/* Physical: Inventory */}
-          {activeType === "physical" && (
-            <div className="bg-white dark:bg-surface rounded-2xl border border-zinc-200 dark:border-border p-5 shadow-sm">
-              <SectionHeader icon={Layers} title="Inventory" subtitle="Manage stock levels" color="amber" />
+            {/* Description */}
+            <div className={cardBase}>
+              <SectionHeader title="Description" subtitle="Help buyers understand your product." />
               <div className="space-y-4">
-                <div className="max-w-xs">
-                  <Label htmlFor="inventory_quantity" className={cn(labelBase, "mb-2 block")}>Stock Quantity</Label>
-                  <Input id="inventory_quantity" type="number" placeholder="0" min={0} value={form.inventory_quantity}
-                    onChange={(e) => handleChange("inventory_quantity", e.target.value)} className={cn(inputBase, "font-semibold")} />
-                </div>
-                <ToggleCard
-                  icon={Box}
-                  title="Track Inventory"
-                  description="Automatically update stock levels on orders"
-                  checked={form.track_inventory}
-                  onChange={(v) => handleChange("track_inventory", v)}
-                  activeColor="orange"
+                <Textarea
+                  value={form.description}
+                  onChange={e => handleChange("description", e.target.value)}
+                  placeholder="Describe what's included, what problems it solves, and who it's for..."
+                  className="min-h-[130px] rounded-xl bg-[#0D0D0D] border border-[#2A2A2A] text-white placeholder:text-zinc-600 text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500 resize-none p-4"
                 />
+                <div>
+                  <Label className={labelBase}>Tags</Label>
+                  <Input
+                    value={form.tags}
+                    onChange={e => handleChange("tags", e.target.value)}
+                    placeholder="design, template, canva (comma separated)"
+                    className={inputBase}
+                  />
+                </div>
               </div>
             </div>
-          )}
 
-          {/* Digital: File upload */}
-          {activeType === "digital" && (
-            <div className="bg-white dark:bg-surface rounded-2xl border border-zinc-200 dark:border-border p-5 shadow-sm">
-              <SectionHeader icon={Zap} title="Digital File" subtitle="Upload the file customers will receive" color="indigo" />
-              <div className="space-y-3">
-                <div className="rounded-xl border border-dashed border-zinc-200 dark:border-border-strong bg-zinc-50 dark:bg-surface/60 overflow-hidden">
+            {/* Pricing */}
+            <div className={cardBase}>
+              <SectionHeader title="Pricing" subtitle="Choose how people access this product." />
+
+              {/* Free / Paid toggle */}
+              <div className="grid grid-cols-2 gap-3 mb-6">
+                {[
+                  { label: "Free", value: "0", icon: Globe },
+                  { label: "Paid", value: "paid", icon: DollarSign },
+                ].map(opt => (
+                  <button
+                    key={opt.label}
+                    type="button"
+                    onClick={() => handleChange("price", opt.value === "0" ? "0" : (isFree ? "29.99" : form.price))}
+                    className={cn(
+                      "flex items-center justify-between p-4 rounded-xl border-2 transition-all",
+                      (opt.value === "0" ? isFree : isPaid)
+                        ? "border-blue-600 bg-blue-600/5"
+                        : "border-[#222] hover:border-[#333]"
+                    )}
+                  >
+                    <div className="flex items-center gap-3 text-white">
+                      <opt.icon className="h-4 w-4 text-zinc-400" />
+                      <span className="font-bold text-sm">{opt.label}</span>
+                    </div>
+                    <div className={cn("w-4 h-4 rounded-full border-2 flex items-center justify-center",
+                      (opt.value === "0" ? isFree : isPaid) ? "border-blue-600" : "border-[#333]"
+                    )}>
+                      {(opt.value === "0" ? isFree : isPaid) && <div className="w-2 h-2 rounded-full bg-blue-600" />}
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              {isPaid && (
+                <div className="space-y-5 animate-in fade-in duration-200">
+                  {/* Price input */}
+                  <div>
+                    <Label className={labelBase}>Price</Label>
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 text-sm">$</span>
+                        <Input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={form.price}
+                          onChange={e => handleChange("price", e.target.value)}
+                          className={cn(inputBase, "pl-8 text-lg font-bold")}
+                        />
+                      </div>
+                      <SelectWrapper>
+                        <select
+                          value={form.currency}
+                          onChange={e => handleChange("currency", e.target.value)}
+                          className={cn(selectBase, "w-24")}
+                        >
+                          {["USD", "EUR", "GBP", "RWF"].map(c => <option key={c}>{c}</option>)}
+                        </select>
+                      </SelectWrapper>
+                    </div>
+                    <div className="flex gap-2 mt-2">
+                      {["9.99", "29.99", "49.99", "99.99"].map(val => (
+                        <button
+                          key={val}
+                          type="button"
+                          onClick={() => handleChange("price", val)}
+                          className="px-3 py-1 rounded-md bg-[#1A1A1A] border border-[#2A2A2A] text-xs font-bold text-zinc-400 hover:border-blue-600 hover:text-blue-400 transition-all"
+                        >
+                          ${val}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Digital: show pricing model */}
+                  {form.product_type === "digital" && (
+                    <div>
+                      <Label className={labelBase}>Billing Model</Label>
+                      <div className="grid grid-cols-2 gap-3">
+                        {[
+                          { value: "one_time", label: "One-time", desc: "Customer pays once" },
+                          { value: "recurring", label: "Recurring", desc: "Regular subscription" },
+                        ].map(opt => (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            onClick={() => handleChange("pricing_type", opt.value)}
+                            className={cn(
+                              "p-3 rounded-xl border-2 text-left transition-all",
+                              form.pricing_type === opt.value
+                                ? "border-blue-600 bg-blue-600/5"
+                                : "border-[#222] hover:border-[#333]"
+                            )}
+                          >
+                            <p className="text-sm font-bold text-white">{opt.label}</p>
+                            <p className="text-[11px] text-zinc-500 mt-0.5">{opt.desc}</p>
+                          </button>
+                        ))}
+                      </div>
+
+                      {form.pricing_type === "recurring" && (
+                        <div className="mt-3">
+                          <Label className={labelBase}>Billing Period</Label>
+                          <div className="grid grid-cols-4 gap-2">
+                            {BILLING_PERIODS.map(p => (
+                              <button
+                                key={p}
+                                type="button"
+                                onClick={() => handleChange("billing_period", p)}
+                                className={cn(
+                                  "py-2 rounded-lg text-[11px] font-bold uppercase tracking-wider border transition-all",
+                                  form.billing_period === p
+                                    ? "bg-blue-600 text-white border-blue-600"
+                                    : "border-[#222] text-zinc-500 hover:border-[#333]"
+                                )}
+                              >
+                                {p}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Product Settings */}
+            <div className={cardBase}>
+              <SectionHeader title="Product Settings" subtitle="Button text, affiliates, and visibility." />
+              <div className="space-y-4">
+                <div>
+                  <Label className={labelBase}>Purchase Button Text</Label>
+                  <SelectWrapper>
+                    <select value={form.button_text} onChange={e => handleChange("button_text", e.target.value)} className={selectBase}>
+                      <option value="">-- Select --</option>
+                      {BUTTON_TEXTS.map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                  </SelectWrapper>
+                </div>
+
+                <div className="pt-2 border-t border-[#1A1A1A]">
+                  <ToggleRow
+                    title="Affiliate Program"
+                    description="Let affiliates earn a commission on sales"
+                    checked={form.affiliate_enabled}
+                    onChange={v => handleChange("affiliate_enabled", v)}
+                  />
+                  {form.affiliate_enabled && (
+                    <div className="mt-3 ml-1">
+                      <Label className={labelBase}>Commission Rate</Label>
+                      <div className="relative">
+                        <Input
+                          type="number"
+                          min="1"
+                          max="80"
+                          value={form.affiliate_commission_rate}
+                          onChange={e => handleChange("affiliate_commission_rate", e.target.value)}
+                          className={cn(inputBase, "pr-10")}
+                        />
+                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 text-sm">%</span>
+                      </div>
+                    </div>
+                  )}
+                  <ToggleRow
+                    title="Show on Store Page"
+                    description="Feature this product publicly"
+                    checked={form.is_featured}
+                    onChange={v => handleChange("is_featured", v)}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── STEP 3: Delivery & Publish ── */}
+        {currentStep === 3 && (
+          <div className="space-y-4 animate-in fade-in duration-300">
+            {form.product_type === "digital" ? (
+              <div className={cardBase}>
+                <SectionHeader title="Digital Delivery" subtitle="Upload the file your customers will receive after purchase." />
+                <div className="bg-[#0A0A0A] rounded-xl border-2 border-dashed border-[#222] hover:border-[#333] transition-colors p-10 text-center">
+                  <Upload className="h-8 w-8 text-zinc-600 mx-auto mb-3" />
+                  <p className="text-sm text-zinc-500 mb-4">PDF, ZIP, MP4, or any file type</p>
                   <CloudinaryUploadButton
                     folder="jimvio/digital-files"
                     resourceType="raw"
-                    onUploadSuccess={(url) => handleChange("digital_file_url", url)}
-                    buttonText="Upload Product File"
+                    onUploadSuccess={url => handleChange("digital_file_url", url)}
+                    buttonText="Choose File to Upload"
                   />
                 </div>
                 {form.digital_file_url && (
-                  <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 text-xs font-semibold bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 px-3 py-2 rounded-lg">
-                    <CheckCircle2 className="h-3.5 w-3.5" /> File uploaded successfully
+                  <div className="mt-4 p-4 bg-blue-600/10 border border-blue-600/20 rounded-xl flex items-center gap-3">
+                    <CheckCircle2 className="h-5 w-5 text-blue-500 shrink-0" />
+                    <div>
+                      <p className="text-sm font-medium text-white">File uploaded successfully</p>
+                      <p className="text-xs text-zinc-500 mt-0.5 truncate max-w-xs">{form.digital_file_url.split("/").pop()}</p>
+                    </div>
                   </div>
                 )}
               </div>
-            </div>
-          )}
-
-          {/* Promotion */}
-          <div className="bg-white dark:bg-surface rounded-2xl border border-zinc-200 dark:border-border p-5 shadow-sm">
-            <SectionHeader icon={Rocket} title="Promotion" subtitle="Boost sales with affiliates and influencers" color="rose" />
-            <div className="space-y-3">
-              <ToggleCard
-                icon={Zap}
-                title="Allow Affiliates"
-                description="Let others earn a commission promoting this product"
-                checked={form.affiliate_enabled}
-                onChange={(v) => handleChange("affiliate_enabled", v)}
-                activeColor="orange"
-              />
-              {form.affiliate_enabled && (
-                <div className="ml-12 max-w-[200px] animate-in slide-in-from-top-2 duration-200">
-                  <Label htmlFor="affiliate_commission_rate" className={cn(labelBase, "mb-1.5 block")}>Commission Rate</Label>
-                  <div className="relative">
-                    <Input id="affiliate_commission_rate" type="number" placeholder="10" min={1} max={90}
-                      value={form.affiliate_commission_rate}
-                      onChange={(e) => handleChange("affiliate_commission_rate", e.target.value)}
-                      className={cn(inputBase, "pr-8 font-semibold")} />
-                    <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-400 text-sm font-semibold">%</span>
+            ) : (
+              <div className={cardBase}>
+                <SectionHeader title="Inventory & Shipping" subtitle="Set stock levels and shipping weight." />
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <Label className={labelBase}>Stock Quantity</Label>
+                    <Input type="number" min="0" value={form.inventory_quantity} onChange={e => handleChange("inventory_quantity", e.target.value)} className={inputBase} />
+                  </div>
+                  <div>
+                    <Label className={labelBase}>Weight (kg)</Label>
+                    <Input type="number" min="0" step="0.01" value={form.weight} onChange={e => handleChange("weight", e.target.value)} placeholder="0.5" className={inputBase} />
+                  </div>
+                  <div>
+                    <Label className={labelBase}>Dimensions</Label>
+                    <Input value={form.dimensions} onChange={e => handleChange("dimensions", e.target.value)} placeholder="L × W × H cm" className={inputBase} />
                   </div>
                 </div>
-              )}
-              <ToggleCard
-                icon={Sparkles}
-                title="Allow Influencers"
-                description="Enable influencer campaigns for this product"
-                checked={form.influencer_enabled}
-                onChange={(v) => handleChange("influencer_enabled", v)}
-                activeColor="sky"
-              />
-            </div>
-          </div>
-
-          {/* Status + Actions */}
-          <div className="bg-white dark:bg-surface rounded-2xl border border-zinc-200 dark:border-border p-5 shadow-sm">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div className="flex-1 max-w-xs">
-                <Label htmlFor="status" className={cn(labelBase, "mb-2 block")}>Visibility</Label>
-                <select id="status" value={form.status} onChange={(e) => handleChange("status", e.target.value)}
-                  className={selectBase}>
-                  <option value="draft">Draft — Private</option>
-                  <option value="active">Active — Public</option>
-                </select>
+                <div className="mt-4 pt-4 border-t border-[#1A1A1A]">
+                  <ToggleRow
+                    title="Track Inventory"
+                    description="Show low stock warnings and prevent overselling"
+                    checked={form.track_inventory}
+                    onChange={v => handleChange("track_inventory", v)}
+                  />
+                </div>
               </div>
-              <div className="flex items-center gap-3 w-full sm:w-auto">
-                <Button type="button" variant="ghost" className="flex-1 sm:flex-none h-11 px-5 rounded-xl text-xs font-semibold border border-zinc-200 dark:border-border text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 transition-all" asChild>
-                  <Link href="/dashboard/products">Cancel</Link>
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={isPending}
-                  className="flex-1 sm:flex-none h-11 px-7 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs tracking-wide shadow-lg shadow-orange-500/20 active:scale-95 transition-all"
-                >
-                  {isPending ? (
-                    <span className="flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Saving…</span>
-                  ) : (
-                    <span className="flex items-center gap-2"><Save className="h-4 w-4" />{form.status === "active" ? "Publish Product" : "Save Draft"}</span>
-                  )}
-                </Button>
+            )}
+
+            {/* Publish Settings */}
+            <div className={cardBase}>
+              <SectionHeader title="Publish" subtitle="Set the visibility of this product." />
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { value: "draft",  label: "Draft",  desc: "Only visible to you" },
+                  { value: "active", label: "Active", desc: "Live on your store" },
+                ].map(opt => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => handleChange("status", opt.value)}
+                    className={cn(
+                      "p-4 rounded-xl border-2 text-left transition-all",
+                      form.status === opt.value
+                        ? "border-blue-600 bg-blue-600/5"
+                        : "border-[#222] hover:border-[#333]"
+                    )}
+                  >
+                    <p className="text-sm font-bold text-white">{opt.label}</p>
+                    <p className="text-[11px] text-zinc-500 mt-0.5">{opt.desc}</p>
+                  </button>
+                ))}
               </div>
             </div>
-          </div>
 
-          {error && (
-            <div className="rounded-xl border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/10 px-5 py-4 text-sm text-rose-600 dark:text-rose-400">
-              {error}
+            {/* Summary */}
+            <div className={cn(cardBase, "bg-[#0D0D0D]")}>
+              <p className="text-xs font-semibold uppercase tracking-widest text-zinc-500 mb-4">Review Summary</p>
+              <div className="space-y-2 text-sm">
+                {[
+                  ["Name", form.name || "—"],
+                  ["Type", form.product_type],
+                  ["Price", isFree ? "Free" : `$${form.price} ${form.currency}`],
+                  ["Billing", isPaid && form.product_type === "digital" ? (form.pricing_type === "recurring" ? `Recurring · ${form.billing_period}` : "One-time") : "—"],
+                  ["Status", form.status],
+                ].map(([k, v]) => (
+                  <div key={k} className="flex items-center justify-between text-sm">
+                    <span className="text-zinc-500">{k}</span>
+                    <span className="text-white font-medium capitalize">{v}</span>
+                  </div>
+                ))}
+              </div>
             </div>
-          )}
-        </form>
+
+            <div className="flex items-center gap-3 pt-2">
+              <Button onClick={() => setCurrentStep(2)} variant="ghost" className="h-10 px-5 rounded-lg font-medium text-zinc-500 hover:text-white">
+                ← Back
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Error */}
+        {error && (
+          <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-sm font-medium">
+            {error}
+          </div>
+        )}
+
       </div>
     </div>
   );
