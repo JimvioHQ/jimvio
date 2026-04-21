@@ -139,13 +139,7 @@ export function HomepageHero({
 
             <DialogHeader className="mb-6 relative z-10 text-center">
               <div
-                className="mx-auto w-12 h-12 rounded-[18px] flex items-center justify-center mb-4"
-                style={{
-                  background: "rgba(251,146,60,0.12)",
-                  backdropFilter: "blur(20px) saturate(160%)",
-                  border: "1px solid rgba(251,146,60,0.35)",
-                  boxShadow: "0 2px 12px rgba(249,115,22,0.10), inset 0 1px 0 rgba(255,255,255,0.9)",
-                }}
+                className="mx-auto w-12 h-12 rounded-2xl flex items-center justify-center mb-4 bg-orange-50 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-500/20"
               >
                 <Sparkles className="h-6 w-6 text-orange-600" />
               </div>

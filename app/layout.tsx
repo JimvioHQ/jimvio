@@ -32,8 +32,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 borderRadius: "16px",
                 fontFamily: '"Vend Sans", sans-serif',
                 fontWeight: 600,
-                border: "1px solid rgba(255,255,255,0.15)",
-                backdropFilter: "blur(20px)",
+                border: "1px solid var(--color-border)",
+                background: "var(--color-surface)",
+                color: "var(--color-text)",
               },
             }}
           />

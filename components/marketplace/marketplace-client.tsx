@@ -162,7 +162,7 @@ function HeroDealBanner({ params, basePath }: { params: Record<string, string | 
         </p>
         
         {/* Delivery Badge */}
-        <div className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-surface/70 backdrop-blur-md border border-border shadow-sm mb-6">
+        <div className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-stone-50 dark:bg-stone-900 border border-border shadow-sm mb-6">
           <MapPin className="h-4 w-4 text-emerald-500" />
           <span className="text-[12px] font-bold text-stone-700 dark:text-stone-300">Worldwide Delivery Available</span>
         </div>
@@ -198,7 +198,7 @@ function TypeTabs({ params, basePath }: { params: Record<string, string | undefi
 
   return (
     <div className="flex justify-center w-full">
-      <div className="flex items-center p-1.5 rounded-[18px] bg-surface-secondary/60 dark:bg-surface-secondary/60 backdrop-blur-md shadow-inner border border-border w-full md:w-auto overflow-hidden">
+      <div className="flex items-center p-1.5 rounded-2xl bg-stone-100 dark:bg-stone-900 shadow-inner border border-border w-full md:w-auto overflow-hidden">
         {tabs.map((tab) => {
           const isActive = tab.type === null ? isAll : params.type === tab.type;
           const href = tab.type
@@ -418,21 +418,8 @@ export function MarketplaceClient({
         ? "bg-[#fafcfe] dark:bg-[#050505]" 
         : "bg-white dark:bg-bg"
     )}>
-      <GlassAmbientGlow 
-        color={uiVariant === "digital" ? "sky" : uiVariant === "physical" ? "orange" : "amber"} 
-        position="top-right" 
-        className="opacity-30" 
-      />
-
       {/* ── Sticky Top Bar ── */}
-      <div
-        className="sticky top-0 z-50 border-b border-border shadow-[0_4px_20px_rgba(0,0,0,0.03)]"
-        style={{
-          background: "var(--glass-bg)",
-          backdropFilter: "var(--glass-blur)",
-          WebkitBackdropFilter: "var(--glass-blur)",
-        }}
-      >
+      <div className="sticky top-0 z-50 border-b border-border shadow-sm bg-surface">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 pt-3 pb-3">
           <div className="flex flex-col md:flex-row items-center justify-between gap-3 md:gap-6">
             
@@ -874,16 +861,16 @@ export function MarketplaceClient({
       {modalClip && (
         <>
           <div
-            className="fixed inset-0 z-[1000] bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+            className="fixed inset-0 z-[1000] bg-black/80 animate-in fade-in duration-200"
             onClick={closeModalClip}
             aria-hidden
           />
           <div className="fixed inset-0 z-[1001] flex items-center justify-center p-4 pointer-events-none">
-            <div className="pointer-events-auto w-full max-w-lg flex flex-col bg-zinc-900/10 dark:bg-black/40 backdrop-blur-2xl rounded-[28px] overflow-hidden shadow-2xl border border-white/20 dark:border-white/10 relative">
+            <div className="pointer-events-auto w-full max-w-lg flex flex-col bg-white dark:bg-surface rounded-2xl overflow-hidden shadow-2xl border border-border relative">
               <button
                 type="button"
                 onClick={closeModalClip}
-                className="absolute top-3 right-3 z-20 w-9 h-9 rounded-full bg-black/30 backdrop-blur-xl flex items-center justify-center text-white hover:bg-black/50 transition-all"
+                className="absolute top-3 right-3 z-20 w-8 h-8 rounded-full bg-black/50 flex items-center justify-center text-white hover:bg-black/80 transition-all shadow-sm"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -928,8 +915,8 @@ export function MarketplaceClient({
                 </div>
               </div>
               {modalClip.products && (
-                <div className="p-4 border-t border-white/10 flex items-center gap-4 bg-zinc-900/5 dark:bg-white dark:bg-surface/5 backdrop-blur-xl">
-                  <div className="w-14 h-14 rounded-[16px] bg-white dark:bg-surface/10 flex items-center justify-center overflow-hidden shrink-0">
+                <div className="p-4 border-t border-border flex items-center gap-4 bg-stone-50 dark:bg-stone-900">
+                  <div className="w-14 h-14 rounded-xl bg-white dark:bg-stone-800 border border-border flex items-center justify-center overflow-hidden shrink-0">
                     {Array.isArray(modalClip.products.images) && modalClip.products.images[0] ? (
                       <img src={modalClip.products.images[0]} alt="" className="w-full h-full object-cover" />
                     ) : (

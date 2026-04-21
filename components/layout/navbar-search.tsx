@@ -195,8 +195,7 @@ export function NavbarSearch({
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="absolute inset-0"
-            style={{ background: "rgba(0,0,0,0.12)", backdropFilter: "blur(3px)", WebkitBackdropFilter: "blur(3px)" }}
+            className="absolute inset-0 bg-black/50"
             onClick={close}
           />
 
