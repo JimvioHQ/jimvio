@@ -1,35 +1,27 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
-// ── Glass Design Tokens ──────────────────────────────────────────
+// ── Professional Solid Tokens (replacing glassmorphism) ────────────────
 export const GLASS_TOKENS = {
   light: {
-    background: "var(--glass-bg)",
-    backdropFilter: "var(--glass-blur) saturate(180%)",
-    WebkitBackdropFilter: "var(--glass-blur) saturate(180%)",
-    border: "1px solid var(--glass-border)",
-    boxShadow: "var(--glass-shadow)",
+    background: "var(--color-surface)",
+    border: "1px solid var(--color-border)",
+    boxShadow: "var(--shadow-sm)",
   },
   dark: {
-    background: "var(--glass-bg)",
-    backdropFilter: "var(--glass-blur) saturate(180%)",
-    WebkitBackdropFilter: "var(--glass-blur) saturate(180%)",
-    border: "1px solid var(--glass-border)",
-    boxShadow: "var(--glass-shadow)",
+    background: "var(--color-surface)",
+    border: "1px solid var(--color-border)",
+    boxShadow: "var(--shadow-sm)",
   },
   pillLight: {
-    background: "rgba(255, 255, 255, 0.72)",
-    backdropFilter: "blur(20px) saturate(160%)",
-    WebkitBackdropFilter: "blur(20px) saturate(160%)",
-    border: "1px solid rgba(255, 255, 255, 0.88)",
-    boxShadow: "0 2px 10px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,1)",
+    background: "var(--color-surface)",
+    border: "1px solid var(--color-border)",
+    boxShadow: "var(--shadow-sm)",
   },
   ctaOrange: {
-    background: "rgba(251,146,60,0.12)",
-    backdropFilter: "blur(20px) saturate(160%)",
-    WebkitBackdropFilter: "blur(20px) saturate(160%)",
-    border: "1px solid rgba(251,146,60,0.35)",
-    boxShadow: "0 2px 12px rgba(249,115,22,0.10), inset 0 1px 0 rgba(255,255,255,0.9)",
+    background: "rgba(249,115,22,0.06)",
+    border: "1px solid rgba(249,115,22,0.2)",
+    boxShadow: "none",
   }
 };
 
@@ -73,53 +65,15 @@ export function GlassCard({
   );
 }
 
-export function GlassSpecular() {
-  return (
-    <div
-      className="pointer-events-none absolute inset-x-0 top-0 h-px"
-      style={{
-        background: "linear-gradient(90deg, transparent 5%, rgba(255,255,255,0.95) 40%, rgba(255,255,255,0.7) 60%, transparent 95%)",
-      }}
-    />
-  );
-}
+// Specular removed — returns null for backward compat
+export function GlassSpecular() { return null; }
 
-export function GlassAmbientGlow({
-  color = "orange",
-  position = "bottom-right",
-  className,
-}: {
-  color?: "orange" | "indigo" | "blue" | "pink" | "emerald" | "amber" | "rose" | "sky" | "purple";
-  position?: "top-left" | "top-right" | "bottom-left" | "bottom-right" | "center";
+// Ambient glow removed — returns null for backward compat
+export function GlassAmbientGlow(_props: {
+  color?: string;
+  position?: string;
   className?: string;
-}) {
-  const colors = {
-    orange:  "rgba(251,146,60,0.1)",
-    indigo:  "rgba(99,102,241,0.08)",
-    blue:    "rgba(59,130,246,0.08)",
-    pink:    "rgba(236,72,153,0.08)",
-    emerald: "rgba(16,185,129,0.08)",
-    amber:   "rgba(245,158,11,0.08)",
-    rose:    "rgba(244,63,94,0.08)",
-    sky:     "rgba(14,165,233,0.08)",
-    purple:  "rgba(168,85,247,0.08)",
-  };
-
-  const positions = {
-    "top-left":     "top-0 left-0 -translate-x-1/2 -translate-y-1/2",
-    "top-right":    "top-0 right-0 translate-x-1/2 -translate-y-1/2",
-    "bottom-left":  "bottom-0 left-0 -translate-x-1/2 translate-y-1/2",
-    "bottom-right": "bottom-0 right-0 translate-x-1/2 translate-y-1/2",
-    "center":       "top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2",
-  };
-
-  return (
-    <div
-      className={cn("absolute w-96 h-96 blur-[120px] rounded-full pointer-events-none opacity-50", positions[position], className)}
-      style={{ background: colors[color] }}
-    />
-  );
-}
+}) { return null; }
 
 export function GlassPill({
   color = "default",
@@ -145,7 +99,7 @@ export function GlassPill({
   return (
     <div
       className={cn(
-        "px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5 border backdrop-blur-md transition-all",
+        "px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5 border transition-all",
         variants[color],
         className
       )}

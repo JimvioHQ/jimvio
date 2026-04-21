@@ -134,16 +134,14 @@ export function MarketplaceSearch({
         }
         autoComplete="off"
         className={cn(
-          "w-full h-[56px] pl-12 pr-12 rounded-full",
-          "border border-white/80 dark:border-border-strong/80 bg-white dark:bg-surface/60 dark:bg-surface/60",
-          "shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgba(249,115,22,0.08)]",
-          "text-[16px] font-bold text-stone-900 dark:text-white tracking-tight",
-          "placeholder:text-stone-400 dark:placeholder:text-stone-500 placeholder:font-semibold",
-          "focus:outline-none focus:ring-4 focus:ring-orange-500/20 focus:border-orange-500/50 focus:bg-white dark:bg-surface dark:focus:bg-zinc-900",
-          "transition-all duration-300 ease-out",
-          "apple-glass-blur"
+          "w-full h-[52px] pl-12 pr-12 rounded-lg",
+          "border border-border bg-white dark:bg-surface",
+          "shadow-sm",
+          "text-[15px] font-semibold text-stone-900 dark:text-white",
+          "placeholder:text-stone-400 dark:placeholder:text-stone-500",
+          "focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-400",
+          "transition-all duration-200",
         )}
-        style={{ backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)" }}
         onKeyDown={(e) => {
           if (e.key === "Enter") {
             setShowDropdown(false);
@@ -172,7 +170,7 @@ export function MarketplaceSearch({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 8, scale: 0.98 }}
             transition={{ type: "spring", stiffness: 400, damping: 30 }}
-            className="absolute top-full left-0 right-0 mt-3 bg-white dark:bg-surface/95 dark:bg-surface/95 backdrop-blur-3xl border border-stone-200/50 dark:border-border/50 rounded-[28px] shadow-[0_30px_60px_rgba(0,0,0,0.12)] overflow-hidden"
+            className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-surface border border-border rounded-xl shadow-lg overflow-hidden"
           >
             <div className="p-2">
               {suggestions.length > 0 ? (
@@ -186,9 +184,9 @@ export function MarketplaceSearch({
                       key={p.id}
                       href={`/marketplace/${p.slug}`}
                       onClick={() => setShowDropdown(false)}
-                      className="flex items-center gap-4 px-3 py-2.5 rounded-[20px] hover:bg-stone-50 dark:bg-surface/50 dark:hover:bg-stone-800/50 transition-colors group/item mx-2"
+                      className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors group/item mx-1"
                     >
-                      <div className="h-10 w-10 rounded-xl overflow-hidden bg-zinc-100 dark:bg-surface-secondary border border-zinc-100 dark:border-border shrink-0 group-hover/item:border-[#f97316]/20">
+                      <div className="h-10 w-10 rounded-lg overflow-hidden bg-stone-100 dark:bg-surface-secondary border border-border shrink-0">
                         {p.image ? (
                           <img src={p.image} alt="" className="w-full h-full object-cover" />
                         ) : (
@@ -212,7 +210,7 @@ export function MarketplaceSearch({
                   <Link
                     href={marketplaceHref(currentParams, { q: q.trim() }, basePath)}
                     onClick={() => setShowDropdown(false)}
-                    className="group flex items-center justify-between w-[calc(100%-16px)] mx-2 my-2 py-4 px-6 text-[14px] font-black text-white dark:text-zinc-900 dark:text-white bg-stone-900 dark:bg-white dark:bg-surface hover:bg-black dark:hover:bg-zinc-200 rounded-2xl transition-all shadow-md hover:shadow-lg hover:shadow-stone-900/20 dark:hover:shadow-white/20"
+                    className="group flex items-center justify-between w-[calc(100%-16px)] mx-2 my-2 py-3 px-5 text-[13px] font-bold text-white bg-stone-900 dark:bg-stone-800 hover:bg-black rounded-lg transition-all"
                   >
                     <span>View all results for "{q.trim()}"</span>
                     <ArrowRight className="h-4 w-4 transform group-hover:translate-x-1 transition-transform" />

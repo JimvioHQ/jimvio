@@ -114,12 +114,7 @@ export function SharedCampaignCard({ c }: CampaignCardProps) {
             return (
               <div
                 key={p}
-                className="w-6 h-6 rounded-lg flex items-center justify-center shadow-sm"
-                style={{
-                  background: "rgba(255,255,255,0.9)",
-                  backdropFilter: "blur(8px)",
-                  border: "1px solid rgba(0,0,0,0.05)",
-                }}
+                className="w-6 h-6 rounded-md flex items-center justify-center shadow-sm bg-white border border-stone-200"
               >
                 <Icon className="h-3 w-3 text-stone-600" />
               </div>
