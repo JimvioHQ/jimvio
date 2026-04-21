@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState } from "react";
 import { Quote, X } from "lucide-react";
@@ -99,7 +99,7 @@ export function QuoteReplyModal({
               onClick={handleSubmit("accepted")}
               disabled={loading || !offer_price.trim()}
             >
-              {loading ? "Sending…" : "Send offer"}
+              {loading ? "Sendingâ€¦" : "Send offer"}
             </Button>
           </div>
         </form>

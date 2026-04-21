@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React from "react";
 import Link from "next/link";
@@ -75,7 +75,7 @@ export function UniversalDashboard({ userName, activity, loading }: UniversalDas
       {/* 1. Welcome section */}
       <section>
         <h1 className="text-2xl sm:text-3xl font-bold text-[var(--color-text-primary)]">
-          Welcome back, {userName} 👋
+          Welcome back, {userName} ðŸ‘‹
         </h1>
         <p className="text-[var(--color-text-secondary)] mt-1 text-sm sm:text-base">
           Explore the marketplace, promote products, or start selling.

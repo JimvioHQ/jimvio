@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React from "react";
 import Link from "next/link";
@@ -66,7 +66,7 @@ export function PhysicalProductDetail({
   return (
     <div className="min-h-screen bg-stone-50/50 dark:bg-[#070707]">
       {/* Breadcrumb Sticky */}
-      <div className="bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md border-b border-stone-200 dark:border-white/5 sticky top-[var(--navbar-height,64px)] z-30">
+      <div className="bg-white/80 dark:bg-zinc-950/80 border-b border-stone-200 dark:border-white/5 sticky top-[var(--navbar-height,64px)] z-30">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-12">
           <nav className="flex items-center gap-1 text-[10px] font-bold text-stone-400 uppercase tracking-widest min-w-0">
             <Link href="/" className="hover:text-orange-500 transition-colors">Home</Link>
@@ -153,7 +153,7 @@ export function PhysicalProductDetail({
                            </p>
                         </div>
                         <Button variant="ghost" size="sm" className="h-8 rounded-lg text-[10px] font-bold uppercase tracking-widest px-3" asChild>
-                           <Link href={`/vendors/${vendor.business_slug}`}>Visit →</Link>
+                           <Link href={`/vendors/${vendor.business_slug}`}>Visit â†’</Link>
                         </Button>
                      </div>
                   )}

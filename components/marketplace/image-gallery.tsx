@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState } from "react";
 import { Zap } from "lucide-react";
@@ -36,7 +36,7 @@ export function ImageGallery({ images, productName, isFeatured, savings, classNa
         <div className="absolute top-3 left-3 flex gap-2">
           {savings && savings > 0 && (
             <span className="bg-red-500 text-white text-[10px] font-black px-2.5 py-1 rounded-full shadow">
-              −{savings}%
+              âˆ’{savings}%
             </span>
           )}
           {isFeatured && (

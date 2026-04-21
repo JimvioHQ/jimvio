@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useMemo, useState } from "react";
 import Image from "next/image";
@@ -129,7 +129,7 @@ export function CreateCommunityForm() {
           <Check className="h-8 w-8" />
         </div>
         <h1 className="text-2xl font-black text-[var(--color-text-primary)]">Community created</h1>
-        <p className="text-[var(--color-text-muted)]">You’re ready to add spaces and rooms.</p>
+        <p className="text-[var(--color-text-muted)]">Youâ€™re ready to add spaces and rooms.</p>
         <Button asChild className="rounded-xl bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-black px-8">
           <Link href={`/creator/${successId}/spaces`}>Set up your spaces</Link>
         </Button>
@@ -247,7 +247,7 @@ export function CreateCommunityForm() {
             <div className="flex flex-wrap gap-2 mt-2">
               {tags.map((t) => (
                 <button key={t} type="button" onClick={() => removeTag(t)} className="text-xs font-bold px-2 py-1 rounded-lg bg-[var(--color-accent-light)] text-[var(--color-accent)]">
-                  {t} ×
+                  {t} Ã—
                 </button>
               ))}
             </div>
@@ -288,7 +288,7 @@ export function CreateCommunityForm() {
           </div>
 
           {isFree ? (
-            <p className="text-sm text-[var(--color-text-secondary)] font-medium">Members join for free — no pricing required.</p>
+            <p className="text-sm text-[var(--color-text-secondary)] font-medium">Members join for free â€” no pricing required.</p>
           ) : (
             <div className="space-y-3">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -340,7 +340,7 @@ export function CreateCommunityForm() {
               <span className="text-[var(--color-text-muted)]">Name:</span> <span className="font-bold">{name}</span>
             </p>
             <p>
-              <span className="text-[var(--color-text-muted)]">Tagline:</span> {tagline || "—"}
+              <span className="text-[var(--color-text-muted)]">Tagline:</span> {tagline || "â€”"}
             </p>
             <p>
               <span className="text-[var(--color-text-muted)]">Category:</span> {category}
@@ -350,12 +350,12 @@ export function CreateCommunityForm() {
             </p>
             {!isFree && (
               <p className="text-xs text-[var(--color-text-muted)]">
-                Monthly {monthly} · Yearly {yearly}
-                {lifetime ? ` · Lifetime ${lifetime}` : ""}
+                Monthly {monthly} Â· Yearly {yearly}
+                {lifetime ? ` Â· Lifetime ${lifetime}` : ""}
               </p>
             )}
             <p>
-              <span className="text-[var(--color-text-muted)]">Tags:</span> {tags.join(", ") || "—"}
+              <span className="text-[var(--color-text-muted)]">Tags:</span> {tags.join(", ") || "â€”"}
             </p>
           </div>
         </div>

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState } from "react";
 import { Quote, X } from "lucide-react";
@@ -97,7 +97,7 @@ export function QuoteRequestModal({
               Cancel
             </Button>
             <Button type="submit" className="rounded-xl flex-1 bg-[var(--color-accent)]" disabled={loading}>
-              {loading ? "Sending…" : "Send request"}
+              {loading ? "Sendingâ€¦" : "Send request"}
             </Button>
           </div>
         </form>

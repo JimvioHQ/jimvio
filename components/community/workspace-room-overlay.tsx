@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
@@ -70,7 +70,7 @@ export function WorkspaceRoomOverlay({
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_140%_100%_at_50%_-20%,rgba(34,197,94,0.08),transparent_50%)]" />
       <div className="pointer-events-none absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[var(--color-border)] to-transparent opacity-50" />
 
-      <header className="relative z-10 shrink-0 border-b border-[var(--color-border)] bg-[var(--color-surface)]/80 backdrop-blur-2xl px-3 py-1.5 sm:px-6 sm:py-2.5 flex items-center gap-3 sm:gap-4 shadow-[0_4px_24px_rgba(0,0,0,0.02)]">
+      <header className="relative z-10 shrink-0 border-b border-[var(--color-border)] bg-[var(--color-surface)]/80 px-3 py-1.5 sm:px-6 sm:py-2.5 flex items-center gap-3 sm:gap-4 shadow-[0_4px_24px_rgba(0,0,0,0.02)]">
         <Button
           type="button"
           variant="outline"
@@ -113,7 +113,7 @@ export function WorkspaceRoomOverlay({
         </div>
       </header>
 
-      <main className="relative z-10 flex flex-1 min-h-0 flex-col overflow-hidden bg-[var(--color-bg)]/50 backdrop-blur-sm">
+      <main className="relative z-10 flex flex-1 min-h-0 flex-col overflow-hidden bg-[var(--color-bg)]/50 ">
         {children}
       </main>
 

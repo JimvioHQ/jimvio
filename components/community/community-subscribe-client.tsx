@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useMemo, useState } from "react";
 import Image from "next/image";
@@ -148,7 +148,7 @@ export function CommunitySubscribeClient({
     <div className="min-h-screen bg-zinc-50/50 dark:bg-bg flex items-center justify-center py-6 md:py-12 px-0 sm:px-4">
       <div className="w-full max-w-5xl flex flex-col md:flex-row bg-white dark:bg-surface md:rounded-[32px] overflow-hidden shadow-[0_32px_128px_-16px_rgba(0,0,0,0.12)] border border-zinc-100 dark:border-border">
         
-        {/* ── SIDEBAR ── */}
+        {/* â”€â”€ SIDEBAR â”€â”€ */}
         <aside className="w-full md:w-[320px] lg:w-[360px] flex-shrink-0 bg-[#1a1428] flex flex-col gap-8 p-8 relative overflow-hidden">
           <div className="absolute top-0 -right-20 w-64 h-64 bg-orange-500/10 rounded-full blur-[80px] pointer-events-none" />
           
@@ -164,7 +164,7 @@ export function CommunitySubscribeClient({
           </div>
 
           {/* Totals */}
-          <div className="relative z-10 p-6 rounded-[24px] bg-white dark:bg-surface/5 border border-white/10 backdrop-blur-sm">
+          <div className="relative z-10 p-6 rounded-[24px] bg-white dark:bg-surface/5 border border-white/10 ">
             <p className="text-[10px] font-black tracking-widest uppercase text-white/30 mb-2">Plan Amount</p>
             <div className="flex items-baseline gap-2">
               <span className="text-4xl font-black text-white tracking-tighter tabular-nums">
@@ -210,7 +210,7 @@ export function CommunitySubscribeClient({
           </div>
         </aside>
 
-        {/* ── MAIN CONTENT ── */}
+        {/* â”€â”€ MAIN CONTENT â”€â”€ */}
         <div className="flex-1 flex flex-col min-w-0">
           
           <div className="px-8 pt-8 pb-4">
@@ -334,7 +334,7 @@ export function CommunitySubscribeClient({
                  else handleComplete();
               }}
               className={cn(
-                "h-14 px-10 rounded-2xl bg-orange-500/10 backdrop-blur-md border border-orange-500/30 active:scale-[0.98] disabled:opacity-50 text-orange-600 font-black text-sm transition-all shadow-sm flex items-center gap-3 uppercase tracking-widest"
+                "h-14 px-10 rounded-2xl bg-orange-500/10 border border-orange-500/30 active:scale-[0.98] disabled:opacity-50 text-orange-600 font-black text-sm transition-all shadow-sm flex items-center gap-3 uppercase tracking-widest"
               )}
             >
               {submitting ? (

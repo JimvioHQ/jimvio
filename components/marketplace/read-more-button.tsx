@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React from "react";
 import { Button } from "@/components/ui/button";
@@ -23,7 +23,7 @@ export function ReadMoreButton({ tabValue, className }: ReadMoreButtonProps) {
       className={className} 
       onClick={handleClick}
     >
-      Read Full Description →
+      Read Full Description â†’
     </Button>
   );
 }

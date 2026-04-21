@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
@@ -24,9 +24,9 @@ import {
 } from "@/lib/actions/short-videos";
 import { useCloudinaryUpload } from "@/hooks/use-cloudinary-upload";
 
-// ─────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Types
-// ─────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface ShortVideo {
   id: string;
@@ -50,9 +50,9 @@ interface ShortVideo {
 
 type Tab = "videos" | "upload" | "analytics" | "earnings";
 
-// ─────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Helpers
-// ─────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function fmtDur(sec: number) {
   const m = Math.floor(sec / 60);
@@ -66,9 +66,9 @@ function fmtNum(n: number) {
   return n.toString();
 }
 
-// ─────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Sub-components
-// ─────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function StatPill({ value, label, icon, color }: { value: string; label: string; icon: React.ReactNode; color: string }) {
   return (
@@ -181,9 +181,9 @@ function VideoCard({
   );
 }
 
-// ─────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Upload Tab
-// ─────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function UploadTab({ onSuccess }: { onSuccess: () => void }) {
   const { upload, uploading, progress } = useCloudinaryUpload();
@@ -309,7 +309,7 @@ function UploadTab({ onSuccess }: { onSuccess: () => void }) {
           <div className="space-y-2">
             <Upload className="h-10 w-10 mx-auto text-zinc-300" />
             <p className="text-sm font-bold text-zinc-600">Drop your video here or tap to browse</p>
-            <p className="text-xs text-zinc-400">MP4, MOV, WebM · max 200MB</p>
+            <p className="text-xs text-zinc-400">MP4, MOV, WebM Â· max 200MB</p>
           </div>
         )}
       </div>
@@ -318,7 +318,7 @@ function UploadTab({ onSuccess }: { onSuccess: () => void }) {
       {uploading && progress > 0 && (
         <div className="space-y-1.5">
           <div className="flex items-center justify-between text-xs font-bold text-zinc-500">
-            <span>Uploading…</span><span>{progress}%</span>
+            <span>Uploadingâ€¦</span><span>{progress}%</span>
           </div>
           <div className="h-2 rounded-full bg-zinc-100 overflow-hidden">
             <div className="h-full bg-gradient-to-r from-[var(--color-accent)] to-orange-400 transition-all" style={{ width: `${progress}%` }} />
@@ -332,7 +332,7 @@ function UploadTab({ onSuccess }: { onSuccess: () => void }) {
         <input
           value={form.title}
           onChange={(e) => setForm(f => ({ ...f, title: e.target.value }))}
-          placeholder="Give your video a catchy title…"
+          placeholder="Give your video a catchy titleâ€¦"
           className="w-full h-11 rounded-xl border border-zinc-200 dark:border-border-strong bg-white dark:bg-surface dark:text-white px-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30 focus:border-[var(--color-accent)]"
           maxLength={100}
         />
@@ -344,7 +344,7 @@ function UploadTab({ onSuccess }: { onSuccess: () => void }) {
         <textarea
           value={form.description}
           onChange={(e) => setForm(f => ({ ...f, description: e.target.value }))}
-          placeholder="Tell viewers what this is about…"
+          placeholder="Tell viewers what this is aboutâ€¦"
           rows={3}
           className="w-full rounded-xl border border-zinc-200 dark:border-border-strong bg-white dark:bg-surface dark:text-white px-4 py-3 text-sm font-medium resize-none focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30 focus:border-[var(--color-accent)]"
           maxLength={500}
@@ -402,9 +402,9 @@ function UploadTab({ onSuccess }: { onSuccess: () => void }) {
               onChange={(e) => setForm(f => ({ ...f, product_id: e.target.value }))}
               className="w-full h-12 rounded-xl border-2 border-zinc-100 dark:border-border-strong bg-white dark:bg-surface dark:text-white px-4 text-sm font-bold focus:outline-none focus:border-[var(--color-accent)] transition-all appearance-none cursor-pointer"
             >
-              <option value="">Choose a product…</option>
+              <option value="">Choose a productâ€¦</option>
               {products.map(p => (
-                <option key={p.id} value={p.id}>{p.name} — {p.currency} {p.price}</option>
+                <option key={p.id} value={p.id}>{p.name} â€” {p.currency} {p.price}</option>
               ))}
             </select>
             <div className="flex flex-wrap gap-2 mt-3">
@@ -438,7 +438,7 @@ function UploadTab({ onSuccess }: { onSuccess: () => void }) {
               onChange={(e) => setForm(f => ({ ...f, community_id: e.target.value }))}
               className="w-full h-12 rounded-xl border-2 border-zinc-100 dark:border-border-strong bg-white dark:bg-surface dark:text-white px-4 text-sm font-bold focus:outline-none focus:border-indigo-500 transition-all appearance-none cursor-pointer"
             >
-              <option value="">Choose a community…</option>
+              <option value="">Choose a communityâ€¦</option>
               {communities.map(c => (
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
@@ -486,7 +486,7 @@ function UploadTab({ onSuccess }: { onSuccess: () => void }) {
         <div className={cn("rounded-xl px-4 py-3 text-sm font-bold flex items-center gap-2",
           result.ok ? "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400" : "bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400")}>
           {result.ok ? <CheckCircle className="h-4 w-4 shrink-0" /> : <AlertCircle className="h-4 w-4 shrink-0" />}
-          {result.ok ? "Video uploaded successfully! Redirecting…" : result.error}
+          {result.ok ? "Video uploaded successfully! Redirectingâ€¦" : result.error}
         </div>
       )}
 
@@ -496,9 +496,9 @@ function UploadTab({ onSuccess }: { onSuccess: () => void }) {
         className="w-full h-12 rounded-xl font-black text-sm bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] shadow-lg shadow-orange-500/20 transition-all active:scale-95"
       >
         {uploading ? (
-          <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> {progress > 0 ? `Uploading ${progress}%` : "Sending to Storage…"}</>
+          <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> {progress > 0 ? `Uploading ${progress}%` : "Sending to Storageâ€¦"}</>
         ) : submitting ? (
-          <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Finalizing Video…</>
+          <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Finalizing Videoâ€¦</>
         ) : (
           <><Upload className="h-4 w-4 mr-2" /> Publish Video</>
         )}
@@ -507,9 +507,9 @@ function UploadTab({ onSuccess }: { onSuccess: () => void }) {
   );
 }
 
-// ─────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Analytics Tab
-// ─────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function AnalyticsTab({ videos }: { videos: ShortVideo[] }) {
   const [selectedId, setSelectedId] = useState<string | null>(videos[0]?.id ?? null);
@@ -551,7 +551,7 @@ function AnalyticsTab({ videos }: { videos: ShortVideo[] }) {
 
       {loading && (
         <div className="flex items-center gap-2 text-zinc-400 py-10">
-          <Loader2 className="h-5 w-5 animate-spin" /><span className="text-sm font-medium">Loading analytics…</span>
+          <Loader2 className="h-5 w-5 animate-spin" /><span className="text-sm font-medium">Loading analyticsâ€¦</span>
         </div>
       )}
 
@@ -603,9 +603,9 @@ function AnalyticsTab({ videos }: { videos: ShortVideo[] }) {
   );
 }
 
-// ─────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Earnings Tab
-// ─────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function EarningsTab() {
   const { formatMoney } = useCurrency();
@@ -620,7 +620,7 @@ function EarningsTab() {
 
   if (loading) return (
     <div className="flex items-center gap-2 text-zinc-400 py-10">
-      <Loader2 className="h-5 w-5 animate-spin" /><span className="text-sm">Loading earnings…</span>
+      <Loader2 className="h-5 w-5 animate-spin" /><span className="text-sm">Loading earningsâ€¦</span>
     </div>
   );
 
@@ -679,7 +679,7 @@ function EarningsTab() {
       {/* Earnings rate explanation */}
       <div className="rounded-2xl border border-zinc-100 dark:border-border bg-zinc-50 dark:bg-surface/50 p-5 space-y-2 text-xs text-zinc-500 dark:text-text-muted">
         <p className="font-black text-zinc-700 dark:text-zinc-300 text-sm">How earnings are calculated</p>
-        <div className="flex items-start gap-2"><Zap className="h-3.5 w-3.5 shrink-0 text-blue-500 mt-0.5" /><span><b>Views:</b> FRw 200 per 1,000 valid views (≥5 seconds watched)</span></div>
+        <div className="flex items-start gap-2"><Zap className="h-3.5 w-3.5 shrink-0 text-blue-500 mt-0.5" /><span><b>Views:</b> FRw 200 per 1,000 valid views (â‰¥5 seconds watched)</span></div>
         <div className="flex items-start gap-2"><MousePointer className="h-3.5 w-3.5 shrink-0 text-violet-500 mt-0.5" /><span><b>Clicks:</b> FRw 10 per product click on your video</span></div>
         <div className="flex items-start gap-2"><TrendingUp className="h-3.5 w-3.5 shrink-0 text-emerald-500 mt-0.5" /><span><b>Sales:</b> 5% of order value when purchase is attributed to your video</span></div>
       </div>
@@ -687,9 +687,9 @@ function EarningsTab() {
   );
 }
 
-// ─────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // MAIN VideoStudio Component
-// ─────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export function VideoStudio({ defaultTab = "videos" }: { defaultTab?: Tab }) {
   const [tab, setTab] = useState<Tab>(defaultTab);
@@ -795,11 +795,11 @@ export function VideoStudio({ defaultTab = "videos" }: { defaultTab?: Tab }) {
 
       {/* Tab content */}
       <div className="min-h-[300px]">
-        {/* ── MY VIDEOS ── */}
+        {/* â”€â”€ MY VIDEOS â”€â”€ */}
         {tab === "videos" && (
           loading ? (
             <div className="flex items-center gap-2 text-zinc-400 py-10">
-              <Loader2 className="h-5 w-5 animate-spin" /><span className="text-sm">Loading your videos…</span>
+              <Loader2 className="h-5 w-5 animate-spin" /><span className="text-sm">Loading your videosâ€¦</span>
             </div>
           ) : videos.length === 0 ? (
             <div className="py-20 text-center border-2 border-dashed border-zinc-200 dark:border-border rounded-2xl">
@@ -825,17 +825,17 @@ export function VideoStudio({ defaultTab = "videos" }: { defaultTab?: Tab }) {
           )
         )}
 
-        {/* ── UPLOAD ── */}
+        {/* â”€â”€ UPLOAD â”€â”€ */}
         {tab === "upload" && (
           <UploadTab onSuccess={() => { loadVideos(); setTab("videos"); }} />
         )}
 
-        {/* ── ANALYTICS ── */}
+        {/* â”€â”€ ANALYTICS â”€â”€ */}
         {tab === "analytics" && (
           <AnalyticsTab videos={videos} />
         )}
 
-        {/* ── EARNINGS ── */}
+        {/* â”€â”€ EARNINGS â”€â”€ */}
         {tab === "earnings" && (
           <EarningsTab />
         )}

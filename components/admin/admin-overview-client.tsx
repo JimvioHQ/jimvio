@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React from "react";
 import { Users, Store, Package, ShoppingCart, DollarSign, ShieldCheck, TrendingUp } from "lucide-react";

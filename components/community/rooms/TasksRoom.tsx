@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
@@ -167,7 +167,7 @@ export function TasksRoom({
               <span className="inline-flex items-center gap-1 font-bold text-[var(--color-accent)]">
                 <Zap className="h-3.5 w-3.5" /> {(points?.total_points ?? 0).toLocaleString()} pts
               </span>
-              <span className="mx-2">·</span>
+              <span className="mx-2">Â·</span>
               Level {points?.level ?? 1}
             </p>
           </div>
@@ -225,7 +225,7 @@ export function TasksRoom({
                       <span className="text-xs font-black px-2 py-1 rounded-lg bg-[var(--color-warning-light)] text-[var(--color-warning)]">Submitted</span>
                     )}
                     {comp?.status === "approved" && (
-                      <span className="text-xs font-black px-2 py-1 rounded-lg bg-[var(--color-success-light)] text-[var(--color-success)]">Completed ✓</span>
+                      <span className="text-xs font-black px-2 py-1 rounded-lg bg-[var(--color-success-light)] text-[var(--color-success)]">Completed âœ“</span>
                     )}
                   </div>
                 </div>
@@ -270,7 +270,7 @@ export function TasksRoom({
             <label className="text-xs font-bold text-[var(--color-text-muted)]">What did you do?</label>
             <Textarea value={proofText} onChange={(e) => setProofText(e.target.value)} rows={4} className="rounded-xl border-[var(--color-border)]" />
             <label className="text-xs font-bold text-[var(--color-text-muted)]">Proof link (optional)</label>
-            <Input value={proofUrl} onChange={(e) => setProofUrl(e.target.value)} className="rounded-xl border-[var(--color-border)]" placeholder="https://…" />
+            <Input value={proofUrl} onChange={(e) => setProofUrl(e.target.value)} className="rounded-xl border-[var(--color-border)]" placeholder="https://â€¦" />
           </div>
           <div className="flex flex-wrap gap-2 justify-end pt-2">
             <Button variant="outline" className="rounded-xl" onClick={() => setModalTask(null)}>

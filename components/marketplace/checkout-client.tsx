@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -128,7 +128,7 @@ export function CheckoutClient({ orders, total }: CheckoutClientProps) {
               <p className="text-2xl font-black text-zinc-900 dark:text-white">
                 {payment.payAmount} {payment.payCurrency.toUpperCase()}
               </p>
-              <p className="text-sm text-zinc-500 mt-1">≈ {formatPrice(payment.priceAmount)} (USD)</p>
+              <p className="text-sm text-zinc-500 mt-1">â‰ˆ {formatPrice(payment.priceAmount)} (USD)</p>
             </div>
           </div>
 

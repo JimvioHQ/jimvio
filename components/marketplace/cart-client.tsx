@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -125,7 +125,7 @@ export function CartClient({ initialOrders }: CartClientProps) {
     }
   };
 
-  // ── EMPTY STATE ──
+  // â”€â”€ EMPTY STATE â”€â”€
   if (orders.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center text-center py-24 bg-surface dark:bg-surface rounded-2xl border border-border shadow-sm">
@@ -148,7 +148,7 @@ export function CartClient({ initialOrders }: CartClientProps) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] xl:grid-cols-[1fr_360px] gap-6">
 
-      {/* ══ CART ITEMS ══ */}
+      {/* â•â• CART ITEMS â•â• */}
       <div className="space-y-4">
         <AnimatePresence mode="popLayout" initial={false}>
           {orders.map(order => (
@@ -297,7 +297,7 @@ export function CartClient({ initialOrders }: CartClientProps) {
         </Link>
       </div>
 
-      {/* ══ ORDER SUMMARY SIDEBAR ══ */}
+      {/* â•â• ORDER SUMMARY SIDEBAR â•â• */}
       <aside>
         <div className="sticky top-[calc(var(--navbar-height,64px)+56px)] space-y-4">
 
@@ -320,7 +320,7 @@ export function CartClient({ initialOrders }: CartClientProps) {
               <div className="flex justify-between text-xs">
                 <span className="text-stone-500 dark:text-text-muted">Estimated Tax</span>
                 <span className="text-stone-800 dark:text-text-secondary font-bold">
-                  {hasMixedCurrencies ? "—" : formatMoney(0, orders[0]?.currency ?? "USD")}
+                  {hasMixedCurrencies ? "â€”" : formatMoney(0, orders[0]?.currency ?? "USD")}
                 </span>
               </div>
             </div>

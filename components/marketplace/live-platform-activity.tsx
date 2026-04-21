@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React from "react";
 import { Megaphone, Users, DollarSign, TrendingUp } from "lucide-react";

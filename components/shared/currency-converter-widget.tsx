@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState, useEffect } from "react";
 import { ArrowRightLeft, TrendingUp } from "lucide-react";
@@ -59,7 +59,7 @@ export function CurrencyConverterWidget({ className, variant = "full" }: Currenc
   if (variant === "compact") {
     return (
       <div className={cn(
-        "rounded-2xl border border-orange-200/40 bg-gradient-to-br from-orange-50/60 to-amber-50/40 p-4 backdrop-blur-sm",
+        "rounded-2xl border border-orange-200/40 bg-gradient-to-br from-orange-50/60 to-amber-50/40 p-4 ",
         className
       )}>
         <div className="flex items-center gap-3">
@@ -85,7 +85,7 @@ export function CurrencyConverterWidget({ className, variant = "full" }: Currenc
 
   return (
     <div className={cn(
-      "rounded-2xl border border-gradient bg-gradient-to-br from-white/95 to-orange-50/30 dark:from-zinc-900/95 dark:to-orange-950/20 p-5 sm:p-6 backdrop-blur-sm shadow-[0_8px_32px_rgba(249,115,22,0.08)] border-[#f97316]/20",
+      "rounded-2xl border border-gradient bg-gradient-to-br from-white/95 to-orange-50/30 dark:from-zinc-900/95 dark:to-orange-950/20 p-5 sm:p-6 shadow-[0_8px_32px_rgba(249,115,22,0.08)] border-[#f97316]/20",
       className
     )}>
       <div className="mb-4 flex items-center justify-between">

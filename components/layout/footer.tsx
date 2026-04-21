@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React from "react";
 import Link from "next/link";
@@ -138,7 +138,7 @@ export function Footer({ contact: contactProp }: { contact?: ContactSettings }) 
 
       {/* Bottom */}
       <div className="py-5 text-xs flex flex-col md:flex-row justify-between items-center gap-4 px-4 sm:px-6 max-w-[1280px] mx-auto text-stone-500 border-t border-border">
-        <p>© {new Date().getFullYear()} Jimvio</p>
+        <p>Â© {new Date().getFullYear()} Jimvio</p>
 
         <div className="flex gap-4">
           <Link href="/privacy">Privacy</Link>

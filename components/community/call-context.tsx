@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { createContext, useContext, useEffect, useState, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
@@ -213,7 +213,7 @@ export function CallProvider({ children }: CallProviderProps) {
       
       {/* Global Incoming Call UI */}
       {incomingCall && (
-        <div className="fixed inset-0 z-[100000] flex flex-col items-center justify-center bg-black/90 backdrop-blur-md text-white animate-in fade-in zoom-in duration-300">
+        <div className="fixed inset-0 z-[100000] flex flex-col items-center justify-center bg-black/90 text-white animate-in fade-in zoom-in duration-300">
            <div className="flex flex-col items-center gap-6 max-w-sm w-full p-8 rounded-[40px] bg-[#233138] border border-white/10 shadow-2xl">
               <div className="w-24 h-24 rounded-full bg-[#00a884] flex items-center justify-center text-3xl font-bold overflow-hidden shadow-xl">
                 {incomingCall.sender?.avatar_url ? <img src={incomingCall.sender.avatar_url} className="w-full h-full object-cover" alt=""/> : <span>{incomingCall.sender?.full_name?.[0] || 'I'}</span>}
@@ -264,7 +264,7 @@ export function CallProvider({ children }: CallProviderProps) {
                    ref={(el) => { if(el && localStream) el.srcObject = localStream; }}
                    className={`absolute bottom-6 right-6 w-32 h-48 bg-black rounded-2xl border border-white/20 object-cover transition-transform group-hover:scale-105 shadow-xl ${!remoteStream ? 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-72' : ''}`} />
 
-                <div className="absolute top-6 left-6 px-4 py-1.5 bg-black/40 backdrop-blur-md rounded-full border border-white/10 flex items-center gap-2">
+                <div className="absolute top-6 left-6 px-4 py-1.5 bg-black/40 rounded-full border border-white/10 flex items-center gap-2">
                    <div className="w-2 h-2 bg-[#00a884] rounded-full animate-pulse" />
                    <p className="text-[10px] text-[#00a884] font-black uppercase tracking-[0.2em]">P2P SECURE</p>
                 </div>

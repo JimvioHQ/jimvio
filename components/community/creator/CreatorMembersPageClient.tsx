@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useMemo, useState } from "react";
 import Image from "next/image";
@@ -139,7 +139,7 @@ export function CreatorMembersPageClient({
           ))}
         </div>
         <div className="flex gap-2 flex-wrap">
-          <Input placeholder="Search name or email…" value={q} onChange={(e) => setQ(e.target.value)} className="max-w-xs rounded-xl border-[var(--color-border)]" />
+          <Input placeholder="Search name or emailâ€¦" value={q} onChange={(e) => setQ(e.target.value)} className="max-w-xs rounded-xl border-[var(--color-border)]" />
           <Button type="button" variant="outline" className="rounded-xl border-[var(--color-border)] font-bold" onClick={exportCsv}>
             <Download className="h-4 w-4 mr-2" /> Export CSV
           </Button>
@@ -173,8 +173,8 @@ export function CreatorMembersPageClient({
                       )}
                     </div>
                     <div className="min-w-0">
-                      <p className="font-bold truncate">{r.profiles?.full_name || r.profiles?.username || "—"}</p>
-                      <p className="text-[10px] text-[var(--color-text-muted)] truncate">{r.profiles?.email || "—"}</p>
+                      <p className="font-bold truncate">{r.profiles?.full_name || r.profiles?.username || "â€”"}</p>
+                      <p className="text-[10px] text-[var(--color-text-muted)] truncate">{r.profiles?.email || "â€”"}</p>
                     </div>
                   </div>
                 </td>
@@ -182,8 +182,8 @@ export function CreatorMembersPageClient({
                 <td className="py-3 px-3">
                   <span className="text-xs font-black px-2 py-0.5 rounded-md bg-[var(--color-surface-secondary)]">{r.status}</span>
                 </td>
-                <td className="py-3 px-3 text-xs text-[var(--color-text-muted)]">{r.created_at ? new Date(r.created_at).toLocaleDateString() : "—"}</td>
-                <td className="py-3 px-3 text-xs">{r.amount_paid != null ? Number(r.amount_paid).toFixed(2) : "—"}</td>
+                <td className="py-3 px-3 text-xs text-[var(--color-text-muted)]">{r.created_at ? new Date(r.created_at).toLocaleDateString() : "â€”"}</td>
+                <td className="py-3 px-3 text-xs">{r.amount_paid != null ? Number(r.amount_paid).toFixed(2) : "â€”"}</td>
                 <td className="py-3 px-3">
                   <div className="flex flex-wrap gap-1">
                     <Button

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -30,8 +30,8 @@ function mergeLinks(navLinks: NavLinkConfig[]) {
   });
 }
 
-/* ── Dark glass search input shell ── */
-/* ── Professional Solid Input Shells ── */
+/* â”€â”€ Dark glass search input shell â”€â”€ */
+/* â”€â”€ Professional Solid Input Shells â”€â”€ */
 const INPUT_IDLE: React.CSSProperties = {
   background: "var(--color-surface)",
   border: "1px solid var(--color-border)",
@@ -105,7 +105,7 @@ export function NavbarSearch({
   const showPanel = open && (searchQ.trim().length > 0 || focused);
   const expandedW = isDesktop ? (focused ? 320 : searchQ ? 200 : 180) : "100%";
 
-  /* ── Input style selection ── */
+  /* â”€â”€ Input style selection â”€â”€ */
   const inputStyle = focused ? INPUT_LIGHT_FOCUSED : INPUT_LIGHT;
 
   return (
@@ -142,7 +142,7 @@ export function NavbarSearch({
             if (e.key === "Enter") commit(searchQ);
             if (e.key === "Escape") { close(); inputRef.current?.blur(); }
           }}
-          placeholder={!isDesktop && !focused && !searchQ ? "" : (placeholder ?? "Search…")}
+          placeholder={!isDesktop && !focused && !searchQ ? "" : (placeholder ?? "Searchâ€¦")}
           className="flex-1 min-w-0 bg-transparent border-0 outline-none px-2 text-[13px] font-semibold placeholder:font-normal"
           style={{ color: "var(--color-text-primary)", caretColor: "#f97316" }}
         />
@@ -165,7 +165,7 @@ export function NavbarSearch({
           )}
         </AnimatePresence>
 
-        {/* Cmd+K hint — desktop only */}
+        {/* Cmd+K hint â€” desktop only */}
         <AnimatePresence>
           {!focused && !searchQ && isDesktop && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -189,7 +189,7 @@ export function NavbarSearch({
         </button>
       )}
 
-      {/* ── Results portal ── */}
+      {/* â”€â”€ Results portal â”€â”€ */}
       {showPanel && portalReady && createPortal(
         <div className="fixed inset-0 z-[10001] flex items-start justify-center pt-32 sm:pt-28 px-3">
           <motion.div
@@ -223,12 +223,12 @@ export function NavbarSearch({
             {/* Body grid */}
             <div className="flex divide-x divide-black/[0.04] max-h-[480px] overflow-hidden">
 
-              {/* Left — results */}
+              {/* Left â€” results */}
               <div className="flex-1 overflow-y-auto p-5 space-y-5" style={{ scrollbarWidth: "none" }}>
                 {loading && (
                   <div className="flex items-center gap-3 py-4">
                     <Loader2 className="h-5 w-5 animate-spin text-orange-500" />
-                    <span className="text-[13px] font-semibold text-stone-400">Searching…</span>
+                    <span className="text-[13px] font-semibold text-stone-400">Searchingâ€¦</span>
                   </div>
                 )}
 

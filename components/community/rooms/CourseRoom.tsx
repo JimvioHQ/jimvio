@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
@@ -220,7 +220,7 @@ export function CourseRoom({
     } finally { setMarking(false); }
   };
 
-  /* ─── Loading ─── */
+  /* â”€â”€â”€ Loading â”€â”€â”€ */
   if (loading) {
     return (
       <div className="flex flex-1 items-center justify-center py-20">
@@ -229,7 +229,7 @@ export function CourseRoom({
     );
   }
 
-  /* ─── Empty State ─── */
+  /* â”€â”€â”€ Empty State â”€â”€â”€ */
   if (!editing && (!course || flatLessons.length === 0)) {
     return (
       <div className="flex flex-1 items-center justify-center p-8 flex-col gap-5 text-center">
@@ -253,7 +253,7 @@ export function CourseRoom({
     );
   }
 
-  /* ─── Sidebar ─── */
+  /* â”€â”€â”€ Sidebar â”€â”€â”€ */
   const sidebar = (
     <div className="flex flex-col h-full bg-[var(--color-surface)]">
       {/* Course header */}
@@ -471,7 +471,7 @@ export function CourseRoom({
     </div>
   );
 
-  /* ─── Lesson Player ─── */
+  /* â”€â”€â”€ Lesson Player â”€â”€â”€ */
   const lessonPlayer = (
     <div className="flex flex-col h-full min-w-0 bg-[var(--color-bg)]">
       {activeLesson ? (
@@ -479,7 +479,7 @@ export function CourseRoom({
           {/* Scrollable content */}
           <div className="flex-1 overflow-y-auto">
             {/* Mobile top bar */}
-            <div className="sticky top-0 z-10 flex items-center gap-2 px-4 py-3 bg-[var(--color-bg)]/95 backdrop-blur-sm border-b border-[var(--color-border)] lg:hidden">
+            <div className="sticky top-0 z-10 flex items-center gap-2 px-4 py-3 bg-[var(--color-bg)]/95 border-b border-[var(--color-border)] lg:hidden">
               <button
                 onClick={() => setMobileView("list")}
                 className="flex items-center gap-1.5 text-[var(--color-accent)] font-semibold text-sm"
@@ -560,17 +560,17 @@ export function CourseRoom({
                   <div className="absolute inset-0 flex items-center justify-between px-4 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
                       onClick={() => setCurrentSlide((p) => Math.max(0, p - 1))}
-                      className="h-10 w-10 rounded-full bg-black/40 text-white backdrop-blur-md flex items-center justify-center hover:bg-black/60 disabled:opacity-30"
+                      className="h-10 w-10 rounded-full bg-black/40 text-white flex items-center justify-center hover:bg-black/60 disabled:opacity-30"
                       disabled={currentSlide === 0}
                     >
                       <ChevronLeft size={22} />
                     </button>
-                    <span className="text-[11px] font-bold text-white px-3 py-1.5 bg-black/40 rounded-full backdrop-blur-md">
+                    <span className="text-[11px] font-bold text-white px-3 py-1.5 bg-black/40 rounded-full ">
                       {currentSlide + 1} / {activeLesson.slideshow.length}
                     </span>
                     <button
                       onClick={() => setCurrentSlide((p) => Math.min((activeLesson.slideshow?.length || 1) - 1, p + 1))}
-                      className="h-10 w-10 rounded-full bg-black/40 text-white backdrop-blur-md flex items-center justify-center hover:bg-black/60 disabled:opacity-30"
+                      className="h-10 w-10 rounded-full bg-black/40 text-white flex items-center justify-center hover:bg-black/60 disabled:opacity-30"
                       disabled={currentSlide === (activeLesson.slideshow.length || 1) - 1}
                     >
                       <ChevronRight size={22} />
@@ -694,10 +694,10 @@ export function CourseRoom({
     </div>
   );
 
-  /* ─── Studio Modal ─── */
+  /* â”€â”€â”€ Studio Modal â”€â”€â”€ */
   const studioModal = editingItem && (
     <div className="fixed inset-0 z-[20000] flex items-end sm:items-center justify-center pointer-events-auto">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setEditingItem(null)} />
+      <div className="absolute inset-0 bg-black/60 " onClick={() => setEditingItem(null)} />
 
       <div className="relative w-full sm:max-w-4xl max-h-[95dvh] sm:max-h-[90vh] bg-[var(--color-surface)] sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col border border-[var(--color-border)] animate-in slide-in-from-bottom-4 sm:zoom-in-95 duration-300">
         {/* Header */}
@@ -953,12 +953,12 @@ export function CourseRoom({
     </div>
   );
 
-  /* ─── Main layout ─── */
+  /* â”€â”€â”€ Main layout â”€â”€â”€ */
   return (
     <>
       {/* Desktop: side-by-side | Mobile: tab-switched views */}
       <div className="flex flex-1 min-h-0 overflow-hidden relative">
-        {/* Sidebar — always visible on lg, toggled on mobile */}
+        {/* Sidebar â€” always visible on lg, toggled on mobile */}
         <div
           className={cn(
             "shrink-0 border-r border-[var(--color-border)]",
@@ -993,7 +993,7 @@ export function CourseRoom({
         </div>
       </div>
 
-      {/* Mobile bottom tab bar — only show when not in editing modal */}
+      {/* Mobile bottom tab bar â€” only show when not in editing modal */}
       {!editingItem && (
         <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 flex border-t border-[var(--color-border)] bg-[var(--color-surface)] safe-area-bottom">
           <button

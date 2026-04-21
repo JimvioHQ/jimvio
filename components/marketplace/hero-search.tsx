@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
@@ -61,7 +61,7 @@ export function HeroSearch() {
 
   return (
     <div ref={containerRef} className="w-full z-[100] relative">
-      {/* ── Search bar — matches HTML prototype search-wrap / search-bar ── */}
+      {/* â”€â”€ Search bar â€” matches HTML prototype search-wrap / search-bar â”€â”€ */}
       <div
         className="px-[52px] py-3 border-b border-black/[.07] dark:border-white/[.06] bg-white dark:bg-[#0f0e0c]"
       >
@@ -85,7 +85,7 @@ export function HeroSearch() {
             value={q}
             onFocus={() => setIsFocused(true)}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Search products, suppliers, or ask Jimvio AI…"
+            placeholder="Search products, suppliers, or ask Jimvio AIâ€¦"
             className="flex-1 bg-transparent border-0 outline-none text-[14px] text-[#1c1811] dark:text-[#f0e8dc] placeholder:text-[#a89f93] font-normal h-full"
             onKeyDown={(e) => {
               if (e.key === "Enter") handleSearch();

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState, useMemo, useCallback } from "react";
 import { useBodyScrollLock, useEscapeClose } from "@/hooks/use-body-scroll-lock";
@@ -30,7 +30,7 @@ import { FollowButton } from "@/components/marketplace/follow-button";
 import { LocalizedPrice } from "@/components/currency/localized-price";
 import { GlassAmbientGlow } from "@/components/ui/glass";
 
-/* ─── Types ─── */
+/* â”€â”€â”€ Types â”€â”€â”€ */
 interface Product {
   id: string;
   name: string;
@@ -86,7 +86,7 @@ interface MarketplaceClientProps {
   uiVariant?: "all" | "digital" | "physical";
 }
 
-/* ─── Hero Deal Banner ─── */
+/* â”€â”€â”€ Hero Deal Banner â”€â”€â”€ */
 function HeroDealBanner({ params, basePath }: { params: Record<string, string | undefined>, basePath?: string }) {
   const type = params.type;
   const isAll = !type;
@@ -110,7 +110,7 @@ function HeroDealBanner({ params, basePath }: { params: Record<string, string | 
       <div className="absolute top-10 -right-12 w-56 h-56 rounded-full mix-blend-multiply opacity-40 blur-2xl" style={{ background: "radial-gradient(circle, #fb923c 0%, transparent 70%)" }} />
       <div className="absolute -bottom-16 left-1/4 w-40 h-40 rounded-full mix-blend-multiply opacity-30 blur-2xl" style={{ background: "radial-gradient(circle, #f97316 0%, transparent 70%)" }} />
 
-      {/* ── Dynamic Decorative Elements (Real Images) ── */}
+      {/* â”€â”€ Dynamic Decorative Elements (Real Images) â”€â”€ */}
       
       {/* 1. DIGITAL ITEMS */}
       {(isAll || isDigital) && (
@@ -152,7 +152,7 @@ function HeroDealBanner({ params, basePath }: { params: Record<string, string | 
       <div className="relative z-10 px-4 py-8 sm:py-10 flex flex-col items-center text-center">
         {/* Title */}
         <h2 className="text-[26px] sm:text-[32px] font-black text-stone-900 dark:text-white tracking-tight leading-tight mb-1">
-          <span className="inline-block animate-[spin_4s_linear_infinite] mr-2">🌟</span> 
+          <span className="inline-block animate-[spin_4s_linear_infinite] mr-2">ðŸŒŸ</span> 
           Top Deals Today!
         </h2>
         
@@ -181,7 +181,7 @@ function HeroDealBanner({ params, basePath }: { params: Record<string, string | 
   );
 }
 
-/* ─── Product Type Tabs (Segmented Control) ─── */
+/* â”€â”€â”€ Product Type Tabs (Segmented Control) â”€â”€â”€ */
 function TypeTabs({ params, basePath }: { params: Record<string, string | undefined>; basePath?: string; }) {
   const isDigital = params.type === "digital";
   const isPhysical = params.type === "physical";
@@ -238,7 +238,7 @@ function TypeTabs({ params, basePath }: { params: Record<string, string | undefi
   );
 }
 
-/* ─── Category Chip ─── */
+/* â”€â”€â”€ Category Chip â”€â”€â”€ */
 function CategoryChip({
   label,
   active,
@@ -266,7 +266,7 @@ function CategoryChip({
   );
 }
 
-/* ─── Sort Pill ─── */
+/* â”€â”€â”€ Sort Pill â”€â”€â”€ */
 function SortPill({
   active,
   href,
@@ -294,28 +294,28 @@ function SortPill({
   );
 }
 
-/* ─── Category icon map ─── */
+/* â”€â”€â”€ Category icon map â”€â”€â”€ */
 const CATEGORY_ICONS: Record<string, string> = {
-  electronics: "⚡",
-  fashion: "👗",
-  apparel: "👚",
-  home: "🏠",
-  furniture: "🛋️",
-  beauty: "💄",
-  health: "💊",
-  food: "🍎",
-  sports: "⚽",
-  toys: "🧸",
-  books: "📚",
-  automotive: "🚗",
-  garden: "🌿",
-  jewelry: "💎",
-  music: "🎵",
-  art: "🎨",
-  travel: "✈️",
-  pets: "🐾",
-  baby: "🍼",
-  tools: "🔧",
+  electronics: "âš¡",
+  fashion: "ðŸ‘—",
+  apparel: "ðŸ‘š",
+  home: "ðŸ ",
+  furniture: "ðŸ›‹ï¸",
+  beauty: "ðŸ’„",
+  health: "ðŸ’Š",
+  food: "ðŸŽ",
+  sports: "âš½",
+  toys: "ðŸ§¸",
+  books: "ðŸ“š",
+  automotive: "ðŸš—",
+  garden: "ðŸŒ¿",
+  jewelry: "ðŸ’Ž",
+  music: "ðŸŽµ",
+  art: "ðŸŽ¨",
+  travel: "âœˆï¸",
+  pets: "ðŸ¾",
+  baby: "ðŸ¼",
+  tools: "ðŸ”§",
 };
 
 function getCategoryIcon(slug: string, name: string): string | undefined {
@@ -326,7 +326,7 @@ function getCategoryIcon(slug: string, name: string): string | undefined {
   return undefined;
 }
 
-/* ─── Main Component ─── */
+/* â”€â”€â”€ Main Component â”€â”€â”€ */
 export function MarketplaceClient({
   initialProducts,
   categories,
@@ -390,7 +390,7 @@ export function MarketplaceClient({
 
   const renderCat = (cat: { slug: string | null; name: string }) => {
     const isActive = (!params.cat && !cat.slug) || params.cat === cat.slug;
-    const icon = cat.slug ? getCategoryIcon(cat.slug, cat.name) : "🛍️";
+    const icon = cat.slug ? getCategoryIcon(cat.slug, cat.name) : "ðŸ›ï¸";
     return (
       <Link
         key={cat.slug || "all"}
@@ -418,7 +418,7 @@ export function MarketplaceClient({
         ? "bg-[#fafcfe] dark:bg-[#050505]" 
         : "bg-white dark:bg-bg"
     )}>
-      {/* ── Sticky Top Bar ── */}
+      {/* â”€â”€ Sticky Top Bar â”€â”€ */}
       <div className="sticky top-0 z-50 border-b border-border shadow-sm bg-surface">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 pt-3 pb-3">
           <div className="flex flex-col md:flex-row items-center justify-between gap-3 md:gap-6">
@@ -474,10 +474,10 @@ export function MarketplaceClient({
         </div>
       </div>
 
-      {/* ── Main Content ── */}
+      {/* â”€â”€ Main Content â”€â”€ */}
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-5 lg:py-6 flex flex-col lg:flex-row gap-6">
 
-        {/* ── LEFT SIDEBAR (desktop) ── */}
+        {/* â”€â”€ LEFT SIDEBAR (desktop) â”€â”€ */}
         <aside className="hidden lg:block lg:w-60 shrink-0">
           <div className="sticky top-[130px] space-y-5">
             {/* Main sidebar shell with variant-aware borders */}
@@ -565,7 +565,7 @@ export function MarketplaceClient({
           </div>
         </aside>
 
-        {/* ── PRODUCT AREA ── */}
+        {/* â”€â”€ PRODUCT AREA â”€â”€ */}
         <div className="flex-1 min-w-0 space-y-4">
 
           {/* Hero Deal Banner */}
@@ -577,7 +577,7 @@ export function MarketplaceClient({
               label="All"
               active={!params.cat}
               href={marketplaceHref(paramsRecord, { cat: null }, basePath)}
-              icon="🛍️"
+              icon="ðŸ›ï¸"
             />
             {displayCategories.slice(0, 12).map((cat) => (
               <CategoryChip
@@ -613,12 +613,12 @@ export function MarketplaceClient({
             <SortPill
               active={currentSort === "price_asc"}
               href={marketplaceHref(paramsRecord, { sort: "price_asc" }, basePath)}
-              label="Price ↑"
+              label="Price â†‘"
             />
             <SortPill
               active={currentSort === "price_desc"}
               href={marketplaceHref(paramsRecord, { sort: "price_desc" }, basePath)}
-              label="Price ↓"
+              label="Price â†“"
             />
           </div>
 
@@ -857,7 +857,7 @@ export function MarketplaceClient({
         </div>
       </div>
 
-      {/* ── Clip modal ── */}
+      {/* â”€â”€ Clip modal â”€â”€ */}
       {modalClip && (
         <>
           <div

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
@@ -100,15 +100,15 @@ export function CommissionTable({
                       {r.order_number || r.order_id.slice(0, 8)}
                     </Link>
                   ) : (
-                    "—"
+                    "â€”"
                   )}
                 </td>
                 <td className="p-3">
                   <Badge variant="secondary" className="capitalize">
-                    {r.provider || "—"}
+                    {r.provider || "â€”"}
                   </Badge>
                 </td>
-                <td className="p-3">—</td>
+                <td className="p-3">â€”</td>
                 <td className="p-3">8%</td>
                 <td className="p-3 font-bold">{formatCurrency(r.amount, r.currency)}</td>
                 <td className="p-3">

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
@@ -330,7 +330,7 @@ export function AISourcingAssistant() {
                          </div>
                          <div className="h-40 sm:h-48 w-full mb-4 rounded-2xl bg-zinc-50 dark:bg-surface/50 flex flex-col items-center justify-center relative overflow-hidden group-hover:bg-zinc-100 transition-colors">
                             <Package className="h-10 w-10 text-zinc-200 group-hover:scale-110 transition-transform duration-500" />
-                            <div className="absolute top-2 right-2 flex items-center gap-1 px-2 py-1 rounded-lg bg-white dark:bg-surface/80 backdrop-blur-md border border-zinc-100 dark:border-border text-[10px] font-black shadow-sm">
+                            <div className="absolute top-2 right-2 flex items-center gap-1 px-2 py-1 rounded-lg bg-white dark:bg-surface/80 border border-zinc-100 dark:border-border text-[10px] font-black shadow-sm">
                                <ShieldCheck size={12} className="text-orange-500" /> Verified
                             </div>
                          </div>

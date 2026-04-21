@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
@@ -182,7 +182,7 @@ export function CommunityInboxDialog({
               <Loader2 className="h-6 w-6 animate-spin text-[var(--color-text-muted)]" />
             </div>
           ) : messages.length === 0 ? (
-            <p className="py-8 text-center text-sm text-[var(--color-text-muted)]">No messages yet — say hello.</p>
+            <p className="py-8 text-center text-sm text-[var(--color-text-muted)]">No messages yet â€” say hello.</p>
           ) : (
             <div className="space-y-3">
               {messages.map((m) => {
@@ -215,7 +215,7 @@ export function CommunityInboxDialog({
             <Textarea
               value={text}
               onChange={(e) => setText(e.target.value)}
-              placeholder="Write a message…"
+              placeholder="Write a messageâ€¦"
               rows={2}
               className="min-h-[44px] flex-1 resize-none rounded-xl border-[var(--color-border)] bg-[var(--color-surface-secondary)]"
               onKeyDown={(e) => {

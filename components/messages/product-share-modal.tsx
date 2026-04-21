@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState } from "react";
 import { Package, X, Search } from "lucide-react";
@@ -94,7 +94,7 @@ export function ProductShareModal({
               className="rounded-xl flex-1"
             />
             <Button type="button" onClick={fetchBySlug} disabled={loading} className="rounded-xl shrink-0">
-              {loading ? "…" : "Load"}
+              {loading ? "â€¦" : "Load"}
             </Button>
           </div>
           <div className="flex gap-2">

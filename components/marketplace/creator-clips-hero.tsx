@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState, useCallback } from "react";
 import { useBodyScrollLock, useEscapeClose } from "@/hooks/use-body-scroll-lock";
@@ -48,7 +48,7 @@ export function CreatorClipsHero({ clips, className }: CreatorClipsHeroProps) {
           Live
         </span>
         <Link href="/marketplace" className="ml-auto text-[11px] font-black text-[#f97316] uppercase tracking-widest hover:underline flex items-center gap-1">
-          See all clips →
+          See all clips â†’
         </Link>
       </div>
 
@@ -92,7 +92,7 @@ export function CreatorClipsHero({ clips, className }: CreatorClipsHeroProps) {
                   <span className="text-[11px] font-black">{(clip.total_views ?? 0).toLocaleString()} views</span>
                 </div>
                 {clip.products && (
-                  <div className="bg-ink-darker/50 backdrop-blur rounded-xl px-2.5 py-2 flex items-center justify-between gap-2">
+                  <div className="bg-ink-darker/50 rounded-xl px-2.5 py-2 flex items-center justify-between gap-2">
                     <span className="text-[10px] font-bold text-white truncate flex-1">{clip.products.name}</span>
                     <ShoppingBag className="h-4 w-4 text-[#f97316] shrink-0" />
                   </div>
@@ -109,7 +109,7 @@ export function CreatorClipsHero({ clips, className }: CreatorClipsHeroProps) {
               </div>
 
               <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                <div className="w-14 h-14 rounded-full bg-white dark:bg-surface/25 backdrop-blur border-2 border-white/40 flex items-center justify-center">
+                <div className="w-14 h-14 rounded-full bg-white dark:bg-surface/25 border-2 border-white/40 flex items-center justify-center">
                   <Play className="h-7 w-7 text-white fill-white ml-1" />
                 </div>
               </div>
@@ -121,7 +121,7 @@ export function CreatorClipsHero({ clips, className }: CreatorClipsHeroProps) {
       {/* Modal */}
       {modalClip && (
         <>
-          <div className="fixed inset-0 z-[1000] overscroll-none bg-ink-darker/85 backdrop-blur-sm animate-in fade-in duration-200" onClick={closeModal} aria-hidden />
+          <div className="fixed inset-0 z-[1000] overscroll-none bg-ink-darker/85 animate-in fade-in duration-200" onClick={closeModal} aria-hidden />
           <div className="fixed inset-0 z-[1001] flex items-center justify-center p-4 pointer-events-none">
             <div className="pointer-events-auto w-full max-w-lg flex flex-col gap-0 bg-[#121212] rounded-2xl overflow-hidden shadow-2xl border border-white/10 relative">
               <button type="button" onClick={closeModal} className="absolute top-3 right-3 z-20 w-10 h-10 rounded-full bg-ink-darker/50 flex items-center justify-center text-white hover:bg-ink-darker/70">

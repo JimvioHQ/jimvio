@@ -1,14 +1,14 @@
-"use client";
+﻿"use client";
 
 import React from "react";
 import { CreditCard, Bitcoin, Check, Smartphone, Globe, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-/* ──────────────────────────────────────────────────
-   INLINE SVG BRAND LOGOS — zero CDN dependency
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+   INLINE SVG BRAND LOGOS â€” zero CDN dependency
    All rendered with inline SVG or styled spans.
    Pill height: 24px, consistent across all logos.
-   ────────────────────────────────────────────────── */
+   â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 const pill: React.CSSProperties = {
   display: "inline-flex", alignItems: "center", justifyContent: "center",
@@ -207,7 +207,7 @@ export function PaymentMethodSelector({
             type="button"
             onClick={() => onSelect(m.id)}
             className={cn(
-               "relative w-full text-left transition-all duration-200 active:scale-[0.985] rounded-[18px] overflow-hidden backdrop-blur-md",
+               "relative w-full text-left transition-all duration-200 active:scale-[0.985] rounded-[18px] overflow-hidden ",
                active 
                   ? "bg-orange-50/80 dark:bg-orange-500/10 border border-orange-500/40 shadow-sm shadow-orange-500/10"
                   : "bg-surface dark:bg-surface border border-border shadow-sm hover:border-orange-500/20"

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -33,7 +33,7 @@ import { CurrencyConverterWidget } from "@/components/shared/currency-converter-
    iPhone 17 Liquid Glass Design Tokens
    --------------------------------------------------------- */
 
-/** Standard Professional Design Tokens — solid surfaces, high trust */
+/** Standard Professional Design Tokens â€” solid surfaces, high trust */
 const GLASS_LIGHT = {
   body: "var(--color-surface)",
   border: "var(--color-border)",
@@ -48,10 +48,10 @@ const GLASS_DARK = {
   shadow: "var(--shadow-sm)",
 };
 
-/* Specular line — the 1px bright edge every glass element has */
+/* Specular line â€” the 1px bright edge every glass element has */
 function SpecularLine({ rounded = false }: { rounded?: boolean }) { return null; }
 
-/* Diagonal specular sweep — adds depth */
+/* Diagonal specular sweep â€” adds depth */
 function SpecularSweep() { return null; }
 
 /* Glass pill button */
@@ -285,7 +285,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
           <div className="flex items-center gap-5">
             <span className="flex items-center gap-1.5 text-[9px] font-semibold text-stone-500 dark:text-text-muted tracking-widest capitalize">
               <Globe className="h-3 w-3 text-orange-500" />
-              {(marketing.locale_strip?.trim() || "EN · USD")}
+              {(marketing.locale_strip?.trim() || "EN Â· USD")}
             </span>
             <CurrencySelector className="h-5 bg-transparent border-0 px-1 text-[10px] font-semibold text-stone-500 dark:text-text-muted hover:text-stone-800 dark:text-text-secondary dark:hover:text-stone-200 transition-colors" />
           </div>
@@ -386,7 +386,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
                   onMouseEnter={() => { if (marketplaceTimer.current) clearTimeout(marketplaceTimer.current); setMarketplaceOpen(true); }}
                   onMouseLeave={() => { marketplaceTimer.current = setTimeout(() => setMarketplaceOpen(false), 140); }}
                   sideOffset={10}
-                  className="w-72 p-2 rounded-[24px] border border-white/10 dark:border-white/5 outline-none overflow-hidden bg-white/95 dark:bg-stone-900/95 backdrop-blur-3xl shadow-2xl"
+                  className="w-72 p-2 rounded-[24px] border border-white/10 dark:border-white/5 outline-none overflow-hidden bg-white/95 dark:bg-stone-900/95 shadow-2xl"
                 >
                   <SpecularLine rounded />
                   {marketplaceVariants.map(v => (
@@ -568,7 +568,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
         </div>
       </div>
 
-      {/* MOBILE DRAWER — Premium Solid Theme */}
+      {/* MOBILE DRAWER â€” Premium Solid Theme */}
       {portalReady && createPortal(
         <MobileDrawer
           open={mobileOpen}
@@ -658,7 +658,7 @@ function MobileDrawer({
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 z-[9998] bg-black/60 backdrop-blur-[2px]"
+            className="fixed inset-0 z-[9998] bg-black/60 "
           />
           <motion.div
             initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }}
@@ -740,7 +740,7 @@ function MobileDrawer({
                   className="w-full relative flex items-center justify-between p-4 rounded-2xl bg-gradient-to-br from-orange-500 to-orange-600 shadow-lg shadow-orange-500/20 group overflow-hidden"
                 >
                   <div className="flex items-center gap-4 relative z-10">
-                    <div className="h-10 w-10 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center shadow-inner">
+                    <div className="h-10 w-10 rounded-xl bg-white/20 flex items-center justify-center shadow-inner">
                       <Sparkles className="h-5 w-5 text-white" />
                     </div>
                     <div className="text-left">

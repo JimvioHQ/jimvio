@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState } from "react";
 import Link from "next/link";
@@ -18,7 +18,7 @@ interface ProductCardProps {
   viewMode?: "grid" | "list";
 }
 
-/** Reusable glass badge — matches dashboard GlassPill */
+/** Reusable glass badge â€” matches dashboard GlassPill */
 function GlassBadge({
   children,
   color = "neutral",
@@ -35,7 +35,7 @@ function GlassBadge({
   };
   return (
     <span className={cn(
-      "inline-flex items-center gap-1 rounded-full border backdrop-blur-xl px-2.5 py-1 text-[10px] font-bold dark:border-opacity-30",
+      "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-bold dark:border-opacity-30",
       styles[color]
     )}>
       {children}
@@ -53,15 +53,15 @@ export function ProductCard({ product, viewMode = "grid" }: ProductCardProps) {
   const images = Array.isArray(product.images) ? (product.images as string[]) : [];
   const primaryImage = images[0] || null;
 
-  /* ════════════════════════════
-     LIST VIEW — horizontal glass card
-  ════════════════════════════ */
+  /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+     LIST VIEW â€” horizontal glass card
+  â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
   if (viewMode === "list") {
     return (
       <Link href={`/marketplace/${product.slug}`}>
         <div className={cn(
           "flex gap-4 p-4 group cursor-pointer overflow-hidden",
-          "rounded-[28px] border backdrop-blur-2xl",
+          "rounded-[28px] border ",
           "bg-white dark:bg-surface/55 border-white/70 dark:border-white/10",
           "shadow-[0_4px_24px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,0.9)] dark:shadow-[0_4px_24px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.05)]",
           "hover:shadow-[0_8px_40px_rgba(249,115,22,0.10),inset_0_1px_0_rgba(255,255,255,0.9)] dark:hover:shadow-[0_8px_40px_rgba(249,115,22,0.2),inset_0_1px_0_rgba(255,255,255,0.05)]",
@@ -135,7 +135,7 @@ export function ProductCard({ product, viewMode = "grid" }: ProductCardProps) {
             <button
               type="button"
               onClick={(e) => { e.preventDefault(); setWishlisted(!wishlisted); }}
-              className="h-8 w-full rounded-full bg-surface dark:bg-surface/70 border border-border backdrop-blur-xl flex items-center justify-center hover:border-red-200 dark:hover:border-red-800 transition-all"
+              className="h-8 w-full rounded-full bg-surface dark:bg-surface/70 border border-border flex items-center justify-center hover:border-red-200 dark:hover:border-red-800 transition-all"
             >
               <Heart className={cn("h-3.5 w-3.5 transition-colors", wishlisted ? "fill-red-500 text-red-500" : "text-stone-400")} />
             </button>
@@ -145,27 +145,27 @@ export function ProductCard({ product, viewMode = "grid" }: ProductCardProps) {
     );
   }
 
-  /* ════════════════════════════
-     GRID VIEW — vertical glass card
+  /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+     GRID VIEW â€” vertical glass card
      Matches dashboard GlassCard exactly
-  ════════════════════════════ */
+  â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
   return (
     <Link href={`/marketplace/${product.slug}`}>
       <div className={cn(
         "group relative overflow-hidden cursor-pointer",
-        "rounded-[28px] border backdrop-blur-2xl",
+        "rounded-[28px] border ",
         "bg-white dark:bg-surface/55 border-white/70 dark:border-white/10",
         "shadow-[0_4px_24px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,0.9)] dark:shadow-[0_4px_24px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.05)]",
         "hover:shadow-[0_8px_40px_rgba(249,115,22,0.10),inset_0_1px_0_rgba(255,255,255,0.9)] dark:hover:shadow-[0_8px_40px_rgba(249,115,22,0.2),inset_0_1px_0_rgba(255,255,255,0.05)]",
         "hover:border-orange-100/80 dark:hover:border-orange-500/30 transition-all duration-300",
       )}>
-        {/* ── Specular shine (matches dashboard GlassCard shine) ── */}
+        {/* â”€â”€ Specular shine (matches dashboard GlassCard shine) â”€â”€ */}
         <div className="pointer-events-none absolute inset-0 rounded-[28px] overflow-hidden z-10">
           <div className="absolute -top-1/2 -left-1/2 w-full h-3/4 rotate-[-25deg] bg-gradient-to-br from-white/80 to-transparent" />
           <div className="absolute bottom-0 right-0 w-1/2 h-1/2 rounded-full blur-2xl bg-orange-100/40" />
         </div>
 
-        {/* ── Image ── */}
+        {/* â”€â”€ Image â”€â”€ */}
         <div className="relative aspect-square overflow-hidden rounded-t-[28px]">
           {primaryImage && !imageError ? (
             <Image
@@ -192,13 +192,13 @@ export function ProductCard({ product, viewMode = "grid" }: ProductCardProps) {
           {/* Badges */}
           <div className="absolute top-2.5 left-2.5 flex flex-col gap-1.5 z-20">
             {discount > 0 && <GlassBadge color="red">-{discount}%</GlassBadge>}
-            {product.is_featured && <GlassBadge color="amber">✦ Curated</GlassBadge>}
+            {product.is_featured && <GlassBadge color="amber">âœ¦ Curated</GlassBadge>}
           </div>
 
           {/* Wishlist button */}
           <button
             type="button"
-            className="absolute top-2.5 right-2.5 z-20 h-8 w-8 rounded-full bg-surface dark:bg-surface/80 backdrop-blur-xl border border-border shadow-md flex items-center justify-center hover:scale-110 active:scale-95 transition-all"
+            className="absolute top-2.5 right-2.5 z-20 h-8 w-8 rounded-full bg-surface dark:bg-surface/80 border border-border shadow-md flex items-center justify-center hover:scale-110 active:scale-95 transition-all"
             onClick={(e) => { e.preventDefault(); setWishlisted(!wishlisted); }}
           >
             <Heart className={cn("h-3.5 w-3.5 transition-colors", wishlisted ? "fill-red-500 text-red-500" : "text-stone-500 dark:text-text-muted")} />
@@ -215,7 +215,7 @@ export function ProductCard({ product, viewMode = "grid" }: ProductCardProps) {
           </div>
         </div>
 
-        {/* ── Info ── */}
+        {/* â”€â”€ Info â”€â”€ */}
         <div className="relative z-10 px-3.5 pt-3 pb-3.5">
           {product.affiliate_enabled && (
             <GlassBadge color="orange">Affiliate</GlassBadge>

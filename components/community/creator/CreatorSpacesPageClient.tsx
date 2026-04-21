@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useCallback, useEffect, useState } from "react";
 import { Loader2, Plus } from "lucide-react";
@@ -15,14 +15,14 @@ import { SpaceBuilder, type RoomRow, type SpaceRow } from "@/components/communit
 import { slugify } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 
-const EMOJI_GRID = ["💬", "📚", "📝", "📁", "✅", "🎯", "💡", "🚀", "🌟", "🔥", "💼", "🧠"];
+const EMOJI_GRID = ["ðŸ’¬", "ðŸ“š", "ðŸ“", "ðŸ“", "âœ…", "ðŸŽ¯", "ðŸ’¡", "ðŸš€", "ðŸŒŸ", "ðŸ”¥", "ðŸ’¼", "ðŸ§ "];
 
 const ROOM_TYPES: { id: string; label: string; desc: string; emoji: string }[] = [
-  { id: "chat", label: "Chat Room", desc: "Real-time messaging", emoji: "💬" },
-  { id: "course", label: "Course Room", desc: "Structured lessons", emoji: "📚" },
-  { id: "posts", label: "Posts Room", desc: "Discussions and announcements", emoji: "📝" },
-  { id: "resources", label: "Resources Room", desc: "Files and links", emoji: "📁" },
-  { id: "tasks", label: "Tasks Room", desc: "Challenges and daily tasks", emoji: "✅" },
+  { id: "chat", label: "Chat Room", desc: "Real-time messaging", emoji: "ðŸ’¬" },
+  { id: "course", label: "Course Room", desc: "Structured lessons", emoji: "ðŸ“š" },
+  { id: "posts", label: "Posts Room", desc: "Discussions and announcements", emoji: "ðŸ“" },
+  { id: "resources", label: "Resources Room", desc: "Files and links", emoji: "ðŸ“" },
+  { id: "tasks", label: "Tasks Room", desc: "Challenges and daily tasks", emoji: "âœ…" },
 ];
 
 /** Supabase PostgrestError and Error both carry .message; avoid throwing raw objects (shows as [object Object]). */
@@ -88,7 +88,7 @@ export function CreatorSpacesPageClient({ communityId }: { communityId: string }
 
   const [sName, setSName] = useState("");
   const [sDesc, setSDesc] = useState("");
-  const [sIcon, setSIcon] = useState("💬");
+  const [sIcon, setSIcon] = useState("ðŸ’¬");
   const [sColor, setSColor] = useState("#7c3aed");
   const [sAccess, setSAccess] = useState<"free" | "paid" | "premium">("free");
 
@@ -218,7 +218,7 @@ export function CreatorSpacesPageClient({ communityId }: { communityId: string }
               setEditingSpaceId(s.id);
               setSName(s.name);
               setSDesc((s as any).description || "");
-              setSIcon(s.icon || "💬");
+              setSIcon(s.icon || "ðŸ’¬");
               setSColor((s as any).color || "#7c3aed");
               setSAccess(s.access_type as any);
               setSpaceModal(true);

@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import Link from "next/link";
 import {
   LayoutDashboard,
@@ -51,7 +51,7 @@ export function HeroRightPanel({ profile }: HeroRightPanelProps) {
     <div
       className="flex-col gap-[10px] min-h-[360px] p-[16px] hidden lg:flex bg-[#faf9f7] dark:bg-[#0f0e0c] border-l border-black/[.07] dark:border-white/[.06]"
     >
-      {/* ── Main card ── */}
+      {/* â”€â”€ Main card â”€â”€ */}
       <div
         className="bg-white dark:bg-[#1c1811] rounded-[16px] border border-black/[.07] dark:border-white/[.08] p-[14px] flex flex-col gap-0"
       >
@@ -64,7 +64,7 @@ export function HeroRightPanel({ profile }: HeroRightPanelProps) {
               Continue your sourcing &amp; growth.
             </p>
 
-            {/* User row — matches .user-row */}
+            {/* User row â€” matches .user-row */}
             <div className="flex items-center gap-[10px] mb-3 p-[10px_12px] bg-[#f8f7f4] dark:bg-white/[.04] rounded-[12px] border border-black/[.05] dark:border-white/[.06]">
               <Avatar className="h-9 w-9 shrink-0">
                 <AvatarImage src={profile?.avatar_url ?? undefined} />
@@ -80,7 +80,7 @@ export function HeroRightPanel({ profile }: HeroRightPanelProps) {
               </div>
             </div>
 
-            {/* Dashboard CTA — matches .btn-dashboard */}
+            {/* Dashboard CTA â€” matches .btn-dashboard */}
             <Link
               href="/dashboard"
               className="flex items-center justify-center gap-[6px] w-full h-[36px] rounded-[10px] mb-[10px] text-[10px] font-black uppercase tracking-[.08em] text-[#c2410c] dark:text-[#fb923c] transition-all"
@@ -93,7 +93,7 @@ export function HeroRightPanel({ profile }: HeroRightPanelProps) {
               Dashboard
             </Link>
 
-            {/* Quick links grid — matches .grid-2 .btn-sm */}
+            {/* Quick links grid â€” matches .grid-2 .btn-sm */}
             <div className="grid grid-cols-2 gap-2 mb-2">
               <Link
                 href="/dashboard/orders"
@@ -113,7 +113,7 @@ export function HeroRightPanel({ profile }: HeroRightPanelProps) {
               </Link>
             </div>
 
-            {/* Sign out — matches .btn-signout */}
+            {/* Sign out â€” matches .btn-signout */}
             <form action={signOut}>
               <button
                 type="submit"
@@ -181,7 +181,7 @@ export function HeroRightPanel({ profile }: HeroRightPanelProps) {
         )}
       </div>
 
-      {/* ── Quick actions grid — matches .quick-grid / .quick-tile ── */}
+      {/* â”€â”€ Quick actions grid â€” matches .quick-grid / .quick-tile â”€â”€ */}
       <div className="grid grid-cols-2 gap-2">
         <Link
           href={isLoggedIn ? "/dashboard/vendor/setup" : "/register?role=vendor"}
@@ -212,7 +212,7 @@ export function HeroRightPanel({ profile }: HeroRightPanelProps) {
         </Link>
       </div>
 
-      {/* ── Earn & Influence card — matches .earn-card ── */}
+      {/* â”€â”€ Earn & Influence card â€” matches .earn-card â”€â”€ */}
       <Link
         href="/affiliates"
         className="group relative overflow-hidden rounded-[16px] p-3 cursor-pointer hover:brightness-105 transition-all"
@@ -221,7 +221,7 @@ export function HeroRightPanel({ profile }: HeroRightPanelProps) {
         }}
       >
         <div className="flex items-center gap-3">
-          {/* Icon — matches .earn-icon */}
+          {/* Icon â€” matches .earn-icon */}
           <div
             className="w-9 h-9 rounded-full flex items-center justify-center text-[16px] font-bold text-white shrink-0 group-hover:scale-110 transition-transform"
             style={{
@@ -240,7 +240,7 @@ export function HeroRightPanel({ profile }: HeroRightPanelProps) {
             <p className="text-[9px] font-semibold text-white/55 mt-0.5">Uncapped Commissions</p>
           </div>
 
-          {/* Badge — matches .earn-badge */}
+          {/* Badge â€” matches .earn-badge */}
           <div
             className="shrink-0 rounded-[8px] px-[10px] py-[4px] text-[11px] font-black text-white"
             style={{

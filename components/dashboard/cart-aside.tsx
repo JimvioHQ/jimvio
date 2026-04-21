@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -88,7 +88,7 @@ export function CartAside({ isOpen, onClose }: CartAsideProps) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[200]"
+            className="fixed inset-0 bg-black/40 z-[200]"
           />
 
           {/* Aside Panel */}

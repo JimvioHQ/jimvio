@@ -1,4 +1,4 @@
-import * as React from "react";
+﻿import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
@@ -11,7 +11,7 @@ const buttonVariants = cva(
         default:
           "bg-gradient-to-r from-brand-600 to-accent-600 text-white shadow-brand hover:shadow-brand-lg hover:scale-[1.02]",
         secondary:
-          "bg-white dark:bg-surface/10 backdrop-blur-sm border border-white/20 text-white hover:bg-white dark:bg-surface/20",
+          "bg-white dark:bg-surface/10 border border-white/20 text-white hover:bg-white dark:bg-surface/20",
         outline:
           "border border-brand-500 text-brand-500 hover:bg-brand-500 hover:text-white",
         ghost:
@@ -19,9 +19,9 @@ const buttonVariants = cva(
         destructive:
           "bg-red-600 text-white hover:bg-red-700 shadow-md",
         orange:
-          "bg-orange-500/10 backdrop-blur-md border border-orange-500/30 text-orange-600 hover:bg-orange-500/20 shadow-[0_2px_10px_rgba(249,115,22,0.10)]",
+          "bg-orange-500/10 border border-orange-500/30 text-orange-600 hover:bg-orange-500/20 shadow-[0_2px_10px_rgba(249,115,22,0.10)]",
         glass:
-          "bg-white dark:bg-surface/10 backdrop-blur-md border border-white/20 text-white hover:bg-white dark:bg-surface/20 shadow-glass",
+          "bg-white dark:bg-surface/10 border border-white/20 text-white hover:bg-white dark:bg-surface/20 shadow-glass",
         success:
           "bg-emerald-600 text-white hover:bg-emerald-700 shadow-md",
         link: "text-brand-400 underline-offset-4 hover:underline p-0 h-auto",

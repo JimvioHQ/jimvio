@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
@@ -30,7 +30,7 @@ interface Product {
   button_text?: string | null;
   pricing_type?: string | null;
   billing_period?: string | null;
-  /** Canonical product type — 'digital' | 'physical' */
+  /** Canonical product type â€” 'digital' | 'physical' */
   product_type?: string;
   affiliate_enabled?: boolean;
   affiliate_commission_rate?: number | null;
@@ -154,10 +154,10 @@ export function ProductCardClient({
 
   return (
     <>
-      {/* ══════════════════════════════════
-          PRODUCT CARD — App Store Style
+      {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+          PRODUCT CARD â€” App Store Style
           Clean white card with orange accents
-      ══════════════════════════════════ */}
+      â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
       <div
         className={cn(
           "group relative flex flex-col h-full overflow-hidden",
@@ -167,7 +167,7 @@ export function ProductCardClient({
             : "border-border shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-lg)] hover:border-orange-500/20"
         )}
       >
-        {/* ── Image area ── */}
+        {/* â”€â”€ Image area â”€â”€ */}
         <Link
           href={`${detailBasePath}/${p.slug}`}
           className={cn(
@@ -224,7 +224,7 @@ export function ProductCardClient({
 
           {/* BOTTOM-RIGHT: removed type badge */}
 
-          {/* BOTTOM hover actions — slide up */}
+          {/* BOTTOM hover actions â€” slide up */}
           <div className={cn(
             "absolute left-2 right-2 z-20 flex gap-1.5",
             "transition-all duration-400 ease-[cubic-bezier(0.16,1,0.3,1)]",
@@ -238,7 +238,7 @@ export function ProductCardClient({
               onClick={handleChat}
               className={cn(
                 "flex-1 flex items-center justify-center gap-1",
-                "rounded-[10px] font-semibold bg-surface/90 dark:bg-surface-secondary/90 backdrop-blur-md text-stone-700 dark:text-text-secondary",
+                "rounded-[10px] font-semibold bg-surface/90 dark:bg-surface-secondary/90 text-stone-700 dark:text-text-secondary",
                 "border border-border shadow-sm hover:text-orange-600 active:scale-95 transition-all text-stone-700 dark:text-text-secondary",
                 compact ? "h-7 text-[9px]" : "h-8 text-[10px]"
               )}
@@ -281,7 +281,7 @@ export function ProductCardClient({
           </div>
         </Link>
 
-        {/* ── Info area ── */}
+        {/* â”€â”€ Info area â”€â”€ */}
         <div className="flex flex-col flex-1 px-3 pt-2.5 pb-3 gap-1">
           {/* Product name */}
           <Link href={`${detailBasePath}/${p.slug}`} className="min-w-0">

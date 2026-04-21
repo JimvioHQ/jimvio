@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React from "react";
 import { LocalizedPrice } from "@/components/currency/localized-price";
@@ -46,7 +46,7 @@ export function ProductPriceDisplay({
         )}
         {savings && savings > 0 && (
           <span className="text-[10px] font-black text-red-600 bg-red-50 px-2 py-0.5 rounded-md">
-            −{savings}%
+            âˆ’{savings}%
           </span>
         )}
       </div>
@@ -55,7 +55,7 @@ export function ProductPriceDisplay({
 }
 
 /**
- * Compact variant for the sidebar Buy Box — no tagline, just the price row.
+ * Compact variant for the sidebar Buy Box â€” no tagline, just the price row.
  */
 export function ProductBuyBoxPrice({
   price,

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
@@ -159,7 +159,7 @@ export function ViralStoryRow({ clips, initialActiveIndex = null, onClose, force
 
                 {/* Play Badge */}
                 <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                  <div className="w-12 h-12 rounded-full bg-white dark:bg-surface/20 backdrop-blur-md border border-white/30 flex items-center justify-center">
+                  <div className="w-12 h-12 rounded-full bg-white dark:bg-surface/20 border border-white/30 flex items-center justify-center">
                     <Play className="h-6 w-6 text-white fill-white" />
                   </div>
                 </div>
@@ -177,7 +177,7 @@ export function ViralStoryRow({ clips, initialActiveIndex = null, onClose, force
         </div>
       )}
 
-      {/* Full-screen player: must portal to document.body — hero panels use overflow-hidden + backdrop-blur, which trap/clips position:fixed */}
+      {/* Full-screen player: must portal to document.body â€” hero panels use overflow-hidden + , which trap/clips position:fixed */}
       {mounted &&
         activeClipIndex !== null &&
         createPortal(
@@ -187,7 +187,7 @@ export function ViralStoryRow({ clips, initialActiveIndex = null, onClose, force
             {/* Close Button */}
             <button 
               onClick={closePlayer}
-              className="absolute top-6 right-6 z-[1100] w-10 h-10 rounded-full bg-ink-darker/50 backdrop-blur-md border border-white/10 flex items-center justify-center text-white hover:bg-white dark:bg-surface/20 transition-all"
+              className="absolute top-6 right-6 z-[1100] w-10 h-10 rounded-full bg-ink-darker/50 border border-white/10 flex items-center justify-center text-white hover:bg-white dark:bg-surface/20 transition-all"
             >
               <X className="h-6 w-6" />
             </button>
@@ -223,7 +223,7 @@ export function ViralStoryRow({ clips, initialActiveIndex = null, onClose, force
                     {/* Mute Toggle */}
                     <button 
                       onClick={(e) => { e.stopPropagation(); setIsMuted(!isMuted); }}
-                      className="absolute top-6 left-6 z-30 w-10 h-10 rounded-full bg-ink-darker/50 backdrop-blur-md border border-white/10 flex items-center justify-center text-white"
+                      className="absolute top-6 left-6 z-30 w-10 h-10 rounded-full bg-ink-darker/50 border border-white/10 flex items-center justify-center text-white"
                     >
                       {isMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
                     </button>
@@ -231,7 +231,7 @@ export function ViralStoryRow({ clips, initialActiveIndex = null, onClose, force
                     {/* Navigation Arrows (Mobile uses Swipe, Desktop uses Arrows) */}
                      <div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col gap-6 z-40">
                        <div className="flex flex-col items-center gap-1 group/btn">
-                          <button className="w-12 h-12 rounded-full bg-white dark:bg-surface/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white hover:bg-[#f97316] transition-all">
+                          <button className="w-12 h-12 rounded-full bg-white dark:bg-surface/10 border border-white/20 flex items-center justify-center text-white hover:bg-[#f97316] transition-all">
                              <Heart className="h-6 w-6" />
                           </button>
                           <span className="text-white text-[12px] font-black drop-shadow-lg">
@@ -239,7 +239,7 @@ export function ViralStoryRow({ clips, initialActiveIndex = null, onClose, force
                           </span>
                        </div>
                        <div className="flex flex-col items-center gap-1 group/btn">
-                          <button className="w-12 h-12 rounded-full bg-white dark:bg-surface/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white hover:bg-[#f97316] transition-all">
+                          <button className="w-12 h-12 rounded-full bg-white dark:bg-surface/10 border border-white/20 flex items-center justify-center text-white hover:bg-[#f97316] transition-all">
                              <MessageCircle className="h-6 w-6" />
                           </button>
                           <span className="text-white text-[12px] font-black drop-shadow-lg">
@@ -247,7 +247,7 @@ export function ViralStoryRow({ clips, initialActiveIndex = null, onClose, force
                           </span>
                        </div>
                        <div className="flex flex-col items-center gap-1 group/btn">
-                          <button className="w-12 h-12 rounded-full bg-white dark:bg-surface/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white hover:bg-[#f97316] transition-all">
+                          <button className="w-12 h-12 rounded-full bg-white dark:bg-surface/10 border border-white/20 flex items-center justify-center text-white hover:bg-[#f97316] transition-all">
                              <Bookmark className="h-6 w-6" />
                           </button>
                           <span className="text-white text-[12px] font-black drop-shadow-lg">
@@ -255,7 +255,7 @@ export function ViralStoryRow({ clips, initialActiveIndex = null, onClose, force
                           </span>
                        </div>
                        <div className="flex flex-col items-center gap-1 group/btn">
-                          <button className="w-12 h-12 rounded-full bg-white dark:bg-surface/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white hover:bg-[#f97316] transition-all">
+                          <button className="w-12 h-12 rounded-full bg-white dark:bg-surface/10 border border-white/20 flex items-center justify-center text-white hover:bg-[#f97316] transition-all">
                              <Share2 className="h-6 w-6" />
                           </button>
                           <span className="text-white text-[12px] font-black drop-shadow-lg">
@@ -289,7 +289,7 @@ export function ViralStoryRow({ clips, initialActiveIndex = null, onClose, force
                            </button>
                        </div>
                        <p className="text-[15px] font-bold leading-relaxed mb-4 line-clamp-3">{clips[activeClipIndex].title}</p>
-                       <div className="flex items-center gap-2 bg-ink-darker/40 backdrop-blur-md border border-white/10 rounded-full px-4 py-2 w-fit">
+                       <div className="flex items-center gap-2 bg-ink-darker/40 border border-white/10 rounded-full px-4 py-2 w-fit">
                           <Music2 className="h-3 w-3 animate-spin-slow" />
                           <span className="text-[11px] font-bold text-white/80">
                             {clips[activeClipIndex].vendors?.business_name || "Creators"} - Live Pulse
@@ -301,13 +301,13 @@ export function ViralStoryRow({ clips, initialActiveIndex = null, onClose, force
                     <div className="absolute bottom-6 right-6 z-50 flex flex-col gap-2">
                        <button 
                         onClick={() => setActiveClipIndex((activeClipIndex - 1 + clips.length) % clips.length)}
-                        className="w-12 h-12 rounded-full bg-white dark:bg-surface/10 backdrop-blur-md border border-white/10 flex items-center justify-center text-white hover:bg-[#f97316] transition-all"
+                        className="w-12 h-12 rounded-full bg-white dark:bg-surface/10 border border-white/10 flex items-center justify-center text-white hover:bg-[#f97316] transition-all"
                        >
                          <ChevronUp className="h-6 w-6" />
                        </button>
                        <button 
                          onClick={() => setActiveClipIndex((activeClipIndex + 1) % clips.length)}
-                         className="w-12 h-12 rounded-full bg-white dark:bg-surface/10 backdrop-blur-md border border-white/10 flex items-center justify-center text-white hover:bg-[#f97316] transition-all"
+                         className="w-12 h-12 rounded-full bg-white dark:bg-surface/10 border border-white/10 flex items-center justify-center text-white hover:bg-[#f97316] transition-all"
                        >
                          <ChevronDown className="h-6 w-6" />
                        </button>

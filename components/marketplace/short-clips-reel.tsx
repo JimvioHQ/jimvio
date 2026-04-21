@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React from "react";
 import Link from "next/link";
@@ -61,7 +61,7 @@ export function ShortClipsReel({ videos, className }: ShortClipsReelProps) {
 
   return (
     <section className={cn("space-y-6", className)}>
-      {/* ── Standard Premium Header ── */}
+      {/* â”€â”€ Standard Premium Header â”€â”€ */}
       <div className="flex items-end justify-between px-2">
         <div className="space-y-1.5">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-orange-50 dark:bg-orange-500/10 text-[10px] font-black uppercase tracking-[0.14em] text-orange-600 border border-orange-100/50 dark:border-orange-500/20 shadow-sm">
@@ -88,7 +88,7 @@ export function ShortClipsReel({ videos, className }: ShortClipsReelProps) {
         </Link>
       </div>
 
-      {/* ── Premium Scrollable Reel ── */}
+      {/* â”€â”€ Premium Scrollable Reel â”€â”€ */}
       <div className="flex flex-nowrap gap-5 overflow-x-auto pb-8 no-scrollbar -mx-4 px-4 sm:-mx-6 sm:px-6">
         {videos.map((video) => (
           <div
@@ -96,7 +96,7 @@ export function ShortClipsReel({ videos, className }: ShortClipsReelProps) {
             className="shrink-0 group relative flex flex-col overflow-hidden rounded-[24px] bg-white dark:bg-surface border border-stone-100 dark:border-border shadow-[0_8px_30px_-12px_rgba(0,0,0,0.06)] hover:shadow-[0_20px_50px_-12px_rgba(249,115,22,0.15)] hover:border-orange-500/30 transition-all duration-500 hover:-translate-y-2"
             style={{ width: "clamp(155px, 44vw, 190px)" }}
           >
-            {/* ── VIDEO PLAYER PORTION ── */}
+            {/* â”€â”€ VIDEO PLAYER PORTION â”€â”€ */}
             <Link 
               href={`/shorts?clip=${video.id}`} 
               className="block relative aspect-[9/12] overflow-hidden rounded-t-[24px] bg-stone-100 dark:bg-bg"
@@ -114,13 +114,13 @@ export function ShortClipsReel({ videos, className }: ShortClipsReelProps) {
 
               {/* Top Floating Badges */}
               <div className="absolute top-4 left-4 right-4 flex items-center justify-between">
-                 <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-black/40 backdrop-blur-xl border border-white/15 shadow-xl">
+                 <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-black/40 border border-white/15 shadow-xl">
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
                     <span className="text-[8px] font-black text-white uppercase tracking-[0.1em]">Live Now</span>
                  </div>
                  {video.video_type !== "general" && (
                     <div className={cn(
-                      "flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-white/10 backdrop-blur-xl text-[8px] font-black uppercase tracking-[0.12em] text-white shadow-xl",
+                      "flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-white/10 text-[8px] font-black uppercase tracking-[0.12em] text-white shadow-xl",
                       video.video_type === "community" ? "bg-indigo-600/60" : "bg-orange-500/60"
                     )}>
                       {video.video_type === "community" ? <Users className="h-2.5 w-2.5" /> : <TrendingUp className="h-2.5 w-2.5" />}
@@ -132,7 +132,7 @@ export function ShortClipsReel({ videos, className }: ShortClipsReelProps) {
               {/* Bottom Video Metadata */}
               <div className="absolute inset-x-0 bottom-0 p-3 pt-4 space-y-1">
                 <div className="flex items-center gap-1.5">
-                  <div className="h-5 w-5 rounded-full border-2 border-white/40 overflow-hidden bg-white dark:bg-surface/20 backdrop-blur-md shadow-lg transition-transform group-hover:scale-110">
+                  <div className="h-5 w-5 rounded-full border-2 border-white/40 overflow-hidden bg-white dark:bg-surface/20 shadow-lg transition-transform group-hover:scale-110">
                     {video.creator.avatar ? (
                       <img src={video.creator.avatar} alt={video.creator.name} className="h-full w-full object-cover" />
                     ) : (
@@ -164,14 +164,14 @@ export function ShortClipsReel({ videos, className }: ShortClipsReelProps) {
 
               {/* Play Button Overlay */}
               <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none">
-                <div className="h-16 w-16 rounded-full bg-white dark:bg-surface/20 backdrop-blur-xl border border-white/30 flex items-center justify-center scale-75 group-hover:scale-100 transition-all duration-500 shadow-2xl">
+                <div className="h-16 w-16 rounded-full bg-white dark:bg-surface/20 border border-white/30 flex items-center justify-center scale-75 group-hover:scale-100 transition-all duration-500 shadow-2xl">
                   <Play className="h-7 w-7 text-white fill-white ml-1 shadow-lg" />
                 </div>
               </div>
             </Link>
 
-            {/* ── CONVERSION SECTION (Grounded UI) ── */}
-            <div className="p-3 bg-stone-50/80 dark:bg-bg/90 backdrop-blur-xl border-t border-stone-100 dark:border-white/5 space-y-2 relative z-10">
+            {/* â”€â”€ CONVERSION SECTION (Grounded UI) â”€â”€ */}
+            <div className="p-3 bg-stone-50/80 dark:bg-bg/90 border-t border-stone-100 dark:border-white/5 space-y-2 relative z-10">
               {video.video_type === "product" && video.product ? (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between gap-2">

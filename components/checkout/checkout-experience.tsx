@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState, useMemo } from "react";
 import Link from "next/link";
@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 import { useCurrency } from "@/context/CurrencyContext";
 import { GlassCard, GlassAmbientGlow } from "@/components/ui/glass";
 
-/* ── Types ── */
+/* â”€â”€ Types â”€â”€ */
 export type CartItem = {
    id: string;
    product_name: string;
@@ -45,7 +45,7 @@ interface CheckoutExperienceProps {
    mode?: "cart" | "community";
 }
 
-/* ── Helpers ── */
+/* â”€â”€ Helpers â”€â”€ */
 function defaultPayment(currency: string | null) {
    const c = (currency || "USD").toUpperCase();
    if (c === "RWF" || c === "USD") return "flutterwave";
@@ -58,7 +58,7 @@ function paymentLabel(m: any) {
    if (m === "nowpayments") return "Crypto";
    if (m === "flutterwave") return "Card & Wallets";
    if (m === "paypal") return "PayPal";
-   return "—";
+   return "â€”";
 }
 
 const STEPS: { n: number; label: string; icon: any }[] = [
@@ -116,7 +116,7 @@ export function CheckoutExperience({ orders, profile, mode = "cart" }: CheckoutE
      return s;
    }, [isAllDigital, isCommunity]);
 
-   /* ── Navigation ── */
+   /* â”€â”€ Navigation â”€â”€ */
    function next() {
       if (currentStep === 1) {
          const { firstName, email, phone, address1, city } = shipping;
@@ -139,7 +139,7 @@ export function CheckoutExperience({ orders, profile, mode = "cart" }: CheckoutE
       }
    }
 
-   /* ── Final Action ── */
+   /* â”€â”€ Final Action â”€â”€ */
    async function handleComplete() {
       setSubmitting(true);
       try {
@@ -225,7 +225,7 @@ export function CheckoutExperience({ orders, profile, mode = "cart" }: CheckoutE
                   </div>
                </div>
 
-                <div className="flex items-center gap-2 bg-surface/60 dark:bg-surface/60 backdrop-blur-xl p-1.5 rounded-full border border-border shadow-sm">
+                <div className="flex items-center gap-2 bg-surface/60 dark:bg-surface/60 p-1.5 rounded-full border border-border shadow-sm">
                   {steps.map((s, idx) => (
                      <React.Fragment key={s.n}>
                         <div className={cn(

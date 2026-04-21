@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
@@ -68,9 +68,9 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
       />
 
       <div className="flex-1 flex flex-col min-w-0 min-h-0">
-        {/* ══════════════════════════════════════
-            HEADER — Professional Solid
-        ══════════════════════════════════════ */}
+        {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+            HEADER â€” Professional Solid
+        â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
         <header
           className="sticky top-0 z-40 shrink-0 bg-surface border-b border-border"
         >
@@ -146,7 +146,7 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
                    </DropdownMenuTrigger>
                    <DropdownMenuContent
                      align="end"
-                     className="w-56 rounded-[20px] p-2 shadow-xl border border-border bg-surface/90 dark:bg-surface/90 backdrop-blur-xl"
+                     className="w-56 rounded-[20px] p-2 shadow-xl border border-border bg-surface/90 dark:bg-surface/90 "
                    >
                      <DropdownMenuLabel className="px-3 py-2">
                         <p className="text-xs font-bold text-stone-900 dark:text-white">{user.full_name || 'My Account'}</p>
@@ -181,11 +181,11 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
           </div>
         </main>
 
-        {/* ══════════════════════════════════════
-            MOBILE BOTTOM NAV — Frosted Bar
-        ══════════════════════════════════════ */}
+        {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+            MOBILE BOTTOM NAV â€” Frosted Bar
+        â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
          <nav
-           className="lg:hidden fixed bottom-5 left-5 right-5 z-40 rounded-[22px] overflow-hidden bg-surface/90 dark:bg-surface/90 backdrop-blur-xl border border-border shadow-lg"
+           className="lg:hidden fixed bottom-5 left-5 right-5 z-40 rounded-[22px] overflow-hidden bg-surface/90 dark:bg-surface/90 border border-border shadow-lg"
          >
           <div className="flex items-center justify-around h-[60px]">
             <BottomNavLink href="/dashboard" icon={<LayoutDashboard className="h-5 w-5" />} label="Home" />

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState, useCallback } from "react";
 import { useBodyScrollLock, useEscapeClose } from "@/hooks/use-body-scroll-lock";
@@ -32,7 +32,7 @@ export type TrendingClip = {
 const getLogoUrl = (v: TrendingClip["vendors"]) =>
   v?.logo_url ?? (v as { business_logo?: string } | undefined)?.business_logo;
 
-/** Individual clip card — shared by mobile and desktop grids */
+/** Individual clip card â€” shared by mobile and desktop grids */
 function ClipCard({
   clip,
   logoUrl,
@@ -84,12 +84,12 @@ function ClipCard({
 
         {/* Hover overlay: stats + product + follow */}
         <div className="absolute bottom-2.5 left-2.5 right-2.5 z-10 flex flex-col gap-1.5 opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300">
-          <div className="flex h-5 w-fit items-center gap-1 rounded-full bg-black/40 px-2 backdrop-blur-sm">
+          <div className="flex h-5 w-fit items-center gap-1 rounded-full bg-black/40 px-2 ">
             <Eye className="h-3 w-3 shrink-0 text-[#f97316]" />
             <span className="text-[9px] font-black tabular-nums text-white">{(clip.total_views ?? 0).toLocaleString()}</span>
           </div>
           {clip.products && (
-            <div className="flex items-center justify-between gap-1.5 rounded-xl bg-white dark:bg-surface-secondary px-2 py-1 backdrop-blur-md shadow-lg border border-border">
+            <div className="flex items-center justify-between gap-1.5 rounded-xl bg-white dark:bg-surface-secondary px-2 py-1 shadow-lg border border-border">
               <span className="min-w-0 truncate text-[9px] font-black text-bg-dark dark:text-text-primary">{clip.products.name}</span>
               <ShoppingBag className="h-3 w-3 shrink-0 text-primary" />
             </div>
@@ -108,7 +108,7 @@ function ClipCard({
 
         {/* Static view count (hidden on hover) */}
         <div className="absolute bottom-2.5 right-2.5 z-10 group-hover:opacity-0 transition-opacity duration-300">
-          <div className="flex h-5 items-center gap-1 rounded-full bg-black/40 px-2 backdrop-blur-sm">
+          <div className="flex h-5 items-center gap-1 rounded-full bg-black/40 px-2 ">
             <Eye className="h-3 w-3 shrink-0 text-white/60" />
             <span className="text-[9px] font-black text-white tabular-nums">{(clip.total_views ?? 0).toLocaleString()}</span>
           </div>
@@ -116,7 +116,7 @@ function ClipCard({
 
         {/* Play button */}
         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20">
-          <div className="flex h-11 w-11 scale-90 items-center justify-center rounded-full border border-white/25 bg-white dark:bg-surface/10 backdrop-blur-md transition-transform group-hover:scale-100">
+          <div className="flex h-11 w-11 scale-90 items-center justify-center rounded-full border border-white/25 bg-white dark:bg-surface/10 transition-transform group-hover:scale-100">
             <Play className="ml-1 h-5 w-5 fill-white text-white" />
           </div>
         </div>
@@ -163,7 +163,7 @@ export function TrendingProductClipsSection({ clips, className, title = "Trendin
               <span>{title}</span>
             </h2>
             <p className="mt-2 max-w-xl text-[13px] font-medium leading-relaxed text-text-muted sm:text-[14px]">
-              Short clips from verified sellers — tap to watch, follow, or shop the featured product.
+              Short clips from verified sellers â€” tap to watch, follow, or shop the featured product.
             </p>
           </div>
         </div>
@@ -178,7 +178,7 @@ export function TrendingProductClipsSection({ clips, className, title = "Trendin
         </Link>
       </div>
 
-      {/* Single horizontal scroll row — all screen sizes */}
+      {/* Single horizontal scroll row â€” all screen sizes */}
       <div className="flex flex-nowrap gap-3 overflow-x-auto pb-4 no-scrollbar -mx-4 px-4 sm:-mx-6 sm:px-6">
         {clips.map((clip) => (
           <ClipCard key={clip.id} clip={clip} logoUrl={logoUrl} onOpen={setModalClip} width={140} />
@@ -188,7 +188,7 @@ export function TrendingProductClipsSection({ clips, className, title = "Trendin
       {modalClip && (
         <>
           <div
-            className="fixed inset-0 z-[1000] overscroll-none bg-ink-darker/80 backdrop-blur-sm animate-in fade-in duration-200"
+            className="fixed inset-0 z-[1000] overscroll-none bg-ink-darker/80 animate-in fade-in duration-200"
             onClick={closeModal}
             aria-hidden
           />

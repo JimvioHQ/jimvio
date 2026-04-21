@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React from "react";
 import { ShieldCheck, TrendingUp, Package, Globe } from "lucide-react";

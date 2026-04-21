@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState } from "react";
 import { Loader2, Smartphone, ShieldCheck, ExternalLink } from "lucide-react";
@@ -76,7 +76,7 @@ export function PawaPayPaymentForm({ amount = 1000, currency = "RWF", orderId, c
           <Button
             onClick={handleCheckout}
             disabled={loading}
-            className="w-full h-14 rounded-2xl bg-orange-500/10 backdrop-blur-md border border-orange-500/30 text-orange-600 font-black text-base transition-all active:scale-95 flex items-center justify-center gap-2 group uppercase tracking-widest shadow-sm"
+            className="w-full h-14 rounded-2xl bg-orange-500/10 border border-orange-500/30 text-orange-600 font-black text-base transition-all active:scale-95 flex items-center justify-center gap-2 group uppercase tracking-widest shadow-sm"
           >
             {loading ? (
               <Loader2 className="h-5 w-5 animate-spin" />

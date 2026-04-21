@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React from "react";
 import { useBodyScrollLock, useEscapeClose } from "@/hooks/use-body-scroll-lock";
@@ -49,7 +49,7 @@ export function ProductQuickPopup({ product, vendor, open, onClose, className }:
   return (
     <>
       <div
-        className="fixed inset-0 z-[1000] overscroll-none bg-ink-darker/60 backdrop-blur-sm animate-in fade-in duration-200"
+        className="fixed inset-0 z-[1000] overscroll-none bg-ink-darker/60 animate-in fade-in duration-200"
         aria-hidden
         onClick={onClose}
       />

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import * as React from "react";
 import * as SelectPrimitive from "@radix-ui/react-select";
@@ -16,7 +16,7 @@ const SelectTrigger = React.forwardRef<
   <SelectPrimitive.Trigger
     ref={ref}
     className={cn(
-      "flex h-10 w-full items-center justify-between rounded-xl border border-white/10 bg-white dark:bg-surface/5 backdrop-blur-sm px-3 py-2 text-sm text-white",
+      "flex h-10 w-full items-center justify-between rounded-xl border border-white/10 bg-white dark:bg-surface/5 px-3 py-2 text-sm text-white",
       "placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] transition-all",
       "disabled:cursor-not-allowed disabled:opacity-50",
       className
@@ -39,7 +39,7 @@ const SelectContent = React.forwardRef<
     <SelectPrimitive.Content
       ref={ref}
       className={cn(
-        "relative z-50 min-w-[8rem] overflow-hidden rounded-xl border border-white/10 bg-slate-900/90 backdrop-blur-xl text-white shadow-glass-lg",
+        "relative z-50 min-w-[8rem] overflow-hidden rounded-xl border border-white/10 bg-slate-900/90 text-white shadow-glass-lg",
         "animate-slide-down",
         position === "popper" && "translate-y-1",
         className

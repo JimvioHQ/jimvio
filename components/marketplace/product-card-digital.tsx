@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
@@ -133,7 +133,7 @@ export function ProductCardDigital({
           )}>
             <button
               onClick={handleChat}
-              className="flex-1 flex items-center justify-center gap-1.5 h-9 rounded-xl font-semibold bg-white/10 backdrop-blur-xl border border-white/10 text-white hover:bg-white/20 transition-all text-[11px]"
+              className="flex-1 flex items-center justify-center gap-1.5 h-9 rounded-xl font-semibold bg-white/10 border border-white/10 text-white hover:bg-white/20 transition-all text-[11px]"
             >
               <MessageCircle className="h-3.5 w-3.5" /> Ask
             </button>

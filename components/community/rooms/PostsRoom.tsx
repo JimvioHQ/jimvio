@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
@@ -36,7 +36,7 @@ import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { uploadCommunityChatFile } from "@/lib/community-chat-upload";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 type Profile = {
   full_name: string | null;
@@ -65,7 +65,7 @@ type Comment = {
   parent_id: string | null;
 };
 
-// ─── Constants ────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const POST_TYPES = ["all", "discussion", "announcement", "question", "resource", "poll"] as const;
 type PostTypeFilter = (typeof POST_TYPES)[number];
@@ -85,9 +85,9 @@ const SORT_OPTIONS = [
 ] as const;
 type SortOption = (typeof SORT_OPTIONS)[number]["value"];
 
-const REACTIONS = ["👍", "❤️", "🔥", "💡", "😂"];
+const REACTIONS = ["ðŸ‘", "â¤ï¸", "ðŸ”¥", "ðŸ’¡", "ðŸ˜‚"];
 
-// ─── Avatar ───────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Avatar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function Avatar({ profile, size = 36 }: { profile?: Profile | null; size?: number }) {
   const initials = (profile?.full_name || profile?.username || "?")[0].toUpperCase();
@@ -117,7 +117,7 @@ function Avatar({ profile, size = 36 }: { profile?: Profile | null; size?: numbe
   );
 }
 
-// ─── PostCard ─────────────────────────────────────────────────────────────────
+// â”€â”€â”€ PostCard â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function PostCard({
   post,
@@ -281,7 +281,7 @@ function PostCard({
   );
 }
 
-// ─── Main Component ───────────────────────────────────────────────────────────
+// â”€â”€â”€ Main Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export function PostsRoom({
   roomId,
@@ -467,7 +467,7 @@ export function PostsRoom({
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--color-text-muted)]" />
               <Input
                 ref={searchRef}
-                placeholder="Search posts… (/)"
+                placeholder="Search postsâ€¦ (/)"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-8 h-8 text-sm rounded-xl border-[var(--color-border)]"
@@ -657,7 +657,7 @@ export function PostsRoom({
   );
 }
 
-// ─── PostDetailPanel component ───────────────────────────────────────────────
+// â”€â”€â”€ PostDetailPanel component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function PostDetailPanel({
   postId,
@@ -795,7 +795,7 @@ function PostDetailPanel({
 
             <div className="p-4 space-y-6">
               <h4 className="text-[10px] font-black uppercase text-[var(--color-text-muted)] tracking-widest flex items-center gap-2">
-                Discussion · {comments.length}
+                Discussion Â· {comments.length}
                 {loading && <Loader2 className="h-3 w-3 animate-spin" />}
               </h4>
               
@@ -840,7 +840,7 @@ function PostDetailPanel({
               className="rounded-xl border-[var(--color-border)] resize-none text-sm focus:ring-[var(--color-accent)]"
             />
             <div className="flex items-center justify-between">
-              <span className="text-[10px] text-[var(--color-text-muted)] font-black">⌘↵ to post</span>
+              <span className="text-[10px] text-[var(--color-text-muted)] font-black">âŒ˜â†µ to post</span>
               <Button
                 type="button"
                 size="sm"
@@ -858,7 +858,7 @@ function PostDetailPanel({
   );
 }
 
-// ─── CommentItem component ───────────────────────────────────────────────────
+// â”€â”€â”€ CommentItem component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function CommentItem({ comment, onReply }: { comment: Comment; onReply: (c: Comment) => void }) {
   return (

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState } from "react";
 import Link from "next/link";
@@ -153,7 +153,7 @@ export function AdminSidebar({ user, collapsed, onCollapsedChange, mobileOpen, o
       {mobileOpen && (
         <>
           <div
-            className="fixed inset-0 z-40 bg-ink-darker/50 backdrop-blur-[2px] animate-in fade-in duration-200 lg:hidden"
+            className="fixed inset-0 z-40 bg-ink-darker/50 animate-in fade-in duration-200 lg:hidden"
             onClick={onMobileClose}
             aria-hidden
           />

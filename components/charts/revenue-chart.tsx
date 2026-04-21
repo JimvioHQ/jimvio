@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React from "react";
 import {
@@ -28,7 +28,7 @@ const defaultData: ChartDataPoint[] = [
 const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: Array<{ color: string; name: string; value: number }>; label?: string }) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-slate-900/90 backdrop-blur-md border border-white/10 rounded-xl p-3 shadow-glass">
+      <div className="bg-slate-900/90 border border-white/10 rounded-xl p-3 shadow-glass">
         <p className="text-white/60 text-xs mb-2">{label}</p>
         {payload.map((entry, i) => (
           <p key={i} className="text-sm font-semibold" style={{ color: entry.color }}>

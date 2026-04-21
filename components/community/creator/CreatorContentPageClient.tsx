@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useCallback, useEffect, useState } from "react";
 import { Loader2, Pin, Trash2 } from "lucide-react";
@@ -200,8 +200,8 @@ export function CreatorContentPageClient({ communityId }: { communityId: string 
                   {posts.map((p) => (
                     <tr key={p.id} className="border-b border-[var(--color-border)]">
                       <td className="py-2 px-3 font-semibold max-w-[200px] truncate">{p.title || p.body?.slice(0, 40)}</td>
-                      <td className="py-2 px-3 text-xs text-[var(--color-text-muted)]">{(p.rooms as { name?: string } | null)?.name || "—"}</td>
-                      <td className="py-2 px-3 text-xs">{p.created_at ? new Date(p.created_at).toLocaleString() : "—"}</td>
+                      <td className="py-2 px-3 text-xs text-[var(--color-text-muted)]">{(p.rooms as { name?: string } | null)?.name || "â€”"}</td>
+                      <td className="py-2 px-3 text-xs">{p.created_at ? new Date(p.created_at).toLocaleString() : "â€”"}</td>
                       <td className="py-2 px-3">{p.like_count ?? 0}</td>
                       <td className="py-2 px-3 flex gap-1">
                         <Button type="button" size="icon" variant="ghost" className="h-8 w-8" onClick={() => togglePin(p.id, p.is_pinned)}>
@@ -225,7 +225,7 @@ export function CreatorContentPageClient({ communityId }: { communityId: string 
                 <div key={c.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
                   <div>
                     <p className="font-black">{c.title}</p>
-                    <p className="text-xs text-[var(--color-text-muted)]">Room: {(c.rooms as { name?: string } | null)?.name || "—"}</p>
+                    <p className="text-xs text-[var(--color-text-muted)]">Room: {(c.rooms as { name?: string } | null)?.name || "â€”"}</p>
                   </div>
                   <span className="text-xs font-black px-2 py-1 rounded-lg bg-[var(--color-surface-secondary)]">{c.is_published ? "Published" : "Draft"}</span>
                   <Button type="button" variant="outline" className="rounded-xl text-xs" onClick={() => toggleCoursePub(c.id, c.is_published)}>
@@ -252,7 +252,7 @@ export function CreatorContentPageClient({ communityId }: { communityId: string 
                       <div>
                         <p className="font-black">{t.title}</p>
                         <p className="text-xs text-[var(--color-text-muted)]">
-                          {t.task_type} · {t.difficulty} · {t.points} pts · submissions: {subs.length}
+                          {t.task_type} Â· {t.difficulty} Â· {t.points} pts Â· submissions: {subs.length}
                         </p>
                       </div>
                       <Button type="button" variant="outline" className="rounded-xl text-xs" onClick={() => toggleTaskActive(t.id, t.is_active)}>
@@ -279,11 +279,11 @@ export function CreatorContentPageClient({ communityId }: { communityId: string 
                               {subs.map((s) => (
                                 <tr key={s.id} className="border-b border-[var(--color-border)]/70">
                                   <td className="py-2 pr-2 font-semibold text-[var(--color-text-primary)]">
-                                    {s.profiles?.full_name || s.profiles?.username || s.user_id.slice(0, 8) + "…"}
+                                    {s.profiles?.full_name || s.profiles?.username || s.user_id.slice(0, 8) + "â€¦"}
                                   </td>
                                   <td className="py-2 pr-2 capitalize">{s.status}</td>
-                                  <td className="py-2 pr-2">{s.points_earned ?? "—"}</td>
-                                  <td className="py-2 pr-2 whitespace-nowrap">{s.created_at ? new Date(s.created_at).toLocaleString() : "—"}</td>
+                                  <td className="py-2 pr-2">{s.points_earned ?? "â€”"}</td>
+                                  <td className="py-2 pr-2 whitespace-nowrap">{s.created_at ? new Date(s.created_at).toLocaleString() : "â€”"}</td>
                                   <td className="py-2 max-w-[200px]">
                                     {s.proof_url ? (
                                       <a href={s.proof_url} target="_blank" rel="noopener noreferrer" className="text-[var(--color-accent)] font-bold truncate block">
@@ -291,7 +291,7 @@ export function CreatorContentPageClient({ communityId }: { communityId: string 
                                       </a>
                                     ) : null}
                                     {s.proof_text ? <span className="text-[var(--color-text-muted)] line-clamp-2 block">{s.proof_text}</span> : null}
-                                    {!s.proof_url && !s.proof_text ? "—" : null}
+                                    {!s.proof_url && !s.proof_text ? "â€”" : null}
                                   </td>
                                 </tr>
                               ))}

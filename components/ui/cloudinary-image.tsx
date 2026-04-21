@@ -1,10 +1,10 @@
-/**
+﻿/**
  * components/ui/cloudinary-image.tsx
- * ─────────────────────────────────────────────────────────────────────────────
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
  * Drop-in <CloudinaryImage> that works with:
- *   • Cloudinary URLs   → injects w_, h_, q_auto, f_auto transformations
- *   • Supabase URLs     → passes through as-is (graceful fallback)
- *   • Any other URL     → passes through as-is
+ *   â€¢ Cloudinary URLs   â†’ injects w_, h_, q_auto, f_auto transformations
+ *   â€¢ Supabase URLs     â†’ passes through as-is (graceful fallback)
+ *   â€¢ Any other URL     â†’ passes through as-is
  *
  * All <img> tags that show user-uploaded content should use this component so
  * images get optimized automatically when Cloudinary is the source.
@@ -66,7 +66,7 @@ export function CloudinaryImage({
 }
 
 /**
- * <CloudinaryAvatar> — circular avatar with smart face-crop
+ * <CloudinaryAvatar> â€” circular avatar with smart face-crop
  */
 export function CloudinaryAvatar({
   src,
@@ -96,7 +96,7 @@ export function CloudinaryAvatar({
 }
 
 /**
- * <CloudinaryVideo> — video player with Cloudinary-optimized poster
+ * <CloudinaryVideo> â€” video player with Cloudinary-optimized poster
  */
 export function CloudinaryVideo({
   src,

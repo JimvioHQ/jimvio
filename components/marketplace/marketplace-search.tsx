@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
@@ -201,7 +201,7 @@ export function MarketplaceSearch({
                         </h4>
                         <div className="flex items-center gap-2">
                              <LocalizedPrice amount={p.price} currency={p.currency} className="text-[14px] font-black text-orange-500" />
-                             <span className="text-[12px] text-stone-400 font-semibold">· in store</span>
+                             <span className="text-[12px] text-stone-400 font-semibold">Â· in store</span>
                         </div>
                       </div>
                       <ArrowRight className="h-5 w-5 text-stone-300 -translate-x-3 opacity-0 group-hover/item:translate-x-0 group-hover/item:opacity-100 transition-all" />

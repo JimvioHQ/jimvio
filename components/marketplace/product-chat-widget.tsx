@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import Link from "next/link";
@@ -276,7 +276,7 @@ export function ProductChatWidget(props: ProductChatWidgetProps) {
       {/* Login prompt modal */}
       {showLoginPrompt && (
         <div
-          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-ink-darker/60 backdrop-blur-sm"
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-ink-darker/60 "
           onClick={() => setShowLoginPrompt(false)}
         >
           <div
@@ -307,7 +307,7 @@ export function ProductChatWidget(props: ProductChatWidgetProps) {
         <>
           {/* Backdrop (mobile + desktop) */}
           <div
-            className="fixed inset-0 z-[88] bg-ink-darker/45 backdrop-blur-[2px] md:bg-ink-darker/25"
+            className="fixed inset-0 z-[88] bg-ink-darker/45 md:bg-ink-darker/25"
             onClick={() => setChatOpen(false)}
             aria-hidden
           />

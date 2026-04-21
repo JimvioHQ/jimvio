@@ -1,4 +1,4 @@
-import { Product, Offer } from "schema-dts";
+﻿import { Product, Offer } from "schema-dts";
 
 interface ProductJsonLdProps {
   product: {

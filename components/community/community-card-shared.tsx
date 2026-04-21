@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React from "react";
 import Image from "next/image";
@@ -68,7 +68,7 @@ export function SharedCommunityCard({ c, rank, showQuickActions = true }: Commun
 
         {/* Privacy */}
         {!c.is_free && (
-          <div className="absolute bottom-4 right-4 h-7 w-7 rounded-full bg-black/40 backdrop-blur-md border border-white/20 flex items-center justify-center shadow-lg">
+          <div className="absolute bottom-4 right-4 h-7 w-7 rounded-full bg-black/40 border border-white/20 flex items-center justify-center shadow-lg">
             <Lock size={12} className="text-white" />
           </div>
         )}

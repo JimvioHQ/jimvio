@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
@@ -56,7 +56,7 @@ function SkeletonCard() {
   );
 }
 
-/* ─── Featured Hero Card (top community spotlight) ─── */
+/* â”€â”€â”€ Featured Hero Card (top community spotlight) â”€â”€â”€ */
 function FeaturedCard({ c }: { c: CommunityRow }) {
   return (
     <Link
@@ -80,7 +80,7 @@ function FeaturedCard({ c }: { c: CommunityRow }) {
 
       {/* Content */}
       <div className="relative z-10 p-6 flex items-end gap-4">
-        <div className="h-16 w-16 rounded-2xl border-2 border-white/30 bg-black/20 backdrop-blur-md overflow-hidden shrink-0 shadow-xl">
+        <div className="h-16 w-16 rounded-2xl border-2 border-white/30 bg-black/20 overflow-hidden shrink-0 shadow-xl">
           {c.avatar_url ? (
             <Image src={c.avatar_url} alt="" width={64} height={64} className="object-cover h-full w-full" unoptimized />
           ) : (
@@ -114,7 +114,7 @@ function FeaturedCard({ c }: { c: CommunityRow }) {
   );
 }
 
-/* ─── CTA Banner ─── */
+/* â”€â”€â”€ CTA Banner â”€â”€â”€ */
 function CreateCTACard() {
   return (
     <div className="rounded-3xl border border-dashed border-[var(--color-accent)]/40 bg-gradient-to-br from-[var(--color-accent-light)] to-[var(--color-surface-secondary)] p-6 flex flex-col gap-3 items-start justify-between min-h-[200px]">
@@ -126,7 +126,7 @@ function CreateCTACard() {
           Launch your own community
         </h3>
         <p className="text-xs text-[var(--color-text-muted)] mt-1 leading-relaxed">
-          Build, grow, and monetize your audience. Start free — no credit card required.
+          Build, grow, and monetize your audience. Start free â€” no credit card required.
         </p>
       </div>
       <Button
@@ -142,7 +142,7 @@ function CreateCTACard() {
   );
 }
 
-/* ─── Stats Banner ─── */
+/* â”€â”€â”€ Stats Banner â”€â”€â”€ */
 function StatsBanner({ total }: { total: number }) {
   const stats = [
     { label: "Communities", value: formatNumber(total), icon: Globe },
@@ -168,7 +168,7 @@ function StatsBanner({ total }: { total: number }) {
 
 
 
-/* ─── Main Component ─── */
+/* â”€â”€â”€ Main Component â”€â”€â”€ */
 export function CommunitiesDiscovery() {
   const [search, setSearch] = useState("");
   const [debounced, setDebounced] = useState("");
@@ -234,7 +234,7 @@ export function CommunitiesDiscovery() {
     <div className="min-h-screen bg-[var(--color-bg)]">
       <div className="max-w-[var(--container-max)] mx-auto px-4 sm:px-6 py-6 sm:py-10">
 
-        {/* ── Hero Header ── */}
+        {/* â”€â”€ Hero Header â”€â”€ */}
         <header className="mb-8">
           <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6">
             <div>
@@ -276,7 +276,7 @@ export function CommunitiesDiscovery() {
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search by name, topic, or category…"
+                placeholder="Search by name, topic, or categoryâ€¦"
                 className="pl-11 pr-10 h-12 rounded-2xl border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-primary)] text-sm focus-visible:ring-[var(--color-accent)]/20"
               />
             </div>
@@ -421,7 +421,7 @@ export function CommunitiesDiscovery() {
                   className="rounded-2xl font-bold border-[var(--color-border)] h-11 px-8 hover:border-[var(--color-accent)]/40 transition-all"
                 >
                   {loadingMore ? (
-                    <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Loading…</>
+                    <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Loadingâ€¦</>
                   ) : (
                     <>Show more communities <ChevronDown size={16} className="ml-2" /></>
                   )}

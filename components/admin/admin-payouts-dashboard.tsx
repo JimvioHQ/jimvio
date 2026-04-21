@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Loader2 } from "lucide-react";
@@ -38,8 +38,8 @@ function num(v: number | string | null | undefined): number {
 }
 
 function maskAccount(s: string | null): string {
-  if (!s || s.length < 5) return "••••";
-  return `••••${s.slice(-4)}`;
+  if (!s || s.length < 5) return "â€¢â€¢â€¢â€¢";
+  return `â€¢â€¢â€¢â€¢${s.slice(-4)}`;
 }
 
 function methodLabel(id: string | null): string {
@@ -53,7 +53,7 @@ function methodLabel(id: string | null): string {
     case "crypto":
       return "Crypto";
     default:
-      if (!id) return "—";
+      if (!id) return "â€”";
       return id.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
   }
 }
@@ -195,7 +195,7 @@ export function AdminPayoutsDashboard() {
             ) : (
               <>
                 <p className="text-lg font-bold text-[var(--color-text-primary)] tabular-nums">
-                  {pendingStats.count} · {formatCurrency(pendingStats.amount, currency)}
+                  {pendingStats.count} Â· {formatCurrency(pendingStats.amount, currency)}
                 </p>
               </>
             )}
@@ -272,8 +272,8 @@ export function AdminPayoutsDashboard() {
                 </thead>
                 <tbody>
                   {rows.map((p) => {
-                    const name = p.profiles?.full_name || "—";
-                    const email = p.profiles?.email || "—";
+                    const name = p.profiles?.full_name || "â€”";
+                    const email = p.profiles?.email || "â€”";
                     const canAct = p.status === "pending";
                     return (
                       <tr key={p.id} className="border-b border-[var(--color-border)]">
@@ -323,7 +323,7 @@ export function AdminPayoutsDashboard() {
                           ) : p.status === "paid" && p.provider_reference ? (
                             <span className="text-xs text-[var(--color-text-muted)]">{p.provider_reference}</span>
                           ) : (
-                            "—"
+                            "â€”"
                           )}
                         </td>
                       </tr>

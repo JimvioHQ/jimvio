@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useRef } from "react";
 import Link from "next/link";
@@ -38,7 +38,7 @@ interface HomepageHeroProps {
 }
 
 
-/* ─── Video Marquee ─────────────────────────────────────── */
+/* â”€â”€â”€ Video Marquee â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 function VideoMarquee({ videos, mobile = false }: { videos: any[]; mobile?: boolean }) {
   if (!videos?.length) return null;
   const list = [...videos, ...videos, ...videos, ...videos];
@@ -85,7 +85,7 @@ function VideoMarquee({ videos, mobile = false }: { videos: any[]; mobile?: bool
             <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
 
             {/* Live pip */}
-            <div className="absolute top-2 right-2 flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-black/45 backdrop-blur-md">
+            <div className="absolute top-2 right-2 flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-black/45 ">
               <span
                 className="block rounded-full bg-[#f97316]"
                 style={{ width: 4, height: 4, animation: "pulse 1.8s infinite" }}
@@ -93,7 +93,7 @@ function VideoMarquee({ videos, mobile = false }: { videos: any[]; mobile?: bool
               <span className="text-[7px] font-black text-white uppercase tracking-[.05em]">Live</span>
             </div>
 
-            {/* Title label — desktop only */}
+            {/* Title label â€” desktop only */}
             {!mobile && (
               <div className="absolute bottom-2.5 left-2.5 right-2.5">
                 <span className="text-[9px] font-black text-white uppercase tracking-[.04em] drop-shadow-md line-clamp-2">
@@ -109,7 +109,7 @@ function VideoMarquee({ videos, mobile = false }: { videos: any[]; mobile?: bool
 }
 
 
-/* ─── Main Hero ─────────────────────────────────────────── */
+/* â”€â”€â”€ Main Hero â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 export function HomepageHero({
   heroCampaigns,
   socialBar,
@@ -196,9 +196,9 @@ export function HomepageHero({
 
   return (
     <>
-      {/* ══════════════ MOBILE HERO ══════════════ */}
+      {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â• MOBILE HERO â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
       <section className="flex flex-col lg:hidden w-full relative overflow-hidden pb-8 px-5 min-h-[380px] justify-center text-center bg-[#faf9f7] dark:bg-[#0f0e0c]">
-        {/* Ambient blobs — match HTML prototype */}
+        {/* Ambient blobs â€” match HTML prototype */}
         <div
           className="pointer-events-none absolute top-[-60px] right-[-60px] rounded-full"
           style={{ width: 280, height: 280, background: "radial-gradient(circle, rgba(249,115,22,.08), transparent 65%)" }}
@@ -236,7 +236,7 @@ export function HomepageHero({
             <StartEarnDialog
               className="h-12 w-full rounded-lg border-none text-white text-[13px] font-bold uppercase tracking-[.06em] bg-orange-500 shadow-md active:bg-orange-600"
             >
-              Start Earning Now →
+              Start Earning Now â†’
             </StartEarnDialog>
 
             <button
@@ -257,7 +257,7 @@ export function HomepageHero({
               <Link
                 key={item.text}
                 href={item.href}
-                className="shrink-0 flex items-center gap-[6px] px-[14px] py-[8px] rounded-full font-bold text-[10px] uppercase tracking-[.05em] text-[#3c3429] dark:text-stone-300 transition-all bg-white/90 dark:bg-white/[0.05] border border-white/80 dark:border-white/[0.08] backdrop-blur-2xl shadow-sm"
+                className="shrink-0 flex items-center gap-[6px] px-[14px] py-[8px] rounded-full font-bold text-[10px] uppercase tracking-[.05em] text-[#3c3429] dark:text-stone-300 transition-all bg-white/90 dark:bg-white/[0.05] border border-white/80 dark:border-white/[0.08] shadow-sm"
               >
                 <item.icon className="h-[11px] w-[11px] text-[#f97316]" />
                 {item.text}
@@ -277,7 +277,7 @@ export function HomepageHero({
         </div>
       </section>
 
-      {/* ══════════════ DESKTOP HERO ══════════════ */}
+      {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â• DESKTOP HERO â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
       <section className="hidden lg:block w-full bg-white dark:bg-[#0f0e0c] border-b border-black/[.07] dark:border-white/[.06]">
         <div className="grid" style={{ gridTemplateColumns: "1fr 280px" }}>
 
@@ -355,7 +355,7 @@ export function HomepageHero({
                   <StartEarnDialog
                     className="h-11 px-8 rounded-lg border-none text-white text-[13px] font-bold uppercase tracking-[.06em] flex items-center gap-2 bg-orange-500 shadow-md hover:bg-orange-600 transition-colors"
                   >
-                    Start Earning Now →
+                    Start Earning Now â†’
                   </StartEarnDialog>
 
                   <button
@@ -380,7 +380,7 @@ export function HomepageHero({
                     <Link
                       key={item.text}
                       href={item.href}
-                      className="flex items-center gap-2 px-4 py-[9px] rounded-full font-semibold text-[11px] text-[#3c3429] dark:text-[#d4ccbf] transition-all hover:border-[rgba(249,115,22,0.35)] bg-white/80 dark:bg-white/5 border border-white/90 dark:border-white/10 backdrop-blur-2xl"
+                      className="flex items-center gap-2 px-4 py-[9px] rounded-full font-semibold text-[11px] text-[#3c3429] dark:text-[#d4ccbf] transition-all hover:border-[rgba(249,115,22,0.35)] bg-white/80 dark:bg-white/5 border border-white/90 dark:border-white/10 "
                     >
                       <item.icon className="h-[13px] w-[13px] text-[#f97316]" />
                       {item.text}

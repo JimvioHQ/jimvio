@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React from "react";
 import Link from "next/link";
@@ -53,7 +53,7 @@ export function PopularStoresSection({ stores, className }: PopularStoresSection
             Stores to discover
           </h2>
           <p className="text-[12px] text-zinc-500 dark:text-text-muted font-bold mt-2 uppercase tracking-widest pl-1">
-            Verified vendors · Follow for updates
+            Verified vendors Â· Follow for updates
           </p>
         </div>
         <Link
