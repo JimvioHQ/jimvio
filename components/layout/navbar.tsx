@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -272,12 +272,10 @@ export function Navbar({ user, marketing }: NavbarProps) {
   const drawerLinks = [
     { label: "Home", href: "/", icon: Home },
     { label: "Marketplace", href: "/marketplace", icon: ShoppingBag },
-    { label: "Videos", href: "/shorts", icon: Play },
-    { label: "Campaigns", href: "/ugc", icon: Megaphone },
+  ];
+
+  const categories = [
     { label: "Communities", href: "/communities", icon: Users },
-    { label: "Affiliate", href: "/affiliates", icon: TrendingUp },
-    { label: "Creators", href: "/influencers/browse", icon: User },
-    { label: "Suppliers", href: "/vendors", icon: Factory },
   ];
 
   const runSearch = useCallback((override?: string) => {
@@ -594,252 +592,22 @@ export function Navbar({ user, marketing }: NavbarProps) {
         </div>
       </div>
 
-      {/* MOBILE DRAWER — dark liquid glass */}
+      {/* MOBILE DRAWER — Premium Solid Theme */}
       {portalReady && createPortal(
-        <AnimatePresence>
-          {mobileOpen && (
-            <>
-              {/* Backdrop blur scrim */}
-              <motion.div
-                key="backdrop"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={() => setMobileOpen(false)}
-                className="fixed inset-0 z-[9998] pointer-events-auto"
-                style={{
-                  background: "rgba(0,0,0,0.40)",
-                  backdropFilter: "blur(14px)",
-                  WebkitBackdropFilter: "blur(14px)",
-                }}
-              />
-
-              {/* Drawer */}
-              <motion.div
-                key="drawer"
-                initial={{ x: "100%" }}
-                animate={{ x: 0 }}
-                exit={{ x: "100%" }}
-                transition={{ type: "spring", damping: 30, stiffness: 220 }}
-                className="fixed inset-y-0 right-0 w-full z-[9999] flex flex-col pointer-events-auto overflow-hidden"
-                style={{
-                  background: "var(--color-surface)",
-                  backdropFilter: "blur(60px) saturate(200%)",
-                  WebkitBackdropFilter: "blur(60px) saturate(200%)",
-                  borderLeft: "1px solid var(--color-border)",
-                  boxShadow: "-15px 0 50px rgba(0,0,0,0.4)",
-                }}
-              >
-                {/* Background Decor â€” Cyber Mesh */}
-                <div className="absolute inset-0 pointer-events-none opacity-20 overflow-hidden">
-                  <div className="absolute -top-[10%] -left-[10%] w-[50%] h-[50%] rounded-full bg-orange-500/30 blur-[100px]" />
-                  <div className="absolute top-[40%] -right-[20%] w-[60%] h-[60%] rounded-full bg-purple-600/20 blur-[120px]" />
-                  <div className="absolute -bottom-[10%] left-[20%] w-[40%] h-[40%] rounded-full bg-blue-500/10 blur-[90px]" />
-                </div>
-
-                <SpecularLine />
-                <div className="pointer-events-none absolute inset-y-0 left-0 w-px z-10 bg-gradient-to-b from-white/10 via-white/5 to-transparent" />
-                <SpecularSweep />
-
-                {/* Drawer header */}
-                <div className="flex items-center justify-between px-7 py-5 shrink-0 relative z-20"
-                  style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
-                  <Link href="/" onClick={() => setMobileOpen(false)} className="flex items-center gap-2">
-                    <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-orange-500 to-orange-400 flex items-center justify-center shadow-[0_4px_12px_rgba(249,115,22,0.3)]">
-                      <Zap className="h-5 w-5 text-white fill-white/20" />
-                    </div>
-                    <Image src="/jimvio-logo.png" alt="Jimvio" width={100} height={28}
-                      className="h-6 w-auto object-contain brightness-125 contrast-125" priority />
-                  </Link>
-                  <button
-                    onClick={() => setMobileOpen(false)}
-                    className="flex h-11 w-11 items-center justify-center rounded-2xl transition-all active:scale-[0.85] bg-zinc-900/5 dark:bg-white/5 border border-zinc-200 dark:border-white/10 text-zinc-600 dark:text-white/60 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-900/10 dark:hover:bg-white/10"
-                  >
-                    <X className="h-6 w-6" />
-                  </button>
-                </div>
-
-                {/* Body */}
-                <div className="flex-1 overflow-y-auto overscroll-contain px-5 py-8 space-y-8"
-                  style={{ scrollbarWidth: "none" }}>
-
-                  {/* USER GEAR - Premium Spotlight Card */}
-                  {user && (
-                    <motion.div
-                      initial={{ scale: 0.9, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      className="relative p-5 rounded-[28px] overflow-hidden group shadow-2xl"
-                      style={{
-                        background: "var(--color-surface-secondary)",
-                        border: "1px solid var(--color-border)",
-                      }}
-                    >
-                      <div className="absolute inset-0 bg-gradient-to-br from-orange-500/10 via-transparent to-purple-500/10 opacity-50" />
-                      <SpecularSweep />
-                      <div className="flex items-center gap-4 relative z-10">
-                        <Avatar className="h-14 w-14 ring-4 ring-white/10 shadow-lg shrink-0">
-                          <AvatarImage src={user.avatar_url ?? undefined} />
-                          <AvatarFallback className="bg-gradient-to-br from-orange-400 to-orange-600 text-white text-lg font-black italic">
-                            {user.full_name?.[0]}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="text-[17px] font-black tracking-tight text-zinc-900 dark:text-white leading-tight">{user.full_name}</h4>
-                          <p className="text-[11px] font-bold text-zinc-500 dark:text-white/30 capitalize tracking-widest mt-0.5">{user.email}</p>
-                        </div>
-                      </div>
-
-                      <div className="mt-5 grid grid-cols-2 gap-2 relative z-10">
-                        <Link href="/dashboard" onClick={() => setMobileOpen(false)} className="flex items-center justify-center gap-2 py-2.5 rounded-2xl bg-zinc-900/5 dark:bg-white/5 border border-zinc-200 dark:border-white/10 text-[11px] font-black capitalize tracking-widest text-zinc-700 dark:text-white/70 hover:bg-zinc-900/10 dark:hover:bg-white/10 transition-colors">
-                          <LayoutDashboard className="h-3.5 w-3.5 text-orange-500" />
-                          Dash
-                        </Link>
-                        <Link href="/dashboard/settings" onClick={() => setMobileOpen(false)} className="flex items-center justify-center gap-2 py-2.5 rounded-2xl bg-zinc-900/5 dark:bg-white/5 border border-zinc-200 dark:border-white/10 text-[11px] font-black capitalize tracking-widest text-zinc-700 dark:text-white/70 hover:bg-zinc-900/10 dark:hover:bg-white/10 transition-colors">
-                          <Settings className="h-3.5 w-3.5 text-blue-400" />
-                          Account
-                        </Link>
-                      </div>
-                    </motion.div>
-                  )}
-
-                  {/* Mobile search - Premium Glass Wrapper */}
-                  <div className="relative group px-1">
-                    <div className="absolute -inset-1.5 bg-gradient-to-r from-orange-500/30 via-blue-500/20 to-orange-500/30 rounded-[28px] blur-2xl opacity-0 group-focus-within:opacity-100 transition-all duration-700" />
-                    <div className="relative bg-white/60 dark:bg-stone-900/40 backdrop-blur-xl border border-zinc-200 dark:border-white/15 rounded-[22px] p-1.5 shadow-xl overflow-hidden ring-1 ring-black/5 dark:ring-white/5">
-                      <NavbarSearch searchQ={searchQ} setSearchQ={setSearchQ}
-                        placeholder={marketing.search_placeholder ?? "What are you looking for?..."}
-                        isScrolled={scrolled} variant="mobile" runSearch={runSearch} navLinks={navLinks} />
-                    </div>
-                  </div>
-
-                  {/* Localize & Currency */}
-                  <div className="grid grid-cols-1 gap-3">
-                    <div className="bg-zinc-900/5 dark:bg-white/[0.03] border border-zinc-200 dark:border-white/10 rounded-[22px] p-3 shadow-inner">
-                      <CurrencyConverterWidget variant="compact" className="mx-0" />
-                    </div>
-                  </div>
-
-                  {/* Theme toggle mobile */}
-                  <div className="mb-3 flex items-center justify-between px-4 py-3 rounded-[20px] bg-surface/10 dark:bg-surface/5 border border-border shadow-sm">
-                    <div className="flex items-center gap-3">
-                      <Sun className="h-5 w-5 text-stone-400 dark:text-stone-400" />
-                      <span className="text-[14px] font-semibold text-stone-900 dark:text-white/70">Theme Mode</span>
-                    </div>
-                    <ThemeToggle />
-                  </div>
-
-                  {/* AI mode CTA — orange glass */}
-                  <button
-                    onClick={() => { openAssistant(); setMobileOpen(false); }}
-                    className="w-full flex items-center justify-between gap-3 px-6 py-5 rounded-[24px] transition-all active:scale-[0.96] mb-1 group relative overflow-hidden"
-                    style={{
-                      background: "rgba(255,184,108,0.08)",
-                      border: "1px solid rgba(255,184,108,0.2)",
-                      boxShadow: "0 8px 32px rgba(249,115,22,0.1), inset 0 1px 0 rgba(255,255,255,0.05)",
-                    }}
-                  >
-                    <SpecularSweep />
-                    <div className="flex items-center gap-3.5 relative z-10">
-                      <div className="h-10 w-10 rounded-full bg-orange-500 flex items-center justify-center shadow-[0_0_20px_rgba(249,115,22,0.4)]">
-                        <Sparkles className="h-5 w-5 fill-white stroke-none" />
-                      </div>
-                      <div className="text-left">
-                        <span className="block text-[13px] font-black capitalize tracking-[0.15em] text-orange-500 leading-none">AI Assistant</span>
-                        <span className="text-[10px] font-bold dark:text-orange-500/50 capitalize tracking-widest">Ask anything...</span>
-                      </div>
-                    </div>
-                    <ChevronRight className="h-5 w-5 text-orange-500/60 transition-transform group-hover:translate-x-1" />
-                  </button>
-
-
-                  {/* Nav links */}
-                  <div className="pt-4 space-y-4">
-                    <h5 className="text-[11px] font-black capitalize tracking-[0.3em] text-orange-500/80 px-5 flex items-center gap-2">
-                      <div className="h-1.5 w-1.5 rounded-full bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.6)]" />
-                      Explore Jimvio
-                    </h5>
-                    <div className="grid grid-cols-2 gap-2 px-1">
-                      {drawerLinks.map(item => (
-                        <DrawerLink
-                          key={item.href}
-                          href={item.href}
-                          label={item.label}
-                          icon={<item.icon className="h-4 w-4" />}
-                          active={isActive(pathname, item.href)}
-                          onClick={() => setMobileOpen(false)}
-                        />
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Help & Support */}
-                  <div className="pt-6 pb-20 space-y-3">
-                    <h5 className="text-[11px] font-black capitalize tracking-[0.3em] text-blue-500/80 px-5 flex items-center gap-2">
-                      <div className="h-1.5 w-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.6)]" />
-                      Platform
-                    </h5>
-                    <div className="px-2">
-                      <DrawerLink href="/help" label="Help center"
-                        icon={<HelpCircle className="h-5 w-5" />}
-                        active={false} onClick={() => setMobileOpen(false)} />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Footer — user identity */}
-                <div
-                  className="shrink-0 px-3 py-3"
-                  style={{ borderTop: "1px solid var(--color-border)", background: "var(--color-surface-secondary)" }}
-                >
-                  {user ? (
-                    <div className="flex items-center gap-3 p-3 rounded-[20px]"
-                      style={{
-                        background: "var(--color-surface)",
-                        border: "1px solid var(--color-border)",
-                        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)",
-                      }}>
-                      <Avatar className="h-9 w-9 ring-2 ring-white/15 shrink-0">
-                        <AvatarImage src={user.avatar_url ?? undefined} />
-                        <AvatarFallback className="bg-gradient-to-br from-orange-400 to-orange-600 text-white text-[12px] font-bold capitalize">
-                          {user.full_name?.[0]}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[13px] font-semibold text-zinc-900 dark:text-white/85 truncate">{user.full_name}</p>
-                        <p className="text-[10px] text-zinc-500 dark:text-white/30 truncate">{user.email}</p>
-                      </div>
-                      <button
-                        onClick={async () => { await signOut(); window.location.href = "/"; }}
-                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-all active:scale-90"
-                        style={{ background: "rgba(239,68,68,0.15)", border: "1px solid rgba(239,68,68,0.25)", color: "#f87171" }}
-                      >
-                        <LogOut className="h-4 w-4" />
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-2 gap-3">
-                      <Link href="/login" onClick={() => setMobileOpen(false)}
-                        className="h-12 rounded-full flex items-center justify-center text-[13px] font-bold text-white/60 transition-all active:scale-95 bg-white/5 border border-white/10">
-                        Log In
-                      </Link>
-                      <Link href="/register" onClick={() => setMobileOpen(false)}
-                        className="h-12 rounded-full flex items-center justify-center text-[12px] font-black capitalize tracking-widest text-primary transition-all hover:scale-[1.02] active:scale-95"
-                        style={{
-                          background: "rgba(255,184,108,0.12)",
-                          backdropFilter: "blur(20px) saturate(160%)",
-                          WebkitBackdropFilter: "blur(20px) saturate(160%)",
-                          border: "1px solid rgba(255,184,108,0.3)",
-                          boxShadow: "0 2px 10px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.05)",
-                        }}>
-                        Join Free
-                      </Link>
-                    </div>
-                  )}
-                </div>
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>,
+        <MobileDrawer
+          open={mobileOpen}
+          onClose={() => setMobileOpen(false)}
+          user={user}
+          pathname={pathname}
+          marketing={marketing}
+          searchQ={searchQ}
+          setSearchQ={setSearchQ}
+          runSearch={runSearch}
+          navLinks={navLinks}
+          solutions={solutions}
+          scrolled={scrolled}
+          openAssistant={openAssistant}
+        />,
         document.body,
       )}
 
@@ -849,11 +617,8 @@ export function Navbar({ user, marketing }: NavbarProps) {
           initial={{ y: 80, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ type: "spring", damping: 25, stiffness: 200 }}
-          className="h-full bg-white dark:bg-stone-900/85 backdrop-blur-3xl border border-white/10 rounded-[36px] flex items-center px-4 shadow-[0_25px_50px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.1)] pointer-events-auto overflow-hidden relative"
+          className="h-full bg-white dark:bg-stone-900 shadow-2xl border border-zinc-100 dark:border-stone-800 rounded-[36px] flex items-center px-4 pointer-events-auto overflow-hidden relative"
         >
-          {/* Internal gloss overlay */}
-          <div className="absolute inset-0 pointer-events-none bg-gradient-to-b from-white/5 to-transparent" />
-
           {mobileBottomLinks.map(link => {
             const active = isActive(pathname, link.href);
             return (
@@ -861,18 +626,18 @@ export function Navbar({ user, marketing }: NavbarProps) {
                 key={link.href}
                 href={link.href}
                 className={cn(
-                  "relative flex flex-col items-center justify-center flex-1 h-[85%] gap-1 transition-all duration-500 rounded-[28px]",
-                  active ? "text-orange-500 bg-orange-500/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]" : "text-zinc-700 hover:text-orange-500 dark:text-white/30 dark:hover:text-white/50 "
+                  "relative flex flex-col items-center justify-center flex-1 h-[85%] gap-1 transition-all duration-300 rounded-[28px]",
+                  active ? "text-orange-500 bg-orange-500/5 shadow-inner" : "text-zinc-500 hover:text-orange-500 dark:text-stone-400 dark:hover:text-white"
                 )}
               >
-                <link.icon className={cn("h-6 w-6 transition-transform duration-500", active ? "scale-110 dark:drop-shadow-[0_0_8px_rgba(249,115,22,0.4)]" : "scale-100")} />
-                <span className={cn("text-[9px] font-black capitalize tracking-[0.15em] transition-all", active ? "opacity-100" : "opacity-60")}>
+                <link.icon className={cn("h-5 w-5 transition-transform duration-300", active ? "scale-110" : "scale-100")} />
+                <span className={cn("text-[9px] font-bold uppercase tracking-wider transition-all", active ? "opacity-100" : "opacity-60")}>
                   {link.label}
                 </span>
                 {active && (
                   <motion.div
                     layoutId="mobile-pill-active"
-                    className="absolute -bottom-2 h-1.5 w-8 rounded-full bg-orange-500 shadow-[0_0_20px_rgba(249,115,22,1)]"
+                    className="absolute -bottom-1.5 h-1 w-6 rounded-full bg-orange-500 shadow-lg shadow-orange-500/40"
                   />
                 )}
               </Link>
@@ -881,14 +646,13 @@ export function Navbar({ user, marketing }: NavbarProps) {
 
           <button
             onClick={() => setMobileOpen(true)}
-            className="flex flex-col items-center justify-center flex-1 h-[85%] gap-1 text-zinc-700 hover:text-orange-500 dark:text-white/30 dark:hover:text-white/70 transition-all duration-500 relative group"
+            className="flex flex-col items-center justify-center flex-1 h-[85%] gap-1 text-zinc-500 hover:text-orange-500 dark:text-stone-400 dark:hover:text-white transition-all duration-300 relative group"
           >
             <div className="relative">
-              <div className="absolute inset-0 bg-white/20 rounded-full blur-[8px] opacity-0 group-active:opacity-100 transition-opacity" />
-              <Menu className="h-6 w-6 stroke-[1.5px] relative z-10" />
-              <div className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-gradient-to-tr from-orange-600 to-orange-400 border-2 border-[#151515] shadow-[0_0_10px_rgba(249,115,22,0.5)]" />
+              <Menu className="h-5 w-5 stroke-[2px]" />
+              <div className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-orange-500 ring-2 ring-white dark:ring-stone-900 shadow-md" />
             </div>
-            <span className="text-[9px] font-black capitalize tracking-[0.15em] opacity-60">Menu</span>
+            <span className="text-[9px] font-bold uppercase tracking-wider opacity-60">Menu</span>
           </button>
         </motion.nav>
       </div>
@@ -896,56 +660,200 @@ export function Navbar({ user, marketing }: NavbarProps) {
   );
 }
 
-/* --- Drawer nav link --- */
-function DrawerLink({
-  href, label, icon, active, onClick,
-}: {
-  href: string; label: string; icon: React.ReactNode; active: boolean; onClick: () => void;
-}) {
-  const isBlue = label.toLowerCase().includes("platform") || label.toLowerCase().includes("center");
-  const colorClass = isBlue ? "blue" : "orange";
+/* --- Mobile Drawer Component --- */
+function MobileDrawer({
+  open, onClose, user, pathname, marketing, searchQ, setSearchQ, runSearch, navLinks, solutions, scrolled, openAssistant
+}: any) {
+  const [expanded, setExpanded] = useState<string | null>(null);
+
+  const toggle = (section: string) => setExpanded(expanded === section ? null : section);
+
+  const accountLinks = [
+    { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+    { href: "/dashboard/library", icon: Video, label: "Digital Library" },
+    { href: "/dashboard/settings", icon: Settings, label: "My Account" },
+  ];
 
   return (
-    <Link
-      href={href}
-      onClick={onClick}
-      className={cn(
-        "flex flex-col items-center justify-center gap-1.5 p-3 rounded-[24px] transition-all duration-500 active:scale-[0.9] group relative overflow-hidden",
-        active
-          ? `bg-${colorClass}-600/10 border border-${colorClass}-500/25 shadow-sm`
-          : "bg-white/[0.04] dark:bg-stone-900/40 border border-zinc-200 dark:border-white/[0.06] shadow-[0_2px_10px_rgba(0,0,0,0.02)]"
+    <AnimatePresence>
+      {open && (
+        <>
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="fixed inset-0 z-[9998] bg-black/60 backdrop-blur-[2px]"
+          />
+          <motion.div
+            initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }}
+            transition={{ type: "spring", damping: 30, stiffness: 300 }}
+            className="fixed inset-y-0 right-0 w-[85%] max-w-[400px] z-[9999] bg-white dark:bg-stone-950 shadow-2xl flex flex-col pointer-events-auto"
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-6 border-b border-zinc-100 dark:border-stone-900">
+              <Link href="/" onClick={onClose} className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-2xl bg-orange-500 flex items-center justify-center shadow-lg shadow-orange-500/20">
+                  <Zap className="h-6 w-6 text-white fill-white/20" />
+                </div>
+                <Image src="/jimvio-logo.png" alt="Jimvio" width={100} height={30} className="h-7 w-auto" />
+              </Link>
+              <button 
+                onClick={onClose}
+                className="h-10 w-10 flex items-center justify-center rounded-2xl bg-zinc-50 dark:bg-stone-900 text-stone-500 hover:text-stone-900 dark:hover:text-white transition-colors"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto px-6 py-8 space-y-8 scrollbar-none">
+              {/* Search */}
+              <div className="bg-zinc-50 dark:bg-stone-900/50 rounded-2xl p-1.5 ring-1 ring-zinc-100 dark:ring-stone-900 shadow-sm">
+                <NavbarSearch searchQ={searchQ} setSearchQ={setSearchQ} variant="mobile" runSearch={runSearch} navLinks={navLinks} isScrolled={false} />
+              </div>
+
+              {/* Navigation Group */}
+              <div className="space-y-2">
+                <p className="text-[10px] font-black text-stone-400 dark:text-stone-600 uppercase tracking-[0.2em] px-2 mb-4">Navigation</p>
+                
+                <Link href="/" onClick={onClose} 
+                  className={cn("flex items-center gap-4 p-4 rounded-2xl text-[15px] font-bold transition-all", 
+                    pathname === "/" ? "bg-orange-500 text-white shadow-lg shadow-orange-500/20" : "text-stone-600 dark:text-stone-300 hover:bg-zinc-50 dark:hover:bg-stone-900")}>
+                  <Home className={cn("h-5 w-5", pathname === "/" ? "text-white" : "text-orange-500")} /> Home
+                </Link>
+
+                <Link href="/marketplace" onClick={onClose} 
+                  className={cn("flex items-center gap-4 p-4 rounded-2xl text-[15px] font-bold transition-all", 
+                    pathname.startsWith("/marketplace") ? "bg-orange-500 text-white shadow-lg shadow-orange-500/20" : "text-stone-600 dark:text-stone-300 hover:bg-zinc-50 dark:hover:bg-stone-900")}>
+                  <ShoppingBag className={cn("h-5 w-5", pathname.startsWith("/marketplace") ? "text-white" : "text-orange-500")} /> Marketplace
+                </Link>
+
+                {/* Explore Dropdown */}
+                <div className="space-y-1">
+                  <button 
+                    onClick={() => toggle('explore')}
+                    className={cn("w-full flex items-center justify-between p-4 rounded-2xl text-[15px] font-bold transition-all", 
+                      expanded === 'explore' ? "bg-stone-100 dark:bg-stone-900 text-stone-900 dark:text-white" : "text-stone-600 dark:text-stone-400 hover:bg-zinc-50 dark:hover:bg-stone-900")}
+                  >
+                    <div className="flex items-center gap-4">
+                      <Globe className="h-5 w-5 text-orange-500" /> Explore
+                    </div>
+                    <ChevronDown className={cn("h-5 w-5 transition-transform duration-300", expanded === 'explore' && "rotate-180")} />
+                  </button>
+                  
+                  <AnimatePresence>
+                    {expanded === 'explore' && (
+                      <motion.div 
+                        initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+                        className="overflow-hidden pl-10 space-y-1"
+                      >
+                        {solutions.map((s: any) => (
+                          <Link key={s.href} href={s.href} onClick={onClose} className="flex items-center gap-4 p-3.5 text-sm font-semibold text-stone-500 hover:text-orange-600 dark:text-stone-500 dark:hover:text-orange-500 transition-colors">
+                            <s.icon className="h-4 w-4 opacity-70" /> {s.title}
+                          </Link>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+
+                <Link href="/communities" onClick={onClose} 
+                  className={cn("flex items-center gap-4 p-4 rounded-2xl text-[15px] font-bold transition-all", 
+                    pathname.startsWith("/communities") ? "bg-orange-50 text-orange-600" : "text-stone-600 dark:text-stone-300 hover:bg-zinc-50 dark:hover:bg-stone-900")}>
+                  <Users className="h-5 w-5 text-orange-500" /> Communities
+                </Link>
+              </div>
+
+              {/* Account Group */}
+              <div className="pt-6 border-t border-zinc-100 dark:border-stone-900 space-y-4">
+                <p className="text-[10px] font-black text-stone-400 dark:text-stone-600 uppercase tracking-[0.2em] px-2 mb-4">Account & Settings</p>
+                
+                {user ? (
+                  <div className="space-y-1">
+                    <button 
+                      onClick={() => toggle('account')}
+                      className={cn("w-full flex items-center justify-between p-4 rounded-2xl text-[15px] font-bold transition-all", 
+                        expanded === 'account' ? "bg-stone-100 dark:bg-stone-900 text-stone-900 dark:text-white" : "text-stone-600 dark:text-stone-400 hover:bg-zinc-50 dark:hover:bg-stone-900")}
+                    >
+                      <div className="flex items-center gap-4">
+                        <Avatar className="h-7 w-7 ring-2 ring-zinc-50 dark:ring-stone-800">
+                          <AvatarImage src={user.avatar_url} />
+                          <AvatarFallback className="bg-orange-500 text-white text-[10px] font-bold">{user.full_name?.[0]}</AvatarFallback>
+                        </Avatar>
+                        <span>Profile & Dash</span>
+                      </div>
+                      <ChevronDown className={cn("h-5 w-5 transition-transform duration-300", expanded === 'account' && "rotate-180")} />
+                    </button>
+
+                    <AnimatePresence>
+                      {expanded === 'account' && (
+                        <motion.div 
+                          initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+                          className="overflow-hidden pl-10 space-y-1"
+                        >
+                          {accountLinks.map(link => (
+                            <Link key={link.href} href={link.href} onClick={onClose} className="flex items-center gap-4 p-3.5 text-sm font-semibold text-stone-500 hover:text-stone-900 dark:text-stone-500 dark:hover:text-white transition-colors">
+                              <link.icon className="h-4 w-4 opacity-70" /> {link.label}
+                            </Link>
+                          ))}
+                          <button 
+                            onClick={async () => { await signOut(); window.location.href = "/"; }}
+                            className="w-full flex items-center gap-4 p-3.5 text-sm font-bold text-red-500"
+                          >
+                            <LogOut className="h-4 w-4" /> Logout Instance
+                          </button>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-4 px-2">
+                    <Link href="/login" onClick={onClose} className="flex items-center justify-center p-4 rounded-2xl bg-zinc-100 dark:bg-stone-900 text-[13px] font-black uppercase tracking-widest text-stone-600 dark:text-stone-400 transition-all active:scale-[0.95]">Log In</Link>
+                    <Link href="/register" onClick={onClose} className="flex items-center justify-center p-4 rounded-2xl bg-stone-900 dark:bg-white text-[13px] font-black uppercase tracking-widest text-white dark:text-black transition-all active:scale-[0.95]">Join Free</Link>
+                  </div>
+                )}
+              </div>
+
+              {/* Preferences Group */}
+              <div className="pt-6 border-t border-zinc-100 dark:border-stone-900 space-y-6">
+                <div className="flex items-center justify-between p-4 rounded-2xl bg-zinc-50 dark:bg-stone-900/40">
+                  <div className="flex items-center gap-4">
+                    <Sun className="h-5 w-5 text-stone-400" />
+                    <span className="text-[15px] font-bold text-stone-600 dark:text-stone-300">Night Phase</span>
+                  </div>
+                  <ThemeToggle />
+                </div>
+
+                <div className="bg-zinc-50 dark:bg-stone-900/40 rounded-2xl p-4">
+                  <CurrencyConverterWidget variant="compact" className="mx-0" />
+                </div>
+              </div>
+
+              {/* Premium AI CTA */}
+              <button
+                onClick={() => { openAssistant(); onClose(); }}
+                className="w-full relative flex items-center justify-between p-6 rounded-3xl bg-gradient-to-br from-orange-500 to-orange-600 shadow-xl shadow-orange-500/20 group overflow-hidden"
+              >
+                <div className="absolute inset-0 bg-white/10 opacity-0 group-active:opacity-100 transition-opacity" />
+                <div className="flex items-center gap-5 relative z-10">
+                  <div className="h-12 w-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center shadow-inner">
+                    <Sparkles className="h-6 w-6 text-white" />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-sm font-black uppercase tracking-[0.2em] text-white">AI Assistant</p>
+                    <p className="text-[11px] font-bold text-white/70">Neural Search Active</p>
+                  </div>
+                </div>
+                <ChevronRight className="h-6 w-6 text-white group-active:translate-x-2 transition-transform" />
+              </button>
+            </div>
+            
+            <div className="p-8 text-center bg-zinc-50 dark:bg-stone-900/20">
+              <p className="text-[9px] font-black text-stone-400 uppercase tracking-[0.4em]">Jimvio Multi-Channel Protocol</p>
+            </div>
+          </motion.div>
+        </>
       )}
-      style={{
-        boxShadow: active
-          ? isBlue ? "0 12px 40px rgba(59,130,246,0.15), inset 0 1px 0 rgba(255,255,255,0.05)" : "0 12px 40px rgba(249,115,22,0.15), inset 0 1px 0 rgba(255,255,255,0.05)"
-          : "none",
-      }}
-    >
-      <SpecularSweep />
-
-      {/* Icon bubble */}
-      <div
-        className={cn(
-          "flex items-center justify-center h-12 w-12 rounded-[18px] shrink-0 transition-all duration-500 group-hover:scale-110 shadow-xl relative",
-          active
-            ? isBlue ? "bg-blue-500 shadow-blue-500/30" : "bg-orange-500 shadow-orange-500/30"
-            : "bg-white/[0.08] dark:bg-white/[0.03] border border-white/10"
-        )}
-      >
-        {active && <div className="absolute inset-0 rounded-[18px] bg-white/20 animate-pulse" />}
-        <div className={cn("transition-all duration-500 relative z-10", active ? "text-white dark:drop-shadow-md scale-110" : "text-zinc-500 dark:text-white/40 group-hover:text-zinc-900 dark:group-hover:text-white")}>
-          {icon}
-        </div>
-      </div>
-
-      <span className={cn(
-        "text-[12px] font-black tracking-[0.05em] transition-all duration-300",
-        active
-          ? isBlue ? "text-blue-500" : "text-orange-500"
-          : "text-zinc-500 dark:text-white/70 group-hover:text-zinc-900 dark:group-hover:text-white"
-      )}>
-        {label}
-      </span>
-    </Link>
+    </AnimatePresence>
   );
 }
+

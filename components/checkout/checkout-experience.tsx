@@ -61,11 +61,11 @@ function paymentLabel(m: any) {
    return "—";
 }
 
-const STEPS = [
+const STEPS: { n: number; label: string; icon: any }[] = [
    { n: 1, label: "Shipping", icon: Package },
    { n: 2, label: "Payment", icon: CreditCard },
    { n: 3, label: "Review", icon: CheckCircle2 },
-] as const;
+];
 
 export function CheckoutExperience({ orders, profile, mode = "cart" }: CheckoutExperienceProps) {
    const [selectedOrderIds] = useState(orders.map((o) => o.id));

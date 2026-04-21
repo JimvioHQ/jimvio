@@ -62,11 +62,12 @@ export function ProductBuyBoxPrice({
   compareAtPrice,
   currency,
   savings,
-}: Omit<ProductPriceDisplayProps, "size" | "className">) {
+  className,
+}: Omit<ProductPriceDisplayProps, "size">) {
   const hasDiscount = Boolean(compareAtPrice && compareAtPrice > price);
 
   return (
-    <div className="space-y-1.5">
+    <div className={cn("space-y-1.5", className)}>
       <div className="flex items-baseline gap-2.5">
         <LocalizedPrice
           amount={price}

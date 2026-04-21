@@ -42,6 +42,7 @@ interface Product {
   review_count?: number;
   is_featured?: boolean;
   is_digital?: boolean;
+  product_type?: string;
   affiliate_enabled?: boolean;
   affiliate_commission_rate?: number | null;
   vendors?: { id: string; business_name?: string } | null;

@@ -9,14 +9,15 @@ interface ImageGalleryProps {
   productName: string;
   isFeatured?: boolean;
   savings?: number | null;
+  className?: string;
 }
 
-export function ImageGallery({ images, productName, isFeatured, savings }: ImageGalleryProps) {
+export function ImageGallery({ images, productName, isFeatured, savings, className }: ImageGalleryProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const mainImage = images[activeIndex] ?? null;
 
   return (
-    <div className="space-y-3">
+    <div className={cn("space-y-3", className)}>
       {/* Main Image */}
       <div className="relative aspect-square bg-white dark:bg-surface rounded-xl border border-zinc-200 dark:border-border overflow-hidden group cursor-zoom-in">
         {mainImage ? (
