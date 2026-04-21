@@ -10,11 +10,6 @@ import {
 import type { ContactSettings } from "@/lib/platform-settings-shared";
 import { PLATFORM_SETTINGS_DEFAULTS } from "@/lib/platform-settings-shared";
 
-/* ── Glass tokens (dynamic) ── */
-const GLASS_SURFACE = "var(--glass-bg)";
-const GLASS_BORDER = "var(--glass-border)";
-const GLASS_BLUR = "var(--glass-blur)";
-const GLASS_SHADOW = "var(--glass-shadow)";
 
 const footerLinks = {
   Marketplace: [
@@ -55,33 +50,7 @@ export function Footer({ contact: contactProp }: { contact?: ContactSettings }) 
   const contact = contactProp ?? PLATFORM_SETTINGS_DEFAULTS.contact;
 
   return (
-    <footer
-      className="relative overflow-hidden text-[color:var(--color-text)]"
-      style={{
-        background: `
-          radial-gradient(ellipse 70% 60% at 80% -10%, rgba(251,146,60,0.05) 0%, transparent 55%),
-          radial-gradient(ellipse 60% 50% at 0% 100%, rgba(186,230,253,0.06) 0%, transparent 55%),
-          var(--color-bg)
-        `,
-      }}
-    >
-      {/* Divider */}
-      <div
-        className="w-full opacity-40"
-        style={{
-          height: 1,
-          background:
-            "linear-gradient(90deg, transparent 5%, var(--glass-border) 40%, var(--glass-border) 60%, transparent 95%)",
-        }}
-      />
-
-      {/* Glow orbs */}
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 left-1/3 w-[600px] h-[600px] rounded-full blur-[60px]"
-          style={{ background: "rgba(251,146,60,0.06)" }} />
-        <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] rounded-full blur-[50px]"
-          style={{ background: "rgba(99,102,241,0.05)" }} />
-      </div>
+    <footer className="relative overflow-hidden text-[color:var(--color-text)] bg-surface border-t border-border">
 
       {/* Content */}
       <div className="relative z-10 max-w-[1280px] mx-auto px-4 sm:px-6 pt-16 pb-12">
@@ -91,15 +60,7 @@ export function Footer({ contact: contactProp }: { contact?: ContactSettings }) 
           <div className="lg:col-span-2 flex flex-col">
 
             <Link href="/" className="inline-block mb-7">
-              <div
-                className="relative overflow-hidden px-5 py-3.5 rounded-[22px]"
-                style={{
-                  background: GLASS_SURFACE,
-                  backdropFilter: GLASS_BLUR,
-                  border: `1px solid ${GLASS_BORDER}`,
-                  boxShadow: GLASS_SHADOW,
-                }}
-              >
+              <div className="px-4 py-3 rounded-lg border border-border bg-stone-50 dark:bg-stone-900 inline-block">
                 <Image
                   src="/jimvio-logo.png"
                   alt="Jimvio"
@@ -125,11 +86,7 @@ export function Footer({ contact: contactProp }: { contact?: ContactSettings }) 
                   key={i}
                   href={s.href}
                   target="_blank"
-                  className="w-10 h-10 flex items-center justify-center rounded-full transition"
-                  style={{
-                    background: GLASS_SURFACE,
-                    border: `1px solid ${GLASS_BORDER}`,
-                  }}
+                  className="w-9 h-9 flex items-center justify-center rounded-lg border border-border bg-stone-50 dark:bg-stone-900 hover:bg-orange-50 hover:border-orange-200 transition-colors text-stone-500 hover:text-orange-600"
                 >
                   {s.icon}
                 </a>
@@ -141,11 +98,7 @@ export function Footer({ contact: contactProp }: { contact?: ContactSettings }) 
               {[Lock, CreditCard, ShieldCheck].map((Icon, i) => (
                 <span
                   key={i}
-                  className="px-3 py-1 text-xs rounded-full flex items-center gap-1 opacity-70"
-                  style={{
-                    background: GLASS_SURFACE,
-                    border: `1px solid ${GLASS_BORDER}`,
-                  }}
+                  className="px-3 py-1 text-xs rounded-md flex items-center gap-1 border border-border bg-stone-50 dark:bg-stone-900 text-stone-500 dark:text-stone-400"
                 >
                   <Icon size={12} />
                 </span>
@@ -158,12 +111,7 @@ export function Footer({ contact: contactProp }: { contact?: ContactSettings }) 
             {Object.entries(footerLinks).map(([title, links]) => (
               <div
                 key={title}
-                className="p-5 rounded-[20px]"
-                style={{
-                  background: GLASS_SURFACE,
-                  border: `1px solid ${GLASS_BORDER}`,
-                  backdropFilter: GLASS_BLUR,
-                }}
+                className="p-5 rounded-lg bg-stone-50 dark:bg-stone-900 border border-border"
               >
                 <h5 className="text-xs uppercase mb-4 opacity-60">
                   {title}
@@ -189,13 +137,7 @@ export function Footer({ contact: contactProp }: { contact?: ContactSettings }) 
       </div>
 
       {/* Bottom */}
-      <div
-        className="py-6 text-xs flex flex-col md:flex-row justify-between items-center gap-4 opacity-70"
-        style={{
-          background: GLASS_SURFACE,
-          borderTop: `1px solid ${GLASS_BORDER}`,
-        }}
-      >
+      <div className="py-5 text-xs flex flex-col md:flex-row justify-between items-center gap-4 px-4 sm:px-6 max-w-[1280px] mx-auto text-stone-500 border-t border-border">
         <p>© {new Date().getFullYear()} Jimvio</p>
 
         <div className="flex gap-4">

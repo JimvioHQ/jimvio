@@ -69,10 +69,10 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
 
       <div className="flex-1 flex flex-col min-w-0 min-h-0">
         {/* ══════════════════════════════════════
-            HEADER — Frosted Glass iOS 17
+            HEADER — Professional Solid
         ══════════════════════════════════════ */}
         <header
-          className="sticky top-0 z-40 shrink-0 bg-surface/80 dark:bg-bg/80 backdrop-blur-[20px] border-b border-border"
+          className="sticky top-0 z-40 shrink-0 bg-surface border-b border-border"
         >
           <div className="flex items-center justify-between gap-3 px-4 sm:px-6 h-[60px] max-w-[1400px] mx-auto w-full">
             

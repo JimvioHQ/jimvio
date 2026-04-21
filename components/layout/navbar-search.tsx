@@ -31,33 +31,19 @@ function mergeLinks(navLinks: NavLinkConfig[]) {
 }
 
 /* ── Dark glass search input shell ── */
+/* ── Professional Solid Input Shells ── */
 const INPUT_IDLE: React.CSSProperties = {
-  background: "rgba(255,255,255,0.08)",
-  backdropFilter: "blur(24px) saturate(160%)",
-  WebkitBackdropFilter: "blur(24px) saturate(160%)",
-  border: "1px solid rgba(255,255,255,0.12)",
-  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.08)",
+  background: "var(--color-surface)",
+  border: "1px solid var(--color-border)",
+  boxShadow: "var(--shadow-sm)",
 };
 const INPUT_FOCUSED: React.CSSProperties = {
-  background: "rgba(255,255,255,0.10)",
-  backdropFilter: "blur(32px) saturate(180%)",
-  WebkitBackdropFilter: "blur(32px) saturate(180%)",
-  border: "1px solid rgba(251,146,60,0.30)",
-  boxShadow: "0 0 20px rgba(249,115,22,0.08), inset 0 1px 0 rgba(255,255,255,0.10)",
-};
-/* Light mode variant */
-const INPUT_LIGHT: React.CSSProperties = {
   background: "var(--color-surface)",
-  backdropFilter: "blur(32px) saturate(180%)",
-  WebkitBackdropFilter: "blur(32px) saturate(180%)",
-  border: "1px solid var(--color-border)",
-  boxShadow: "0 2px 10px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.1)",
+  border: "1px solid var(--color-accent)",
+  boxShadow: "0 0 0 1px var(--color-accent)",
 };
-const INPUT_LIGHT_FOCUSED: React.CSSProperties = {
-  background: "var(--color-surface)",
-  border: "1px solid var(--color-border)",
-  boxShadow: "0 0 24px rgba(249,115,22,0.12), inset 0 1px 0 rgba(255,255,255,0.1)",
-};
+const INPUT_LIGHT: React.CSSProperties = INPUT_IDLE;
+const INPUT_LIGHT_FOCUSED: React.CSSProperties = INPUT_FOCUSED;
 
 export function NavbarSearch({
   searchQ, setSearchQ, placeholder, isScrolled, variant,
@@ -215,24 +201,10 @@ export function NavbarSearch({
           />
 
           <motion.div
-            initial={{ opacity: 0, y: -16, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ type: "spring", damping: 32, stiffness: 320 }}
-            className="w-full max-w-[780px] relative z-10 rounded-[28px] overflow-hidden"
-            style={{
-              background: "var(--color-surface)",
-              backdropFilter: "blur(48px) saturate(200%) brightness(108%)",
-              WebkitBackdropFilter: "blur(48px) saturate(200%) brightness(108%)",
-              border: "1px solid var(--color-border)",
-              boxShadow: "0 32px 80px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.05)",
-            }}
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="w-full max-w-[780px] relative z-10 rounded-xl border border-border shadow-2xl bg-surface overflow-hidden"
           >
-            {/* Specular */}
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-px"
-              style={{ background: "linear-gradient(90deg,transparent,rgba(255,255,255,1) 40%,rgba(255,255,255,0.8) 60%,transparent)" }} />
-            <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-[28px]">
-              <div className="absolute" style={{ top: "-40%", left: "-20%", width: "50%", height: "90%", background: "linear-gradient(135deg, rgba(255,255,255,0.4) 0%, transparent 55%)", transform: "rotate(-15deg)" }} />
-            </div>
 
             {/* Header */}
             <div className="flex items-center gap-3 px-5 py-4 border-b border-black/[0.05]">
@@ -269,12 +241,9 @@ export function NavbarSearch({
                         <button
                           key={p.id}
                           onClick={() => { router.push(`/marketplace/${p.slug}`); close(); setFocused(false); }}
-                          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-[14px] text-left transition-all group"
-                          onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "rgba(249,115,22,0.05)"}
-                          onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = ""}
+                          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all group hover:bg-stone-50 dark:hover:bg-white/5"
                         >
-                          <div className="h-7 w-7 rounded-[9px] flex items-center justify-center shrink-0"
-                            style={{ background: "rgba(249,115,22,0.08)", border: "1px solid rgba(249,115,22,0.15)" }}>
+                          <div className="h-7 w-7 rounded-md flex items-center justify-center shrink-0 bg-orange-500/10 border border-orange-500/20">
                             <Package className="h-3.5 w-3.5 text-orange-500" />
                           </div>
                           <span className="text-[13px] font-semibold text-stone-700 dark:text-stone-300 group-hover:text-stone-900 dark:text-white dark:group-hover:text-white flex-1 truncate transition-colors">{p.name}</span>
@@ -333,9 +302,7 @@ export function NavbarSearch({
                       <button
                         key={l.href}
                         onClick={() => { router.push(l.href); close(); setFocused(false); }}
-                        className="w-full flex items-center justify-between px-2.5 py-2 rounded-[11px] text-[12px] font-semibold text-stone-500 dark:text-text-muted hover:text-stone-800 dark:text-text-secondary dark:hover:text-stone-200 transition-colors group"
-                        onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "rgba(0,0,0,0.04)"}
-                        onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = ""}
+                        className="w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-[12px] font-semibold text-stone-500 dark:text-text-muted hover:text-stone-800 hover:bg-stone-50 dark:text-text-secondary dark:hover:text-stone-200 transition-colors group"
                       >
                         <span className="truncate">{l.label}</span>
                         <ArrowRight className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
@@ -349,14 +316,7 @@ export function NavbarSearch({
             {/* Footer CTA */}
             <button
               onClick={() => commit(searchQ)}
-              className="w-full flex items-center justify-center gap-2 px-5 py-3.5 text-[12px] font-black uppercase tracking-widest text-orange-600 transition-all hover:bg-orange-500/10"
-              style={{
-                background: "var(--color-surface-secondary)",
-                backdropFilter: "blur(20px) saturate(160%)",
-                WebkitBackdropFilter: "blur(20px) saturate(160%)",
-                borderTop: "1px solid var(--color-border)",
-                boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)",
-              }}
+              className="w-full flex items-center justify-center gap-2 px-5 py-3.5 text-[12px] font-black uppercase tracking-widest text-orange-600 transition-all hover:bg-orange-50 bg-stone-50 border-t border-border"
             >
               View all results for "{searchQ || "everything"}"
               <ArrowRight className="h-4 w-4" />

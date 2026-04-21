@@ -122,10 +122,6 @@ export default async function HomePage() {
 
   return (
     <div className="min-h-screen pb-14 md:pb-0 relative overflow-hidden" style={{ background: "var(--color-bg)" }}>
-      {/* Dynamic Ambient Glows — Dashboard Signature */}
-      <GlassAmbientGlow color="orange" position="top-right" className="opacity-40" />
-      <GlassAmbientGlow color="indigo" position="bottom-left" className="opacity-30" />
-
       <div className="relative z-10">
         {/* ── HERO ── */}
         <HomepageHero

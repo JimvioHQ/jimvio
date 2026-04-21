@@ -33,50 +33,26 @@ import { CurrencyConverterWidget } from "@/components/shared/currency-converter-
    iPhone 17 Liquid Glass Design Tokens
    --------------------------------------------------------- */
 
-/** Liquid Glass Design Tokens — adapted for dynamic theme */
+/** Standard Professional Design Tokens — solid surfaces, high trust */
 const GLASS_LIGHT = {
-  body: "var(--glass-bg)",
-  border: "var(--glass-border)",
-  blur: "var(--glass-blur) saturate(160%)",
-  shadow: "var(--glass-shadow), inset 0 1px 0 rgba(255,255,255,0.05)",
-  shadowDeep: "0 24px 64px rgba(0,0,0,0.14), inset 0 1px 0 rgba(255,255,255,0.05)",
+  body: "var(--color-surface)",
+  border: "var(--color-border)",
+  blur: "none",
+  shadow: "var(--shadow-sm)",
 };
 
 const GLASS_DARK = {
-  body: "var(--glass-bg)",
-  border: "var(--glass-border)",
-  blur: "var(--glass-blur) saturate(160%)",
-  shadow: "var(--glass-shadow)",
+  body: "var(--color-surface)",
+  border: "var(--color-border)",
+  blur: "none",
+  shadow: "var(--shadow-sm)",
 };
 
 /* Specular line — the 1px bright edge every glass element has */
-function SpecularLine({ rounded = false }: { rounded?: boolean }) {
-  return (
-    <div
-      className={cn("pointer-events-none absolute inset-x-0 top-0 h-px z-10", rounded && "rounded-t-[inherit]")}
-      style={{ background: "linear-gradient(90deg,transparent 5%,rgba(255,255,255,0.3) 40%,rgba(255,255,255,0.1) 60%,transparent 95%)" }}
-    />
-  );
-}
+function SpecularLine({ rounded = false }: { rounded?: boolean }) { return null; }
 
 /* Diagonal specular sweep — adds depth */
-function SpecularSweep() {
-  return (
-    <div
-      className="pointer-events-none absolute inset-0 overflow-hidden rounded-[inherit] z-10"
-      style={{ borderRadius: "inherit" }}
-    >
-      <div
-        className="absolute"
-        style={{
-          top: "-50%", left: "-25%", width: "55%", height: "100%",
-          background: "linear-gradient(135deg, rgba(255,255,255,0.08) 0%, transparent 55%)",
-          transform: "rotate(-15deg)",
-        }}
-      />
-    </div>
-  );
-}
+function SpecularSweep() { return null; }
 
 /* Glass pill button */
 const GlassPill = React.forwardRef<any, {
@@ -94,46 +70,36 @@ const GlassPill = React.forwardRef<any, {
 }, ref) => {
   const base: React.CSSProperties = active
     ? {
-      background: "var(--glass-bg)",
-      backdropFilter: GLASS_LIGHT.blur,
-      WebkitBackdropFilter: GLASS_LIGHT.blur,
-      border: "1px solid var(--glass-border)",
-      boxShadow: "0 2px 10px rgba(249,115,22,0.12), inset 0 1px 0 rgba(255,255,255,0.1)",
+      background: "var(--color-accent-light)",
+      border: "1px solid var(--color-accent)",
       color: "var(--color-accent)",
     }
     : orange
       ? {
-        background: "var(--glass-bg)",
-        backdropFilter: GLASS_LIGHT.blur,
-        WebkitBackdropFilter: GLASS_LIGHT.blur,
-        border: "1px solid var(--glass-border)",
-        boxShadow: "0 2px 12px rgba(249,115,22,0.10), inset 0 1px 0 rgba(255,255,255,0.1)",
-        color: "var(--color-text-primary)",
+        background: "var(--color-accent)",
+        border: "1px solid var(--color-accent)",
+        color: "white",
       }
       : {
         background: GLASS_LIGHT.body,
-        backdropFilter: GLASS_LIGHT.blur,
-        WebkitBackdropFilter: GLASS_LIGHT.blur,
         border: `1px solid ${GLASS_LIGHT.border}`,
         boxShadow: GLASS_LIGHT.shadow,
         color: "var(--color-text-primary)",
       };
 
   const cls = cn(
-    "relative inline-flex items-center gap-1.5 rounded-full transition-all duration-200 active:scale-[0.96] select-none",
+    "relative inline-flex items-center gap-1.5 rounded-lg transition-all duration-200 active:scale-[0.98] select-none",
     className,
   );
 
   if (href) return (
     <Link href={href} className={cls} style={{ ...base, ...style }} ref={ref} {...props}>
-      <SpecularSweep />
       {children}
     </Link>
   );
 
   return (
     <button type="button" onClick={onClick} className={cls} style={{ ...base, ...style }} ref={ref} {...props}>
-      <SpecularSweep />
       {children}
     </button>
   );
@@ -149,21 +115,18 @@ const GlassCircle = React.forwardRef<any, {
   children, href, onClick, badge, className, style: styleProp, ...props
 }, ref) => {
   const style: React.CSSProperties = {
-    background: GLASS_LIGHT.body,
-    backdropFilter: GLASS_LIGHT.blur,
-    WebkitBackdropFilter: GLASS_LIGHT.blur,
-    border: `1px solid ${GLASS_LIGHT.border}`,
-    boxShadow: GLASS_LIGHT.shadow,
+    background: "var(--color-surface)",
+    border: "1px solid var(--color-border)",
+    boxShadow: "var(--shadow-sm)",
     ...styleProp,
   };
   const cls = cn(
-    "relative flex items-center justify-center h-10 w-10 shrink-0 rounded-full transition-all duration-200 hover:scale-[1.04] active:scale-[0.92]",
+    "relative flex items-center justify-center h-10 w-10 shrink-0 rounded-lg transition-all duration-200 active:scale-[0.95]",
     className,
   );
 
   const inner = (
     <>
-      <SpecularSweep />
       {children}
       {badge != null && badge > 0 && (
         <span className="absolute -top-1 -right-1 h-[18px] min-w-[18px] px-1 bg-orange-500 text-white text-[9px] font-bold flex items-center justify-center rounded-full ring-2 ring-white z-20">
@@ -295,11 +258,9 @@ export function Navbar({ user, marketing }: NavbarProps) {
 
   /* --- Navbar shell glass styles (always applies) --- */
   const shellStyle: React.CSSProperties = {
-    background: "var(--glass-bg)",
-    backdropFilter: "blur(var(--glass-blur)) saturate(160%)",
-    WebkitBackdropFilter: "blur(var(--glass-blur)) saturate(160%)",
+    background: "var(--color-bg)",
     borderBottom: "1px solid var(--color-border)",
-    boxShadow: scrolled ? "var(--glass-shadow)" : "none",
+    boxShadow: scrolled ? "var(--shadow-sm)" : "none",
   };
 
   return (
@@ -311,12 +272,10 @@ export function Navbar({ user, marketing }: NavbarProps) {
         style={{
           ...shellStyle,
           borderBottom: scrolled ? "1px solid var(--color-border)" : "none",
-          background: scrolled ? "var(--glass-bg)" : "transparent",
+          background: scrolled ? "var(--color-surface)" : "transparent",
         }}
       >
-        {/* Specular glass edges */}
-        {scrolled && <SpecularLine rounded={scrolled} />}
-        {scrolled && <SpecularSweep />}
+        {/* Top-down structure for professional layout */}
 
         {/* Desktop top strip */}
         <motion.div
@@ -372,19 +331,11 @@ export function Navbar({ user, marketing }: NavbarProps) {
                 <DropdownMenuContent
                   onMouseEnter={() => { if (exploreTimer.current) clearTimeout(exploreTimer.current); setExploreOpen(true); }}
                   onMouseLeave={() => { exploreTimer.current = setTimeout(() => setExploreOpen(false), 140); }}
-                  sideOffset={10}
-                  className="w-72 p-2 rounded-[24px] border border-white/10 dark:border-white/5 outline-none overflow-hidden"
-                  style={{
-                    background: "var(--color-surface)",
-                    backdropFilter: "blur(40px) saturate(180%)",
-                    WebkitBackdropFilter: "blur(40px) saturate(180%)",
-                    boxShadow: "0 20px 50px rgba(0,0,0,0.12)",
-                  }}
+                  sideOffset={4}
+                  className="w-72 p-1.5 rounded-xl border border-border shadow-lg bg-surface"
                 >
-                  <SpecularLine rounded />
-                  <SpecularSweep />
                   {solutions.map(s => (
-                    <DropdownMenuItem key={s.href} asChild className="p-0 focus:bg-transparent rounded-[16px]">
+                    <DropdownMenuItem key={s.href} asChild className="p-0 focus:bg-transparent">
                       <Link
                         href={s.href}
                         className="relative flex items-center gap-3 p-3 rounded-[16px] group/item transition-all"
@@ -398,15 +349,10 @@ export function Navbar({ user, marketing }: NavbarProps) {
                           (e.currentTarget as HTMLElement).style.border = "";
                         }}
                       >
-                        {/* Icon with glass backing */}
+                        {/* Standard Structured Icon Box */}
                         <div
-                          className="h-9 w-9 rounded-[12px] flex items-center justify-center shrink-0"
-                          style={{
-                            background: "var(--color-surface-secondary)",
-                            border: "1px solid var(--color-border)",
-                            boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)",
-                            color: s.color,
-                          }}
+                          className="h-9 w-9 rounded-lg flex items-center justify-center shrink-0 bg-stone-50 dark:bg-stone-900 border border-stone-100 dark:border-stone-800"
+                          style={{ color: s.color }}
                         >
                           <s.icon className="h-4 w-4" />
                         </div>
@@ -491,9 +437,9 @@ export function Navbar({ user, marketing }: NavbarProps) {
             </div>
 
             {/* AI Mode */}
-            <GlassPill orange className="hidden md:flex shrink-0 px-4 py-2 text-[12px] font-black capitalize tracking-widest text-primary border-primary/20 bg-primary/5 hover:bg-primary/10"
+            <GlassPill orange className="hidden md:flex shrink-0 px-4 py-2 text-[12px] font-black capitalize tracking-widest bg-orange-500 text-white shadow-sm hover:bg-orange-600"
               onClick={() => openAssistant()}>
-              <Sparkles className="h-4 w-4 fill-primary stroke-none" />
+              <Sparkles className="h-4 w-4 fill-white stroke-none" />
               <span>AI Mode</span>
             </GlassPill>
 
@@ -523,19 +469,11 @@ export function Navbar({ user, marketing }: NavbarProps) {
                 <DropdownMenu modal={false}>
                   <DropdownMenuTrigger asChild>
                     <button
-                      className="relative flex items-center gap-2.5 px-2 xl:px-3 h-11 rounded-full transition-all hover:scale-[1.02] active:scale-95"
-                      style={{
-                        background: GLASS_LIGHT.body,
-                        backdropFilter: GLASS_LIGHT.blur,
-                        WebkitBackdropFilter: GLASS_LIGHT.blur,
-                        border: `1px solid var(--color-border)`,
-                        boxShadow: GLASS_LIGHT.shadow,
-                      }}
+                      className="relative flex items-center gap-2.5 px-2 xl:px-3 h-11 rounded-lg transition-all border border-border bg-surface shadow-sm active:scale-95"
                     >
-                      <SpecularSweep />
-                      <Avatar className="h-7 w-7 ring-2 ring-white/80 shadow-sm shrink-0">
+                      <Avatar className="h-7 w-7 border border-border shrink-0">
                         <AvatarImage src={user.avatar_url ?? undefined} />
-                        <AvatarFallback className="bg-gradient-to-br from-orange-400 to-orange-600 text-white text-[10px] font-bold capitalize">
+                        <AvatarFallback className="bg-stone-100 text-stone-600 text-[10px] font-bold capitalize">
                           {user.full_name?.[0]}
                         </AvatarFallback>
                       </Avatar>
@@ -549,18 +487,9 @@ export function Navbar({ user, marketing }: NavbarProps) {
                   {/* Dark glass user dropdown */}
                   <DropdownMenuContent
                     align="end"
-                    className="w-60 p-2 mt-2 rounded-[28px] border border-border outline-none overflow-hidden"
-                    style={{
-                      background: "var(--glass-bg)",
-                      backdropFilter: "blur(40px) saturate(180%)",
-                      WebkitBackdropFilter: "blur(40px) saturate(180%)",
-                      boxShadow: "0 20px 50px rgba(0,0,0,0.12)",
-                    }}
+                    className="w-60 p-1.5 mt-2 rounded-xl border border-border bg-surface shadow-xl outline-none"
                   >
-                    <SpecularLine rounded />
-                    <SpecularSweep />
-
-                    <div className="px-3 py-3 rounded-[20px] mb-2 bg-orange-500/5 dark:bg-orange-500/10 border border-orange-500/10 shadow-inner">
+                    <div className="px-3 py-3 rounded-lg mb-1.5 bg-stone-50 dark:bg-stone-900 border border-border">
                       <div className="flex items-center gap-2.5">
                         <Avatar className="h-8 w-8 ring-2 ring-white shrink-0">
                           <AvatarImage src={user.avatar_url ?? undefined} />
@@ -618,19 +547,12 @@ export function Navbar({ user, marketing }: NavbarProps) {
                 </DropdownMenu>
               ) : (
                 <div className="flex items-center gap-2 shrink-0">
-                  <GlassPill href="/login" className="px-4 py-2 text-[13px] font-semibold text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:text-white dark:hover:text-white shrink-0 whitespace-nowrap">
+                  <GlassPill href="/login" className="px-4 py-2 text-[13px] font-semibold text-stone-600 border border-border hover:bg-stone-50">
                     Log In
                   </GlassPill>
                   <Link
                     href="/register"
-                    className="px-5 py-2.5 rounded-full text-[12px] font-black capitalize tracking-widest text-orange-600 transition-all active:scale-95 shrink-0 whitespace-nowrap"
-                    style={{
-                      background: "rgba(251,146,60,0.12)",
-                      backdropFilter: "blur(20px) saturate(160%)",
-                      WebkitBackdropFilter: "blur(20px) saturate(160%)",
-                      border: "1px solid rgba(251,146,60,0.35)",
-                      boxShadow: "0 2px 10px rgba(249,115,22,0.10), inset 0 1px 0 rgba(255,255,255,0.05)",
-                    }}
+                    className="px-5 py-2.5 rounded-lg text-[12px] font-black capitalize tracking-widest bg-orange-500 text-white shadow-sm hover:bg-orange-600 transition-all active:scale-95 shrink-0 whitespace-nowrap"
                   >
                     Join Free
                   </Link>

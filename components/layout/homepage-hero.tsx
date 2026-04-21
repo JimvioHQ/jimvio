@@ -68,10 +68,10 @@ function VideoMarquee({ videos, mobile = false }: { videos: any[]; mobile?: bool
             key={`${v.id}-${i}`}
             href={`/shorts?clip=${v.id}`}
             className={cn(
-              "group relative shrink-0 overflow-hidden bg-[#1c1811] transition-transform hover:scale-[1.04]",
+              "group relative shrink-0 overflow-hidden bg-stone-900 transition-transform",
               mobile
-                ? "w-[84px] h-[144px] rounded-[14px]"
-                : "w-[115px] h-[196px] rounded-[18px]"
+                ? "w-[84px] h-[144px] rounded-lg"
+                : "w-[115px] h-[196px] rounded-lg"
             )}
           >
             {/* Thumbnail */}
@@ -133,17 +133,9 @@ export function HomepageHero({
         </DialogTrigger>
         <DialogContent className="max-w-xl p-0 border-none bg-transparent shadow-none overflow-visible z-[9999]">
           <div
-            className="relative overflow-hidden rounded-[32px] p-6 sm:p-7 max-h-[90vh] overflow-y-auto no-scrollbar"
-            style={{
-              background: "rgba(255,255,255,0.82)",
-              backdropFilter: "blur(48px) saturate(200%) brightness(108%)",
-              WebkitBackdropFilter: "blur(48px) saturate(200%) brightness(108%)",
-              border: "1px solid rgba(255,255,255,0.88)",
-              boxShadow: "0 32px 80px rgba(0,0,0,0.16), inset 0 1px 0 rgba(255,255,255,1)",
-            }}
+            className="relative overflow-hidden rounded-xl p-6 sm:p-7 max-h-[90vh] overflow-y-auto no-scrollbar bg-surface border border-border shadow-2xl"
           >
-            <div className="pointer-events-none absolute -top-1/2 -left-1/4 w-3/4 h-3/4 rotate-[-25deg]" style={{ background: "linear-gradient(135deg, rgba(255,255,255,0.6) 0%, transparent 60%)" }} />
-            <div className="pointer-events-none absolute bottom-0 right-0 w-48 h-48 rounded-full blur-3xl" style={{ background: "radial-gradient(circle, rgba(251,146,60,0.12), transparent 65%)" }} />
+            <div className="pointer-events-none absolute bottom-0 right-0 w-48 h-48 rounded-full blur-3xl opacity-5 bg-orange-500" />
 
             <DialogHeader className="mb-6 relative z-10 text-center">
               <div
@@ -175,13 +167,7 @@ export function HomepageHero({
                 <Link
                   key={href}
                   href={href}
-                  className="relative overflow-hidden p-4 rounded-[20px] border transition-all group flex flex-col gap-3"
-                  style={{
-                    background: "rgba(255,255,255,0.65)",
-                    backdropFilter: "blur(20px) saturate(160%)",
-                    borderColor: "rgba(255,255,255,0.9)",
-                    boxShadow: "0 2px 12px rgba(0,0,0,0.05), inset 0 1px 0 rgba(255,255,255,1)",
-                  }}
+                  className="relative overflow-hidden p-4 rounded-lg border border-border bg-stone-50/50 dark:bg-stone-900/50 transition-all group flex flex-col gap-3 shadow-sm hover:shadow-md"
                 >
                   <div className="absolute -top-6 -right-6 w-20 h-20 rounded-full blur-2xl opacity-20"
                     style={{ background: color === "orange" ? "#f97316" : color === "blue" ? "#3b82f6" : color === "violet" ? "#8b5cf6" : "#ec4899" }} />
@@ -227,16 +213,11 @@ export function HomepageHero({
         <div className="relative z-10 flex flex-col gap-4 pt-6 items-center">
           {/* Live badge */}
           <div
-            className="inline-flex items-center gap-[7px] px-[14px] py-[6px] rounded-full text-[10px] font-bold uppercase tracking-[.1em] text-[#b45309] dark:text-[#fb923c]"
-            style={{
-              background: "rgba(255,237,213,0.85)",
-              border: "0.5px solid rgba(249,115,22,0.25)",
-              backdropFilter: "blur(12px)",
-            }}
+            className="inline-flex items-center gap-[7px] px-[14px] py-[6px] rounded-md text-[10px] font-bold uppercase tracking-[.1em] text-orange-700 bg-orange-50 border border-orange-100"
           >
             <span
               className="block rounded-full bg-[#f97316] shrink-0"
-              style={{ width: 6, height: 6, animation: "pulse 1.8s infinite" }}
+              style={{ width: 6, height: 6 }}
             />
             Global Creator &amp; Sourcing Network
           </div>
@@ -259,18 +240,14 @@ export function HomepageHero({
           {/* CTA stack */}
           <div className="flex flex-col gap-[10px] w-full max-w-[300px]">
             <StartEarnDialog
-              className="h-[52px] w-full rounded-[14px] border-none text-white text-[13px] font-bold uppercase tracking-[.06em]"
-              style={{
-                background: "#f97316",
-                boxShadow: "0 2px 0 #c2410c, 0 4px 12px rgba(249,115,22,.24)",
-              } as any}
+              className="h-12 w-full rounded-lg border-none text-white text-[13px] font-bold uppercase tracking-[.06em] bg-orange-500 shadow-md active:bg-orange-600"
             >
               Start Earning Now →
             </StartEarnDialog>
 
             <button
               onClick={() => openAssistant()}
-              className="h-[48px] rounded-[14px] flex items-center justify-center gap-3 font-bold text-[#3c3429] dark:text-stone-200 text-[12px] uppercase tracking-[.07em] transition-all bg-white/90 dark:bg-white/[0.05] border border-white/80 dark:border-white/[0.08] backdrop-blur-2xl shadow-sm dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)]"
+              className="h-11 rounded-lg flex items-center justify-center gap-3 font-bold text-stone-700 dark:text-stone-200 text-[12px] uppercase tracking-[.07em] bg-surface border border-border shadow-sm"
             >
               <Sparkles className="h-4 w-4 fill-[#f97316] stroke-none" />
               Activate AI Mode
@@ -345,11 +322,11 @@ export function HomepageHero({
                   initial={{ opacity: 0, x: -16 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.45 }}
-                  className="inline-flex items-center gap-[7px] w-fit px-[14px] py-[6px] rounded-full text-[9px] font-bold uppercase tracking-[.1em] text-[#b45309] dark:text-[#fb923c] bg-orange-100/80 dark:bg-orange-950/30 border border-orange-200/50 dark:border-orange-900/40 backdrop-blur-xl"
+                  className="inline-flex items-center gap-[7px] w-fit px-[14px] py-[6px] rounded-md text-[9px] font-bold uppercase tracking-[.1em] text-orange-700 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/20 border border-orange-100 dark:border-orange-900/30"
                 >
                   <span
                     className="block rounded-full bg-[#f97316] shrink-0"
-                    style={{ width: 6, height: 6, animation: "pulse 1.8s infinite" }}
+                    style={{ width: 6, height: 6 }}
                   />
                   Global Creator &amp; Sourcing Network
                 </motion.div>
@@ -382,11 +359,7 @@ export function HomepageHero({
                   className="flex items-center gap-3"
                 >
                   <StartEarnDialog
-                    className="h-[44px] px-7 rounded-[14px] border-none text-white text-[13px] font-bold uppercase tracking-[.06em] flex items-center gap-2"
-                    style={{
-                      background: "#f97316",
-                      boxShadow: "0 2px 0 #c2410c, 0 4px 16px rgba(249,115,22,.28)",
-                    } as any}
+                    className="h-11 px-8 rounded-lg border-none text-white text-[13px] font-bold uppercase tracking-[.06em] flex items-center gap-2 bg-orange-500 shadow-md hover:bg-orange-600 transition-colors"
                   >
                     Start Earning Now →
                   </StartEarnDialog>
@@ -394,7 +367,7 @@ export function HomepageHero({
                   <button
                     onClick={() => openAssistant()}
                     title="AI Sourcing"
-                    className="h-[44px] w-[44px] rounded-[14px] flex items-center justify-center transition-all hover:scale-105 bg-white/70 dark:bg-white/5 border border-white/90 dark:border-white/10 backdrop-blur-2xl"
+                    className="h-11 w-11 rounded-lg flex items-center justify-center transition-all bg-surface border border-border shadow-sm hover:bg-stone-50"
                   >
                     <Sparkles className="h-[18px] w-[18px] fill-[#f97316] stroke-none" />
                   </button>
