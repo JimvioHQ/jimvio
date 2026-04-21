@@ -757,29 +757,12 @@ function MobileDrawer({
             {/* Content Container */}
             <div className="flex-1 overflow-y-auto px-6 py-6 space-y-7 scrollbar-none">
               
-              {/* SECTION: Account & Quick Control (MOVED TO TOP) */}
+              {/* SECTION: Quick Access (Account -> AI -> Utils) */}
               <div className="space-y-4">
-                <p className="text-[10px] font-black text-stone-400 dark:text-stone-600 uppercase tracking-[0.2em] px-2 mb-2">Power Controls</p>
+                <p className="text-[10px] font-black text-stone-400 dark:text-stone-600 uppercase tracking-[0.2em] px-2 mb-2">My Console</p>
                 
-                {/* AI Assistant CTA */}
-                <button
-                  onClick={() => { openAssistant(); onClose(); }}
-                  className="w-full relative flex items-center justify-between p-4 rounded-2xl bg-gradient-to-br from-orange-500 to-orange-600 shadow-lg shadow-orange-500/20 group overflow-hidden"
-                >
-                  <div className="flex items-center gap-4 relative z-10">
-                    <div className="h-10 w-10 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center shadow-inner">
-                      <Sparkles className="h-5 w-5 text-white" />
-                    </div>
-                    <div className="text-left">
-                      <p className="text-[12px] font-black uppercase tracking-[0.1em] text-white">AI Assistant</p>
-                      <p className="text-[9px] font-bold text-white/70">Neural Search Active</p>
-                    </div>
-                  </div>
-                  <ChevronRight className="h-5 w-5 text-white/50 group-active:translate-x-1 transition-transform" />
-                </button>
-
-                {/* User Profile / Login */}
-                <div className="bg-zinc-50 dark:bg-stone-900/40 rounded-2xl p-2 border border-stone-100 dark:border-white/5">
+                {/* 1. User Profile / Login */}
+                <div className="bg-zinc-50 dark:bg-stone-900/40 rounded-2xl p-2 border border-stone-100 dark:border-white/5 shadow-sm">
                   {user ? (
                     <div className="space-y-1">
                       <button 
@@ -794,7 +777,7 @@ function MobileDrawer({
                           </Avatar>
                           <div className="text-left">
                             <p className="text-[13px] leading-tight truncate max-w-[120px]">{user.full_name}</p>
-                            <p className="text-[9px] text-stone-400 font-medium">Profile & Dash</p>
+                            <p className="text-[9px] text-stone-400 font-medium">Account Settings</p>
                           </div>
                         </div>
                         <ChevronDown className={cn("h-4 w-4 transition-transform duration-300", expanded === 'account' && "rotate-180")} />
@@ -815,7 +798,7 @@ function MobileDrawer({
                               onClick={async () => { await signOut(); window.location.href = "/"; }}
                               className="w-full flex items-center gap-4 p-2.5 text-sm font-bold text-red-500"
                             >
-                              <LogOut className="h-4 w-4" /> Logout Instance
+                              <LogOut className="h-4 w-4" /> Logout
                             </button>
                           </motion.div>
                         )}
@@ -828,23 +811,38 @@ function MobileDrawer({
                     </div>
                   )}
                 </div>
-              </div>
 
-              {/* Preferences (Theme & Currency) - Near Top as requested */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex flex-col gap-2 p-4 rounded-2xl bg-zinc-50 dark:bg-stone-900/40 border border-stone-100 dark:border-white/5">
-                   <div className="flex items-center justify-between">
-                     <Sun className="h-4 w-4 text-orange-500" />
-                     <ThemeToggle />
+                {/* 2. AI Assistant */}
+                <button
+                  onClick={() => { openAssistant(); onClose(); }}
+                  className="w-full relative flex items-center justify-between p-4 rounded-2xl bg-gradient-to-br from-orange-500 to-orange-600 shadow-lg shadow-orange-500/20 group overflow-hidden"
+                >
+                  <div className="flex items-center gap-4 relative z-10">
+                    <div className="h-10 w-10 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center shadow-inner">
+                      <Sparkles className="h-5 w-5 text-white" />
+                    </div>
+                    <div className="text-left">
+                      <p className="text-[12px] font-black uppercase tracking-[0.1em] text-white leading-tight">Neural Core</p>
+                      <p className="text-[9px] font-bold text-white/70">AI Assistant Online</p>
+                    </div>
+                  </div>
+                  <ChevronRight className="h-5 w-5 text-white/50 group-active:translate-x-1 transition-transform" />
+                </button>
+
+                {/* 3. Utility Icon Grid (Theme + Currency) */}
+                <div className="grid grid-cols-2 gap-3">
+                   <div className="flex items-center justify-between p-3 rounded-2xl bg-zinc-50 dark:bg-stone-900/40 border border-stone-100 dark:border-white/5">
+                      <div className="h-8 w-8 rounded-lg bg-white dark:bg-stone-800 flex items-center justify-center shadow-sm">
+                        <Sun className="h-4 w-4 text-orange-500" />
+                      </div>
+                      <ThemeToggle />
                    </div>
-                   <p className="text-[10px] font-bold text-stone-500 uppercase tracking-tighter">Night Phase</p>
-                </div>
-                <div className="flex flex-col gap-2 p-4 rounded-2xl bg-zinc-50 dark:bg-stone-900/40 border border-stone-100 dark:border-white/5">
-                   <div className="flex items-center justify-between">
-                      <TrendingUp className="h-4 w-4 text-emerald-500" />
-                      <span className="text-[12px] font-black">$ USD</span>
+                   <div className="flex items-center justify-between p-3 rounded-2xl bg-zinc-50 dark:bg-stone-900/40 border border-stone-100 dark:border-white/5">
+                      <div className="h-8 w-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                        <TrendingUp className="h-4 w-4 text-emerald-500" />
+                      </div>
+                      <span className="text-[11px] font-black text-stone-600 dark:text-stone-300 pr-2">USD</span>
                    </div>
-                   <p className="text-[10px] font-bold text-stone-500 uppercase tracking-tighter">Live Rates</p>
                 </div>
               </div>
 
@@ -925,6 +923,12 @@ function MobileDrawer({
                   className={cn("flex items-center gap-4 p-4 rounded-2xl text-[15px] font-bold transition-all", 
                     pathname.startsWith("/communities") ? "bg-orange-50 text-orange-600" : "text-stone-600 dark:text-stone-300 hover:bg-zinc-50 dark:hover:bg-stone-900")}>
                   <Users className="h-5 w-5 text-orange-500" /> Communities
+                </Link>
+
+                <Link href="/help" onClick={onClose} 
+                  className={cn("flex items-center gap-4 p-4 rounded-2xl text-[15px] font-bold transition-all", 
+                    pathname.startsWith("/help") ? "bg-orange-50 text-orange-600" : "text-stone-600 dark:text-stone-300 hover:bg-zinc-50 dark:hover:bg-stone-900")}>
+                  <HelpCircle className="h-5 w-5 text-orange-500" /> Help Center
                 </Link>
               </div>
 
