@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React from "react";
 import Link from "next/link";
@@ -157,7 +157,7 @@ export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobil
   const content = (
     <div className="relative flex flex-col h-full z-10">
 
-      {/* ── Logo bar ── */}
+      {/* â”€â”€ Logo bar â”€â”€ */}
       <div className="flex items-center justify-between shrink-0 px-4 py-6 border-b border-border">
         <Link href="/" onClick={onMobileClose} className="flex items-center gap-3 min-w-0 group">
           {!collapsed ? (
@@ -211,7 +211,7 @@ export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobil
         </div>
       </div>
 
-      {/* ── Wallet Card ── */}
+      {/* â”€â”€ Wallet Card â”€â”€ */}
       {!collapsed && (
         <motion.div 
           initial={{ y: 20, opacity: 0 }}
@@ -219,35 +219,32 @@ export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobil
           transition={{ delay: 0.15 }}
           className="px-4 pt-4 pb-2"
         >
-          <div className="relative overflow-hidden rounded-2xl bg-neutral-900 dark:bg-surface border border-white/5 p-4 shadow-xl group">
-             {/* Gradient Accent */}
-             <div className="absolute -right-4 -top-4 w-24 h-24 bg-orange-500/20 blur-2xl rounded-full transition-all group-hover:bg-orange-500/30" />
-            
+          <div className="relative overflow-hidden rounded-xl bg-stone-900 dark:bg-stone-900 border border-stone-800 p-4 group">
              <div className="relative z-10">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
-                    <div className="w-5 h-5 rounded-md bg-orange-500/10 flex items-center justify-center text-orange-500 border border-orange-500/20">
+                    <div className="w-5 h-5 rounded-md bg-orange-500/10 flex items-center justify-center text-orange-400 border border-orange-500/20">
                       <Wallet className="w-3 h-3" />
                     </div>
-                    <span className="text-[10px] font-bold text-neutral-400 dark:text-text-muted uppercase tracking-wider">Available Balance</span>
+                    <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Available Balance</span>
                   </div>
                   <button
                     onClick={() => setBalanceHidden(!balanceHidden)}
-                    className="text-neutral-500 hover:text-white transition-colors"
+                    className="text-stone-500 hover:text-white transition-colors"
                   >
                     {balanceHidden ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                   </button>
                 </div>
 
                 <Link href="/dashboard/wallet" onClick={onMobileClose}>
-                   <div className="text-xl font-black text-white tabular-nums tracking-tight">
-                     {balanceHidden ? "••••••" : formatMoney(balance.available, "USD")}
+                   <div className="text-xl font-bold text-white tabular-nums tracking-tight">
+                     {balanceHidden ? "â€¢â€¢â€¢â€¢â€¢â€¢" : formatMoney(balance.available, "USD")}
                    </div>
                    <div className="flex items-center justify-between mt-2">
-                     <span className="text-[10px] font-medium text-neutral-500">
-                       {balanceHidden ? "•••" : formatMoney(balance.pending, "USD")} pending
+                     <span className="text-[10px] font-medium text-stone-500">
+                       {balanceHidden ? "â€¢â€¢â€¢" : formatMoney(balance.pending, "USD")} pending
                      </span>
-                     <ArrowUpRight className="w-3 h-3 text-neutral-500 group-hover:text-orange-500 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
+                     <ArrowUpRight className="w-3 h-3 text-stone-500 group-hover:text-orange-400 transition-colors" />
                    </div>
                 </Link>
              </div>
@@ -268,29 +265,14 @@ export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobil
         </div>
       )}
 
-      {/* ── Nav ── */}
+      {/* â”€â”€ Nav â”€â”€ */}
       <nav className="flex-1 overflow-y-auto overflow-x-hidden py-2" style={{ scrollbarWidth: "none" }}>
         <div className={collapsed ? "px-2" : "px-2.5"}>
           {sidebarSections.map((section) => (
             <div key={section.title || "main"} className="mb-1">
               {section.title && !collapsed && (
                 <div className="flex items-center gap-2 px-2 pt-3 pb-1">
-                  {section.accentRgb && (
-                     <span
-                       className="block shrink-0"
-                       style={{
-                         width: 5, height: 5, borderRadius: "50%",
-                         background: `rgb(var(--section-dot))`,
-                         boxShadow: `0 0 6px rgba(var(--section-dot),0.6)`,
-                       }}
-                     >
-                       <style jsx>{`
-                         span {
-                           --section-dot: ${section.accentRgb};
-                         }
-                       `}</style>
-                     </span>
-                   )}
+                  {section.accentRgb && (<span className="block shrink-0 rounded-full" style={{ width: 5, height: 5, background: `rgb(${section.accentRgb})` }} />)}
                       <span
                         style={{
                           fontSize: 9, fontWeight: 800, letterSpacing: "0.14em",
@@ -341,15 +323,10 @@ export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobil
                           whileHover={{ scale: 1.05 }}
                         />
 
-                        {/* Active shimmer */}
+                        {/* Active left accent bar */}
                         {isActive && (
-                          <motion.span
-                            layoutId="activeShimmer"
-                            className="pointer-events-none absolute inset-x-0 top-0"
-                            style={{
-                              height: 1.5, borderRadius: "14px 14px 0 0",
-                              background: "linear-gradient(90deg, transparent, rgba(251,146,60,0.4) 50%, transparent)",
-                            }}
+                          <span
+                            className="pointer-events-none absolute left-0 inset-y-0 w-[3px] rounded-r-sm bg-orange-500"
                           />
                         )}
 
@@ -401,74 +378,9 @@ export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobil
     </div>
   );
 
-  /* ── Glass shell styles ── */
-  const glassShell = (
-    <div className="pointer-events-none absolute inset-0" style={{ borderRadius: "inherit" }}>
-      {/* Main frosted glass body */}
-      <div
-        className="absolute inset-0 bg-surface/80 dark:bg-bg/80 backdrop-blur-[20px]"
-        style={{
-          borderRadius: "inherit",
-        }}
-      />
-      {/* Top specular highlight */}
-      <div
-        className="absolute inset-x-0 top-0 opacity-100 dark:opacity-[0.03]"
-        style={{
-          height: 1, borderRadius: "inherit",
-          background: "linear-gradient(90deg, transparent 5%, rgba(255,255,255,0.85) 40%, rgba(255,255,255,0.6) 60%, transparent 95%)",
-        }}
-      />
-      {/* Left edge */}
-      <div
-        className="absolute inset-y-0 left-0 hidden dark:block opacity-10"
-        style={{
-          width: 1,
-          background: "linear-gradient(180deg, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.2) 50%, transparent 100%)",
-        }}
-      />
-      <div
-        className="absolute inset-y-0 left-0 dark:hidden"
-        style={{
-          width: 1,
-          background: "linear-gradient(180deg, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.2) 50%, transparent 100%)",
-        }}
-      />
-      {/* Inner top glow */}
-      <div
-        className="absolute inset-x-0 top-0 opacity-100 dark:opacity-[0.02]"
-        style={{
-          height: "40%",
-          background: "linear-gradient(180deg, rgba(255,255,255,0.5) 0%, transparent 100%)",
-          borderRadius: "inherit",
-        }}
-      />
-      {/* Ambient color blobs */}
-      <div
-        className="absolute"
-        style={{
-          top: -60, right: -40, width: 200, height: 200, borderRadius: "50%",
-          background: "radial-gradient(circle, rgba(251,146,60,0.06), transparent 70%)",
-          filter: "blur(30px)",
-        }}
-      />
-      <div
-        className="absolute"
-        style={{
-          bottom: -40, left: -30, width: 180, height: 180, borderRadius: "50%",
-          background: "radial-gradient(circle, rgba(99,102,241,0.04), transparent 70%)",
-          filter: "blur(25px)",
-        }}
-      />
-      {/* Outer border */}
-      <div
-        className="absolute inset-0"
-        style={{
-          borderRadius: "inherit",
-          border: "1px solid var(--color-border)",
-        }}
-      />
-    </div>
+  /* â”€â”€ Solid shell styles (border-only) â”€â”€ */
+  const solidShell = (
+    <div className="pointer-events-none absolute inset-y-0 right-0 w-px bg-border" />
   );
 
   return (
@@ -478,11 +390,9 @@ export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobil
         initial={false}
         animate={{ width: collapsed ? "4.5rem" : "15.5rem" }}
         transition={{ type: "spring", stiffness: 300, damping: 30 }}
-        className={cn(
-          "hidden lg:block sticky top-0 h-screen relative z-40 overflow-hidden",
-        )}
+        className="hidden lg:block sticky top-0 h-screen relative z-40 overflow-hidden bg-surface"
       >
-        {glassShell}
+        {solidShell}
         {content}
       </motion.aside>
 
@@ -490,24 +400,13 @@ export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobil
       {mobileOpen && (
         <>
           <div
-            className="fixed inset-0 z-40 lg:hidden animate-in fade-in duration-200"
-            style={{ background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)", WebkitBackdropFilter: "blur(4px)" }}
+            className="fixed inset-0 z-40 lg:hidden animate-in fade-in duration-200 bg-black/50"
             onClick={onMobileClose}
             aria-hidden
           />
           <aside
-            className={cn(
-              "fixed inset-y-0 left-0 z-50 lg:hidden relative overflow-hidden",
-              "w-[min(15.5rem,88vw)]",
-              "animate-in slide-in-from-left duration-250",
-              "bg-white dark:bg-bg" 
-            )}
-            style={{ borderRadius: "0 28px 28px 0", boxShadow: "4px 0 40px rgba(0,0,0,0.15)" }}
+            className="fixed inset-y-0 left-0 z-50 lg:hidden w-[min(15.5rem,88vw)] animate-in slide-in-from-left duration-250 bg-surface border-r border-border shadow-2xl"
           >
-            {/* We keep glass shell but it will be over the solid background */}
-            <div className="absolute inset-0 dark:block hidden">
-               {glassShell}
-            </div>
             {content}
           </aside>
         </>
