@@ -7,7 +7,7 @@ import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
 import {
-  User, ShoppingCart, MessageCircle, Menu, X, Globe, HelpCircle,
+  User, ShoppingCart, MessageCircle, Menu, X, Globe, CircleHelp,
   LayoutDashboard, Settings, LogOut, TrendingUp, Video, Factory, Plus,
   Home, ShoppingBag, Package, Users, Search, Command, ChevronDown,
   ChevronRight, Sparkles, Zap, Play, Megaphone, Clapperboard, Sun,
@@ -928,7 +928,7 @@ function MobileDrawer({
                 <Link href="/help" onClick={onClose} 
                   className={cn("flex items-center gap-4 p-4 rounded-2xl text-[15px] font-bold transition-all", 
                     pathname.startsWith("/help") ? "bg-orange-50 text-orange-600" : "text-stone-600 dark:text-stone-300 hover:bg-zinc-50 dark:hover:bg-stone-900")}>
-                  <Search className="h-5 w-5 text-orange-500" /> Help Center
+                  <CircleHelp className="h-5 w-5 text-orange-500" /> Help Center
                 </Link>
               </div>
 
