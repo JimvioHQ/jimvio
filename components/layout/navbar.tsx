@@ -225,10 +225,12 @@ export function Navbar({ user, marketing }: NavbarProps) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [exploreOpen, setExploreOpen] = useState(false);
+  const [marketplaceOpen, setMarketplaceOpen] = useState(false);
   const [portalReady, setPortalReady] = useState(false);
   const [searchQ, setSearchQ] = useState("");
   const [isMobile, setIsMobile] = useState(false);
   const exploreTimer = useRef<NodeJS.Timeout | null>(null);
+  const marketplaceTimer = useRef<NodeJS.Timeout | null>(null);
 
   const { cartCount, chatCount, refreshCounts } = useCartStore();
   const { openAssistant } = useAIStore();
@@ -260,6 +262,12 @@ export function Navbar({ user, marketing }: NavbarProps) {
     { title: "Suppliers", desc: "Vendor tools & storefronts", href: "/vendors", icon: Factory, color: "rgba(16,185,129,0.8)" },
     { title: "Affiliate", desc: "Your referral network", href: "/affiliates", icon: TrendingUp, color: "rgba(168,85,247,0.8)" },
     { title: "Creators", desc: "Find top creator talent", href: "/influencers/browse", icon: User, color: "rgba(236,72,153,0.8)" },
+  ];
+
+  const marketplaceVariants = [
+    { title: "Digital Market", desc: "Software, courses & assets", href: "/marketplace?type=digital", icon: Zap, color: "rgba(14,165,233,0.8)" },
+    { title: "Physical Marketplace", desc: "Real-world goods & equipment", href: "/marketplace?type=physical", icon: Package, color: "rgba(245,158,11,0.8)" },
+    { title: "All Type Market", desc: "Complete global catalog", href: "/marketplace", icon: ShoppingBag, color: "rgba(249,115,22,0.8)" },
   ];
 
   const mobileBottomLinks = [
@@ -413,7 +421,53 @@ export function Navbar({ user, marketing }: NavbarProps) {
               </DropdownMenu>
             </div>
 
-            {navLinks.map(item => {
+            {/* Marketplace dropdown */}
+            <div
+              onMouseEnter={() => { if (marketplaceTimer.current) clearTimeout(marketplaceTimer.current); setMarketplaceOpen(true); }}
+              onMouseLeave={() => { marketplaceTimer.current = setTimeout(() => setMarketplaceOpen(false), 140); }}
+              className="relative"
+            >
+              <DropdownMenu open={marketplaceOpen} onOpenChange={setMarketplaceOpen} modal={false}>
+                <DropdownMenuTrigger asChild>
+                  <GlassPill className="px-3.5 py-2 text-[13px] font-semibold text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:text-white dark:hover:text-white group">
+                    <ShoppingBag className="h-3.5 w-3.5 text-orange-500 shrink-0" />
+                    Marketplace
+                    <ChevronDown className={cn("h-3 w-3 text-stone-400 dark:text-stone-600 transition-transform duration-300", marketplaceOpen && "rotate-180")} />
+                  </GlassPill>
+                </DropdownMenuTrigger>
+
+                <DropdownMenuContent
+                  onMouseEnter={() => { if (marketplaceTimer.current) clearTimeout(marketplaceTimer.current); setMarketplaceOpen(true); }}
+                  onMouseLeave={() => { marketplaceTimer.current = setTimeout(() => setMarketplaceOpen(false), 140); }}
+                  sideOffset={10}
+                  className="w-72 p-2 rounded-[24px] border border-white/10 dark:border-white/5 outline-none overflow-hidden bg-white/95 dark:bg-stone-900/95 backdrop-blur-3xl shadow-2xl"
+                >
+                  <SpecularLine rounded />
+                  {marketplaceVariants.map(v => (
+                    <DropdownMenuItem key={v.href} asChild className="p-0 focus:bg-transparent rounded-[16px]">
+                      <Link
+                        href={v.href}
+                        className="relative flex items-center gap-3 p-3 rounded-[16px] group/item transition-all hover:bg-zinc-100 dark:hover:bg-white/5"
+                        style={{ outline: "none" }}
+                      >
+                        <div
+                          className="h-9 w-9 rounded-[12px] flex items-center justify-center shrink-0 bg-zinc-50 dark:bg-white/5 border border-zinc-100 dark:border-white/10"
+                          style={{ color: v.color }}
+                        >
+                          <v.icon className="h-4 w-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[13px] font-bold text-stone-800 dark:text-white leading-none mb-0.5">{v.title}</p>
+                          <p className="text-[11px] text-stone-400 dark:text-white/40 truncate">{v.desc}</p>
+                        </div>
+                      </Link>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+
+            {navLinks.filter(l => l.href !== "/marketplace").map(item => {
               const active = isActive(pathname, item.href);
               const Icon = iconForHref(item.href);
               return (
@@ -605,6 +659,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
           runSearch={runSearch}
           navLinks={navLinks}
           solutions={solutions}
+          marketplaceVariants={marketplaceVariants}
           scrolled={scrolled}
           openAssistant={openAssistant}
         />,
@@ -662,7 +717,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
 
 /* --- Mobile Drawer Component --- */
 function MobileDrawer({
-  open, onClose, user, pathname, marketing, searchQ, setSearchQ, runSearch, navLinks, solutions, scrolled, openAssistant
+  open, onClose, user, pathname, marketing, searchQ, setSearchQ, runSearch, navLinks, solutions, marketplaceVariants, scrolled, openAssistant
 }: any) {
   const [expanded, setExpanded] = useState<string | null>(null);
 
@@ -688,32 +743,119 @@ function MobileDrawer({
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
             className="fixed inset-y-0 right-0 w-[85%] max-w-[400px] z-[9999] bg-white dark:bg-stone-950 shadow-2xl flex flex-col pointer-events-auto"
           >
-            {/* Header */}
-            <div className="flex items-center justify-between px-6 py-6 border-b border-zinc-100 dark:border-stone-900">
-              <Link href="/" onClick={onClose} className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-2xl bg-orange-500 flex items-center justify-center shadow-lg shadow-orange-500/20">
-                  <Zap className="h-6 w-6 text-white fill-white/20" />
-                </div>
-                <Image src="/jimvio-logo.png" alt="Jimvio" width={100} height={30} className="h-7 w-auto" />
-              </Link>
+            {/* Header / Dismiss */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-100 dark:border-stone-900 bg-zinc-50/50 dark:bg-black/20">
+               <span className="text-[10px] font-black text-stone-400 uppercase tracking-[0.4em]">Jimvio Console</span>
               <button 
                 onClick={onClose}
-                className="h-10 w-10 flex items-center justify-center rounded-2xl bg-zinc-50 dark:bg-stone-900 text-stone-500 hover:text-stone-900 dark:hover:text-white transition-colors"
+                className="h-9 w-9 flex items-center justify-center rounded-xl bg-white dark:bg-stone-800 text-stone-500 shadow-sm transition-transform active:scale-90"
               >
-                <X className="h-6 w-6" />
+                <X className="h-5 w-5" />
               </button>
             </div>
 
-            {/* Content */}
-            <div className="flex-1 overflow-y-auto px-6 py-8 space-y-8 scrollbar-none">
+            {/* Content Container */}
+            <div className="flex-1 overflow-y-auto px-6 py-6 space-y-7 scrollbar-none">
+              
+              {/* SECTION: Account & Quick Control (MOVED TO TOP) */}
+              <div className="space-y-4">
+                <p className="text-[10px] font-black text-stone-400 dark:text-stone-600 uppercase tracking-[0.2em] px-2 mb-2">Power Controls</p>
+                
+                {/* AI Assistant CTA */}
+                <button
+                  onClick={() => { openAssistant(); onClose(); }}
+                  className="w-full relative flex items-center justify-between p-4 rounded-2xl bg-gradient-to-br from-orange-500 to-orange-600 shadow-lg shadow-orange-500/20 group overflow-hidden"
+                >
+                  <div className="flex items-center gap-4 relative z-10">
+                    <div className="h-10 w-10 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center shadow-inner">
+                      <Sparkles className="h-5 w-5 text-white" />
+                    </div>
+                    <div className="text-left">
+                      <p className="text-[12px] font-black uppercase tracking-[0.1em] text-white">AI Assistant</p>
+                      <p className="text-[9px] font-bold text-white/70">Neural Search Active</p>
+                    </div>
+                  </div>
+                  <ChevronRight className="h-5 w-5 text-white/50 group-active:translate-x-1 transition-transform" />
+                </button>
+
+                {/* User Profile / Login */}
+                <div className="bg-zinc-50 dark:bg-stone-900/40 rounded-2xl p-2 border border-stone-100 dark:border-white/5">
+                  {user ? (
+                    <div className="space-y-1">
+                      <button 
+                        onClick={() => toggle('account')}
+                        className={cn("w-full flex items-center justify-between p-3 rounded-xl text-[14px] font-bold transition-all", 
+                          expanded === 'account' ? "bg-white dark:bg-stone-800 shadow-sm text-stone-900 dark:text-white" : "text-stone-600 dark:text-stone-400 hover:bg-white dark:hover:bg-stone-800")}
+                      >
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-8 w-8 ring-2 ring-orange-500/20">
+                            <AvatarImage src={user.avatar_url} />
+                            <AvatarFallback className="bg-orange-500 text-white text-[10px] font-bold">{user.full_name?.[0]}</AvatarFallback>
+                          </Avatar>
+                          <div className="text-left">
+                            <p className="text-[13px] leading-tight truncate max-w-[120px]">{user.full_name}</p>
+                            <p className="text-[9px] text-stone-400 font-medium">Profile & Dash</p>
+                          </div>
+                        </div>
+                        <ChevronDown className={cn("h-4 w-4 transition-transform duration-300", expanded === 'account' && "rotate-180")} />
+                      </button>
+
+                      <AnimatePresence>
+                        {expanded === 'account' && (
+                          <motion.div 
+                            initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+                            className="overflow-hidden pl-11 space-y-1 py-2"
+                          >
+                            {accountLinks.map(link => (
+                              <Link key={link.href} href={link.href} onClick={onClose} className="flex items-center gap-4 p-2.5 text-sm font-semibold text-stone-500 hover:text-stone-900 dark:text-stone-500 dark:hover:text-white transition-colors">
+                                <link.icon className="h-4 w-4 opacity-70" /> {link.label}
+                              </Link>
+                            ))}
+                            <button 
+                              onClick={async () => { await signOut(); window.location.href = "/"; }}
+                              className="w-full flex items-center gap-4 p-2.5 text-sm font-bold text-red-500"
+                            >
+                              <LogOut className="h-4 w-4" /> Logout Instance
+                            </button>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-2 p-1">
+                      <Link href="/login" onClick={onClose} className="flex items-center justify-center p-3 rounded-xl bg-white dark:bg-stone-800 text-[11px] font-black uppercase tracking-widest text-stone-600 dark:text-stone-400 shadow-sm active:scale-95 transition-all">Log In</Link>
+                      <Link href="/register" onClick={onClose} className="flex items-center justify-center p-3 rounded-xl bg-orange-500 text-[11px] font-black uppercase tracking-widest text-white shadow-lg shadow-orange-500/20 active:scale-95 transition-all">Join Free</Link>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Preferences (Theme & Currency) - Near Top as requested */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-2 p-4 rounded-2xl bg-zinc-50 dark:bg-stone-900/40 border border-stone-100 dark:border-white/5">
+                   <div className="flex items-center justify-between">
+                     <Sun className="h-4 w-4 text-orange-500" />
+                     <ThemeToggle />
+                   </div>
+                   <p className="text-[10px] font-bold text-stone-500 uppercase tracking-tighter">Night Phase</p>
+                </div>
+                <div className="flex flex-col gap-2 p-4 rounded-2xl bg-zinc-50 dark:bg-stone-900/40 border border-stone-100 dark:border-white/5">
+                   <div className="flex items-center justify-between">
+                      <TrendingUp className="h-4 w-4 text-emerald-500" />
+                      <span className="text-[12px] font-black">$ USD</span>
+                   </div>
+                   <p className="text-[10px] font-bold text-stone-500 uppercase tracking-tighter">Live Rates</p>
+                </div>
+              </div>
+
               {/* Search */}
               <div className="bg-zinc-50 dark:bg-stone-900/50 rounded-2xl p-1.5 ring-1 ring-zinc-100 dark:ring-stone-900 shadow-sm">
                 <NavbarSearch searchQ={searchQ} setSearchQ={setSearchQ} variant="mobile" runSearch={runSearch} navLinks={navLinks} isScrolled={false} />
               </div>
 
-              {/* Navigation Group */}
+              {/* SECTION: Global Navigation */}
               <div className="space-y-2">
-                <p className="text-[10px] font-black text-stone-400 dark:text-stone-600 uppercase tracking-[0.2em] px-2 mb-4">Navigation</p>
+                <p className="text-[10px] font-black text-stone-400 dark:text-stone-600 uppercase tracking-[0.2em] px-2 mb-2">Navigation</p>
                 
                 <Link href="/" onClick={onClose} 
                   className={cn("flex items-center gap-4 p-4 rounded-2xl text-[15px] font-bold transition-all", 
@@ -721,11 +863,34 @@ function MobileDrawer({
                   <Home className={cn("h-5 w-5", pathname === "/" ? "text-white" : "text-orange-500")} /> Home
                 </Link>
 
-                <Link href="/marketplace" onClick={onClose} 
-                  className={cn("flex items-center gap-4 p-4 rounded-2xl text-[15px] font-bold transition-all", 
-                    pathname.startsWith("/marketplace") ? "bg-orange-500 text-white shadow-lg shadow-orange-500/20" : "text-stone-600 dark:text-stone-300 hover:bg-zinc-50 dark:hover:bg-stone-900")}>
-                  <ShoppingBag className={cn("h-5 w-5", pathname.startsWith("/marketplace") ? "text-white" : "text-orange-500")} /> Marketplace
-                </Link>
+                {/* Marketplace Dropdown (Expanding) */}
+                <div className="space-y-1">
+                  <button 
+                    onClick={() => toggle('market')}
+                    className={cn("w-full flex items-center justify-between p-4 rounded-2xl text-[15px] font-bold transition-all", 
+                      expanded === 'market' ? "bg-stone-100 dark:bg-stone-900 text-stone-900 dark:text-white" : "text-stone-600 dark:text-stone-400 hover:bg-zinc-50 dark:hover:bg-stone-900")}
+                  >
+                    <div className="flex items-center gap-4">
+                      <ShoppingBag className="h-5 w-5 text-orange-500" /> Marketplace
+                    </div>
+                    <ChevronDown className={cn("h-5 w-5 transition-transform duration-300", expanded === 'market' && "rotate-180")} />
+                  </button>
+                  
+                  <AnimatePresence>
+                    {expanded === 'market' && (
+                      <motion.div 
+                        initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+                        className="overflow-hidden pl-10 space-y-1"
+                      >
+                        {marketplaceVariants.map((v: any) => (
+                          <Link key={v.href} href={v.href} onClick={onClose} className="flex items-center gap-4 p-3.5 text-sm font-semibold text-stone-500 hover:text-orange-600 transition-colors">
+                            <v.icon className="h-4 w-4 opacity-70" style={{ color: v.color }} /> {v.title}
+                          </Link>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
 
                 {/* Explore Dropdown */}
                 <div className="space-y-1">
@@ -747,7 +912,7 @@ function MobileDrawer({
                         className="overflow-hidden pl-10 space-y-1"
                       >
                         {solutions.map((s: any) => (
-                          <Link key={s.href} href={s.href} onClick={onClose} className="flex items-center gap-4 p-3.5 text-sm font-semibold text-stone-500 hover:text-orange-600 dark:text-stone-500 dark:hover:text-orange-500 transition-colors">
+                          <Link key={s.href} href={s.href} onClick={onClose} className="flex items-center gap-4 p-3.5 text-sm font-semibold text-stone-500 hover:text-orange-600 transition-colors">
                             <s.icon className="h-4 w-4 opacity-70" /> {s.title}
                           </Link>
                         ))}
@@ -763,88 +928,12 @@ function MobileDrawer({
                 </Link>
               </div>
 
-              {/* Account Group */}
-              <div className="pt-6 border-t border-zinc-100 dark:border-stone-900 space-y-4">
-                <p className="text-[10px] font-black text-stone-400 dark:text-stone-600 uppercase tracking-[0.2em] px-2 mb-4">Account & Settings</p>
-                
-                {user ? (
-                  <div className="space-y-1">
-                    <button 
-                      onClick={() => toggle('account')}
-                      className={cn("w-full flex items-center justify-between p-4 rounded-2xl text-[15px] font-bold transition-all", 
-                        expanded === 'account' ? "bg-stone-100 dark:bg-stone-900 text-stone-900 dark:text-white" : "text-stone-600 dark:text-stone-400 hover:bg-zinc-50 dark:hover:bg-stone-900")}
-                    >
-                      <div className="flex items-center gap-4">
-                        <Avatar className="h-7 w-7 ring-2 ring-zinc-50 dark:ring-stone-800">
-                          <AvatarImage src={user.avatar_url} />
-                          <AvatarFallback className="bg-orange-500 text-white text-[10px] font-bold">{user.full_name?.[0]}</AvatarFallback>
-                        </Avatar>
-                        <span>Profile & Dash</span>
-                      </div>
-                      <ChevronDown className={cn("h-5 w-5 transition-transform duration-300", expanded === 'account' && "rotate-180")} />
-                    </button>
-
-                    <AnimatePresence>
-                      {expanded === 'account' && (
-                        <motion.div 
-                          initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
-                          className="overflow-hidden pl-10 space-y-1"
-                        >
-                          {accountLinks.map(link => (
-                            <Link key={link.href} href={link.href} onClick={onClose} className="flex items-center gap-4 p-3.5 text-sm font-semibold text-stone-500 hover:text-stone-900 dark:text-stone-500 dark:hover:text-white transition-colors">
-                              <link.icon className="h-4 w-4 opacity-70" /> {link.label}
-                            </Link>
-                          ))}
-                          <button 
-                            onClick={async () => { await signOut(); window.location.href = "/"; }}
-                            className="w-full flex items-center gap-4 p-3.5 text-sm font-bold text-red-500"
-                          >
-                            <LogOut className="h-4 w-4" /> Logout Instance
-                          </button>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-2 gap-4 px-2">
-                    <Link href="/login" onClick={onClose} className="flex items-center justify-center p-4 rounded-2xl bg-zinc-100 dark:bg-stone-900 text-[13px] font-black uppercase tracking-widest text-stone-600 dark:text-stone-400 transition-all active:scale-[0.95]">Log In</Link>
-                    <Link href="/register" onClick={onClose} className="flex items-center justify-center p-4 rounded-2xl bg-stone-900 dark:bg-white text-[13px] font-black uppercase tracking-widest text-white dark:text-black transition-all active:scale-[0.95]">Join Free</Link>
-                  </div>
-                )}
+              {/* Live Status Widget */}
+              <div className="pt-4 px-2">
+                 <div className="bg-zinc-50 dark:bg-stone-900/40 rounded-2xl p-4 border border-zinc-100 dark:border-white/5">
+                    <CurrencyConverterWidget variant="compact" className="mx-0" />
+                 </div>
               </div>
-
-              {/* Preferences Group */}
-              <div className="pt-6 border-t border-zinc-100 dark:border-stone-900 space-y-6">
-                <div className="flex items-center justify-between p-4 rounded-2xl bg-zinc-50 dark:bg-stone-900/40">
-                  <div className="flex items-center gap-4">
-                    <Sun className="h-5 w-5 text-stone-400" />
-                    <span className="text-[15px] font-bold text-stone-600 dark:text-stone-300">Night Phase</span>
-                  </div>
-                  <ThemeToggle />
-                </div>
-
-                <div className="bg-zinc-50 dark:bg-stone-900/40 rounded-2xl p-4">
-                  <CurrencyConverterWidget variant="compact" className="mx-0" />
-                </div>
-              </div>
-
-              {/* Premium AI CTA */}
-              <button
-                onClick={() => { openAssistant(); onClose(); }}
-                className="w-full relative flex items-center justify-between p-6 rounded-3xl bg-gradient-to-br from-orange-500 to-orange-600 shadow-xl shadow-orange-500/20 group overflow-hidden"
-              >
-                <div className="absolute inset-0 bg-white/10 opacity-0 group-active:opacity-100 transition-opacity" />
-                <div className="flex items-center gap-5 relative z-10">
-                  <div className="h-12 w-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center shadow-inner">
-                    <Sparkles className="h-6 w-6 text-white" />
-                  </div>
-                  <div className="text-left">
-                    <p className="text-sm font-black uppercase tracking-[0.2em] text-white">AI Assistant</p>
-                    <p className="text-[11px] font-bold text-white/70">Neural Search Active</p>
-                  </div>
-                </div>
-                <ChevronRight className="h-6 w-6 text-white group-active:translate-x-2 transition-transform" />
-              </button>
             </div>
             
             <div className="p-8 text-center bg-zinc-50 dark:bg-stone-900/20">
