@@ -45,7 +45,7 @@ export function ProductPriceDisplay({
           />
         )}
         {savings && savings > 0 && (
-          <span className="text-[10px] font-black text-red-600 bg-red-50 px-2 py-0.5 rounded-md">
+          <span className="text-[10px] font-black text-red-600 bg-red-50 px-2 py-0.5 rounded-none">
             âˆ’{savings}%
           </span>
         )}
@@ -83,11 +83,11 @@ export function ProductBuyBoxPrice({
         )}
       </div>
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-green-50 text-green-600 border border-green-100">
+        <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-none bg-green-50 text-green-600 border border-green-100">
           In Stock
         </span>
         {savings && savings > 0 && (
-          <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-red-50 text-red-500">
+          <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-none bg-red-50 text-red-500">
             Save {savings}%
           </span>
         )}
@@ -95,3 +95,4 @@ export function ProductBuyBoxPrice({
     </div>
   );
 }
+

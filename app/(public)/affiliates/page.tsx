@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import Link from "next/link";
 import { TrendingUp, Link2, DollarSign, Users, Star, ArrowRight, Zap, Award, CheckCircle2, ShieldCheck, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -23,10 +23,10 @@ export default async function AffiliatesPage() {
     maxRate > 0 ? Math.round(maxRate) : Math.round(settings.fees.default_affiliate_commission_percent);
 
   const statsGrid = [
-    { label: "Active Affiliates", value: stats.affiliateCount ? formatPlatformCount(stats.affiliateCount) : "—" },
-    { label: "Affiliate-ready SKUs", value: stats.affiliateSkus ? formatPlatformCount(stats.affiliateSkus) : "—" },
+    { label: "Active Affiliates", value: stats.affiliateCount ? formatPlatformCount(stats.affiliateCount) : "â€”" },
+    { label: "Affiliate-ready SKUs", value: stats.affiliateSkus ? formatPlatformCount(stats.affiliateSkus) : "â€”" },
     { label: "Top listed rate", value: maxRate > 0 ? `${Math.round(maxRate)}%` : `${heroRate}% default` },
-    { label: "Live products", value: stats.totalProducts ? formatPlatformCount(stats.totalProducts) : "—" },
+    { label: "Live products", value: stats.totalProducts ? formatPlatformCount(stats.totalProducts) : "â€”" },
   ];
 
   const topProducts = spotlight.map((p) => {
@@ -72,19 +72,19 @@ export default async function AffiliatesPage() {
             and withdraw when you meet the platform minimum.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
-            <Button size="xl" className="bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] font-black rounded-xl h-16 px-12 text-lg shadow-xl shadow-[var(--color-accent)]/20" asChild>
+            <Button size="xl" className="bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] font-black rounded-none h-16 px-12 text-lg shadow-none shadow-[var(--color-accent)]/20" asChild>
               <Link href="/register?role=affiliate">
                 Join Now For Free <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             </Button>
-            <Button size="xl" variant="outline" className="font-black rounded-xl h-16 px-12 text-lg border-2" asChild>
+            <Button size="xl" variant="outline" className="font-black rounded-none h-16 px-12 text-lg border-2" asChild>
               <Link href="/marketplace">Explore Products</Link>
             </Button>
           </div>
           
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full max-w-4xl">
             {statsGrid.map((s, i) => (
-              <div key={i} className="bg-white dark:bg-surface border border-[var(--color-border)] p-6 rounded-2xl shadow-sm">
+              <div key={i} className="bg-white dark:bg-surface border border-[var(--color-border)] p-6 rounded-none shadow-none">
                 <p className="text-2xl font-black text-[var(--color-text-primary)] mb-1">{s.value}</p>
                 <p className="text-[10px] text-[var(--color-text-muted)] font-black capitalize tracking-widest">{s.label}</p>
               </div>
@@ -120,9 +120,9 @@ export default async function AffiliatesPage() {
               icon: <DollarSign className="h-6 w-6" />
             }
           ].map((item, i) => (
-            <div key={i} className="relative bg-white dark:bg-surface border border-[var(--color-border)] p-8 rounded-3xl shadow-sm hover:shadow-md transition-shadow group">
+            <div key={i} className="relative bg-white dark:bg-surface border border-[var(--color-border)] p-8 rounded-none shadow-none hover:shadow-none transition-shadow group">
               <span className="absolute top-4 right-8 text-5xl font-black text-[var(--color-accent)] opacity-5 group-hover:opacity-10 transition-opacity">{item.step}</span>
-              <div className="h-12 w-12 rounded-xl bg-[var(--color-accent-light)] text-[var(--color-accent)] flex items-center justify-center mb-6">
+              <div className="h-12 w-12 rounded-none bg-[var(--color-accent-light)] text-[var(--color-accent)] flex items-center justify-center mb-6">
                 {item.icon}
               </div>
               <h3 className="text-xl font-black text-[var(--color-text-primary)] mb-4">{item.title}</h3>
@@ -154,7 +154,7 @@ export default async function AffiliatesPage() {
               topProducts.map((p) => (
                 <div
                   key={p.id}
-                  className="bg-white dark:bg-surface border border-[var(--color-border)] rounded-2xl p-6 shadow-sm hover:shadow-xl transition-all duration-300"
+                  className="bg-white dark:bg-surface border border-[var(--color-border)] rounded-none p-6 shadow-none hover:shadow-none transition-all duration-300"
                 >
                   <div className="flex justify-between items-start mb-6">
                     <div>
@@ -163,7 +163,7 @@ export default async function AffiliatesPage() {
                       </Badge>
                       <h3 className="font-black text-[var(--color-text-primary)] truncate max-w-[180px]">{p.name}</h3>
                     </div>
-                    <div className="bg-[var(--color-accent-light)] text-[var(--color-accent)] font-black px-3 py-1 rounded-lg text-lg">
+                    <div className="bg-[var(--color-accent-light)] text-[var(--color-accent)] font-black px-3 py-1 rounded-none text-lg">
                       {p.commission}
                     </div>
                   </div>
@@ -179,7 +179,7 @@ export default async function AffiliatesPage() {
                     </div>
                   </div>
 
-                  <Button className="w-full bg-ink-dark hover:opacity-90 font-bold h-11 rounded-xl" asChild>
+                  <Button className="w-full bg-ink-dark hover:opacity-90 font-bold h-11 rounded-none" asChild>
                     <Link href={`/marketplace/${p.slug}`}>
                       <Link2 className="h-4 w-4 mr-2" /> View product
                     </Link>
@@ -200,12 +200,12 @@ export default async function AffiliatesPage() {
           <h2 className="text-3xl font-black text-[var(--color-text-primary)]">Affiliate Leaderboard</h2>
         </div>
         
-        <div className="bg-white dark:bg-surface border border-[var(--color-border)] rounded-3xl overflow-hidden shadow-xl">
+        <div className="bg-white dark:bg-surface border border-[var(--color-border)] rounded-none overflow-hidden shadow-none">
           {topEarners.length > 0 ? (
             <div className="divide-y divide-[var(--color-border)]">
               {topEarners.map((aff: any, idx: number) => (
                 <div key={aff.id} className="flex items-center gap-6 p-6 hover:bg-[var(--color-surface-secondary)] transition-colors">
-                  <div className="w-10 h-10 rounded-full bg-[var(--color-accent-light)] flex items-center justify-center font-black text-[var(--color-accent)] shrink-0">
+                  <div className="w-10 h-10 rounded-none bg-[var(--color-accent-light)] flex items-center justify-center font-black text-[var(--color-accent)] shrink-0">
                     {idx + 1}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -231,7 +231,7 @@ export default async function AffiliatesPage() {
 
       {/* Final CTA */}
       <section className="py-24 px-4 sm:px-6">
-        <div className="max-w-4xl mx-auto bg-ink-dark rounded-[2.5rem] p-12 text-center relative overflow-hidden">
+        <div className="max-w-4xl mx-auto bg-ink-dark rounded-none p-12 text-center relative overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 bg-[var(--color-accent)] opacity-10 blur-[100px]" />
           <Zap className="h-12 w-12 text-[var(--color-accent)] mx-auto mb-6" />
           <h2 className="text-3xl md:text-5xl font-black text-white mb-6">Launch Your Affiliate Empire</h2>
@@ -239,7 +239,7 @@ export default async function AffiliatesPage() {
             Market verified products from global suppliers. Earn up to {heroRate}% on eligible listings and withdraw when you reach
             the platform minimum.
           </p>
-          <Button size="xl" className="bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-black rounded-xl h-16 px-12 shadow-2xl shadow-[var(--color-accent)]/40" asChild>
+          <Button size="xl" className="bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-black rounded-none h-16 px-12 shadow-none shadow-[var(--color-accent)]/40" asChild>
             <Link href="/register?role=affiliate">Activate Your Account Now</Link>
           </Button>
         </div>
@@ -247,3 +247,4 @@ export default async function AffiliatesPage() {
     </div>
   );
 }
+

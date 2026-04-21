@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState, useTransition } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -119,7 +119,7 @@ export default function AdminPlatformSettingsForm({
               type="number"
               min={0}
               step={1}
-              className="rounded-xl"
+              className="rounded-none"
               value={fees.min_payout_rwf}
               onChange={(e) => setFees((f) => ({ ...f, min_payout_rwf: Number(e.target.value) || 0 }))}
             />
@@ -131,7 +131,7 @@ export default function AdminPlatformSettingsForm({
               min={0}
               max={100}
               step={0.5}
-              className="rounded-xl"
+              className="rounded-none"
               value={fees.default_affiliate_commission_percent}
               onChange={(e) =>
                 setFees((f) => ({ ...f, default_affiliate_commission_percent: Number(e.target.value) || 0 }))
@@ -145,7 +145,7 @@ export default function AdminPlatformSettingsForm({
               min={0}
               max={100}
               step={0.5}
-              className="rounded-xl"
+              className="rounded-none"
               value={fees.shopify_default_platform_commission_percent ?? ""}
               placeholder="8"
               onChange={(e) =>
@@ -164,7 +164,7 @@ export default function AdminPlatformSettingsForm({
               min={0}
               max={100}
               step={0.5}
-              className="rounded-xl"
+              className="rounded-none"
               value={fees.platform_fee_percent}
               onChange={(e) => setFees((f) => ({ ...f, platform_fee_percent: Number(e.target.value) || 0 }))}
             />
@@ -175,7 +175,7 @@ export default function AdminPlatformSettingsForm({
               type="number"
               min={0}
               step={1}
-              className="rounded-xl"
+              className="rounded-none"
               value={fees.platform_fee_fixed_rwf}
               onChange={(e) => setFees((f) => ({ ...f, platform_fee_fixed_rwf: Number(e.target.value) || 0 }))}
             />
@@ -193,7 +193,7 @@ export default function AdminPlatformSettingsForm({
         </CardHeader>
         <CardContent className="space-y-6 max-w-3xl">
           {(["vendor", "shopify", "cj"] as const).map((key) => (
-            <div key={key} className="rounded-xl border border-[var(--color-border)] p-4 grid sm:grid-cols-3 gap-3 items-end">
+            <div key={key} className="rounded-none border border-[var(--color-border)] p-4 grid sm:grid-cols-3 gap-3 items-end">
               <div className="sm:col-span-1">
                 <p className="font-semibold text-[var(--color-text-primary)] capitalize">{key === "cj" ? "CJ Dropshipping" : key}</p>
                 <label className="flex items-center gap-2 mt-2 text-sm text-[var(--color-text-muted)]">
@@ -217,7 +217,7 @@ export default function AdminPlatformSettingsForm({
                   min={0}
                   max={100}
                   step={0.5}
-                  className="rounded-xl"
+                  className="rounded-none"
                   value={supplierSources[key].platform_commission_percent}
                   onChange={(e) =>
                     setSupplierSources((s) => ({
@@ -229,7 +229,7 @@ export default function AdminPlatformSettingsForm({
               </div>
             </div>
           ))}
-          <Button type="button" onClick={saveSources} loading={pendingSources} className="rounded-xl">
+          <Button type="button" onClick={saveSources} loading={pendingSources} className="rounded-none">
             Save supplier channels
           </Button>
         </CardContent>
@@ -245,19 +245,19 @@ export default function AdminPlatformSettingsForm({
         <CardContent className="grid sm:grid-cols-2 gap-4 max-w-3xl">
           <div className="grid gap-2">
             <Label>Success rate label</Label>
-            <Input className="rounded-xl" value={social.success_rate_display} onChange={(e) => setSocial((s) => ({ ...s, success_rate_display: e.target.value }))} />
+            <Input className="rounded-none" value={social.success_rate_display} onChange={(e) => setSocial((s) => ({ ...s, success_rate_display: e.target.value }))} />
           </div>
           <div className="grid gap-2">
             <Label>Countries label</Label>
-            <Input className="rounded-xl" value={social.countries_display} onChange={(e) => setSocial((s) => ({ ...s, countries_display: e.target.value }))} />
+            <Input className="rounded-none" value={social.countries_display} onChange={(e) => setSocial((s) => ({ ...s, countries_display: e.target.value }))} />
           </div>
           <div className="grid gap-2">
             <Label>Fallback vendors label</Label>
-            <Input className="rounded-xl" value={social.fallback_verified_vendors} onChange={(e) => setSocial((s) => ({ ...s, fallback_verified_vendors: e.target.value }))} />
+            <Input className="rounded-none" value={social.fallback_verified_vendors} onChange={(e) => setSocial((s) => ({ ...s, fallback_verified_vendors: e.target.value }))} />
           </div>
           <div className="grid gap-2">
             <Label>Fallback products label</Label>
-            <Input className="rounded-xl" value={social.fallback_total_products} onChange={(e) => setSocial((s) => ({ ...s, fallback_total_products: e.target.value }))} />
+            <Input className="rounded-none" value={social.fallback_total_products} onChange={(e) => setSocial((s) => ({ ...s, fallback_total_products: e.target.value }))} />
           </div>
         </CardContent>
       </Card>
@@ -269,12 +269,12 @@ export default function AdminPlatformSettingsForm({
         <CardContent className="space-y-6 max-w-3xl">
           <div className="grid gap-2">
             <Label>Homepage affiliate bullets (one per line)</Label>
-            <Textarea className="rounded-xl min-h-[90px] font-mono text-sm" value={affiliatePropLines} onChange={(e) => setAffiliatePropLines(e.target.value)} />
+            <Textarea className="rounded-none min-h-[90px] font-mono text-sm" value={affiliatePropLines} onChange={(e) => setAffiliatePropLines(e.target.value)} />
           </div>
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-2">
               <Label>Trust bar items</Label>
-              <Button type="button" variant="outline" size="sm" className="rounded-xl" onClick={addTrustRow}>
+              <Button type="button" variant="outline" size="sm" className="rounded-none" onClick={addTrustRow}>
                 Add row
               </Button>
             </div>
@@ -282,13 +282,13 @@ export default function AdminPlatformSettingsForm({
               {trustBar.map((row, i) => (
                 <div key={i} className="flex flex-col sm:flex-row gap-2 items-start">
                   <Input
-                    className="rounded-xl flex-1"
+                    className="rounded-none flex-1"
                     placeholder="Title"
                     value={row.title}
                     onChange={(e) => updateTrust(i, "title", e.target.value)}
                   />
                   <Input
-                    className="rounded-xl flex-[2]"
+                    className="rounded-none flex-[2]"
                     placeholder="Description"
                     value={row.desc}
                     onChange={(e) => updateTrust(i, "desc", e.target.value)}
@@ -310,42 +310,43 @@ export default function AdminPlatformSettingsForm({
         <CardContent className="grid sm:grid-cols-2 gap-4 max-w-3xl">
           <div className="grid gap-2 sm:col-span-2">
             <Label>Support email</Label>
-            <Input className="rounded-xl" value={contact.support_email} onChange={(e) => setContact((c) => ({ ...c, support_email: e.target.value }))} />
+            <Input className="rounded-none" value={contact.support_email} onChange={(e) => setContact((c) => ({ ...c, support_email: e.target.value }))} />
           </div>
           <div className="grid gap-2 sm:col-span-2">
             <Label>Info / general email</Label>
-            <Input className="rounded-xl" value={contact.info_email} onChange={(e) => setContact((c) => ({ ...c, info_email: e.target.value }))} />
+            <Input className="rounded-none" value={contact.info_email} onChange={(e) => setContact((c) => ({ ...c, info_email: e.target.value }))} />
           </div>
           <div className="grid gap-2 sm:col-span-2">
             <Label>X (Twitter) URL</Label>
-            <Input className="rounded-xl" value={contact.social_x} onChange={(e) => setContact((c) => ({ ...c, social_x: e.target.value }))} />
+            <Input className="rounded-none" value={contact.social_x} onChange={(e) => setContact((c) => ({ ...c, social_x: e.target.value }))} />
           </div>
           <div className="grid gap-2 sm:col-span-2">
             <Label>YouTube URL</Label>
-            <Input className="rounded-xl" value={contact.social_youtube} onChange={(e) => setContact((c) => ({ ...c, social_youtube: e.target.value }))} />
+            <Input className="rounded-none" value={contact.social_youtube} onChange={(e) => setContact((c) => ({ ...c, social_youtube: e.target.value }))} />
           </div>
           <div className="grid gap-2 sm:col-span-2">
             <Label>Instagram URL</Label>
-            <Input className="rounded-xl" value={contact.social_instagram} onChange={(e) => setContact((c) => ({ ...c, social_instagram: e.target.value }))} />
+            <Input className="rounded-none" value={contact.social_instagram} onChange={(e) => setContact((c) => ({ ...c, social_instagram: e.target.value }))} />
           </div>
           <div className="grid gap-2 sm:col-span-2">
             <Label>TikTok URL</Label>
-            <Input className="rounded-xl" value={contact.social_tiktok} onChange={(e) => setContact((c) => ({ ...c, social_tiktok: e.target.value }))} />
+            <Input className="rounded-none" value={contact.social_tiktok} onChange={(e) => setContact((c) => ({ ...c, social_tiktok: e.target.value }))} />
           </div>
           <div className="grid gap-2">
             <Label>HQ address line 1</Label>
-            <Input className="rounded-xl" value={contact.hq_line1} onChange={(e) => setContact((c) => ({ ...c, hq_line1: e.target.value }))} />
+            <Input className="rounded-none" value={contact.hq_line1} onChange={(e) => setContact((c) => ({ ...c, hq_line1: e.target.value }))} />
           </div>
           <div className="grid gap-2">
             <Label>HQ address line 2</Label>
-            <Input className="rounded-xl" value={contact.hq_line2} onChange={(e) => setContact((c) => ({ ...c, hq_line2: e.target.value }))} />
+            <Input className="rounded-none" value={contact.hq_line2} onChange={(e) => setContact((c) => ({ ...c, hq_line2: e.target.value }))} />
           </div>
         </CardContent>
       </Card>
 
-      <Button className="rounded-xl" size="lg" onClick={submit} disabled={pending}>
-        {pending ? "Saving…" : "Save settings"}
+      <Button className="rounded-none" size="lg" onClick={submit} disabled={pending}>
+        {pending ? "Savingâ€¦" : "Save settings"}
       </Button>
     </div>
   );
 }
+

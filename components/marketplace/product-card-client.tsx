@@ -30,7 +30,7 @@ interface Product {
   button_text?: string | null;
   pricing_type?: string | null;
   billing_period?: string | null;
-  /** Canonical product type â€” 'digital' | 'physical' */
+  /** Canonical product type Ã¢â‚¬â€ 'digital' | 'physical' */
   product_type?: string;
   affiliate_enabled?: boolean;
   affiliate_commission_rate?: number | null;
@@ -154,25 +154,25 @@ export function ProductCardClient({
 
   return (
     <>
-      {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-          PRODUCT CARD â€” App Store Style
+      {/* Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
+          PRODUCT CARD Ã¢â‚¬â€ App Store Style
           Clean white card with orange accents
-      â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+      Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â */}
       <div
         className={cn(
           "group relative flex flex-col h-full overflow-hidden",
-          "rounded-[20px] border bg-surface transition-all duration-300",
+          "rounded-none border bg-surface transition-all duration-300",
           inCart
-            ? "border-orange-500/30 shadow-[var(--shadow-glow)]"
-            : "border-border shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-lg)] hover:border-orange-500/20"
+            ? "border-orange-500/30 shadow-none"
+            : "border-border shadow-none hover:border-orange-500/20"
         )}
       >
-        {/* â”€â”€ Image area â”€â”€ */}
+        {/* Ã¢â€â‚¬Ã¢â€â‚¬ Image area Ã¢â€â‚¬Ã¢â€â‚¬ */}
         <Link
           href={`${detailBasePath}/${p.slug}`}
           className={cn(
             "relative block w-full overflow-hidden flex-shrink-0",
-            "rounded-t-[20px] bg-surface-secondary/50",
+            "rounded-none bg-surface-secondary/50",
             compact ? "aspect-[1.1/1]" : "aspect-square",
           )}
         >
@@ -202,7 +202,7 @@ export function ProductCardClient({
           {/* TOP-LEFT: discount % badge */}
           {discount > 0 && (
             <div className="absolute top-2 left-2 z-20">
-              <span className="inline-flex items-center rounded-[8px] bg-red-500 px-2 py-0.5 text-[10px] font-black text-white shadow-sm">
+              <span className="inline-flex items-center rounded-none bg-red-500 px-2 py-0.5 text-[10px] font-black text-white shadow-none">
                 {discount}% OFF
               </span>
             </div>
@@ -214,7 +214,7 @@ export function ProductCardClient({
           {discount > 0 && !imgSrc && (
             <div className="absolute top-1/3 left-0 right-0 flex items-center justify-center z-20">
               <span
-                className="px-4 py-1 rounded-full text-[11px] font-black text-white uppercase tracking-widest"
+                className="px-4 py-1 rounded-none text-[11px] font-black text-white uppercase tracking-widest"
                 style={{ background: "linear-gradient(90deg, #f97316, #ea580c)" }}
               >
                 SALE
@@ -224,7 +224,7 @@ export function ProductCardClient({
 
           {/* BOTTOM-RIGHT: removed type badge */}
 
-          {/* BOTTOM hover actions â€” slide up */}
+          {/* BOTTOM hover actions Ã¢â‚¬â€ slide up */}
           <div className={cn(
             "absolute left-2 right-2 z-20 flex gap-1.5",
             "transition-all duration-400 ease-[cubic-bezier(0.16,1,0.3,1)]",
@@ -238,8 +238,8 @@ export function ProductCardClient({
               onClick={handleChat}
               className={cn(
                 "flex-1 flex items-center justify-center gap-1",
-                "rounded-[10px] font-semibold bg-surface/90 dark:bg-surface-secondary/90 text-stone-700 dark:text-text-secondary",
-                "border border-border shadow-sm hover:text-orange-600 active:scale-95 transition-all text-stone-700 dark:text-text-secondary",
+                "rounded-none font-semibold bg-surface/90 dark:bg-surface-secondary/90 text-stone-700 dark:text-text-secondary",
+                "border border-border shadow-none hover:text-orange-600 active:scale-95 transition-all text-stone-700 dark:text-text-secondary",
                 compact ? "h-7 text-[9px]" : "h-8 text-[10px]"
               )}
             >
@@ -253,8 +253,8 @@ export function ProductCardClient({
               disabled={loading}
               className={cn(
                 "flex-1 flex items-center justify-center gap-1",
-                "rounded-[10px] font-semibold text-white",
-                "active:scale-95 transition-all disabled:opacity-60 shadow-sm group/cartbtn",
+                "rounded-none font-semibold text-white",
+                "active:scale-95 transition-all disabled:opacity-60 shadow-none group/cartbtn",
                 compact ? "h-7 text-[9px]" : "h-8 text-[10px]",
                 inCart
                   ? "bg-emerald-500 hover:bg-red-500"
@@ -262,7 +262,7 @@ export function ProductCardClient({
               )}
             >
               {loading ? (
-                <span className={cn("border-2 border-white/40 border-t-white rounded-full animate-spin", compact ? "h-2.5 w-2.5" : "h-3 w-3")} />
+                <span className={cn("border-2 border-white/40 border-t-white rounded-none animate-spin", compact ? "h-2.5 w-2.5" : "h-3 w-3")} />
               ) : inCart ? (
                 <>
                   <CheckCircle2 className={cn("group-hover/cartbtn:hidden", compact ? "h-2.5 w-2.5" : "h-3 w-3")} />
@@ -281,7 +281,7 @@ export function ProductCardClient({
           </div>
         </Link>
 
-        {/* â”€â”€ Info area â”€â”€ */}
+        {/* Ã¢â€â‚¬Ã¢â€â‚¬ Info area Ã¢â€â‚¬Ã¢â€â‚¬ */}
         <div className="flex flex-col flex-1 px-3 pt-2.5 pb-3 gap-1">
           {/* Product name */}
           <Link href={`${detailBasePath}/${p.slug}`} className="min-w-0">
@@ -309,7 +309,7 @@ export function ProductCardClient({
           {/* Rating area removed */}
           {p.affiliate_enabled && commissionRate && (
             <div className="flex items-center">
-              <span className="inline-flex items-center gap-0.5 rounded-full bg-orange-100/50 dark:bg-orange-500/10 border border-orange-200/50 dark:border-orange-500/20 text-orange-600 dark:text-orange-500 px-1.5 py-0.5 text-[9px] font-bold">
+              <span className="inline-flex items-center gap-0.5 rounded-none bg-orange-100/50 dark:bg-orange-500/10 border border-orange-200/50 dark:border-orange-500/20 text-orange-600 dark:text-orange-500 px-1.5 py-0.5 text-[9px] font-bold">
                 <TrendingUp className="h-2.5 w-2.5" />{commissionRate}%
               </span>
             </div>
@@ -321,15 +321,15 @@ export function ProductCardClient({
             onClick={handleCartToggle}
             disabled={loading}
             className={cn(
-              "sm:hidden mt-1 w-full h-8 rounded-[12px] text-[11px] font-bold text-white transition-all active:scale-[0.97]",
+              "sm:hidden mt-1 w-full h-8 rounded-none text-[11px] font-bold text-white transition-all active:scale-[0.97]",
               inCart
                 ? "bg-emerald-500"
                 : "bg-gradient-to-br from-[#f97316] to-[#ea580c]",
-              "shadow-[0_3px_10px_rgba(249,115,22,0.25)]"
+              "shadow-none"
             )}
           >
             {loading ? (
-              <span className="h-3.5 w-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin inline-block" />
+              <span className="h-3.5 w-3.5 border-2 border-white/40 border-t-white rounded-none animate-spin inline-block" />
             ) : inCart ? (
               <><Trash2 className="h-3 w-3 inline mr-1" />Remove</>
             ) : (
@@ -357,3 +357,4 @@ export function ProductCardClient({
     </>
   );
 }
+

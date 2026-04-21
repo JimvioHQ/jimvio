@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { getAdminUsers } from "@/services/db";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -19,8 +19,8 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
       <Card>
         <CardHeader className="pb-3">
           <form method="get" action="/admin/users" className="flex gap-2 max-w-sm">
-            <Input name="q" defaultValue={q ?? ""} placeholder="Search by email or name..." className="rounded-xl" />
-            <Button type="submit" variant="secondary" size="icon" className="rounded-xl">
+            <Input name="q" defaultValue={q ?? ""} placeholder="Search by email or name..." className="rounded-none" />
+            <Button type="submit" variant="secondary" size="icon" className="rounded-none">
               <Search className="h-4 w-4" />
             </Button>
           </form>
@@ -44,18 +44,18 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
                 ) : (
                   users.map((u: any) => (
                     <tr key={u.id} className="border-b border-[var(--color-border)]/50 hover:bg-[var(--color-surface-secondary)]/30">
-                      <td className="py-3 px-4 font-mono text-xs truncate max-w-[120px]" title={u.id}>{u.id.slice(0, 8)}…</td>
-                      <td className="py-3 px-4 font-medium">{u.full_name || "—"}</td>
+                      <td className="py-3 px-4 font-mono text-xs truncate max-w-[120px]" title={u.id}>{u.id.slice(0, 8)}â€¦</td>
+                      <td className="py-3 px-4 font-medium">{u.full_name || "â€”"}</td>
                       <td className="py-3 px-4">{u.email}</td>
                       <td className="py-3 px-4">
                         <span className="flex flex-wrap gap-1">
                           {(u.roles ?? []).map((r: string) => (
-                            <span key={r} className="inline-flex px-2 py-0.5 rounded-md bg-[var(--color-surface-secondary)] text-xs font-medium">{r}</span>
+                            <span key={r} className="inline-flex px-2 py-0.5 rounded-none bg-[var(--color-surface-secondary)] text-xs font-medium">{r}</span>
                           ))}
-                          {(!u.roles || u.roles.length === 0) && "—"}
+                          {(!u.roles || u.roles.length === 0) && "â€”"}
                         </span>
                       </td>
-                      <td className="py-3 px-4 text-[var(--color-text-muted)]">{u.created_at ? new Date(u.created_at).toLocaleDateString() : "—"}</td>
+                      <td className="py-3 px-4 text-[var(--color-text-muted)]">{u.created_at ? new Date(u.created_at).toLocaleDateString() : "â€”"}</td>
                     </tr>
                   ))
                 )}
@@ -67,3 +67,4 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
     </div>
   );
 }
+

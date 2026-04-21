@@ -18,7 +18,7 @@ interface ProductCardProps {
   viewMode?: "grid" | "list";
 }
 
-/** Reusable glass badge â€” matches dashboard GlassPill */
+/** Reusable glass badge Ã¢â‚¬â€ matches dashboard GlassPill */
 function GlassBadge({
   children,
   color = "neutral",
@@ -35,7 +35,7 @@ function GlassBadge({
   };
   return (
     <span className={cn(
-      "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-bold dark:border-opacity-30",
+      "inline-flex items-center gap-1 rounded-none border px-2.5 py-1 text-[10px] font-bold dark:border-opacity-30",
       styles[color]
     )}>
       {children}
@@ -53,28 +53,28 @@ export function ProductCard({ product, viewMode = "grid" }: ProductCardProps) {
   const images = Array.isArray(product.images) ? (product.images as string[]) : [];
   const primaryImage = images[0] || null;
 
-  /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-     LIST VIEW â€” horizontal glass card
-  â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+  /* Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
+     LIST VIEW Ã¢â‚¬â€ horizontal glass card
+  Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â */
   if (viewMode === "list") {
     return (
       <Link href={`/marketplace/${product.slug}`}>
         <div className={cn(
           "flex gap-4 p-4 group cursor-pointer overflow-hidden",
-          "rounded-[28px] border ",
+          "rounded-none border ",
           "bg-white dark:bg-surface/55 border-white/70 dark:border-white/10",
-          "shadow-[0_4px_24px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,0.9)] dark:shadow-[0_4px_24px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.05)]",
-          "hover:shadow-[0_8px_40px_rgba(249,115,22,0.10),inset_0_1px_0_rgba(255,255,255,0.9)] dark:hover:shadow-[0_8px_40px_rgba(249,115,22,0.2),inset_0_1px_0_rgba(255,255,255,0.05)]",
+          "shadow-none",
+          "hover:shadow-none",
           "hover:border-orange-100/80 dark:hover:border-orange-500/30 transition-all duration-300 relative"
         )}>
           {/* Specular shine */}
-          <div className="pointer-events-none absolute inset-0 rounded-[28px] overflow-hidden">
+          <div className="pointer-events-none absolute inset-0 rounded-none overflow-hidden">
             <div className="absolute -top-1/2 -left-1/2 w-full h-3/4 rotate-[-25deg] bg-gradient-to-br from-white/80 to-transparent" />
-            <div className="absolute bottom-0 right-0 w-1/3 h-1/2 rounded-full blur-2xl bg-orange-100/40" />
+            <div className="absolute bottom-0 right-0 w-1/3 h-1/2 rounded-none blur-2xl bg-orange-100/40" />
           </div>
 
           {/* Image */}
-          <div className="relative w-28 h-28 flex-shrink-0 rounded-[18px] overflow-hidden z-10">
+          <div className="relative w-28 h-28 flex-shrink-0 rounded-none overflow-hidden z-10">
             {primaryImage && !imageError ? (
               <Image
                 src={primaryImage}
@@ -128,14 +128,14 @@ export function ProductCard({ product, viewMode = "grid" }: ProductCardProps) {
           <div className="flex flex-col gap-2 flex-shrink-0 justify-center relative z-10">
             <button
               type="button"
-              className="px-4 py-2 rounded-full bg-gradient-to-br from-[#f97316] to-[#ea580c] text-white text-[11px] font-semibold shadow-[0_4px_14px_rgba(249,115,22,0.35)] hover:scale-105 active:scale-95 transition-all"
+              className="px-4 py-2 rounded-none bg-gradient-to-br from-[#f97316] to-[#ea580c] text-white text-[11px] font-semibold shadow-none hover:scale-105 active:scale-95 transition-all"
             >
               Add to cart
             </button>
             <button
               type="button"
               onClick={(e) => { e.preventDefault(); setWishlisted(!wishlisted); }}
-              className="h-8 w-full rounded-full bg-surface dark:bg-surface/70 border border-border flex items-center justify-center hover:border-red-200 dark:hover:border-red-800 transition-all"
+              className="h-8 w-full rounded-none bg-surface dark:bg-surface/70 border border-border flex items-center justify-center hover:border-red-200 dark:hover:border-red-800 transition-all"
             >
               <Heart className={cn("h-3.5 w-3.5 transition-colors", wishlisted ? "fill-red-500 text-red-500" : "text-stone-400")} />
             </button>
@@ -145,28 +145,28 @@ export function ProductCard({ product, viewMode = "grid" }: ProductCardProps) {
     );
   }
 
-  /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-     GRID VIEW â€” vertical glass card
+  /* Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
+     GRID VIEW Ã¢â‚¬â€ vertical glass card
      Matches dashboard GlassCard exactly
-  â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+  Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â */
   return (
     <Link href={`/marketplace/${product.slug}`}>
       <div className={cn(
         "group relative overflow-hidden cursor-pointer",
-        "rounded-[28px] border ",
+        "rounded-none border ",
         "bg-white dark:bg-surface/55 border-white/70 dark:border-white/10",
-        "shadow-[0_4px_24px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,0.9)] dark:shadow-[0_4px_24px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.05)]",
-        "hover:shadow-[0_8px_40px_rgba(249,115,22,0.10),inset_0_1px_0_rgba(255,255,255,0.9)] dark:hover:shadow-[0_8px_40px_rgba(249,115,22,0.2),inset_0_1px_0_rgba(255,255,255,0.05)]",
+        "shadow-none",
+        "hover:shadow-none",
         "hover:border-orange-100/80 dark:hover:border-orange-500/30 transition-all duration-300",
       )}>
-        {/* â”€â”€ Specular shine (matches dashboard GlassCard shine) â”€â”€ */}
-        <div className="pointer-events-none absolute inset-0 rounded-[28px] overflow-hidden z-10">
+        {/* Ã¢â€â‚¬Ã¢â€â‚¬ Specular shine (matches dashboard GlassCard shine) Ã¢â€â‚¬Ã¢â€â‚¬ */}
+        <div className="pointer-events-none absolute inset-0 rounded-none overflow-hidden z-10">
           <div className="absolute -top-1/2 -left-1/2 w-full h-3/4 rotate-[-25deg] bg-gradient-to-br from-white/80 to-transparent" />
-          <div className="absolute bottom-0 right-0 w-1/2 h-1/2 rounded-full blur-2xl bg-orange-100/40" />
+          <div className="absolute bottom-0 right-0 w-1/2 h-1/2 rounded-none blur-2xl bg-orange-100/40" />
         </div>
 
-        {/* â”€â”€ Image â”€â”€ */}
-        <div className="relative aspect-square overflow-hidden rounded-t-[28px]">
+        {/* Ã¢â€â‚¬Ã¢â€â‚¬ Image Ã¢â€â‚¬Ã¢â€â‚¬ */}
+        <div className="relative aspect-square overflow-hidden rounded-none">
           {primaryImage && !imageError ? (
             <Image
               src={primaryImage}
@@ -192,13 +192,13 @@ export function ProductCard({ product, viewMode = "grid" }: ProductCardProps) {
           {/* Badges */}
           <div className="absolute top-2.5 left-2.5 flex flex-col gap-1.5 z-20">
             {discount > 0 && <GlassBadge color="red">-{discount}%</GlassBadge>}
-            {product.is_featured && <GlassBadge color="amber">âœ¦ Curated</GlassBadge>}
+            {product.is_featured && <GlassBadge color="amber">Ã¢Å“Â¦ Curated</GlassBadge>}
           </div>
 
           {/* Wishlist button */}
           <button
             type="button"
-            className="absolute top-2.5 right-2.5 z-20 h-8 w-8 rounded-full bg-surface dark:bg-surface/80 border border-border shadow-md flex items-center justify-center hover:scale-110 active:scale-95 transition-all"
+            className="absolute top-2.5 right-2.5 z-20 h-8 w-8 rounded-none bg-surface dark:bg-surface/80 border border-border shadow-none flex items-center justify-center hover:scale-110 active:scale-95 transition-all"
             onClick={(e) => { e.preventDefault(); setWishlisted(!wishlisted); }}
           >
             <Heart className={cn("h-3.5 w-3.5 transition-colors", wishlisted ? "fill-red-500 text-red-500" : "text-stone-500 dark:text-text-muted")} />
@@ -208,14 +208,14 @@ export function ProductCard({ product, viewMode = "grid" }: ProductCardProps) {
           <div className="absolute bottom-3 left-3 right-3 z-20 translate-y-[140%] group-hover:translate-y-0 transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]">
             <button
               type="button"
-              className="w-full h-9 rounded-[16px] bg-gradient-to-br from-[#f97316] to-[#ea580c] text-white text-[11px] font-semibold flex items-center justify-center gap-2 shadow-[0_4px_16px_rgba(249,115,22,0.45)] hover:from-orange-400 hover:to-orange-500 transition-all active:scale-95"
+              className="w-full h-9 rounded-none bg-gradient-to-br from-[#f97316] to-[#ea580c] text-white text-[11px] font-semibold flex items-center justify-center gap-2 shadow-none hover:from-orange-400 hover:to-orange-500 transition-all active:scale-95"
             >
               <ShoppingCart className="h-3.5 w-3.5" /> Add to Cart
             </button>
           </div>
         </div>
 
-        {/* â”€â”€ Info â”€â”€ */}
+        {/* Ã¢â€â‚¬Ã¢â€â‚¬ Info Ã¢â€â‚¬Ã¢â€â‚¬ */}
         <div className="relative z-10 px-3.5 pt-3 pb-3.5">
           {product.affiliate_enabled && (
             <GlassBadge color="orange">Affiliate</GlassBadge>
@@ -245,3 +245,4 @@ export function ProductCard({ product, viewMode = "grid" }: ProductCardProps) {
     </Link>
   );
 }
+

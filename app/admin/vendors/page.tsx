@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import Link from "next/link";
 import { getAdminVendors } from "@/services/db";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -21,8 +21,8 @@ export default async function AdminVendorsPage({ searchParams }: { searchParams:
       <Card>
         <CardHeader className="pb-3">
           <form method="get" action="/admin/vendors" className="flex gap-2 max-w-sm">
-            <Input name="q" defaultValue={q ?? ""} placeholder="Search by store name..." className="rounded-xl" />
-            <Button type="submit" variant="secondary" size="icon" className="rounded-xl">
+            <Input name="q" defaultValue={q ?? ""} placeholder="Search by store name..." className="rounded-none" />
+            <Button type="submit" variant="secondary" size="icon" className="rounded-none">
               <Search className="h-4 w-4" />
             </Button>
           </form>
@@ -46,8 +46,8 @@ export default async function AdminVendorsPage({ searchParams }: { searchParams:
                 ) : (
                   vendors.map((v: any) => (
                     <tr key={v.id} className="border-b border-[var(--color-border)]/50 hover:bg-[var(--color-surface-secondary)]/30">
-                      <td className="py-3 px-4 font-medium">{v.business_name || "—"}</td>
-                      <td className="py-3 px-4">{v.owner_name || v.owner_email || "—"}</td>
+                      <td className="py-3 px-4 font-medium">{v.business_name || "â€”"}</td>
+                      <td className="py-3 px-4">{v.owner_name || v.owner_email || "â€”"}</td>
                       <td className="py-3 px-4">{v.products_count ?? 0}</td>
                       <td className="py-3 px-4">
                         {v.is_active ? <Badge variant="default" className="bg-emerald-600">Active</Badge> : <Badge variant="secondary">Inactive</Badge>}
@@ -71,3 +71,4 @@ export default async function AdminVendorsPage({ searchParams }: { searchParams:
     </div>
   );
 }
+

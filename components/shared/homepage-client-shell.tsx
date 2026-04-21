@@ -3,3 +3,4 @@
 export function HomepageClientShell({ children }: { children?: React.ReactNode }) {
   return <>{children}</>;
 }
+

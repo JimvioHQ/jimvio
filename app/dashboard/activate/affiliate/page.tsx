@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -71,9 +71,9 @@ export default function ActivateAffiliatePage() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center space-y-8 animate-in fade-in duration-700" style={{ background: "#f0ede8" }}>
         <div className="relative">
-          <div className="absolute inset-0 bg-sky-400/20 blur-2xl rounded-full scale-150 animate-pulse" />
-          <div className="relative w-20 h-20 rounded-[24px] bg-white dark:bg-surface/40 backdrop-blur-md border border-white/80 shadow-2xl flex items-center justify-center overflow-hidden">
-            <div className="absolute inset-0 border-2 border-t-sky-500 border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin m-2" />
+          <div className="absolute inset-0 bg-sky-400/20 blur-2xl rounded-none scale-150 animate-pulse" />
+          <div className="relative w-20 h-20 rounded-none bg-white dark:bg-surface/40 backdrop-blur-md border border-white/80 shadow-none flex items-center justify-center overflow-hidden">
+            <div className="absolute inset-0 border-2 border-t-sky-500 border-r-transparent border-b-transparent border-l-transparent rounded-none animate-spin m-2" />
             <Link2 className="h-8 w-8 text-stone-900 dark:text-white" />
           </div>
         </div>
@@ -97,13 +97,13 @@ export default function ActivateAffiliatePage() {
       <div className="max-w-2xl mx-auto px-6 pt-12">
         <div className="flex flex-col items-center text-center mb-12">
            <Link href="/dashboard" className="mb-8 group">
-              <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white dark:bg-surface/40 border border-white/80 text-stone-500 hover:text-stone-900 dark:text-white transition-all shadow-sm">
+              <div className="flex items-center gap-2 px-4 py-2 rounded-none bg-white dark:bg-surface/40 border border-white/80 text-stone-500 hover:text-stone-900 dark:text-white transition-all shadow-none">
                  <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
                  <span className="text-[10px] font-bold uppercase tracking-widest">Return to Dashboard</span>
               </div>
            </Link>
            
-           <div className="w-20 h-20 rounded-[28px] bg-white dark:bg-surface border border-white shadow-2xl flex items-center justify-center mb-6 relative group overflow-hidden">
+           <div className="w-20 h-20 rounded-none bg-white dark:bg-surface border border-white shadow-none flex items-center justify-center mb-6 relative group overflow-hidden">
               <div className="absolute inset-0 bg-sky-500 opacity-0 group-hover:opacity-10 transition-opacity" />
               <Link2 className="h-10 w-10 text-stone-900 dark:text-white group-hover:scale-110 transition-transform duration-500" />
            </div>
@@ -115,18 +115,18 @@ export default function ActivateAffiliatePage() {
         </div>
 
         <GlassCard className="p-10 relative overflow-hidden">
-           <div className="absolute top-0 right-0 w-32 h-32 bg-sky-500/5 blur-3xl rounded-full translate-x-1/2 -translate-y-1/2" />
+           <div className="absolute top-0 right-0 w-32 h-32 bg-sky-500/5 blur-3xl rounded-none translate-x-1/2 -translate-y-1/2" />
            
            <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-stone-400 mb-6 pl-1 border-l-2 border-stone-200 dark:border-border">Merchant Compliance</h3>
            
            <div className="space-y-4">
               <div className={cn(
-                 "flex items-center justify-between p-5 rounded-[20px] transition-all border",
+                 "flex items-center justify-between p-5 rounded-none transition-all border",
                  emailVerified ? "bg-white dark:bg-surface/60 border-emerald-200/50 shadow-[inset_0_1px_4px_rgba(255,255,255,1)]" : "bg-white dark:bg-surface/40 border-stone-200/50 opacity-60"
               )}>
                  <div className="flex items-center gap-4">
                     <div className={cn(
-                       "w-12 h-12 rounded-[14px] flex items-center justify-center shadow-sm border",
+                       "w-12 h-12 rounded-none flex items-center justify-center shadow-none border",
                        emailVerified ? "bg-emerald-100 border-emerald-200 text-emerald-600" : "bg-stone-50 dark:bg-surface/50 border-stone-200 dark:border-border text-stone-400"
                     )}>
                        <Mail className="h-5 w-5" />
@@ -140,12 +140,12 @@ export default function ActivateAffiliatePage() {
               </div>
 
               <div className={cn(
-                 "flex items-center justify-between p-5 rounded-[20px] transition-all border",
+                 "flex items-center justify-between p-5 rounded-none transition-all border",
                  hasPaymentMethod ? "bg-white dark:bg-surface/60 border-emerald-200/50 shadow-[inset_0_1px_4px_rgba(255,255,255,1)]" : "bg-white dark:bg-surface/40 border-stone-200/50"
               )}>
                  <div className="flex items-center gap-4">
                     <div className={cn(
-                       "w-12 h-12 rounded-[14px] flex items-center justify-center shadow-sm border",
+                       "w-12 h-12 rounded-none flex items-center justify-center shadow-none border",
                        hasPaymentMethod ? "bg-emerald-100 border-emerald-200 text-emerald-600" : "bg-amber-50 border-amber-200 text-amber-500"
                     )}>
                        <CreditCard className="h-5 w-5" />
@@ -163,7 +163,7 @@ export default function ActivateAffiliatePage() {
               </div>
            </div>
 
-           <div className="mt-10 p-5 rounded-[18px] bg-stone-50/50 border border-stone-100/50">
+           <div className="mt-10 p-5 rounded-none bg-stone-50/50 border border-stone-100/50">
               <div className="flex items-start gap-3">
                  <Sparkles className="h-4 w-4 text-sky-500 shrink-0 mt-0.5" />
                  <p className="text-[11px] font-semibold text-stone-500 leading-relaxed uppercase tracking-widest pl-1">
@@ -174,7 +174,7 @@ export default function ActivateAffiliatePage() {
 
            <Button
               className={cn(
-                "mt-10 h-14 w-full rounded-[18px] font-black text-[12px] uppercase tracking-[0.2em] shadow-2xl transition-all active:scale-95",
+                "mt-10 h-14 w-full rounded-none font-black text-[12px] uppercase tracking-[0.2em] shadow-none transition-all active:scale-95",
                 canActivate ? "bg-stone-900 text-white hover:bg-black shadow-stone-900/20" : "bg-stone-100 text-stone-300 border border-stone-200 dark:border-border shadow-none pointer-events-none"
               )}
               onClick={handleActivate}
@@ -202,3 +202,4 @@ export default function ActivateAffiliatePage() {
     </div>
   );
 }
+

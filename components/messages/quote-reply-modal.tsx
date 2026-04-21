@@ -35,17 +35,17 @@ export function QuoteReplyModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink-darker/50" onClick={onClose}>
-      <div className="bg-[var(--color-surface)] rounded-2xl shadow-xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-[var(--color-surface)] rounded-none shadow-none max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-bold text-[var(--color-text-primary)] flex items-center gap-2">
             <Quote className="h-5 w-5 text-[var(--color-accent)]" /> Send offer
           </h3>
-          <button type="button" onClick={onClose} className="p-2 rounded-lg hover:bg-[var(--color-surface-secondary)]">
+          <button type="button" onClick={onClose} className="p-2 rounded-none hover:bg-[var(--color-surface-secondary)]">
             <X className="h-4 w-4" />
           </button>
         </div>
         {quoteData && (
-          <div className="mb-4 p-3 rounded-xl bg-[var(--color-surface-secondary)] text-sm text-[var(--color-text-secondary)]">
+          <div className="mb-4 p-3 rounded-none bg-[var(--color-surface-secondary)] text-sm text-[var(--color-text-secondary)]">
             Requested: Qty {quoteData.quantity}, Expected {quoteData.expected_price}, Delivery to {quoteData.delivery_country}
           </div>
         )}
@@ -57,7 +57,7 @@ export function QuoteReplyModal({
               placeholder="e.g. 45000"
               value={offer_price}
               onChange={(e) => setOffer_price(e.target.value)}
-              className="rounded-xl mt-1"
+              className="rounded-none mt-1"
             />
           </div>
           <div>
@@ -67,7 +67,7 @@ export function QuoteReplyModal({
               placeholder="e.g. 3-5 business days"
               value={delivery_time}
               onChange={(e) => setDelivery_time(e.target.value)}
-              className="rounded-xl mt-1"
+              className="rounded-none mt-1"
             />
           </div>
           <div>
@@ -77,17 +77,17 @@ export function QuoteReplyModal({
               onChange={(e) => setBody(e.target.value)}
               placeholder="Add a note..."
               rows={2}
-              className="w-full px-4 py-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] mt-1 resize-none"
+              className="w-full px-4 py-2 rounded-none border border-[var(--color-border)] bg-[var(--color-surface)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] mt-1 resize-none"
             />
           </div>
           <div className="flex gap-2 pt-2">
-            <Button type="button" variant="outline" className="rounded-xl flex-1" onClick={onClose}>
+            <Button type="button" variant="outline" className="rounded-none flex-1" onClick={onClose}>
               Cancel
             </Button>
             <Button
               type="button"
               variant="outline"
-              className="rounded-xl flex-1 border-red-200 text-red-600 hover:bg-red-50"
+              className="rounded-none flex-1 border-red-200 text-red-600 hover:bg-red-50"
               onClick={handleSubmit("rejected")}
               disabled={loading}
             >
@@ -95,7 +95,7 @@ export function QuoteReplyModal({
             </Button>
             <Button
               type="button"
-              className="rounded-xl flex-1 bg-[var(--color-accent)]"
+              className="rounded-none flex-1 bg-[var(--color-accent)]"
               onClick={handleSubmit("accepted")}
               disabled={loading || !offer_price.trim()}
             >
@@ -107,3 +107,4 @@ export function QuoteReplyModal({
     </div>
   );
 }
+

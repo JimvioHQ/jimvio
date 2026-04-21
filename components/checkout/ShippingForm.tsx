@@ -61,7 +61,7 @@ export default function ShippingForm({ values, onChange, hideAddress = false }: 
       };
 
   const inputCls = cn(
-    "rounded-[14px] h-11 pl-10 pr-3 text-[13px] font-medium",
+    "rounded-none h-11 pl-10 pr-3 text-[13px] font-medium",
     "text-stone-900 dark:text-white bg-transparent w-full",
     "focus:outline-none focus:ring-2 focus:ring-orange-500/10 focus:border-orange-400/40",
     "placeholder:text-stone-400 transition-all"
@@ -215,10 +215,11 @@ function Field({
         {label}
       </label>
 
-      <div className="relative rounded-[14px] bg-white/55 dark:bg-surface/50 border border-white/80 dark:border-border shadow-sm shadow-orange-500/5">
+      <div className="relative rounded-none bg-white/55 dark:bg-surface/50 border border-white/80 dark:border-border shadow-none shadow-orange-500/5">
         {icon}
         {children}
       </div>
     </div>
   );
 }
+

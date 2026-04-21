@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 export const dynamic = "force-dynamic";
 
 import React, { useEffect, useState } from "react";
@@ -78,15 +78,15 @@ export default function InfluencerDashboardPage() {
   if (!influencer) {
     return (
       <div className="min-h-screen flex items-center justify-center px-6" style={{ background: "var(--color-bg)" }}>
-        <GlassCard className="max-w-2xl w-full p-12 text-center rounded-[40px] border-border shadow-xl bg-surface dark:bg-surface/60">
-          <div className="w-20 h-20 bg-gradient-to-br from-orange-500 to-orange-600 rounded-3xl flex items-center justify-center text-white text-3xl mx-auto mb-8 shadow-lg shadow-orange-900/20">
+        <GlassCard className="max-w-2xl w-full p-12 text-center rounded-none border-border shadow-none bg-surface dark:bg-surface/60">
+          <div className="w-20 h-20 bg-gradient-to-br from-orange-500 to-orange-600 rounded-none flex items-center justify-center text-white text-3xl mx-auto mb-8 shadow-none shadow-orange-900/20">
             <Globe />
           </div>
           <h2 className="text-2xl font-black text-stone-900 dark:text-white mb-4 tracking-tight">Become a Jimvio Creator</h2>
           <p className="text-stone-500 dark:text-text-muted mb-8 leading-relaxed font-medium">
             Unlock the ability to earn from your content. Browse brand campaigns, submit your content links, and get paid for the views you generate.
           </p>
-          <Button size="lg" asChild className="font-bold rounded-2xl px-12 h-14 bg-orange-500 text-white hover:bg-orange-600 transition-all border-none shadow-lg">
+          <Button size="lg" asChild className="font-bold rounded-none px-12 h-14 bg-orange-500 text-white hover:bg-orange-600 transition-all border-none shadow-none">
             <Link href="/dashboard/activate/creator">Activate Influencer Hub</Link>
           </Button>
         </GlassCard>
@@ -100,10 +100,10 @@ export default function InfluencerDashboardPage() {
       style={{ background: "var(--color-bg)" }}
     >
       <div className="max-w-6xl mx-auto space-y-8 px-4 sm:px-6 pt-5">
-      {/* ── HEADER ── */}
+      {/* â”€â”€ HEADER â”€â”€ */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 pt-4 px-2">
          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-orange-500 flex items-center justify-center shadow-xl text-white font-black text-xl">
+            <div className="w-14 h-14 rounded-none bg-orange-500 flex items-center justify-center shadow-none text-white font-black text-xl">
                {influencer.display_name?.[0]?.toUpperCase() || 'I'}
             </div>
             <div>
@@ -113,7 +113,7 @@ export default function InfluencerDashboardPage() {
                </h1>
                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-stone-400">
                   <span className="flex items-center gap-1"><Globe className="w-3 h-3" /> Partner Creator</span>
-                  <span>•</span>
+                  <span>â€¢</span>
                   <span>{influencer.category || 'Global'}</span>
                </div>
             </div>
@@ -121,19 +121,19 @@ export default function InfluencerDashboardPage() {
 
          <div className="flex items-center gap-3">
             <Link href="/dashboard/influencer/videos">
-               <Button className="h-11 px-6 rounded-[14px] bg-white dark:bg-surface text-stone-700 border border-stone-100 dark:border-border font-bold text-[11px] uppercase tracking-widest shadow-sm hover:bg-stone-50 dark:bg-surface/50 hover:text-stone-900 dark:text-white transition-all">
+               <Button className="h-11 px-6 rounded-none bg-white dark:bg-surface text-stone-700 border border-stone-100 dark:border-border font-bold text-[11px] uppercase tracking-widest shadow-none hover:bg-stone-50 dark:bg-surface/50 hover:text-stone-900 dark:text-white transition-all">
                   My Clips
                </Button>
             </Link>
             <Link href="/ugc">
-               <Button className="h-11 px-8 rounded-[14px] bg-stone-900 text-white font-bold text-[11px] uppercase tracking-widest shadow-xl active:scale-95 transition-all hover:bg-black border-none">
+               <Button className="h-11 px-8 rounded-none bg-stone-900 text-white font-bold text-[11px] uppercase tracking-widest shadow-none active:scale-95 transition-all hover:bg-black border-none">
                   <Plus className="h-4 w-4 mr-2 text-orange-400" /> Start Mission
                </Button>
             </Link>
          </div>
       </div>
 
-      {/* ── METRIC CARDS ── */}
+      {/* â”€â”€ METRIC CARDS â”€â”€ */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
          {[
            { label: "Total Earnings", value: formatMoney(stats.totalEarnings), icon: DollarSign, color: "text-emerald-600", bg: "bg-emerald-500/10" },
@@ -141,9 +141,9 @@ export default function InfluencerDashboardPage() {
            { label: "Market Influence", value: stats.totalClicks, icon: MousePointer, color: "text-orange-600", bg: "bg-orange-500/10" },
            { label: "Active Missions", value: stats.activeCampaigns, icon: Target, color: "text-orange-600", bg: "bg-orange-500/10" },
          ].map((stat, i) => (
-            <GlassCard key={i} className="p-5 flex items-center gap-4 group hover:border-orange-200 transition-all bg-white dark:bg-surface/60 border-white shadow-sm">
-               <div className={cn("absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity rounded-[24px]", stat.bg)} />
-               <div className={cn("relative w-12 h-12 rounded-[14px] flex items-center justify-center shrink-0 border border-white/80 shadow-sm", stat.bg, stat.color)}>
+            <GlassCard key={i} className="p-5 flex items-center gap-4 group hover:border-orange-200 transition-all bg-white dark:bg-surface/60 border-white shadow-none">
+               <div className={cn("absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity rounded-none", stat.bg)} />
+               <div className={cn("relative w-12 h-12 rounded-none flex items-center justify-center shrink-0 border border-white/80 shadow-none", stat.bg, stat.color)}>
                   <stat.icon className="h-5 w-5" />
                </div>
                <div className="relative">
@@ -163,7 +163,7 @@ export default function InfluencerDashboardPage() {
                   <Film className="h-12 w-12 text-stone-300 dark:text-stone-700 mx-auto mb-4" />
                   <p className="text-lg font-bold text-stone-900 dark:text-white tracking-tight">No activity logs found.</p>
                   <Link href="/ugc" className="mt-6 inline-block">
-                     <Button className="h-11 px-8 rounded-[14px] bg-surface dark:bg-surface border border-border text-stone-700 dark:text-stone-300 font-bold text-[11px] uppercase tracking-widest shadow-sm hover:bg-surface-secondary dark:hover:bg-zinc-800 transition-all">Browse Missions →</Button>
+                     <Button className="h-11 px-8 rounded-none bg-surface dark:bg-surface border border-border text-stone-700 dark:text-stone-300 font-bold text-[11px] uppercase tracking-widest shadow-none hover:bg-surface-secondary dark:hover:bg-zinc-800 transition-all">Browse Missions â†’</Button>
                   </Link>
                </GlassCard>
             ) : (
@@ -173,24 +173,24 @@ export default function InfluencerDashboardPage() {
                     const isPending = sub.status === 'pending';
 
                     return (
-                       <GlassCard key={sub.id} className="p-4 pr-6 flex items-center gap-4 hover:border-orange-200 transition-all cursor-pointer bg-white dark:bg-surface/60 border-white shadow-sm">
-                          <div className="w-12 h-12 rounded-[14px] bg-white dark:bg-surface border border-stone-100 dark:border-border flex items-center justify-center shrink-0 shadow-sm transition-colors">
+                       <GlassCard key={sub.id} className="p-4 pr-6 flex items-center gap-4 hover:border-orange-200 transition-all cursor-pointer bg-white dark:bg-surface/60 border-white shadow-none">
+                          <div className="w-12 h-12 rounded-none bg-white dark:bg-surface border border-stone-100 dark:border-border flex items-center justify-center shrink-0 shadow-none transition-colors">
                              <Video className="h-5 w-5 text-stone-400" />
                           </div>
                           <div className="flex-1 min-w-0">
                              <h4 className="text-[14px] font-bold text-stone-900 dark:text-white truncate tracking-tight">{campaign?.title || 'Mission Item'}</h4>
                              <p className="text-[10px] font-semibold text-stone-500 uppercase tracking-widest flex items-center gap-1.5 mt-1">
-                                <span className={cn("px-2 py-0.5 rounded-full border shadow-sm", isPending ? "bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800" : "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800")}>
+                                <span className={cn("px-2 py-0.5 rounded-none border shadow-none", isPending ? "bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800" : "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800")}>
                                    {sub.status}
                                 </span>
-                                • {sub.platform}
+                                â€¢ {sub.platform}
                              </p>
                           </div>
                           <div className="text-right shrink-0">
                              <p className="text-[15px] font-bold text-stone-900 dark:text-white tabular-nums">{formatMoney(sub.total_earnings || 0)}</p>
                              <p className="text-[9px] font-semibold text-stone-400 uppercase tracking-widest leading-none">Earned</p>
                           </div>
-                          <Link href={sub.post_url} target="_blank" className="ml-3 w-9 h-9 rounded-full bg-white dark:bg-surface border border-stone-100 dark:border-border flex items-center justify-center text-stone-400 hover:bg-stone-900 hover:text-white transition-all shadow-sm">
+                          <Link href={sub.post_url} target="_blank" className="ml-3 w-9 h-9 rounded-none bg-white dark:bg-surface border border-stone-100 dark:border-border flex items-center justify-center text-stone-400 hover:bg-stone-900 hover:text-white transition-all shadow-none">
                              <ExternalLink className="w-4 h-4" />
                           </Link>
                        </GlassCard>
@@ -200,23 +200,23 @@ export default function InfluencerDashboardPage() {
             )}
         </div>
 
-         {/* ── QUICK ACTIONS ── */}
+         {/* â”€â”€ QUICK ACTIONS â”€â”€ */}
          <div className="xl:col-span-1 space-y-6">
-            <div className="rounded-[28px] bg-stone-900 dark:bg-surface-secondary p-8 text-white shadow-xl relative overflow-hidden group">
-               <div className="absolute top-0 right-0 w-48 h-48 bg-orange-500 opacity-20 blur-3xl rounded-full translate-x-10 -translate-y-10 group-hover:opacity-30 transition-opacity" />
+            <div className="rounded-none bg-stone-900 dark:bg-surface-secondary p-8 text-white shadow-none relative overflow-hidden group">
+               <div className="absolute top-0 right-0 w-48 h-48 bg-orange-500 opacity-20 blur-3xl rounded-none translate-x-10 -translate-y-10 group-hover:opacity-30 transition-opacity" />
                <div className="relative z-10 space-y-5">
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 text-[9px] font-bold uppercase tracking-widest border border-white/10 backdrop-blur-md">
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-none bg-white/10 text-[9px] font-bold uppercase tracking-widest border border-white/10 backdrop-blur-md">
                     <Sparkles className="h-3 w-3 text-orange-400" /> Growth Insight
                   </div>
                   <h3 className="text-xl font-bold leading-tight tracking-tight">Max your outreach</h3>
                   <p className="text-[12px] text-stone-400 font-medium leading-relaxed">Verified creators earn 2x more on average. Complete your profile for priority reviews.</p>
-                  <Button className="w-full h-11 rounded-[14px] bg-white/90 dark:bg-zinc-700 text-stone-900 dark:text-white hover:bg-white dark:hover:bg-zinc-600 font-bold text-[11px] uppercase tracking-widest shadow-xl transition-all border-none">
+                  <Button className="w-full h-11 rounded-none bg-white/90 dark:bg-zinc-700 text-stone-900 dark:text-white hover:bg-white dark:hover:bg-zinc-600 font-bold text-[11px] uppercase tracking-widest shadow-none transition-all border-none">
                      Upgrade Profile
                   </Button>
                </div>
             </div>
 
-            <GlassCard className="p-6 bg-white dark:bg-surface/60 border-white shadow-sm">
+            <GlassCard className="p-6 bg-white dark:bg-surface/60 border-white shadow-none">
                <h3 className="text-[10px] font-bold uppercase tracking-widest text-stone-500 mb-5">Influencer Pulse</h3>
                <div className="space-y-4">
                   {[
@@ -225,7 +225,7 @@ export default function InfluencerDashboardPage() {
                   ].map((item, i) => (
                     <div key={i} className="flex items-center justify-between group">
                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-[10px] bg-white dark:bg-surface border border-stone-100 dark:border-border flex items-center justify-center text-stone-300 group-hover:text-orange-500 transition-colors shadow-sm">
+                          <div className="w-8 h-8 rounded-none bg-white dark:bg-surface border border-stone-100 dark:border-border flex items-center justify-center text-stone-300 group-hover:text-orange-500 transition-colors shadow-none">
                              <item.icon className="w-4 h-4" />
                           </div>
                           <span className="text-[11px] font-bold text-stone-600">{item.label}</span>
@@ -263,3 +263,4 @@ function RefreshCw(props: any) {
     </svg>
   );
 }
+

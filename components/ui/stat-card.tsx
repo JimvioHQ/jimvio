@@ -28,7 +28,7 @@ export function StatCard({
   return (
     <div
       className={cn(
-        "rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 max-lg:p-3.5 shadow-[var(--shadow-sm)] hover:border-[var(--color-border-strong)] transition-all duration-150",
+        "rounded-none border border-[var(--color-border)] bg-[var(--color-surface)] p-4 max-lg:p-3.5 shadow-[var(--shadow-none)] hover:border-[var(--color-border-strong)] transition-all duration-150",
         className
       )}
     >
@@ -37,7 +37,7 @@ export function StatCard({
           {title}
         </p>
         {icon && (
-          <div className={cn("p-1.5 rounded-lg bg-gradient-to-br", iconColor)}>
+          <div className={cn("p-1.5 rounded-none bg-gradient-to-br", iconColor)}>
             <span className="text-white [&>svg]:h-4 [&>svg]:w-4">{icon}</span>
           </div>
         )}
@@ -69,3 +69,4 @@ export function StatCard({
     </div>
   );
 }
+

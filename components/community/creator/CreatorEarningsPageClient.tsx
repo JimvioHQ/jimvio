@@ -217,18 +217,18 @@ export function CreatorEarningsPageClient({
           { label: "Available balance", value: formatDisplayMoney(available, walletCurrency) },
           { label: "Pending / held", value: formatDisplayMoney(pendingBal, walletCurrency) },
         ].map((c) => (
-          <div key={c.label} className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-sm">
+          <div key={c.label} className="rounded-none border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-none">
             <p className="text-[10px] font-black uppercase tracking-wider text-[var(--color-text-muted)]">{c.label}</p>
             <p className="text-xl font-black text-[var(--color-text-primary)] mt-1 tabular-nums">{c.value}</p>
           </div>
         ))}
       </div>
 
-      <section className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 sm:p-6">
+      <section className="rounded-none border border-[var(--color-border)] bg-[var(--color-surface)] p-4 sm:p-6">
         <h2 className="text-sm font-black uppercase tracking-wider text-[var(--color-text-muted)] mb-4">Revenue by plan (last 12 months)</h2>
         <div className="h-72 w-full">
           {chartData.every((d) => d.monthly + d.yearly + d.lifetime === 0) ? (
-            <div className="h-full flex items-center justify-center rounded-xl border border-dashed border-[var(--color-border)] text-sm text-[var(--color-text-muted)]">
+            <div className="h-full flex items-center justify-center rounded-none border border-dashed border-[var(--color-border)] text-sm text-[var(--color-text-muted)]">
               No completed payments in this period.
             </div>
           ) : (
@@ -254,7 +254,7 @@ export function CreatorEarningsPageClient({
         </div>
       </section>
 
-      <section className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden">
+      <section className="rounded-none border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden">
         <div className="px-4 sm:px-6 py-4 border-b border-[var(--color-border)]">
           <h2 className="text-lg font-black text-[var(--color-text-primary)]">Subscriber payments</h2>
           <p className="text-xs text-[var(--color-text-muted)] mt-0.5">Completed payments for this community.</p>
@@ -290,7 +290,7 @@ export function CreatorEarningsPageClient({
                       <td className="py-2 px-3 text-xs whitespace-nowrap">{p.created_at ? new Date(p.created_at).toLocaleString() : "â€”"}</td>
                       <td className="py-2 px-3 font-semibold">{name}</td>
                       <td className="py-2 px-3">
-                        <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-[var(--color-surface-secondary)]">{p.plan_type}</span>
+                        <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-none bg-[var(--color-surface-secondary)]">{p.plan_type}</span>
                       </td>
                       <td className="py-2 px-3 text-right tabular-nums">{formatDisplayMoney(gross, p.currency || displayCurrency)}</td>
                       <td className="py-2 px-3 text-right tabular-nums text-[var(--color-text-muted)]">{formatDisplayMoney(comm, p.currency || displayCurrency)}</td>
@@ -304,7 +304,7 @@ export function CreatorEarningsPageClient({
         </div>
       </section>
 
-      <section className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 sm:p-6 space-y-4">
+      <section className="rounded-none border border-[var(--color-border)] bg-[var(--color-surface)] p-4 sm:p-6 space-y-4">
         <h2 className="text-lg font-black text-[var(--color-text-primary)]">Request payout</h2>
         <p className="text-xs text-[var(--color-text-muted)]">
           Uses your platform wallet. Jimvio applies a 2% processing fee on payouts. You need a vendor account for this endpoint; otherwise the server returns 403.
@@ -312,14 +312,14 @@ export function CreatorEarningsPageClient({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-xl">
           <div>
             <label className="text-[10px] font-black uppercase text-[var(--color-text-muted)]">Amount (min {MIN_PAYOUT})</label>
-            <Input value={amount} onChange={(e) => setAmount(e.target.value)} type="number" min={MIN_PAYOUT} step="0.01" className="rounded-xl mt-1" />
+            <Input value={amount} onChange={(e) => setAmount(e.target.value)} type="number" min={MIN_PAYOUT} step="0.01" className="rounded-none mt-1" />
           </div>
           <div>
             <label className="text-[10px] font-black uppercase text-[var(--color-text-muted)]">Method</label>
             <select
               value={method}
               onChange={(e) => setMethod(e.target.value)}
-              className="mt-1 w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm bg-[var(--color-surface)]"
+              className="mt-1 w-full rounded-none border border-[var(--color-border)] px-3 py-2 text-sm bg-[var(--color-surface)]"
             >
               <option value="MTN">MTN</option>
               <option value="Bank">Bank</option>
@@ -328,7 +328,7 @@ export function CreatorEarningsPageClient({
           </div>
           <div className="sm:col-span-2">
             <label className="text-[10px] font-black uppercase text-[var(--color-text-muted)]">Account / details</label>
-            <Input value={account} onChange={(e) => setAccount(e.target.value)} className="rounded-xl mt-1" placeholder="Phone, IBAN, or wallet address" />
+            <Input value={account} onChange={(e) => setAccount(e.target.value)} className="rounded-none mt-1" placeholder="Phone, IBAN, or wallet address" />
           </div>
         </div>
         <p className="text-sm text-[var(--color-text-secondary)]">
@@ -338,7 +338,7 @@ export function CreatorEarningsPageClient({
         {payoutError && <p className="text-sm text-[var(--color-danger)] font-semibold">{payoutError}</p>}
         <Button
           type="button"
-          className={cn("rounded-xl bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-black")}
+          className={cn("rounded-none bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-black")}
           disabled={submitting}
           onClick={requestPayout}
         >
@@ -346,7 +346,7 @@ export function CreatorEarningsPageClient({
         </Button>
       </section>
 
-      <section className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden">
+      <section className="rounded-none border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden">
         <div className="px-4 sm:px-6 py-4 border-b border-[var(--color-border)]">
           <h2 className="text-lg font-black text-[var(--color-text-primary)]">Payout history</h2>
           <p className="text-xs text-[var(--color-text-muted)]">Your recent payout requests (all sources).</p>
@@ -377,7 +377,7 @@ export function CreatorEarningsPageClient({
                     <td className="py-2 px-3">
                       <span
                         className={cn(
-                          "text-[10px] font-black uppercase px-2 py-0.5 rounded-md",
+                          "text-[10px] font-black uppercase px-2 py-0.5 rounded-none",
                           p.status === "paid"
                             ? "bg-[var(--color-success-light)] text-[var(--color-success)]"
                             : p.status === "failed"
@@ -398,3 +398,4 @@ export function CreatorEarningsPageClient({
     </div>
   );
 }
+

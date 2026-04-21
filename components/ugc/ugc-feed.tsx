@@ -32,18 +32,18 @@ const PAGE_SIZE = 12;
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function SkeletonCard() {
   return (
-    <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl overflow-hidden animate-pulse">
+    <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-none overflow-hidden animate-pulse">
       <div className="flex items-center gap-3 px-4 pt-4 pb-3">
-        <div className="w-9 h-9 rounded-full bg-[var(--color-surface-secondary)]" />
+        <div className="w-9 h-9 rounded-none bg-[var(--color-surface-secondary)]" />
         <div className="flex-1 space-y-1.5">
-          <div className="h-3 bg-[var(--color-surface-secondary)] rounded-full w-32" />
-          <div className="h-2.5 bg-[var(--color-surface-secondary)] rounded-full w-20" />
+          <div className="h-3 bg-[var(--color-surface-secondary)] rounded-none w-32" />
+          <div className="h-2.5 bg-[var(--color-surface-secondary)] rounded-none w-20" />
         </div>
       </div>
-      <div className="mx-4 mb-3 aspect-[4/3] rounded-2xl bg-[var(--color-surface-secondary)]" />
+      <div className="mx-4 mb-3 aspect-[4/3] rounded-none bg-[var(--color-surface-secondary)]" />
       <div className="px-4 space-y-2 mb-4">
-        <div className="h-3 bg-[var(--color-surface-secondary)] rounded-full w-full" />
-        <div className="h-3 bg-[var(--color-surface-secondary)] rounded-full w-3/4" />
+        <div className="h-3 bg-[var(--color-surface-secondary)] rounded-none w-full" />
+        <div className="h-3 bg-[var(--color-surface-secondary)] rounded-none w-3/4" />
       </div>
     </div>
   );
@@ -149,15 +149,15 @@ export function UGCFeed({
       {/* Sort bar */}
       {showSortBar && (
         <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-1 p-1 rounded-2xl bg-[var(--color-surface-secondary)] border border-[var(--color-border)]">
+          <div className="flex items-center gap-1 p-1 rounded-none bg-[var(--color-surface-secondary)] border border-[var(--color-border)]">
             {SORT_TABS.map((tab) => (
               <button
                 key={tab.value}
                 onClick={() => handleSortChange(tab.value)}
                 className={cn(
-                  "flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all",
+                  "flex items-center gap-1.5 px-3.5 py-2 rounded-none text-xs font-semibold transition-all",
                   sort === tab.value
-                    ? "bg-[var(--color-accent)] text-white shadow-sm"
+                    ? "bg-[var(--color-accent)] text-white shadow-none"
                     : "text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"
                 )}
               >
@@ -167,7 +167,7 @@ export function UGCFeed({
           </div>
           <button
             onClick={handleRefresh}
-            className="p-2 rounded-xl text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)] transition-all active:scale-95"
+            className="p-2 rounded-none text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)] transition-all active:scale-95"
             title="Refresh feed"
           >
             <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
@@ -204,7 +204,7 @@ export function UGCFeed({
       {/* Empty state */}
       {!loading && posts.length === 0 && (
         <div className="flex flex-col items-center justify-center py-20 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-[var(--color-surface-secondary)] flex items-center justify-center text-3xl mb-4">
+          <div className="w-16 h-16 rounded-none bg-[var(--color-surface-secondary)] flex items-center justify-center text-3xl mb-4">
             ðŸ“¸
           </div>
           <h3 className="text-base font-bold text-[var(--color-text-primary)] mb-1">No posts yet</h3>
@@ -224,3 +224,4 @@ export function UGCFeed({
     </div>
   );
 }
+

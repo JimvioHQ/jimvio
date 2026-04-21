@@ -47,7 +47,7 @@ export function AdminOverviewClient({ stats, chartData }: { stats: Stats; chartD
         <Card className="border-amber-500/30 bg-amber-500/5">
           <CardContent className="flex items-center justify-between py-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-amber-500/20">
+              <div className="p-2 rounded-none bg-amber-500/20">
                 <ShieldCheck className="h-5 w-5 text-amber-600" />
               </div>
               <div>
@@ -115,3 +115,4 @@ export function AdminOverviewClient({ stats, chartData }: { stats: Stats; chartD
     </div>
   );
 }
+

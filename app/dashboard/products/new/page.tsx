@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 export const dynamic = "force-dynamic";
 
 import React, { useState, useEffect, useTransition } from "react";
@@ -42,10 +42,10 @@ const BILLING_PERIODS = ["weekly", "monthly", "quarterly", "yearly"];
 
 const BUTTON_TEXTS = ["Join", "Get access", "Order now", "Purchase", "Sign up", "Download", "Subscribe"];
 
-const inputBase = "h-11 w-full rounded-lg border bg-[#0D0D0D] border-[#2A2A2A] text-white placeholder:text-zinc-600 focus-visible:ring-1 focus-visible:ring-blue-500 focus-visible:border-blue-500 transition-all text-sm px-4";
-const selectBase = "h-11 w-full px-4 rounded-lg border border-[#2A2A2A] bg-[#0D0D0D] text-white text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all appearance-none cursor-pointer";
+const inputBase = "h-11 w-full rounded-none border bg-[#0D0D0D] border-[#2A2A2A] text-white placeholder:text-zinc-600 focus-visible:ring-1 focus-visible:ring-blue-500 focus-visible:border-blue-500 transition-all text-sm px-4";
+const selectBase = "h-11 w-full px-4 rounded-none border border-[#2A2A2A] bg-[#0D0D0D] text-white text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all appearance-none cursor-pointer";
 const labelBase = "text-[12px] font-semibold uppercase tracking-widest text-zinc-500 mb-2 block";
-const cardBase = "bg-[#111111] border border-[#222222] rounded-xl p-6";
+const cardBase = "bg-[#111111] border border-[#222222] rounded-none p-6";
 
 function SectionHeader({ title, subtitle }: { title: string; subtitle: string }) {
   return (
@@ -62,11 +62,11 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
       type="button"
       onClick={() => onChange(!checked)}
       className={cn(
-        "relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus:outline-none",
+        "relative inline-flex h-6 w-11 shrink-0 items-center rounded-none transition-colors focus:outline-none",
         checked ? "bg-blue-600" : "bg-[#2A2A2A]"
       )}
     >
-      <span className={cn("inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-sm", checked ? "translate-x-6" : "translate-x-1")} />
+      <span className={cn("inline-block h-4 w-4 transform rounded-none bg-white transition-transform shadow-none", checked ? "translate-x-6" : "translate-x-1")} />
     </button>
   );
 }
@@ -251,14 +251,14 @@ export default function NewProductPage() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-6 bg-[#060606]">
         <div className="relative">
-          <div className="absolute inset-0 bg-blue-500/20 blur-3xl rounded-full scale-150 animate-pulse" />
-          <div className="relative w-20 h-20 rounded-2xl bg-[#111] border border-[#222] shadow-2xl flex items-center justify-center">
+          <div className="absolute inset-0 bg-blue-500/20 blur-3xl rounded-none scale-150 animate-pulse" />
+          <div className="relative w-20 h-20 rounded-none bg-[#111] border border-[#222] shadow-none flex items-center justify-center">
             <CheckCircle2 className="h-10 w-10 text-blue-500" />
           </div>
         </div>
         <div className="text-center">
           <p className="text-base font-bold text-white">Product Published!</p>
-          <p className="text-sm text-zinc-500 mt-1">Redirecting to your products…</p>
+          <p className="text-sm text-zinc-500 mt-1">Redirecting to your productsâ€¦</p>
         </div>
       </div>
     );
@@ -278,11 +278,11 @@ export default function NewProductPage() {
     <div className="min-h-screen bg-[#060606] text-white pb-24">
       <div className="max-w-2xl mx-auto px-4 sm:px-6 pt-8 space-y-6">
 
-        {/* ── Header ── */}
+        {/* â”€â”€ Header â”€â”€ */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link href="/dashboard/products">
-              <div className="p-2 rounded-lg bg-[#111] border border-[#222] hover:bg-[#1A1A1A] transition-all">
+              <div className="p-2 rounded-none bg-[#111] border border-[#222] hover:bg-[#1A1A1A] transition-all">
                 <ArrowLeft className="h-4 w-4 text-zinc-400" />
               </div>
             </Link>
@@ -292,7 +292,7 @@ export default function NewProductPage() {
                 {steps.map((_, i) => (
                   <div
                     key={i}
-                    className={cn("h-1 rounded-full transition-all duration-300",
+                    className={cn("h-1 rounded-none transition-all duration-300",
                       i + 1 === currentStep ? "w-8 bg-blue-500" :
                       i + 1 < currentStep  ? "w-4 bg-blue-500/40" :
                                              "w-4 bg-[#222]"
@@ -311,14 +311,14 @@ export default function NewProductPage() {
             </Button>
             {currentStep < 3 ? (
               <Button
-                className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-5 h-9 text-sm font-medium"
+                className="bg-blue-600 hover:bg-blue-700 text-white rounded-none px-5 h-9 text-sm font-medium"
                 onClick={() => setCurrentStep(s => s + 1)}
               >
                 Next
               </Button>
             ) : (
               <Button
-                className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-5 h-9 text-sm font-medium disabled:opacity-50"
+                className="bg-blue-600 hover:bg-blue-700 text-white rounded-none px-5 h-9 text-sm font-medium disabled:opacity-50"
                 onClick={() => handleSubmit()}
                 disabled={isPending}
               >
@@ -328,7 +328,7 @@ export default function NewProductPage() {
           </div>
         </div>
 
-        {/* ── STEP 1: Type & Basic Info ── */}
+        {/* â”€â”€ STEP 1: Type & Basic Info â”€â”€ */}
         {currentStep === 1 && (
           <div className="space-y-4 animate-in fade-in duration-300">
             {/* Product Type */}
@@ -341,13 +341,13 @@ export default function NewProductPage() {
                     type="button"
                     onClick={() => handleChange("product_type", type.id)}
                     className={cn(
-                      "flex items-center gap-3 p-4 rounded-xl border-2 text-left transition-all",
+                      "flex items-center gap-3 p-4 rounded-none border-2 text-left transition-all",
                       form.product_type === type.id
                         ? "border-blue-600 bg-blue-600/5"
                         : "border-[#222] hover:border-[#333]"
                     )}
                   >
-                    <div className={cn("p-2 rounded-lg shrink-0", form.product_type === type.id ? "bg-blue-600 text-white" : "bg-[#1A1A1A] text-zinc-500")}>
+                    <div className={cn("p-2 rounded-none shrink-0", form.product_type === type.id ? "bg-blue-600 text-white" : "bg-[#1A1A1A] text-zinc-500")}>
                       <type.icon className="h-4 w-4" />
                     </div>
                     <div>
@@ -416,23 +416,23 @@ export default function NewProductPage() {
           </div>
         )}
 
-        {/* ── STEP 2: Gallery & Pricing ── */}
+        {/* â”€â”€ STEP 2: Gallery & Pricing â”€â”€ */}
         {currentStep === 2 && (
           <div className="space-y-4 animate-in fade-in duration-300">
             {/* Gallery */}
             <div className={cardBase}>
               <SectionHeader title="Gallery" subtitle="Upload product images." />
-              <div className="bg-[#0A0A0A] rounded-xl border-2 border-dashed border-[#222] hover:border-[#333] transition-colors">
+              <div className="bg-[#0A0A0A] rounded-none border-2 border-dashed border-[#222] hover:border-[#333] transition-colors">
                 <CloudinaryDropzone folder="jimvio/products" onUploadSuccess={handleImageUpload} label="Drop images here or click to upload" />
               </div>
               {form.images.length > 0 && (
                 <div className="grid grid-cols-4 gap-3 mt-4">
                   {form.images.map((img, i) => (
-                    <div key={i} className="relative aspect-square rounded-lg overflow-hidden border border-[#222]">
+                    <div key={i} className="relative aspect-square rounded-none overflow-hidden border border-[#222]">
                       <CloudinaryImage src={img} alt="Preview" fill className="object-cover" />
                       <button
                         onClick={() => removeImage(i)}
-                        className="absolute top-1 right-1 p-1 bg-black/70 text-white rounded-full hover:bg-rose-600 transition-colors"
+                        className="absolute top-1 right-1 p-1 bg-black/70 text-white rounded-none hover:bg-rose-600 transition-colors"
                       >
                         <Trash2 className="h-3 w-3" />
                       </button>
@@ -450,7 +450,7 @@ export default function NewProductPage() {
                   value={form.description}
                   onChange={e => handleChange("description", e.target.value)}
                   placeholder="Describe what's included, what problems it solves, and who it's for..."
-                  className="min-h-[130px] rounded-xl bg-[#0D0D0D] border border-[#2A2A2A] text-white placeholder:text-zinc-600 text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500 resize-none p-4"
+                  className="min-h-[130px] rounded-none bg-[#0D0D0D] border border-[#2A2A2A] text-white placeholder:text-zinc-600 text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500 resize-none p-4"
                 />
                 <div>
                   <Label className={labelBase}>Tags</Label>
@@ -479,7 +479,7 @@ export default function NewProductPage() {
                     type="button"
                     onClick={() => handleChange("price", opt.value === "0" ? "0" : (isFree ? "29.99" : form.price))}
                     className={cn(
-                      "flex items-center justify-between p-4 rounded-xl border-2 transition-all",
+                      "flex items-center justify-between p-4 rounded-none border-2 transition-all",
                       (opt.value === "0" ? isFree : isPaid)
                         ? "border-blue-600 bg-blue-600/5"
                         : "border-[#222] hover:border-[#333]"
@@ -489,10 +489,10 @@ export default function NewProductPage() {
                       <opt.icon className="h-4 w-4 text-zinc-400" />
                       <span className="font-bold text-sm">{opt.label}</span>
                     </div>
-                    <div className={cn("w-4 h-4 rounded-full border-2 flex items-center justify-center",
+                    <div className={cn("w-4 h-4 rounded-none border-2 flex items-center justify-center",
                       (opt.value === "0" ? isFree : isPaid) ? "border-blue-600" : "border-[#333]"
                     )}>
-                      {(opt.value === "0" ? isFree : isPaid) && <div className="w-2 h-2 rounded-full bg-blue-600" />}
+                      {(opt.value === "0" ? isFree : isPaid) && <div className="w-2 h-2 rounded-none bg-blue-600" />}
                     </div>
                   </button>
                 ))}
@@ -531,7 +531,7 @@ export default function NewProductPage() {
                           key={val}
                           type="button"
                           onClick={() => handleChange("price", val)}
-                          className="px-3 py-1 rounded-md bg-[#1A1A1A] border border-[#2A2A2A] text-xs font-bold text-zinc-400 hover:border-blue-600 hover:text-blue-400 transition-all"
+                          className="px-3 py-1 rounded-none bg-[#1A1A1A] border border-[#2A2A2A] text-xs font-bold text-zinc-400 hover:border-blue-600 hover:text-blue-400 transition-all"
                         >
                           ${val}
                         </button>
@@ -553,7 +553,7 @@ export default function NewProductPage() {
                             type="button"
                             onClick={() => handleChange("pricing_type", opt.value)}
                             className={cn(
-                              "p-3 rounded-xl border-2 text-left transition-all",
+                              "p-3 rounded-none border-2 text-left transition-all",
                               form.pricing_type === opt.value
                                 ? "border-blue-600 bg-blue-600/5"
                                 : "border-[#222] hover:border-[#333]"
@@ -575,7 +575,7 @@ export default function NewProductPage() {
                                 type="button"
                                 onClick={() => handleChange("billing_period", p)}
                                 className={cn(
-                                  "py-2 rounded-lg text-[11px] font-bold uppercase tracking-wider border transition-all",
+                                  "py-2 rounded-none text-[11px] font-bold uppercase tracking-wider border transition-all",
                                   form.billing_period === p
                                     ? "bg-blue-600 text-white border-blue-600"
                                     : "border-[#222] text-zinc-500 hover:border-[#333]"
@@ -642,13 +642,13 @@ export default function NewProductPage() {
           </div>
         )}
 
-        {/* ── STEP 3: Delivery & Publish ── */}
+        {/* â”€â”€ STEP 3: Delivery & Publish â”€â”€ */}
         {currentStep === 3 && (
           <div className="space-y-4 animate-in fade-in duration-300">
             {form.product_type === "digital" ? (
               <div className={cardBase}>
                 <SectionHeader title="Digital Delivery" subtitle="Upload the file your customers will receive after purchase." />
-                <div className="bg-[#0A0A0A] rounded-xl border-2 border-dashed border-[#222] hover:border-[#333] transition-colors p-10 text-center">
+                <div className="bg-[#0A0A0A] rounded-none border-2 border-dashed border-[#222] hover:border-[#333] transition-colors p-10 text-center">
                   <Upload className="h-8 w-8 text-zinc-600 mx-auto mb-3" />
                   <p className="text-sm text-zinc-500 mb-4">PDF, ZIP, MP4, or any file type</p>
                   <CloudinaryUploadButton
@@ -659,7 +659,7 @@ export default function NewProductPage() {
                   />
                 </div>
                 {form.digital_file_url && (
-                  <div className="mt-4 p-4 bg-blue-600/10 border border-blue-600/20 rounded-xl flex items-center gap-3">
+                  <div className="mt-4 p-4 bg-blue-600/10 border border-blue-600/20 rounded-none flex items-center gap-3">
                     <CheckCircle2 className="h-5 w-5 text-blue-500 shrink-0" />
                     <div>
                       <p className="text-sm font-medium text-white">File uploaded successfully</p>
@@ -682,7 +682,7 @@ export default function NewProductPage() {
                   </div>
                   <div>
                     <Label className={labelBase}>Dimensions</Label>
-                    <Input value={form.dimensions} onChange={e => handleChange("dimensions", e.target.value)} placeholder="L × W × H cm" className={inputBase} />
+                    <Input value={form.dimensions} onChange={e => handleChange("dimensions", e.target.value)} placeholder="L Ã— W Ã— H cm" className={inputBase} />
                   </div>
                 </div>
                 <div className="mt-4 pt-4 border-t border-[#1A1A1A]">
@@ -709,7 +709,7 @@ export default function NewProductPage() {
                     type="button"
                     onClick={() => handleChange("status", opt.value)}
                     className={cn(
-                      "p-4 rounded-xl border-2 text-left transition-all",
+                      "p-4 rounded-none border-2 text-left transition-all",
                       form.status === opt.value
                         ? "border-blue-600 bg-blue-600/5"
                         : "border-[#222] hover:border-[#333]"
@@ -727,10 +727,10 @@ export default function NewProductPage() {
               <p className="text-xs font-semibold uppercase tracking-widest text-zinc-500 mb-4">Review Summary</p>
               <div className="space-y-2 text-sm">
                 {[
-                  ["Name", form.name || "—"],
+                  ["Name", form.name || "â€”"],
                   ["Type", form.product_type],
                   ["Price", isFree ? "Free" : `$${form.price} ${form.currency}`],
-                  ["Billing", isPaid && form.product_type === "digital" ? (form.pricing_type === "recurring" ? `Recurring · ${form.billing_period}` : "One-time") : "—"],
+                  ["Billing", isPaid && form.product_type === "digital" ? (form.pricing_type === "recurring" ? `Recurring Â· ${form.billing_period}` : "One-time") : "â€”"],
                   ["Status", form.status],
                 ].map(([k, v]) => (
                   <div key={k} className="flex items-center justify-between text-sm">
@@ -742,8 +742,8 @@ export default function NewProductPage() {
             </div>
 
             <div className="flex items-center gap-3 pt-2">
-              <Button onClick={() => setCurrentStep(2)} variant="ghost" className="h-10 px-5 rounded-lg font-medium text-zinc-500 hover:text-white">
-                ← Back
+              <Button onClick={() => setCurrentStep(2)} variant="ghost" className="h-10 px-5 rounded-none font-medium text-zinc-500 hover:text-white">
+                â† Back
               </Button>
             </div>
           </div>
@@ -751,7 +751,7 @@ export default function NewProductPage() {
 
         {/* Error */}
         {error && (
-          <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-sm font-medium">
+          <div className="p-4 rounded-none bg-rose-500/10 border border-rose-500/20 text-rose-400 text-sm font-medium">
             {error}
           </div>
         )}

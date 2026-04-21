@@ -38,14 +38,14 @@ const DialogContent = React.forwardRef<
       ref={ref}
       className={cn(
         "fixed left-[50%] top-[50%] z-[10000] translate-x-[-50%] translate-y-[-50%]",
-        "w-full max-w-lg rounded-2xl border border-white/10 bg-slate-900/90 p-6 shadow-glass-lg",
+        "w-full max-w-lg rounded-none border border-white/10 bg-slate-900/90 p-6 shadow-none",
         "data-[state=open]:animate-scale-in",
         className
       )}
       {...props}
     >
       {children}
-      <DialogPrimitive.Close className="absolute right-4 top-4 rounded-lg p-1 text-[var(--color-text-muted)] transition-all hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]">
+      <DialogPrimitive.Close className="absolute right-4 top-4 rounded-none p-1 text-[var(--color-text-muted)] transition-all hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]">
         <X className="h-4 w-4" />
       </DialogPrimitive.Close>
     </DialogPrimitive.Content>
@@ -82,3 +82,4 @@ const DialogDescription = React.forwardRef<
 DialogDescription.displayName = DialogPrimitive.Description.displayName;
 
 export { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose };
+

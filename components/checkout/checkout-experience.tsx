@@ -195,12 +195,12 @@ export function CheckoutExperience({ orders, profile, mode = "cart" }: CheckoutE
    if (!orders.length) {
       return (
          <div className="min-h-[60vh] flex flex-col items-center justify-center p-12 text-center bg-surface dark:bg-bg">
-            <GlassCard className="max-w-md w-full p-12 rounded-[40px] bg-surface dark:bg-surface border border-border shadow-2xl flex flex-col items-center">
-               <div className="w-16 h-16 bg-orange-50 dark:bg-orange-500/10 rounded-[22px] flex items-center justify-center mb-6">
+            <GlassCard className="max-w-md w-full p-12 rounded-none bg-surface dark:bg-surface border border-border shadow-none flex flex-col items-center">
+               <div className="w-16 h-16 bg-orange-50 dark:bg-orange-500/10 rounded-none flex items-center justify-center mb-6">
                   <Package className="h-8 w-8 text-orange-400 dark:text-orange-500" />
                </div>
                <h2 className="text-2xl font-bold mb-3 text-stone-900 dark:text-white">Your cart is empty</h2>
-               <Button asChild className="w-full h-12 rounded-2xl bg-orange-500 hover:bg-orange-600 text-white mt-4">
+               <Button asChild className="w-full h-12 rounded-none bg-orange-500 hover:bg-orange-600 text-white mt-4">
                   <Link href="/marketplace">Browse Marketplace</Link>
                </Button>
             </GlassCard>
@@ -216,7 +216,7 @@ export function CheckoutExperience({ orders, profile, mode = "cart" }: CheckoutE
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
                <div className="flex items-center gap-3">
-                  <div className="p-2.5 rounded-2xl bg-surface dark:bg-surface border border-border shadow-xl">
+                  <div className="p-2.5 rounded-none bg-surface dark:bg-surface border border-border shadow-none">
                      <ShieldCheck className="h-6 w-6 text-orange-500" />
                   </div>
                   <div>
@@ -225,12 +225,12 @@ export function CheckoutExperience({ orders, profile, mode = "cart" }: CheckoutE
                   </div>
                </div>
 
-                <div className="flex items-center gap-2 bg-surface/60 dark:bg-surface/60 p-1.5 rounded-full border border-border shadow-sm">
+                <div className="flex items-center gap-2 bg-surface/60 dark:bg-surface/60 p-1.5 rounded-none border border-border shadow-none">
                   {steps.map((s, idx) => (
                      <React.Fragment key={s.n}>
                         <div className={cn(
-                           "flex items-center gap-2 px-4 h-9 rounded-full transition-all text-[11px] font-semibold",
-                           currentStep === s.n ? "bg-black dark:bg-white text-white dark:text-black shadow-lg" : "text-stone-400 dark:text-text-muted"
+                           "flex items-center gap-2 px-4 h-9 rounded-none transition-all text-[11px] font-semibold",
+                           currentStep === s.n ? "bg-black dark:bg-white text-white dark:text-black shadow-none" : "text-stone-400 dark:text-text-muted"
                         )}>
                            <s.icon className="h-3.5 w-3.5" />
                            <span className="hidden sm:inline">{s.label}</span>
@@ -244,7 +244,7 @@ export function CheckoutExperience({ orders, profile, mode = "cart" }: CheckoutE
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
                {/* Main Column */}
                <div className="lg:col-span-8 space-y-6">
-                  <GlassCard className="p-4 sm:p-8 rounded-[36px] bg-surface dark:bg-surface border border-border shadow-xl relative overflow-hidden text-stone-900 dark:text-white">
+                  <GlassCard className="p-4 sm:p-8 rounded-none bg-surface dark:bg-surface border border-border shadow-none relative overflow-hidden text-stone-900 dark:text-white">
                      {currentStep === 1 && (
                         <div className="space-y-8">
                            <SectionTitle>{(isAllDigital || isCommunity) ? "Customer details" : "Shipping details"}</SectionTitle>
@@ -257,8 +257,8 @@ export function CheckoutExperience({ orders, profile, mode = "cart" }: CheckoutE
                               <SectionTitle>Review Items</SectionTitle>
                               <div className="space-y-3 mt-4">
                                  {selectedOrders.flatMap(o => o.order_items).map((item: any) => (
-                                    <div key={item.id} className="flex gap-4 items-center p-3 bg-surface-secondary dark:bg-surface-secondary/50 rounded-2xl border border-transparent hover:border-border transition-all">
-                                       <div className="w-14 h-14 bg-surface dark:bg-surface-secondary rounded-xl shadow-sm overflow-hidden flex shrink-0">
+                                    <div key={item.id} className="flex gap-4 items-center p-3 bg-surface-secondary dark:bg-surface-secondary/50 rounded-none border border-transparent hover:border-border transition-all">
+                                       <div className="w-14 h-14 bg-surface dark:bg-surface-secondary rounded-none shadow-none overflow-hidden flex shrink-0">
                                           {item.product_image ? (
                                              <img src={item.product_image} className="w-full h-full object-cover" />
                                           ) : (
@@ -270,7 +270,7 @@ export function CheckoutExperience({ orders, profile, mode = "cart" }: CheckoutE
                                           <div className="flex items-center gap-2 mt-0.5">
                                              <p className="text-[10px] text-stone-400 dark:text-text-muted">Qty {item.quantity}</p>
                                              {item.pricing_type === 'recurring' && (
-                                                <span className="text-[9px] font-bold text-orange-500 uppercase px-1.5 py-0.5 bg-orange-500/10 rounded-md">
+                                                <span className="text-[9px] font-bold text-orange-500 uppercase px-1.5 py-0.5 bg-orange-500/10 rounded-none">
                                                    {item.billing_period} Plan
                                                 </span>
                                              )}
@@ -317,7 +317,7 @@ export function CheckoutExperience({ orders, profile, mode = "cart" }: CheckoutE
                            <ReviewBlock title="Selected Payment">
                               <div className="flex justify-between items-center">
                                  <div className="flex items-center gap-2">
-                                    <div className="p-2 bg-surface dark:bg-surface-secondary shadow-sm border border-border rounded-lg">
+                                    <div className="p-2 bg-surface dark:bg-surface-secondary shadow-none border border-border rounded-none">
                                        <CreditCard className="h-4 w-4 text-orange-500" />
                                     </div>
                                     <span className="font-semibold text-sm text-stone-900 dark:text-white">{paymentLabel(payment)}</span>
@@ -339,14 +339,14 @@ export function CheckoutExperience({ orders, profile, mode = "cart" }: CheckoutE
                      </button>
 
                      {currentStep < 3 ? (
-                        <Button onClick={next} className="h-12 px-8 rounded-2xl bg-black dark:bg-white text-white dark:text-black shadow-xl">
+                        <Button onClick={next} className="h-12 px-8 rounded-none bg-black dark:bg-white text-white dark:text-black shadow-none">
                            Continue <ArrowRight className="h-4 w-4 ml-2 text-orange-400 dark:text-orange-500" />
                         </Button>
                      ) : (
                         <Button
                            disabled={submitting}
                            onClick={handleComplete}
-                           className="h-12 px-10 rounded-2xl bg-orange-500 hover:bg-orange-600 text-white shadow-xl"
+                           className="h-12 px-10 rounded-none bg-orange-500 hover:bg-orange-600 text-white shadow-none"
                         >
                            {submitting ? <Loader2 className="animate-spin w-4 h-4" /> : <>Place Order <Lock className="h-4 w-4 ml-2" /></>}
                         </Button>
@@ -356,7 +356,7 @@ export function CheckoutExperience({ orders, profile, mode = "cart" }: CheckoutE
 
                {/* Sidebar */}
                <div className="lg:col-span-4">
-                  <div className="p-6 rounded-[32px] bg-[#0e0906] dark:bg-surface text-white shadow-2xl relative overflow-hidden border border-[#0e0906] dark:border-border">
+                  <div className="p-6 rounded-none bg-[#0e0906] dark:bg-surface text-white shadow-none relative overflow-hidden border border-[#0e0906] dark:border-border">
                      <div className="relative z-10">
                         <div className="flex justify-between items-center mb-6">
                            <p className="text-[9px] font-bold uppercase tracking-widest text-white/40 dark:text-text-muted">Grand Total</p>
@@ -391,9 +391,10 @@ function SectionTitle({ children }: any) {
 
 function ReviewBlock({ title, children }: { title: string; children: React.ReactNode }) {
    return (
-      <div className="p-4 rounded-2xl bg-surface-secondary dark:bg-surface-secondary/40 border border-border">
+      <div className="p-4 rounded-none bg-surface-secondary dark:bg-surface-secondary/40 border border-border">
          <p className="text-[10px] font-bold text-stone-400 dark:text-text-muted uppercase mb-2">{title}</p>
          <div className="text-sm">{children}</div>
       </div>
    );
 }
+

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 export const dynamic = "force-dynamic";
 
 import React, { useEffect, useState } from "react";
@@ -14,7 +14,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 const PAYMENT_METHODS = [
-  { id: "bank", label: "Bank Transfer", desc: "2–3 business days", icon: CreditCard },
+  { id: "bank", label: "Bank Transfer", desc: "2â€“3 business days", icon: CreditCard },
   { id: "mobile_money", label: "Mobile Money", desc: "MTN MoMo, Airtel, etc.", icon: Smartphone },
   { id: "paypal", label: "PayPal", desc: "PayPal email", icon: Banknote },
 ] as const;
@@ -142,7 +142,7 @@ export default function AffiliateWithdrawalsPage() {
         {/* Header - Simpler */}
          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
             <div className="flex items-center gap-4">
-               <Button asChild variant="ghost" size="icon" className="shrink-0 h-10 w-10 rounded-xl bg-surface dark:bg-surface-secondary border border-border shadow-sm hover:bg-surface dark:hover:bg-zinc-700 active:scale-95 transition-all text-stone-500 dark:text-text-muted">
+               <Button asChild variant="ghost" size="icon" className="shrink-0 h-10 w-10 rounded-none bg-surface dark:bg-surface-secondary border border-border shadow-none hover:bg-surface dark:hover:bg-zinc-700 active:scale-95 transition-all text-stone-500 dark:text-text-muted">
                  <Link href="/dashboard"><ArrowLeft className="h-5 w-5" /></Link>
                </Button>
                <div className="space-y-1">
@@ -151,8 +151,8 @@ export default function AffiliateWithdrawalsPage() {
                </div>
             </div>
             
-            <div className="flex items-center gap-3 bg-surface dark:bg-surface-secondary p-3 rounded-full border border-border shadow-sm px-5">
-               <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse ml-1" />
+            <div className="flex items-center gap-3 bg-surface dark:bg-surface-secondary p-3 rounded-none border border-border shadow-none px-5">
+               <div className="w-2 h-2 rounded-none bg-emerald-500 animate-pulse ml-1" />
                <span className="text-[10px] font-bold uppercase tracking-widest text-stone-500 dark:text-text-muted">Secure Processing</span>
             </div>
          </div>
@@ -160,7 +160,7 @@ export default function AffiliateWithdrawalsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
           {/* Main Withdrawal Panel */}
-          <GlassCard className="lg:col-span-2 rounded-[32px] border-border bg-surface/60 dark:bg-surface-secondary/40 shadow-sm overflow-hidden flex flex-col">
+          <GlassCard className="lg:col-span-2 rounded-none border-border bg-surface/60 dark:bg-surface-secondary/40 shadow-none overflow-hidden flex flex-col">
              <div className="p-8 sm:p-10 space-y-10 flex-1">
                 <div className="space-y-4">
                    <div className="flex items-center gap-2">
@@ -174,8 +174,8 @@ export default function AffiliateWithdrawalsPage() {
                    </div>
                 </div>
 
-                <div className="p-8 rounded-[24px] bg-stone-900 dark:bg-bg text-white space-y-6 shadow-xl relative overflow-hidden group">
-                   <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/10 blur-[60px] rounded-full translate-x-1/2 -translate-y-1/2" />
+                <div className="p-8 rounded-none bg-stone-900 dark:bg-bg text-white space-y-6 shadow-none relative overflow-hidden group">
+                   <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/10 blur-[60px] rounded-none translate-x-1/2 -translate-y-1/2" />
                    
                    <div className="space-y-2">
                       <label className="text-[10px] font-bold text-white/30 uppercase tracking-[0.2em] block pl-1">Withdrawal Amount (USD)</label>
@@ -186,11 +186,11 @@ export default function AffiliateWithdrawalsPage() {
                         value={requestAmount} 
                         onChange={e => setRequestAmount(e.target.value)} 
                         placeholder={`Min: $${minPayout}`} 
-                        className="rounded-xl h-14 bg-white dark:bg-surface/5 border-white/10 font-bold text-xl shadow-inner text-white focus:ring-orange-500 px-6 transition-all focus:bg-white dark:bg-surface/10" 
+                        className="rounded-none h-14 bg-white dark:bg-surface/5 border-white/10 font-bold text-xl shadow-inner text-white focus:ring-orange-500 px-6 transition-all focus:bg-white dark:bg-surface/10" 
                       />
                    </div>
                    <Button 
-                     className="w-full h-14 rounded-xl bg-orange-500 text-white shadow-[0_8px_24px_rgba(249,115,22,0.3)] hover:bg-orange-600 active:scale-95 transition-all text-sm font-bold capitalize border-none" 
+                     className="w-full h-14 rounded-none bg-orange-500 text-white shadow-[0_8px_24px_rgba(249,115,22,0.3)] hover:bg-orange-600 active:scale-95 transition-all text-sm font-bold capitalize border-none" 
                      disabled={!canRequest || submitting} 
                      onClick={requestPayout}
                    >
@@ -204,7 +204,7 @@ export default function AffiliateWithdrawalsPage() {
           </GlassCard>
 
           {/* Payout Method Sidebar */}
-          <GlassCard className="rounded-[32px] border-border bg-surface/60 dark:bg-surface-secondary/40 shadow-sm flex flex-col overflow-hidden">
+          <GlassCard className="rounded-none border-border bg-surface/60 dark:bg-surface-secondary/40 shadow-none flex flex-col overflow-hidden">
              <div className="p-8 border-b border-border bg-surface/40 dark:bg-surface/40">
                 <h3 className="text-lg font-bold text-stone-900 dark:text-white tracking-tight">Payout Method</h3>
                 <p className="text-[10px] font-bold text-stone-400 dark:text-text-muted capitalize mt-0.5">Where you'll receive your funds</p>
@@ -219,14 +219,14 @@ export default function AffiliateWithdrawalsPage() {
                      type="button"
                      onClick={() => setPayoutMethod(m.id)}
                      className={cn(
-                       "group w-full flex items-center gap-4 p-4 rounded-2xl border transition-all duration-300",
+                       "group w-full flex items-center gap-4 p-4 rounded-none border transition-all duration-300",
                        active 
-                         ? "border-orange-500/20 bg-surface dark:bg-surface-secondary shadow-sm" 
+                         ? "border-orange-500/20 bg-surface dark:bg-surface-secondary shadow-none" 
                          : "border-border bg-surface/40 dark:bg-surface/40 hover:border-orange-500/10 hover:bg-surface dark:hover:bg-zinc-800"
                      )}
                    >
                      <div className={cn(
-                        "h-10 w-10 rounded-xl border flex items-center justify-center shrink-0 transition-colors shadow-sm",
+                        "h-10 w-10 rounded-none border flex items-center justify-center shrink-0 transition-colors shadow-none",
                         active ? "bg-orange-500/10 border-orange-500/10 text-orange-500" : "bg-surface dark:bg-surface-secondary border-border text-stone-300 dark:text-stone-700 group-hover:text-stone-400 dark:group-hover:text-stone-600"
                      )}>
                        <Icon className="h-5 w-5" />
@@ -239,7 +239,7 @@ export default function AffiliateWithdrawalsPage() {
                  );
                })}
                
-               <div className="bg-surface dark:bg-surface/40 p-6 rounded-2xl border border-border shadow-sm mt-4 space-y-4">
+               <div className="bg-surface dark:bg-surface/40 p-6 rounded-none border border-border shadow-none mt-4 space-y-4">
                  <label className="text-[10px] font-bold uppercase tracking-widest text-stone-400 dark:text-text-muted block pl-1">
                    {payoutMethod === "bank" ? "Account Details" : payoutMethod === "paypal" ? "PayPal Email" : "Phone Number"}
                  </label>
@@ -247,12 +247,12 @@ export default function AffiliateWithdrawalsPage() {
                     value={payoutAccount} 
                     onChange={e => setPayoutAccount(e.target.value)} 
                     placeholder={payoutMethod === "paypal" ? "your@email.com" : "+250 ..."} 
-                    className="rounded-xl h-11 bg-surface dark:bg-surface-secondary border-border text-sm font-bold shadow-none focus:ring-0 text-stone-900 dark:text-white" 
+                    className="rounded-none h-11 bg-surface dark:bg-surface-secondary border-border text-sm font-bold shadow-none focus:ring-0 text-stone-900 dark:text-white" 
                  />
                  <Button 
                     variant="default"
                     size="sm" 
-                    className="h-10 rounded-xl w-full bg-stone-900 dark:bg-white dark:bg-surface text-white dark:text-stone-900 dark:text-white text-[10px] font-bold uppercase tracking-widest shadow-md hover:bg-black dark:hover:bg-stone-200 transition-all active:scale-95 border-none" 
+                    className="h-10 rounded-none w-full bg-stone-900 dark:bg-white dark:bg-surface text-white dark:text-stone-900 dark:text-white text-[10px] font-bold uppercase tracking-widest shadow-none hover:bg-black dark:hover:bg-stone-200 transition-all active:scale-95 border-none" 
                     onClick={savePayoutMethod}
                  >
                     Save Method
@@ -261,16 +261,16 @@ export default function AffiliateWithdrawalsPage() {
              </div>
              <div className="p-6 bg-surface/50 dark:bg-surface/20 border-t border-border text-center">
                 <p className="text-[9px] font-bold text-stone-400 dark:text-text-muted uppercase tracking-widest">
-                   Processing time: 2–3 business days
+                   Processing time: 2â€“3 business days
                 </p>
              </div>
           </GlassCard>
         </div>
 
         {/* History Registry - Simpler padding */}
-        <GlassCard className="rounded-[32px] border-border bg-surface/60 dark:bg-surface-secondary/40 shadow-sm overflow-hidden">
+        <GlassCard className="rounded-none border-border bg-surface/60 dark:bg-surface-secondary/40 shadow-none overflow-hidden">
            <div className="p-8 border-b border-border bg-surface/40 dark:bg-surface/40 flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-surface dark:bg-surface-secondary border border-border shadow-sm text-stone-300 dark:text-stone-700">
+              <div className="p-2 rounded-none bg-surface dark:bg-surface-secondary border border-border shadow-none text-stone-300 dark:text-stone-700">
                  <History className="h-4 w-4" />
               </div>
               <div>
@@ -302,7 +302,7 @@ export default function AffiliateWithdrawalsPage() {
                             {new Date(p.created_at).toLocaleDateString()}
                          </td>
                          <td className="px-8 py-6">
-                            <span className="capitalize font-bold text-sm text-stone-900 dark:text-white tracking-tight">{String(p.payout_method || "—").replace(/_/g, " ")}</span>
+                            <span className="capitalize font-bold text-sm text-stone-900 dark:text-white tracking-tight">{String(p.payout_method || "â€”").replace(/_/g, " ")}</span>
                          </td>
                          <td className="px-8 py-6 text-right">
                             <span className="font-bold text-base text-stone-900 dark:text-white tabular-nums tracking-tight">{formatMoney(Number(p.amount ?? 0), "USD")}</span>
@@ -324,3 +324,4 @@ export default function AffiliateWithdrawalsPage() {
     </div>
   );
 }
+

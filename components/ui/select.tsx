@@ -16,7 +16,7 @@ const SelectTrigger = React.forwardRef<
   <SelectPrimitive.Trigger
     ref={ref}
     className={cn(
-      "flex h-10 w-full items-center justify-between rounded-xl border border-white/10 bg-white dark:bg-surface/5 px-3 py-2 text-sm text-white",
+      "flex h-10 w-full items-center justify-between rounded-none border border-white/10 bg-white dark:bg-surface/5 px-3 py-2 text-sm text-white",
       "placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] transition-all",
       "disabled:cursor-not-allowed disabled:opacity-50",
       className
@@ -39,7 +39,7 @@ const SelectContent = React.forwardRef<
     <SelectPrimitive.Content
       ref={ref}
       className={cn(
-        "relative z-50 min-w-[8rem] overflow-hidden rounded-xl border border-white/10 bg-slate-900/90 text-white shadow-glass-lg",
+        "relative z-50 min-w-[8rem] overflow-hidden rounded-none border border-white/10 bg-slate-900/90 text-white shadow-none",
         "animate-slide-down",
         position === "popper" && "translate-y-1",
         className
@@ -60,7 +60,7 @@ const SelectItem = React.forwardRef<
   <SelectPrimitive.Item
     ref={ref}
     className={cn(
-      "relative flex w-full cursor-pointer select-none items-center rounded-lg py-2 pl-8 pr-2 text-sm",
+      "relative flex w-full cursor-pointer select-none items-center rounded-none py-2 pl-8 pr-2 text-sm",
       "hover:bg-white dark:bg-surface/10 focus:bg-white dark:bg-surface/10 focus:outline-none",
       "data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
       className
@@ -90,3 +90,4 @@ const SelectLabel = React.forwardRef<
 SelectLabel.displayName = SelectPrimitive.Label.displayName;
 
 export { Select, SelectGroup, SelectValue, SelectTrigger, SelectContent, SelectItem, SelectLabel };
+

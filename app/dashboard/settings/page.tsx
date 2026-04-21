@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 export const dynamic = "force-dynamic";
 
 import React, { useEffect, useState, useTransition } from "react";
@@ -144,8 +144,8 @@ export default function SettingsPage() {
     );
   }
 
-  const inputClass = "h-12 rounded-xl bg-surface dark:bg-surface-secondary/80 border border-border focus:ring-4 focus:ring-orange-500/5 focus:border-orange-500 text-stone-900 dark:text-white font-bold placeholder:text-stone-300 dark:placeholder:text-stone-600 transition-all text-sm px-6 shadow-sm disabled:opacity-50";
-  const selectClass = "h-12 w-full px-6 rounded-xl border border-border bg-surface dark:bg-surface-secondary/80 text-stone-900 dark:text-white font-bold text-sm focus:outline-none focus:ring-4 focus:ring-orange-500/5 focus:border-orange-500 transition-all shadow-sm appearance-none cursor-pointer";
+  const inputClass = "h-12 rounded-none bg-surface dark:bg-surface-secondary/80 border border-border focus:ring-4 focus:ring-orange-500/5 focus:border-orange-500 text-stone-900 dark:text-white font-bold placeholder:text-stone-300 dark:placeholder:text-stone-600 transition-all text-sm px-6 shadow-none disabled:opacity-50";
+  const selectClass = "h-12 w-full px-6 rounded-none border border-border bg-surface dark:bg-surface-secondary/80 text-stone-900 dark:text-white font-bold text-sm focus:outline-none focus:ring-4 focus:ring-orange-500/5 focus:border-orange-500 transition-all shadow-none appearance-none cursor-pointer";
 
   return (
     <div
@@ -158,7 +158,7 @@ export default function SettingsPage() {
         
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-6">
            <div className="flex items-center gap-3 sm:gap-4">
-              <Button asChild variant="ghost" size="icon" className="shrink-0 h-9 w-9 sm:h-10 sm:w-10 rounded-xl bg-surface dark:bg-surface-secondary border border-border shadow-sm hover:bg-surface dark:hover:bg-zinc-700 active:scale-95 transition-all text-stone-500 dark:text-text-muted">
+              <Button asChild variant="ghost" size="icon" className="shrink-0 h-9 w-9 sm:h-10 sm:w-10 rounded-none bg-surface dark:bg-surface-secondary border border-border shadow-none hover:bg-surface dark:hover:bg-zinc-700 active:scale-95 transition-all text-stone-500 dark:text-text-muted">
                 <Link href="/dashboard"><ArrowLeft className="h-4 w-4" /></Link>
               </Button>
               <div className="space-y-0.5">
@@ -167,25 +167,25 @@ export default function SettingsPage() {
               </div>
            </div>
            
-           <div className="flex items-center gap-2 px-4 py-1.5 sm:py-2 rounded-full bg-surface dark:bg-surface-secondary border border-border shadow-sm opacity-60">
+           <div className="flex items-center gap-2 px-4 py-1.5 sm:py-2 rounded-none bg-surface dark:bg-surface-secondary border border-border shadow-none opacity-60">
               <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-stone-400 dark:text-text-muted truncate max-w-[120px] sm:max-w-[150px]">{userEmail}</span>
            </div>
         </div>
 
         <Tabs defaultValue="profile" className="space-y-6 sm:space-y-8">
-           <TabsList className="flex items-center gap-1 p-1 rounded-2xl bg-surface/60 dark:bg-surface-secondary/40 border border-border w-fit overflow-x-auto no-scrollbar max-sm:w-full">
-               <TabsTrigger value="profile" className="px-4 sm:px-6 py-2 rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-stone-900 dark:data-[state=active]:bg-white dark:bg-surface dark:data-[state=active]:text-stone-900 dark:text-white data-[state=active]:text-white shadow-none transition-all flex items-center gap-2">
+           <TabsList className="flex items-center gap-1 p-1 rounded-none bg-surface/60 dark:bg-surface-secondary/40 border border-border w-fit overflow-x-auto no-scrollbar max-sm:w-full">
+               <TabsTrigger value="profile" className="px-4 sm:px-6 py-2 rounded-none text-[10px] sm:text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-stone-900 dark:data-[state=active]:bg-white dark:bg-surface dark:data-[state=active]:text-stone-900 dark:text-white data-[state=active]:text-white shadow-none transition-all flex items-center gap-2">
                  <User className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Profile
                </TabsTrigger>
                {vendor && (
-                 <TabsTrigger value="vendor" className="px-4 sm:px-6 py-2 rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-stone-900 dark:data-[state=active]:bg-white dark:bg-surface dark:data-[state=active]:text-stone-900 dark:text-white data-[state=active]:text-white shadow-none transition-all flex items-center gap-2">
+                 <TabsTrigger value="vendor" className="px-4 sm:px-6 py-2 rounded-none text-[10px] sm:text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-stone-900 dark:data-[state=active]:bg-white dark:bg-surface dark:data-[state=active]:text-stone-900 dark:text-white data-[state=active]:text-white shadow-none transition-all flex items-center gap-2">
                    <Store className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Business
                  </TabsTrigger>
                )}
-               <TabsTrigger value="notifications" className="px-4 sm:px-6 py-2 rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-stone-900 dark:data-[state=active]:bg-white dark:bg-surface dark:data-[state=active]:text-stone-900 dark:text-white data-[state=active]:text-white shadow-none transition-all flex items-center gap-2">
+               <TabsTrigger value="notifications" className="px-4 sm:px-6 py-2 rounded-none text-[10px] sm:text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-stone-900 dark:data-[state=active]:bg-white dark:bg-surface dark:data-[state=active]:text-stone-900 dark:text-white data-[state=active]:text-white shadow-none transition-all flex items-center gap-2">
                  <Bell className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Alerts
                </TabsTrigger>
-               <TabsTrigger value="security" className="px-4 sm:px-6 py-2 rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-stone-900 dark:data-[state=active]:bg-white dark:bg-surface dark:data-[state=active]:text-stone-900 dark:text-white data-[state=active]:text-white shadow-none transition-all flex items-center gap-2">
+               <TabsTrigger value="security" className="px-4 sm:px-6 py-2 rounded-none text-[10px] sm:text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-stone-900 dark:data-[state=active]:bg-white dark:bg-surface dark:data-[state=active]:text-stone-900 dark:text-white data-[state=active]:text-white shadow-none transition-all flex items-center gap-2">
                  <Shield className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Security
                </TabsTrigger>
            </TabsList>
@@ -193,10 +193,10 @@ export default function SettingsPage() {
           <TabsContent value="profile" className="mt-0 space-y-8 animate-in fade-in duration-500">
              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                 <div className="lg:col-span-4 space-y-6">
-                   <GlassCard className="p-8 rounded-[32px] border-border bg-surface/60 dark:bg-surface-secondary/40 text-center space-y-6 overflow-hidden relative">
+                   <GlassCard className="p-8 rounded-none border-border bg-surface/60 dark:bg-surface-secondary/40 text-center space-y-6 overflow-hidden relative">
                       <div className="relative group w-32 h-32 mx-auto">
-                         <div className="absolute inset-0 bg-orange-400/20 blur-2xl rounded-full scale-125 opacity-0 group-hover:opacity-100 transition-opacity" />
-                         <div className="relative w-32 h-32 rounded-[28px] bg-surface dark:bg-surface border-4 border-surface dark:border-border shadow-lg overflow-hidden shrink-0 mx-auto">
+                         <div className="absolute inset-0 bg-orange-400/20 blur-2xl rounded-none scale-125 opacity-0 group-hover:opacity-100 transition-opacity" />
+                         <div className="relative w-32 h-32 rounded-none bg-surface dark:bg-surface border-4 border-surface dark:border-border shadow-none overflow-hidden shrink-0 mx-auto">
                             <CloudinaryAvatar src={profile.avatar_url} alt={profile.full_name} size={128} className="w-full h-full object-cover" />
                             <div className="absolute inset-0 bg-stone-950/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">
                                <CloudinaryUploadButton
@@ -220,7 +220,7 @@ export default function SettingsPage() {
                 </div>
 
                 <div className="lg:col-span-8">
-                   <GlassCard className="p-8 space-y-8 rounded-[32px] border-border bg-surface/60 dark:bg-surface-secondary/40 shadow-sm relative overflow-hidden">
+                   <GlassCard className="p-8 space-y-8 rounded-none border-border bg-surface/60 dark:bg-surface-secondary/40 shadow-none relative overflow-hidden">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                          <div className="space-y-2">
                             <Label className="text-[10px] font-bold uppercase tracking-widest text-stone-400 dark:text-text-muted ml-1">Full Name</Label>
@@ -237,7 +237,7 @@ export default function SettingsPage() {
 
                       <div className="space-y-2">
                          <Label className="text-[10px] font-bold uppercase tracking-widest text-stone-400 dark:text-text-muted ml-1">Bio</Label>
-                         <Textarea value={profile.bio} onChange={e => setProfile(p => ({ ...p, bio: e.target.value }))} placeholder="Tell us about yourself..." className="rounded-2xl bg-surface dark:bg-surface/60 border-border focus:ring-4 focus:ring-orange-500/5 focus:border-orange-500 text-stone-900 dark:text-white font-bold text-sm px-6 py-4 resize-none min-h-[120px] shadow-sm shadow-stone-100/10 placeholder:text-stone-300 dark:placeholder:text-stone-700" />
+                         <Textarea value={profile.bio} onChange={e => setProfile(p => ({ ...p, bio: e.target.value }))} placeholder="Tell us about yourself..." className="rounded-none bg-surface dark:bg-surface/60 border-border focus:ring-4 focus:ring-orange-500/5 focus:border-orange-500 text-stone-900 dark:text-white font-bold text-sm px-6 py-4 resize-none min-h-[120px] shadow-none shadow-stone-100/10 placeholder:text-stone-300 dark:placeholder:text-stone-700" />
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -267,7 +267,7 @@ export default function SettingsPage() {
                                <p className="text-[9px] font-bold text-stone-400 uppercase tracking-widest">Global visibility is ON</p>
                             )}
                          </div>
-                         <Button onClick={saveProfile} disabled={isPending} className="h-11 px-10 rounded-xl bg-orange-500 text-white font-bold text-[10px] uppercase tracking-widest shadow-[0_8px_20px_rgba(249,115,22,0.25)] hover:bg-orange-600 active:scale-95 transition-all border-none">
+                         <Button onClick={saveProfile} disabled={isPending} className="h-11 px-10 rounded-none bg-orange-500 text-white font-bold text-[10px] uppercase tracking-widest shadow-[0_8px_20px_rgba(249,115,22,0.25)] hover:bg-orange-600 active:scale-95 transition-all border-none">
                             {isPending ? <RefreshCw className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />} 
                             Synchronize Profile
                          </Button>
@@ -281,10 +281,10 @@ export default function SettingsPage() {
             <TabsContent value="vendor" className="mt-0 space-y-8 animate-in fade-in duration-500">
                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                   <div className="lg:col-span-4 space-y-6">
-                     <GlassCard className="p-8 rounded-[32px] border-border bg-surface/60 dark:bg-surface-secondary/40 text-center space-y-6 relative overflow-hidden">
+                     <GlassCard className="p-8 rounded-none border-border bg-surface/60 dark:bg-surface-secondary/40 text-center space-y-6 relative overflow-hidden">
                         <div className="relative group w-32 h-32 mx-auto">
-                           <div className="absolute inset-0 bg-stone-950/5 dark:bg-black/20 rounded-3xl border-2 border-dashed border-border transition-all opacity-0 group-hover:opacity-100" />
-                           <div className="relative w-full h-full rounded-2xl bg-surface dark:bg-surface border border-border shadow-md overflow-hidden flex flex-col items-center justify-center p-2">
+                           <div className="absolute inset-0 bg-stone-950/5 dark:bg-black/20 rounded-none border-2 border-dashed border-border transition-all opacity-0 group-hover:opacity-100" />
+                           <div className="relative w-full h-full rounded-none bg-surface dark:bg-surface border border-border shadow-none overflow-hidden flex flex-col items-center justify-center p-2">
                               {vendor.business_logo ? (
                                  <CloudinaryImage src={vendor.business_logo} alt={vendor.business_name} fill className="object-cover" />
                               ) : (
@@ -312,7 +312,7 @@ export default function SettingsPage() {
                   </div>
 
                   <div className="lg:col-span-8">
-                     <GlassCard className="p-8 space-y-8 rounded-[32px] border-border bg-surface/60 dark:bg-surface-secondary/40 shadow-sm relative overflow-hidden">
+                     <GlassCard className="p-8 space-y-8 rounded-none border-border bg-surface/60 dark:bg-surface-secondary/40 shadow-none relative overflow-hidden">
                         <section className="space-y-6">
                            <h3 className="text-[11px] font-bold text-stone-900 dark:text-white uppercase tracking-widest flex items-center gap-2">
                               <Building className="h-3.5 w-3.5 text-stone-400" /> Business Details
@@ -324,7 +324,7 @@ export default function SettingsPage() {
                               </div>
                               <div className="space-y-2">
                                  <Label className="text-[10px] font-bold uppercase tracking-widest text-stone-400 dark:text-text-muted ml-1">Description</Label>
-                                 <Textarea value={vendor.business_description} onChange={e => setVendor(v => v ? ({ ...v, business_description: e.target.value }) : null)} className="rounded-2xl bg-surface dark:bg-surface/60 border-border focus:ring-4 focus:ring-orange-500/5 focus:border-orange-500 text-stone-900 dark:text-white font-bold text-sm px-6 py-4 resize-none min-h-[100px] placeholder:text-stone-300 dark:placeholder:text-stone-700" />
+                                 <Textarea value={vendor.business_description} onChange={e => setVendor(v => v ? ({ ...v, business_description: e.target.value }) : null)} className="rounded-none bg-surface dark:bg-surface/60 border-border focus:ring-4 focus:ring-orange-500/5 focus:border-orange-500 text-stone-900 dark:text-white font-bold text-sm px-6 py-4 resize-none min-h-[100px] placeholder:text-stone-300 dark:placeholder:text-stone-700" />
                               </div>
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                  <div className="space-y-2">
@@ -373,14 +373,14 @@ export default function SettingsPage() {
                            <h3 className="text-[11px] font-bold text-stone-900 dark:text-white uppercase tracking-widest flex items-center gap-2">
                               <Zap className="h-3.5 w-3.5 text-stone-400" /> Affiliate Program
                            </h3>
-                           <div className="flex items-center justify-between p-6 rounded-2xl bg-surface dark:bg-surface/60 border border-border shadow-sm transition-all group">
+                           <div className="flex items-center justify-between p-6 rounded-none bg-surface dark:bg-surface/60 border border-border shadow-none transition-all group">
                               <div className="space-y-1">
                                  <p className="text-[13px] font-bold text-stone-900 dark:text-white">Enable Affiliates</p>
                                  <p className="text-[10px] font-medium text-stone-400 dark:text-text-muted">Allow partners to promote your products</p>
                               </div>
                               <label className="relative inline-flex items-center cursor-pointer">
                                  <input type="checkbox" className="sr-only peer" checked={vendor.affiliate_enabled} onChange={e => setVendor(v => v ? ({ ...v, affiliate_enabled: e.target.checked }) : null)} />
-                                 <div className="w-12 h-7 bg-stone-200 dark:bg-surface-secondary rounded-full peer peer-checked:after:translate-x-5 peer-checked:bg-orange-500 after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white dark:bg-surface after:rounded-full after:h-5 after:w-5 after:transition-all" />
+                                 <div className="w-12 h-7 bg-stone-200 dark:bg-surface-secondary rounded-none peer peer-checked:after:translate-x-5 peer-checked:bg-orange-500 after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white dark:bg-surface after:rounded-none after:h-5 after:w-5 after:transition-all" />
                               </label>
                            </div>
 
@@ -402,7 +402,7 @@ export default function SettingsPage() {
                                  <p className="text-[9px] font-bold text-stone-400 uppercase tracking-widest">Business status: ACTIVE</p>
                               )}
                            </div>
-                           <Button onClick={saveVendor} disabled={isPending} className="h-11 px-10 rounded-xl bg-orange-500 text-white font-bold text-[10px] uppercase tracking-widest shadow-[0_8px_20px_rgba(249,115,22,0.25)] hover:bg-orange-600 active:scale-95 transition-all border-none">
+                           <Button onClick={saveVendor} disabled={isPending} className="h-11 px-10 rounded-none bg-orange-500 text-white font-bold text-[10px] uppercase tracking-widest shadow-[0_8px_20px_rgba(249,115,22,0.25)] hover:bg-orange-600 active:scale-95 transition-all border-none">
                                {isPending ? <RefreshCw className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />} 
                                Save Protocol
                            </Button>
@@ -415,7 +415,7 @@ export default function SettingsPage() {
 
           <TabsContent value="notifications" className="mt-0 animate-in fade-in duration-500">
              <div className="max-w-2xl">
-                <GlassCard className="p-8 space-y-8 rounded-[32px] border-border bg-surface/60 dark:bg-surface-secondary/40 shadow-sm relative overflow-hidden">
+                <GlassCard className="p-8 space-y-8 rounded-none border-border bg-surface/60 dark:bg-surface-secondary/40 shadow-none relative overflow-hidden">
                    <div className="space-y-2 mb-8">
                       <h3 className="text-lg font-bold text-stone-900 dark:text-white">Notification Preferences</h3>
                       <p className="text-[11px] font-bold text-stone-400 dark:text-text-muted uppercase tracking-widest">Choose when you want to be alerted</p>
@@ -435,7 +435,7 @@ export default function SettingsPage() {
                             </div>
                             <label className="relative inline-flex items-center cursor-pointer">
                                <input type="checkbox" className="sr-only peer" defaultChecked={i < 2} />
-                               <div className="w-10 h-6 bg-stone-200 dark:bg-surface-secondary rounded-full peer peer-checked:after:translate-x-4 peer-checked:bg-orange-500 after:content-[''] after:absolute after:top-[3px] after:left-[3px] after:bg-white dark:bg-surface after:rounded-full after:h-4 after:w-4 after:transition-all shadow-inner" />
+                               <div className="w-10 h-6 bg-stone-200 dark:bg-surface-secondary rounded-none peer peer-checked:after:translate-x-4 peer-checked:bg-orange-500 after:content-[''] after:absolute after:top-[3px] after:left-[3px] after:bg-white dark:bg-surface after:rounded-none after:h-4 after:w-4 after:transition-all shadow-inner" />
                             </label>
                          </div>
                       ))}
@@ -446,7 +446,7 @@ export default function SettingsPage() {
 
           <TabsContent value="security" className="mt-0 animate-in fade-in duration-500">
              <div className="max-w-2xl">
-                <GlassCard className="p-8 space-y-8 rounded-[32px] border-border bg-surface/60 dark:bg-surface-secondary/40 shadow-sm relative overflow-hidden">
+                <GlassCard className="p-8 space-y-8 rounded-none border-border bg-surface/60 dark:bg-surface-secondary/40 shadow-none relative overflow-hidden">
                    <div className="space-y-2 mb-8">
                       <h3 className="text-lg font-bold text-stone-900 dark:text-white">Account Security</h3>
                       <p className="text-[11px] font-bold text-stone-400 dark:text-text-muted uppercase tracking-widest">Protect your account and assets</p>
@@ -455,18 +455,18 @@ export default function SettingsPage() {
                    <div className="space-y-6">
                       <div className="space-y-2">
                         <Label className="text-[10px] font-bold uppercase tracking-widest text-stone-400 dark:text-text-muted ml-1">Current Password</Label>
-                        <Input type="password" value="••••••••••••" className={cn(inputClass, "opacity-40")} disabled />
+                        <Input type="password" value="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" className={cn(inputClass, "opacity-40")} disabled />
                       </div>
                       <div className="space-y-2">
                         <Label className="text-[10px] font-bold uppercase tracking-widest text-stone-400 dark:text-text-muted ml-1">New Password</Label>
                         <Input type="password" className={inputClass} placeholder="Leave blank to keep current" />
                       </div>
-                      <Button className="h-11 px-10 rounded-xl bg-stone-900 dark:bg-white dark:bg-surface text-white dark:text-stone-900 dark:text-white font-bold text-[10px] uppercase tracking-widest shadow-md hover:bg-black dark:hover:bg-stone-200 active:scale-95 transition-all border-none w-full">
+                      <Button className="h-11 px-10 rounded-none bg-stone-900 dark:bg-white dark:bg-surface text-white dark:text-stone-900 dark:text-white font-bold text-[10px] uppercase tracking-widest shadow-none hover:bg-black dark:hover:bg-stone-200 active:scale-95 transition-all border-none w-full">
                          Update Password
                       </Button>
                    </div>
                    
-                   <div className="p-6 rounded-2xl bg-rose-500/10 border border-rose-500/20 space-y-3 mt-12">
+                   <div className="p-6 rounded-none bg-rose-500/10 border border-rose-500/20 space-y-3 mt-12">
                       <div className="flex items-center gap-2 text-rose-600 dark:text-rose-500">
                          <Shield className="h-4 w-4" />
                          <span className="text-[11px] font-bold uppercase tracking-widest">Delete Account</span>
@@ -474,7 +474,7 @@ export default function SettingsPage() {
                       <p className="text-[11px] font-medium text-rose-400/80 leading-relaxed">
                          Deleting your account will permanently erase all your data, including products, orders, and earnings. This action cannot be undone.
                       </p>
-                      <Button variant="ghost" className="h-9 px-6 rounded-lg border border-rose-500/20 text-rose-500 font-bold text-[10px] uppercase tracking-widest hover:bg-rose-500 hover:text-white transition-all w-full md:w-auto mt-2">
+                      <Button variant="ghost" className="h-9 px-6 rounded-none border border-rose-500/20 text-rose-500 font-bold text-[10px] uppercase tracking-widest hover:bg-rose-500 hover:text-white transition-all w-full md:w-auto mt-2">
                          Permanently Delete Account
                       </Button>
                    </div>
@@ -486,3 +486,4 @@ export default function SettingsPage() {
     </div>
   );
 }
+

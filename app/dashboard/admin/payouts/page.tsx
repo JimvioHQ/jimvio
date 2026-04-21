@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { AdminPayoutsDashboard } from "@/components/admin/admin-payouts-dashboard";
@@ -22,3 +22,4 @@ export default async function AdminPayoutsPage() {
 
   return <AdminPayoutsDashboard />;
 }
+

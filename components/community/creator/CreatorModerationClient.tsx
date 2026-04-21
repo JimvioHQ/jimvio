@@ -153,7 +153,7 @@ export function CreatorModerationClient({
         </p>
       </div>
 
-      <div className="rounded-lg border border-zinc-200/60 overflow-hidden">
+      <div className="rounded-none border border-zinc-200/60 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -296,7 +296,7 @@ export function CreatorModerationClient({
             </div>
 
             {error && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+              <div className="p-3 bg-red-50 border border-red-200 rounded-none text-sm text-red-700">
                 {error}
               </div>
             )}
@@ -325,3 +325,4 @@ export function CreatorModerationClient({
     </div>
   );
 }
+

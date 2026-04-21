@@ -29,14 +29,14 @@ export function OrderSummary({
   const { formatMoney } = useCurrency();
 
   return (
-    <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 sm:p-6 shadow-[var(--shadow-sm)]">
+    <div className="rounded-none border border-[var(--color-border)] bg-[var(--color-surface)] p-5 sm:p-6 shadow-[var(--shadow-none)]">
       <h3 className="text-base font-semibold text-[var(--color-text-primary)] mb-1">Order summary</h3>
       <p className="text-xs text-[var(--color-text-muted)] mb-5">Review items before you pay.</p>
 
       <ul className="space-y-4 mb-6 max-h-[min(360px,50vh)] overflow-y-auto pr-1 -mr-1 scrollbar-thin">
         {items.map((item) => (
           <li key={item.id} className="flex gap-3">
-            <div className="h-14 w-14 shrink-0 overflow-hidden rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-secondary)] flex items-center justify-center">
+            <div className="h-14 w-14 shrink-0 overflow-hidden rounded-none border border-[var(--color-border)] bg-[var(--color-surface-secondary)] flex items-center justify-center">
               {item.product_image ? (
                 <img src={item.product_image} alt="" className="h-full w-full object-cover" />
               ) : (
@@ -48,7 +48,7 @@ export function OrderSummary({
               <div className="flex items-center gap-2 mt-0.5">
                 <p className="text-xs text-[var(--color-text-muted)]">Qty {item.quantity}</p>
                 {item.pricing_type === 'recurring' && (
-                  <span className="text-[10px] font-bold text-orange-500 uppercase px-1.5 py-0.5 bg-orange-500/10 rounded-md">
+                  <span className="text-[10px] font-bold text-orange-500 uppercase px-1.5 py-0.5 bg-orange-500/10 rounded-none">
                     {item.billing_period}
                   </span>
                 )}
@@ -95,3 +95,4 @@ export function OrderSummary({
     </div>
   );
 }
+

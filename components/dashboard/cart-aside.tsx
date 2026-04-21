@@ -97,20 +97,20 @@ export function CartAside({ isOpen, onClose }: CartAsideProps) {
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed top-0 right-0 bottom-0 w-full max-w-[400px] bg-white dark:bg-surface shadow-2xl z-[201] flex flex-col border-l border-zinc-100 dark:border-border"
+            className="fixed top-0 right-0 bottom-0 w-full max-w-[400px] bg-white dark:bg-surface shadow-none z-[201] flex flex-col border-l border-zinc-100 dark:border-border"
           >
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-100 dark:border-border">
               <div className="flex items-center gap-2">
                 <ShoppingBag className="h-5 w-5 text-zinc-900 dark:text-white" />
                 <h2 className="text-lg font-black text-zinc-900 dark:text-white">Your Cart</h2>
-                <span className="bg-zinc-100 text-zinc-500 text-[10px] font-black px-2 py-0.5 rounded-full">
+                <span className="bg-zinc-100 text-zinc-500 text-[10px] font-black px-2 py-0.5 rounded-none">
                   {cartCount}
                 </span>
               </div>
               <button 
                 onClick={onClose}
-                className="h-8 w-8 rounded-full hover:bg-zinc-100 flex items-center justify-center transition-colors"
+                className="h-8 w-8 rounded-none hover:bg-zinc-100 flex items-center justify-center transition-colors"
               >
                 <X className="h-5 w-5 text-zinc-400" />
               </button>
@@ -125,7 +125,7 @@ export function CartAside({ isOpen, onClose }: CartAsideProps) {
                 </div>
               ) : orders.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-center">
-                  <div className="h-16 w-16 bg-zinc-50 dark:bg-surface/50 rounded-2xl flex items-center justify-center mb-4">
+                  <div className="h-16 w-16 bg-zinc-50 dark:bg-surface/50 rounded-none flex items-center justify-center mb-4">
                     <ShoppingCart className="h-8 w-8 text-zinc-200" />
                   </div>
                   <h3 className="text-base font-black text-zinc-800 dark:text-text-secondary">Your cart is empty</h3>
@@ -135,7 +135,7 @@ export function CartAside({ isOpen, onClose }: CartAsideProps) {
                   <Button 
                     variant="outline"
                     onClick={onClose}
-                    className="mt-6 rounded-xl font-black text-[11px] uppercase tracking-wider"
+                    className="mt-6 rounded-none font-black text-[11px] uppercase tracking-wider"
                   >
                     Start Shopping
                   </Button>
@@ -154,7 +154,7 @@ export function CartAside({ isOpen, onClose }: CartAsideProps) {
                       <div className="space-y-4">
                         {order.order_items.map((item: any) => (
                           <div key={item.id} className="flex gap-4 group">
-                            <div className="relative h-16 w-16 shrink-0 bg-zinc-50 dark:bg-surface/50 rounded-xl border border-zinc-100 dark:border-border overflow-hidden">
+                            <div className="relative h-16 w-16 shrink-0 bg-zinc-50 dark:bg-surface/50 rounded-none border border-zinc-100 dark:border-border overflow-hidden">
                               {item.product_image && !imageErrors[item.id] ? (
                                 <Image
                                   src={item.product_image}
@@ -183,7 +183,7 @@ export function CartAside({ isOpen, onClose }: CartAsideProps) {
                               </div>
                               <div className="flex items-center justify-between mt-2">
                                 <div className="flex items-center gap-2">
-                                  <div className="flex items-center h-6 border border-zinc-100 dark:border-border rounded-lg overflow-hidden bg-zinc-50/50">
+                                  <div className="flex items-center h-6 border border-zinc-100 dark:border-border rounded-none overflow-hidden bg-zinc-50/50">
                                     <button 
                                       onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)}
                                       className="px-2 h-full hover:bg-zinc-100 transition-colors"
@@ -236,7 +236,7 @@ export function CartAside({ isOpen, onClose }: CartAsideProps) {
                 <div className="grid grid-cols-1 gap-3 pt-2">
                   <Button 
                     asChild
-                    className="w-full h-12 bg-zinc-900 hover:bg-black text-white rounded-2xl font-black text-sm shadow-xl shadow-zinc-900/20"
+                    className="w-full h-12 bg-zinc-900 hover:bg-black text-white rounded-none font-black text-sm shadow-none shadow-zinc-900/20"
                   >
                     <Link href="/checkout" onClick={onClose}>
                       Proceed to Checkout <ArrowRight className="ml-2 h-4 w-4" />
@@ -257,3 +257,4 @@ export function CartAside({ isOpen, onClose }: CartAsideProps) {
     </AnimatePresence>
   );
 }
+

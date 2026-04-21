@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { Shield, Lock, Eye, FileText, CheckCircle, AlertCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
@@ -36,14 +36,14 @@ export default function PrivacyPolicyPage() {
           </p>
         </div>
 
-        <div className="bg-white dark:bg-surface border border-[var(--color-border)] rounded-[3rem] p-8 md:p-16 shadow-xl relative overflow-hidden">
-           <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-50 rounded-bl-[4rem]" />
+        <div className="bg-white dark:bg-surface border border-[var(--color-border)] rounded-none p-8 md:p-16 shadow-none relative overflow-hidden">
+           <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-50 rounded-none-[4rem]" />
            
            <div className="space-y-16">
               {sections.map((s, i) => (
                 <section key={i} className="space-y-6">
                    <div className="flex items-center gap-4">
-                      <div className="h-10 w-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center">
+                      <div className="h-10 w-10 rounded-none bg-emerald-100 text-emerald-600 flex items-center justify-center">
                          {s.icon}
                       </div>
                       <h2 className="text-2xl font-black text-[var(--color-text-primary)]">{s.title}</h2>
@@ -56,7 +56,7 @@ export default function PrivacyPolicyPage() {
 
               <section className="space-y-6">
                  <div className="flex items-center gap-4">
-                    <div className="h-10 w-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center">
+                    <div className="h-10 w-10 rounded-none bg-emerald-100 text-emerald-600 flex items-center justify-center">
                        <CheckCircle className="h-5 w-5" />
                     </div>
                     <h2 className="text-2xl font-black text-[var(--color-text-primary)]">Your Choices</h2>
@@ -69,14 +69,14 @@ export default function PrivacyPolicyPage() {
                       "Manage cookie preferences via our settings panel."
                     ].map((item, i) => (
                       <div key={i} className="flex items-start gap-3">
-                         <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                         <div className="mt-1.5 w-1.5 h-1.5 rounded-none bg-emerald-500 shrink-0" />
                          <p className="text-sm text-[var(--color-text-secondary)]">{item}</p>
                       </div>
                     ))}
                  </div>
               </section>
 
-              <div className="p-8 bg-emerald-50 rounded-3xl border border-emerald-100 flex items-start gap-4">
+              <div className="p-8 bg-emerald-50 rounded-none border border-emerald-100 flex items-start gap-4">
                  <AlertCircle className="h-6 w-6 text-emerald-600 mt-1 shrink-0" />
                  <div>
                     <h4 className="font-black text-emerald-800 mb-1">Important Note</h4>
@@ -89,9 +89,10 @@ export default function PrivacyPolicyPage() {
         </div>
 
         <div className="mt-20 text-center text-xs text-muted-c font-bold capitalize tracking-widest">
-           Jimvio, Inc. · Global HQ · Kigali, Rwanda
+           Jimvio, Inc. Â· Global HQ Â· Kigali, Rwanda
         </div>
       </div>
     </div>
   );
 }
+

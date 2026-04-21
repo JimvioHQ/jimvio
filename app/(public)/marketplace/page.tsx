@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import {
   getMarketplaceCategories,
   getProducts,
@@ -84,3 +84,4 @@ export default async function MarketplacePage({ searchParams }: PageProps) {
     />
   );
 }
+

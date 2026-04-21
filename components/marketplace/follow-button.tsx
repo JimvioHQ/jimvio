@@ -68,8 +68,8 @@ export function FollowButton({ vendorId, className, variant = "outline", followL
     <Button
       variant={isFollowing ? "secondary" : variant}
       className={cn(
-        "font-black h-12 rounded-xl transition-all duration-300",
-        !isFollowing && "bg-[#f97316] text-white hover:bg-[#ea580c] border-none shadow-lg shadow-[#f97316]/20 active:scale-95",
+        "font-black h-12 rounded-none transition-all duration-300",
+        !isFollowing && "bg-[#f97316] text-white hover:bg-[#ea580c] border-none shadow-none shadow-[#f97316]/20 active:scale-95",
         isFollowing && "bg-slate-100 text-slate-600 hover:bg-red-50 hover:text-red-600 hover:border-red-100 group",
         className
       )}
@@ -78,7 +78,7 @@ export function FollowButton({ vendorId, className, variant = "outline", followL
     >
       {loading ? (
         <span className="flex items-center gap-2">
-          <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+          <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-none animate-spin" />
           Syncing...
         </span>
       ) : isFollowing ? (
@@ -96,3 +96,4 @@ export function FollowButton({ vendorId, className, variant = "outline", followL
     </Button>
   );
 }
+

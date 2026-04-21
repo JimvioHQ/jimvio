@@ -115,7 +115,7 @@ export function CloudinaryDropzone({
       <div 
         onClick={() => !uploading && fileInputRef.current?.click()}
         className={cn(
-          "flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-2xl cursor-pointer transition-colors bg-zinc-50/50 hover:bg-zinc-100/50",
+          "flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-none cursor-pointer transition-colors bg-zinc-50/50 hover:bg-zinc-100/50",
           uploading ? "border-[var(--color-accent)] opacity-80 cursor-wait" : "border-zinc-200 dark:border-border"
         )}
       >
@@ -127,7 +127,7 @@ export function CloudinaryDropzone({
             </div>
           ) : (
             <>
-              <div className="p-3 bg-white dark:bg-surface shadow-sm border border-zinc-100 dark:border-border rounded-full mb-3">
+              <div className="p-3 bg-white dark:bg-surface shadow-none border border-zinc-100 dark:border-border rounded-none mb-3">
                 <Upload className="w-6 h-6 text-zinc-400" />
               </div>
               <p className="mb-2 text-sm font-semibold text-zinc-700 dark:text-zinc-300">{label}</p>
@@ -140,3 +140,4 @@ export function CloudinaryDropzone({
     </div>
   );
 }
+

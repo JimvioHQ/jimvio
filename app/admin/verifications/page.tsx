@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import Link from "next/link";
 import { getPendingVendors } from "@/services/db";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,7 +27,7 @@ export default async function AdminVerificationsPage() {
         </CardHeader>
         <CardContent className="space-y-3">
           {pending.length === 0 ? (
-            <div className="py-8 text-center text-[var(--color-text-muted)] rounded-xl bg-[var(--color-surface-secondary)]/50">
+            <div className="py-8 text-center text-[var(--color-text-muted)] rounded-none bg-[var(--color-surface-secondary)]/50">
               <CheckCircle className="h-10 w-10 text-emerald-500 mx-auto mb-2" />
               <p className="font-medium text-[var(--color-text-primary)]">All caught up</p>
               <p className="text-sm">No pending vendor verifications.</p>
@@ -36,15 +36,15 @@ export default async function AdminVerificationsPage() {
             pending.map((v: any) => (
               <div
                 key={v.id}
-                className="flex items-center justify-between gap-4 p-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-surface-secondary)]/30"
+                className="flex items-center justify-between gap-4 p-4 rounded-none border border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-surface-secondary)]/30"
               >
                 <div className="min-w-0 flex-1">
                   <p className="font-semibold text-[var(--color-text-primary)]">{v.business_name || "Unnamed store"}</p>
                   <p className="text-sm text-[var(--color-text-muted)]">
-                    {v.profiles?.email ?? "—"} · {v.business_country || "—"}
+                    {v.profiles?.email ?? "â€”"} Â· {v.business_country || "â€”"}
                   </p>
                   <p className="text-xs text-[var(--color-text-muted)] mt-1">
-                    Submitted {v.created_at ? new Date(v.created_at).toLocaleDateString() : "—"}
+                    Submitted {v.created_at ? new Date(v.created_at).toLocaleDateString() : "â€”"}
                   </p>
                 </div>
                 <div className="flex gap-2 shrink-0">
@@ -72,3 +72,4 @@ export default async function AdminVerificationsPage() {
     </div>
   );
 }
+

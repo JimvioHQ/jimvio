@@ -60,7 +60,7 @@ function HashtagInput({ hashtags, onChange }: { hashtags: string[]; onChange: (t
         {hashtags.map((tag) => (
           <span
             key={tag}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-[var(--color-accent-light)] text-[var(--color-accent)] text-xs font-medium"
+            className="flex items-center gap-1 px-2.5 py-1 rounded-none bg-[var(--color-accent-light)] text-[var(--color-accent)] text-xs font-medium"
           >
             #{tag}
             <button
@@ -80,9 +80,9 @@ function HashtagInput({ hashtags, onChange }: { hashtags: string[]; onChange: (t
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter" || e.key === "," || e.key === " ") { e.preventDefault(); addTag(); } }}
-          className="flex-1 h-9 px-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30 transition-all"
+          className="flex-1 h-9 px-3 rounded-none border border-[var(--color-border)] bg-[var(--color-surface)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30 transition-all"
         />
-        <Button size="sm" type="button" variant="outline" onClick={addTag} className="shrink-0 rounded-xl px-3">
+        <Button size="sm" type="button" variant="outline" onClick={addTag} className="shrink-0 rounded-none px-3">
           <Plus className="h-3 w-3" />
         </Button>
       </div>
@@ -153,7 +153,7 @@ export function UGCPostForm({ products = [], onSuccess, onCancel, className }: U
   };
 
   return (
-    <div className={cn("bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl overflow-hidden", className)}>
+    <div className={cn("bg-[var(--color-surface)] border border-[var(--color-border)] rounded-none overflow-hidden", className)}>
       {/* Post Type Selector */}
       <div className="flex items-center gap-1 px-4 pt-4 pb-3 border-b border-[var(--color-border)]/60 overflow-x-auto no-scrollbar">
         {POST_TYPES.map((t) => (
@@ -162,7 +162,7 @@ export function UGCPostForm({ products = [], onSuccess, onCancel, className }: U
             type="button"
             onClick={() => setPostType(t.value)}
             className={cn(
-              "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold shrink-0 transition-all",
+              "flex items-center gap-1.5 px-3 py-1.5 rounded-none text-xs font-semibold shrink-0 transition-all",
               postType === t.value
                 ? "bg-[var(--color-accent)] text-white"
                 : "bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"
@@ -181,7 +181,7 @@ export function UGCPostForm({ products = [], onSuccess, onCancel, className }: U
             onChange={(e) => setCaption(e.target.value.slice(0, MAX_CAPTION))}
             placeholder="Share your experienceâ€¦ Use #hashtags to reach more people."
             rows={4}
-            className="w-full resize-none px-4 py-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30 transition-all leading-relaxed"
+            className="w-full resize-none px-4 py-3 rounded-none border border-[var(--color-border)] bg-[var(--color-surface-secondary)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30 transition-all leading-relaxed"
           />
           <span className={cn("absolute bottom-3 right-3 text-[10px] font-medium pointer-events-none", remaining < 100 ? "text-amber-500" : "text-[var(--color-text-muted)]")}>
             {remaining}
@@ -192,7 +192,7 @@ export function UGCPostForm({ products = [], onSuccess, onCancel, className }: U
         {media.length > 0 && (
           <div className="grid grid-cols-3 gap-2">
             {media.map((m, i) => (
-              <div key={i} className="relative aspect-square rounded-xl overflow-hidden bg-[var(--color-surface-secondary)] group">
+              <div key={i} className="relative aspect-square rounded-none overflow-hidden bg-[var(--color-surface-secondary)] group">
                 {m.type === "video"
                   ? <video src={m.url} className="w-full h-full object-cover" />
                   // eslint-disable-next-line @next/next/no-img-element
@@ -201,7 +201,7 @@ export function UGCPostForm({ products = [], onSuccess, onCancel, className }: U
                 <button
                   type="button"
                   onClick={() => removeMedia(i)}
-                  className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500"
+                  className="absolute top-1.5 right-1.5 w-6 h-6 rounded-none bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500"
                 >
                   <X className="h-3 w-3" />
                 </button>
@@ -224,7 +224,7 @@ export function UGCPostForm({ products = [], onSuccess, onCancel, className }: U
               onUploadSuccess={addImageMedia}
               buttonText="ðŸ“· Photo"
               variant="outline"
-              className="flex-1 [&>button]:w-full [&>button]:rounded-xl [&>button]:text-sm [&>button]:font-medium"
+              className="flex-1 [&>button]:w-full [&>button]:rounded-none [&>button]:text-sm [&>button]:font-medium"
             />
             <CloudinaryUploadButton
               folder="jimvio/ugc"
@@ -232,7 +232,7 @@ export function UGCPostForm({ products = [], onSuccess, onCancel, className }: U
               onUploadSuccess={addVideoMedia}
               buttonText="ðŸŽ¬ Video"
               variant="outline"
-              className="flex-1 [&>button]:w-full [&>button]:rounded-xl [&>button]:text-sm [&>button]:font-medium"
+              className="flex-1 [&>button]:w-full [&>button]:rounded-none [&>button]:text-sm [&>button]:font-medium"
             />
           </div>
         )}
@@ -253,14 +253,14 @@ export function UGCPostForm({ products = [], onSuccess, onCancel, className }: U
               <ChevronDown className={cn("h-4 w-4 transition-transform", showProducts && "rotate-180")} />
             </button>
             {showProducts && (
-              <div className="mt-2 max-h-48 overflow-y-auto rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)] p-2 space-y-1">
+              <div className="mt-2 max-h-48 overflow-y-auto rounded-none border border-[var(--color-border)] bg-[var(--color-surface-secondary)] p-2 space-y-1">
                 {products.map((p) => (
                   <button
                     key={p.id}
                     type="button"
                     onClick={() => toggleProduct(p.id)}
                     className={cn(
-                      "w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm text-left transition-all",
+                      "w-full flex items-center gap-2.5 px-3 py-2.5 rounded-none text-sm text-left transition-all",
                       selectedProductIds.includes(p.id)
                         ? "bg-[var(--color-accent-light)] text-[var(--color-accent)] font-medium"
                         : "hover:bg-[var(--color-surface)] text-[var(--color-text-primary)]"
@@ -279,7 +279,7 @@ export function UGCPostForm({ products = [], onSuccess, onCancel, className }: U
         {/* Submit Row */}
         <div className="flex items-center justify-end gap-3 pt-1">
           {onCancel && (
-            <Button type="button" variant="outline" onClick={onCancel} disabled={submitting} className="rounded-xl">
+            <Button type="button" variant="outline" onClick={onCancel} disabled={submitting} className="rounded-none">
               Cancel
             </Button>
           )}
@@ -287,7 +287,7 @@ export function UGCPostForm({ products = [], onSuccess, onCancel, className }: U
             type="button"
             onClick={handleSubmit}
             disabled={submitting || (!caption.trim() && media.length === 0)}
-            className="rounded-xl px-6 font-semibold"
+            className="rounded-none px-6 font-semibold"
           >
             {submitting && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
             {submitting ? "Publishingâ€¦" : "Publish Post"}
@@ -297,3 +297,4 @@ export function UGCPostForm({ products = [], onSuccess, onCancel, className }: U
     </div>
   );
 }
+

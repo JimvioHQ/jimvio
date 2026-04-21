@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useEffect, useState, useCallback } from "react";
 import { 
@@ -31,9 +31,9 @@ export default function CampaignAnalyticsPage() {
     return (
        <div className="min-h-screen flex flex-col items-center justify-center space-y-12 animate-in fade-in duration-700" style={{ background: "var(--color-bg)" }}>
          <div className="relative">
-           <div className="absolute inset-0 bg-orange-400/20 blur-3xl rounded-full scale-150 animate-pulse" />
-           <div className="relative w-24 h-24 rounded-[32px] bg-white dark:bg-surface border border-white shadow-2xl flex items-center justify-center overflow-hidden">
-             <div className="absolute inset-0 border-2 border-t-orange-500 border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin m-2" />
+           <div className="absolute inset-0 bg-orange-400/20 blur-3xl rounded-none scale-150 animate-pulse" />
+           <div className="relative w-24 h-24 rounded-none bg-white dark:bg-surface border border-white shadow-none flex items-center justify-center overflow-hidden">
+             <div className="absolute inset-0 border-2 border-t-orange-500 border-r-transparent border-b-transparent border-l-transparent rounded-none animate-spin m-2" />
              <BarChart3 className="h-10 w-10 text-stone-900 dark:text-white" />
            </div>
          </div>
@@ -56,7 +56,7 @@ export default function CampaignAnalyticsPage() {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
            <div className="space-y-2">
               <h1 className="text-4xl font-black text-stone-900 dark:text-white tracking-tighter flex items-center gap-4">
-                 <div className="p-2.5 rounded-[20px] bg-white dark:bg-surface border border-white shadow-2xl shrink-0">
+                 <div className="p-2.5 rounded-none bg-white dark:bg-surface border border-white shadow-none shrink-0">
                     <BarChart3 className="h-8 w-8 text-orange-500" />
                  </div>
                  Campaign Performance
@@ -66,7 +66,7 @@ export default function CampaignAnalyticsPage() {
               </p>
            </div>
            
-           <div className="flex items-center gap-4 bg-white dark:bg-surface/40 p-1.5 rounded-full border border-white shadow-xl backdrop-blur-xl">
+           <div className="flex items-center gap-4 bg-white dark:bg-surface/40 p-1.5 rounded-none border border-white shadow-none backdrop-blur-xl">
               <RefreshCw className="h-3.5 w-3.5 text-stone-400 ml-4 animate-spin-slow" />
               <span className="text-[10px] font-black uppercase tracking-widest text-stone-900 dark:text-white pr-6 pl-2">Live Sync</span>
            </div>
@@ -74,8 +74,8 @@ export default function CampaignAnalyticsPage() {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-           <GlassCard className="p-8 flex flex-col justify-between rounded-[40px] bg-white dark:bg-surface/60 border-white shadow-xl group">
-              <div className="w-14 h-14 rounded-[22px] bg-orange-50 border border-orange-100 flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-700">
+           <GlassCard className="p-8 flex flex-col justify-between rounded-none bg-white dark:bg-surface/60 border-white shadow-none group">
+              <div className="w-14 h-14 rounded-none bg-orange-50 border border-orange-100 flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-700">
                  <Target className="h-7 w-7 text-orange-500" />
               </div>
               <div>
@@ -83,8 +83,8 @@ export default function CampaignAnalyticsPage() {
                  <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mt-3">Active Missions</p>
               </div>
            </GlassCard>
-           <GlassCard className="p-8 flex flex-col justify-between rounded-[40px] bg-white dark:bg-surface/60 border-white shadow-xl group">
-              <div className="w-14 h-14 rounded-[22px] bg-sky-50 border border-sky-100 flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-700">
+           <GlassCard className="p-8 flex flex-col justify-between rounded-none bg-white dark:bg-surface/60 border-white shadow-none group">
+              <div className="w-14 h-14 rounded-none bg-sky-50 border border-sky-100 flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-700">
                  <Flag className="h-7 w-7 text-sky-500" />
               </div>
               <div>
@@ -92,8 +92,8 @@ export default function CampaignAnalyticsPage() {
                  <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mt-3">Submissions</p>
               </div>
            </GlassCard>
-           <GlassCard className="p-8 flex flex-col justify-between rounded-[40px] bg-white dark:bg-surface/60 border-white shadow-xl group">
-              <div className="w-14 h-14 rounded-[22px] bg-emerald-50 border border-emerald-100 flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-700">
+           <GlassCard className="p-8 flex flex-col justify-between rounded-none bg-white dark:bg-surface/60 border-white shadow-none group">
+              <div className="w-14 h-14 rounded-none bg-emerald-50 border border-emerald-100 flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-700">
                  <CheckCircle className="h-7 w-7 text-emerald-500" />
               </div>
               <div>
@@ -101,8 +101,8 @@ export default function CampaignAnalyticsPage() {
                  <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mt-3">Approval Rate</p>
               </div>
            </GlassCard>
-           <GlassCard className="p-8 flex flex-col justify-between rounded-[40px] bg-white dark:bg-surface border-white shadow-2xl group">
-              <div className="w-14 h-14 rounded-[22px] bg-stone-900 text-white flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-700">
+           <GlassCard className="p-8 flex flex-col justify-between rounded-none bg-white dark:bg-surface border-white shadow-none group">
+              <div className="w-14 h-14 rounded-none bg-stone-900 text-white flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-700">
                  <TrendingUp className="h-7 w-7" />
               </div>
               <div>
@@ -115,7 +115,7 @@ export default function CampaignAnalyticsPage() {
         </div>
 
         {/* Main Chart */}
-        <GlassCard className="rounded-[48px] border-white bg-white dark:bg-surface/60 shadow-xl overflow-hidden">
+        <GlassCard className="rounded-none border-white bg-white dark:bg-surface/60 shadow-none overflow-hidden">
            <div className="p-10 border-b border-stone-100 dark:border-border flex items-center justify-between">
               <div className="space-y-1">
                  <h3 className="text-3xl font-black text-stone-900 dark:text-white tracking-tighter">Budget Utilization</h3>
@@ -154,7 +154,7 @@ export default function CampaignAnalyticsPage() {
                </ResponsiveContainer>
              ) : (
                <div className="flex flex-col items-center justify-center p-20 text-center space-y-4">
-                  <div className="w-20 h-20 bg-white dark:bg-surface rounded-[32px] border border-white shadow-xl flex items-center justify-center text-stone-100">
+                  <div className="w-20 h-20 bg-white dark:bg-surface rounded-none border border-white shadow-none flex items-center justify-center text-stone-100">
                      <BarChart3 className="h-10 w-10" />
                   </div>
                   <p className="text-[11px] font-black text-stone-300 uppercase tracking-widest">No historical data available yet</p>
@@ -167,3 +167,4 @@ export default function CampaignAnalyticsPage() {
     </div>
   );
 }
+

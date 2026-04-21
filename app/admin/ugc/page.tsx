@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -39,7 +39,7 @@ export default function AdminUGCPage() {
           </div>
           <Link
             href="/admin/ugc/submissions"
-            className="px-6 py-2.5 rounded-xl bg-stone-900 text-white text-sm font-bold hover:bg-stone-800 transition-all shadow-lg shadow-stone-900/10"
+            className="px-6 py-2.5 rounded-none bg-stone-900 text-white text-sm font-bold hover:bg-stone-800 transition-all shadow-none shadow-stone-900/10"
           >
             Review Submissions
           </Link>
@@ -53,7 +53,7 @@ export default function AdminUGCPage() {
             { label: 'Total Spent',     value: `$${totalSpent.toLocaleString()}`, accent: '#f59e0b' },
             { label: 'Total Views',     value: `${(totalViews / 1000).toFixed(1)}K`, accent: '#ec4899' },
           ].map((s) => (
-            <div key={s.label} className="rounded-2xl border border-stone-200 dark:border-border bg-white dark:bg-surface p-6 shadow-sm">
+            <div key={s.label} className="rounded-none border border-stone-200 dark:border-border bg-white dark:bg-surface p-6 shadow-none">
                <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mb-1">{s.label}</p>
                <p className="text-3xl font-black text-stone-900 dark:text-white leading-none">{s.value}</p>
             </div>
@@ -62,7 +62,7 @@ export default function AdminUGCPage() {
 
         <div className="flex flex-wrap gap-3 mb-8">
           {['active','draft','paused','completed','cancelled'].map((s) => (
-            <div key={s} className="flex-1 min-w-[120px] rounded-xl bg-white dark:bg-surface border border-stone-100 dark:border-border p-4 shadow-sm text-center">
+            <div key={s} className="flex-1 min-w-[120px] rounded-none bg-white dark:bg-surface border border-stone-100 dark:border-border p-4 shadow-none text-center">
               <p className={`text-xl font-black ${STATUS_COLORS[s]}`}>{byStatus(s)}</p>
               <p className="text-[10px] text-stone-400 font-bold uppercase tracking-wider mt-1">{s}</p>
             </div>
@@ -70,13 +70,13 @@ export default function AdminUGCPage() {
         </div>
 
         {/* Campaign Table */}
-        <div className="bg-white dark:bg-surface rounded-3xl border border-stone-200 dark:border-border shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-surface rounded-none border border-stone-200 dark:border-border shadow-none overflow-hidden">
           <div className="px-6 py-4 border-b border-stone-100 dark:border-border bg-stone-50/50">
              <h2 className="text-sm font-black text-stone-700 uppercase tracking-widest">Active Campaigns</h2>
           </div>
           {loading ? (
             <div className="p-8 space-y-4">
-              {[1,2,3,4,5].map(i => <div key={i} className="h-12 rounded-xl bg-stone-50 dark:bg-surface/50 animate-pulse" />)}
+              {[1,2,3,4,5].map(i => <div key={i} className="h-12 rounded-none bg-stone-50 dark:bg-surface/50 animate-pulse" />)}
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -96,9 +96,9 @@ export default function AdminUGCPage() {
                           {c.title}
                         </Link>
                       </td>
-                      <td className="px-6 py-4 font-semibold text-stone-600">{c.vendor?.business_name ?? '—'}</td>
+                      <td className="px-6 py-4 font-semibold text-stone-600">{c.vendor?.business_name ?? 'â€”'}</td>
                       <td className="px-6 py-4">
-                        <span className="text-[10px] font-black px-2 py-1 rounded-lg bg-stone-100 text-stone-600 uppercase tracking-tighter">
+                        <span className="text-[10px] font-black px-2 py-1 rounded-none bg-stone-100 text-stone-600 uppercase tracking-tighter">
                           {c.campaign_type}
                         </span>
                       </td>
@@ -111,9 +111,9 @@ export default function AdminUGCPage() {
                               <span>${c.spent_budget?.toLocaleString()}</span>
                               <span>${c.total_budget?.toLocaleString()}</span>
                            </div>
-                           <div className="h-1.5 w-full bg-stone-100 rounded-full overflow-hidden">
+                           <div className="h-1.5 w-full bg-stone-100 rounded-none overflow-hidden">
                               <div 
-                                 className="h-full bg-orange-500 rounded-full" 
+                                 className="h-full bg-orange-500 rounded-none" 
                                  style={{ width: `${Math.min(100, ((c.spent_budget || 0) / (c.total_budget || 1)) * 100)}%` }} 
                               />
                            </div>
@@ -122,7 +122,7 @@ export default function AdminUGCPage() {
                       <td className="px-6 py-4 text-stone-900 dark:text-white font-bold">{c.submission_count ?? 0}</td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
-                           <div className={`w-2 h-2 rounded-full ${STATUS_COLORS[c.status].replace('text-', 'bg-')}`} />
+                           <div className={`w-2 h-2 rounded-none ${STATUS_COLORS[c.status].replace('text-', 'bg-')}`} />
                            <span className={`text-[11px] font-black uppercase tracking-tight ${STATUS_COLORS[c.status]}`}>
                               {c.status}
                            </span>
@@ -139,3 +139,4 @@ export default function AdminUGCPage() {
     </div>
   );
 }
+

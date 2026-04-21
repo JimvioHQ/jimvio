@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useTransition } from "react";
 import { createClient } from "@/lib/supabase/client";
@@ -21,8 +21,9 @@ export function MarkReadButton({ notificationId }: { notificationId: string }) {
   };
 
   return (
-    <Button variant="ghost" size="sm" className="text-xs rounded-lg h-7" disabled={isPending} onClick={markRead}>
+    <Button variant="ghost" size="sm" className="text-xs rounded-none h-7" disabled={isPending} onClick={markRead}>
       Mark read
     </Button>
   );
 }
+

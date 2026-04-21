@@ -2,3 +2,4 @@
 export function PawaPayBadge() {
   return null;
 }
+

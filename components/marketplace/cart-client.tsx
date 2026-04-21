@@ -128,15 +128,15 @@ export function CartClient({ initialOrders }: CartClientProps) {
   // â”€â”€ EMPTY STATE â”€â”€
   if (orders.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center text-center py-24 bg-surface dark:bg-surface rounded-2xl border border-border shadow-sm">
-        <div className="h-20 w-20 bg-stone-50 dark:bg-surface-secondary border-2 border-dashed border-border rounded-2xl flex items-center justify-center mb-5">
+      <div className="flex flex-col items-center justify-center text-center py-24 bg-surface dark:bg-surface rounded-none border border-border shadow-none">
+        <div className="h-20 w-20 bg-stone-50 dark:bg-surface-secondary border-2 border-dashed border-border rounded-none flex items-center justify-center mb-5">
           <ShoppingCart className="h-9 w-9 text-stone-300 dark:text-stone-600" />
         </div>
         <h2 className="text-xl font-black text-zinc-800 dark:text-text-secondary mb-2">Your cart is empty</h2>
         <p className="text-sm text-stone-400 dark:text-text-muted font-medium mb-8 max-w-xs">
           You haven't added any products yet. Explore the marketplace to get started.
         </p>
-        <Button asChild className="h-10 px-6 rounded-xl font-black text-xs uppercase tracking-widest bg-[var(--color-accent)] text-white hover:brightness-110 border-0">
+        <Button asChild className="h-10 px-6 rounded-none font-black text-xs uppercase tracking-widest bg-[var(--color-accent)] text-white hover:brightness-110 border-0">
           <Link href="/marketplace">
             <ShoppingBag className="mr-2 h-4 w-4" /> Browse Products
           </Link>
@@ -159,12 +159,12 @@ export function CartClient({ initialOrders }: CartClientProps) {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.97, y: -8 }}
               transition={{ duration: 0.2 }}
-              className="bg-surface dark:bg-surface rounded-xl border border-border shadow-sm overflow-hidden"
+              className="bg-surface dark:bg-surface rounded-none border border-border shadow-none overflow-hidden"
             >
               {/* Vendor header */}
               <div className="bg-stone-50 dark:bg-surface-secondary border-b border-border px-5 py-3 flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <div className="h-8 w-8 bg-surface dark:bg-surface rounded-lg border border-border flex items-center justify-center">
+                  <div className="h-8 w-8 bg-surface dark:bg-surface rounded-none border border-border flex items-center justify-center">
                     <Store className="h-4 w-4 text-stone-500 dark:text-text-muted" />
                   </div>
                   <div>
@@ -178,7 +178,7 @@ export function CartClient({ initialOrders }: CartClientProps) {
                     <p className="text-[9px] font-semibold text-zinc-400 uppercase tracking-widest">Global Supplier</p>
                   </div>
                 </div>
-                <span className="flex items-center gap-1 text-[10px] font-black text-green-700 bg-green-50 border border-green-100 px-2.5 py-1 rounded-full">
+                <span className="flex items-center gap-1 text-[10px] font-black text-green-700 bg-green-50 border border-green-100 px-2.5 py-1 rounded-none">
                   <ShieldCheck className="h-3 w-3" /> Trade Assured
                 </span>
               </div>
@@ -201,7 +201,7 @@ export function CartClient({ initialOrders }: CartClientProps) {
                     >
                       <div className="p-4 flex gap-4">
                         {/* Thumbnail */}
-                        <div className="relative h-20 w-20 shrink-0 bg-stone-50 dark:bg-surface-secondary rounded-lg border border-border overflow-hidden">
+                        <div className="relative h-20 w-20 shrink-0 bg-stone-50 dark:bg-surface-secondary rounded-none border border-border overflow-hidden">
                           {item.product_image && !imageErrors[item.id] ? (
                             <Image
                               src={item.product_image}
@@ -228,7 +228,7 @@ export function CartClient({ initialOrders }: CartClientProps) {
                             <button
                               onClick={() => handleRemove(item.id)}
                               disabled={removingItems.includes(item.id)}
-                              className="h-7 w-7 shrink-0 rounded-lg flex items-center justify-center text-stone-300 dark:text-text-muted hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all disabled:opacity-50"
+                              className="h-7 w-7 shrink-0 rounded-none flex items-center justify-center text-stone-300 dark:text-text-muted hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all disabled:opacity-50"
                               title="Remove"
                             >
                               {removingItems.includes(item.id) ? (
@@ -246,11 +246,11 @@ export function CartClient({ initialOrders }: CartClientProps) {
                           {/* Qty + line total */}
                           <div className="flex items-center justify-between">
                             {/* Compact qty stepper */}
-                            <div className="flex items-center gap-0.5 bg-stone-50 dark:bg-surface-secondary border border-border rounded-lg p-0.5">
+                            <div className="flex items-center gap-0.5 bg-stone-50 dark:bg-surface-secondary border border-border rounded-none p-0.5">
                               <button
                                 onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)}
                                 disabled={item.quantity <= 1 || loadingItems.includes(item.id)}
-                                className="h-6 w-6 rounded-md flex items-center justify-center text-stone-400 dark:text-text-muted hover:bg-surface dark:hover:bg-zinc-900 hover:text-stone-700 dark:hover:text-stone-300 disabled:opacity-30 transition-all"
+                                className="h-6 w-6 rounded-none flex items-center justify-center text-stone-400 dark:text-text-muted hover:bg-surface dark:hover:bg-zinc-900 hover:text-stone-700 dark:hover:text-stone-300 disabled:opacity-30 transition-all"
                               >
                                 <Minus className="h-2.5 w-2.5" />
                               </button>
@@ -263,7 +263,7 @@ export function CartClient({ initialOrders }: CartClientProps) {
                               <button
                                 onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
                                 disabled={loadingItems.includes(item.id)}
-                                className="h-6 w-6 rounded-md flex items-center justify-center text-stone-400 dark:text-text-muted hover:bg-surface dark:hover:bg-zinc-900 hover:text-stone-700 dark:hover:text-stone-300 disabled:opacity-30 transition-all"
+                                className="h-6 w-6 rounded-none flex items-center justify-center text-stone-400 dark:text-text-muted hover:bg-surface dark:hover:bg-zinc-900 hover:text-stone-700 dark:hover:text-stone-300 disabled:opacity-30 transition-all"
                               >
                                 <Plus className="h-2.5 w-2.5" />
                               </button>
@@ -302,7 +302,7 @@ export function CartClient({ initialOrders }: CartClientProps) {
         <div className="sticky top-[calc(var(--navbar-height,64px)+56px)] space-y-4">
 
           {/* Summary card */}
-          <div className="bg-surface dark:bg-surface rounded-xl border border-border shadow-sm p-5 space-y-5">
+          <div className="bg-surface dark:bg-surface rounded-none border border-border shadow-none p-5 space-y-5">
             <h2 className="text-sm font-black text-stone-900 dark:text-white flex items-center gap-2">
               <Tag className="h-4 w-4 text-[var(--color-accent)]" />
               Order Summary
@@ -332,7 +332,7 @@ export function CartClient({ initialOrders }: CartClientProps) {
 
             <Button
               asChild
-              className="w-full h-11 bg-[var(--color-accent)] hover:brightness-110 text-white font-black text-xs uppercase tracking-widest rounded-xl shadow-lg shadow-[var(--color-accent)]/20 border-0 group transition-all"
+              className="w-full h-11 bg-[var(--color-accent)] hover:brightness-110 text-white font-black text-xs uppercase tracking-widest rounded-none shadow-none shadow-[var(--color-accent)]/20 border-0 group transition-all"
             >
               <Link href="/checkout">
                 Proceed to Checkout
@@ -342,14 +342,14 @@ export function CartClient({ initialOrders }: CartClientProps) {
 
             {/* Trust badges */}
             <div className="space-y-2.5 pt-1">
-              <div className="flex items-center gap-3 bg-green-50 p-3 rounded-lg border border-green-100">
+              <div className="flex items-center gap-3 bg-green-50 p-3 rounded-none border border-green-100">
                 <ShieldCheck className="h-4 w-4 text-green-600 shrink-0" />
                 <div>
                   <p className="text-[10px] font-black text-zinc-800 dark:text-text-secondary">Trade Assurance</p>
                   <p className="text-[9px] text-zinc-500">Jimvio escrow protects all payments</p>
                 </div>
               </div>
-              <div className="flex items-center gap-3 bg-blue-50/60 p-3 rounded-lg border border-blue-100/60">
+              <div className="flex items-center gap-3 bg-blue-50/60 p-3 rounded-none border border-blue-100/60">
                 <HelpCircle className="h-4 w-4 text-blue-500 shrink-0" />
                 <div>
                   <p className="text-[10px] font-black text-zinc-800 dark:text-text-secondary">Need Help?</p>
@@ -360,8 +360,8 @@ export function CartClient({ initialOrders }: CartClientProps) {
           </div>
 
           {/* Logistics promo card */}
-          <div className="bg-zinc-900 rounded-xl p-5 text-white relative overflow-hidden">
-            <div className="absolute -top-4 -right-4 h-20 w-20 bg-[var(--color-accent)]/10 rounded-full blur-xl" />
+          <div className="bg-zinc-900 rounded-none p-5 text-white relative overflow-hidden">
+            <div className="absolute -top-4 -right-4 h-20 w-20 bg-[var(--color-accent)]/10 rounded-none blur-xl" />
             <div className="flex items-center gap-2 mb-3">
               <Package className="h-4 w-4 text-[var(--color-accent)]" />
               <h4 className="text-[10px] font-black uppercase tracking-widest">Jimvio Logistics</h4>
@@ -372,7 +372,7 @@ export function CartClient({ initialOrders }: CartClientProps) {
             <div className="flex items-center gap-2">
               <div className="flex -space-x-2">
                 {[1, 2, 3].map(i => (
-                  <div key={i} className="h-6 w-6 rounded-full bg-zinc-700 border-2 border-zinc-900 flex items-center justify-center">
+                  <div key={i} className="h-6 w-6 rounded-none bg-zinc-700 border-2 border-zinc-900 flex items-center justify-center">
                     <Package className="h-3 w-3 text-zinc-400" />
                   </div>
                 ))}
@@ -386,3 +386,4 @@ export function CartClient({ initialOrders }: CartClientProps) {
     </div>
   );
 }
+

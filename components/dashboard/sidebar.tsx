@@ -178,7 +178,7 @@ export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobil
              <motion.div
                initial={{ scale: 0.8, opacity: 0 }}
                animate={{ scale: 1, opacity: 1 }}
-               className="w-8 h-8 rounded-lg bg-orange-600 flex items-center justify-center text-white font-black text-xs"
+               className="w-8 h-8 rounded-none bg-orange-600 flex items-center justify-center text-white font-black text-xs"
              >
                J
              </motion.div>
@@ -189,7 +189,7 @@ export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobil
           <button
             type="button"
             onClick={() => onCollapsedChange(!collapsed)}
-            className="hidden lg:flex items-center justify-center transition-all hover:scale-105 active:scale-95 rounded-full bg-surface-secondary dark:bg-surface-secondary border border-border text-stone-400 dark:text-text-muted"
+            className="hidden lg:flex items-center justify-center transition-all hover:scale-105 active:scale-95 rounded-none bg-surface-secondary dark:bg-surface-secondary border border-border text-stone-400 dark:text-text-muted"
             style={{
                 width: 28, height: 28,
               }}
@@ -201,7 +201,7 @@ export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobil
             <button
               type="button"
               onClick={onMobileClose}
-              className="lg:hidden flex items-center justify-center transition-all active:scale-95 rounded-full bg-surface-secondary dark:bg-surface-secondary border border-border text-stone-400 dark:text-text-muted hover:text-stone-800 dark:text-text-secondary dark:hover:text-stone-200"
+              className="lg:hidden flex items-center justify-center transition-all active:scale-95 rounded-none bg-surface-secondary dark:bg-surface-secondary border border-border text-stone-400 dark:text-text-muted hover:text-stone-800 dark:text-text-secondary dark:hover:text-stone-200"
               style={{ width: 30, height: 30 }}
               aria-label="Close"
             >
@@ -219,11 +219,11 @@ export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobil
           transition={{ delay: 0.15 }}
           className="px-4 pt-4 pb-2"
         >
-          <div className="relative overflow-hidden rounded-xl bg-stone-900 dark:bg-stone-900 border border-stone-800 p-4 group">
+          <div className="relative overflow-hidden rounded-none bg-stone-900 dark:bg-stone-900 border border-stone-800 p-4 group">
              <div className="relative z-10">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
-                    <div className="w-5 h-5 rounded-md bg-orange-500/10 flex items-center justify-center text-orange-400 border border-orange-500/20">
+                    <div className="w-5 h-5 rounded-none bg-orange-500/10 flex items-center justify-center text-orange-400 border border-orange-500/20">
                       <Wallet className="w-3 h-3" />
                     </div>
                     <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Available Balance</span>
@@ -258,7 +258,7 @@ export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobil
           <Link
             href="/dashboard/wallet"
             title="My Wallet"
-            className="flex items-center justify-center transition-all hover:scale-110 active:scale-95 bg-orange-500/10 dark:bg-orange-500/20 border border-orange-500/20 text-orange-600 dark:text-orange-500 rounded-[12px] h-9 w-9"
+            className="flex items-center justify-center transition-all hover:scale-110 active:scale-95 bg-orange-500/10 dark:bg-orange-500/20 border border-orange-500/20 text-orange-600 dark:text-orange-500 rounded-none h-9 w-9"
           >
             <Wallet style={{ width: 14, height: 14 }} />
           </Link>
@@ -272,7 +272,7 @@ export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobil
             <div key={section.title || "main"} className="mb-1">
               {section.title && !collapsed && (
                 <div className="flex items-center gap-2 px-2 pt-3 pb-1">
-                  {section.accentRgb && (<span className="block shrink-0 rounded-full" style={{ width: 5, height: 5, background: `rgb(${section.accentRgb})` }} />)}
+                  {section.accentRgb && (<span className="block shrink-0 rounded-none" style={{ width: 5, height: 5, background: `rgb(${section.accentRgb})` }} />)}
                       <span
                         style={{
                           fontSize: 9, fontWeight: 800, letterSpacing: "0.14em",
@@ -305,7 +305,7 @@ export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobil
                         className={cn(
                           "flex items-center group relative overflow-hidden transition-all duration-300",
                           isActive 
-                            ? "bg-white dark:bg-surface-secondary shadow-sm shadow-black/5 dark:shadow-white/5" 
+                            ? "bg-white dark:bg-surface-secondary shadow-none shadow-black/5 dark:shadow-white/5" 
                             : "hover:bg-neutral-100 dark:hover:bg-zinc-800/50"
                         )}
                         style={{
@@ -326,7 +326,7 @@ export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobil
                         {/* Active left accent bar */}
                         {isActive && (
                           <span
-                            className="pointer-events-none absolute left-0 inset-y-0 w-[3px] rounded-r-sm bg-orange-500"
+                            className="pointer-events-none absolute left-0 inset-y-0 w-[3px] rounded-none-sm bg-orange-500"
                           />
                         )}
 
@@ -405,7 +405,7 @@ export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobil
             aria-hidden
           />
           <aside
-            className="fixed inset-y-0 left-0 z-50 lg:hidden w-[min(15.5rem,88vw)] animate-in slide-in-from-left duration-250 bg-surface border-r border-border shadow-2xl"
+            className="fixed inset-y-0 left-0 z-50 lg:hidden w-[min(15.5rem,88vw)] animate-in slide-in-from-left duration-250 bg-surface border-r border-border shadow-none"
           >
             {content}
           </aside>
@@ -414,3 +414,4 @@ export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobil
     </>
   );
 }
+

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState, useTransition } from "react";
 import Link from "next/link";
@@ -26,7 +26,7 @@ export default function ForgotPasswordPage() {
   if (success) {
     return (
       <div className="animate-fade-in text-center">
-        <div className="w-16 h-16 rounded-full bg-emerald-500/20 flex items-center justify-center mx-auto mb-6">
+        <div className="w-16 h-16 rounded-none bg-emerald-500/20 flex items-center justify-center mx-auto mb-6">
           <CheckCircle className="h-8 w-8 text-emerald-400" />
         </div>
         <h2 className="text-2xl font-bold text-white mb-3">Email sent!</h2>
@@ -56,7 +56,7 @@ export default function ForgotPasswordPage() {
           required
         />
         {error && (
-          <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+          <div className="rounded-none border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
             {error}
           </div>
         )}
@@ -72,3 +72,4 @@ export default function ForgotPasswordPage() {
     </div>
   );
 }
+

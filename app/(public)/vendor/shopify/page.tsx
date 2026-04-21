@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ShopifyConnectForm } from "@/components/vendor/ShopifyConnectForm";
@@ -37,3 +37,4 @@ export default async function VendorShopifyPage() {
     </div>
   );
 }
+

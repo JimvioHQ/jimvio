@@ -36,3 +36,4 @@ export function CampaignScrollRow({ campaigns }: CampaignScrollRowProps) {
     </section>
   );
 }
+

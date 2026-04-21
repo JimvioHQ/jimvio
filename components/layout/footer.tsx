@@ -60,7 +60,7 @@ export function Footer({ contact: contactProp }: { contact?: ContactSettings }) 
           <div className="lg:col-span-2 flex flex-col">
 
             <Link href="/" className="inline-block mb-7">
-              <div className="px-4 py-3 rounded-lg border border-border bg-stone-50 dark:bg-stone-900 inline-block">
+              <div className="px-4 py-3 rounded-none border border-border bg-stone-50 dark:bg-stone-900 inline-block">
                 <Image
                   src="/jimvio-logo.png"
                   alt="Jimvio"
@@ -86,7 +86,7 @@ export function Footer({ contact: contactProp }: { contact?: ContactSettings }) 
                   key={i}
                   href={s.href}
                   target="_blank"
-                  className="w-9 h-9 flex items-center justify-center rounded-lg border border-border bg-stone-50 dark:bg-stone-900 hover:bg-orange-50 hover:border-orange-200 transition-colors text-stone-500 hover:text-orange-600"
+                  className="w-9 h-9 flex items-center justify-center rounded-none border border-border bg-stone-50 dark:bg-stone-900 hover:bg-orange-50 hover:border-orange-200 transition-colors text-stone-500 hover:text-orange-600"
                 >
                   {s.icon}
                 </a>
@@ -98,7 +98,7 @@ export function Footer({ contact: contactProp }: { contact?: ContactSettings }) 
               {[Lock, CreditCard, ShieldCheck].map((Icon, i) => (
                 <span
                   key={i}
-                  className="px-3 py-1 text-xs rounded-md flex items-center gap-1 border border-border bg-stone-50 dark:bg-stone-900 text-stone-500 dark:text-stone-400"
+                  className="px-3 py-1 text-xs rounded-none flex items-center gap-1 border border-border bg-stone-50 dark:bg-stone-900 text-stone-500 dark:text-stone-400"
                 >
                   <Icon size={12} />
                 </span>
@@ -111,7 +111,7 @@ export function Footer({ contact: contactProp }: { contact?: ContactSettings }) 
             {Object.entries(footerLinks).map(([title, links]) => (
               <div
                 key={title}
-                className="p-5 rounded-lg bg-stone-50 dark:bg-stone-900 border border-border"
+                className="p-5 rounded-none bg-stone-50 dark:bg-stone-900 border border-border"
               >
                 <h5 className="text-xs uppercase mb-4 opacity-60">
                   {title}
@@ -149,3 +149,4 @@ export function Footer({ contact: contactProp }: { contact?: ContactSettings }) 
     </footer>
   );
 }
+

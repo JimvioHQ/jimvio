@@ -32,7 +32,7 @@ export function HomeBottomNav() {
               key={href + label}
               href={href}
               className={cn(
-                "flex flex-col items-center justify-center gap-0.5 flex-1 py-2 min-w-0 rounded-xl transition-colors",
+                "flex flex-col items-center justify-center gap-0.5 flex-1 py-2 min-w-0 rounded-none transition-colors",
                 isActive ? "text-[#f97316]" : "text-[#9ca3af]"
               )}
             >
@@ -45,3 +45,4 @@ export function HomeBottomNav() {
     </nav>
   );
 }
+

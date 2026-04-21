@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 export const dynamic = "force-dynamic";
 
 import React, { useEffect, useState } from "react";
@@ -82,13 +82,13 @@ export default function AffiliateLinksPage() {
   if (!affiliate) {
     return (
       <div className="min-h-screen flex items-center justify-center px-6" style={{ background: "var(--color-bg)" }}>
-        <GlassCard className="max-w-md w-full p-8 text-center rounded-[32px] border-white shadow-sm bg-white dark:bg-surface/60">
-          <div className="w-16 h-16 bg-white dark:bg-surface rounded-2xl flex items-center justify-center mx-auto mb-6 border border-stone-100 dark:border-border shadow-sm">
+        <GlassCard className="max-w-md w-full p-8 text-center rounded-none border-white shadow-none bg-white dark:bg-surface/60">
+          <div className="w-16 h-16 bg-white dark:bg-surface rounded-none flex items-center justify-center mx-auto mb-6 border border-stone-100 dark:border-border shadow-none">
              <ShieldCheck className="h-7 w-7 text-stone-300" />
           </div>
           <h2 className="text-2xl font-bold text-stone-900 dark:text-white mb-3 tracking-tight">Access Restricted</h2>
           <p className="text-stone-500 text-sm mb-8 leading-relaxed font-medium">Please activate your affiliate account to generate and manage links.</p>
-          <Button asChild className="w-full h-12 rounded-xl bg-stone-900 text-white font-bold hover:bg-black active:scale-95 transition-all text-sm shadow-lg">
+          <Button asChild className="w-full h-12 rounded-none bg-stone-900 text-white font-bold hover:bg-black active:scale-95 transition-all text-sm shadow-none">
              <Link href="/dashboard/roles">Activate Now</Link>
           </Button>
         </GlassCard>
@@ -190,7 +190,7 @@ export default function AffiliateLinksPage() {
         {/* Header - Simpler */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
            <div className="flex items-center gap-4">
-              <Button asChild variant="ghost" size="icon" className="shrink-0 h-10 w-10 rounded-xl bg-white dark:bg-surface border border-stone-100 dark:border-border shadow-sm hover:bg-white dark:bg-surface active:scale-95 transition-all text-stone-500">
+              <Button asChild variant="ghost" size="icon" className="shrink-0 h-10 w-10 rounded-none bg-white dark:bg-surface border border-stone-100 dark:border-border shadow-none hover:bg-white dark:bg-surface active:scale-95 transition-all text-stone-500">
                 <Link href="/dashboard"><ArrowLeft className="h-5 w-5" /></Link>
               </Button>
               <div className="space-y-1">
@@ -199,12 +199,12 @@ export default function AffiliateLinksPage() {
               </div>
            </div>
            
-           <div className="flex items-center gap-4 px-5 py-2.5 rounded-full bg-white dark:bg-surface border border-stone-100 dark:border-border shadow-sm">
+           <div className="flex items-center gap-4 px-5 py-2.5 rounded-none bg-white dark:bg-surface border border-stone-100 dark:border-border shadow-none">
               <span className="text-[10px] font-bold uppercase tracking-widest text-stone-400">My Code:</span>
               <code className="text-[13px] font-black text-orange-600 tracking-wider uppercase">{String(affiliate?.affiliate_code ?? "NONE")}</code>
               <button 
                onClick={() => copyLink(String(affiliate?.affiliate_code ?? ""))}
-               className="p-1 rounded-lg hover:bg-stone-50 dark:bg-surface/50 transition-all text-stone-300 hover:text-orange-500"
+               className="p-1 rounded-none hover:bg-stone-50 dark:bg-surface/50 transition-all text-stone-300 hover:text-orange-500"
               >
                  {copied === affiliate?.affiliate_code ? <CheckCircle className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
               </button>
@@ -213,8 +213,8 @@ export default function AffiliateLinksPage() {
 
         {/* Stats Grid - Smaller */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-           <div className="p-5 rounded-3xl bg-white dark:bg-surface border border-stone-100 dark:border-border shadow-sm flex flex-col justify-between h-32 transition-all hover:shadow-md group">
-              <div className="h-9 w-9 rounded-xl bg-sky-50 flex items-center justify-center text-sky-500 group-hover:scale-110 transition-transform">
+           <div className="p-5 rounded-none bg-white dark:bg-surface border border-stone-100 dark:border-border shadow-none flex flex-col justify-between h-32 transition-all hover:shadow-none group">
+              <div className="h-9 w-9 rounded-none bg-sky-50 flex items-center justify-center text-sky-500 group-hover:scale-110 transition-transform">
                  <MousePointer className="h-5 w-5" />
               </div>
               <div className="mt-4">
@@ -222,8 +222,8 @@ export default function AffiliateLinksPage() {
                  <p className="text-[10px] font-bold uppercase tracking-widest text-stone-400">Clicks</p>
               </div>
            </div>
-           <div className="p-5 rounded-3xl bg-white dark:bg-surface border border-stone-100 dark:border-border shadow-sm flex flex-col justify-between h-32 transition-all hover:shadow-md group">
-              <div className="h-9 w-9 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-500 group-hover:scale-110 transition-transform">
+           <div className="p-5 rounded-none bg-white dark:bg-surface border border-stone-100 dark:border-border shadow-none flex flex-col justify-between h-32 transition-all hover:shadow-none group">
+              <div className="h-9 w-9 rounded-none bg-emerald-50 flex items-center justify-center text-emerald-500 group-hover:scale-110 transition-transform">
                  <ShoppingCart className="h-5 w-5" />
               </div>
               <div className="mt-4">
@@ -231,8 +231,8 @@ export default function AffiliateLinksPage() {
                  <p className="text-[10px] font-bold uppercase tracking-widest text-stone-400">Sales</p>
               </div>
            </div>
-           <div className="p-5 rounded-3xl bg-white dark:bg-surface border border-stone-100 dark:border-border shadow-sm flex flex-col justify-between h-32 transition-all hover:shadow-md group">
-              <div className="h-9 w-9 rounded-xl bg-orange-50 flex items-center justify-center text-orange-500 group-hover:scale-110 transition-transform">
+           <div className="p-5 rounded-none bg-white dark:bg-surface border border-stone-100 dark:border-border shadow-none flex flex-col justify-between h-32 transition-all hover:shadow-none group">
+              <div className="h-9 w-9 rounded-none bg-orange-50 flex items-center justify-center text-orange-500 group-hover:scale-110 transition-transform">
                  <DollarSign className="h-5 w-5" />
               </div>
               <div className="mt-4">
@@ -240,8 +240,8 @@ export default function AffiliateLinksPage() {
                  <p className="text-[10px] font-bold uppercase tracking-widest text-stone-400">Total Profits</p>
               </div>
            </div>
-           <div className="p-5 rounded-3xl bg-white dark:bg-surface border border-stone-100 dark:border-border shadow-sm flex flex-col justify-between h-32 transition-all hover:shadow-md group">
-              <div className="h-9 w-9 rounded-xl bg-purple-50 flex items-center justify-center text-purple-500 group-hover:scale-110 transition-transform">
+           <div className="p-5 rounded-none bg-white dark:bg-surface border border-stone-100 dark:border-border shadow-none flex flex-col justify-between h-32 transition-all hover:shadow-none group">
+              <div className="h-9 w-9 rounded-none bg-purple-50 flex items-center justify-center text-purple-500 group-hover:scale-110 transition-transform">
                  <Link2 className="h-5 w-5" />
               </div>
               <div className="mt-4">
@@ -254,13 +254,13 @@ export default function AffiliateLinksPage() {
         {/* Create Link Section - Compact */}
         <section className="space-y-4">
            <div className="flex items-center gap-2 px-1">
-              <div className="p-2 rounded-lg bg-white dark:bg-surface border border-stone-100 dark:border-border text-stone-400"><Plus className="h-4 w-4" /></div>
+              <div className="p-2 rounded-none bg-white dark:bg-surface border border-stone-100 dark:border-border text-stone-400"><Plus className="h-4 w-4" /></div>
               <h3 className="text-[14px] font-bold text-stone-900 dark:text-white tracking-tight">Create New Link</h3>
            </div>
            
            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
               <div className="md:col-span-12">
-                 <GlassCard className="p-6 rounded-[24px] border-white/80 bg-white dark:bg-surface/60 shadow-sm">
+                 <GlassCard className="p-6 rounded-none border-white/80 bg-white dark:bg-surface/60 shadow-none">
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                        <div className="lg:col-span-7 space-y-6">
                           <div className="relative">
@@ -269,11 +269,11 @@ export default function AffiliateLinksPage() {
                               value={productSearch}
                               onChange={e => setProductSearch(e.target.value)}
                               placeholder="Search products to promote..."
-                              className="h-12 rounded-xl bg-white dark:bg-surface border-stone-100 dark:border-border shadow-sm focus:ring-4 focus:ring-orange-500/5 focus:border-orange-400 text-sm font-bold tracking-tight px-12 transition-all"
+                              className="h-12 rounded-none bg-white dark:bg-surface border-stone-100 dark:border-border shadow-none focus:ring-4 focus:ring-orange-500/5 focus:border-orange-400 text-sm font-bold tracking-tight px-12 transition-all"
                             />
                           </div>
                           
-                          <div className="rounded-2xl border border-stone-100 dark:border-border bg-white dark:bg-surface/40 overflow-hidden max-h-[280px] overflow-y-auto custom-scrollbar">
+                          <div className="rounded-none border border-stone-100 dark:border-border bg-white dark:bg-surface/40 overflow-hidden max-h-[280px] overflow-y-auto custom-scrollbar">
                             {filteredProducts.slice(0, 15).map((p) => {
                               const rate = p.affiliate_commission_rate ?? 0;
                               const selected = selectedProduct?.id === p.id;
@@ -286,16 +286,16 @@ export default function AffiliateLinksPage() {
                                     selected ? "bg-orange-50 text-orange-900" : "hover:bg-white dark:bg-surface/60"
                                   )}
                                 >
-                                  <div className="w-10 h-10 shrink-0 rounded-lg bg-white dark:bg-surface border border-stone-50 shadow-sm overflow-hidden flex items-center justify-center p-0.5">
+                                  <div className="w-10 h-10 shrink-0 rounded-none bg-white dark:bg-surface border border-stone-50 shadow-none overflow-hidden flex items-center justify-center p-0.5">
                                     {Array.isArray(p.images) && p.images[0] ? (
-                                      <img src={p.images[0]} alt="" className="w-full h-full object-cover rounded-md" />
+                                      <img src={p.images[0]} alt="" className="w-full h-full object-cover rounded-none" />
                                     ) : (
                                       <Package className="h-4 w-4 text-stone-100" />
                                     )}
                                   </div>
                                   <div className="flex-1 min-w-0">
                                      <p className="font-bold text-[13px] truncate tracking-tight">{p.name}</p>
-                                     <p className="text-[9px] font-bold text-stone-400 uppercase tracking-widest">{formatMoney(Number(p.price), p.currency)} • {rate}% Comm.</p>
+                                     <p className="text-[9px] font-bold text-stone-400 uppercase tracking-widest">{formatMoney(Number(p.price), p.currency)} â€¢ {rate}% Comm.</p>
                                   </div>
                                   {selected && <CheckCircle className="h-4 w-4 text-orange-500 shrink-0" />}
                                 </button>
@@ -305,13 +305,13 @@ export default function AffiliateLinksPage() {
                        </div>
 
                        <div className="lg:col-span-5">
-                          <div className="h-full rounded-2xl bg-stone-900/5 p-6 flex flex-col justify-center space-y-6">
+                          <div className="h-full rounded-none bg-stone-900/5 p-6 flex flex-col justify-center space-y-6">
                              {selectedProduct ? (
                                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
                                   <div className="flex items-center gap-4">
-                                     <div className="w-12 h-12 rounded-xl bg-white dark:bg-surface border border-stone-100 dark:border-border flex items-center justify-center overflow-hidden p-0.5 shadow-sm">
+                                     <div className="w-12 h-12 rounded-none bg-white dark:bg-surface border border-stone-100 dark:border-border flex items-center justify-center overflow-hidden p-0.5 shadow-none">
                                         {Array.isArray(selectedProduct.images) && selectedProduct.images[0] ? (
-                                          <img src={selectedProduct.images[0]} alt="" className="w-full h-full object-cover rounded-md" />
+                                          <img src={selectedProduct.images[0]} alt="" className="w-full h-full object-cover rounded-none" />
                                         ) : (
                                           <Package className="h-5 w-5 text-stone-100" />
                                         )}
@@ -321,13 +321,13 @@ export default function AffiliateLinksPage() {
                                         <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mt-0.5">You earn {Math.round(selectedProduct.affiliate_commission_rate ?? 10)}% per sale</p>
                                      </div>
                                   </div>
-                                  <Button onClick={createLinkFromProduct} disabled={creating} className="h-12 w-full rounded-xl bg-stone-900 text-white font-bold text-xs uppercase tracking-widest shadow-lg active:scale-95 transition-all border-none group">
+                                  <Button onClick={createLinkFromProduct} disabled={creating} className="h-12 w-full rounded-none bg-stone-900 text-white font-bold text-xs uppercase tracking-widest shadow-none active:scale-95 transition-all border-none group">
                                      {creating ? <RefreshCw className="h-4 w-4 animate-spin text-orange-500" /> : "Create Affiliate Link"}
                                   </Button>
                                </div>
                              ) : (
                                <div className="text-center py-10 space-y-4">
-                                  <div className="w-12 h-12 rounded-2xl bg-white dark:bg-surface border border-stone-50 flex items-center justify-center mx-auto text-stone-100">
+                                  <div className="w-12 h-12 rounded-none bg-white dark:bg-surface border border-stone-50 flex items-center justify-center mx-auto text-stone-100">
                                      <Target className="h-5 w-5" />
                                   </div>
                                   <p className="text-[11px] font-bold uppercase tracking-widest text-stone-400">Select a product above</p>
@@ -335,11 +335,11 @@ export default function AffiliateLinksPage() {
                              )}
 
                              {generatedUrl && (
-                                <div className="mt-4 p-5 rounded-2xl bg-white dark:bg-surface border border-stone-100 dark:border-border shadow-sm space-y-3 animate-in fade-in slide-in-from-bottom-2">
+                                <div className="mt-4 p-5 rounded-none bg-white dark:bg-surface border border-stone-100 dark:border-border shadow-none space-y-3 animate-in fade-in slide-in-from-bottom-2">
                                    <p className="text-[10px] font-bold uppercase tracking-widest text-stone-400">Your Personal Link:</p>
                                    <div className="flex gap-2">
-                                      <Input readOnly value={generatedUrl} className="h-10 rounded-lg bg-stone-50 dark:bg-surface/50 border-stone-50 text-[12px] font-bold text-stone-900 dark:text-white tracking-tight px-4 focus:ring-0" />
-                                      <Button size="icon" onClick={() => copyLink(generatedUrl)} className="h-10 w-10 shrink-0 rounded-lg bg-stone-900 text-white shadow-md hover:bg-black border-none active:scale-95 transition-all">
+                                      <Input readOnly value={generatedUrl} className="h-10 rounded-none bg-stone-50 dark:bg-surface/50 border-stone-50 text-[12px] font-bold text-stone-900 dark:text-white tracking-tight px-4 focus:ring-0" />
+                                      <Button size="icon" onClick={() => copyLink(generatedUrl)} className="h-10 w-10 shrink-0 rounded-none bg-stone-900 text-white shadow-none hover:bg-black border-none active:scale-95 transition-all">
                                          {copied === generatedUrl ? <CheckCircle className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
                                       </Button>
                                    </div>
@@ -366,12 +366,12 @@ export default function AffiliateLinksPage() {
         <section className="space-y-4">
            <div className="flex items-center justify-between px-1">
               <div className="flex items-center gap-2">
-                 <div className="p-2 rounded-lg bg-white dark:bg-surface border border-stone-100 dark:border-border text-stone-400"><Layers className="h-4 w-4" /></div>
+                 <div className="p-2 rounded-none bg-white dark:bg-surface border border-stone-100 dark:border-border text-stone-400"><Layers className="h-4 w-4" /></div>
                  <h2 className="text-[14px] font-bold text-stone-900 dark:text-white tracking-tight">Active Links ({links.length})</h2>
               </div>
            </div>
            
-           <div className="rounded-[28px] border-white/80 bg-white dark:bg-surface/60 shadow-sm overflow-hidden">
+           <div className="rounded-none border-white/80 bg-white dark:bg-surface/60 shadow-none overflow-hidden">
               <div className="overflow-x-auto">
                  <table className="w-full text-left">
                     <thead>
@@ -399,9 +399,9 @@ export default function AffiliateLinksPage() {
                            <tr key={l.id as string} className="group hover:bg-white dark:bg-surface/60 transition-all duration-300">
                               <td className="px-8 py-5">
                                  <div className="flex items-center gap-4">
-                                    <div className="h-10 w-10 rounded-lg bg-white dark:bg-surface border border-stone-100 dark:border-border shadow-sm overflow-hidden p-0.5 shrink-0 transition-transform group-hover:scale-105">
+                                    <div className="h-10 w-10 rounded-none bg-white dark:bg-surface border border-stone-100 dark:border-border shadow-none overflow-hidden p-0.5 shrink-0 transition-transform group-hover:scale-105">
                                        {product && Array.isArray(product.images) && product.images[0] ? (
-                                         <img src={product.images[0] as string} alt="" className="w-full h-full object-cover rounded-md" />
+                                         <img src={product.images[0] as string} alt="" className="w-full h-full object-cover rounded-none" />
                                        ) : (
                                          <Package className="h-4 w-4 text-stone-100" />
                                        )}
@@ -414,10 +414,10 @@ export default function AffiliateLinksPage() {
                               </td>
                               <td className="px-4 py-5">
                                  <div className="flex items-center justify-center gap-2">
-                                    <code className="px-2.5 py-1 rounded-lg bg-stone-50 dark:bg-surface/50 border border-stone-100 dark:border-border text-[10px] font-bold text-orange-600 tracking-widest uppercase">{l.link_code as string}</code>
+                                    <code className="px-2.5 py-1 rounded-none bg-stone-50 dark:bg-surface/50 border border-stone-100 dark:border-border text-[10px] font-bold text-orange-600 tracking-widest uppercase">{l.link_code as string}</code>
                                     <button 
                                       onClick={() => copyLink(fullUrl)}
-                                      className="p-1.5 rounded-lg hover:bg-white dark:bg-surface transition-all text-stone-300 hover:text-orange-500"
+                                      className="p-1.5 rounded-none hover:bg-white dark:bg-surface transition-all text-stone-300 hover:text-orange-500"
                                     >
                                        {isCopied ? <CheckCircle className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
                                     </button>
@@ -434,8 +434,8 @@ export default function AffiliateLinksPage() {
                               </td>
                               <td className="px-8 py-5 text-right">
                                  <div className="flex items-center justify-end gap-2 text-stone-300">
-                                    <button onClick={() => deleteLink(l.id as string)} className="p-2 hover:bg-rose-50 hover:text-rose-500 rounded-lg transition-all"><Trash2 className="h-4 w-4" /></button>
-                                    <a href={l.destination_url as string} target="_blank" rel="noopener noreferrer" className="p-2 hover:bg-sky-50 hover:text-sky-500 rounded-lg transition-all"><ExternalLink className="h-4 w-4" /></a>
+                                    <button onClick={() => deleteLink(l.id as string)} className="p-2 hover:bg-rose-50 hover:text-rose-500 rounded-none transition-all"><Trash2 className="h-4 w-4" /></button>
+                                    <a href={l.destination_url as string} target="_blank" rel="noopener noreferrer" className="p-2 hover:bg-sky-50 hover:text-sky-500 rounded-none transition-all"><ExternalLink className="h-4 w-4" /></a>
                                  </div>
                               </td>
                            </tr>
@@ -450,3 +450,4 @@ export default function AffiliateLinksPage() {
     </div>
   );
 }
+

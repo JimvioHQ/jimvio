@@ -89,7 +89,7 @@ export function CloudinaryAvatar({
       alt={alt}
       crop="thumb"
       gravity="face"
-      className={cn("rounded-full object-cover", className)}
+      className={cn("rounded-none object-cover", className)}
       fallback={fallback}
     />
   );
@@ -124,3 +124,4 @@ export function CloudinaryVideo({
     />
   );
 }
+

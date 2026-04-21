@@ -79,7 +79,7 @@
   }
 
   .home-surface {
-    @apply rounded-[1.5rem] bg-surface/95 backdrop-blur-lg border border-border shadow-[var(--shadow-lg)];
+    @apply rounded-none bg-surface/95 backdrop-blur-lg border border-border shadow-none;
   }
 
   .home-section-eyebrow {
@@ -141,16 +141,16 @@
     --color-danger-light: #ffe5e5;
 
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-    --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.04), 0 4px 8px rgba(0, 0, 0, 0.04);
-    --shadow-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
-    --shadow-xl: 0 20px 40px -10px rgba(0, 0, 0, 0.1);
+    --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.04);
+    --shadow-lg: none;
+    --shadow-xl: none;
     --shadow-glow: none;
 
-    --radius-sm: 2px;
-    --radius-md: 4px;
-    --radius-lg: 6px;
-    --radius-xl: 8px;
-    --radius-full: 9999px;
+    --radius-sm: 0px;
+    --radius-md: 0px;
+    --radius-lg: 0px;
+    --radius-xl: 0px;
+    --radius-full: 0px;
 
     --space-1: 0.25rem;
     --space-2: 0.5rem;
@@ -197,9 +197,9 @@
 
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
     --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.6);
-    --shadow-lg: 0 12px 30px rgba(0, 0, 0, 0.7);
-    --shadow-xl: 0 20px 40px rgba(0, 0, 0, 0.8);
-    --shadow-glow: 0 0 40px rgba(255, 184, 108, 0.15);
+    --shadow-lg: none;
+    --shadow-xl: none;
+    --shadow-glow: none;
 
     --glass-bg: #262626;
     --glass-border: #333333;
@@ -345,7 +345,7 @@
   }
 
   .btn-premium {
-    @apply h-11 px-6 rounded-full font-bold text-sm transition-all duration-300 flex items-center justify-center gap-2 active:scale-95;
+    @apply h-11 px-6 rounded-none font-bold text-sm transition-all duration-300 flex items-center justify-center gap-2 active:scale-95;
   }
 
   .container-max {

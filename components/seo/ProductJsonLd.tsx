@@ -45,3 +45,4 @@ export const ProductJsonLd = ({ product, siteUrl }: ProductJsonLdProps) => {
     />
   );
 };
+

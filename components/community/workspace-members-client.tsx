@@ -53,7 +53,7 @@ export function WorkspaceMembersClient({ slug, members }: { slug: string; member
             placeholder="Search by nameâ€¦"
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            className="max-w-md rounded-xl border-[var(--color-border)]"
+            className="max-w-md rounded-none border-[var(--color-border)]"
           />
           <div className="flex gap-2 flex-wrap">
             {FILTERS.map((f) => (
@@ -62,7 +62,7 @@ export function WorkspaceMembersClient({ slug, members }: { slug: string; member
                 type="button"
                 onClick={() => setFilter(f)}
                 className={cn(
-                  "px-3 py-1.5 rounded-full text-xs font-black",
+                  "px-3 py-1.5 rounded-none text-xs font-black",
                   filter === f ? "bg-[var(--color-accent-light)] text-[var(--color-accent)]" : "bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)]"
                 )}
               >
@@ -81,9 +81,9 @@ export function WorkspaceMembersClient({ slug, members }: { slug: string; member
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
             {filtered.map((m) => (
-              <div key={m.user_id} className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-sm flex flex-col gap-3">
+              <div key={m.user_id} className="rounded-none border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-none flex flex-col gap-3">
                 <div className="flex items-start gap-3">
-                  <div className="h-12 w-12 rounded-2xl overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface-secondary)] shrink-0">
+                  <div className="h-12 w-12 rounded-none overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface-secondary)] shrink-0">
                     {m.profile?.avatar_url ? (
                       <Image src={m.profile.avatar_url} alt="" width={48} height={48} className="object-cover h-full w-full" unoptimized />
                     ) : (
@@ -95,10 +95,10 @@ export function WorkspaceMembersClient({ slug, members }: { slug: string; member
                   <div className="min-w-0 flex-1">
                     <p className="font-black text-[var(--color-text-primary)] truncate">{m.profile?.full_name || m.profile?.username || "Member"}</p>
                     <div className="flex flex-wrap gap-1 mt-1">
-                      <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-[var(--color-surface-secondary)] text-[var(--color-text-secondary)]">
+                      <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-none bg-[var(--color-surface-secondary)] text-[var(--color-text-secondary)]">
                         {roleLabel(m.role)}
                       </span>
-                      <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-[var(--color-accent-light)] text-[var(--color-accent)]">Lvl {m.level}</span>
+                      <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-none bg-[var(--color-accent-light)] text-[var(--color-accent)]">Lvl {m.level}</span>
                     </div>
                     <p className="text-xs text-[var(--color-text-muted)] mt-1">{m.total_points.toLocaleString()} pts</p>
                     {m.joined_at && (
@@ -106,7 +106,7 @@ export function WorkspaceMembersClient({ slug, members }: { slug: string; member
                     )}
                   </div>
                 </div>
-                <Button asChild variant="outline" className="rounded-xl border-[var(--color-border)] font-bold w-full">
+                <Button asChild variant="outline" className="rounded-none border-[var(--color-border)] font-bold w-full">
                   <Link href="/dashboard/messages">
                     <MessageCircle className="h-4 w-4 mr-2" /> Message
                   </Link>
@@ -119,3 +119,4 @@ export function WorkspaceMembersClient({ slug, members }: { slug: string; member
     </div>
   );
 }
+

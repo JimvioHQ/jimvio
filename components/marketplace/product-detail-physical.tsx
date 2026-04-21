@@ -105,7 +105,7 @@ export function PhysicalProductDetail({
                {/* Essential Stats */}
                <div className="flex flex-col gap-6">
                   <div className="space-y-2">
-                     <Badge variant="outline" className="rounded-full bg-orange-500/10 text-orange-600 dark:text-orange-500 border-orange-500/20 font-black text-[9px] uppercase tracking-widest px-3">
+                     <Badge variant="outline" className="rounded-none bg-orange-500/10 text-orange-600 dark:text-orange-500 border-orange-500/20 font-black text-[9px] uppercase tracking-widest px-3">
                         {product.product_type || "Physical Product"}
                      </Badge>
                      <h1 className="text-2xl md:text-3xl font-black text-stone-900 dark:text-white leading-tight">
@@ -138,10 +138,10 @@ export function PhysicalProductDetail({
 
                   {/* Vendor Quick Info */}
                   {vendor && (
-                     <div className="p-4 rounded-2xl bg-white dark:bg-zinc-900 border border-stone-200 dark:border-white/5 flex items-center gap-4">
-                        <div className="h-10 w-10 rounded-lg bg-stone-100 dark:bg-zinc-800 flex items-center justify-center shrink-0">
+                     <div className="p-4 rounded-none bg-white dark:bg-zinc-900 border border-stone-200 dark:border-white/5 flex items-center gap-4">
+                        <div className="h-10 w-10 rounded-none bg-stone-100 dark:bg-zinc-800 flex items-center justify-center shrink-0">
                            {vendor.business_logo ? (
-                              <img src={vendor.business_logo} className="w-full h-full object-cover rounded-lg" />
+                              <img src={vendor.business_logo} className="w-full h-full object-cover rounded-none" />
                            ) : (
                               <ShoppingBag className="h-5 w-5 text-stone-300" />
                            )}
@@ -152,7 +152,7 @@ export function PhysicalProductDetail({
                               <BadgeCheck className="h-3 w-3 text-blue-500" /> Verified Supplier
                            </p>
                         </div>
-                        <Button variant="ghost" size="sm" className="h-8 rounded-lg text-[10px] font-bold uppercase tracking-widest px-3" asChild>
+                        <Button variant="ghost" size="sm" className="h-8 rounded-none text-[10px] font-bold uppercase tracking-widest px-3" asChild>
                            <Link href={`/vendors/${vendor.business_slug}`}>Visit â†’</Link>
                         </Button>
                      </div>
@@ -161,7 +161,7 @@ export function PhysicalProductDetail({
             </div>
 
             {/* In-depth details */}
-            <div className="bg-white dark:bg-zinc-900/50 rounded-[32px] border border-stone-200 dark:border-white/5 overflow-hidden">
+            <div className="bg-white dark:bg-zinc-900/50 rounded-none border border-stone-200 dark:border-white/5 overflow-hidden">
                <Tabs defaultValue="details">
                   <TabsList className="w-full h-14 bg-stone-50 dark:bg-zinc-950/50 border-b border-stone-200 dark:border-white/5 rounded-none p-0">
                      <TabsTrigger value="details" className="flex-1 h-full font-bold text-[11px] uppercase tracking-widest data-[state=active]:bg-transparent data-[state=active]:text-orange-500 data-[state=active]:border-b-2 border-orange-500">Details</TabsTrigger>
@@ -193,7 +193,7 @@ export function PhysicalProductDetail({
 
           {/* RIGHT COLUMN: Buy Box */}
           <aside className="lg:col-span-4 flex flex-col gap-6">
-             <div className="bg-white dark:bg-zinc-900 rounded-[32px] border-2 border-stone-100 dark:border-white/5 p-8 shadow-xl shadow-stone-200/20 dark:shadow-none sticky top-[calc(var(--navbar-height,64px)+80px)]">
+             <div className="bg-white dark:bg-zinc-900 rounded-none border-2 border-stone-100 dark:border-white/5 p-8 shadow-none shadow-stone-200/20 dark:shadow-none sticky top-[calc(var(--navbar-height,64px)+80px)]">
                 <div className="flex justify-between items-start mb-8">
                    <div>
                       <p className="text-[10px] font-black uppercase tracking-[0.2em] text-stone-400 mb-1">Buy Now</p>
@@ -205,12 +205,12 @@ export function PhysicalProductDetail({
                         className="text-3xl"
                       />
                    </div>
-                   <div className="h-12 w-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center">
+                   <div className="h-12 w-12 rounded-none bg-emerald-500/10 flex items-center justify-center">
                       <ShoppingBag className="h-6 w-6 text-emerald-500" />
                    </div>
                 </div>
 
-                <ProductActionModule product={productProps} vendor={vendorProps} currentPath={`/marketplace/${product.slug}`} className="h-14 rounded-2xl text-lg font-black" />
+                <ProductActionModule product={productProps} vendor={vendorProps} currentPath={`/marketplace/${product.slug}`} className="h-14 rounded-none text-lg font-black" />
 
                 <div className="mt-8 pt-8 border-t border-stone-100 dark:border-white/5 space-y-4">
                    <FeatureRow icon={<Truck className="h-4 w-4" />} text="Free shipping on first order" />
@@ -227,7 +227,7 @@ export function PhysicalProductDetail({
 
 function TrustMiniCard({ icon, label }: { icon: React.ReactNode; label: string }) {
    return (
-      <div className="flex flex-col items-center gap-1 p-2 bg-white dark:bg-zinc-900 border border-stone-200 dark:border-white/10 rounded-xl">
+      <div className="flex flex-col items-center gap-1 p-2 bg-white dark:bg-zinc-900 border border-stone-200 dark:border-white/10 rounded-none">
          {icon}
          <span className="text-[8px] font-black uppercase tracking-widest text-stone-400">{label}</span>
       </div>
@@ -251,3 +251,4 @@ function FeatureRow({ icon, text }: { icon: React.ReactNode; text: string }) {
       </div>
    );
 }
+

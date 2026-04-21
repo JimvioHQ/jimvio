@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { getAdminDB } from "@/services/db";
 import { resolvePlatformSettingsFromRows } from "@/lib/platform-settings-shared";
 import { mergeSupplierSources } from "@/lib/sources/supplier-settings";
@@ -17,3 +17,4 @@ export default async function AdminSettingsPage() {
 
   return <AdminPlatformSettingsForm initial={initial} supplierSourcesInitial={supplierSourcesInitial} />;
 }
+

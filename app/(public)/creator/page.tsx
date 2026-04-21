@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+﻿import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { countOwnedCommunities } from "@/lib/creator-server";
 
@@ -29,3 +29,4 @@ export default async function CreatorIndexPage() {
 
   redirect(`/creator/${first.id}/dashboard`);
 }
+

@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import Link from "next/link";
 import { getTopVendors } from "@/services/db";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -18,7 +18,7 @@ export default async function InfluencersBrowsePage() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,rgba(139,92,246,0.1),transparent_50%)]" />
         
         <div className="max-w-[1400px] mx-auto relative z-10">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white dark:bg-surface/5 border border-white/10 text-orange-400 text-[10px] font-black uppercase tracking-widest mb-6">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-none bg-white dark:bg-surface/5 border border-white/10 text-orange-400 text-[10px] font-black uppercase tracking-widest mb-6">
             <Sparkles className="h-3 w-3 animate-pulse" /> Global Creator Network
           </div>
           <h1 className="text-4xl md:text-6xl font-black text-white mb-6 tracking-tight">
@@ -55,9 +55,9 @@ export default async function InfluencersBrowsePage() {
           {niches.map((n, i) => (
             <button
               key={n}
-              className={`whitespace-nowrap px-6 py-2.5 rounded-2xl text-[13px] font-black transition-all ${
+              className={`whitespace-nowrap px-6 py-2.5 rounded-none text-[13px] font-black transition-all ${
                 i === 0 
-                  ? "bg-zinc-900 text-white shadow-xl shadow-zinc-900/20" 
+                  ? "bg-zinc-900 text-white shadow-none shadow-zinc-900/20" 
                   : "bg-zinc-100 text-zinc-500 hover:bg-zinc-200"
               }`}
             >
@@ -72,26 +72,26 @@ export default async function InfluencersBrowsePage() {
             <Link
               key={v.id}
               href={`/influencers/${v.business_slug}`}
-              className="group relative bg-white dark:bg-surface border border-zinc-100 dark:border-border rounded-[32px] overflow-hidden hover:shadow-2xl hover:border-orange-200 transition-all duration-500"
+              className="group relative bg-white dark:bg-surface border border-zinc-100 dark:border-border rounded-none overflow-hidden hover:shadow-none hover:border-orange-200 transition-all duration-500"
             >
               {/* Card Header Visual */}
               <div className="h-28 bg-zinc-50 dark:bg-surface/50 group-hover:bg-orange-50 transition-colors relative">
                 <div className="absolute -bottom-10 left-6">
                   <div className="relative">
-                    <Avatar className="h-20 w-20 border-4 border-white shadow-xl ring-1 ring-zinc-100 group-hover:scale-110 transition-transform duration-500">
+                    <Avatar className="h-20 w-20 border-4 border-white shadow-none ring-1 ring-zinc-100 group-hover:scale-110 transition-transform duration-500">
                       <AvatarImage src={v.business_logo} />
                       <AvatarFallback className="bg-gradient-to-br from-orange-500 to-violet-600 text-white text-xl font-black">
                         {v.business_name?.charAt(0)}
                       </AvatarFallback>
                     </Avatar>
-                    <div className="absolute -bottom-1 -right-1 bg-white dark:bg-surface p-1 rounded-full shadow-lg">
+                    <div className="absolute -bottom-1 -right-1 bg-white dark:bg-surface p-1 rounded-none shadow-none">
                       <BadgeCheck className="h-5 w-5 text-blue-500 fill-blue-500 stroke-white" />
                     </div>
                   </div>
                 </div>
                 <div className="absolute top-4 right-4 flex gap-1">
                    {['tiktok', 'instagram'].map(p => (
-                     <div key={p} className="h-8 w-8 rounded-full bg-white dark:bg-surface/80 backdrop-blur shadow-sm flex items-center justify-center">
+                     <div key={p} className="h-8 w-8 rounded-none bg-white dark:bg-surface/80 backdrop-blur shadow-none flex items-center justify-center">
                        <Video className="h-3.5 w-3.5 text-zinc-600" />
                      </div>
                    ))}
@@ -119,11 +119,11 @@ export default async function InfluencersBrowsePage() {
 
                 <div className="flex items-center gap-2 mb-6">
                   {["Fashion", "Style"].map(tag => (
-                    <span key={tag} className="px-3 py-1 rounded-full bg-zinc-50 dark:bg-surface/50 text-[10px] font-black text-zinc-400 uppercase tracking-tight">#{tag}</span>
+                    <span key={tag} className="px-3 py-1 rounded-none bg-zinc-50 dark:bg-surface/50 text-[10px] font-black text-zinc-400 uppercase tracking-tight">#{tag}</span>
                   ))}
                 </div>
 
-                <Button className="w-full h-12 rounded-2xl bg-zinc-900 hover:bg-orange-500 text-white font-black text-sm shadow-lg shadow-zinc-900/10 hover:shadow-orange-500/20 transition-all group/btn">
+                <Button className="w-full h-12 rounded-none bg-zinc-900 hover:bg-orange-500 text-white font-black text-sm shadow-none shadow-zinc-900/10 hover:shadow-orange-500/20 transition-all group/btn">
                   View Creator Portfolio
                 </Button>
               </div>
@@ -133,7 +133,7 @@ export default async function InfluencersBrowsePage() {
 
         {/* Empty State / Load More */}
         <div className="mt-20 text-center">
-           <Button variant="outline" className="h-14 rounded-3xl px-10 border-zinc-200 dark:border-border font-black text-zinc-900 dark:text-white hover:bg-zinc-50 dark:bg-surface/50">
+           <Button variant="outline" className="h-14 rounded-none px-10 border-zinc-200 dark:border-border font-black text-zinc-900 dark:text-white hover:bg-zinc-50 dark:bg-surface/50">
              Discover More Creators
            </Button>
         </div>
@@ -141,3 +141,4 @@ export default async function InfluencersBrowsePage() {
     </div>
   );
 }
+

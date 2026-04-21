@@ -38,7 +38,7 @@ interface HomepageHeroProps {
 }
 
 
-/* â”€â”€â”€ Video Marquee â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Video Marquee Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
 function VideoMarquee({ videos, mobile = false }: { videos: any[]; mobile?: boolean }) {
   if (!videos?.length) return null;
   const list = [...videos, ...videos, ...videos, ...videos];
@@ -70,8 +70,8 @@ function VideoMarquee({ videos, mobile = false }: { videos: any[]; mobile?: bool
             className={cn(
               "group relative shrink-0 overflow-hidden bg-stone-900 transition-transform",
               mobile
-                ? "w-[84px] h-[144px] rounded-lg"
-                : "w-[115px] h-[196px] rounded-lg"
+                ? "w-[84px] h-[144px] rounded-none"
+                : "w-[115px] h-[196px] rounded-none"
             )}
           >
             {/* Thumbnail */}
@@ -85,18 +85,18 @@ function VideoMarquee({ videos, mobile = false }: { videos: any[]; mobile?: bool
             <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
 
             {/* Live pip */}
-            <div className="absolute top-2 right-2 flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-black/45 ">
+            <div className="absolute top-2 right-2 flex items-center gap-1 px-1.5 py-0.5 rounded-none bg-black/45 ">
               <span
-                className="block rounded-full bg-[#f97316]"
+                className="block rounded-none bg-[#f97316]"
                 style={{ width: 4, height: 4, animation: "pulse 1.8s infinite" }}
               />
               <span className="text-[7px] font-black text-white uppercase tracking-[.05em]">Live</span>
             </div>
 
-            {/* Title label â€” desktop only */}
+            {/* Title label Ã¢â‚¬â€ desktop only */}
             {!mobile && (
               <div className="absolute bottom-2.5 left-2.5 right-2.5">
-                <span className="text-[9px] font-black text-white uppercase tracking-[.04em] drop-shadow-md line-clamp-2">
+                <span className="text-[9px] font-black text-white uppercase tracking-[.04em] drop-shadow-none line-clamp-2">
                   {v.title}
                 </span>
               </div>
@@ -109,7 +109,7 @@ function VideoMarquee({ videos, mobile = false }: { videos: any[]; mobile?: bool
 }
 
 
-/* â”€â”€â”€ Main Hero â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Main Hero Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
 export function HomepageHero({
   heroCampaigns,
   socialBar,
@@ -133,13 +133,13 @@ export function HomepageHero({
         </DialogTrigger>
         <DialogContent className="max-w-xl p-0 border-none bg-transparent shadow-none overflow-visible z-[9999]">
           <div
-            className="relative overflow-hidden rounded-xl p-6 sm:p-7 max-h-[90vh] overflow-y-auto no-scrollbar bg-surface border border-border shadow-2xl"
+            className="relative overflow-hidden rounded-none p-6 sm:p-7 max-h-[90vh] overflow-y-auto no-scrollbar bg-surface border border-border shadow-none"
           >
-            <div className="pointer-events-none absolute bottom-0 right-0 w-48 h-48 rounded-full blur-3xl opacity-5 bg-orange-500" />
+            <div className="pointer-events-none absolute bottom-0 right-0 w-48 h-48 rounded-none blur-3xl opacity-5 bg-orange-500" />
 
             <DialogHeader className="mb-6 relative z-10 text-center">
               <div
-                className="mx-auto w-12 h-12 rounded-2xl flex items-center justify-center mb-4 bg-orange-50 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-500/20"
+                className="mx-auto w-12 h-12 rounded-none flex items-center justify-center mb-4 bg-orange-50 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-500/20"
               >
                 <Sparkles className="h-6 w-6 text-orange-600" />
               </div>
@@ -161,12 +161,12 @@ export function HomepageHero({
                 <Link
                   key={href}
                   href={href}
-                  className="relative overflow-hidden p-4 rounded-lg border border-border bg-stone-50/50 dark:bg-stone-900/50 transition-all group flex flex-col gap-3 shadow-sm hover:shadow-md"
+                  className="relative overflow-hidden p-4 rounded-none border border-border bg-stone-50/50 dark:bg-stone-900/50 transition-all group flex flex-col gap-3 shadow-none hover:shadow-none"
                 >
-                  <div className="absolute -top-6 -right-6 w-20 h-20 rounded-full blur-2xl opacity-20"
+                  <div className="absolute -top-6 -right-6 w-20 h-20 rounded-none blur-2xl opacity-20"
                     style={{ background: color === "orange" ? "#f97316" : color === "blue" ? "#3b82f6" : color === "violet" ? "#8b5cf6" : "#ec4899" }} />
                   <div className={cn(
-                    "flex h-10 w-10 items-center justify-center rounded-[14px] group-hover:scale-110 transition-transform border",
+                    "flex h-10 w-10 items-center justify-center rounded-none group-hover:scale-110 transition-transform border",
                     color === "blue" ? "bg-blue-50/80 text-blue-600 border-blue-100/80" :
                     color === "violet" ? "bg-violet-50/80 text-violet-600 border-violet-100/80" :
                     color === "pink" ? "bg-pink-50/80 text-pink-600 border-pink-100/80" :
@@ -196,21 +196,21 @@ export function HomepageHero({
 
   return (
     <>
-      {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â• MOBILE HERO â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+      {/* Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â MOBILE HERO Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â */}
       <section className="flex flex-col lg:hidden w-full relative overflow-hidden pb-8 px-5 min-h-[380px] justify-center text-center bg-[#faf9f7] dark:bg-[#0f0e0c]">
-        {/* Ambient blobs â€” match HTML prototype */}
+        {/* Ambient blobs Ã¢â‚¬â€ match HTML prototype */}
         <div
-          className="pointer-events-none absolute top-[-60px] right-[-60px] rounded-full"
+          className="pointer-events-none absolute top-[-60px] right-[-60px] rounded-none"
           style={{ width: 280, height: 280, background: "radial-gradient(circle, rgba(249,115,22,.08), transparent 65%)" }}
         />
 
         <div className="relative z-10 flex flex-col gap-4 pt-6 items-center">
           {/* Live badge */}
           <div
-            className="inline-flex items-center gap-[7px] px-[14px] py-[6px] rounded-md text-[10px] font-bold uppercase tracking-[.1em] text-orange-700 bg-orange-50 border border-orange-100"
+            className="inline-flex items-center gap-[7px] px-[14px] py-[6px] rounded-none text-[10px] font-bold uppercase tracking-[.1em] text-orange-700 bg-orange-50 border border-orange-100"
           >
             <span
-              className="block rounded-full bg-[#f97316] shrink-0"
+              className="block rounded-none bg-[#f97316] shrink-0"
               style={{ width: 6, height: 6 }}
             />
             Global Creator &amp; Sourcing Network
@@ -234,14 +234,14 @@ export function HomepageHero({
           {/* CTA stack */}
           <div className="flex flex-col gap-[10px] w-full max-w-[300px]">
             <StartEarnDialog
-              className="h-12 w-full rounded-lg border-none text-white text-[13px] font-bold uppercase tracking-[.06em] bg-orange-500 shadow-md active:bg-orange-600"
+              className="h-12 w-full rounded-none border-none text-white text-[13px] font-bold uppercase tracking-[.06em] bg-orange-500 shadow-none active:bg-orange-600"
             >
-              Start Earning Now â†’
+              Start Earning Now Ã¢â€ â€™
             </StartEarnDialog>
 
             <button
               onClick={() => openAssistant()}
-              className="h-11 rounded-lg flex items-center justify-center gap-3 font-bold text-stone-700 dark:text-stone-200 text-[12px] uppercase tracking-[.07em] bg-surface border border-border shadow-sm"
+              className="h-11 rounded-none flex items-center justify-center gap-3 font-bold text-stone-700 dark:text-stone-200 text-[12px] uppercase tracking-[.07em] bg-surface border border-border shadow-none"
             >
               <Sparkles className="h-4 w-4 fill-[#f97316] stroke-none" />
               Activate AI Mode
@@ -257,7 +257,7 @@ export function HomepageHero({
               <Link
                 key={item.text}
                 href={item.href}
-                className="shrink-0 flex items-center gap-[6px] px-[14px] py-[8px] rounded-full font-bold text-[10px] uppercase tracking-[.05em] text-[#3c3429] dark:text-stone-300 transition-all bg-white/90 dark:bg-white/[0.05] border border-white/80 dark:border-white/[0.08] shadow-sm"
+                className="shrink-0 flex items-center gap-[6px] px-[14px] py-[8px] rounded-none font-bold text-[10px] uppercase tracking-[.05em] text-[#3c3429] dark:text-stone-300 transition-all bg-white/90 dark:bg-white/[0.05] border border-white/80 dark:border-white/[0.08] shadow-none"
               >
                 <item.icon className="h-[11px] w-[11px] text-[#f97316]" />
                 {item.text}
@@ -277,7 +277,7 @@ export function HomepageHero({
         </div>
       </section>
 
-      {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â• DESKTOP HERO â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+      {/* Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â DESKTOP HERO Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â */}
       <section className="hidden lg:block w-full bg-white dark:bg-[#0f0e0c] border-b border-black/[.07] dark:border-white/[.06]">
         <div className="grid" style={{ gridTemplateColumns: "1fr 280px" }}>
 
@@ -296,15 +296,15 @@ export function HomepageHero({
             >
               {/* Ambient blobs */}
               <div
-                className="absolute pointer-events-none rounded-full"
+                className="absolute pointer-events-none rounded-none"
                 style={{ width: 520, height: 520, top: -120, right: -40, background: "radial-gradient(circle, rgba(249,115,22,.08), transparent 65%)" }}
               />
               <div
-                className="absolute pointer-events-none rounded-full"
+                className="absolute pointer-events-none rounded-none"
                 style={{ width: 380, height: 380, bottom: -80, left: 60, background: "radial-gradient(circle, rgba(99,102,241,.05), transparent 65%)" }}
               />
               <div
-                className="absolute pointer-events-none rounded-full"
+                className="absolute pointer-events-none rounded-none"
                 style={{ width: 260, height: 260, top: "30%", left: "40%", background: "radial-gradient(circle, rgba(255,184,108,.06), transparent 65%)" }}
               />
 
@@ -316,10 +316,10 @@ export function HomepageHero({
                   initial={{ opacity: 0, x: -16 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.45 }}
-                  className="inline-flex items-center gap-[7px] w-fit px-[14px] py-[6px] rounded-md text-[9px] font-bold uppercase tracking-[.1em] text-orange-700 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/20 border border-orange-100 dark:border-orange-900/30"
+                  className="inline-flex items-center gap-[7px] w-fit px-[14px] py-[6px] rounded-none text-[9px] font-bold uppercase tracking-[.1em] text-orange-700 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/20 border border-orange-100 dark:border-orange-900/30"
                 >
                   <span
-                    className="block rounded-full bg-[#f97316] shrink-0"
+                    className="block rounded-none bg-[#f97316] shrink-0"
                     style={{ width: 6, height: 6 }}
                   />
                   Global Creator &amp; Sourcing Network
@@ -353,15 +353,15 @@ export function HomepageHero({
                   className="flex items-center gap-3"
                 >
                   <StartEarnDialog
-                    className="h-11 px-8 rounded-lg border-none text-white text-[13px] font-bold uppercase tracking-[.06em] flex items-center gap-2 bg-orange-500 shadow-md hover:bg-orange-600 transition-colors"
+                    className="h-11 px-8 rounded-none border-none text-white text-[13px] font-bold uppercase tracking-[.06em] flex items-center gap-2 bg-orange-500 shadow-none hover:bg-orange-600 transition-colors"
                   >
-                    Start Earning Now â†’
+                    Start Earning Now Ã¢â€ â€™
                   </StartEarnDialog>
 
                   <button
                     onClick={() => openAssistant()}
                     title="AI Sourcing"
-                    className="h-11 w-11 rounded-lg flex items-center justify-center transition-all bg-surface border border-border shadow-sm hover:bg-stone-50"
+                    className="h-11 w-11 rounded-none flex items-center justify-center transition-all bg-surface border border-border shadow-none hover:bg-stone-50"
                   >
                     <Sparkles className="h-[18px] w-[18px] fill-[#f97316] stroke-none" />
                   </button>
@@ -380,7 +380,7 @@ export function HomepageHero({
                     <Link
                       key={item.text}
                       href={item.href}
-                      className="flex items-center gap-2 px-4 py-[9px] rounded-full font-semibold text-[11px] text-[#3c3429] dark:text-[#d4ccbf] transition-all hover:border-[rgba(249,115,22,0.35)] bg-white/80 dark:bg-white/5 border border-white/90 dark:border-white/10 "
+                      className="flex items-center gap-2 px-4 py-[9px] rounded-none font-semibold text-[11px] text-[#3c3429] dark:text-[#d4ccbf] transition-all hover:border-[rgba(249,115,22,0.35)] bg-white/80 dark:bg-white/5 border border-white/90 dark:border-white/10 "
                     >
                       <item.icon className="h-[13px] w-[13px] text-[#f97316]" />
                       {item.text}
@@ -398,7 +398,7 @@ export function HomepageHero({
                 className="relative z-10 flex items-center gap-10 pr-[52px] py-[32px] overflow-hidden"
               >
                 {/* Featured Story Card (The Mission) */}
-                <div className="w-[180px] shrink-0 drop-shadow-2xl">
+                <div className="w-[180px] shrink-0 drop-shadow-none">
                   <HeroStoryCard viralClips={viralClips} />
                 </div>
 
@@ -425,3 +425,4 @@ export function HomepageHero({
     </>
   );
 }
+

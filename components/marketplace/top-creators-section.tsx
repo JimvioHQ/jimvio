@@ -46,7 +46,7 @@ export function TopCreatorsSection({ creators, className }: TopCreatorsSectionPr
         </div>
         <Link
           href="/influencers/browse"
-          className="text-[11px] font-black text-[#f97316] uppercase tracking-[0.2em] flex items-center gap-2 hover:gap-3 transition-all shrink-0 bg-orange-50 dark:bg-orange-950/30 px-4 py-2 rounded-full border border-orange-100 dark:border-orange-900/50"
+          className="text-[11px] font-black text-[#f97316] uppercase tracking-[0.2em] flex items-center gap-2 hover:gap-3 transition-all shrink-0 bg-orange-50 dark:bg-orange-950/30 px-4 py-2 rounded-none border border-orange-100 dark:border-orange-900/50"
         >
           View All Creators <ChevronRight className="h-3.5 w-3.5" />
         </Link>
@@ -59,7 +59,7 @@ export function TopCreatorsSection({ creators, className }: TopCreatorsSectionPr
           return (
             <div
               key={c.id}
-              className="group flex flex-col items-center text-center p-5 rounded-2xl bg-white dark:bg-surface border border-[#f0f0f0] dark:border-border shadow-sm hover:shadow-lg hover:border-[#f97316]/20 dark:hover:border-orange-900/50 transition-all duration-300"
+              className="group flex flex-col items-center text-center p-5 rounded-none bg-white dark:bg-surface border border-[#f0f0f0] dark:border-border shadow-none hover:shadow-none hover:border-[#f97316]/20 dark:hover:border-orange-900/50 transition-all duration-300"
             >
               <Link href={profileUrl} className="flex flex-col items-center flex-1 min-w-0 w-full">
                 <Avatar className="h-16 w-16 sm:h-20 sm:w-20 border-2 border-[#fff7ed] dark:border-border group-hover:border-[#f97316]/30 transition-colors mb-3">
@@ -81,7 +81,7 @@ export function TopCreatorsSection({ creators, className }: TopCreatorsSectionPr
               <Link href={profileUrl} className="w-full">
                 <Button
                   size="sm"
-                  className="w-full rounded-xl h-9 text-[11px] font-black bg-[#f97316] hover:bg-[#ea580c] text-white border-0"
+                  className="w-full rounded-none h-9 text-[11px] font-black bg-[#f97316] hover:bg-[#ea580c] text-white border-0"
                 >
                   <UserPlus className="h-3.5 w-3.5 mr-1.5" /> Follow
                 </Button>
@@ -93,3 +93,4 @@ export function TopCreatorsSection({ creators, className }: TopCreatorsSectionPr
     </section>
   );
 }
+

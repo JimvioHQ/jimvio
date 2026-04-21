@@ -133,8 +133,8 @@ export function ProductActionModule({
           onClick={handleAddToCart}
           disabled={loading || added}
           className={cn(
-            "flex-1 h-10 font-black text-xs rounded-lg transition-all duration-300 shadow-sm",
-            isDigital ? "h-12 rounded-xl text-sm" : "h-10",
+            "flex-1 h-10 font-black text-xs rounded-none transition-all duration-300 shadow-none",
+            isDigital ? "h-12 rounded-none text-sm" : "h-10",
             added
               ? "bg-green-600 hover:bg-green-700"
               : isDigital 
@@ -157,7 +157,7 @@ export function ProductActionModule({
       <div className="grid grid-cols-2 gap-2">
         <ProductChatTrigger
           variant="outline"
-          className="h-9 text-xs font-bold rounded-lg border border-zinc-200 dark:border-border hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] transition-all"
+          className="h-9 text-xs font-bold rounded-none border border-zinc-200 dark:border-border hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] transition-all"
           vendor={vendor ?? undefined}
           product={{ ...product, images: product.images }}
           currentPath={currentPath}
@@ -171,7 +171,7 @@ export function ProductActionModule({
           disabled={wishlistLoading}
           onClick={handleToggleWishlist}
           className={cn(
-            "h-9 text-xs font-bold rounded-lg border transition-all",
+            "h-9 text-xs font-bold rounded-none border transition-all",
             inWishlist
               ? "border-red-200 bg-red-50 text-red-500 hover:bg-red-100"
               : "border-zinc-200 dark:border-border hover:border-zinc-300"
@@ -188,3 +188,4 @@ export function ProductActionModule({
     </div>
   );
 }
+

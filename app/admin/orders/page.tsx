@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { getAdminOrders } from "@/services/db";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -40,7 +40,7 @@ export default async function AdminOrdersPage() {
                       <td className="py-3 px-4">
                         <Badge variant={o.status === "delivered" ? "default" : "secondary"}>{o.status || "pending"}</Badge>
                       </td>
-                      <td className="py-3 px-4 text-[var(--color-text-muted)]">{o.created_at ? new Date(o.created_at).toLocaleString() : "—"}</td>
+                      <td className="py-3 px-4 text-[var(--color-text-muted)]">{o.created_at ? new Date(o.created_at).toLocaleString() : "â€”"}</td>
                     </tr>
                   ))
                 )}
@@ -52,3 +52,4 @@ export default async function AdminOrdersPage() {
     </div>
   );
 }
+

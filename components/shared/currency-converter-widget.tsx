@@ -59,7 +59,7 @@ export function CurrencyConverterWidget({ className, variant = "full" }: Currenc
   if (variant === "compact") {
     return (
       <div className={cn(
-        "rounded-2xl border border-orange-200/40 bg-gradient-to-br from-orange-50/60 to-amber-50/40 p-4 ",
+        "rounded-none border border-orange-200/40 bg-gradient-to-br from-orange-50/60 to-amber-50/40 p-4 ",
         className
       )}>
         <div className="flex items-center gap-3">
@@ -70,7 +70,7 @@ export function CurrencyConverterWidget({ className, variant = "full" }: Currenc
           <select
             value={toCurrency}
             onChange={(e) => setToCurrency(e.target.value as CurrencyCode)}
-            className="h-8 text-[12px] font-bold rounded-lg border border-orange-200 dark:border-orange-900/50 bg-white dark:bg-surface px-2 text-zinc-700 dark:text-text-secondary focus:ring-2 focus:ring-orange-400"
+            className="h-8 text-[12px] font-bold rounded-none border border-orange-200 dark:border-orange-900/50 bg-white dark:bg-surface px-2 text-zinc-700 dark:text-text-secondary focus:ring-2 focus:ring-orange-400"
           >
             {(Object.keys(SUPPORTED_CURRENCIES) as CurrencyCode[]).map((code) => (
               <option key={code} value={code}>
@@ -85,7 +85,7 @@ export function CurrencyConverterWidget({ className, variant = "full" }: Currenc
 
   return (
     <div className={cn(
-      "rounded-2xl border border-gradient bg-gradient-to-br from-white/95 to-orange-50/30 dark:from-zinc-900/95 dark:to-orange-950/20 p-5 sm:p-6 shadow-[0_8px_32px_rgba(249,115,22,0.08)] border-[#f97316]/20",
+      "rounded-none border border-gradient bg-gradient-to-br from-white/95 to-orange-50/30 dark:from-zinc-900/95 dark:to-orange-950/20 p-5 sm:p-6 shadow-[0_8px_32px_rgba(249,115,22,0.08)] border-[#f97316]/20",
       className
     )}>
       <div className="mb-4 flex items-center justify-between">
@@ -104,13 +104,13 @@ export function CurrencyConverterWidget({ className, variant = "full" }: Currenc
                 value={fromAmount}
                 onChange={(e) => setFromAmount(e.target.value)}
                 placeholder="Enter amount"
-                className="h-10 w-full rounded-lg border border-zinc-200 dark:border-border-strong bg-white dark:bg-surface/50 px-3 text-sm font-semibold text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:border-[#f97316] focus:ring-2 focus:ring-[#f97316]/20"
+                className="h-10 w-full rounded-none border border-zinc-200 dark:border-border-strong bg-white dark:bg-surface/50 px-3 text-sm font-semibold text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:border-[#f97316] focus:ring-2 focus:ring-[#f97316]/20"
               />
             </div>
             <select
               value={fromCurrency}
               onChange={(e) => setFromCurrency(e.target.value as CurrencyCode)}
-              className="w-[100px] rounded-lg border border-zinc-200 dark:border-border-strong bg-white dark:bg-surface/50 px-2 text-sm font-bold text-zinc-900 dark:text-white focus:border-[#f97316] focus:ring-2 focus:ring-[#f97316]/20"
+              className="w-[100px] rounded-none border border-zinc-200 dark:border-border-strong bg-white dark:bg-surface/50 px-2 text-sm font-bold text-zinc-900 dark:text-white focus:border-[#f97316] focus:ring-2 focus:ring-[#f97316]/20"
             >
               {(Object.keys(SUPPORTED_CURRENCIES) as CurrencyCode[]).map((code) => (
                 <option key={code} value={code}>
@@ -125,7 +125,7 @@ export function CurrencyConverterWidget({ className, variant = "full" }: Currenc
         <div className="flex justify-center">
           <button
             onClick={handleSwap}
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-900/50 text-orange-600 dark:text-orange-400 hover:bg-orange-100 dark:hover:bg-orange-900/40 transition-all active:scale-95"
+            className="flex h-9 w-9 items-center justify-center rounded-none bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-900/50 text-orange-600 dark:text-orange-400 hover:bg-orange-100 dark:hover:bg-orange-900/40 transition-all active:scale-95"
             title="Swap currencies"
           >
             <ArrowRightLeft className="h-4 w-4" />
@@ -142,13 +142,13 @@ export function CurrencyConverterWidget({ className, variant = "full" }: Currenc
                 value={toAmount}
                 readOnly
                 placeholder="Converted amount"
-                className="h-10 w-full rounded-lg border border-zinc-200 dark:border-border-strong bg-orange-50/30 dark:bg-surface/30 px-3 text-sm font-semibold text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-600 cursor-not-allowed"
+                className="h-10 w-full rounded-none border border-zinc-200 dark:border-border-strong bg-orange-50/30 dark:bg-surface/30 px-3 text-sm font-semibold text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-600 cursor-not-allowed"
               />
             </div>
             <select
               value={toCurrency}
               onChange={(e) => setToCurrency(e.target.value as CurrencyCode)}
-              className="w-[100px] rounded-lg border border-zinc-200 dark:border-border-strong bg-white dark:bg-surface/50 px-2 text-sm font-bold text-zinc-900 dark:text-white focus:border-[#f97316] focus:ring-2 focus:ring-[#f97316]/20"
+              className="w-[100px] rounded-none border border-zinc-200 dark:border-border-strong bg-white dark:bg-surface/50 px-2 text-sm font-bold text-zinc-900 dark:text-white focus:border-[#f97316] focus:ring-2 focus:ring-[#f97316]/20"
             >
               {(Object.keys(SUPPORTED_CURRENCIES) as CurrencyCode[]).map((code) => (
                 <option key={code} value={code}>
@@ -162,7 +162,7 @@ export function CurrencyConverterWidget({ className, variant = "full" }: Currenc
         {/* Quick Convert Button */}
         <button
           onClick={() => setUserCurrency(toCurrency)}
-          className="w-full h-9 rounded-lg bg-gradient-to-r from-[#f97316] to-orange-500 text-white text-xs font-black uppercase tracking-wide hover:shadow-lg hover:shadow-orange-500/30 active:scale-95 transition-all"
+          className="w-full h-9 rounded-none bg-gradient-to-r from-[#f97316] to-orange-500 text-white text-xs font-black uppercase tracking-wide hover:shadow-none hover:shadow-orange-500/30 active:scale-95 transition-all"
         >
           Set as Default
         </button>
@@ -170,3 +170,4 @@ export function CurrencyConverterWidget({ className, variant = "full" }: Currenc
     </div>
   );
 }
+

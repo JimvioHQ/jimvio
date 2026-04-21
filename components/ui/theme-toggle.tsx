@@ -16,7 +16,7 @@ export function ThemeToggle() {
 
   if (!mounted) {
     return (
-      <Button variant="ghost" size="icon" className="w-10 h-10 rounded-full opacity-0">
+      <Button variant="ghost" size="icon" className="w-10 h-10 rounded-none opacity-0">
         <Sun className="h-5 w-5" />
       </Button>
     );
@@ -27,7 +27,7 @@ export function ThemeToggle() {
       variant="ghost"
       size="icon"
       onClick={() => setTheme(theme === "light" ? "dark" : "light")}
-      className="relative w-10 h-10 rounded-full hover:bg-zinc-100 dark:hover:bg-white dark:bg-surface/10 transition-all duration-300 group"
+      className="relative w-10 h-10 rounded-none hover:bg-zinc-100 dark:hover:bg-white dark:bg-surface/10 transition-all duration-300 group"
       aria-label="Toggle theme"
     >
       <div className="relative w-full h-full flex items-center justify-center">
@@ -38,3 +38,4 @@ export function ThemeToggle() {
     </Button>
   );
 }
+

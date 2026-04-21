@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { Zap, Clock, TrendingUp, Package, Percent, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -26,7 +26,7 @@ export default async function FlashDealsPage() {
       {/* Banner */}
       <section className="bg-ink-dark text-white py-16 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-full h-full opacity-20 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]" />
-        <div className="absolute -left-24 -top-24 w-96 h-96 bg-[var(--color-accent)] opacity-20 blur-[120px] rounded-full" />
+        <div className="absolute -left-24 -top-24 w-96 h-96 bg-[var(--color-accent)] opacity-20 blur-[120px] rounded-none" />
         
         <div className="max-w-[var(--container-max)] mx-auto px-4 sm:px-6 relative z-10">
           <div className="flex flex-col md:flex-row items-center justify-between gap-10">
@@ -47,16 +47,16 @@ export default async function FlashDealsPage() {
                   <span className="text-[10px] text-white/40 capitalize font-black tracking-widest text-center mt-1">Time Remaining</span>
                 </div>
                 <div className="h-10 w-[1px] bg-white dark:bg-surface/10" />
-                <Button className="bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] font-black h-14 px-8 rounded-xl shadow-xl shadow-[var(--color-accent)]/20">
+                <Button className="bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] font-black h-14 px-8 rounded-none shadow-none shadow-[var(--color-accent)]/20">
                   Shop All Deals
                 </Button>
               </div>
             </div>
             
             <div className="hidden lg:block relative">
-               <div className="h-64 w-64 bg-[var(--color-accent)] rounded-[3rem] rotate-12 flex items-center justify-center relative shadow-2xl">
+               <div className="h-64 w-64 bg-[var(--color-accent)] rounded-none rotate-12 flex items-center justify-center relative shadow-none">
                  <Percent className="h-32 w-32 text-white opacity-20 -rotate-12" />
-                 <div className="absolute -bottom-4 -left-4 bg-white dark:bg-surface text-text-primary px-6 py-4 rounded-2xl shadow-xl font-black text-2xl animate-bounce">
+                 <div className="absolute -bottom-4 -left-4 bg-white dark:bg-surface text-text-primary px-6 py-4 rounded-none shadow-none font-black text-2xl animate-bounce">
                    UP TO 70% OFF
                  </div>
                </div>
@@ -87,7 +87,7 @@ export default async function FlashDealsPage() {
           {dealProducts.map((p) => (
             <div key={p.id} className="relative">
               {p.highlight && (
-                <div className="absolute -top-2 -right-2 z-10 bg-[var(--color-accent)] text-white text-[9px] font-black px-2 py-1 rounded shadow-lg animate-pulse">
+                <div className="absolute -top-2 -right-2 z-10 bg-[var(--color-accent)] text-white text-[9px] font-black px-2 py-1 rounded shadow-none animate-pulse">
                   HOT DEAL
                 </div>
               )}
@@ -97,7 +97,7 @@ export default async function FlashDealsPage() {
         </div>
 
         {dealProducts.length === 0 && (
-          <div className="py-32 text-center bg-white dark:bg-surface border border-dashed border-[var(--color-border)] rounded-[2rem]">
+          <div className="py-32 text-center bg-white dark:bg-surface border border-dashed border-[var(--color-border)] rounded-none">
             <Clock className="h-12 w-12 text-[var(--color-text-muted)] mx-auto mb-4" />
             <p className="text-[var(--color-text-secondary)] font-medium">New deals arriving in 4 hours. Stay tuned!</p>
           </div>
@@ -106,23 +106,23 @@ export default async function FlashDealsPage() {
 
       {/* Bulk Sourcing Extra */}
       <section className="py-20 max-w-[var(--container-max)] mx-auto px-4 sm:px-6 mb-20">
-        <div className="bg-gradient-to-br from-ink-dark to-ink-darker rounded-[2.5rem] p-12 flex flex-col md:flex-row items-center gap-10 border border-white/5 relative overflow-hidden">
+        <div className="bg-gradient-to-br from-ink-dark to-ink-darker rounded-none p-12 flex flex-col md:flex-row items-center gap-10 border border-white/5 relative overflow-hidden">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_right,rgba(249,115,22,0.1),transparent_70%)]" />
           <div className="flex-1 text-center md:text-left relative z-10">
             <h2 className="text-3xl font-black text-white mb-4">Bulk Sourcing?</h2>
             <p className="text-white/60 mb-8 max-w-md">Get even lower prices when you order in containers. Connect with our dedicated B2B sourcing agents.</p>
-            <Button className="bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] font-black text-lg h-14 px-10 rounded-xl">
+            <Button className="bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] font-black text-lg h-14 px-10 rounded-none">
               Talk to an Agent <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
           </div>
           <div className="relative z-10">
             <div className="grid grid-cols-2 gap-4">
-              <div className="bg-white dark:bg-surface/5 backdrop-blur-md p-6 rounded-2xl border border-white/10 text-center">
+              <div className="bg-white dark:bg-surface/5 backdrop-blur-md p-6 rounded-none border border-white/10 text-center">
                 <Package className="h-8 w-8 text-[var(--color-accent)] mx-auto mb-2" />
                 <p className="text-white font-black text-2xl">40+</p>
                 <p className="text-[10px] text-white/40 capitalize font-black">Containers/Month</p>
               </div>
-              <div className="bg-white dark:bg-surface/5 backdrop-blur-md p-6 rounded-2xl border border-white/10 text-center">
+              <div className="bg-white dark:bg-surface/5 backdrop-blur-md p-6 rounded-none border border-white/10 text-center">
                 <Percent className="h-8 w-8 text-white mx-auto mb-2" />
                 <p className="text-white font-black text-2xl">42%</p>
                 <p className="text-[10px] text-white/40 capitalize font-black">Avg Savings</p>
@@ -134,3 +134,4 @@ export default async function FlashDealsPage() {
     </div>
   );
 }
+

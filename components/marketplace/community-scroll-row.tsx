@@ -36,3 +36,4 @@ export function CommunityScrollRow({ communities }: CommunityScrollRowProps) {
     </section>
   );
 }
+

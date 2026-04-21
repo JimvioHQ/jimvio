@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
@@ -116,7 +116,7 @@ export function ResetPasswordClient() {
   if (done) {
     return (
       <div className="animate-fade-in text-center">
-        <div className="w-16 h-16 rounded-full bg-emerald-500/20 flex items-center justify-center mx-auto mb-6">
+        <div className="w-16 h-16 rounded-none bg-emerald-500/20 flex items-center justify-center mx-auto mb-6">
           <CheckCircle className="h-8 w-8 text-emerald-400" />
         </div>
         <h2 className="text-2xl font-bold text-[var(--color-text-primary)] mb-3">Password updated</h2>
@@ -135,7 +135,7 @@ export function ResetPasswordClient() {
       <div className="animate-fade-in">
         <h1 className="text-3xl font-black text-[var(--color-text-primary)] mb-2">Link expired</h1>
         <p className="text-[var(--color-text-secondary)] mb-6">{linkError}</p>
-        <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-4 py-3 text-sm text-[var(--color-text-muted)] mb-6">
+        <div className="rounded-none border border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-4 py-3 text-sm text-[var(--color-text-muted)] mb-6">
           Reset links are single-use and time-limited. Use <strong className="text-[var(--color-text-primary)]">Forgot password</strong>{" "}
           to get a fresh email.
         </div>
@@ -154,7 +154,7 @@ export function ResetPasswordClient() {
   if (!ready && !linkError) {
     return (
       <div className="animate-fade-in text-center py-8">
-        <p className="text-[var(--color-text-secondary)] text-sm">Verifying reset link…</p>
+        <p className="text-[var(--color-text-secondary)] text-sm">Verifying reset linkâ€¦</p>
       </div>
     );
   }
@@ -170,7 +170,7 @@ export function ResetPasswordClient() {
           name="password"
           type="password"
           label="New password"
-          placeholder="••••••••"
+          placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
           icon={<KeyRound className="h-4 w-4" />}
           autoComplete="new-password"
           required
@@ -180,14 +180,14 @@ export function ResetPasswordClient() {
           name="password_confirm"
           type="password"
           label="Confirm password"
-          placeholder="••••••••"
+          placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
           icon={<KeyRound className="h-4 w-4" />}
           autoComplete="new-password"
           required
           minLength={8}
         />
         {formError && (
-          <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+          <div className="rounded-none border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
             {formError}
           </div>
         )}
@@ -203,3 +203,4 @@ export function ResetPasswordClient() {
     </div>
   );
 }
+

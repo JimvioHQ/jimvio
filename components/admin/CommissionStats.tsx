@@ -17,7 +17,7 @@ export function CommissionStats({ cards }: { cards: StatCard[] }) {
       {cards.map((c) => (
         <div
           key={c.title}
-          className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-sm)]"
+          className="rounded-none border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-none)]"
         >
           <div className="flex items-start justify-between gap-2">
             <div>
@@ -37,10 +37,11 @@ export function CommissionStats({ cards }: { cards: StatCard[] }) {
                 </p>
               )}
             </div>
-            <div className="rounded-xl bg-[var(--color-accent-light)] p-2 text-[var(--color-accent)]">{c.icon}</div>
+            <div className="rounded-none bg-[var(--color-accent-light)] p-2 text-[var(--color-accent)]">{c.icon}</div>
           </div>
         </div>
       ))}
     </div>
   );
 }
+

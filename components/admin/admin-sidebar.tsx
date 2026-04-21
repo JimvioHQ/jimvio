@@ -62,7 +62,7 @@ export function AdminSidebar({ user, collapsed, onCollapsedChange, mobileOpen, o
             className={cn("h-8 w-auto", collapsed && "hidden")}
           />
           {collapsed && (
-            <div className="h-8 w-8 rounded-lg bg-red-600 flex items-center justify-center">
+            <div className="h-8 w-8 rounded-none bg-red-600 flex items-center justify-center">
               <ShieldCheck className="h-4 w-4 text-white" />
             </div>
           )}
@@ -71,7 +71,7 @@ export function AdminSidebar({ user, collapsed, onCollapsedChange, mobileOpen, o
           <button
             type="button"
             onClick={() => onCollapsedChange(!collapsed)}
-            className="p-1.5 rounded-lg text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)] shrink-0 hidden lg:inline-flex"
+            className="p-1.5 rounded-none text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)] shrink-0 hidden lg:inline-flex"
             aria-label={collapsed ? "Expand" : "Collapse"}
           >
             {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
@@ -80,7 +80,7 @@ export function AdminSidebar({ user, collapsed, onCollapsedChange, mobileOpen, o
             <button
               type="button"
               onClick={onMobileClose}
-              className="lg:hidden flex h-10 w-10 items-center justify-center rounded-xl text-[var(--color-text-primary)] bg-[var(--color-surface-secondary)] border border-[var(--color-border)]/80 active:scale-[0.97] transition-transform"
+              className="lg:hidden flex h-10 w-10 items-center justify-center rounded-none text-[var(--color-text-primary)] bg-[var(--color-surface-secondary)] border border-[var(--color-border)]/80 active:scale-[0.97] transition-transform"
               aria-label="Close menu"
             >
               <X className="h-5 w-5" />
@@ -102,7 +102,7 @@ export function AdminSidebar({ user, collapsed, onCollapsedChange, mobileOpen, o
                   href={item.href}
                   onClick={onMobileClose}
                   className={cn(
-                    "flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-sm font-medium transition-all",
+                    "flex items-center gap-2.5 px-2.5 py-2 rounded-none text-sm font-medium transition-all",
                     "hover:bg-[var(--color-surface-secondary)]",
                     active ? "bg-red-500/10 text-red-600 dark:text-red-400" : "text-[var(--color-text-primary)]"
                   )}
@@ -160,8 +160,8 @@ export function AdminSidebar({ user, collapsed, onCollapsedChange, mobileOpen, o
           <aside
             className={cn(
               "fixed inset-y-0 left-0 flex flex-col w-[min(18rem,90vw)] max-w-[90vw]",
-              "bg-[var(--color-surface)] border-r border-[var(--color-border)] shadow-2xl z-50 lg:hidden",
-              "rounded-r-3xl overflow-hidden animate-in slide-in-from-left duration-200"
+              "bg-[var(--color-surface)] border-r border-[var(--color-border)] shadow-none z-50 lg:hidden",
+              "rounded-none-3xl overflow-hidden animate-in slide-in-from-left duration-200"
             )}
           >
             {content}
@@ -171,3 +171,4 @@ export function AdminSidebar({ user, collapsed, onCollapsedChange, mobileOpen, o
     </>
   );
 }
+

@@ -1,4 +1,4 @@
-import { Metadata } from "next";
+﻿import { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { TikTokFeed, FeedClip } from "@/components/influencer/tiktok-feed";
 
@@ -119,3 +119,4 @@ export default async function ShortsFeedPage() {
     </main>
   );
 }
+

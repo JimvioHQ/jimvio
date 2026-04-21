@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 export const dynamic = "force-dynamic";
 
 import React, { useEffect, useState } from "react";
@@ -60,14 +60,14 @@ export default function CreatorEarningsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-stone-900 dark:text-white flex items-center gap-3">
-             <div className="p-2 rounded-[14px] bg-white dark:bg-surface/60 border border-white/80 shadow-sm shrink-0">
+             <div className="p-2 rounded-none bg-white dark:bg-surface/60 border border-white/80 shadow-none shrink-0">
                <DollarSign className="h-6 w-6 text-emerald-500" />
              </div>
              Creator Earnings
           </h1>
           <p className="text-[12px] font-semibold text-stone-500 mt-1 uppercase tracking-widest pl-14">Earnings from product sales, views, and payouts</p>
         </div>
-        <Button asChild className="h-11 px-6 rounded-[14px] font-bold text-[11px] uppercase tracking-widest bg-stone-900 text-white shadow-[0_4px_16px_rgba(0,0,0,0.15)] active:scale-95 transition-all">
+        <Button asChild className="h-11 px-6 rounded-none font-bold text-[11px] uppercase tracking-widest bg-stone-900 text-white shadow-[0_4px_16px_rgba(0,0,0,0.15)] active:scale-95 transition-all">
           <Link href="/dashboard/withdrawals"><Wallet className="h-4 w-4 mr-2 text-emerald-400" /> Request Payout</Link>
         </Button>
       </div>
@@ -122,7 +122,7 @@ export default function CreatorEarningsPage() {
                   payouts.map((p) => (
                     <tr key={p.id} className="hover:bg-white dark:bg-surface/60 transition-colors group">
                       <td className="py-4 px-6 text-[13px] font-bold text-stone-900 dark:text-white">{new Date(p.created_at).toLocaleDateString()}</td>
-                      <td className="py-4 px-6 text-[13px] font-bold text-stone-600 capitalize">{String(p.payout_method || "—").replace(/_/g, " ")}</td>
+                      <td className="py-4 px-6 text-[13px] font-bold text-stone-600 capitalize">{String(p.payout_method || "â€”").replace(/_/g, " ")}</td>
                       <td className="py-4 px-6 text-right font-black text-[14px] text-stone-900 dark:text-white tabular-nums">{formatMoney(Number(p.amount ?? 0), "RWF")}</td>
                       <td className="py-4 px-6 text-center">
                         <GlassPill color={p.status === "paid" ? "emerald" : p.status === "failed" ? "rose" : "orange"} className="text-[9px]">
@@ -141,3 +141,4 @@ export default function CreatorEarningsPage() {
     </div>
   );
 }
+

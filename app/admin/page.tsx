@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { getAdminOverviewStats, getAdminRevenueChartData } from "@/services/db";
 import { AdminOverviewClient } from "@/components/admin/admin-overview-client";
 
@@ -20,3 +20,4 @@ export default async function AdminOverviewPage() {
 
   return <AdminOverviewClient stats={stats} chartData={chartData} />;
 }
+

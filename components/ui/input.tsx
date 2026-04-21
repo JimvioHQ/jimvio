@@ -35,10 +35,10 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
               paddingBottom: "0.5rem",
             }}
             className={cn(
-              "w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm leading-normal text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)]",
+              "w-full rounded-none border border-[var(--color-border)] bg-[var(--color-surface)] text-sm leading-normal text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)]",
               "focus:outline-none focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)] focus:ring-offset-0 transition-[box-shadow,border-color] duration-150",
               "disabled:cursor-not-allowed disabled:opacity-50",
-              "shadow-[var(--shadow-sm)] box-border min-h-[38px]",
+              "shadow-[var(--shadow-none)] box-border min-h-[38px]",
               error && "border-[var(--color-danger)] focus:border-[var(--color-danger)] focus:ring-[var(--color-danger)]/20",
               className
             )}
@@ -60,3 +60,4 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
 Input.displayName = "Input";
 
 export { Input };
+

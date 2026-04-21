@@ -91,7 +91,7 @@ export function ProductCardDigital({
       <div
         className={cn(
           "group relative flex flex-col h-full overflow-hidden transition-all duration-500",
-          "rounded-[32px] bg-white dark:bg-zinc-900/50 border border-stone-200 dark:border-white/5",
+          "rounded-none bg-white dark:bg-zinc-900/50 border border-stone-200 dark:border-white/5",
           inCart
             ? "ring-2 ring-sky-500/40 shadow-[0_0_40px_rgba(14,165,233,0.15)]"
             : "hover:border-sky-500/40 hover:shadow-[0_20px_40px_rgba(14,165,233,0.1)] hover:-translate-y-1.5"
@@ -133,7 +133,7 @@ export function ProductCardDigital({
           )}>
             <button
               onClick={handleChat}
-              className="flex-1 flex items-center justify-center gap-1.5 h-9 rounded-xl font-semibold bg-white/10 border border-white/10 text-white hover:bg-white/20 transition-all text-[11px]"
+              className="flex-1 flex items-center justify-center gap-1.5 h-9 rounded-none font-semibold bg-white/10 border border-white/10 text-white hover:bg-white/20 transition-all text-[11px]"
             >
               <MessageCircle className="h-3.5 w-3.5" /> Ask
             </button>
@@ -141,7 +141,7 @@ export function ProductCardDigital({
             {p.pricing_type === "recurring" ? (
                <Link 
                 href={`${detailBasePath}/${p.slug}`}
-                className="flex-[2] flex items-center justify-center gap-1.5 h-9 rounded-xl font-bold bg-sky-500 hover:bg-sky-400 border border-sky-400/50 text-white transition-all shadow-lg text-[11px]"
+                className="flex-[2] flex items-center justify-center gap-1.5 h-9 rounded-none font-bold bg-sky-500 hover:bg-sky-400 border border-sky-400/50 text-white transition-all shadow-none text-[11px]"
               >
                 <Zap className="h-3.5 w-3.5" /> {p.button_text || "View Plans"}
               </Link>
@@ -150,14 +150,14 @@ export function ProductCardDigital({
                 onClick={handleCartToggle}
                 disabled={loading}
                 className={cn(
-                  "flex-[2] flex items-center justify-center gap-1.5 h-9 rounded-xl font-bold text-white transition-all shadow-lg text-[11px]",
+                  "flex-[2] flex items-center justify-center gap-1.5 h-9 rounded-none font-bold text-white transition-all shadow-none text-[11px]",
                   inCart
                     ? "bg-emerald-500/80 hover:bg-red-500 border border-emerald-400/50"
                     : "bg-sky-500 hover:bg-sky-400 border border-sky-400/50"
                 )}
               >
                 {loading ? (
-                  <span className="h-4 w-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                  <span className="h-4 w-4 border-2 border-white/40 border-t-white rounded-none animate-spin" />
                 ) : inCart ? (
                   <><CheckCircle2 className="h-3.5 w-3.5 group-hover:hidden" /> <span className="group-hover:hidden">{p.button_text ? "Added" : "Claimed"}</span>
                     <Trash2 className="h-3.5 w-3.5 hidden group-hover:block" /> <span className="hidden group-hover:block">Remove</span></>
@@ -178,7 +178,7 @@ export function ProductCardDigital({
           </Link>
 
           <div className="mt-auto flex items-center justify-between">
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-50 dark:bg-sky-500/10 border border-sky-100 dark:border-sky-500/20">
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-none bg-sky-50 dark:bg-sky-500/10 border border-sky-100 dark:border-sky-500/20">
               <Zap className="h-3 w-3 text-sky-500" />
               <div className="h-4 w-[1px] bg-sky-200 dark:bg-sky-500/20" />
               <LocalizedPrice 
@@ -205,3 +205,4 @@ export function ProductCardDigital({
     </>
   );
 }
+

@@ -35,7 +35,7 @@ export function SharedCommunityCard({ c, rank, showQuickActions = true }: Commun
   const isNew = c.created_at && Date.now() - new Date(c.created_at).getTime() < 7 * 24 * 60 * 60 * 1000;
 
   return (
-    <article className="group relative rounded-[32px] border border-stone-200/60 bg-white dark:bg-bg dark:border-border overflow-hidden shadow-sm hover:shadow-xl hover:border-orange-500/30 transition-all duration-500 hover:-translate-y-1 flex flex-col h-full">
+    <article className="group relative rounded-none border border-stone-200/60 bg-white dark:bg-bg dark:border-border overflow-hidden shadow-none hover:shadow-none hover:border-orange-500/30 transition-all duration-500 hover:-translate-y-1 flex flex-col h-full">
       {/* Cover */}
       <div className="relative h-28 sm:h-44 bg-stone-50 dark:bg-surface shrink-0">
         {c.cover_image ? (
@@ -50,7 +50,7 @@ export function SharedCommunityCard({ c, rank, showQuickActions = true }: Commun
         {/* Rank badge */}
         {rank && rank <= 3 && (
           <div className={cn(
-            "absolute top-4 right-4 h-8 w-8 rounded-full flex items-center justify-center text-[12px] font-black shadow-xl",
+            "absolute top-4 right-4 h-8 w-8 rounded-none flex items-center justify-center text-[12px] font-black shadow-none",
             rank === 1 ? "bg-orange-500 text-white ring-4 ring-orange-500/20" :
               rank === 2 ? "bg-stone-300 text-stone-700 ring-4 ring-stone-300/20" :
                 "bg-amber-700 text-amber-50 ring-4 ring-amber-700/20"
@@ -61,14 +61,14 @@ export function SharedCommunityCard({ c, rank, showQuickActions = true }: Commun
 
         {/* New badge */}
         {isNew && (
-          <div className="absolute top-4 left-4 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-orange-600 text-white text-[10px] font-black uppercase tracking-widest shadow-xl">
+          <div className="absolute top-4 left-4 flex items-center gap-1.5 px-3 py-1.5 rounded-none bg-orange-600 text-white text-[10px] font-black uppercase tracking-widest shadow-none">
             <Sparkles size={11} className="fill-white" /> New
           </div>
         )}
 
         {/* Privacy */}
         {!c.is_free && (
-          <div className="absolute bottom-4 right-4 h-7 w-7 rounded-full bg-black/40 border border-white/20 flex items-center justify-center shadow-lg">
+          <div className="absolute bottom-4 right-4 h-7 w-7 rounded-none bg-black/40 border border-white/20 flex items-center justify-center shadow-none">
             <Lock size={12} className="text-white" />
           </div>
         )}
@@ -76,7 +76,7 @@ export function SharedCommunityCard({ c, rank, showQuickActions = true }: Commun
 
       {/* Avatar overlap */}
       <div className="relative px-4 sm:px-5">
-        <div className="absolute -top-8 sm:-top-10 left-4 sm:left-5 h-16 w-16 sm:h-20 sm:w-20 rounded-[20px] sm:rounded-[28px] border-[3px] sm:border-[4px] border-white dark:border-bg bg-white dark:bg-surface overflow-hidden shadow-2xl z-10 transition-transform group-hover:scale-110 duration-500">
+        <div className="absolute -top-8 sm:-top-10 left-4 sm:left-5 h-16 w-16 sm:h-20 sm:w-20 rounded-none sm:rounded-none border-[3px] sm:border-[4px] border-white dark:border-bg bg-white dark:bg-surface overflow-hidden shadow-none z-10 transition-transform group-hover:scale-110 duration-500">
           {(c.avatar_url || c.image_url) ? (
             <Image src={c.avatar_url || c.image_url || ''} alt="" width={80} height={80} className="object-cover h-full w-full" unoptimized />
           ) : (
@@ -99,7 +99,7 @@ export function SharedCommunityCard({ c, rank, showQuickActions = true }: Commun
         {/* Meta tags */}
         <div className="flex items-center gap-2 flex-wrap">
           {c.category && (
-            <span className="text-[9px] font-black uppercase tracking-[0.15em] px-2 py-1 rounded-lg bg-stone-50 dark:bg-surface text-stone-400 dark:text-text-muted border border-stone-100 dark:border-border-strong">
+            <span className="text-[9px] font-black uppercase tracking-[0.15em] px-2 py-1 rounded-none bg-stone-50 dark:bg-surface text-stone-400 dark:text-text-muted border border-stone-100 dark:border-border-strong">
               {c.category}
             </span>
           )}
@@ -119,7 +119,7 @@ export function SharedCommunityCard({ c, rank, showQuickActions = true }: Commun
         <div className="mt-auto pt-3 sm:pt-4 border-t border-stone-100 dark:border-border space-y-2 sm:space-y-3">
           <div className="flex items-center justify-between">
             {c.is_free ? (
-              <span className="text-[10px] sm:text-[11px] font-black text-orange-600 uppercase tracking-widest bg-orange-50 dark:bg-orange-900/20 px-2 py-0.5 rounded-lg">
+              <span className="text-[10px] sm:text-[11px] font-black text-orange-600 uppercase tracking-widest bg-orange-50 dark:bg-orange-900/20 px-2 py-0.5 rounded-none">
                 Free Access
               </span>
             ) : c.monthly_price ? (
@@ -137,7 +137,7 @@ export function SharedCommunityCard({ c, rank, showQuickActions = true }: Commun
           <Button
             asChild
             variant="orange"
-            className="w-full rounded-[16px] sm:rounded-[20px] font-black text-[12px] sm:text-[13px] h-9 sm:h-10 transition-all uppercase tracking-widest"
+            className="w-full rounded-none sm:rounded-none font-black text-[12px] sm:text-[13px] h-9 sm:h-10 transition-all uppercase tracking-widest"
           >
             <Link href={`/communities/${c.slug}`}>
               Join Community <ArrowRight size={14} className="ml-2 group-hover:translate-x-1 transition-transform" />
@@ -149,7 +149,7 @@ export function SharedCommunityCard({ c, rank, showQuickActions = true }: Commun
         {showQuickActions && (
           <div className="flex items-center gap-2 pt-1 opacity-0 group-hover:opacity-100 transition-opacity">
             <button
-              className="flex-1 text-[10px] font-black uppercase tracking-wider text-stone-400 hover:text-orange-600 flex items-center justify-center gap-1.5 py-2 rounded-xl border border-transparent hover:border-orange-500/20 hover:bg-orange-50/50 dark:hover:bg-orange-900/20 transition-all"
+              className="flex-1 text-[10px] font-black uppercase tracking-wider text-stone-400 hover:text-orange-600 flex items-center justify-center gap-1.5 py-2 rounded-none border border-transparent hover:border-orange-500/20 hover:bg-orange-50/50 dark:hover:bg-orange-900/20 transition-all"
               onClick={(e) => {
                 e.preventDefault();
                 if (typeof window !== 'undefined' && navigator.share) navigator.share({ title: c.name, url: `/communities/${c.slug}` });
@@ -160,7 +160,7 @@ export function SharedCommunityCard({ c, rank, showQuickActions = true }: Commun
             </button>
             <Link
               href={`/communities/create?template=${c.category ?? "other"}`}
-              className="flex-1 text-[10px] font-black uppercase tracking-wider text-stone-400 hover:text-indigo-600 flex items-center justify-center gap-1.5 py-2 rounded-xl border border-transparent hover:border-indigo-500/20 hover:bg-indigo-50/50 dark:hover:bg-indigo-900/20 transition-all"
+              className="flex-1 text-[10px] font-black uppercase tracking-wider text-stone-400 hover:text-indigo-600 flex items-center justify-center gap-1.5 py-2 rounded-none border border-transparent hover:border-indigo-500/20 hover:bg-indigo-50/50 dark:hover:bg-indigo-900/20 transition-all"
               onClick={(e) => e.stopPropagation()}
             >
               <Crown size={12} /> Clone
@@ -171,3 +171,4 @@ export function SharedCommunityCard({ c, rank, showQuickActions = true }: Commun
     </article>
   );
 }
+

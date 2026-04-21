@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState, useTransition, Suspense } from "react";
 import Link from "next/link";
@@ -38,13 +38,13 @@ function RegisterForm() {
   if (success) {
     return (
       <div className="w-full text-center animate-fade-in mt-16">
-        <div className="w-16 h-16 rounded-full bg-green-50 flex items-center justify-center mx-auto mb-6 ring-4 ring-green-50">
+        <div className="w-16 h-16 rounded-none bg-green-50 flex items-center justify-center mx-auto mb-6 ring-4 ring-green-50">
           <CheckCircle className="h-8 w-8 text-green-500" />
         </div>
         <h2 className="text-2xl font-black text-zinc-900 dark:text-white mb-2 tracking-tight">Check your email</h2>
         <p className="text-[14px] font-medium text-zinc-500 mb-8 max-w-xs mx-auto">{success}</p>
         <Link href="/login">
-          <Button className="w-full h-12 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-white font-bold text-[14px] shadow-sm transition-all">
+          <Button className="w-full h-12 rounded-none bg-zinc-900 hover:bg-zinc-800 text-white font-bold text-[14px] shadow-none transition-all">
             Back to sign in
           </Button>
         </Link>
@@ -57,7 +57,7 @@ function RegisterForm() {
       <div className="space-y-3 mb-10">
         <h1 className="text-3xl font-black tracking-tight text-zinc-900 dark:text-white">Create an account</h1>
         <p className="text-[14px] font-medium text-zinc-500">
-          Join Jimvio — completely free to sign up.
+          Join Jimvio â€” completely free to sign up.
         </p>
       </div>
 
@@ -72,7 +72,7 @@ function RegisterForm() {
             }
           })}
           disabled={pending}
-          className="w-full h-12 bg-white dark:bg-surface hover:bg-zinc-50 dark:hover:bg-zinc-900/50 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-border shadow-sm rounded-xl font-bold transition-all flex items-center justify-center gap-3"
+          className="w-full h-12 bg-white dark:bg-surface hover:bg-zinc-50 dark:hover:bg-zinc-900/50 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-border shadow-none rounded-none font-bold transition-all flex items-center justify-center gap-3"
         >
           <svg className="h-5 w-5" viewBox="0 0 24 24" aria-hidden>
             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -91,7 +91,7 @@ function RegisterForm() {
 
         <form onSubmit={handleSubmit} className="space-y-5">
           {error && (
-            <div role="alert" className="p-3.5 rounded-lg text-[13px] font-semibold bg-red-50 text-red-600 flex items-center justify-center text-center">
+            <div role="alert" className="p-3.5 rounded-none text-[13px] font-semibold bg-red-50 text-red-600 flex items-center justify-center text-center">
               {error}
             </div>
           )}
@@ -106,7 +106,7 @@ function RegisterForm() {
                 id="full_name"
                 name="full_name"
                 placeholder="Jane Doe"
-                className="pl-11 h-12 rounded-xl border-zinc-200 dark:border-border bg-white dark:bg-surface text-[15px] text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all shadow-sm"
+                className="pl-11 h-12 rounded-none border-zinc-200 dark:border-border bg-white dark:bg-surface text-[15px] text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all shadow-none"
                 required
                 autoComplete="name"
                 disabled={pending}
@@ -125,7 +125,7 @@ function RegisterForm() {
                 type="email"
                 name="email"
                 placeholder="you@example.com"
-                className="pl-11 h-12 rounded-xl border-zinc-200 dark:border-border bg-white dark:bg-surface text-[15px] text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all shadow-sm"
+                className="pl-11 h-12 rounded-none border-zinc-200 dark:border-border bg-white dark:bg-surface text-[15px] text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all shadow-none"
                 required
                 autoComplete="email"
                 disabled={pending}
@@ -144,7 +144,7 @@ function RegisterForm() {
                 type={showPw ? "text" : "password"}
                 name="password"
                 placeholder="8+ characters minimum"
-                className="pl-11 pr-11 h-12 rounded-xl border-zinc-200 dark:border-border bg-white dark:bg-surface text-[15px] text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all shadow-sm"
+                className="pl-11 pr-11 h-12 rounded-none border-zinc-200 dark:border-border bg-white dark:bg-surface text-[15px] text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all shadow-none"
                 required
                 minLength={8}
                 autoComplete="new-password"
@@ -153,7 +153,7 @@ function RegisterForm() {
               <button
                 type="button"
                 onClick={() => setShowPw(!showPw)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-700 dark:text-zinc-300 p-1 rounded-lg transition-colors"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-700 dark:text-zinc-300 p-1 rounded-none transition-colors"
                 aria-label={showPw ? "Hide password" : "Show password"}
               >
                 {showPw ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
@@ -163,11 +163,11 @@ function RegisterForm() {
 
           <Button
             type="submit"
-            className="w-full h-12 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-white font-bold text-[14px] shadow-sm transition-all mt-6"
+            className="w-full h-12 rounded-none bg-zinc-900 hover:bg-zinc-800 text-white font-bold text-[14px] shadow-none transition-all mt-6"
             disabled={pending}
           >
             {pending ? (
-              "Creating account…"
+              "Creating accountâ€¦"
             ) : (
               "Create account"
             )}
@@ -196,10 +196,10 @@ export default function RegisterPage() {
     <Suspense
       fallback={
         <div className="w-full space-y-6 animate-pulse">
-          <div className="h-8 bg-zinc-100 dark:bg-surface-secondary rounded-lg w-3/4 mx-auto" />
-          <div className="h-11 bg-zinc-100 dark:bg-surface-secondary rounded-xl" />
-          <div className="h-11 bg-zinc-100 dark:bg-surface-secondary rounded-xl" />
-          <div className="h-11 bg-zinc-100 dark:bg-surface-secondary rounded-xl" />
+          <div className="h-8 bg-zinc-100 dark:bg-surface-secondary rounded-none w-3/4 mx-auto" />
+          <div className="h-11 bg-zinc-100 dark:bg-surface-secondary rounded-none" />
+          <div className="h-11 bg-zinc-100 dark:bg-surface-secondary rounded-none" />
+          <div className="h-11 bg-zinc-100 dark:bg-surface-secondary rounded-none" />
         </div>
       }
     >
@@ -207,3 +207,4 @@ export default function RegisterPage() {
     </Suspense>
   );
 }
+

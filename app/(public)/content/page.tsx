@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
@@ -21,7 +21,7 @@ import { Badge } from "@/components/ui/badge";
 import { TikTokFeed } from "@/components/influencer/tiktok-feed";
 import { UGCPostCard } from "@/components/ugc/ugc-post-card";
 
-// ── DESIGN TOKENS ───────────────────────────────────────────
+// â”€â”€ DESIGN TOKENS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Light mode palette
 // Surface:   #FFFFFF / #F8F7F4 / #F1EFE8
 // Border:    #E2DFD8 / #CCC9C0
@@ -138,7 +138,7 @@ export default function ContentHubPage() {
   return (
     <div className="min-h-screen bg-[#F8F7F4]">
 
-      {/* ── HEADER ────────────────────────────── */}
+      {/* â”€â”€ HEADER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <div className="sticky top-[var(--navbar-height,0px)] z-40 bg-[#F8F7F4]/90 backdrop-blur-xl border-b border-[#E2DFD8]">
         <div className="max-w-[var(--container-max,1400px)] mx-auto px-5 sm:px-8 py-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
 
@@ -149,8 +149,8 @@ export default function ContentHubPage() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search campaigns, creators, content…"
-              className="w-full h-10 pl-10 pr-4 bg-white dark:bg-surface border border-[#E2DFD8] rounded-lg text-[14px] text-[#1A1917] placeholder:text-[#8A8780] focus:outline-none focus:border-[#1A1917] focus:ring-2 focus:ring-[#1A1917]/6 transition-all font-medium"
+              placeholder="Search campaigns, creators, contentâ€¦"
+              className="w-full h-10 pl-10 pr-4 bg-white dark:bg-surface border border-[#E2DFD8] rounded-none text-[14px] text-[#1A1917] placeholder:text-[#8A8780] focus:outline-none focus:border-[#1A1917] focus:ring-2 focus:ring-[#1A1917]/6 transition-all font-medium"
             />
           </div>
 
@@ -161,7 +161,7 @@ export default function ContentHubPage() {
             <div className="relative">
               <button
                 onClick={() => { setTypeDropdownOpen(!typeDropdownOpen); setSortDropdownOpen(false); }}
-                className="h-10 px-4 flex items-center gap-2 rounded-lg bg-white dark:bg-surface border border-[#E2DFD8] text-[13px] font-semibold text-[#1A1917] hover:border-[#CCC9C0] hover:bg-[#F8F7F4] transition-all whitespace-nowrap"
+                className="h-10 px-4 flex items-center gap-2 rounded-none bg-white dark:bg-surface border border-[#E2DFD8] text-[13px] font-semibold text-[#1A1917] hover:border-[#CCC9C0] hover:bg-[#F8F7F4] transition-all whitespace-nowrap"
               >
                 {FILTER_OPTIONS.find(o => o.id === filterType)?.label}
                 <ChevronDown className={`h-3.5 w-3.5 text-[#8A8780] transition-transform duration-200 ${typeDropdownOpen ? "rotate-180" : ""}`} />
@@ -169,7 +169,7 @@ export default function ContentHubPage() {
               {typeDropdownOpen && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setTypeDropdownOpen(false)} />
-                  <div className="absolute top-full left-0 mt-2 w-48 bg-white dark:bg-surface border border-[#E2DFD8] rounded-xl shadow-lg shadow-black/5 z-50 overflow-hidden py-1">
+                  <div className="absolute top-full left-0 mt-2 w-48 bg-white dark:bg-surface border border-[#E2DFD8] rounded-none shadow-none shadow-black/5 z-50 overflow-hidden py-1">
                     {FILTER_OPTIONS.map((opt) => (
                       <button
                         key={opt.id}
@@ -189,7 +189,7 @@ export default function ContentHubPage() {
             <div className="relative">
               <button
                 onClick={() => { setSortDropdownOpen(!sortDropdownOpen); setTypeDropdownOpen(false); }}
-                className="h-10 px-4 flex items-center gap-2 rounded-lg bg-white dark:bg-surface border border-[#E2DFD8] text-[13px] font-semibold text-[#1A1917] hover:border-[#CCC9C0] hover:bg-[#F8F7F4] transition-all whitespace-nowrap"
+                className="h-10 px-4 flex items-center gap-2 rounded-none bg-white dark:bg-surface border border-[#E2DFD8] text-[13px] font-semibold text-[#1A1917] hover:border-[#CCC9C0] hover:bg-[#F8F7F4] transition-all whitespace-nowrap"
               >
                 {SORT_OPTIONS.find(o => o.id === sortBy)?.label}
                 <ChevronDown className={`h-3.5 w-3.5 text-[#8A8780] transition-transform duration-200 ${sortDropdownOpen ? "rotate-180" : ""}`} />
@@ -197,7 +197,7 @@ export default function ContentHubPage() {
               {sortDropdownOpen && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setSortDropdownOpen(false)} />
-                  <div className="absolute top-full left-0 mt-2 w-44 bg-white dark:bg-surface border border-[#E2DFD8] rounded-xl shadow-lg shadow-black/5 z-50 overflow-hidden py-1">
+                  <div className="absolute top-full left-0 mt-2 w-44 bg-white dark:bg-surface border border-[#E2DFD8] rounded-none shadow-none shadow-black/5 z-50 overflow-hidden py-1">
                     {SORT_OPTIONS.map((opt) => (
                       <button
                         key={opt.id}
@@ -215,13 +215,13 @@ export default function ContentHubPage() {
 
             {/* Platform icons */}
             <div className="hidden sm:flex items-center gap-1.5 pl-3 border-l border-[#E2DFD8] ml-1">
-              <button className="h-9 w-9 rounded-lg bg-white dark:bg-surface border border-[#E2DFD8] flex items-center justify-center text-[#8A8780] hover:text-[#FF0000] hover:border-[#CCC9C0] transition-all">
+              <button className="h-9 w-9 rounded-none bg-white dark:bg-surface border border-[#E2DFD8] flex items-center justify-center text-[#8A8780] hover:text-[#FF0000] hover:border-[#CCC9C0] transition-all">
                 <Youtube className="h-[15px] w-[15px]" />
               </button>
-              <button className="h-9 w-9 rounded-lg bg-white dark:bg-surface border border-[#E2DFD8] flex items-center justify-center text-[#8A8780] hover:text-black hover:border-[#CCC9C0] transition-all">
+              <button className="h-9 w-9 rounded-none bg-white dark:bg-surface border border-[#E2DFD8] flex items-center justify-center text-[#8A8780] hover:text-black hover:border-[#CCC9C0] transition-all">
                 <svg className="h-[15px] w-[15px] fill-current" viewBox="0 0 24 24"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.34 2.88 2.88 0 0 1 2.9-4.22h.42V9.31a6.33 6.33 0 0 0-6.19 6.35 6.33 6.33 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.25-6.34v-5.2a8.21 8.21 0 0 0 2.7.46Z" /></svg>
               </button>
-              <button className="h-9 w-9 rounded-lg bg-white dark:bg-surface border border-[#E2DFD8] flex items-center justify-center text-[#8A8780] hover:text-[#E1306C] hover:border-[#CCC9C0] transition-all">
+              <button className="h-9 w-9 rounded-none bg-white dark:bg-surface border border-[#E2DFD8] flex items-center justify-center text-[#8A8780] hover:text-[#E1306C] hover:border-[#CCC9C0] transition-all">
                 <Instagram className="h-[15px] w-[15px]" />
               </button>
             </div>
@@ -229,7 +229,7 @@ export default function ContentHubPage() {
         </div>
       </div>
 
-      {/* ── CONTENT ───────────────────────────── */}
+      {/* â”€â”€ CONTENT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <div className="max-w-[var(--container-max,1400px)] mx-auto px-5 sm:px-8 py-10">
 
         {loading ? (
@@ -267,14 +267,14 @@ export default function ContentHubPage() {
         )}
       </div>
 
-      {/* ── MODAL ─────────────────────────────── */}
+      {/* â”€â”€ MODAL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {activeItem && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#1A1917]/80 backdrop-blur-sm">
           {activeItem.itemType === "clipping" ? (
             <div className="relative w-full h-full flex flex-col">
               <button
                 onClick={() => setActiveItem(null)}
-                className="absolute top-5 right-5 z-50 h-10 w-10 bg-white dark:bg-surface/10 hover:bg-white dark:bg-surface/20 text-white rounded-full flex items-center justify-center transition-all border border-white/20"
+                className="absolute top-5 right-5 z-50 h-10 w-10 bg-white dark:bg-surface/10 hover:bg-white dark:bg-surface/20 text-white rounded-none flex items-center justify-center transition-all border border-white/20"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -292,11 +292,11 @@ export default function ContentHubPage() {
               <div className="relative w-full max-w-lg max-h-[90vh] p-4 flex flex-col">
                 <button
                   onClick={() => setActiveItem(null)}
-                  className="absolute -top-4 right-4 h-9 w-9 bg-white dark:bg-surface text-[#1A1917] rounded-full flex items-center justify-center shadow-md hover:shadow-lg transition-all z-10"
+                  className="absolute -top-4 right-4 h-9 w-9 bg-white dark:bg-surface text-[#1A1917] rounded-none flex items-center justify-center shadow-none hover:shadow-none transition-all z-10"
                 >
                   <X className="h-4 w-4" />
                 </button>
-                <div className="bg-white dark:bg-surface rounded-2xl overflow-hidden shadow-2xl border border-[#E2DFD8]">
+                <div className="bg-white dark:bg-surface rounded-none overflow-hidden shadow-none border border-[#E2DFD8]">
                   <div className="overflow-y-auto w-full max-h-[85vh]">
                     <UGCPostCard post={activeItem} className="border-none shadow-none rounded-none w-full" />
                   </div>
@@ -310,7 +310,7 @@ export default function ContentHubPage() {
   );
 }
 
-// ── SUB-COMPONENTS ─────────────────────────────────────────
+// â”€â”€ SUB-COMPONENTS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function SectionHeader({ title, count }: { title: string; count?: number }) {
   return (
@@ -325,7 +325,7 @@ function SectionHeader({ title, count }: { title: string; count?: number }) {
 
 function EmptyState() {
   return (
-    <div className="py-28 text-center border-2 border-dashed border-[#E2DFD8] rounded-2xl bg-white dark:bg-surface/50">
+    <div className="py-28 text-center border-2 border-dashed border-[#E2DFD8] rounded-none bg-white dark:bg-surface/50">
       <Search className="h-8 w-8 text-[#CCC9C0] mx-auto mb-3" />
       <p className="font-semibold text-[#8A8780] text-[15px]">No content matches your filters</p>
       <p className="text-[13px] text-[#B5B2AA] mt-1">Try adjusting your search or filter settings</p>
@@ -347,7 +347,7 @@ function ContentCard({
   return (
     <button
       onClick={() => onSelect(item)}
-      className={`text-left group flex flex-col bg-white dark:bg-surface border border-[#E2DFD8] hover:border-[#CCC9C0] rounded-2xl overflow-hidden transition-all duration-300 w-full hover:shadow-lg hover:shadow-black/5 appearance-none outline-none focus-visible:ring-2 focus-visible:ring-[#1A1917]/20`}
+      className={`text-left group flex flex-col bg-white dark:bg-surface border border-[#E2DFD8] hover:border-[#CCC9C0] rounded-none overflow-hidden transition-all duration-300 w-full hover:shadow-none hover:shadow-black/5 appearance-none outline-none focus-visible:ring-2 focus-visible:ring-[#1A1917]/20`}
     >
       {/* Image */}
       <div className={`relative w-full ${featured ? "aspect-[16/10]" : "aspect-[4/3]"} bg-[#F1EFE8] overflow-hidden`}>
@@ -361,7 +361,7 @@ function ContentCard({
 
         {/* Type badge */}
         <div className="absolute top-3 left-3">
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white dark:bg-surface/95 backdrop-blur-md rounded-md text-[11px] font-semibold text-[#1A1917] tracking-wide uppercase">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white dark:bg-surface/95 backdrop-blur-md rounded-none text-[11px] font-semibold text-[#1A1917] tracking-wide uppercase">
             {isUGC ? <MessageCircle className="h-3 w-3 text-[#D85A30]" /> : <Play className="h-3 w-3 text-[#D85A30]" />}
             {isUGC ? "UGC" : "Clip"}
           </span>
@@ -369,7 +369,7 @@ function ContentCard({
 
         {/* Views on hover */}
         <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-          <span className="inline-flex items-center gap-1 px-2 py-1 bg-black/60 backdrop-blur-md rounded-md text-[11px] font-semibold text-white">
+          <span className="inline-flex items-center gap-1 px-2 py-1 bg-black/60 backdrop-blur-md rounded-none text-[11px] font-semibold text-white">
             <Eye className="h-3 w-3" />
             {item.hubViews >= 1000 ? `${(item.hubViews / 1000).toFixed(0)}K` : item.hubViews}
           </span>
@@ -411,9 +411,9 @@ function ContentCard({
         </div>
 
         {/* Progress bar */}
-        <div className="mt-3 h-[3px] bg-[#F1EFE8] rounded-full overflow-hidden">
+        <div className="mt-3 h-[3px] bg-[#F1EFE8] rounded-none overflow-hidden">
           <div
-            className={`h-full rounded-full ${isUGC ? "bg-[#D85A30]/60" : "bg-[#1A1917]/40"}`}
+            className={`h-full rounded-none ${isUGC ? "bg-[#D85A30]/60" : "bg-[#1A1917]/40"}`}
             style={{ width: "72%" }}
           />
         </div>

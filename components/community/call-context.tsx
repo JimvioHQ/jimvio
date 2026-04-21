@@ -214,8 +214,8 @@ export function CallProvider({ children }: CallProviderProps) {
       {/* Global Incoming Call UI */}
       {incomingCall && (
         <div className="fixed inset-0 z-[100000] flex flex-col items-center justify-center bg-black/90 text-white animate-in fade-in zoom-in duration-300">
-           <div className="flex flex-col items-center gap-6 max-w-sm w-full p-8 rounded-[40px] bg-[#233138] border border-white/10 shadow-2xl">
-              <div className="w-24 h-24 rounded-full bg-[#00a884] flex items-center justify-center text-3xl font-bold overflow-hidden shadow-xl">
+           <div className="flex flex-col items-center gap-6 max-w-sm w-full p-8 rounded-none bg-[#233138] border border-white/10 shadow-none">
+              <div className="w-24 h-24 rounded-none bg-[#00a884] flex items-center justify-center text-3xl font-bold overflow-hidden shadow-none">
                 {incomingCall.sender?.avatar_url ? <img src={incomingCall.sender.avatar_url} className="w-full h-full object-cover" alt=""/> : <span>{incomingCall.sender?.full_name?.[0] || 'I'}</span>}
               </div>
               <div className="text-center">
@@ -223,7 +223,7 @@ export function CallProvider({ children }: CallProviderProps) {
                 <p className="text-[#00a884] font-bold mt-1 uppercase tracking-widest text-[11px]">Incoming {incomingCall.type} Call...</p>
               </div>
               <div className="flex items-center gap-12 mt-4">
-                <button onClick={() => { endCall(); setIncomingCall(null); }} className="w-14 h-14 rounded-full bg-red-500 flex items-center justify-center hover:bg-red-600 transition-all active:scale-90 shadow-lg">
+                <button onClick={() => { endCall(); setIncomingCall(null); }} className="w-14 h-14 rounded-none bg-red-500 flex items-center justify-center hover:bg-red-600 transition-all active:scale-90 shadow-none">
                   <X className="h-6 w-6" />
                 </button>
                 <button 
@@ -235,7 +235,7 @@ export function CallProvider({ children }: CallProviderProps) {
                     setCallType(type);
                     initWebRTC(type, false, rId, cId); 
                   }} 
-                  className="w-16 h-16 rounded-full bg-[#00a884] flex items-center justify-center hover:bg-[#008069] transition-all active:scale-95 shadow-lg animate-bounce"
+                  className="w-16 h-16 rounded-none bg-[#00a884] flex items-center justify-center hover:bg-[#008069] transition-all active:scale-95 shadow-none animate-bounce"
                 >
                   {incomingCall.type === 'audio' ? <Phone className="h-7 w-7" /> : <Video className="h-7 w-7" />}
                 </button>
@@ -248,24 +248,24 @@ export function CallProvider({ children }: CallProviderProps) {
       {callType && (
         <div className="fixed inset-0 z-[99999] bg-[#0b141a] flex flex-col items-center justify-center animate-in fade-in slide-in-from-bottom-8 duration-500">
            <div className="absolute top-12 flex flex-col items-center gap-2">
-             <div className="w-16 h-16 rounded-full bg-[#233138] flex items-center justify-center shadow-lg overflow-hidden border border-white/5">
+             <div className="w-16 h-16 rounded-none bg-[#233138] flex items-center justify-center shadow-none overflow-hidden border border-white/5">
                 {incomingCall?.sender?.avatar_url ? <img src={incomingCall.sender.avatar_url} className="w-full h-full object-cover" alt=""/> : <Phone className="h-8 w-8 text-[#8696a0]" />}
              </div>
              <h2 className="text-2xl font-bold text-white mt-4">{incomingCall?.sender?.full_name || 'Calling...'}</h2>
              <p className="text-[#8696a0]">{remoteStream ? 'Connected' : 'Secure Signal...'}</p>
            </div>
            
-           <div className="w-full max-w-4xl h-[60vh] bg-[#233138] rounded-3xl overflow-hidden shadow-2xl border border-white/10 mt-20 relative group">
+           <div className="w-full max-w-4xl h-[60vh] bg-[#233138] rounded-none overflow-hidden shadow-none border border-white/10 mt-20 relative group">
                 <video autoPlay playsInline id="remoteVideo" 
                    ref={(el) => { if(el && remoteStream) el.srcObject = remoteStream; }}
                    className="w-full h-full object-cover" />
                 
                 <video autoPlay playsInline muted id="localVideo"
                    ref={(el) => { if(el && localStream) el.srcObject = localStream; }}
-                   className={`absolute bottom-6 right-6 w-32 h-48 bg-black rounded-2xl border border-white/20 object-cover transition-transform group-hover:scale-105 shadow-xl ${!remoteStream ? 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-72' : ''}`} />
+                   className={`absolute bottom-6 right-6 w-32 h-48 bg-black rounded-none border border-white/20 object-cover transition-transform group-hover:scale-105 shadow-none ${!remoteStream ? 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-72' : ''}`} />
 
-                <div className="absolute top-6 left-6 px-4 py-1.5 bg-black/40 rounded-full border border-white/10 flex items-center gap-2">
-                   <div className="w-2 h-2 bg-[#00a884] rounded-full animate-pulse" />
+                <div className="absolute top-6 left-6 px-4 py-1.5 bg-black/40 rounded-none border border-white/10 flex items-center gap-2">
+                   <div className="w-2 h-2 bg-[#00a884] rounded-none animate-pulse" />
                    <p className="text-[10px] text-[#00a884] font-black uppercase tracking-[0.2em]">P2P SECURE</p>
                 </div>
            </div>
@@ -273,7 +273,7 @@ export function CallProvider({ children }: CallProviderProps) {
            <div className="flex items-center gap-16 mt-16">
               <button 
                 onClick={() => endCall()} 
-                className="w-16 h-16 rounded-full bg-red-500 flex items-center justify-center hover:bg-red-600 transition-all active:scale-90 shadow-xl"
+                className="w-16 h-16 rounded-none bg-red-500 flex items-center justify-center hover:bg-red-600 transition-all active:scale-90 shadow-none"
               >
                 <Phone className="h-8 w-8 rotate-[135deg] text-white" />
               </button>
@@ -283,3 +283,4 @@ export function CallProvider({ children }: CallProviderProps) {
     </CallContext.Provider>
   );
 }
+

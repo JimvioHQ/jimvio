@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { ShieldCheck, Factory, Globe, Award, CheckCircle2, Search, ArrowRight, Star, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -30,8 +30,8 @@ export default async function VerifiedExportersPage() {
               { icon: <ShieldCheck />, label: "License Verified", desc: "Business registrations and export licenses fully authenticated." },
               { icon: <Award />, label: "Quality Certified", desc: "ISO, CE, and RoHS certifications verified and kept up to date." }
             ].map((item, i) => (
-              <div key={i} className="bg-white dark:bg-surface border border-[var(--color-border)] p-8 rounded-[2.5rem] shadow-sm flex flex-col items-center">
-                <div className="h-12 w-12 rounded-xl bg-[var(--color-accent-light)] text-[var(--color-accent)] flex items-center justify-center mb-6">
+              <div key={i} className="bg-white dark:bg-surface border border-[var(--color-border)] p-8 rounded-none shadow-none flex flex-col items-center">
+                <div className="h-12 w-12 rounded-none bg-[var(--color-accent-light)] text-[var(--color-accent)] flex items-center justify-center mb-6">
                   {item.icon}
                 </div>
                 <h3 className="text-lg font-black text-[var(--color-text-primary)] mb-2">{item.label}</h3>
@@ -52,17 +52,17 @@ export default async function VerifiedExportersPage() {
           <div className="flex gap-4 w-full md:w-auto">
             <div className="relative flex-1 md:w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--color-text-muted)]" />
-              <input placeholder="Search factories..." className="w-full h-11 pl-10 pr-4 bg-white dark:bg-surface border border-[var(--color-border)] rounded-xl text-sm" />
+              <input placeholder="Search factories..." className="w-full h-11 pl-10 pr-4 bg-white dark:bg-surface border border-[var(--color-border)] rounded-none text-sm" />
             </div>
-            <Button className="bg-[var(--color-accent)] font-black rounded-xl h-11 px-6">Filter</Button>
+            <Button className="bg-[var(--color-accent)] font-black rounded-none h-11 px-6">Filter</Button>
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {vendors.map((vendor: any) => (
-            <div key={vendor.id} className="bg-white dark:bg-surface border border-[var(--color-border)] rounded-3xl p-8 shadow-sm hover:shadow-2xl hover:-translate-y-1 transition-all duration-300">
+            <div key={vendor.id} className="bg-white dark:bg-surface border border-[var(--color-border)] rounded-none p-8 shadow-none hover:shadow-none hover:-translate-y-1 transition-all duration-300">
                <div className="flex items-start gap-6">
-                 <div className="h-28 w-28 rounded-2xl bg-[var(--color-accent-light)] border border-[var(--color-accent-subtle)] flex items-center justify-center text-[var(--color-accent)] font-black text-4xl overflow-hidden shrink-0">
+                 <div className="h-28 w-28 rounded-none bg-[var(--color-accent-light)] border border-[var(--color-accent-subtle)] flex items-center justify-center text-[var(--color-accent)] font-black text-4xl overflow-hidden shrink-0">
                     {vendor.business_logo ? (
                       <img src={vendor.business_logo} alt={vendor.business_name} className="w-full h-full object-cover" />
                     ) : (
@@ -94,10 +94,10 @@ export default async function VerifiedExportersPage() {
                    </p>
 
                    <div className="flex gap-4">
-                     <Button className="flex-1 bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] font-black h-12 rounded-xl">
+                     <Button className="flex-1 bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] font-black h-12 rounded-none">
                        Inquire Now
                      </Button>
-                     <Button variant="outline" className="flex-1 font-black h-12 rounded-xl border-2" asChild>
+                     <Button variant="outline" className="flex-1 font-black h-12 rounded-none border-2" asChild>
                        <Link href={`/vendors/${vendor.business_slug}`}>View Factory</Link>
                      </Button>
                    </div>
@@ -138,3 +138,4 @@ export default async function VerifiedExportersPage() {
     </div>
   );
 }
+

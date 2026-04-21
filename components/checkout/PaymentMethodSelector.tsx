@@ -207,10 +207,10 @@ export function PaymentMethodSelector({
             type="button"
             onClick={() => onSelect(m.id)}
             className={cn(
-               "relative w-full text-left transition-all duration-200 active:scale-[0.985] rounded-[18px] overflow-hidden ",
+               "relative w-full text-left transition-all duration-200 active:scale-[0.985] rounded-none overflow-hidden ",
                active 
-                  ? "bg-orange-50/80 dark:bg-orange-500/10 border border-orange-500/40 shadow-sm shadow-orange-500/10"
-                  : "bg-surface dark:bg-surface border border-border shadow-sm hover:border-orange-500/20"
+                  ? "bg-orange-50/80 dark:bg-orange-500/10 border border-orange-500/40 shadow-none shadow-orange-500/10"
+                  : "bg-surface dark:bg-surface border border-border shadow-none hover:border-orange-500/20"
             )}
           >
             {/* Active top shimmer line */}
@@ -224,7 +224,7 @@ export function PaymentMethodSelector({
               {/* Icon circle */}
               <div
                 className={cn(
-                   "flex-shrink-0 flex items-center justify-center rounded-[11px] w-9 h-9 border flex-shrink-0",
+                   "flex-shrink-0 flex items-center justify-center rounded-none w-9 h-9 border flex-shrink-0",
                    active 
                       ? "bg-orange-500/10 border-orange-500/30 text-orange-600 dark:text-orange-500" 
                       : "bg-surface dark:bg-surface-secondary border-border text-stone-400 dark:text-text-muted"
@@ -249,9 +249,9 @@ export function PaymentMethodSelector({
               {/* Radio button */}
               <div
                 className={cn(
-                   "flex-shrink-0 flex items-center justify-center rounded-full transition-all duration-200 w-[21px] h-[21px] border-2",
+                   "flex-shrink-0 flex items-center justify-center rounded-none transition-all duration-200 w-[21px] h-[21px] border-2",
                    active 
-                      ? "bg-orange-500 border-orange-500 shadow-sm shadow-orange-500/40" 
+                      ? "bg-orange-500 border-orange-500 shadow-none shadow-orange-500/40" 
                       : "bg-transparent border-orange-500/20 dark:border-border-strong"
                 )}
               >
@@ -268,3 +268,4 @@ export function PaymentMethodSelector({
     </div>
   );
 }
+

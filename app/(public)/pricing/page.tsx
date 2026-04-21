@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import Link from "next/link";
 import { Check, Zap, Star, Building2, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -23,7 +23,7 @@ const plans = [
       "Saved products & wishlist",
       "Email support",
     ],
-    limitations: ["No vendor storefront", "Limited affiliate links", "Standard payouts (5–7 days)"],
+    limitations: ["No vendor storefront", "Limited affiliate links", "Standard payouts (5â€“7 days)"],
   },
   {
     name: "Creator",
@@ -45,7 +45,7 @@ const plans = [
       "Advanced analytics",
       "AI product descriptions (50/mo)",
       "Priority support",
-      "Fast payouts (1–2 days)",
+      "Fast payouts (1â€“2 days)",
     ],
     limitations: [],
   },
@@ -100,8 +100,8 @@ export default function PricingPage() {
         <div className="flex items-center justify-center gap-3 mb-4">
           <span className="text-sm text-white/50">Monthly</span>
           <div className="relative">
-            <div className="w-12 h-6 bg-brand-600 rounded-full" />
-            <div className="absolute top-1 left-1 w-4 h-4 bg-white dark:bg-surface rounded-full shadow" />
+            <div className="w-12 h-6 bg-brand-600 rounded-none" />
+            <div className="absolute top-1 left-1 w-4 h-4 bg-white dark:bg-surface rounded-none shadow" />
           </div>
           <span className="text-sm text-white">Yearly</span>
           <Badge variant="success" className="text-xs">Save 20%</Badge>
@@ -124,7 +124,7 @@ export default function PricingPage() {
               <CardContent className="p-6">
                 {/* Header */}
                 <div className="flex items-center gap-3 mb-4">
-                  <div className={`p-2.5 rounded-xl bg-gradient-to-br ${plan.color} text-white`}>
+                  <div className={`p-2.5 rounded-none bg-gradient-to-br ${plan.color} text-white`}>
                     {plan.icon}
                   </div>
                   <div>
@@ -180,7 +180,7 @@ export default function PricingPage() {
           <h2 className="text-3xl font-black text-white text-center mb-10">Frequently Asked Questions</h2>
           <div className="space-y-4">
             {faqs.map((faq, i) => (
-              <div key={i} className="bg-surface rounded-2xl border border-base shadow-card p-5">
+              <div key={i} className="bg-surface rounded-none border border-base shadow-card p-5">
                 <h3 className="text-white font-semibold mb-2">{faq.q}</h3>
                 <p className="text-white/60 text-sm leading-relaxed">{faq.a}</p>
               </div>
@@ -191,3 +191,4 @@ export default function PricingPage() {
     </div>
   );
 }
+

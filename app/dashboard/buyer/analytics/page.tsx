@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useEffect, useState, useCallback } from "react";
 import { 
@@ -45,7 +45,7 @@ export default function BuyerAnalyticsPage() {
       <div className="max-w-[1400px] mx-auto space-y-6 px-4 sm:px-6 pt-5">
         <div className="mb-10">
           <h1 className="text-2xl font-bold tracking-tight text-stone-900 dark:text-white flex items-center gap-3">
-             <div className="p-2 rounded-[14px] bg-white dark:bg-surface/60 border border-white/80 shadow-sm shrink-0">
+             <div className="p-2 rounded-none bg-white dark:bg-surface/60 border border-white/80 shadow-none shrink-0">
                <BarChart3 className="h-6 w-6 text-orange-500" />
              </div>
              Buyer Insights
@@ -109,3 +109,4 @@ export default function BuyerAnalyticsPage() {
     </div>
   );
 }
+

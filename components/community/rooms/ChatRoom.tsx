@@ -120,10 +120,10 @@ function SkeletonBubble({ own, wide }: { own?: boolean; wide?: boolean }) {
   return (
     <div className={cn("flex w-full mb-3", own ? "justify-end" : "justify-start")}>
       {!own && (
-        <div className="h-8 w-8 rounded-full shrink-0 mr-2 mt-1 animate-pulse"
+        <div className="h-8 w-8 rounded-none shrink-0 mr-2 mt-1 animate-pulse"
           style={{ background: "#d1d7db" }} />
       )}
-      <div className="rounded-[8px] px-3 py-2.5 animate-pulse"
+      <div className="rounded-none px-3 py-2.5 animate-pulse"
         style={{
           background: own ? WA.ownBubble : WA.otherBubble,
           borderRadius: own ? "8px 8px 2px 8px" : "8px 8px 8px 2px",
@@ -131,11 +131,11 @@ function SkeletonBubble({ own, wide }: { own?: boolean; wide?: boolean }) {
           minWidth: 80,
           boxShadow: "0 1px 0.5px rgba(0,0,0,0.1)",
         }}>
-        <div className="h-3 rounded-full mb-2" style={{ background: "#d1d7db", width: "70%" }} />
-        <div className="h-3 rounded-full mb-2" style={{ background: "#d1d7db", width: wide ? "90%" : "50%" }} />
-        {wide && <div className="h-3 rounded-full mb-2" style={{ background: "#d1d7db", width: "40%" }} />}
+        <div className="h-3 rounded-none mb-2" style={{ background: "#d1d7db", width: "70%" }} />
+        <div className="h-3 rounded-none mb-2" style={{ background: "#d1d7db", width: wide ? "90%" : "50%" }} />
+        {wide && <div className="h-3 rounded-none mb-2" style={{ background: "#d1d7db", width: "40%" }} />}
         <div className="flex justify-end mt-2">
-          <div className="h-2 w-8 rounded-full" style={{ background: "#d1d7db" }} />
+          <div className="h-2 w-8 rounded-none" style={{ background: "#d1d7db" }} />
         </div>
       </div>
     </div>
@@ -196,13 +196,13 @@ function WaAudioPlayer({ src, isOwn }: { src: string; isOwn?: boolean }) {
     <div className="flex items-center gap-2.5 py-1 min-w-[200px] max-w-[270px]">
       <audio ref={audioRef} src={src} preload="metadata" className="hidden" />
       <button type="button" onClick={toggle}
-        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white shadow-sm"
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-none text-white shadow-none"
         style={{ background: WA.accent }}>
         {playing ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5 ml-0.5" />}
       </button>
       <div className="flex flex-col flex-1 min-w-0 gap-1.5">
         {/* Progress bar */}
-        <div className="relative h-1.5 rounded-full overflow-hidden cursor-pointer"
+        <div className="relative h-1.5 rounded-none overflow-hidden cursor-pointer"
           style={{ background: isOwn ? "#b2dfcd" : "#d1d7db" }}
           onClick={(e) => {
             const a = audioRef.current;
@@ -210,7 +210,7 @@ function WaAudioPlayer({ src, isOwn }: { src: string; isOwn?: boolean }) {
             const rect = e.currentTarget.getBoundingClientRect();
             a.currentTime = ((e.clientX - rect.left) / rect.width) * duration;
           }}>
-          <div className="absolute inset-y-0 left-0 rounded-full transition-all duration-100"
+          <div className="absolute inset-y-0 left-0 rounded-none transition-all duration-100"
             style={{ width: `${pct}%`, background: WA.accent }} />
         </div>
         <div className="flex items-center justify-between">
@@ -232,15 +232,15 @@ function VoicePreview({ blob, onSend, onDiscard, sending }: {
   useEffect(() => () => URL.revokeObjectURL(url), [url]);
 
   return (
-    <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl border"
+    <div className="flex items-center gap-2 px-3 py-2.5 rounded-none border"
       style={{ background: WA.panel, borderColor: WA.border }}>
       <WaAudioPlayer src={url} isOwn />
       <button type="button" onClick={onDiscard} title="Discard"
-        className="h-8 w-8 flex items-center justify-center rounded-full hover:bg-red-50 transition-colors">
+        className="h-8 w-8 flex items-center justify-center rounded-none hover:bg-red-50 transition-colors">
         <Trash2 className="h-4 w-4 text-red-500" />
       </button>
       <button type="button" onClick={onSend} disabled={sending} title="Send"
-        className="h-9 w-9 flex items-center justify-center rounded-full text-white shadow transition-colors disabled:opacity-50"
+        className="h-9 w-9 flex items-center justify-center rounded-none text-white shadow transition-colors disabled:opacity-50"
         style={{ background: WA.accent }}>
         {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
       </button>
@@ -255,7 +255,7 @@ function WaIconBtn({ children, onClick, disabled, "aria-label": ariaLabel, class
 }) {
   return (
     <button type="button" aria-label={ariaLabel} disabled={disabled} onClick={onClick}
-      className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors disabled:opacity-40",
+      className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-none transition-colors disabled:opacity-40",
         active ? "opacity-100" : "opacity-70 hover:opacity-100", className)}
       style={{ color: WA.textSecondary }}>
       {children}
@@ -266,7 +266,7 @@ function WaIconBtn({ children, onClick, disabled, "aria-label": ariaLabel, class
 // â”€â”€â”€ Quoted reply strip inside bubble â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function ReplyQuote({ body, sender, isOwn }: { body: string; sender: string; isOwn?: boolean }) {
   return (
-    <div className="mb-1.5 rounded-[6px] overflow-hidden flex"
+    <div className="mb-1.5 rounded-none overflow-hidden flex"
       style={{ background: isOwn ? "rgba(0,0,0,0.07)" : "rgba(0,0,0,0.05)", borderLeft: `3px solid ${WA.accent}` }}>
       <div className="px-2.5 py-1.5 min-w-0 flex-1">
         <p className="text-[11px] font-semibold truncate" style={{ color: WA.accent }}>{sender}</p>
@@ -287,7 +287,7 @@ function ReplyBar({ msg, onClose }: { msg: Msg; onClose: () => void }) {
         <p className="text-[12px] truncate" style={{ color: WA.textSecondary }}>{preview}</p>
       </div>
       <button type="button" onClick={onClose}
-        className="shrink-0 h-7 w-7 flex items-center justify-center rounded-full hover:bg-black/5">
+        className="shrink-0 h-7 w-7 flex items-center justify-center rounded-none hover:bg-black/5">
         <X className="h-4 w-4" style={{ color: WA.textSecondary }} />
       </button>
     </div>
@@ -325,7 +325,7 @@ function MessageRow({
 
         {/* Avatar */}
         {!isOwn && !compact && (
-          <div className="h-8 w-8 rounded-full overflow-hidden shrink-0 mt-1"
+          <div className="h-8 w-8 rounded-none overflow-hidden shrink-0 mt-1"
             style={{ border: `1px solid ${WA.border}`, background: WA.header }}>
             {p?.avatar_url
               ? <Image src={p.avatar_url} alt="" width={32} height={32} className="object-cover h-full w-full" unoptimized />
@@ -338,7 +338,7 @@ function MessageRow({
         <div className={cn("min-w-0 flex-1", isOwn && "flex flex-col items-end")}>
 
           {/* Bubble */}
-          <div className="relative rounded-[8px] px-2.5 pt-1.5 pb-2 shadow-sm"
+          <div className="relative rounded-none px-2.5 pt-1.5 pb-2 shadow-none"
             style={{
               background: isOwn ? WA.ownBubble : WA.otherBubble,
               borderRadius: isOwn ? "8px 8px 2px 8px" : "8px 8px 8px 2px",
@@ -368,12 +368,12 @@ function MessageRow({
                   <div className={cn("mt-1.5 flex flex-col gap-2", isOwn && "items-end")}>
                     {nonAudioAtts.map((a) =>
                       a.mime?.startsWith("image/") || /\.(png|jpe?g|gif|webp|avif)(\?|$)/i.test(a.url) ? (
-                        <a key={a.url} href={a.url} target="_blank" rel="noopener noreferrer" className="block rounded-lg overflow-hidden max-w-full">
+                        <a key={a.url} href={a.url} target="_blank" rel="noopener noreferrer" className="block rounded-none overflow-hidden max-w-full">
                           <Image src={a.url} alt={a.name || ""} width={280} height={200} className="max-h-52 w-auto object-contain" unoptimized />
                         </a>
                       ) : (
                         <a key={a.url} href={a.url} target="_blank" rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-lg"
+                          className="inline-flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-none"
                           style={{ background: WA.datePill, color: WA.accent }}>
                           <FileIcon className="h-4 w-4 shrink-0" />
                           <span className="truncate">{a.name || "File"}</span>
@@ -399,7 +399,7 @@ function MessageRow({
               {Object.entries(reactions).map(([emoji, ids]) =>
                 ids.length ? (
                   <button key={emoji} type="button" onClick={() => onToggleReaction(m.id, emoji)}
-                    className="text-[11px] px-2 py-0.5 rounded-full transition-colors"
+                    className="text-[11px] px-2 py-0.5 rounded-none transition-colors"
                     style={{
                       background: userReacted(emoji) ? "rgba(0,168,132,0.2)" : WA.datePill,
                       border: `1px solid ${userReacted(emoji) ? WA.accent : "transparent"}`,
@@ -420,7 +420,7 @@ function MessageRow({
           )}>
             {QUICK_REACTIONS.map((emoji) => (
               <button key={emoji} type="button"
-                className="text-base leading-none h-7 w-7 rounded-lg flex items-center justify-center hover:opacity-80"
+                className="text-base leading-none h-7 w-7 rounded-none flex items-center justify-center hover:opacity-80"
                 onClick={() => onToggleReaction(m.id, emoji)}>
                 {emoji}
               </button>
@@ -428,7 +428,7 @@ function MessageRow({
 
             {/* WhatsApp-style reply button */}
             <button type="button"
-              className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium hover:bg-black/5 transition-colors"
+              className="inline-flex items-center gap-1 rounded-none px-2 py-1 text-xs font-medium hover:bg-black/5 transition-colors"
               style={{ color: WA.textSecondary }}
               onClick={() => onReply(m)}>
               <Reply className="h-3.5 w-3.5" />
@@ -437,7 +437,7 @@ function MessageRow({
 
             {isRoot && !isDM && (
               <button type="button"
-                className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium hover:bg-black/5 transition-colors"
+                className="inline-flex items-center gap-1 rounded-none px-2 py-1 text-xs font-medium hover:bg-black/5 transition-colors"
                 style={{ color: WA.textSecondary }}
                 onClick={onOpenThread}>
                 {replyCount > 0 ? `${replyCount} in thread` : "Thread"}
@@ -446,7 +446,7 @@ function MessageRow({
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button type="button" className="h-7 w-7 inline-flex items-center justify-center rounded-lg hover:bg-black/5 transition-colors" style={{ color: WA.textSecondary }}>
+                <button type="button" className="h-7 w-7 inline-flex items-center justify-center rounded-none hover:bg-black/5 transition-colors" style={{ color: WA.textSecondary }}>
                   <MoreHorizontal className="h-4 w-4" />
                 </button>
               </DropdownMenuTrigger>
@@ -1009,13 +1009,13 @@ export function ChatRoom({ roomId, roomName, communityId, slug, hideHeader }: {
               <h2 className="text-2xl font-bold">{activeConvPeer?.name || roomName}</h2>
               <p className="text-[#8696a0] mt-1">{callType === 'video' ? 'Video calling...' : 'Audio calling...'}</p>
             </div>
-            <div className="w-full h-72 bg-[#233138] rounded-2xl overflow-hidden relative shadow-2xl border border-white/10">
+            <div className="w-full h-72 bg-[#233138] rounded-none overflow-hidden relative shadow-none border border-white/10">
               {remoteStream && <video autoPlay playsInline ref={remoteVideoRef} className="w-full h-full object-cover" />}
-              {localStream && <video autoPlay playsInline muted ref={localVideoRef} className={cn("absolute bottom-3 right-3 w-24 h-36 bg-black rounded-xl border border-white/20 object-cover shadow-xl", !remoteStream && "top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-56")} />}
-              {!remoteStream && !localStream && <div className="absolute inset-0 flex flex-col items-center justify-center gap-3"><div className="w-14 h-14 rounded-full flex items-center justify-center animate-pulse" style={{ background: WA.accent }}>{callType === 'video' ? <Video className="h-7 w-7" /> : <Phone className="h-7 w-7" />}</div><p className="text-sm text-white/70">Connecting...</p></div>}
+              {localStream && <video autoPlay playsInline muted ref={localVideoRef} className={cn("absolute bottom-3 right-3 w-24 h-36 bg-black rounded-none border border-white/20 object-cover shadow-none", !remoteStream && "top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-56")} />}
+              {!remoteStream && !localStream && <div className="absolute inset-0 flex flex-col items-center justify-center gap-3"><div className="w-14 h-14 rounded-none flex items-center justify-center animate-pulse" style={{ background: WA.accent }}>{callType === 'video' ? <Video className="h-7 w-7" /> : <Phone className="h-7 w-7" />}</div><p className="text-sm text-white/70">Connecting...</p></div>}
             </div>
             <div className="mt-4">
-              <button onClick={handleEndCall} className="w-16 h-16 rounded-full bg-red-500 flex items-center justify-center hover:bg-red-600 active:scale-90 shadow-lg transition-all"><Phone className="h-8 w-8 rotate-[135deg]" /></button>
+              <button onClick={handleEndCall} className="w-16 h-16 rounded-none bg-red-500 flex items-center justify-center hover:bg-red-600 active:scale-90 shadow-none transition-all"><Phone className="h-8 w-8 rotate-[135deg]" /></button>
             </div>
           </div>
         </div>
@@ -1025,12 +1025,12 @@ export function ChatRoom({ roomId, roomName, communityId, slug, hideHeader }: {
 
       {/* Edit dialog */}
       <Dialog open={!!editingMsg} onOpenChange={o => !o && setEditingMsg(null)}>
-        <DialogContent overlayClassName="z-[10050]" className="z-[10051] max-w-md shadow-xl">
+        <DialogContent overlayClassName="z-[10050]" className="z-[10051] max-w-md shadow-none">
           <DialogHeader><DialogTitle className="text-base font-semibold">Edit message</DialogTitle></DialogHeader>
-          <Textarea value={editBody} onChange={e => setEditBody(e.target.value)} rows={4} className="mt-2 rounded-xl" />
+          <Textarea value={editBody} onChange={e => setEditBody(e.target.value)} rows={4} className="mt-2 rounded-none" />
           <div className="mt-4 flex justify-end gap-2">
-            <Button variant="outline" className="rounded-xl" onClick={() => setEditingMsg(null)}>Cancel</Button>
-            <Button className="rounded-xl font-semibold text-white" style={{ background: WA.accent }} disabled={editSaving || !editBody.trim()} onClick={() => void saveEdit()}>
+            <Button variant="outline" className="rounded-none" onClick={() => setEditingMsg(null)}>Cancel</Button>
+            <Button className="rounded-none font-semibold text-white" style={{ background: WA.accent }} disabled={editSaving || !editBody.trim()} onClick={() => void saveEdit()}>
               {editSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
             </Button>
           </div>
@@ -1041,7 +1041,7 @@ export function ChatRoom({ roomId, roomName, communityId, slug, hideHeader }: {
       <div className="wa-sidebar hidden md:flex">
         <div className="wa-sb-hdr">
           <span style={{ fontWeight: 700, fontSize: 19, color: '#111b21' }}>Chats</span>
-          <button className="h-8 w-8 flex items-center justify-center rounded-full" style={{ color: WA.textSecondary }}><MoreHorizontal size={18} /></button>
+          <button className="h-8 w-8 flex items-center justify-center rounded-none" style={{ color: WA.textSecondary }}><MoreHorizontal size={18} /></button>
         </div>
         <div className="wa-srch" onClick={() => setSidebarFilter('inbox')}>
           <div className="wa-srch-inner">
@@ -1122,7 +1122,7 @@ export function ChatRoom({ roomId, roomName, communityId, slug, hideHeader }: {
 
         {isChatting && (
           <div className="md:hidden absolute left-3 top-2.5 z-[30]">
-            <button type="button" className="flex h-10 w-10 items-center justify-center rounded-full bg-white dark:bg-surface/80 shadow-md" style={{ color: WA.accent }} onClick={() => setForceShowList(true)}>
+            <button type="button" className="flex h-10 w-10 items-center justify-center rounded-none bg-white dark:bg-surface/80 shadow-none" style={{ color: WA.accent }} onClick={() => setForceShowList(true)}>
               <ChevronLeft size={24} />
             </button>
           </div>
@@ -1130,8 +1130,8 @@ export function ChatRoom({ roomId, roomName, communityId, slug, hideHeader }: {
 
         {(activeConvId || roomId) && hideHeader && (
           <div className="absolute right-4 top-2.5 z-[30] flex items-center gap-2">
-            <button onClick={() => startNativeCall('audio')} className="flex h-10 w-10 items-center justify-center rounded-full bg-white dark:bg-surface/90 shadow-md border border-gray-200 hover:scale-105 transition-all"><Phone className="h-4 w-4" style={{ color: WA.accent }} /></button>
-            <button onClick={() => startNativeCall('video')} className="flex h-10 w-10 items-center justify-center rounded-full bg-white dark:bg-surface/90 shadow-md border border-gray-200 hover:scale-105 transition-all"><Video className="h-4 w-4" style={{ color: WA.accent }} /></button>
+            <button onClick={() => startNativeCall('audio')} className="flex h-10 w-10 items-center justify-center rounded-none bg-white dark:bg-surface/90 shadow-none border border-gray-200 hover:scale-105 transition-all"><Phone className="h-4 w-4" style={{ color: WA.accent }} /></button>
+            <button onClick={() => startNativeCall('video')} className="flex h-10 w-10 items-center justify-center rounded-none bg-white dark:bg-surface/90 shadow-none border border-gray-200 hover:scale-105 transition-all"><Video className="h-4 w-4" style={{ color: WA.accent }} /></button>
           </div>
         )}
 
@@ -1173,7 +1173,7 @@ export function ChatRoom({ roomId, roomName, communityId, slug, hideHeader }: {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: WA.textSecondary }} />
               <input type="search" placeholder="Search messagesâ€¦" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} autoFocus
-                className="w-full rounded-lg border-0 py-2 pl-10 pr-4 text-sm outline-none" style={{ background: WA.searchBg, color: WA.text }} />
+                className="w-full rounded-none border-0 py-2 pl-10 pr-4 text-sm outline-none" style={{ background: WA.searchBg, color: WA.text }} />
             </div>
             <button type="button" className="text-sm font-semibold shrink-0" style={{ color: WA.accent }} onClick={() => { setSearchOpen(false); setSearchQuery(""); }}>Cancel</button>
           </div>
@@ -1212,7 +1212,7 @@ export function ChatRoom({ roomId, roomName, communityId, slug, hideHeader }: {
           ))}
           {!atBottom && !loading && messages.length > 0 && (
             <div className="pointer-events-none sticky bottom-2 z-10 flex justify-center">
-              <button type="button" onClick={() => scrollToBottom()} className="pointer-events-auto h-10 w-10 flex items-center justify-center rounded-full shadow-xl" style={{ background: WA.header, color: WA.accent, border: `1px solid ${WA.border}` }}>
+              <button type="button" onClick={() => scrollToBottom()} className="pointer-events-auto h-10 w-10 flex items-center justify-center rounded-none shadow-none" style={{ background: WA.header, color: WA.accent, border: `1px solid ${WA.border}` }}>
                 <ChevronDown className="h-5 w-5" />
               </button>
             </div>
@@ -1249,7 +1249,7 @@ export function ChatRoom({ roomId, roomName, communityId, slug, hideHeader }: {
                 {/* Animated waveform */}
                 <div className="flex items-end gap-[2px] h-6 flex-1 overflow-hidden">
                   {[...Array(22)].map((_, i) => (
-                    <div key={i} className="shrink-0 w-[3px] rounded-full"
+                    <div key={i} className="shrink-0 w-[3px] rounded-none"
                       style={{
                         background: "#f15c6d",
                         height: `${28 + Math.sin((i + voiceSeconds * 3) * 0.7) * 22 + Math.cos((i * 1.3 + voiceSeconds) * 0.9) * 12}%`,
@@ -1262,7 +1262,7 @@ export function ChatRoom({ roomId, roomName, communityId, slug, hideHeader }: {
               </div>
               {/* Stop button */}
               <button type="button" onClick={stopVoiceRecording}
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white shadow"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-none text-white shadow"
                 style={{ background: "#f15c6d" }}>
                 <StopCircle className="h-5 w-5" />
               </button>
@@ -1275,11 +1275,11 @@ export function ChatRoom({ roomId, roomName, communityId, slug, hideHeader }: {
               <WaIconBtn aria-label="Emoji" onClick={() => setEmojiOpen(true)}><Smile className="h-6 w-6" /></WaIconBtn>
 
               <div className="flex items-center gap-0.5">
-                <label htmlFor="wa-img-input" className="cursor-pointer flex h-9 w-9 items-center justify-center rounded-full hover:bg-black/5">
+                <label htmlFor="wa-img-input" className="cursor-pointer flex h-9 w-9 items-center justify-center rounded-none hover:bg-black/5">
                   <ImageIcon className="h-5 w-5" style={{ color: WA.textSecondary }} />
                 </label>
                 <input id="wa-img-input" type="file" accept="image/*" className="hidden" onChange={e => handleFiles(e.target.files, "main")} />
-                <label htmlFor="wa-file-input" className="cursor-pointer flex h-9 w-9 items-center justify-center rounded-full hover:bg-black/5">
+                <label htmlFor="wa-file-input" className="cursor-pointer flex h-9 w-9 items-center justify-center rounded-none hover:bg-black/5">
                   <FileIcon className="h-5 w-5" style={{ color: WA.textSecondary }} />
                 </label>
                 <input id="wa-file-input" type="file" className="hidden" onChange={e => handleFiles(e.target.files, "main")} />
@@ -1287,9 +1287,9 @@ export function ChatRoom({ roomId, roomName, communityId, slug, hideHeader }: {
 
               <div className="flex flex-col flex-1 min-w-0">
                 {pendingMain.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 px-1 py-1.5 mb-1 rounded-lg" style={{ background: "rgba(0,0,0,0.04)" }}>
+                  <div className="flex flex-wrap gap-1.5 px-1 py-1.5 mb-1 rounded-none" style={{ background: "rgba(0,0,0,0.04)" }}>
                     {pendingMain.map((a, i) => (
-                      <div key={a.url} className="flex items-center gap-1.5 px-2 py-1 bg-white dark:bg-surface rounded-md shadow-sm text-[11px] font-medium" style={{ border: `1px solid ${WA.border}` }}>
+                      <div key={a.url} className="flex items-center gap-1.5 px-2 py-1 bg-white dark:bg-surface rounded-none shadow-none text-[11px] font-medium" style={{ border: `1px solid ${WA.border}` }}>
                         <FileIcon size={11} style={{ color: WA.accent }} />
                         <span className="truncate max-w-[90px]">{a.name}</span>
                         <button onClick={() => setPendingMain(p => p.filter((_, j) => j !== i))}><X size={12} className="hover:text-red-500" /></button>
@@ -1327,7 +1327,7 @@ export function ChatRoom({ roomId, roomName, communityId, slug, hideHeader }: {
               <span className="text-sm font-semibold" style={{ color: WA.text }}>Thread</span>
               <p className="text-xs" style={{ color: WA.textSecondary }}>{threadReplies.length} repl{threadReplies.length === 1 ? "y" : "ies"}</p>
             </div>
-            <button type="button" className="h-8 w-8 flex items-center justify-center rounded-full" style={{ color: WA.textSecondary }} onClick={() => setThreadOpen(false)}><X className="h-5 w-5" /></button>
+            <button type="button" className="h-8 w-8 flex items-center justify-center rounded-none" style={{ color: WA.textSecondary }} onClick={() => setThreadOpen(false)}><X className="h-5 w-5" /></button>
           </div>
           <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0" style={{ background: WA.bg }}>
             <MessageRow m={threadRoot} isOwn={!!userId && threadRoot.sender_id === userId} userId={userId}
@@ -1347,7 +1347,7 @@ export function ChatRoom({ roomId, roomName, communityId, slug, hideHeader }: {
             {pendingThread.length > 0 && (
               <div className="flex flex-wrap gap-1.5">
                 {pendingThread.map((a, i) => (
-                  <span key={`${a.url}-${i}`} className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-lg" style={{ background: WA.datePill, color: WA.text, border: `1px solid ${WA.border}` }}>
+                  <span key={`${a.url}-${i}`} className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-none" style={{ background: WA.datePill, color: WA.text, border: `1px solid ${WA.border}` }}>
                     <FileIcon className="h-3 w-3" /><span className="truncate max-w-[120px]">{a.name}</span>
                     <button type="button" onClick={() => setPendingThread(p => p.filter((_, j) => j !== i))}><X className="h-3 w-3" /></button>
                   </span>
@@ -1357,12 +1357,12 @@ export function ChatRoom({ roomId, roomName, communityId, slug, hideHeader }: {
             <div className="flex items-end gap-2">
               <WaIconBtn onClick={() => threadFileRef.current?.click()} disabled={pendingThread.length >= MAX_ATTACH}><Paperclip className="h-5 w-5" /></WaIconBtn>
               <WaIconBtn onClick={() => setEmojiOpen(true)}><Smile className="h-5 w-5" /></WaIconBtn>
-              <div className="flex-1 rounded-[20px] px-4 py-2" style={{ background: WA.panel, border: `1px solid ${WA.border}` }}>
+              <div className="flex-1 rounded-none px-4 py-2" style={{ background: WA.panel, border: `1px solid ${WA.border}` }}>
                 <Textarea rows={2} placeholder="Reply in threadâ€¦" className="w-full resize-none border-0 bg-transparent p-0 text-sm focus-visible:ring-0" style={{ color: WA.text }}
                   value={threadReplyText} onChange={e => setThreadReplyText(e.target.value)}
                   onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(threadRoot.id); } }} />
               </div>
-              <button type="button" className="h-10 w-10 shrink-0 flex items-center justify-center rounded-full text-white disabled:opacity-50" style={{ background: WA.accent }}
+              <button type="button" className="h-10 w-10 shrink-0 flex items-center justify-center rounded-none text-white disabled:opacity-50" style={{ background: WA.accent }}
                 onClick={() => sendMessage(threadRoot.id)} disabled={sending || (!threadReplyText.trim() && pendingThread.length === 0)}>
                 {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
               </button>
@@ -1374,7 +1374,7 @@ export function ChatRoom({ roomId, roomName, communityId, slug, hideHeader }: {
       {/* â”€â”€ Incoming call â”€â”€ */}
       {incomingCall && (
         <div className="fixed inset-0 z-[30000] flex flex-col items-center justify-center bg-black/90 text-white">
-          <div className="flex flex-col items-center gap-6 max-w-sm w-full p-8 rounded-[40px] bg-[#233138] border border-white/10 shadow-2xl">
+          <div className="flex flex-col items-center gap-6 max-w-sm w-full p-8 rounded-none bg-[#233138] border border-white/10 shadow-none">
             <div className="wa-avatar" style={{ width: 100, height: 100, fontSize: 30, background: WA.accent, color: 'white' }}>
               {incomingCall.sender?.avatar_url ? <img src={incomingCall.sender.avatar_url} className="w-full h-full object-cover" alt="" /> : <span>{incomingCall.sender?.full_name?.[0] || 'I'}</span>}
             </div>
@@ -1383,9 +1383,9 @@ export function ChatRoom({ roomId, roomName, communityId, slug, hideHeader }: {
               <p className="font-bold mt-1 uppercase tracking-widest text-[11px]" style={{ color: WA.accent }}>Incoming {incomingCall.type} Call...</p>
             </div>
             <div className="flex items-center gap-8 mt-4">
-              <button onClick={() => setIncomingCall(null)} className="w-14 h-14 rounded-full bg-red-500 flex items-center justify-center hover:bg-red-600 active:scale-90 shadow-lg transition-all"><X className="h-6 w-6" /></button>
+              <button onClick={() => setIncomingCall(null)} className="w-14 h-14 rounded-none bg-red-500 flex items-center justify-center hover:bg-red-600 active:scale-90 shadow-none transition-all"><X className="h-6 w-6" /></button>
               <button onClick={() => { setCallType(incomingCall.type); setIncomingCall(null); iceQueueRef.current = []; initWebRTC(incomingCall.type, false); }}
-                className="w-16 h-16 rounded-full flex items-center justify-center active:scale-95 shadow-lg animate-bounce" style={{ background: WA.accent }}>
+                className="w-16 h-16 rounded-none flex items-center justify-center active:scale-95 shadow-none animate-bounce" style={{ background: WA.accent }}>
                 {incomingCall.type === 'audio' ? <Phone className="h-7 w-7" /> : <Video className="h-7 w-7" />}
               </button>
             </div>
@@ -1395,3 +1395,4 @@ export function ChatRoom({ roomId, roomName, communityId, slug, hideHeader }: {
     </div>
   );
 }
+

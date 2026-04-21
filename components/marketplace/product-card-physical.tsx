@@ -94,10 +94,10 @@ export function ProductCardPhysical({
       <div
         className={cn(
           "group relative flex flex-col h-full overflow-hidden",
-          "rounded-xl bg-white dark:bg-[#121212] border border-stone-200 dark:border-white/5 transition-all duration-300",
+          "rounded-none bg-white dark:bg-[#121212] border border-stone-200 dark:border-white/5 transition-all duration-300",
           inCart
             ? "border-orange-500/40 shadow-[0_4px_20px_rgba(249,115,22,0.15)]"
-            : "hover:border-orange-500/20 hover:shadow-xl"
+            : "hover:border-orange-500/20 hover:shadow-none"
         )}
       >
         <Link
@@ -126,7 +126,7 @@ export function ProductCardPhysical({
 
           {discount > 0 && (
             <div className="absolute top-2 left-2 z-20">
-              <span className="inline-flex items-center rounded-sm bg-red-500 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm">
+              <span className="inline-flex items-center rounded-none bg-red-500 px-2 py-0.5 text-[10px] font-bold text-white shadow-none">
                 -{discount}%
               </span>
             </div>
@@ -162,14 +162,14 @@ export function ProductCardPhysical({
               onClick={handleCartToggle}
               disabled={loading}
               className={cn(
-                "flex items-center justify-center gap-1 h-8 rounded-lg font-bold text-white transition-all text-[11px]",
+                "flex items-center justify-center gap-1 h-8 rounded-none font-bold text-white transition-all text-[11px]",
                 inCart
                   ? "bg-emerald-500 hover:bg-red-500 shadow-emerald-500/20"
-                  : "bg-orange-500 hover:bg-orange-600 shadow-orange-500/20 shadow-md active:scale-95"
+                  : "bg-orange-500 hover:bg-orange-600 shadow-orange-500/20 shadow-none active:scale-95"
               )}
             >
               {loading ? (
-                <span className="h-3.5 w-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                <span className="h-3.5 w-3.5 border-2 border-white/40 border-t-white rounded-none animate-spin" />
               ) : inCart ? (
                 <><CheckCircle2 className="h-3.5 w-3.5" /> Added</>
               ) : (
@@ -178,7 +178,7 @@ export function ProductCardPhysical({
             </button>
             <button
               onClick={handleChat}
-              className="flex items-center justify-center w-8 h-8 rounded-lg bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 hover:bg-stone-200 dark:hover:bg-stone-700 transition-colors"
+              className="flex items-center justify-center w-8 h-8 rounded-none bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 hover:bg-stone-200 dark:hover:bg-stone-700 transition-colors"
             >
               <MessageCircle className="h-4 w-4" />
             </button>
@@ -198,3 +198,4 @@ export function ProductCardPhysical({
     </>
   );
 }
+

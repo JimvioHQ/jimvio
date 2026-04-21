@@ -10,3 +10,4 @@ const ProductChatWidget = dynamic(
 export function ProductChatWidgetLoader() {
   return <ProductChatWidget />;
 }
+

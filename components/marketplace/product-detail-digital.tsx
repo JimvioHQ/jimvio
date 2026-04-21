@@ -68,7 +68,7 @@ export function DigitalProductDetail({
 
       {/* Hero Header Area */}
       <div className="relative pt-10 pb-16 px-4 max-w-6xl mx-auto text-center">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-500/10 border border-sky-500/20 text-sky-500 text-[10px] font-bold uppercase tracking-widest mb-6 animate-fade-in">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-none bg-sky-500/10 border border-sky-500/20 text-sky-500 text-[10px] font-bold uppercase tracking-widest mb-6 animate-fade-in">
           <Sparkles className="h-3 w-3" /> Digital Asset
         </div>
         
@@ -96,9 +96,9 @@ export function DigitalProductDetail({
              product={productProps} 
              vendor={vendorProps} 
              currentPath={`/marketplace/${product.slug}`}
-             className="w-full md:w-auto h-14 md:px-12 rounded-2xl text-lg"
+             className="w-full md:w-auto h-14 md:px-12 rounded-none text-lg"
           />
-          <Button variant="outline" className="w-full md:w-auto h-14 md:px-10 rounded-2xl border-2 border-stone-200 dark:border-stone-800 font-bold">
+          <Button variant="outline" className="w-full md:w-auto h-14 md:px-10 rounded-none border-2 border-stone-200 dark:border-stone-800 font-bold">
             <PlayCircle className="h-5 w-5 mr-2" /> Live Preview
           </Button>
         </div>
@@ -109,7 +109,7 @@ export function DigitalProductDetail({
           
           {/* Main Content (Images + Specs) */}
           <div className="lg:col-span-8 space-y-12">
-            <div className="rounded-[40px] overflow-hidden border border-stone-200 dark:border-white/5 bg-stone-50 dark:bg-zinc-900/50 shadow-2xl">
+            <div className="rounded-none overflow-hidden border border-stone-200 dark:border-white/5 bg-stone-50 dark:bg-zinc-900/50 shadow-none">
                <ImageGallery
                   images={images}
                   productName={product.name}
@@ -122,10 +122,10 @@ export function DigitalProductDetail({
             {/* Content Tabs */}
             <div className="space-y-6">
               <Tabs defaultValue="overview" className="w-full">
-                <TabsList className="bg-stone-100 dark:bg-zinc-900 border-none h-12 p-1.5 rounded-2xl mb-8">
-                  <TabsTrigger value="overview" className="rounded-xl px-8 font-bold data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 shadow-none">Overview</TabsTrigger>
-                  <TabsTrigger value="curriculum" className="rounded-xl px-8 font-bold data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 shadow-none">Features</TabsTrigger>
-                  <TabsTrigger value="reviews" className="rounded-xl px-8 font-bold data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 shadow-none">Reviews</TabsTrigger>
+                <TabsList className="bg-stone-100 dark:bg-zinc-900 border-none h-12 p-1.5 rounded-none mb-8">
+                  <TabsTrigger value="overview" className="rounded-none px-8 font-bold data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 shadow-none">Overview</TabsTrigger>
+                  <TabsTrigger value="curriculum" className="rounded-none px-8 font-bold data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 shadow-none">Features</TabsTrigger>
+                  <TabsTrigger value="reviews" className="rounded-none px-8 font-bold data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 shadow-none">Reviews</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="overview" className="prose prose-stone dark:prose-invert max-w-none">
@@ -157,7 +157,7 @@ export function DigitalProductDetail({
 
           {/* Sidebar (Vendor + Security) */}
           <div className="lg:col-span-4 space-y-6">
-             <GlassCard className="p-8 rounded-[40px] border border-stone-200 dark:border-white/5 bg-white dark:bg-zinc-950/20 shadow-xl overflow-hidden relative">
+             <GlassCard className="p-8 rounded-none border border-stone-200 dark:border-white/5 bg-white dark:bg-zinc-950/20 shadow-none overflow-hidden relative">
                 <div className="absolute top-0 right-0 p-4 opacity-5">
                    <Lock className="h-24 w-24" />
                 </div>
@@ -172,7 +172,7 @@ export function DigitalProductDetail({
 
                 <div className="mt-10 pt-8 border-t border-stone-100 dark:border-white/5">
                    <div className="flex items-center gap-4 mb-6">
-                      <div className="h-16 w-16 rounded-2xl border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-zinc-900 overflow-hidden flex items-center justify-center">
+                      <div className="h-16 w-16 rounded-none border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-zinc-900 overflow-hidden flex items-center justify-center">
                          {vendor?.business_logo ? (
                            <img src={vendor.business_logo} className="w-full h-full object-cover" />
                          ) : (
@@ -188,17 +188,17 @@ export function DigitalProductDetail({
                    <FollowButton
                       vendorId={vendor?.id ?? ""}
                       initialFollowing={followedVendorIds.includes(String(vendor?.id ?? ""))}
-                      className="w-full h-12 rounded-xl border-2 font-bold"
+                      className="w-full h-12 rounded-none border-2 font-bold"
                    />
                 </div>
              </GlassCard>
 
-             <div className="rounded-[40px] bg-sky-600 p-8 text-white relative overflow-hidden group">
-                <div className="absolute -bottom-6 -right-6 w-32 h-32 bg-white/10 rounded-full blur-2xl transition-transform group-hover:scale-150" />
+             <div className="rounded-none bg-sky-600 p-8 text-white relative overflow-hidden group">
+                <div className="absolute -bottom-6 -right-6 w-32 h-32 bg-white/10 rounded-none blur-2xl transition-transform group-hover:scale-150" />
                 <Zap className="h-8 w-8 mb-4" />
                 <h3 className="text-xl font-bold mb-2">Need a custom plan?</h3>
                 <p className="text-white/70 text-sm mb-6">Connect with the creator for enterprise-level licenses and personalized support.</p>
-                <Button className="w-full bg-white text-sky-600 hover:bg-stone-50 font-black rounded-xl h-11">Message Creator</Button>
+                <Button className="w-full bg-white text-sky-600 hover:bg-stone-50 font-black rounded-none h-11">Message Creator</Button>
              </div>
           </div>
         </div>
@@ -209,8 +209,8 @@ export function DigitalProductDetail({
 
 function BenefitCard({ icon, title, desc }: { icon: React.ReactNode; title: string; desc: string }) {
   return (
-    <div className="p-6 rounded-3xl bg-stone-50 dark:bg-zinc-900/40 border border-stone-100 dark:border-white/5">
-      <div className="h-10 w-10 rounded-xl bg-white dark:bg-zinc-800 shadow-sm flex items-center justify-center mb-4">
+    <div className="p-6 rounded-none bg-stone-50 dark:bg-zinc-900/40 border border-stone-100 dark:border-white/5">
+      <div className="h-10 w-10 rounded-none bg-white dark:bg-zinc-800 shadow-none flex items-center justify-center mb-4">
         {icon}
       </div>
       <h4 className="font-bold text-stone-900 dark:text-white mb-2">{title}</h4>
@@ -223,7 +223,7 @@ function SecurityFeature({ title, desc }: { title: string; desc: string }) {
   return (
     <div className="flex gap-4">
       <div className="mt-1">
-        <div className="h-2 w-2 rounded-full bg-sky-500" />
+        <div className="h-2 w-2 rounded-none bg-sky-500" />
       </div>
       <div>
         <p className="font-bold text-stone-900 dark:text-white text-sm">{title}</p>
@@ -232,3 +232,4 @@ function SecurityFeature({ title, desc }: { title: string; desc: string }) {
     </div>
   );
 }
+

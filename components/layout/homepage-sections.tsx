@@ -32,12 +32,12 @@ const scaleIn = {
 const GLASS_LIGHT_STYLE: React.CSSProperties = {
   background: "var(--color-surface)",
   border: "1px solid var(--color-border)",
-  boxShadow: "var(--shadow-sm)",
+  boxShadow: "var(--shadow-none)",
 };
 const GLASS_DARK_STYLE: React.CSSProperties = {
   background: "var(--color-surface)",
   border: "1px solid var(--color-border)",
-  boxShadow: "var(--shadow-sm)",
+  boxShadow: "var(--shadow-none)",
 };
 
 // Neutral â€” no backdrop blur
@@ -73,7 +73,7 @@ export function TrustBar({ items }: { items: TrustBarItem[] }) {
             <motion.div key={idx} variants={fadeUp} className="flex items-center gap-2 md:gap-2.5 group">
               <motion.span
                 whileHover={{ scale: 1.12, rotate: -4 }}
-                className="relative shrink-0 h-8 w-8 flex items-center justify-center rounded-[10px] transition-all bg-orange-100/50 dark:bg-orange-500/10 border border-orange-200/50 dark:border-orange-500/20 shadow-sm"
+                className="relative shrink-0 h-8 w-8 flex items-center justify-center rounded-none transition-all bg-orange-100/50 dark:bg-orange-500/10 border border-orange-200/50 dark:border-orange-500/20 shadow-none"
               >
                 <Icon className="h-4 w-4 text-orange-500" />
               </motion.span>
@@ -100,7 +100,7 @@ export function RecommendedHeader() {
       <motion.div variants={fadeUp}>
         <Eyebrow text="Hand-Picked Listings" />
         <h2 className="text-[28px] sm:text-[34px] font-black text-zinc-900 dark:text-white leading-tight tracking-tight flex items-center gap-3">
-          <span className="h-10 w-10 flex items-center justify-center rounded-2xl bg-orange-100/50 dark:bg-orange-500/10 ring-1 ring-orange-500/15">
+          <span className="h-10 w-10 flex items-center justify-center rounded-none bg-orange-100/50 dark:bg-orange-500/10 ring-1 ring-orange-500/15">
             <Star className="h-5 w-5 fill-[#f97316] text-[#f97316]" />
           </span>
           Recommended Picks
@@ -111,7 +111,7 @@ export function RecommendedHeader() {
         <motion.div whileHover={{ x: 4 }} whileTap={{ scale: 0.97 }}>
           <Link
             href="/marketplace"
-            className="inline-flex items-center gap-2 px-5 py-3 rounded-lg text-[13px] font-semibold text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:text-white transition-all border border-border bg-surface shadow-sm hover:bg-stone-50 dark:hover:bg-stone-900"
+            className="inline-flex items-center gap-2 px-5 py-3 rounded-none text-[13px] font-semibold text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:text-white transition-all border border-border bg-surface shadow-none hover:bg-stone-50 dark:hover:bg-stone-900"
           >
             Browse all <ChevronRight className="h-4 w-4" />
           </Link>
@@ -129,7 +129,7 @@ export function CategorySidebar({ cats }: { cats: SidebarCat[] }) {
     <motion.div
       initial={{ opacity: 0, x: 30 }} whileInView={{ opacity: 1, x: 0 }}
       viewport={{ once: true }} transition={{ type: "spring", damping: 28, stiffness: 160, delay: 0.2 }}
-      className="rounded-xl overflow-hidden sticky top-[calc(var(--navbar-height)+1rem)] bg-surface border border-border shadow-sm"
+      className="rounded-none overflow-hidden sticky top-[calc(var(--navbar-height)+1rem)] bg-surface border border-border shadow-none"
     >
       <div className="px-5 py-4 border-b border-border">
         <Eyebrow text="Browse by Category" />
@@ -138,8 +138,8 @@ export function CategorySidebar({ cats }: { cats: SidebarCat[] }) {
         {cats.slice(0, 8).map((cat, idx) => (
           <motion.div key={idx} whileHover={{ x: 4 }} whileTap={{ scale: 0.98 }}>
             <Link href={`/marketplace?cat=${encodeURIComponent(cat.slug)}`}
-              className="flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-stone-50 dark:hover:bg-stone-900 transition-all group">
-              <div className="h-9 w-9 rounded-lg bg-orange-50 dark:bg-orange-500/10 border border-orange-100 dark:border-orange-500/20 flex items-center justify-center group-hover:bg-orange-500 group-hover:border-orange-500 transition-colors">
+              className="flex items-center gap-3 px-3 py-3 rounded-none hover:bg-stone-50 dark:hover:bg-stone-900 transition-all group">
+              <div className="h-9 w-9 rounded-none bg-orange-50 dark:bg-orange-500/10 border border-orange-100 dark:border-orange-500/20 flex items-center justify-center group-hover:bg-orange-500 group-hover:border-orange-500 transition-colors">
                 <span className="text-orange-500 group-hover:text-white transition-colors">{cat.icon}</span>
               </div>
               <span className="text-[13px] font-semibold text-stone-700 dark:text-stone-300 group-hover:text-stone-900 dark:group-hover:text-white flex-1">{cat.label}</span>
@@ -149,7 +149,7 @@ export function CategorySidebar({ cats }: { cats: SidebarCat[] }) {
         ))}
       </div>
       <div className="px-4 pb-4">
-        <Link href="/marketplace" className="block w-full text-center py-2.5 rounded-lg text-[12px] font-bold text-orange-600 border border-orange-200 hover:bg-orange-50 transition-all">
+        <Link href="/marketplace" className="block w-full text-center py-2.5 rounded-none text-[12px] font-bold text-orange-600 border border-orange-200 hover:bg-orange-50 transition-all">
           View All Categories â†’
         </Link>
       </div>
@@ -163,17 +163,17 @@ export function FlashDeals({ products }: { products: any[] }) {
     <motion.div
       initial="hidden" whileInView="show" viewport={{ once: true, margin: "-60px" }}
       variants={stagger}
-      className="rounded-xl overflow-hidden relative bg-surface border border-border shadow-sm"
+      className="rounded-none overflow-hidden relative bg-surface border border-border shadow-none"
     >
       <div className="absolute top-0 right-0 p-4">
-         <div className="flex items-center gap-1.5 px-3 py-1 bg-orange-50 rounded-md border border-orange-100">
-            <span className="h-2 w-2 rounded-full bg-orange-500" />
+         <div className="flex items-center gap-1.5 px-3 py-1 bg-orange-50 rounded-none border border-orange-100">
+            <span className="h-2 w-2 rounded-none bg-orange-500" />
             <span className="text-[10px] font-bold text-orange-600 uppercase tracking-wider">High Demand</span>
          </div>
       </div>
 
       <div className="px-6 py-6 border-b border-border flex items-center gap-4">
-        <div className="h-12 w-12 rounded-lg bg-orange-50 dark:bg-orange-500/10 border border-orange-100 dark:border-orange-500/20 flex items-center justify-center">
+        <div className="h-12 w-12 rounded-none bg-orange-50 dark:bg-orange-500/10 border border-orange-100 dark:border-orange-500/20 flex items-center justify-center">
           <Zap className="h-6 w-6 text-orange-500 fill-orange-500" />
         </div>
         <div>
@@ -191,8 +191,8 @@ export function FlashDeals({ products }: { products: any[] }) {
           return (
             <motion.div key={p.id} variants={scaleIn}>
               <motion.div whileHover={{ y: -4 }} whileTap={{ scale: 0.97 }}>
-                <Link href={`/marketplace/${p.slug}`} className="group block rounded-lg p-3 bg-stone-50 dark:bg-stone-900 hover:bg-stone-100 dark:hover:bg-stone-800 transition-all border border-border">
-                  <div className="aspect-square bg-white dark:bg-surface-secondary rounded-lg mb-4 flex items-center justify-center relative overflow-hidden border border-border shadow-sm">
+                <Link href={`/marketplace/${p.slug}`} className="group block rounded-none p-3 bg-stone-50 dark:bg-stone-900 hover:bg-stone-100 dark:hover:bg-stone-800 transition-all border border-border">
+                  <div className="aspect-square bg-white dark:bg-surface-secondary rounded-none mb-4 flex items-center justify-center relative overflow-hidden border border-border shadow-none">
                     {img ? (
                       <img
                         src={img}
@@ -203,7 +203,7 @@ export function FlashDeals({ products }: { products: any[] }) {
                       <Package className="h-8 w-8 text-stone-300" />
                     )}
                     
-                    <div className="absolute top-2 right-2 bg-orange-500 text-white text-[11px] font-bold px-2 py-0.5 rounded shadow-sm">
+                    <div className="absolute top-2 right-2 bg-orange-500 text-white text-[11px] font-bold px-2 py-0.5 rounded shadow-none">
                       -{dealPct}%
                     </div>
                   </div>
@@ -224,12 +224,12 @@ export function FlashDeals({ products }: { products: any[] }) {
                           <span className="text-[9px] font-black text-orange-600 uppercase tracking-widest">{heat}% Sold</span>
                           {heat > 80 && <span className="text-[9px] font-black text-orange-500 animate-pulse uppercase">Hot</span>}
                        </div>
-                       <div className="w-full h-2 bg-zinc-100 dark:bg-surface-secondary rounded-full overflow-hidden border border-zinc-50 dark:border-border-strong shadow-inner">
+                       <div className="w-full h-2 bg-zinc-100 dark:bg-surface-secondary rounded-none overflow-hidden border border-zinc-50 dark:border-border-strong shadow-inner">
                           <motion.div 
                             initial={{ width: 0 }}
                             whileInView={{ width: `${heat}%` }}
                             transition={{ duration: 1, delay: 0.2 }}
-                            className="h-full bg-gradient-to-r from-orange-400 via-orange-500 to-amber-500 rounded-full shadow-[0_0_8px_rgba(249,115,22,0.4)]" 
+                            className="h-full bg-gradient-to-r from-orange-400 via-orange-500 to-amber-500 rounded-none shadow-[0_0_8px_rgba(249,115,22,0.4)]" 
                           />
                        </div>
                     </div>
@@ -256,14 +256,14 @@ export function TrendingSidePanel({ trendingCats, suppliers }: { trendingCats: T
       className="hidden lg:flex flex-col gap-4"
     >
       {/* Trending Now */}
-      <div className="rounded-xl p-6 relative overflow-hidden bg-stone-900 border border-stone-800">
+      <div className="rounded-none p-6 relative overflow-hidden bg-stone-900 border border-stone-800">
         <p className="text-[10px] font-bold text-stone-400 uppercase tracking-[0.2em] mb-1">Hot This Week</p>
         <h3 className="text-[18px] font-bold text-white mb-5 tracking-tight">Trending Now</h3>
         <div className="space-y-2">
           {trendingCats.map((item) => (
             <motion.div key={item.slug} whileHover={{ x: 4 }} whileTap={{ scale: 0.98 }}>
               <Link href={`/marketplace?cat=${encodeURIComponent(item.slug)}`}
-                className="flex items-center gap-3 bg-white/5 rounded-lg px-4 py-3 hover:bg-white/10 border border-white/10 transition-all group">
+                className="flex items-center gap-3 bg-white/5 rounded-none px-4 py-3 hover:bg-white/10 border border-white/10 transition-all group">
                 <span className="text-[13px] font-semibold text-stone-300 flex-1">{item.name}</span>
                 <span className="text-[10px] text-stone-500 font-bold">{item.product_count != null && item.product_count > 0 ? `${item.product_count}` : "â†’"}</span>
               </Link>
@@ -273,7 +273,7 @@ export function TrendingSidePanel({ trendingCats, suppliers }: { trendingCats: T
       </div>
 
       {/* Top Suppliers */}
-      <div className="rounded-xl p-5 bg-surface border border-border shadow-sm">
+      <div className="rounded-none p-5 bg-surface border border-border shadow-none">
         <Eyebrow text="Top Suppliers" />
         <div className="space-y-3 mt-3">
           {suppliers.length === 0 ? (
@@ -282,7 +282,7 @@ export function TrendingSidePanel({ trendingCats, suppliers }: { trendingCats: T
             suppliers.map((v) => (
               <motion.div key={v.business_slug ?? v.business_name} whileHover={{ x: 3 }}>
                 <Link href={v.business_slug ? `/vendors/${v.business_slug}` : "/vendors"} className="flex items-center gap-3 group">
-                  <div className="h-9 w-9 rounded-full bg-orange-100/50 dark:bg-orange-500/10 flex items-center justify-center text-[#f97316] text-[12px] font-black group-hover:bg-[#f97316] group-hover:text-white transition-colors">
+                  <div className="h-9 w-9 rounded-none bg-orange-100/50 dark:bg-orange-500/10 flex items-center justify-center text-[#f97316] text-[12px] font-black group-hover:bg-[#f97316] group-hover:text-white transition-colors">
                     {(v.business_name ?? "?")[0]}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -316,13 +316,13 @@ export function IndustriesSection({ industries }: { industries: Industry[] }) {
     <motion.section
       initial="hidden" whileInView="show" viewport={{ once: true, margin: "-60px" }}
       variants={stagger}
-      className="rounded-xl p-8 sm:p-12 relative overflow-hidden bg-surface border border-border shadow-sm"
+      className="rounded-none p-8 sm:p-12 relative overflow-hidden bg-surface border border-border shadow-none"
     >
       <motion.div variants={fadeUp} className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-10 relative z-10">
         <div>
           <Eyebrow text="Browse by Sector" />
           <h2 className="text-[28px] sm:text-[34px] font-bold text-stone-900 dark:text-white tracking-tight leading-tight flex items-center gap-3">
-            <span className="h-10 w-10 flex items-center justify-center rounded-lg bg-orange-50 dark:bg-orange-500/10 border border-orange-100 dark:border-orange-500/20">
+            <span className="h-10 w-10 flex items-center justify-center rounded-none bg-orange-50 dark:bg-orange-500/10 border border-orange-100 dark:border-orange-500/20">
               <Menu className="h-5 w-5 text-orange-500" />
             </span>
             Global Industries
@@ -346,11 +346,11 @@ export function IndustriesSection({ industries }: { industries: Industry[] }) {
           return (
             <motion.div key={cat.slug} variants={scaleIn}>
               <Link href={`/marketplace?cat=${encodeURIComponent(cat.slug)}`}
-                className="relative h-[180px] rounded-lg overflow-hidden block border border-border shadow-sm hover:shadow-md transition-shadow">
+                className="relative h-[180px] rounded-none overflow-hidden block border border-border shadow-none hover:shadow-none transition-shadow">
                 <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url('${img}')` }} />
                 <div className={cn("absolute inset-0", grad)} />
                 <div className="absolute inset-0 p-4 flex flex-col items-center justify-center text-center z-10">
-                  <div className="h-10 w-10 rounded-lg bg-white/20 border border-white/30 flex items-center justify-center mb-2.5 text-white">
+                  <div className="h-10 w-10 rounded-none bg-white/20 border border-white/30 flex items-center justify-center mb-2.5 text-white">
                     <Icon className="h-5 w-5" />
                   </div>
                   <h4 className="text-[14px] font-bold text-white mb-0.5">{cat.name}</h4>
@@ -379,12 +379,12 @@ export function AffiliatePanel({ valueProps, campaigns = [], spotlightCreator, t
     <motion.section
       initial="hidden" whileInView="show" viewport={{ once: true, margin: "-60px" }}
       variants={stagger}
-      className="rounded-xl overflow-hidden grid grid-cols-1 lg:grid-cols-2 min-h-[460px] relative bg-surface border border-border shadow-sm"
+      className="rounded-none overflow-hidden grid grid-cols-1 lg:grid-cols-2 min-h-[460px] relative bg-surface border border-border shadow-none"
     >
 
       {/* Left */}
       <motion.div variants={fadeUp} className="p-8 md:p-14 flex flex-col justify-center border-b lg:border-b-0 lg:border-r border-black/5 dark:border-white/10 relative z-10">
-        <span className="inline-block w-fit px-4 py-1.5 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-[10px] font-black uppercase tracking-[0.2em] mb-6 shadow-xl">
+        <span className="inline-block w-fit px-4 py-1.5 rounded-none bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-[10px] font-black uppercase tracking-[0.2em] mb-6 shadow-none">
           Partner with Jimvio
         </span>
         <h3 className="text-[32px] md:text-[40px] font-black text-zinc-950 dark:text-white leading-tight mb-6 tracking-tight">
@@ -396,16 +396,16 @@ export function AffiliatePanel({ valueProps, campaigns = [], spotlightCreator, t
         <div className="space-y-3 mb-10">
           {valueProps.map((t) => (
             <motion.div key={t} whileHover={{ x: 5 }} className="flex items-center gap-3 text-[14px] font-bold text-zinc-900 dark:text-white/70">
-              <div className="h-6 w-6 rounded-xl bg-[#f97316]/20 text-[#f97316] flex items-center justify-center text-[11px] font-black border border-[#f97316]/30 shrink-0">âœ“</div>
+              <div className="h-6 w-6 rounded-none bg-[#f97316]/20 text-[#f97316] flex items-center justify-center text-[11px] font-black border border-[#f97316]/30 shrink-0">âœ“</div>
               {t}
             </motion.div>
           ))}
         </div>
         <div className="flex flex-col sm:flex-row gap-3">
-          <Button className="h-11 px-8 rounded-lg bg-stone-900 dark:bg-white text-white dark:text-stone-950 font-bold text-[14px] hover:bg-stone-800 shadow-sm" asChild>
+          <Button className="h-11 px-8 rounded-none bg-stone-900 dark:bg-white text-white dark:text-stone-950 font-bold text-[14px] hover:bg-stone-800 shadow-none" asChild>
             <Link href="/register?role=affiliate">Start Earning â†’</Link>
           </Button>
-          <Button variant="outline" className="h-11 px-8 rounded-lg border-border text-stone-900 dark:text-white font-bold text-[14px] hover:bg-stone-50 dark:hover:bg-stone-900" asChild>
+          <Button variant="outline" className="h-11 px-8 rounded-none border-border text-stone-900 dark:text-white font-bold text-[14px] hover:bg-stone-50 dark:hover:bg-stone-900" asChild>
             <Link href="/dashboard">Creator Hub â†’</Link>
           </Button>
         </div>
@@ -421,7 +421,7 @@ export function AffiliatePanel({ valueProps, campaigns = [], spotlightCreator, t
               {chips.map((t, i) => (
                 <motion.span key={`${t}-${i}`} whileHover={{ scale: 1.06, y: -2 }} whileTap={{ scale: 0.97 }}
                   className={cn(
-                    "px-4 py-2.5 rounded-2xl text-[11px] font-black border capitalize tracking-[0.12em] cursor-default transition-all shadow-sm",
+                    "px-4 py-2.5 rounded-none text-[11px] font-black border capitalize tracking-[0.12em] cursor-default transition-all shadow-none",
                     i === 0 
                       ? "bg-orange-500 text-white border-orange-500 shadow-orange-500/20" 
                       : "bg-black/5 dark:bg-white/5 text-zinc-700 dark:text-white border-black/5 dark:border-white/10 hover:border-orange-500/40 hover:text-orange-500"
@@ -433,7 +433,7 @@ export function AffiliatePanel({ valueProps, campaigns = [], spotlightCreator, t
           </div>
         )}
         {/* Creator spotlight */}
-        <div className="bg-stone-50 dark:bg-stone-900 border border-border rounded-lg p-5 flex items-center gap-4 mb-8 border-l-4 border-l-orange-500">
+        <div className="bg-stone-50 dark:bg-stone-900 border border-border rounded-none p-5 flex items-center gap-4 mb-8 border-l-4 border-l-orange-500">
           {spotlightCreator ? (
             <>
                <Avatar className="h-12 w-12 border-2 border-black/5 dark:border-white/15 shrink-0">
@@ -454,7 +454,7 @@ export function AffiliatePanel({ valueProps, campaigns = [], spotlightCreator, t
             <p className="text-sm text-zinc-900 dark:text-white/40 font-bold w-full text-center py-2">Be the first top earner â€” share products you love.</p>
           )}
         </div>
-        <Button className="w-full h-11 rounded-lg bg-orange-500 hover:bg-orange-600 text-white font-bold text-[14px] shadow-sm" asChild>
+        <Button className="w-full h-11 rounded-none bg-orange-500 hover:bg-orange-600 text-white font-bold text-[14px] shadow-none" asChild>
           <Link href="/dashboard">Access Dashboard â†’</Link>
         </Button>
       </motion.div>
@@ -478,10 +478,10 @@ export function MarketIntelligence({
       className="grid grid-cols-1 gap-6 lg:grid-cols-2"
     >
       {/* Market Pulse */}
-      <motion.div variants={fadeUp} className="rounded-xl p-7 relative overflow-hidden bg-surface border border-border shadow-sm">
-        <div className="absolute left-0 top-0 h-full w-1 rounded-r-sm bg-orange-500" />
+      <motion.div variants={fadeUp} className="rounded-none p-7 relative overflow-hidden bg-surface border border-border shadow-none">
+        <div className="absolute left-0 top-0 h-full w-1 rounded-none-sm bg-orange-500" />
         <h4 className="mb-6 flex items-center gap-3 text-[20px] font-bold text-stone-900 dark:text-white tracking-tight pl-3">
-          <span className="h-9 w-9 flex items-center justify-center rounded-lg bg-orange-50 dark:bg-orange-500/10 border border-orange-100 dark:border-orange-500/20"><BarChart2 className="h-5 w-5 text-orange-500" /></span>
+          <span className="h-9 w-9 flex items-center justify-center rounded-none bg-orange-50 dark:bg-orange-500/10 border border-orange-100 dark:border-orange-500/20"><BarChart2 className="h-5 w-5 text-orange-500" /></span>
           Market Pulse
         </h4>
         <div className="space-y-5 pl-3">
@@ -493,13 +493,13 @@ export function MarketIntelligence({
               <div className="flex-1">
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-[13px] font-black text-zinc-800 dark:text-stone-300 group-hover:text-[#f97316] transition-colors">{cat.name} Market</span>
-                  <span className="text-[11px] font-black px-2 py-0.5 rounded-lg bg-emerald-100/50 dark:bg-emerald-500/10 text-emerald-600">â†‘ {8 + i}%</span>
+                  <span className="text-[11px] font-black px-2 py-0.5 rounded-none bg-emerald-100/50 dark:bg-emerald-500/10 text-emerald-600">â†‘ {8 + i}%</span>
                 </div>
-                <div className="h-2 w-full bg-zinc-100 dark:bg-surface-secondary rounded-full overflow-hidden">
+                <div className="h-2 w-full bg-zinc-100 dark:bg-surface-secondary rounded-none overflow-hidden">
                   <motion.div
                     initial={{ width: 0 }} whileInView={{ width: `${60 + (i * 10)}%` }}
                     viewport={{ once: true }} transition={{ duration: 1, delay: i * 0.15, ease: "easeOut" }}
-                    className="h-full rounded-full bg-gradient-to-r from-[#f97316] to-[#fb923c]"
+                    className="h-full rounded-none bg-gradient-to-r from-[#f97316] to-[#fb923c]"
                   />
                 </div>
               </div>
@@ -509,10 +509,10 @@ export function MarketIntelligence({
       </motion.div>
 
       {/* Hot Sourcing */}
-      <motion.div variants={fadeUp} className="rounded-xl p-7 relative overflow-hidden bg-surface border border-border shadow-sm">
+      <motion.div variants={fadeUp} className="rounded-none p-7 relative overflow-hidden bg-surface border border-border shadow-none">
         <div className="mb-5 flex items-center justify-between">
           <h4 className="flex items-center gap-2.5 text-[20px] font-bold text-stone-900 dark:text-white tracking-tight">
-            <span className="h-9 w-9 flex items-center justify-center rounded-lg bg-orange-50 dark:bg-orange-500/10 border border-orange-100 dark:border-orange-500/20"><TrendingUp className="h-5 w-5 text-orange-500" /></span>
+            <span className="h-9 w-9 flex items-center justify-center rounded-none bg-orange-50 dark:bg-orange-500/10 border border-orange-100 dark:border-orange-500/20"><TrendingUp className="h-5 w-5 text-orange-500" /></span>
             Hot Sourcing
           </h4>
           <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-stone-400">Live</span>
@@ -520,7 +520,7 @@ export function MarketIntelligence({
         <div className="flex flex-wrap gap-2 mb-5">
           {categories.slice(0, 8).map((cat: any) => (
             <Link key={cat.id} href={`/marketplace?cat=${encodeURIComponent(cat.slug)}`}>
-              <span className="inline-flex cursor-pointer rounded-md border border-border bg-stone-50 dark:bg-stone-900 px-3 py-1.5 text-[11px] font-semibold text-stone-600 dark:text-stone-400 hover:border-orange-300 hover:text-orange-600 transition-all">
+              <span className="inline-flex cursor-pointer rounded-none border border-border bg-stone-50 dark:bg-stone-900 px-3 py-1.5 text-[11px] font-semibold text-stone-600 dark:text-stone-400 hover:border-orange-300 hover:text-orange-600 transition-all">
                 {cat.name}
               </span>
             </Link>
@@ -529,8 +529,8 @@ export function MarketIntelligence({
         <div className="flex flex-col gap-2">
           {trending.slice(0, 3).map((prod: any, i: number) => (
             <Link key={prod.id ?? i} href={`/marketplace/${prod.slug}`} className="group block">
-              <div className="flex gap-3 rounded-lg border border-border bg-stone-50 dark:bg-stone-900 p-3 hover:border-orange-200 hover:bg-orange-50/50 dark:hover:bg-stone-800 transition-all">
-                <div className="h-12 w-12 shrink-0 rounded-md bg-white dark:bg-white/5 flex items-center justify-center overflow-hidden border border-border">
+              <div className="flex gap-3 rounded-none border border-border bg-stone-50 dark:bg-stone-900 p-3 hover:border-orange-200 hover:bg-orange-50/50 dark:hover:bg-stone-800 transition-all">
+                <div className="h-12 w-12 shrink-0 rounded-none bg-white dark:bg-white/5 flex items-center justify-center overflow-hidden border border-border">
                   {prod.images?.[0] ? <img src={prod.images[0]} className="h-full w-full object-cover" alt="" /> : <Package className="h-5 w-5 text-stone-300" />}
                 </div>
                 <div className="min-w-0 flex-1">
@@ -569,8 +569,8 @@ export function HowItWorks() {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {steps.map((s, idx) => (
               <motion.div key={idx} variants={scaleIn}>
-                <div className="rounded-xl px-5 py-6 bg-surface border border-border shadow-sm group cursor-default hover:border-orange-200 transition-colors">
-                  <div className="h-11 w-11 flex items-center justify-center rounded-lg bg-orange-50 dark:bg-orange-500/10 border border-orange-100 dark:border-orange-500/20 text-orange-500 mb-4 group-hover:bg-orange-500 group-hover:text-white group-hover:border-orange-500 transition-colors">
+                <div className="rounded-none px-5 py-6 bg-surface border border-border shadow-none group cursor-default hover:border-orange-200 transition-colors">
+                  <div className="h-11 w-11 flex items-center justify-center rounded-none bg-orange-50 dark:bg-orange-500/10 border border-orange-100 dark:border-orange-500/20 text-orange-500 mb-4 group-hover:bg-orange-500 group-hover:text-white group-hover:border-orange-500 transition-colors">
                     {s.icon}
                   </div>
                   <h4 className="text-[15px] font-semibold text-stone-900 dark:text-white mb-1.5">{s.title}</h4>
@@ -582,7 +582,7 @@ export function HowItWorks() {
           <motion.div variants={fadeUp} className="mt-10 text-center">
             <Button
               variant="orange"
-              className="h-11 rounded-lg px-10 text-[13px] font-bold uppercase tracking-widest active:scale-95 transition-all shadow-sm"
+              className="h-11 rounded-none px-10 text-[13px] font-bold uppercase tracking-widest active:scale-95 transition-all shadow-none"
               asChild
             >
               <Link href="/marketplace">Initialize Trade Access â†’</Link>
@@ -614,7 +614,7 @@ export function AppPromo() {
               { name: "App Store", sub: "Available on", icon: <Lock className="h-5 w-5" /> },
               { name: "Google Play", sub: "Get it on", icon: <PlayCircle className="h-5 w-5" /> },
             ].map(btn => (
-              <div key={btn.name} className="flex items-center gap-4 px-6 py-3.5 rounded-lg cursor-pointer transition-all group border border-stone-700 bg-stone-800 hover:border-stone-600 shadow-sm">
+              <div key={btn.name} className="flex items-center gap-4 px-6 py-3.5 rounded-none cursor-pointer transition-all group border border-stone-700 bg-stone-800 hover:border-stone-600 shadow-none">
                 <div className="text-stone-400 group-hover:text-orange-400 transition-colors shrink-0">{btn.icon}</div>
                 <div className="min-w-0">
                   <div className="text-[10px] text-stone-500 font-bold uppercase tracking-[0.2em]">{btn.sub}</div>
@@ -626,8 +626,8 @@ export function AppPromo() {
         </motion.div>
 
         <motion.div variants={scaleIn} className="text-center">
-          <div className="h-36 w-36 rounded-xl flex items-center justify-center mx-auto border border-stone-700 bg-stone-800">
-            <div className="h-16 w-16 bg-orange-500 rounded-lg flex items-center justify-center">
+          <div className="h-36 w-36 rounded-none flex items-center justify-center mx-auto border border-stone-700 bg-stone-800">
+            <div className="h-16 w-16 bg-orange-500 rounded-none flex items-center justify-center">
               <Zap className="h-8 w-8 text-white fill-white stroke-none" />
             </div>
           </div>
@@ -637,3 +637,4 @@ export function AppPromo() {
     </div>
   );
 }
+

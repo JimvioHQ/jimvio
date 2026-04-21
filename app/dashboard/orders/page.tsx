@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
@@ -112,7 +112,7 @@ export default function BuyerOrdersPage() {
         {/* Header - Simpler */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-6">
            <div className="flex items-center gap-3 sm:gap-4">
-              <Button asChild variant="ghost" size="icon" className="shrink-0 h-9 w-9 sm:h-10 sm:w-10 rounded-xl bg-surface dark:bg-surface-secondary border border-border shadow-sm hover:bg-surface dark:hover:bg-zinc-700 active:scale-95 transition-all text-stone-500 dark:text-text-muted">
+              <Button asChild variant="ghost" size="icon" className="shrink-0 h-9 w-9 sm:h-10 sm:w-10 rounded-none bg-surface dark:bg-surface-secondary border border-border shadow-none hover:bg-surface dark:hover:bg-zinc-700 active:scale-95 transition-all text-stone-500 dark:text-text-muted">
                 <Link href="/dashboard"><ArrowLeft className="h-4 w-4" /></Link>
               </Button>
               <div className="space-y-0.5">
@@ -122,7 +122,7 @@ export default function BuyerOrdersPage() {
            </div>
            
            <div className="flex items-center gap-2">
-              <Button asChild variant="outline" className="h-9 sm:h-10 px-6 rounded-xl bg-surface dark:bg-surface-secondary text-stone-900 dark:text-white border-border font-bold text-[9px] sm:text-[10px] uppercase tracking-widest active:scale-95 transition-all">
+              <Button asChild variant="outline" className="h-9 sm:h-10 px-6 rounded-none bg-surface dark:bg-surface-secondary text-stone-900 dark:text-white border-border font-bold text-[9px] sm:text-[10px] uppercase tracking-widest active:scale-95 transition-all">
                 <Link href="/dashboard/marketplace">Explore Store</Link>
               </Button>
            </div>
@@ -130,8 +130,8 @@ export default function BuyerOrdersPage() {
 
         {/* Stats Row - Soft & Compact */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-6">
-           <div className="p-4 sm:p-5 rounded-xl sm:rounded-2xl bg-surface/60 dark:bg-surface-secondary/40 border border-border shadow-sm flex items-center gap-4">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-500 shrink-0 border border-indigo-500/10">
+           <div className="p-4 sm:p-5 rounded-none sm:rounded-none bg-surface/60 dark:bg-surface-secondary/40 border border-border shadow-none flex items-center gap-4">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-none sm:rounded-none bg-indigo-500/10 flex items-center justify-center text-indigo-500 shrink-0 border border-indigo-500/10">
                  <ShoppingCart className="h-4 w-4 sm:h-5 sm:w-5" />
               </div>
               <div>
@@ -139,8 +139,8 @@ export default function BuyerOrdersPage() {
                  <p className="text-[9px] font-bold uppercase tracking-widest text-stone-400 dark:text-text-muted mt-1">Total Spent</p>
               </div>
            </div>
-           <div className="p-4 sm:p-5 rounded-xl sm:rounded-2xl bg-surface/60 dark:bg-surface-secondary/40 border border-border shadow-sm flex items-center gap-4">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-sky-500/10 flex items-center justify-center text-sky-500 shrink-0 border border-sky-500/10">
+           <div className="p-4 sm:p-5 rounded-none sm:rounded-none bg-surface/60 dark:bg-surface-secondary/40 border border-border shadow-none flex items-center gap-4">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-none sm:rounded-none bg-sky-500/10 flex items-center justify-center text-sky-500 shrink-0 border border-sky-500/10">
                  <Package className="h-4 w-4 sm:h-5 sm:w-5" />
               </div>
               <div>
@@ -148,8 +148,8 @@ export default function BuyerOrdersPage() {
                  <p className="text-[9px] font-bold uppercase tracking-widest text-stone-400 dark:text-text-muted mt-1">Active</p>
               </div>
            </div>
-           <div className="p-4 sm:p-5 rounded-xl sm:rounded-2xl bg-surface/60 dark:bg-surface-secondary/40 border border-border shadow-sm flex items-center gap-4">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 shrink-0 border border-emerald-500/10">
+           <div className="p-4 sm:p-5 rounded-none sm:rounded-none bg-surface/60 dark:bg-surface-secondary/40 border border-border shadow-none flex items-center gap-4">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-none sm:rounded-none bg-emerald-500/10 flex items-center justify-center text-emerald-500 shrink-0 border border-emerald-500/10">
                  <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5" />
               </div>
               <div>
@@ -167,7 +167,7 @@ export default function BuyerOrdersPage() {
                  placeholder="Search by order ID or product name..."
                  value={search}
                  onChange={e => setSearch(e.target.value)}
-                 className="w-full h-11 pl-11 pr-4 rounded-xl bg-surface dark:bg-surface-secondary border border-border text-[13px] font-medium text-stone-900 dark:text-white placeholder:text-stone-300 dark:placeholder:text-stone-700 shadow-sm focus:outline-none focus:ring-4 focus:ring-stone-900/5 dark:focus:ring-white/5 transition-all"
+                 className="w-full h-11 pl-11 pr-4 rounded-none bg-surface dark:bg-surface-secondary border border-border text-[13px] font-medium text-stone-900 dark:text-white placeholder:text-stone-300 dark:placeholder:text-stone-700 shadow-none focus:outline-none focus:ring-4 focus:ring-stone-900/5 dark:focus:ring-white/5 transition-all"
               />
            </div>
            <div className="flex gap-1.5 overflow-x-auto no-scrollbar w-full md:w-auto">
@@ -176,7 +176,7 @@ export default function BuyerOrdersPage() {
                     key={f}
                     onClick={() => setFilter(f)}
                     className={cn(
-                       "px-5 h-11 rounded-xl text-[10px] font-bold uppercase tracking-widest whitespace-nowrap transition-all border shadow-sm shrink-0",
+                       "px-5 h-11 rounded-none text-[10px] font-bold uppercase tracking-widest whitespace-nowrap transition-all border shadow-none shrink-0",
                        filter === f
                           ? "bg-stone-900 dark:bg-white dark:bg-surface border-transparent text-white dark:text-stone-900 dark:text-white"
                           : "bg-surface dark:bg-surface-secondary border-border text-stone-400 dark:text-text-muted hover:text-stone-900 dark:text-white dark:hover:text-white"
@@ -191,7 +191,7 @@ export default function BuyerOrdersPage() {
          {/* Orders List - Mobile Optimization */}
          <div className="space-y-3 sm:space-y-4">
             {filtered.length === 0 ? (
-               <GlassCard className="py-20 text-center rounded-2xl sm:rounded-[32px] border-dashed border-border bg-surface/20 dark:bg-surface-secondary/20">
+               <GlassCard className="py-20 text-center rounded-none sm:rounded-none border-dashed border-border bg-surface/20 dark:bg-surface-secondary/20">
                   <ShoppingBag className="h-10 w-10 text-stone-200 dark:text-stone-800 dark:text-text-secondary mx-auto mb-4" />
                   <p className="text-[12px] font-bold text-stone-400 dark:text-text-muted capitalize">No orders found</p>
                </GlassCard>
@@ -202,14 +202,14 @@ export default function BuyerOrdersPage() {
                     const date = new Date(o.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
  
                      return (
-                       <GlassCard key={o.id} className="p-4 sm:p-6 rounded-2xl sm:rounded-[32px] bg-surface/60 dark:bg-surface-secondary/40 border border-border hover:bg-surface dark:hover:bg-zinc-800 transition-all shadow-sm max-sm:-mx-4 max-sm:rounded-none max-sm:border-x-0">
+                       <GlassCard key={o.id} className="p-4 sm:p-6 rounded-none sm:rounded-none bg-surface/60 dark:bg-surface-secondary/40 border border-border hover:bg-surface dark:hover:bg-zinc-800 transition-all shadow-none max-sm:-mx-4 max-sm:rounded-none max-sm:border-x-0">
                           <div className="flex flex-col lg:flex-row gap-6 sm:gap-8 items-start">
                              
                              <div className="flex-1 space-y-4 sm:space-y-6 w-full">
                                 <div className="flex items-center justify-between">
                                    <div className="flex items-center gap-3">
                                       <div className={cn(
-                                         "w-8 h-8 rounded-lg border flex items-center justify-center shadow-sm shrink-0",
+                                         "w-8 h-8 rounded-none border flex items-center justify-center shadow-none shrink-0",
                                          cfg.variant === 'success' ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/10" :
                                          cfg.variant === 'warning' ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/10" :
                                          "bg-surface dark:bg-surface text-stone-400 dark:text-text-muted border-border"
@@ -230,7 +230,7 @@ export default function BuyerOrdersPage() {
                                 <div className="space-y-2.5">
                                    {o.order_items.map((item: any, idx: number) => (
                                       <div key={idx} className="flex items-center gap-3 sm:gap-4 group/item py-2 sm:py-3 border-t border-border/50 first:border-0 first:pt-0">
-                                         <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-surface dark:bg-surface border border-border flex items-center justify-center shrink-0 font-black text-[9px] sm:text-[10px] text-stone-300 dark:text-stone-700 uppercase shadow-sm">
+                                         <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-none bg-surface dark:bg-surface border border-border flex items-center justify-center shrink-0 font-black text-[9px] sm:text-[10px] text-stone-300 dark:text-stone-700 uppercase shadow-none">
                                             {item.product_name[0]}
                                          </div>
                                          <div className="min-w-0 flex-1">
@@ -239,7 +239,7 @@ export default function BuyerOrdersPage() {
                                               {item.product_type === "digital" && <Badge variant="secondary" className="bg-orange-500/10 text-orange-600 dark:text-orange-400 text-[8px] px-1.5 py-0 uppercase tracking-widest font-black border-orange-500/20">Digital</Badge>}
                                             </div>
                                             <p className="text-[9px] sm:text-[10px] font-medium text-stone-400 dark:text-text-muted mt-0.5">
-                                               Qty: {item.quantity} • Sold by <span className="text-stone-700 dark:text-stone-300 font-bold">{item.vendors?.business_name || "Vendor"}</span>
+                                               Qty: {item.quantity} â€¢ Sold by <span className="text-stone-700 dark:text-stone-300 font-bold">{item.vendors?.business_name || "Vendor"}</span>
                                             </p>
                                          </div>
                                       </div>
@@ -248,30 +248,30 @@ export default function BuyerOrdersPage() {
                              </div>
  
                              <div className="flex flex-row lg:flex-col gap-2 w-full lg:w-32 shrink-0">
-                                <Button asChild className="flex-1 h-9 sm:h-10 rounded-xl bg-stone-900 dark:bg-white dark:bg-surface text-white dark:text-stone-900 dark:text-white font-bold text-[10px] uppercase tracking-widest shadow-md border-none">
+                                <Button asChild className="flex-1 h-9 sm:h-10 rounded-none bg-stone-900 dark:bg-white dark:bg-surface text-white dark:text-stone-900 dark:text-white font-bold text-[10px] uppercase tracking-widest shadow-none border-none">
                                    <Link href={`/dashboard/orders/${o.id}`}>View Details</Link>
                                 </Button>
                                 <DropdownMenu>
                                    <DropdownMenuTrigger asChild>
-                                      <Button variant="ghost" size="icon" className="h-9 sm:h-10 w-9 sm:w-10 shrink-0 rounded-xl border border-border bg-surface dark:bg-surface-secondary shadow-sm">
+                                      <Button variant="ghost" size="icon" className="h-9 sm:h-10 w-9 sm:w-10 shrink-0 rounded-none border border-border bg-surface dark:bg-surface-secondary shadow-none">
                                          <MoreVertical className="h-3.5 w-3.5" />
                                       </Button>
                                    </DropdownMenuTrigger>
-                                   <DropdownMenuContent align="end" className="w-48 rounded-2xl p-2 border-border shadow-xl bg-surface/95 dark:bg-surface/95 backdrop-blur-md">
-                                      <DropdownMenuItem asChild className="rounded-xl focus:bg-surface-secondary dark:focus:bg-zinc-800 cursor-pointer">
+                                   <DropdownMenuContent align="end" className="w-48 rounded-none p-2 border-border shadow-none bg-surface/95 dark:bg-surface/95 backdrop-blur-md">
+                                      <DropdownMenuItem asChild className="rounded-none focus:bg-surface-secondary dark:focus:bg-zinc-800 cursor-pointer">
                                          <Link href={`/dashboard/messages?vendor=${o.order_items?.[0]?.vendor_id}`} className="flex items-center gap-2.5 p-2.5">
                                             <MessageSquare className="h-4 w-4 text-stone-400" />
                                             <span className="text-[12px] font-bold text-stone-700 dark:text-stone-300">Message Vendor</span>
                                          </Link>
                                       </DropdownMenuItem>
-                                      <DropdownMenuItem className="rounded-xl focus:bg-surface-secondary dark:focus:bg-zinc-800 cursor-pointer p-2.5 flex items-center gap-2.5">
+                                      <DropdownMenuItem className="rounded-none focus:bg-surface-secondary dark:focus:bg-zinc-800 cursor-pointer p-2.5 flex items-center gap-2.5">
                                          <Download className="h-4 w-4 text-stone-400" />
                                          <span className="text-[12px] font-bold text-stone-700 dark:text-stone-300">Download Invoice</span>
                                       </DropdownMenuItem>
                                       {o.status === "pending" && (
                                          <>
                                            <DropdownMenuSeparator className="bg-border" />
-                                           <DropdownMenuItem onClick={() => handleCancelOrder(o.id)} className="rounded-xl focus:bg-rose-50 dark:focus:bg-rose-500/10 focus:text-rose-600 dark:focus:text-rose-400 text-rose-500 cursor-pointer p-2.5 flex items-center gap-2.5">
+                                           <DropdownMenuItem onClick={() => handleCancelOrder(o.id)} className="rounded-none focus:bg-rose-50 dark:focus:bg-rose-500/10 focus:text-rose-600 dark:focus:text-rose-400 text-rose-500 cursor-pointer p-2.5 flex items-center gap-2.5">
                                               <XCircle className="h-4 w-4" />
                                               <span className="text-[12px] font-bold">Cancel Order</span>
                                            </DropdownMenuItem>
@@ -291,3 +291,4 @@ export default function BuyerOrdersPage() {
     </div>
   );
 }
+

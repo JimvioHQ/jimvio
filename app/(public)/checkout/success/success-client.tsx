@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { Check } from "lucide-react";
@@ -23,7 +23,7 @@ export function CheckoutSuccessClient({ order }: { order: Order }) {
 
   useEffect(() => {
     const sp = new URLSearchParams(window.location.search);
-    // PawaPay passes order_tracking_id in the redirect URL — this IS the depositId
+    // PawaPay passes order_tracking_id in the redirect URL â€” this IS the depositId
     const trackingId = sp.get("OrderTrackingId") || sp.get("order_tracking_id");
 
     async function doSync() {
@@ -74,12 +74,12 @@ export function CheckoutSuccessClient({ order }: { order: Order }) {
             ? "AfriPay"
             : p 
               ? p.charAt(0).toUpperCase() + p.slice(1)
-              : "—";
+              : "â€”";
 
   return (
     <div className="text-center">
-      <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-[var(--color-success-light)] animate-[fade-in_0.5s_ease-out]">
-        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--color-success)] text-white shadow-lg animate-[scale-in_0.4s_ease-out]">
+      <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-none bg-[var(--color-success-light)] animate-[fade-in_0.5s_ease-out]">
+        <div className="flex h-14 w-14 items-center justify-center rounded-none bg-[var(--color-success)] text-white shadow-none animate-[scale-in_0.4s_ease-out]">
           <Check className="h-8 w-8" strokeWidth={3} />
         </div>
       </div>
@@ -89,13 +89,13 @@ export function CheckoutSuccessClient({ order }: { order: Order }) {
         Order <span className="text-[var(--color-accent)]">#{label}</span>
       </p>
 
-      <div className="mt-8 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 text-left shadow-[var(--shadow-sm)]">
+      <div className="mt-8 rounded-none border border-[var(--color-border)] bg-[var(--color-surface)] p-5 text-left shadow-[var(--shadow-none)]">
         <p className="text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-3">Items</p>
         <ul className="space-y-2 mb-4">
           {order.order_items?.map((i) => (
             <li key={i.product_name + i.quantity} className="flex justify-between text-sm">
               <span className="text-[var(--color-text-primary)]">
-                {i.product_name} × {i.quantity}
+                {i.product_name} Ã— {i.quantity}
               </span>
               <span className="font-semibold">{formatDisplayMoney(Number(i.total_price), order.currency)}</span>
             </li>
@@ -123,3 +123,4 @@ export function CheckoutSuccessClient({ order }: { order: Order }) {
     </div>
   );
 }
+

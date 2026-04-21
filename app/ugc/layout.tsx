@@ -1,4 +1,4 @@
-import { Suspense } from "react";
+﻿import { Suspense } from "react";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { ProductChatWidgetLoader } from "@/components/marketplace/product-chat-widget-loader";
@@ -48,3 +48,4 @@ export default async function UGCLayout({ children }: { children: React.ReactNod
     </div>
   );
 }
+

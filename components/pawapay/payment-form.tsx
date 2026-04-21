@@ -48,7 +48,7 @@ export function PawaPayPaymentForm({ amount = 1000, currency = "RWF", orderId, c
   }
 
   return (
-    <div className={cn("w-full bg-white dark:bg-surface rounded-3xl overflow-hidden border border-zinc-100 dark:border-border shadow-xl", className)}>
+    <div className={cn("w-full bg-white dark:bg-surface rounded-none overflow-hidden border border-zinc-100 dark:border-border shadow-none", className)}>
       <div className="p-6 bg-zinc-50 dark:bg-surface-secondary/80 border-b border-zinc-100 dark:border-border">
         <h2 className="text-xl font-black text-zinc-900 dark:text-white flex items-center gap-2">
           <Smartphone className="h-5 w-5 text-orange-500 dark:text-orange-400" /> Mobile Money
@@ -76,7 +76,7 @@ export function PawaPayPaymentForm({ amount = 1000, currency = "RWF", orderId, c
           <Button
             onClick={handleCheckout}
             disabled={loading}
-            className="w-full h-14 rounded-2xl bg-orange-500/10 border border-orange-500/30 text-orange-600 font-black text-base transition-all active:scale-95 flex items-center justify-center gap-2 group uppercase tracking-widest shadow-sm"
+            className="w-full h-14 rounded-none bg-orange-500/10 border border-orange-500/30 text-orange-600 font-black text-base transition-all active:scale-95 flex items-center justify-center gap-2 group uppercase tracking-widest shadow-none"
           >
             {loading ? (
               <Loader2 className="h-5 w-5 animate-spin" />
@@ -96,3 +96,4 @@ export function PawaPayPaymentForm({ amount = 1000, currency = "RWF", orderId, c
     </div>
   );
 }
+

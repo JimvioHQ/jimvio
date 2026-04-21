@@ -75,7 +75,7 @@ export function WorkspaceRoomOverlay({
           type="button"
           variant="outline"
           size="icon"
-          className="h-9 w-9 sm:h-10 sm:w-10 shrink-0 rounded-xl border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-primary)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-accent)] hover:border-[var(--color-accent)]/30 hover:scale-105 active:scale-95 transition-all duration-200"
+          className="h-9 w-9 sm:h-10 sm:w-10 shrink-0 rounded-none border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-primary)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-accent)] hover:border-[var(--color-accent)]/30 hover:scale-105 active:scale-95 transition-all duration-200"
           onClick={onClose}
           aria-label="Back to workspace"
         >
@@ -87,7 +87,7 @@ export function WorkspaceRoomOverlay({
             <span className="text-[9px] font-black uppercase tracking-[0.2em] text-[var(--color-text-muted)] opacity-70 leading-none">{communityName}</span>
           </div>
           <div className="flex items-center gap-2 sm:gap-3">
-             {spaceIcon && <span className="text-base sm:text-lg leading-none w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center bg-[var(--color-surface-secondary)] rounded-lg border border-[var(--color-border)] shadow-sm">{spaceIcon}</span>}
+             {spaceIcon && <span className="text-base sm:text-lg leading-none w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center bg-[var(--color-surface-secondary)] rounded-none border border-[var(--color-border)] shadow-none">{spaceIcon}</span>}
              <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap leading-tight">
                    <span className="text-[11px] font-bold text-[var(--color-text-muted)] tracking-tight">{spaceName}</span>
@@ -103,7 +103,7 @@ export function WorkspaceRoomOverlay({
         <div className="hidden md:flex items-center gap-3 shrink-0">
           <span
             className={cn(
-              "inline-flex items-center gap-2 text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-xl shadow-sm transition-all duration-300",
+              "inline-flex items-center gap-2 text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-none shadow-none transition-all duration-300",
               "bg-[var(--color-surface-secondary)] text-[var(--color-text-primary)] border border-[var(--color-border)] group hover:border-[var(--color-accent)]/40"
             )}
           >
@@ -125,3 +125,4 @@ export function WorkspaceRoomOverlay({
   if (!mounted) return node;
   return createPortal(node, document.body);
 }
+

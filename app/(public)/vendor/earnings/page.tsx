@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { VendorEarningsDashboard } from "@/components/vendor/vendor-earnings-dashboard";
@@ -31,3 +31,4 @@ export default async function VendorEarningsPage() {
     </div>
   );
 }
+

@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { createClient } from "@/lib/supabase/server";
 import { getUserWishlist } from "@/services/db";
 import { redirect } from "next/navigation";
@@ -28,7 +28,7 @@ export default async function WishlistPage() {
     >
       <div className="max-w-6xl mx-auto space-y-6 sm:space-y-10 px-4 sm:px-6 pt-6 sm:pt-12 relative z-10">
         <div className="flex items-center gap-4">
-           <div className="p-2.5 rounded-2xl bg-surface dark:bg-surface-secondary border border-border shadow-sm shrink-0">
+           <div className="p-2.5 rounded-none bg-surface dark:bg-surface-secondary border border-border shadow-none shrink-0">
               <Heart className="h-6 w-6 text-rose-500 fill-rose-500/10" />
            </div>
            <div className="space-y-0.5">
@@ -43,3 +43,4 @@ export default async function WishlistPage() {
     </div>
   );
 }
+

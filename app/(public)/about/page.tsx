@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { Globe, Users, TrendingUp, ShieldCheck, Zap, ArrowRight, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -21,10 +21,10 @@ export default function AboutPage() {
             Jimvio is the world&apos;s first creator-commerce ecosystem. We bridge the gap between global manufacturers and the modern creator economy.
           </p>
           <div className="flex gap-4">
-             <Button size="xl" className="bg-[var(--color-accent)] font-black rounded-xl h-16 px-10">
+             <Button size="xl" className="bg-[var(--color-accent)] font-black rounded-none h-16 px-10">
                Join Our Network
              </Button>
-             <Button size="xl" variant="outline" className="font-black rounded-xl h-16 px-10 border-2">
+             <Button size="xl" variant="outline" className="font-black rounded-none h-16 px-10 border-2">
                Our Values
              </Button>
           </div>
@@ -57,7 +57,7 @@ export default function AboutPage() {
             <h2 className="text-4xl font-black text-[var(--color-text-primary)] mb-8">The Jimvio Story</h2>
             <div className="space-y-6 text-[var(--color-text-secondary)] text-lg leading-relaxed">
               <p>
-                We started with a simple observation: Global supply chains were designed for industrial giants, while the most dynamic force in commerce — independent creators and agile businesses — were left behind.
+                We started with a simple observation: Global supply chains were designed for industrial giants, while the most dynamic force in commerce â€” independent creators and agile businesses â€” were left behind.
               </p>
               <p>
                 Jimvio was built to change that. We offer a unified platform where manufacturers can reach a global audience of creators, and creators can source verified products with just a few clicks.
@@ -68,11 +68,11 @@ export default function AboutPage() {
             </div>
           </div>
           <div className="relative">
-            <div className="aspect-square bg-gradient-to-br from-[var(--color-accent)] to-ink-dark rounded-[4rem] shadow-2xl relative overflow-hidden group">
+            <div className="aspect-square bg-gradient-to-br from-[var(--color-accent)] to-ink-dark rounded-none shadow-none relative overflow-hidden group">
                <div className="absolute inset-0 flex items-center justify-center">
                   <Globe className="h-40 w-40 text-white opacity-20 group-hover:scale-110 transition-transform duration-700" />
                </div>
-               <div className="absolute bottom-10 left-10 p-8 bg-white dark:bg-surface/10 backdrop-blur-xl rounded-3xl border border-white/20">
+               <div className="absolute bottom-10 left-10 p-8 bg-white dark:bg-surface/10 backdrop-blur-xl rounded-none border border-white/20">
                   <p className="text-white font-black text-2xl mb-1">Kigali, Rwanda</p>
                   <p className="text-white/60 text-sm font-bold capitalize tracking-widest">Global HQ</p>
                </div>
@@ -92,7 +92,7 @@ export default function AboutPage() {
               { icon: <TrendingUp />, title: "Hyper Growth", desc: "We are obsessed with helping our partners scale their revenue and reach." }
             ].map((v, i) => (
               <div key={i} className="flex flex-col items-center">
-                <div className="h-16 w-16 rounded-2xl bg-[var(--color-accent)] flex items-center justify-center mb-8 shadow-xl shadow-[var(--color-accent)]/20">
+                <div className="h-16 w-16 rounded-none bg-[var(--color-accent)] flex items-center justify-center mb-8 shadow-none shadow-[var(--color-accent)]/20">
                   {v.icon}
                 </div>
                 <h3 className="text-2xl font-black mb-4">{v.title}</h3>
@@ -105,13 +105,13 @@ export default function AboutPage() {
 
       {/* Team CTA */}
       <section className="py-24 max-w-6xl mx-auto px-4 sm:px-6 text-center">
-         <div className="bg-[var(--color-surface-secondary)] rounded-[3rem] p-16 border border-[var(--color-border)]">
+         <div className="bg-[var(--color-surface-secondary)] rounded-none p-16 border border-[var(--color-border)]">
            <Users className="h-12 w-12 text-[var(--color-accent)] mx-auto mb-6" />
            <h2 className="text-4xl font-black text-[var(--color-text-primary)] mb-6">Join the Revolution</h2>
            <p className="text-[var(--color-text-secondary)] text-xl mb-10 max-w-2xl mx-auto">
              We are always looking for visionary talent to help us build the future of commerce.
            </p>
-           <Button variant="outline" size="xl" className="font-black rounded-xl border-2 h-16 px-10">
+           <Button variant="outline" size="xl" className="font-black rounded-none border-2 h-16 px-10">
              View Open Roles <ArrowRight className="ml-2 h-5 w-5" />
            </Button>
          </div>
@@ -119,3 +119,4 @@ export default function AboutPage() {
     </div>
   );
 }
+

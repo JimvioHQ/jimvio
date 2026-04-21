@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useMemo, useState } from "react";
 import {
@@ -73,7 +73,7 @@ export function CommissionsDashboard({
         value:
           filteredByRange.length > 0
             ? formatMoney(total / filteredByRange.length, "USD")
-            : "—",
+            : "â€”",
         icon: <BarChart3 className="h-5 w-5" />,
       },
     ];
@@ -127,7 +127,7 @@ export function CommissionsDashboard({
 
       <CommissionStats cards={stats} />
 
-      <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 h-[320px]">
+      <div className="rounded-none border border-[var(--color-border)] bg-[var(--color-surface)] p-4 h-[320px]">
         <h2 className="text-sm font-bold text-[var(--color-text-primary)] mb-4">Daily commission</h2>
         <ResponsiveContainer width="100%" height="85%">
           <LineChart data={chartData}>
@@ -153,3 +153,4 @@ export function CommissionsDashboard({
     </div>
   );
 }
+

@@ -20,7 +20,7 @@ export function HeroStoryCard({ viralClips }: HeroStoryCardProps) {
     <>
       <div 
         onClick={() => setShowPlayer(true)}
-        className="relative aspect-[9/16] rounded-3xl overflow-hidden shadow-2xl group-hover/clip:scale-[1.02] transition-transform duration-700 cursor-pointer ring-8 ring-white shadow-orange-500/10 active:scale-[0.98]"
+        className="relative aspect-[9/16] rounded-none overflow-hidden shadow-none group-hover/clip:scale-[1.02] transition-transform duration-700 cursor-pointer ring-8 ring-white shadow-orange-500/10 active:scale-[0.98]"
       >
         <div 
           className="absolute inset-0 bg-cover bg-center"
@@ -29,15 +29,15 @@ export function HeroStoryCard({ viralClips }: HeroStoryCardProps) {
         <div className="absolute inset-0 bg-gradient-to-t from-ink-darker/80 via-transparent to-transparent" />
         
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-16 h-16 rounded-full bg-white dark:bg-surface/20 border border-white/30 flex items-center justify-center text-white scale-90 group-hover/clip:scale-100 transition-transform">
+          <div className="w-16 h-16 rounded-none bg-white dark:bg-surface/20 border border-white/30 flex items-center justify-center text-white scale-90 group-hover/clip:scale-100 transition-transform">
             <Play className="h-8 w-8 fill-white" />
           </div>
         </div>
 
         <div className="absolute bottom-6 left-6 right-6 text-white text-left">
-          <p className="text-[14px] font-black leading-tight mb-2 drop-shadow-md">{firstClip.title}</p>
+          <p className="text-[14px] font-black leading-tight mb-2 drop-shadow-none">{firstClip.title}</p>
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-full bg-[#f97316] flex items-center justify-center text-[10px] font-black border border-white/20">
+            <div className="w-6 h-6 rounded-none bg-[#f97316] flex items-center justify-center text-[10px] font-black border border-white/20">
               {firstClip.vendors?.business_name?.[0] || "V"}
             </div>
             <span className="text-[11px] font-bold text-white/80">@{firstClip.vendors?.business_name?.toLowerCase().replace(/\s/g, '') || "verified"}</span>
@@ -59,3 +59,4 @@ export function HeroStoryCard({ viralClips }: HeroStoryCardProps) {
     </>
   );
 }
+

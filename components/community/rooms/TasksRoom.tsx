@@ -180,7 +180,7 @@ export function TasksRoom({
               type="button"
               onClick={() => setTab(t)}
               className={cn(
-                "px-3 py-1.5 rounded-full text-xs font-black whitespace-nowrap",
+                "px-3 py-1.5 rounded-none text-xs font-black whitespace-nowrap",
                 tab === t ? "bg-[var(--color-accent-light)] text-[var(--color-accent)]" : "text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)]"
               )}
             >
@@ -203,10 +203,10 @@ export function TasksRoom({
               const diffColor =
                 diff === "hard" ? "text-[var(--color-danger)] bg-[var(--color-danger-light)]" : diff === "medium" ? "text-[var(--color-warning)] bg-[var(--color-warning-light)]" : "text-[var(--color-success)] bg-[var(--color-success-light)]";
               return (
-                <div key={task.id} className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-sm">
+                <div key={task.id} className="rounded-none border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-none">
                   <div className="flex flex-wrap gap-2 mb-2">
-                    <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-[var(--color-surface-secondary)] text-[var(--color-text-secondary)]">{task.task_type}</span>
-                    <span className={cn("text-[10px] font-black uppercase px-2 py-0.5 rounded-md", diffColor)}>{task.difficulty}</span>
+                    <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-none bg-[var(--color-surface-secondary)] text-[var(--color-text-secondary)]">{task.task_type}</span>
+                    <span className={cn("text-[10px] font-black uppercase px-2 py-0.5 rounded-none", diffColor)}>{task.difficulty}</span>
                   </div>
                   <h3 className="font-black text-[var(--color-text-primary)]">{task.title}</h3>
                   <p className="text-sm text-[var(--color-text-muted)] line-clamp-2 mt-1">{task.description}</p>
@@ -217,15 +217,15 @@ export function TasksRoom({
                   </div>
                   <div className="mt-3">
                     {!comp && (
-                      <Button type="button" className="rounded-xl bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-black" onClick={() => setModalTask(task)}>
+                      <Button type="button" className="rounded-none bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-black" onClick={() => setModalTask(task)}>
                         Complete Task
                       </Button>
                     )}
                     {comp?.status === "submitted" && (
-                      <span className="text-xs font-black px-2 py-1 rounded-lg bg-[var(--color-warning-light)] text-[var(--color-warning)]">Submitted</span>
+                      <span className="text-xs font-black px-2 py-1 rounded-none bg-[var(--color-warning-light)] text-[var(--color-warning)]">Submitted</span>
                     )}
                     {comp?.status === "approved" && (
-                      <span className="text-xs font-black px-2 py-1 rounded-lg bg-[var(--color-success-light)] text-[var(--color-success)]">Completed âœ“</span>
+                      <span className="text-xs font-black px-2 py-1 rounded-none bg-[var(--color-success-light)] text-[var(--color-success)]">Completed âœ“</span>
                     )}
                   </div>
                 </div>
@@ -241,7 +241,7 @@ export function TasksRoom({
           {leaderboard.map((row, i) => (
             <li key={row.user_id} className="flex items-center gap-2">
               <span className="text-xs font-black w-5 text-[var(--color-text-muted)]">{i + 1}</span>
-              <div className="h-8 w-8 rounded-full overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface-secondary)]">
+              <div className="h-8 w-8 rounded-none overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface-secondary)]">
                 {row.profiles?.avatar_url ? (
                   <Image src={row.profiles.avatar_url} alt="" width={32} height={32} className="object-cover h-full w-full" unoptimized />
                 ) : (
@@ -268,15 +268,15 @@ export function TasksRoom({
           <p className="text-sm text-[var(--color-text-muted)]">{modalTask?.description}</p>
           <div className="space-y-2">
             <label className="text-xs font-bold text-[var(--color-text-muted)]">What did you do?</label>
-            <Textarea value={proofText} onChange={(e) => setProofText(e.target.value)} rows={4} className="rounded-xl border-[var(--color-border)]" />
+            <Textarea value={proofText} onChange={(e) => setProofText(e.target.value)} rows={4} className="rounded-none border-[var(--color-border)]" />
             <label className="text-xs font-bold text-[var(--color-text-muted)]">Proof link (optional)</label>
-            <Input value={proofUrl} onChange={(e) => setProofUrl(e.target.value)} className="rounded-xl border-[var(--color-border)]" placeholder="https://â€¦" />
+            <Input value={proofUrl} onChange={(e) => setProofUrl(e.target.value)} className="rounded-none border-[var(--color-border)]" placeholder="https://â€¦" />
           </div>
           <div className="flex flex-wrap gap-2 justify-end pt-2">
-            <Button variant="outline" className="rounded-xl" onClick={() => setModalTask(null)}>
+            <Button variant="outline" className="rounded-none" onClick={() => setModalTask(null)}>
               Cancel
             </Button>
-            <Button className="rounded-xl bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-black" disabled={submitting || !proofText.trim()} onClick={submitTask}>
+            <Button className="rounded-none bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-black" disabled={submitting || !proofText.trim()} onClick={submitTask}>
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Submit Completion"}
             </Button>
           </div>
@@ -285,3 +285,4 @@ export function TasksRoom({
     </div>
   );
 }
+

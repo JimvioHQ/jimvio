@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { Search, ArrowRight, Clock, User, Tag, Share2, Bookmark } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -27,7 +27,7 @@ export default async function BlogListingPage() {
           Articles will appear here once published in the database. Run migration{" "}
           <code className="text-xs">022_platform_settings_blog.sql</code> and seed posts if needed.
         </p>
-        <Button asChild className="mt-8 rounded-xl font-black">
+        <Button asChild className="mt-8 rounded-none font-black">
           <Link href="/">Back home</Link>
         </Button>
       </div>
@@ -64,7 +64,7 @@ export default async function BlogListingPage() {
                 <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-[var(--color-text-muted)] group-focus-within:text-[var(--color-accent)] transition-colors" />
                 <Input
                   placeholder="Search articles..."
-                  className="h-16 pl-14 pr-6 bg-[var(--color-bg)] border-2 rounded-2xl focus-visible:ring-[var(--color-accent)] shadow-sm"
+                  className="h-16 pl-14 pr-6 bg-[var(--color-bg)] border-2 rounded-none focus-visible:ring-[var(--color-accent)] shadow-none"
                 />
               </div>
             </div>
@@ -76,7 +76,7 @@ export default async function BlogListingPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-20">
           <Link
             href={`/blog/${featured.slug}`}
-            className="relative group cursor-pointer overflow-hidden rounded-[3rem] aspect-[4/3] lg:aspect-auto block"
+            className="relative group cursor-pointer overflow-hidden rounded-none aspect-[4/3] lg:aspect-auto block"
           >
             <img
               src={featuredImage}
@@ -105,7 +105,7 @@ export default async function BlogListingPage() {
           <div className="flex flex-col gap-8">
             {sidePosts.map((post) => (
               <Link key={post.id} href={`/blog/${post.slug}`} className="flex gap-6 group cursor-pointer">
-                <div className="w-40 h-40 shrink-0 rounded-3xl overflow-hidden bg-subtle relative border border-[var(--color-border)]">
+                <div className="w-40 h-40 shrink-0 rounded-none overflow-hidden bg-subtle relative border border-[var(--color-border)]">
                   <img
                     src={
                       post.image_url ??
@@ -127,7 +127,7 @@ export default async function BlogListingPage() {
                   <p className="text-sm text-[var(--color-text-secondary)] line-clamp-2 mb-4 leading-relaxed">{post.excerpt}</p>
                   <div className="flex items-center gap-4 text-[10px] font-black text-muted-c capitalize tracking-widest">
                     <span>{formatPostDate(post.published_at)}</span>
-                    <span className="w-1 h-1 bg-muted-c rounded-full" />
+                    <span className="w-1 h-1 bg-muted-c rounded-none" />
                     <span>{post.read_time_minutes} min read</span>
                   </div>
                 </div>
@@ -141,7 +141,7 @@ export default async function BlogListingPage() {
             <button
               key={cat}
               type="button"
-              className="px-6 py-2.5 rounded-xl border border-[var(--color-border)] text-sm font-black text-[var(--color-text-primary)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] transition-all"
+              className="px-6 py-2.5 rounded-none border border-[var(--color-border)] text-sm font-black text-[var(--color-text-primary)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] transition-all"
             >
               {cat}
             </button>
@@ -152,7 +152,7 @@ export default async function BlogListingPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
             {rest.map((post) => (
               <Link key={post.id} href={`/blog/${post.slug}`} className="group cursor-pointer block">
-                <div className="aspect-[16/10] bg-subtle rounded-3xl mb-6 overflow-hidden border border-[var(--color-border)] relative">
+                <div className="aspect-[16/10] bg-subtle rounded-none mb-6 overflow-hidden border border-[var(--color-border)] relative">
                   <img
                     src={
                       post.image_url ??
@@ -166,7 +166,7 @@ export default async function BlogListingPage() {
                     <Button
                       variant="outline"
                       size="icon"
-                      className="h-8 w-8 rounded-full bg-white dark:bg-surface/50 border-none backdrop-blur-md opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="h-8 w-8 rounded-none bg-white dark:bg-surface/50 border-none backdrop-blur-md opacity-0 group-hover:opacity-100 transition-opacity"
                       type="button"
                     >
                       <Bookmark className="h-4 w-4" />
@@ -174,7 +174,7 @@ export default async function BlogListingPage() {
                     <Button
                       variant="outline"
                       size="icon"
-                      className="h-8 w-8 rounded-full bg-white dark:bg-surface/50 border-none backdrop-blur-md opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="h-8 w-8 rounded-none bg-white dark:bg-surface/50 border-none backdrop-blur-md opacity-0 group-hover:opacity-100 transition-opacity"
                       type="button"
                     >
                       <Share2 className="h-4 w-4" />
@@ -197,7 +197,7 @@ export default async function BlogListingPage() {
           </div>
         )}
 
-        <div className="mt-32 bg-ink-dark rounded-[4rem] p-12 md:p-20 text-center relative overflow-hidden">
+        <div className="mt-32 bg-ink-dark rounded-none p-12 md:p-20 text-center relative overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 bg-[var(--color-accent)] blur-[120px] opacity-20" />
           <div className="absolute bottom-0 left-0 w-64 h-64 bg-emerald-500 blur-[120px] opacity-10" />
           <div className="relative z-10 max-w-2xl mx-auto">
@@ -209,9 +209,9 @@ export default async function BlogListingPage() {
             <div className="flex flex-col sm:flex-row gap-4">
               <Input
                 placeholder="Enter your email address"
-                className="h-16 bg-white dark:bg-surface/5 border-white/10 text-white placeholder:text-white/20 rounded-2xl px-6 text-lg"
+                className="h-16 bg-white dark:bg-surface/5 border-white/10 text-white placeholder:text-white/20 rounded-none px-6 text-lg"
               />
-              <Button className="h-16 px-10 bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] font-black rounded-2xl text-lg">
+              <Button className="h-16 px-10 bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] font-black rounded-none text-lg">
                 Subscribe
               </Button>
             </div>
@@ -221,3 +221,4 @@ export default async function BlogListingPage() {
     </div>
   );
 }
+

@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -63,3 +63,4 @@ export default async function CheckoutSuccessPage({
     </div>
   );
 }
+

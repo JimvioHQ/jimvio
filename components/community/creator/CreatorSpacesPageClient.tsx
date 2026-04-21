@@ -190,7 +190,7 @@ export function CreatorSpacesPageClient({ communityId }: { communityId: string }
         </div>
         <Button
           type="button"
-          className="rounded-xl bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-black"
+          className="rounded-none bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-black"
           onClick={() => {
             setSpaceError(null);
             setEditingSpaceId(null);
@@ -247,24 +247,24 @@ export function CreatorSpacesPageClient({ communityId }: { communityId: string }
           <div className="flex flex-col gap-4 mt-6">
             <h3 className="text-xs font-black uppercase text-[var(--color-text-muted)] tracking-widest pl-1">Quick Add By Space</h3>
             {spaces.map((s) => (
-              <div key={s.id} className="w-full flex flex-col p-4 border border-[var(--color-border)] rounded-3xl bg-[var(--color-surface-secondary)]/20 shadow-sm">
+              <div key={s.id} className="w-full flex flex-col p-4 border border-[var(--color-border)] rounded-none bg-[var(--color-surface-secondary)]/20 shadow-none">
                   <h4 className="text-sm font-black text-[var(--color-text-primary)] mb-3 flex items-center gap-2">
                      <span className="text-xl">{s.icon}</span> {s.name}
                   </h4>
                   <div className="flex flex-wrap gap-2">
-                      <Button type="button" variant="outline" className="rounded-xl border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-accent)] hover:text-white hover:border-[var(--color-accent)] text-[10px] uppercase font-black tracking-wider transition-all h-9" onClick={() => { setEditingRoomId(null); setRName(""); setRoomError(null); setRType("course"); setRoomSpaceId(s.id); setRoomModal(true); }}>
+                      <Button type="button" variant="outline" className="rounded-none border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-accent)] hover:text-white hover:border-[var(--color-accent)] text-[10px] uppercase font-black tracking-wider transition-all h-9" onClick={() => { setEditingRoomId(null); setRName(""); setRoomError(null); setRType("course"); setRoomSpaceId(s.id); setRoomModal(true); }}>
                         + Add Course
                       </Button>
-                      <Button type="button" variant="outline" className="rounded-xl border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-accent)] hover:text-white hover:border-[var(--color-accent)] text-[10px] uppercase font-black tracking-wider transition-all h-9" onClick={() => { setEditingRoomId(null); setRName(""); setRoomError(null); setRType("tasks"); setRoomSpaceId(s.id); setRoomModal(true); }}>
+                      <Button type="button" variant="outline" className="rounded-none border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-accent)] hover:text-white hover:border-[var(--color-accent)] text-[10px] uppercase font-black tracking-wider transition-all h-9" onClick={() => { setEditingRoomId(null); setRName(""); setRoomError(null); setRType("tasks"); setRoomSpaceId(s.id); setRoomModal(true); }}>
                         + Add Task Room
                       </Button>
-                      <Button type="button" variant="outline" className="rounded-xl border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-accent)] hover:text-white hover:border-[var(--color-accent)] text-[10px] uppercase font-black tracking-wider transition-all h-9" onClick={() => { setEditingRoomId(null); setRName(""); setRoomError(null); setRType("resources"); setRoomSpaceId(s.id); setRoomModal(true); }}>
+                      <Button type="button" variant="outline" className="rounded-none border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-accent)] hover:text-white hover:border-[var(--color-accent)] text-[10px] uppercase font-black tracking-wider transition-all h-9" onClick={() => { setEditingRoomId(null); setRName(""); setRoomError(null); setRType("resources"); setRoomSpaceId(s.id); setRoomModal(true); }}>
                         + Add Resources
                       </Button>
-                      <Button type="button" variant="outline" className="rounded-xl border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-accent)] hover:text-white hover:border-[var(--color-accent)] text-[10px] uppercase font-black tracking-wider transition-all h-9" onClick={() => { setEditingRoomId(null); setRName(""); setRoomError(null); setRType("chat"); setRoomSpaceId(s.id); setRoomModal(true); }}>
+                      <Button type="button" variant="outline" className="rounded-none border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-accent)] hover:text-white hover:border-[var(--color-accent)] text-[10px] uppercase font-black tracking-wider transition-all h-9" onClick={() => { setEditingRoomId(null); setRName(""); setRoomError(null); setRType("chat"); setRoomSpaceId(s.id); setRoomModal(true); }}>
                         + Add Chat Room
                       </Button>
-                      <Button type="button" variant="outline" className="rounded-xl border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-accent)] hover:text-white hover:border-[var(--color-accent)] text-[10px] uppercase font-black tracking-wider transition-all h-9" onClick={() => { setEditingRoomId(null); setRName(""); setRoomError(null); setRType("posts"); setRoomSpaceId(s.id); setRoomModal(true); }}>
+                      <Button type="button" variant="outline" className="rounded-none border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-accent)] hover:text-white hover:border-[var(--color-accent)] text-[10px] uppercase font-black tracking-wider transition-all h-9" onClick={() => { setEditingRoomId(null); setRName(""); setRoomError(null); setRType("posts"); setRoomSpaceId(s.id); setRoomModal(true); }}>
                         + Add Forum / Posts
                       </Button>
                   </div>
@@ -286,26 +286,26 @@ export function CreatorSpacesPageClient({ communityId }: { communityId: string }
             <DialogTitle className="font-black !text-[var(--color-text-primary)]">New space</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
-            <Input placeholder="Name" value={sName} onChange={(e) => setSName(e.target.value)} className="rounded-xl border-[var(--color-border)]" />
-            <Textarea placeholder="Description" value={sDesc} onChange={(e) => setSDesc(e.target.value)} rows={3} className="rounded-xl border-[var(--color-border)]" />
+            <Input placeholder="Name" value={sName} onChange={(e) => setSName(e.target.value)} className="rounded-none border-[var(--color-border)]" />
+            <Textarea placeholder="Description" value={sDesc} onChange={(e) => setSDesc(e.target.value)} rows={3} className="rounded-none border-[var(--color-border)]" />
             <p className="text-xs font-bold text-[var(--color-text-muted)]">Icon</p>
             <div className="flex flex-wrap gap-2">
               {EMOJI_GRID.map((e) => (
-                <button key={e} type="button" className={`text-2xl p-1 rounded-lg ${sIcon === e ? "ring-2 ring-[var(--color-accent)]" : ""}`} onClick={() => setSIcon(e)}>
+                <button key={e} type="button" className={`text-2xl p-1 rounded-none ${sIcon === e ? "ring-2 ring-[var(--color-accent)]" : ""}`} onClick={() => setSIcon(e)}>
                   {e}
                 </button>
               ))}
             </div>
             <div>
               <label className="text-xs font-bold text-[var(--color-text-muted)]">Accent color</label>
-              <Input type="color" value={sColor} onChange={(e) => setSColor(e.target.value)} className="h-10 mt-1 rounded-xl" />
+              <Input type="color" value={sColor} onChange={(e) => setSColor(e.target.value)} className="h-10 mt-1 rounded-none" />
             </div>
             <div>
               <label className="text-xs font-bold text-[var(--color-text-muted)]">Access</label>
               <select
                 value={sAccess}
                 onChange={(e) => setSAccess(e.target.value as typeof sAccess)}
-                className="mt-1 w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm font-semibold"
+                className="mt-1 w-full rounded-none border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm font-semibold"
               >
                 <option value="free">Free</option>
                 <option value="paid">Paid</option>
@@ -314,15 +314,15 @@ export function CreatorSpacesPageClient({ communityId }: { communityId: string }
             </div>
           </div>
           {spaceError ? (
-            <p className="text-sm text-[var(--color-danger)] font-semibold rounded-xl bg-[var(--color-danger-light)]/40 px-3 py-2 border border-[var(--color-danger)]/20">
+            <p className="text-sm text-[var(--color-danger)] font-semibold rounded-none bg-[var(--color-danger-light)]/40 px-3 py-2 border border-[var(--color-danger)]/20">
               {spaceError}
             </p>
           ) : null}
           <div className="flex justify-end gap-2 pt-2">
-            <Button variant="outline" className="rounded-xl" onClick={() => setSpaceModal(false)}>
+            <Button variant="outline" className="rounded-none" onClick={() => setSpaceModal(false)}>
               Cancel
             </Button>
-            <Button className="rounded-xl bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-black" disabled={saving} onClick={saveSpace}>
+            <Button className="rounded-none bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-black" disabled={saving} onClick={saveSpace}>
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
             </Button>
           </div>
@@ -340,7 +340,7 @@ export function CreatorSpacesPageClient({ communityId }: { communityId: string }
           <DialogHeader>
             <DialogTitle className="font-black !text-[var(--color-text-primary)]">New room</DialogTitle>
           </DialogHeader>
-          <Input placeholder="Room name" value={rName} onChange={(e) => setRName(e.target.value)} className="rounded-xl border-[var(--color-border)]" />
+          <Input placeholder="Room name" value={rName} onChange={(e) => setRName(e.target.value)} className="rounded-none border-[var(--color-border)]" />
           <p className="text-xs font-bold text-[var(--color-text-muted)]">Room type</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {ROOM_TYPES.map((t) => (
@@ -348,7 +348,7 @@ export function CreatorSpacesPageClient({ communityId }: { communityId: string }
                 key={t.id}
                 type="button"
                 onClick={() => setRType(t.id)}
-                className={`text-left rounded-xl border p-3 transition-colors ${rType === t.id ? "border-[var(--color-accent)] bg-[var(--color-accent-light)]" : "border-[var(--color-border)] hover:bg-[var(--color-surface-secondary)]"}`}
+                className={`text-left rounded-none border p-3 transition-colors ${rType === t.id ? "border-[var(--color-accent)] bg-[var(--color-accent-light)]" : "border-[var(--color-border)] hover:bg-[var(--color-surface-secondary)]"}`}
               >
                 <div className="text-xs font-black">
                   {t.emoji} {t.label}
@@ -362,7 +362,7 @@ export function CreatorSpacesPageClient({ communityId }: { communityId: string }
             <select
               value={rAccess}
               onChange={(e) => setRAccess(e.target.value as typeof rAccess)}
-              className="mt-1 w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm font-semibold"
+              className="mt-1 w-full rounded-none border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm font-semibold"
             >
               <option value="inherit">Inherit from space</option>
               <option value="free">Free</option>
@@ -371,15 +371,15 @@ export function CreatorSpacesPageClient({ communityId }: { communityId: string }
             </select>
           </div>
           {roomError ? (
-            <p className="text-sm text-[var(--color-danger)] font-semibold rounded-xl bg-[var(--color-danger-light)]/40 px-3 py-2 border border-[var(--color-danger)]/20">
+            <p className="text-sm text-[var(--color-danger)] font-semibold rounded-none bg-[var(--color-danger-light)]/40 px-3 py-2 border border-[var(--color-danger)]/20">
               {roomError}
             </p>
           ) : null}
           <div className="flex justify-end gap-2">
-            <Button variant="outline" className="rounded-xl" onClick={() => setRoomModal(false)}>
+            <Button variant="outline" className="rounded-none" onClick={() => setRoomModal(false)}>
               Cancel
             </Button>
-            <Button className="rounded-xl bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-black" disabled={saving} onClick={saveRoom}>
+            <Button className="rounded-none bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-black" disabled={saving} onClick={saveRoom}>
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create room"}
             </Button>
           </div>
@@ -388,3 +388,4 @@ export function CreatorSpacesPageClient({ communityId }: { communityId: string }
     </div>
   );
 }
+

@@ -1,4 +1,4 @@
-export const dynamic = "force-dynamic";
+﻿export const dynamic = "force-dynamic";
 
 import React from "react";
 import { VideoStudio } from "@/components/studio/VideoStudio";
@@ -34,3 +34,4 @@ export default async function ShortVideosPage() {
     </div>
   );
 }
+

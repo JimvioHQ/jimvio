@@ -2,3 +2,4 @@
 export function PawaPayModal() {
   return null;
 }
+

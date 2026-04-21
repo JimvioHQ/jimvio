@@ -52,7 +52,7 @@ function ClipCard({
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen(clip); }
       }}
-      className="group relative shrink-0 cursor-pointer overflow-hidden rounded-2xl border border-border bg-surface text-left ring-1 ring-white/5 transition-all duration-300 hover:border-primary/50 hover:ring-primary/20 active:scale-[0.99] shadow-lg shadow-black/20"
+      className="group relative shrink-0 cursor-pointer overflow-hidden rounded-none border border-border bg-surface text-left ring-1 ring-white/5 transition-all duration-300 hover:border-primary/50 hover:ring-primary/20 active:scale-[0.99] shadow-none shadow-black/20"
       style={{ width }}
     >
       <div className="relative aspect-[9/16]">
@@ -69,27 +69,27 @@ function ClipCard({
         {/* Vendor row */}
         <div className="absolute left-2.5 right-2.5 top-2.5 z-10 flex min-w-0 items-center gap-1.5">
           <div className="relative shrink-0">
-            <Avatar className="h-6 w-6 border-2 border-white/50 shadow-sm transition-transform group-hover:scale-110">
+            <Avatar className="h-6 w-6 border-2 border-white/50 shadow-none transition-transform group-hover:scale-110">
               <AvatarImage src={logoUrl(clip.vendors)} />
               <AvatarFallback className="bg-[#f97316] text-[9px] font-black text-white">
                 {clip.vendors?.business_name?.[0] ?? "V"}
               </AvatarFallback>
             </Avatar>
-            <div className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-[1.5px] border-surface bg-emerald-500 shadow-sm" />
+            <div className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-none border-[1.5px] border-surface bg-emerald-500 shadow-none" />
           </div>
-          <span className="min-w-0 truncate text-[10px] font-black leading-tight text-white drop-shadow-md">
+          <span className="min-w-0 truncate text-[10px] font-black leading-tight text-white drop-shadow-none">
             {clip.vendors?.business_name ?? "Creator"}
           </span>
         </div>
 
         {/* Hover overlay: stats + product + follow */}
         <div className="absolute bottom-2.5 left-2.5 right-2.5 z-10 flex flex-col gap-1.5 opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300">
-          <div className="flex h-5 w-fit items-center gap-1 rounded-full bg-black/40 px-2 ">
+          <div className="flex h-5 w-fit items-center gap-1 rounded-none bg-black/40 px-2 ">
             <Eye className="h-3 w-3 shrink-0 text-[#f97316]" />
             <span className="text-[9px] font-black tabular-nums text-white">{(clip.total_views ?? 0).toLocaleString()}</span>
           </div>
           {clip.products && (
-            <div className="flex items-center justify-between gap-1.5 rounded-xl bg-white dark:bg-surface-secondary px-2 py-1 shadow-lg border border-border">
+            <div className="flex items-center justify-between gap-1.5 rounded-none bg-white dark:bg-surface-secondary px-2 py-1 shadow-none border border-border">
               <span className="min-w-0 truncate text-[9px] font-black text-bg-dark dark:text-text-primary">{clip.products.name}</span>
               <ShoppingBag className="h-3 w-3 shrink-0 text-primary" />
             </div>
@@ -100,7 +100,7 @@ function ClipCard({
                 vendorId={clip.vendors.id}
                 followLabel="Follow"
                 variant="ghost"
-                className="h-7 w-full rounded-xl border-0 bg-[#f97316] px-2 text-[9px] font-black text-white hover:bg-[#ea580c] transition-all active:scale-95"
+                className="h-7 w-full rounded-none border-0 bg-[#f97316] px-2 text-[9px] font-black text-white hover:bg-[#ea580c] transition-all active:scale-95"
               />
             </div>
           )}
@@ -108,7 +108,7 @@ function ClipCard({
 
         {/* Static view count (hidden on hover) */}
         <div className="absolute bottom-2.5 right-2.5 z-10 group-hover:opacity-0 transition-opacity duration-300">
-          <div className="flex h-5 items-center gap-1 rounded-full bg-black/40 px-2 ">
+          <div className="flex h-5 items-center gap-1 rounded-none bg-black/40 px-2 ">
             <Eye className="h-3 w-3 shrink-0 text-white/60" />
             <span className="text-[9px] font-black text-white tabular-nums">{(clip.total_views ?? 0).toLocaleString()}</span>
           </div>
@@ -116,7 +116,7 @@ function ClipCard({
 
         {/* Play button */}
         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20">
-          <div className="flex h-11 w-11 scale-90 items-center justify-center rounded-full border border-white/25 bg-white dark:bg-surface/10 transition-transform group-hover:scale-100">
+          <div className="flex h-11 w-11 scale-90 items-center justify-center rounded-none border border-white/25 bg-white dark:bg-surface/10 transition-transform group-hover:scale-100">
             <Play className="ml-1 h-5 w-5 fill-white text-white" />
           </div>
         </div>
@@ -148,16 +148,16 @@ export function TrendingProductClipsSection({ clips, className, title = "Trendin
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
         <div className="relative flex min-w-0 gap-4 sm:gap-5">
           <div
-            className="hidden w-1 shrink-0 rounded-full bg-gradient-to-b from-[#f97316] via-[#fb923c] to-[#ea580c] sm:block"
+            className="hidden w-1 shrink-0 rounded-none bg-gradient-to-b from-[#f97316] via-[#fb923c] to-[#ea580c] sm:block"
             aria-hidden
           />
           <div className="min-w-0">
-            <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/5 dark:bg-primary/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-primary sm:text-[11px] shadow-sm">
+            <div className="mb-2 inline-flex items-center gap-2 rounded-none border border-primary/25 bg-primary/5 dark:bg-primary/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-primary sm:text-[11px] shadow-none">
               <Play className="h-3 w-3 shrink-0 fill-primary text-primary" aria-hidden />
               Creator storefront
             </div>
             <h2 className="font-outfit flex flex-wrap items-center gap-3 text-[26px] font-black leading-[1.1] tracking-tight text-text-primary sm:gap-3.5 sm:text-[30px] md:text-[34px]">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-surface to-bg ring-1 ring-primary/20 sm:h-11 sm:w-11 shadow-inner">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-none bg-gradient-to-br from-surface to-bg ring-1 ring-primary/20 sm:h-11 sm:w-11 shadow-inner">
                 <Play className="h-5 w-5 fill-primary text-primary sm:h-[1.35rem] sm:w-[1.35rem]" />
               </span>
               <span>{title}</span>
@@ -169,10 +169,10 @@ export function TrendingProductClipsSection({ clips, className, title = "Trendin
         </div>
         <Link
           href="/marketplace"
-          className="group inline-flex w-full shrink-0 items-center justify-center gap-2.5 rounded-2xl border border-border bg-white dark:bg-surface px-5 py-3 text-[12px] font-black uppercase tracking-[0.12em] text-text-primary transition-all hover:border-primary/50 hover:bg-surface-secondary sm:w-auto shadow-sm"
+          className="group inline-flex w-full shrink-0 items-center justify-center gap-2.5 rounded-none border border-border bg-white dark:bg-surface px-5 py-3 text-[12px] font-black uppercase tracking-[0.12em] text-text-primary transition-all hover:border-primary/50 hover:bg-surface-secondary sm:w-auto shadow-none"
         >
           <span>See all clips</span>
-          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-primary to-accent text-bg-dark font-black transition-transform group-hover:translate-x-0.5">
+          <span className="flex h-8 w-8 items-center justify-center rounded-none bg-gradient-to-br from-primary to-accent text-bg-dark font-black transition-transform group-hover:translate-x-0.5">
             <ChevronRight className="h-4 w-4" />
           </span>
         </Link>
@@ -193,11 +193,11 @@ export function TrendingProductClipsSection({ clips, className, title = "Trendin
             aria-hidden
           />
           <div className="pointer-events-none fixed inset-0 z-[1001] flex items-center justify-center p-4">
-            <div className="pointer-events-auto relative flex w-full max-w-lg flex-col gap-0 overflow-hidden rounded-2xl border border-white/10 bg-[#121212] shadow-2xl">
+            <div className="pointer-events-auto relative flex w-full max-w-lg flex-col gap-0 overflow-hidden rounded-none border border-white/10 bg-[#121212] shadow-none">
               <button
                 type="button"
                 onClick={closeModal}
-                className="absolute right-3 top-3 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-ink-darker/50 text-white hover:bg-ink-darker/70"
+                className="absolute right-3 top-3 z-20 flex h-10 w-10 items-center justify-center rounded-none bg-ink-darker/50 text-white hover:bg-ink-darker/70"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -234,14 +234,14 @@ export function TrendingProductClipsSection({ clips, className, title = "Trendin
                   {modalClip.vendors?.id && (
                     <FollowButton
                       vendorId={modalClip.vendors.id}
-                      className="h-9 shrink-0 rounded-full border-0 bg-[#f97316] px-4 text-xs font-black text-white hover:bg-[#ea580c]"
+                      className="h-9 shrink-0 rounded-none border-0 bg-[#f97316] px-4 text-xs font-black text-white hover:bg-[#ea580c]"
                     />
                   )}
                 </div>
               </div>
               {modalClip.products && (
                 <div className="flex items-center gap-4 border-t border-white/10 bg-ink-darker p-4">
-                  <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white dark:bg-surface/10">
+                  <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-none bg-white dark:bg-surface/10">
                     {Array.isArray(modalClip.products.images) && modalClip.products.images[0] ? (
                       <img src={modalClip.products.images[0]} alt="" className="h-full w-full object-cover" />
                     ) : (
@@ -257,7 +257,7 @@ export function TrendingProductClipsSection({ clips, className, title = "Trendin
                     />
                   </div>
                   <Link href={`/marketplace/${modalClip.products.slug ?? ""}?buy=1`} onClick={closeModal}>
-                    <Button className="h-10 rounded-xl bg-[#f97316] px-5 text-xs font-black text-white hover:bg-[#ea580c]">
+                    <Button className="h-10 rounded-none bg-[#f97316] px-5 text-xs font-black text-white hover:bg-[#ea580c]">
                       Buy Product
                     </Button>
                   </Link>
@@ -270,3 +270,4 @@ export function TrendingProductClipsSection({ clips, className, title = "Trendin
     </section>
   );
 }
+

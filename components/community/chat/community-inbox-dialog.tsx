@@ -162,7 +162,7 @@ export function CommunityInboxDialog({
       >
         <DialogHeader className="border-b border-[var(--color-border)] px-4 py-3 text-left">
           <div className="flex items-center gap-3">
-            <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full border border-[var(--color-border)] bg-[var(--color-surface-secondary)]">
+            <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-none border border-[var(--color-border)] bg-[var(--color-surface-secondary)]">
               {peerAvatarUrl ? (
                 <Image src={peerAvatarUrl} alt="" width={40} height={40} className="h-full w-full object-cover" unoptimized />
               ) : (
@@ -192,7 +192,7 @@ export function CommunityInboxDialog({
                   <div key={m.id} className={cn("flex", own ? "justify-end" : "justify-start")}>
                     <div
                       className={cn(
-                        "max-w-[85%] rounded-2xl px-3 py-2 text-sm shadow-sm",
+                        "max-w-[85%] rounded-none px-3 py-2 text-sm shadow-none",
                         own
                           ? "bg-[var(--color-accent-light)] text-[var(--color-text-primary)]"
                           : "border border-[var(--color-border)] bg-[var(--color-surface-secondary)] text-[var(--color-text-secondary)]"
@@ -217,7 +217,7 @@ export function CommunityInboxDialog({
               onChange={(e) => setText(e.target.value)}
               placeholder="Write a messageâ€¦"
               rows={2}
-              className="min-h-[44px] flex-1 resize-none rounded-xl border-[var(--color-border)] bg-[var(--color-surface-secondary)]"
+              className="min-h-[44px] flex-1 resize-none rounded-none border-[var(--color-border)] bg-[var(--color-surface-secondary)]"
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
@@ -228,7 +228,7 @@ export function CommunityInboxDialog({
             <Button
               type="button"
               size="icon"
-              className="h-11 w-11 shrink-0 rounded-xl bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent-hover)]"
+              className="h-11 w-11 shrink-0 rounded-none bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent-hover)]"
               disabled={sending || !text.trim() || !conversationId}
               onClick={() => void send()}
               aria-label="Send"
@@ -241,3 +241,4 @@ export function CommunityInboxDialog({
     </Dialog>
   );
 }
+

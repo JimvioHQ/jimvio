@@ -64,7 +64,7 @@ export function SharedCampaignCard({ c }: CampaignCardProps) {
   return (
     <Link
       href={`/ugc/${c.id}`}
-      className="group flex flex-col rounded-2xl overflow-hidden border border-border dark:border-border bg-white dark:bg-bg hover:border-orange-200 dark:hover:border-orange-900 hover:bg-black/10 dark:hover:bg-surface-secondary/50 transition-all duration-300"
+      className="group flex flex-col rounded-none overflow-hidden border border-border dark:border-border bg-white dark:bg-bg hover:border-orange-200 dark:hover:border-orange-900 hover:bg-black/10 dark:hover:bg-surface-secondary/50 transition-all duration-300"
       style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.04)" }}
     >
       {/* â”€â”€ Compact banner image â”€â”€ */}
@@ -91,7 +91,7 @@ export function SharedCampaignCard({ c }: CampaignCardProps) {
         {/* Campaign type pill â€” top-left */}
         <div className="absolute top-3 left-3">
           <span
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider shadow-sm"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-none text-[10px] font-bold uppercase tracking-wider shadow-none"
             style={{
               background: isUGC
                 ? "rgba(249,115,22,0.1)"
@@ -114,7 +114,7 @@ export function SharedCampaignCard({ c }: CampaignCardProps) {
             return (
               <div
                 key={p}
-                className="w-6 h-6 rounded-md flex items-center justify-center shadow-sm bg-white border border-stone-200"
+                className="w-6 h-6 rounded-none flex items-center justify-center shadow-none bg-white border border-stone-200"
               >
                 <Icon className="h-3 w-3 text-stone-600" />
               </div>
@@ -131,13 +131,13 @@ export function SharedCampaignCard({ c }: CampaignCardProps) {
             {vendor?.business_logo || vendor?.logo_url ? (
               <img
                 src={vendor.business_logo || vendor.logo_url}
-                className="w-7 h-7 rounded-lg object-cover"
+                className="w-7 h-7 rounded-none object-cover"
                 style={{ border: "1px solid rgba(0,0,0,0.08)" }}
                 alt=""
               />
             ) : (
               <div
-                className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black text-white"
+                className="w-7 h-7 rounded-none flex items-center justify-center text-xs font-black text-white"
                 style={{ background: "linear-gradient(135deg,#f97316,#ea580c)" }}
               >
                 {vendor?.business_name?.[0] ?? "B"}
@@ -166,7 +166,7 @@ export function SharedCampaignCard({ c }: CampaignCardProps) {
 
         {/* Stats row */}
         <div
-          className="grid grid-cols-2 gap-2 rounded-xl p-3 bg-[var(--color-bg)] dark:bg-surface border border-border dark:border-border-strong"
+          className="grid grid-cols-2 gap-2 rounded-none p-3 bg-[var(--color-bg)] dark:bg-surface border border-border dark:border-border-strong"
         >
           <div>
             <p className="text-[9px] font-bold uppercase tracking-widest text-stone-400 dark:text-text-muted mb-0.5">
@@ -202,10 +202,10 @@ export function SharedCampaignCard({ c }: CampaignCardProps) {
           </div>
           {/* Track */}
           <div
-            className="h-1 w-full rounded-full overflow-hidden bg-border dark:bg-surface-secondary"
+            className="h-1 w-full rounded-none overflow-hidden bg-border dark:bg-surface-secondary"
           >
             <div
-              className="h-full rounded-full transition-all duration-1000"
+              className="h-full rounded-none transition-all duration-1000"
               style={{
                 width: `${budgetPct}%`,
                 background: "linear-gradient(90deg,#f97316,#fb923c)",
@@ -225,7 +225,7 @@ export function SharedCampaignCard({ c }: CampaignCardProps) {
             <TrendingUp className="h-3 w-3" /> Earning now
           </span>
           <span
-            className="inline-flex items-center gap-1 text-[11px] font-bold px-3 py-1.5 rounded-lg transition-all group-hover:bg-orange-500 group-hover:text-white"
+            className="inline-flex items-center gap-1 text-[11px] font-bold px-3 py-1.5 rounded-none transition-all group-hover:bg-orange-500 group-hover:text-white"
             style={{
               background: "rgba(249,115,22,0.08)",
               color: "#ea580c",
@@ -239,3 +239,4 @@ export function SharedCampaignCard({ c }: CampaignCardProps) {
     </Link>
   );
 }
+

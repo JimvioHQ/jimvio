@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
 import {
@@ -123,7 +123,7 @@ export default async function HomePage() {
   return (
     <div className="min-h-screen pb-14 md:pb-0 relative overflow-hidden" style={{ background: "var(--color-bg)" }}>
       <div className="relative z-10">
-        {/* ── HERO ── */}
+        {/* â”€â”€ HERO â”€â”€ */}
         <HomepageHero
           heroKeywords={heroKeywords}
           heroCampaigns={heroCampaigns}
@@ -137,22 +137,15 @@ export default async function HomePage() {
           profile={profile}
         />
 
-        {/* ── MAIN CONTENT ── */}
+        {/* â”€â”€ MAIN CONTENT â”€â”€ */}
         <div className="max-w-[1536px] mx-auto px-4 sm:px-6 pt-8 pb-12 md:pt-16 md:pb-24 space-y-20">
-
-          {/* ── LIVE CONTENT (Missions/Communities) — Prioritized ── */}
-          <div className="space-y-12">
-            <CampaignScrollRow campaigns={campaigns as any[]} />
-            <ShortClipsReel videos={videos as any[]} />
-            <CommunityScrollRow communities={communitiesList as any[]} />
-          </div>
 
           <section id="recommended-picks" className="scroll-mt-32">
             <div className="mb-4">
               <RecommendedHeader />
             </div>
 
-            {/* Products — single horizontal scroll row */}
+            {/* Products â€” single horizontal scroll row */}
             <div className="flex flex-nowrap gap-4 overflow-x-auto pb-4 no-scrollbar -mx-4 px-4 sm:-mx-6 sm:px-6">
               {recommended.slice(0, 24).map((p) => (
                 <div key={p.id} className="w-[160px] shrink-0 lg:w-[180px]">
@@ -161,6 +154,13 @@ export default async function HomePage() {
               ))}
             </div>
           </section>
+
+          {/* â”€â”€ LIVE CONTENT (Missions/Communities) â€” After Products â”€â”€ */}
+          <div className="space-y-12">
+            <CampaignScrollRow campaigns={campaigns as any[]} />
+            <ShortClipsReel videos={videos as any[]} />
+            <CommunityScrollRow communities={communitiesList as any[]} />
+          </div>
 
           <TrendingProductClipsSection clips={viralClips as any} />
 
@@ -180,32 +180,33 @@ export default async function HomePage() {
 
 
 
-          {/* ── FLASH DEALS + TRENDING ── */}
+          {/* â”€â”€ FLASH DEALS + TRENDING â”€â”€ */}
           <section className="grid grid-cols-1 lg:grid-cols-[1fr,260px] gap-6">
             <FlashDeals products={trending as any[]} />
             <TrendingSidePanel trendingCats={trendingSideCats} suppliers={topSuppliersSidebar} />
           </section>
 
-          {/* ── INDUSTRIES ── */}
+          {/* â”€â”€ INDUSTRIES â”€â”€ */}
           <IndustriesSection industries={industriesSorted} />
 
-          {/* ── AFFILIATE PANEL ── */}
+          {/* â”€â”€ AFFILIATE PANEL â”€â”€ */}
           <AffiliatePanel
             valueProps={platformSettings.marketing.affiliate_value_props}
             trendingCats={trendingSideCats}
           />
 
-          {/* ── MARKET INTELLIGENCE ── */}
+          {/* â”€â”€ MARKET INTELLIGENCE â”€â”€ */}
           <MarketIntelligence categories={categories as any[]} trending={trending as any[]} />
 
         </div>
 
-        {/* ── HOW IT WORKS ── */}
+        {/* â”€â”€ HOW IT WORKS â”€â”€ */}
         <HowItWorks />
 
-        {/* ── APP PROMO ── */}
+        {/* â”€â”€ APP PROMO â”€â”€ */}
         <AppPromo />
       </div>
     </div>
   );
 }
+

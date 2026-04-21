@@ -134,9 +134,9 @@ export function MarketplaceSearch({
         }
         autoComplete="off"
         className={cn(
-          "w-full h-[52px] pl-12 pr-12 rounded-lg",
+          "w-full h-[52px] pl-12 pr-12 rounded-none",
           "border border-border bg-white dark:bg-surface",
-          "shadow-sm",
+          "shadow-none",
           "text-[15px] font-semibold text-stone-900 dark:text-white",
           "placeholder:text-stone-400 dark:placeholder:text-stone-500",
           "focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-400",
@@ -156,7 +156,7 @@ export function MarketplaceSearch({
           onClick={handleClear}
           className="absolute inset-y-0 right-0 pr-4 flex items-center group/clear outline-none z-10"
         >
-          <div className="bg-zinc-100 dark:bg-surface-secondary p-1 rounded-full group-hover/clear:bg-zinc-200 dark:group-hover/clear:bg-zinc-700 transition-colors">
+          <div className="bg-zinc-100 dark:bg-surface-secondary p-1 rounded-none group-hover/clear:bg-zinc-200 dark:group-hover/clear:bg-zinc-700 transition-colors">
             <X className="h-3 w-3 text-zinc-600 dark:text-text-muted" />
           </div>
         </button>
@@ -170,7 +170,7 @@ export function MarketplaceSearch({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 8, scale: 0.98 }}
             transition={{ type: "spring", stiffness: 400, damping: 30 }}
-            className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-surface border border-border rounded-xl shadow-lg overflow-hidden"
+            className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-surface border border-border rounded-none shadow-none overflow-hidden"
           >
             <div className="p-2">
               {suggestions.length > 0 ? (
@@ -184,9 +184,9 @@ export function MarketplaceSearch({
                       key={p.id}
                       href={`/marketplace/${p.slug}`}
                       onClick={() => setShowDropdown(false)}
-                      className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors group/item mx-1"
+                      className="flex items-center gap-3 px-3 py-2.5 rounded-none hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors group/item mx-1"
                     >
-                      <div className="h-10 w-10 rounded-lg overflow-hidden bg-stone-100 dark:bg-surface-secondary border border-border shrink-0">
+                      <div className="h-10 w-10 rounded-none overflow-hidden bg-stone-100 dark:bg-surface-secondary border border-border shrink-0">
                         {p.image ? (
                           <img src={p.image} alt="" className="w-full h-full object-cover" />
                         ) : (
@@ -210,7 +210,7 @@ export function MarketplaceSearch({
                   <Link
                     href={marketplaceHref(currentParams, { q: q.trim() }, basePath)}
                     onClick={() => setShowDropdown(false)}
-                    className="group flex items-center justify-between w-[calc(100%-16px)] mx-2 my-2 py-3 px-5 text-[13px] font-bold text-white bg-stone-900 dark:bg-stone-800 hover:bg-black rounded-lg transition-all"
+                    className="group flex items-center justify-between w-[calc(100%-16px)] mx-2 my-2 py-3 px-5 text-[13px] font-bold text-white bg-stone-900 dark:bg-stone-800 hover:bg-black rounded-none transition-all"
                   >
                     <span>View all results for "{q.trim()}"</span>
                     <ArrowRight className="h-4 w-4 transform group-hover:translate-x-1 transition-transform" />
@@ -218,7 +218,7 @@ export function MarketplaceSearch({
                 </div>
               ) : !isLoading ? (
                 <div className="px-4 py-8 text-center space-y-2">
-                  <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-zinc-50 dark:bg-surface-secondary text-zinc-300 dark:text-zinc-600">
+                  <div className="inline-flex items-center justify-center w-12 h-12 rounded-none bg-zinc-50 dark:bg-surface-secondary text-zinc-300 dark:text-zinc-600">
                      <Search className="h-6 w-6" />
                   </div>
                   <p className="text-[14px] font-bold text-zinc-900 dark:text-white">No products found</p>
@@ -237,3 +237,4 @@ export function MarketplaceSearch({
     </div>
   );
 }
+

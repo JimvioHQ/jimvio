@@ -95,9 +95,9 @@ export function ResourcesRoom({
                 const Icon = fileIcon(a);
                 const href = a.url || "#";
                 items.push(
-                  <div key={`${p.id}-a-${i}`} className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-sm flex flex-col">
+                  <div key={`${p.id}-a-${i}`} className="rounded-none border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-none flex flex-col">
                     <div className="flex items-start gap-3">
-                      <div className="h-10 w-10 rounded-xl bg-[var(--color-accent-light)] flex items-center justify-center text-[var(--color-accent)]">
+                      <div className="h-10 w-10 rounded-none bg-[var(--color-accent-light)] flex items-center justify-center text-[var(--color-accent)]">
                         <Icon className="h-5 w-5" />
                       </div>
                       <div className="min-w-0 flex-1">
@@ -110,7 +110,7 @@ export function ResourcesRoom({
                       <span className="text-[10px] text-[var(--color-text-muted)]">
                         {p.profiles?.full_name || p.profiles?.username || "Member"} Â· {formatDistanceToNow(new Date(p.created_at), { addSuffix: true })}
                       </span>
-                      <Button asChild size="sm" className="rounded-xl bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-black shrink-0">
+                      <Button asChild size="sm" className="rounded-none bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-black shrink-0">
                         <a href={href} target="_blank" rel="noreferrer">
                           Open
                         </a>
@@ -127,3 +127,4 @@ export function ResourcesRoom({
     </div>
   );
 }
+

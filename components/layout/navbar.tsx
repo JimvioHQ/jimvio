@@ -38,14 +38,14 @@ const GLASS_LIGHT = {
   body: "var(--color-surface)",
   border: "var(--color-border)",
   blur: "none",
-  shadow: "var(--shadow-sm)",
+  shadow: "var(--shadow-none)",
 };
 
 const GLASS_DARK = {
   body: "var(--color-surface)",
   border: "var(--color-border)",
   blur: "none",
-  shadow: "var(--shadow-sm)",
+  shadow: "var(--shadow-none)",
 };
 
 /* Specular line â€” the 1px bright edge every glass element has */
@@ -88,7 +88,7 @@ const GlassPill = React.forwardRef<any, {
       };
 
   const cls = cn(
-    "relative inline-flex items-center gap-1.5 rounded-lg transition-all duration-200 active:scale-[0.98] select-none",
+    "relative inline-flex items-center gap-1.5 rounded-none transition-all duration-200 active:scale-[0.98] select-none",
     className,
   );
 
@@ -117,11 +117,11 @@ const GlassCircle = React.forwardRef<any, {
   const style: React.CSSProperties = {
     background: "var(--color-surface)",
     border: "1px solid var(--color-border)",
-    boxShadow: "var(--shadow-sm)",
+    boxShadow: "var(--shadow-none)",
     ...styleProp,
   };
   const cls = cn(
-    "relative flex items-center justify-center h-10 w-10 shrink-0 rounded-lg transition-all duration-200 active:scale-[0.95]",
+    "relative flex items-center justify-center h-10 w-10 shrink-0 rounded-none transition-all duration-200 active:scale-[0.95]",
     className,
   );
 
@@ -129,7 +129,7 @@ const GlassCircle = React.forwardRef<any, {
     <>
       {children}
       {badge != null && badge > 0 && (
-        <span className="absolute -top-1 -right-1 h-[18px] min-w-[18px] px-1 bg-orange-500 text-white text-[9px] font-bold flex items-center justify-center rounded-full ring-2 ring-white z-20">
+        <span className="absolute -top-1 -right-1 h-[18px] min-w-[18px] px-1 bg-orange-500 text-white text-[9px] font-bold flex items-center justify-center rounded-none ring-2 ring-white z-20">
           {badge}
         </span>
       )}
@@ -260,7 +260,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
   const shellStyle: React.CSSProperties = {
     background: "var(--color-bg)",
     borderBottom: "1px solid var(--color-border)",
-    boxShadow: scrolled ? "var(--shadow-sm)" : "none",
+    boxShadow: scrolled ? "var(--shadow-none)" : "none",
   };
 
   return (
@@ -332,13 +332,13 @@ export function Navbar({ user, marketing }: NavbarProps) {
                   onMouseEnter={() => { if (exploreTimer.current) clearTimeout(exploreTimer.current); setExploreOpen(true); }}
                   onMouseLeave={() => { exploreTimer.current = setTimeout(() => setExploreOpen(false), 140); }}
                   sideOffset={4}
-                  className="w-72 p-1.5 rounded-xl border border-border shadow-lg bg-surface"
+                  className="w-72 p-1.5 rounded-none border border-border shadow-none bg-surface"
                 >
                   {solutions.map(s => (
                     <DropdownMenuItem key={s.href} asChild className="p-0 focus:bg-transparent">
                       <Link
                         href={s.href}
-                        className="relative flex items-center gap-3 p-3 rounded-[16px] group/item transition-all"
+                        className="relative flex items-center gap-3 p-3 rounded-none group/item transition-all"
                         style={{ outline: "none" }}
                         onMouseEnter={e => {
                           (e.currentTarget as HTMLElement).style.background = "var(--color-surface-secondary)";
@@ -351,7 +351,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
                       >
                         {/* Standard Structured Icon Box */}
                         <div
-                          className="h-9 w-9 rounded-lg flex items-center justify-center shrink-0 bg-stone-50 dark:bg-stone-900 border border-stone-100 dark:border-stone-800"
+                          className="h-9 w-9 rounded-none flex items-center justify-center shrink-0 bg-stone-50 dark:bg-stone-900 border border-stone-100 dark:border-stone-800"
                           style={{ color: s.color }}
                         >
                           <s.icon className="h-4 w-4" />
@@ -386,18 +386,18 @@ export function Navbar({ user, marketing }: NavbarProps) {
                   onMouseEnter={() => { if (marketplaceTimer.current) clearTimeout(marketplaceTimer.current); setMarketplaceOpen(true); }}
                   onMouseLeave={() => { marketplaceTimer.current = setTimeout(() => setMarketplaceOpen(false), 140); }}
                   sideOffset={10}
-                  className="w-72 p-2 rounded-[24px] border border-white/10 dark:border-white/5 outline-none overflow-hidden bg-white/95 dark:bg-stone-900/95 shadow-2xl"
+                  className="w-72 p-2 rounded-none border border-white/10 dark:border-white/5 outline-none overflow-hidden bg-white/95 dark:bg-stone-900/95 shadow-none"
                 >
                   <SpecularLine rounded />
                   {marketplaceVariants.map(v => (
-                    <DropdownMenuItem key={v.href} asChild className="p-0 focus:bg-transparent rounded-[16px]">
+                    <DropdownMenuItem key={v.href} asChild className="p-0 focus:bg-transparent rounded-none">
                       <Link
                         href={v.href}
-                        className="relative flex items-center gap-3 p-3 rounded-[16px] group/item transition-all hover:bg-zinc-100 dark:hover:bg-white/5"
+                        className="relative flex items-center gap-3 p-3 rounded-none group/item transition-all hover:bg-zinc-100 dark:hover:bg-white/5"
                         style={{ outline: "none" }}
                       >
                         <div
-                          className="h-9 w-9 rounded-[12px] flex items-center justify-center shrink-0 bg-zinc-50 dark:bg-white/5 border border-zinc-100 dark:border-white/10"
+                          className="h-9 w-9 rounded-none flex items-center justify-center shrink-0 bg-zinc-50 dark:bg-white/5 border border-zinc-100 dark:border-white/10"
                           style={{ color: v.color }}
                         >
                           <v.icon className="h-4 w-4" />
@@ -437,7 +437,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
             </div>
 
             {/* AI Mode */}
-            <GlassPill orange className="hidden md:flex shrink-0 px-4 py-2 text-[12px] font-black capitalize tracking-widest bg-orange-500 text-white shadow-sm hover:bg-orange-600"
+            <GlassPill orange className="hidden md:flex shrink-0 px-4 py-2 text-[12px] font-black capitalize tracking-widest bg-orange-500 text-white shadow-none hover:bg-orange-600"
               onClick={() => openAssistant()}>
               <Sparkles className="h-4 w-4 fill-white stroke-none" />
               <span>AI Mode</span>
@@ -469,7 +469,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
                 <DropdownMenu modal={false}>
                   <DropdownMenuTrigger asChild>
                     <button
-                      className="relative flex items-center gap-2.5 px-2 xl:px-3 h-11 rounded-lg transition-all border border-border bg-surface shadow-sm active:scale-95"
+                      className="relative flex items-center gap-2.5 px-2 xl:px-3 h-11 rounded-none transition-all border border-border bg-surface shadow-none active:scale-95"
                     >
                       <Avatar className="h-7 w-7 border border-border shrink-0">
                         <AvatarImage src={user.avatar_url ?? undefined} />
@@ -487,9 +487,9 @@ export function Navbar({ user, marketing }: NavbarProps) {
                   {/* Dark glass user dropdown */}
                   <DropdownMenuContent
                     align="end"
-                    className="w-60 p-1.5 mt-2 rounded-xl border border-border bg-surface shadow-xl outline-none"
+                    className="w-60 p-1.5 mt-2 rounded-none border border-border bg-surface shadow-none outline-none"
                   >
-                    <div className="px-3 py-3 rounded-lg mb-1.5 bg-stone-50 dark:bg-stone-900 border border-border">
+                    <div className="px-3 py-3 rounded-none mb-1.5 bg-stone-50 dark:bg-stone-900 border border-border">
                       <div className="flex items-center gap-2.5">
                         <Avatar className="h-8 w-8 ring-2 ring-white shrink-0">
                           <AvatarImage src={user.avatar_url ?? undefined} />
@@ -510,10 +510,10 @@ export function Navbar({ user, marketing }: NavbarProps) {
                       { href: "/dashboard/settings", icon: Settings, label: "My Account" },
                     ].map(item => (
                       <DropdownMenuItem key={item.href} asChild
-                        className="p-0 focus:bg-transparent rounded-[13px] cursor-pointer">
+                        className="p-0 focus:bg-transparent rounded-none cursor-pointer">
                         <Link
                           href={item.href}
-                          className="flex items-center gap-2.5 px-3 py-2.5 rounded-[13px] text-[13px] font-semibold text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:text-white dark:hover:text-white transition-colors"
+                          className="flex items-center gap-2.5 px-3 py-2.5 rounded-none text-[13px] font-semibold text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:text-white dark:hover:text-white transition-colors"
                           onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "var(--color-surface-secondary)"}
                           onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = ""}
                         >
@@ -527,7 +527,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
 
                     <DropdownMenuItem
                       onSelect={async () => { await signOut(); window.location.href = "/"; }}
-                      className="flex items-center gap-2.5 px-3 py-2.5 rounded-[13px] text-[13px] font-semibold text-red-500 hover:bg-red-500/10 cursor-pointer focus:bg-transparent transition-colors"
+                      className="flex items-center gap-2.5 px-3 py-2.5 rounded-none text-[13px] font-semibold text-red-500 hover:bg-red-500/10 cursor-pointer focus:bg-transparent transition-colors"
                     >
                       <LogOut className="h-4 w-4 shrink-0" />
                       Logout
@@ -535,7 +535,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
 
                     {/* Theme toggle inside menu for smaller desktop screens */}
                     <DropdownMenuItem
-                      className="min-[1100px]:hidden flex items-center justify-between px-3 py-2.5 rounded-[13px] text-[13px] font-semibold text-stone-600 dark:text-stone-300 focus:bg-transparent"
+                      className="min-[1100px]:hidden flex items-center justify-between px-3 py-2.5 rounded-none text-[13px] font-semibold text-stone-600 dark:text-stone-300 focus:bg-transparent"
                     >
                       <div className="flex items-center gap-2.5">
                         <Sun className="h-4 w-4 text-stone-400" />
@@ -552,7 +552,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
                   </GlassPill>
                   <Link
                     href="/register"
-                    className="px-5 py-2.5 rounded-lg text-[12px] font-black capitalize tracking-widest bg-orange-500 text-white shadow-sm hover:bg-orange-600 transition-all active:scale-95 shrink-0 whitespace-nowrap"
+                    className="px-5 py-2.5 rounded-none text-[12px] font-black capitalize tracking-widest bg-orange-500 text-white shadow-none hover:bg-orange-600 transition-all active:scale-95 shrink-0 whitespace-nowrap"
                   >
                     Join Free
                   </Link>
@@ -594,7 +594,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
           initial={{ y: 80, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ type: "spring", damping: 25, stiffness: 200 }}
-          className="h-full bg-white dark:bg-stone-900 shadow-2xl border border-zinc-100 dark:border-stone-800 rounded-[36px] flex items-center px-4 pointer-events-auto overflow-hidden relative"
+          className="h-full bg-white dark:bg-stone-900 shadow-none border border-zinc-100 dark:border-stone-800 rounded-none flex items-center px-4 pointer-events-auto overflow-hidden relative"
         >
           {mobileBottomLinks.map(link => {
             const active = isActive(pathname, link.href);
@@ -603,7 +603,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
                 key={link.href}
                 href={link.href}
                 className={cn(
-                  "relative flex flex-col items-center justify-center flex-1 h-[85%] gap-1 transition-all duration-300 rounded-[28px]",
+                  "relative flex flex-col items-center justify-center flex-1 h-[85%] gap-1 transition-all duration-300 rounded-none",
                   active ? "text-orange-500 bg-orange-500/5 shadow-inner" : "text-zinc-500 hover:text-orange-500 dark:text-stone-400 dark:hover:text-white"
                 )}
               >
@@ -614,7 +614,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
                 {active && (
                   <motion.div
                     layoutId="mobile-pill-active"
-                    className="absolute -bottom-1.5 h-1 w-6 rounded-full bg-orange-500 shadow-lg shadow-orange-500/40"
+                    className="absolute -bottom-1.5 h-1 w-6 rounded-none bg-orange-500 shadow-none shadow-orange-500/40"
                   />
                 )}
               </Link>
@@ -627,7 +627,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
           >
             <div className="relative">
               <Menu className="h-5 w-5 stroke-[2px]" />
-              <div className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-orange-500 ring-2 ring-white dark:ring-stone-900 shadow-md" />
+              <div className="absolute -top-1 -right-1 h-2 w-2 rounded-none bg-orange-500 ring-2 ring-white dark:ring-stone-900 shadow-none" />
             </div>
             <span className="text-[9px] font-bold uppercase tracking-wider opacity-60">Menu</span>
           </button>
@@ -663,14 +663,14 @@ function MobileDrawer({
           <motion.div
             initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            className="fixed inset-y-0 right-0 w-[85%] max-w-[400px] z-[9999] bg-white dark:bg-stone-950 shadow-2xl flex flex-col pointer-events-auto"
+            className="fixed inset-y-0 right-0 w-[85%] max-w-[400px] z-[9999] bg-white dark:bg-stone-950 shadow-none flex flex-col pointer-events-auto"
           >
             {/* Header / Dismiss */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-100 dark:border-stone-900 bg-zinc-50/50 dark:bg-black/20">
                <span className="text-[10px] font-black text-stone-400 uppercase tracking-[0.4em]">Jimvio Console</span>
               <button 
                 onClick={onClose}
-                className="h-9 w-9 flex items-center justify-center rounded-xl bg-white dark:bg-stone-800 text-stone-500 shadow-sm transition-transform active:scale-90"
+                className="h-9 w-9 flex items-center justify-center rounded-none bg-white dark:bg-stone-800 text-stone-500 shadow-none transition-transform active:scale-90"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -684,13 +684,13 @@ function MobileDrawer({
                 <p className="text-[10px] font-black text-stone-400 dark:text-stone-600 uppercase tracking-[0.2em] px-2 mb-2">My Console</p>
                 
                 {/* 1. User Profile / Login */}
-                <div className="bg-zinc-50 dark:bg-stone-900/40 rounded-2xl p-2 border border-stone-100 dark:border-white/5 shadow-sm">
+                <div className="bg-zinc-50 dark:bg-stone-900/40 rounded-none p-2 border border-stone-100 dark:border-white/5 shadow-none">
                   {user ? (
                     <div className="space-y-1">
                       <button 
                         onClick={() => toggle('account')}
-                        className={cn("w-full flex items-center justify-between p-3 rounded-xl text-[14px] font-bold transition-all", 
-                          expanded === 'account' ? "bg-white dark:bg-stone-800 shadow-sm text-stone-900 dark:text-white" : "text-stone-600 dark:text-stone-400 hover:bg-white dark:hover:bg-stone-800")}
+                        className={cn("w-full flex items-center justify-between p-3 rounded-none text-[14px] font-bold transition-all", 
+                          expanded === 'account' ? "bg-white dark:bg-stone-800 shadow-none text-stone-900 dark:text-white" : "text-stone-600 dark:text-stone-400 hover:bg-white dark:hover:bg-stone-800")}
                       >
                         <div className="flex items-center gap-3">
                           <Avatar className="h-8 w-8 ring-2 ring-orange-500/20">
@@ -728,8 +728,8 @@ function MobileDrawer({
                     </div>
                   ) : (
                     <div className="grid grid-cols-2 gap-2 p-1">
-                      <Link href="/login" onClick={onClose} className="flex items-center justify-center p-3 rounded-xl bg-white dark:bg-stone-800 text-[11px] font-black uppercase tracking-widest text-stone-600 dark:text-stone-400 shadow-sm active:scale-95 transition-all">Log In</Link>
-                      <Link href="/register" onClick={onClose} className="flex items-center justify-center p-3 rounded-xl bg-orange-500 text-[11px] font-black uppercase tracking-widest text-white shadow-lg shadow-orange-500/20 active:scale-95 transition-all">Join Free</Link>
+                      <Link href="/login" onClick={onClose} className="flex items-center justify-center p-3 rounded-none bg-white dark:bg-stone-800 text-[11px] font-black uppercase tracking-widest text-stone-600 dark:text-stone-400 shadow-none active:scale-95 transition-all">Log In</Link>
+                      <Link href="/register" onClick={onClose} className="flex items-center justify-center p-3 rounded-none bg-orange-500 text-[11px] font-black uppercase tracking-widest text-white shadow-none shadow-orange-500/20 active:scale-95 transition-all">Join Free</Link>
                     </div>
                   )}
                 </div>
@@ -737,10 +737,10 @@ function MobileDrawer({
                 {/* 2. AI Assistant */}
                 <button
                   onClick={() => { openAssistant(); onClose(); }}
-                  className="w-full relative flex items-center justify-between p-4 rounded-2xl bg-gradient-to-br from-orange-500 to-orange-600 shadow-lg shadow-orange-500/20 group overflow-hidden"
+                  className="w-full relative flex items-center justify-between p-4 rounded-none bg-gradient-to-br from-orange-500 to-orange-600 shadow-none shadow-orange-500/20 group overflow-hidden"
                 >
                   <div className="flex items-center gap-4 relative z-10">
-                    <div className="h-10 w-10 rounded-xl bg-white/20 flex items-center justify-center shadow-inner">
+                    <div className="h-10 w-10 rounded-none bg-white/20 flex items-center justify-center shadow-inner">
                       <Sparkles className="h-5 w-5 text-white" />
                     </div>
                     <div className="text-left">
@@ -753,14 +753,14 @@ function MobileDrawer({
 
                 {/* 3. Utility Icon Grid (Theme + Currency) */}
                 <div className="grid grid-cols-2 gap-3">
-                   <div className="flex items-center justify-between p-3 rounded-2xl bg-zinc-50 dark:bg-stone-900/40 border border-stone-100 dark:border-white/5">
-                      <div className="h-8 w-8 rounded-lg bg-white dark:bg-stone-800 flex items-center justify-center shadow-sm">
+                   <div className="flex items-center justify-between p-3 rounded-none bg-zinc-50 dark:bg-stone-900/40 border border-stone-100 dark:border-white/5">
+                      <div className="h-8 w-8 rounded-none bg-white dark:bg-stone-800 flex items-center justify-center shadow-none">
                         <Sun className="h-4 w-4 text-orange-500" />
                       </div>
                       <ThemeToggle />
                    </div>
-                   <div className="flex items-center justify-between p-3 rounded-2xl bg-zinc-50 dark:bg-stone-900/40 border border-stone-100 dark:border-white/5">
-                      <div className="h-8 w-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                   <div className="flex items-center justify-between p-3 rounded-none bg-zinc-50 dark:bg-stone-900/40 border border-stone-100 dark:border-white/5">
+                      <div className="h-8 w-8 rounded-none bg-emerald-500/10 flex items-center justify-center">
                         <TrendingUp className="h-4 w-4 text-emerald-500" />
                       </div>
                       <span className="text-[11px] font-black text-stone-600 dark:text-stone-300 pr-2">USD</span>
@@ -769,7 +769,7 @@ function MobileDrawer({
               </div>
 
               {/* Search */}
-              <div className="bg-zinc-50 dark:bg-stone-900/50 rounded-2xl p-1.5 ring-1 ring-zinc-100 dark:ring-stone-900 shadow-sm">
+              <div className="bg-zinc-50 dark:bg-stone-900/50 rounded-none p-1.5 ring-1 ring-zinc-100 dark:ring-stone-900 shadow-none">
                 <NavbarSearch searchQ={searchQ} setSearchQ={setSearchQ} variant="mobile" runSearch={runSearch} navLinks={navLinks} isScrolled={false} />
               </div>
 
@@ -778,8 +778,8 @@ function MobileDrawer({
                 <p className="text-[10px] font-black text-stone-400 dark:text-stone-600 uppercase tracking-[0.2em] px-2 mb-2">Navigation</p>
                 
                 <Link href="/" onClick={onClose} 
-                  className={cn("flex items-center gap-4 p-4 rounded-2xl text-[15px] font-bold transition-all", 
-                    pathname === "/" ? "bg-orange-500 text-white shadow-lg shadow-orange-500/20" : "text-stone-600 dark:text-stone-300 hover:bg-zinc-50 dark:hover:bg-stone-900")}>
+                  className={cn("flex items-center gap-4 p-4 rounded-none text-[15px] font-bold transition-all", 
+                    pathname === "/" ? "bg-orange-500 text-white shadow-none shadow-orange-500/20" : "text-stone-600 dark:text-stone-300 hover:bg-zinc-50 dark:hover:bg-stone-900")}>
                   <Home className={cn("h-5 w-5", pathname === "/" ? "text-white" : "text-orange-500")} /> Home
                 </Link>
 
@@ -787,7 +787,7 @@ function MobileDrawer({
                 <div className="space-y-1">
                   <button 
                     onClick={() => toggle('market')}
-                    className={cn("w-full flex items-center justify-between p-4 rounded-2xl text-[15px] font-bold transition-all", 
+                    className={cn("w-full flex items-center justify-between p-4 rounded-none text-[15px] font-bold transition-all", 
                       expanded === 'market' ? "bg-stone-100 dark:bg-stone-900 text-stone-900 dark:text-white" : "text-stone-600 dark:text-stone-400 hover:bg-zinc-50 dark:hover:bg-stone-900")}
                   >
                     <div className="flex items-center gap-4">
@@ -816,7 +816,7 @@ function MobileDrawer({
                 <div className="space-y-1">
                   <button 
                     onClick={() => toggle('explore')}
-                    className={cn("w-full flex items-center justify-between p-4 rounded-2xl text-[15px] font-bold transition-all", 
+                    className={cn("w-full flex items-center justify-between p-4 rounded-none text-[15px] font-bold transition-all", 
                       expanded === 'explore' ? "bg-stone-100 dark:bg-stone-900 text-stone-900 dark:text-white" : "text-stone-600 dark:text-stone-400 hover:bg-zinc-50 dark:hover:bg-stone-900")}
                   >
                     <div className="flex items-center gap-4">
@@ -842,13 +842,13 @@ function MobileDrawer({
                 </div>
 
                 <Link href="/communities" onClick={onClose} 
-                  className={cn("flex items-center gap-4 p-4 rounded-2xl text-[15px] font-bold transition-all", 
+                  className={cn("flex items-center gap-4 p-4 rounded-none text-[15px] font-bold transition-all", 
                     pathname.startsWith("/communities") ? "bg-orange-50 text-orange-600" : "text-stone-600 dark:text-stone-300 hover:bg-zinc-50 dark:hover:bg-stone-900")}>
                   <Users className="h-5 w-5 text-orange-500" /> Communities
                 </Link>
 
                 <Link href="/help" onClick={onClose} 
-                  className={cn("flex items-center gap-4 p-4 rounded-2xl text-[15px] font-bold transition-all", 
+                  className={cn("flex items-center gap-4 p-4 rounded-none text-[15px] font-bold transition-all", 
                     pathname.startsWith("/help") ? "bg-orange-50 text-orange-600" : "text-stone-600 dark:text-stone-300 hover:bg-zinc-50 dark:hover:bg-stone-900")}>
                   <CircleHelp className="h-5 w-5 text-orange-500" /> Help Center
                 </Link>
@@ -856,7 +856,7 @@ function MobileDrawer({
 
               {/* Live Status Widget */}
               <div className="pt-4 px-2">
-                 <div className="bg-zinc-50 dark:bg-stone-900/40 rounded-2xl p-4 border border-zinc-100 dark:border-white/5">
+                 <div className="bg-zinc-50 dark:bg-stone-900/40 rounded-none p-4 border border-zinc-100 dark:border-white/5">
                     <CurrencyConverterWidget variant="compact" className="mx-0" />
                  </div>
               </div>
@@ -871,4 +871,5 @@ function MobileDrawer({
     </AnimatePresence>
   );
 }
+
 

@@ -41,15 +41,15 @@ function sortCommunities(list: CommunityRow[], sort: SortKey): CommunityRow[] {
 
 function SkeletonCard() {
   return (
-    <div className="rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden animate-pulse">
+    <div className="rounded-none border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden animate-pulse">
       <div className="h-44 bg-[var(--color-surface-secondary)]" />
       <div className="p-5 pt-10 space-y-3">
-        <div className="h-5 bg-[var(--color-surface-secondary)] rounded-lg w-3/4" />
-        <div className="h-3 bg-[var(--color-surface-secondary)] rounded-lg w-full" />
-        <div className="h-3 bg-[var(--color-surface-secondary)] rounded-lg w-2/3" />
+        <div className="h-5 bg-[var(--color-surface-secondary)] rounded-none w-3/4" />
+        <div className="h-3 bg-[var(--color-surface-secondary)] rounded-none w-full" />
+        <div className="h-3 bg-[var(--color-surface-secondary)] rounded-none w-2/3" />
         <div className="flex gap-2 pt-1">
-          <div className="h-8 bg-[var(--color-surface-secondary)] rounded-xl flex-1" />
-          <div className="h-8 bg-[var(--color-surface-secondary)] rounded-xl w-24" />
+          <div className="h-8 bg-[var(--color-surface-secondary)] rounded-none flex-1" />
+          <div className="h-8 bg-[var(--color-surface-secondary)] rounded-none w-24" />
         </div>
       </div>
     </div>
@@ -61,7 +61,7 @@ function FeaturedCard({ c }: { c: CommunityRow }) {
   return (
     <Link
       href={`/communities/${c.slug}`}
-      className="group relative col-span-full lg:col-span-2 rounded-3xl overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface)] min-h-[280px] flex flex-col justify-end shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-0.5"
+      className="group relative col-span-full lg:col-span-2 rounded-none overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface)] min-h-[280px] flex flex-col justify-end shadow-none hover:shadow-none transition-all duration-300 hover:-translate-y-0.5"
     >
       {/* BG image */}
       <div className="absolute inset-0">
@@ -74,13 +74,13 @@ function FeaturedCard({ c }: { c: CommunityRow }) {
       </div>
 
       {/* Hot badge */}
-      <div className="absolute top-4 left-4 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-orange-500 text-white text-[10px] font-black uppercase tracking-widest shadow-lg">
+      <div className="absolute top-4 left-4 flex items-center gap-1.5 px-3 py-1.5 rounded-none bg-orange-500 text-white text-[10px] font-black uppercase tracking-widest shadow-none">
         <Flame size={11} className="animate-pulse" /> Featured
       </div>
 
       {/* Content */}
       <div className="relative z-10 p-6 flex items-end gap-4">
-        <div className="h-16 w-16 rounded-2xl border-2 border-white/30 bg-black/20 overflow-hidden shrink-0 shadow-xl">
+        <div className="h-16 w-16 rounded-none border-2 border-white/30 bg-black/20 overflow-hidden shrink-0 shadow-none">
           {c.avatar_url ? (
             <Image src={c.avatar_url} alt="" width={64} height={64} className="object-cover h-full w-full" unoptimized />
           ) : (
@@ -98,15 +98,15 @@ function FeaturedCard({ c }: { c: CommunityRow }) {
               <Users size={12} /> {formatNumber(c.member_count ?? 0)} members
             </span>
             {c.is_free ? (
-              <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-400/20 text-emerald-300 border border-emerald-400/30">FREE</span>
+              <span className="text-[10px] font-black px-2 py-0.5 rounded-none bg-emerald-400/20 text-emerald-300 border border-emerald-400/30">FREE</span>
             ) : (
-              <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-white dark:bg-surface/10 text-white/70 border border-white/20">
+              <span className="text-[10px] font-black px-2 py-0.5 rounded-none bg-white dark:bg-surface/10 text-white/70 border border-white/20">
                 From {c.currency || "$"}{Number(c.monthly_price ?? 0).toFixed(0)}/mo
               </span>
             )}
           </div>
         </div>
-        <div className="shrink-0 flex items-center gap-2 px-4 py-2 rounded-2xl bg-white dark:bg-surface text-[var(--color-accent)] font-black text-sm group-hover:bg-[var(--color-accent)] group-hover:text-white transition-all shadow-lg">
+        <div className="shrink-0 flex items-center gap-2 px-4 py-2 rounded-none bg-white dark:bg-surface text-[var(--color-accent)] font-black text-sm group-hover:bg-[var(--color-accent)] group-hover:text-white transition-all shadow-none">
           Join <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
         </div>
       </div>
@@ -117,9 +117,9 @@ function FeaturedCard({ c }: { c: CommunityRow }) {
 /* â”€â”€â”€ CTA Banner â”€â”€â”€ */
 function CreateCTACard() {
   return (
-    <div className="rounded-3xl border border-dashed border-[var(--color-accent)]/40 bg-gradient-to-br from-[var(--color-accent-light)] to-[var(--color-surface-secondary)] p-6 flex flex-col gap-3 items-start justify-between min-h-[200px]">
+    <div className="rounded-none border border-dashed border-[var(--color-accent)]/40 bg-gradient-to-br from-[var(--color-accent-light)] to-[var(--color-surface-secondary)] p-6 flex flex-col gap-3 items-start justify-between min-h-[200px]">
       <div>
-        <div className="h-10 w-10 rounded-2xl bg-[var(--color-accent)] flex items-center justify-center text-white mb-3 shadow-lg shadow-[var(--color-accent)]/25">
+        <div className="h-10 w-10 rounded-none bg-[var(--color-accent)] flex items-center justify-center text-white mb-3 shadow-none shadow-[var(--color-accent)]/25">
           <Crown size={20} />
         </div>
         <h3 className="font-black text-[var(--color-text-primary)] text-base leading-tight">
@@ -132,7 +132,7 @@ function CreateCTACard() {
       <Button
         asChild
         size="sm"
-        className="rounded-xl bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-black shadow-md shadow-[var(--color-accent)]/30 hover:shadow-lg transition-all hover:-translate-y-0.5"
+        className="rounded-none bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-black shadow-none shadow-[var(--color-accent)]/30 hover:shadow-none transition-all hover:-translate-y-0.5"
       >
         <Link href="/communities/create">
           <Plus size={14} className="mr-1" /> Create Community
@@ -152,8 +152,8 @@ function StatsBanner({ total }: { total: number }) {
   return (
     <div className="grid grid-cols-3 gap-3 mb-8">
       {stats.map(({ label, value, icon: Icon }) => (
-        <div key={label} className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 flex items-center gap-3">
-          <div className="h-9 w-9 rounded-xl bg-[var(--color-accent-light)] flex items-center justify-center text-[var(--color-accent)] shrink-0">
+        <div key={label} className="rounded-none border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 flex items-center gap-3">
+          <div className="h-9 w-9 rounded-none bg-[var(--color-accent-light)] flex items-center justify-center text-[var(--color-accent)] shrink-0">
             <Icon size={16} />
           </div>
           <div>
@@ -239,7 +239,7 @@ export function CommunitiesDiscovery() {
           <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6">
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <div className="h-8 w-8 rounded-xl bg-[var(--color-accent)] flex items-center justify-center">
+                <div className="h-8 w-8 rounded-none bg-[var(--color-accent)] flex items-center justify-center">
                   <Globe size={16} className="text-white" />
                 </div>
                 <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-accent)]">Discover</span>
@@ -253,7 +253,7 @@ export function CommunitiesDiscovery() {
             </div>
             <Button
               asChild
-              className="rounded-2xl bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-black shadow-lg shadow-[var(--color-accent)]/25 hover:shadow-xl hover:-translate-y-0.5 transition-all sm:self-start shrink-0"
+              className="rounded-none bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-black shadow-none shadow-[var(--color-accent)]/25 hover:shadow-none hover:-translate-y-0.5 transition-all sm:self-start shrink-0"
             >
               <Link href="/communities/create">
                 <Crown size={16} className="mr-2" /> Launch Yours Free
@@ -277,13 +277,13 @@ export function CommunitiesDiscovery() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search by name, topic, or categoryâ€¦"
-                className="pl-11 pr-10 h-12 rounded-2xl border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-primary)] text-sm focus-visible:ring-[var(--color-accent)]/20"
+                className="pl-11 pr-10 h-12 rounded-none border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-primary)] text-sm focus-visible:ring-[var(--color-accent)]/20"
               />
             </div>
             <button
               onClick={() => setFiltersOpen((o) => !o)}
               className={cn(
-                "h-12 px-4 rounded-2xl border font-bold text-sm flex items-center gap-2 transition-all shrink-0",
+                "h-12 px-4 rounded-none border font-bold text-sm flex items-center gap-2 transition-all shrink-0",
                 filtersOpen || activeFilters.length > 0
                   ? "bg-[var(--color-accent)] text-white border-[var(--color-accent)]"
                   : "border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-secondary)] hover:border-[var(--color-accent)]/40"
@@ -292,7 +292,7 @@ export function CommunitiesDiscovery() {
               <SlidersHorizontal size={16} />
               <span className="hidden sm:inline">Filters</span>
               {activeFilters.length > 0 && (
-                <span className="h-5 w-5 rounded-full bg-white dark:bg-surface/20 flex items-center justify-center text-[10px] font-black">
+                <span className="h-5 w-5 rounded-none bg-white dark:bg-surface/20 flex items-center justify-center text-[10px] font-black">
                   {activeFilters.length}
                 </span>
               )}
@@ -301,7 +301,7 @@ export function CommunitiesDiscovery() {
 
           {/* Expanded filters */}
           {filtersOpen && (
-            <div className="mt-3 p-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] space-y-4 animate-in slide-in-from-top-2 duration-200">
+            <div className="mt-3 p-4 rounded-none border border-[var(--color-border)] bg-[var(--color-surface)] space-y-4 animate-in slide-in-from-top-2 duration-200">
               <div>
                 <p className="text-[10px] font-black uppercase tracking-widest text-[var(--color-text-muted)] mb-2">Category</p>
                 <div className="flex flex-wrap gap-2">
@@ -310,9 +310,9 @@ export function CommunitiesDiscovery() {
                       key={label}
                       onClick={() => setCategory(label)}
                       className={cn(
-                        "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border",
+                        "flex items-center gap-1.5 px-3 py-1.5 rounded-none text-xs font-bold transition-all border",
                         category === label
-                          ? "bg-[var(--color-accent)] text-white border-[var(--color-accent)] shadow-sm"
+                          ? "bg-[var(--color-accent)] text-white border-[var(--color-accent)] shadow-none"
                           : "border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-[var(--color-accent)]/40 hover:text-[var(--color-accent)]"
                       )}
                     >
@@ -329,9 +329,9 @@ export function CommunitiesDiscovery() {
                       key={opt.value}
                       onClick={() => setSort(opt.value)}
                       className={cn(
-                        "px-3 py-1.5 rounded-xl text-xs font-bold transition-all border",
+                        "px-3 py-1.5 rounded-none text-xs font-bold transition-all border",
                         sort === opt.value
-                          ? "bg-[var(--color-accent)] text-white border-[var(--color-accent)] shadow-sm"
+                          ? "bg-[var(--color-accent)] text-white border-[var(--color-accent)] shadow-none"
                           : "border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-[var(--color-accent)]/40"
                       )}
                     >
@@ -355,7 +355,7 @@ export function CommunitiesDiscovery() {
           {!filtersOpen && activeFilters.length > 0 && (
             <div className="flex flex-wrap gap-2 mt-3">
               {activeFilters.map((f) => (
-                <span key={f} className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[var(--color-accent-light)] text-[var(--color-accent)] text-[11px] font-bold border border-[var(--color-accent)]/20">
+                <span key={f} className="flex items-center gap-1.5 px-2.5 py-1 rounded-none bg-[var(--color-accent-light)] text-[var(--color-accent)] text-[11px] font-bold border border-[var(--color-accent)]/20">
                   {f}
                   <button onClick={() => {
                     if (f === category) setCategory("All");
@@ -379,8 +379,8 @@ export function CommunitiesDiscovery() {
             {Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
           </div>
         ) : items.length === 0 ? (
-          <div className="text-center py-24 rounded-3xl border border-dashed border-[var(--color-border)] bg-[var(--color-surface-secondary)]/40">
-            <div className="h-14 w-14 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] flex items-center justify-center mx-auto mb-4 text-[var(--color-text-muted)]">
+          <div className="text-center py-24 rounded-none border border-dashed border-[var(--color-border)] bg-[var(--color-surface-secondary)]/40">
+            <div className="h-14 w-14 rounded-none bg-[var(--color-surface)] border border-[var(--color-border)] flex items-center justify-center mx-auto mb-4 text-[var(--color-text-muted)]">
               <Search size={24} />
             </div>
             <p className="font-black text-[var(--color-text-primary)]">No communities found</p>
@@ -388,7 +388,7 @@ export function CommunitiesDiscovery() {
             <Button
               variant="outline"
               size="sm"
-              className="mt-4 rounded-xl"
+              className="mt-4 rounded-none"
               onClick={() => { setCategory("All"); setSearch(""); setSort("popular"); }}
             >
               Reset filters
@@ -418,7 +418,7 @@ export function CommunitiesDiscovery() {
                   variant="outline"
                   onClick={loadMore}
                   disabled={loadingMore}
-                  className="rounded-2xl font-bold border-[var(--color-border)] h-11 px-8 hover:border-[var(--color-accent)]/40 transition-all"
+                  className="rounded-none font-bold border-[var(--color-border)] h-11 px-8 hover:border-[var(--color-accent)]/40 transition-all"
                 >
                   {loadingMore ? (
                     <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Loadingâ€¦</>
@@ -433,10 +433,10 @@ export function CommunitiesDiscovery() {
 
         {/* Bottom CTA strip */}
         {!loading && items.length > 0 && (
-          <div className="mt-16 rounded-3xl bg-gradient-to-br from-[var(--color-accent)] to-[var(--color-accent-hover)] p-8 flex flex-col sm:flex-row items-center justify-between gap-6 text-white relative overflow-hidden">
+          <div className="mt-16 rounded-none bg-gradient-to-br from-[var(--color-accent)] to-[var(--color-accent-hover)] p-8 flex flex-col sm:flex-row items-center justify-between gap-6 text-white relative overflow-hidden">
             <div className="absolute inset-0 opacity-10">
-              <div className="absolute top-0 right-0 w-64 h-64 rounded-full bg-white dark:bg-surface blur-3xl" />
-              <div className="absolute bottom-0 left-0 w-48 h-48 rounded-full bg-white dark:bg-surface blur-2xl" />
+              <div className="absolute top-0 right-0 w-64 h-64 rounded-none bg-white dark:bg-surface blur-3xl" />
+              <div className="absolute bottom-0 left-0 w-48 h-48 rounded-none bg-white dark:bg-surface blur-2xl" />
             </div>
             <div className="relative z-10 text-center sm:text-left">
               <h3 className="font-black text-2xl leading-tight">Ready to build something?</h3>
@@ -445,7 +445,7 @@ export function CommunitiesDiscovery() {
             <div className="relative z-10 flex flex-col sm:flex-row gap-3 shrink-0">
               <Button
                 asChild
-                className="rounded-2xl bg-white dark:bg-surface text-[var(--color-accent)] hover:bg-white dark:bg-surface/90 font-black shadow-xl hover:-translate-y-0.5 transition-all"
+                className="rounded-none bg-white dark:bg-surface text-[var(--color-accent)] hover:bg-white dark:bg-surface/90 font-black shadow-none hover:-translate-y-0.5 transition-all"
               >
                 <Link href="/communities/create" className="text-white">
                   <Crown size={16} className="mr-2 text-white" /> Create for Free
@@ -454,7 +454,7 @@ export function CommunitiesDiscovery() {
               <Button
                 asChild
                 variant="outline"
-                className="rounded-2xl border-white/30 text-white hover:bg-white dark:bg-surface/10 font-bold"
+                className="rounded-none border-white/30 text-white hover:bg-white dark:bg-surface/10 font-bold"
               >
                 <Link href="/pricing">See Pricing</Link>
               </Button>
@@ -465,3 +465,4 @@ export function CommunitiesDiscovery() {
     </div>
   );
 }
+

@@ -1,4 +1,4 @@
-import { getMarketplaceCategories, getProducts, getTopVendors, type ProductQuery } from "@/services/db";
+﻿import { getMarketplaceCategories, getProducts, getTopVendors, type ProductQuery } from "@/services/db";
 import { getCartProductIds, getFollowedVendorIds } from "@/lib/actions/marketplace";
 import { MarketplaceClient } from "@/components/marketplace/marketplace-client";
 
@@ -95,3 +95,4 @@ export default async function DashboardMarketplacePage({ searchParams }: PagePro
     />
   );
 }
+

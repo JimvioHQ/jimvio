@@ -15,3 +15,4 @@ export function LocalizedPrice({ amount, currency, period, className }: Localize
   const periodLabel = period ? (period === "yearly" ? "/yr" : period === "monthly" ? "/mo" : period === "weekly" ? "/wk" : `/${period}`) : "";
   return <span className={className}>{formatMoney(amount, currency)}{periodLabel && <span className="text-[0.6em] opacity-60 ml-0.5">{periodLabel}</span>}</span>;
 }
+

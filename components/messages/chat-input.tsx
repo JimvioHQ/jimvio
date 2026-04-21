@@ -122,7 +122,7 @@ export function ChatInput({
   return (
     <div className="border-t border-[var(--color-border)] bg-[var(--color-surface)] p-3">
       {replyTo && (
-        <div className="flex items-center justify-between mb-2 px-2 py-1.5 rounded-lg bg-[var(--color-surface-secondary)] text-sm">
+        <div className="flex items-center justify-between mb-2 px-2 py-1.5 rounded-none bg-[var(--color-surface-secondary)] text-sm">
           <span className="text-[var(--color-text-muted)]">Replying</span>
           <button type="button" onClick={onCancelReply} className="p-1 rounded hover:bg-[var(--color-border)]">
             <X className="h-4 w-4" />
@@ -148,7 +148,7 @@ export function ChatInput({
             type="button"
             variant="ghost"
             size="icon"
-            className="h-9 w-9 rounded-xl shrink-0"
+            className="h-9 w-9 rounded-none shrink-0"
             onClick={() => imageInputRef.current?.click()}
           >
             <ImageIcon className="h-4 w-4" />
@@ -157,18 +157,18 @@ export function ChatInput({
             type="button"
             variant="ghost"
             size="icon"
-            className="h-9 w-9 rounded-xl shrink-0"
+            className="h-9 w-9 rounded-none shrink-0"
             onClick={() => fileInputRef.current?.click()}
           >
             <Paperclip className="h-4 w-4" />
           </Button>
           {onShareProduct && (
-            <Button type="button" variant="ghost" size="icon" className="h-9 w-9 rounded-xl shrink-0" onClick={onShareProduct}>
+            <Button type="button" variant="ghost" size="icon" className="h-9 w-9 rounded-none shrink-0" onClick={onShareProduct}>
               <Package className="h-4 w-4" />
             </Button>
           )}
           {onRequestQuote && (
-            <Button type="button" variant="ghost" size="icon" className="h-9 w-9 rounded-xl shrink-0" onClick={onRequestQuote} title="Request quote">
+            <Button type="button" variant="ghost" size="icon" className="h-9 w-9 rounded-none shrink-0" onClick={onRequestQuote} title="Request quote">
               <Quote className="h-4 w-4" />
             </Button>
           )}
@@ -176,7 +176,7 @@ export function ChatInput({
             type="button"
             variant="ghost"
             size="icon"
-            className="h-9 w-9 rounded-xl shrink-0"
+            className="h-9 w-9 rounded-none shrink-0"
             onClick={() => setShowEmoji((s) => !s)}
           >
             <Smile className="h-4 w-4" />
@@ -193,14 +193,14 @@ export function ChatInput({
           }}
           placeholder="Type a message..."
           rows={1}
-          className="flex-1 min-h-[40px] max-h-32 px-4 py-2.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] resize-none focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/20"
+          className="flex-1 min-h-[40px] max-h-32 px-4 py-2.5 rounded-none border border-[var(--color-border)] bg-[var(--color-surface)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] resize-none focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/20"
         />
         <Button
           type="button"
           onClick={handleSend}
           disabled={sending || (!input.trim() && !replyTo)}
           size="icon"
-          className="h-10 w-10 rounded-xl shrink-0 bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)]"
+          className="h-10 w-10 rounded-none shrink-0 bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)]"
         >
           <Send className="h-4 w-4" />
         </Button>
@@ -222,3 +222,4 @@ export function ChatInput({
     </div>
   );
 }
+

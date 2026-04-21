@@ -35,7 +35,7 @@ function mergeLinks(navLinks: NavLinkConfig[]) {
 const INPUT_IDLE: React.CSSProperties = {
   background: "var(--color-surface)",
   border: "1px solid var(--color-border)",
-  boxShadow: "var(--shadow-sm)",
+  boxShadow: "var(--shadow-none)",
 };
 const INPUT_FOCUSED: React.CSSProperties = {
   background: "var(--color-surface)",
@@ -113,12 +113,12 @@ export function NavbarSearch({
       <motion.div
         animate={{ width: isDesktop ? expandedW : "auto" }}
         transition={{ type: "spring", damping: 32, stiffness: 320 }}
-        className={cn("relative flex items-center h-11 rounded-full overflow-hidden transition-all duration-200", !isDesktop && "flex-1")}
+        className={cn("relative flex items-center h-11 rounded-none overflow-hidden transition-all duration-200", !isDesktop && "flex-1")}
         style={isDesktop ? inputStyle : { background: "transparent" }}
       >
         {/* Top specular on input */}
         <div
-          className="pointer-events-none absolute inset-x-0 top-0 h-px rounded-full"
+          className="pointer-events-none absolute inset-x-0 top-0 h-px rounded-none"
           style={{ background: "linear-gradient(90deg,transparent,rgba(255,255,255,1) 50%,transparent)" }}
         />
 
@@ -156,7 +156,7 @@ export function NavbarSearch({
               exit={{ opacity: 0, scale: 0.7 }}
               transition={{ duration: 0.12 }}
               onClick={() => { setSearchQ(""); setOpen(false); inputRef.current?.focus(); }}
-              className="mr-3 h-5 w-5 rounded-full flex items-center justify-center shrink-0 transition-all"
+              className="mr-3 h-5 w-5 rounded-none flex items-center justify-center shrink-0 transition-all"
               style={{ background: "rgba(0,0,0,0.08)" }}
               tabIndex={-1}
             >
@@ -202,7 +202,7 @@ export function NavbarSearch({
           <motion.div
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
-            className="w-full max-w-[780px] relative z-10 rounded-xl border border-border shadow-2xl bg-surface overflow-hidden"
+            className="w-full max-w-[780px] relative z-10 rounded-none border border-border shadow-none bg-surface overflow-hidden"
           >
 
             {/* Header */}
@@ -213,7 +213,7 @@ export function NavbarSearch({
               </p>
               <button
                 onClick={close}
-                className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold text-stone-400 transition-colors hover:text-stone-600"
+                className="flex items-center gap-1 px-2 py-1 rounded-none text-[10px] font-bold text-stone-400 transition-colors hover:text-stone-600"
                 style={{ background: "rgba(0,0,0,0.05)", border: "1px solid rgba(0,0,0,0.07)" }}
               >
                 <Command className="h-3 w-3" /> ESC
@@ -240,9 +240,9 @@ export function NavbarSearch({
                         <button
                           key={p.id}
                           onClick={() => { router.push(`/marketplace/${p.slug}`); close(); setFocused(false); }}
-                          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all group hover:bg-stone-50 dark:hover:bg-white/5"
+                          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-none text-left transition-all group hover:bg-stone-50 dark:hover:bg-white/5"
                         >
-                          <div className="h-7 w-7 rounded-md flex items-center justify-center shrink-0 bg-orange-500/10 border border-orange-500/20">
+                          <div className="h-7 w-7 rounded-none flex items-center justify-center shrink-0 bg-orange-500/10 border border-orange-500/20">
                             <Package className="h-3.5 w-3.5 text-orange-500" />
                           </div>
                           <span className="text-[13px] font-semibold text-stone-700 dark:text-stone-300 group-hover:text-stone-900 dark:text-white dark:group-hover:text-white flex-1 truncate transition-colors">{p.name}</span>
@@ -255,7 +255,7 @@ export function NavbarSearch({
 
                 {!loading && searchQ && !products.length && !vendors.length && (
                   <div className="py-16 text-center">
-                    <div className="h-14 w-14 rounded-full flex items-center justify-center mx-auto mb-4"
+                    <div className="h-14 w-14 rounded-none flex items-center justify-center mx-auto mb-4"
                       style={{ background: "rgba(0,0,0,0.04)" }}>
                       <Search className="h-7 w-7 text-stone-200" />
                     </div>
@@ -282,7 +282,7 @@ export function NavbarSearch({
                         <button
                           key={v.id}
                           onClick={() => { router.push(`/vendors/${v.business_slug}`); close(); setFocused(false); }}
-                          className="w-full flex items-center gap-2 px-2.5 py-2 rounded-[11px] text-left transition-all text-[12px] font-semibold text-stone-600 dark:text-text-muted hover:text-stone-900 dark:text-white dark:hover:text-stone-200"
+                          className="w-full flex items-center gap-2 px-2.5 py-2 rounded-none text-left transition-all text-[12px] font-semibold text-stone-600 dark:text-text-muted hover:text-stone-900 dark:text-white dark:hover:text-stone-200"
                           onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "rgba(0,0,0,0.04)"}
                           onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = ""}
                         >
@@ -301,7 +301,7 @@ export function NavbarSearch({
                       <button
                         key={l.href}
                         onClick={() => { router.push(l.href); close(); setFocused(false); }}
-                        className="w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-[12px] font-semibold text-stone-500 dark:text-text-muted hover:text-stone-800 hover:bg-stone-50 dark:text-text-secondary dark:hover:text-stone-200 transition-colors group"
+                        className="w-full flex items-center justify-between px-2.5 py-2 rounded-none text-[12px] font-semibold text-stone-500 dark:text-text-muted hover:text-stone-800 hover:bg-stone-50 dark:text-text-secondary dark:hover:text-stone-200 transition-colors group"
                       >
                         <span className="truncate">{l.label}</span>
                         <ArrowRight className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
@@ -327,3 +327,4 @@ export function NavbarSearch({
     </div>
   );
 }
+

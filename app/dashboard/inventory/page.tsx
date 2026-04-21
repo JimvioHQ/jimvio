@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
@@ -66,15 +66,15 @@ export default function InventoryPage() {
   if (!vendor) {
     return (
       <div className="min-h-screen flex items-center justify-center px-6" style={{ background: "var(--color-bg)" }}>
-        <div className="max-w-md w-full p-10 text-center space-y-8 bg-surface dark:bg-surface rounded-[32px] border border-border shadow-sm">
-          <div className="w-16 h-16 bg-surface-secondary dark:bg-surface-secondary rounded-2xl flex items-center justify-center mx-auto border border-border">
+        <div className="max-w-md w-full p-10 text-center space-y-8 bg-surface dark:bg-surface rounded-none border border-border shadow-none">
+          <div className="w-16 h-16 bg-surface-secondary dark:bg-surface-secondary rounded-none flex items-center justify-center mx-auto border border-border">
              <ShieldCheck className="h-8 w-8 text-stone-200 dark:text-stone-700" />
           </div>
           <div className="space-y-2">
             <h2 className="text-2xl font-bold text-stone-900 dark:text-white tracking-tight">Access Denied</h2>
             <p className="text-stone-400 dark:text-text-muted text-[13px] font-medium leading-relaxed">Please register as a vendor to manage your product inventory.</p>
           </div>
-          <Button asChild className="w-full h-12 rounded-xl bg-stone-900 dark:bg-white dark:bg-surface text-white dark:text-stone-900 dark:text-white hover:bg-black dark:hover:bg-stone-100 font-bold active:scale-95 transition-all text-[11px] capitalize border-none">
+          <Button asChild className="w-full h-12 rounded-none bg-stone-900 dark:bg-white dark:bg-surface text-white dark:text-stone-900 dark:text-white hover:bg-black dark:hover:bg-stone-100 font-bold active:scale-95 transition-all text-[11px] capitalize border-none">
              <Link href="/dashboard/roles">Activate Vendor Role</Link>
           </Button>
         </div>
@@ -94,7 +94,7 @@ export default function InventoryPage() {
         {/* Header - Simpler */}
          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-6">
             <div className="flex items-center gap-3 sm:gap-4">
-               <Button asChild variant="ghost" size="icon" className="shrink-0 h-9 w-9 sm:h-10 sm:w-10 rounded-xl bg-surface dark:bg-surface-secondary border border-border shadow-sm hover:bg-surface dark:hover:bg-zinc-700 active:scale-95 transition-all text-stone-500 dark:text-text-muted">
+               <Button asChild variant="ghost" size="icon" className="shrink-0 h-9 w-9 sm:h-10 sm:w-10 rounded-none bg-surface dark:bg-surface-secondary border border-border shadow-none hover:bg-surface dark:hover:bg-zinc-700 active:scale-95 transition-all text-stone-500 dark:text-text-muted">
                  <Link href="/dashboard"><ArrowLeft className="h-4 w-4" /></Link>
                </Button>
                <div className="space-y-0.5">
@@ -103,7 +103,7 @@ export default function InventoryPage() {
                </div>
             </div>
                       <div className="flex items-center gap-2">
-               <Button asChild className="h-9 sm:h-10 px-6 rounded-xl bg-stone-900 dark:bg-white dark:bg-surface text-white dark:text-stone-900 dark:text-white font-bold text-[9px] sm:text-[10px] uppercase tracking-widest shadow-md active:scale-95 transition-all hover:bg-black dark:hover:bg-stone-100 border-none">
+               <Button asChild className="h-9 sm:h-10 px-6 rounded-none bg-stone-900 dark:bg-white dark:bg-surface text-white dark:text-stone-900 dark:text-white font-bold text-[9px] sm:text-[10px] uppercase tracking-widest shadow-none active:scale-95 transition-all hover:bg-black dark:hover:bg-stone-100 border-none">
                  <Link href="/dashboard/products/new"><Plus className="h-4 w-4 mr-2" /> Add Product</Link>
                </Button>
             </div>
@@ -111,8 +111,8 @@ export default function InventoryPage() {
 
         {/* Stats Grid - Soft & Compact */}
          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-6">
-            <div className="p-4 sm:p-5 rounded-xl sm:rounded-2xl bg-surface/60 dark:bg-surface-secondary/40 border border-border shadow-sm flex items-center gap-4">
-               <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-sky-500/10 flex items-center justify-center text-sky-500 shrink-0 border border-sky-500/10">
+            <div className="p-4 sm:p-5 rounded-none sm:rounded-none bg-surface/60 dark:bg-surface-secondary/40 border border-border shadow-none flex items-center gap-4">
+               <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-none sm:rounded-none bg-sky-500/10 flex items-center justify-center text-sky-500 shrink-0 border border-sky-500/10">
                   <Activity className="h-4 w-4 sm:h-5 sm:w-5" />
                </div>
                <div>
@@ -120,8 +120,8 @@ export default function InventoryPage() {
                   <p className="text-[9px] font-bold uppercase tracking-widest text-stone-400 dark:text-text-muted mt-1">Total Units</p>
                </div>
             </div>
-            <div className="p-4 sm:p-5 rounded-xl sm:rounded-2xl bg-surface/60 dark:bg-surface-secondary/40 border border-border shadow-sm flex items-center gap-3 sm:gap-4">
-               <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-orange-500/10 flex items-center justify-center text-orange-500 shrink-0 border border-orange-500/10">
+            <div className="p-4 sm:p-5 rounded-none sm:rounded-none bg-surface/60 dark:bg-surface-secondary/40 border border-border shadow-none flex items-center gap-3 sm:gap-4">
+               <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-none sm:rounded-none bg-orange-500/10 flex items-center justify-center text-orange-500 shrink-0 border border-orange-500/10">
                   <TrendingDown className="h-4 w-4 sm:h-5 sm:w-5" />
                </div>
                <div>
@@ -129,8 +129,8 @@ export default function InventoryPage() {
                   <p className="text-[9px] font-bold uppercase tracking-widest text-stone-400 dark:text-text-muted mt-1">Low Stock</p>
                </div>
             </div>
-            <div className="p-4 sm:p-5 rounded-xl sm:rounded-2xl bg-surface/60 dark:bg-surface-secondary/40 border border-border shadow-sm flex items-center gap-3 sm:gap-4">
-               <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-rose-500/10 flex items-center justify-center text-rose-500 shrink-0 border border-rose-500/10">
+            <div className="p-4 sm:p-5 rounded-none sm:rounded-none bg-surface/60 dark:bg-surface-secondary/40 border border-border shadow-none flex items-center gap-3 sm:gap-4">
+               <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-none sm:rounded-none bg-rose-500/10 flex items-center justify-center text-rose-500 shrink-0 border border-rose-500/10">
                   <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5" />
                </div>
                <div>
@@ -141,7 +141,7 @@ export default function InventoryPage() {
         </div>
 
         {/* Inventory Table - Full-width Mobile */}
-         <GlassCard className="rounded-2xl sm:rounded-[32px] border-border max-sm:-mx-4 max-sm:rounded-none max-sm:border-x-0 bg-surface/60 dark:bg-surface-secondary/40 backdrop-blur-md shadow-sm overflow-hidden text-left">
+         <GlassCard className="rounded-none sm:rounded-none border-border max-sm:-mx-4 max-sm:rounded-none max-sm:border-x-0 bg-surface/60 dark:bg-surface-secondary/40 backdrop-blur-md shadow-none overflow-hidden text-left">
             <div className="p-4 sm:p-8 border-b border-border bg-surface/40 dark:bg-surface/40 flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-6">
                <div className="space-y-0.5">
                   <h3 className="text-base sm:text-lg font-black text-stone-900 dark:text-white tracking-tight">Stock List</h3>
@@ -151,14 +151,14 @@ export default function InventoryPage() {
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-300 dark:text-stone-700 group-focus-within:text-orange-500 transition-colors" />
                   <input 
                      placeholder="Search inventory..." 
-                     className="w-full h-10 sm:h-11 pl-11 pr-4 rounded-xl bg-surface dark:bg-surface-secondary border border-border text-[13px] font-medium text-stone-900 dark:text-white placeholder:text-stone-300 dark:placeholder:text-stone-700 shadow-sm focus:outline-none focus:ring-4 focus:ring-orange-500/5 transition-all"
+                     className="w-full h-10 sm:h-11 pl-11 pr-4 rounded-none bg-surface dark:bg-surface-secondary border border-border text-[13px] font-medium text-stone-900 dark:text-white placeholder:text-stone-300 dark:placeholder:text-stone-700 shadow-none focus:outline-none focus:ring-4 focus:ring-orange-500/5 transition-all"
                   />
                </div>
             </div>
                       <div className="overflow-x-auto">
                {products.length === 0 ? (
                   <div className="py-20 text-center space-y-4">
-                     <div className="w-12 h-12 bg-surface dark:bg-surface-secondary rounded-2xl flex items-center justify-center mx-auto border border-border">
+                     <div className="w-12 h-12 bg-surface dark:bg-surface-secondary rounded-none flex items-center justify-center mx-auto border border-border">
                         <Package className="h-6 w-6 text-stone-300 dark:text-stone-700" />
                      </div>
                      <p className="text-[12px] font-bold text-stone-400 dark:text-text-muted uppercase tracking-widest">No inventory items found</p>
@@ -187,7 +187,7 @@ export default function InventoryPage() {
                         <tr key={p.id as string} className="hover:bg-surface-secondary/60 dark:hover:bg-zinc-800/40 transition-all duration-300 group">
                           <td className="px-5 sm:px-8 py-5 sm:py-6 text-left">
                             <div className="flex items-center gap-3 sm:gap-4">
-                              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-surface-secondary dark:bg-surface-secondary border border-border overflow-hidden shrink-0 shadow-sm">
+                              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-none sm:rounded-none bg-surface-secondary dark:bg-surface-secondary border border-border overflow-hidden shrink-0 shadow-none">
                                 {images[0] ? <img src={images[0]} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-[10px] font-bold text-stone-300 dark:text-stone-700">{String(p.name)[0]}</div>}
                               </div>
                               <div className="min-w-0">
@@ -213,7 +213,7 @@ export default function InventoryPage() {
                                    type="number"
                                    value={editQty[p.id as string]}
                                    onChange={e => setEditQty(prev => ({ ...prev, [p.id as string]: e.target.value }))}
-                                   className="w-16 sm:w-20 h-8 sm:h-9 px-3 text-[13px] font-bold text-stone-900 dark:text-white text-right rounded-lg bg-surface dark:bg-surface-secondary border border-border outline-none focus:ring-2 focus:ring-orange-500/10 transition-all shadow-sm"
+                                   className="w-16 sm:w-20 h-8 sm:h-9 px-3 text-[13px] font-bold text-stone-900 dark:text-white text-right rounded-none bg-surface dark:bg-surface-secondary border border-border outline-none focus:ring-2 focus:ring-orange-500/10 transition-all shadow-none"
                                    min="0"
                                    autoFocus
                                  />
@@ -235,15 +235,15 @@ export default function InventoryPage() {
                           <td className="px-5 sm:px-8 py-5 sm:py-6 text-right">
                             {isEditing ? (
                               <div className="flex gap-1.5 justify-end">
-                                 <Button size="sm" className="h-8 sm:h-9 px-3 sm:px-4 rounded-lg bg-stone-900 dark:bg-white dark:bg-surface text-white dark:text-stone-900 dark:text-white font-bold text-[9px] sm:text-[10px] capitalize shadow-sm" loading={updating === p.id as string} onClick={() => updateInventory(p.id as string, editQty[p.id as string])}>
+                                 <Button size="sm" className="h-8 sm:h-9 px-3 sm:px-4 rounded-none bg-stone-900 dark:bg-white dark:bg-surface text-white dark:text-stone-900 dark:text-white font-bold text-[9px] sm:text-[10px] capitalize shadow-none" loading={updating === p.id as string} onClick={() => updateInventory(p.id as string, editQty[p.id as string])}>
                                   Save
                                 </Button>
-                                <Button variant="ghost" size="sm" className="h-8 sm:h-9 px-3 rounded-lg font-bold text-[9px] sm:text-[10px] capitalize text-stone-400 dark:text-stone-600" onClick={() => setEditQty(prev => { const n = { ...prev }; delete n[p.id as string]; return n; })}>
+                                <Button variant="ghost" size="sm" className="h-8 sm:h-9 px-3 rounded-none font-bold text-[9px] sm:text-[10px] capitalize text-stone-400 dark:text-stone-600" onClick={() => setEditQty(prev => { const n = { ...prev }; delete n[p.id as string]; return n; })}>
                                   Cancel
                                 </Button>
                               </div>
                             ) : (
-                                <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg text-stone-300 dark:text-stone-700 hover:text-stone-900 dark:text-white dark:hover:text-white hover:bg-surface dark:hover:bg-zinc-800 transition-colors"
+                                <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9 rounded-none text-stone-300 dark:text-stone-700 hover:text-stone-900 dark:text-white dark:hover:text-white hover:bg-surface dark:hover:bg-zinc-800 transition-colors"
                                  onClick={() => setEditQty(prev => ({ ...prev, [p.id as string]: String(qty) }))}>
                                 <RefreshCw className="h-3.5 w-3.5" />
                               </Button>
@@ -261,3 +261,4 @@ export default function InventoryPage() {
     </div>
   );
 }
+

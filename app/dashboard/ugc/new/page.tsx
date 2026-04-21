@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { UGCPostForm } from "@/components/ugc/ugc-post-form";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
@@ -29,7 +29,7 @@ export default async function NewUGCPostPage() {
       <div className="flex items-center gap-4 mb-8">
         <Link 
           href="/dashboard/influencer" 
-          className="h-10 w-10 flex items-center justify-center rounded-xl bg-white dark:bg-surface border border-[var(--color-border)] text-zinc-500 hover:text-zinc-900 dark:text-white shadow-sm transition-colors"
+          className="h-10 w-10 flex items-center justify-center rounded-none bg-white dark:bg-surface border border-[var(--color-border)] text-zinc-500 hover:text-zinc-900 dark:text-white shadow-none transition-colors"
         >
           <ArrowLeft className="h-5 w-5" />
         </Link>
@@ -44,7 +44,7 @@ export default async function NewUGCPostPage() {
       </div>
 
       {/* Main Form */}
-      <div className="bg-white dark:bg-surface rounded-[32px] border border-[var(--color-border)] shadow-xl p-6 sm:p-8 relative overflow-hidden">
+      <div className="bg-white dark:bg-surface rounded-none border border-[var(--color-border)] shadow-none p-6 sm:p-8 relative overflow-hidden">
         {/* Subtle background decoration */}
         <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none">
           <Sparkles className="w-32 h-32" />
@@ -57,3 +57,4 @@ export default async function NewUGCPostPage() {
     </div>
   );
 }
+

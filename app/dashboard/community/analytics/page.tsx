@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useEffect, useState, useCallback } from "react";
 import { 
@@ -63,9 +63,9 @@ export default function CommunityAnalyticsPage() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center space-y-12 animate-in fade-in duration-700" style={{ background: "var(--color-bg)" }}>
         <div className="relative">
-          <div className="absolute inset-0 bg-orange-400/20 blur-3xl rounded-full scale-150 animate-pulse" />
-          <div className="relative w-24 h-24 rounded-[32px] bg-white dark:bg-surface border border-white shadow-2xl flex items-center justify-center overflow-hidden">
-            <div className="absolute inset-0 border-2 border-t-orange-500 border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin m-2" />
+          <div className="absolute inset-0 bg-orange-400/20 blur-3xl rounded-none scale-150 animate-pulse" />
+          <div className="relative w-24 h-24 rounded-none bg-white dark:bg-surface border border-white shadow-none flex items-center justify-center overflow-hidden">
+            <div className="absolute inset-0 border-2 border-t-orange-500 border-r-transparent border-b-transparent border-l-transparent rounded-none animate-spin m-2" />
             <Users className="h-10 w-10 text-stone-900 dark:text-white" />
           </div>
         </div>
@@ -93,7 +93,7 @@ export default function CommunityAnalyticsPage() {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
            <div className="space-y-2">
               <h1 className="text-4xl font-black text-stone-900 dark:text-white tracking-tighter flex items-center gap-4">
-                 <div className="p-2.5 rounded-[20px] bg-white dark:bg-surface border border-white shadow-2xl shrink-0">
+                 <div className="p-2.5 rounded-none bg-white dark:bg-surface border border-white shadow-none shrink-0">
                     <Users className="h-8 w-8 text-orange-500" />
                  </div>
                  Community Analytics
@@ -102,16 +102,16 @@ export default function CommunityAnalyticsPage() {
                  Real-time Network Growth & Engagement Stats
               </p>
            </div>
-           <div className="flex items-center gap-4 bg-white dark:bg-surface/40 p-1.5 rounded-full border border-white shadow-xl backdrop-blur-xl">
-              <div className="w-3 h-3 rounded-full bg-orange-500 ml-4 animate-pulse shadow-[0_0_12px_rgba(249,115,22,0.5)]" />
+           <div className="flex items-center gap-4 bg-white dark:bg-surface/40 p-1.5 rounded-none border border-white shadow-none backdrop-blur-xl">
+              <div className="w-3 h-3 rounded-none bg-orange-500 ml-4 animate-pulse shadow-[0_0_12px_rgba(249,115,22,0.5)]" />
               <span className="text-[10px] font-black uppercase tracking-widest text-stone-900 dark:text-white pr-6 pl-2">Live Monitoring Active</span>
            </div>
         </div>
 
         {/* Intelligence Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-           <GlassCard className="p-8 flex flex-col justify-between rounded-[40px] bg-white dark:bg-surface/60 border-white shadow-xl group transition-all duration-700 hover:scale-105">
-              <div className="w-14 h-14 rounded-[22px] bg-orange-50 border border-orange-100 flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-700">
+           <GlassCard className="p-8 flex flex-col justify-between rounded-none bg-white dark:bg-surface/60 border-white shadow-none group transition-all duration-700 hover:scale-105">
+              <div className="w-14 h-14 rounded-none bg-orange-50 border border-orange-100 flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-700">
                  <Users className="h-7 w-7 text-orange-500" />
               </div>
               <div>
@@ -119,8 +119,8 @@ export default function CommunityAnalyticsPage() {
                  <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mt-3">Total Members</p>
               </div>
            </GlassCard>
-           <GlassCard className="p-8 flex flex-col justify-between rounded-[40px] bg-white dark:bg-surface/60 border-white shadow-xl group transition-all duration-700 hover:scale-105">
-              <div className="w-14 h-14 rounded-[22px] bg-sky-50 border border-sky-100 flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-700">
+           <GlassCard className="p-8 flex flex-col justify-between rounded-none bg-white dark:bg-surface/60 border-white shadow-none group transition-all duration-700 hover:scale-105">
+              <div className="w-14 h-14 rounded-none bg-sky-50 border border-sky-100 flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-700">
                  <MessageSquare className="h-7 w-7 text-sky-500" />
               </div>
               <div>
@@ -128,8 +128,8 @@ export default function CommunityAnalyticsPage() {
                  <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mt-3">Daily Posts</p>
               </div>
            </GlassCard>
-           <GlassCard className="p-8 flex flex-col justify-between rounded-[40px] bg-white dark:bg-surface/60 border-white shadow-xl group transition-all duration-700 hover:scale-105">
-              <div className="w-14 h-14 rounded-[22px] bg-emerald-50 border border-emerald-100 flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-700">
+           <GlassCard className="p-8 flex flex-col justify-between rounded-none bg-white dark:bg-surface/60 border-white shadow-none group transition-all duration-700 hover:scale-105">
+              <div className="w-14 h-14 rounded-none bg-emerald-50 border border-emerald-100 flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-700">
                  <Activity className="h-7 w-7 text-emerald-500" />
               </div>
               <div>
@@ -137,8 +137,8 @@ export default function CommunityAnalyticsPage() {
                  <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mt-3">Activity Rate</p>
               </div>
            </GlassCard>
-           <GlassCard className="p-8 flex flex-col justify-between rounded-[40px] bg-white dark:bg-surface/60 border-white shadow-xl group transition-all duration-700 hover:scale-105">
-              <div className="w-14 h-14 rounded-[22px] bg-indigo-50 border border-indigo-100 flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-700">
+           <GlassCard className="p-8 flex flex-col justify-between rounded-none bg-white dark:bg-surface/60 border-white shadow-none group transition-all duration-700 hover:scale-105">
+              <div className="w-14 h-14 rounded-none bg-indigo-50 border border-indigo-100 flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-700">
                  <ShieldCheck className="h-7 w-7 text-indigo-500" />
               </div>
               <div>
@@ -149,7 +149,7 @@ export default function CommunityAnalyticsPage() {
         </div>
 
         {/* High-Fidelity Chart Matrix */}
-        <GlassCard className="rounded-[56px] border-white bg-white dark:bg-surface/60 shadow-2xl overflow-hidden group">
+        <GlassCard className="rounded-none border-white bg-white dark:bg-surface/60 shadow-none overflow-hidden group">
            <div className="p-12 border-b border-stone-100 dark:border-border flex flex-col md:flex-row items-center justify-between gap-8">
               <div className="space-y-1">
                  <h3 className="text-3xl font-black text-stone-900 dark:text-white tracking-tighter">Engagement Trends</h3>
@@ -157,11 +157,11 @@ export default function CommunityAnalyticsPage() {
               </div>
               <div className="flex items-center gap-6">
                  <div className="flex items-center gap-3">
-                    <div className="w-3 h-3 rounded-full bg-teal-500 shadow-[0_0_10px_rgba(20,184,166,0.6)]" />
+                    <div className="w-3 h-3 rounded-none bg-teal-500 shadow-[0_0_10px_rgba(20,184,166,0.6)]" />
                     <span className="text-[10px] font-black uppercase tracking-widest text-stone-400">Interactions</span>
                  </div>
                  <div className="flex items-center gap-3">
-                    <div className="w-3 h-3 rounded-full bg-orange-500 shadow-[0_0_10px_rgba(249,115,22,0.6)]" />
+                    <div className="w-3 h-3 rounded-none bg-orange-500 shadow-[0_0_10px_rgba(249,115,22,0.6)]" />
                     <span className="text-[10px] font-black uppercase tracking-widest text-stone-400">New Members</span>
                  </div>
               </div>
@@ -192,8 +192,8 @@ export default function CommunityAnalyticsPage() {
         </GlassCard>
 
         {/* Promotion card */}
-        <GlassCard className="p-12 rounded-[56px] border-white bg-stone-900 text-white relative overflow-hidden shadow-2xl">
-           <div className="absolute top-0 right-0 w-80 h-80 bg-orange-500/20 blur-[120px] rounded-full translate-x-1/2 -translate-y-1/2" />
+        <GlassCard className="p-12 rounded-none border-white bg-stone-900 text-white relative overflow-hidden shadow-none">
+           <div className="absolute top-0 right-0 w-80 h-80 bg-orange-500/20 blur-[120px] rounded-none translate-x-1/2 -translate-y-1/2" />
            <div className="flex flex-col md:flex-row items-center justify-between gap-12 relative z-10">
               <div className="space-y-6 text-center md:text-left">
                  <div className="flex items-center justify-center md:justify-start gap-4">
@@ -205,7 +205,7 @@ export default function CommunityAnalyticsPage() {
                     Invite more members and moderate discussions to increase your community's influence and engagement score.
                  </p>
               </div>
-              <Button className="h-20 px-12 rounded-[32px] bg-white dark:bg-surface text-stone-900 dark:text-white font-black text-[12px] uppercase tracking-[0.3em] shadow-2xl active:scale-95 transition-all hover:bg-stone-50 dark:bg-surface/50 border-none">
+              <Button className="h-20 px-12 rounded-none bg-white dark:bg-surface text-stone-900 dark:text-white font-black text-[12px] uppercase tracking-[0.3em] shadow-none active:scale-95 transition-all hover:bg-stone-50 dark:bg-surface/50 border-none">
                  Grow Community <ArrowRight className="h-5 w-5 ml-4" />
               </Button>
            </div>
@@ -214,3 +214,4 @@ export default function CommunityAnalyticsPage() {
     </div>
   );
 }
+

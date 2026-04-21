@@ -53,7 +53,7 @@ export function HeroRightPanel({ profile }: HeroRightPanelProps) {
     >
       {/* â”€â”€ Main card â”€â”€ */}
       <div
-        className="bg-white dark:bg-[#1c1811] rounded-[16px] border border-black/[.07] dark:border-white/[.08] p-[14px] flex flex-col gap-0"
+        className="bg-white dark:bg-[#1c1811] rounded-none border border-black/[.07] dark:border-white/[.08] p-[14px] flex flex-col gap-0"
       >
         {isLoggedIn ? (
           <>
@@ -65,7 +65,7 @@ export function HeroRightPanel({ profile }: HeroRightPanelProps) {
             </p>
 
             {/* User row â€” matches .user-row */}
-            <div className="flex items-center gap-[10px] mb-3 p-[10px_12px] bg-[#f8f7f4] dark:bg-white/[.04] rounded-[12px] border border-black/[.05] dark:border-white/[.06]">
+            <div className="flex items-center gap-[10px] mb-3 p-[10px_12px] bg-[#f8f7f4] dark:bg-white/[.04] rounded-none border border-black/[.05] dark:border-white/[.06]">
               <Avatar className="h-9 w-9 shrink-0">
                 <AvatarImage src={profile?.avatar_url ?? undefined} />
                 <AvatarFallback className="bg-[#f97316] text-white text-[13px] font-bold">
@@ -83,7 +83,7 @@ export function HeroRightPanel({ profile }: HeroRightPanelProps) {
             {/* Dashboard CTA â€” matches .btn-dashboard */}
             <Link
               href="/dashboard"
-              className="flex items-center justify-center gap-[6px] w-full h-[36px] rounded-[10px] mb-[10px] text-[10px] font-black uppercase tracking-[.08em] text-[#c2410c] dark:text-[#fb923c] transition-all"
+              className="flex items-center justify-center gap-[6px] w-full h-[36px] rounded-none mb-[10px] text-[10px] font-black uppercase tracking-[.08em] text-[#c2410c] dark:text-[#fb923c] transition-all"
               style={{
                 background: "rgba(249,115,22,.10)",
                 border: "0.5px solid rgba(249,115,22,.25)",
@@ -97,7 +97,7 @@ export function HeroRightPanel({ profile }: HeroRightPanelProps) {
             <div className="grid grid-cols-2 gap-2 mb-2">
               <Link
                 href="/dashboard/orders"
-                className="flex items-center justify-center gap-[5px] h-[30px] rounded-[9px] text-[10px] font-bold text-[#6b6257] dark:text-[#a89f93] transition-all hover:bg-[#f5f4f1]"
+                className="flex items-center justify-center gap-[5px] h-[30px] rounded-none text-[10px] font-bold text-[#6b6257] dark:text-[#a89f93] transition-all hover:bg-[#f5f4f1]"
                 style={{ border: "0.5px solid rgba(0,0,0,.07)" }}
               >
                 <ShoppingBag className="h-[11px] w-[11px]" />
@@ -105,7 +105,7 @@ export function HeroRightPanel({ profile }: HeroRightPanelProps) {
               </Link>
               <Link
                 href="/dashboard/settings"
-                className="flex items-center justify-center gap-[5px] h-[30px] rounded-[9px] text-[10px] font-bold text-[#6b6257] dark:text-[#a89f93] transition-all hover:bg-[#f5f4f1]"
+                className="flex items-center justify-center gap-[5px] h-[30px] rounded-none text-[10px] font-bold text-[#6b6257] dark:text-[#a89f93] transition-all hover:bg-[#f5f4f1]"
                 style={{ border: "0.5px solid rgba(0,0,0,.07)" }}
               >
                 <Settings className="h-[11px] w-[11px]" />
@@ -117,7 +117,7 @@ export function HeroRightPanel({ profile }: HeroRightPanelProps) {
             <form action={signOut}>
               <button
                 type="submit"
-                className="flex items-center justify-center gap-[5px] w-full h-[30px] rounded-[9px] text-[10px] font-semibold text-[#a89f93] transition-all hover:bg-[#f5f4f1]"
+                className="flex items-center justify-center gap-[5px] w-full h-[30px] rounded-none text-[10px] font-semibold text-[#a89f93] transition-all hover:bg-[#f5f4f1]"
                 style={{ border: "0.5px solid rgba(0,0,0,.06)" }}
               >
                 <LogOut className="h-[11px] w-[11px]" />
@@ -136,7 +136,7 @@ export function HeroRightPanel({ profile }: HeroRightPanelProps) {
 
             <Link
               href="/login"
-              className="flex items-center justify-center w-full h-[36px] rounded-[10px] mb-[10px] text-[10px] font-black uppercase tracking-[.08em] text-[#c2410c] dark:text-[#fb923c] transition-all"
+              className="flex items-center justify-center w-full h-[36px] rounded-none mb-[10px] text-[10px] font-black uppercase tracking-[.08em] text-[#c2410c] dark:text-[#fb923c] transition-all"
               style={{
                 background: "rgba(249,115,22,.10)",
                 border: "0.5px solid rgba(249,115,22,.25)",
@@ -163,7 +163,7 @@ export function HeroRightPanel({ profile }: HeroRightPanelProps) {
               <form action={signInWithGoogle}>
                 <button
                   type="submit"
-                  className="flex items-center justify-center gap-[6px] w-full h-[30px] rounded-[9px] text-[10px] font-bold text-[#6b6257] dark:text-[#a89f93] hover:bg-[#f5f4f1] dark:hover:bg-white/[.04] transition-all"
+                  className="flex items-center justify-center gap-[6px] w-full h-[30px] rounded-none text-[10px] font-bold text-[#6b6257] dark:text-[#a89f93] hover:bg-[#f5f4f1] dark:hover:bg-white/[.04] transition-all"
                   style={{ border: "0.5px solid rgba(0,0,0,.07)" }}
                 >
                   <GoogleIcon /> Google
@@ -171,7 +171,7 @@ export function HeroRightPanel({ profile }: HeroRightPanelProps) {
               </form>
               <Link
                 href="/login"
-                className="flex items-center justify-center gap-[6px] h-[30px] rounded-[9px] text-[10px] font-bold text-[#6b6257] dark:text-[#a89f93] hover:bg-[#f5f4f1] dark:hover:bg-white/[.04] transition-all"
+                className="flex items-center justify-center gap-[6px] h-[30px] rounded-none text-[10px] font-bold text-[#6b6257] dark:text-[#a89f93] hover:bg-[#f5f4f1] dark:hover:bg-white/[.04] transition-all"
                 style={{ border: "0.5px solid rgba(0,0,0,.07)" }}
               >
                 <Linkedin className="h-[13px] w-[13px] text-[#0077b5]" /> LinkedIn
@@ -185,7 +185,7 @@ export function HeroRightPanel({ profile }: HeroRightPanelProps) {
       <div className="grid grid-cols-2 gap-2">
         <Link
           href={isLoggedIn ? "/dashboard/vendor/setup" : "/register?role=vendor"}
-          className="group flex flex-col items-center gap-[6px] bg-white dark:bg-[#1c1811] rounded-[14px] py-[10px] px-3 text-center cursor-pointer transition-all hover:border-[rgba(249,115,22,.3)]"
+          className="group flex flex-col items-center gap-[6px] bg-white dark:bg-[#1c1811] rounded-none py-[10px] px-3 text-center cursor-pointer transition-all hover:border-[rgba(249,115,22,.3)]"
           style={{ border: "0.5px solid rgba(0,0,0,.07)" }}
         >
           <div className="text-[18px]">
@@ -199,7 +199,7 @@ export function HeroRightPanel({ profile }: HeroRightPanelProps) {
 
         <Link
           href="/requests/new"
-          className="group flex flex-col items-center gap-[6px] bg-white dark:bg-[#1c1811] rounded-[14px] py-[10px] px-3 text-center cursor-pointer transition-all hover:border-[rgba(249,115,22,.3)]"
+          className="group flex flex-col items-center gap-[6px] bg-white dark:bg-[#1c1811] rounded-none py-[10px] px-3 text-center cursor-pointer transition-all hover:border-[rgba(249,115,22,.3)]"
           style={{ border: "0.5px solid rgba(0,0,0,.07)" }}
         >
           <div className="text-[18px]">
@@ -215,7 +215,7 @@ export function HeroRightPanel({ profile }: HeroRightPanelProps) {
       {/* â”€â”€ Earn & Influence card â€” matches .earn-card â”€â”€ */}
       <Link
         href="/affiliates"
-        className="group relative overflow-hidden rounded-[16px] p-3 cursor-pointer hover:brightness-105 transition-all"
+        className="group relative overflow-hidden rounded-none p-3 cursor-pointer hover:brightness-105 transition-all"
         style={{
           background: "linear-gradient(135deg, #1a1408 0%, #3d1e05 55%, #f97316 100%)",
         }}
@@ -223,7 +223,7 @@ export function HeroRightPanel({ profile }: HeroRightPanelProps) {
         <div className="flex items-center gap-3">
           {/* Icon â€” matches .earn-icon */}
           <div
-            className="w-9 h-9 rounded-full flex items-center justify-center text-[16px] font-bold text-white shrink-0 group-hover:scale-110 transition-transform"
+            className="w-9 h-9 rounded-none flex items-center justify-center text-[16px] font-bold text-white shrink-0 group-hover:scale-110 transition-transform"
             style={{
               background: "rgba(255,255,255,.12)",
               border: "0.5px solid rgba(255,255,255,.15)",
@@ -242,7 +242,7 @@ export function HeroRightPanel({ profile }: HeroRightPanelProps) {
 
           {/* Badge â€” matches .earn-badge */}
           <div
-            className="shrink-0 rounded-[8px] px-[10px] py-[4px] text-[11px] font-black text-white"
+            className="shrink-0 rounded-none px-[10px] py-[4px] text-[11px] font-black text-white"
             style={{
               background: "rgba(255,255,255,.15)",
               border: "0.5px solid rgba(255,255,255,.12)",
@@ -255,3 +255,4 @@ export function HeroRightPanel({ profile }: HeroRightPanelProps) {
     </div>
   );
 }
+

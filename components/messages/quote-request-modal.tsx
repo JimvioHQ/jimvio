@@ -34,12 +34,12 @@ export function QuoteRequestModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink-darker/50" onClick={onClose}>
-      <div className="bg-[var(--color-surface)] rounded-2xl shadow-xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-[var(--color-surface)] rounded-none shadow-none max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-bold text-[var(--color-text-primary)] flex items-center gap-2">
             <Quote className="h-5 w-5 text-[var(--color-accent)]" /> Request Quote
           </h3>
-          <button type="button" onClick={onClose} className="p-2 rounded-lg hover:bg-[var(--color-surface-secondary)]">
+          <button type="button" onClick={onClose} className="p-2 rounded-none hover:bg-[var(--color-surface-secondary)]">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -51,7 +51,7 @@ export function QuoteRequestModal({
               min={1}
               value={quantity}
               onChange={(e) => setQuantity(e.target.value)}
-              className="rounded-xl mt-1"
+              className="rounded-none mt-1"
             />
           </div>
           <div>
@@ -61,7 +61,7 @@ export function QuoteRequestModal({
               placeholder="Your budget or expected price"
               value={expected_price}
               onChange={(e) => setExpected_price(e.target.value)}
-              className="rounded-xl mt-1"
+              className="rounded-none mt-1"
               required
             />
           </div>
@@ -70,7 +70,7 @@ export function QuoteRequestModal({
             <select
               value={delivery_country}
               onChange={(e) => setDelivery_country(e.target.value)}
-              className="w-full h-11 px-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-sm mt-1"
+              className="w-full h-11 px-4 rounded-none border border-[var(--color-border)] bg-[var(--color-surface)] text-sm mt-1"
             >
               <option value="RW">Rwanda</option>
               <option value="KE">Kenya</option>
@@ -89,14 +89,14 @@ export function QuoteRequestModal({
               onChange={(e) => setBody(e.target.value)}
               placeholder="Any special requirements..."
               rows={2}
-              className="w-full px-4 py-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] mt-1 resize-none"
+              className="w-full px-4 py-2 rounded-none border border-[var(--color-border)] bg-[var(--color-surface)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] mt-1 resize-none"
             />
           </div>
           <div className="flex gap-2 pt-2">
-            <Button type="button" variant="outline" className="rounded-xl flex-1" onClick={onClose}>
+            <Button type="button" variant="outline" className="rounded-none flex-1" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" className="rounded-xl flex-1 bg-[var(--color-accent)]" disabled={loading}>
+            <Button type="submit" className="rounded-none flex-1 bg-[var(--color-accent)]" disabled={loading}>
               {loading ? "Sendingâ€¦" : "Send request"}
             </Button>
           </div>
@@ -105,3 +105,4 @@ export function QuoteRequestModal({
     </div>
   );
 }
+

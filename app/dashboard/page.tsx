@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -20,7 +20,7 @@ import { useCurrency } from "@/context/CurrencyContext";
 import { useUserStore } from "@/lib/store/use-user-store";
 import { GlassAmbientGlow } from "@/components/ui/glass";
 
-/* ─── Types ─── */
+/* â”€â”€â”€ Types â”€â”€â”€ */
 interface DashStats {
   orders: number; wishlist: number; affiliateEarnings: number; affiliateLinks: number;
   vendorRevenue: number; vendorOrders: number; vendorProducts: number;
@@ -29,17 +29,17 @@ interface DashStats {
   communitiesJoined: number; communitiesCreated: number;
 }
 
-/* ═══════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    REUSABLE COMPONENTS
-   ═══════════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 /** iOS 17 Stat Card */
 function StatCard({ value, label, icon, color }: {
   value: string | number; label: string; icon: React.ReactNode; color: string;
 }) {
   return (
-    <div className="relative group overflow-hidden rounded-[28px] bg-surface/70 dark:bg-surface-secondary/40 backdrop-blur-2xl border border-border shadow-[0_4px_24px_rgb(0,0,0,0.04)] hover:shadow-[0_12px_36px_rgb(0,0,0,0.08)] transition-all duration-500 p-5 flex flex-col justify-between min-h-[140px]">
-      <div className={cn("w-11 h-11 rounded-[16px] flex items-center justify-center shrink-0 border border-border bg-surface dark:bg-surface shadow-sm group-hover:scale-110 transition-transform duration-500", color)}>
+    <div className="relative group overflow-hidden rounded-none bg-surface/70 dark:bg-surface-secondary/40 backdrop-blur-2xl border border-border shadow-[0_4px_24px_rgb(0,0,0,0.04)] hover:shadow-[0_12px_36px_rgb(0,0,0,0.08)] transition-all duration-500 p-5 flex flex-col justify-between min-h-[140px]">
+      <div className={cn("w-11 h-11 rounded-none flex items-center justify-center shrink-0 border border-border bg-surface dark:bg-surface shadow-none group-hover:scale-110 transition-transform duration-500", color)}>
         {icon as React.ReactNode}
       </div>
       <div className="mt-3">
@@ -57,13 +57,13 @@ function ActionRow({ href, icon, label, highlight = false }: {
   return (
     <Link href={href} className="group block">
       <div className={cn(
-        "flex items-center gap-4 px-5 py-3.5 rounded-[20px] border transition-all duration-300 active:scale-[0.97]",
+        "flex items-center gap-4 px-5 py-3.5 rounded-none border transition-all duration-300 active:scale-[0.97]",
         highlight
-          ? "bg-orange-500/12 dark:bg-orange-500/10 border-orange-500/25 hover:bg-orange-500/20 shadow-sm"
-          : "bg-surface/75 dark:bg-surface-secondary/40 border-border hover:bg-surface dark:hover:bg-zinc-800 hover:shadow-md shadow-sm"
+          ? "bg-orange-500/12 dark:bg-orange-500/10 border-orange-500/25 hover:bg-orange-500/20 shadow-none"
+          : "bg-surface/75 dark:bg-surface-secondary/40 border-border hover:bg-surface dark:hover:bg-zinc-800 hover:shadow-none shadow-none"
       )}>
         <div className={cn(
-          "h-9 w-9 rounded-[14px] flex items-center justify-center shrink-0 border border-border shadow-sm",
+          "h-9 w-9 rounded-none flex items-center justify-center shrink-0 border border-border shadow-none",
           highlight ? "bg-surface dark:bg-zinc-700 text-orange-600" : "bg-surface dark:bg-surface text-stone-400 dark:text-text-muted group-hover:text-stone-800 dark:text-text-secondary dark:group-hover:text-stone-200"
         )}>
           {icon as React.ReactNode}
@@ -88,7 +88,7 @@ function SectionHeader({ title, icon, actionHref, actionLabel = "View All" }: {
   return (
     <div className="flex items-center justify-between px-1 mb-4">
       <div className="flex items-center gap-2.5">
-        <div className="text-orange-500 bg-orange-100/50 dark:bg-orange-500/10 p-1.5 rounded-[12px] border border-orange-200/50 dark:border-orange-500/20">
+        <div className="text-orange-500 bg-orange-100/50 dark:bg-orange-500/10 p-1.5 rounded-none border border-orange-200/50 dark:border-orange-500/20">
           {icon as React.ReactNode}
         </div>
         <h2 className="text-[12px] font-black text-stone-900 dark:text-white uppercase tracking-widest">{title}</h2>
@@ -102,9 +102,9 @@ function SectionHeader({ title, icon, actionHref, actionLabel = "View All" }: {
   );
 }
 
-/* ═══════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    MAIN DASHBOARD
-   ═══════════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 export default function DashboardPage() {
   const { formatMoney } = useCurrency();
@@ -209,14 +209,14 @@ export default function DashboardPage() {
 
   const firstName = (profile?.full_name as string)?.split(" ")[0] ?? "User";
 
-  /* ─── Loading State ─── */
+  /* â”€â”€â”€ Loading State â”€â”€â”€ */
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center space-y-10 animate-in fade-in duration-700" style={{ background: "var(--color-bg)" }}>
         <div className="relative">
-          <div className="absolute inset-0 bg-orange-400/20 blur-3xl rounded-full scale-150 animate-pulse" />
-          <div className="relative w-20 h-20 rounded-[28px] bg-surface dark:bg-surface-secondary border border-border shadow-2xl flex items-center justify-center overflow-hidden">
-            <div className="absolute inset-0 border-2 border-t-orange-500 border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin m-2" />
+          <div className="absolute inset-0 bg-orange-400/20 blur-3xl rounded-none scale-150 animate-pulse" />
+          <div className="relative w-20 h-20 rounded-none bg-surface dark:bg-surface-secondary border border-border shadow-none flex items-center justify-center overflow-hidden">
+            <div className="absolute inset-0 border-2 border-t-orange-500 border-r-transparent border-b-transparent border-l-transparent rounded-none animate-spin m-2" />
             <LayoutDashboard className="h-8 w-8 text-stone-800 dark:text-white" />
           </div>
         </div>
@@ -228,7 +228,7 @@ export default function DashboardPage() {
     );
   }
 
-  /* ─── Main Render ─── */
+  /* â”€â”€â”€ Main Render â”€â”€â”€ */
   return (
     <div className="min-h-screen pb-24 relative overflow-hidden" style={{ background: "var(--color-bg)" }}>
       <GlassAmbientGlow color="orange" position="top-right" />
@@ -236,9 +236,9 @@ export default function DashboardPage() {
 
       <div className="max-w-7xl mx-auto space-y-8 px-0 sm:px-6 pt-5 relative z-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
 
-        {/* ════════════════════════════════════
+        {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
             GREETING
-        ════════════════════════════════════ */}
+        â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
         <div className="space-y-1.5 px-4 sm:px-0">
           <h1 className="text-3xl sm:text-4xl font-black text-stone-900 dark:text-white tracking-tighter">
             {greeting}, <span className="text-orange-600">{firstName}</span>
@@ -248,20 +248,20 @@ export default function DashboardPage() {
           </p>
         </div>
 
-        {/* ════════════════════════════════════
-            MY WALLET — Large Featured Card
-        ════════════════════════════════════ */}
+        {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+            MY WALLET â€” Large Featured Card
+        â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
         <Link href="/dashboard/wallet" className="block outline-none group">
-          <div className="relative overflow-hidden rounded-[32px] bg-neutral-900 dark:bg-surface p-8 sm:p-10 shadow-2xl transition-all duration-500 active:scale-[0.98]">
+          <div className="relative overflow-hidden rounded-none bg-neutral-900 dark:bg-surface p-8 sm:p-10 shadow-none transition-all duration-500 active:scale-[0.98]">
             {/* Ambient Accent Glows */}
-            <div className="absolute -top-20 -right-20 w-80 h-80 bg-orange-500/15 blur-[100px] rounded-full group-hover:bg-orange-500/25 transition-all duration-1000" />
-            <div className="absolute -bottom-20 -left-20 w-60 h-60 bg-indigo-500/10 blur-[80px] rounded-full" />
+            <div className="absolute -top-20 -right-20 w-80 h-80 bg-orange-500/15 blur-[100px] rounded-none group-hover:bg-orange-500/25 transition-all duration-1000" />
+            <div className="absolute -bottom-20 -left-20 w-60 h-60 bg-indigo-500/10 blur-[80px] rounded-none" />
 
             <div className="relative z-10">
               {/* Header row */}
               <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center gap-4">
-                  <div className="h-12 w-12 rounded-2xl bg-orange-500 shadow-lg shadow-orange-500/30 flex items-center justify-center text-white">
+                  <div className="h-12 w-12 rounded-none bg-orange-500 shadow-none shadow-orange-500/30 flex items-center justify-center text-white">
                     <Wallet className="h-5.5 w-5.5" />
                   </div>
                   <div>
@@ -272,7 +272,7 @@ export default function DashboardPage() {
                 <button
                   type="button"
                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); setBalanceHidden(v => !v); }}
-                  className="h-10 w-10 rounded-full bg-white/5 hover:bg-white/10 backdrop-blur-md flex items-center justify-center text-white/60 transition-all border border-white/5"
+                  className="h-10 w-10 rounded-none bg-white/5 hover:bg-white/10 backdrop-blur-md flex items-center justify-center text-white/60 transition-all border border-white/5"
                   aria-label={balanceHidden ? "Show balance" : "Hide balance"}
                 >
                   {balanceHidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -284,14 +284,14 @@ export default function DashboardPage() {
                 <div>
                   <p className="text-[10px] font-black text-orange-500 uppercase tracking-widest mb-2">Available to spend</p>
                   <p className="text-5xl sm:text-6xl font-black text-white tabular-nums tracking-tighter leading-none">
-                    {balanceHidden ? "••••••" : formatMoney(walletBalance.available, "USD")}
+                    {balanceHidden ? "â€¢â€¢â€¢â€¢â€¢â€¢" : formatMoney(walletBalance.available, "USD")}
                   </p>
                 </div>
                 <div className="sm:text-right space-y-2">
-                   <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/5">
-                      <div className="h-1.5 w-1.5 rounded-full bg-orange-500 animate-pulse" />
+                   <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-none bg-white/5 border border-white/5">
+                      <div className="h-1.5 w-1.5 rounded-none bg-orange-500 animate-pulse" />
                       <span className="text-xs font-bold text-white/70">
-                        {balanceHidden ? "••••" : formatMoney(walletBalance.pending, "USD")} pending
+                        {balanceHidden ? "â€¢â€¢â€¢â€¢" : formatMoney(walletBalance.pending, "USD")} pending
                       </span>
                    </div>
                    <div className="flex items-center sm:justify-end gap-2 text-white/40 text-[10px] uppercase font-bold tracking-widest">
@@ -311,7 +311,7 @@ export default function DashboardPage() {
             { href: "/dashboard/settings", icon: <Settings />, label: "Settings", color: "text-stone-500" },
             { href: "/support", icon: <Heart />, label: "Help", color: "text-rose-400" },
           ].map(item => (
-            <Link key={item.href} href={item.href} className="flex flex-col items-center justify-center gap-2 p-3.5 sm:p-5 rounded-[24px] bg-surface dark:bg-surface-secondary/40 backdrop-blur-2xl border border-border shadow-sm hover:shadow-md transition-all active:scale-95 group">
+            <Link key={item.href} href={item.href} className="flex flex-col items-center justify-center gap-2 p-3.5 sm:p-5 rounded-none bg-surface dark:bg-surface-secondary/40 backdrop-blur-2xl border border-border shadow-none hover:shadow-none transition-all active:scale-95 group">
               {React.cloneElement(item.icon as React.ReactElement<{ className?: string }>, { className: cn("h-5 w-5 sm:h-6 sm:w-6 group-hover:scale-110 transition-transform", item.color) })}
               <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-stone-500 dark:text-text-muted">{item.label}</span>
             </Link>
@@ -321,11 +321,11 @@ export default function DashboardPage() {
         {/* MAIN GRID */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 px-4 sm:px-0">
 
-          {/* ─── LEFT COLUMN ─── */}
+          {/* â”€â”€â”€ LEFT COLUMN â”€â”€â”€ */}
           <div className="lg:col-span-8 space-y-8">
 
             {/* Earnings Chart */}
-            <div className="rounded-[36px] bg-surface dark:bg-surface-secondary/40 backdrop-blur-[60px] saturate-[180%] border border-border shadow-[0_6px_30px_rgb(0,0,0,0.04)] p-7 sm:p-9 overflow-hidden">
+            <div className="rounded-none bg-surface dark:bg-surface-secondary/40 backdrop-blur-[60px] saturate-[180%] border border-border shadow-[0_6px_30px_rgb(0,0,0,0.04)] p-7 sm:p-9 overflow-hidden">
               <div className="flex items-center justify-between mb-7">
                 <div className="space-y-1">
                   <h3 className="text-lg font-black text-stone-900 dark:text-white tracking-tight">Earnings Overview</h3>
@@ -333,7 +333,7 @@ export default function DashboardPage() {
                     {chartData[6].v > chartData[0].v ? "Growing this week" : "Steady activity"}
                   </p>
                 </div>
-                <div className="flex items-center gap-2 bg-emerald-500/10 dark:bg-emerald-500/10 px-3.5 py-1.5 rounded-xl border border-emerald-500/10 dark:border-emerald-500/20">
+                <div className="flex items-center gap-2 bg-emerald-500/10 dark:bg-emerald-500/10 px-3.5 py-1.5 rounded-none border border-emerald-500/10 dark:border-emerald-500/20">
                   <TrendingUp className="h-3.5 w-3.5 text-emerald-500" />
                   <span className="text-[9px] font-black text-emerald-600 dark:text-emerald-500 uppercase tracking-widest">This Week</span>
                 </div>
@@ -360,10 +360,10 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* ─── ROLE-BASED SECTIONS ─── */}
+            {/* â”€â”€â”€ ROLE-BASED SECTIONS â”€â”€â”€ */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
 
-              {/* 1. BUYER — Always visible */}
+              {/* 1. BUYER â€” Always visible */}
               <div className="space-y-4">
                 <SectionHeader title="My Shopping" icon={<ShoppingCart />} actionHref="/dashboard/orders" />
                 <div className="grid grid-cols-2 gap-3">
@@ -376,7 +376,7 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* 2. VENDOR — Conditional */}
+              {/* 2. VENDOR â€” Conditional */}
               {activeRoles.includes("vendor") && (
                 <div className="space-y-4">
                   <SectionHeader title="My Store" icon={<Store />} actionHref="/dashboard/vendor/store" />
@@ -391,7 +391,7 @@ export default function DashboardPage() {
                 </div>
               )}
 
-              {/* 3. INFLUENCER / CREATOR — Conditional */}
+              {/* 3. INFLUENCER / CREATOR â€” Conditional */}
               {activeRoles.includes("influencer") && (
                 <div className="space-y-4">
                   <SectionHeader title="Creator Hub" icon={<Video />} actionHref="/dashboard/influencer" />
@@ -406,7 +406,7 @@ export default function DashboardPage() {
                 </div>
               )}
 
-              {/* 4. MISSION OWNER — Conditional (vendor with campaigns) */}
+              {/* 4. MISSION OWNER â€” Conditional (vendor with campaigns) */}
               {activeRoles.includes("vendor") && stats.activeMissions > 0 && (
                 <div className="space-y-4">
                   <SectionHeader title="My Missions" icon={<Zap />} actionHref="/dashboard/vendor/campaigns" />
@@ -421,7 +421,7 @@ export default function DashboardPage() {
                 </div>
               )}
 
-              {/* 5. AFFILIATE — Conditional */}
+              {/* 5. AFFILIATE â€” Conditional */}
               {activeRoles.includes("affiliate") && (
                 <div className="space-y-4">
                   <SectionHeader title="Affiliate Hub" icon={<Link2 />} actionHref="/dashboard/links" />
@@ -438,15 +438,15 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* ─── RIGHT COLUMN ─── */}
+          {/* â”€â”€â”€ RIGHT COLUMN â”€â”€â”€ */}
           <div className="lg:col-span-4 space-y-8">
 
-            {/* 6. COMMUNITIES — Always visible */}
+            {/* 6. COMMUNITIES â€” Always visible */}
             <div className="space-y-4">
               <SectionHeader title="Communities" icon={<Users2 />} actionHref="/communities" />
               <div className="space-y-3">
-                <div className="flex items-center gap-5 p-5 rounded-[28px] bg-surface dark:bg-surface-secondary/40 backdrop-blur-2xl border border-border shadow-sm hover:shadow-md transition-all duration-500 group">
-                  <div className="w-12 h-12 rounded-[18px] bg-sky-500/10 dark:bg-sky-500/10 border border-border text-sky-600 dark:text-sky-500 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-500">
+                <div className="flex items-center gap-5 p-5 rounded-none bg-surface dark:bg-surface-secondary/40 backdrop-blur-2xl border border-border shadow-none hover:shadow-none transition-all duration-500 group">
+                  <div className="w-12 h-12 rounded-none bg-sky-500/10 dark:bg-sky-500/10 border border-border text-sky-600 dark:text-sky-500 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-500">
                     <Globe2 className="h-5 w-5" />
                   </div>
                   <div>
@@ -454,8 +454,8 @@ export default function DashboardPage() {
                     <p className="text-[9px] font-black text-stone-400 dark:text-text-muted uppercase tracking-widest mt-1.5">Joined</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-5 p-5 rounded-[28px] bg-surface dark:bg-surface-secondary/40 backdrop-blur-2xl border border-border shadow-sm hover:shadow-md transition-all duration-500 group">
-                  <div className="w-12 h-12 rounded-[18px] bg-orange-500/10 dark:bg-orange-500/10 border border-border text-orange-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-500">
+                <div className="flex items-center gap-5 p-5 rounded-none bg-surface dark:bg-surface-secondary/40 backdrop-blur-2xl border border-border shadow-none hover:shadow-none transition-all duration-500 group">
+                  <div className="w-12 h-12 rounded-none bg-orange-500/10 dark:bg-orange-500/10 border border-border text-orange-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-500">
                     <Plus className="h-5 w-5" />
                   </div>
                   <div>
@@ -471,11 +471,11 @@ export default function DashboardPage() {
             </div>
 
             {/* Learn & Grow */}
-            <div className="p-7 rounded-[36px] bg-gradient-to-br from-orange-500 via-orange-400 to-amber-400 overflow-hidden relative group border border-white/15 shadow-[0_12px_36px_rgba(249,115,22,0.2)]">
-              <div className="absolute top-0 right-0 w-48 h-48 bg-white dark:bg-surface/15 blur-[70px] rounded-full translate-x-1/3 -translate-y-1/3 group-hover:bg-white dark:bg-surface/25 transition-all duration-1000" />
+            <div className="p-7 rounded-none bg-gradient-to-br from-orange-500 via-orange-400 to-amber-400 overflow-hidden relative group border border-white/15 shadow-[0_12px_36px_rgba(249,115,22,0.2)]">
+              <div className="absolute top-0 right-0 w-48 h-48 bg-white dark:bg-surface/15 blur-[70px] rounded-none translate-x-1/3 -translate-y-1/3 group-hover:bg-white dark:bg-surface/25 transition-all duration-1000" />
               <div className="relative z-10 space-y-4">
                 <div className="flex items-center gap-2.5">
-                  <div className="bg-white dark:bg-surface/20 p-1.5 rounded-[10px] backdrop-blur-md border border-white/15 text-white">
+                  <div className="bg-white dark:bg-surface/20 p-1.5 rounded-none backdrop-blur-md border border-white/15 text-white">
                     <Sparkles className="h-3.5 w-3.5" />
                   </div>
                   <span className="text-[10px] font-black text-white/90 uppercase tracking-widest">Learn &amp; Grow</span>
@@ -484,14 +484,14 @@ export default function DashboardPage() {
                 <p className="text-white/80 text-[12px] leading-relaxed font-semibold">
                   Guides, tips, and strategies to sell more and reach new customers.
                 </p>
-                <Button asChild className="w-full bg-white dark:bg-surface/95 text-orange-600 hover:bg-white dark:bg-surface hover:scale-[1.01] active:scale-95 h-11 rounded-[16px] font-black text-[11px] uppercase tracking-widest transition-all border-none shadow-md">
+                <Button asChild className="w-full bg-white dark:bg-surface/95 text-orange-600 hover:bg-white dark:bg-surface hover:scale-[1.01] active:scale-95 h-11 rounded-none font-black text-[11px] uppercase tracking-widest transition-all border-none shadow-none">
                   <Link href="/help">Explore Guides <ArrowRight className="h-4 w-4 ml-2" /></Link>
                 </Button>
               </div>
             </div>
 
             {/* Your Roles */}
-            <div className="p-6 rounded-[32px] bg-surface dark:bg-surface-secondary/40 backdrop-blur-[40px] saturate-200 border border-border shadow-sm space-y-4">
+            <div className="p-6 rounded-none bg-surface dark:bg-surface-secondary/40 backdrop-blur-[40px] saturate-200 border border-border shadow-none space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-black text-stone-400 dark:text-text-muted uppercase tracking-widest">Your Roles</span>
                 <Link href="/dashboard/roles" className="text-[10px] font-black text-orange-500 uppercase tracking-widest hover:text-orange-600 transition-colors">
@@ -500,7 +500,7 @@ export default function DashboardPage() {
               </div>
               <div className="flex flex-wrap gap-2">
                 {activeRoles.map(role => (
-                  <div key={role} className="px-4 py-2 rounded-[14px] bg-surface dark:bg-zinc-700/80 backdrop-blur-md border border-border text-stone-800 dark:text-text-secondary font-black text-[10px] uppercase tracking-widest shadow-sm capitalize">
+                  <div key={role} className="px-4 py-2 rounded-none bg-surface dark:bg-zinc-700/80 backdrop-blur-md border border-border text-stone-800 dark:text-text-secondary font-black text-[10px] uppercase tracking-widest shadow-none capitalize">
                     {role}
                   </div>
                 ))}

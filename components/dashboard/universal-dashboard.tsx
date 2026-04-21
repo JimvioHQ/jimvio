@@ -58,10 +58,10 @@ interface UniversalDashboardProps {
 
 function StatCardSkeleton() {
   return (
-    <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 animate-pulse">
+    <div className="rounded-none border border-[var(--color-border)] bg-[var(--color-surface)] p-4 animate-pulse">
       <div className="flex items-start justify-between mb-2">
         <div className="h-4 w-24 rounded bg-[var(--color-surface-secondary)]" />
-        <div className="h-8 w-8 rounded-lg bg-[var(--color-surface-secondary)]" />
+        <div className="h-8 w-8 rounded-none bg-[var(--color-surface-secondary)]" />
       </div>
       <div className="h-7 w-16 rounded bg-[var(--color-surface-secondary)]" />
     </div>
@@ -93,12 +93,12 @@ export function UniversalDashboard({ userName, activity, loading }: UniversalDas
             <Link key={i} href={action.href}>
               <div
                 className={cn(
-                  "min-w-[160px] md:min-w-0 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4",
-                  "shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] hover:border-[var(--color-accent)]/30",
+                  "min-w-[160px] md:min-w-0 rounded-none border border-[var(--color-border)] bg-[var(--color-surface)] p-4",
+                  "shadow-[var(--shadow-none)] hover:shadow-[var(--shadow-none)] hover:border-[var(--color-accent)]/30",
                   "transition-all duration-200 cursor-pointer group flex items-center gap-3"
                 )}
               >
-                <div className={cn("p-2.5 rounded-lg shrink-0 transition-transform group-hover:scale-105", action.color)}>
+                <div className={cn("p-2.5 rounded-none shrink-0 transition-transform group-hover:scale-105", action.color)}>
                   {action.icon}
                 </div>
                 <span className="text-sm font-medium text-[var(--color-text-primary)] leading-tight">{action.label}</span>
@@ -139,7 +139,7 @@ export function UniversalDashboard({ userName, activity, loading }: UniversalDas
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <h3 className="font-bold text-[var(--color-text-primary)]">{r.label}</h3>
                   {r.active && (
-                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[var(--color-success-light)] text-[var(--color-success)]">
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-none bg-[var(--color-success-light)] text-[var(--color-success)]">
                       Active
                     </span>
                   )}
@@ -164,9 +164,9 @@ export function UniversalDashboard({ userName, activity, loading }: UniversalDas
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {onboardingCards.map((card, i) => (
             <Link key={i} href={card.href}>
-              <Card className="h-full hover:border-[var(--color-accent)]/30 hover:shadow-[var(--shadow-md)] transition-all duration-200 cursor-pointer group">
+              <Card className="h-full hover:border-[var(--color-accent)]/30 hover:shadow-[var(--shadow-none)] transition-all duration-200 cursor-pointer group">
                 <CardContent className="p-4 flex items-start gap-3">
-                  <div className="p-2 rounded-lg bg-[var(--color-accent-light)] text-[var(--color-accent)] shrink-0 group-hover:scale-105 transition-transform">
+                  <div className="p-2 rounded-none bg-[var(--color-accent-light)] text-[var(--color-accent)] shrink-0 group-hover:scale-105 transition-transform">
                     {card.icon}
                   </div>
                   <div>
@@ -189,7 +189,7 @@ export function UniversalDashboard({ userName, activity, loading }: UniversalDas
 export function UniversalDashboardSkeleton() {
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="h-8 w-64 bg-[var(--color-surface-secondary)] rounded-lg animate-pulse" />
+      <div className="h-8 w-64 bg-[var(--color-surface-secondary)] rounded-none animate-pulse" />
       <div className="h-4 w-96 max-w-full bg-[var(--color-surface-secondary)] rounded animate-pulse" />
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         {[1, 2, 3, 4, 5].map((i) => (
@@ -198,9 +198,10 @@ export function UniversalDashboardSkeleton() {
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="h-40 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] animate-pulse" />
+          <div key={i} className="h-40 rounded-none border border-[var(--color-border)] bg-[var(--color-surface)] animate-pulse" />
         ))}
       </div>
     </div>
   );
 }
+

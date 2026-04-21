@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
@@ -67,7 +67,7 @@ export function LoginForm() {
             })
           }
           disabled={pending}
-          className="w-full h-12 bg-white dark:bg-surface dark:bg-surface hover:bg-zinc-50 dark:bg-surface/50 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-border shadow-sm rounded-xl font-bold transition-all flex items-center justify-center gap-3"
+          className="w-full h-12 bg-white dark:bg-surface dark:bg-surface hover:bg-zinc-50 dark:bg-surface/50 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-border shadow-none rounded-none font-bold transition-all flex items-center justify-center gap-3"
         >
           <svg className="h-5 w-5" viewBox="0 0 24 24" aria-hidden>
             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -86,7 +86,7 @@ export function LoginForm() {
 
         <form onSubmit={handleSubmit} className="space-y-5">
           {error ? (
-            <div role="alert" className="p-3.5 rounded-lg text-[13px] font-semibold bg-red-50 text-red-600 flex items-center justify-center text-center">
+            <div role="alert" className="p-3.5 rounded-none text-[13px] font-semibold bg-red-50 text-red-600 flex items-center justify-center text-center">
               {error}
             </div>
           ) : null}
@@ -102,7 +102,7 @@ export function LoginForm() {
                 type="email"
                 name="email"
                 placeholder="you@example.com"
-                className="pl-11 h-12 rounded-xl border-zinc-200 dark:border-border bg-white dark:bg-surface text-[15px] text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all shadow-sm"
+                className="pl-11 h-12 rounded-none border-zinc-200 dark:border-border bg-white dark:bg-surface text-[15px] text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all shadow-none"
                 required
                 autoComplete="email"
                 disabled={pending}
@@ -125,8 +125,8 @@ export function LoginForm() {
                 id="password"
                 type={showPw ? "text" : "password"}
                 name="password"
-                placeholder="••••••••"
-                className="pl-11 pr-11 h-12 rounded-xl border-zinc-200 dark:border-border bg-white dark:bg-surface text-[15px] text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all shadow-sm"
+                placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
+                className="pl-11 pr-11 h-12 rounded-none border-zinc-200 dark:border-border bg-white dark:bg-surface text-[15px] text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all shadow-none"
                 required
                 autoComplete="current-password"
                 disabled={pending}
@@ -134,7 +134,7 @@ export function LoginForm() {
               <button
                 type="button"
                 onClick={() => setShowPw(!showPw)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-700 dark:text-zinc-300 p-1 rounded-lg transition-colors"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-700 dark:text-zinc-300 p-1 rounded-none transition-colors"
                 aria-label={showPw ? "Hide password" : "Show password"}
               >
                 {showPw ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
@@ -144,11 +144,11 @@ export function LoginForm() {
 
           <Button
             type="submit"
-            className="w-full h-12 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-white font-bold text-[14px] shadow-sm transition-all mt-2"
+            className="w-full h-12 rounded-none bg-zinc-900 hover:bg-zinc-800 text-white font-bold text-[14px] shadow-none transition-all mt-2"
             disabled={pending}
           >
             {pending ? (
-              "Signing in…"
+              "Signing inâ€¦"
             ) : (
               "Sign in"
             )}
@@ -165,3 +165,4 @@ export function LoginForm() {
     </div>
   );
 }
+

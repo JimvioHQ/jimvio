@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 export const dynamic = "force-dynamic";
 
 import React, { useEffect, useState, useCallback } from "react";
@@ -17,9 +17,9 @@ import {
 } from "recharts";
 import { cn } from "@/lib/utils";
 
-// ─────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // TYPES
-// ─────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 interface DashboardStats {
   totalViews: number;
   totalSubmissions: number;
@@ -74,9 +74,9 @@ interface Commission {
   orders?: { order_number: string; total_amount: number };
 }
 
-// ─────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // HELPERS
-// ─────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function formatNum(n: number) {
   if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M";
   if (n >= 1_000) return (n / 1_000).toFixed(1) + "K";
@@ -145,9 +145,9 @@ export default function CreatorAnalyticsPage() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center space-y-12 animate-in fade-in duration-700" style={{ background: "var(--color-bg)" }}>
         <div className="relative">
-          <div className="absolute inset-0 bg-orange-400/20 blur-3xl rounded-full scale-150 animate-pulse" />
-          <div className="relative w-24 h-24 rounded-[32px] bg-white dark:bg-surface border border-white shadow-2xl flex items-center justify-center overflow-hidden">
-            <div className="absolute inset-0 border-2 border-t-orange-500 border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin m-2" />
+          <div className="absolute inset-0 bg-orange-400/20 blur-3xl rounded-none scale-150 animate-pulse" />
+          <div className="relative w-24 h-24 rounded-none bg-white dark:bg-surface border border-white shadow-none flex items-center justify-center overflow-hidden">
+            <div className="absolute inset-0 border-2 border-t-orange-500 border-r-transparent border-b-transparent border-l-transparent rounded-none animate-spin m-2" />
             <Video className="h-10 w-10 text-stone-900 dark:text-white" />
           </div>
         </div>
@@ -182,7 +182,7 @@ export default function CreatorAnalyticsPage() {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
            <div className="space-y-1">
               <h1 className="text-2xl font-bold text-stone-900 dark:text-white tracking-tight flex items-center gap-3">
-                 <div className="p-2 rounded-xl bg-white dark:bg-surface border border-border shadow-sm shrink-0">
+                 <div className="p-2 rounded-none bg-white dark:bg-surface border border-border shadow-none shrink-0">
                     <Video className="h-6 w-6 text-orange-500" />
                  </div>
                  Influencer Analytics
@@ -193,21 +193,21 @@ export default function CreatorAnalyticsPage() {
            </div>
            
            <div className="flex flex-col sm:flex-row items-center gap-4">
-              <div className="flex items-center gap-1 bg-white dark:bg-surface/40 p-1 rounded-lg border border-border shadow-sm backdrop-blur-xl">
+              <div className="flex items-center gap-1 bg-white dark:bg-surface/40 p-1 rounded-none border border-border shadow-none backdrop-blur-xl">
                  {DAY_OPTIONS.map((d) => (
                     <button
                       key={d}
                       onClick={() => setDays(d)}
                       className={cn(
-                         "px-4 py-2 rounded-md text-[10px] font-bold uppercase tracking-widest transition-all",
-                         days === d ? "bg-stone-900 text-white shadow-sm" : "text-stone-400 hover:text-stone-900 dark:text-white"
+                         "px-4 py-2 rounded-none text-[10px] font-bold uppercase tracking-widest transition-all",
+                         days === d ? "bg-stone-900 text-white shadow-none" : "text-stone-400 hover:text-stone-900 dark:text-white"
                       )}
                     >
                        {d}D
                     </button>
                  ))}
               </div>
-              <Button asChild className="h-10 px-6 rounded-lg bg-orange-500 text-white shadow-md font-bold text-[10px] uppercase tracking-widest active:scale-95 transition-all hover:bg-orange-600 border-none">
+              <Button asChild className="h-10 px-6 rounded-none bg-orange-500 text-white shadow-none font-bold text-[10px] uppercase tracking-widest active:scale-95 transition-all hover:bg-orange-600 border-none">
                 <Link href="/ugc">
                    Browse Missions
                 </Link>
@@ -217,8 +217,8 @@ export default function CreatorAnalyticsPage() {
 
         {/* Primary KPI Matrix */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-           <div className="p-6 flex flex-col justify-between rounded-xl bg-white dark:bg-surface/40 border border-border shadow-sm group">
-              <div className="w-11 h-11 rounded-lg bg-sky-50 border border-sky-100 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+           <div className="p-6 flex flex-col justify-between rounded-none bg-white dark:bg-surface/40 border border-border shadow-none group">
+              <div className="w-11 h-11 rounded-none bg-sky-50 border border-sky-100 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                  <Eye className="h-6 w-6 text-sky-500" />
               </div>
               <div>
@@ -226,8 +226,8 @@ export default function CreatorAnalyticsPage() {
                  <p className="text-[10px] font-bold uppercase tracking-widest text-stone-400 mt-2">Total Views</p>
               </div>
            </div>
-           <div className="p-6 flex flex-col justify-between rounded-xl bg-white dark:bg-surface/40 border border-border shadow-sm group">
-              <div className="w-11 h-11 rounded-lg bg-rose-50 border border-rose-100 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+           <div className="p-6 flex flex-col justify-between rounded-none bg-white dark:bg-surface/40 border border-border shadow-none group">
+              <div className="w-11 h-11 rounded-none bg-rose-50 border border-rose-100 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                  <CheckCircle className="h-6 w-6 text-rose-500" />
               </div>
               <div>
@@ -235,8 +235,8 @@ export default function CreatorAnalyticsPage() {
                  <p className="text-[10px] font-bold uppercase tracking-widest text-stone-400 mt-2">Approved</p>
               </div>
            </div>
-           <div className="p-6 flex flex-col justify-between rounded-xl bg-white dark:bg-surface/40 border border-border shadow-sm group">
-              <div className="w-11 h-11 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+           <div className="p-6 flex flex-col justify-between rounded-none bg-white dark:bg-surface/40 border border-border shadow-none group">
+              <div className="w-11 h-11 rounded-none bg-emerald-50 border border-emerald-100 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                  <ShoppingBag className="h-6 w-6 text-emerald-500" />
               </div>
               <div>
@@ -244,8 +244,8 @@ export default function CreatorAnalyticsPage() {
                  <p className="text-[10px] font-bold uppercase tracking-widest text-stone-400 mt-2">Sales</p>
               </div>
            </div>
-           <div className="p-6 flex flex-col justify-between rounded-xl bg-white dark:bg-surface/40 border border-border shadow-sm group">
-              <div className="w-11 h-11 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+           <div className="p-6 flex flex-col justify-between rounded-none bg-white dark:bg-surface/40 border border-border shadow-none group">
+              <div className="w-11 h-11 rounded-none bg-indigo-50 border border-indigo-100 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                  <DollarSign className="h-6 w-6 text-indigo-500" />
               </div>
               <div>
@@ -265,7 +265,7 @@ export default function CreatorAnalyticsPage() {
              { label: "Pending", value: formatMoney(stats?.pendingEarnings ?? 0, "USD"), icon: Clock, color: "text-amber-400", isText: true },
              { label: "Rate", value: `${(stats?.conversionRate ?? 0).toFixed(1)}%`, icon: Activity, color: "text-emerald-400", isText: true },
            ].map((item, i) => (
-             <div key={i} className="p-4 text-center group bg-white dark:bg-surface/40 hover:bg-white dark:bg-surface transition-all border border-transparent hover:border-border shadow-sm rounded-xl">
+             <div key={i} className="p-4 text-center group bg-white dark:bg-surface/40 hover:bg-white dark:bg-surface transition-all border border-transparent hover:border-border shadow-none rounded-none">
                 <div className={cn("flex items-center justify-center mb-3 transition-transform group-hover:scale-110", item.color)}>
                   <item.icon className="h-5 w-5" />
                 </div>
@@ -279,7 +279,7 @@ export default function CreatorAnalyticsPage() {
 
          {/* Analytics Visualization */}
          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-           <div className="lg:col-span-8 rounded-xl border border-border bg-white dark:bg-surface/40 shadow-sm overflow-hidden group">
+           <div className="lg:col-span-8 rounded-none border border-border bg-white dark:bg-surface/40 shadow-none overflow-hidden group">
               <div className="p-6 border-b border-border flex items-center justify-between">
                  <div>
                     <h3 className="text-lg font-bold text-stone-900 dark:text-white">Growth Trends</h3>
@@ -310,7 +310,7 @@ export default function CreatorAnalyticsPage() {
               </div>
            </div>
 
-           <div className="lg:col-span-4 rounded-xl border border-border bg-white dark:bg-surface/40 shadow-sm overflow-hidden flex flex-col">
+           <div className="lg:col-span-4 rounded-none border border-border bg-white dark:bg-surface/40 shadow-none overflow-hidden flex flex-col">
               <div className="p-6 border-b border-border">
                  <h3 className="text-lg font-bold text-stone-900 dark:text-white">Actions</h3>
                  <p className="text-[10px] uppercase tracking-widest text-stone-400">Shortcuts</p>
@@ -321,8 +321,8 @@ export default function CreatorAnalyticsPage() {
                    { href: "/dashboard/influencer/videos", label: "My Content", icon: Target, color: "text-sky-500", bg: "bg-sky-50", desc: "Track submissions" },
                    { href: "/dashboard/withdrawals", label: "Payout Request", icon: Wallet, color: "text-emerald-500", bg: "bg-emerald-50", desc: "Withdraw earnings" },
                  ].map((item, i) => (
-                   <Link key={i} href={item.href} className="flex items-center gap-4 p-4 rounded-xl bg-white dark:bg-surface border border-border hover:border-orange-200 transition-all shadow-sm group">
-                     <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center shrink-0 shadow-sm", item.bg, item.color)}>
+                   <Link key={i} href={item.href} className="flex items-center gap-4 p-4 rounded-none bg-white dark:bg-surface border border-border hover:border-orange-200 transition-all shadow-none group">
+                     <div className={cn("w-10 h-10 rounded-none flex items-center justify-center shrink-0 shadow-none", item.bg, item.color)}>
                         <item.icon className="h-5 w-5" />
                      </div>
                      <div className="flex-1 min-w-0">
@@ -338,7 +338,7 @@ export default function CreatorAnalyticsPage() {
 
         {/* Top Content */}
         {topSubmissions.length > 0 && (
-          <div className="rounded-xl border border-border bg-white dark:bg-surface/40 shadow-sm overflow-hidden">
+          <div className="rounded-none border border-border bg-white dark:bg-surface/40 shadow-none overflow-hidden">
              <div className="p-6 border-b border-border flex items-center justify-between">
                 <div className="space-y-1">
                    <h3 className="text-lg font-bold text-stone-900 dark:text-white">Top Missions</h3>
@@ -353,12 +353,12 @@ export default function CreatorAnalyticsPage() {
                    <div key={sub.id} className="flex flex-col sm:flex-row sm:items-center p-6 hover:bg-white dark:bg-surface transition-colors group">
                       <div className="flex items-center gap-6 flex-1 min-w-0">
                          <div className={cn(
-                           "flex items-center justify-center w-8 h-8 rounded-lg text-[12px] font-bold border shrink-0 transition-transform group-hover:scale-110",
+                           "flex items-center justify-center w-8 h-8 rounded-none text-[12px] font-bold border shrink-0 transition-transform group-hover:scale-110",
                            idx === 0 ? "bg-stone-900 text-white border-stone-900" : "bg-white dark:bg-surface text-stone-400 border-border"
                          )}>
                             {idx + 1}
                          </div>
-                         <div className="w-24 h-16 rounded-xl bg-stone-900 flex items-center justify-center shrink-0 shadow-sm relative overflow-hidden group/thumb">
+                         <div className="w-24 h-16 rounded-none bg-stone-900 flex items-center justify-center shrink-0 shadow-none relative overflow-hidden group/thumb">
                             {sub.thumbnail_url ? (
                                <img src={sub.thumbnail_url} className="w-full h-full object-cover group-hover/thumb:scale-110 transition-transform opacity-60" alt="" />
                             ) : (
@@ -390,8 +390,8 @@ export default function CreatorAnalyticsPage() {
         )}
 
         {/* Call to Action */}
-        <div className="p-8 rounded-2xl border border-border bg-stone-900 text-white relative overflow-hidden shadow-lg">
-           <div className="absolute top-0 right-0 w-64 h-64 bg-orange-500/10 blur-[80px] rounded-full translate-x-1/2 -translate-y-1/2" />
+        <div className="p-8 rounded-none border border-border bg-stone-900 text-white relative overflow-hidden shadow-none">
+           <div className="absolute top-0 right-0 w-64 h-64 bg-orange-500/10 blur-[80px] rounded-none translate-x-1/2 -translate-y-1/2" />
            <div className="flex flex-col md:flex-row items-center justify-between gap-8 relative z-10">
               <div className="space-y-4 text-center md:text-left">
                  <div className="flex items-center justify-center md:justify-start gap-3">
@@ -403,7 +403,7 @@ export default function CreatorAnalyticsPage() {
                     Access premium brand campaigns and share products with your audience.
                  </p>
               </div>
-              <Button asChild className="h-14 px-10 rounded-xl bg-white text-stone-900 font-bold text-[11px] uppercase tracking-widest shadow-md active:scale-95 transition-all hover:bg-stone-50 border-none">
+              <Button asChild className="h-14 px-10 rounded-none bg-white text-stone-900 font-bold text-[11px] uppercase tracking-widest shadow-none active:scale-95 transition-all hover:bg-stone-50 border-none">
                  <Link href="/ugc">Browse Missions <ArrowRight className="h-4 w-4 ml-3" /></Link>
               </Button>
            </div>
@@ -412,3 +412,4 @@ export default function CreatorAnalyticsPage() {
     </div>
   );
 }
+

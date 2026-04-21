@@ -61,3 +61,4 @@ export function BuyButton({ productId, vendorId, quantity = 1, className }: BuyB
     </Button>
   );
 }
+

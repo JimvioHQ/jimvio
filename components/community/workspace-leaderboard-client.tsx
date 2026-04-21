@@ -68,7 +68,7 @@ export function WorkspaceLeaderboardClient({
               type="button"
               onClick={() => setTab(t)}
               className={cn(
-                "px-3 py-1.5 rounded-full text-xs font-black",
+                "px-3 py-1.5 rounded-none text-xs font-black",
                 tab === t ? "bg-[var(--color-accent-light)] text-[var(--color-accent)]" : "bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)]"
               )}
             >
@@ -93,7 +93,7 @@ export function WorkspaceLeaderboardClient({
           </div>
         )}
 
-        <div className="rounded-2xl border border-[var(--color-border)] overflow-hidden bg-[var(--color-surface)]">
+        <div className="rounded-none border border-[var(--color-border)] overflow-hidden bg-[var(--color-surface)]">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-[var(--color-border)] bg-[var(--color-surface-secondary)]/60">
@@ -116,7 +116,7 @@ export function WorkspaceLeaderboardClient({
                   <td className="py-2 px-3 font-black text-[var(--color-text-muted)]">{i + 1}</td>
                   <td className="py-2 px-3">
                     <div className="flex items-center gap-2">
-                      <div className="h-8 w-8 rounded-full overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface-secondary)]">
+                      <div className="h-8 w-8 rounded-none overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface-secondary)]">
                         {r.profile?.avatar_url ? (
                           <Image src={r.profile.avatar_url} alt="" width={32} height={32} className="object-cover h-full w-full" unoptimized />
                         ) : (
@@ -161,12 +161,12 @@ function Podium({
     <div className={cn("flex flex-col items-center text-center", large && "order-2 sm:order-none")}>
       <div
         className={cn(
-          "relative rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3 shadow-sm flex flex-col items-center",
+          "relative rounded-none border border-[var(--color-border)] bg-[var(--color-surface)] p-3 shadow-none flex flex-col items-center",
           h,
           row.user_id === currentUserId && "ring-2 ring-[var(--color-accent)]"
         )}
       >
-        <div className="h-14 w-14 rounded-full overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface-secondary)]">
+        <div className="h-14 w-14 rounded-none overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface-secondary)]">
           {row.profile?.avatar_url ? (
             <Image src={row.profile.avatar_url} alt="" width={56} height={56} className="object-cover h-full w-full" unoptimized />
           ) : (
@@ -182,3 +182,4 @@ function Podium({
     </div>
   );
 }
+

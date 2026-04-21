@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { getMarketplaceCategories, getProducts, type ProductQuery } from "@/services/db";
 import { getCartProductIds } from "@/lib/actions/marketplace";
 import { ProductsCatalogClient } from "./products-catalog-client";
@@ -32,3 +32,4 @@ export default async function ProductsPage() {
     </div>
   );
 }
+

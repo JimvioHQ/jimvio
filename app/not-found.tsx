@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
 export default function NotFound() {
@@ -13,7 +13,7 @@ export default function NotFound() {
           The page you're looking for doesn't exist or has been moved.
         </p>
         <Link href="/">
-          <Button className="bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-bold rounded-xl">
+          <Button className="bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-bold rounded-none">
             Go home
           </Button>
         </Link>
@@ -21,3 +21,4 @@ export default function NotFound() {
     </div>
   );
 }
+

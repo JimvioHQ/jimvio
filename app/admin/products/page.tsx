@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { getAdminProducts } from "@/services/db";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -21,8 +21,8 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
       <Card>
         <CardHeader className="pb-3">
           <form method="get" action="/admin/products" className="flex gap-2 max-w-sm">
-            <Input name="q" defaultValue={q ?? ""} placeholder="Search by name or slug..." className="rounded-xl" />
-            <Button type="submit" variant="secondary" size="icon" className="rounded-xl">
+            <Input name="q" defaultValue={q ?? ""} placeholder="Search by name or slug..." className="rounded-none" />
+            <Button type="submit" variant="secondary" size="icon" className="rounded-none">
               <Search className="h-4 w-4" />
             </Button>
           </form>
@@ -50,12 +50,12 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
                         <p className="font-medium truncate max-w-[200px]">{p.name}</p>
                         <p className="text-xs text-[var(--color-text-muted)]">{p.slug}</p>
                       </td>
-                      <td className="py-3 px-4">{p.vendor_name || "—"}</td>
+                      <td className="py-3 px-4">{p.vendor_name || "â€”"}</td>
                       <td className="py-3 px-4">{formatCurrency(Number(p.price ?? 0))}</td>
                       <td className="py-3 px-4">
                         <Badge variant={p.status === "active" ? "default" : "secondary"}>{p.status || "draft"}</Badge>
                       </td>
-                      <td className="py-3 px-4">{p.is_featured ? <Badge className="bg-amber-600">Featured</Badge> : "—"}</td>
+                      <td className="py-3 px-4">{p.is_featured ? <Badge className="bg-amber-600">Featured</Badge> : "â€”"}</td>
                     </tr>
                   ))
                 )}
@@ -67,3 +67,4 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
     </div>
   );
 }
+

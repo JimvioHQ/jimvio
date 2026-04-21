@@ -43,9 +43,9 @@ export function SocialProofBar({
       {items.map(({ icon: Icon, value, label }, i) => (
         <div
           key={i}
-          className="group flex items-center gap-3 sm:gap-4 p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-white to-[#faf8fc] border border-[#ebe8f2] shadow-[0_2px_20px_-8px_rgba(43,34,72,0.12)] ring-1 ring-[#433360]/[0.04] hover:shadow-[0_12px_40px_-16px_rgba(249,115,22,0.18)] hover:border-[#f97316]/20 hover:-translate-y-0.5 transition-all duration-300"
+          className="group flex items-center gap-3 sm:gap-4 p-4 sm:p-5 rounded-none bg-gradient-to-br from-white to-[#faf8fc] border border-[#ebe8f2] shadow-[0_2px_20px_-8px_rgba(43,34,72,0.12)] ring-1 ring-[#433360]/[0.04] hover:shadow-[0_12px_40px_-16px_rgba(249,115,22,0.18)] hover:border-[#f97316]/20 hover:-translate-y-0.5 transition-all duration-300"
         >
-          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-[#fff7ed] to-[#ffedd5] flex items-center justify-center shrink-0 ring-1 ring-[#f97316]/10 group-hover:ring-[#f97316]/25 transition-all">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-none bg-gradient-to-br from-[#fff7ed] to-[#ffedd5] flex items-center justify-center shrink-0 ring-1 ring-[#f97316]/10 group-hover:ring-[#f97316]/25 transition-all">
             <Icon className="h-5 w-5 sm:h-6 sm:w-6 text-[#f97316]" />
           </div>
           <div className="min-w-0">
@@ -61,3 +61,4 @@ export function SocialProofBar({
     </div>
   );
 }
+

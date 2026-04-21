@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+﻿import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { CreateCommunityForm } from "@/components/community/creator/CreateCommunityForm";
 
@@ -26,3 +26,4 @@ export default async function CreateCommunityPage() {
     </div>
   );
 }
+

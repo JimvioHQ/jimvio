@@ -260,12 +260,12 @@ export function ProductChatWidget(props: ProductChatWidgetProps) {
             type="button"
             onClick={handleChatButtonClick}
             size="icon"
-            className="h-14 w-14 rounded-full shadow-lg bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] relative"
+            className="h-14 w-14 rounded-none shadow-none bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] relative"
             aria-label="Chat with supplier"
           >
             <MessageCircle className="h-6 w-6" />
             {unreadCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 min-w-[20px] h-5 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center">
+              <span className="absolute -top-0.5 -right-0.5 min-w-[20px] h-5 rounded-none bg-red-500 text-white text-xs font-bold flex items-center justify-center">
                 {unreadCount > 99 ? "99+" : unreadCount}
               </span>
             )}
@@ -280,10 +280,10 @@ export function ProductChatWidget(props: ProductChatWidgetProps) {
           onClick={() => setShowLoginPrompt(false)}
         >
           <div
-            className="bg-[var(--color-surface)] rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center border border-[var(--color-border)]"
+            className="bg-[var(--color-surface)] rounded-none shadow-none max-w-sm w-full p-6 text-center border border-[var(--color-border)]"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="w-14 h-14 rounded-2xl bg-[var(--color-accent)]/10 flex items-center justify-center mx-auto mb-4">
+            <div className="w-14 h-14 rounded-none bg-[var(--color-accent)]/10 flex items-center justify-center mx-auto mb-4">
               <LogIn className="h-7 w-7 text-[var(--color-accent)]" />
             </div>
             <h3 className="text-xl font-bold text-[var(--color-text-primary)] mb-2">Sign in to chat</h3>
@@ -291,10 +291,10 @@ export function ProductChatWidget(props: ProductChatWidgetProps) {
               Sign in to message the supplier and negotiate directly from this page.
             </p>
             <div className="flex flex-col gap-3">
-              <Button asChild className="w-full rounded-xl h-12 font-bold text-base">
+              <Button asChild className="w-full rounded-none h-12 font-bold text-base">
                 <Link href={loginUrl}>Sign in</Link>
               </Button>
-              <Button variant="outline" className="w-full rounded-xl h-11" onClick={() => setShowLoginPrompt(false)}>
+              <Button variant="outline" className="w-full rounded-none h-11" onClick={() => setShowLoginPrompt(false)}>
                 Cancel
               </Button>
             </div>
@@ -314,13 +314,13 @@ export function ProductChatWidget(props: ProductChatWidgetProps) {
           <aside
             className={cn(
               "fixed top-0 right-0 z-[90] flex flex-col h-full w-full md:w-[420px] md:max-w-[95vw]",
-              "bg-[var(--color-surface)] shadow-2xl border-l border-[var(--color-border)]",
-              "md:rounded-l-2xl md:top-4 md:right-4 md:h-[calc(100vh-2rem)]"
+              "bg-[var(--color-surface)] shadow-none border-l border-[var(--color-border)]",
+              "md:rounded-none-2xl md:top-4 md:right-4 md:h-[calc(100vh-2rem)]"
             )}
           >
             {/* Header */}
             <div className="flex items-center gap-3 px-4 py-3 border-b border-[var(--color-border)] bg-[var(--color-surface)] shrink-0">
-              <div className="h-11 w-11 rounded-xl bg-[var(--color-surface-secondary)] overflow-hidden shrink-0 border border-[var(--color-border)]/80 flex items-center justify-center">
+              <div className="h-11 w-11 rounded-none bg-[var(--color-surface-secondary)] overflow-hidden shrink-0 border border-[var(--color-border)]/80 flex items-center justify-center">
                 {vendor.business_logo ? (
                   <img src={vendor.business_logo} alt="" className="w-full h-full object-cover" />
                 ) : (
@@ -332,14 +332,14 @@ export function ProductChatWidget(props: ProductChatWidgetProps) {
                   {vendor.business_name || "Supplier"}
                 </p>
                 <p className="text-xs text-emerald-600 font-medium flex items-center gap-1.5 mt-0.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-emerald-500/30" />
+                  <span className="w-2 h-2 rounded-none bg-emerald-500 ring-2 ring-emerald-500/30" />
                   Online
                 </p>
               </div>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-10 w-10 rounded-xl shrink-0 hover:bg-[var(--color-surface-secondary)]"
+                className="h-10 w-10 rounded-none shrink-0 hover:bg-[var(--color-surface-secondary)]"
                 onClick={() => setChatOpen(false)}
                 aria-label="Close chat"
               >
@@ -351,7 +351,7 @@ export function ProductChatWidget(props: ProductChatWidgetProps) {
             <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0 bg-[var(--color-bg)]/50">
               {messages.length === 0 && (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <div className="w-14 h-14 rounded-2xl bg-[var(--color-surface-secondary)] flex items-center justify-center mb-3">
+                  <div className="w-14 h-14 rounded-none bg-[var(--color-surface-secondary)] flex items-center justify-center mb-3">
                     <MessageCircle className="h-7 w-7 text-[var(--color-text-muted)]" />
                   </div>
                   <p className="text-sm font-medium text-[var(--color-text-secondary)]">No messages yet</p>
@@ -431,3 +431,4 @@ export function ProductChatWidget(props: ProductChatWidgetProps) {
     </>
   );
 }
+

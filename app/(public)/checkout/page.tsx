@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { redirect } from "next/navigation";
 import { getCart } from "@/lib/actions/marketplace";
 import { createClient } from "@/lib/supabase/server";
@@ -69,3 +69,4 @@ export default async function CheckoutPage(props: { searchParams: Promise<{ orde
     </div>
   );
 }
+
