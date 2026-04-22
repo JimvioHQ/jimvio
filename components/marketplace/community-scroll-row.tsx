@@ -22,7 +22,7 @@ export function CommunityScrollRow({ communities }: CommunityScrollRowProps) {
           <p className="text-xs font-bold text-slate-400 dark:text-slate-500">Join elite groups to learn, share, & scale together.</p>
         </div>
         <Link href="/communities" className="text-xs font-black text-indigo-600 hover:text-indigo-700 transition-colors">
-          Discovery â†’
+          Discovery →
         </Link>
       </div>
 

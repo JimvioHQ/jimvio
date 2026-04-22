@@ -22,7 +22,7 @@ export function CampaignScrollRow({ campaigns }: CampaignScrollRowProps) {
           <p className="text-xs font-bold text-slate-400 dark:text-slate-500">Apply to promote trending products & earn instantly.</p>
         </div>
         <Link href="/ugc" className="text-xs font-black text-orange-600 hover:text-orange-700 transition-colors">
-          View all Missions â†’
+          View all Missions →
         </Link>
       </div>
 

@@ -30,7 +30,7 @@ import { FollowButton } from "@/components/marketplace/follow-button";
 import { LocalizedPrice } from "@/components/currency/localized-price";
 import { GlassAmbientGlow } from "@/components/ui/glass";
 
-/* â"€â"€â"€ Types â"€â"€â"€ */
+/* ─── Types ─── */
 interface Product {
   id: string;
   name: string;
@@ -86,7 +86,7 @@ interface MarketplaceClientProps {
   uiVariant?: "all" | "digital" | "physical";
 }
 
-/* â"€â"€â"€ Hero Deal Banner â"€â"€â"€ */
+/* ─── Hero Deal Banner ─── */
 function HeroDealBanner({ params, basePath }: { params: Record<string, string | undefined>, basePath?: string }) {
   const type = params.type;
   const isAll = !type;
@@ -110,7 +110,7 @@ function HeroDealBanner({ params, basePath }: { params: Record<string, string | 
       <div className="absolute top-10 -right-12 w-56 h-56 rounded-none mix-blend-multiply opacity-40 blur-2xl" style={{ background: "radial-gradient(circle, #fb923c 0%, transparent 70%)" }} />
       <div className="absolute -bottom-16 left-1/4 w-40 h-40 rounded-none mix-blend-multiply opacity-30 blur-2xl" style={{ background: "radial-gradient(circle, #f97316 0%, transparent 70%)" }} />
 
-      {/* â"€â"€ Dynamic Decorative Elements (Real Images) â"€â"€ */}
+      {/* ── Dynamic Decorative Elements (Real Images) ── */}
       
       {/* 1. DIGITAL ITEMS */}
       {(isAll || isDigital) && (
@@ -151,8 +151,8 @@ function HeroDealBanner({ params, basePath }: { params: Record<string, string | 
 
       <div className="relative z-10 px-4 py-8 sm:py-10 flex flex-col items-center text-center">
         {/* Title */}
-        <h2 className="text-[26px] sm:text-[32px] font-black text-stone-900 dark:text-white tracking-tight leading-tight mb-1">
-          <span className="inline-block animate-[spin_4s_linear_infinite] mr-2">🌟</span> 
+        <h2 className="text-[26px] sm:text-[32px] font-black text-stone-900 dark:text-white tracking-tight leading-tight mb-1 flex items-center justify-center gap-2">
+          <Star className="h-7 w-7 text-orange-500 fill-orange-500 animate-[spin_4s_linear_infinite]" />
           Top Deals Today!
         </h2>
         
@@ -181,7 +181,7 @@ function HeroDealBanner({ params, basePath }: { params: Record<string, string | 
   );
 }
 
-/* â"€â"€â"€ Product Type Tabs (Segmented Control) â"€â"€â"€ */
+/* ─── Product Type Tabs (Segmented Control) ─── */
 function TypeTabs({ params, basePath }: { params: Record<string, string | undefined>; basePath?: string; }) {
   const isDigital = params.type === "digital";
   const isPhysical = params.type === "physical";
@@ -238,7 +238,7 @@ function TypeTabs({ params, basePath }: { params: Record<string, string | undefi
   );
 }
 
-/* â"€â"€â"€ Category Chip â"€â"€â"€ */
+/* ─── Category Chip ─── */
 function CategoryChip({
   label,
   active,
@@ -266,7 +266,7 @@ function CategoryChip({
   );
 }
 
-/* â"€â"€â"€ Sort Pill â"€â"€â"€ */
+/* ─── Sort Pill ─── */
 function SortPill({
   active,
   href,
@@ -294,7 +294,7 @@ function SortPill({
   );
 }
 
-/* â"€â"€â"€ Category icon map â"€â"€â"€ */
+/* ─── Category icon map ─── */
 const CATEGORY_ICONS: Record<string, string> = {
   electronics: "âš¡",
   fashion: "👗",
@@ -326,7 +326,7 @@ function getCategoryIcon(slug: string, name: string): string | undefined {
   return undefined;
 }
 
-/* â"€â"€â"€ Main Component â"€â"€â"€ */
+/* ─── Main Component ─── */
 export function MarketplaceClient({
   initialProducts,
   categories,
@@ -418,7 +418,7 @@ export function MarketplaceClient({
         ? "bg-[#fafcfe] dark:bg-[#050505]" 
         : "bg-white dark:bg-bg"
     )}>
-      {/* â"€â"€ Sticky Top Bar â"€â"€ */}
+      {/* ── Sticky Top Bar ── */}
       <div className="sticky top-0 z-50 border-b border-border shadow-none bg-surface">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 pt-3 pb-3">
           <div className="flex flex-col md:flex-row items-center justify-between gap-3 md:gap-6">
@@ -474,10 +474,10 @@ export function MarketplaceClient({
         </div>
       </div>
 
-      {/* â"€â"€ Main Content â"€â"€ */}
+      {/* ── Main Content ── */}
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-5 lg:py-6 flex flex-col lg:flex-row gap-6">
 
-        {/* â"€â"€ LEFT SIDEBAR (desktop) â"€â"€ */}
+        {/* ── LEFT SIDEBAR (desktop) ── */}
         <aside className="hidden lg:block lg:w-60 shrink-0">
           <div className="sticky top-[130px] space-y-5">
             {/* Main sidebar shell with variant-aware borders */}
@@ -565,7 +565,7 @@ export function MarketplaceClient({
           </div>
         </aside>
 
-        {/* â"€â"€ PRODUCT AREA â"€â"€ */}
+        {/* ── PRODUCT AREA ── */}
         <div className="flex-1 min-w-0 space-y-4">
 
           {/* Hero Deal Banner */}
@@ -613,7 +613,7 @@ export function MarketplaceClient({
             <SortPill
               active={currentSort === "price_asc"}
               href={marketplaceHref(paramsRecord, { sort: "price_asc" }, basePath)}
-              label="Price â†‘"
+              label="Price ↑"
             />
             <SortPill
               active={currentSort === "price_desc"}
@@ -857,7 +857,7 @@ export function MarketplaceClient({
         </div>
       </div>
 
-      {/* â"€â"€ Clip modal â"€â"€ */}
+      {/* ── Clip modal ── */}
       {modalClip && (
         <>
           <div

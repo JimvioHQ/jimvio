@@ -7,9 +7,9 @@ import { cn } from "@/lib/utils";
 import { CloudinaryUploadButton } from "@/components/ui/cloudinary-upload";
 import { toast } from "sonner";
 
-// â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+// ─────────────────────────────────────────────────────────────
 // TYPES
-// â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+// ─────────────────────────────────────────────────────────────
 interface MediaItem {
   url: string;
   type: "image" | "video";
@@ -36,9 +36,9 @@ const POST_TYPES = [
   { value: "howto",    label: "How-to",   emoji: "🛠️" },
 ];
 
-// â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+// ─────────────────────────────────────────────────────────────
 // HASHTAG INPUT
-// â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+// ─────────────────────────────────────────────────────────────
 function HashtagInput({ hashtags, onChange }: { hashtags: string[]; onChange: (tags: string[]) => void }) {
   const [input, setInput] = useState("");
 
@@ -90,9 +90,9 @@ function HashtagInput({ hashtags, onChange }: { hashtags: string[]; onChange: (t
   );
 }
 
-// â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+// ─────────────────────────────────────────────────────────────
 // MAIN FORM
-// â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+// ─────────────────────────────────────────────────────────────
 export function UGCPostForm({ products = [], onSuccess, onCancel, className }: UGCPostFormProps) {
   const [caption, setCaption] = useState("");
   const [postType, setPostType] = useState("post");
@@ -265,7 +265,13 @@ export function UGCPostForm({ products = [], onSuccess, onCancel, className }: U
                         : "hover:bg-[var(--color-surface)] text-[var(--color-text-primary)]"
                     )}
                   >
-                    <span className="text-base">{selectedProductIds.includes(p.id) ? "✅" : "⭕"}</span>
+                    <span className="text-base">
+                      {selectedProductIds.includes(p.id) ? (
+                        <CheckCircle className="h-4 w-4 text-emerald-500 fill-current" />
+                      ) : (
+                        <div className="h-4 w-4 rounded-full border border-stone-300" />
+                      )}
+                    </span>
                     <span className="truncate">{p.name}</span>
                   </button>
                 ))}

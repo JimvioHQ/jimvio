@@ -200,7 +200,7 @@ export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobil
         </div>
       </div>
 
-      {/* â"€â"€ Wallet Card â"€â"€ */}
+      {/* ── Wallet Card ── */}
       {!collapsed && (
         <motion.div 
           initial={{ y: 20, opacity: 0 }}
@@ -254,7 +254,7 @@ export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobil
         </div>
       )}
 
-      {/* â"€â"€ Nav â"€â"€ */}
+      {/* ── Nav ── */}
       <nav className="flex-1 overflow-y-auto overflow-x-hidden py-2" style={{ scrollbarWidth: "none" }}>
         <div className={collapsed ? "px-2" : "px-2.5"}>
           {sidebarSections.map((section) => (
@@ -367,7 +367,7 @@ export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobil
     </div>
   );
 
-  /* â"€â"€ Solid shell styles (border-only) â"€â"€ */
+  /* ── Solid shell styles (border-only) ── */
   const solidShell = (
     <div className="pointer-events-none absolute inset-y-0 right-0 w-px bg-border" />
   );

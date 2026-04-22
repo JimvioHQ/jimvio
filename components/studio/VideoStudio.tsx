@@ -24,9 +24,9 @@ import {
 } from "@/lib/actions/short-videos";
 import { useCloudinaryUpload } from "@/hooks/use-cloudinary-upload";
 
-// â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+// ─────────────────────────────────────────────────────────────
 // Types
-// â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+// ─────────────────────────────────────────────────────────────
 
 interface ShortVideo {
   id: string;
@@ -50,9 +50,9 @@ interface ShortVideo {
 
 type Tab = "videos" | "upload" | "analytics" | "earnings";
 
-// â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+// ─────────────────────────────────────────────────────────────
 // Helpers
-// â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+// ─────────────────────────────────────────────────────────────
 
 function fmtDur(sec: number) {
   const m = Math.floor(sec / 60);
@@ -66,9 +66,9 @@ function fmtNum(n: number) {
   return n.toString();
 }
 
-// â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+// ─────────────────────────────────────────────────────────────
 // Sub-components
-// â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+// ─────────────────────────────────────────────────────────────
 
 function StatPill({ value, label, icon, color }: { value: string; label: string; icon: React.ReactNode; color: string }) {
   return (
@@ -181,9 +181,9 @@ function VideoCard({
   );
 }
 
-// â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+// ─────────────────────────────────────────────────────────────
 // Upload Tab
-// â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+// ─────────────────────────────────────────────────────────────
 
 function UploadTab({ onSuccess }: { onSuccess: () => void }) {
   const { upload, uploading, progress } = useCloudinaryUpload();
@@ -507,9 +507,9 @@ function UploadTab({ onSuccess }: { onSuccess: () => void }) {
   );
 }
 
-// â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+// ─────────────────────────────────────────────────────────────
 // Analytics Tab
-// â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+// ─────────────────────────────────────────────────────────────
 
 function AnalyticsTab({ videos }: { videos: ShortVideo[] }) {
   const [selectedId, setSelectedId] = useState<string | null>(videos[0]?.id ?? null);
@@ -603,9 +603,9 @@ function AnalyticsTab({ videos }: { videos: ShortVideo[] }) {
   );
 }
 
-// â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+// ─────────────────────────────────────────────────────────────
 // Earnings Tab
-// â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+// ─────────────────────────────────────────────────────────────
 
 function EarningsTab() {
   const { formatMoney } = useCurrency();
@@ -679,7 +679,7 @@ function EarningsTab() {
       {/* Earnings rate explanation */}
       <div className="rounded-none border border-zinc-100 dark:border-border bg-zinc-50 dark:bg-surface/50 p-5 space-y-2 text-xs text-zinc-500 dark:text-text-muted">
         <p className="font-black text-zinc-700 dark:text-zinc-300 text-sm">How earnings are calculated</p>
-        <div className="flex items-start gap-2"><Zap className="h-3.5 w-3.5 shrink-0 text-blue-500 mt-0.5" /><span><b>Views:</b> FRw 200 per 1,000 valid views (â‰¥5 seconds watched)</span></div>
+        <div className="flex items-start gap-2"><Zap className="h-3.5 w-3.5 shrink-0 text-blue-500 mt-0.5" /><span><b>Views:</b> FRw 200 per 1,000 valid views (≥5 seconds watched)</span></div>
         <div className="flex items-start gap-2"><MousePointer className="h-3.5 w-3.5 shrink-0 text-violet-500 mt-0.5" /><span><b>Clicks:</b> FRw 10 per product click on your video</span></div>
         <div className="flex items-start gap-2"><TrendingUp className="h-3.5 w-3.5 shrink-0 text-emerald-500 mt-0.5" /><span><b>Sales:</b> 5% of order value when purchase is attributed to your video</span></div>
       </div>
@@ -687,9 +687,9 @@ function EarningsTab() {
   );
 }
 
-// â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+// ─────────────────────────────────────────────────────────────
 // MAIN VideoStudio Component
-// â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+// ─────────────────────────────────────────────────────────────
 
 export function VideoStudio({ defaultTab = "videos" }: { defaultTab?: Tab }) {
   const [tab, setTab] = useState<Tab>(defaultTab);
@@ -795,7 +795,7 @@ export function VideoStudio({ defaultTab = "videos" }: { defaultTab?: Tab }) {
 
       {/* Tab content */}
       <div className="min-h-[300px]">
-        {/* â"€â"€ MY VIDEOS â"€â"€ */}
+        {/* ── MY VIDEOS ── */}
         {tab === "videos" && (
           loading ? (
             <div className="flex items-center gap-2 text-zinc-400 py-10">
@@ -825,17 +825,17 @@ export function VideoStudio({ defaultTab = "videos" }: { defaultTab?: Tab }) {
           )
         )}
 
-        {/* â"€â"€ UPLOAD â"€â"€ */}
+        {/* ── UPLOAD ── */}
         {tab === "upload" && (
           <UploadTab onSuccess={() => { loadVideos(); setTab("videos"); }} />
         )}
 
-        {/* â"€â"€ ANALYTICS â"€â"€ */}
+        {/* ── ANALYTICS ── */}
         {tab === "analytics" && (
           <AnalyticsTab videos={videos} />
         )}
 
-        {/* â"€â"€ EARNINGS â"€â"€ */}
+        {/* ── EARNINGS ── */}
         {tab === "earnings" && (
           <EarningsTab />
         )}

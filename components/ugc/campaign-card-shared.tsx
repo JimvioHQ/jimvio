@@ -67,7 +67,7 @@ export function SharedCampaignCard({ c }: CampaignCardProps) {
       className="group flex flex-col rounded-none overflow-hidden border border-border dark:border-border bg-white dark:bg-bg hover:border-orange-200 dark:hover:border-orange-900 hover:bg-black/10 dark:hover:bg-surface-secondary/50 transition-all duration-300"
       style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.04)" }}
     >
-      {/* â"€â"€ Compact banner image â"€â"€ */}
+      {/* ── Compact banner image ── */}
       <div className="relative w-full overflow-hidden" style={{ aspectRatio: "16/7" }}>
         {/* fallback gradient */}
         <div
@@ -123,7 +123,7 @@ export function SharedCampaignCard({ c }: CampaignCardProps) {
         </div>
       </div>
 
-      {/* â"€â"€ Card body â"€â"€ */}
+      {/* ── Card body ── */}
       <div className="flex flex-col gap-3 p-4">
         {/* Brand row */}
         <div className="flex items-center gap-2">
@@ -232,7 +232,7 @@ export function SharedCampaignCard({ c }: CampaignCardProps) {
               border: "1px solid rgba(249,115,22,0.15)",
             }}
           >
-            Join â†’
+            Join →
           </span>
         </div>
       </div>

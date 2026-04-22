@@ -5,9 +5,9 @@ import { Loader2, TrendingUp, Clock, Award, RefreshCw, Plus, Flame } from "lucid
 import { UGCPostCard, type UGCPost } from "./ugc-post-card";
 import { cn } from "@/lib/utils";
 
-// â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+// ─────────────────────────────────────────────────────────────
 // TYPES
-// â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+// ─────────────────────────────────────────────────────────────
 type FeedSort = "latest" | "trending" | "top";
 
 interface UGCFeedProps {
@@ -27,9 +27,9 @@ const SORT_TABS: { value: FeedSort; label: string; icon: React.ReactNode }[] = [
 
 const PAGE_SIZE = 12;
 
-// â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+// ─────────────────────────────────────────────────────────────
 // SKELETON CARD
-// â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+// ─────────────────────────────────────────────────────────────
 function SkeletonCard() {
   return (
     <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-none overflow-hidden animate-pulse">
@@ -49,9 +49,9 @@ function SkeletonCard() {
   );
 }
 
-// â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+// ─────────────────────────────────────────────────────────────
 // MAIN COMPONENT
-// â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+// ─────────────────────────────────────────────────────────────
 export function UGCFeed({
   initialPosts = [],
   currentUserId,
@@ -69,7 +69,7 @@ export function UGCFeed({
   const observerRef = useRef<IntersectionObserver | null>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
-  // â"€â"€â"€ Fetch posts â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+  // ─── Fetch posts ─────────────────────────────────────────
   const fetchPosts = useCallback(
     async (opts: { sort: FeedSort; offset: number; reset?: boolean }) => {
       if (opts.reset) setLoading(true);
@@ -100,7 +100,7 @@ export function UGCFeed({
     [hashtag, productId]
   );
 
-  // â"€â"€â"€ Sort change â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+  // ─── Sort change ─────────────────────────────────────────
   const handleSortChange = useCallback(
     (newSort: FeedSort) => {
       setSort(newSort);
@@ -110,7 +110,7 @@ export function UGCFeed({
     [fetchPosts]
   );
 
-  // â"€â"€â"€ Initial load â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+  // ─── Initial load ─────────────────────────────────────────
   useEffect(() => {
     if (initialPosts.length === 0) {
       fetchPosts({ sort, offset: 0, reset: true });
@@ -118,7 +118,7 @@ export function UGCFeed({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // â"€â"€â"€ Infinite scroll via IntersectionObserver â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+  // ─── Infinite scroll via IntersectionObserver ─────────────
   useEffect(() => {
     if (!sentinelRef.current) return;
     observerRef.current?.disconnect();

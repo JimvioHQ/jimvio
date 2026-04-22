@@ -15,7 +15,7 @@ import { stableDiscountPercent, industryCardBackground, INDUSTRY_GRADIENTS } fro
 
 type LucideIcon = React.FC<React.SVGProps<SVGSVGElement>>;
 
-// â"€â"€ Animation helpers â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+// ── Animation helpers ──────────────────────────────────────────
 const fadeUp = {
   hidden: { opacity: 0, y: 28 },
   show: { opacity: 1, y: 0, transition: { type: "spring", damping: 28, stiffness: 200 } },
@@ -28,7 +28,7 @@ const scaleIn = {
   show: { opacity: 1, scale: 1, transition: { type: "spring", damping: 24, stiffness: 180 } },
 };
 
-// â"€â"€ Professional solid surface tokens â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+// ── Professional solid surface tokens ────────────────────────────
 const GLASS_LIGHT_STYLE: React.CSSProperties = {
   background: "var(--color-surface)",
   border: "1px solid var(--color-border)",
@@ -48,14 +48,14 @@ const glassMid = "";
 // Specular removed
 function GlassSpecular() { return null; }
 
-// â"€â"€ Section eyebrow label â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+// ── Section eyebrow label ──────────────────────────────────────
 function Eyebrow({ text }: { text: string }) {
   return (
     <p className="text-[10px] font-semibold text-stone-400 dark:text-text-muted uppercase tracking-[0.25em] mb-2">{text}</p>
   );
 }
 
-// â"€â"€ TRUST BAR â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+// ── TRUST BAR ─────────────────────────────────────────────────
 interface TrustBarItem { title: string; desc: string; }
 const TRUST_ICONS: LucideIcon[] = [ShieldCheck, CheckCircle, Ship, DollarSign, Globe];
 
@@ -89,7 +89,7 @@ export function TrustBar({ items }: { items: TrustBarItem[] }) {
   );
 }
 
-// â"€â"€ RECOMMENDED PICKS HEADER â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+// ── RECOMMENDED PICKS HEADER ───────────────────────────────────
 export function RecommendedHeader() {
   return (
     <motion.div
@@ -121,7 +121,7 @@ export function RecommendedHeader() {
   );
 }
 
-// â"€â"€ CATEGORY SIDEBAR â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+// ── CATEGORY SIDEBAR ──────────────────────────────────────────
 interface SidebarCat { icon: React.ReactNode; label: string; slug: string; }
 
 export function CategorySidebar({ cats }: { cats: SidebarCat[] }) {
@@ -150,14 +150,14 @@ export function CategorySidebar({ cats }: { cats: SidebarCat[] }) {
       </div>
       <div className="px-4 pb-4">
         <Link href="/marketplace" className="block w-full text-center py-2.5 rounded-none text-[12px] font-bold text-orange-600 border border-orange-200 hover:bg-orange-50 transition-all">
-          View All Categories â†’
+          View All Categories →
         </Link>
       </div>
     </motion.div>
   );
 }
 
-// â"€â"€ FLASH DEALS â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+// ── FLASH DEALS ───────────────────────────────────────────────
 export function FlashDeals({ products }: { products: any[] }) {
   return (
     <motion.div
@@ -244,7 +244,7 @@ export function FlashDeals({ products }: { products: any[] }) {
   );
 }
 
-// â"€â"€ TRENDING SIDE PANEL â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+// ── TRENDING SIDE PANEL ───────────────────────────────────────
 interface TrendingCat { name: string; slug: string; product_count?: number; }
 interface Supplier { business_name?: string; business_slug?: string; rating?: number; }
 
@@ -265,7 +265,7 @@ export function TrendingSidePanel({ trendingCats, suppliers }: { trendingCats: T
               <Link href={`/marketplace?cat=${encodeURIComponent(item.slug)}`}
                 className="flex items-center gap-3 bg-white/5 rounded-none px-4 py-3 hover:bg-white/10 border border-white/10 transition-all group">
                 <span className="text-[13px] font-semibold text-stone-300 flex-1">{item.name}</span>
-                <span className="text-[10px] text-stone-500 font-bold">{item.product_count != null && item.product_count > 0 ? `${item.product_count}` : "â†’"}</span>
+                <span className="text-[10px] text-stone-500 font-bold">{item.product_count != null && item.product_count > 0 ? `${item.product_count}` : "→"}</span>
               </Link>
             </motion.div>
           ))}
@@ -299,7 +299,7 @@ export function TrendingSidePanel({ trendingCats, suppliers }: { trendingCats: T
   );
 }
 
-// â"€â"€ INDUSTRIES SECTION â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+// ── INDUSTRIES SECTION ────────────────────────────────────────
 interface Industry { name: string; slug: string; product_count?: number; image_url?: string | null; }
 function pickIcon(slug: string, name: string): LucideIcon {
   const s = `${slug} ${name}`.toLowerCase();
@@ -365,7 +365,7 @@ export function IndustriesSection({ industries }: { industries: Industry[] }) {
   );
 }
 
-// â"€â"€ AFFILIATE PANEL â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+// ── AFFILIATE PANEL ───────────────────────────────────────────
 interface AffiliatePanelProps {
   valueProps: string[];
   campaigns?: string[];
@@ -396,17 +396,17 @@ export function AffiliatePanel({ valueProps, campaigns = [], spotlightCreator, t
         <div className="space-y-3 mb-10">
           {valueProps.map((t) => (
             <motion.div key={t} whileHover={{ x: 5 }} className="flex items-center gap-3 text-[14px] font-bold text-zinc-900 dark:text-white/70">
-              <div className="h-6 w-6 rounded-none bg-[#f97316]/20 text-[#f97316] flex items-center justify-center text-[11px] font-black border border-[#f97316]/30 shrink-0">âœ"</div>
+              <div className="h-6 w-6 rounded-none bg-[#f97316]/20 text-[#f97316] flex items-center justify-center text-[11px] font-black border border-[#f97316]/30 shrink-0">✓</div>
               {t}
             </motion.div>
           ))}
         </div>
         <div className="flex flex-col sm:flex-row gap-3">
           <Button className="h-11 px-8 rounded-none bg-stone-900 dark:bg-white text-white dark:text-stone-950 font-bold text-[14px] hover:bg-stone-800 shadow-none" asChild>
-            <Link href="/register?role=affiliate">Start Earning â†’</Link>
+            <Link href="/register?role=affiliate">Start Earning →</Link>
           </Button>
           <Button variant="outline" className="h-11 px-8 rounded-none border-border text-stone-900 dark:text-white font-bold text-[14px] hover:bg-stone-50 dark:hover:bg-stone-900" asChild>
-            <Link href="/dashboard">Creator Hub â†’</Link>
+            <Link href="/dashboard">Creator Hub →</Link>
           </Button>
         </div>
       </motion.div>
@@ -455,14 +455,14 @@ export function AffiliatePanel({ valueProps, campaigns = [], spotlightCreator, t
           )}
         </div>
         <Button className="w-full h-11 rounded-none bg-orange-500 hover:bg-orange-600 text-white font-bold text-[14px] shadow-none" asChild>
-          <Link href="/dashboard">Access Dashboard â†’</Link>
+          <Link href="/dashboard">Access Dashboard →</Link>
         </Button>
       </motion.div>
     </motion.section>
   );
 }
 
-// â"€â"€ MARKET INTELLIGENCE â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+// ── MARKET INTELLIGENCE ───────────────────────────────────────
 interface MarketCategory { name: string; product_count?: number; }
 
 export function MarketIntelligence({
@@ -493,7 +493,7 @@ export function MarketIntelligence({
               <div className="flex-1">
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-[13px] font-black text-zinc-800 dark:text-stone-300 group-hover:text-[#f97316] transition-colors">{cat.name} Market</span>
-                  <span className="text-[11px] font-black px-2 py-0.5 rounded-none bg-emerald-100/50 dark:bg-emerald-500/10 text-emerald-600">â†‘ {8 + i}%</span>
+                  <span className="text-[11px] font-black px-2 py-0.5 rounded-none bg-emerald-100/50 dark:bg-emerald-500/10 text-emerald-600">↑ {8 + i}%</span>
                 </div>
                 <div className="h-2 w-full bg-zinc-100 dark:bg-surface-secondary rounded-none overflow-hidden">
                   <motion.div
@@ -547,7 +547,7 @@ export function MarketIntelligence({
   );
 }
 
-// â"€â"€ HOW IT WORKS â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+// ── HOW IT WORKS ──────────────────────────────────────────────
 export function HowItWorks() {
   const steps = [
     { icon: <UserPlus className="h-5 w-5" />, title: "Digital ID", desc: "One unified account for vendors, buyers, and creators." },
@@ -585,7 +585,7 @@ export function HowItWorks() {
               className="h-11 rounded-none px-10 text-[13px] font-bold uppercase tracking-widest active:scale-95 transition-all shadow-none"
               asChild
             >
-              <Link href="/marketplace">Initialize Trade Access â†’</Link>
+              <Link href="/marketplace">Initialize Trade Access →</Link>
             </Button>
           </motion.div>
         </motion.div>
@@ -594,7 +594,7 @@ export function HowItWorks() {
   );
 }
 
-// â"€â"€ APP PROMO â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+// ── APP PROMO ─────────────────────────────────────────────────
 export function AppPromo() {
   return (
     <div className="relative overflow-hidden py-20 md:py-28 bg-stone-900 border-t border-stone-800">

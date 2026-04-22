@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState } from "react";
 import Link from "next/link";
@@ -18,7 +18,7 @@ interface ProductCardProps {
   viewMode?: "grid" | "list";
 }
 
-/** Reusable glass badge Ã¢â‚¬" matches dashboard GlassPill */
+/** Reusable glass badge — matches dashboard GlassPill */
 function GlassBadge({
   children,
   color = "neutral",
@@ -53,9 +53,9 @@ export function ProductCard({ product, viewMode = "grid" }: ProductCardProps) {
   const images = Array.isArray(product.images) ? (product.images as string[]) : [];
   const primaryImage = images[0] || null;
 
-  /* Ã¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•Â
-     LIST VIEW Ã¢â‚¬" horizontal glass card
-  Ã¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•Â */
+  /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+     LIST VIEW — horizontal glass card
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
   if (viewMode === "list") {
     return (
       <Link href={`/marketplace/${product.slug}`}>
@@ -145,10 +145,10 @@ export function ProductCard({ product, viewMode = "grid" }: ProductCardProps) {
     );
   }
 
-  /* Ã¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•Â
-     GRID VIEW Ã¢â‚¬" vertical glass card
+  /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+     GRID VIEW — vertical glass card
      Matches dashboard GlassCard exactly
-  Ã¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•Â */
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
   return (
     <Link href={`/marketplace/${product.slug}`}>
       <div className={cn(
@@ -159,13 +159,13 @@ export function ProductCard({ product, viewMode = "grid" }: ProductCardProps) {
         "hover:shadow-none",
         "hover:border-orange-100/80 dark:hover:border-orange-500/30 transition-all duration-300",
       )}>
-        {/* Ã¢"â‚¬Ã¢"â‚¬ Specular shine (matches dashboard GlassCard shine) Ã¢"â‚¬Ã¢"â‚¬ */}
+        {/* —â‚¬—â‚¬ Specular shine (matches dashboard GlassCard shine) —â‚¬—â‚¬ */}
         <div className="pointer-events-none absolute inset-0 rounded-none overflow-hidden z-10">
           <div className="absolute -top-1/2 -left-1/2 w-full h-3/4 rotate-[-25deg] bg-gradient-to-br from-white/80 to-transparent" />
           <div className="absolute bottom-0 right-0 w-1/2 h-1/2 rounded-none blur-2xl bg-orange-100/40" />
         </div>
 
-        {/* Ã¢"â‚¬Ã¢"â‚¬ Image Ã¢"â‚¬Ã¢"â‚¬ */}
+        {/* —â‚¬—â‚¬ Image —â‚¬—â‚¬ */}
         <div className="relative aspect-square overflow-hidden rounded-none">
           {primaryImage && !imageError ? (
             <Image
@@ -192,7 +192,12 @@ export function ProductCard({ product, viewMode = "grid" }: ProductCardProps) {
           {/* Badges */}
           <div className="absolute top-2.5 left-2.5 flex flex-col gap-1.5 z-20">
             {discount > 0 && <GlassBadge color="red">-{discount}%</GlassBadge>}
-            {product.is_featured && <GlassBadge color="amber">Ã¢Å"Â¦ Curated</GlassBadge>}
+            {product.is_featured && (
+              <GlassBadge color="amber">
+                <Star className="h-2.5 w-2.5 fill-current mr-1" />
+                Curated
+              </GlassBadge>
+            )}
           </div>
 
           {/* Wishlist button */}
@@ -215,7 +220,7 @@ export function ProductCard({ product, viewMode = "grid" }: ProductCardProps) {
           </div>
         </div>
 
-        {/* Ã¢"â‚¬Ã¢"â‚¬ Info Ã¢"â‚¬Ã¢"â‚¬ */}
+        {/* —â‚¬—â‚¬ Info —â‚¬—â‚¬ */}
         <div className="relative z-10 px-3.5 pt-3 pb-3.5">
           {product.affiliate_enabled && (
             <GlassBadge color="orange">Affiliate</GlassBadge>

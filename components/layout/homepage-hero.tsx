@@ -38,7 +38,7 @@ interface HomepageHeroProps {
 }
 
 
-/* Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬ Video Marquee Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬ */
+/* —â‚¬—â‚¬—â‚¬ Video Marquee —â‚¬—â‚¬—â‚¬—â‚¬—â‚¬—â‚¬—â‚¬—â‚¬—â‚¬—â‚¬—â‚¬—â‚¬—â‚¬—â‚¬—â‚¬—â‚¬—â‚¬—â‚¬—â‚¬—â‚¬—â‚¬—â‚¬—â‚¬—â‚¬—â‚¬—â‚¬—â‚¬—â‚¬—â‚¬—â‚¬—â‚¬—â‚¬—â‚¬—â‚¬—â‚¬—â‚¬—â‚¬—â‚¬—â‚¬ */
 function VideoMarquee({ videos, mobile = false }: { videos: any[]; mobile?: boolean }) {
   if (!videos?.length) return null;
   const list = [...videos, ...videos, ...videos, ...videos];
@@ -93,7 +93,7 @@ function VideoMarquee({ videos, mobile = false }: { videos: any[]; mobile?: bool
               <span className="text-[7px] font-black text-white uppercase tracking-[.05em]">Live</span>
             </div>
 
-            {/* Title label Ã¢â‚¬" desktop only */}
+            {/* Title label — desktop only */}
             {!mobile && (
               <div className="absolute bottom-2.5 left-2.5 right-2.5">
                 <span className="text-[9px] font-black text-white uppercase tracking-[.04em] drop-shadow-none line-clamp-2">
@@ -109,7 +109,7 @@ function VideoMarquee({ videos, mobile = false }: { videos: any[]; mobile?: bool
 }
 
 
-/* Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬ Main Hero Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬Ã¢"â‚¬ */
+/* —â‚¬—â‚¬—â‚¬ Main Hero —â‚¬—â‚¬—â‚¬—â‚¬—â‚¬—â‚¬—â‚¬—â‚¬—â‚¬—â‚¬—â‚¬—â‚¬—â‚¬—â‚¬—â‚¬—â‚¬—â‚¬—â‚¬—â‚¬—â‚¬—â‚¬—â‚¬—â‚¬—â‚¬—â‚¬—â‚¬—â‚¬—â‚¬—â‚¬—â‚¬—â‚¬—â‚¬—â‚¬—â‚¬—â‚¬—â‚¬—â‚¬—â‚¬—â‚¬—â‚¬—â‚¬—â‚¬—â‚¬ */
 export function HomepageHero({
   heroCampaigns,
   socialBar,
@@ -196,9 +196,9 @@ export function HomepageHero({
 
   return (
     <>
-      {/* Ã¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•Â MOBILE HERO Ã¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•Â */}
+      {/* ━━━━━━━━━━━━━━ MOBILE HERO ━━━━━━━━━━━━━━ */}
       <section className="flex flex-col lg:hidden w-full relative overflow-hidden pb-8 px-5 min-h-[380px] justify-center text-center bg-background">
-        {/* Ambient blobs Ã¢â‚¬" match HTML prototype */}
+        {/* Ambient blobs — match HTML prototype */}
         <div
           className="pointer-events-none absolute top-[-60px] right-[-60px] rounded-none"
           style={{ width: 280, height: 280, background: "radial-gradient(circle, rgba(249,115,22,.08), transparent 65%)" }}
@@ -236,7 +236,7 @@ export function HomepageHero({
             <StartEarnDialog
               className="h-12 w-full rounded-none border-none text-white text-[13px] font-bold uppercase tracking-[.06em] bg-orange-500 shadow-none active:bg-orange-600"
             >
-              Start Earning Now Ã¢" '
+              Start Earning Now →
             </StartEarnDialog>
 
             <button
@@ -277,7 +277,7 @@ export function HomepageHero({
         </div>
       </section>
 
-      {/* Ã¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•Â DESKTOP HERO Ã¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•Â */}
+      {/* ━━━━━━━━━━━━━━ DESKTOP HERO ━━━━━━━━━━━━━━ */}
       <section className="hidden lg:block w-full bg-surface border-b border-border">
         <div className="grid" style={{ gridTemplateColumns: "1fr 280px" }}>
 
@@ -355,7 +355,7 @@ export function HomepageHero({
                   <StartEarnDialog
                     className="h-11 px-8 rounded-none border-none text-white text-[13px] font-bold uppercase tracking-[.06em] flex items-center gap-2 bg-orange-500 shadow-none hover:bg-orange-600 transition-colors"
                   >
-                    Start Earning Now Ã¢" '
+                    Start Earning Now →
                   </StartEarnDialog>
 
                   <button

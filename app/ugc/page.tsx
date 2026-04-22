@@ -246,7 +246,7 @@ export default function UGCBrowserPage() {
             </div>
           )}
 
-          {/* â"€â"€ Pagination â"€â"€ */}
+          {/* ── Pagination ── */}
           {totalPages > 1 && (
             <div className="flex items-center justify-center gap-2 pt-12">
               <button
@@ -279,7 +279,7 @@ export default function UGCBrowserPage() {
                 onClick={() => setPage((p) => p + 1)}
                 className="h-10 px-5 rounded-none text-sm font-bold transition-all disabled:opacity-30 bg-surface dark:bg-surface border border-border text-stone-600 dark:text-stone-300 shadow-none hover:bg-stone-50 dark:hover:bg-zinc-800"
               >
-                Next â†’
+                Next →
               </button>
             </div>
           )}
