@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState } from "react";
 import { Play } from "lucide-react";
@@ -20,7 +20,7 @@ export function HeroStoryCard({ viralClips }: HeroStoryCardProps) {
     <>
       <div 
         onClick={() => setShowPlayer(true)}
-        className="relative aspect-[9/16] rounded-none overflow-hidden shadow-none group-hover/clip:scale-[1.02] transition-transform duration-700 cursor-pointer ring-8 ring-white shadow-orange-500/10 active:scale-[0.98]"
+        className="relative aspect-[9/16] rounded-none overflow-hidden shadow-none group-hover/clip:scale-[1.02] transition-transform duration-700 cursor-pointer ring-8 ring-white dark:ring-surface shadow-orange-500/10 active:scale-[0.98]"
       >
         <div 
           className="absolute inset-0 bg-cover bg-center"

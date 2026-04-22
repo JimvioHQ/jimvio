@@ -63,12 +63,12 @@ export function HeroSearch() {
     <div ref={containerRef} className="w-full z-[100] relative">
       {/* ── Search bar — matches HTML prototype search-wrap / search-bar ── */}
       <div
-        className="px-[52px] py-3 border-b border-black/[.07] dark:border-white/[.06] bg-white dark:bg-[#0f0e0c]"
+        className="px-[52px] py-3 border-b border-black/[.07] dark:border-white/[.06] bg-white dark:bg-surface"
       >
         <div
           className={cn(
             "flex items-center h-[52px] rounded-none transition-all duration-200 overflow-hidden",
-            "bg-[#f5f4f1] dark:bg-[#1c1811]",
+            "bg-[#f5f4f1] dark:bg-bg",
             isFocused
               ? "border border-[#f97316]/60 shadow-[0_0_0_3px_rgba(249,115,22,0.08)]"
               : "border border-black/10 dark:border-white/10"

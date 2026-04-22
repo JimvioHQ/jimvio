@@ -247,7 +247,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
       "fixed top-0 inset-x-0 z-[100] pointer-events-none transition-all duration-500",
       "px-0 pt-0"
     )}>
-      <div className="pointer-events-auto relative w-full mx-auto transition-all duration-500 flex flex-col bg-white dark:bg-stone-950"
+      <div className="pointer-events-auto relative w-full mx-auto transition-all duration-500 flex flex-col bg-[var(--color-surface)]"
         style={{
           ...shellStyle,
           borderBottom: scrolled ? "1px solid var(--color-border)" : "1px solid transparent",
@@ -632,14 +632,14 @@ function MobileDrawer({
           <motion.div
             initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            className="fixed inset-y-0 right-0 w-[85%] max-w-[400px] z-[9999] bg-white dark:bg-stone-950 shadow-none flex flex-col pointer-events-auto"
+            className="fixed inset-y-0 right-0 w-[85%] max-w-[400px] z-[9999] bg-[var(--color-surface)] shadow-none flex flex-col pointer-events-auto"
           >
             {/* Header / Dismiss */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-100 dark:border-stone-900 bg-zinc-50/50 dark:bg-black/20">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-100 dark:border-border bg-zinc-50/50 dark:bg-black/20">
                <span className="text-[10px] font-black text-stone-400 uppercase tracking-[0.4em]">Jimvio Console</span>
               <button 
                 onClick={onClose}
-                className="h-9 w-9 flex items-center justify-center rounded-none bg-white dark:bg-stone-800 text-stone-500 shadow-none transition-transform active:scale-90"
+                className="h-9 w-9 flex items-center justify-center rounded-none bg-white dark:bg-surface-secondary text-stone-500 shadow-none transition-transform active:scale-90"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -653,13 +653,13 @@ function MobileDrawer({
                 <p className="text-[10px] font-black text-stone-400 dark:text-stone-600 uppercase tracking-[0.2em] px-2 mb-2">My Console</p>
                 
                 {/* 1. User Profile / Login */}
-                <div className="bg-zinc-50 dark:bg-stone-900/40 rounded-none p-2 border border-stone-100 dark:border-white/5 shadow-none">
+                <div className="bg-zinc-50 dark:bg-surface-secondary rounded-none p-2 border border-stone-100 dark:border-white/5 shadow-none">
                   {user ? (
                     <div className="space-y-1">
                       <button 
                         onClick={() => toggle('account')}
                         className={cn("w-full flex items-center justify-between p-3 rounded-none text-[14px] font-bold transition-all", 
-                          expanded === 'account' ? "bg-white dark:bg-stone-800 text-stone-900 dark:text-white" : "text-stone-600 dark:text-stone-400 hover:bg-white dark:hover:bg-stone-800")}
+                          expanded === 'account' ? "bg-white dark:bg-surface-secondary text-stone-900 dark:text-white" : "text-stone-600 dark:text-stone-400 hover:bg-white dark:hover:bg-surface-secondary")}
                       >
                         <div className="flex items-center gap-3">
                           <Avatar className="h-8 w-8 ring-1 ring-orange-500/20">
@@ -697,7 +697,7 @@ function MobileDrawer({
                     </div>
                   ) : (
                     <div className="grid grid-cols-2 gap-2 p-1">
-                      <Link href="/login" onClick={onClose} className="flex items-center justify-center p-3 rounded-none bg-white dark:bg-stone-800 text-[11px] font-black uppercase tracking-widest text-stone-600 dark:text-stone-400 shadow-none active:scale-95 transition-all">Log In</Link>
+                      <Link href="/login" onClick={onClose} className="flex items-center justify-center p-3 rounded-none bg-white dark:bg-surface-secondary text-[11px] font-black uppercase tracking-widest text-stone-600 dark:text-stone-400 shadow-none active:scale-95 transition-all">Log In</Link>
                       <Link href="/register" onClick={onClose} className="flex items-center justify-center p-3 rounded-none bg-orange-500 text-[11px] font-black uppercase tracking-widest text-white shadow-none shadow-orange-500/20 active:scale-95 transition-all">Join Free</Link>
                     </div>
                   )}
@@ -722,13 +722,13 @@ function MobileDrawer({
 
                 {/* 3. Utility Icon Grid (Theme + Currency) */}
                 <div className="grid grid-cols-2 gap-3">
-                   <div className="flex items-center justify-between p-3 rounded-none bg-zinc-50 dark:bg-stone-900/40 border border-stone-100 dark:border-white/5">
-                      <div className="h-8 w-8 rounded-none bg-white dark:bg-stone-800 flex items-center justify-center shadow-none">
+                   <div className="flex items-center justify-between p-3 rounded-none bg-zinc-50 dark:bg-surface-secondary border border-stone-100 dark:border-white/5">
+                      <div className="h-8 w-8 rounded-none bg-white dark:bg-surface-secondary flex items-center justify-center shadow-none">
                         <Sun className="h-4 w-4 text-orange-500" />
                       </div>
                       <ThemeToggle />
                    </div>
-                   <div className="flex items-center justify-between p-3 rounded-none bg-zinc-50 dark:bg-stone-900/40 border border-stone-100 dark:border-white/5">
+                   <div className="flex items-center justify-between p-3 rounded-none bg-zinc-50 dark:bg-surface-secondary border border-stone-100 dark:border-white/5">
                       <div className="h-8 w-8 rounded-none bg-emerald-500/10 flex items-center justify-center">
                         <TrendingUp className="h-4 w-4 text-emerald-500" />
                       </div>
@@ -738,7 +738,7 @@ function MobileDrawer({
               </div>
 
               {/* Search */}
-              <div className="bg-zinc-50 dark:bg-stone-900/50 rounded-none p-1.5 ring-1 ring-zinc-100 dark:ring-stone-900 shadow-none">
+              <div className="bg-zinc-50 dark:bg-surface-secondary rounded-none p-1.5 ring-1 ring-zinc-100 dark:ring-border shadow-none">
                 <NavbarSearch searchQ={searchQ} setSearchQ={setSearchQ} variant="mobile" runSearch={runSearch} navLinks={navLinks} isScrolled={false} />
               </div>
 

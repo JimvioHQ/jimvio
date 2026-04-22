@@ -49,11 +49,11 @@ export function HeroRightPanel({ profile }: HeroRightPanelProps) {
      *   min-height: 580px
      */
     <div
-      className="flex-col gap-[10px] min-h-[360px] p-[16px] hidden lg:flex bg-[#faf9f7] dark:bg-[#0f0e0c] border-l border-black/[.07] dark:border-white/[.06]"
+      className="flex-col gap-[10px] min-h-[360px] p-[16px] hidden lg:flex bg-[#faf9f7] dark:bg-bg border-l border-black/[.07] dark:border-white/[.06]"
     >
       {/* ── Main card ── */}
       <div
-        className="bg-white dark:bg-[#1c1811] rounded-none border border-black/[.07] dark:border-white/[.08] p-[14px] flex flex-col gap-0"
+        className="bg-white dark:bg-surface rounded-none border border-black/[.07] dark:border-white/[.08] p-[14px] flex flex-col gap-0"
       >
         {isLoggedIn ? (
           <>
@@ -185,7 +185,7 @@ export function HeroRightPanel({ profile }: HeroRightPanelProps) {
       <div className="grid grid-cols-2 gap-2">
         <Link
           href={isLoggedIn ? "/dashboard/vendor/setup" : "/register?role=vendor"}
-          className="group flex flex-col items-center gap-[6px] bg-white dark:bg-[#1c1811] rounded-none py-[10px] px-3 text-center cursor-pointer transition-all hover:border-[rgba(249,115,22,.3)]"
+          className="group flex flex-col items-center gap-[6px] bg-white dark:bg-surface rounded-none py-[10px] px-3 text-center cursor-pointer transition-all hover:border-[rgba(249,115,22,.3)]"
           style={{ border: "0.5px solid rgba(0,0,0,.07)" }}
         >
           <div className="text-[18px]">
@@ -199,7 +199,7 @@ export function HeroRightPanel({ profile }: HeroRightPanelProps) {
 
         <Link
           href="/requests/new"
-          className="group flex flex-col items-center gap-[6px] bg-white dark:bg-[#1c1811] rounded-none py-[10px] px-3 text-center cursor-pointer transition-all hover:border-[rgba(249,115,22,.3)]"
+          className="group flex flex-col items-center gap-[6px] bg-white dark:bg-surface rounded-none py-[10px] px-3 text-center cursor-pointer transition-all hover:border-[rgba(249,115,22,.3)]"
           style={{ border: "0.5px solid rgba(0,0,0,.07)" }}
         >
           <div className="text-[18px]">
