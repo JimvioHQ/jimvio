@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState, useRef, useCallback } from "react";
 import { X, Plus, Tag, Hash, Loader2, Video, ChevronDown } from "lucide-react";
@@ -7,9 +7,9 @@ import { cn } from "@/lib/utils";
 import { CloudinaryUploadButton } from "@/components/ui/cloudinary-upload";
 import { toast } from "sonner";
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 // TYPES
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 interface MediaItem {
   url: string;
   type: "image" | "video";
@@ -30,16 +30,15 @@ interface UGCPostFormProps {
 }
 
 const POST_TYPES = [
-  { value: "post",     label: "Post",     emoji: "ðŸ“" },
-  { value: "review",   label: "Review",   emoji: "â­" },
-  { value: "unboxing", label: "Unboxing", emoji: "ðŸ“¦" },
-  { value: "howto",    label: "How-to",   emoji: "ðŸŽ“" },
-  { value: "deal",     label: "Deal",     emoji: "ðŸ”¥" },
+  { value: "post",     label: "Post",     emoji: "📝" },
+  { value: "review",   label: "Review",   emoji: "⭐" },
+  { value: "unboxing", label: "Unboxing", emoji: "📦" },
+  { value: "howto",    label: "How-to",   emoji: "🛠️" },
 ];
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 // HASHTAG INPUT
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 function HashtagInput({ hashtags, onChange }: { hashtags: string[]; onChange: (tags: string[]) => void }) {
   const [input, setInput] = useState("");
 
@@ -91,9 +90,9 @@ function HashtagInput({ hashtags, onChange }: { hashtags: string[]; onChange: (t
   );
 }
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 // MAIN FORM
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 export function UGCPostForm({ products = [], onSuccess, onCancel, className }: UGCPostFormProps) {
   const [caption, setCaption] = useState("");
   const [postType, setPostType] = useState("post");
@@ -222,7 +221,7 @@ export function UGCPostForm({ products = [], onSuccess, onCancel, className }: U
               folder="jimvio/ugc"
               resourceType="image"
               onUploadSuccess={addImageMedia}
-              buttonText="ðŸ“· Photo"
+              buttonText="📸 Photo"
               variant="outline"
               className="flex-1 [&>button]:w-full [&>button]:rounded-none [&>button]:text-sm [&>button]:font-medium"
             />
@@ -266,7 +265,7 @@ export function UGCPostForm({ products = [], onSuccess, onCancel, className }: U
                         : "hover:bg-[var(--color-surface)] text-[var(--color-text-primary)]"
                     )}
                   >
-                    <span className="text-base">{selectedProductIds.includes(p.id) ? "âœ“" : "â—‹"}</span>
+                    <span className="text-base">{selectedProductIds.includes(p.id) ? "✅" : "⭕"}</span>
                     <span className="truncate">{p.name}</span>
                   </button>
                 ))}

@@ -1,4 +1,4 @@
-﻿import React from "react";
+import React from "react";
 import Link from "next/link";
 import { TrendingUp, Link2, DollarSign, Users, Star, ArrowRight, Zap, Award, CheckCircle2, ShieldCheck, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -23,10 +23,10 @@ export default async function AffiliatesPage() {
     maxRate > 0 ? Math.round(maxRate) : Math.round(settings.fees.default_affiliate_commission_percent);
 
   const statsGrid = [
-    { label: "Active Affiliates", value: stats.affiliateCount ? formatPlatformCount(stats.affiliateCount) : ""”" },
-    { label: "Affiliate-ready SKUs", value: stats.affiliateSkus ? formatPlatformCount(stats.affiliateSkus) : ""”" },
+    { label: "Active Affiliates", value: stats.affiliateCount ? formatPlatformCount(stats.affiliateCount) : "" },
+    { label: "Affiliate-ready SKUs", value: stats.affiliateSkus ? formatPlatformCount(stats.affiliateSkus) : "" },
     { label: "Top listed rate", value: maxRate > 0 ? `${Math.round(maxRate)}%` : `${heroRate}% default` },
-    { label: "Live products", value: stats.totalProducts ? formatPlatformCount(stats.totalProducts) : ""”" },
+    { label: "Live products", value: stats.totalProducts ? formatPlatformCount(stats.totalProducts) : "" },
   ];
 
   const topProducts = spotlight.map((p) => {

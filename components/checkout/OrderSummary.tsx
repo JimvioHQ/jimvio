@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { Package, ShieldCheck, Lock, BadgeCheck } from "lucide-react";
 import { useCurrency } from "@/context/CurrencyContext";
@@ -81,7 +81,7 @@ export function OrderSummary({
       <div className="mt-6 pt-5 border-t border-[var(--color-border)] space-y-3">
         <div className="flex items-start gap-2.5 text-[11px] text-[var(--color-text-secondary)]">
           <Lock className="h-4 w-4 shrink-0 text-[var(--color-accent)] mt-0.5" aria-hidden />
-          <span>Secure SSL checkout "” your payment details are encrypted.</span>
+          <span>Secure SSL checkout — your payment details are encrypted.</span>
         </div>
         <div className="flex items-start gap-2.5 text-[11px] text-[var(--color-text-secondary)]">
           <ShieldCheck className="h-4 w-4 shrink-0 text-[var(--color-accent)] mt-0.5" aria-hidden />

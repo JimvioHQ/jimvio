@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
@@ -199,7 +199,7 @@ export default function DigitalLibraryPage() {
                       {/* Access granted indicator */}
                       {item.digital_download_url && (
                         <div className="absolute bottom-3 left-3 sm:bottom-4 sm:left-4 bg-emerald-500/90 backdrop-blur-md px-2.5 py-1 rounded-none text-[7px] sm:text-[8px] font-black uppercase tracking-widest text-white">
-                          âœ“ Access Granted
+                          âœ" Access Granted
                         </div>
                       )}
                       {!item.digital_download_url && (

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 export const dynamic = "force-dynamic";
 
 import React, { useEffect, useState } from "react";
@@ -122,7 +122,7 @@ export default function CreatorEarningsPage() {
                   payouts.map((p) => (
                     <tr key={p.id} className="hover:bg-white dark:bg-surface/60 transition-colors group">
                       <td className="py-4 px-6 text-[13px] font-bold text-stone-900 dark:text-white">{new Date(p.created_at).toLocaleDateString()}</td>
-                      <td className="py-4 px-6 text-[13px] font-bold text-stone-600 capitalize">{String(p.payout_method || ""”").replace(/_/g, " ")}</td>
+                      <td className="py-4 px-6 text-[13px] font-bold text-stone-600 capitalize">{String(p.payout_method || "").replace(/_/g, " ")}</td>
                       <td className="py-4 px-6 text-right font-black text-[14px] text-stone-900 dark:text-white tabular-nums">{formatMoney(Number(p.amount ?? 0), "RWF")}</td>
                       <td className="py-4 px-6 text-center">
                         <GlassPill color={p.status === "paid" ? "emerald" : p.status === "failed" ? "rose" : "orange"} className="text-[9px]">

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
@@ -56,7 +56,7 @@ function SkeletonCard() {
   );
 }
 
-/* â”€â”€â”€ Featured Hero Card (top community spotlight) â”€â”€â”€ */
+/* â"€â"€â"€ Featured Hero Card (top community spotlight) â"€â"€â"€ */
 function FeaturedCard({ c }: { c: CommunityRow }) {
   return (
     <Link
@@ -114,7 +114,7 @@ function FeaturedCard({ c }: { c: CommunityRow }) {
   );
 }
 
-/* â”€â”€â”€ CTA Banner â”€â”€â”€ */
+/* â"€â"€â"€ CTA Banner â"€â"€â"€ */
 function CreateCTACard() {
   return (
     <div className="rounded-none border border-dashed border-[var(--color-accent)]/40 bg-gradient-to-br from-[var(--color-accent-light)] to-[var(--color-surface-secondary)] p-6 flex flex-col gap-3 items-start justify-between min-h-[200px]">
@@ -126,7 +126,7 @@ function CreateCTACard() {
           Launch your own community
         </h3>
         <p className="text-xs text-[var(--color-text-muted)] mt-1 leading-relaxed">
-          Build, grow, and monetize your audience. Start free "” no credit card required.
+          Build, grow, and monetize your audience. Start free — no credit card required.
         </p>
       </div>
       <Button
@@ -142,7 +142,7 @@ function CreateCTACard() {
   );
 }
 
-/* â”€â”€â”€ Stats Banner â”€â”€â”€ */
+/* â"€â"€â"€ Stats Banner â"€â"€â"€ */
 function StatsBanner({ total }: { total: number }) {
   const stats = [
     { label: "Communities", value: formatNumber(total), icon: Globe },
@@ -168,7 +168,7 @@ function StatsBanner({ total }: { total: number }) {
 
 
 
-/* â”€â”€â”€ Main Component â”€â”€â”€ */
+/* â"€â"€â"€ Main Component â"€â"€â"€ */
 export function CommunitiesDiscovery() {
   const [search, setSearch] = useState("");
   const [debounced, setDebounced] = useState("");
@@ -234,7 +234,7 @@ export function CommunitiesDiscovery() {
     <div className="min-h-screen bg-[var(--color-bg)]">
       <div className="max-w-[var(--container-max)] mx-auto px-4 sm:px-6 py-6 sm:py-10">
 
-        {/* â”€â”€ Hero Header â”€â”€ */}
+        {/* â"€â"€ Hero Header â"€â"€ */}
         <header className="mb-8">
           <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6">
             <div>

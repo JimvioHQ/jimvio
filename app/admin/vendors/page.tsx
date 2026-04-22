@@ -1,4 +1,4 @@
-﻿import React from "react";
+import React from "react";
 import Link from "next/link";
 import { getAdminVendors } from "@/services/db";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -46,8 +46,8 @@ export default async function AdminVendorsPage({ searchParams }: { searchParams:
                 ) : (
                   vendors.map((v: any) => (
                     <tr key={v.id} className="border-b border-[var(--color-border)]/50 hover:bg-[var(--color-surface-secondary)]/30">
-                      <td className="py-3 px-4 font-medium">{v.business_name || ""”"}</td>
-                      <td className="py-3 px-4">{v.owner_name || v.owner_email || ""”"}</td>
+                      <td className="py-3 px-4 font-medium">{v.business_name || ""}</td>
+                      <td className="py-3 px-4">{v.owner_name || v.owner_email || ""}</td>
                       <td className="py-3 px-4">{v.products_count ?? 0}</td>
                       <td className="py-3 px-4">
                         {v.is_active ? <Badge variant="default" className="bg-emerald-600">Active</Badge> : <Badge variant="secondary">Inactive</Badge>}

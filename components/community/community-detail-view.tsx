@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
@@ -161,7 +161,7 @@ export function CommunityDetailView({
 
   return (
     <div className="min-h-screen bg-white dark:bg-bg">
-      {/* â”€â”€ STUNNING HERO â”€â”€ */}
+      {/* â"€â"€ STUNNING HERO â"€â"€ */}
       <section className="relative">
         <div className="h-[280px] sm:h-[400px] w-full relative overflow-hidden">
           {community.cover_image ? (
@@ -223,7 +223,7 @@ export function CommunityDetailView({
         </div>
       </section>
 
-      {/* â”€â”€ MAIN CONTENT GRID â”€â”€ */}
+      {/* â"€â"€ MAIN CONTENT GRID â"€â"€ */}
       <div className="max-w-7xl mx-auto px-6 py-16 grid grid-cols-1 lg:grid-cols-12 gap-16">
         
         {/* Left Side: About & Content */}

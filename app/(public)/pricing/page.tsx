@@ -1,4 +1,4 @@
-﻿import React from "react";
+import React from "react";
 import Link from "next/link";
 import { Check, Zap, Star, Building2, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -23,7 +23,7 @@ const plans = [
       "Saved products & wishlist",
       "Email support",
     ],
-    limitations: ["No vendor storefront", "Limited affiliate links", "Standard payouts (5"“7 days)"],
+    limitations: ["No vendor storefront", "Limited affiliate links", "Standard payouts (5—7 days)"],
   },
   {
     name: "Creator",
@@ -45,7 +45,7 @@ const plans = [
       "Advanced analytics",
       "AI product descriptions (50/mo)",
       "Priority support",
-      "Fast payouts (1"“2 days)",
+      "Fast payouts (1—2 days)",
     ],
     limitations: [],
   },

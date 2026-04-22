@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -125,7 +125,7 @@ export function CartClient({ initialOrders }: CartClientProps) {
     }
   };
 
-  // â”€â”€ EMPTY STATE â”€â”€
+  // â"€â"€ EMPTY STATE â"€â"€
   if (orders.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center text-center py-24 bg-surface dark:bg-surface rounded-none border border-border shadow-none">
@@ -320,7 +320,7 @@ export function CartClient({ initialOrders }: CartClientProps) {
               <div className="flex justify-between text-xs">
                 <span className="text-stone-500 dark:text-text-muted">Estimated Tax</span>
                 <span className="text-stone-800 dark:text-text-secondary font-bold">
-                  {hasMixedCurrencies ? ""”" : formatMoney(0, orders[0]?.currency ?? "USD")}
+                  {hasMixedCurrencies ? "" : formatMoney(0, orders[0]?.currency ?? "USD")}
                 </span>
               </div>
             </div>

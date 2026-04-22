@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
@@ -220,7 +220,7 @@ export function CourseRoom({
     } finally { setMarking(false); }
   };
 
-  /* â”€â”€â”€ Loading â”€â”€â”€ */
+  /* â"€â"€â"€ Loading â"€â"€â"€ */
   if (loading) {
     return (
       <div className="flex flex-1 items-center justify-center py-20">
@@ -229,7 +229,7 @@ export function CourseRoom({
     );
   }
 
-  /* â”€â”€â”€ Empty State â”€â”€â”€ */
+  /* â"€â"€â"€ Empty State â"€â"€â"€ */
   if (!editing && (!course || flatLessons.length === 0)) {
     return (
       <div className="flex flex-1 items-center justify-center p-8 flex-col gap-5 text-center">
@@ -253,7 +253,7 @@ export function CourseRoom({
     );
   }
 
-  /* â”€â”€â”€ Sidebar â”€â”€â”€ */
+  /* â"€â"€â"€ Sidebar â"€â"€â"€ */
   const sidebar = (
     <div className="flex flex-col h-full bg-[var(--color-surface)]">
       {/* Course header */}
@@ -471,7 +471,7 @@ export function CourseRoom({
     </div>
   );
 
-  /* â”€â”€â”€ Lesson Player â”€â”€â”€ */
+  /* â"€â"€â"€ Lesson Player â"€â"€â"€ */
   const lessonPlayer = (
     <div className="flex flex-col h-full min-w-0 bg-[var(--color-bg)]">
       {activeLesson ? (
@@ -694,7 +694,7 @@ export function CourseRoom({
     </div>
   );
 
-  /* â”€â”€â”€ Studio Modal â”€â”€â”€ */
+  /* â"€â"€â"€ Studio Modal â"€â"€â"€ */
   const studioModal = editingItem && (
     <div className="fixed inset-0 z-[20000] flex items-end sm:items-center justify-center pointer-events-auto">
       <div className="absolute inset-0 bg-black/60 " onClick={() => setEditingItem(null)} />
@@ -953,12 +953,12 @@ export function CourseRoom({
     </div>
   );
 
-  /* â”€â”€â”€ Main layout â”€â”€â”€ */
+  /* â"€â"€â"€ Main layout â"€â"€â"€ */
   return (
     <>
       {/* Desktop: side-by-side | Mobile: tab-switched views */}
       <div className="flex flex-1 min-h-0 overflow-hidden relative">
-        {/* Sidebar "” always visible on lg, toggled on mobile */}
+        {/* Sidebar — always visible on lg, toggled on mobile */}
         <div
           className={cn(
             "shrink-0 border-r border-[var(--color-border)]",
@@ -993,7 +993,7 @@ export function CourseRoom({
         </div>
       </div>
 
-      {/* Mobile bottom tab bar "” only show when not in editing modal */}
+      {/* Mobile bottom tab bar — only show when not in editing modal */}
       {!editingItem && (
         <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 flex border-t border-[var(--color-border)] bg-[var(--color-surface)] safe-area-bottom">
           <button

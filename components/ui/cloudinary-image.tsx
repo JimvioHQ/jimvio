@@ -1,6 +1,6 @@
-﻿/**
+/**
  * components/ui/cloudinary-image.tsx
- * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ * â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
  * Drop-in <CloudinaryImage> that works with:
  *   • Cloudinary URLs   â†’ injects w_, h_, q_auto, f_auto transformations
  *   • Supabase URLs     â†’ passes through as-is (graceful fallback)
@@ -66,7 +66,7 @@ export function CloudinaryImage({
 }
 
 /**
- * <CloudinaryAvatar> "” circular avatar with smart face-crop
+ * <CloudinaryAvatar> — circular avatar with smart face-crop
  */
 export function CloudinaryAvatar({
   src,
@@ -96,7 +96,7 @@ export function CloudinaryAvatar({
 }
 
 /**
- * <CloudinaryVideo> "” video player with Cloudinary-optimized poster
+ * <CloudinaryVideo> — video player with Cloudinary-optimized poster
  */
 export function CloudinaryVideo({
   src,

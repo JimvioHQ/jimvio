@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -16,7 +16,7 @@ import { cloudinaryService } from '@/services/media/cloudinary';
 
 const PLATFORMS: { value: UGCPlatform; label: string; icon: string; border: string; bgHover: string }[] = [
   { value: 'tiktok',    label: 'TikTok',    icon: 'ðŸŽµ', border: 'border-[#00f2fe]/40', bgHover: 'hover:bg-[#00f2fe]/5' },
-  { value: 'instagram', label: 'Instagram', icon: 'ðŸ“¸', border: 'border-[#ff0844]/40', bgHover: 'hover:bg-[#ff0844]/5' },
+  { value: 'instagram', label: 'Instagram', icon: 'ðŸ"¸', border: 'border-[#ff0844]/40', bgHover: 'hover:bg-[#ff0844]/5' },
   { value: 'youtube',   label: 'YouTube',   icon: 'â–¶ï¸', border: 'border-[#ff0000]/40', bgHover: 'hover:bg-[#ff0000]/5' },
   { value: 'x',         label: 'X/Twitter', icon: 'âœ–ï¸', border: 'border-zinc-400',     bgHover: 'hover:bg-zinc-100' },
 ];

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState, useCallback } from "react";
 import { useBodyScrollLock, useEscapeClose } from "@/hooks/use-body-scroll-lock";

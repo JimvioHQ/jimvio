@@ -192,7 +192,7 @@ export function ProductCard({ product, viewMode = "grid" }: ProductCardProps) {
           {/* Badges */}
           <div className="absolute top-2.5 left-2.5 flex flex-col gap-1.5 z-20">
             {discount > 0 && <GlassBadge color="red">-{discount}%</GlassBadge>}
-            {product.is_featured && <GlassBadge color="amber">Ã¢Å“Â¦ Curated</GlassBadge>}
+            {product.is_featured && <GlassBadge color="amber">Ã¢Å"Â¦ Curated</GlassBadge>}
           </div>
 
           {/* Wishlist button */}

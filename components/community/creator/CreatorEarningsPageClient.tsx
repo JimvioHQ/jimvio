@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Loader2 } from "lucide-react";
@@ -287,7 +287,7 @@ export function CreatorEarningsPageClient({
                   const earn = Number(p.creator_earnings ?? 0);
                   return (
                     <tr key={p.id} className="border-b border-[var(--color-border)]">
-                      <td className="py-2 px-3 text-xs whitespace-nowrap">{p.created_at ? new Date(p.created_at).toLocaleString() : ""”"}</td>
+                      <td className="py-2 px-3 text-xs whitespace-nowrap">{p.created_at ? new Date(p.created_at).toLocaleString() : ""}</td>
                       <td className="py-2 px-3 font-semibold">{name}</td>
                       <td className="py-2 px-3">
                         <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-none bg-[var(--color-surface-secondary)]">{p.plan_type}</span>
@@ -372,7 +372,7 @@ export function CreatorEarningsPageClient({
                 payoutHistory.map((p) => (
                   <tr key={p.id} className="border-b border-[var(--color-border)]">
                     <td className="py-2 px-3 whitespace-nowrap">{new Date(p.created_at).toLocaleString()}</td>
-                    <td className="py-2 px-3 capitalize">{String(p.payout_method || ""”").replace(/_/g, " ")}</td>
+                    <td className="py-2 px-3 capitalize">{String(p.payout_method || "").replace(/_/g, " ")}</td>
                     <td className="py-2 px-3 text-right tabular-nums font-semibold">{formatDisplayMoney(Number(p.amount ?? 0), walletCurrency)}</td>
                     <td className="py-2 px-3">
                       <span

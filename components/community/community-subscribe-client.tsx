@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useMemo, useState } from "react";
 import Image from "next/image";
@@ -148,7 +148,7 @@ export function CommunitySubscribeClient({
     <div className="min-h-screen bg-zinc-50/50 dark:bg-bg flex items-center justify-center py-6 md:py-12 px-0 sm:px-4">
       <div className="w-full max-w-5xl flex flex-col md:flex-row bg-white dark:bg-surface md:rounded-none overflow-hidden shadow-[0_32px_128px_-16px_rgba(0,0,0,0.12)] border border-zinc-100 dark:border-border">
         
-        {/* â”€â”€ SIDEBAR â”€â”€ */}
+        {/* â"€â"€ SIDEBAR â"€â"€ */}
         <aside className="w-full md:w-[320px] lg:w-[360px] flex-shrink-0 bg-[#1a1428] flex flex-col gap-8 p-8 relative overflow-hidden">
           <div className="absolute top-0 -right-20 w-64 h-64 bg-orange-500/10 rounded-none blur-[80px] pointer-events-none" />
           
@@ -210,7 +210,7 @@ export function CommunitySubscribeClient({
           </div>
         </aside>
 
-        {/* â”€â”€ MAIN CONTENT â”€â”€ */}
+        {/* â"€â"€ MAIN CONTENT â"€â"€ */}
         <div className="flex-1 flex flex-col min-w-0">
           
           <div className="px-8 pt-8 pb-4">

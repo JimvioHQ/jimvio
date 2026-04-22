@@ -1,4 +1,4 @@
-﻿import React from "react";
+import React from "react";
 import { getAdminProducts } from "@/services/db";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -50,12 +50,12 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
                         <p className="font-medium truncate max-w-[200px]">{p.name}</p>
                         <p className="text-xs text-[var(--color-text-muted)]">{p.slug}</p>
                       </td>
-                      <td className="py-3 px-4">{p.vendor_name || ""”"}</td>
+                      <td className="py-3 px-4">{p.vendor_name || ""}</td>
                       <td className="py-3 px-4">{formatCurrency(Number(p.price ?? 0))}</td>
                       <td className="py-3 px-4">
                         <Badge variant={p.status === "active" ? "default" : "secondary"}>{p.status || "draft"}</Badge>
                       </td>
-                      <td className="py-3 px-4">{p.is_featured ? <Badge className="bg-amber-600">Featured</Badge> : ""”"}</td>
+                      <td className="py-3 px-4">{p.is_featured ? <Badge className="bg-amber-600">Featured</Badge> : ""}</td>
                     </tr>
                   ))
                 )}

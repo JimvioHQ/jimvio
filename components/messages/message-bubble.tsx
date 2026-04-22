@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React from "react";
 import Link from "next/link";
@@ -16,7 +16,7 @@ export type MessageRow = {
   metadata?: Record<string, unknown> | null;
 };
 
-const EMOJI_LIST = ["ðŸ‘", "â¤ï¸", "ðŸ˜‚", "ðŸ˜Š", "ðŸŽ‰", "âœ…", "ðŸ“¦", "ðŸ’¼", "ðŸ”¥", "â­"];
+const EMOJI_LIST = ["👍", "❤️", "😂", "😊", "🎉", "✅", "📦", "💼", "🔥", "⭐"];
 
 function PreviewText({ msg }: { msg: MessageRow }) {
   if (msg.message_type === "product") return <>Shared a product</>;

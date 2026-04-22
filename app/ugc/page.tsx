@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
@@ -246,7 +246,7 @@ export default function UGCBrowserPage() {
             </div>
           )}
 
-          {/* â”€â”€ Pagination â”€â”€ */}
+          {/* â"€â"€ Pagination â"€â"€ */}
           {totalPages > 1 && (
             <div className="flex items-center justify-center gap-2 pt-12">
               <button

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -33,7 +33,7 @@ import { CurrencyConverterWidget } from "@/components/shared/currency-converter-
    iPhone 17 Liquid Glass Design Tokens
    --------------------------------------------------------- */
 
-/** Standard Professional Design Tokens "” solid surfaces, high trust */
+/** Standard Professional Design Tokens — solid surfaces, high trust */
 const GLASS_LIGHT = {
   body: "var(--color-surface)",
   border: "var(--color-border)",
@@ -48,10 +48,10 @@ const GLASS_DARK = {
   shadow: "var(--shadow-none)",
 };
 
-/* Specular line "” the 1px bright edge every glass element has */
+/* Specular line — the 1px bright edge every glass element has */
 function SpecularLine({ rounded = false }: { rounded?: boolean }) { return null; }
 
-/* Diagonal specular sweep "” adds depth */
+/* Diagonal specular sweep — adds depth */
 function SpecularSweep() { return null; }
 
 /* Console Link/Button — strictly sharp Shopify aesthetics */
@@ -537,7 +537,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
         </div>
       </div>
 
-      {/* MOBILE DRAWER "” Premium Solid Theme */}
+      {/* MOBILE DRAWER — Premium Solid Theme */}
       {portalReady && createPortal(
         <MobileDrawer
           open={mobileOpen}

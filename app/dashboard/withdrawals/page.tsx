@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 export const dynamic = "force-dynamic";
 
 import React, { useEffect, useState } from "react";
@@ -14,7 +14,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 const PAYMENT_METHODS = [
-  { id: "bank", label: "Bank Transfer", desc: "2"“3 business days", icon: CreditCard },
+  { id: "bank", label: "Bank Transfer", desc: "2—3 business days", icon: CreditCard },
   { id: "mobile_money", label: "Mobile Money", desc: "MTN MoMo, Airtel, etc.", icon: Smartphone },
   { id: "paypal", label: "PayPal", desc: "PayPal email", icon: Banknote },
 ] as const;
@@ -261,7 +261,7 @@ export default function AffiliateWithdrawalsPage() {
              </div>
              <div className="p-6 bg-surface/50 dark:bg-surface/20 border-t border-border text-center">
                 <p className="text-[9px] font-bold text-stone-400 dark:text-text-muted uppercase tracking-widest">
-                   Processing time: 2"“3 business days
+                   Processing time: 2—3 business days
                 </p>
              </div>
           </GlassCard>
@@ -302,7 +302,7 @@ export default function AffiliateWithdrawalsPage() {
                             {new Date(p.created_at).toLocaleDateString()}
                          </td>
                          <td className="px-8 py-6">
-                            <span className="capitalize font-bold text-sm text-stone-900 dark:text-white tracking-tight">{String(p.payout_method || ""”").replace(/_/g, " ")}</span>
+                            <span className="capitalize font-bold text-sm text-stone-900 dark:text-white tracking-tight">{String(p.payout_method || "").replace(/_/g, " ")}</span>
                          </td>
                          <td className="px-8 py-6 text-right">
                             <span className="font-bold text-base text-stone-900 dark:text-white tabular-nums tracking-tight">{formatMoney(Number(p.amount ?? 0), "USD")}</span>

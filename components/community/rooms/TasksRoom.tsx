@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
@@ -225,7 +225,7 @@ export function TasksRoom({
                       <span className="text-xs font-black px-2 py-1 rounded-none bg-[var(--color-warning-light)] text-[var(--color-warning)]">Submitted</span>
                     )}
                     {comp?.status === "approved" && (
-                      <span className="text-xs font-black px-2 py-1 rounded-none bg-[var(--color-success-light)] text-[var(--color-success)]">Completed âœ“</span>
+                      <span className="text-xs font-black px-2 py-1 rounded-none bg-[var(--color-success-light)] text-[var(--color-success)]">Completed âœ"</span>
                     )}
                   </div>
                 </div>

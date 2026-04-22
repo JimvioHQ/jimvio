@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -154,7 +154,7 @@ export function VendorEarningsDashboard() {
   function methodLabel(id: string | null): string {
     const m = METHOD_OPTIONS.find((o) => o.id === id);
     if (m) return m.label;
-    if (!id) return ""”";
+    if (!id) return "";
     return id.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
   }
 
@@ -366,7 +366,7 @@ export function VendorEarningsDashboard() {
                                   {t.order_number}
                                 </Link>
                               ) : (
-                                ""”"
+                                ""
                               )}
                             </td>
                             <td className="p-3 text-right tabular-nums">{lines}</td>

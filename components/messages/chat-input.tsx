@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useRef, useState } from "react";
 import { Send, Image as ImageIcon, Paperclip, Package, Quote, Smile, X } from "lucide-react";

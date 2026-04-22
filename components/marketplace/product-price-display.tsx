@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React from "react";
 import { LocalizedPrice } from "@/components/currency/localized-price";
@@ -55,7 +55,7 @@ export function ProductPriceDisplay({
 }
 
 /**
- * Compact variant for the sidebar Buy Box "” no tagline, just the price row.
+ * Compact variant for the sidebar Buy Box — no tagline, just the price row.
  */
 export function ProductBuyBoxPrice({
   price,

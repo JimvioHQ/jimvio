@@ -1,4 +1,4 @@
-﻿import React from "react";
+import React from "react";
 import { Search, ArrowRight, Clock, User, Tag, Share2, Bookmark } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";

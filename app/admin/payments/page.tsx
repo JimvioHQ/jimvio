@@ -1,4 +1,4 @@
-﻿import React from "react";
+import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DollarSign } from "lucide-react";
 import { getAdminDB } from "@/services/db";
@@ -41,9 +41,9 @@ export default async function AdminPaymentsPage() {
                 ) : (
                   list.map((o: any) => (
                     <tr key={o.id} className="border-b border-[var(--color-border)]/50 hover:bg-[var(--color-surface-secondary)]/30">
-                      <td className="py-3 px-4 text-[var(--color-text-muted)]">{o.created_at ? new Date(o.created_at).toLocaleString() : ""”"}</td>
+                      <td className="py-3 px-4 text-[var(--color-text-muted)]">{o.created_at ? new Date(o.created_at).toLocaleString() : ""}</td>
                       <td className="py-3 px-4 font-medium">{formatCurrency(Number(o.total_amount ?? 0))}</td>
-                      <td className="py-3 px-4">{o.status || ""”"}</td>
+                      <td className="py-3 px-4">{o.status || ""}</td>
                     </tr>
                   ))
                 )}

@@ -1,7 +1,7 @@
-﻿import * as React from "react";
+import * as React from "react";
 import { cn } from "@/lib/utils";
 
-// â”€â”€ Professional Solid Tokens (replacing glassmorphism) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â"€â"€ Professional Solid Tokens (replacing glassmorphism) â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 export const GLASS_TOKENS = {
   light: {
     background: "var(--color-surface)",
@@ -32,7 +32,7 @@ export const STYLES = {
   glassCtaOrange: GLASS_TOKENS.ctaOrange as React.CSSProperties,
 };
 
-// â”€â”€ Components â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â"€â"€ Components â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
 export interface GlassProps extends React.HTMLAttributes<HTMLDivElement> {
   variant?: "light" | "dark" | "pill" | "cta";
@@ -65,10 +65,10 @@ export function GlassCard({
   );
 }
 
-// Specular removed "” returns null for backward compat
+// Specular removed — returns null for backward compat
 export function GlassSpecular() { return null; }
 
-// Ambient glow removed "” returns null for backward compat
+// Ambient glow removed — returns null for backward compat
 export function GlassAmbientGlow(_props: {
   color?: string;
   position?: string;

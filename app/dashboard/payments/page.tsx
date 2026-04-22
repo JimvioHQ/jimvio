@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 export const dynamic = "force-dynamic";
 
 import React, { useEffect, useState } from "react";
@@ -277,7 +277,7 @@ export default function PaymentsPage() {
                        <CheckCircle2 className="h-8 w-8 shrink-0" />
                        <div className="space-y-1">
                           <p className="text-[14px] font-black uppercase tracking-widest">Protocol Accepted</p>
-                          <p className="text-[10px] font-bold opacity-80 uppercase tracking-widest leading-relaxed">System processing Window: 24"“48 Hours</p>
+                          <p className="text-[10px] font-bold opacity-80 uppercase tracking-widest leading-relaxed">System processing Window: 24—48 Hours</p>
                        </div>
                     </div>
                  )}

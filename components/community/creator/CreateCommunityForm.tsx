@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useMemo, useState } from "react";
 import Image from "next/image";
@@ -288,7 +288,7 @@ export function CreateCommunityForm() {
           </div>
 
           {isFree ? (
-            <p className="text-sm text-[var(--color-text-secondary)] font-medium">Members join for free "” no pricing required.</p>
+            <p className="text-sm text-[var(--color-text-secondary)] font-medium">Members join for free — no pricing required.</p>
           ) : (
             <div className="space-y-3">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -340,7 +340,7 @@ export function CreateCommunityForm() {
               <span className="text-[var(--color-text-muted)]">Name:</span> <span className="font-bold">{name}</span>
             </p>
             <p>
-              <span className="text-[var(--color-text-muted)]">Tagline:</span> {tagline || ""”"}
+              <span className="text-[var(--color-text-muted)]">Tagline:</span> {tagline || ""}
             </p>
             <p>
               <span className="text-[var(--color-text-muted)]">Category:</span> {category}
@@ -355,7 +355,7 @@ export function CreateCommunityForm() {
               </p>
             )}
             <p>
-              <span className="text-[var(--color-text-muted)]">Tags:</span> {tags.join(", ") || ""”"}
+              <span className="text-[var(--color-text-muted)]">Tags:</span> {tags.join(", ") || ""}
             </p>
           </div>
         </div>

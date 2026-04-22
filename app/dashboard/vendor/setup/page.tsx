@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 export const dynamic = "force-dynamic";
 
 import React, { useState, useEffect, useTransition } from "react";
@@ -34,18 +34,18 @@ export default function VendorSetupPage() {
   const [error, setError] = useState<string | null>(null);
 
   const [form, setForm] = useState({
-    business_name:        "",
-    business_slug:        "",
+    business_name: "",
+    business_slug: "",
     business_description: "",
-    business_type:        "",
-    product_categories:   "",
-    business_email:       "",
-    business_phone:       "",
-    business_address:     "",
+    business_type: "",
+    product_categories: "",
+    business_email: "",
+    business_phone: "",
+    business_address: "",
     business_country:     "RW",
-    website:              "",
-    tax_id:               "",
-    payout_account:       "",
+    website: "",
+    tax_id: "",
+    payout_account: "",
     payout_method:        "mtn",
     affiliate_enabled:    true,
     affiliate_commission_rate: "10",
@@ -320,8 +320,8 @@ export default function VendorSetupPage() {
             <label className="text-sm font-medium text-[var(--color-text-primary)] block mb-1.5">Payout Method</label>
             <div className="grid grid-cols-2 gap-3">
               {[
-                { value: "mtn",       label: "MTN MoMo",       icon: "ðŸ“±", desc: "MTN Mobile Money" },
-                { value: "airtel",    label: "Airtel Money",   icon: "ðŸ“±", desc: "Airtel Money" },
+                { value: "mtn",       label: "MTN MoMo",       icon: "📱", desc: "MTN Mobile Money" },
+                { value: "airtel",    label: "Airtel Money",   icon: "📱", desc: "Airtel Money" },
                 { value: "bank",      label: "Bank Transfer",  icon: "ðŸ¦", desc: "Direct bank transfer" },
               ].map(m => (
                 <div
@@ -396,7 +396,7 @@ export default function VendorSetupPage() {
               { label: "Phone",          value: form.business_phone || "Not provided", icon: <Phone className="h-4 w-4" /> },
               { label: "Country",        value: form.business_country, icon: <MapPin className="h-4 w-4" /> },
               ...(form.tax_id ? [{ label: "Tax ID", value: form.tax_id, icon: <FileText className="h-4 w-4" /> }] : []),
-              { label: "Payout",         value: `${form.payout_method} "” ${form.payout_account}`, icon: <FileText className="h-4 w-4" /> },
+              { label: "Payout",         value: `${form.payout_method} — ${form.payout_account}`, icon: <FileText className="h-4 w-4" /> },
               { label: "Affiliate",      value: form.affiliate_enabled ? `Enabled (${form.affiliate_commission_rate}% default)` : "Disabled", icon: <Zap className="h-4 w-4" /> },
             ].map((item, i) => (
               <div key={i} className="flex items-start gap-3 p-3 bg-subtle rounded-none">

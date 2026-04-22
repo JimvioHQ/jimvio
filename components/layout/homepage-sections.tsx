@@ -15,7 +15,7 @@ import { stableDiscountPercent, industryCardBackground, INDUSTRY_GRADIENTS } fro
 
 type LucideIcon = React.FC<React.SVGProps<SVGSVGElement>>;
 
-// â”€â”€ Animation helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â"€â"€ Animation helpers â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 const fadeUp = {
   hidden: { opacity: 0, y: 28 },
   show: { opacity: 1, y: 0, transition: { type: "spring", damping: 28, stiffness: 200 } },
@@ -28,7 +28,7 @@ const scaleIn = {
   show: { opacity: 1, scale: 1, transition: { type: "spring", damping: 24, stiffness: 180 } },
 };
 
-// â”€â”€ Professional solid surface tokens â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â"€â"€ Professional solid surface tokens â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 const GLASS_LIGHT_STYLE: React.CSSProperties = {
   background: "var(--color-surface)",
   border: "1px solid var(--color-border)",
@@ -40,7 +40,7 @@ const GLASS_DARK_STYLE: React.CSSProperties = {
   boxShadow: "var(--shadow-none)",
 };
 
-// Neutral "” no backdrop blur
+// Neutral — no backdrop blur
 const glassLight = "";
 const glassDark = "";
 const glassMid = "";
@@ -48,14 +48,14 @@ const glassMid = "";
 // Specular removed
 function GlassSpecular() { return null; }
 
-// â”€â”€ Section eyebrow label â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â"€â"€ Section eyebrow label â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 function Eyebrow({ text }: { text: string }) {
   return (
     <p className="text-[10px] font-semibold text-stone-400 dark:text-text-muted uppercase tracking-[0.25em] mb-2">{text}</p>
   );
 }
 
-// â”€â”€ TRUST BAR â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â"€â"€ TRUST BAR â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 interface TrustBarItem { title: string; desc: string; }
 const TRUST_ICONS: LucideIcon[] = [ShieldCheck, CheckCircle, Ship, DollarSign, Globe];
 
@@ -89,7 +89,7 @@ export function TrustBar({ items }: { items: TrustBarItem[] }) {
   );
 }
 
-// â”€â”€ RECOMMENDED PICKS HEADER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â"€â"€ RECOMMENDED PICKS HEADER â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 export function RecommendedHeader() {
   return (
     <motion.div
@@ -105,7 +105,7 @@ export function RecommendedHeader() {
           </span>
           Recommended Picks
         </h2>
-        <p className="mt-2 text-[14px] font-bold text-zinc-400 dark:text-text-muted">Curated from verified suppliers "” updated as inventory changes.</p>
+        <p className="mt-2 text-[14px] font-bold text-zinc-400 dark:text-text-muted">Curated from verified suppliers — updated as inventory changes.</p>
       </motion.div>
       <motion.div variants={fadeUp}>
         <motion.div whileHover={{ x: 4 }} whileTap={{ scale: 0.97 }}>
@@ -121,7 +121,7 @@ export function RecommendedHeader() {
   );
 }
 
-// â”€â”€ CATEGORY SIDEBAR â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â"€â"€ CATEGORY SIDEBAR â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 interface SidebarCat { icon: React.ReactNode; label: string; slug: string; }
 
 export function CategorySidebar({ cats }: { cats: SidebarCat[] }) {
@@ -157,7 +157,7 @@ export function CategorySidebar({ cats }: { cats: SidebarCat[] }) {
   );
 }
 
-// â”€â”€ FLASH DEALS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â"€â"€ FLASH DEALS â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 export function FlashDeals({ products }: { products: any[] }) {
   return (
     <motion.div
@@ -244,7 +244,7 @@ export function FlashDeals({ products }: { products: any[] }) {
   );
 }
 
-// â”€â”€ TRENDING SIDE PANEL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â"€â"€ TRENDING SIDE PANEL â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 interface TrendingCat { name: string; slug: string; product_count?: number; }
 interface Supplier { business_name?: string; business_slug?: string; rating?: number; }
 
@@ -299,7 +299,7 @@ export function TrendingSidePanel({ trendingCats, suppliers }: { trendingCats: T
   );
 }
 
-// â”€â”€ INDUSTRIES SECTION â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â"€â"€ INDUSTRIES SECTION â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 interface Industry { name: string; slug: string; product_count?: number; image_url?: string | null; }
 function pickIcon(slug: string, name: string): LucideIcon {
   const s = `${slug} ${name}`.toLowerCase();
@@ -365,7 +365,7 @@ export function IndustriesSection({ industries }: { industries: Industry[] }) {
   );
 }
 
-// â”€â”€ AFFILIATE PANEL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â"€â"€ AFFILIATE PANEL â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 interface AffiliatePanelProps {
   valueProps: string[];
   campaigns?: string[];
@@ -396,7 +396,7 @@ export function AffiliatePanel({ valueProps, campaigns = [], spotlightCreator, t
         <div className="space-y-3 mb-10">
           {valueProps.map((t) => (
             <motion.div key={t} whileHover={{ x: 5 }} className="flex items-center gap-3 text-[14px] font-bold text-zinc-900 dark:text-white/70">
-              <div className="h-6 w-6 rounded-none bg-[#f97316]/20 text-[#f97316] flex items-center justify-center text-[11px] font-black border border-[#f97316]/30 shrink-0">âœ“</div>
+              <div className="h-6 w-6 rounded-none bg-[#f97316]/20 text-[#f97316] flex items-center justify-center text-[11px] font-black border border-[#f97316]/30 shrink-0">âœ"</div>
               {t}
             </motion.div>
           ))}
@@ -451,7 +451,7 @@ export function AffiliatePanel({ valueProps, campaigns = [], spotlightCreator, t
               </div>
             </>
           ) : (
-            <p className="text-sm text-zinc-900 dark:text-white/40 font-bold w-full text-center py-2">Be the first top earner "” share products you love.</p>
+            <p className="text-sm text-zinc-900 dark:text-white/40 font-bold w-full text-center py-2">Be the first top earner — share products you love.</p>
           )}
         </div>
         <Button className="w-full h-11 rounded-none bg-orange-500 hover:bg-orange-600 text-white font-bold text-[14px] shadow-none" asChild>
@@ -462,7 +462,7 @@ export function AffiliatePanel({ valueProps, campaigns = [], spotlightCreator, t
   );
 }
 
-// â”€â”€ MARKET INTELLIGENCE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â"€â"€ MARKET INTELLIGENCE â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 interface MarketCategory { name: string; product_count?: number; }
 
 export function MarketIntelligence({
@@ -547,7 +547,7 @@ export function MarketIntelligence({
   );
 }
 
-// â”€â”€ HOW IT WORKS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â"€â"€ HOW IT WORKS â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 export function HowItWorks() {
   const steps = [
     { icon: <UserPlus className="h-5 w-5" />, title: "Digital ID", desc: "One unified account for vendors, buyers, and creators." },
@@ -594,7 +594,7 @@ export function HowItWorks() {
   );
 }
 
-// â”€â”€ APP PROMO â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â"€â"€ APP PROMO â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 export function AppPromo() {
   return (
     <div className="relative overflow-hidden py-20 md:py-28 bg-stone-900 border-t border-stone-800">

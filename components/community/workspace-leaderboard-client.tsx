@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useMemo, useState } from "react";
 import Image from "next/image";
@@ -133,7 +133,7 @@ export function WorkspaceLeaderboardClient({
                   <td className="py-2 px-3 text-right font-bold">{r.level}</td>
                   <td className="py-2 px-3 text-right font-black text-[var(--color-accent)]">{r.total_points.toLocaleString()}</td>
                   <td className="py-2 px-3 text-right text-[var(--color-text-muted)] text-xs hidden sm:table-cell">
-                    {r.created_at ? new Date(r.created_at).toLocaleDateString() : ""”"}
+                    {r.created_at ? new Date(r.created_at).toLocaleDateString() : ""}
                   </td>
                 </tr>
               ))}

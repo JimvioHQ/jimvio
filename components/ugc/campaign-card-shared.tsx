@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React from "react";
 import Link from "next/link";
@@ -67,7 +67,7 @@ export function SharedCampaignCard({ c }: CampaignCardProps) {
       className="group flex flex-col rounded-none overflow-hidden border border-border dark:border-border bg-white dark:bg-bg hover:border-orange-200 dark:hover:border-orange-900 hover:bg-black/10 dark:hover:bg-surface-secondary/50 transition-all duration-300"
       style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.04)" }}
     >
-      {/* â”€â”€ Compact banner image â”€â”€ */}
+      {/* â"€â"€ Compact banner image â"€â"€ */}
       <div className="relative w-full overflow-hidden" style={{ aspectRatio: "16/7" }}>
         {/* fallback gradient */}
         <div
@@ -88,7 +88,7 @@ export function SharedCampaignCard({ c }: CampaignCardProps) {
         <div className="absolute inset-0 bg-gradient-to-t from-white dark:from-bg via-white/20 dark:via-bg/20 to-transparent" />
         <div className="absolute inset-0 bg-gradient-to-r from-white/40 dark:from-bg/40 via-transparent to-transparent" />
 
-        {/* Campaign type pill "” top-left */}
+        {/* Campaign type pill — top-left */}
         <div className="absolute top-3 left-3">
           <span
             className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-none text-[10px] font-bold uppercase tracking-wider shadow-none"
@@ -107,7 +107,7 @@ export function SharedCampaignCard({ c }: CampaignCardProps) {
           </span>
         </div>
 
-        {/* Platform icons "” top-right */}
+        {/* Platform icons — top-right */}
         <div className="absolute top-3 right-3 flex gap-1">
           {platforms.map((p) => {
             const Icon = PLATFORM_ICONS[p] || Share2;
@@ -123,7 +123,7 @@ export function SharedCampaignCard({ c }: CampaignCardProps) {
         </div>
       </div>
 
-      {/* â”€â”€ Card body â”€â”€ */}
+      {/* â"€â"€ Card body â"€â"€ */}
       <div className="flex flex-col gap-3 p-4">
         {/* Brand row */}
         <div className="flex items-center gap-2">

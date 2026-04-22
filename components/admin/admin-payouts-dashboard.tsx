@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Loader2 } from "lucide-react";
@@ -53,7 +53,7 @@ function methodLabel(id: string | null): string {
     case "crypto":
       return "Crypto";
     default:
-      if (!id) return ""”";
+      if (!id) return "";
       return id.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
   }
 }
@@ -272,8 +272,8 @@ export function AdminPayoutsDashboard() {
                 </thead>
                 <tbody>
                   {rows.map((p) => {
-                    const name = p.profiles?.full_name || ""”";
-                    const email = p.profiles?.email || ""”";
+                    const name = p.profiles?.full_name || "";
+                    const email = p.profiles?.email || "";
                     const canAct = p.status === "pending";
                     return (
                       <tr key={p.id} className="border-b border-[var(--color-border)]">
@@ -323,7 +323,7 @@ export function AdminPayoutsDashboard() {
                           ) : p.status === "paid" && p.provider_reference ? (
                             <span className="text-xs text-[var(--color-text-muted)]">{p.provider_reference}</span>
                           ) : (
-                            ""”"
+                            ""
                           )}
                         </td>
                       </tr>

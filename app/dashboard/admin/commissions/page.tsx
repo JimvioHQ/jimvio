@@ -1,4 +1,4 @@
-﻿import React from "react";
+import React from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { CommissionsDashboard } from "./commissions-dashboard";

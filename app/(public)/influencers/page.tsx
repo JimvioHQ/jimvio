@@ -1,4 +1,4 @@
-﻿import React from "react";
+import React from "react";
 import Link from "next/link";
 import { getFeedClips, getTopVendors } from "@/services/db";
 import { TikTokFeed } from "@/components/influencer/tiktok-feed";
@@ -10,7 +10,7 @@ export default async function InfluencersPage() {
 
   return (
     <div className="min-h-screen bg-ink-darker">
-      {/* TikTok-style video feed "” main screen */}
+      {/* TikTok-style video feed — main screen */}
       <section className="relative">
         <TikTokFeed clips={clips} />
       </section>
@@ -39,7 +39,7 @@ export default async function InfluencersPage() {
         </div>
       </div>
 
-      {/* Top CTA strip "” below navbar */}
+      {/* Top CTA strip — below navbar */}
       <div className="fixed left-0 right-0 z-20 py-3 px-4 bg-gradient-to-b from-ink-darker/60 to-transparent pointer-events-none" style={{ top: 'var(--navbar-height, 108px)' }}>
         <div className="max-w-[1280px] mx-auto flex justify-between items-center">
           <span className="text-white/90 text-sm font-bold">Creator Feed</span>

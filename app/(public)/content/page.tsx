@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
@@ -21,7 +21,7 @@ import { Badge } from "@/components/ui/badge";
 import { TikTokFeed } from "@/components/influencer/tiktok-feed";
 import { UGCPostCard } from "@/components/ugc/ugc-post-card";
 
-// â”€â”€ DESIGN TOKENS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â"€â"€ DESIGN TOKENS â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 // Light mode palette
 // Surface:   #FFFFFF / #F8F7F4 / #F1EFE8
 // Border:    #E2DFD8 / #CCC9C0
@@ -138,7 +138,7 @@ export default function ContentHubPage() {
   return (
     <div className="min-h-screen bg-[#F8F7F4]">
 
-      {/* â”€â”€ HEADER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* â"€â"€ HEADER â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€ */}
       <div className="sticky top-[var(--navbar-height,0px)] z-40 bg-[#F8F7F4]/90 backdrop-blur-xl border-b border-[#E2DFD8]">
         <div className="max-w-[var(--container-max,1400px)] mx-auto px-5 sm:px-8 py-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
 
@@ -229,7 +229,7 @@ export default function ContentHubPage() {
         </div>
       </div>
 
-      {/* â”€â”€ CONTENT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* â"€â"€ CONTENT â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€ */}
       <div className="max-w-[var(--container-max,1400px)] mx-auto px-5 sm:px-8 py-10">
 
         {loading ? (
@@ -267,7 +267,7 @@ export default function ContentHubPage() {
         )}
       </div>
 
-      {/* â”€â”€ MODAL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* â"€â"€ MODAL â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€ */}
       {activeItem && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#1A1917]/80 backdrop-blur-sm">
           {activeItem.itemType === "clipping" ? (
@@ -310,7 +310,7 @@ export default function ContentHubPage() {
   );
 }
 
-// â”€â”€ SUB-COMPONENTS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â"€â"€ SUB-COMPONENTS â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
 function SectionHeader({ title, count }: { title: string; count?: number }) {
   return (

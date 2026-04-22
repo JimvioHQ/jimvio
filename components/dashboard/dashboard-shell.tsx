@@ -73,7 +73,7 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
 
       <div className="flex-1 flex flex-col min-w-0 min-h-0">
         {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-            HEADER "” Professional Solid
+            HEADER — Professional Solid
         â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
         <header className="sticky top-0 z-40 shrink-0 bg-surface border-b border-border">
           <div className="flex items-center justify-between gap-4 px-4 sm:px-6 h-14 w-full">
@@ -176,7 +176,7 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
         </main>
 
         {/* â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• 
-            MOBILE BOTTOM NAV "” Frosted Bar
+            MOBILE BOTTOM NAV — Frosted Bar
         â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â•  */}
          <nav
            className="lg:hidden fixed bottom-5 left-5 right-5 z-40 rounded-none overflow-hidden bg-surface border border-border shadow-none"

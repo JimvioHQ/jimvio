@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -67,7 +67,7 @@ export function ShopifyConnectClient({ platformVendorConfigured }: { platformVen
         <ul className="mt-3 list-disc space-y-2 pl-5">
           {!platformVendorConfigured && (
             <li>
-              <strong className="text-[var(--color-text-primary)]">Vendor ID</strong> "” UUID from Supabase{" "}
+              <strong className="text-[var(--color-text-primary)]">Vendor ID</strong> — UUID from Supabase{" "}
               <code className="text-xs">vendors.id</code>.{" "}
               <strong>Or</strong> create one &quot;Jimvio Marketplace&quot; vendor and put its id in{" "}
               <code className="text-xs">JIMVIO_PLATFORM_SHOPIFY_VENDOR_ID</code> so this field is hidden.
@@ -75,16 +75,16 @@ export function ShopifyConnectClient({ platformVendorConfigured }: { platformVen
           )}
           {platformVendorConfigured && (
             <li>
-              <strong className="text-[var(--color-text-primary)]">Vendor ID</strong> "” Not needed; the server uses{" "}
+              <strong className="text-[var(--color-text-primary)]">Vendor ID</strong> — Not needed; the server uses{" "}
               <code className="text-xs">JIMVIO_PLATFORM_SHOPIFY_VENDOR_ID</code>.
             </li>
           )}
           <li>
-            <strong className="text-[var(--color-text-primary)]">Shop domain</strong> "” Hostname only, e.g.{" "}
+            <strong className="text-[var(--color-text-primary)]">Shop domain</strong> — Hostname only, e.g.{" "}
             <code className="text-xs">your-store.myshopify.com</code>.
           </li>
           <li>
-            <strong className="text-[var(--color-text-primary)]">Admin API access token</strong> "” From the Shopify store:{" "}
+            <strong className="text-[var(--color-text-primary)]">Admin API access token</strong> — From the Shopify store:{" "}
             <strong>Develop apps</strong> â†’ Admin API with <strong>read_products</strong> â†’ Install â†’ <code className="text-xs">shpat_…</code>
           </li>
         </ul>
@@ -98,7 +98,7 @@ export function ShopifyConnectClient({ platformVendorConfigured }: { platformVen
               className="w-full border border-zinc-200 dark:border-border rounded-none px-3 py-2 text-sm"
               value={vendorId}
               onChange={(e) => setVendorId(e.target.value)}
-              placeholder="vendors.id from Supabase "” or set JIMVIO_PLATFORM_SHOPIFY_VENDOR_ID in .env"
+              placeholder="vendors.id from Supabase — or set JIMVIO_PLATFORM_SHOPIFY_VENDOR_ID in .env"
             />
           </>
         )}

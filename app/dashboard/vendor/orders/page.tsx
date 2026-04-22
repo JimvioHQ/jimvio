@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 export const dynamic = "force-dynamic";
 
 import React, { useEffect, useState } from "react";
@@ -280,7 +280,7 @@ export default function VendorOrdersPage() {
                          const displayStatus = resolveDisplayStatus(order);
                          const s = statusConfig[displayStatus] ?? statusConfig.pending;
                          const first = order.items[0];
-                         const productLabel = first ? (order.items.length > 1 ? `${first.product_name} +${order.items.length - 1}` : first.product_name) : ""”";
+                         const productLabel = first ? (order.items.length > 1 ? `${first.product_name} +${order.items.length - 1}` : first.product_name) : "";
                          
                          return (
                            <tr key={order.id} className="hover:bg-surface-secondary dark:hover:bg-zinc-800 transition-all duration-300 group">
@@ -293,7 +293,7 @@ export default function VendorOrdersPage() {
                                  </p>
                               </td>
                               <td className="px-4 sm:px-8 py-5 sm:py-6">
-                                 <p className="font-bold text-[13px] text-stone-900 dark:text-white leading-none">{order.buyer?.full_name?.split(' ')[0] || ""”"}</p>
+                                 <p className="font-bold text-[13px] text-stone-900 dark:text-white leading-none">{order.buyer?.full_name?.split(' ')[0] || ""}</p>
                                  <p className="text-[10px] font-medium text-stone-400 mt-1 truncate max-w-[100px] sm:max-w-[140px]">{order.buyer?.email}</p>
                               </td>
                               <td className="px-4 sm:px-8 py-5 sm:py-6">

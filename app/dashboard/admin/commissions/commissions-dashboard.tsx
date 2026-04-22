@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useMemo, useState } from "react";
 import {
@@ -73,7 +73,7 @@ export function CommissionsDashboard({
         value:
           filteredByRange.length > 0
             ? formatMoney(total / filteredByRange.length, "USD")
-            : ""”",
+            : "",
         icon: <BarChart3 className="h-5 w-5" />,
       },
     ];

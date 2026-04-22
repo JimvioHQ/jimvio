@@ -61,7 +61,7 @@ export function ShortClipsReel({ videos, className }: ShortClipsReelProps) {
 
   return (
     <section className={cn("space-y-6", className)}>
-      {/* â”€â”€ Standard Premium Header â”€â”€ */}
+      {/* â"€â"€ Standard Premium Header â"€â"€ */}
       <div className="flex items-end justify-between px-2">
         <div className="space-y-1.5">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-none bg-orange-50 dark:bg-orange-500/10 text-[10px] font-black uppercase tracking-[0.14em] text-orange-600 border border-orange-100/50 dark:border-orange-500/20 shadow-none">
@@ -88,7 +88,7 @@ export function ShortClipsReel({ videos, className }: ShortClipsReelProps) {
         </Link>
       </div>
 
-      {/* â”€â”€ Premium Scrollable Reel â”€â”€ */}
+      {/* â"€â"€ Premium Scrollable Reel â"€â"€ */}
       <div className="flex flex-nowrap gap-5 overflow-x-auto pb-8 no-scrollbar -mx-4 px-4 sm:-mx-6 sm:px-6">
         {videos.map((video) => (
           <div
@@ -96,7 +96,7 @@ export function ShortClipsReel({ videos, className }: ShortClipsReelProps) {
             className="shrink-0 group relative flex flex-col overflow-hidden rounded-none bg-white dark:bg-surface border border-stone-100 dark:border-border shadow-[0_8px_30px_-12px_rgba(0,0,0,0.06)] hover:shadow-[0_20px_50px_-12px_rgba(249,115,22,0.15)] hover:border-orange-500/30 transition-all duration-500 hover:-translate-y-2"
             style={{ width: "clamp(155px, 44vw, 190px)" }}
           >
-            {/* â”€â”€ VIDEO PLAYER PORTION â”€â”€ */}
+            {/* â"€â"€ VIDEO PLAYER PORTION â"€â"€ */}
             <Link 
               href={`/shorts?clip=${video.id}`} 
               className="block relative aspect-[9/12] overflow-hidden rounded-none-[24px] bg-stone-100 dark:bg-bg"
@@ -170,7 +170,7 @@ export function ShortClipsReel({ videos, className }: ShortClipsReelProps) {
               </div>
             </Link>
 
-            {/* â”€â”€ CONVERSION SECTION (Grounded UI) â”€â”€ */}
+            {/* â"€â"€ CONVERSION SECTION (Grounded UI) â"€â"€ */}
             <div className="p-3 bg-stone-50/80 dark:bg-bg/90 border-t border-stone-100 dark:border-white/5 space-y-2 relative z-10">
               {video.video_type === "product" && video.product ? (
                 <div className="space-y-2">
