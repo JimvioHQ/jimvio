@@ -44,7 +44,7 @@ export function ProductsCatalogClient({
     <div className="space-y-6">
       <div className="flex flex-col lg:flex-row gap-4 lg:items-end">
         <div className="flex-1 max-w-md">
-          <Input label="Search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search productsâ€¦" />
+          <Input label="Search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search products…" />
         </div>
         <div className="flex flex-wrap gap-2">
           <select

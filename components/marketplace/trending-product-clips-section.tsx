@@ -32,7 +32,7 @@ export type TrendingClip = {
 const getLogoUrl = (v: TrendingClip["vendors"]) =>
   v?.logo_url ?? (v as { business_logo?: string } | undefined)?.business_logo;
 
-/** Individual clip card â€” shared by mobile and desktop grids */
+/** Individual clip card "” shared by mobile and desktop grids */
 function ClipCard({
   clip,
   logoUrl,
@@ -163,7 +163,7 @@ export function TrendingProductClipsSection({ clips, className, title = "Trendin
               <span>{title}</span>
             </h2>
             <p className="mt-2 max-w-xl text-[13px] font-medium leading-relaxed text-text-muted sm:text-[14px]">
-              Short clips from verified sellers â€” tap to watch, follow, or shop the featured product.
+              Short clips from verified sellers "” tap to watch, follow, or shop the featured product.
             </p>
           </div>
         </div>
@@ -178,7 +178,7 @@ export function TrendingProductClipsSection({ clips, className, title = "Trendin
         </Link>
       </div>
 
-      {/* Single horizontal scroll row â€” all screen sizes */}
+      {/* Single horizontal scroll row "” all screen sizes */}
       <div className="flex flex-nowrap gap-3 overflow-x-auto pb-4 no-scrollbar -mx-4 px-4 sm:-mx-6 sm:px-6">
         {clips.map((clip) => (
           <ClipCard key={clip.id} clip={clip} logoUrl={logoUrl} onOpen={setModalClip} width={140} />

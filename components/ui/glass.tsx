@@ -65,10 +65,10 @@ export function GlassCard({
   );
 }
 
-// Specular removed â€” returns null for backward compat
+// Specular removed "” returns null for backward compat
 export function GlassSpecular() { return null; }
 
-// Ambient glow removed â€” returns null for backward compat
+// Ambient glow removed "” returns null for backward compat
 export function GlassAmbientGlow(_props: {
   color?: string;
   position?: string;

@@ -125,7 +125,7 @@ function MediaCarousel({ media }: { media: UGCPostMedia[] }) {
               onClick={() => setIndex((i) => i - 1)}
               className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-none bg-black/40 text-white flex items-center justify-center hover:bg-black/60 transition-colors"
             >
-              â€¹
+              "¹
             </button>
           )}
           {index < media.length - 1 && (
@@ -133,7 +133,7 @@ function MediaCarousel({ media }: { media: UGCPostMedia[] }) {
               onClick={() => setIndex((i) => i + 1)}
               className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-none bg-black/40 text-white flex items-center justify-center hover:bg-black/60 transition-colors"
             >
-              â€º
+              "º
             </button>
           )}
         </>
@@ -201,7 +201,7 @@ function Caption({ text }: { text: string | null }) {
       )}
       {!expanded && text.length > MAX && (
         <button onClick={() => setExpanded(true)} className="text-[var(--color-text-muted)] ml-1 hover:text-[var(--color-accent)] text-xs font-medium">
-          â€¦more
+          …more
         </button>
       )}
     </p>

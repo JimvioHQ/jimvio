@@ -264,7 +264,7 @@ export default function AffiliateEarningsPage() {
                            {new Date(p.created_at).toLocaleDateString()}
                         </td>
                         <td className="px-6 py-8">
-                           <p className="text-[14px] font-black text-stone-900 dark:text-white tracking-tight capitalize">{String(p.payout_method || "â€”").replace(/_/g, " ")}</p>
+                           <p className="text-[14px] font-black text-stone-900 dark:text-white tracking-tight capitalize">{String(p.payout_method || ""”").replace(/_/g, " ")}</p>
                            <p className="text-[9px] font-black text-stone-300 dark:text-stone-700 uppercase tracking-widest mt-1">Payment Hub</p>
                         </td>
                         <td className="px-6 py-8 text-right font-black text-2xl text-emerald-500 tabular-nums tracking-tighter">

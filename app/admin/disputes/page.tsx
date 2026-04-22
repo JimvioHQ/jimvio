@@ -9,7 +9,7 @@ export default function AdminDisputesPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-[var(--color-text-primary)]">Disputes</h1>
-        <p className="text-sm text-[var(--color-text-muted)] mt-0.5">Resolve buyerâ€“seller disputes</p>
+        <p className="text-sm text-[var(--color-text-muted)] mt-0.5">Resolve buyer"“seller disputes</p>
       </div>
       <Card>
         <CardHeader>

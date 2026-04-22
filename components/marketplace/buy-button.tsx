@@ -27,7 +27,7 @@ export function BuyButton({ productId, vendorId, quantity = 1, className }: BuyB
       const result = await addToCart(productId, vendorId, quantity);
       if (result.success) {
         setAdded(true);
-        // Optimistic update only â€” no expensive refreshCart() re-fetch needed
+        // Optimistic update only "” no expensive refreshCart() re-fetch needed
         incrementCartCount(quantity);
         setTimeout(() => setAdded(false), 2000);
       } else if (result.error === "Authentication required") {

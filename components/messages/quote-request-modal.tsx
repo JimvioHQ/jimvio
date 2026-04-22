@@ -97,7 +97,7 @@ export function QuoteRequestModal({
               Cancel
             </Button>
             <Button type="submit" className="rounded-none flex-1 bg-[var(--color-accent)]" disabled={loading}>
-              {loading ? "Sendingâ€¦" : "Send request"}
+              {loading ? "Sending…" : "Send request"}
             </Button>
           </div>
         </form>

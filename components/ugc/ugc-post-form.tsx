@@ -76,7 +76,7 @@ function HashtagInput({ hashtags, onChange }: { hashtags: string[]; onChange: (t
       <div className="flex gap-2">
         <input
           type="text"
-          placeholder="fashion, lifestyle, dealsâ€¦"
+          placeholder="fashion, lifestyle, deals…"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter" || e.key === "," || e.key === " ") { e.preventDefault(); addTag(); } }}
@@ -179,7 +179,7 @@ export function UGCPostForm({ products = [], onSuccess, onCancel, className }: U
           <textarea
             value={caption}
             onChange={(e) => setCaption(e.target.value.slice(0, MAX_CAPTION))}
-            placeholder="Share your experienceâ€¦ Use #hashtags to reach more people."
+            placeholder="Share your experience… Use #hashtags to reach more people."
             rows={4}
             className="w-full resize-none px-4 py-3 rounded-none border border-[var(--color-border)] bg-[var(--color-surface-secondary)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30 transition-all leading-relaxed"
           />
@@ -290,7 +290,7 @@ export function UGCPostForm({ products = [], onSuccess, onCancel, className }: U
             className="rounded-none px-6 font-semibold"
           >
             {submitting && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-            {submitting ? "Publishingâ€¦" : "Publish Post"}
+            {submitting ? "Publishing…" : "Publish Post"}
           </Button>
         </div>
       </div>

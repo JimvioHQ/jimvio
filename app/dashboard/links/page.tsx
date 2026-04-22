@@ -295,7 +295,7 @@ export default function AffiliateLinksPage() {
                                   </div>
                                   <div className="flex-1 min-w-0">
                                      <p className="font-bold text-[13px] truncate tracking-tight">{p.name}</p>
-                                     <p className="text-[9px] font-bold text-stone-400 uppercase tracking-widest">{formatMoney(Number(p.price), p.currency)} â€¢ {rate}% Comm.</p>
+                                     <p className="text-[9px] font-bold text-stone-400 uppercase tracking-widest">{formatMoney(Number(p.price), p.currency)} • {rate}% Comm.</p>
                                   </div>
                                   {selected && <CheckCircle className="h-4 w-4 text-orange-500 shrink-0" />}
                                 </button>

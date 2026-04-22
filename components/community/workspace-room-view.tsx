@@ -82,7 +82,7 @@ export function WorkspaceRoomView() {
           <div>
             <h2 className="text-xl font-black text-[var(--color-text-primary)]">Workspace home</h2>
             <p className="text-sm text-[var(--color-text-muted)] mt-2 leading-relaxed">
-              Open any room from the sidebar â€” it fills the screen so chat, courses, tasks, and posts stay focused and easy to use.
+              Open any room from the sidebar "” it fills the screen so chat, courses, tasks, and posts stay focused and easy to use.
             </p>
           </div>
           <Button
@@ -101,7 +101,7 @@ export function WorkspaceRoomView() {
     return (
       <div className="flex flex-1 items-center justify-center gap-2 text-[var(--color-text-muted)]">
         <Loader2 className="h-5 w-5 animate-spin" />
-        Loadingâ€¦
+        Loading…
       </div>
     );
   }

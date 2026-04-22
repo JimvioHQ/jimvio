@@ -126,7 +126,7 @@ function CreateCTACard() {
           Launch your own community
         </h3>
         <p className="text-xs text-[var(--color-text-muted)] mt-1 leading-relaxed">
-          Build, grow, and monetize your audience. Start free â€” no credit card required.
+          Build, grow, and monetize your audience. Start free "” no credit card required.
         </p>
       </div>
       <Button
@@ -276,7 +276,7 @@ export function CommunitiesDiscovery() {
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search by name, topic, or categoryâ€¦"
+                placeholder="Search by name, topic, or category…"
                 className="pl-11 pr-10 h-12 rounded-none border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-primary)] text-sm focus-visible:ring-[var(--color-accent)]/20"
               />
             </div>
@@ -421,7 +421,7 @@ export function CommunitiesDiscovery() {
                   className="rounded-none font-bold border-[var(--color-border)] h-11 px-8 hover:border-[var(--color-accent)]/40 transition-all"
                 >
                   {loadingMore ? (
-                    <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Loadingâ€¦</>
+                    <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Loading…</>
                   ) : (
                     <>Show more communities <ChevronDown size={16} className="ml-2" /></>
                   )}

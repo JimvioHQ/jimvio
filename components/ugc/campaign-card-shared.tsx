@@ -88,7 +88,7 @@ export function SharedCampaignCard({ c }: CampaignCardProps) {
         <div className="absolute inset-0 bg-gradient-to-t from-white dark:from-bg via-white/20 dark:via-bg/20 to-transparent" />
         <div className="absolute inset-0 bg-gradient-to-r from-white/40 dark:from-bg/40 via-transparent to-transparent" />
 
-        {/* Campaign type pill â€” top-left */}
+        {/* Campaign type pill "” top-left */}
         <div className="absolute top-3 left-3">
           <span
             className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-none text-[10px] font-bold uppercase tracking-wider shadow-none"
@@ -107,7 +107,7 @@ export function SharedCampaignCard({ c }: CampaignCardProps) {
           </span>
         </div>
 
-        {/* Platform icons â€” top-right */}
+        {/* Platform icons "” top-right */}
         <div className="absolute top-3 right-3 flex gap-1">
           {platforms.map((p) => {
             const Icon = PLATFORM_ICONS[p] || Share2;

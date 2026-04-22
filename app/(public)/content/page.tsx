@@ -149,7 +149,7 @@ export default function ContentHubPage() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search campaigns, creators, contentâ€¦"
+              placeholder="Search campaigns, creators, content…"
               className="w-full h-10 pl-10 pr-4 bg-white dark:bg-surface border border-[#E2DFD8] rounded-none text-[14px] text-[#1A1917] placeholder:text-[#8A8780] focus:outline-none focus:border-[#1A1917] focus:ring-2 focus:ring-[#1A1917]/6 transition-all font-medium"
             />
           </div>

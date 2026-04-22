@@ -30,7 +30,7 @@ interface Product {
   button_text?: string | null;
   pricing_type?: string | null;
   billing_period?: string | null;
-  /** Canonical product type Ã¢â‚¬â€ 'digital' | 'physical' */
+  /** Canonical product type Ã¢â‚¬" 'digital' | 'physical' */
   product_type?: string;
   affiliate_enabled?: boolean;
   affiliate_commission_rate?: number | null;
@@ -154,10 +154,10 @@ export function ProductCardClient({
 
   return (
     <>
-      {/* Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
-          PRODUCT CARD Ã¢â‚¬â€ App Store Style
+      {/* Ã¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•Â
+          PRODUCT CARD Ã¢â‚¬" App Store Style
           Clean white card with orange accents
-      Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â */}
+      Ã¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•Â */}
       <div
         className={cn(
           "group relative flex flex-col h-full overflow-hidden",
@@ -167,7 +167,7 @@ export function ProductCardClient({
             : "border-border shadow-none hover:border-orange-500/20"
         )}
       >
-        {/* Ã¢â€â‚¬Ã¢â€â‚¬ Image area Ã¢â€â‚¬Ã¢â€â‚¬ */}
+        {/* Ã¢"â‚¬Ã¢"â‚¬ Image area Ã¢"â‚¬Ã¢"â‚¬ */}
         <Link
           href={`${detailBasePath}/${p.slug}`}
           className={cn(
@@ -224,7 +224,7 @@ export function ProductCardClient({
 
           {/* BOTTOM-RIGHT: removed type badge */}
 
-          {/* BOTTOM hover actions Ã¢â‚¬â€ slide up */}
+          {/* BOTTOM hover actions Ã¢â‚¬" slide up */}
           <div className={cn(
             "absolute left-2 right-2 z-20 flex gap-1.5",
             "transition-all duration-400 ease-[cubic-bezier(0.16,1,0.3,1)]",
@@ -281,7 +281,7 @@ export function ProductCardClient({
           </div>
         </Link>
 
-        {/* Ã¢â€â‚¬Ã¢â€â‚¬ Info area Ã¢â€â‚¬Ã¢â€â‚¬ */}
+        {/* Ã¢"â‚¬Ã¢"â‚¬ Info area Ã¢"â‚¬Ã¢"â‚¬ */}
         <div className="flex flex-col flex-1 px-3 pt-2.5 pb-3 gap-1">
           {/* Product name */}
           <Link href={`${detailBasePath}/${p.slug}`} className="min-w-0">

@@ -58,7 +58,7 @@ function paymentLabel(m: any) {
    if (m === "nowpayments") return "Crypto";
    if (m === "flutterwave") return "Card & Wallets";
    if (m === "paypal") return "PayPal";
-   return "â€”";
+   return ""”";
 }
 
 const STEPS: { n: number; label: string; icon: any }[] = [

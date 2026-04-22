@@ -113,7 +113,7 @@ export default function PublicOrdersPage() {
                     ? "PesaPal"
                     : o.payment_provider === "pawapay"
                       ? "PawaPay"
-                      : o.payment_provider || "â€”";
+                      : o.payment_provider || ""”";
               const num = o.order_number || o.id.slice(0, 8);
               return (
                 <li

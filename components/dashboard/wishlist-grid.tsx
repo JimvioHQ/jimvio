@@ -100,7 +100,7 @@ export function WishlistGrid({ initialItems }: { initialItems: WishlistItem[] })
             <div className="p-3 sm:p-4 pt-4 sm:pt-5 pb-2 sm:pb-3">
               <div className="flex flex-col gap-0.5 mb-2 sm:mb-3">
                   <p className="text-[12px] sm:text-[13px] font-black text-stone-900 dark:text-white line-clamp-1 leading-tight tracking-tight group-hover:text-orange-600 transition-colors uppercase">{product.name}</p>
-                  <p className="text-[8px] sm:text-[9px] font-bold uppercase tracking-widest text-stone-400 opacity-60 truncate">{product.vendors?.business_name ?? "â€”"}</p>
+                  <p className="text-[8px] sm:text-[9px] font-bold uppercase tracking-widest text-stone-400 opacity-60 truncate">{product.vendors?.business_name ?? ""”"}</p>
               </div>
               <p className="text-[14px] sm:text-[16px] font-black text-stone-900 dark:text-white tracking-tight mb-2 tabular-nums">{formatMoney(Number(product.price), product.currency)}</p>
               <div className="flex items-center justify-between text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-stone-400 border-t border-stone-50 pt-3 opacity-80">

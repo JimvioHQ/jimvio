@@ -154,7 +154,7 @@ export function VendorEarningsDashboard() {
   function methodLabel(id: string | null): string {
     const m = METHOD_OPTIONS.find((o) => o.id === id);
     if (m) return m.label;
-    if (!id) return "â€”";
+    if (!id) return ""”";
     return id.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
   }
 
@@ -366,7 +366,7 @@ export function VendorEarningsDashboard() {
                                   {t.order_number}
                                 </Link>
                               ) : (
-                                "â€”"
+                                ""”"
                               )}
                             </td>
                             <td className="p-3 text-right tabular-nums">{lines}</td>

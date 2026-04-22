@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -33,7 +33,7 @@ import { CurrencyConverterWidget } from "@/components/shared/currency-converter-
    iPhone 17 Liquid Glass Design Tokens
    --------------------------------------------------------- */
 
-/** Standard Professional Design Tokens â€” solid surfaces, high trust */
+/** Standard Professional Design Tokens "” solid surfaces, high trust */
 const GLASS_LIGHT = {
   body: "var(--color-surface)",
   border: "var(--color-border)",
@@ -48,10 +48,10 @@ const GLASS_DARK = {
   shadow: "var(--shadow-none)",
 };
 
-/* Specular line â€” the 1px bright edge every glass element has */
+/* Specular line "” the 1px bright edge every glass element has */
 function SpecularLine({ rounded = false }: { rounded?: boolean }) { return null; }
 
-/* Diagonal specular sweep â€” adds depth */
+/* Diagonal specular sweep "” adds depth */
 function SpecularSweep() { return null; }
 
 /* Console Link/Button — strictly sharp Shopify aesthetics */
@@ -397,20 +397,20 @@ export function Navbar({ user, marketing }: NavbarProps) {
           </nav>
 
           {/* Right side */}
-          <div className="flex-1 flex items-center justify-end gap-1">
+          <div className="flex-1 flex items-center justify-end gap-1.5 min-w-0">
 
-            {/* Desktop search */}
-            <div className="hidden min-[1000px]:block max-w-[380px] w-full shrink">
+            {/* Desktop search — collapses earlier to preserve space for auth */}
+            <div className="hidden min-[1100px]:block max-w-[260px] w-full shrink min-w-0">
               <NavbarSearch searchQ={searchQ} setSearchQ={setSearchQ}
                 placeholder={marketing.search_placeholder} isScrolled={scrolled}
                 variant="desktop" runSearch={runSearch} navLinks={navLinks} />
             </div>
 
-            {/* AI Mode */}
-            <ConsoleButton orange className="hidden md:flex shrink-0 px-4 py-2 uppercase tracking-widest"
+            {/* AI Mode — hide on smaller desktops */}
+            <ConsoleButton orange className="hidden min-[1200px]:flex shrink-0 px-3.5 py-2 text-[11px] uppercase tracking-widest"
               onClick={() => openAssistant()}>
-              <Sparkles className="h-4 w-4 fill-white stroke-none" />
-              <span>AI Mode</span>
+              <Sparkles className="h-3.5 w-3.5 fill-white stroke-none" />
+              <span>AI</span>
             </ConsoleButton>
 
             {/* Messages */}
@@ -426,24 +426,24 @@ export function Navbar({ user, marketing }: NavbarProps) {
             </ConsoleIconBtn>
 
             {/* Theme Toggle */}
-            <div className="hidden min-[1100px]:flex mr-1">
+            <div className="hidden min-[1280px]:flex mr-0.5">
               <ThemeToggle />
             </div>
 
             {/* Divider */}
-            <div className="hidden lg:block h-6 w-px mx-1 bg-border/40" />
+            <div className="hidden lg:block h-6 w-px mx-1 bg-border/40 shrink-0" />
 
-            {/* User menu */}
-            <div className="hidden sm:block">
+            {/* User menu / Auth buttons */}
+            <div className="hidden sm:flex items-center shrink-0">
               {user ? (
                 <DropdownMenu modal={false}>
                   <DropdownMenuTrigger asChild>
                     <button
-                      className="relative flex items-center justify-center p-1 h-10 w-10 rounded-full transition-all border border-border bg-surface shadow-sm active:scale-95 hover:bg-stone-50 dark:hover:bg-white/5"
+                      className="relative flex items-center justify-center p-0.5 h-9 w-9 rounded-full transition-all border border-border bg-surface shadow-sm active:scale-95 hover:border-orange-400"
                     >
                       <Avatar className="h-full w-full border border-border shrink-0">
                         <AvatarImage src={user.avatar_url ?? undefined} className="object-cover" />
-                        <AvatarFallback className="bg-stone-100 text-stone-600 text-[10px] font-bold capitalize">
+                        <AvatarFallback className="bg-orange-100 text-orange-600 text-[10px] font-bold capitalize">
                           {user.full_name?.[0] || user.email?.[0] || 'U'}
                         </AvatarFallback>
                       </Avatar>
@@ -479,7 +479,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
                         className="p-0 focus:bg-transparent rounded-none cursor-pointer">
                         <Link
                           href={item.href}
-                          className="flex items-center gap-2.5 px-3 py-2.5 rounded-none text-[13px] font-semibold text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:text-white dark:hover:text-white transition-colors"
+                          className="flex items-center gap-2.5 px-3 py-2.5 rounded-none text-[13px] font-semibold text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-white transition-colors"
                           onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "var(--color-surface-secondary)"}
                           onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = ""}
                         >
@@ -489,7 +489,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
                       </DropdownMenuItem>
                     ))}
 
-                    <div className="h-px my-1 mx-1" style={{ background: "rgba(255,255,255,0.07)" }} />
+                    <div className="h-px my-1 mx-1 bg-border/60" />
 
                     <DropdownMenuItem
                       onSelect={async () => { await signOut(); window.location.href = "/"; }}
@@ -501,7 +501,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
 
                     {/* Theme toggle inside menu for smaller desktop screens */}
                     <DropdownMenuItem
-                      className="min-[1100px]:hidden flex items-center justify-between px-3 py-2.5 rounded-none text-[13px] font-semibold text-stone-600 dark:text-stone-300 focus:bg-transparent"
+                      className="min-[1280px]:hidden flex items-center justify-between px-3 py-2.5 rounded-none text-[13px] font-semibold text-stone-600 dark:text-stone-300 focus:bg-transparent"
                     >
                       <div className="flex items-center gap-2.5">
                         <Sun className="h-4 w-4 text-stone-400" />
@@ -513,12 +513,15 @@ export function Navbar({ user, marketing }: NavbarProps) {
                 </DropdownMenu>
               ) : (
                 <div className="flex items-center gap-2 shrink-0">
-                  <Link href="/login" className="px-4 py-2 text-[13px] font-semibold text-stone-600 border border-border hover:bg-stone-50">
+                  <Link
+                    href="/login"
+                    className="h-9 px-4 flex items-center text-[12px] font-bold text-stone-600 dark:text-stone-300 border border-border bg-white dark:bg-stone-900 hover:bg-stone-50 dark:hover:bg-stone-800 hover:text-stone-900 dark:hover:text-white transition-all whitespace-nowrap"
+                  >
                     Log In
                   </Link>
                   <Link
                     href="/register"
-                    className="px-5 py-2.5 rounded-none text-[12px] font-black capitalize tracking-widest bg-orange-500 text-white shadow-none hover:bg-orange-600 transition-all active:scale-95 shrink-0 whitespace-nowrap"
+                    className="h-9 px-4 flex items-center text-[12px] font-black uppercase tracking-widest bg-orange-500 text-white hover:bg-orange-600 transition-all active:scale-95 shrink-0 whitespace-nowrap"
                   >
                     Join Free
                   </Link>
@@ -534,7 +537,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
         </div>
       </div>
 
-      {/* MOBILE DRAWER â€” Premium Solid Theme */}
+      {/* MOBILE DRAWER "” Premium Solid Theme */}
       {portalReady && createPortal(
         <MobileDrawer
           open={mobileOpen}

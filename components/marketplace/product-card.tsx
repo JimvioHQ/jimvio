@@ -18,7 +18,7 @@ interface ProductCardProps {
   viewMode?: "grid" | "list";
 }
 
-/** Reusable glass badge Ã¢â‚¬â€ matches dashboard GlassPill */
+/** Reusable glass badge Ã¢â‚¬" matches dashboard GlassPill */
 function GlassBadge({
   children,
   color = "neutral",
@@ -53,9 +53,9 @@ export function ProductCard({ product, viewMode = "grid" }: ProductCardProps) {
   const images = Array.isArray(product.images) ? (product.images as string[]) : [];
   const primaryImage = images[0] || null;
 
-  /* Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
-     LIST VIEW Ã¢â‚¬â€ horizontal glass card
-  Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â */
+  /* Ã¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•Â
+     LIST VIEW Ã¢â‚¬" horizontal glass card
+  Ã¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•Â */
   if (viewMode === "list") {
     return (
       <Link href={`/marketplace/${product.slug}`}>
@@ -145,10 +145,10 @@ export function ProductCard({ product, viewMode = "grid" }: ProductCardProps) {
     );
   }
 
-  /* Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
-     GRID VIEW Ã¢â‚¬â€ vertical glass card
+  /* Ã¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•Â
+     GRID VIEW Ã¢â‚¬" vertical glass card
      Matches dashboard GlassCard exactly
-  Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â */
+  Ã¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•Â */
   return (
     <Link href={`/marketplace/${product.slug}`}>
       <div className={cn(
@@ -159,13 +159,13 @@ export function ProductCard({ product, viewMode = "grid" }: ProductCardProps) {
         "hover:shadow-none",
         "hover:border-orange-100/80 dark:hover:border-orange-500/30 transition-all duration-300",
       )}>
-        {/* Ã¢â€â‚¬Ã¢â€â‚¬ Specular shine (matches dashboard GlassCard shine) Ã¢â€â‚¬Ã¢â€â‚¬ */}
+        {/* Ã¢"â‚¬Ã¢"â‚¬ Specular shine (matches dashboard GlassCard shine) Ã¢"â‚¬Ã¢"â‚¬ */}
         <div className="pointer-events-none absolute inset-0 rounded-none overflow-hidden z-10">
           <div className="absolute -top-1/2 -left-1/2 w-full h-3/4 rotate-[-25deg] bg-gradient-to-br from-white/80 to-transparent" />
           <div className="absolute bottom-0 right-0 w-1/2 h-1/2 rounded-none blur-2xl bg-orange-100/40" />
         </div>
 
-        {/* Ã¢â€â‚¬Ã¢â€â‚¬ Image Ã¢â€â‚¬Ã¢â€â‚¬ */}
+        {/* Ã¢"â‚¬Ã¢"â‚¬ Image Ã¢"â‚¬Ã¢"â‚¬ */}
         <div className="relative aspect-square overflow-hidden rounded-none">
           {primaryImage && !imageError ? (
             <Image
@@ -215,7 +215,7 @@ export function ProductCard({ product, viewMode = "grid" }: ProductCardProps) {
           </div>
         </div>
 
-        {/* Ã¢â€â‚¬Ã¢â€â‚¬ Info Ã¢â€â‚¬Ã¢â€â‚¬ */}
+        {/* Ã¢"â‚¬Ã¢"â‚¬ Info Ã¢"â‚¬Ã¢"â‚¬ */}
         <div className="relative z-10 px-3.5 pt-3 pb-3.5">
           {product.affiliate_enabled && (
             <GlassBadge color="orange">Affiliate</GlassBadge>

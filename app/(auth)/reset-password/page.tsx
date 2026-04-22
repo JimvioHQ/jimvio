@@ -7,7 +7,7 @@ export default function ResetPasswordPage() {
   return (
     <Suspense
       fallback={
-        <div className="text-center text-sm text-[var(--color-text-secondary)] py-10">Loadingâ€¦</div>
+        <div className="text-center text-sm text-[var(--color-text-secondary)] py-10">Loading…</div>
       }
     >
       <ResetPasswordClient />

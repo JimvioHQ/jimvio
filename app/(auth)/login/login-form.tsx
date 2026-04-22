@@ -125,7 +125,7 @@ export function LoginForm() {
                 id="password"
                 type={showPw ? "text" : "password"}
                 name="password"
-                placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
+                placeholder="••••••••"
                 className="pl-11 pr-11 h-12 rounded-none border-zinc-200 dark:border-border bg-white dark:bg-surface text-[15px] text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all shadow-none"
                 required
                 autoComplete="current-password"
@@ -148,7 +148,7 @@ export function LoginForm() {
             disabled={pending}
           >
             {pending ? (
-              "Signing inâ€¦"
+              "Signing in…"
             ) : (
               "Sign in"
             )}

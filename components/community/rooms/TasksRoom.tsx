@@ -270,7 +270,7 @@ export function TasksRoom({
             <label className="text-xs font-bold text-[var(--color-text-muted)]">What did you do?</label>
             <Textarea value={proofText} onChange={(e) => setProofText(e.target.value)} rows={4} className="rounded-none border-[var(--color-border)]" />
             <label className="text-xs font-bold text-[var(--color-text-muted)]">Proof link (optional)</label>
-            <Input value={proofUrl} onChange={(e) => setProofUrl(e.target.value)} className="rounded-none border-[var(--color-border)]" placeholder="https://â€¦" />
+            <Input value={proofUrl} onChange={(e) => setProofUrl(e.target.value)} className="rounded-none border-[var(--color-border)]" placeholder="https://…" />
           </div>
           <div className="flex flex-wrap gap-2 justify-end pt-2">
             <Button variant="outline" className="rounded-none" onClick={() => setModalTask(null)}>

@@ -455,7 +455,7 @@ export default function SettingsPage() {
                    <div className="space-y-6">
                       <div className="space-y-2">
                         <Label className="text-[10px] font-bold uppercase tracking-widest text-stone-400 dark:text-text-muted ml-1">Current Password</Label>
-                        <Input type="password" value="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" className={cn(inputClass, "opacity-40")} disabled />
+                        <Input type="password" value="••••••••••••" className={cn(inputClass, "opacity-40")} disabled />
                       </div>
                       <div className="space-y-2">
                         <Label className="text-[10px] font-bold uppercase tracking-widest text-stone-400 dark:text-text-muted ml-1">New Password</Label>

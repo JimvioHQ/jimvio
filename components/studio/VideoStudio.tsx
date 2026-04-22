@@ -318,7 +318,7 @@ function UploadTab({ onSuccess }: { onSuccess: () => void }) {
       {uploading && progress > 0 && (
         <div className="space-y-1.5">
           <div className="flex items-center justify-between text-xs font-bold text-zinc-500">
-            <span>Uploadingâ€¦</span><span>{progress}%</span>
+            <span>Uploading…</span><span>{progress}%</span>
           </div>
           <div className="h-2 rounded-none bg-zinc-100 overflow-hidden">
             <div className="h-full bg-gradient-to-r from-[var(--color-accent)] to-orange-400 transition-all" style={{ width: `${progress}%` }} />
@@ -332,7 +332,7 @@ function UploadTab({ onSuccess }: { onSuccess: () => void }) {
         <input
           value={form.title}
           onChange={(e) => setForm(f => ({ ...f, title: e.target.value }))}
-          placeholder="Give your video a catchy titleâ€¦"
+          placeholder="Give your video a catchy title…"
           className="w-full h-11 rounded-none border border-zinc-200 dark:border-border-strong bg-white dark:bg-surface dark:text-white px-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30 focus:border-[var(--color-accent)]"
           maxLength={100}
         />
@@ -344,7 +344,7 @@ function UploadTab({ onSuccess }: { onSuccess: () => void }) {
         <textarea
           value={form.description}
           onChange={(e) => setForm(f => ({ ...f, description: e.target.value }))}
-          placeholder="Tell viewers what this is aboutâ€¦"
+          placeholder="Tell viewers what this is about…"
           rows={3}
           className="w-full rounded-none border border-zinc-200 dark:border-border-strong bg-white dark:bg-surface dark:text-white px-4 py-3 text-sm font-medium resize-none focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30 focus:border-[var(--color-accent)]"
           maxLength={500}
@@ -402,9 +402,9 @@ function UploadTab({ onSuccess }: { onSuccess: () => void }) {
               onChange={(e) => setForm(f => ({ ...f, product_id: e.target.value }))}
               className="w-full h-12 rounded-none border-2 border-zinc-100 dark:border-border-strong bg-white dark:bg-surface dark:text-white px-4 text-sm font-bold focus:outline-none focus:border-[var(--color-accent)] transition-all appearance-none cursor-pointer"
             >
-              <option value="">Choose a productâ€¦</option>
+              <option value="">Choose a product…</option>
               {products.map(p => (
-                <option key={p.id} value={p.id}>{p.name} â€” {p.currency} {p.price}</option>
+                <option key={p.id} value={p.id}>{p.name} "” {p.currency} {p.price}</option>
               ))}
             </select>
             <div className="flex flex-wrap gap-2 mt-3">
@@ -438,7 +438,7 @@ function UploadTab({ onSuccess }: { onSuccess: () => void }) {
               onChange={(e) => setForm(f => ({ ...f, community_id: e.target.value }))}
               className="w-full h-12 rounded-none border-2 border-zinc-100 dark:border-border-strong bg-white dark:bg-surface dark:text-white px-4 text-sm font-bold focus:outline-none focus:border-indigo-500 transition-all appearance-none cursor-pointer"
             >
-              <option value="">Choose a communityâ€¦</option>
+              <option value="">Choose a community…</option>
               {communities.map(c => (
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
@@ -486,7 +486,7 @@ function UploadTab({ onSuccess }: { onSuccess: () => void }) {
         <div className={cn("rounded-none px-4 py-3 text-sm font-bold flex items-center gap-2",
           result.ok ? "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400" : "bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400")}>
           {result.ok ? <CheckCircle className="h-4 w-4 shrink-0" /> : <AlertCircle className="h-4 w-4 shrink-0" />}
-          {result.ok ? "Video uploaded successfully! Redirectingâ€¦" : result.error}
+          {result.ok ? "Video uploaded successfully! Redirecting…" : result.error}
         </div>
       )}
 
@@ -496,9 +496,9 @@ function UploadTab({ onSuccess }: { onSuccess: () => void }) {
         className="w-full h-12 rounded-none font-black text-sm bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] shadow-none shadow-orange-500/20 transition-all active:scale-95"
       >
         {uploading ? (
-          <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> {progress > 0 ? `Uploading ${progress}%` : "Sending to Storageâ€¦"}</>
+          <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> {progress > 0 ? `Uploading ${progress}%` : "Sending to Storage…"}</>
         ) : submitting ? (
-          <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Finalizing Videoâ€¦</>
+          <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Finalizing Video…</>
         ) : (
           <><Upload className="h-4 w-4 mr-2" /> Publish Video</>
         )}
@@ -551,7 +551,7 @@ function AnalyticsTab({ videos }: { videos: ShortVideo[] }) {
 
       {loading && (
         <div className="flex items-center gap-2 text-zinc-400 py-10">
-          <Loader2 className="h-5 w-5 animate-spin" /><span className="text-sm font-medium">Loading analyticsâ€¦</span>
+          <Loader2 className="h-5 w-5 animate-spin" /><span className="text-sm font-medium">Loading analytics…</span>
         </div>
       )}
 
@@ -620,7 +620,7 @@ function EarningsTab() {
 
   if (loading) return (
     <div className="flex items-center gap-2 text-zinc-400 py-10">
-      <Loader2 className="h-5 w-5 animate-spin" /><span className="text-sm">Loading earningsâ€¦</span>
+      <Loader2 className="h-5 w-5 animate-spin" /><span className="text-sm">Loading earnings…</span>
     </div>
   );
 
@@ -799,7 +799,7 @@ export function VideoStudio({ defaultTab = "videos" }: { defaultTab?: Tab }) {
         {tab === "videos" && (
           loading ? (
             <div className="flex items-center gap-2 text-zinc-400 py-10">
-              <Loader2 className="h-5 w-5 animate-spin" /><span className="text-sm">Loading your videosâ€¦</span>
+              <Loader2 className="h-5 w-5 animate-spin" /><span className="text-sm">Loading your videos…</span>
             </div>
           ) : videos.length === 0 ? (
             <div className="py-20 text-center border-2 border-dashed border-zinc-200 dark:border-border rounded-none">

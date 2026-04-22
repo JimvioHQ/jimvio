@@ -239,7 +239,7 @@ export default function BuyerOrdersPage() {
                                               {item.product_type === "digital" && <Badge variant="secondary" className="bg-orange-500/10 text-orange-600 dark:text-orange-400 text-[8px] px-1.5 py-0 uppercase tracking-widest font-black border-orange-500/20">Digital</Badge>}
                                             </div>
                                             <p className="text-[9px] sm:text-[10px] font-medium text-stone-400 dark:text-text-muted mt-0.5">
-                                               Qty: {item.quantity} â€¢ Sold by <span className="text-stone-700 dark:text-stone-300 font-bold">{item.vendors?.business_name || "Vendor"}</span>
+                                               Qty: {item.quantity} • Sold by <span className="text-stone-700 dark:text-stone-300 font-bold">{item.vendors?.business_name || "Vendor"}</span>
                                             </p>
                                          </div>
                                       </div>

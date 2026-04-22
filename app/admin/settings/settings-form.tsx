@@ -344,7 +344,7 @@ export default function AdminPlatformSettingsForm({
       </Card>
 
       <Button className="rounded-none" size="lg" onClick={submit} disabled={pending}>
-        {pending ? "Savingâ€¦" : "Save settings"}
+        {pending ? "Saving…" : "Save settings"}
       </Button>
     </div>
   );

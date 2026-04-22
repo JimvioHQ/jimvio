@@ -129,7 +129,7 @@ export function CreateCommunityForm() {
           <Check className="h-8 w-8" />
         </div>
         <h1 className="text-2xl font-black text-[var(--color-text-primary)]">Community created</h1>
-        <p className="text-[var(--color-text-muted)]">Youâ€™re ready to add spaces and rooms.</p>
+        <p className="text-[var(--color-text-muted)]">You're ready to add spaces and rooms.</p>
         <Button asChild className="rounded-none bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-black px-8">
           <Link href={`/creator/${successId}/spaces`}>Set up your spaces</Link>
         </Button>
@@ -288,7 +288,7 @@ export function CreateCommunityForm() {
           </div>
 
           {isFree ? (
-            <p className="text-sm text-[var(--color-text-secondary)] font-medium">Members join for free â€” no pricing required.</p>
+            <p className="text-sm text-[var(--color-text-secondary)] font-medium">Members join for free "” no pricing required.</p>
           ) : (
             <div className="space-y-3">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -340,7 +340,7 @@ export function CreateCommunityForm() {
               <span className="text-[var(--color-text-muted)]">Name:</span> <span className="font-bold">{name}</span>
             </p>
             <p>
-              <span className="text-[var(--color-text-muted)]">Tagline:</span> {tagline || "â€”"}
+              <span className="text-[var(--color-text-muted)]">Tagline:</span> {tagline || ""”"}
             </p>
             <p>
               <span className="text-[var(--color-text-muted)]">Category:</span> {category}
@@ -355,7 +355,7 @@ export function CreateCommunityForm() {
               </p>
             )}
             <p>
-              <span className="text-[var(--color-text-muted)]">Tags:</span> {tags.join(", ") || "â€”"}
+              <span className="text-[var(--color-text-muted)]">Tags:</span> {tags.join(", ") || ""”"}
             </p>
           </div>
         </div>

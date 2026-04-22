@@ -73,7 +73,7 @@ export default function AffiliateAnalyticsPage() {
   const chartData = links.slice(0, 10).map((l, i) => {
     const name = (l.products as { name?: string })?.name ?? `Link ${i + 1}`;
     return {
-      name: name.length > 12 ? name.slice(0, 10) + "â€¦" : name,
+      name: name.length > 12 ? name.slice(0, 10) + "…" : name,
       clicks: l.total_clicks ?? 0,
       conversions: l.total_conversions ?? 0,
     };

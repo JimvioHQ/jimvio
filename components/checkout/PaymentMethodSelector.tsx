@@ -5,7 +5,7 @@ import { CreditCard, Bitcoin, Check, Smartphone, Globe, Wallet } from "lucide-re
 import { cn } from "@/lib/utils";
 
 /* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-   INLINE SVG BRAND LOGOS â€” zero CDN dependency
+   INLINE SVG BRAND LOGOS "” zero CDN dependency
    All rendered with inline SVG or styled spans.
    Pill height: 24px, consistent across all logos.
    â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */

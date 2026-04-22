@@ -113,7 +113,7 @@ export default function InfluencerDashboardPage() {
                </h1>
                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-stone-400">
                   <span className="flex items-center gap-1"><Globe className="w-3 h-3" /> Partner Creator</span>
-                  <span>â€¢</span>
+                  <span>•</span>
                   <span>{influencer.category || 'Global'}</span>
                </div>
             </div>
@@ -183,7 +183,7 @@ export default function InfluencerDashboardPage() {
                                 <span className={cn("px-2 py-0.5 rounded-none border shadow-none", isPending ? "bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800" : "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800")}>
                                    {sub.status}
                                 </span>
-                                â€¢ {sub.platform}
+                                • {sub.platform}
                              </p>
                           </div>
                           <div className="text-right shrink-0">

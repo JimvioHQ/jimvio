@@ -61,7 +61,7 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
   }, [fetchRoles]);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
+    <div className="flex h-screen overflow-hidden bg-stone-50 dark:bg-stone-950">
       <Sidebar
         user={user}
         activeRoles={activeRoles}
@@ -73,16 +73,16 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
 
       <div className="flex-1 flex flex-col min-w-0 min-h-0">
         {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-            HEADER â€” Professional Solid
+            HEADER "” Professional Solid
         â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
-        <header className="sticky top-0 z-40 shrink-0 bg-white dark:bg-black/20 border-b border-border">
+        <header className="sticky top-0 z-40 shrink-0 bg-white dark:bg-stone-900 border-b border-border">
           <div className="flex items-center justify-between gap-4 px-4 sm:px-6 h-14 w-full">
             
             {/* Mobile: Hamburger */}
             <div className="lg:hidden flex items-center gap-3">
                <button
                  onClick={() => setMobileMenuOpen(true)}
-                 className="flex items-center justify-center h-10 w-10 rounded-none bg-stone-50 dark:bg-white/5 border border-border"
+                 className="flex items-center justify-center h-10 w-10 rounded-none bg-stone-50 dark:bg-stone-800 border border-border"
                >
                   <Menu className="h-5 w-5 text-stone-500" />
                </button>
@@ -100,7 +100,7 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
                   <input 
                     type="text" 
                     placeholder="Search apps, products, orders..." 
-                    className="w-full h-9 pl-9 pr-4 rounded-none text-[13px] bg-stone-50 dark:bg-white/5 border border-border focus:border-orange-500/50 focus:bg-white transition-all outline-none"
+                     className="w-full h-9 pl-9 pr-4 rounded-none text-[13px] bg-stone-50 dark:bg-stone-800 border border-border text-stone-900 dark:text-stone-100 placeholder:text-stone-400 dark:placeholder:text-stone-500 focus:border-orange-500/50 focus:bg-white dark:focus:bg-stone-700 transition-all outline-none"
                   />
                </div>
             </div>
@@ -113,14 +113,14 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
                {/* Currency */}
                 <div className="hidden sm:block">
                     <CurrencySelector
-                      className="h-9 rounded-none text-[11px] font-bold bg-white dark:bg-white/5 border border-border px-3 text-stone-600 dark:text-stone-400 hover:bg-stone-50 dark:hover:bg-white/10 transition-colors"
+                      className="h-9 rounded-none text-[11px] font-bold bg-white dark:bg-stone-800 border border-border px-3 text-stone-600 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors"
                     />
                 </div>
                
                {/* Notifications */}
                 <Link
                   href="/dashboard/notifications"
-                  className="flex items-center justify-center h-9 w-9 rounded-none text-stone-400 dark:text-stone-500 hover:text-stone-900 dark:hover:text-white transition-all active:scale-95 relative bg-white dark:bg-white/5 border border-border"
+                   className="flex items-center justify-center h-9 w-9 rounded-none text-stone-400 dark:text-stone-400 hover:text-stone-900 dark:hover:text-white transition-all active:scale-95 relative bg-white dark:bg-stone-800 border border-border"
                 >
                   <Bell className="h-4 w-4" />
                   <span className="absolute top-2 right-2 w-1.5 h-1.5 bg-orange-500 rounded-none border border-white dark:border-stone-900" />
@@ -129,18 +129,18 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
                {/* User Menu */}
                 <DropdownMenu>
                    <DropdownMenuTrigger asChild>
-                     <button className="flex items-center gap-2 p-1 pl-1 pr-2.5 rounded-none transition-all hover:shadow-none active:scale-95 bg-white dark:bg-white/5 border border-border">
-                        <div className="w-7 h-7 rounded-none bg-stone-100 dark:bg-stone-800 flex items-center justify-center text-[10px] font-bold text-stone-600 border border-border overflow-hidden">
+                      <button className="flex items-center gap-2 p-1 pl-1 pr-2.5 rounded-none transition-all hover:shadow-none active:scale-95 bg-white dark:bg-stone-800 border border-border">
+                         <div className="w-7 h-7 rounded-none bg-stone-100 dark:bg-stone-700 flex items-center justify-center text-[10px] font-bold text-stone-600 dark:text-stone-200 border border-border overflow-hidden">
                            {user.avatar_url ? <img src={user.avatar_url} className="w-full h-full object-cover" /> : initials}
                         </div>
-                        <span className="hidden sm:block text-[12px] font-bold text-stone-800 dark:text-stone-300">
+                         <span className="hidden sm:block text-[12px] font-bold text-stone-800 dark:text-stone-200">
                            Admin
                         </span>
                      </button>
                    </DropdownMenuTrigger>
                     <DropdownMenuContent
                       align="end"
-                      className="w-56 rounded-none p-2 shadow-none border border-border bg-white dark:bg-stone-900"
+                       className="w-56 rounded-none p-2 shadow-none border border-border bg-white dark:bg-stone-900 dark:border-stone-700"
                     >
                       <DropdownMenuLabel className="px-3 py-2">
                         <p className="text-xs font-bold text-stone-900 dark:text-white uppercase tracking-tighter">{user.full_name || 'Account'}</p>
@@ -169,17 +169,17 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto overflow-x-hidden relative">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden relative bg-stone-50 dark:bg-stone-950">
           <div className="px-4 py-6 sm:px-6 sm:py-8 lg:p-10 max-w-[1400px] mx-auto">
              {children}
           </div>
         </main>
 
-        {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-            MOBILE BOTTOM NAV â€” Frosted Bar
-        â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+        {/* â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• 
+            MOBILE BOTTOM NAV "” Frosted Bar
+        â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â•  */}
          <nav
-           className="lg:hidden fixed bottom-5 left-5 right-5 z-40 rounded-none overflow-hidden bg-surface/90 dark:bg-surface/90 border border-border shadow-none"
+           className="lg:hidden fixed bottom-5 left-5 right-5 z-40 rounded-none overflow-hidden bg-white dark:bg-stone-900 border border-border shadow-none"
          >
           <div className="flex items-center justify-around h-[60px]">
             <BottomNavLink href="/dashboard" icon={<LayoutDashboard className="h-5 w-5" />} label="Home" />
@@ -245,7 +245,7 @@ function BottomNavLink({
 export function DashboardShell({ children }: { children: React.ReactNode }) {
    return (
      <Suspense fallback={
-        <div className="flex flex-col h-screen items-center justify-center bg-background space-y-4">
+         <div className="flex flex-col h-screen items-center justify-center bg-stone-50 dark:bg-stone-950 space-y-4">
            <div className="w-10 h-10 border-4 border-stone-100 dark:border-border border-t-orange-500 rounded-none animate-spin" />
            <p className="text-[10px] font-bold text-stone-400 dark:text-text-muted uppercase tracking-widest">Loading...</p>
         </div>

@@ -73,7 +73,7 @@ export function CommissionsDashboard({
         value:
           filteredByRange.length > 0
             ? formatMoney(total / filteredByRange.length, "USD")
-            : "â€”",
+            : ""”",
         icon: <BarChart3 className="h-5 w-5" />,
       },
     ];

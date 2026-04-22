@@ -124,7 +124,7 @@ export default function PostBuyingLeadPage() {
               </Button>
 
               <p className="text-center text-xs text-[var(--color-text-muted)]">
-                By submitting, you agree to Jimvioâ€™s Terms of Use and Privacy Policy. Your request will be reviewed by our team before being shared with suppliers.
+                By submitting, you agree to Jimvio's Terms of Use and Privacy Policy. Your request will be reviewed by our team before being shared with suppliers.
               </p>
             </form>
           </div>

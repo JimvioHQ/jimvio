@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React from "react";
 import Link from "next/link";
@@ -227,11 +227,11 @@ export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobil
 
                 <Link href="/dashboard/wallet" onClick={onMobileClose}>
                    <div className="text-xl font-bold text-white tabular-nums tracking-tight">
-                     {balanceHidden ? "â€¢â€¢â€¢â€¢â€¢â€¢" : formatMoney(balance.available, "USD")}
+                     {balanceHidden ? "••••••" : formatMoney(balance.available, "USD")}
                    </div>
                    <div className="flex items-center justify-between mt-2">
                      <span className="text-[10px] font-medium text-stone-500">
-                       {balanceHidden ? "â€¢â€¢â€¢" : formatMoney(balance.pending, "USD")} pending
+                       {balanceHidden ? "•••" : formatMoney(balance.pending, "USD")} pending
                      </span>
                      <ArrowUpRight className="w-3 h-3 text-stone-500 group-hover:text-orange-400 transition-colors" />
                    </div>

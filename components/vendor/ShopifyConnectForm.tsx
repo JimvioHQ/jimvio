@@ -255,7 +255,7 @@ export function ShopifyConnectForm({ vendorId }: Props) {
       <Button type="submit" className="w-full" size="lg" disabled={connecting}>
         {connecting ? (
           <>
-            <Loader2 className="h-4 w-4 animate-spin" /> Connectingâ€¦
+            <Loader2 className="h-4 w-4 animate-spin" /> Connecting…
           </>
         ) : (
           "Connect store"

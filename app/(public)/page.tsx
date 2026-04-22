@@ -145,7 +145,7 @@ export default async function HomePage() {
               <RecommendedHeader />
             </div>
 
-            {/* Products â€” single horizontal scroll row */}
+            {/* Products "” single horizontal scroll row */}
             <div className="flex flex-nowrap gap-4 overflow-x-auto pb-4 no-scrollbar -mx-4 px-4 sm:-mx-6 sm:px-6">
               {recommended.slice(0, 24).map((p) => (
                 <div key={p.id} className="w-[160px] shrink-0 lg:w-[180px]">
@@ -155,7 +155,7 @@ export default async function HomePage() {
             </div>
           </section>
 
-          {/* â”€â”€ LIVE CONTENT (Missions/Communities) â€” After Products â”€â”€ */}
+          {/* â”€â”€ LIVE CONTENT (Missions/Communities) "” After Products â”€â”€ */}
           <div className="space-y-12">
             <CampaignScrollRow campaigns={campaigns as any[]} />
             <ShortClipsReel videos={videos as any[]} />

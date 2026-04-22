@@ -154,7 +154,7 @@ export function ResetPasswordClient() {
   if (!ready && !linkError) {
     return (
       <div className="animate-fade-in text-center py-8">
-        <p className="text-[var(--color-text-secondary)] text-sm">Verifying reset linkâ€¦</p>
+        <p className="text-[var(--color-text-secondary)] text-sm">Verifying reset link…</p>
       </div>
     );
   }
@@ -170,7 +170,7 @@ export function ResetPasswordClient() {
           name="password"
           type="password"
           label="New password"
-          placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
+          placeholder="••••••••"
           icon={<KeyRound className="h-4 w-4" />}
           autoComplete="new-password"
           required
@@ -180,7 +180,7 @@ export function ResetPasswordClient() {
           name="password_confirm"
           type="password"
           label="Confirm password"
-          placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
+          placeholder="••••••••"
           icon={<KeyRound className="h-4 w-4" />}
           autoComplete="new-password"
           required

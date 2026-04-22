@@ -41,10 +41,10 @@ export default async function AdminVerificationsPage() {
                 <div className="min-w-0 flex-1">
                   <p className="font-semibold text-[var(--color-text-primary)]">{v.business_name || "Unnamed store"}</p>
                   <p className="text-sm text-[var(--color-text-muted)]">
-                    {v.profiles?.email ?? "â€”"} Â· {v.business_country || "â€”"}
+                    {v.profiles?.email ?? ""”"} Â· {v.business_country || ""”"}
                   </p>
                   <p className="text-xs text-[var(--color-text-muted)] mt-1">
-                    Submitted {v.created_at ? new Date(v.created_at).toLocaleDateString() : "â€”"}
+                    Submitted {v.created_at ? new Date(v.created_at).toLocaleDateString() : ""”"}
                   </p>
                 </div>
                 <div className="flex gap-2 shrink-0">

@@ -396,7 +396,7 @@ export default function VendorSetupPage() {
               { label: "Phone",          value: form.business_phone || "Not provided", icon: <Phone className="h-4 w-4" /> },
               { label: "Country",        value: form.business_country, icon: <MapPin className="h-4 w-4" /> },
               ...(form.tax_id ? [{ label: "Tax ID", value: form.tax_id, icon: <FileText className="h-4 w-4" /> }] : []),
-              { label: "Payout",         value: `${form.payout_method} â€” ${form.payout_account}`, icon: <FileText className="h-4 w-4" /> },
+              { label: "Payout",         value: `${form.payout_method} "” ${form.payout_account}`, icon: <FileText className="h-4 w-4" /> },
               { label: "Affiliate",      value: form.affiliate_enabled ? `Enabled (${form.affiliate_commission_rate}% default)` : "Disabled", icon: <Zap className="h-4 w-4" /> },
             ].map((item, i) => (
               <div key={i} className="flex items-start gap-3 p-3 bg-subtle rounded-none">

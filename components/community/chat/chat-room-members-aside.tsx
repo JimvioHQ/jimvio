@@ -26,7 +26,7 @@ export function ChatRoomMembersAside({
   communityId: string;
   userId: string | null;
   threadOpen?: boolean;
-  /** Optional: parent controls the mobile â€œPeopleâ€ sheet (e.g. chip-row button). */
+  /** Optional: parent controls the mobile "People" sheet (e.g. chip-row button). */
   mobilePeopleOpen?: boolean;
   onMobilePeopleOpenChange?: (open: boolean) => void;
   desktopBreakpoint?: "lg" | "xl";
@@ -73,7 +73,7 @@ export function ChatRoomMembersAside({
     return (
       <div className={cn("flex flex-col gap-0.5 overflow-y-auto", className)}>
         {loading ? (
-          <p className="px-2 py-4 text-center text-xs text-[var(--color-text-muted)]">Loadingâ€¦</p>
+          <p className="px-2 py-4 text-center text-xs text-[var(--color-text-muted)]">Loading…</p>
         ) : others.length === 0 ? (
           <p className="px-2 py-4 text-center text-xs text-[var(--color-text-muted)]">No other members yet.</p>
         ) : (

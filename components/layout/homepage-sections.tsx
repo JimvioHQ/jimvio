@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React from "react";
 import Link from "next/link";
@@ -40,7 +40,7 @@ const GLASS_DARK_STYLE: React.CSSProperties = {
   boxShadow: "var(--shadow-none)",
 };
 
-// Neutral â€” no backdrop blur
+// Neutral "” no backdrop blur
 const glassLight = "";
 const glassDark = "";
 const glassMid = "";
@@ -105,7 +105,7 @@ export function RecommendedHeader() {
           </span>
           Recommended Picks
         </h2>
-        <p className="mt-2 text-[14px] font-bold text-zinc-400 dark:text-text-muted">Curated from verified suppliers â€” updated as inventory changes.</p>
+        <p className="mt-2 text-[14px] font-bold text-zinc-400 dark:text-text-muted">Curated from verified suppliers "” updated as inventory changes.</p>
       </motion.div>
       <motion.div variants={fadeUp}>
         <motion.div whileHover={{ x: 4 }} whileTap={{ scale: 0.97 }}>
@@ -287,7 +287,7 @@ export function TrendingSidePanel({ trendingCats, suppliers }: { trendingCats: T
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-[13px] font-black text-zinc-800 dark:text-stone-300 truncate group-hover:text-[#f97316] transition-colors">{v.business_name}</p>
-                    <p className="text-[10px] font-bold text-zinc-400 dark:text-text-muted">â­ {Number(v.rating ?? 0).toFixed(1) || "â€”"} Â· Active</p>
+                    <p className="text-[10px] font-bold text-zinc-400 dark:text-text-muted">⭐ {Number(v.rating ?? 0).toFixed(1) || "N/A"} · Active</p>
                   </div>
                 </Link>
               </motion.div>
@@ -451,7 +451,7 @@ export function AffiliatePanel({ valueProps, campaigns = [], spotlightCreator, t
               </div>
             </>
           ) : (
-            <p className="text-sm text-zinc-900 dark:text-white/40 font-bold w-full text-center py-2">Be the first top earner â€” share products you love.</p>
+            <p className="text-sm text-zinc-900 dark:text-white/40 font-bold w-full text-center py-2">Be the first top earner "” share products you love.</p>
           )}
         </div>
         <Button className="w-full h-11 rounded-none bg-orange-500 hover:bg-orange-600 text-white font-bold text-[14px] shadow-none" asChild>

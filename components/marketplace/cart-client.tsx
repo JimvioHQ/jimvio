@@ -320,7 +320,7 @@ export function CartClient({ initialOrders }: CartClientProps) {
               <div className="flex justify-between text-xs">
                 <span className="text-stone-500 dark:text-text-muted">Estimated Tax</span>
                 <span className="text-stone-800 dark:text-text-secondary font-bold">
-                  {hasMixedCurrencies ? "â€”" : formatMoney(0, orders[0]?.currency ?? "USD")}
+                  {hasMixedCurrencies ? ""”" : formatMoney(0, orders[0]?.currency ?? "USD")}
                 </span>
               </div>
             </div>

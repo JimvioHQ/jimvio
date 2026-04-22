@@ -94,7 +94,7 @@ export function ProductShareModal({
               className="rounded-none flex-1"
             />
             <Button type="button" onClick={fetchBySlug} disabled={loading} className="rounded-none shrink-0">
-              {loading ? "â€¦" : "Load"}
+              {loading ? "…" : "Load"}
             </Button>
           </div>
           <div className="flex gap-2">

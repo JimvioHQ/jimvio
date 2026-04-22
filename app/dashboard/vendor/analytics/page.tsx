@@ -112,7 +112,7 @@ export default function VendorAnalyticsPage() {
   }, []);
 
   const totalRevenueLabel = useMemo(() => {
-    if (!revenueLineItems.length) return "â€”";
+    if (!revenueLineItems.length) return ""”";
     return formatCartTotalsLabel(groupOrderLineRowsToCartOrders(revenueLineItems));
   }, [revenueLineItems, formatCartTotalsLabel]);
 
@@ -206,7 +206,7 @@ export default function VendorAnalyticsPage() {
                  <DollarSign className="h-7 w-7 text-emerald-500" />
               </div>
               <div>
-                 <p className="text-3xl font-black text-emerald-600 tracking-tighter leading-none tabular-nums truncate max-w-full">{totalRevenueLabel === "â€”" ? "$0" : totalRevenueLabel}</p>
+                 <p className="text-3xl font-black text-emerald-600 tracking-tighter leading-none tabular-nums truncate max-w-full">{totalRevenueLabel === ""”" ? "$0" : totalRevenueLabel}</p>
                  <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mt-3">Gross Liquidity Yield</p>
               </div>
            </GlassCard>

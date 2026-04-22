@@ -177,7 +177,7 @@ export function ViralStoryRow({ clips, initialActiveIndex = null, onClose, force
         </div>
       )}
 
-      {/* Full-screen player: must portal to document.body â€” hero panels use overflow-hidden + , which trap/clips position:fixed */}
+      {/* Full-screen player: must portal to document.body "” hero panels use overflow-hidden + , which trap/clips position:fixed */}
       {mounted &&
         activeClipIndex !== null &&
         createPortal(

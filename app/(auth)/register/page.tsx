@@ -57,7 +57,7 @@ function RegisterForm() {
       <div className="space-y-3 mb-10">
         <h1 className="text-3xl font-black tracking-tight text-zinc-900 dark:text-white">Create an account</h1>
         <p className="text-[14px] font-medium text-zinc-500">
-          Join Jimvio â€” completely free to sign up.
+          Join Jimvio "” completely free to sign up.
         </p>
       </div>
 
@@ -167,7 +167,7 @@ function RegisterForm() {
             disabled={pending}
           >
             {pending ? (
-              "Creating accountâ€¦"
+              "Creating account…"
             ) : (
               "Create account"
             )}

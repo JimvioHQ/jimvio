@@ -560,8 +560,8 @@ export default function ActivateVendorPage() {
                      <div className="grid grid-cols-1 gap-3">
                         {[
                           { label: "Store Name", value: form.business_name },
-                          { label: "Contact Phone", value: form.business_phone || "â€”" },
-                          { label: "Support Email", value: form.business_email || "â€”" },
+                          { label: "Contact Phone", value: form.business_phone || ""”" },
+                          { label: "Support Email", value: form.business_email || ""”" },
                           { label: "Country", value: form.business_country },
                         ].map((row, i) => (
                           <div key={i} className="px-6 py-4 rounded-none bg-white dark:bg-surface border border-stone-100 dark:border-border shadow-none flex items-center justify-between group hover:border-orange-100 transition-all">

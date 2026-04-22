@@ -50,7 +50,7 @@ export function WorkspaceMembersClient({ slug, members }: { slug: string; member
         <p className="text-sm text-[var(--color-text-muted)] mt-1">People in this community</p>
         <div className="mt-4 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
           <Input
-            placeholder="Search by nameâ€¦"
+            placeholder="Search by name…"
             value={q}
             onChange={(e) => setQ(e.target.value)}
             className="max-w-md rounded-none border-[var(--color-border)]"

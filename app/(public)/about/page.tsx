@@ -57,7 +57,7 @@ export default function AboutPage() {
             <h2 className="text-4xl font-black text-[var(--color-text-primary)] mb-8">The Jimvio Story</h2>
             <div className="space-y-6 text-[var(--color-text-secondary)] text-lg leading-relaxed">
               <p>
-                We started with a simple observation: Global supply chains were designed for industrial giants, while the most dynamic force in commerce â€” independent creators and agile businesses â€” were left behind.
+                We started with a simple observation: Global supply chains were designed for industrial giants, while the most dynamic force in commerce "” independent creators and agile businesses "” were left behind.
               </p>
               <p>
                 Jimvio was built to change that. We offer a unified platform where manufacturers can reach a global audience of creators, and creators can source verified products with just a few clicks.

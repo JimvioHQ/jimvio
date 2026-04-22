@@ -44,18 +44,18 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
                 ) : (
                   users.map((u: any) => (
                     <tr key={u.id} className="border-b border-[var(--color-border)]/50 hover:bg-[var(--color-surface-secondary)]/30">
-                      <td className="py-3 px-4 font-mono text-xs truncate max-w-[120px]" title={u.id}>{u.id.slice(0, 8)}â€¦</td>
-                      <td className="py-3 px-4 font-medium">{u.full_name || "â€”"}</td>
+                      <td className="py-3 px-4 font-mono text-xs truncate max-w-[120px]" title={u.id}>{u.id.slice(0, 8)}…</td>
+                      <td className="py-3 px-4 font-medium">{u.full_name || ""”"}</td>
                       <td className="py-3 px-4">{u.email}</td>
                       <td className="py-3 px-4">
                         <span className="flex flex-wrap gap-1">
                           {(u.roles ?? []).map((r: string) => (
                             <span key={r} className="inline-flex px-2 py-0.5 rounded-none bg-[var(--color-surface-secondary)] text-xs font-medium">{r}</span>
                           ))}
-                          {(!u.roles || u.roles.length === 0) && "â€”"}
+                          {(!u.roles || u.roles.length === 0) && ""”"}
                         </span>
                       </td>
-                      <td className="py-3 px-4 text-[var(--color-text-muted)]">{u.created_at ? new Date(u.created_at).toLocaleDateString() : "â€”"}</td>
+                      <td className="py-3 px-4 text-[var(--color-text-muted)]">{u.created_at ? new Date(u.created_at).toLocaleDateString() : ""”"}</td>
                     </tr>
                   ))
                 )}

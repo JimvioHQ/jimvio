@@ -96,7 +96,7 @@ export default function AdminUGCPage() {
                           {c.title}
                         </Link>
                       </td>
-                      <td className="px-6 py-4 font-semibold text-stone-600">{c.vendor?.business_name ?? 'â€”'}</td>
+                      <td className="px-6 py-4 font-semibold text-stone-600">{c.vendor?.business_name ?? '"”'}</td>
                       <td className="px-6 py-4">
                         <span className="text-[10px] font-black px-2 py-1 rounded-none bg-stone-100 text-stone-600 uppercase tracking-tighter">
                           {c.campaign_type}

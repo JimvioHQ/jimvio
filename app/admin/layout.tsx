@@ -58,7 +58,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   if (isAdmin === null || !user) {
     return (
       <div className="flex h-screen items-center justify-center bg-[var(--color-bg)]">
-        <p className="text-sm text-[var(--color-text-muted)]">Loading adminâ€¦</p>
+        <p className="text-sm text-[var(--color-text-muted)]">Loading admin…</p>
       </div>
     );
   }

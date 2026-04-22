@@ -26,7 +26,7 @@ export function ProductCardSkeleton() {
   );
 }
 
-/** Homepage marketplace grid skeleton â€” matches ProductCardClient layout */
+/** Homepage marketplace grid skeleton "” matches ProductCardClient layout */
 export function HomeProductCardSkeleton() {
   return (
     <div className="bg-white dark:bg-surface rounded-none border border-[#eee] dark:border-border overflow-hidden flex flex-col h-full">

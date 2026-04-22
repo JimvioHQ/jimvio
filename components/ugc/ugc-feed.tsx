@@ -186,7 +186,7 @@ export function UGCFeed({
         </div>
       )}
 
-      {/* Post Feed â€” Masonry-style using CSS columns */}
+      {/* Post Feed "” Masonry-style using CSS columns */}
       {!loading && posts.length > 0 && (
         <div className="columns-1 sm:columns-2 gap-4">
           {posts.map((post) => (

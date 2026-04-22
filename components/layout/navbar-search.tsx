@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -139,7 +139,7 @@ export function NavbarSearch({
             if (e.key === "Enter") commit(searchQ);
             if (e.key === "Escape") { close(); inputRef.current?.blur(); }
           }}
-          placeholder={!isDesktop && !focused && !searchQ ? "" : (placeholder ?? "Searchâ€¦")}
+          placeholder={!isDesktop && !focused && !searchQ ? "" : (placeholder ?? "Search…")}
           className="flex-1 min-w-0 bg-transparent border-0 outline-none px-2 text-[13px] font-semibold placeholder:font-normal"
           style={{ color: "var(--color-text-primary)", caretColor: "#f97316" }}
         />
@@ -162,7 +162,7 @@ export function NavbarSearch({
           )}
         </AnimatePresence>
 
-        {/* Cmd+K hint â€” desktop only */}
+        {/* Cmd+K hint "” desktop only */}
         <AnimatePresence>
           {!focused && !searchQ && isDesktop && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -220,12 +220,12 @@ export function NavbarSearch({
             {/* Body grid */}
             <div className="flex divide-x divide-black/[0.04] max-h-[480px] overflow-hidden">
 
-              {/* Left â€” results */}
+              {/* Left "” results */}
               <div className="flex-1 overflow-y-auto p-5 space-y-5" style={{ scrollbarWidth: "none" }}>
                 {loading && (
                   <div className="flex items-center gap-3 py-4">
                     <Loader2 className="h-5 w-5 animate-spin text-orange-500" />
-                    <span className="text-[13px] font-semibold text-stone-400">Searchingâ€¦</span>
+                    <span className="text-[13px] font-semibold text-stone-400">Searching…</span>
                   </div>
                 )}
 

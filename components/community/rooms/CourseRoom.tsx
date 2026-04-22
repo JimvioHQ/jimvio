@@ -958,7 +958,7 @@ export function CourseRoom({
     <>
       {/* Desktop: side-by-side | Mobile: tab-switched views */}
       <div className="flex flex-1 min-h-0 overflow-hidden relative">
-        {/* Sidebar â€” always visible on lg, toggled on mobile */}
+        {/* Sidebar "” always visible on lg, toggled on mobile */}
         <div
           className={cn(
             "shrink-0 border-r border-[var(--color-border)]",
@@ -993,7 +993,7 @@ export function CourseRoom({
         </div>
       </div>
 
-      {/* Mobile bottom tab bar â€” only show when not in editing modal */}
+      {/* Mobile bottom tab bar "” only show when not in editing modal */}
       {!editingItem && (
         <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 flex border-t border-[var(--color-border)] bg-[var(--color-surface)] safe-area-bottom">
           <button

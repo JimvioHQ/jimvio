@@ -1172,7 +1172,7 @@ export function ChatRoom({ roomId, roomName, communityId, slug, hideHeader }: {
           <div className="flex shrink-0 items-center gap-2 px-3 py-2" style={{ background: WA.header, borderBottom: `1px solid ${WA.border}` }}>
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: WA.textSecondary }} />
-              <input type="search" placeholder="Search messagesâ€¦" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} autoFocus
+              <input type="search" placeholder="Search messages…" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} autoFocus
                 className="w-full rounded-none border-0 py-2 pl-10 pr-4 text-sm outline-none" style={{ background: WA.searchBg, color: WA.text }} />
             </div>
             <button type="button" className="text-sm font-semibold shrink-0" style={{ color: WA.accent }} onClick={() => { setSearchOpen(false); setSearchQuery(""); }}>Cancel</button>
@@ -1258,7 +1258,7 @@ export function ChatRoom({ roomId, roomName, communityId, slug, hideHeader }: {
                       }} />
                   ))}
                 </div>
-                <span className="text-[11px] shrink-0 ml-1" style={{ color: WA.textSecondary }}>Recordingâ€¦</span>
+                <span className="text-[11px] shrink-0 ml-1" style={{ color: WA.textSecondary }}>Recording…</span>
               </div>
               {/* Stop button */}
               <button type="button" onClick={stopVoiceRecording}
@@ -1358,7 +1358,7 @@ export function ChatRoom({ roomId, roomName, communityId, slug, hideHeader }: {
               <WaIconBtn onClick={() => threadFileRef.current?.click()} disabled={pendingThread.length >= MAX_ATTACH}><Paperclip className="h-5 w-5" /></WaIconBtn>
               <WaIconBtn onClick={() => setEmojiOpen(true)}><Smile className="h-5 w-5" /></WaIconBtn>
               <div className="flex-1 rounded-none px-4 py-2" style={{ background: WA.panel, border: `1px solid ${WA.border}` }}>
-                <Textarea rows={2} placeholder="Reply in threadâ€¦" className="w-full resize-none border-0 bg-transparent p-0 text-sm focus-visible:ring-0" style={{ color: WA.text }}
+                <Textarea rows={2} placeholder="Reply in thread…" className="w-full resize-none border-0 bg-transparent p-0 text-sm focus-visible:ring-0" style={{ color: WA.text }}
                   value={threadReplyText} onChange={e => setThreadReplyText(e.target.value)}
                   onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(threadRoot.id); } }} />
               </div>

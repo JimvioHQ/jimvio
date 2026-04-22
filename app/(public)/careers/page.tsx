@@ -90,7 +90,7 @@ export default function CareersPage() {
                 </div>
                 <div className="absolute top-10 right-10 p-6 bg-white dark:bg-surface/10 backdrop-blur-xl rounded-none border border-white/20">
                    <p className="text-white font-black text-lg leading-tight">"The best work I've ever done with the best people I've ever met."</p>
-                   <p className="text-white/60 text-xs mt-4 font-bold capitalize tracking-widest">â€” Marie, Lead Designer</p>
+                   <p className="text-white/60 text-xs mt-4 font-bold capitalize tracking-widest">"” Marie, Lead Designer</p>
                 </div>
              </div>
           </div>

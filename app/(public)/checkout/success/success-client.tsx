@@ -23,7 +23,7 @@ export function CheckoutSuccessClient({ order }: { order: Order }) {
 
   useEffect(() => {
     const sp = new URLSearchParams(window.location.search);
-    // PawaPay passes order_tracking_id in the redirect URL â€” this IS the depositId
+    // PawaPay passes order_tracking_id in the redirect URL "” this IS the depositId
     const trackingId = sp.get("OrderTrackingId") || sp.get("order_tracking_id");
 
     async function doSync() {
@@ -74,7 +74,7 @@ export function CheckoutSuccessClient({ order }: { order: Order }) {
             ? "AfriPay"
             : p 
               ? p.charAt(0).toUpperCase() + p.slice(1)
-              : "â€”";
+              : ""”";
 
   return (
     <div className="text-center">

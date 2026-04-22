@@ -75,8 +75,8 @@ export default function AdminAllSubmissionsPage() {
                 {submissions.map(sub => (
                   <tr key={sub.id} className="hover:bg-[var(--color-surface-secondary)] transition-colors">
                     <td className="px-4 py-3 text-lg">{PLATFORM_ICONS[sub.platform] ?? 'ðŸŒ'}</td>
-                    <td className="px-4 py-3 text-[var(--color-text-primary)] text-xs">{sub.influencer?.display_name ?? 'â€”'}</td>
-                    <td className="px-4 py-3 text-[var(--color-text-primary)] text-xs max-w-[140px] truncate">{sub.campaign?.title ?? 'â€”'}</td>
+                    <td className="px-4 py-3 text-[var(--color-text-primary)] text-xs">{sub.influencer?.display_name ?? '"”'}</td>
+                    <td className="px-4 py-3 text-[var(--color-text-primary)] text-xs max-w-[140px] truncate">{sub.campaign?.title ?? '"”'}</td>
                     <td className="px-4 py-3">
                       <a href={sub.post_url} target="_blank" rel="noopener noreferrer"
                         className="text-xs text-[var(--color-accent)] hover:text-[var(--color-accent-hover)] transition-colors max-w-[160px] truncate block">
