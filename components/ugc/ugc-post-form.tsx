@@ -141,7 +141,7 @@ export function UGCPostForm({ products = [], onSuccess, onCancel, className }: U
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Failed to post");
-      toast.success("Post published! ðŸŽ‰");
+      toast.success("Post published! 🎉");
       setCaption(""); setMedia([]); setHashtags([]); setSelectedProductIds([]);
       onSuccess?.();
     } catch (err: unknown) {
@@ -229,7 +229,7 @@ export function UGCPostForm({ products = [], onSuccess, onCancel, className }: U
               folder="jimvio/ugc"
               resourceType="video"
               onUploadSuccess={addVideoMedia}
-              buttonText="ðŸŽ¬ Video"
+              buttonText="🎬 Video"
               variant="outline"
               className="flex-1 [&>button]:w-full [&>button]:rounded-none [&>button]:text-sm [&>button]:font-medium"
             />

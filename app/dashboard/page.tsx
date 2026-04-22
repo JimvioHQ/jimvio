@@ -37,13 +37,13 @@ function StatCard({ value, label, icon, colorClass, borderClass }: {
   value: string | number; label: string; icon: React.ReactNode; colorClass: string; borderClass: string;
 }) {
   return (
-    <div className="relative group p-5 flex flex-col justify-between min-h-[140px] bg-[#0A0A0A] border border-[#222]">
-      <div className={cn("w-11 h-11 flex items-center justify-center shrink-0 border bg-[#111] transition-colors duration-300", borderClass, colorClass, "group-hover:bg-[#1A1A1A]")}>
+    <div className="relative group p-5 flex flex-col justify-between min-h-[140px] bg-[var(--color-surface)] border border-[var(--color-border)] shadow-none transition-all duration-300">
+      <div className={cn("w-11 h-11 flex items-center justify-center shrink-0 border bg-[var(--color-surface-secondary)] transition-colors duration-300", borderClass, colorClass, "group-hover:bg-[var(--color-surface-secondary)]/80")}>
         {icon as React.ReactNode}
       </div>
       <div className="mt-4">
-        <p className="text-[26px] font-black text-white tabular-nums tracking-tighter leading-none">{value}</p>
-        <p className="mt-2 text-[10px] font-bold text-zinc-500 uppercase tracking-widest break-words truncate">{label}</p>
+        <p className="text-[26px] font-black text-[var(--color-text-primary)] tabular-nums tracking-tighter leading-none">{value}</p>
+        <p className="mt-2 text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-widest break-words truncate">{label}</p>
       </div>
     </div>
   );
@@ -63,17 +63,17 @@ function ActionRow({ href, icon, label, highlight = false }: {
       )}>
         <div className={cn(
           "h-9 w-9 flex items-center justify-center shrink-0 border",
-          highlight ? "bg-[#111] border-orange-500/20 text-orange-500" : "bg-[#111] border-[#222] text-zinc-500 group-hover:text-white group-hover:border-[#333]"
+          highlight ? "bg-[var(--color-surface-secondary)] border-orange-500/20 text-orange-500" : "bg-[var(--color-surface-secondary)] border-[var(--color-border)] text-[var(--color-text-muted)] group-hover:text-[var(--color-text-primary)] group-hover:border-[var(--color-border-strong)]"
         )}>
           {icon as React.ReactNode}
         </div>
         <span className={cn(
           "text-[11px] font-bold flex-1 truncate uppercase tracking-widest",
-          highlight ? "text-orange-500" : "text-zinc-400 group-hover:text-white"
+          highlight ? "text-orange-500" : "text-[var(--color-text-secondary)] group-hover:text-[var(--color-text-primary)]"
         )}>{label}</span>
         <ChevronRight className={cn(
           "h-4 w-4 transition-transform group-hover:translate-x-1",
-          highlight ? "text-orange-400" : "text-zinc-600"
+          highlight ? "text-orange-400" : "text-[var(--color-text-muted)]"
         )} />
       </div>
     </Link>
@@ -87,10 +87,10 @@ function SectionHeader({ title, icon, actionHref, actionLabel = "View All" }: {
   return (
     <div className="flex items-center justify-between px-1 mb-4">
       <div className="flex items-center gap-3">
-        <div className="text-orange-500 bg-[#111] p-1.5 border border-[#222]">
+        <div className="text-orange-500 bg-[var(--color-surface-secondary)] p-1.5 border border-[var(--color-border)] shadow-none">
           {icon as React.ReactNode}
         </div>
-        <h2 className="text-[11px] font-bold text-white uppercase tracking-widest font-mono">{title}</h2>
+        <h2 className="text-[11px] font-bold text-[var(--color-text-primary)] uppercase tracking-widest font-mono">{title}</h2>
       </div>
       {actionHref && (
         <Link href={actionHref} className="text-[10px] font-bold text-orange-500 hover:text-orange-400 transition-colors uppercase tracking-widest font-mono">
@@ -211,17 +211,17 @@ export default function DashboardPage() {
   /* ─── Loading State ─── */
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center space-y-10 animate-in fade-in duration-700 bg-[#060606]">
+      <div className="min-h-screen flex flex-col items-center justify-center space-y-10 animate-in fade-in duration-700 bg-[var(--color-bg)]">
         <div className="relative">
           <div className="absolute inset-0 bg-orange-500/20 blur-3xl scale-150 animate-pulse" />
-          <div className="relative w-20 h-20 bg-[#111] border border-[#222] flex items-center justify-center overflow-hidden">
+          <div className="relative w-20 h-20 bg-[var(--color-surface)] border border-[var(--color-border)] flex items-center justify-center overflow-hidden shadow-none">
             <div className="absolute inset-0 border-2 border-t-orange-500 border-r-transparent border-b-transparent border-l-transparent animate-spin m-2" />
-            <LayoutDashboard className="h-8 w-8 text-white" />
+            <LayoutDashboard className="h-8 w-8 text-[var(--color-text-primary)]" />
           </div>
         </div>
         <div className="text-center space-y-2">
-          <h2 className="text-[13px] font-black text-white uppercase tracking-[0.3em]">Loading Console</h2>
-          <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Establishing parameters...</p>
+          <h2 className="text-[13px] font-black text-[var(--color-text-primary)] uppercase tracking-[0.3em]">Loading Console</h2>
+          <p className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-widest">Establishing parameters...</p>
         </div>
       </div>
     );
@@ -229,18 +229,18 @@ export default function DashboardPage() {
 
   /* ─── Main Render ─── */
   return (
-    <div className="min-h-screen pb-24 relative bg-[#060606]">
+    <div className="min-h-screen pb-24 relative bg-[var(--color-bg)] text-[var(--color-text-primary)]">
 
       <div className="max-w-7xl mx-auto space-y-8 px-4 sm:px-6 pt-5 relative animate-in fade-in slide-in-from-bottom-4 duration-500">
 
         {/* ═════════════════════════════════════════════════════════════════════
             GREETING
         ═════════════════════════════════════════════════════════════════════ */}
-        <div className="space-y-1.5 py-4 border-b border-[#222]">
-          <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tighter">
+        <div className="space-y-1.5 py-4 border-b border-[var(--color-border)]">
+          <h1 className="text-3xl sm:text-4xl font-black text-[var(--color-text-primary)] tracking-tighter">
             {greeting}, <span className="text-orange-500">{firstName}</span>
           </h1>
-          <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-[0.25em] font-mono">
+          <p className="text-[11px] font-bold text-[var(--color-text-muted)] uppercase tracking-[0.25em] font-mono">
             Command Center Overview
           </p>
         </div>
@@ -249,9 +249,9 @@ export default function DashboardPage() {
             MY WALLET — Large Featured Card
         ═════════════════════════════════════════════════════════════════════ */}
         <Link href="/dashboard/wallet" className="block outline-none group">
-          <div className="relative overflow-hidden bg-[#0A0A0A] border border-[#222] p-8 sm:p-10 transition-all duration-300 active:scale-[0.98] hover:border-[#333]">
+          <div className="relative overflow-hidden bg-[var(--color-surface)] border border-[var(--color-border)] p-8 sm:p-10 transition-all duration-300 active:scale-[0.98] hover:border-[var(--color-border-strong)] shadow-none">
             {/* Ambient Accent Glows */}
-            <div className="absolute -top-32 -right-32 w-96 h-96 bg-orange-600/10 blur-[100px] group-hover:bg-orange-600/15 transition-all duration-700" />
+            <div className="absolute -top-32 -right-32 w-96 h-96 bg-orange-600/5 blur-[100px] group-hover:bg-orange-600/10 transition-all duration-700" />
             
             <div className="relative z-10">
               {/* Header row */}
@@ -261,14 +261,14 @@ export default function DashboardPage() {
                     <Wallet className="h-5.5 w-5.5" />
                   </div>
                   <div>
-                    <span className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] block">My Portfolio</span>
-                    <span className="text-sm font-bold text-white">Jimvio Wallet</span>
+                    <span className="text-[10px] font-black text-[var(--color-text-muted)] uppercase tracking-[0.2em] block">My Portfolio</span>
+                    <span className="text-sm font-bold text-[var(--color-text-primary)]">Jimvio Wallet</span>
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); setBalanceHidden(v => !v); }}
-                  className="h-10 w-10 bg-[#111] hover:bg-[#1A1A1A] flex items-center justify-center text-zinc-400 hover:text-white transition-all border border-[#222]"
+                  className="h-10 w-10 bg-[var(--color-surface-secondary)] hover:bg-[var(--color-surface-secondary)]/80 flex items-center justify-center text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-all border border-[var(--color-border)]"
                   aria-label={balanceHidden ? "Show balance" : "Hide balance"}
                 >
                   {balanceHidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -279,18 +279,18 @@ export default function DashboardPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 items-end">
                 <div>
                   <p className="text-[10px] font-black text-orange-500 uppercase tracking-widest mb-2 font-mono">Available to spend</p>
-                  <p className="text-5xl sm:text-6xl font-bold text-white tabular-nums tracking-tighter leading-none font-mono">
+                  <p className="text-5xl sm:text-6xl font-bold text-[var(--color-text-primary)] tabular-nums tracking-tighter leading-none font-mono">
                     {balanceHidden ? "••••••" : formatMoney(walletBalance.available, "USD")}
                   </p>
                 </div>
                 <div className="sm:text-right space-y-3">
-                   <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#111] border border-[#222]">
+                   <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-[var(--color-surface-secondary)] border border-[var(--color-border)]">
                       <div className="h-1.5 w-1.5 bg-orange-500 animate-pulse" />
-                      <span className="text-xs font-bold text-zinc-400 font-mono">
+                      <span className="text-xs font-bold text-[var(--color-text-muted)] font-mono">
                         {balanceHidden ? "••••" : formatMoney(walletBalance.pending, "USD")} pending
                       </span>
                    </div>
-                   <div className="flex items-center sm:justify-end gap-2 text-zinc-500 hover:text-orange-500 transition-colors text-[10px] uppercase font-bold tracking-widest">
+                   <div className="flex items-center sm:justify-end gap-2 text-[var(--color-text-muted)] hover:text-orange-500 transition-colors text-[10px] uppercase font-bold tracking-widest">
                      Manage Wallet <ArrowUpRight className="h-3 w-3" />
                    </div>
                 </div>
@@ -303,13 +303,13 @@ export default function DashboardPage() {
         <div className="grid grid-cols-4 gap-3">
           {[
             { href: "/dashboard/wallet", icon: <Wallet />, label: "Add Funds", color: "text-orange-500" },
-            { href: "/dashboard/messages", icon: <MessageSquare />, label: "Messages", color: "text-zinc-400 group-hover:text-white" },
-            { href: "/dashboard/settings", icon: <Settings />, label: "Settings", color: "text-zinc-400 group-hover:text-white" },
+            { href: "/dashboard/messages", icon: <MessageSquare />, label: "Messages", color: "text-[var(--color-text-muted)] group-hover:text-[var(--color-text-primary)]" },
+            { href: "/dashboard/settings", icon: <Settings />, label: "Settings", color: "text-[var(--color-text-muted)] group-hover:text-[var(--color-text-primary)]" },
             { href: "/support", icon: <Heart />, label: "Help", color: "text-rose-500" },
           ].map(item => (
-            <Link key={item.href} href={item.href} className="flex flex-col items-center justify-center gap-2.5 p-4 bg-[#0A0A0A] border border-[#222] hover:border-[#333] hover:bg-[#111] transition-all active:scale-95 group">
+            <Link key={item.href} href={item.href} className="flex flex-col items-center justify-center gap-2.5 p-4 bg-[var(--color-surface)] border border-[var(--color-border)] hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface-secondary)] transition-all active:scale-95 group shadow-none">
               {React.cloneElement(item.icon as React.ReactElement<{ className?: string }>, { className: cn("h-5 w-5 sm:h-6 sm:w-6 transition-transform", item.color) })}
-              <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-500 group-hover:text-zinc-300">{item.label}</span>
+              <span className="text-[9px] font-bold uppercase tracking-widest text-[var(--color-text-muted)] group-hover:text-[var(--color-text-secondary)]">{item.label}</span>
             </Link>
           ))}
         </div>
@@ -321,11 +321,11 @@ export default function DashboardPage() {
           <div className="lg:col-span-8 space-y-8">
 
             {/* Earnings Chart */}
-            <div className="bg-[#0A0A0A] border border-[#222] p-7 overflow-hidden">
+            <div className="bg-[var(--color-surface)] border border-[var(--color-border)] p-7 overflow-hidden shadow-none transition-all">
               <div className="flex items-center justify-between mb-8">
                 <div className="space-y-1.5">
-                  <h3 className="text-xl font-bold text-white tracking-tight">Earnings Overview</h3>
-                  <p className="text-[10px] font-mono font-bold text-zinc-500 uppercase tracking-widest">
+                  <h3 className="text-xl font-bold text-[var(--color-text-primary)] tracking-tight">Earnings Overview</h3>
+                  <p className="text-[10px] font-mono font-bold text-[var(--color-text-muted)] uppercase tracking-widest">
                     {chartData[6].v > chartData[0].v ? "Growing this week" : "Steady activity"}
                   </p>
                 </div>
@@ -343,10 +343,10 @@ export default function DashboardPage() {
                         <stop offset="95%" stopColor="#f97316" stopOpacity={0} />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#222" opacity={0.6} />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: "#71717a", fontSize: 10, fontWeight: 800, fontFamily: "monospace" }} />
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" opacity={0.6} />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: "var(--color-text-muted)", fontSize: 10, fontWeight: 800, fontFamily: "monospace" }} />
                     <YAxis hide />
-                    <Tooltip contentStyle={{ background: "#111", borderRadius: "0", border: "1px solid #333", fontSize: "12px", fontWeight: 700, padding: "10px 16px", color: "#fff" }} />
+                    <Tooltip contentStyle={{ background: "var(--color-surface)", borderRadius: "0", border: "1px solid var(--color-border)", fontSize: "12px", fontWeight: 700, padding: "10px 16px", color: "var(--color-text-primary)" }} />
                     <Area type="monotone" dataKey="v" stroke="#f97316" strokeWidth={3} fillOpacity={1} fill="url(#colorVal)"
                       dot={{ r: 3, fill: "#111", stroke: "#f97316", strokeWidth: 2 }}
                       activeDot={{ r: 5, fill: "#f97316", stroke: "#111", strokeWidth: 2 }}
@@ -441,22 +441,22 @@ export default function DashboardPage() {
             <div className="space-y-4">
               <SectionHeader title="Communities" icon={<Users2 className="h-4 w-4" />} actionHref="/communities" />
               <div className="space-y-3">
-                <div className="flex items-center gap-5 p-5 bg-[#0A0A0A] border border-[#222] hover:border-[#333] transition-colors group">
-                  <div className="w-12 h-12 bg-[#111] border border-[#222] text-sky-500 flex items-center justify-center shrink-0">
+                <div className="flex items-center gap-5 p-5 bg-[var(--color-surface)] border border-[var(--color-border)] hover:border-[var(--color-border-strong)] transition-colors group shadow-none">
+                  <div className="w-12 h-12 bg-[var(--color-surface-secondary)] border border-[var(--color-border)] text-sky-500 flex items-center justify-center shrink-0">
                     <Globe2 className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="text-2xl font-black text-white tracking-tighter leading-none tabular-nums">{stats.communitiesJoined}</p>
-                    <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-1.5 font-mono">Joined</p>
+                    <p className="text-2xl font-black text-[var(--color-text-primary)] tracking-tighter leading-none tabular-nums">{stats.communitiesJoined}</p>
+                    <p className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-widest mt-1.5 font-mono">Joined</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-5 p-5 bg-[#0A0A0A] border border-[#222] hover:border-[#333] transition-colors group">
-                  <div className="w-12 h-12 bg-[#111] border border-[#222] text-orange-500 flex items-center justify-center shrink-0">
+                <div className="flex items-center gap-5 p-5 bg-[var(--color-surface)] border border-[var(--color-border)] hover:border-[var(--color-border-strong)] transition-colors group shadow-none">
+                  <div className="w-12 h-12 bg-[var(--color-surface-secondary)] border border-[var(--color-border)] text-orange-500 flex items-center justify-center shrink-0">
                     <Plus className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="text-2xl font-black text-white tracking-tighter leading-none tabular-nums">{stats.communitiesCreated}</p>
-                    <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-1.5 font-mono">Created</p>
+                    <p className="text-2xl font-black text-[var(--color-text-primary)] tracking-tighter leading-none tabular-nums">{stats.communitiesCreated}</p>
+                    <p className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-widest mt-1.5 font-mono">Created</p>
                   </div>
                 </div>
               </div>
@@ -487,16 +487,16 @@ export default function DashboardPage() {
             </div>
 
             {/* Your Roles */}
-            <div className="p-6 bg-[#0A0A0A] border border-[#222] space-y-5">
+            <div className="p-6 bg-[var(--color-surface)] border border-[var(--color-border)] space-y-5 shadow-none transition-all">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Your Roles</span>
+                <span className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-widest font-mono">Your Roles</span>
                 <Link href="/dashboard/roles" className="text-[10px] font-bold text-orange-500 uppercase tracking-widest font-mono hover:text-orange-400 transition-colors">
                   Manage
                 </Link>
               </div>
               <div className="flex flex-wrap gap-2">
                 {activeRoles.map(role => (
-                  <div key={role} className="px-4 py-2 rounded-none bg-surface dark:bg-zinc-700/80 backdrop-blur-md border border-border text-stone-800 dark:text-text-secondary font-black text-[10px] uppercase tracking-widest shadow-none capitalize">
+                  <div key={role} className="px-4 py-2 rounded-none bg-[var(--color-surface-secondary)] border border-[var(--color-border)] text-[var(--color-text-secondary)] font-black text-[10px] uppercase tracking-widest shadow-none capitalize">
                     {role}
                   </div>
                 ))}
@@ -505,7 +505,7 @@ export default function DashboardPage() {
 
             {/* Help Link */}
             <div className="flex items-center justify-center pt-1">
-              <Link href="/support" className="flex items-center gap-2.5 text-stone-400 hover:text-orange-600 transition-colors group">
+              <Link href="/support" className="flex items-center gap-2.5 text-[var(--color-text-muted)] hover:text-orange-600 transition-colors group">
                 <MessageSquare className="h-4 w-4 group-hover:scale-110 transition-transform" />
                 <span className="text-[11px] font-black uppercase tracking-widest">Need Help?</span>
               </Link>

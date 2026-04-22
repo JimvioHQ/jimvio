@@ -152,7 +152,7 @@ function HeroDealBanner({ params, basePath }: { params: Record<string, string | 
       <div className="relative z-10 px-4 py-8 sm:py-10 flex flex-col items-center text-center">
         {/* Title */}
         <h2 className="text-[26px] sm:text-[32px] font-black text-stone-900 dark:text-white tracking-tight leading-tight mb-1">
-          <span className="inline-block animate-[spin_4s_linear_infinite] mr-2">ðŸŒŸ</span> 
+          <span className="inline-block animate-[spin_4s_linear_infinite] mr-2">🌟</span> 
           Top Deals Today!
         </h2>
         
@@ -297,24 +297,24 @@ function SortPill({
 /* â"€â"€â"€ Category icon map â"€â"€â"€ */
 const CATEGORY_ICONS: Record<string, string> = {
   electronics: "âš¡",
-  fashion: "ðŸ‘—",
-  apparel: "ðŸ‘š",
-  home: "ðŸ ",
-  furniture: "ðŸ›‹ï¸",
-  beauty: "ðŸ’„",
-  health: "ðŸ’Š",
+  fashion: "👗",
+  apparel: "👕",
+  home: "🏠",
+  furniture: "🛋️",
+  beauty: "💄",
+  health: "💊",
   food: "🍎",
-  sports: "âš½",
+  sports: "⚽",
   toys: "🧸",
   books: "📚",
   automotive: "🚗",
-  garden: "ðŸŒ¿",
-  jewelry: "ðŸ’Ž",
-  music: "ðŸŽµ",
-  art: "ðŸŽ¨",
-  travel: "âœˆï¸",
-  pets: "ðŸ¾",
-  baby: "ðŸ¼",
+  garden: "🌿",
+  jewelry: "💎",
+  music: "🎵",
+  art: "🎨",
+  travel: "✈️",
+  pets: "🐾",
+  baby: "👶",
   tools: "🔧",
 };
 
@@ -390,7 +390,7 @@ export function MarketplaceClient({
 
   const renderCat = (cat: { slug: string | null; name: string }) => {
     const isActive = (!params.cat && !cat.slug) || params.cat === cat.slug;
-    const icon = cat.slug ? getCategoryIcon(cat.slug, cat.name) : "ðŸ›ï¸";
+    const icon = cat.slug ? getCategoryIcon(cat.slug, cat.name) : "🛒";
     return (
       <Link
         key={cat.slug || "all"}
@@ -577,7 +577,7 @@ export function MarketplaceClient({
               label="All"
               active={!params.cat}
               href={marketplaceHref(paramsRecord, { cat: null }, basePath)}
-              icon="ðŸ›ï¸"
+              icon="🛒"
             />
             {displayCategories.slice(0, 12).map((cat) => (
               <CategoryChip

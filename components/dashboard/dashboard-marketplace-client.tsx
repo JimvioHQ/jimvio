@@ -176,22 +176,22 @@ export function DashboardMarketplaceClient({
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
            <div className="space-y-4">
               <div className="flex items-center gap-3">
-                 <Button asChild variant="ghost" size="icon" className="h-10 w-10 rounded-none bg-white dark:bg-surface border border-stone-100 dark:border-border shadow-none hover:bg-white dark:bg-surface active:scale-95 transition-all text-stone-500">
+                 <Button asChild variant="ghost" size="icon" className="h-10 w-10 rounded-none bg-[var(--color-surface)] border border-[var(--color-border)] shadow-none hover:bg-[var(--color-surface-secondary)] active:scale-95 transition-all text-[var(--color-text-muted)]">
                     <Link href="/dashboard"><ArrowLeft className="h-4 w-4" /></Link>
                  </Button>
                  <div className="h-1.5 w-1.5 rounded-none bg-stone-200" />
                  <span className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Marketplace</span>
               </div>
               <div className="space-y-1">
-                 <h1 className="text-3xl font-black text-stone-900 dark:text-white tracking-tight">Product Discovery</h1>
-                 <p className="text-[12px] font-medium text-stone-500 leading-none">Find and save the best products from our community</p>
+                 <h1 className="text-3xl font-black text-[var(--color-text-primary)] tracking-tight">Product Discovery</h1>
+                 <p className="text-[12px] font-medium text-[var(--color-text-muted)] leading-none">Find and save the best products from our community</p>
               </div>
            </div>
 
            <div className="flex items-center gap-3">
               <button
                 onClick={() => setCartOpen(true)}
-                className="relative flex items-center justify-center h-12 w-12 bg-white dark:bg-surface border border-stone-100 dark:border-border rounded-none text-stone-900 dark:text-white shadow-none hover:bg-stone-50 dark:bg-surface/50 active:scale-95 transition-all group"
+                className="relative flex items-center justify-center h-12 w-12 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-none text-[var(--color-text-primary)] shadow-none hover:bg-[var(--color-surface-secondary)] active:scale-95 transition-all group"
               >
                 <ShoppingBag className="h-5 w-5" />
                 {cartCount > 0 && (
@@ -205,14 +205,14 @@ export function DashboardMarketplaceClient({
                  <button
                    onClick={() => setSortOpen(!sortOpen)}
                    className={cn(
-                     "flex items-center gap-3 px-6 h-12 bg-white dark:bg-surface rounded-none border border-stone-100 dark:border-border shadow-none transition-all text-[12px] font-bold text-stone-600 hover:border-stone-900 active:scale-95 whitespace-nowrap",
-                     sortOpen && "ring-4 ring-stone-900/5 border-stone-200 dark:border-border"
+                     "flex items-center gap-3 px-6 h-12 bg-[var(--color-surface)] rounded-none border border-[var(--color-border)] shadow-none transition-all text-[12px] font-bold text-[var(--color-text-secondary)] hover:border-[var(--color-text-primary)] active:scale-95 whitespace-nowrap",
+                     sortOpen && "ring-4 ring-orange-500/5 border-[var(--color-border-strong)]"
                    )}
                  >
-                   <ListFilter className="h-4 w-4 text-stone-300" />
-                   <span className="text-stone-300">Sort:</span>
-                   <span className="text-stone-900 dark:text-white">{selectedSort.label}</span>
-                   <ChevronDown className={cn("h-4 w-4 text-stone-300 transition-transform", sortOpen && "rotate-180")} />
+                   <ListFilter className="h-4 w-4 text-[var(--color-text-muted)]" />
+                    <span className="text-[var(--color-text-muted)]">Sort:</span>
+                    <span className="text-[var(--color-text-primary)]">{selectedSort.label}</span>
+                   <ChevronDown className={cn("h-4 w-4 text-[var(--color-text-muted)] transition-transform", sortOpen && "rotate-180")} />
                  </button>
                  <AnimatePresence>
                    {sortOpen && (
@@ -222,7 +222,7 @@ export function DashboardMarketplaceClient({
                          initial={{ opacity: 0, scale: 0.95, y: 10 }}
                          animate={{ opacity: 1, scale: 1, y: 0 }}
                          exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                         className="absolute right-0 top-14 w-52 bg-white dark:bg-surface rounded-none border border-stone-100 dark:border-border shadow-none p-2 z-[120]"
+                         className="absolute right-0 top-14 w-52 bg-[var(--color-surface)] rounded-none border border-[var(--color-border)] shadow-none p-2 z-[120]"
                        >
                          {SORT_OPTIONS.map((option) => (
                            <button
@@ -305,8 +305,8 @@ export function DashboardMarketplaceClient({
                           className={cn(
                             "flex items-center justify-between px-5 py-2.5 rounded-none text-sm font-bold transition-all text-left group",
                             active 
-                              ? "bg-white dark:bg-surface text-stone-900 dark:text-white shadow-none border border-stone-100 dark:border-border scale-[1.02]" 
-                              : "text-stone-400 hover:text-stone-900 dark:text-white hover:bg-stone-50 dark:bg-surface/50"
+                              ? "bg-[var(--color-surface)] text-[var(--color-text-primary)] shadow-none border border-[var(--color-border)] scale-[1.02]" 
+                              : "text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-secondary)]/50"
                           )}
                         >
                           {cat.name}

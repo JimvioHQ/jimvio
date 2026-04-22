@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React from "react";
 import Link from "next/link";
@@ -22,11 +22,11 @@ import { useCurrency } from "@/context/CurrencyContext";
 
 const quickActions = [
   { label: "Browse Marketplace", href: "/marketplace", icon: <Globe className="h-5 w-5" />, color: "bg-[var(--color-accent-light)] text-[var(--color-accent)]" },
-  { label: "Post Buying Lead", href: "/requests", icon: <FileText className="h-5 w-5" />, color: "bg-blue-100 text-blue-600" },
+  { label: "Post Buying Lead", href: "/requests", icon: <FileText className="h-5 w-5" />, color: "bg-blue-500/10 text-blue-600 dark:text-blue-400" },
   { label: "Become a Vendor", href: "/dashboard/vendor/setup", icon: <Store className="h-5 w-5" />, color: "bg-[var(--color-accent-light)] text-[var(--color-accent)]" },
-  { label: "Promote Products (Affiliate)", href: "/dashboard/roles", icon: <Link2 className="h-5 w-5" />, color: "bg-emerald-100 text-emerald-600" },
-  { label: "Create Product Clip", href: "/dashboard/campaigns/browse", icon: <Video className="h-5 w-5" />, color: "bg-pink-100 text-pink-600" },
-  { label: "Discover Clips", href: "/clips", icon: <Video className="h-5 w-5" />, color: "bg-amber-100 text-amber-600" },
+  { label: "Promote Products (Affiliate)", href: "/dashboard/roles", icon: <Link2 className="h-5 w-5" />, color: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" },
+  { label: "Create Product Clip", href: "/dashboard/campaigns/browse", icon: <Video className="h-5 w-5" />, color: "bg-pink-500/10 text-pink-600 dark:text-pink-400" },
+  { label: "Discover Clips", href: "/clips", icon: <Video className="h-5 w-5" />, color: "bg-amber-500/10 text-amber-600 dark:text-amber-400" },
 ];
 
 const roleCards = [
@@ -75,7 +75,7 @@ export function UniversalDashboard({ userName, activity, loading }: UniversalDas
       {/* 1. Welcome section */}
       <section>
         <h1 className="text-2xl sm:text-3xl font-bold text-[var(--color-text-primary)]">
-          Welcome back, {userName} ðŸ‘‹
+          Welcome back, {userName} 👋
         </h1>
         <p className="text-[var(--color-text-secondary)] mt-1 text-sm sm:text-base">
           Explore the marketplace, promote products, or start selling.

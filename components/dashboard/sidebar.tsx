@@ -158,7 +158,7 @@ export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobil
     <div className="relative flex flex-col h-full z-10">
 
       {/* Logo bar — Shopify Admin Style */}
-      <div className="flex items-center justify-between shrink-0 px-4 py-5 bg-white dark:bg-black/20 border-b border-border">
+      <div className="flex items-center justify-between shrink-0 px-4 py-5 bg-[var(--color-surface)] border-b border-border">
         <Link href="/" onClick={onMobileClose} className="flex items-center gap-3 min-w-0 group">
           {!collapsed ? (
              <Image 
@@ -208,7 +208,7 @@ export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobil
           transition={{ delay: 0.15 }}
           className="px-4 pt-4 pb-2"
         >
-          <div className="relative overflow-hidden rounded-none bg-stone-900 dark:bg-stone-900 border border-stone-800 p-4 group">
+          <div className="relative overflow-hidden rounded-none bg-[var(--color-bg-dark)] border border-stone-800 p-4 group">
              <div className="relative z-10">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
@@ -226,7 +226,7 @@ export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobil
                 </div>
 
                 <Link href="/dashboard/wallet" onClick={onMobileClose}>
-                   <div className="text-xl font-bold text-white tabular-nums tracking-tight">
+                   <div className="text-xl font-bold text-[var(--color-text-primary)] tabular-nums tracking-tight">
                      {balanceHidden ? "••••••" : formatMoney(balance.available, "USD")}
                    </div>
                    <div className="flex items-center justify-between mt-2">
@@ -294,8 +294,8 @@ export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobil
                         className={cn(
                           "flex items-center group relative transition-all duration-150",
                           isActive 
-                            ? "bg-white dark:bg-white/5 border border-border" 
-                            : "hover:bg-neutral-100 dark:hover:bg-white/5 border border-transparent"
+                            ? "bg-[var(--color-surface-secondary)] border border-border shadow-sm" 
+                            : "hover:bg-[var(--color-surface-secondary)]/50 border border-transparent"
                         )}
                         style={{
                           gap: collapsed ? 0 : 10,
@@ -341,7 +341,7 @@ export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobil
                             <span
                               className={cn(
                                 "flex-1 truncate group-hover:translate-x-0.5 transition-transform z-10 text-[13px] tracking-tight",
-                                isActive ? "font-bold text-stone-900 dark:text-white" : "font-semibold text-stone-600 dark:text-text-muted"
+                                isActive ? "font-bold text-[var(--color-text-primary)]" : "font-semibold text-[var(--color-text-secondary)]"
                               )}
                             >
                               {item.label}

@@ -76,7 +76,7 @@ export default function CampaignsPage() {
 
   if (!vendor) return (
     <div className="max-w-4xl mx-auto py-24 text-center space-y-8 px-6">
-      <div className="w-24 h-24 rounded-none flex items-center justify-center mx-auto text-4xl bg-white dark:bg-surface border border-white shadow-none">ðŸŽ¯</div>
+      <div className="w-24 h-24 rounded-none flex items-center justify-center mx-auto text-4xl bg-white dark:bg-surface border border-white shadow-none">🎯</div>
       <div className="space-y-3">
          <h3 className="text-3xl font-black text-stone-900 dark:text-white tracking-tighter">Mission Hub Offline</h3>
          <p className="text-stone-500 font-bold max-w-md mx-auto leading-relaxed">System requires active vendor status to create missions.</p>

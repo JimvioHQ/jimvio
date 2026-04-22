@@ -11,7 +11,7 @@ const STATUS_STYLES: Record<string, string> = {
 };
 
 const PLATFORM_ICONS: Record<string, string> = {
-  tiktok: 'ðŸŽµ', instagram: 'ðŸ"¸', youtube: 'â–¶ï¸', x: 'âœ–ï¸',
+  tiktok: '🎵', instagram: '📸', youtube: 'â–¶ï¸', x: 'âœ–ï¸',
 };
 
 export default function AdminAllSubmissionsPage() {

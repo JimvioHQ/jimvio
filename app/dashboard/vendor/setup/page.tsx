@@ -243,17 +243,17 @@ export default function VendorSetupPage() {
               onChange={e => updateField("business_country", e.target.value)}
               className="w-full h-10 px-3 rounded-none border border-[var(--color-border)] bg-[var(--color-surface)] text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30 transition-all"
             >
-              <option value="RW">ðŸ‡·ðŸ‡¼ Rwanda</option>
-              <option value="KE">ðŸ‡°ðŸ‡ª Kenya</option>
-              <option value="UG">ðŸ‡ºðŸ‡¬ Uganda</option>
-              <option value="TZ">ðŸ‡¹ðŸ‡¿ Tanzania</option>
-              <option value="NG">ðŸ‡³ðŸ‡¬ Nigeria</option>
-              <option value="GH">ðŸ‡¬ðŸ‡­ Ghana</option>
-              <option value="ZA">ðŸ‡¿ðŸ‡¦ South Africa</option>
-              <option value="ET">ðŸ‡ªðŸ‡¹ Ethiopia</option>
-              <option value="US">ðŸ‡ºðŸ‡¸ United States</option>
-              <option value="GB">ðŸ‡¬ðŸ‡§ United Kingdom</option>
-              <option value="FR">ðŸ‡«ðŸ‡· France</option>
+              <option value="RW">🇷🇼 Rwanda</option>
+              <option value="KE">🇰🇪 Kenya</option>
+              <option value="UG">🇺🇬 Uganda</option>
+              <option value="TZ">🇹🇿 Tanzania</option>
+              <option value="NG">🇳🇬 Nigeria</option>
+              <option value="GH">🇬🇭 Ghana</option>
+              <option value="ZA">🇿🇦 South Africa</option>
+              <option value="ET">🇪🇹 Ethiopia</option>
+              <option value="US">🇺🇸 United States</option>
+              <option value="GB">🇬🇧 United Kingdom</option>
+              <option value="FR">🇫🇷 France</option>
             </select>
           </div>
         </div>
@@ -322,7 +322,7 @@ export default function VendorSetupPage() {
               {[
                 { value: "mtn",       label: "MTN MoMo",       icon: "📱", desc: "MTN Mobile Money" },
                 { value: "airtel",    label: "Airtel Money",   icon: "📱", desc: "Airtel Money" },
-                { value: "bank",      label: "Bank Transfer",  icon: "ðŸ¦", desc: "Direct bank transfer" },
+                { value: "bank",      label: "Bank Transfer",  icon: "🏦", desc: "Direct bank transfer" },
               ].map(m => (
                 <div
                   key={m.value}

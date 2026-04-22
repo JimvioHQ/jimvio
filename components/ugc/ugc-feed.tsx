@@ -205,7 +205,7 @@ export function UGCFeed({
       {!loading && posts.length === 0 && (
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <div className="w-16 h-16 rounded-none bg-[var(--color-surface-secondary)] flex items-center justify-center text-3xl mb-4">
-            ðŸ"¸
+            📸
           </div>
           <h3 className="text-base font-bold text-[var(--color-text-primary)] mb-1">No posts yet</h3>
           <p className="text-sm text-[var(--color-text-muted)] max-w-xs">

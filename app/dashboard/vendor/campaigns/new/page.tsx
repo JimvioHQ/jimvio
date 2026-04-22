@@ -15,8 +15,8 @@ import { cn } from '@/lib/utils';
 import { cloudinaryService } from '@/services/media/cloudinary';
 
 const PLATFORMS: { value: UGCPlatform; label: string; icon: string; border: string; bgHover: string }[] = [
-  { value: 'tiktok',    label: 'TikTok',    icon: 'ðŸŽµ', border: 'border-[#00f2fe]/40', bgHover: 'hover:bg-[#00f2fe]/5' },
-  { value: 'instagram', label: 'Instagram', icon: 'ðŸ"¸', border: 'border-[#ff0844]/40', bgHover: 'hover:bg-[#ff0844]/5' },
+  { value: 'tiktok',    label: 'TikTok',    icon: '🎵', border: 'border-[#00f2fe]/40', bgHover: 'hover:bg-[#00f2fe]/5' },
+  { value: 'instagram', label: 'Instagram', icon: '📸', border: 'border-[#ff0844]/40', bgHover: 'hover:bg-[#ff0844]/5' },
   { value: 'youtube',   label: 'YouTube',   icon: 'â–¶ï¸', border: 'border-[#ff0000]/40', bgHover: 'hover:bg-[#ff0000]/5' },
   { value: 'x',         label: 'X/Twitter', icon: 'âœ–ï¸', border: 'border-zinc-400',     bgHover: 'hover:bg-zinc-100' },
 ];
@@ -361,9 +361,9 @@ export default function NewCampaignPage() {
                <div className="grid grid-cols-1 gap-2">
                  {[
                    { value: 'clipping', label: 'Clipping', icon: 'âœ‚ï¸', desc: 'Creators remix your content.' },
-                   { value: 'ugc',      label: 'Native UGC', icon: 'ðŸŽ¬', desc: 'Creators produce 100% original content.' },
-                   { value: 'music_clipping', label: 'Music Clipping', icon: 'ðŸŽµ', desc: 'Creators use specific audio line.' },
-                   { value: 'promotion', label: 'Promotion', icon: 'ðŸš€', desc: 'Promote specific links or brands.' },
+                   { value: 'ugc',      label: 'Native UGC', icon: '🎬', desc: 'Creators produce 100% original content.' },
+                   { value: 'music_clipping', label: 'Music Clipping', icon: '🎵', desc: 'Creators use specific audio line.' },
+                   { value: 'promotion', label: 'Promotion', icon: '🚀', desc: 'Promote specific links or brands.' },
                  ].map((t) => (
                    <button
                      key={t.value}
