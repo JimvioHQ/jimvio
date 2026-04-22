@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React from "react";
 import Link from "next/link";
@@ -157,31 +157,20 @@ export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobil
   const content = (
     <div className="relative flex flex-col h-full z-10">
 
-      {/* â”€â”€ Logo bar â”€â”€ */}
-      <div className="flex items-center justify-between shrink-0 px-4 py-6 border-b border-border">
+      {/* Logo bar — Shopify Admin Style */}
+      <div className="flex items-center justify-between shrink-0 px-4 py-5 bg-white dark:bg-black/20 border-b border-border">
         <Link href="/" onClick={onMobileClose} className="flex items-center gap-3 min-w-0 group">
           {!collapsed ? (
-            <motion.div
-              initial={{ x: -10, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-            >
-              <Image 
+             <Image 
                 src="/jimvio-logo.png" 
                 alt="Jimvio" 
-                width={110} 
-                height={30} 
-                className="h-7 w-auto"
+                width={100} 
+                height={25} 
+                className="h-6 w-auto"
                 priority
               />
-            </motion.div>
           ) : (
-             <motion.div
-               initial={{ scale: 0.8, opacity: 0 }}
-               animate={{ scale: 1, opacity: 1 }}
-               className="w-8 h-8 rounded-none bg-orange-600 flex items-center justify-center text-white font-black text-xs"
-             >
-               J
-             </motion.div>
+             <div className="w-8 h-8 rounded-none bg-orange-500 flex items-center justify-center text-white font-black text-xs">J</div>
           )}
         </Link>
 
@@ -303,17 +292,17 @@ export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobil
                         onClick={onMobileClose}
                         title={collapsed ? item.label : undefined}
                         className={cn(
-                          "flex items-center group relative overflow-hidden transition-all duration-300",
+                          "flex items-center group relative transition-all duration-150",
                           isActive 
-                            ? "bg-white dark:bg-surface-secondary shadow-none shadow-black/5 dark:shadow-white/5" 
-                            : "hover:bg-neutral-100 dark:hover:bg-zinc-800/50"
+                            ? "bg-white dark:bg-white/5 border border-border" 
+                            : "hover:bg-neutral-100 dark:hover:bg-white/5 border border-transparent"
                         )}
                         style={{
-                          gap: collapsed ? 0 : 12,
-                          padding: collapsed ? "10px" : "10px 12px",
-                          borderRadius: 12,
+                          gap: collapsed ? 0 : 10,
+                          padding: collapsed ? "8px" : "8px 12px",
+                          borderRadius: 0,
                           justifyContent: collapsed ? "center" : "flex-start",
-                          opacity: locked ? 0.35 : 1,
+                          opacity: locked ? 0.4 : 1,
                         }}
                       >
                         {/* Hover layer */}
@@ -323,10 +312,10 @@ export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobil
                           whileHover={{ scale: 1.05 }}
                         />
 
-                        {/* Active left accent bar */}
+                        {/* Active left bar */}
                         {isActive && (
                           <span
-                            className="pointer-events-none absolute left-0 inset-y-0 w-[3px] rounded-none-sm bg-orange-500"
+                            className="pointer-events-none absolute left-0 inset-y-0 w-0.5 bg-orange-500"
                           />
                         )}
 

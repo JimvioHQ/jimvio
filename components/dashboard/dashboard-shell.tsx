@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
@@ -34,6 +34,10 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<UserProfile>({ email: "", full_name: null, avatar_url: null });
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const initials = user.full_name
+    ? user.full_name.substring(0, 2).toUpperCase()
+    : user.email ? user.email.substring(0, 2).toUpperCase() : "U";
 
   useEffect(() => {
     async function loadUser() {
@@ -71,32 +75,32 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
         {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
             HEADER â€” Professional Solid
         â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
-        <header
-          className="sticky top-0 z-40 shrink-0 bg-surface border-b border-border"
-        >
-          <div className="flex items-center justify-between gap-3 px-4 sm:px-6 h-[60px] max-w-[1400px] mx-auto w-full">
+        <header className="sticky top-0 z-40 shrink-0 bg-white dark:bg-black/20 border-b border-border">
+          <div className="flex items-center justify-between gap-4 px-4 sm:px-6 h-14 w-full">
             
-            {/* Mobile: Hamburger + Logo */}
-            <div className={cn("lg:hidden flex items-center gap-3", mobileMenuOpen && "invisible")}>
+            {/* Mobile: Hamburger */}
+            <div className="lg:hidden flex items-center gap-3">
                <button
                  onClick={() => setMobileMenuOpen(true)}
-                 className="flex items-center justify-center h-9 w-9 rounded-none transition-all active:scale-95 hover:shadow-none bg-surface-secondary dark:bg-surface-secondary border border-border"
+                 className="flex items-center justify-center h-10 w-10 rounded-none bg-stone-50 dark:bg-white/5 border border-border"
                >
-                  <Menu className="h-[18px] w-[18px] text-stone-500" />
+                  <Menu className="h-5 w-5 text-stone-500" />
                </button>
-               <Link href="/dashboard" className="shrink-0">
-                  <Image src="/jimvio-logo.png" alt="Jimvio" width={80} height={20} priority className="h-5 w-auto" />
-               </Link>
             </div>
 
-            {/* Desktop: Search */}
-            <div className="hidden lg:flex flex-1 items-center max-w-sm">
-               <div className="relative w-full group">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400 group-focus-within:text-orange-500 transition-colors" />
+            {/* Breadcrumb / Title placeholder — Shopify Style */}
+            <div className="hidden lg:flex items-center gap-2">
+               <h1 className="text-[14px] font-bold text-stone-900 dark:text-white uppercase tracking-tight">Dashboard</h1>
+            </div>
+
+            {/* Desktop: Global Command Search */}
+            <div className="flex-1 max-w-lg hidden md:block">
+               <div className="relative group">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-stone-400" />
                   <input 
                     type="text" 
-                    placeholder="Search anything..." 
-                    className="w-full h-10 pl-10 pr-4 rounded-none text-[13px] font-medium bg-neutral-100 dark:bg-surface border border-transparent focus:border-orange-500/30 focus:bg-white dark:focus:bg-zinc-800 transition-all outline-none text-neutral-900 dark:text-text-primary placeholder:text-neutral-400"
+                    placeholder="Search apps, products, orders..." 
+                    className="w-full h-9 pl-9 pr-4 rounded-none text-[13px] bg-stone-50 dark:bg-white/5 border border-border focus:border-orange-500/50 focus:bg-white transition-all outline-none"
                   />
                </div>
             </div>
@@ -108,50 +112,40 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
 
                {/* Currency */}
                 <div className="hidden sm:block">
-                   <CurrencySelector
-                     className="h-9 rounded-none text-[11px] font-bold bg-neutral-100 dark:bg-surface border-none px-3 text-neutral-600 dark:text-text-muted hover:bg-neutral-200 dark:hover:bg-zinc-800 transition-colors"
-                   />
+                    <CurrencySelector
+                      className="h-9 rounded-none text-[11px] font-bold bg-white dark:bg-white/5 border border-border px-3 text-stone-600 dark:text-stone-400 hover:bg-stone-50 dark:hover:bg-white/10 transition-colors"
+                    />
                 </div>
                
                {/* Notifications */}
-               <Link
-                 href="/dashboard/notifications"
-                 className="flex items-center justify-center h-9 w-9 rounded-none text-stone-400 dark:text-text-muted hover:text-stone-800 dark:text-text-secondary dark:hover:text-stone-200 transition-all active:scale-95 relative hover:shadow-none bg-surface-secondary dark:bg-surface-secondary border border-border"
-               >
+                <Link
+                  href="/dashboard/notifications"
+                  className="flex items-center justify-center h-9 w-9 rounded-none text-stone-400 dark:text-stone-500 hover:text-stone-900 dark:hover:text-white transition-all active:scale-95 relative bg-white dark:bg-white/5 border border-border"
+                >
                   <Bell className="h-4 w-4" />
-                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-orange-500 rounded-none border-[1.5px] border-white dark:border-zinc-900" />
-               </Link>
+                  <span className="absolute top-2 right-2 w-1.5 h-1.5 bg-orange-500 rounded-none border border-white dark:border-stone-900" />
+                </Link>
 
                {/* User Menu */}
                 <DropdownMenu>
                    <DropdownMenuTrigger asChild>
-                     <button
-                       className="flex items-center gap-2 p-1 pl-1 pr-2.5 rounded-none transition-all hover:shadow-none active:scale-95 bg-surface dark:bg-surface-secondary border border-border"
-                     >
-                        <div className="w-7 h-7 rounded-none overflow-hidden border-[1.5px] border-orange-200 dark:border-orange-500/30 shrink-0"
-                          style={{ background: user.avatar_url ? "transparent" : "linear-gradient(135deg, #f97316, #a855f7)" }}
-                        >
-                           {user.avatar_url ? (
-                             <img src={user.avatar_url} alt="" className="w-full h-full object-cover" />
-                           ) : (
-                             <div className="w-full h-full flex items-center justify-center text-[10px] font-bold text-white">
-                                {user.email?.[0]?.toUpperCase() || 'U'}
-                             </div>
-                           )}
+                     <button className="flex items-center gap-2 p-1 pl-1 pr-2.5 rounded-none transition-all hover:shadow-none active:scale-95 bg-white dark:bg-white/5 border border-border">
+                        <div className="w-7 h-7 rounded-none bg-stone-100 dark:bg-stone-800 flex items-center justify-center text-[10px] font-bold text-stone-600 border border-border overflow-hidden">
+                           {user.avatar_url ? <img src={user.avatar_url} className="w-full h-full object-cover" /> : initials}
                         </div>
-                        <span className="hidden sm:block text-[11px] font-bold text-stone-700 dark:text-stone-300 truncate max-w-[80px]">
-                           {user.full_name?.split(' ')[0] || user.email.split('@')[0]}
+                        <span className="hidden sm:block text-[12px] font-bold text-stone-800 dark:text-stone-300">
+                           Admin
                         </span>
                      </button>
                    </DropdownMenuTrigger>
-                   <DropdownMenuContent
-                     align="end"
-                     className="w-56 rounded-none p-2 shadow-none border border-border bg-surface/90 dark:bg-surface/90 "
-                   >
-                     <DropdownMenuLabel className="px-3 py-2">
-                        <p className="text-xs font-bold text-stone-900 dark:text-white">{user.full_name || 'My Account'}</p>
-                        <p className="text-[10px] font-medium text-stone-400 dark:text-text-muted truncate">{user.email}</p>
-                     </DropdownMenuLabel>
+                    <DropdownMenuContent
+                      align="end"
+                      className="w-56 rounded-none p-2 shadow-none border border-border bg-white dark:bg-stone-900"
+                    >
+                      <DropdownMenuLabel className="px-3 py-2">
+                        <p className="text-xs font-bold text-stone-900 dark:text-white uppercase tracking-tighter">{user.full_name || 'Account'}</p>
+                        <p className="text-[10px] font-medium text-stone-400 dark:text-stone-500 truncate">{user.email}</p>
+                      </DropdownMenuLabel>
                     <DropdownMenuSeparator className="bg-stone-100/60" />
                      <DropdownMenuItem asChild className="rounded-none focus:bg-orange-500/10 cursor-pointer">
                         <Link href="/dashboard/settings" className="flex items-center gap-2.5 p-2.5">

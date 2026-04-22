@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -54,8 +54,8 @@ function SpecularLine({ rounded = false }: { rounded?: boolean }) { return null;
 /* Diagonal specular sweep â€” adds depth */
 function SpecularSweep() { return null; }
 
-/* Glass pill button */
-const GlassPill = React.forwardRef<any, {
+/* Console Link/Button — strictly sharp Shopify aesthetics */
+const ConsoleButton = React.forwardRef<any, {
   children: React.ReactNode;
   href?: string;
   onClick?: () => void;
@@ -68,60 +68,40 @@ const GlassPill = React.forwardRef<any, {
   children, href, onClick, className, active = false, orange = false,
   style, ...props
 }, ref) => {
-  const base: React.CSSProperties = active
-    ? {
-      background: "var(--color-accent-light)",
-      border: "1px solid var(--color-accent)",
-      color: "var(--color-accent)",
-    }
-    : orange
-      ? {
-        background: "var(--color-accent)",
-        border: "1px solid var(--color-accent)",
-        color: "white",
-      }
-      : {
-        background: GLASS_LIGHT.body,
-        border: `1px solid ${GLASS_LIGHT.border}`,
-        boxShadow: GLASS_LIGHT.shadow,
-        color: "var(--color-text-primary)",
-      };
-
   const cls = cn(
-    "relative inline-flex items-center gap-1.5 rounded-none transition-all duration-200 active:scale-[0.98] select-none",
-    className,
+    "relative inline-flex items-center gap-2 px-3.5 py-2 rounded-none text-[13px] font-bold tracking-tight transition-all duration-150 active:scale-[0.98] select-none border",
+    active 
+      ? "bg-stone-100 dark:bg-white/5 border-stone-200 dark:border-white/10 text-orange-600"
+      : orange
+        ? "bg-orange-500 border-orange-600 text-white hover:bg-orange-600"
+        : "bg-surface border-border text-stone-600 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-white/5",
+    className
   );
 
   if (href) return (
-    <Link href={href} className={cls} style={{ ...base, ...style }} ref={ref} {...props}>
+    <Link href={href} className={cls} style={style} ref={ref} {...props}>
       {children}
     </Link>
   );
 
   return (
-    <button type="button" onClick={onClick} className={cls} style={{ ...base, ...style }} ref={ref} {...props}>
+    <button type="button" onClick={onClick} className={cls} style={style} ref={ref} {...props}>
       {children}
     </button>
   );
 });
-GlassPill.displayName = "GlassPill";
+ConsoleButton.displayName = "ConsoleButton";
 
-/* Icon-only glass circle button */
-const GlassCircle = React.forwardRef<any, {
+/* Standard icon button used in Whop/Shopify bars */
+const ConsoleIconBtn = React.forwardRef<any, {
   children: React.ReactNode; href?: string; onClick?: () => void;
   badge?: number; className?: string; style?: React.CSSProperties;
   [key: string]: any;
 }>(({
-  children, href, onClick, badge, className, style: styleProp, ...props
+  children, href, onClick, badge, className, style, ...props
 }, ref) => {
-  const style: React.CSSProperties = {
-    background: "var(--color-surface)",
-    border: "1px solid var(--color-border)",
-    boxShadow: "var(--shadow-none)",
-    ...styleProp,
-  };
   const cls = cn(
-    "relative flex items-center justify-center h-10 w-10 shrink-0 rounded-none transition-all duration-200 active:scale-[0.95]",
+    "relative flex items-center justify-center h-10 w-10 shrink-0 rounded-none border border-border bg-surface text-stone-600 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-white/5 transition-all duration-200 active:scale-[0.95]",
     className,
   );
 
@@ -129,7 +109,7 @@ const GlassCircle = React.forwardRef<any, {
     <>
       {children}
       {badge != null && badge > 0 && (
-        <span className="absolute -top-1 -right-1 h-[18px] min-w-[18px] px-1 bg-orange-500 text-white text-[9px] font-bold flex items-center justify-center rounded-none ring-2 ring-white z-20">
+        <span className="absolute top-1.5 right-1.5 h-4 min-w-[16px] px-1 bg-orange-500 text-white text-[9px] font-black flex items-center justify-center rounded-none ring-1 ring-white dark:ring-stone-900 z-20">
           {badge}
         </span>
       )}
@@ -139,7 +119,7 @@ const GlassCircle = React.forwardRef<any, {
   if (href) return <Link href={href} className={cls} style={style} ref={ref} {...props}>{inner}</Link>;
   return <button type="button" onClick={onClick} className={cls} style={style} ref={ref} {...props}>{inner}</button>;
 });
-GlassCircle.displayName = "GlassCircle";
+ConsoleIconBtn.displayName = "ConsoleIconBtn";
 
 /* --- helpers --- */
 
@@ -258,7 +238,6 @@ export function Navbar({ user, marketing }: NavbarProps) {
 
   /* --- Navbar shell glass styles (always applies) --- */
   const shellStyle: React.CSSProperties = {
-    background: "var(--color-bg)",
     borderBottom: "1px solid var(--color-border)",
     boxShadow: scrolled ? "var(--shadow-none)" : "none",
   };
@@ -268,30 +247,30 @@ export function Navbar({ user, marketing }: NavbarProps) {
       "fixed top-0 inset-x-0 z-[100] pointer-events-none transition-all duration-500",
       "px-0 pt-0"
     )}>
-      <div className="pointer-events-auto relative w-full mx-auto transition-all duration-500 flex flex-col"
+      <div className="pointer-events-auto relative w-full mx-auto transition-all duration-500 flex flex-col bg-white dark:bg-stone-950"
         style={{
           ...shellStyle,
-          borderBottom: scrolled ? "1px solid var(--color-border)" : "none",
-          background: scrolled ? "var(--color-surface)" : "transparent",
+          borderBottom: scrolled ? "1px solid var(--color-border)" : "1px solid transparent",
         }}
       >
         {/* Top-down structure for professional layout */}
 
-        {/* Desktop top strip */}
+        {/* Top Strip — Minimal Shopify Info Bar */}
         <motion.div
           style={{ height: topBarH, opacity: topBarOpacity, overflow: "hidden" }}
-          className="hidden md:flex items-center justify-between px-8 md:px-12 shrink-0 border-b border-white/5 dark:border-white/10"
+          className="hidden md:flex items-center justify-between px-8 shrink-0 bg-stone-50 dark:bg-black/20 border-b border-border"
         >
-          <div className="flex items-center gap-5">
-            <span className="flex items-center gap-1.5 text-[9px] font-semibold text-stone-500 dark:text-text-muted tracking-widest capitalize">
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-1.5 text-[10px] font-bold text-stone-500 uppercase tracking-tight">
               <Globe className="h-3 w-3 text-orange-500" />
-              {(marketing.locale_strip?.trim() || "EN Â· USD")}
-            </span>
-            <CurrencySelector className="h-5 bg-transparent border-0 px-1 text-[10px] font-semibold text-stone-500 dark:text-text-muted hover:text-stone-800 dark:text-text-secondary dark:hover:text-stone-200 transition-colors" />
+              <span>Global Sourcing Network</span>
+            </div>
+            <CurrencySelector className="h-5 bg-transparent border-0 px-0 text-[10px] font-bold text-stone-500 hover:text-stone-800 transition-colors" />
           </div>
-          <div className="flex items-center gap-5">
-            <Link href="/help" className="text-[9px] font-semibold tracking-widest text-stone-500 dark:text-text-muted hover:text-orange-500 transition-colors capitalize">Help center</Link>
-            <Link href="/vendors" className="text-[9px] font-semibold tracking-widest text-stone-500 dark:text-text-muted hover:text-stone-800 dark:text-text-secondary dark:hover:text-stone-200 transition-colors capitalize">Suppliers</Link>
+          <div className="flex items-center gap-6">
+            <Link href="/help" className="text-[10px] font-bold text-stone-500 hover:text-orange-600 transition-colors uppercase">Support</Link>
+            <div className="h-3 w-px bg-border" />
+            <Link href="/vendors" className="text-[10px] font-bold text-stone-500 hover:text-stone-800 transition-colors uppercase">Sell on Jimvio</Link>
           </div>
         </motion.div>
 
@@ -320,11 +299,11 @@ export function Navbar({ user, marketing }: NavbarProps) {
             >
               <DropdownMenu open={exploreOpen} onOpenChange={setExploreOpen} modal={false}>
                 <DropdownMenuTrigger asChild>
-                  <GlassPill className="px-3.5 py-2 text-[13px] font-semibold text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:text-white dark:hover:text-white group">
+                  <ConsoleButton className="px-3.5 py-2 group">
                     <Globe className="h-3.5 w-3.5 text-orange-500 shrink-0" />
                     Explore
                     <ChevronDown className={cn("h-3 w-3 text-stone-400 dark:text-stone-600 transition-transform duration-300", exploreOpen && "rotate-180")} />
-                  </GlassPill>
+                  </ConsoleButton>
                 </DropdownMenuTrigger>
 
                 {/* Dark glass dropdown */}
@@ -338,16 +317,8 @@ export function Navbar({ user, marketing }: NavbarProps) {
                     <DropdownMenuItem key={s.href} asChild className="p-0 focus:bg-transparent">
                       <Link
                         href={s.href}
-                        className="relative flex items-center gap-3 p-3 rounded-none group/item transition-all"
+                        className="relative flex items-center gap-3 p-3 rounded-none group/item transition-all hover:bg-stone-50 dark:hover:bg-white/5"
                         style={{ outline: "none" }}
-                        onMouseEnter={e => {
-                          (e.currentTarget as HTMLElement).style.background = "var(--color-surface-secondary)";
-                          (e.currentTarget as HTMLElement).style.border = "1px solid var(--color-border)";
-                        }}
-                        onMouseLeave={e => {
-                          (e.currentTarget as HTMLElement).style.background = "";
-                          (e.currentTarget as HTMLElement).style.border = "";
-                        }}
                       >
                         {/* Standard Structured Icon Box */}
                         <div
@@ -375,29 +346,28 @@ export function Navbar({ user, marketing }: NavbarProps) {
             >
               <DropdownMenu open={marketplaceOpen} onOpenChange={setMarketplaceOpen} modal={false}>
                 <DropdownMenuTrigger asChild>
-                  <GlassPill className="px-3.5 py-2 text-[13px] font-semibold text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:text-white dark:hover:text-white group">
+                  <ConsoleButton className="px-3.5 py-2 group">
                     <ShoppingBag className="h-3.5 w-3.5 text-orange-500 shrink-0" />
                     Marketplace
                     <ChevronDown className={cn("h-3 w-3 text-stone-400 dark:text-stone-600 transition-transform duration-300", marketplaceOpen && "rotate-180")} />
-                  </GlassPill>
+                  </ConsoleButton>
                 </DropdownMenuTrigger>
 
                 <DropdownMenuContent
                   onMouseEnter={() => { if (marketplaceTimer.current) clearTimeout(marketplaceTimer.current); setMarketplaceOpen(true); }}
                   onMouseLeave={() => { marketplaceTimer.current = setTimeout(() => setMarketplaceOpen(false), 140); }}
-                  sideOffset={10}
-                  className="w-72 p-2 rounded-none border border-white/10 dark:border-white/5 outline-none overflow-hidden bg-white/95 dark:bg-stone-900/95 shadow-none"
+                  sideOffset={4}
+                  className="w-72 p-1.5 rounded-none border border-border shadow-none bg-surface"
                 >
-                  <SpecularLine rounded />
                   {marketplaceVariants.map(v => (
                     <DropdownMenuItem key={v.href} asChild className="p-0 focus:bg-transparent rounded-none">
                       <Link
                         href={v.href}
-                        className="relative flex items-center gap-3 p-3 rounded-none group/item transition-all hover:bg-zinc-100 dark:hover:bg-white/5"
+                        className="relative flex items-center gap-3 p-3 rounded-none group/item transition-all hover:bg-stone-50 dark:hover:bg-white/5"
                         style={{ outline: "none" }}
                       >
                         <div
-                          className="h-9 w-9 rounded-none flex items-center justify-center shrink-0 bg-zinc-50 dark:bg-white/5 border border-zinc-100 dark:border-white/10"
+                          className="h-9 w-9 rounded-none flex items-center justify-center shrink-0 bg-stone-50 dark:bg-stone-900 border border-stone-100 dark:border-stone-800"
                           style={{ color: v.color }}
                         >
                           <v.icon className="h-4 w-4" />
@@ -417,11 +387,11 @@ export function Navbar({ user, marketing }: NavbarProps) {
               const active = isActive(pathname, item.href);
               const Icon = iconForHref(item.href);
               return (
-                <GlassPill key={item.href} href={item.href} active={active}
-                  className="px-3.5 py-2 text-[13px] font-semibold group">
+                <ConsoleButton key={item.href} href={item.href} active={active}
+                  className="px-3.5 py-2 group">
                   <Icon className={cn("h-3.5 w-3.5 shrink-0", active ? "text-orange-500" : "text-stone-400 group-hover:text-orange-600")} />
                   <span className={active ? "text-orange-700" : "text-stone-600 group-hover:text-orange-500 dark:text-white"}>{item.label}</span>
-                </GlassPill>
+                </ConsoleButton>
               );
             })}
           </nav>
@@ -437,23 +407,23 @@ export function Navbar({ user, marketing }: NavbarProps) {
             </div>
 
             {/* AI Mode */}
-            <GlassPill orange className="hidden md:flex shrink-0 px-4 py-2 text-[12px] font-black capitalize tracking-widest bg-orange-500 text-white shadow-none hover:bg-orange-600"
+            <ConsoleButton orange className="hidden md:flex shrink-0 px-4 py-2 uppercase tracking-widest"
               onClick={() => openAssistant()}>
               <Sparkles className="h-4 w-4 fill-white stroke-none" />
               <span>AI Mode</span>
-            </GlassPill>
+            </ConsoleButton>
 
             {/* Messages */}
             {user && (
-              <GlassCircle href="/dashboard/messages" badge={chatCount} className="flex">
-                <MessageCircle className="h-[18px] w-[18px] text-stone-600 dark:text-stone-300" />
-              </GlassCircle>
+              <ConsoleIconBtn href="/dashboard/messages" badge={chatCount} className="flex">
+                <MessageCircle className="h-[18px] w-[18px]" />
+              </ConsoleIconBtn>
             )}
 
             {/* Cart */}
-            <GlassCircle href="/cart" badge={cartCount}>
-              <ShoppingCart className="h-[18px] w-[18px] text-stone-600 dark:text-stone-300" />
-            </GlassCircle>
+            <ConsoleIconBtn href="/cart" badge={cartCount}>
+              <ShoppingCart className="h-[18px] w-[18px]" />
+            </ConsoleIconBtn>
 
             {/* Theme Toggle */}
             <div className="hidden min-[1100px]:flex mr-1">
@@ -469,18 +439,14 @@ export function Navbar({ user, marketing }: NavbarProps) {
                 <DropdownMenu modal={false}>
                   <DropdownMenuTrigger asChild>
                     <button
-                      className="relative flex items-center gap-2.5 px-2 xl:px-3 h-11 rounded-none transition-all border border-border bg-surface shadow-none active:scale-95"
+                      className="relative flex items-center justify-center p-1 h-10 w-10 rounded-full transition-all border border-border bg-surface shadow-sm active:scale-95 hover:bg-stone-50 dark:hover:bg-white/5"
                     >
-                      <Avatar className="h-7 w-7 border border-border shrink-0">
-                        <AvatarImage src={user.avatar_url ?? undefined} />
+                      <Avatar className="h-full w-full border border-border shrink-0">
+                        <AvatarImage src={user.avatar_url ?? undefined} className="object-cover" />
                         <AvatarFallback className="bg-stone-100 text-stone-600 text-[10px] font-bold capitalize">
-                          {user.full_name?.[0]}
+                          {user.full_name?.[0] || user.email?.[0] || 'U'}
                         </AvatarFallback>
                       </Avatar>
-                      <span className="hidden xl:block text-[13px] font-semibold text-stone-800 dark:text-white max-w-[110px] truncate">
-                        {user.full_name?.split(" ")[0]}
-                      </span>
-                      <ChevronDown className="hidden xl:block h-3 w-3 text-stone-400 dark:text-stone-600" />
                     </button>
                   </DropdownMenuTrigger>
 
@@ -547,9 +513,9 @@ export function Navbar({ user, marketing }: NavbarProps) {
                 </DropdownMenu>
               ) : (
                 <div className="flex items-center gap-2 shrink-0">
-                  <GlassPill href="/login" className="px-4 py-2 text-[13px] font-semibold text-stone-600 border border-border hover:bg-stone-50">
+                  <Link href="/login" className="px-4 py-2 text-[13px] font-semibold text-stone-600 border border-border hover:bg-stone-50">
                     Log In
-                  </GlassPill>
+                  </Link>
                   <Link
                     href="/register"
                     className="px-5 py-2.5 rounded-none text-[12px] font-black capitalize tracking-widest bg-orange-500 text-white shadow-none hover:bg-orange-600 transition-all active:scale-95 shrink-0 whitespace-nowrap"
@@ -561,9 +527,9 @@ export function Navbar({ user, marketing }: NavbarProps) {
             </div>
 
             {/* Mobile hamburger */}
-            <GlassCircle className="md:hidden" onClick={() => setMobileOpen(true)}>
-              <Menu className="h-5 w-5 text-stone-900 dark:text-stone-300" />
-            </GlassCircle>
+            <ConsoleIconBtn className="md:hidden" onClick={() => setMobileOpen(true)}>
+              <Menu className="h-5 w-5" />
+            </ConsoleIconBtn>
           </div>
         </div>
       </div>
@@ -594,7 +560,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
           initial={{ y: 80, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ type: "spring", damping: 25, stiffness: 200 }}
-          className="h-full bg-white dark:bg-stone-900 shadow-none border border-zinc-100 dark:border-stone-800 rounded-none flex items-center px-4 pointer-events-auto overflow-hidden relative"
+          className="h-full bg-white dark:bg-stone-900 border border-border rounded-none flex items-center px-4 pointer-events-auto overflow-hidden relative shadow-none"
         >
           {mobileBottomLinks.map(link => {
             const active = isActive(pathname, link.href);
@@ -604,7 +570,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
                 href={link.href}
                 className={cn(
                   "relative flex flex-col items-center justify-center flex-1 h-[85%] gap-1 transition-all duration-300 rounded-none",
-                  active ? "text-orange-500 bg-orange-500/5 shadow-inner" : "text-zinc-500 hover:text-orange-500 dark:text-stone-400 dark:hover:text-white"
+                  active ? "text-orange-500 bg-orange-500/5" : "text-stone-500 hover:text-orange-500 dark:text-stone-400 dark:hover:text-white"
                 )}
               >
                 <link.icon className={cn("h-5 w-5 transition-transform duration-300", active ? "scale-110" : "scale-100")} />
@@ -690,12 +656,12 @@ function MobileDrawer({
                       <button 
                         onClick={() => toggle('account')}
                         className={cn("w-full flex items-center justify-between p-3 rounded-none text-[14px] font-bold transition-all", 
-                          expanded === 'account' ? "bg-white dark:bg-stone-800 shadow-none text-stone-900 dark:text-white" : "text-stone-600 dark:text-stone-400 hover:bg-white dark:hover:bg-stone-800")}
+                          expanded === 'account' ? "bg-white dark:bg-stone-800 text-stone-900 dark:text-white" : "text-stone-600 dark:text-stone-400 hover:bg-white dark:hover:bg-stone-800")}
                       >
                         <div className="flex items-center gap-3">
-                          <Avatar className="h-8 w-8 ring-2 ring-orange-500/20">
+                          <Avatar className="h-8 w-8 ring-1 ring-orange-500/20">
                             <AvatarImage src={user.avatar_url} />
-                            <AvatarFallback className="bg-orange-500 text-white text-[10px] font-bold">{user.full_name?.[0]}</AvatarFallback>
+                            <AvatarFallback className="bg-orange-500 text-white text-[10px] font-bold rounded-none">{user.full_name?.[0]}</AvatarFallback>
                           </Avatar>
                           <div className="text-left">
                             <p className="text-[13px] leading-tight truncate max-w-[120px]">{user.full_name}</p>

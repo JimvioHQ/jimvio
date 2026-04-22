@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -18,9 +18,8 @@ import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { useCurrency } from "@/context/CurrencyContext";
 import { useUserStore } from "@/lib/store/use-user-store";
-import { GlassAmbientGlow } from "@/components/ui/glass";
 
-/* â”€â”€â”€ Types â”€â”€â”€ */
+/* ─── Types ─── */
 interface DashStats {
   orders: number; wishlist: number; affiliateEarnings: number; affiliateLinks: number;
   vendorRevenue: number; vendorOrders: number; vendorProducts: number;
@@ -29,22 +28,22 @@ interface DashStats {
   communitiesJoined: number; communitiesCreated: number;
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ═════════════════════════════════════════════════════════════════════════════
    REUSABLE COMPONENTS
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+   ═════════════════════════════════════════════════════════════════════════════ */
 
-/** iOS 17 Stat Card */
-function StatCard({ value, label, icon, color }: {
-  value: string | number; label: string; icon: React.ReactNode; color: string;
+/** Command Center Stat Card */
+function StatCard({ value, label, icon, colorClass, borderClass }: {
+  value: string | number; label: string; icon: React.ReactNode; colorClass: string; borderClass: string;
 }) {
   return (
-    <div className="relative group overflow-hidden rounded-none bg-surface/70 dark:bg-surface-secondary/40 backdrop-blur-2xl border border-border shadow-[0_4px_24px_rgb(0,0,0,0.04)] hover:shadow-[0_12px_36px_rgb(0,0,0,0.08)] transition-all duration-500 p-5 flex flex-col justify-between min-h-[140px]">
-      <div className={cn("w-11 h-11 rounded-none flex items-center justify-center shrink-0 border border-border bg-surface dark:bg-surface shadow-none group-hover:scale-110 transition-transform duration-500", color)}>
+    <div className="relative group p-5 flex flex-col justify-between min-h-[140px] bg-[#0A0A0A] border border-[#222]">
+      <div className={cn("w-11 h-11 flex items-center justify-center shrink-0 border bg-[#111] transition-colors duration-300", borderClass, colorClass, "group-hover:bg-[#1A1A1A]")}>
         {icon as React.ReactNode}
       </div>
-      <div className="mt-3">
-        <p className="text-[26px] font-black text-stone-900 dark:text-white tabular-nums tracking-tighter leading-none">{value}</p>
-        <p className="mt-2 text-[9px] font-black text-stone-400 dark:text-text-muted uppercase tracking-widest truncate">{label}</p>
+      <div className="mt-4">
+        <p className="text-[26px] font-black text-white tabular-nums tracking-tighter leading-none">{value}</p>
+        <p className="mt-2 text-[10px] font-bold text-zinc-500 uppercase tracking-widest break-words truncate">{label}</p>
       </div>
     </div>
   );
@@ -57,24 +56,24 @@ function ActionRow({ href, icon, label, highlight = false }: {
   return (
     <Link href={href} className="group block">
       <div className={cn(
-        "flex items-center gap-4 px-5 py-3.5 rounded-none border transition-all duration-300 active:scale-[0.97]",
+        "flex items-center gap-4 px-5 py-3.5 border transition-all duration-300 active:scale-[0.98]",
         highlight
-          ? "bg-orange-500/12 dark:bg-orange-500/10 border-orange-500/25 hover:bg-orange-500/20 shadow-none"
-          : "bg-surface/75 dark:bg-surface-secondary/40 border-border hover:bg-surface dark:hover:bg-zinc-800 hover:shadow-none shadow-none"
+          ? "bg-orange-500/10 border-orange-500/20 hover:bg-orange-500/20"
+          : "bg-[#0A0A0A] border-[#222] hover:bg-[#111] hover:border-[#333]"
       )}>
         <div className={cn(
-          "h-9 w-9 rounded-none flex items-center justify-center shrink-0 border border-border shadow-none",
-          highlight ? "bg-surface dark:bg-zinc-700 text-orange-600" : "bg-surface dark:bg-surface text-stone-400 dark:text-text-muted group-hover:text-stone-800 dark:text-text-secondary dark:group-hover:text-stone-200"
+          "h-9 w-9 flex items-center justify-center shrink-0 border",
+          highlight ? "bg-[#111] border-orange-500/20 text-orange-500" : "bg-[#111] border-[#222] text-zinc-500 group-hover:text-white group-hover:border-[#333]"
         )}>
           {icon as React.ReactNode}
         </div>
         <span className={cn(
-          "text-[11px] font-black flex-1 truncate uppercase tracking-widest",
-          highlight ? "text-orange-700 dark:text-orange-500" : "text-stone-600 dark:text-stone-300 group-hover:text-stone-900 dark:text-white dark:group-hover:text-white"
+          "text-[11px] font-bold flex-1 truncate uppercase tracking-widest",
+          highlight ? "text-orange-500" : "text-zinc-400 group-hover:text-white"
         )}>{label}</span>
         <ChevronRight className={cn(
           "h-4 w-4 transition-transform group-hover:translate-x-1",
-          highlight ? "text-orange-400" : "text-stone-300 dark:text-stone-600"
+          highlight ? "text-orange-400" : "text-zinc-600"
         )} />
       </div>
     </Link>
@@ -87,14 +86,14 @@ function SectionHeader({ title, icon, actionHref, actionLabel = "View All" }: {
 }) {
   return (
     <div className="flex items-center justify-between px-1 mb-4">
-      <div className="flex items-center gap-2.5">
-        <div className="text-orange-500 bg-orange-100/50 dark:bg-orange-500/10 p-1.5 rounded-none border border-orange-200/50 dark:border-orange-500/20">
+      <div className="flex items-center gap-3">
+        <div className="text-orange-500 bg-[#111] p-1.5 border border-[#222]">
           {icon as React.ReactNode}
         </div>
-        <h2 className="text-[12px] font-black text-stone-900 dark:text-white uppercase tracking-widest">{title}</h2>
+        <h2 className="text-[11px] font-bold text-white uppercase tracking-widest font-mono">{title}</h2>
       </div>
       {actionHref && (
-        <Link href={actionHref} className="text-[10px] font-black text-orange-500 hover:text-orange-600 transition-colors uppercase tracking-widest">
+        <Link href={actionHref} className="text-[10px] font-bold text-orange-500 hover:text-orange-400 transition-colors uppercase tracking-widest font-mono">
           {actionLabel}
         </Link>
       )}
@@ -102,9 +101,9 @@ function SectionHeader({ title, icon, actionHref, actionLabel = "View All" }: {
   );
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ═════════════════════════════════════════════════════════════════════════════
    MAIN DASHBOARD
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+   ═════════════════════════════════════════════════════════════════════════════ */
 
 export default function DashboardPage() {
   const { formatMoney } = useCurrency();
@@ -209,70 +208,67 @@ export default function DashboardPage() {
 
   const firstName = (profile?.full_name as string)?.split(" ")[0] ?? "User";
 
-  /* â”€â”€â”€ Loading State â”€â”€â”€ */
+  /* ─── Loading State ─── */
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center space-y-10 animate-in fade-in duration-700" style={{ background: "var(--color-bg)" }}>
+      <div className="min-h-screen flex flex-col items-center justify-center space-y-10 animate-in fade-in duration-700 bg-[#060606]">
         <div className="relative">
-          <div className="absolute inset-0 bg-orange-400/20 blur-3xl rounded-none scale-150 animate-pulse" />
-          <div className="relative w-20 h-20 rounded-none bg-surface dark:bg-surface-secondary border border-border shadow-none flex items-center justify-center overflow-hidden">
-            <div className="absolute inset-0 border-2 border-t-orange-500 border-r-transparent border-b-transparent border-l-transparent rounded-none animate-spin m-2" />
-            <LayoutDashboard className="h-8 w-8 text-stone-800 dark:text-white" />
+          <div className="absolute inset-0 bg-orange-500/20 blur-3xl scale-150 animate-pulse" />
+          <div className="relative w-20 h-20 bg-[#111] border border-[#222] flex items-center justify-center overflow-hidden">
+            <div className="absolute inset-0 border-2 border-t-orange-500 border-r-transparent border-b-transparent border-l-transparent animate-spin m-2" />
+            <LayoutDashboard className="h-8 w-8 text-white" />
           </div>
         </div>
         <div className="text-center space-y-2">
-          <h2 className="text-[13px] font-black text-stone-900 dark:text-white uppercase tracking-[0.3em]">Loading Dashboard</h2>
-          <p className="text-[10px] font-bold text-stone-400 dark:text-text-muted uppercase tracking-widest">Setting things up...</p>
+          <h2 className="text-[13px] font-black text-white uppercase tracking-[0.3em]">Loading Console</h2>
+          <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Establishing parameters...</p>
         </div>
       </div>
     );
   }
 
-  /* â”€â”€â”€ Main Render â”€â”€â”€ */
+  /* ─── Main Render ─── */
   return (
-    <div className="min-h-screen pb-24 relative overflow-hidden" style={{ background: "var(--color-bg)" }}>
-      <GlassAmbientGlow color="orange" position="top-right" />
-      <GlassAmbientGlow color="indigo" position="bottom-left" />
+    <div className="min-h-screen pb-24 relative bg-[#060606]">
 
-      <div className="max-w-7xl mx-auto space-y-8 px-0 sm:px-6 pt-5 relative z-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <div className="max-w-7xl mx-auto space-y-8 px-4 sm:px-6 pt-5 relative animate-in fade-in slide-in-from-bottom-4 duration-500">
 
-        {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+        {/* ═════════════════════════════════════════════════════════════════════
             GREETING
-        â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
-        <div className="space-y-1.5 px-4 sm:px-0">
-          <h1 className="text-3xl sm:text-4xl font-black text-stone-900 dark:text-white tracking-tighter">
-            {greeting}, <span className="text-orange-600">{firstName}</span>
+        ═════════════════════════════════════════════════════════════════════ */}
+        <div className="space-y-1.5 py-4 border-b border-[#222]">
+          <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tighter">
+            {greeting}, <span className="text-orange-500">{firstName}</span>
           </h1>
-          <p className="text-[11px] font-bold text-stone-400 dark:text-text-muted uppercase tracking-[0.25em]">
-            Your dashboard overview
+          <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-[0.25em] font-mono">
+            Command Center Overview
           </p>
         </div>
 
-        {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-            MY WALLET â€” Large Featured Card
-        â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+        {/* ═════════════════════════════════════════════════════════════════════
+            MY WALLET — Large Featured Card
+        ═════════════════════════════════════════════════════════════════════ */}
         <Link href="/dashboard/wallet" className="block outline-none group">
-          <div className="relative overflow-hidden rounded-none bg-neutral-900 dark:bg-surface p-8 sm:p-10 shadow-none transition-all duration-500 active:scale-[0.98]">
+          <div className="relative overflow-hidden bg-[#0A0A0A] border border-[#222] p-8 sm:p-10 transition-all duration-300 active:scale-[0.98] hover:border-[#333]">
             {/* Ambient Accent Glows */}
-            <div className="absolute -top-20 -right-20 w-80 h-80 bg-orange-500/15 blur-[100px] rounded-none group-hover:bg-orange-500/25 transition-all duration-1000" />
-            <div className="absolute -bottom-20 -left-20 w-60 h-60 bg-indigo-500/10 blur-[80px] rounded-none" />
-
+            <div className="absolute -top-32 -right-32 w-96 h-96 bg-orange-600/10 blur-[100px] group-hover:bg-orange-600/15 transition-all duration-700" />
+            
             <div className="relative z-10">
               {/* Header row */}
               <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center gap-4">
-                  <div className="h-12 w-12 rounded-none bg-orange-500 shadow-none shadow-orange-500/30 flex items-center justify-center text-white">
+                  <div className="h-12 w-12 bg-orange-600 flex items-center justify-center text-white shadow-[0_0_20px_rgba(249,115,22,0.2)]">
                     <Wallet className="h-5.5 w-5.5" />
                   </div>
                   <div>
-                    <span className="text-[10px] font-black text-white/50 uppercase tracking-[0.2em] block">My Portfolio</span>
+                    <span className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] block">My Portfolio</span>
                     <span className="text-sm font-bold text-white">Jimvio Wallet</span>
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); setBalanceHidden(v => !v); }}
-                  className="h-10 w-10 rounded-none bg-white/5 hover:bg-white/10 backdrop-blur-md flex items-center justify-center text-white/60 transition-all border border-white/5"
+                  className="h-10 w-10 bg-[#111] hover:bg-[#1A1A1A] flex items-center justify-center text-zinc-400 hover:text-white transition-all border border-[#222]"
                   aria-label={balanceHidden ? "Show balance" : "Hide balance"}
                 >
                   {balanceHidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -282,19 +278,19 @@ export default function DashboardPage() {
               {/* Balance Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 items-end">
                 <div>
-                  <p className="text-[10px] font-black text-orange-500 uppercase tracking-widest mb-2">Available to spend</p>
-                  <p className="text-5xl sm:text-6xl font-black text-white tabular-nums tracking-tighter leading-none">
-                    {balanceHidden ? "â€¢â€¢â€¢â€¢â€¢â€¢" : formatMoney(walletBalance.available, "USD")}
+                  <p className="text-[10px] font-black text-orange-500 uppercase tracking-widest mb-2 font-mono">Available to spend</p>
+                  <p className="text-5xl sm:text-6xl font-bold text-white tabular-nums tracking-tighter leading-none font-mono">
+                    {balanceHidden ? "••••••" : formatMoney(walletBalance.available, "USD")}
                   </p>
                 </div>
-                <div className="sm:text-right space-y-2">
-                   <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-none bg-white/5 border border-white/5">
-                      <div className="h-1.5 w-1.5 rounded-none bg-orange-500 animate-pulse" />
-                      <span className="text-xs font-bold text-white/70">
-                        {balanceHidden ? "â€¢â€¢â€¢â€¢" : formatMoney(walletBalance.pending, "USD")} pending
+                <div className="sm:text-right space-y-3">
+                   <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#111] border border-[#222]">
+                      <div className="h-1.5 w-1.5 bg-orange-500 animate-pulse" />
+                      <span className="text-xs font-bold text-zinc-400 font-mono">
+                        {balanceHidden ? "••••" : formatMoney(walletBalance.pending, "USD")} pending
                       </span>
                    </div>
-                   <div className="flex items-center sm:justify-end gap-2 text-white/40 text-[10px] uppercase font-bold tracking-widest">
+                   <div className="flex items-center sm:justify-end gap-2 text-zinc-500 hover:text-orange-500 transition-colors text-[10px] uppercase font-bold tracking-widest">
                      Manage Wallet <ArrowUpRight className="h-3 w-3" />
                    </div>
                 </div>
@@ -304,71 +300,71 @@ export default function DashboardPage() {
         </Link>
 
         {/* QUICK ACTIONS */}
-        <div className="grid grid-cols-4 gap-2 px-4 sm:px-0">
+        <div className="grid grid-cols-4 gap-3">
           {[
             { href: "/dashboard/wallet", icon: <Wallet />, label: "Add Funds", color: "text-orange-500" },
-            { href: "/dashboard/messages", icon: <MessageSquare />, label: "Messages", color: "text-stone-500" },
-            { href: "/dashboard/settings", icon: <Settings />, label: "Settings", color: "text-stone-500" },
-            { href: "/support", icon: <Heart />, label: "Help", color: "text-rose-400" },
+            { href: "/dashboard/messages", icon: <MessageSquare />, label: "Messages", color: "text-zinc-400 group-hover:text-white" },
+            { href: "/dashboard/settings", icon: <Settings />, label: "Settings", color: "text-zinc-400 group-hover:text-white" },
+            { href: "/support", icon: <Heart />, label: "Help", color: "text-rose-500" },
           ].map(item => (
-            <Link key={item.href} href={item.href} className="flex flex-col items-center justify-center gap-2 p-3.5 sm:p-5 rounded-none bg-surface dark:bg-surface-secondary/40 backdrop-blur-2xl border border-border shadow-none hover:shadow-none transition-all active:scale-95 group">
-              {React.cloneElement(item.icon as React.ReactElement<{ className?: string }>, { className: cn("h-5 w-5 sm:h-6 sm:w-6 group-hover:scale-110 transition-transform", item.color) })}
-              <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-stone-500 dark:text-text-muted">{item.label}</span>
+            <Link key={item.href} href={item.href} className="flex flex-col items-center justify-center gap-2.5 p-4 bg-[#0A0A0A] border border-[#222] hover:border-[#333] hover:bg-[#111] transition-all active:scale-95 group">
+              {React.cloneElement(item.icon as React.ReactElement<{ className?: string }>, { className: cn("h-5 w-5 sm:h-6 sm:w-6 transition-transform", item.color) })}
+              <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-500 group-hover:text-zinc-300">{item.label}</span>
             </Link>
           ))}
         </div>
 
         {/* MAIN GRID */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 px-4 sm:px-0">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8">
 
-          {/* â”€â”€â”€ LEFT COLUMN â”€â”€â”€ */}
+          {/* ─── LEFT COLUMN ─── */}
           <div className="lg:col-span-8 space-y-8">
 
             {/* Earnings Chart */}
-            <div className="rounded-none bg-surface dark:bg-surface-secondary/40 backdrop-blur-[60px] saturate-[180%] border border-border shadow-[0_6px_30px_rgb(0,0,0,0.04)] p-7 sm:p-9 overflow-hidden">
-              <div className="flex items-center justify-between mb-7">
-                <div className="space-y-1">
-                  <h3 className="text-lg font-black text-stone-900 dark:text-white tracking-tight">Earnings Overview</h3>
-                  <p className="text-[10px] font-bold text-stone-400 dark:text-text-muted uppercase tracking-widest">
+            <div className="bg-[#0A0A0A] border border-[#222] p-7 overflow-hidden">
+              <div className="flex items-center justify-between mb-8">
+                <div className="space-y-1.5">
+                  <h3 className="text-xl font-bold text-white tracking-tight">Earnings Overview</h3>
+                  <p className="text-[10px] font-mono font-bold text-zinc-500 uppercase tracking-widest">
                     {chartData[6].v > chartData[0].v ? "Growing this week" : "Steady activity"}
                   </p>
                 </div>
-                <div className="flex items-center gap-2 bg-emerald-500/10 dark:bg-emerald-500/10 px-3.5 py-1.5 rounded-none border border-emerald-500/10 dark:border-emerald-500/20">
+                <div className="flex items-center gap-2 bg-emerald-500/10 px-3 py-1.5 border border-emerald-500/20">
                   <TrendingUp className="h-3.5 w-3.5 text-emerald-500" />
-                  <span className="text-[9px] font-black text-emerald-600 dark:text-emerald-500 uppercase tracking-widest">This Week</span>
+                  <span className="text-[9px] font-bold text-emerald-500 uppercase tracking-widest font-mono">This Week</span>
                 </div>
               </div>
-              <div className="h-[170px] -ml-5 -mr-1">
+              <div className="h-[200px] -ml-5 -mr-1">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={chartData}>
                     <defs>
                       <linearGradient id="colorVal" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#f97316" stopOpacity={0.12} />
+                        <stop offset="5%" stopColor="#f97316" stopOpacity={0.2} />
                         <stop offset="95%" stopColor="#f97316" stopOpacity={0} />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" opacity={0.3} />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: "var(--color-text-muted)", fontSize: 10, fontWeight: 800 }} />
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#222" opacity={0.6} />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: "#71717a", fontSize: 10, fontWeight: 800, fontFamily: "monospace" }} />
                     <YAxis hide />
-                    <Tooltip contentStyle={{ background: "var(--color-surface)", borderRadius: "16px", border: "1px solid var(--color-border)", boxShadow: "0 16px 40px rgba(0,0,0,0.1)", fontSize: "11px", fontWeight: 800, padding: "10px 16px", color: "var(--color-text)" }} />
+                    <Tooltip contentStyle={{ background: "#111", borderRadius: "0", border: "1px solid #333", fontSize: "12px", fontWeight: 700, padding: "10px 16px", color: "#fff" }} />
                     <Area type="monotone" dataKey="v" stroke="#f97316" strokeWidth={3} fillOpacity={1} fill="url(#colorVal)"
-                      dot={{ r: 3.5, fill: "#fff", stroke: "#f97316", strokeWidth: 2.5 }}
-                      activeDot={{ r: 6, fill: "#f97316", stroke: "#fff", strokeWidth: 3 }}
+                      dot={{ r: 3, fill: "#111", stroke: "#f97316", strokeWidth: 2 }}
+                      activeDot={{ r: 5, fill: "#f97316", stroke: "#111", strokeWidth: 2 }}
                     />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
             </div>
 
-            {/* â”€â”€â”€ ROLE-BASED SECTIONS â”€â”€â”€ */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* ─── ROLE-BASED SECTIONS ─── */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
 
-              {/* 1. BUYER â€” Always visible */}
+              {/* 1. BUYER — Always visible */}
               <div className="space-y-4">
-                <SectionHeader title="My Shopping" icon={<ShoppingCart />} actionHref="/dashboard/orders" />
+                <SectionHeader title="My Shopping" icon={<ShoppingCart className="h-4 w-4" />} actionHref="/dashboard/orders" />
                 <div className="grid grid-cols-2 gap-3">
-                  <StatCard value={stats.orders} label="My Orders" icon={<Package />} color="bg-orange-500/10 text-orange-600 dark:text-orange-400" />
-                  <StatCard value={stats.wishlist} label="Wishlist" icon={<Heart />} color="bg-rose-500/10 text-rose-500 dark:text-rose-400" />
+                  <StatCard value={stats.orders} label="My Orders" icon={<Package className="text-orange-500" />} colorClass="text-orange-500" borderClass="border-orange-500/20" />
+                  <StatCard value={stats.wishlist} label="Wishlist" icon={<Heart className="text-rose-500" />} colorClass="text-rose-500" borderClass="border-rose-500/20" />
                 </div>
                 <div className="space-y-2.5">
                   <ActionRow href="/dashboard/orders" icon={<Truck />} label="Track My Orders" />
@@ -376,13 +372,13 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* 2. VENDOR â€” Conditional */}
+              {/* 2. VENDOR — Conditional */}
               {activeRoles.includes("vendor") && (
                 <div className="space-y-4">
-                  <SectionHeader title="My Store" icon={<Store />} actionHref="/dashboard/vendor/store" />
+                  <SectionHeader title="My Store" icon={<Store className="h-4 w-4" />} actionHref="/dashboard/vendor/store" />
                   <div className="grid grid-cols-2 gap-3">
-                    <StatCard value={stats.vendorProducts} label="Products" icon={<Box />} color="bg-violet-500/10 text-violet-600 dark:text-violet-400" />
-                    <StatCard value={formatMoney(stats.vendorRevenue, "USD")} label="Revenue" icon={<DollarSign />} color="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" />
+                    <StatCard value={stats.vendorProducts} label="Products" icon={<Box className="text-violet-500" />} colorClass="text-violet-500" borderClass="border-violet-500/20" />
+                    <StatCard value={formatMoney(stats.vendorRevenue, "USD")} label="Revenue" icon={<DollarSign className="text-emerald-500" />} colorClass="text-emerald-500" borderClass="border-emerald-500/20" />
                   </div>
                   <div className="space-y-2.5">
                     <ActionRow href="/dashboard/vendor/orders" icon={<Package />} label="Manage Orders" />
@@ -391,13 +387,13 @@ export default function DashboardPage() {
                 </div>
               )}
 
-              {/* 3. INFLUENCER / CREATOR â€” Conditional */}
+              {/* 3. INFLUENCER / CREATOR — Conditional */}
               {activeRoles.includes("influencer") && (
                 <div className="space-y-4">
-                  <SectionHeader title="Creator Hub" icon={<Video />} actionHref="/dashboard/influencer" />
+                  <SectionHeader title="Creator Hub" icon={<Video className="h-4 w-4" />} actionHref="/dashboard/influencer" />
                   <div className="grid grid-cols-2 gap-3">
-                    <StatCard value={stats.missionsJoined} label="Missions Joined" icon={<Target />} color="bg-indigo-500/10 text-indigo-600 dark:text-indigo-400" />
-                    <StatCard value={stats.mySubmissions} label="My Uploads" icon={<Camera />} color="bg-pink-500/10 text-pink-500 dark:text-pink-400" />
+                    <StatCard value={stats.missionsJoined} label="Missions Joined" icon={<Target className="text-indigo-500" />} colorClass="text-indigo-500" borderClass="border-indigo-500/20" />
+                    <StatCard value={stats.mySubmissions} label="My Uploads" icon={<Camera className="text-pink-500" />} colorClass="text-pink-500" borderClass="border-pink-500/20" />
                   </div>
                   <div className="space-y-2.5">
                     <ActionRow href="/ugc" icon={<Search />} label="Find Missions" highlight />
@@ -406,13 +402,13 @@ export default function DashboardPage() {
                 </div>
               )}
 
-              {/* 4. MISSION OWNER â€” Conditional (vendor with campaigns) */}
+              {/* 4. MISSION OWNER — Conditional (vendor with campaigns) */}
               {activeRoles.includes("vendor") && stats.activeMissions > 0 && (
                 <div className="space-y-4">
-                  <SectionHeader title="My Missions" icon={<Zap />} actionHref="/dashboard/vendor/campaigns" />
+                  <SectionHeader title="My Missions" icon={<Zap className="h-4 w-4" />} actionHref="/dashboard/vendor/campaigns" />
                   <div className="grid grid-cols-2 gap-3">
-                    <StatCard value={stats.activeMissions} label="Active Missions" icon={<Radio />} color="bg-amber-500/10 text-amber-600 dark:text-amber-400" />
-                    <StatCard value={stats.totalSubmissionsReceived} label="Submissions" icon={<Camera />} color="bg-sky-500/10 text-sky-600 dark:text-sky-400" />
+                    <StatCard value={stats.activeMissions} label="Active Missions" icon={<Radio className="text-amber-500" />} colorClass="text-amber-500" borderClass="border-amber-500/20" />
+                    <StatCard value={stats.totalSubmissionsReceived} label="Submissions" icon={<Camera className="text-sky-500" />} colorClass="text-sky-500" borderClass="border-sky-500/20" />
                   </div>
                   <div className="space-y-2.5">
                     <ActionRow href="/dashboard/vendor/campaigns/new" icon={<Plus />} label="Create Mission" highlight />
@@ -421,13 +417,13 @@ export default function DashboardPage() {
                 </div>
               )}
 
-              {/* 5. AFFILIATE â€” Conditional */}
+              {/* 5. AFFILIATE — Conditional */}
               {activeRoles.includes("affiliate") && (
                 <div className="space-y-4">
-                  <SectionHeader title="Affiliate Hub" icon={<Link2 />} actionHref="/dashboard/links" />
+                  <SectionHeader title="Affiliate Hub" icon={<Link2 className="h-4 w-4" />} actionHref="/dashboard/links" />
                   <div className="grid grid-cols-2 gap-3">
-                    <StatCard value={formatMoney(stats.affiliateEarnings, "USD")} label="Earnings" icon={<DollarSign />} color="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" />
-                    <StatCard value={stats.affiliateLinks} label="Active Links" icon={<Link2 />} color="bg-sky-500/10 text-sky-600 dark:text-sky-400" />
+                    <StatCard value={formatMoney(stats.affiliateEarnings, "USD")} label="Earnings" icon={<DollarSign className="text-emerald-500" />} colorClass="text-emerald-500" borderClass="border-emerald-500/20" />
+                    <StatCard value={stats.affiliateLinks} label="Active Links" icon={<Link2 className="text-sky-500" />} colorClass="text-sky-500" borderClass="border-sky-500/20" />
                   </div>
                   <div className="space-y-2.5">
                     <ActionRow href="/dashboard/links" icon={<Plus />} label="Create Link" highlight />
@@ -438,29 +434,29 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* â”€â”€â”€ RIGHT COLUMN â”€â”€â”€ */}
+          {/* ─── RIGHT COLUMN ─── */}
           <div className="lg:col-span-4 space-y-8">
 
-            {/* 6. COMMUNITIES â€” Always visible */}
+            {/* 6. COMMUNITIES — Always visible */}
             <div className="space-y-4">
-              <SectionHeader title="Communities" icon={<Users2 />} actionHref="/communities" />
+              <SectionHeader title="Communities" icon={<Users2 className="h-4 w-4" />} actionHref="/communities" />
               <div className="space-y-3">
-                <div className="flex items-center gap-5 p-5 rounded-none bg-surface dark:bg-surface-secondary/40 backdrop-blur-2xl border border-border shadow-none hover:shadow-none transition-all duration-500 group">
-                  <div className="w-12 h-12 rounded-none bg-sky-500/10 dark:bg-sky-500/10 border border-border text-sky-600 dark:text-sky-500 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-500">
+                <div className="flex items-center gap-5 p-5 bg-[#0A0A0A] border border-[#222] hover:border-[#333] transition-colors group">
+                  <div className="w-12 h-12 bg-[#111] border border-[#222] text-sky-500 flex items-center justify-center shrink-0">
                     <Globe2 className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="text-2xl font-black text-stone-900 dark:text-white tracking-tighter leading-none">{stats.communitiesJoined}</p>
-                    <p className="text-[9px] font-black text-stone-400 dark:text-text-muted uppercase tracking-widest mt-1.5">Joined</p>
+                    <p className="text-2xl font-black text-white tracking-tighter leading-none tabular-nums">{stats.communitiesJoined}</p>
+                    <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-1.5 font-mono">Joined</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-5 p-5 rounded-none bg-surface dark:bg-surface-secondary/40 backdrop-blur-2xl border border-border shadow-none hover:shadow-none transition-all duration-500 group">
-                  <div className="w-12 h-12 rounded-none bg-orange-500/10 dark:bg-orange-500/10 border border-border text-orange-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-500">
+                <div className="flex items-center gap-5 p-5 bg-[#0A0A0A] border border-[#222] hover:border-[#333] transition-colors group">
+                  <div className="w-12 h-12 bg-[#111] border border-[#222] text-orange-500 flex items-center justify-center shrink-0">
                     <Plus className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="text-2xl font-black text-stone-900 dark:text-white tracking-tighter leading-none">{stats.communitiesCreated}</p>
-                    <p className="text-[9px] font-black text-stone-400 dark:text-text-muted uppercase tracking-widest mt-1.5">Created</p>
+                    <p className="text-2xl font-black text-white tracking-tighter leading-none tabular-nums">{stats.communitiesCreated}</p>
+                    <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-1.5 font-mono">Created</p>
                   </div>
                 </div>
               </div>
@@ -471,30 +467,30 @@ export default function DashboardPage() {
             </div>
 
             {/* Learn & Grow */}
-            <div className="p-7 rounded-none bg-gradient-to-br from-orange-500 via-orange-400 to-amber-400 overflow-hidden relative group border border-white/15 shadow-[0_12px_36px_rgba(249,115,22,0.2)]">
-              <div className="absolute top-0 right-0 w-48 h-48 bg-white dark:bg-surface/15 blur-[70px] rounded-none translate-x-1/3 -translate-y-1/3 group-hover:bg-white dark:bg-surface/25 transition-all duration-1000" />
+            <div className="p-7 bg-orange-600 overflow-hidden relative group">
+              <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 blur-[50px] translate-x-1/3 -translate-y-1/3 group-hover:bg-white/20 transition-all duration-700" />
               <div className="relative z-10 space-y-4">
                 <div className="flex items-center gap-2.5">
-                  <div className="bg-white dark:bg-surface/20 p-1.5 rounded-none backdrop-blur-md border border-white/15 text-white">
-                    <Sparkles className="h-3.5 w-3.5" />
+                  <div className="bg-black/20 p-1.5 text-white shadow-inner">
+                    <Sparkles className="h-4 w-4" />
                   </div>
-                  <span className="text-[10px] font-black text-white/90 uppercase tracking-widest">Learn &amp; Grow</span>
+                  <span className="text-[10px] font-black text-white uppercase tracking-widest">Learn &amp; Grow</span>
                 </div>
                 <h3 className="text-xl font-black text-white leading-tight tracking-tighter">Grow your business with Jimvio</h3>
                 <p className="text-white/80 text-[12px] leading-relaxed font-semibold">
                   Guides, tips, and strategies to sell more and reach new customers.
                 </p>
-                <Button asChild className="w-full bg-white dark:bg-surface/95 text-orange-600 hover:bg-white dark:bg-surface hover:scale-[1.01] active:scale-95 h-11 rounded-none font-black text-[11px] uppercase tracking-widest transition-all border-none shadow-none">
+                <Button asChild className="w-full bg-black text-white hover:bg-zinc-900 active:scale-95 h-11 rounded-none font-black text-[11px] uppercase tracking-widest transition-all border-none shadow-none mt-2">
                   <Link href="/help">Explore Guides <ArrowRight className="h-4 w-4 ml-2" /></Link>
                 </Button>
               </div>
             </div>
 
             {/* Your Roles */}
-            <div className="p-6 rounded-none bg-surface dark:bg-surface-secondary/40 backdrop-blur-[40px] saturate-200 border border-border shadow-none space-y-4">
+            <div className="p-6 bg-[#0A0A0A] border border-[#222] space-y-5">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-black text-stone-400 dark:text-text-muted uppercase tracking-widest">Your Roles</span>
-                <Link href="/dashboard/roles" className="text-[10px] font-black text-orange-500 uppercase tracking-widest hover:text-orange-600 transition-colors">
+                <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Your Roles</span>
+                <Link href="/dashboard/roles" className="text-[10px] font-bold text-orange-500 uppercase tracking-widest font-mono hover:text-orange-400 transition-colors">
                   Manage
                 </Link>
               </div>

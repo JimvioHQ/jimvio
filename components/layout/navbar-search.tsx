@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -33,14 +33,14 @@ function mergeLinks(navLinks: NavLinkConfig[]) {
 /* â”€â”€ Dark glass search input shell â”€â”€ */
 /* â”€â”€ Professional Solid Input Shells â”€â”€ */
 const INPUT_IDLE: React.CSSProperties = {
-  background: "var(--color-surface)",
+  background: "var(--color-bg)",
   border: "1px solid var(--color-border)",
-  boxShadow: "var(--shadow-none)",
+  boxShadow: "none",
 };
 const INPUT_FOCUSED: React.CSSProperties = {
-  background: "var(--color-surface)",
-  border: "1px solid var(--color-accent)",
-  boxShadow: "0 0 0 1px var(--color-accent)",
+  background: "var(--color-bg)",
+  border: "1.5px solid var(--color-accent)",
+  boxShadow: "none",
 };
 const INPUT_LIGHT: React.CSSProperties = INPUT_IDLE;
 const INPUT_LIGHT_FOCUSED: React.CSSProperties = INPUT_FOCUSED;
@@ -103,7 +103,7 @@ export function NavbarSearch({
   };
 
   const showPanel = open && (searchQ.trim().length > 0 || focused);
-  const expandedW = isDesktop ? (focused ? 320 : searchQ ? 200 : 180) : "100%";
+  const expandedW = isDesktop ? (focused ? 360 : searchQ ? 250 : 130) : "100%";
 
   /* â”€â”€ Input style selection â”€â”€ */
   const inputStyle = focused ? INPUT_LIGHT_FOCUSED : INPUT_LIGHT;
@@ -116,11 +116,8 @@ export function NavbarSearch({
         className={cn("relative flex items-center h-11 rounded-none overflow-hidden transition-all duration-200", !isDesktop && "flex-1")}
         style={isDesktop ? inputStyle : { background: "transparent" }}
       >
-        {/* Top specular on input */}
-        <div
-          className="pointer-events-none absolute inset-x-0 top-0 h-px rounded-none"
-          style={{ background: "linear-gradient(90deg,transparent,rgba(255,255,255,1) 50%,transparent)" }}
-        />
+        {/* Top border highlight */}
+        <div className="absolute inset-x-0 top-0 h-[1.5px] bg-white/5 dark:bg-white/5" />
 
         <div className="pl-3.5 pr-1 shrink-0">
           {loading

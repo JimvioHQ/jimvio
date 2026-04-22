@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useRef } from "react";
 import { Upload, Loader2, Image as ImageIcon, Video, File as FileIcon } from "lucide-react";
@@ -84,7 +84,7 @@ export function CloudinaryDropzone({
   label = "Click to upload or drag and drop",
   sublabel = "SVG, PNG, JPG or GIF (max. 5MB)",
   className,
-}: CloudinaryUploadButtonProps & { label?: string; sublabel?: string }) {
+}: CloudinaryUploadButtonProps & { label?: React.ReactNode; sublabel?: React.ReactNode }) {
   const { upload, uploading, progress, error } = useCloudinaryUpload(folder);
   const fileInputRef = useRef<HTMLInputElement>(null);
 

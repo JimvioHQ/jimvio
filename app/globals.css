@@ -116,29 +116,28 @@
 
 @layer base {
   :root {
-    /* Premium Stone & White palette (Jimvio Command Center) */
-    --color-bg: #f8f7f5;
+    /* Shopify-Inspired Professional Palette (Jimvio Command Center) */
+    --color-bg: #f6f6f7;
     --color-surface: #ffffff;
-    --color-surface-secondary: #f3f2f0;
-    --color-border: #eeedea;
-    --color-border-strong: #e1dfda;
-    /* Logo “Jim” purple — primary ink (must read as purple, not gray-black) */
-    --color-text-primary: #1c1917;
-    --color-bg-dark: #1c1917;
-    --color-bg-darker: #0c0a09;
-    --color-text-secondary: #44403c;
-    --color-text-muted: #a8a29e;
+    --color-surface-secondary: #f1f1f1;
+    --color-border: #dcdcdc;
+    --color-border-strong: #bcbcbc;
+    /* Primary Accent: Jimvio Orange */
     --color-accent: #f97316;
     --color-accent-hover: #ea580c;
     --color-accent-light: #fff7ed;
     --color-accent-subtle: #ffedd5;
 
-    --color-success: #00a650;
-    --color-success-light: #e6f9ef;
-    --color-warning: #f0a500;
-    --color-warning-light: #fff6de;
-    --color-danger: #e02020;
-    --color-danger-light: #ffe5e5;
+    --color-text-primary: #1a1a1a;
+    --color-text-secondary: #4a4a4a;
+    --color-text-muted: #8c8c8c;
+
+    --color-success: #008060;
+    --color-success-light: #e3f1e9;
+    --color-warning: #b98900;
+    --color-warning-light: #fff8e5;
+    --color-danger: #d72c0d;
+    --color-danger-light: #fff4f2;
 
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
     --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.04);
