@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useRef } from "react";
 import Link from "next/link";
@@ -197,7 +197,7 @@ export function HomepageHero({
   return (
     <>
       {/* Ã¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•Â MOBILE HERO Ã¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•Â */}
-      <section className="flex flex-col lg:hidden w-full relative overflow-hidden pb-8 px-5 min-h-[380px] justify-center text-center bg-[#faf9f7] dark:bg-[#0f0e0c]">
+      <section className="flex flex-col lg:hidden w-full relative overflow-hidden pb-8 px-5 min-h-[380px] justify-center text-center bg-background">
         {/* Ambient blobs Ã¢â‚¬" match HTML prototype */}
         <div
           className="pointer-events-none absolute top-[-60px] right-[-60px] rounded-none"
@@ -278,7 +278,7 @@ export function HomepageHero({
       </section>
 
       {/* Ã¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•Â DESKTOP HERO Ã¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•ÂÃ¢•Â */}
-      <section className="hidden lg:block w-full bg-white dark:bg-[#0f0e0c] border-b border-black/[.07] dark:border-white/[.06]">
+      <section className="hidden lg:block w-full bg-surface border-b border-border">
         <div className="grid" style={{ gridTemplateColumns: "1fr 280px" }}>
 
           {/* Left: Search + Hero + Stats */}
@@ -288,7 +288,7 @@ export function HomepageHero({
 
             {/* 2. Main Hero Panel */}
             <div
-              className="relative overflow-hidden min-h-[360px] flex-1 bg-[#faf9f7] dark:bg-[#0f0e0c]"
+              className="relative overflow-hidden min-h-[360px] flex-1 bg-background"
               style={{
                 display: "grid",
                 gridTemplateColumns: "1fr 1fr",
