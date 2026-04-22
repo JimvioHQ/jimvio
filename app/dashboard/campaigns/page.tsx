@@ -212,7 +212,7 @@ export default function CampaignsPage() {
                                       {status}
                                    </GlassPill>
                                    <span className="text-[9px] font-black uppercase tracking-[0.2em] text-stone-300">
-                                      {c.start_date ? `${c.start_date} â†’ ${c.end_date ?? 'âˆž'}` : "Mission Pending"}
+                                      {c.start_date ? `${c.start_date} → ${c.end_date ?? 'âˆž'}` : "Mission Pending"}
                                    </span>
                                 </div>
                                 <h3 className="text-2xl font-black text-stone-900 dark:text-white tracking-tighter leading-none">{c.title as string}</h3>

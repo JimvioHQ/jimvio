@@ -195,7 +195,7 @@ export function AdminPayoutsDashboard() {
             ) : (
               <>
                 <p className="text-lg font-bold text-[var(--color-text-primary)] tabular-nums">
-                  {pendingStats.count} Â· {formatCurrency(pendingStats.amount, currency)}
+                  {pendingStats.count} · {formatCurrency(pendingStats.amount, currency)}
                 </p>
               </>
             )}

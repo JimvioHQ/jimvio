@@ -4,11 +4,11 @@ import React from "react";
 import { CreditCard, Bitcoin, Check, Smartphone, Globe, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-/* â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+/* ──────────────────────────────────────────────────
    INLINE SVG BRAND LOGOS — zero CDN dependency
    All rendered with inline SVG or styled spans.
    Pill height: 24px, consistent across all logos.
-   â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€ */
+   ────────────────────────────────────────────────── */
 
 const pill: React.CSSProperties = {
   display: "inline-flex", alignItems: "center", justifyContent: "center",

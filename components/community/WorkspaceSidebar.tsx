@@ -179,7 +179,7 @@ export function WorkspaceSidebar({
                   onClick={() => setExpanded((e) => ({ ...e, [space.id]: !isOpen }))}
                   className="w-full flex items-center gap-2 px-2 py-1.5 rounded-none hover:bg-[var(--color-surface-secondary)] text-left"
                 >
-                  <span className="text-lg leading-none w-6 text-center">{space.icon || "Â·"}</span>
+                  <span className="text-lg leading-none w-6 text-center">{space.icon || "·"}</span>
                   <span className="flex-1 text-xs font-black text-[var(--color-text-primary)] truncate">{space.name}</span>
                   {isOpen ? <ChevronDown className="h-3.5 w-3.5 shrink-0" /> : <ChevronRight className="h-3.5 w-3.5 shrink-0" />}
                 </button>
@@ -281,7 +281,7 @@ export function WorkspaceSidebar({
                 {profile?.full_name || profile?.username || "Member"}
               </p>
               <p className="text-[10px] font-black text-[var(--color-accent)]">
-                {(points?.total_points ?? 0).toLocaleString()} pts Â· Lvl {points?.level ?? 1}
+                {(points?.total_points ?? 0).toLocaleString()} pts · Lvl {points?.level ?? 1}
               </p>
             </div>
           </div>

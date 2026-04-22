@@ -89,7 +89,7 @@ export default function PrivacyPolicyPage() {
         </div>
 
         <div className="mt-20 text-center text-xs text-muted-c font-bold capitalize tracking-widest">
-           Jimvio, Inc. Â· Global HQ Â· Kigali, Rwanda
+           Jimvio, Inc. · Global HQ · Kigali, Rwanda
         </div>
       </div>
     </div>

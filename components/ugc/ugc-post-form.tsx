@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useCallback } from "react";
-import { X, Plus, Tag, Hash, Loader2, Video, ChevronDown } from "lucide-react";
+import { X, Plus, Tag, Hash, Loader2, Video, ChevronDown, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { CloudinaryUploadButton } from "@/components/ui/cloudinary-upload";
@@ -267,7 +267,7 @@ export function UGCPostForm({ products = [], onSuccess, onCancel, className }: U
                   >
                     <span className="text-base">
                       {selectedProductIds.includes(p.id) ? (
-                        <CheckCircle className="h-4 w-4 text-emerald-500 fill-current" />
+                        <CheckCircle2 className="h-4 w-4 text-emerald-500 fill-current" />
                       ) : (
                         <div className="h-4 w-4 rounded-full border border-stone-300" />
                       )}

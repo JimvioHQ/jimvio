@@ -85,7 +85,7 @@ export function ShopifyConnectClient({ platformVendorConfigured }: { platformVen
           </li>
           <li>
             <strong className="text-[var(--color-text-primary)]">Admin API access token</strong> — From the Shopify store:{" "}
-            <strong>Develop apps</strong> â†’ Admin API with <strong>read_products</strong> â†’ Install â†’ <code className="text-xs">shpat_…</code>
+            <strong>Develop apps</strong> → Admin API with <strong>read_products</strong> → Install → <code className="text-xs">shpat_…</code>
           </li>
         </ul>
       </details>

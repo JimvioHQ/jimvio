@@ -218,7 +218,7 @@ export function UGCFeed({
       <div ref={sentinelRef} className="py-4 flex justify-center">
         {loadingMore && <Loader2 className="h-5 w-5 animate-spin text-[var(--color-text-muted)]" />}
         {!hasMore && posts.length > 0 && !loadingMore && (
-          <p className="text-xs text-[var(--color-text-muted)]">You've seen everything âœ¨</p>
+          <p className="text-xs text-[var(--color-text-muted)]">You've seen everything ✓¨</p>
         )}
       </div>
     </div>

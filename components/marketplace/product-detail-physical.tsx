@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React from "react";
 import Link from "next/link";
@@ -64,7 +64,7 @@ export function PhysicalProductDetail({
   };
 
   return (
-    <div className="min-h-screen bg-stone-50/50 dark:bg-[#070707]">
+    <div className="min-h-screen bg-[var(--color-bg)]">
       {/* Breadcrumb Sticky */}
       <div className="bg-white/80 dark:bg-zinc-950/80 border-b border-stone-200 dark:border-white/5 sticky top-[var(--navbar-height,64px)] z-30">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-12">
@@ -138,7 +138,7 @@ export function PhysicalProductDetail({
 
                   {/* Vendor Quick Info */}
                   {vendor && (
-                     <div className="p-4 rounded-none bg-white dark:bg-zinc-900 border border-stone-200 dark:border-white/5 flex items-center gap-4">
+                      <div className="p-4 rounded-none bg-[var(--color-surface)] dark:bg-[var(--color-surface)] border border-[var(--color-border)] flex items-center gap-4">
                         <div className="h-10 w-10 rounded-none bg-stone-100 dark:bg-zinc-800 flex items-center justify-center shrink-0">
                            {vendor.business_logo ? (
                               <img src={vendor.business_logo} className="w-full h-full object-cover rounded-none" />
@@ -153,7 +153,7 @@ export function PhysicalProductDetail({
                            </p>
                         </div>
                         <Button variant="ghost" size="sm" className="h-8 rounded-none text-[10px] font-bold uppercase tracking-widest px-3" asChild>
-                           <Link href={`/vendors/${vendor.business_slug}`}>Visit â†’</Link>
+                           <Link href={`/vendors/${vendor.business_slug}`}>Visit →</Link>
                         </Button>
                      </div>
                   )}
@@ -161,7 +161,7 @@ export function PhysicalProductDetail({
             </div>
 
             {/* In-depth details */}
-            <div className="bg-white dark:bg-zinc-900/50 rounded-none border border-stone-200 dark:border-white/5 overflow-hidden">
+            <div className="bg-[var(--color-surface)] dark:bg-[var(--color-surface)] rounded-none border border-[var(--color-border)] overflow-hidden">
                <Tabs defaultValue="details">
                   <TabsList className="w-full h-14 bg-stone-50 dark:bg-zinc-950/50 border-b border-stone-200 dark:border-white/5 rounded-none p-0">
                      <TabsTrigger value="details" className="flex-1 h-full font-bold text-[11px] uppercase tracking-widest data-[state=active]:bg-transparent data-[state=active]:text-orange-500 data-[state=active]:border-b-2 border-orange-500">Details</TabsTrigger>
@@ -193,7 +193,7 @@ export function PhysicalProductDetail({
 
           {/* RIGHT COLUMN: Buy Box */}
           <aside className="lg:col-span-4 flex flex-col gap-6">
-             <div className="bg-white dark:bg-zinc-900 rounded-none border-2 border-stone-100 dark:border-white/5 p-8 shadow-none shadow-stone-200/20 dark:shadow-none sticky top-[calc(var(--navbar-height,64px)+80px)]">
+             <div className="bg-[var(--color-surface)] dark:bg-[var(--color-surface)] rounded-none border border-[var(--color-border)] p-8 shadow-none sticky top-[calc(var(--navbar-height,64px)+80px)]">
                 <div className="flex justify-between items-start mb-8">
                    <div>
                       <p className="text-[10px] font-black uppercase tracking-[0.2em] text-stone-400 mb-1">Buy Now</p>
@@ -227,7 +227,7 @@ export function PhysicalProductDetail({
 
 function TrustMiniCard({ icon, label }: { icon: React.ReactNode; label: string }) {
    return (
-      <div className="flex flex-col items-center gap-1 p-2 bg-white dark:bg-zinc-900 border border-stone-200 dark:border-white/10 rounded-none">
+      <div className="flex flex-col items-center gap-1 p-2 bg-[var(--color-surface)] dark:bg-[var(--color-surface)] border border-[var(--color-border)] rounded-none">
          {icon}
          <span className="text-[8px] font-black uppercase tracking-widest text-stone-400">{label}</span>
       </div>

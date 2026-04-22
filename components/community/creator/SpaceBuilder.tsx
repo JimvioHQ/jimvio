@@ -112,7 +112,7 @@ export function SpaceBuilder({
                   </Button>
                 </div>
                 <button type="button" className="flex items-center gap-2 flex-1 min-w-0 text-left" onClick={() => setOpen((o) => ({ ...o, [s.id]: !isOpen }))}>
-                  <span className="text-lg">{s.icon || "Â·"}</span>
+                  <span className="text-lg">{s.icon || "·"}</span>
                   <span className="font-black text-[var(--color-text-primary)] truncate">{s.name}</span>
                   <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-none bg-[var(--color-accent-light)] text-[var(--color-accent)]">{s.access_type}</span>
                 </button>

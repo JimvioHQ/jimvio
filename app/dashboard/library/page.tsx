@@ -122,7 +122,7 @@ export default function DigitalLibraryPage() {
                  Digital Library
               </h1>
               <p className="text-[10px] sm:text-[11px] font-bold text-stone-400 dark:text-text-muted uppercase tracking-[0.3em] pl-14 sm:pl-16">
-                 {items.length} purchased {items.length === 1 ? "asset" : "assets"} Â· Instant access
+                 {items.length} purchased {items.length === 1 ? "asset" : "assets"} · Instant access
               </p>
            </div>
            
@@ -199,7 +199,7 @@ export default function DigitalLibraryPage() {
                       {/* Access granted indicator */}
                       {item.digital_download_url && (
                         <div className="absolute bottom-3 left-3 sm:bottom-4 sm:left-4 bg-emerald-500/90 backdrop-blur-md px-2.5 py-1 rounded-none text-[7px] sm:text-[8px] font-black uppercase tracking-widest text-white">
-                          âœ" Access Granted
+                          ✓" Access Granted
                         </div>
                       )}
                       {!item.digital_download_url && (

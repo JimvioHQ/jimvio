@@ -23,7 +23,7 @@ export default async function AdminPaymentsPage() {
             <DollarSign className="h-5 w-5" />
             Recent orders (transaction volume)
           </CardTitle>
-          <p className="text-sm text-[var(--color-text-muted)]">Last 30 orders Â· Total: {formatCurrency(totalVolume)}</p>
+          <p className="text-sm text-[var(--color-text-muted)]">Last 30 orders · Total: {formatCurrency(totalVolume)}</p>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">

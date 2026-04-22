@@ -100,7 +100,7 @@ export default function InfluencerDashboardPage() {
       style={{ background: "var(--color-bg)" }}
     >
       <div className="max-w-6xl mx-auto space-y-8 px-4 sm:px-6 pt-5">
-      {/* â"€â"€ HEADER â"€â"€ */}
+      {/* ── HEADER ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 pt-4 px-2">
          <div className="flex items-center gap-4">
             <div className="w-14 h-14 rounded-none bg-orange-500 flex items-center justify-center shadow-none text-white font-black text-xl">
@@ -133,7 +133,7 @@ export default function InfluencerDashboardPage() {
          </div>
       </div>
 
-      {/* â"€â"€ METRIC CARDS â"€â"€ */}
+      {/* ── METRIC CARDS ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
          {[
            { label: "Total Earnings", value: formatMoney(stats.totalEarnings), icon: DollarSign, color: "text-emerald-600", bg: "bg-emerald-500/10" },
@@ -163,7 +163,7 @@ export default function InfluencerDashboardPage() {
                   <Film className="h-12 w-12 text-stone-300 dark:text-stone-700 mx-auto mb-4" />
                   <p className="text-lg font-bold text-stone-900 dark:text-white tracking-tight">No activity logs found.</p>
                   <Link href="/ugc" className="mt-6 inline-block">
-                     <Button className="h-11 px-8 rounded-none bg-surface dark:bg-surface border border-border text-stone-700 dark:text-stone-300 font-bold text-[11px] uppercase tracking-widest shadow-none hover:bg-surface-secondary dark:hover:bg-zinc-800 transition-all">Browse Missions â†’</Button>
+                     <Button className="h-11 px-8 rounded-none bg-surface dark:bg-surface border border-border text-stone-700 dark:text-stone-300 font-bold text-[11px] uppercase tracking-widest shadow-none hover:bg-surface-secondary dark:hover:bg-zinc-800 transition-all">Browse Missions →</Button>
                   </Link>
                </GlassCard>
             ) : (
@@ -200,7 +200,7 @@ export default function InfluencerDashboardPage() {
             )}
         </div>
 
-         {/* â"€â"€ QUICK ACTIONS â"€â"€ */}
+         {/* ── QUICK ACTIONS ── */}
          <div className="xl:col-span-1 space-y-6">
             <div className="rounded-none bg-stone-900 dark:bg-surface-secondary p-8 text-white shadow-none relative overflow-hidden group">
                <div className="absolute top-0 right-0 w-48 h-48 bg-orange-500 opacity-20 blur-3xl rounded-none translate-x-10 -translate-y-10 group-hover:opacity-30 transition-opacity" />

@@ -150,7 +150,7 @@ export function ShopifyConnectForm({ vendorId }: Props) {
           <div className="flex items-start gap-3 mt-3">
             <CheckCircle2 className="h-8 w-8 text-[var(--color-success)] shrink-0" />
             <div className="flex-1 min-w-0">
-              <p className="font-bold text-[var(--color-text-primary)]">Connected Â· {connected.shopDomain}</p>
+              <p className="font-bold text-[var(--color-text-primary)]">Connected · {connected.shopDomain}</p>
               <p className="text-sm text-[var(--color-text-secondary)] mt-1">
                 Last synced: {mins < 1 ? "just now" : `${mins} minutes ago`}
               </p>
@@ -249,7 +249,7 @@ export function ShopifyConnectForm({ vendorId }: Props) {
           )}
           required
         />
-        <p className="text-xs text-[var(--color-text-muted)] mt-1">Settings â†’ Apps â†’ Develop apps â†’ API credentials</p>
+        <p className="text-xs text-[var(--color-text-muted)] mt-1">Settings → Apps → Develop apps → API credentials</p>
       </div>
 
       <Button type="submit" className="w-full" size="lg" disabled={connecting}>
@@ -274,9 +274,9 @@ export function ShopifyConnectForm({ vendorId }: Props) {
         {helpOpen && (
           <ol className="list-decimal pl-8 pr-4 py-3 text-sm text-[var(--color-text-secondary)] space-y-2">
             <li>Open your Shopify Admin</li>
-            <li>Settings â†’ Apps â†’ Develop apps</li>
-            <li>Create app â†’ Configure Admin API scopes (products, orders)</li>
-            <li>Install app â†’ Copy the Admin API access token</li>
+            <li>Settings → Apps → Develop apps</li>
+            <li>Create app → Configure Admin API scopes (products, orders)</li>
+            <li>Install app → Copy the Admin API access token</li>
           </ol>
         )}
       </div>

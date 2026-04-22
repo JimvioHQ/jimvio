@@ -161,7 +161,7 @@ export function CommunityDetailView({
 
   return (
     <div className="min-h-screen bg-white dark:bg-bg">
-      {/* â"€â"€ STUNNING HERO â"€â"€ */}
+      {/* ── STUNNING HERO ── */}
       <section className="relative">
         <div className="h-[280px] sm:h-[400px] w-full relative overflow-hidden">
           {community.cover_image ? (
@@ -223,7 +223,7 @@ export function CommunityDetailView({
         </div>
       </section>
 
-      {/* â"€â"€ MAIN CONTENT GRID â"€â"€ */}
+      {/* ── MAIN CONTENT GRID ── */}
       <div className="max-w-7xl mx-auto px-6 py-16 grid grid-cols-1 lg:grid-cols-12 gap-16">
         
         {/* Left Side: About & Content */}

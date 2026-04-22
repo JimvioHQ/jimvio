@@ -18,7 +18,7 @@ const PLATFORMS: { value: UGCPlatform; label: string; icon: string; border: stri
   { value: 'tiktok',    label: 'TikTok',    icon: '🎵', border: 'border-[#00f2fe]/40', bgHover: 'hover:bg-[#00f2fe]/5' },
   { value: 'instagram', label: 'Instagram', icon: '📸', border: 'border-[#ff0844]/40', bgHover: 'hover:bg-[#ff0844]/5' },
   { value: 'youtube',   label: 'YouTube',   icon: 'â–¶ï¸', border: 'border-[#ff0000]/40', bgHover: 'hover:bg-[#ff0000]/5' },
-  { value: 'x',         label: 'X/Twitter', icon: 'âœ–ï¸', border: 'border-zinc-400',     bgHover: 'hover:bg-zinc-100' },
+  { value: 'x',         label: 'X/Twitter', icon: '✓–ï¸', border: 'border-zinc-400',     bgHover: 'hover:bg-zinc-100' },
 ];
 
 export default function NewCampaignPage() {
@@ -338,7 +338,7 @@ export default function NewCampaignPage() {
                               ) : (
                                  <div className="w-full h-full flex items-center justify-center bg-zinc-100"><Play className="h-4 w-4 text-zinc-400" /></div>
                               )}
-                              <button type="button" onClick={() => set('media', form.media.filter(x => x.url !== m.url))} className="absolute right-0.5 top-0.5 h-4 w-4 bg-black/60 text-white rounded-none flex items-center justify-center text-[8px] opacity-0 group-hover:opacity-100 hover:bg-red-500">âœ•</button>
+                              <button type="button" onClick={() => set('media', form.media.filter(x => x.url !== m.url))} className="absolute right-0.5 top-0.5 h-4 w-4 bg-black/60 text-white rounded-none flex items-center justify-center text-[8px] opacity-0 group-hover:opacity-100 hover:bg-red-500">✓•</button>
                            </div>
                         ))}
                      </div>
@@ -360,7 +360,7 @@ export default function NewCampaignPage() {
 
                <div className="grid grid-cols-1 gap-2">
                  {[
-                   { value: 'clipping', label: 'Clipping', icon: 'âœ‚ï¸', desc: 'Creators remix your content.' },
+                   { value: 'clipping', label: 'Clipping', icon: '✓‚ï¸', desc: 'Creators remix your content.' },
                    { value: 'ugc',      label: 'Native UGC', icon: '🎬', desc: 'Creators produce 100% original content.' },
                    { value: 'music_clipping', label: 'Music Clipping', icon: '🎵', desc: 'Creators use specific audio line.' },
                    { value: 'promotion', label: 'Promotion', icon: '🚀', desc: 'Promote specific links or brands.' },
@@ -469,7 +469,7 @@ export default function NewCampaignPage() {
                  </div>
                )}
                <Button type="submit" disabled={loading} className="w-full h-[52px] rounded-none bg-gradient-to-r from-[var(--color-accent)] to-[var(--color-accent-hover)] text-white font-semibold text-sm shadow-none hover:shadow-none transition-all active:scale-[0.98]">
-                  {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Launch Mission â†’'}
+                  {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Launch Mission →'}
                </Button>
             </div>
 

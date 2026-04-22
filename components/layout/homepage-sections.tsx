@@ -177,7 +177,7 @@ export function FlashDeals({ products }: { products: any[] }) {
           <Zap className="h-6 w-6 text-orange-500 fill-orange-500" />
         </div>
         <div>
-          <p className="text-[10px] font-black text-zinc-400 dark:text-text-muted uppercase tracking-[0.25em] mb-1">Live Â· Refreshed daily</p>
+          <p className="text-[10px] font-black text-zinc-400 dark:text-text-muted uppercase tracking-[0.25em] mb-1">Live · Refreshed daily</p>
           <h3 className="text-[22px] font-black text-zinc-900 dark:text-white leading-tight tracking-tight">Flash Trade Deals</h3>
         </div>
       </div>

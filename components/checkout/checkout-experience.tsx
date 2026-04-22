@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 import { useCurrency } from "@/context/CurrencyContext";
 import { GlassCard, GlassAmbientGlow } from "@/components/ui/glass";
 
-/* â"€â"€ Types â"€â"€ */
+/* ── Types ── */
 export type CartItem = {
    id: string;
    product_name: string;
@@ -45,7 +45,7 @@ interface CheckoutExperienceProps {
    mode?: "cart" | "community";
 }
 
-/* â"€â"€ Helpers â"€â"€ */
+/* ── Helpers ── */
 function defaultPayment(currency: string | null) {
    const c = (currency || "USD").toUpperCase();
    if (c === "RWF" || c === "USD") return "flutterwave";
@@ -116,7 +116,7 @@ export function CheckoutExperience({ orders, profile, mode = "cart" }: CheckoutE
      return s;
    }, [isAllDigital, isCommunity]);
 
-   /* â"€â"€ Navigation â"€â"€ */
+   /* ── Navigation ── */
    function next() {
       if (currentStep === 1) {
          const { firstName, email, phone, address1, city } = shipping;
@@ -139,7 +139,7 @@ export function CheckoutExperience({ orders, profile, mode = "cart" }: CheckoutE
       }
    }
 
-   /* â"€â"€ Final Action â"€â"€ */
+   /* ── Final Action ── */
    async function handleComplete() {
       setSubmitting(true);
       try {
@@ -209,7 +209,7 @@ export function CheckoutExperience({ orders, profile, mode = "cart" }: CheckoutE
    }
 
    return (
-      <div className="min-h-screen pb-24 relative bg-surface-secondary dark:bg-[var(--color-bg)] overflow-x-hidden">
+      <div className="min-h-screen pb-24 relative bg-[var(--color-bg)] overflow-x-hidden">
          <GlassAmbientGlow color="orange" position="top-right" className="opacity-40" />
 
          <div className="max-w-6xl mx-auto px-4 pt-2 relative z-10">
@@ -230,7 +230,7 @@ export function CheckoutExperience({ orders, profile, mode = "cart" }: CheckoutE
                      <React.Fragment key={s.n}>
                         <div className={cn(
                            "flex items-center gap-2 px-4 h-9 rounded-none transition-all text-[11px] font-semibold",
-                           currentStep === s.n ? "bg-black dark:bg-white text-white dark:text-black shadow-none" : "text-stone-400 dark:text-text-muted"
+                           currentStep === s.n ? "bg-[var(--color-accent)] text-white shadow-none" : "text-stone-400 dark:text-text-muted"
                         )}>
                            <s.icon className="h-3.5 w-3.5" />
                            <span className="hidden sm:inline">{s.label}</span>
@@ -356,24 +356,24 @@ export function CheckoutExperience({ orders, profile, mode = "cart" }: CheckoutE
 
                {/* Sidebar */}
                <div className="lg:col-span-4">
-                  <div className="p-6 rounded-none bg-[#0e0906] dark:bg-surface text-white shadow-none relative overflow-hidden border border-[#0e0906] dark:border-border">
+                  <div className="p-6 rounded-none bg-[var(--color-surface)] dark:bg-[var(--color-surface)] text-[var(--color-text-primary)] shadow-none relative overflow-hidden border border-[var(--color-border)]">
                      <div className="relative z-10">
                         <div className="flex justify-between items-center mb-6">
-                           <p className="text-[9px] font-bold uppercase tracking-widest text-white/40 dark:text-text-muted">Grand Total</p>
-                           <TrendingUp className="h-4 w-4 text-orange-500" />
+                           <p className="text-[9px] font-bold uppercase tracking-widest text-[var(--color-text-muted)]">Order Summary</p>
+                           <TrendingUp className="h-4 w-4 text-[var(--color-accent)]" />
                         </div>
-                        <p className="text-4xl font-bold tracking-tight text-white">
+                        <p className="text-4xl font-bold tracking-tight text-[var(--color-text-primary)]">
                            {formatMoney(total, currency).replace(/[^\d.,]/g, "").trim()}
-                           <span className="text-lg text-orange-500 ml-2">{userCurrency}</span>
+                           <span className="text-lg text-[var(--color-accent)] ml-2">{userCurrency}</span>
                         </p>
-                        <div className="mt-8 pt-4 border-t border-white/10 dark:border-border space-y-3">
-                           <div className="flex justify-between text-xs text-white/60 dark:text-text-muted">
+                        <div className="mt-8 pt-4 border-t border-[var(--color-border)] space-y-3">
+                           <div className="flex justify-between text-xs text-[var(--color-text-secondary)]">
                               <span>Subtotal</span>
-                              <span className="text-white">{formatMoney(subtotal, currency)}</span>
+                              <span className="text-[var(--color-text-primary)]">{formatMoney(subtotal, currency)}</span>
                            </div>
-                           <div className="flex justify-between text-xs text-green-400 dark:text-emerald-500">
+                           <div className="flex justify-between text-xs text-emerald-600 dark:text-emerald-500 font-bold">
                               <span>Shipping</span>
-                              <span>Free</span>
+                              <span>FREE</span>
                            </div>
                         </div>
                      </div>

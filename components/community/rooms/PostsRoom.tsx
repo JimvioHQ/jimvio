@@ -36,7 +36,7 @@ import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { uploadCommunityChatFile } from "@/lib/community-chat-upload";
 
-// â"€â"€â"€ Types â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 type Profile = {
   full_name: string | null;
@@ -65,7 +65,7 @@ type Comment = {
   parent_id: string | null;
 };
 
-// â"€â"€â"€ Constants â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+// ─── Constants ────────────────────────────────────────────────────────────────
 
 const POST_TYPES = ["all", "discussion", "announcement", "question", "resource", "poll"] as const;
 type PostTypeFilter = (typeof POST_TYPES)[number];
@@ -87,7 +87,7 @@ type SortOption = (typeof SORT_OPTIONS)[number]["value"];
 
 const REACTIONS = ["👍", "❤️", "🔥", "💡", "😂"];
 
-// â"€â"€â"€ Avatar â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+// ─── Avatar ───────────────────────────────────────────────────────────────────
 
 function Avatar({ profile, size = 36 }: { profile?: Profile | null; size?: number }) {
   const initials = (profile?.full_name || profile?.username || "?")[0].toUpperCase();
@@ -117,7 +117,7 @@ function Avatar({ profile, size = 36 }: { profile?: Profile | null; size?: numbe
   );
 }
 
-// â"€â"€â"€ PostCard â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+// ─── PostCard ─────────────────────────────────────────────────────────────────
 
 function PostCard({
   post,
@@ -281,7 +281,7 @@ function PostCard({
   );
 }
 
-// â"€â"€â"€ Main Component â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+// ─── Main Component ───────────────────────────────────────────────────────────
 
 export function PostsRoom({
   roomId,
@@ -657,7 +657,7 @@ export function PostsRoom({
   );
 }
 
-// â"€â"€â"€ PostDetailPanel component â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+// ─── PostDetailPanel component ───────────────────────────────────────────────
 
 function PostDetailPanel({
   postId,
@@ -795,7 +795,7 @@ function PostDetailPanel({
 
             <div className="p-4 space-y-6">
               <h4 className="text-[10px] font-black uppercase text-[var(--color-text-muted)] tracking-widest flex items-center gap-2">
-                Discussion Â· {comments.length}
+                Discussion · {comments.length}
                 {loading && <Loader2 className="h-3 w-3 animate-spin" />}
               </h4>
               
@@ -858,7 +858,7 @@ function PostDetailPanel({
   );
 }
 
-// â"€â"€â"€ CommentItem component â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+// ─── CommentItem component ───────────────────────────────────────────────────
 
 function CommentItem({ comment, onReply }: { comment: Comment; onReply: (c: Comment) => void }) {
   return (

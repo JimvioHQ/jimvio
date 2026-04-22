@@ -30,8 +30,8 @@ function mergeLinks(navLinks: NavLinkConfig[]) {
   });
 }
 
-/* â"€â"€ Dark glass search input shell â"€â"€ */
-/* â"€â"€ Professional Solid Input Shells â"€â"€ */
+/* ── Dark glass search input shell ── */
+/* ── Professional Solid Input Shells ── */
 const INPUT_IDLE: React.CSSProperties = {
   background: "var(--color-bg)",
   border: "1px solid var(--color-border)",
@@ -105,7 +105,7 @@ export function NavbarSearch({
   const showPanel = open && (searchQ.trim().length > 0 || focused);
   const expandedW = isDesktop ? (focused ? 360 : searchQ ? 250 : 130) : "100%";
 
-  /* â"€â"€ Input style selection â"€â"€ */
+  /* ── Input style selection ── */
   const inputStyle = focused ? INPUT_LIGHT_FOCUSED : INPUT_LIGHT;
 
   return (
@@ -186,7 +186,7 @@ export function NavbarSearch({
         </button>
       )}
 
-      {/* â"€â"€ Results portal â"€â"€ */}
+      {/* ── Results portal ── */}
       {showPanel && portalReady && createPortal(
         <div className="fixed inset-0 z-[10001] flex items-start justify-center pt-32 sm:pt-28 px-3">
           <motion.div

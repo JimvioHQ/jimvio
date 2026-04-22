@@ -135,7 +135,7 @@ export default function PublicOrdersPage() {
                       </p>
                       <p className="text-sm text-[var(--color-text-secondary)] truncate mt-1">
                         {first?.product_name}
-                        {more > 0 ? ` Â· +${more} more` : ""}
+                        {more > 0 ? ` · +${more} more` : ""}
                       </p>
                     </div>
                   </div>

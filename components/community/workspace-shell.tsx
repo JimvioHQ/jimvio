@@ -119,7 +119,7 @@ export function WorkspaceShell({
                 {profile?.full_name || profile?.username || "Member"}
               </p>
               <p className="text-[10px] font-black text-[var(--color-accent)]">
-                {pts.toLocaleString()} pts Â· Lvl {lvl}
+                {pts.toLocaleString()} pts · Lvl {lvl}
               </p>
             </div>
           </div>

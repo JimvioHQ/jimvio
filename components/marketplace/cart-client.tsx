@@ -125,7 +125,7 @@ export function CartClient({ initialOrders }: CartClientProps) {
     }
   };
 
-  // â"€â"€ EMPTY STATE â"€â"€
+  // ── EMPTY STATE ──
   if (orders.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center text-center py-24 bg-surface dark:bg-surface rounded-none border border-border shadow-none">

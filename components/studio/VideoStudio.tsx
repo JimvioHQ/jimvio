@@ -309,7 +309,7 @@ function UploadTab({ onSuccess }: { onSuccess: () => void }) {
           <div className="space-y-2">
             <Upload className="h-10 w-10 mx-auto text-zinc-300" />
             <p className="text-sm font-bold text-zinc-600">Drop your video here or tap to browse</p>
-            <p className="text-xs text-zinc-400">MP4, MOV, WebM Â· max 200MB</p>
+            <p className="text-xs text-zinc-400">MP4, MOV, WebM · max 200MB</p>
           </div>
         )}
       </div>

@@ -167,7 +167,7 @@ export function TasksRoom({
               <span className="inline-flex items-center gap-1 font-bold text-[var(--color-accent)]">
                 <Zap className="h-3.5 w-3.5" /> {(points?.total_points ?? 0).toLocaleString()} pts
               </span>
-              <span className="mx-2">Â·</span>
+              <span className="mx-2">·</span>
               Level {points?.level ?? 1}
             </p>
           </div>
@@ -225,7 +225,7 @@ export function TasksRoom({
                       <span className="text-xs font-black px-2 py-1 rounded-none bg-[var(--color-warning-light)] text-[var(--color-warning)]">Submitted</span>
                     )}
                     {comp?.status === "approved" && (
-                      <span className="text-xs font-black px-2 py-1 rounded-none bg-[var(--color-success-light)] text-[var(--color-success)]">Completed âœ"</span>
+                      <span className="text-xs font-black px-2 py-1 rounded-none bg-[var(--color-success-light)] text-[var(--color-success)]">Completed ✓"</span>
                     )}
                   </div>
                 </div>

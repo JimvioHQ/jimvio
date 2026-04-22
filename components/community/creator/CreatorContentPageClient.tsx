@@ -252,7 +252,7 @@ export function CreatorContentPageClient({ communityId }: { communityId: string 
                       <div>
                         <p className="font-black">{t.title}</p>
                         <p className="text-xs text-[var(--color-text-muted)]">
-                          {t.task_type} Â· {t.difficulty} Â· {t.points} pts Â· submissions: {subs.length}
+                          {t.task_type} · {t.difficulty} · {t.points} pts · submissions: {subs.length}
                         </p>
                       </div>
                       <Button type="button" variant="outline" className="rounded-none text-xs" onClick={() => toggleTaskActive(t.id, t.is_active)}>

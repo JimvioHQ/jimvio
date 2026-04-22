@@ -39,7 +39,7 @@ import {
   recordVideoClick,
 } from "@/lib/actions/short-videos";
 
-// â"€â"€ DESIGN TOKENS â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+// ── DESIGN TOKENS ─────────────────────────────────────────
 // Page bg:   #FAF8F5   Panel bg:  #FFFFFF   Subtle bg: #F3F0EA
 // Border:    #E8E3D8   Border2:   #D8D3C5
 // Text:      #1C1A17   Text2:     #5C574F   Muted:     #9C978D
@@ -223,7 +223,7 @@ export function TikTokFeed({ clips, className, initialIndex = 0, onClose }: TikT
   const formatViews = (n: number) =>
     n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1)}M` : n >= 1_000 ? `${(n / 1_000).toFixed(0)}K` : `${n}`;
 
-  // â"€â"€ ENGAGEMENT DATA (shared between desktop quick bar + mobile) â"€â"€
+  // ── ENGAGEMENT DATA (shared between desktop quick bar + mobile) ──
   const engagementActions = [
     {
       key: "like",
@@ -274,7 +274,7 @@ export function TikTokFeed({ clips, className, initialIndex = 0, onClose }: TikT
   return (
     <div className={cn("fixed inset-0 z-[201] flex flex-col lg:flex-row overflow-hidden bg-[#FAF8F5]", className)}>
 
-      {/* â"€â"€ VIDEO COLUMN â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€ */}
+      {/* ── VIDEO COLUMN ──────────────────────── */}
       <div
         ref={videoColumnRef}
         className="relative flex min-h-0 flex-1 items-center justify-center"
@@ -356,7 +356,7 @@ export function TikTokFeed({ clips, className, initialIndex = 0, onClose }: TikT
           <ChevronDown className="h-5 w-5 text-[#5C574F]" />
         </button>
 
-        {/* â"€â"€ MOBILE: Right action column â"€â"€ */}
+        {/* ── MOBILE: Right action column ── */}
         <div className="lg:hidden absolute right-3 bottom-36 z-30 flex flex-col items-center gap-3">
           {/* Creator avatar */}
           <Link href={clip.vendors?.business_slug ? `/influencers/${clip.vendors.business_slug}` : "#"} className="relative">
@@ -413,7 +413,7 @@ export function TikTokFeed({ clips, className, initialIndex = 0, onClose }: TikT
           ))}
         </div>
 
-        {/* â"€â"€ MOBILE: Bottom overlay (title + CTA) â"€â"€ */}
+        {/* ── MOBILE: Bottom overlay (title + CTA) ── */}
         <div className="lg:hidden absolute bottom-0 left-0 right-16 z-20 p-5 pb-8">
           {/* Creator name */}
           <div className="flex items-center gap-2 mb-2">
@@ -516,11 +516,11 @@ export function TikTokFeed({ clips, className, initialIndex = 0, onClose }: TikT
         </div>
       </div>
 
-      {/* â"€â"€ SIDEBAR (desktop) â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€ */}
+      {/* ── SIDEBAR (desktop) ─────────────────── */}
       <aside className="hidden lg:flex flex-col w-[380px] xl:w-[440px] shrink-0 bg-white dark:bg-surface border-l border-[#E8E3D8] overflow-y-auto overscroll-contain relative z-[210] shadow-[-6px_0_24px_rgba(0,0,0,0.05)]">
         <div className="flex-1 flex flex-col">
 
-          {/* â"€â"€ DESKTOP QUICK ENGAGEMENT BAR (always visible at top) â"€â"€ */}
+          {/* ── DESKTOP QUICK ENGAGEMENT BAR (always visible at top) ── */}
           <div className="sticky top-0 z-10 bg-white dark:bg-surface/95 border-b border-[#F3F0EA] px-6 py-3.5 shadow-none">
             <div className="flex items-center gap-2">
               {engagementActions.map((action) => (

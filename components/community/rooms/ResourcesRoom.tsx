@@ -108,7 +108,7 @@ export function ResourcesRoom({
                     </div>
                     <div className="mt-3 flex items-center justify-between gap-2">
                       <span className="text-[10px] text-[var(--color-text-muted)]">
-                        {p.profiles?.full_name || p.profiles?.username || "Member"} Â· {formatDistanceToNow(new Date(p.created_at), { addSuffix: true })}
+                        {p.profiles?.full_name || p.profiles?.username || "Member"} · {formatDistanceToNow(new Date(p.created_at), { addSuffix: true })}
                       </span>
                       <Button asChild size="sm" className="rounded-none bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-black shrink-0">
                         <a href={href} target="_blank" rel="noreferrer">

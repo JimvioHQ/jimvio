@@ -1,10 +1,10 @@
 /**
  * components/ui/cloudinary-image.tsx
- * â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+ * ─────────────────────────────────────────────────────────────────────────────
  * Drop-in <CloudinaryImage> that works with:
- *   • Cloudinary URLs   â†’ injects w_, h_, q_auto, f_auto transformations
- *   • Supabase URLs     â†’ passes through as-is (graceful fallback)
- *   • Any other URL     â†’ passes through as-is
+ *   • Cloudinary URLs   → injects w_, h_, q_auto, f_auto transformations
+ *   • Supabase URLs     → passes through as-is (graceful fallback)
+ *   • Any other URL     → passes through as-is
  *
  * All <img> tags that show user-uploaded content should use this component so
  * images get optimized automatically when Cloudinary is the source.

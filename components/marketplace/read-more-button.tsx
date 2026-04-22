@@ -23,7 +23,7 @@ export function ReadMoreButton({ tabValue, className }: ReadMoreButtonProps) {
       className={className} 
       onClick={handleClick}
     >
-      Read Full Description â†’
+      Read Full Description →
     </Button>
   );
 }

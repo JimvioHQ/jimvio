@@ -48,7 +48,7 @@ export function CreatorClipsHero({ clips, className }: CreatorClipsHeroProps) {
           Live
         </span>
         <Link href="/marketplace" className="ml-auto text-[11px] font-black text-[#f97316] uppercase tracking-widest hover:underline flex items-center gap-1">
-          See all clips â†’
+          See all clips →
         </Link>
       </div>
 

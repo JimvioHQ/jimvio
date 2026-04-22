@@ -59,7 +59,7 @@ export function DigitalProductDetail({
   } : null;
 
   return (
-    <div className="min-h-screen bg-white dark:bg-[#050505] relative overflow-hidden">
+    <div className="min-h-screen bg-[var(--color-bg)] relative overflow-hidden">
       {/* Background ambient effects - Only for digital */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[600px] pointer-events-none">
         <div className="absolute inset-0 bg-gradient-to-b from-sky-500/5 via-transparent to-transparent" />
@@ -109,7 +109,7 @@ export function DigitalProductDetail({
           
           {/* Main Content (Images + Specs) */}
           <div className="lg:col-span-8 space-y-12">
-            <div className="rounded-none overflow-hidden border border-stone-200 dark:border-white/5 bg-stone-50 dark:bg-zinc-900/50 shadow-none">
+            <div className="rounded-none overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface-secondary)]/50 dark:bg-[var(--color-surface)]/20 shadow-none">
                <ImageGallery
                   images={images}
                   productName={product.name}
@@ -122,7 +122,7 @@ export function DigitalProductDetail({
             {/* Content Tabs */}
             <div className="space-y-6">
               <Tabs defaultValue="overview" className="w-full">
-                <TabsList className="bg-stone-100 dark:bg-zinc-900 border-none h-12 p-1.5 rounded-none mb-8">
+                <TabsList className="bg-[var(--color-surface-secondary)] dark:bg-[var(--color-surface-secondary)] border-none h-12 p-1.5 rounded-none mb-8">
                   <TabsTrigger value="overview" className="rounded-none px-8 font-bold data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 shadow-none">Overview</TabsTrigger>
                   <TabsTrigger value="curriculum" className="rounded-none px-8 font-bold data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 shadow-none">Features</TabsTrigger>
                   <TabsTrigger value="reviews" className="rounded-none px-8 font-bold data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 shadow-none">Reviews</TabsTrigger>
@@ -157,7 +157,7 @@ export function DigitalProductDetail({
 
           {/* Sidebar (Vendor + Security) */}
           <div className="lg:col-span-4 space-y-6">
-             <GlassCard className="p-8 rounded-none border border-stone-200 dark:border-white/5 bg-white dark:bg-zinc-950/20 shadow-none overflow-hidden relative">
+             <GlassCard className="p-8 rounded-none border border-[var(--color-border)] bg-[var(--color-surface)] dark:bg-[var(--color-surface)] shadow-none overflow-hidden relative">
                 <div className="absolute top-0 right-0 p-4 opacity-5">
                    <Lock className="h-24 w-24" />
                 </div>
@@ -209,8 +209,8 @@ export function DigitalProductDetail({
 
 function BenefitCard({ icon, title, desc }: { icon: React.ReactNode; title: string; desc: string }) {
   return (
-    <div className="p-6 rounded-none bg-stone-50 dark:bg-zinc-900/40 border border-stone-100 dark:border-white/5">
-      <div className="h-10 w-10 rounded-none bg-white dark:bg-zinc-800 shadow-none flex items-center justify-center mb-4">
+    <div className="p-6 rounded-none bg-[var(--color-surface-secondary)]/50 dark:bg-[var(--color-surface-secondary)]/50 border border-[var(--color-border)]">
+      <div className="h-10 w-10 rounded-none bg-[var(--color-surface)] dark:bg-[var(--color-surface)] shadow-none flex items-center justify-center mb-4">
         {icon}
       </div>
       <h4 className="font-bold text-stone-900 dark:text-white mb-2">{title}</h4>

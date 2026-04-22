@@ -350,8 +350,8 @@ export function CreateCommunityForm() {
             </p>
             {!isFree && (
               <p className="text-xs text-[var(--color-text-muted)]">
-                Monthly {monthly} Â· Yearly {yearly}
-                {lifetime ? ` Â· Lifetime ${lifetime}` : ""}
+                Monthly {monthly} · Yearly {yearly}
+                {lifetime ? ` · Lifetime ${lifetime}` : ""}
               </p>
             )}
             <p>

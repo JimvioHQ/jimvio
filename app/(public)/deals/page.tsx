@@ -1,4 +1,4 @@
-﻿import React from "react";
+import React from "react";
 import { Zap, Clock, TrendingUp, Package, Percent, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -66,7 +66,7 @@ export default async function FlashDealsPage() {
       </section>
 
       {/* Categories Filter Strip */}
-      <div className="bg-white dark:bg-surface border-b border-[var(--color-border)] sticky top-[130px] z-[50]">
+      <div className="bg-white dark:bg-surface border-b border-[var(--color-border)] sticky top-[var(--navbar-height)] z-[50]">
         <div className="max-w-[var(--container-max)] mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
            <div className="flex items-center gap-8 overflow-x-auto no-scrollbar py-2">
              {["All Deals", "Electronics", "Fashion", "Home & Garden", "Beauty", "Machinery"].map((cat, i) => (

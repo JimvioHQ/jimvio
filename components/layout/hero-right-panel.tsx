@@ -51,7 +51,7 @@ export function HeroRightPanel({ profile }: HeroRightPanelProps) {
     <div
       className="flex-col gap-[10px] min-h-[360px] p-[16px] hidden lg:flex bg-[#faf9f7] dark:bg-[#0f0e0c] border-l border-black/[.07] dark:border-white/[.06]"
     >
-      {/* â"€â"€ Main card â"€â"€ */}
+      {/* ── Main card ── */}
       <div
         className="bg-white dark:bg-[#1c1811] rounded-none border border-black/[.07] dark:border-white/[.08] p-[14px] flex flex-col gap-0"
       >
@@ -181,7 +181,7 @@ export function HeroRightPanel({ profile }: HeroRightPanelProps) {
         )}
       </div>
 
-      {/* â"€â"€ Quick actions grid — matches .quick-grid / .quick-tile â"€â"€ */}
+      {/* ── Quick actions grid — matches .quick-grid / .quick-tile ── */}
       <div className="grid grid-cols-2 gap-2">
         <Link
           href={isLoggedIn ? "/dashboard/vendor/setup" : "/register?role=vendor"}
@@ -212,7 +212,7 @@ export function HeroRightPanel({ profile }: HeroRightPanelProps) {
         </Link>
       </div>
 
-      {/* â"€â"€ Earn & Influence card — matches .earn-card â"€â"€ */}
+      {/* ── Earn & Influence card — matches .earn-card ── */}
       <Link
         href="/affiliates"
         className="group relative overflow-hidden rounded-none p-3 cursor-pointer hover:brightness-105 transition-all"

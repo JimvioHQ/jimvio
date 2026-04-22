@@ -61,7 +61,7 @@ export function HeroSearch() {
 
   return (
     <div ref={containerRef} className="w-full z-[100] relative">
-      {/* â"€â"€ Search bar — matches HTML prototype search-wrap / search-bar â"€â"€ */}
+      {/* ── Search bar — matches HTML prototype search-wrap / search-bar ── */}
       <div
         className="px-[52px] py-3 border-b border-black/[.07] dark:border-white/[.06] bg-white dark:bg-[#0f0e0c]"
       >

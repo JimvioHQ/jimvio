@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React from "react";
 import {
@@ -215,7 +215,7 @@ function Field({
         {label}
       </label>
 
-      <div className="relative rounded-none bg-white/55 dark:bg-surface/50 border border-white/80 dark:border-border shadow-none shadow-orange-500/5">
+      <div className="relative rounded-none bg-[var(--color-surface)] dark:bg-[var(--color-surface)] border border-[var(--color-border)] shadow-none">
         {icon}
         {children}
       </div>

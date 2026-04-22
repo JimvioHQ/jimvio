@@ -70,7 +70,7 @@ export default async function VendorStorePage({ params }: PageProps) {
             {/* Vendor Header Card */}
             <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl p-8 shadow-xl">
               <div className="flex flex-col md:flex-row gap-8 items-start">
-                <div className="h-32 w-32 rounded-2xl bg-white dark:bg-surface shadow-lg border border-[var(--color-border)] p-2 shrink-0">
+                <div className="h-32 w-32 rounded-2xl bg-[var(--color-surface)] dark:bg-[var(--color-surface)] shadow-lg border border-[var(--color-border)] p-2 shrink-0">
                   {vendor.business_logo ? (
                     <img src={vendor.business_logo} alt={vendor.business_name} className="w-full h-full object-cover rounded-xl" />
                   ) : (
@@ -145,7 +145,7 @@ export default async function VendorStorePage({ params }: PageProps) {
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--color-text-muted)]" />
                         <input placeholder="Search in this store..." className="w-full h-11 pl-10 pr-4 bg-[var(--color-surface-secondary)] border border-[var(--color-border)] rounded-xl text-sm outline-none focus:border-[var(--color-accent)]" />
                       </div>
-                      <select className="h-11 px-4 border border-[var(--color-border)] rounded-xl text-sm font-bold bg-white dark:bg-surface">
+                      <select className="h-11 px-4 border border-[var(--color-border)] rounded-xl text-sm font-bold bg-[var(--color-surface)] dark:bg-[var(--color-surface)]">
                         <option>Sort by: Newest</option>
                         <option>Sort by: Bestselling</option>
                         <option>Sort by: Price Low to High</option>
@@ -226,7 +226,7 @@ export default async function VendorStorePage({ params }: PageProps) {
 
           {/* Contact Actions Sidebar */}
           <aside className="space-y-6">
-            <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl p-6 shadow-sm sticky top-[150px]">
+            <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl p-6 shadow-sm sticky top-[calc(var(--navbar-height)+20px)]">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="font-black text-lg text-[var(--color-text-primary)]">Store Actions</h3>
                 <div className="h-px flex-1 ml-4 bg-[var(--color-border)] opacity-50" />

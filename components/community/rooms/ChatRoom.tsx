@@ -46,7 +46,7 @@ import { uploadCommunityChatFile, type ChatAttachmentPayload } from "@/lib/commu
 import { ChatEmojiPickerDialog } from "@/components/community/chat/chat-emoji-picker-dialog";
 import { useRouter } from "next/navigation";
 
-// â"€â"€â"€ Types â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+// ─── Types ────────────────────────────────────────────────────────────────────
 type Profile = { full_name: string | null; avatar_url: string | null; username: string | null };
 
 type Msg = {
@@ -72,7 +72,7 @@ const QUICK_REACTIONS = ["👍", "❤️", "😂", "🔥"] as const;
 const MAX_ATTACH = 6;
 const MAX_FILE_BYTES = 15 * 1024 * 1024;
 
-// â"€â"€â"€ Helpers â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 function parseAttachments(raw: unknown): { url: string; name?: string; mime?: string }[] {
   if (!raw || !Array.isArray(raw)) return [];
   return raw.filter(
@@ -98,7 +98,7 @@ function formatDuration(sec: number): string {
   return `${m}:${s}`;
 }
 
-// â"€â"€â"€ WhatsApp palette â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+// ─── WhatsApp palette ─────────────────────────────────────────────────────────
 const WA = {
   bg: "#efeae2",
   panel: "#ffffff",
@@ -115,7 +115,7 @@ const WA = {
   searchBg: "#f0f2f5",
 } as const;
 
-// â"€â"€â"€ Skeleton loading â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+// ─── Skeleton loading ─────────────────────────────────────────────────────────
 function SkeletonBubble({ own, wide }: { own?: boolean; wide?: boolean }) {
   return (
     <div className={cn("flex w-full mb-3", own ? "justify-end" : "justify-start")}>
@@ -158,7 +158,7 @@ function ChatSkeleton() {
   );
 }
 
-// â"€â"€â"€ WhatsApp-style audio player â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+// ─── WhatsApp-style audio player ──────────────────────────────────────────────
 function WaAudioPlayer({ src, isOwn }: { src: string; isOwn?: boolean }) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [playing, setPlaying] = useState(false);
@@ -224,7 +224,7 @@ function WaAudioPlayer({ src, isOwn }: { src: string; isOwn?: boolean }) {
   );
 }
 
-// â"€â"€â"€ Voice preview before sending â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+// ─── Voice preview before sending ─────────────────────────────────────────────
 function VoicePreview({ blob, onSend, onDiscard, sending }: {
   blob: Blob; onSend: () => void; onDiscard: () => void; sending: boolean;
 }) {
@@ -248,7 +248,7 @@ function VoicePreview({ blob, onSend, onDiscard, sending }: {
   );
 }
 
-// â"€â"€â"€ WaIconBtn â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+// ─── WaIconBtn ────────────────────────────────────────────────────────────────
 function WaIconBtn({ children, onClick, disabled, "aria-label": ariaLabel, className, active }: {
   children: React.ReactNode; onClick?: () => void; disabled?: boolean;
   "aria-label"?: string; className?: string; active?: boolean;
@@ -263,7 +263,7 @@ function WaIconBtn({ children, onClick, disabled, "aria-label": ariaLabel, class
   );
 }
 
-// â"€â"€â"€ Quoted reply strip inside bubble â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+// ─── Quoted reply strip inside bubble ────────────────────────────────────────
 function ReplyQuote({ body, sender, isOwn }: { body: string; sender: string; isOwn?: boolean }) {
   return (
     <div className="mb-1.5 rounded-none overflow-hidden flex"
@@ -276,7 +276,7 @@ function ReplyQuote({ body, sender, isOwn }: { body: string; sender: string; isO
   );
 }
 
-// â"€â"€â"€ Reply bar above the input â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+// ─── Reply bar above the input ────────────────────────────────────────────────
 function ReplyBar({ msg, onClose }: { msg: Msg; onClose: () => void }) {
   const sender = msg.profiles?.full_name || msg.profiles?.username || "Member";
   const preview = msg.body?.trim() || (parseAttachments(msg.attachments).length ? "📎 Attachment" : "Message");
@@ -294,7 +294,7 @@ function ReplyBar({ msg, onClose }: { msg: Msg; onClose: () => void }) {
   );
 }
 
-// â"€â"€â"€ MessageRow â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+// ─── MessageRow ───────────────────────────────────────────────────────────────
 function MessageRow({
   m, compact, isOwn, userId, isDM,
   onOpenThread, onToggleReaction, onDelete, onEdit, onReply,
@@ -473,7 +473,7 @@ function MessageRow({
   );
 }
 
-// â"€â"€â"€ Main ChatRoom Component â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+// ─── Main ChatRoom Component ───────────────────────────────────────────────────
 export function ChatRoom({ roomId, roomName, communityId, slug, hideHeader }: {
   roomId: string; roomName: string; communityId: string; slug: string; hideHeader?: boolean;
 }) {
@@ -518,7 +518,7 @@ export function ChatRoom({ roomId, roomName, communityId, slug, hideHeader }: {
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
   const [forceShowList, setForceShowList] = useState(false);
 
-  // â"€â"€ Voice recording â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+  // ── Voice recording ────────────────────────────────────────────────────────
   const [voiceRecording, setVoiceRecording] = useState(false);
   const [voiceSeconds, setVoiceSeconds] = useState(0);
   const [voiceBlob, setVoiceBlob] = useState<Blob | null>(null);
@@ -735,7 +735,7 @@ export function ChatRoom({ roomId, roomName, communityId, slug, hideHeader }: {
   useEffect(() => { if (localVideoRef.current && localStream) localVideoRef.current.srcObject = localStream; }, [localStream]);
   useEffect(() => { if (remoteVideoRef.current && remoteStream) remoteVideoRef.current.srcObject = remoteStream; }, [remoteStream]);
 
-  // â"€â"€ WebRTC â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+  // ── WebRTC ────────────────────────────────────────────────────────────────
   async function sendCallSignal(type: 'audio' | 'video' | 'call_signal', body?: any) {
     const ep = activeConvId ? `/api/communities/${slug}/inbox/${activeConvId}/messages` : `/api/messages/${roomId}`;
     await fetch(ep, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ body: typeof body === 'object' ? JSON.stringify(body) : (body || type), message_type: type === 'call_signal' ? 'call_signal' : 'call_start' }) });
@@ -778,7 +778,7 @@ export function ChatRoom({ roomId, roomName, communityId, slug, hideHeader }: {
     setCallType(null); pcRef.current?.close(); pcRef.current = null; iceQueueRef.current = [];
   }
 
-  // â"€â"€ Files â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+  // ── Files ────────────────────────────────────────────────────────────────
   async function handleFiles(files: FileList | null, target: "main" | "thread") {
     if (!files?.length) return;
     setUploading(true);
@@ -792,7 +792,7 @@ export function ChatRoom({ roomId, roomName, communityId, slug, hideHeader }: {
     } catch (e) { console.error(e); } finally { setUploading(false); }
   }
 
-  // â"€â"€ Send â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+  // ── Send ─────────────────────────────────────────────────────────────────
   async function sendMessage(threadId?: string | null) {
     const isThread = !!threadId;
     const t = (isThread ? threadReplyText : text).trim();
@@ -825,7 +825,7 @@ export function ChatRoom({ roomId, roomName, communityId, slug, hideHeader }: {
     } catch (e) { console.error(e); } finally { setSending(false); }
   }
 
-  // â"€â"€ Voice â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+  // ── Voice ────────────────────────────────────────────────────────────────
   function pickMime() {
     if (typeof MediaRecorder === "undefined") return "";
     for (const c of ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/mp4;codecs=opus"])
@@ -948,7 +948,7 @@ export function ChatRoom({ roomId, roomName, communityId, slug, hideHeader }: {
     setAtBottom(el.scrollHeight - el.scrollTop - el.clientHeight < 100);
   }, []);
 
-  // â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+  // ─────────────────────────────────────────────────────────────────────────
   return (
     <div className="wa-root flex flex-1 h-full min-h-0 overflow-hidden" style={{ fontFamily: 'inherit', height: '100%' }}>
 
@@ -998,7 +998,7 @@ export function ChatRoom({ roomId, roomName, communityId, slug, hideHeader }: {
         @media(max-width:480px){.wa-inp-bar{padding:6px 8px}}
       `}} />
 
-      {/* â"€â"€ Active call overlay â"€â"€ */}
+      {/* ── Active call overlay ── */}
       {callType && (
         <div className="fixed inset-0 z-[20000] flex flex-col items-center justify-center bg-[#0b141a] text-white">
           <div className="flex flex-col items-center gap-6 w-full max-w-sm px-6">
@@ -1037,7 +1037,7 @@ export function ChatRoom({ roomId, roomName, communityId, slug, hideHeader }: {
         </DialogContent>
       </Dialog>
 
-      {/* â"€â"€ Sidebar â"€â"€ */}
+      {/* ── Sidebar ── */}
       <div className="wa-sidebar hidden md:flex">
         <div className="wa-sb-hdr">
           <span style={{ fontWeight: 700, fontSize: 19, color: '#111b21' }}>Chats</span>
@@ -1117,7 +1117,7 @@ export function ChatRoom({ roomId, roomName, communityId, slug, hideHeader }: {
         </div>
       </div>
 
-      {/* â"€â"€ Main panel â"€â"€ */}
+      {/* ── Main panel ── */}
       <div className="wa-panel">
 
         {isChatting && (
@@ -1220,7 +1220,7 @@ export function ChatRoom({ roomId, roomName, communityId, slug, hideHeader }: {
           <div ref={bottomRef} />
         </div>
 
-        {/* â"€â"€ Input zone â"€â"€ */}
+        {/* ── Input zone ── */}
         <div className="flex flex-col shrink-0" style={{ background: WA.header, borderTop: `1px solid ${WA.border}` }}>
 
           {/* WhatsApp-style reply bar */}
@@ -1318,7 +1318,7 @@ export function ChatRoom({ roomId, roomName, communityId, slug, hideHeader }: {
         </div>
       </div>
 
-      {/* â"€â"€ Thread panel â"€â"€ */}
+      {/* ── Thread panel ── */}
       {threadOpen && threadRoot && (
         <aside className="flex w-full shrink-0 flex-col min-h-0 absolute inset-0 z-30 lg:static lg:inset-auto lg:z-auto lg:w-[360px]"
           style={{ background: WA.panel, borderLeft: `1px solid ${WA.border}` }}>
@@ -1371,7 +1371,7 @@ export function ChatRoom({ roomId, roomName, communityId, slug, hideHeader }: {
         </aside>
       )}
 
-      {/* â"€â"€ Incoming call â"€â"€ */}
+      {/* ── Incoming call ── */}
       {incomingCall && (
         <div className="fixed inset-0 z-[30000] flex flex-col items-center justify-center bg-black/90 text-white">
           <div className="flex flex-col items-center gap-6 max-w-sm w-full p-8 rounded-none bg-[#233138] border border-white/10 shadow-none">
