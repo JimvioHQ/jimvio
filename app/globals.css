@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Vend+Sans:ital,wght@0,300..700;1,300..700&display=swap");
 
 @tailwind base;
@@ -116,40 +117,42 @@
 
 @layer base {
   :root {
-    /* Shopify-Inspired Professional Palette (Jimvio Command Center) */
-    --color-bg: #f6f6f7;
+    /* Whop-inspired Premium Palette */
+    --color-bg: #f5f5f5;
     --color-surface: #ffffff;
-    --color-surface-secondary: #f1f1f1;
-    --color-border: #dcdcdc;
-    --color-border-strong: #bcbcbc;
+    --color-surface-secondary: #f9f9f9;
+    --color-border: #e8e8e8;
+    --color-border-strong: #d0d0d0;
     /* Primary Accent: Jimvio Orange */
-    --color-accent: #f97316;
-    --color-accent-hover: #ea580c;
-    --color-accent-light: #fff7ed;
-    --color-accent-subtle: #ffedd5;
+    --color-accent: #fd5000;
+    --color-accent-hover: #e04700;
+    --color-accent-light: #fff3ee;
+    --color-accent-subtle: #ffe8de;
 
-    --color-text-primary: #1a1a1a;
-    --color-text-secondary: #4a4a4a;
-    --color-text-muted: #8c8c8c;
+    --color-text-primary: #11181c;
+    --color-text-secondary: #3c4248;
+    --color-text-muted: #889096;
 
-    --color-success: #008060;
-    --color-success-light: #e3f1e9;
-    --color-warning: #b98900;
-    --color-warning-light: #fff8e5;
-    --color-danger: #d72c0d;
-    --color-danger-light: #fff4f2;
+    --color-success: #30a46c;
+    --color-success-light: #e9f9ef;
+    --color-warning: #f0b429;
+    --color-warning-light: #fffbea;
+    --color-danger: #e5484d;
+    --color-danger-light: #ffefef;
 
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-    --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.04);
-    --shadow-lg: none;
-    --shadow-xl: none;
-    --shadow-glow: none;
+    /* Whop-style soft ambient shadows */
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-md: 0 4px 16px rgba(0,0,0,0.06), 0 1px 4px rgba(0,0,0,0.04);
+    --shadow-lg: 0 8px 32px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04);
+    --shadow-xl: 0 20px 64px rgba(0,0,0,0.10), 0 4px 16px rgba(0,0,0,0.05);
+    --shadow-glow: 0 0 0 3px rgba(253,80,0,0.12);
 
-    --radius-sm: 0px;
-    --radius-md: 0px;
-    --radius-lg: 0px;
-    --radius-xl: 0px;
-    --radius-full: 0px;
+    /* Whop-style rounded radii */
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 24px;
+    --radius-full: 9999px;
 
     --space-1: 0.25rem;
     --space-2: 0.5rem;
@@ -163,47 +166,45 @@
     --space-10: 2.5rem;
 
     --container-max: 1280px;
-    /* Public navbar offset — single main row (below lg); includes nav py padding */
-    --navbar-height: 72px;
+    --navbar-height: 68px;
 
-    /* Solid/Structured tokens */
-    --glass-bg: #ffffff;
-    --glass-border: #eeedea;
-    --glass-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-    --glass-blur: 0px;
+    --glass-bg: rgba(255,255,255,0.85);
+    --glass-border: rgba(0,0,0,0.06);
+    --glass-shadow: 0 8px 32px rgba(0,0,0,0.08);
+    --glass-blur: 24px;
   }
 
   .dark {
-    /* High-Contrast Premium Dark Palette */
-    --color-bg: #1A1A1A;
-    --color-surface: #262626;
-    --color-surface-secondary: #2d2d2d;
-    --color-border: #333333;
-    --color-border-strong: #404040;
-    --color-text-primary: #F8F8F2;
-    --color-text-secondary: #D1D1D1;
-    --color-text-muted: #949494;
-    --color-bg-dark: #141414;
-    --color-bg-darker: #0d0d0d;
-    
-    --color-accent: #FFB86C;
-    --color-accent-hover: #ff9d3d;
-    --color-accent-light: #2d1e12;
-    --color-accent-subtle: #1f150d;
+    /* Whop-inspired Premium Dark Palette */
+    --color-bg: #0a0a0a;
+    --color-surface: #111111;
+    --color-surface-secondary: #1a1a1a;
+    --color-border: #222222;
+    --color-border-strong: #333333;
+    --color-text-primary: #ededed;
+    --color-text-secondary: #a8a8a8;
+    --color-text-muted: #6a6a6a;
+    --color-bg-dark: #050505;
+    --color-bg-darker: #000000;
 
-    --color-danger: #FF6E6E; /* Using coral red for danger/accent */
-    --color-danger-light: #3a1616;
+    --color-accent: #fd5000;
+    --color-accent-hover: #ff6a1a;
+    --color-accent-light: #200d00;
+    --color-accent-subtle: #180a00;
 
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
-    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.6);
-    --shadow-lg: none;
-    --shadow-xl: none;
-    --shadow-glow: none;
+    --color-danger: #f07070;
+    --color-danger-light: #2a1010;
 
-    --glass-bg: #262626;
-    --glass-border: #333333;
-    --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-    --glass-blur: 0px;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.3);
+    --shadow-md: 0 4px 16px rgba(0,0,0,0.5), 0 1px 4px rgba(0,0,0,0.3);
+    --shadow-lg: 0 8px 32px rgba(0,0,0,0.6), 0 2px 8px rgba(0,0,0,0.3);
+    --shadow-xl: 0 20px 64px rgba(0,0,0,0.7), 0 4px 16px rgba(0,0,0,0.4);
+    --shadow-glow: 0 0 0 3px rgba(253,80,0,0.2);
+
+    --glass-bg: rgba(17,17,17,0.85);
+    --glass-border: rgba(255,255,255,0.06);
+    --glass-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    --glass-blur: 24px;
   }
 
   /* Two-row navbar (link strip + bar) from lg — keep in sync with components/layout/navbar.tsx */
@@ -235,10 +236,11 @@
     background-color: var(--color-bg);
     color: var(--color-text-primary);
     min-height: 100%;
-    font-family: "Vend Sans", sans-serif;
+    font-family: "Inter", "Vend Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     font-optical-sizing: auto;
     font-weight: 400;
     font-style: normal;
+    letter-spacing: -0.01em;
   }
 
   /* Default textarea/input text — avoids white-on-white when components omit explicit colors */
@@ -291,65 +293,69 @@
 }
 
 @layer components {
+  /* Whop-style premium card */
   .premium-card {
     background-color: var(--color-surface);
     border: 1px solid var(--color-border);
-    transition: all 0.3s ease;
-    border-radius: var(--radius-md);
+    transition: all 0.25s cubic-bezier(0.16,1,0.3,1);
+    border-radius: var(--radius-lg);
     box-shadow: var(--shadow-sm);
   }
   .premium-card:hover {
     box-shadow: var(--shadow-lg);
-    transform: translateY(-4px);
+    transform: translateY(-2px);
   }
 
+  /* Whop-style glass card */
   .glass-card {
     background: var(--glass-bg);
     backdrop-filter: blur(var(--glass-blur));
     -webkit-backdrop-filter: blur(var(--glass-blur));
     border: 1px solid var(--glass-border);
     box-shadow: var(--glass-shadow);
-    @apply rounded-[var(--radius-xl)];
+    border-radius: var(--radius-xl);
   }
 
   .glass-dark {
-    background: rgba(0, 0, 0, 0.4);
+    background: rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    @apply rounded-[var(--radius-xl)];
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: var(--radius-xl);
   }
 
   .glass-subtle {
-    background: rgba(255, 255, 255, 0.5);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    @apply rounded-[var(--radius-lg)];
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: var(--radius-lg);
   }
 
   .gradient-brand {
-    background: linear-gradient(135deg, #f97316 0%, #fb923c 100%);
+    background: linear-gradient(135deg, #fd5000 0%, #ff7a30 100%);
   }
 
   .gradient-brand-dark {
-    background: linear-gradient(135deg, #ea580c 0%, #f97316 100%);
+    background: linear-gradient(135deg, #c43e00 0%, #fd5000 100%);
   }
 
   .gradient-hero {
-    background: linear-gradient(160deg, var(--color-bg-dark) 0%, #431407 50%, #ea580c 100%);
+    background: linear-gradient(160deg, #000000 0%, #1a0500 50%, #fd5000 100%);
   }
 
   .section-padding {
-    @apply py-16 md:py-24 px-4 sm:px-6 lg:px-8;
+    @apply py-20 md:py-28 px-4 sm:px-6 lg:px-8;
   }
 
+  /* Whop-style pill button */
   .btn-premium {
-    @apply h-11 px-6 rounded-none font-bold text-sm transition-all duration-300 flex items-center justify-center gap-2 active:scale-95;
+    @apply h-11 px-6 rounded-full font-semibold text-sm transition-all duration-200 flex items-center justify-center gap-2 active:scale-95;
+    letter-spacing: -0.01em;
   }
 
   .container-max {
-    @apply max-w-7xl mx-auto;
+    @apply max-w-[1200px] mx-auto;
   }
 
   .animate-in {
@@ -361,27 +367,28 @@
   }
 
   .glow-border {
-    box-shadow: 0 0 0 1px rgba(249, 115, 22, 0.3), 0 0 20px rgba(249, 115, 22, 0.1);
+    box-shadow: 0 0 0 2px rgba(253, 80, 0, 0.25), 0 0 24px rgba(253, 80, 0, 0.12);
   }
 
-  /* Hover lift animation */
+  /* Hover lift */
   .hover-lift {
-    @apply transition-all duration-300;
+    transition: all 0.25s cubic-bezier(0.16,1,0.3,1);
   }
   .hover-lift:hover {
-    @apply -translate-y-1 shadow-[var(--shadow-lg)];
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
   }
 
-  /* Glass input */
+  /* Whop-style rounded input */
   .glass-input {
-    @apply w-full h-12 px-4 rounded-2xl text-sm font-medium outline-none transition-all;
-    background: var(--glass-bg);
-    backdrop-filter: blur(12px);
-    border: 1px solid var(--glass-border);
+    @apply w-full h-12 px-4 text-sm font-medium outline-none transition-all;
+    border-radius: var(--radius-md);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
   }
   .glass-input:focus {
     border-color: var(--color-accent);
-    box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
+    box-shadow: 0 0 0 3px rgba(253, 80, 0, 0.1);
   }
 
   /* Smooth page transitions */

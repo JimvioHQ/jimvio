@@ -1,4 +1,4 @@
-﻿import React from "react";
+import React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowLeft } from "lucide-react";
@@ -18,9 +18,23 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             <Link href="/" className="inline-flex items-center gap-2 text-[13px] font-semibold text-zinc-500 hover:text-orange-600 transition-colors mb-8">
               <ArrowLeft className="h-4 w-4" /> Back to Jimvio
             </Link>
-            <Link href="/" className="block">
-              {/* Using CSS filter invert if needed if the logo is white, otherwise it will just show */}
-              <Image src="/jimvio-logo.png" alt="Jimvio" width={140} height={44} className="h-8 w-auto mix-blend-multiply" />
+            <Link href="/" className="flex items-center gap-0 group">
+              {/* Using the premium brand pattern for auth screens */}
+              <div className="relative">
+                <Image
+                  src="/jimvio-logo.png"
+                  alt="Jimvio Icon"
+                  width={36}
+                  height={36}
+                  className="h-9 w-auto mix-blend-multiply dark:mix-blend-normal"
+                />
+              </div>
+              <span className="text-[32px] font-black tracking-[-0.07em] flex items-center leading-none select-none">
+                <span className="text-stone-950 dark:text-white">Jim</span>
+                <span className="bg-gradient-to-br from-[#fd5000] via-[#fd5000] to-[#ff6a00] bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(253,80,0,0.2)]">
+                  vio
+                </span>
+              </span>
             </Link>
           </div>
           

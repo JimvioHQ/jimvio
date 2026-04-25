@@ -73,9 +73,9 @@ export function TrustBar({ items }: { items: TrustBarItem[] }) {
             <motion.div key={idx} variants={fadeUp} className="flex items-center gap-2 md:gap-2.5 group">
               <motion.span
                 whileHover={{ scale: 1.12, rotate: -4 }}
-                className="relative shrink-0 h-8 w-8 flex items-center justify-center rounded-none transition-all bg-orange-100/50 dark:bg-orange-500/10 border border-orange-200/50 dark:border-orange-500/20 shadow-none"
+                className="relative shrink-0 h-8 w-8 flex items-center justify-center rounded-none transition-all bg-orange-50 dark:bg-orange-500/10 border border-orange-100 dark:border-orange-500/20 shadow-none"
               >
-                <Icon className="h-4 w-4 text-orange-500" />
+                <Icon className="h-4 w-4 text-[#fd5000]" />
               </motion.span>
               <div className="min-w-0">
                 <p className="text-[10px] md:text-[12px] font-semibold text-stone-900 dark:text-white tracking-tight leading-tight truncate">{item.title}</p>
@@ -100,8 +100,8 @@ export function RecommendedHeader() {
       <motion.div variants={fadeUp}>
         <Eyebrow text="Hand-Picked Listings" />
         <h2 className="text-[28px] sm:text-[34px] font-black text-zinc-900 dark:text-white leading-tight tracking-tight flex items-center gap-3">
-          <span className="h-10 w-10 flex items-center justify-center rounded-none bg-orange-100/50 dark:bg-orange-500/10 ring-1 ring-orange-500/15">
-            <Star className="h-5 w-5 fill-[#f97316] text-[#f97316]" />
+          <span className="h-10 w-10 flex items-center justify-center rounded-none bg-orange-50 dark:bg-orange-500/10 ring-1 ring-orange-500/20">
+            <Star className="h-5 w-5 fill-[#fd5000] text-[#fd5000]" />
           </span>
           Recommended Picks
         </h2>
@@ -139,8 +139,8 @@ export function CategorySidebar({ cats }: { cats: SidebarCat[] }) {
           <motion.div key={idx} whileHover={{ x: 4 }} whileTap={{ scale: 0.98 }}>
             <Link href={`/marketplace?cat=${encodeURIComponent(cat.slug)}`}
               className="flex items-center gap-3 px-3 py-3 rounded-none hover:bg-stone-50 dark:hover:bg-stone-900 transition-all group">
-              <div className="h-9 w-9 rounded-none bg-orange-50 dark:bg-orange-500/10 border border-orange-100 dark:border-orange-500/20 flex items-center justify-center group-hover:bg-orange-500 group-hover:border-orange-500 transition-colors">
-                <span className="text-orange-500 group-hover:text-white transition-colors">{cat.icon}</span>
+              <div className="h-9 w-9 rounded-none bg-orange-50 dark:bg-orange-500/10 border border-orange-100 dark:border-orange-500/20 flex items-center justify-center group-hover:bg-[#fd5000] group-hover:border-[#fd5000] transition-colors">
+                <span className="text-[#fd5000] group-hover:text-white transition-colors">{cat.icon}</span>
               </div>
               <span className="text-[13px] font-semibold text-stone-700 dark:text-stone-300 group-hover:text-stone-900 dark:group-hover:text-white flex-1">{cat.label}</span>
               <ChevronRight className="h-3.5 w-3.5 text-stone-300 dark:text-stone-600" />
@@ -174,7 +174,7 @@ export function FlashDeals({ products }: { products: any[] }) {
 
       <div className="px-6 py-6 border-b border-border flex items-center gap-4">
         <div className="h-12 w-12 rounded-none bg-orange-50 dark:bg-orange-500/10 border border-orange-100 dark:border-orange-500/20 flex items-center justify-center">
-          <Zap className="h-6 w-6 text-orange-500 fill-orange-500" />
+          <Zap className="h-6 w-6 text-[#fd5000] fill-[#fd5000]" />
         </div>
         <div>
           <p className="text-[10px] font-black text-zinc-400 dark:text-text-muted uppercase tracking-[0.25em] mb-1">Live · Refreshed daily</p>
@@ -209,7 +209,7 @@ export function FlashDeals({ products }: { products: any[] }) {
                   </div>
 
                   <div className="space-y-2 px-1">
-                    <h4 className="text-[13px] font-black text-zinc-800 dark:text-white line-clamp-1 group-hover:text-orange-600 transition-colors uppercase tracking-tight">
+                    <h4 className="text-[13px] font-black text-zinc-800 dark:text-white line-clamp-1 group-hover:text-[#fd5000] transition-colors uppercase tracking-tight">
                       {p.name || "Refined Goods"}
                     </h4>
                     
@@ -229,7 +229,7 @@ export function FlashDeals({ products }: { products: any[] }) {
                             initial={{ width: 0 }}
                             whileInView={{ width: `${heat}%` }}
                             transition={{ duration: 1, delay: 0.2 }}
-                            className="h-full bg-gradient-to-r from-orange-400 via-orange-500 to-amber-500 rounded-none shadow-[0_0_8px_rgba(249,115,22,0.4)]" 
+                            className="h-full bg-gradient-to-r from-orange-400 via-[#fd5000] to-orange-600 rounded-none shadow-[0_0_8px_rgba(253,80,0,0.4)]" 
                           />
                        </div>
                     </div>
@@ -282,11 +282,11 @@ export function TrendingSidePanel({ trendingCats, suppliers }: { trendingCats: T
             suppliers.map((v) => (
               <motion.div key={v.business_slug ?? v.business_name} whileHover={{ x: 3 }}>
                 <Link href={v.business_slug ? `/vendors/${v.business_slug}` : "/vendors"} className="flex items-center gap-3 group">
-                  <div className="h-9 w-9 rounded-none bg-orange-100/50 dark:bg-orange-500/10 flex items-center justify-center text-[#f97316] text-[12px] font-black group-hover:bg-[#f97316] group-hover:text-white transition-colors">
+                  <div className="h-9 w-9 rounded-none bg-orange-50 dark:bg-orange-500/10 flex items-center justify-center text-[#fd5000] text-[12px] font-black group-hover:bg-[#fd5000] group-hover:text-white transition-colors">
                     {(v.business_name ?? "?")[0]}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[13px] font-black text-zinc-800 dark:text-stone-300 truncate group-hover:text-[#f97316] transition-colors">{v.business_name}</p>
+                    <p className="text-[13px] font-black text-zinc-800 dark:text-stone-300 truncate group-hover:text-[#fd5000] transition-colors">{v.business_name}</p>
                     <p className="text-[10px] font-bold text-zinc-400 dark:text-text-muted">⭐ {Number(v.rating ?? 0).toFixed(1) || "N/A"} · Active</p>
                   </div>
                 </Link>
@@ -329,7 +329,7 @@ export function IndustriesSection({ industries }: { industries: Industry[] }) {
           </h2>
         </div>
         <motion.div whileHover={{ x: 4 }}>
-          <Link href="/marketplace" className="inline-flex items-center gap-2 text-[12px] font-black text-[#f97316] uppercase tracking-[0.15em] hover:gap-3 transition-all">
+          <Link href="/marketplace" className="inline-flex items-center gap-2 text-[12px] font-black text-[#fd5000] uppercase tracking-[0.15em] hover:gap-3 transition-all">
             All Sections <ChevronRight className="h-4 w-4" />
           </Link>
         </motion.div>
@@ -396,7 +396,7 @@ export function AffiliatePanel({ valueProps, campaigns = [], spotlightCreator, t
         <div className="space-y-3 mb-10">
           {valueProps.map((t) => (
             <motion.div key={t} whileHover={{ x: 5 }} className="flex items-center gap-3 text-[14px] font-bold text-zinc-900 dark:text-white/70">
-              <div className="h-6 w-6 rounded-none bg-[#f97316]/20 text-[#f97316] flex items-center justify-center text-[11px] font-black border border-[#f97316]/30 shrink-0">✓</div>
+              <div className="h-6 w-6 rounded-none bg-[#fd5000]/20 text-[#fd5000] flex items-center justify-center text-[11px] font-black border border-[#fd5000]/30 shrink-0">✓</div>
               {t}
             </motion.div>
           ))}
@@ -446,7 +446,7 @@ export function AffiliatePanel({ valueProps, campaigns = [], spotlightCreator, t
                 <p className="text-[11px] text-zinc-500 dark:text-white/40 font-black uppercase tracking-[0.1em]">{Number(spotlightCreator.total_conversions ?? 0).toLocaleString()} conversions</p>
               </div>
               <div className="text-right shrink-0">
-                <div className="text-[18px] font-black text-[#f97316]">{formatDisplayMoney(Number(spotlightCreator.total_earnings ?? 0), "RWF")}</div>
+                <div className="text-[18px] font-black text-[#fd5000]">{formatDisplayMoney(Number(spotlightCreator.total_earnings ?? 0), "RWF")}</div>
                 <p className="text-[9px] text-zinc-400 dark:text-white/30 font-black uppercase tracking-[0.15em]">Earnings</p>
               </div>
             </>
@@ -454,7 +454,7 @@ export function AffiliatePanel({ valueProps, campaigns = [], spotlightCreator, t
             <p className="text-sm text-zinc-900 dark:text-white/40 font-bold w-full text-center py-2">Be the first top earner — share products you love.</p>
           )}
         </div>
-        <Button className="w-full h-11 rounded-none bg-orange-500 hover:bg-orange-600 text-white font-bold text-[14px] shadow-none" asChild>
+        <Button className="w-full h-11 rounded-none bg-[#fd5000] hover:bg-orange-600 text-white font-bold text-[14px] shadow-none" asChild>
           <Link href="/dashboard">Access Dashboard →</Link>
         </Button>
       </motion.div>
@@ -499,7 +499,7 @@ export function MarketIntelligence({
                   <motion.div
                     initial={{ width: 0 }} whileInView={{ width: `${60 + (i * 10)}%` }}
                     viewport={{ once: true }} transition={{ duration: 1, delay: i * 0.15, ease: "easeOut" }}
-                    className="h-full rounded-none bg-gradient-to-r from-[#f97316] to-[#fb923c]"
+                    className="h-full rounded-none bg-gradient-to-r from-[#fd5000] to-orange-400"
                   />
                 </div>
               </div>

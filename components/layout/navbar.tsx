@@ -51,10 +51,10 @@ const GLASS_DARK = {
 /* Specular line — the 1px bright edge every glass element has */
 function SpecularLine({ rounded = false }: { rounded?: boolean }) { return null; }
 
-/* Diagonal specular sweep — adds depth */
+/* Diagonal specular sweep */
 function SpecularSweep() { return null; }
 
-/* Console Link/Button — strictly sharp Shopify aesthetics */
+/* Console Link/Button — Whop-style pill buttons */
 const ConsoleButton = React.forwardRef<any, {
   children: React.ReactNode;
   href?: string;
@@ -64,17 +64,18 @@ const ConsoleButton = React.forwardRef<any, {
   orange?: boolean;
   style?: React.CSSProperties;
   [key: string]: any;
-}>(({
-  children, href, onClick, className, active = false, orange = false,
-  style, ...props
-}, ref) => {
+}>((
+  { children, href, onClick, className, active = false, orange = false,
+  style, ...props },
+  ref
+) => {
   const cls = cn(
-    "relative inline-flex items-center gap-2 px-3.5 py-2 rounded-none text-[13px] font-bold tracking-tight transition-all duration-150 active:scale-[0.98] select-none border",
+    "relative inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-[13px] font-medium tracking-tight transition-all duration-150 active:scale-[0.97] select-none",
     active 
-      ? "bg-stone-100 dark:bg-white/5 border-stone-200 dark:border-white/10 text-orange-600"
+      ? "bg-stone-100 dark:bg-white/8 text-stone-900 dark:text-white font-semibold"
       : orange
-        ? "bg-orange-500 border-orange-600 text-white hover:bg-orange-600"
-        : "bg-surface border-border text-stone-600 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-white/5",
+        ? "bg-[#fd5000] text-white hover:bg-[#e04700] shadow-sm"
+        : "text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-white/6 hover:text-stone-900 dark:hover:text-white",
     className
   );
 
@@ -101,7 +102,7 @@ const ConsoleIconBtn = React.forwardRef<any, {
   children, href, onClick, badge, className, style, ...props
 }, ref) => {
   const cls = cn(
-    "relative flex items-center justify-center h-10 w-10 shrink-0 rounded-none border border-border bg-surface text-stone-600 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-white/5 transition-all duration-200 active:scale-[0.95]",
+    "relative flex items-center justify-center h-9 w-9 shrink-0 rounded-xl text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-white/8 hover:text-stone-800 dark:hover:text-white transition-all duration-150 active:scale-[0.94]",
     className,
   );
 
@@ -109,7 +110,7 @@ const ConsoleIconBtn = React.forwardRef<any, {
     <>
       {children}
       {badge != null && badge > 0 && (
-        <span className="absolute top-1.5 right-1.5 h-4 min-w-[16px] px-1 bg-orange-500 text-white text-[9px] font-black flex items-center justify-center rounded-none ring-1 ring-white dark:ring-stone-900 z-20">
+        <span className="absolute -top-1 -right-1 h-4 min-w-[16px] px-1 bg-[#fd5000] text-white text-[9px] font-black flex items-center justify-center rounded-full ring-2 ring-white dark:ring-[#0a0a0a] z-20">
           {badge}
         </span>
       )}
@@ -244,15 +245,17 @@ export function Navbar({ user, marketing }: NavbarProps) {
 
   return (
     <header className={cn(
-      "fixed top-0 inset-x-0 z-[100] pointer-events-none transition-all duration-500",
-      "px-0 pt-0"
+      "fixed top-0 inset-x-0 z-[100] pointer-events-none transition-all duration-300",
     )}>
-      <div className="pointer-events-auto relative w-full mx-auto transition-all duration-500 flex flex-col bg-[var(--color-surface)]"
-        style={{
-          ...shellStyle,
-          borderBottom: scrolled ? "1px solid var(--color-border)" : "1px solid transparent",
-        }}
+      <div className={cn(
+        "pointer-events-auto relative w-full mx-auto transition-all duration-300 flex flex-col",
+        scrolled
+          ? "bg-white/90 dark:bg-[#0a0a0a]/90 backdrop-blur-2xl shadow-[0_1px_0_rgba(0,0,0,0.06)] dark:shadow-[0_1px_0_rgba(255,255,255,0.04)]"
+          : "bg-white/70 dark:bg-[#0a0a0a]/70 backdrop-blur-xl"
+      )}
       >
+        {/* Top Specular Line */}
+        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/80 to-transparent dark:via-white/10 pointer-events-none" />
         {/* Top-down structure for professional layout */}
 
         {/* Top Strip — Minimal Shopify Info Bar */}
@@ -278,15 +281,23 @@ export function Navbar({ user, marketing }: NavbarProps) {
         <div className="flex items-center h-14 md:h-[62px] px-3 sm:px-5 md:px-8 gap-2 md:gap-4">
 
           {/* Logo */}
-          <Link href="/" className="shrink-0 mr-1 transition-transform active:scale-95">
-            <Image
-              src="/jimvio-logo.png"
-              alt="Jimvio"
-              width={140}
-              height={40}
-              className="h-8 sm:h-10 w-auto object-contain brightness-110 contrast-125"
-              priority
-            />
+          <Link href="/" className="shrink-0 mr-3 transition-transform active:scale-95 flex items-center gap-0">
+            <div className="relative">
+              <Image
+                src="/jimvio-logo.png"
+                alt="Jimvio Icon"
+                width={44}
+                height={44}
+                className="h-10 sm:h-11 w-auto object-contain brightness-110 contrast-110 mix-blend-multiply dark:mix-blend-normal"
+                priority
+              />
+            </div>
+            <span className="text-[24px] sm:text-[28px] font-black tracking-[-0.07em] flex items-center leading-none select-none">
+              <span className="text-stone-950 dark:text-white">Jim</span>
+              <span className="bg-gradient-to-br from-[#fd5000] via-[#fd5000] to-[#ff6a00] bg-clip-text text-transparent drop-shadow-[0_0_12px_rgba(253,80,0,0.15)]">
+                vio
+              </span>
+            </span>
           </Link>
 
           {/* Desktop nav links */}
@@ -558,12 +569,12 @@ export function Navbar({ user, marketing }: NavbarProps) {
       )}
 
       {/* MOBILE BOTTOM NAVIGATION PILL */}
-      <div className="md:hidden fixed bottom-6 inset-x-4 z-[100] h-[72px] pointer-events-none">
+      <div className="md:hidden fixed bottom-0 inset-x-0 z-[100] h-[68px] pointer-events-none">
         <motion.nav
-          initial={{ y: 80, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ type: "spring", damping: 25, stiffness: 200 }}
-          className="h-full bg-white dark:bg-stone-900 border border-border rounded-none flex items-center px-4 pointer-events-auto overflow-hidden relative shadow-none"
+          initial={{ y: 80 }}
+          animate={{ y: 0 }}
+          transition={{ type: "spring", damping: 30, stiffness: 300 }}
+          className="h-full bg-white/95 dark:bg-stone-950/95 backdrop-blur-md border-t border-stone-100 dark:border-white/5 flex items-center px-1 pointer-events-auto relative shadow-[0_-10px_30px_rgba(0,0,0,0.04)]"
         >
           {mobileBottomLinks.map(link => {
             const active = isActive(pathname, link.href);
@@ -572,18 +583,26 @@ export function Navbar({ user, marketing }: NavbarProps) {
                 key={link.href}
                 href={link.href}
                 className={cn(
-                  "relative flex flex-col items-center justify-center flex-1 h-[85%] gap-1 transition-all duration-300 rounded-none",
-                  active ? "text-orange-500 bg-orange-500/5" : "text-stone-500 hover:text-orange-500 dark:text-stone-400 dark:hover:text-white"
+                  "relative flex flex-col items-center justify-center flex-1 h-full gap-1 transition-all duration-300",
+                  active ? "text-orange-600 dark:text-orange-500" : "text-stone-400 dark:text-stone-600"
                 )}
               >
-                <link.icon className={cn("h-5 w-5 transition-transform duration-300", active ? "scale-110" : "scale-100")} />
-                <span className={cn("text-[9px] font-bold uppercase tracking-wider transition-all", active ? "opacity-100" : "opacity-60")}>
+                <div className="relative">
+                  <link.icon className={cn("h-5 w-5 transition-all duration-500", active ? "scale-110" : "scale-100")} strokeWidth={active ? 2.5 : 2} />
+                  {active && (
+                    <motion.div 
+                      layoutId="mobile-glow"
+                      className="absolute inset-0 bg-orange-500/20 blur-xl rounded-full"
+                    />
+                  )}
+                </div>
+                <span className={cn("text-[10px] font-bold tracking-tight transition-all duration-300", active ? "opacity-100 translate-y-0" : "opacity-50 translate-y-0.5")}>
                   {link.label}
                 </span>
                 {active && (
                   <motion.div
                     layoutId="mobile-pill-active"
-                    className="absolute -bottom-1.5 h-1 w-6 rounded-none bg-orange-500 shadow-none shadow-orange-500/40"
+                    className="absolute top-0 h-[3px] w-8 rounded-b-full bg-orange-500"
                   />
                 )}
               </Link>
@@ -592,13 +611,12 @@ export function Navbar({ user, marketing }: NavbarProps) {
 
           <button
             onClick={() => setMobileOpen(true)}
-            className="flex flex-col items-center justify-center flex-1 h-[85%] gap-1 text-zinc-500 hover:text-orange-500 dark:text-stone-400 dark:hover:text-white transition-all duration-300 relative group"
+            className="flex flex-col items-center justify-center flex-1 h-full gap-1 text-stone-400 dark:text-stone-600 transition-all duration-300 relative group"
           >
             <div className="relative">
               <Menu className="h-5 w-5 stroke-[2px]" />
-              <div className="absolute -top-1 -right-1 h-2 w-2 rounded-none bg-orange-500 ring-2 ring-white dark:ring-stone-900 shadow-none" />
             </div>
-            <span className="text-[9px] font-bold uppercase tracking-wider opacity-60">Menu</span>
+            <span className="text-[10px] font-bold tracking-tight opacity-50 translate-y-0.5">Menu</span>
           </button>
         </motion.nav>
       </div>
@@ -632,43 +650,43 @@ function MobileDrawer({
           <motion.div
             initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            className="fixed inset-y-0 right-0 w-[85%] max-w-[400px] z-[9999] bg-[var(--color-surface)] shadow-none flex flex-col pointer-events-auto"
+            className="fixed inset-y-0 right-0 w-[85%] max-w-[400px] z-[9999] bg-white dark:bg-[#0a0a0a] shadow-2xl flex flex-col pointer-events-auto border-l border-stone-100 dark:border-white/5"
           >
             {/* Header / Dismiss */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-100 dark:border-border bg-zinc-50/50 dark:bg-black/20">
-               <span className="text-[10px] font-black text-stone-400 uppercase tracking-[0.4em]">Jimvio Console</span>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-stone-100 dark:border-white/5 bg-white/50 dark:bg-[#0a0a0a]/50 backdrop-blur-md">
+               <span className="text-[13px] font-bold text-stone-900 dark:text-white tracking-tight">Console</span>
               <button 
                 onClick={onClose}
-                className="h-9 w-9 flex items-center justify-center rounded-none bg-white dark:bg-surface-secondary text-stone-500 shadow-none transition-transform active:scale-90"
+                className="h-8 w-8 flex items-center justify-center rounded-full bg-stone-100 dark:bg-[#111] hover:bg-stone-200 dark:hover:bg-white/10 text-stone-500 shadow-sm transition-all active:scale-95 border border-stone-200 dark:border-white/5"
               >
-                <X className="h-5 w-5" />
+                <X className="h-4 w-4" />
               </button>
             </div>
 
             {/* Content Container */}
-            <div className="flex-1 overflow-y-auto px-6 py-6 space-y-7 scrollbar-none">
+            <div className="flex-1 overflow-y-auto px-5 py-6 space-y-7 scrollbar-none">
               
               {/* SECTION: Quick Access (Account -> AI -> Utils) */}
               <div className="space-y-4">
-                <p className="text-[10px] font-black text-stone-400 dark:text-stone-600 uppercase tracking-[0.2em] px-2 mb-2">My Console</p>
+                <p className="text-[11px] font-semibold text-stone-500 dark:text-stone-400 px-2 mb-2">My Console</p>
                 
                 {/* 1. User Profile / Login */}
-                <div className="bg-zinc-50 dark:bg-surface-secondary rounded-none p-2 border border-stone-100 dark:border-white/5 shadow-none">
+                <div className="bg-stone-50 dark:bg-[#111] rounded-2xl p-1.5 border border-stone-100 dark:border-white/5 shadow-sm">
                   {user ? (
                     <div className="space-y-1">
                       <button 
                         onClick={() => toggle('account')}
-                        className={cn("w-full flex items-center justify-between p-3 rounded-none text-[14px] font-bold transition-all", 
-                          expanded === 'account' ? "bg-white dark:bg-surface-secondary text-stone-900 dark:text-white" : "text-stone-600 dark:text-stone-400 hover:bg-white dark:hover:bg-surface-secondary")}
+                        className={cn("w-full flex items-center justify-between p-3 rounded-xl text-[14px] font-semibold transition-all", 
+                          expanded === 'account' ? "bg-white dark:bg-[#1a1a1a] text-stone-900 dark:text-white shadow-sm" : "text-stone-700 dark:text-stone-300 hover:bg-white dark:hover:bg-[#1a1a1a]")}
                       >
                         <div className="flex items-center gap-3">
-                          <Avatar className="h-8 w-8 ring-1 ring-orange-500/20">
+                          <Avatar className="h-9 w-9 ring-2 ring-white dark:ring-[#111]">
                             <AvatarImage src={user.avatar_url} />
-                            <AvatarFallback className="bg-orange-500 text-white text-[10px] font-bold rounded-none">{user.full_name?.[0]}</AvatarFallback>
+                            <AvatarFallback className="bg-gradient-to-br from-[#fd5000] to-orange-600 text-white text-[11px] font-bold">{user.full_name?.[0]}</AvatarFallback>
                           </Avatar>
                           <div className="text-left">
-                            <p className="text-[13px] leading-tight truncate max-w-[120px]">{user.full_name}</p>
-                            <p className="text-[9px] text-stone-400 font-medium">Account Settings</p>
+                            <p className="text-[13px] leading-tight truncate max-w-[120px] tracking-tight">{user.full_name}</p>
+                            <p className="text-[10px] text-stone-500 font-medium mt-0.5">Account Settings</p>
                           </div>
                         </div>
                         <ChevronDown className={cn("h-4 w-4 transition-transform duration-300", expanded === 'account' && "rotate-180")} />
@@ -678,16 +696,16 @@ function MobileDrawer({
                         {expanded === 'account' && (
                           <motion.div 
                             initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
-                            className="overflow-hidden pl-11 space-y-1 py-2"
+                            className="overflow-hidden px-1 pb-1 space-y-0.5"
                           >
                             {accountLinks.map(link => (
-                              <Link key={link.href} href={link.href} onClick={onClose} className="flex items-center gap-4 p-2.5 text-sm font-semibold text-stone-500 hover:text-stone-900 dark:text-stone-500 dark:hover:text-white transition-colors">
+                              <Link key={link.href} href={link.href} onClick={onClose} className="flex items-center gap-3 p-2.5 rounded-lg text-[13px] font-medium text-stone-600 hover:bg-white dark:text-stone-400 dark:hover:bg-[#1a1a1a] transition-colors">
                                 <link.icon className="h-4 w-4 opacity-70" /> {link.label}
                               </Link>
                             ))}
                             <button 
                               onClick={async () => { await signOut(); window.location.href = "/"; }}
-                              className="w-full flex items-center gap-4 p-2.5 text-sm font-bold text-red-500"
+                              className="w-full flex items-center gap-3 p-2.5 rounded-lg text-[13px] font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
                             >
                               <LogOut className="h-4 w-4" /> Logout
                             </button>
@@ -697,8 +715,8 @@ function MobileDrawer({
                     </div>
                   ) : (
                     <div className="grid grid-cols-2 gap-2 p-1">
-                      <Link href="/login" onClick={onClose} className="flex items-center justify-center p-3 rounded-none bg-white dark:bg-surface-secondary text-[11px] font-black uppercase tracking-widest text-stone-600 dark:text-stone-400 shadow-none active:scale-95 transition-all">Log In</Link>
-                      <Link href="/register" onClick={onClose} className="flex items-center justify-center p-3 rounded-none bg-orange-500 text-[11px] font-black uppercase tracking-widest text-white shadow-none shadow-orange-500/20 active:scale-95 transition-all">Join Free</Link>
+                      <Link href="/login" onClick={onClose} className="flex items-center justify-center p-3 rounded-xl bg-white dark:bg-[#1a1a1a] text-[12px] font-semibold text-stone-700 dark:text-stone-300 shadow-sm active:scale-95 transition-all border border-stone-100 dark:border-white/5">Log In</Link>
+                      <Link href="/register" onClick={onClose} className="flex items-center justify-center p-3 rounded-xl bg-[#fd5000] hover:bg-[#e04700] text-[12px] font-semibold text-white shadow-[0_2px_8px_rgba(253,80,0,0.25)] active:scale-95 transition-all">Join Free</Link>
                     </div>
                   )}
                 </div>
@@ -706,61 +724,62 @@ function MobileDrawer({
                 {/* 2. AI Assistant */}
                 <button
                   onClick={() => { openAssistant(); onClose(); }}
-                  className="w-full relative flex items-center justify-between p-4 rounded-none bg-gradient-to-br from-orange-500 to-orange-600 shadow-none shadow-orange-500/20 group overflow-hidden"
+                  className="w-full relative flex items-center justify-between p-4 rounded-2xl bg-[#fd5000] shadow-[0_4px_14px_rgba(253,80,0,0.3)] group overflow-hidden active:scale-[0.98] transition-all"
                 >
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-12 -mt-12 pointer-events-none" />
                   <div className="flex items-center gap-4 relative z-10">
-                    <div className="h-10 w-10 rounded-none bg-white/20 flex items-center justify-center shadow-inner">
+                    <div className="h-10 w-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center shadow-inner border border-white/10">
                       <Sparkles className="h-5 w-5 text-white" />
                     </div>
                     <div className="text-left">
-                      <p className="text-[12px] font-black uppercase tracking-[0.1em] text-white leading-tight">Neural Core</p>
-                      <p className="text-[9px] font-bold text-white/70">AI Assistant Online</p>
+                      <p className="text-[13px] font-bold text-white leading-tight tracking-tight">Neural Core</p>
+                      <p className="text-[10px] font-medium text-white/80 mt-0.5">AI Assistant Online</p>
                     </div>
                   </div>
-                  <ChevronRight className="h-5 w-5 text-white/50 group-active:translate-x-1 transition-transform" />
+                  <ChevronRight className="h-5 w-5 text-white/70 group-active:translate-x-1 transition-transform relative z-10" />
                 </button>
 
                 {/* 3. Utility Icon Grid (Theme + Currency) */}
                 <div className="grid grid-cols-2 gap-3">
-                   <div className="flex items-center justify-between p-3 rounded-none bg-zinc-50 dark:bg-surface-secondary border border-stone-100 dark:border-white/5">
-                      <div className="h-8 w-8 rounded-none bg-white dark:bg-surface-secondary flex items-center justify-center shadow-none">
-                        <Sun className="h-4 w-4 text-orange-500" />
+                   <div className="flex items-center justify-between p-3 rounded-xl bg-stone-50 dark:bg-[#111] border border-stone-100 dark:border-white/5">
+                      <div className="h-8 w-8 rounded-full bg-white dark:bg-[#1a1a1a] flex items-center justify-center shadow-sm border border-stone-100 dark:border-white/5">
+                        <Sun className="h-4 w-4 text-[#fd5000]" />
                       </div>
                       <ThemeToggle />
                    </div>
-                   <div className="flex items-center justify-between p-3 rounded-none bg-zinc-50 dark:bg-surface-secondary border border-stone-100 dark:border-white/5">
-                      <div className="h-8 w-8 rounded-none bg-emerald-500/10 flex items-center justify-center">
+                   <div className="flex items-center justify-between p-3 rounded-xl bg-stone-50 dark:bg-[#111] border border-stone-100 dark:border-white/5">
+                      <div className="h-8 w-8 rounded-full bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center border border-emerald-100 dark:border-emerald-500/20">
                         <TrendingUp className="h-4 w-4 text-emerald-500" />
                       </div>
-                      <span className="text-[11px] font-black text-stone-600 dark:text-stone-300 pr-2">USD</span>
+                      <span className="text-[12px] font-semibold text-stone-700 dark:text-stone-300 pr-2">USD</span>
                    </div>
                 </div>
               </div>
 
               {/* Search */}
-              <div className="bg-zinc-50 dark:bg-surface-secondary rounded-none p-1.5 ring-1 ring-zinc-100 dark:ring-border shadow-none">
+              <div className="bg-stone-50 dark:bg-[#111] rounded-2xl p-1.5 border border-stone-100 dark:border-white/5 shadow-sm">
                 <NavbarSearch searchQ={searchQ} setSearchQ={setSearchQ} variant="mobile" runSearch={runSearch} navLinks={navLinks} isScrolled={false} />
               </div>
 
               {/* SECTION: Global Navigation */}
               <div className="space-y-2">
-                <p className="text-[10px] font-black text-stone-400 dark:text-stone-600 uppercase tracking-[0.2em] px-2 mb-2">Navigation</p>
+                <p className="text-[11px] font-semibold text-stone-500 dark:text-stone-400 px-2 mb-2">Navigation</p>
                 
                 <Link href="/" onClick={onClose} 
-                  className={cn("flex items-center gap-4 p-4 rounded-none text-[15px] font-bold transition-all", 
-                    pathname === "/" ? "bg-orange-500 text-white shadow-none shadow-orange-500/20" : "text-stone-600 dark:text-stone-300 hover:bg-zinc-50 dark:hover:bg-stone-900")}>
-                  <Home className={cn("h-5 w-5", pathname === "/" ? "text-white" : "text-orange-500")} /> Home
+                  className={cn("flex items-center gap-4 p-4 rounded-xl text-[15px] font-semibold transition-all", 
+                    pathname === "/" ? "bg-orange-50 dark:bg-orange-500/10 text-[#fd5000] border border-orange-100 dark:border-orange-500/20" : "text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-[#111]")}>
+                  <Home className={cn("h-5 w-5", pathname === "/" ? "text-[#fd5000]" : "text-stone-400")} /> Home
                 </Link>
 
                 {/* Marketplace Dropdown (Expanding) */}
                 <div className="space-y-1">
                   <button 
                     onClick={() => toggle('market')}
-                    className={cn("w-full flex items-center justify-between p-4 rounded-none text-[15px] font-bold transition-all", 
-                      expanded === 'market' ? "bg-stone-100 dark:bg-stone-900 text-stone-900 dark:text-white" : "text-stone-600 dark:text-stone-400 hover:bg-zinc-50 dark:hover:bg-stone-900")}
+                    className={cn("w-full flex items-center justify-between p-4 rounded-xl text-[15px] font-semibold transition-all", 
+                      expanded === 'market' ? "bg-stone-50 dark:bg-[#111] text-stone-900 dark:text-white" : "text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-[#111]")}
                   >
                     <div className="flex items-center gap-4">
-                      <ShoppingBag className="h-5 w-5 text-orange-500" /> Marketplace
+                      <ShoppingBag className="h-5 w-5 text-stone-400" /> Marketplace
                     </div>
                     <ChevronDown className={cn("h-5 w-5 transition-transform duration-300", expanded === 'market' && "rotate-180")} />
                   </button>
@@ -769,11 +788,14 @@ function MobileDrawer({
                     {expanded === 'market' && (
                       <motion.div 
                         initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
-                        className="overflow-hidden pl-10 space-y-1"
+                        className="overflow-hidden pl-4 space-y-1"
                       >
                         {marketplaceVariants.map((v: any) => (
-                          <Link key={v.href} href={v.href} onClick={onClose} className="flex items-center gap-4 p-3.5 text-sm font-semibold text-stone-500 hover:text-orange-600 transition-colors">
-                            <v.icon className="h-4 w-4 opacity-70" style={{ color: v.color }} /> {v.title}
+                          <Link key={v.href} href={v.href} onClick={onClose} className="flex items-center gap-4 p-3 rounded-lg text-[13px] font-medium text-stone-600 dark:text-stone-400 hover:bg-stone-50 dark:hover:bg-[#111] hover:text-[#fd5000] transition-colors">
+                            <div className="h-8 w-8 rounded-full flex items-center justify-center bg-white dark:bg-[#1a1a1a] shadow-sm border border-stone-100 dark:border-white/5">
+                              <v.icon className="h-4 w-4" style={{ color: v.color }} />
+                            </div>
+                            {v.title}
                           </Link>
                         ))}
                       </motion.div>
@@ -785,11 +807,11 @@ function MobileDrawer({
                 <div className="space-y-1">
                   <button 
                     onClick={() => toggle('explore')}
-                    className={cn("w-full flex items-center justify-between p-4 rounded-none text-[15px] font-bold transition-all", 
-                      expanded === 'explore' ? "bg-stone-100 dark:bg-stone-900 text-stone-900 dark:text-white" : "text-stone-600 dark:text-stone-400 hover:bg-zinc-50 dark:hover:bg-stone-900")}
+                    className={cn("w-full flex items-center justify-between p-4 rounded-xl text-[15px] font-semibold transition-all", 
+                      expanded === 'explore' ? "bg-stone-50 dark:bg-[#111] text-stone-900 dark:text-white" : "text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-[#111]")}
                   >
                     <div className="flex items-center gap-4">
-                      <Globe className="h-5 w-5 text-orange-500" /> Explore
+                      <Globe className="h-5 w-5 text-stone-400" /> Explore
                     </div>
                     <ChevronDown className={cn("h-5 w-5 transition-transform duration-300", expanded === 'explore' && "rotate-180")} />
                   </button>
@@ -798,11 +820,14 @@ function MobileDrawer({
                     {expanded === 'explore' && (
                       <motion.div 
                         initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
-                        className="overflow-hidden pl-10 space-y-1"
+                        className="overflow-hidden pl-4 space-y-1"
                       >
                         {solutions.map((s: any) => (
-                          <Link key={s.href} href={s.href} onClick={onClose} className="flex items-center gap-4 p-3.5 text-sm font-semibold text-stone-500 hover:text-orange-600 transition-colors">
-                            <s.icon className="h-4 w-4 opacity-70" /> {s.title}
+                          <Link key={s.href} href={s.href} onClick={onClose} className="flex items-center gap-4 p-3 rounded-lg text-[13px] font-medium text-stone-600 dark:text-stone-400 hover:bg-stone-50 dark:hover:bg-[#111] hover:text-[#fd5000] transition-colors">
+                            <div className="h-8 w-8 rounded-full flex items-center justify-center bg-white dark:bg-[#1a1a1a] shadow-sm border border-stone-100 dark:border-white/5">
+                              <s.icon className="h-4 w-4" style={{ color: s.color }} />
+                            </div>
+                            {s.title}
                           </Link>
                         ))}
                       </motion.div>
@@ -811,28 +836,28 @@ function MobileDrawer({
                 </div>
 
                 <Link href="/communities" onClick={onClose} 
-                  className={cn("flex items-center gap-4 p-4 rounded-none text-[15px] font-bold transition-all", 
-                    pathname.startsWith("/communities") ? "bg-orange-50 text-orange-600" : "text-stone-600 dark:text-stone-300 hover:bg-zinc-50 dark:hover:bg-stone-900")}>
-                  <Users className="h-5 w-5 text-orange-500" /> Communities
+                  className={cn("flex items-center gap-4 p-4 rounded-xl text-[15px] font-semibold transition-all", 
+                    pathname.startsWith("/communities") ? "bg-orange-50 dark:bg-orange-500/10 text-[#fd5000] border border-orange-100 dark:border-orange-500/20" : "text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-[#111]")}>
+                  <Users className={cn("h-5 w-5", pathname.startsWith("/communities") ? "text-[#fd5000]" : "text-stone-400")} /> Communities
                 </Link>
 
                 <Link href="/help" onClick={onClose} 
-                  className={cn("flex items-center gap-4 p-4 rounded-none text-[15px] font-bold transition-all", 
-                    pathname.startsWith("/help") ? "bg-orange-50 text-orange-600" : "text-stone-600 dark:text-stone-300 hover:bg-zinc-50 dark:hover:bg-stone-900")}>
-                  <CircleHelp className="h-5 w-5 text-orange-500" /> Help Center
+                  className={cn("flex items-center gap-4 p-4 rounded-xl text-[15px] font-semibold transition-all", 
+                    pathname.startsWith("/help") ? "bg-orange-50 dark:bg-orange-500/10 text-[#fd5000] border border-orange-100 dark:border-orange-500/20" : "text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-[#111]")}>
+                  <CircleHelp className={cn("h-5 w-5", pathname.startsWith("/help") ? "text-[#fd5000]" : "text-stone-400")} /> Help Center
                 </Link>
               </div>
 
               {/* Live Status Widget */}
               <div className="pt-4 px-2">
-                 <div className="bg-zinc-50 dark:bg-stone-900/40 rounded-none p-4 border border-zinc-100 dark:border-white/5">
+                 <div className="bg-stone-50 dark:bg-[#111] rounded-2xl p-4 border border-stone-100 dark:border-white/5 shadow-sm">
                     <CurrencyConverterWidget variant="compact" className="mx-0" />
                  </div>
               </div>
             </div>
             
-            <div className="p-8 text-center bg-zinc-50 dark:bg-stone-900/20">
-              <p className="text-[9px] font-black text-stone-400 uppercase tracking-[0.4em]">Jimvio Multi-Channel Protocol</p>
+            <div className="p-6 text-center bg-stone-50 dark:bg-[#111] border-t border-stone-100 dark:border-white/5">
+              <p className="text-[10px] font-semibold text-stone-400">Jimvio Protocol</p>
             </div>
           </motion.div>
         </>

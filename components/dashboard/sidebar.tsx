@@ -159,16 +159,24 @@ export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobil
 
       {/* Logo bar — Shopify Admin Style */}
       <div className="flex items-center justify-between shrink-0 px-4 py-5 bg-[var(--color-surface)] border-b border-border">
-        <Link href="/" onClick={onMobileClose} className="flex items-center gap-3 min-w-0 group">
+        <Link href="/" onClick={onMobileClose} className="flex items-center gap-0 min-w-0 group">
           {!collapsed ? (
+            <>
              <Image 
                 src="/jimvio-logo.png" 
                 alt="Jimvio" 
-                width={100} 
-                height={25} 
-                className="h-6 w-auto"
+                width={32} 
+                height={32} 
+                className="h-7 w-auto mix-blend-multiply dark:mix-blend-normal"
                 priority
               />
+              <span className="text-[22px] font-black tracking-[-0.07em] select-none truncate">
+                <span className="text-stone-950 dark:text-white">Jim</span>
+                <span className="bg-gradient-to-br from-[#fd5000] via-[#fd5000] to-[#ff6a00] bg-clip-text text-transparent drop-shadow-[0_0_10px_rgba(253,80,0,0.12)]">
+                  vio
+                </span>
+              </span>
+            </>
           ) : (
              <div className="w-8 h-8 rounded-none bg-orange-500 flex items-center justify-center text-white font-black text-xs">J</div>
           )}

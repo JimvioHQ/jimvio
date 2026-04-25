@@ -18,6 +18,7 @@ import { TopCreatorsSection } from "@/components/marketplace/top-creators-sectio
 import { CampaignScrollRow } from "@/components/marketplace/campaign-scroll-row";
 import { CommunityScrollRow } from "@/components/marketplace/community-scroll-row";
 import { ShortClipsReel } from "@/components/marketplace/short-clips-reel";
+import { cn } from "@/lib/utils";
 
 import { PopularStoresSection } from "@/components/marketplace/popular-stores-section";
 import { HomepageHero } from "@/components/layout/homepage-hero";
@@ -121,7 +122,7 @@ export default async function HomePage() {
   const heroKeywords = platformSettings.marketing.trending_search_keywords.slice(0, 4);
 
   return (
-    <div className="min-h-screen pb-14 md:pb-0 relative overflow-hidden" style={{ background: "var(--color-bg)" }}>
+    <div className="min-h-screen pb-20 md:pb-0 relative overflow-hidden" style={{ background: "var(--color-bg)" }}>
       <div className="relative z-10">
         {/* ── HERO ── */}
         <HomepageHero
@@ -138,17 +139,35 @@ export default async function HomePage() {
         />
 
         {/* ── MAIN CONTENT ── */}
-        <div className="max-w-[1536px] mx-auto px-4 sm:px-6 pt-8 pb-12 md:pt-16 md:pb-24 space-y-20">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 pt-6 pb-12 md:pt-14 md:pb-24 space-y-12 md:space-y-20">
+
+          {/* Trust bar — desktop only */}
+          <div className="hidden md:block">
+            <SocialProofBar
+              verifiedVendors={socialBar.verifiedVendors}
+              successRate={socialBar.successRate}
+              totalProducts={socialBar.totalProducts}
+              countries={socialBar.countries}
+            />
+          </div>
 
           <section id="recommended-picks" className="scroll-mt-32">
-            <div className="mb-4">
+            <div className="mb-4 px-1">
               <RecommendedHeader />
             </div>
 
-            {/* Products — single horizontal scroll row */}
-            <div className="flex flex-nowrap gap-4 overflow-x-auto pb-4 no-scrollbar -mx-4 px-4 sm:-mx-6 sm:px-6">
-              {recommended.slice(0, 24).map((p) => (
-                <div key={p.id} className="w-[160px] shrink-0 lg:w-[180px]">
+            {/* Products — horizontal scroll on mobile, wraps on desktop */}
+            <div className="flex flex-nowrap gap-4 overflow-x-auto pb-4 no-scrollbar -mx-4 px-4 sm:-mx-6 sm:px-6 md:grid md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 md:overflow-visible md:mx-0 md:px-0">
+              {recommended.slice(0, 24).map((p, index) => (
+                <div 
+                  key={p.id} 
+                  className={cn(
+                    "w-[170px] sm:w-[190px] shrink-0 md:w-auto md:shrink",
+                    index >= 12 ? "md:hidden" :
+                    index >= 10 ? "md:hidden xl:block" :
+                    index >= 8  ? "md:hidden lg:block" : ""
+                  )}
+                >
                   <ProductCardClient p={p as any} initialInCart={cartSet.has(p.id)} />
                 </div>
               ))}

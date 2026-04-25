@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React from "react";
 import Link from "next/link";
@@ -50,7 +50,7 @@ export function Footer({ contact: contactProp }: { contact?: ContactSettings }) 
   const contact = contactProp ?? PLATFORM_SETTINGS_DEFAULTS.contact;
 
   return (
-    <footer className="relative overflow-hidden text-[color:var(--color-text)] bg-surface border-t border-border">
+    <footer className="relative overflow-hidden text-[color:var(--color-text)] bg-surface border-t border-border pb-[80px] md:pb-0">
 
       {/* Content */}
       <div className="relative z-10 max-w-[1280px] mx-auto px-4 sm:px-6 pt-16 pb-12">
@@ -59,34 +59,38 @@ export function Footer({ contact: contactProp }: { contact?: ContactSettings }) 
           {/* Brand */}
           <div className="lg:col-span-2 flex flex-col">
 
-            <Link href="/" className="inline-block mb-7">
-              <div className="px-4 py-3 rounded-none border border-border bg-stone-50 dark:bg-stone-900 inline-block">
-                <Image
-                  src="/jimvio-logo.png"
-                  alt="Jimvio"
-                  width={120}
-                  height={36}
-                  className="h-8 w-auto"
-                />
-              </div>
+            <Link href="/" className="inline-flex items-center gap-0 mb-7 group">
+              <Image
+                src="/jimvio-logo.png"
+                alt="Jimvio"
+                width={64}
+                height={64}
+                className="h-12 sm:h-14 w-auto mix-blend-multiply dark:mix-blend-normal brightness-110 contrast-110"
+              />
+              <span className="text-[36px] sm:text-[48px] font-black tracking-[-0.07em] select-none">
+                <span className="text-stone-950 dark:text-white">Jim</span>
+                <span className="bg-gradient-to-br from-[#fd5000] via-[#fd5000] to-[#ff6a00] bg-clip-text text-transparent drop-shadow-[0_0_12px_rgba(253,80,0,0.12)]">
+                  vio
+                </span>
+              </span>
             </Link>
 
-            <p className="text-sm opacity-70 max-w-[270px] mb-8">
+            <p className="text-[13px] leading-relaxed text-stone-500 dark:text-stone-400 max-w-[280px] mb-8 font-medium">
               The global creator-commerce ecosystem. One platform for verified suppliers, buyers, affiliates & influencers.
             </p>
 
             {/* Social */}
-            <div className="flex gap-3 mb-7">
+            <div className="flex gap-2.5 mb-7">
               {[
-                { icon: <Twitter size={16} />, href: contact.social_x },
-                { icon: <Youtube size={16} />, href: contact.social_youtube },
-                { icon: <Mail size={16} />, href: `mailto:${contact.info_email}` },
+                { icon: <Twitter size={18} />, href: contact.social_x },
+                { icon: <Youtube size={18} />, href: contact.social_youtube },
+                { icon: <Mail size={18} />, href: `mailto:${contact.info_email}` },
               ].map((s, i) => (
                 <a
                   key={i}
                   href={s.href}
                   target="_blank"
-                  className="w-9 h-9 flex items-center justify-center rounded-none border border-border bg-stone-50 dark:bg-stone-900 hover:bg-orange-50 hover:border-orange-200 transition-colors text-stone-500 hover:text-orange-600"
+                  className="w-10 h-10 flex items-center justify-center rounded-none border border-border bg-white dark:bg-stone-900 hover:border-orange-500 hover:text-orange-500 transition-all duration-300 active:scale-90 shadow-sm"
                 >
                   {s.icon}
                 </a>

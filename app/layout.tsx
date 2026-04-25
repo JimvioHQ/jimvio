@@ -1,4 +1,4 @@
-﻿import type { Metadata } from "next";
+import type { Metadata } from "next";
 import "./globals.css";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { CurrencyProvider } from "@/context/CurrencyContext";
@@ -21,7 +21,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       >
         <ThemeProvider>
           <JimvioJsonLd />
-          <NextTopLoader color="#f97316" height={3} showSpinner={false} easing="ease" speed={200} shadow="0 0 10px #f97316,0 0 5px #f97316" />
+          <NextTopLoader color="#fd5000" height={3} showSpinner={false} easing="ease" speed={200} shadow="0 0 10px #fd5000,0 0 5px #fd5000" />
           <ReferralTracker />
           <CurrencyProvider>{children} </CurrencyProvider>
           <Toaster

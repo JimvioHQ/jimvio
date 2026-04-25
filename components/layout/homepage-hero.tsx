@@ -87,7 +87,7 @@ function VideoMarquee({ videos, mobile = false }: { videos: any[]; mobile?: bool
             {/* Live pip */}
             <div className="absolute top-2 right-2 flex items-center gap-1 px-1.5 py-0.5 rounded-none bg-black/45 ">
               <span
-                className="block rounded-none bg-[#f97316]"
+                className="block rounded-none bg-[#fd5000]"
                 style={{ width: 4, height: 4, animation: "pulse 1.8s infinite" }}
               />
               <span className="text-[7px] font-black text-white uppercase tracking-[.05em]">Live</span>
@@ -217,11 +217,11 @@ export function HomepageHero({
           </div>
 
           {/* Headline */}
-          <h1 className="text-[26px] font-bold leading-[1.08] tracking-[-0.025em] text-[#1c1811] dark:text-[#f5f0e8] text-center">
+          <h1 className="text-[28px] sm:text-[32px] font-black leading-[1.1] tracking-[-0.04em] text-[#1c1811] dark:text-[#f5f0e8] text-center">
             Where products &amp; creators{" "}
             <span
               className="text-transparent bg-clip-text"
-              style={{ backgroundImage: "linear-gradient(135deg, #FFB86C 0%, #f97316 50%, #dc2626 100%)" }}
+              style={{ backgroundImage: "linear-gradient(135deg, #fd5000 0%, #ff8c40 50%, #dc2626 100%)" }}
             >
               drive global growth.
             </span>
@@ -234,9 +234,9 @@ export function HomepageHero({
           {/* CTA stack */}
           <div className="flex flex-col gap-[10px] w-full max-w-[300px]">
             <StartEarnDialog
-              className="h-12 w-full rounded-none border-none text-white text-[13px] font-bold uppercase tracking-[.06em] bg-orange-500 shadow-none active:bg-orange-600"
+              className="h-12 w-full rounded-full border-none text-white text-[13px] font-semibold tracking-tight bg-[#fd5000] shadow-[0_4px_14px_rgba(253,80,0,0.4)] active:bg-orange-600 transition-all active:scale-95"
             >
-              Start Earning Now →
+              Start Earning →
             </StartEarnDialog>
 
             <button
@@ -296,16 +296,16 @@ export function HomepageHero({
             >
               {/* Ambient blobs */}
               <div
-                className="absolute pointer-events-none rounded-none"
-                style={{ width: 520, height: 520, top: -120, right: -40, background: "radial-gradient(circle, rgba(249,115,22,.08), transparent 65%)" }}
+                className="absolute pointer-events-none rounded-none animate-blob"
+                style={{ width: 520, height: 520, top: -120, right: -40, background: "radial-gradient(circle, rgba(253,80,0,.12), transparent 65%)" }}
               />
               <div
-                className="absolute pointer-events-none rounded-none"
-                style={{ width: 380, height: 380, bottom: -80, left: 60, background: "radial-gradient(circle, rgba(99,102,241,.05), transparent 65%)" }}
+                className="absolute pointer-events-none rounded-none animate-blob animation-delay-2000"
+                style={{ width: 380, height: 380, bottom: -80, left: 60, background: "radial-gradient(circle, rgba(99,102,241,.08), transparent 65%)" }}
               />
               <div
-                className="absolute pointer-events-none rounded-none"
-                style={{ width: 260, height: 260, top: "30%", left: "40%", background: "radial-gradient(circle, rgba(255,184,108,.06), transparent 65%)" }}
+                className="absolute pointer-events-none rounded-none animate-blob animation-delay-4000"
+                style={{ width: 260, height: 260, top: "30%", left: "40%", background: "radial-gradient(circle, rgba(253,80,0,.1), transparent 65%)" }}
               />
 
 
@@ -316,10 +316,10 @@ export function HomepageHero({
                   initial={{ opacity: 0, x: -16 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.45 }}
-                  className="inline-flex items-center gap-[7px] w-fit px-[14px] py-[6px] rounded-none text-[9px] font-bold uppercase tracking-[.1em] text-orange-700 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/20 border border-orange-100 dark:border-orange-900/30"
+                  className="inline-flex items-center gap-2 w-fit px-4 py-[7px] rounded-full text-[10px] font-semibold tracking-wide text-orange-700 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/30 border border-orange-100 dark:border-orange-900/30"
                 >
                   <span
-                    className="block rounded-none bg-[#f97316] shrink-0"
+                    className="block rounded-full bg-[#fd5000] animate-pulse"
                     style={{ width: 6, height: 6 }}
                   />
                   Global Creator &amp; Sourcing Network
@@ -331,12 +331,12 @@ export function HomepageHero({
                   transition={{ delay: 0.1, duration: 0.48 }}
                   className="flex flex-col gap-3"
                 >
-                  <h1 className="text-[40px] font-bold leading-[1.02] tracking-[-0.03em] text-[#1c1811] dark:text-[#f5f0e8]">
+                  <h1 className="text-[46px] font-extrabold leading-[1.0] tracking-[-0.05em] text-[#11181c] dark:text-[#ededed]">
                     Where products &amp; creators
                     <br />
                     <span
                       className="text-transparent bg-clip-text"
-                      style={{ backgroundImage: "linear-gradient(135deg, #FFB86C 0%, #f97316 50%, #dc2626 100%)" }}
+                      style={{ backgroundImage: "linear-gradient(135deg, #fd5000 0%, #ff7a30 60%, #ff3d00 100%)" }}
                     >
                       drive global growth.
                     </span>
@@ -353,9 +353,9 @@ export function HomepageHero({
                   className="flex items-center gap-3"
                 >
                   <StartEarnDialog
-                    className="h-11 px-8 rounded-none border-none text-white text-[13px] font-bold uppercase tracking-[.06em] flex items-center gap-2 bg-orange-500 shadow-none hover:bg-orange-600 transition-colors"
+                    className="h-12 px-8 rounded-full border-none text-white text-[13px] font-semibold tracking-tight flex items-center gap-2 bg-[#fd5000] shadow-[0_4px_14px_rgba(253,80,0,0.35)] hover:bg-[#e04700] transition-all active:scale-95"
                   >
-                    Start Earning Now →
+                    Start Earning →
                   </StartEarnDialog>
 
                   <button

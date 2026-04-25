@@ -161,10 +161,10 @@ export function ProductCardClient({
       <div
         className={cn(
           "group relative flex flex-col h-full overflow-hidden",
-          "rounded-none border bg-surface transition-all duration-300",
+          "rounded-2xl border bg-white dark:bg-[#111] transition-all duration-300",
           inCart
-            ? "border-orange-500/30 shadow-none"
-            : "border-border shadow-none hover:border-orange-500/20"
+            ? "border-[#fd5000]/30 shadow-[0_0_0_2px_rgba(253,80,0,0.1),0_8px_32px_rgba(253,80,0,0.08)]"
+            : "border-stone-200 dark:border-white/8 shadow-[0_2px_12px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_32px_rgba(0,0,0,0.1)] hover:-translate-y-1"
         )}
       >
         {/* —â‚¬—â‚¬ Image area —â‚¬—â‚¬ */}
@@ -172,8 +172,8 @@ export function ProductCardClient({
           href={`${detailBasePath}/${p.slug}`}
           className={cn(
             "relative block w-full overflow-hidden flex-shrink-0",
-            "rounded-none bg-surface-secondary/50",
-            compact ? "aspect-[1.1/1]" : "aspect-square",
+            "rounded-t-2xl bg-stone-50 dark:bg-stone-900/50",
+            compact ? "aspect-[4/3]" : "aspect-[1.15/1] sm:aspect-square",
           )}
         >
           {imgSrc && !imageError ? (
@@ -214,8 +214,8 @@ export function ProductCardClient({
           {discount > 0 && !imgSrc && (
             <div className="absolute top-1/3 left-0 right-0 flex items-center justify-center z-20">
               <span
-                className="px-4 py-1 rounded-none text-[11px] font-black text-white uppercase tracking-widest"
-                style={{ background: "linear-gradient(90deg, #f97316, #ea580c)" }}
+                className="px-4 py-1 rounded-none text-[10px] font-black text-white uppercase tracking-[.2em]"
+                style={{ background: "linear-gradient(90deg, #fd5000, #e04700)" }}
               >
                 SALE
               </span>
@@ -257,8 +257,8 @@ export function ProductCardClient({
                 "active:scale-95 transition-all disabled:opacity-60 shadow-none group/cartbtn",
                 compact ? "h-7 text-[9px]" : "h-8 text-[10px]",
                 inCart
-                  ? "bg-emerald-500 hover:bg-red-500"
-                  : "bg-gradient-to-br from-[#f97316] to-[#ea580c]"
+                  ? "bg-emerald-600 hover:bg-red-600"
+                  : "bg-gradient-to-br from-[#fd5000] to-[#e04700]"
               )}
             >
               {loading ? (
@@ -281,13 +281,13 @@ export function ProductCardClient({
           </div>
         </Link>
 
-        {/* —â‚¬—â‚¬ Info area —â‚¬—â‚¬ */}
-        <div className="flex flex-col flex-1 px-3 pt-2.5 pb-3 gap-1">
+        {/* — â‚¬— â‚¬ Info area — â‚¬— â‚¬ */}
+        <div className="flex flex-col flex-1 px-3 pt-2.5 pb-3 gap-0.5">
           {/* Product name */}
           <Link href={`${detailBasePath}/${p.slug}`} className="min-w-0">
             <h3 className={cn(
-              "font-semibold text-stone-800 dark:text-white leading-[1.3] group-hover:text-orange-600 transition-colors duration-200",
-              compact ? "text-[11px] line-clamp-1" : "text-[12px] sm:text-[12.5px] line-clamp-2"
+              "font-semibold text-[#11181c] dark:text-[#ededed] leading-[1.3] group-hover:text-[#fd5000] transition-colors duration-200",
+              compact ? "text-[11px] line-clamp-1" : "text-[13px] line-clamp-2"
             )}>
               {p.name}
             </h3>
@@ -308,8 +308,8 @@ export function ProductCardClient({
 
           {/* Rating area removed */}
           {p.affiliate_enabled && commissionRate && (
-            <div className="flex items-center">
-              <span className="inline-flex items-center gap-0.5 rounded-none bg-orange-100/50 dark:bg-orange-500/10 border border-orange-200/50 dark:border-orange-500/20 text-orange-600 dark:text-orange-500 px-1.5 py-0.5 text-[9px] font-bold">
+            <div className="flex items-center mt-1">
+              <span className="inline-flex items-center gap-0.5 rounded-full bg-orange-50 dark:bg-orange-500/10 border border-orange-100 dark:border-orange-500/20 text-[#fd5000] px-2 py-0.5 text-[9px] font-bold tracking-wide">
                 <TrendingUp className="h-2.5 w-2.5" />{commissionRate}%
               </span>
             </div>
@@ -321,11 +321,11 @@ export function ProductCardClient({
             onClick={handleCartToggle}
             disabled={loading}
             className={cn(
-              "sm:hidden mt-1 w-full h-8 rounded-none text-[11px] font-bold text-white transition-all active:scale-[0.97]",
+              "sm:hidden mt-2 w-full h-8 rounded-full text-[11px] font-bold text-white transition-all active:scale-[0.97]",
               inCart
-                ? "bg-emerald-500"
-                : "bg-gradient-to-br from-[#f97316] to-[#ea580c]",
-              "shadow-none"
+                ? "bg-emerald-600 hover:bg-red-600"
+                : "bg-gradient-to-br from-[#fd5000] to-[#e04700] shadow-[0_2px_8px_rgba(253,80,0,0.25)]",
+              ""
             )}
           >
             {loading ? (
