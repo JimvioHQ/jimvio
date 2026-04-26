@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 export const dynamic = "force-dynamic";
 
 import React, { useEffect, useState } from "react";
@@ -155,77 +155,77 @@ export default function RolesPage() {
 
   return (
     <div className="min-h-screen animate-in fade-in duration-500 pb-20 relative overflow-hidden bg-background">
-      <div className="max-w-4xl mx-auto space-y-8 px-6 pt-10 relative z-10">
+      <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8 px-4 sm:px-6 pt-6 sm:pt-10 relative z-10">
         
         {/* Header - Simpler */}
-         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-            <div className="flex items-center gap-4">
-               <Button asChild variant="ghost" size="icon" className="shrink-0 h-10 w-10 rounded-none bg-surface dark:bg-surface-secondary border border-border shadow-none hover:bg-surface dark:hover:bg-zinc-700 active:scale-95 transition-all text-stone-500 dark:text-text-muted">
-                 <Link href="/dashboard"><ArrowLeft className="h-5 w-5" /></Link>
+         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-6">
+            <div className="flex items-center gap-3 sm:gap-4">
+               <Button asChild variant="ghost" size="icon" className="shrink-0 h-9 w-9 sm:h-10 sm:w-10 rounded-xl bg-surface dark:bg-surface-secondary border border-border shadow-sm hover:bg-surface dark:hover:bg-zinc-700 active:scale-95 transition-all text-stone-500 dark:text-text-muted">
+                 <Link href="/dashboard"><ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5" /></Link>
                </Button>
-               <div className="space-y-1">
-                  <h1 className="text-2xl font-bold text-stone-900 dark:text-white tracking-tight">Account Roles</h1>
-                  <p className="text-[11px] font-bold text-stone-400 dark:text-text-muted uppercase tracking-widest leading-none pl-0.5">Activate paths to earn and grow</p>
+               <div className="space-y-0.5 sm:space-y-1">
+                  <h1 className="text-xl sm:text-2xl font-bold text-stone-900 dark:text-white tracking-tight">Account Roles</h1>
+                  <p className="text-[9px] sm:text-[11px] font-bold text-stone-400 dark:text-text-muted uppercase tracking-widest leading-none pl-0.5">Activate paths to earn and grow</p>
                </div>
             </div>
             
-            <div className="flex items-center gap-2 px-4 py-2 rounded-none bg-surface dark:bg-surface-secondary border border-border shadow-none">
-               <span className="text-[10px] font-bold uppercase tracking-widest text-stone-400 dark:text-text-muted">{activeRoles.length} Active</span>
+            <div className="flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-surface dark:bg-surface-secondary border border-border shadow-sm self-start sm:self-auto">
+               <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-stone-400 dark:text-text-muted">{activeRoles.length} Active</span>
             </div>
          </div>
 
         {/* Roles Grid - Softer Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
           {allRoles.map((r) => {
             const isActive  = activeRoles.includes(r.id);
             const isLoading = roleLocalStatus[r.id] === "loading";
 
             return (
               <GlassCard key={r.id} className={cn(
-                 "p-8 rounded-none border-border transition-all duration-300 relative overflow-hidden flex flex-col h-full",
-                 isActive ? "bg-surface dark:bg-surface-secondary shadow-none ring-1 ring-emerald-500/20" : "bg-surface/60 dark:bg-surface-secondary/40 hover:bg-surface/80 dark:hover:bg-zinc-800 shadow-none"
+                 "p-5 sm:p-7 rounded-2xl border-border transition-all duration-300 relative overflow-hidden flex flex-col h-full",
+                 isActive ? "bg-surface dark:bg-surface-secondary shadow-sm ring-1 ring-emerald-500/20" : "bg-surface/60 dark:bg-surface-secondary/40 hover:bg-surface/80 dark:hover:bg-zinc-800 shadow-sm"
               )}>
-                  <div className="flex items-center justify-between mb-8">
+                  <div className="flex items-center justify-between mb-4 sm:mb-6">
                      <div className={cn(
-                        "w-12 h-12 rounded-none flex items-center justify-center shrink-0 border border-border bg-white dark:bg-surface shadow-none",
+                        "w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center shrink-0 border border-border bg-white dark:bg-surface shadow-sm",
                         isActive ? "bg-stone-900 dark:bg-white dark:bg-surface text-white dark:text-stone-900 dark:text-white" : cn(r.bg, r.color)
                      )}>
                         {r.icon}
                      </div>
                     {isActive ? (
-                       <GlassPill color="emerald" className="px-3 py-1 text-[8px] font-bold border-none shadow-none uppercase tracking-widest bg-emerald-50 text-emerald-600">Active</GlassPill>
+                       <GlassPill color="emerald" className="px-2.5 sm:px-3 py-1 text-[7px] sm:text-[8px] font-bold border-none shadow-sm uppercase tracking-widest bg-emerald-50 text-emerald-600 rounded-full">Active</GlassPill>
                     ) : (
-                       <GlassPill color="orange" className="px-3 py-1 text-[8px] font-bold border-none shadow-none uppercase tracking-widest bg-orange-50 text-orange-600">{r.badge}</GlassPill>
+                       <GlassPill color="orange" className="px-2.5 sm:px-3 py-1 text-[7px] sm:text-[8px] font-bold border-none shadow-sm uppercase tracking-widest bg-orange-50 text-orange-600 rounded-full">{r.badge}</GlassPill>
                     )}
                  </div>
 
-                  <div className="space-y-2 mb-6">
-                     <h3 className="text-lg font-bold text-stone-900 dark:text-white tracking-tight">{r.label}</h3>
-                     <p className="text-[13px] font-medium text-stone-500 dark:text-text-muted leading-relaxed">
+                  <div className="space-y-1.5 sm:space-y-2 mb-4 sm:mb-6">
+                     <h3 className="text-base sm:text-lg font-bold text-stone-900 dark:text-white tracking-tight">{r.label}</h3>
+                     <p className="text-[11px] sm:text-[13px] font-medium text-stone-500 dark:text-text-muted leading-relaxed">
                         {r.description}
                      </p>
                   </div>
 
-                  <div className="space-y-2.5 mb-10 flex-1">
+                   <div className="space-y-2 mb-5 sm:mb-8 flex-1">
                      {r.features.map((f, i) => (
-                        <div key={i} className="flex items-center gap-3 text-[11px] font-bold text-stone-400 dark:text-text-muted">
-                           <CheckCircle className="h-3.5 w-3.5 text-stone-200 dark:text-zinc-800 dark:text-text-secondary" />
+                        <div key={i} className="flex items-center gap-2 sm:gap-3 text-[10px] sm:text-[11px] font-bold text-stone-400 dark:text-text-muted">
+                           <CheckCircle className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-stone-200 dark:text-zinc-800 dark:text-text-secondary" />
                            {f}
                         </div>
                      ))}
                   </div>
 
                   {isActive ? (
-                     <Button variant="outline" asChild className="w-full h-11 rounded-none border-border text-stone-900 dark:text-white font-bold text-[10px] uppercase tracking-widest active:scale-95 transition-all">
+                     <Button variant="outline" asChild className="w-full h-10 sm:h-11 rounded-xl border-border text-stone-900 dark:text-white font-bold text-[9px] sm:text-[10px] uppercase tracking-widest active:scale-95 transition-all">
                         <Link href="/dashboard">View Dashboard <ArrowRight className="h-3 w-3 ml-2" /></Link>
                      </Button>
                   ) : (
                      <Button
                         onClick={() => activateRole(r.id, r.setupPath)}
                         disabled={isLoading}
-                        className="w-full h-11 rounded-none bg-stone-900 dark:bg-white dark:bg-surface text-white dark:text-stone-900 dark:text-white hover:bg-black dark:hover:bg-stone-200 font-bold text-[10px] uppercase tracking-widest shadow-none active:scale-95 transition-all border-none"
+                        className="w-full h-10 sm:h-11 rounded-xl bg-stone-900 dark:bg-white dark:bg-surface text-white dark:text-stone-900 dark:text-white hover:bg-black dark:hover:bg-stone-200 font-bold text-[9px] sm:text-[10px] uppercase tracking-widest shadow-[0_4px_14px_rgba(0,0,0,0.1)] active:scale-95 transition-all border-none"
                      >
-                        {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Rocket className="h-3.5 w-3.5 mr-2" />}
+                        {isLoading ? <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin mr-2" /> : <Rocket className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-2" />}
                         Activate Role
                      </Button>
                   )}
@@ -235,11 +235,11 @@ export default function RolesPage() {
         </div>
         
         {/* Support Section - Soft */}
-        <div className="p-8 text-center rounded-none bg-stone-900 dark:bg-surface-secondary text-white relative overflow-hidden shadow-none border border-white/10">
-           <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/10 blur-3xl rounded-none" />
-           <p className="text-[11px] font-bold uppercase tracking-widest text-stone-400 dark:text-text-muted mb-2">Need help?</p>
-           <h3 className="text-xl font-bold tracking-tight mb-6">Explore our guides and tutorials</h3>
-           <Button asChild className="h-11 px-8 rounded-none bg-white dark:bg-surface text-stone-900 dark:text-white font-bold text-[10px] uppercase tracking-widest shadow-none hover:bg-stone-50 dark:bg-surface/50 active:scale-95 transition-all border-none">
+        <div className="p-6 sm:p-8 text-center rounded-2xl bg-stone-900 dark:bg-surface-secondary text-white relative overflow-hidden shadow-[0_8px_30px_rgba(0,0,0,0.12)] border border-white/10">
+           <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/10 blur-3xl rounded-full" />
+           <p className="text-[9px] sm:text-[11px] font-bold uppercase tracking-widest text-stone-400 dark:text-text-muted mb-2">Need help?</p>
+           <h3 className="text-lg sm:text-xl font-bold tracking-tight mb-5 sm:mb-6">Explore our guides and tutorials</h3>
+           <Button asChild className="h-10 sm:h-11 px-6 sm:px-8 rounded-xl bg-white dark:bg-surface text-stone-900 dark:text-white font-bold text-[9px] sm:text-[10px] uppercase tracking-widest shadow-sm hover:bg-stone-50 dark:bg-surface/50 active:scale-95 transition-all border-none">
               <Link href="/help">View Documentation</Link>
            </Button>
         </div>

@@ -52,13 +52,13 @@ export default function AffiliateAnalyticsPage() {
   if (!affiliate) {
     return (
       <div className="min-h-screen flex items-center justify-center px-6" style={{ background: "var(--color-bg)" }}>
-        <GlassCard className="max-w-md w-full p-8 text-center rounded-none border-white shadow-none bg-white dark:bg-surface/60">
-          <div className="w-16 h-16 bg-white dark:bg-surface rounded-none flex items-center justify-center mx-auto mb-6 border border-stone-100 dark:border-border shadow-none">
+        <GlassCard className="max-w-md w-full p-6 sm:p-8 text-center rounded-2xl border-[var(--color-border)] shadow-sm bg-[var(--color-surface)]">
+          <div className="w-14 h-14 sm:w-16 sm:h-16 bg-[var(--color-surface-secondary)] rounded-2xl flex items-center justify-center mx-auto mb-5 sm:mb-6 border border-[var(--color-border)] shadow-sm">
              <ShieldCheck className="h-7 w-7 text-stone-300" />
           </div>
           <h2 className="text-2xl font-bold text-stone-900 dark:text-white mb-3 tracking-tight">Access Denied</h2>
           <p className="text-stone-500 text-sm mb-8 leading-relaxed font-medium">Please activate your affiliate account to view detailed analytics.</p>
-          <Button asChild className="w-full h-12 rounded-none bg-stone-900 text-white font-bold hover:bg-black active:scale-95 transition-all text-sm shadow-none">
+          <Button asChild className="w-full h-11 sm:h-12 rounded-xl bg-stone-900 dark:bg-white text-white dark:text-stone-900 font-bold hover:bg-black dark:hover:bg-stone-200 active:scale-95 transition-all text-sm shadow-sm border-none">
              <Link href="/dashboard/roles">Activate Now</Link>
           </Button>
         </GlassCard>
@@ -88,76 +88,76 @@ export default function AffiliateAnalyticsPage() {
         background: "radial-gradient(ellipse 80% 60% at 80% 0%, rgba(251,146,60,0.04) 0%, transparent 50%), radial-gradient(ellipse 60% 50% at 0% 100%, rgba(186,230,253,0.04) 0%, transparent 55%), var(--color-bg)",
       }}
     >
-      <div className="max-w-4xl mx-auto space-y-8 px-6 pt-10 relative z-10">
+      <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8 px-4 sm:px-6 pt-6 sm:pt-10 relative z-10">
         
         {/* Header - Simpler */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-           <div className="flex items-center gap-4">
-              <Button asChild variant="ghost" size="icon" className="shrink-0 h-10 w-10 rounded-none bg-white dark:bg-surface border border-stone-100 dark:border-border shadow-none hover:bg-white dark:bg-surface active:scale-95 transition-all text-stone-500">
-                <Link href="/dashboard/links"><ArrowLeft className="h-5 w-5" /></Link>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-6">
+           <div className="flex items-center gap-3 sm:gap-4">
+              <Button asChild variant="ghost" size="icon" className="shrink-0 h-9 w-9 sm:h-10 sm:w-10 rounded-xl bg-white dark:bg-surface border border-stone-100 dark:border-border shadow-sm hover:bg-white dark:bg-surface active:scale-95 transition-all text-stone-500">
+                <Link href="/dashboard/links"><ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5" /></Link>
               </Button>
-              <div className="space-y-1">
-                 <h1 className="text-2xl font-bold text-stone-900 dark:text-white tracking-tight">Affiliate Analytics</h1>
-                 <p className="text-[11px] font-bold text-stone-400 capitalize pl-0.5">Performance Overview</p>
+              <div className="space-y-0.5 sm:space-y-1">
+                 <h1 className="text-xl sm:text-2xl font-bold text-stone-900 dark:text-white tracking-tight">Affiliate Analytics</h1>
+                 <p className="text-[9px] sm:text-[11px] font-bold text-stone-400 capitalize pl-0.5">Performance Overview</p>
               </div>
            </div>
            
-           <div className="flex items-center gap-3 bg-white dark:bg-surface p-3 rounded-none border border-stone-100 dark:border-border shadow-none">
-              <div className="w-2 h-2 rounded-none bg-emerald-500 animate-pulse ml-2" />
-              <span className="text-[10px] font-bold uppercase tracking-widest text-stone-500 pr-4">Active Monitoring</span>
+           <div className="flex items-center gap-2 sm:gap-3 bg-white dark:bg-surface p-2 sm:p-3 rounded-xl border border-stone-100 dark:border-border shadow-sm">
+              <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-500 animate-pulse ml-1.5 sm:ml-2" />
+              <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-stone-500 pr-3 sm:pr-4">Active Monitoring</span>
            </div>
         </div>
 
         {/* Stats Grid - Smaller */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-           <GlassCard className="p-5 flex flex-col justify-between rounded-none bg-white dark:bg-surface/60 border-white shadow-none transition-all hover:bg-white dark:bg-surface/80">
-              <div className="w-10 h-10 rounded-none bg-sky-50 flex items-center justify-center mb-4">
-                 <MousePointer className="h-5 w-5 text-sky-500" />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+           <GlassCard className="p-4 sm:p-5 flex flex-col justify-between rounded-2xl bg-white dark:bg-surface/60 border-white shadow-sm transition-all hover:bg-white dark:bg-surface/80">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-sky-50 flex items-center justify-center mb-3 sm:mb-4">
+                 <MousePointer className="h-4 w-4 sm:h-5 sm:w-5 text-sky-500" />
               </div>
               <div>
-                 <p className="text-2xl font-black text-stone-900 dark:text-white tracking-tight tabular-nums">{totalClicks.toLocaleString()}</p>
-                 <p className="text-[9px] font-bold capitalize text-stone-400 mt-1">Total Clicks</p>
+                 <p className="text-xl sm:text-2xl font-black text-stone-900 dark:text-white tracking-tight tabular-nums">{totalClicks.toLocaleString()}</p>
+                 <p className="text-[8px] sm:text-[9px] font-bold capitalize text-stone-400 mt-1">Total Clicks</p>
               </div>
            </GlassCard>
-           <GlassCard className="p-5 flex flex-col justify-between rounded-none bg-white dark:bg-surface/60 border-white shadow-none transition-all hover:bg-white dark:bg-surface/80">
-              <div className="w-10 h-10 rounded-none bg-emerald-50 flex items-center justify-center mb-4">
-                 <ShoppingCart className="h-5 w-5 text-emerald-500" />
+           <GlassCard className="p-4 sm:p-5 flex flex-col justify-between rounded-2xl bg-white dark:bg-surface/60 border-white shadow-sm transition-all hover:bg-white dark:bg-surface/80">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-emerald-50 flex items-center justify-center mb-3 sm:mb-4">
+                 <ShoppingCart className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-500" />
               </div>
               <div>
-                 <p className="text-2xl font-black text-stone-900 dark:text-white tracking-tight tabular-nums">{totalConversions.toLocaleString()}</p>
-                 <p className="text-[9px] font-bold capitalize text-stone-400 mt-1">Sales Made</p>
+                 <p className="text-xl sm:text-2xl font-black text-stone-900 dark:text-white tracking-tight tabular-nums">{totalConversions.toLocaleString()}</p>
+                 <p className="text-[8px] sm:text-[9px] font-bold capitalize text-stone-400 mt-1">Sales Made</p>
               </div>
            </GlassCard>
-           <GlassCard className="p-5 flex flex-col justify-between rounded-none bg-white dark:bg-surface/60 border-white shadow-none transition-all hover:bg-white dark:bg-surface/80">
-              <div className="w-10 h-10 rounded-none bg-orange-50 flex items-center justify-center mb-4">
-                 <DollarSign className="h-5 w-5 text-orange-500" />
+           <GlassCard className="p-4 sm:p-5 flex flex-col justify-between rounded-2xl bg-white dark:bg-surface/60 border-white shadow-sm transition-all hover:bg-white dark:bg-surface/80">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-orange-50 flex items-center justify-center mb-3 sm:mb-4">
+                 <DollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-orange-500" />
               </div>
               <div>
-                 <p className="text-2xl font-black text-emerald-600 tracking-tight tabular-nums">{formatMoney(totalEarnings, "USD")}</p>
-                 <p className="text-[9px] font-bold capitalize text-stone-400 mt-1">Total Earnings</p>
+                 <p className="text-xl sm:text-2xl font-black text-emerald-600 tracking-tight tabular-nums">{formatMoney(totalEarnings, "USD")}</p>
+                 <p className="text-[8px] sm:text-[9px] font-bold capitalize text-stone-400 mt-1">Total Earnings</p>
               </div>
            </GlassCard>
-           <GlassCard className="p-5 flex flex-col justify-between rounded-none bg-white dark:bg-surface/60 border-white shadow-none transition-all hover:bg-white dark:bg-surface/80">
-              <div className="w-10 h-10 rounded-none bg-purple-50 flex items-center justify-center mb-4">
-                 <TrendingUp className="h-5 w-5 text-purple-500" />
+           <GlassCard className="p-4 sm:p-5 flex flex-col justify-between rounded-2xl bg-white dark:bg-surface/60 border-white shadow-sm transition-all hover:bg-white dark:bg-surface/80">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-purple-50 flex items-center justify-center mb-3 sm:mb-4">
+                 <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-purple-500" />
               </div>
               <div>
-                 <p className="text-2xl font-black text-stone-900 dark:text-white tracking-tight tabular-nums">{links.length}</p>
-                 <p className="text-[9px] font-bold capitalize text-stone-400 mt-1">Active Links</p>
+                 <p className="text-xl sm:text-2xl font-black text-stone-900 dark:text-white tracking-tight tabular-nums">{links.length}</p>
+                 <p className="text-[8px] sm:text-[9px] font-bold capitalize text-stone-400 mt-1">Active Links</p>
               </div>
            </GlassCard>
         </div>
 
         {/* Charts - Soft size */}
-        <GlassCard className="rounded-none border-white bg-white dark:bg-surface/60 shadow-none overflow-hidden">
-           <div className="p-8 border-b border-stone-50 flex items-center justify-between">
+        <GlassCard className="rounded-2xl border-white dark:border-border bg-white dark:bg-surface/60 shadow-sm overflow-hidden">
+           <div className="p-5 sm:p-8 border-b border-stone-50 dark:border-border flex items-center justify-between">
               <div>
-                 <h3 className="text-lg font-bold text-stone-900 dark:text-white tracking-tight">Performance Summary</h3>
-                 <p className="text-[10px] font-bold capitalize text-stone-400 mt-1">Clicks vs Sales by product</p>
+                 <h3 className="text-base sm:text-lg font-bold text-stone-900 dark:text-white tracking-tight">Performance Summary</h3>
+                 <p className="text-[9px] sm:text-[10px] font-bold capitalize text-stone-400 mt-1">Clicks vs Sales by product</p>
               </div>
-              <BarChart3 className="h-6 w-6 text-stone-300" />
+              <BarChart3 className="h-5 w-5 sm:h-6 sm:w-6 text-stone-300" />
            </div>
-           <div className="p-8 h-[300px]">
+           <div className="p-4 sm:p-8 h-[250px] sm:h-[300px]">
               {chartData.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-center py-10">
                   <BarChart3 className="h-10 w-10 text-stone-100 mb-4" />
@@ -182,30 +182,30 @@ export default function AffiliateAnalyticsPage() {
         </GlassCard>
 
         {/* Product Registry - Smaller padding */}
-        <GlassCard className="rounded-none border-white bg-white dark:bg-surface/60 shadow-none overflow-hidden">
-           <div className="p-8 border-b border-stone-50 flex items-center justify-between">
+        <GlassCard className="rounded-2xl border-white dark:border-border bg-white dark:bg-surface/60 shadow-sm overflow-hidden mt-4">
+           <div className="p-5 sm:p-8 border-b border-stone-50 dark:border-border flex items-center justify-between">
               <div>
-                 <h3 className="text-lg font-bold text-stone-900 dark:text-white tracking-tight">Top Products</h3>
-                 <p className="text-[10px] font-bold capitalize text-stone-400 mt-1">Sorted by revenue generated</p>
+                 <h3 className="text-base sm:text-lg font-bold text-stone-900 dark:text-white tracking-tight">Top Products</h3>
+                 <p className="text-[9px] sm:text-[10px] font-bold capitalize text-stone-400 mt-1">Sorted by revenue generated</p>
               </div>
-              <Activity className="h-6 w-6 text-stone-300" />
+              <Activity className="h-5 w-5 sm:h-6 sm:w-6 text-stone-300" />
            </div>
            
            <div className="overflow-x-auto">
-              <table className="w-full text-left">
+              <table className="w-full text-left whitespace-nowrap">
                 <thead>
-                  <tr className="bg-stone-50/40">
-                    <th className="py-5 pl-8 pr-4 text-[10px] font-bold uppercase tracking-widest text-stone-400 border-b border-stone-50">Product</th>
-                    <th className="py-5 px-4 text-right text-[10px] font-bold uppercase tracking-widest text-stone-400 border-b border-stone-50">Clicks</th>
-                    <th className="py-5 px-4 text-right text-[10px] font-bold uppercase tracking-widest text-stone-400 border-b border-stone-50">Sales</th>
-                    <th className="py-5 pl-4 pr-8 text-right text-[10px] font-bold uppercase tracking-widest text-emerald-500 border-b border-stone-50">Revenue</th>
+                  <tr className="bg-stone-50/40 dark:bg-surface/40">
+                    <th className="py-4 sm:py-5 pl-4 sm:pl-8 pr-4 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-stone-400 border-b border-stone-50 dark:border-border">Product</th>
+                    <th className="py-4 sm:py-5 px-4 text-right text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-stone-400 border-b border-stone-50 dark:border-border">Clicks</th>
+                    <th className="py-4 sm:py-5 px-4 text-right text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-stone-400 border-b border-stone-50 dark:border-border">Sales</th>
+                    <th className="py-4 sm:py-5 pl-4 pr-4 sm:pr-8 text-right text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-emerald-500 border-b border-stone-50 dark:border-border">Revenue</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-stone-50">
+                <tbody className="divide-y divide-stone-50 dark:divide-border/60">
                   {topByEarnings.length === 0 ? (
                     <tr>
-                       <td colSpan={4} className="py-20 text-center">
-                          <p className="text-[11px] font-bold text-stone-300 uppercase tracking-widest">Awaiting First Sale...</p>
+                       <td colSpan={4} className="py-16 sm:py-20 text-center">
+                          <p className="text-[10px] sm:text-[11px] font-bold text-stone-300 uppercase tracking-widest">Awaiting First Sale...</p>
                        </td>
                     </tr>
                   ) : (
@@ -213,35 +213,35 @@ export default function AffiliateAnalyticsPage() {
                       const product = l.products as { name?: string; slug?: string; images?: string[] } | null;
                       const imgSrc = product && Array.isArray(product.images) && product.images[0] ? product.images[0] : null;
                       return (
-                        <tr key={l.id} className="hover:bg-white dark:bg-surface transition-all duration-300">
-                           <td className="py-6 pl-8 pr-4">
-                             <div className="flex items-center gap-4">
-                               <div className="w-12 h-12 shrink-0 rounded-none bg-white dark:bg-surface border border-stone-50 shadow-none overflow-hidden flex items-center justify-center p-1">
+                        <tr key={l.id} className="hover:bg-stone-50/50 dark:hover:bg-surface transition-all duration-300">
+                           <td className="py-4 sm:py-6 pl-4 sm:pl-8 pr-4">
+                             <div className="flex items-center gap-3 sm:gap-4">
+                               <div className="w-10 h-10 sm:w-12 sm:h-12 shrink-0 rounded-lg bg-white dark:bg-surface-secondary border border-stone-50 dark:border-border shadow-sm overflow-hidden flex items-center justify-center p-0.5 sm:p-1">
                                  {imgSrc ? (
-                                   <img src={imgSrc} alt="" className="w-full h-full object-cover rounded-none" />
+                                   <img src={imgSrc} alt="" className="w-full h-full object-cover rounded-md" />
                                  ) : (
-                                   <Package className="h-5 w-5 text-stone-200" />
+                                   <Package className="h-4 w-4 sm:h-5 sm:w-5 text-stone-300" />
                                  )}
                                </div>
                                <div className="min-w-0">
                                   {product?.slug ? (
-                                    <Link href={`/marketplace/${product.slug}`} className="font-bold text-sm text-stone-900 dark:text-white hover:text-orange-600 transition-colors truncate block tracking-tight">
+                                    <Link href={`/marketplace/${product.slug}`} className="font-bold text-[13px] sm:text-sm text-stone-900 dark:text-white hover:text-orange-600 transition-colors truncate block tracking-tight max-w-[150px] sm:max-w-xs">
                                       {product?.name ?? "Default Link"}
                                     </Link>
                                   ) : (
-                                    <span className="font-bold text-sm text-stone-900 dark:text-white tracking-tight">Manual Link</span>
+                                    <span className="font-bold text-[13px] sm:text-sm text-stone-900 dark:text-white tracking-tight max-w-[150px] sm:max-w-xs truncate block">Manual Link</span>
                                   )}
                                </div>
                              </div>
                            </td>
-                           <td className="py-6 px-4 text-right">
-                             <p className="text-base font-bold text-stone-900 dark:text-white tabular-nums">{l.total_clicks ?? 0}</p>
+                           <td className="py-4 sm:py-6 px-4 text-right">
+                             <p className="text-[14px] sm:text-base font-bold text-stone-900 dark:text-white tabular-nums">{l.total_clicks ?? 0}</p>
                            </td>
-                           <td className="py-6 px-4 text-right">
-                             <p className="text-base font-bold text-stone-900 dark:text-white tabular-nums">{l.total_conversions ?? 0}</p>
+                           <td className="py-4 sm:py-6 px-4 text-right">
+                             <p className="text-[14px] sm:text-base font-bold text-stone-900 dark:text-white tabular-nums">{l.total_conversions ?? 0}</p>
                            </td>
-                           <td className="py-6 pl-4 pr-8 text-right">
-                             <p className="text-base font-bold text-emerald-600 tabular-nums">{formatMoney(Number(l.total_earnings ?? 0), "USD")}</p>
+                           <td className="py-4 sm:py-6 pl-4 pr-4 sm:pr-8 text-right">
+                             <p className="text-[14px] sm:text-base font-bold text-emerald-600 tabular-nums">{formatMoney(Number(l.total_earnings ?? 0), "USD")}</p>
                            </td>
                         </tr>
                       );

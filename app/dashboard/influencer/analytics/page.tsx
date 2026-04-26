@@ -145,9 +145,9 @@ export default function CreatorAnalyticsPage() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center space-y-12 animate-in fade-in duration-700" style={{ background: "var(--color-bg)" }}>
         <div className="relative">
-          <div className="absolute inset-0 bg-orange-400/20 blur-3xl rounded-none scale-150 animate-pulse" />
-          <div className="relative w-24 h-24 rounded-none bg-white dark:bg-surface border border-white shadow-none flex items-center justify-center overflow-hidden">
-            <div className="absolute inset-0 border-2 border-t-orange-500 border-r-transparent border-b-transparent border-l-transparent rounded-none animate-spin m-2" />
+          <div className="absolute inset-0 bg-orange-400/20 blur-3xl rounded-full scale-150 animate-pulse" />
+          <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-sm flex items-center justify-center overflow-hidden">
+            <div className="absolute inset-0 border-2 border-t-orange-500 border-r-transparent border-b-transparent border-l-transparent rounded-2xl animate-spin m-2" />
             <Video className="h-10 w-10 text-stone-900 dark:text-white" />
           </div>
         </div>
@@ -176,13 +176,13 @@ export default function CreatorAnalyticsPage() {
       <GlassAmbientGlow color="orange" position="top-right" />
       <GlassAmbientGlow color="orange" position="bottom-left" />
 
-      <div className="max-w-[1440px] mx-auto space-y-8 px-6 pt-8 relative z-10">
+      <div className="max-w-[1440px] mx-auto space-y-6 sm:space-y-8 px-4 sm:px-6 pt-5 sm:pt-8 relative z-10">
         
         {/* Header Protocol */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
            <div className="space-y-1">
               <h1 className="text-2xl font-bold text-stone-900 dark:text-white tracking-tight flex items-center gap-3">
-                 <div className="p-2 rounded-none bg-white dark:bg-surface border border-border shadow-none shrink-0">
+                 <div className="p-2 rounded-xl bg-white dark:bg-surface border border-border shadow-sm shrink-0">
                     <Video className="h-6 w-6 text-orange-500" />
                  </div>
                  Influencer Analytics
@@ -193,21 +193,21 @@ export default function CreatorAnalyticsPage() {
            </div>
            
            <div className="flex flex-col sm:flex-row items-center gap-4">
-              <div className="flex items-center gap-1 bg-white dark:bg-surface/40 p-1 rounded-none border border-border shadow-none backdrop-blur-xl">
+              <div className="flex items-center gap-1 bg-white dark:bg-surface/40 p-1 rounded-xl border border-border shadow-sm backdrop-blur-xl">
                  {DAY_OPTIONS.map((d) => (
                     <button
                       key={d}
                       onClick={() => setDays(d)}
                       className={cn(
-                         "px-4 py-2 rounded-none text-[10px] font-bold uppercase tracking-widest transition-all",
-                         days === d ? "bg-stone-900 text-white shadow-none" : "text-stone-400 hover:text-stone-900 dark:text-white"
+                         "px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all",
+                         days === d ? "bg-stone-900 text-white shadow-sm" : "text-stone-400 hover:text-stone-900 dark:text-white"
                       )}
                     >
                        {d}D
                     </button>
                  ))}
               </div>
-              <Button asChild className="h-10 px-6 rounded-none bg-orange-500 text-white shadow-none font-bold text-[10px] uppercase tracking-widest active:scale-95 transition-all hover:bg-orange-600 border-none">
+              <Button asChild className="h-10 px-5 sm:px-6 rounded-xl bg-orange-500 text-white shadow-sm font-bold text-[10px] uppercase tracking-widest active:scale-95 transition-all hover:bg-orange-600 border-none">
                 <Link href="/ugc">
                    Browse Missions
                 </Link>
@@ -217,40 +217,40 @@ export default function CreatorAnalyticsPage() {
 
         {/* Primary KPI Matrix */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-           <div className="p-6 flex flex-col justify-between rounded-none bg-white dark:bg-surface/40 border border-border shadow-none group">
-              <div className="w-11 h-11 rounded-none bg-sky-50 border border-sky-100 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                 <Eye className="h-6 w-6 text-sky-500" />
+           <div className="p-4 sm:p-6 flex flex-col justify-between rounded-2xl bg-white dark:bg-surface/40 border border-border shadow-sm group">
+              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-sky-50 border border-sky-100 flex items-center justify-center mb-4 sm:mb-6 group-hover:scale-110 transition-transform">
+                 <Eye className="h-5 w-5 sm:h-6 sm:w-6 text-sky-500" />
               </div>
               <div>
-                 <p className="text-3xl font-bold text-stone-900 dark:text-white tracking-tight leading-none tabular-nums">{formatNum(stats?.totalViews ?? 0)}</p>
-                 <p className="text-[10px] font-bold uppercase tracking-widest text-stone-400 mt-2">Total Views</p>
+                 <p className="text-2xl sm:text-3xl font-bold text-stone-900 dark:text-white tracking-tight leading-none tabular-nums">{formatNum(stats?.totalViews ?? 0)}</p>
+                 <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-stone-400 mt-2">Total Views</p>
               </div>
            </div>
-           <div className="p-6 flex flex-col justify-between rounded-none bg-white dark:bg-surface/40 border border-border shadow-none group">
-              <div className="w-11 h-11 rounded-none bg-rose-50 border border-rose-100 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                 <CheckCircle className="h-6 w-6 text-rose-500" />
+           <div className="p-4 sm:p-6 flex flex-col justify-between rounded-2xl bg-white dark:bg-surface/40 border border-border shadow-sm group">
+              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-rose-50 border border-rose-100 flex items-center justify-center mb-4 sm:mb-6 group-hover:scale-110 transition-transform">
+                 <CheckCircle className="h-5 w-5 sm:h-6 sm:w-6 text-rose-500" />
               </div>
               <div>
-                 <p className="text-3xl font-bold text-stone-900 dark:text-white tracking-tight leading-none tabular-nums">{formatNum(stats?.approvedSubmissions ?? 0)}</p>
-                 <p className="text-[10px] font-bold uppercase tracking-widest text-stone-400 mt-2">Approved</p>
+                 <p className="text-2xl sm:text-3xl font-bold text-stone-900 dark:text-white tracking-tight leading-none tabular-nums">{formatNum(stats?.approvedSubmissions ?? 0)}</p>
+                 <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-stone-400 mt-2">Approved</p>
               </div>
            </div>
-           <div className="p-6 flex flex-col justify-between rounded-none bg-white dark:bg-surface/40 border border-border shadow-none group">
-              <div className="w-11 h-11 rounded-none bg-emerald-50 border border-emerald-100 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                 <ShoppingBag className="h-6 w-6 text-emerald-500" />
+           <div className="p-4 sm:p-6 flex flex-col justify-between rounded-2xl bg-white dark:bg-surface/40 border border-border shadow-sm group">
+              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center mb-4 sm:mb-6 group-hover:scale-110 transition-transform">
+                 <ShoppingBag className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-500" />
               </div>
               <div>
-                 <p className="text-3xl font-bold text-stone-900 dark:text-white tracking-tight leading-none tabular-nums">{formatNum(stats?.totalConversions ?? 0)}</p>
-                 <p className="text-[10px] font-bold uppercase tracking-widest text-stone-400 mt-2">Sales</p>
+                 <p className="text-2xl sm:text-3xl font-bold text-stone-900 dark:text-white tracking-tight leading-none tabular-nums">{formatNum(stats?.totalConversions ?? 0)}</p>
+                 <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-stone-400 mt-2">Sales</p>
               </div>
            </div>
-           <div className="p-6 flex flex-col justify-between rounded-none bg-white dark:bg-surface/40 border border-border shadow-none group">
-              <div className="w-11 h-11 rounded-none bg-indigo-50 border border-indigo-100 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                 <DollarSign className="h-6 w-6 text-indigo-500" />
+           <div className="p-4 sm:p-6 flex flex-col justify-between rounded-2xl bg-white dark:bg-surface/40 border border-border shadow-sm group">
+              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center mb-4 sm:mb-6 group-hover:scale-110 transition-transform">
+                 <DollarSign className="h-5 w-5 sm:h-6 sm:w-6 text-indigo-500" />
               </div>
               <div>
-                 <p className="text-3xl font-bold text-stone-900 dark:text-white tracking-tight leading-none tabular-nums">{formatMoney(stats?.totalEarned ?? 0, "USD")}</p>
-                 <p className="text-[10px] font-bold uppercase tracking-widest text-stone-400 mt-2">Earnings</p>
+                 <p className="text-2xl sm:text-3xl font-bold text-stone-900 dark:text-white tracking-tight leading-none tabular-nums">{formatMoney(stats?.totalEarned ?? 0, "USD")}</p>
+                 <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-stone-400 mt-2">Earnings</p>
               </div>
            </div>
         </div>
@@ -265,7 +265,7 @@ export default function CreatorAnalyticsPage() {
              { label: "Pending", value: formatMoney(stats?.pendingEarnings ?? 0, "USD"), icon: Clock, color: "text-amber-400", isText: true },
              { label: "Rate", value: `${(stats?.conversionRate ?? 0).toFixed(1)}%`, icon: Activity, color: "text-emerald-400", isText: true },
            ].map((item, i) => (
-             <div key={i} className="p-4 text-center group bg-white dark:bg-surface/40 hover:bg-white dark:bg-surface transition-all border border-transparent hover:border-border shadow-none rounded-none">
+             <div key={i} className="p-3 sm:p-4 text-center group bg-white dark:bg-surface/40 hover:bg-white dark:bg-surface transition-all border border-transparent hover:border-border shadow-sm rounded-2xl">
                 <div className={cn("flex items-center justify-center mb-3 transition-transform group-hover:scale-110", item.color)}>
                   <item.icon className="h-5 w-5" />
                 </div>
@@ -279,14 +279,14 @@ export default function CreatorAnalyticsPage() {
 
          {/* Analytics Visualization */}
          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-           <div className="lg:col-span-8 rounded-none border border-border bg-white dark:bg-surface/40 shadow-none overflow-hidden group">
-              <div className="p-6 border-b border-border flex items-center justify-between">
+           <div className="lg:col-span-8 rounded-2xl border border-border bg-white dark:bg-surface/40 shadow-sm overflow-hidden group">
+              <div className="p-4 sm:p-6 border-b border-border flex items-center justify-between">
                  <div>
                     <h3 className="text-lg font-bold text-stone-900 dark:text-white">Growth Trends</h3>
                     <p className="text-[10px] uppercase tracking-widest text-stone-400">Earnings and conversions history</p>
                  </div>
               </div>
-              <div className="p-6 h-[280px] relative">
+              <div className="p-4 sm:p-6 h-[240px] sm:h-[280px] relative">
                  {chartData.length > 0 ? (
                    <ResponsiveContainer width="100%" height="100%">
                      <BarChart data={chartData} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
@@ -310,19 +310,19 @@ export default function CreatorAnalyticsPage() {
               </div>
            </div>
 
-           <div className="lg:col-span-4 rounded-none border border-border bg-white dark:bg-surface/40 shadow-none overflow-hidden flex flex-col">
-              <div className="p-6 border-b border-border">
+           <div className="lg:col-span-4 rounded-2xl border border-border bg-white dark:bg-surface/40 shadow-sm overflow-hidden flex flex-col">
+              <div className="p-4 sm:p-6 border-b border-border">
                  <h3 className="text-lg font-bold text-stone-900 dark:text-white">Actions</h3>
                  <p className="text-[10px] uppercase tracking-widest text-stone-400">Shortcuts</p>
               </div>
-              <div className="p-5 space-y-3 flex-1">
+              <div className="p-4 sm:p-5 space-y-3 flex-1">
                  {[
                    { href: "/ugc", label: "Browse Missions", icon: Zap, color: "text-orange-500", bg: "bg-orange-50", desc: "Monetize content" },
                    { href: "/dashboard/influencer/videos", label: "My Content", icon: Target, color: "text-sky-500", bg: "bg-sky-50", desc: "Track submissions" },
                    { href: "/dashboard/withdrawals", label: "Payout Request", icon: Wallet, color: "text-emerald-500", bg: "bg-emerald-50", desc: "Withdraw earnings" },
                  ].map((item, i) => (
-                   <Link key={i} href={item.href} className="flex items-center gap-4 p-4 rounded-none bg-white dark:bg-surface border border-border hover:border-orange-200 transition-all shadow-none group">
-                     <div className={cn("w-10 h-10 rounded-none flex items-center justify-center shrink-0 shadow-none", item.bg, item.color)}>
+                   <Link key={i} href={item.href} className="flex items-center gap-4 p-3 sm:p-4 rounded-xl bg-white dark:bg-surface border border-border hover:border-orange-200 transition-all shadow-sm group">
+                     <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm", item.bg, item.color)}>
                         <item.icon className="h-5 w-5" />
                      </div>
                      <div className="flex-1 min-w-0">
@@ -338,8 +338,8 @@ export default function CreatorAnalyticsPage() {
 
         {/* Top Content */}
         {topSubmissions.length > 0 && (
-          <div className="rounded-none border border-border bg-white dark:bg-surface/40 shadow-none overflow-hidden">
-             <div className="p-6 border-b border-border flex items-center justify-between">
+          <div className="rounded-2xl border border-border bg-white dark:bg-surface/40 shadow-sm overflow-hidden">
+             <div className="p-4 sm:p-6 border-b border-border flex items-center justify-between">
                 <div className="space-y-1">
                    <h3 className="text-lg font-bold text-stone-900 dark:text-white">Top Missions</h3>
                    <p className="text-[10px] uppercase tracking-widest text-stone-400">Best performing content</p>
@@ -350,15 +350,15 @@ export default function CreatorAnalyticsPage() {
              </div>
              <div className="divide-y divide-border">
                 {topSubmissions.map((sub, idx) => (
-                   <div key={sub.id} className="flex flex-col sm:flex-row sm:items-center p-6 hover:bg-white dark:bg-surface transition-colors group">
-                      <div className="flex items-center gap-6 flex-1 min-w-0">
+                   <div key={sub.id} className="flex flex-col sm:flex-row sm:items-center p-4 sm:p-6 hover:bg-white dark:bg-surface transition-colors group">
+                      <div className="flex items-center gap-3 sm:gap-6 flex-1 min-w-0">
                          <div className={cn(
-                           "flex items-center justify-center w-8 h-8 rounded-none text-[12px] font-bold border shrink-0 transition-transform group-hover:scale-110",
+                           "flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-lg text-[11px] sm:text-[12px] font-bold border shrink-0 transition-transform group-hover:scale-110",
                            idx === 0 ? "bg-stone-900 text-white border-stone-900" : "bg-white dark:bg-surface text-stone-400 border-border"
                          )}>
                             {idx + 1}
                          </div>
-                         <div className="w-24 h-16 rounded-none bg-stone-900 flex items-center justify-center shrink-0 shadow-none relative overflow-hidden group/thumb">
+                         <div className="w-20 h-14 sm:w-24 sm:h-16 rounded-xl bg-stone-900 flex items-center justify-center shrink-0 shadow-sm relative overflow-hidden group/thumb">
                             {sub.thumbnail_url ? (
                                <img src={sub.thumbnail_url} className="w-full h-full object-cover group-hover/thumb:scale-110 transition-transform opacity-60" alt="" />
                             ) : (
@@ -390,7 +390,7 @@ export default function CreatorAnalyticsPage() {
         )}
 
         {/* Call to Action */}
-        <div className="p-8 rounded-none border border-border bg-stone-900 text-white relative overflow-hidden shadow-none">
+        <div className="p-6 sm:p-8 rounded-2xl border border-border bg-stone-900 text-white relative overflow-hidden shadow-none">
            <div className="absolute top-0 right-0 w-64 h-64 bg-orange-500/10 blur-[80px] rounded-none translate-x-1/2 -translate-y-1/2" />
            <div className="flex flex-col md:flex-row items-center justify-between gap-8 relative z-10">
               <div className="space-y-4 text-center md:text-left">
@@ -403,7 +403,7 @@ export default function CreatorAnalyticsPage() {
                     Access premium brand campaigns and share products with your audience.
                  </p>
               </div>
-              <Button asChild className="h-14 px-10 rounded-none bg-white text-stone-900 font-bold text-[11px] uppercase tracking-widest shadow-none active:scale-95 transition-all hover:bg-stone-50 border-none">
+              <Button asChild className="w-full sm:w-auto h-12 sm:h-14 px-8 sm:px-10 rounded-xl bg-white text-stone-900 font-bold text-[11px] uppercase tracking-widest shadow-sm active:scale-95 transition-all hover:bg-stone-50 border-none">
                  <Link href="/ugc">Browse Missions <ArrowRight className="h-4 w-4 ml-3" /></Link>
               </Button>
            </div>

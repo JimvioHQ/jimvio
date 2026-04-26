@@ -69,7 +69,7 @@ export default function ActivateRolePage() {
 
   if (!config) {
     return (
-      <div className="max-w-lg mx-auto py-12 text-center">
+      <div className="max-w-lg mx-auto py-10 px-4 text-center">
         <p className="text-[var(--color-text-muted)]">Unknown role.</p>
         <Link href="/dashboard"><Button className="mt-4">Back to Dashboard</Button></Link>
       </div>
@@ -86,10 +86,10 @@ export default function ActivateRolePage() {
 
   if (alreadyActive) {
     return (
-      <div className="max-w-lg mx-auto py-12">
-        <Card className="border-[var(--color-success)]/30 bg-[var(--color-success-light)]/30">
-          <CardContent className="p-6 text-center">
-            <CheckCircle2 className="h-12 w-12 text-[var(--color-success)] mx-auto mb-4" />
+      <div className="max-w-lg mx-auto py-8 px-4">
+        <Card className="border-[var(--color-success)]/30 bg-[var(--color-success-light)]/30 rounded-2xl">
+          <CardContent className="p-5 sm:p-6 text-center">
+            <CheckCircle2 className="h-10 w-10 sm:h-12 sm:w-12 text-[var(--color-success)] mx-auto mb-4" />
             <h1 className="text-xl font-bold text-[var(--color-text-primary)] mb-2">You&apos;re already active</h1>
             <p className="text-sm text-[var(--color-text-secondary)] mb-6">This role is already activated on your account.</p>
             <Button asChild><Link href="/dashboard">Go to Dashboard</Link></Button>
@@ -100,12 +100,12 @@ export default function ActivateRolePage() {
   }
 
   return (
-    <div className="max-w-xl mx-auto py-8">
-      <Card className="shadow-lg border-[var(--color-border)] overflow-hidden">
-        <CardContent className="p-8">
-          <div className="flex justify-center mb-6">{config.icon}</div>
-          <h1 className="text-2xl font-bold text-[var(--color-text-primary)] text-center mb-2">{config.title}</h1>
-          <p className="text-[var(--color-text-secondary)] text-center text-sm mb-8">{config.description}</p>
+    <div className="max-w-xl mx-auto py-6 sm:py-8 px-4">
+      <Card className="shadow-lg border-[var(--color-border)] overflow-hidden rounded-2xl">
+        <CardContent className="p-5 sm:p-8">
+          <div className="flex justify-center mb-5 sm:mb-6">{config.icon}</div>
+          <h1 className="text-xl sm:text-2xl font-bold text-[var(--color-text-primary)] text-center mb-2">{config.title}</h1>
+          <p className="text-[var(--color-text-secondary)] text-center text-xs sm:text-sm mb-6 sm:mb-8">{config.description}</p>
 
           <div className="mb-8">
             <h2 className="text-sm font-semibold text-[var(--color-text-primary)] mb-3">Requirements</h2>

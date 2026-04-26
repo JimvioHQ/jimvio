@@ -137,48 +137,48 @@ export default function AffiliateWithdrawalsPage() {
         background: "var(--color-bg)",
       }}
     >
-      <div className="max-w-4xl mx-auto space-y-8 px-6 pt-10 relative z-10">
+      <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8 px-4 sm:px-6 pt-6 sm:pt-10 relative z-10">
         
         {/* Header - Simpler */}
-         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-            <div className="flex items-center gap-4">
-               <Button asChild variant="ghost" size="icon" className="shrink-0 h-10 w-10 rounded-none bg-surface dark:bg-surface-secondary border border-border shadow-none hover:bg-surface dark:hover:bg-zinc-700 active:scale-95 transition-all text-stone-500 dark:text-text-muted">
-                 <Link href="/dashboard"><ArrowLeft className="h-5 w-5" /></Link>
+         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-6">
+            <div className="flex items-center gap-3 sm:gap-4">
+               <Button asChild variant="ghost" size="icon" className="shrink-0 h-9 w-9 sm:h-10 sm:w-10 rounded-xl bg-surface dark:bg-surface-secondary border border-border shadow-sm hover:bg-surface dark:hover:bg-zinc-700 active:scale-95 transition-all text-stone-500 dark:text-text-muted">
+                 <Link href="/dashboard"><ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5" /></Link>
                </Button>
-               <div className="space-y-1">
-                  <h1 className="text-2xl font-bold text-stone-900 dark:text-white tracking-tight">Withdraw Funds</h1>
-                  <p className="text-[11px] font-bold text-stone-400 dark:text-text-muted capitalize">Manage your earnings and payouts</p>
+               <div className="space-y-0.5 sm:space-y-1">
+                  <h1 className="text-xl sm:text-2xl font-bold text-stone-900 dark:text-white tracking-tight">Withdraw Funds</h1>
+                  <p className="text-[9px] sm:text-[11px] font-bold text-stone-400 dark:text-text-muted capitalize">Manage your earnings and payouts</p>
                </div>
             </div>
             
-            <div className="flex items-center gap-3 bg-surface dark:bg-surface-secondary p-3 rounded-none border border-border shadow-none px-5">
-               <div className="w-2 h-2 rounded-none bg-emerald-500 animate-pulse ml-1" />
-               <span className="text-[10px] font-bold uppercase tracking-widest text-stone-500 dark:text-text-muted">Secure Processing</span>
+            <div className="flex items-center gap-2 sm:gap-3 bg-surface dark:bg-surface-secondary p-2 sm:p-3 rounded-xl border border-border shadow-sm px-4 sm:px-5">
+               <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-500 animate-pulse ml-1" />
+               <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-stone-500 dark:text-text-muted">Secure Processing</span>
             </div>
          </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
           
           {/* Main Withdrawal Panel */}
-          <GlassCard className="lg:col-span-2 rounded-none border-border bg-surface/60 dark:bg-surface-secondary/40 shadow-none overflow-hidden flex flex-col">
-             <div className="p-8 sm:p-10 space-y-10 flex-1">
+          <GlassCard className="lg:col-span-2 rounded-2xl border-border bg-surface/60 dark:bg-surface-secondary/40 shadow-sm overflow-hidden flex flex-col">
+             <div className="p-5 sm:p-10 space-y-8 sm:space-y-10 flex-1">
                 <div className="space-y-4">
                    <div className="flex items-center gap-2">
                        <Wallet className="h-4 w-4 text-orange-400" />
-                       <span className="text-[10px] font-bold text-stone-400 dark:text-text-muted capitalize leading-none">Available Balance</span>
+                       <span className="text-[9px] sm:text-[10px] font-bold text-stone-400 dark:text-text-muted capitalize leading-none">Available Balance</span>
                    </div>
-                   <h2 className="text-5xl font-black text-stone-900 dark:text-white tracking-tight leading-none tabular-nums">{formatMoney(balance.available, "USD")}</h2>
-                   <div className="flex flex-wrap items-center gap-3 pt-2">
-                     <GlassPill color="orange" className="font-bold py-1.5 px-4 text-[9px] border-none shadow-none bg-orange-500/10 text-orange-600 dark:text-orange-400 uppercase tracking-wider"><Clock className="h-3 w-3 mr-1.5" /> {formatMoney(balance.pending, "USD")} Pending</GlassPill>
-                     <GlassPill color="emerald" className="font-bold py-1.5 px-4 text-[9px] border-none shadow-none bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 uppercase tracking-wider"><CheckCircle className="h-3 w-3 mr-1.5" /> {formatMoney(balance.paid, "USD")} Paid</GlassPill>
+                   <h2 className="text-4xl sm:text-5xl font-black text-stone-900 dark:text-white tracking-tight leading-none tabular-nums">{formatMoney(balance.available, "USD")}</h2>
+                   <div className="flex flex-wrap items-center gap-2 sm:gap-3 pt-2">
+                     <GlassPill color="orange" className="font-bold py-1.5 px-3 sm:px-4 text-[8px] sm:text-[9px] border-none shadow-sm bg-orange-500/10 text-orange-600 dark:text-orange-400 uppercase tracking-wider rounded-xl"><Clock className="h-3 w-3 mr-1.5" /> {formatMoney(balance.pending, "USD")} Pending</GlassPill>
+                     <GlassPill color="emerald" className="font-bold py-1.5 px-3 sm:px-4 text-[8px] sm:text-[9px] border-none shadow-sm bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 uppercase tracking-wider rounded-xl"><CheckCircle className="h-3 w-3 mr-1.5" /> {formatMoney(balance.paid, "USD")} Paid</GlassPill>
                    </div>
                 </div>
 
-                <div className="p-8 rounded-none bg-stone-900 dark:bg-bg text-white space-y-6 shadow-none relative overflow-hidden group">
-                   <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/10 blur-[60px] rounded-none translate-x-1/2 -translate-y-1/2" />
+                <div className="p-5 sm:p-8 rounded-2xl bg-stone-900 dark:bg-bg text-white space-y-5 sm:space-y-6 shadow-sm relative overflow-hidden group">
+                   <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/10 blur-[60px] rounded-full translate-x-1/2 -translate-y-1/2" />
                    
                    <div className="space-y-2">
-                      <label className="text-[10px] font-bold text-white/30 uppercase tracking-[0.2em] block pl-1">Withdrawal Amount (USD)</label>
+                      <label className="text-[9px] sm:text-[10px] font-bold text-white/30 uppercase tracking-[0.1em] sm:tracking-[0.2em] block pl-1">Withdrawal Amount (USD)</label>
                       <Input 
                         type="number" 
                         min={minPayout} 
@@ -186,17 +186,17 @@ export default function AffiliateWithdrawalsPage() {
                         value={requestAmount} 
                         onChange={e => setRequestAmount(e.target.value)} 
                         placeholder={`Min: $${minPayout}`} 
-                        className="rounded-none h-14 bg-white dark:bg-surface/5 border-white/10 font-bold text-xl shadow-inner text-white focus:ring-orange-500 px-6 transition-all focus:bg-white dark:bg-surface/10" 
+                        className="rounded-xl h-12 sm:h-14 bg-white dark:bg-surface/5 border-white/10 font-bold text-lg sm:text-xl shadow-inner text-stone-900 dark:text-white focus:ring-orange-500 px-4 sm:px-6 transition-all focus:bg-white dark:bg-surface/10" 
                       />
                    </div>
                    <Button 
-                     className="w-full h-14 rounded-none bg-orange-500 text-white shadow-[0_8px_24px_rgba(249,115,22,0.3)] hover:bg-orange-600 active:scale-95 transition-all text-sm font-bold capitalize border-none" 
+                     className="w-full h-12 sm:h-14 rounded-xl bg-orange-500 text-white shadow-[0_8px_24px_rgba(249,115,22,0.3)] hover:bg-orange-600 active:scale-95 transition-all text-sm font-bold capitalize border-none" 
                      disabled={!canRequest || submitting} 
                      onClick={requestPayout}
                    >
                      {submitting ? "Processing..." : "Confirm Withdrawal"}
                    </Button>
-                   <p className="text-[9px] font-bold text-white/20 uppercase tracking-[0.2em] text-center">
+                   <p className="text-[8px] sm:text-[9px] font-bold text-white/20 uppercase tracking-[0.1em] sm:tracking-[0.2em] text-center">
                      Min threshold: {formatMoney(minPayout, "USD")}
                    </p>
                 </div>
@@ -204,12 +204,12 @@ export default function AffiliateWithdrawalsPage() {
           </GlassCard>
 
           {/* Payout Method Sidebar */}
-          <GlassCard className="rounded-none border-border bg-surface/60 dark:bg-surface-secondary/40 shadow-none flex flex-col overflow-hidden">
-             <div className="p-8 border-b border-border bg-surface/40 dark:bg-surface/40">
-                <h3 className="text-lg font-bold text-stone-900 dark:text-white tracking-tight">Payout Method</h3>
-                <p className="text-[10px] font-bold text-stone-400 dark:text-text-muted capitalize mt-0.5">Where you'll receive your funds</p>
+          <GlassCard className="rounded-2xl border-border bg-surface/60 dark:bg-surface-secondary/40 shadow-sm flex flex-col overflow-hidden">
+             <div className="p-6 sm:p-8 border-b border-border bg-surface/40 dark:bg-surface/40">
+                <h3 className="text-base sm:text-lg font-bold text-stone-900 dark:text-white tracking-tight">Payout Method</h3>
+                <p className="text-[9px] sm:text-[10px] font-bold text-stone-400 dark:text-text-muted capitalize mt-0.5">Where you'll receive your funds</p>
              </div>
-             <div className="p-8 space-y-4 flex-1">
+             <div className="p-5 sm:p-8 space-y-4 flex-1">
                {PAYMENT_METHODS.map((m) => {
                  const Icon = m.icon;
                  const active = payoutMethod === m.id;
@@ -219,48 +219,48 @@ export default function AffiliateWithdrawalsPage() {
                      type="button"
                      onClick={() => setPayoutMethod(m.id)}
                      className={cn(
-                       "group w-full flex items-center gap-4 p-4 rounded-none border transition-all duration-300",
+                       "group w-full flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl border transition-all duration-300",
                        active 
-                         ? "border-orange-500/20 bg-surface dark:bg-surface-secondary shadow-none" 
+                         ? "border-orange-500/20 bg-surface dark:bg-surface-secondary shadow-sm" 
                          : "border-border bg-surface/40 dark:bg-surface/40 hover:border-orange-500/10 hover:bg-surface dark:hover:bg-zinc-800"
                      )}
                    >
                      <div className={cn(
-                        "h-10 w-10 rounded-none border flex items-center justify-center shrink-0 transition-colors shadow-none",
+                        "h-8 w-8 sm:h-10 sm:w-10 rounded-lg border flex items-center justify-center shrink-0 transition-colors shadow-sm",
                         active ? "bg-orange-500/10 border-orange-500/10 text-orange-500" : "bg-surface dark:bg-surface-secondary border-border text-stone-300 dark:text-stone-700 group-hover:text-stone-400 dark:group-hover:text-stone-600"
                      )}>
-                       <Icon className="h-5 w-5" />
+                       <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
                      </div>
                      <div className="text-left min-w-0">
-                       <p className="text-[13px] font-bold text-stone-900 dark:text-white tracking-tight">{m.label}</p>
-                       <p className="text-[9px] font-bold text-stone-400 dark:text-text-muted uppercase tracking-widest truncate">{m.desc}</p>
+                       <p className="text-[12px] sm:text-[13px] font-bold text-stone-900 dark:text-white tracking-tight">{m.label}</p>
+                       <p className="text-[8px] sm:text-[9px] font-bold text-stone-400 dark:text-text-muted uppercase tracking-widest truncate">{m.desc}</p>
                      </div>
                    </button>
                  );
                })}
                
-               <div className="bg-surface dark:bg-surface/40 p-6 rounded-none border border-border shadow-none mt-4 space-y-4">
-                 <label className="text-[10px] font-bold uppercase tracking-widest text-stone-400 dark:text-text-muted block pl-1">
+               <div className="bg-surface dark:bg-surface/40 p-4 sm:p-6 rounded-xl border border-border shadow-sm mt-4 space-y-3 sm:space-y-4">
+                 <label className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-stone-400 dark:text-text-muted block pl-1">
                    {payoutMethod === "bank" ? "Account Details" : payoutMethod === "paypal" ? "PayPal Email" : "Phone Number"}
                  </label>
                  <Input 
                     value={payoutAccount} 
                     onChange={e => setPayoutAccount(e.target.value)} 
                     placeholder={payoutMethod === "paypal" ? "your@email.com" : "+250 ..."} 
-                    className="rounded-none h-11 bg-surface dark:bg-surface-secondary border-border text-sm font-bold shadow-none focus:ring-0 text-stone-900 dark:text-white" 
+                    className="rounded-lg h-10 sm:h-11 bg-surface dark:bg-surface-secondary border-border text-sm font-bold shadow-sm focus:ring-0 text-stone-900 dark:text-white" 
                  />
                  <Button 
                     variant="default"
                     size="sm" 
-                    className="h-10 rounded-none w-full bg-stone-900 dark:bg-white dark:bg-surface text-white dark:text-stone-900 dark:text-white text-[10px] font-bold uppercase tracking-widest shadow-none hover:bg-black dark:hover:bg-stone-200 transition-all active:scale-95 border-none" 
+                    className="h-9 sm:h-10 rounded-lg w-full bg-stone-900 dark:bg-white text-white dark:text-stone-900 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest shadow-sm hover:bg-black dark:hover:bg-stone-200 transition-all active:scale-95 border-none" 
                     onClick={savePayoutMethod}
                  >
                     Save Method
                  </Button>
                </div>
              </div>
-             <div className="p-6 bg-surface/50 dark:bg-surface/20 border-t border-border text-center">
-                <p className="text-[9px] font-bold text-stone-400 dark:text-text-muted uppercase tracking-widest">
+             <div className="p-4 sm:p-6 bg-surface/50 dark:bg-surface/20 border-t border-border text-center">
+                <p className="text-[8px] sm:text-[9px] font-bold text-stone-400 dark:text-text-muted uppercase tracking-widest">
                    Processing time: 2—3 business days
                 </p>
              </div>
@@ -268,48 +268,48 @@ export default function AffiliateWithdrawalsPage() {
         </div>
 
         {/* History Registry - Simpler padding */}
-        <GlassCard className="rounded-none border-border bg-surface/60 dark:bg-surface-secondary/40 shadow-none overflow-hidden">
-           <div className="p-8 border-b border-border bg-surface/40 dark:bg-surface/40 flex items-center gap-3">
-              <div className="p-2 rounded-none bg-surface dark:bg-surface-secondary border border-border shadow-none text-stone-300 dark:text-stone-700">
+        <GlassCard className="rounded-2xl border-border bg-surface/60 dark:bg-surface-secondary/40 shadow-sm overflow-hidden max-sm:-mx-4 max-sm:rounded-none max-sm:border-x-0">
+           <div className="p-6 sm:p-8 border-b border-border bg-surface/40 dark:bg-surface/40 flex items-center gap-3">
+              <div className="p-1.5 sm:p-2 rounded-xl bg-surface dark:bg-surface-secondary border border-border shadow-sm text-stone-300 dark:text-stone-700">
                  <History className="h-4 w-4" />
               </div>
               <div>
-                 <h3 className="text-lg font-bold text-stone-900 dark:text-white tracking-tight">Withdrawal History</h3>
-                 <p className="text-[10px] font-bold text-stone-400 dark:text-text-muted capitalize mt-0.5">Your payout history</p>
+                 <h3 className="text-base sm:text-lg font-bold text-stone-900 dark:text-white tracking-tight">Withdrawal History</h3>
+                 <p className="text-[9px] sm:text-[10px] font-bold text-stone-400 dark:text-text-muted capitalize mt-0.5">Your payout history</p>
               </div>
            </div>
            
            <div className="overflow-x-auto">
-              <table className="w-full text-left">
+              <table className="w-full text-left whitespace-nowrap">
                  <thead>
                     <tr className="bg-surface/40 dark:bg-surface/20">
-                       <th className="px-8 py-5 text-[10px] font-bold text-stone-400 dark:text-text-muted uppercase tracking-widest border-b border-border">Date</th>
-                       <th className="px-8 py-5 text-[10px] font-bold text-stone-400 dark:text-text-muted uppercase tracking-widest border-b border-border">Method</th>
-                       <th className="px-8 py-5 text-right text-[10px] font-bold text-stone-400 dark:text-text-muted uppercase tracking-widest border-b border-border">Amount</th>
-                       <th className="px-8 py-5 text-center text-[10px] font-bold text-stone-400 dark:text-text-muted uppercase tracking-widest border-b border-border">Status</th>
+                       <th className="px-4 sm:px-8 py-4 sm:py-5 text-[9px] sm:text-[10px] font-bold text-stone-400 dark:text-text-muted uppercase tracking-widest border-b border-border">Date</th>
+                       <th className="px-4 sm:px-8 py-4 sm:py-5 text-[9px] sm:text-[10px] font-bold text-stone-400 dark:text-text-muted uppercase tracking-widest border-b border-border">Method</th>
+                       <th className="px-4 sm:px-8 py-4 sm:py-5 text-right text-[9px] sm:text-[10px] font-bold text-stone-400 dark:text-text-muted uppercase tracking-widest border-b border-border">Amount</th>
+                       <th className="px-4 sm:px-8 py-4 sm:py-5 text-center text-[9px] sm:text-[10px] font-bold text-stone-400 dark:text-text-muted uppercase tracking-widest border-b border-border">Status</th>
                     </tr>
                  </thead>
                  <tbody className="divide-y divide-border/60">
                     {payouts.length === 0 ? (
                       <tr>
-                         <td colSpan={4} className="py-20 text-center">
-                            <p className="text-[11px] font-bold text-stone-300 dark:text-stone-700 uppercase tracking-widest">No past withdrawals found</p>
+                         <td colSpan={4} className="py-16 sm:py-20 text-center">
+                            <p className="text-[10px] sm:text-[11px] font-bold text-stone-300 dark:text-stone-700 uppercase tracking-widest">No past withdrawals found</p>
                          </td>
                       </tr>
                     ) : payouts.map((p) => (
                       <tr key={p.id} className="hover:bg-surface/60 dark:hover:bg-zinc-800/40 transition-all duration-300 group">
-                         <td className="px-8 py-6 text-sm font-bold text-stone-400 dark:text-text-muted tabular-nums">
+                         <td className="px-4 sm:px-8 py-5 sm:py-6 text-[12px] sm:text-sm font-bold text-stone-400 dark:text-text-muted tabular-nums">
                             {new Date(p.created_at).toLocaleDateString()}
                          </td>
-                         <td className="px-8 py-6">
-                            <span className="capitalize font-bold text-sm text-stone-900 dark:text-white tracking-tight">{String(p.payout_method || "").replace(/_/g, " ")}</span>
+                         <td className="px-4 sm:px-8 py-5 sm:py-6">
+                            <span className="capitalize font-bold text-[12px] sm:text-sm text-stone-900 dark:text-white tracking-tight">{String(p.payout_method || "").replace(/_/g, " ")}</span>
                          </td>
-                         <td className="px-8 py-6 text-right">
-                            <span className="font-bold text-base text-stone-900 dark:text-white tabular-nums tracking-tight">{formatMoney(Number(p.amount ?? 0), "USD")}</span>
+                         <td className="px-4 sm:px-8 py-5 sm:py-6 text-right">
+                            <span className="font-bold text-[14px] sm:text-base text-stone-900 dark:text-white tabular-nums tracking-tight">{formatMoney(Number(p.amount ?? 0), "USD")}</span>
                          </td>
-                         <td className="px-8 py-6">
+                         <td className="px-4 sm:px-8 py-5 sm:py-6">
                             <div className="flex justify-center">
-                               <GlassPill color={p.status === "paid" ? "emerald" : p.status === "failed" ? "rose" : "orange"} className="font-bold text-[9px] px-4 py-1.5 uppercase tracking-widest border-none shadow-none">
+                               <GlassPill color={p.status === "paid" ? "emerald" : p.status === "failed" ? "rose" : "orange"} className="font-bold text-[8px] sm:text-[9px] px-3 sm:px-4 py-1 sm:py-1.5 uppercase tracking-widest border-none shadow-sm rounded-lg">
                                   {p.status || "pending"}
                                </GlassPill>
                             </div>

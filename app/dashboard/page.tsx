@@ -37,13 +37,13 @@ function StatCard({ value, label, icon, colorClass, borderClass }: {
   value: string | number; label: string; icon: React.ReactNode; colorClass: string; borderClass: string;
 }) {
   return (
-    <div className="relative group p-5 flex flex-col justify-between min-h-[140px] bg-[var(--color-surface)] border border-[var(--color-border)] shadow-none transition-all duration-300">
-      <div className={cn("w-11 h-11 flex items-center justify-center shrink-0 border bg-[var(--color-surface-secondary)] transition-colors duration-300", borderClass, colorClass, "group-hover:bg-[var(--color-surface-secondary)]/80")}>
+    <div className="relative group p-4 sm:p-5 flex flex-col justify-between min-h-[110px] sm:min-h-[130px] bg-[var(--color-surface)] border border-[var(--color-border)] shadow-sm transition-all duration-300 rounded-2xl">
+      <div className={cn("w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center shrink-0 border bg-[var(--color-surface-secondary)] transition-colors duration-300 rounded-xl", borderClass, colorClass, "group-hover:bg-[var(--color-surface-secondary)]/80")}>
         {icon as React.ReactNode}
       </div>
-      <div className="mt-4">
-        <p className="text-[26px] font-black text-[var(--color-text-primary)] tabular-nums tracking-tighter leading-none">{value}</p>
-        <p className="mt-2 text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-widest break-words truncate">{label}</p>
+      <div className="mt-3 sm:mt-4">
+        <p className="text-[22px] sm:text-[26px] font-black text-[var(--color-text-primary)] tabular-nums tracking-tighter leading-none">{value}</p>
+        <p className="mt-1.5 text-[9px] sm:text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-widest break-words truncate">{label}</p>
       </div>
     </div>
   );
@@ -56,13 +56,13 @@ function ActionRow({ href, icon, label, highlight = false }: {
   return (
     <Link href={href} className="group block">
       <div className={cn(
-        "flex items-center gap-4 px-5 py-3.5 border transition-all duration-300 active:scale-[0.98]",
+        "flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-3 sm:py-3.5 border transition-all duration-300 active:scale-[0.98] rounded-2xl",
         highlight
           ? "bg-orange-500/10 border-orange-500/20 hover:bg-orange-500/20"
-          : "bg-[#0A0A0A] border-[#222] hover:bg-[#111] hover:border-[#333]"
+          : "bg-white dark:bg-[#0A0A0A] border-stone-200 dark:border-[#222] hover:bg-stone-50 dark:hover:bg-[#111] hover:border-stone-300 dark:hover:border-[#333]"
       )}>
         <div className={cn(
-          "h-9 w-9 flex items-center justify-center shrink-0 border",
+          "h-8 w-8 sm:h-9 sm:w-9 flex items-center justify-center shrink-0 border rounded-xl",
           highlight ? "bg-[var(--color-surface-secondary)] border-orange-500/20 text-orange-500" : "bg-[var(--color-surface-secondary)] border-[var(--color-border)] text-[var(--color-text-muted)] group-hover:text-[var(--color-text-primary)] group-hover:border-[var(--color-border-strong)]"
         )}>
           {icon as React.ReactNode}
@@ -87,7 +87,7 @@ function SectionHeader({ title, icon, actionHref, actionLabel = "View All" }: {
   return (
     <div className="flex items-center justify-between px-1 mb-4">
       <div className="flex items-center gap-3">
-        <div className="text-orange-500 bg-[var(--color-surface-secondary)] p-1.5 border border-[var(--color-border)] shadow-none">
+        <div className="text-orange-500 bg-[var(--color-surface-secondary)] p-1.5 border border-[var(--color-border)] shadow-sm rounded-lg">
           {icon as React.ReactNode}
         </div>
         <h2 className="text-[11px] font-bold text-[var(--color-text-primary)] uppercase tracking-widest font-mono">{title}</h2>
@@ -213,9 +213,9 @@ export default function DashboardPage() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center space-y-10 animate-in fade-in duration-700 bg-[var(--color-bg)]">
         <div className="relative">
-          <div className="absolute inset-0 bg-orange-500/20 blur-3xl scale-150 animate-pulse" />
-          <div className="relative w-20 h-20 bg-[var(--color-surface)] border border-[var(--color-border)] flex items-center justify-center overflow-hidden shadow-none">
-            <div className="absolute inset-0 border-2 border-t-orange-500 border-r-transparent border-b-transparent border-l-transparent animate-spin m-2" />
+          <div className="absolute inset-0 bg-orange-500/20 blur-3xl scale-150 animate-pulse rounded-full" />
+          <div className="relative w-20 h-20 bg-[var(--color-surface)] border border-[var(--color-border)] flex items-center justify-center overflow-hidden shadow-sm rounded-2xl">
+             <div className="absolute inset-0 border-2 border-t-orange-500 border-r-transparent border-b-transparent border-l-transparent animate-spin m-2 rounded-full" />
             <LayoutDashboard className="h-8 w-8 text-[var(--color-text-primary)]" />
           </div>
         </div>
@@ -249,15 +249,15 @@ export default function DashboardPage() {
             MY WALLET — Large Featured Card
         ═════════════════════════════════════════════════════════════════════ */}
         <Link href="/dashboard/wallet" className="block outline-none group">
-          <div className="relative overflow-hidden bg-[var(--color-surface)] border border-[var(--color-border)] p-8 sm:p-10 transition-all duration-300 active:scale-[0.98] hover:border-[var(--color-border-strong)] shadow-none">
+          <div className="relative overflow-hidden bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[2rem] p-6 sm:p-10 transition-all duration-300 active:scale-[0.98] hover:border-orange-500/30 shadow-sm hover:shadow-orange-500/10">
             {/* Ambient Accent Glows */}
-            <div className="absolute -top-32 -right-32 w-96 h-96 bg-orange-600/5 blur-[100px] group-hover:bg-orange-600/10 transition-all duration-700" />
+            <div className="absolute -top-32 -right-32 w-64 h-64 sm:w-96 sm:h-96 bg-orange-600/10 blur-[80px] group-hover:bg-orange-600/20 transition-all duration-700 rounded-full" />
             
             <div className="relative z-10">
               {/* Header row */}
-              <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center justify-between mb-6 sm:mb-8">
                 <div className="flex items-center gap-4">
-                  <div className="h-12 w-12 bg-orange-600 flex items-center justify-center text-white shadow-[0_0_20px_rgba(249,115,22,0.2)]">
+                  <div className="h-12 w-12 rounded-xl bg-orange-600 flex items-center justify-center text-white shadow-[0_0_20px_rgba(249,115,22,0.2)]">
                     <Wallet className="h-5.5 w-5.5" />
                   </div>
                   <div>
@@ -268,7 +268,7 @@ export default function DashboardPage() {
                 <button
                   type="button"
                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); setBalanceHidden(v => !v); }}
-                  className="h-10 w-10 bg-[var(--color-surface-secondary)] hover:bg-[var(--color-surface-secondary)]/80 flex items-center justify-center text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-all border border-[var(--color-border)]"
+                  className="h-10 w-10 rounded-xl bg-[var(--color-surface-secondary)] hover:bg-[var(--color-surface-secondary)]/80 flex items-center justify-center text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-all border border-[var(--color-border)]"
                   aria-label={balanceHidden ? "Show balance" : "Hide balance"}
                 >
                   {balanceHidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -276,16 +276,16 @@ export default function DashboardPage() {
               </div>
 
               {/* Balance Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 items-end">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-8 items-end">
                 <div>
-                  <p className="text-[10px] font-black text-orange-500 uppercase tracking-widest mb-2 font-mono">Available to spend</p>
-                  <p className="text-5xl sm:text-6xl font-bold text-[var(--color-text-primary)] tabular-nums tracking-tighter leading-none font-mono">
+                  <p className="text-[10px] font-black text-orange-500 uppercase tracking-widest mb-1 sm:mb-2 font-mono">Available to spend</p>
+                  <p className="text-4xl sm:text-6xl font-bold text-[var(--color-text-primary)] tabular-nums tracking-tighter leading-none font-mono">
                     {balanceHidden ? "••••••" : formatMoney(walletBalance.available, "USD")}
                   </p>
                 </div>
                 <div className="sm:text-right space-y-3">
-                   <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-[var(--color-surface-secondary)] border border-[var(--color-border)]">
-                      <div className="h-1.5 w-1.5 bg-orange-500 animate-pulse" />
+                   <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-[var(--color-surface-secondary)] border border-[var(--color-border)] rounded-xl">
+                      <div className="h-1.5 w-1.5 bg-orange-500 animate-pulse rounded-full" />
                       <span className="text-xs font-bold text-[var(--color-text-muted)] font-mono">
                         {balanceHidden ? "••••" : formatMoney(walletBalance.pending, "USD")} pending
                       </span>
@@ -300,16 +300,16 @@ export default function DashboardPage() {
         </Link>
 
         {/* QUICK ACTIONS */}
-        <div className="grid grid-cols-4 gap-3">
+        <div className="grid grid-cols-4 gap-2 sm:gap-3">
           {[
             { href: "/dashboard/wallet", icon: <Wallet />, label: "Add Funds", color: "text-orange-500" },
             { href: "/dashboard/messages", icon: <MessageSquare />, label: "Messages", color: "text-[var(--color-text-muted)] group-hover:text-[var(--color-text-primary)]" },
             { href: "/dashboard/settings", icon: <Settings />, label: "Settings", color: "text-[var(--color-text-muted)] group-hover:text-[var(--color-text-primary)]" },
             { href: "/support", icon: <Heart />, label: "Help", color: "text-rose-500" },
           ].map(item => (
-            <Link key={item.href} href={item.href} className="flex flex-col items-center justify-center gap-2.5 p-4 bg-[var(--color-surface)] border border-[var(--color-border)] hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface-secondary)] transition-all active:scale-95 group shadow-none">
+            <Link key={item.href} href={item.href} className="flex flex-col items-center justify-center gap-1.5 sm:gap-2.5 p-3 sm:p-4 rounded-[1.5rem] bg-[var(--color-surface)] border border-[var(--color-border)] hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface-secondary)] transition-all active:scale-95 group shadow-sm text-center">
               {React.cloneElement(item.icon as React.ReactElement<{ className?: string }>, { className: cn("h-5 w-5 sm:h-6 sm:w-6 transition-transform", item.color) })}
-              <span className="text-[9px] font-bold uppercase tracking-widest text-[var(--color-text-muted)] group-hover:text-[var(--color-text-secondary)]">{item.label}</span>
+              <span className="text-[8px] sm:text-[9px] font-bold uppercase tracking-widest text-[var(--color-text-muted)] group-hover:text-[var(--color-text-secondary)] truncate w-full">{item.label}</span>
             </Link>
           ))}
         </div>
@@ -321,15 +321,15 @@ export default function DashboardPage() {
           <div className="lg:col-span-8 space-y-8">
 
             {/* Earnings Chart */}
-            <div className="bg-[var(--color-surface)] border border-[var(--color-border)] p-7 overflow-hidden shadow-none transition-all">
-              <div className="flex items-center justify-between mb-8">
+            <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl p-4 sm:p-7 overflow-hidden shadow-sm transition-all">
+              <div className="flex items-center justify-between mb-6 sm:mb-8">
                 <div className="space-y-1.5">
                   <h3 className="text-xl font-bold text-[var(--color-text-primary)] tracking-tight">Earnings Overview</h3>
                   <p className="text-[10px] font-mono font-bold text-[var(--color-text-muted)] uppercase tracking-widest">
                     {chartData[6].v > chartData[0].v ? "Growing this week" : "Steady activity"}
                   </p>
                 </div>
-                <div className="flex items-center gap-2 bg-emerald-500/10 px-3 py-1.5 border border-emerald-500/20">
+                <div className="flex items-center gap-2 bg-emerald-500/10 px-3 py-1.5 border border-emerald-500/20 rounded-xl">
                   <TrendingUp className="h-3.5 w-3.5 text-emerald-500" />
                   <span className="text-[9px] font-bold text-emerald-500 uppercase tracking-widest font-mono">This Week</span>
                 </div>
@@ -441,22 +441,22 @@ export default function DashboardPage() {
             <div className="space-y-4">
               <SectionHeader title="Communities" icon={<Users2 className="h-4 w-4" />} actionHref="/communities" />
               <div className="space-y-3">
-                <div className="flex items-center gap-5 p-5 bg-[var(--color-surface)] border border-[var(--color-border)] hover:border-[var(--color-border-strong)] transition-colors group shadow-none">
-                  <div className="w-12 h-12 bg-[var(--color-surface-secondary)] border border-[var(--color-border)] text-sky-500 flex items-center justify-center shrink-0">
-                    <Globe2 className="h-5 w-5" />
+                <div className="flex items-center gap-4 sm:gap-5 p-4 sm:p-5 bg-[var(--color-surface)] border border-[var(--color-border)] hover:border-[var(--color-border-strong)] transition-colors group shadow-sm rounded-2xl">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-[var(--color-surface-secondary)] border border-[var(--color-border)] text-sky-500 flex items-center justify-center shrink-0">
+                    <Globe2 className="h-4 w-4 sm:h-5 sm:w-5" />
                   </div>
                   <div>
-                    <p className="text-2xl font-black text-[var(--color-text-primary)] tracking-tighter leading-none tabular-nums">{stats.communitiesJoined}</p>
-                    <p className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-widest mt-1.5 font-mono">Joined</p>
+                    <p className="text-xl sm:text-2xl font-black text-[var(--color-text-primary)] tracking-tighter leading-none tabular-nums">{stats.communitiesJoined}</p>
+                    <p className="text-[9px] sm:text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-widest mt-1 sm:mt-1.5 font-mono">Joined</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-5 p-5 bg-[var(--color-surface)] border border-[var(--color-border)] hover:border-[var(--color-border-strong)] transition-colors group shadow-none">
-                  <div className="w-12 h-12 bg-[var(--color-surface-secondary)] border border-[var(--color-border)] text-orange-500 flex items-center justify-center shrink-0">
-                    <Plus className="h-5 w-5" />
+                <div className="flex items-center gap-4 sm:gap-5 p-4 sm:p-5 bg-[var(--color-surface)] border border-[var(--color-border)] hover:border-[var(--color-border-strong)] transition-colors group shadow-sm rounded-2xl">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-[var(--color-surface-secondary)] border border-[var(--color-border)] text-orange-500 flex items-center justify-center shrink-0">
+                    <Plus className="h-4 w-4 sm:h-5 sm:w-5" />
                   </div>
                   <div>
-                    <p className="text-2xl font-black text-[var(--color-text-primary)] tracking-tighter leading-none tabular-nums">{stats.communitiesCreated}</p>
-                    <p className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-widest mt-1.5 font-mono">Created</p>
+                    <p className="text-xl sm:text-2xl font-black text-[var(--color-text-primary)] tracking-tighter leading-none tabular-nums">{stats.communitiesCreated}</p>
+                    <p className="text-[9px] sm:text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-widest mt-1 sm:mt-1.5 font-mono">Created</p>
                   </div>
                 </div>
               </div>
@@ -467,36 +467,36 @@ export default function DashboardPage() {
             </div>
 
             {/* Learn & Grow */}
-            <div className="p-7 bg-orange-600 overflow-hidden relative group">
-              <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 blur-[50px] translate-x-1/3 -translate-y-1/3 group-hover:bg-white/20 transition-all duration-700" />
+            <div className="p-6 sm:p-7 rounded-2xl bg-orange-600 overflow-hidden relative group">
+              <div className="absolute top-0 right-0 w-48 h-48 rounded-full bg-white/10 blur-[50px] translate-x-1/3 -translate-y-1/3 group-hover:bg-white/20 transition-all duration-700" />
               <div className="relative z-10 space-y-4">
                 <div className="flex items-center gap-2.5">
-                  <div className="bg-black/20 p-1.5 text-white shadow-inner">
+                  <div className="bg-black/20 p-1.5 rounded-lg text-white shadow-inner">
                     <Sparkles className="h-4 w-4" />
                   </div>
                   <span className="text-[10px] font-black text-white uppercase tracking-widest">Learn &amp; Grow</span>
                 </div>
-                <h3 className="text-xl font-black text-white leading-tight tracking-tighter">Grow your business with Jimvio</h3>
-                <p className="text-white/80 text-[12px] leading-relaxed font-semibold">
+                <h3 className="text-lg sm:text-xl font-black text-white leading-tight tracking-tighter">Grow your business with Jimvio</h3>
+                <p className="text-white/80 text-[11px] sm:text-[12px] leading-relaxed font-semibold">
                   Guides, tips, and strategies to sell more and reach new customers.
                 </p>
-                <Button asChild className="w-full bg-black text-white hover:bg-zinc-900 active:scale-95 h-11 rounded-none font-black text-[11px] uppercase tracking-widest transition-all border-none shadow-none mt-2">
+                <Button asChild className="w-full bg-black text-white hover:bg-zinc-900 active:scale-95 h-11 rounded-xl font-black text-[10px] sm:text-[11px] uppercase tracking-widest transition-all border-none shadow-sm mt-2">
                   <Link href="/help">Explore Guides <ArrowRight className="h-4 w-4 ml-2" /></Link>
                 </Button>
               </div>
             </div>
 
             {/* Your Roles */}
-            <div className="p-6 bg-[var(--color-surface)] border border-[var(--color-border)] space-y-5 shadow-none transition-all">
+            <div className="p-5 sm:p-6 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] space-y-4 sm:space-y-5 shadow-sm transition-all">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-widest font-mono">Your Roles</span>
-                <Link href="/dashboard/roles" className="text-[10px] font-bold text-orange-500 uppercase tracking-widest font-mono hover:text-orange-400 transition-colors">
+                <span className="text-[9px] sm:text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-widest font-mono">Your Roles</span>
+                <Link href="/dashboard/roles" className="text-[9px] sm:text-[10px] font-bold text-orange-500 uppercase tracking-widest font-mono hover:text-orange-400 transition-colors">
                   Manage
                 </Link>
               </div>
               <div className="flex flex-wrap gap-2">
                 {activeRoles.map(role => (
-                  <div key={role} className="px-4 py-2 rounded-none bg-[var(--color-surface-secondary)] border border-[var(--color-border)] text-[var(--color-text-secondary)] font-black text-[10px] uppercase tracking-widest shadow-none capitalize">
+                  <div key={role} className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg bg-[var(--color-surface-secondary)] border border-[var(--color-border)] text-[var(--color-text-secondary)] font-black text-[9px] sm:text-[10px] uppercase tracking-widest shadow-sm capitalize">
                     {role}
                   </div>
                 ))}
