@@ -81,13 +81,13 @@ export function ChatRoomMembersAside({
             <button
               key={m.user_id}
               type="button"
-              className="flex w-full items-center gap-2 rounded-none px-2 py-2 text-left transition-colors hover:bg-[var(--color-surface-secondary)]"
+              className="flex w-full items-center gap-2 rounded-sm px-2 py-2 text-left transition-colors hover:bg-[var(--color-surface-secondary)]"
               onClick={() => {
                 setInboxPeer(m);
                 setMobileOpen(false);
               }}
             >
-              <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-none border border-[var(--color-border)] bg-[var(--color-surface-secondary)]">
+              <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-sm border border-[var(--color-border)] bg-[var(--color-surface-secondary)]">
                 {m.profile?.avatar_url ? (
                   <Image src={m.profile.avatar_url} alt="" width={36} height={36} className="h-full w-full object-cover" unoptimized />
                 ) : (

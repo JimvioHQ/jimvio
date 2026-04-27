@@ -1,156 +1,513 @@
+// "use client";
+
+// import React from "react";
+// import Link from "next/link";
+// import Image from "next/image";
+// import {
+//   Twitter, Youtube, Mail,
+//   ShieldCheck, CreditCard, Lock, ChevronRight,
+// } from "lucide-react";
+// import type { ContactSettings } from "@/lib/platform-settings-shared";
+// import { PLATFORM_SETTINGS_DEFAULTS } from "@/lib/platform-settings-shared";
+
+
+// const footerLinks = {
+//   Marketplace: [
+//     { label: "Browse Products", href: "/marketplace" },
+//     { label: "Top Suppliers", href: "/vendors" },
+//     { label: "Post Buying Lead", href: "/requests/new" },
+//     { label: "Trade Assurance", href: "/protection" },
+//     { label: "Verified Exporters", href: "/verified" },
+//     { label: "Flash Deals", href: "/deals" },
+//   ],
+//   "Earn & Grow": [
+//     { label: "Affiliate Program", href: "/affiliates" },
+//     { label: "Influencer Hub", href: "/influencers" },
+//     { label: "Clips", href: "/clips" },
+//     { label: "Clippings", href: "/clippings" },
+//     { label: "Partner API", href: "/api" },
+//     { label: "Creator Studio", href: "/creator" },
+//   ],
+//   Resources: [
+//     { label: "Market Reports", href: "/reports" },
+//     { label: "Trade Guides", href: "/guides" },
+//     { label: "Blog", href: "/blog" },
+//     { label: "Help Center", href: "/help" },
+//     { label: "Webinars", href: "/webinars" },
+//     { label: "API Docs", href: "/docs" },
+//   ],
+//   Company: [
+//     { label: "About Us", href: "/about" },
+//     { label: "Careers", href: "/careers" },
+//     { label: "Press", href: "/press" },
+//     { label: "Trust & Safety", href: "/safety" },
+//     { label: "Contact", href: "/contact" },
+//     { label: "Investor Relations", href: "/investors" },
+//   ],
+// };
+
+// export function Footer({ contact: contactProp }: { contact?: ContactSettings }) {
+//   const contact = contactProp ?? PLATFORM_SETTINGS_DEFAULTS.contact;
+
+//   return (
+//     <footer className="relative overflow-hidden text-[color:var(--color-text)] bg-surface border-t border-border pb-[80px] md:pb-0">
+
+//       {/* Content */}
+//       <div className="relative z-10 max-w-[1280px] mx-auto px-4 sm:px-6 pt-16 pb-12">
+//         <div className="grid grid-cols-1 gap-12 lg:grid-cols-6">
+
+//           {/* Brand */}
+//           <div className="lg:col-span-2 flex flex-col">
+
+//             <Link href="/" className="inline-flex items-center gap-0 mb-7 group">
+//               <Image
+//                 src="/jimvio-logo.png"
+//                 alt="Jimvio"
+//                 width={64}
+//                 height={64}
+//                 className="h-12 sm:h-14 w-auto mix-blend-multiply dark:mix-blend-normal brightness-110 contrast-110"
+//               />
+//               <span className="text-[36px] sm:text-[48px] font-black tracking-[-0.07em] select-none">
+//                 <span className="text-stone-950 dark:text-white">Jim</span>
+//                 <span className="bg-gradient-to-br from-[#fd5000] via-[#fd5000] to-[#ff6a00] bg-clip-text text-transparent drop-shadow-[0_0_12px_rgba(253,80,0,0.12)]">
+//                   vio
+//                 </span>
+//               </span>
+//             </Link>
+
+//             <p className="text-[13px] leading-relaxed text-stone-500 dark:text-stone-400 max-w-[280px] mb-8 font-medium">
+//               The global creator-commerce ecosystem. One platform for verified suppliers, buyers, affiliates & influencers.
+//             </p>
+
+//             {/* Social */}
+//             <div className="flex gap-2.5 mb-7">
+//               {[
+//                 { icon: <Twitter size={18} />, href: contact.social_x },
+//                 { icon: <Youtube size={18} />, href: contact.social_youtube },
+//                 { icon: <Mail size={18} />, href: `mailto:${contact.info_email}` },
+//               ].map((s, i) => (
+//                 <a
+//                   key={i}
+//                   href={s.href}
+//                   target="_blank"
+//                   className="w-10 h-10 flex items-center justify-center rounded-sm border border-border bg-white dark:bg-stone-900 hover:border-orange-500 hover:text-orange-500 transition-all duration-300 active:scale-90 shadow-sm"
+//                 >
+//                   {s.icon}
+//                 </a>
+//               ))}
+//             </div>
+
+//             {/* Trust badges */}
+//             <div className="flex flex-wrap gap-2">
+//               {[Lock, CreditCard, ShieldCheck].map((Icon, i) => (
+//                 <span
+//                   key={i}
+//                   className="px-3 py-1 text-xs rounded-sm flex items-center gap-1 border border-border bg-stone-50 dark:bg-stone-900 text-stone-500 dark:text-stone-400"
+//                 >
+//                   <Icon size={12} />
+//                 </span>
+//               ))}
+//             </div>
+//           </div>
+
+//           {/* Links */}
+//           <div className="lg:col-span-4 grid grid-cols-2 sm:grid-cols-4 gap-5">
+//             {Object.entries(footerLinks).map(([title, links]) => (
+//               <div
+//                 key={title}
+//                 className="p-5 rounded-sm bg-stone-50 dark:bg-stone-900 border border-border"
+//               >
+//                 <h5 className="text-xs uppercase mb-4 opacity-60">
+//                   {title}
+//                 </h5>
+
+//                 <ul className="flex flex-col gap-2">
+//                   {links.map((link) => (
+//                     <li key={link.label}>
+//                       <Link
+//                         href={link.href}
+//                         className="text-sm flex items-center gap-1 opacity-70 hover:opacity-100 transition"
+//                       >
+//                         <ChevronRight size={12} />
+//                         {link.label}
+//                       </Link>
+//                     </li>
+//                   ))}
+//                 </ul>
+//               </div>
+//             ))}
+//           </div>
+//         </div>
+//       </div>
+
+//       {/* Bottom */}
+//       <div className="py-5 text-xs flex flex-col md:flex-row justify-between items-center gap-4 px-4 sm:px-6 max-w-[1280px] mx-auto text-stone-500 border-t border-border">
+//         <p>Â© {new Date().getFullYear()} Jimvio</p>
+
+//         <div className="flex gap-4">
+//           <Link href="/privacy">Privacy</Link>
+//           <Link href="/terms">Terms</Link>
+//           <Link href="#">Cookies</Link>
+//         </div>
+//       </div>
+//     </footer>
+//   );
+// }
+
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
-  Twitter, Youtube, Mail,
-  ShieldCheck, CreditCard, Lock, ChevronRight,
+  Twitter, Youtube, Mail, TrendingUp,
+  ShieldCheck, CreditCard, Lock,
+  ChevronRight, ArrowRight, Circle,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import type { ContactSettings } from "@/lib/platform-settings-shared";
 import { PLATFORM_SETTINGS_DEFAULTS } from "@/lib/platform-settings-shared";
 
+// ── Data ─────────────────────────────────────────────────────────────────────
 
 const footerLinks = {
   Marketplace: [
-    { label: "Browse Products", href: "/marketplace" },
-    { label: "Top Suppliers", href: "/vendors" },
-    { label: "Post Buying Lead", href: "/requests/new" },
-    { label: "Trade Assurance", href: "/protection" },
+    { label: "Browse Products",    href: "/marketplace" },
+    { label: "Top Suppliers",      href: "/vendors" },
+    { label: "Post Buying Lead",   href: "/requests/new" },
+    { label: "Trade Assurance",    href: "/protection" },
     { label: "Verified Exporters", href: "/verified" },
-    { label: "Flash Deals", href: "/deals" },
+    { label: "Flash Deals",        href: "/deals" },
   ],
   "Earn & Grow": [
     { label: "Affiliate Program", href: "/affiliates" },
-    { label: "Influencer Hub", href: "/influencers" },
-    { label: "Clips", href: "/clips" },
-    { label: "Clippings", href: "/clippings" },
-    { label: "Partner API", href: "/api" },
-    { label: "Creator Studio", href: "/creator" },
+    { label: "Influencer Hub",    href: "/influencers" },
+    { label: "Clips",             href: "/clips" },
+    { label: "Clippings",         href: "/clippings" },
+    { label: "Partner API",       href: "/api" },
+    { label: "Creator Studio",    href: "/creator" },
   ],
   Resources: [
     { label: "Market Reports", href: "/reports" },
-    { label: "Trade Guides", href: "/guides" },
-    { label: "Blog", href: "/blog" },
-    { label: "Help Center", href: "/help" },
-    { label: "Webinars", href: "/webinars" },
-    { label: "API Docs", href: "/docs" },
+    { label: "Trade Guides",   href: "/guides" },
+    { label: "Blog",           href: "/blog" },
+    { label: "Help Center",    href: "/help" },
+    { label: "Webinars",       href: "/webinars" },
+    { label: "API Docs",       href: "/docs" },
   ],
   Company: [
-    { label: "About Us", href: "/about" },
-    { label: "Careers", href: "/careers" },
-    { label: "Press", href: "/press" },
-    { label: "Trust & Safety", href: "/safety" },
-    { label: "Contact", href: "/contact" },
-    { label: "Investor Relations", href: "/investors" },
+    { label: "About Us",            href: "/about" },
+    { label: "Careers",             href: "/careers" },
+    { label: "Press",               href: "/press" },
+    { label: "Trust & Safety",      href: "/safety" },
+    { label: "Contact",             href: "/contact" },
+    { label: "Investor Relations",  href: "/investors" },
   ],
 };
+
+const trustBadges = [
+  { icon: ShieldCheck, label: "Trade Assurance Protected" },
+  { icon: CreditCard,  label: "Secure Payments" },
+  { icon: Lock,        label: "SSL Encrypted" },
+];
+
+const legalLinks = ["Privacy", "Terms", "Cookies", "Sitemap"];
+
+// ── Sub-components ────────────────────────────────────────────────────────────
+
+/**
+ * Newsletter CTA — fully theme-aware, no hardcoded colors.
+ * Uses Tailwind semantic tokens so light/dark mode is handled automatically.
+ */
+function NewsletterStrip() {
+  const [email, setEmail]     = useState("");
+  const [submitted, setSubmit] = useState(false);
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (email) setSubmit(true);
+  }
+
+  return (
+    // bg-surface       → your site's card/panel surface (adapts to light/dark)
+    // border-b         → separates strip from the main footer grid
+    <div className="bg-surface border-b border-border">
+      <div className="mx-auto max-w-[1280px] px-4 py-8 sm:px-6">
+        <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+
+          {/* Copy */}
+          <div>
+            <h2 className="text-base font-black tracking-[-0.03em] text-text-primary sm:text-lg">
+              Stay ahead of the market
+            </h2>
+            <p className="mt-1 text-[13px] text-text-muted">
+              Weekly trade insights, flash deals & platform updates — no spam.
+            </p>
+          </div>
+
+          {/* Form / success */}
+          {submitted ? (
+            <div className="flex items-center gap-2 rounded-md border border-[var(--color-success)]/30 bg-[var(--color-success)]/10 px-5 py-3 text-sm font-semibold text-[var(--color-success)]">
+              <ShieldCheck size={15} />
+              You're in — check your inbox!
+            </div>
+          ) : (
+            <form
+              onSubmit={handleSubmit}
+              className="flex gap-2.5 flex-wrap sm:flex-nowrap"
+            >
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="your@email.com"
+                required
+                className={cn(
+                  // Base sizing & shape
+                  "h-[42px] w-full sm:w-[220px] rounded-md px-4 text-[13px] font-medium outline-none",
+                  // Theme-aware colors — bg, border, text all follow site theme
+                  "border-[1.5px] border-border bg-background text-text-primary placeholder:text-text-muted",
+                  // Smooth transitions on focus
+                  "transition-[border-color,box-shadow] duration-[180ms]",
+                  // Focus ring uses accent color
+                  "focus:border-accent focus:shadow-[0_0_0_3px_rgba(var(--accent-rgb),0.15)]"
+                )}
+              />
+              <button
+                type="submit"
+                className={cn(
+                  "btn-premium h-[42px] bg-accent text-white hover:bg-accent-hover",
+                  "shadow-[0_2px_8px_rgba(253,80,0,0.35)] hover:shadow-[0_4px_16px_rgba(253,80,0,0.4)]",
+                  "hover:-translate-y-px"
+                )}
+              >
+                Subscribe <ArrowRight size={14} />
+              </button>
+            </form>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Single social icon button */
+function SocialBtn({
+  href,
+  label,
+  children,
+}: {
+  href: string;
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label={label}
+      className={cn(
+        "flex h-9 w-9 items-center justify-center",
+        "rounded-sm border-[1.5px] border-border bg-surface text-text-muted",
+        "shadow-[var(--shadow-sm)]",
+        "transition-all duration-[180ms]",
+        "hover:border-accent hover:bg-accent-light hover:text-accent hover:-translate-y-0.5",
+        "hover:shadow-[var(--shadow-md)]",
+        "active:scale-95"
+      )}
+    >
+      {children}
+    </a>
+  );
+}
+
+/** Link column card */
+function LinkColumn({
+  title,
+  links,
+}: {
+  title: string;
+  links: { label: string; href: string }[];
+}) {
+  return (
+    <div className="rounded-md border-[1.5px] border-border bg-surface-secondary p-[18px] shadow-[var(--shadow-sm)]">
+      <h5 className="home-section-eyebrow mb-3.5">{title}</h5>
+      <ul className="flex flex-col gap-0.5">
+        {links.map((link) => (
+          <li key={link.label}>
+            <Link
+              href={link.href}
+              className={cn(
+                "group flex items-center gap-1.5 rounded py-[3px]",
+                "text-[13px] font-normal text-text-secondary opacity-75",
+                "transition-all duration-150",
+                "hover:gap-2.5 hover:opacity-100 hover:text-accent"
+              )}
+            >
+              <ChevronRight
+                size={10}
+                className="shrink-0 transition-transform duration-150 group-hover:translate-x-0.5"
+              />
+              {link.label}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+// ── Footer ────────────────────────────────────────────────────────────────────
 
 export function Footer({ contact: contactProp }: { contact?: ContactSettings }) {
   const contact = contactProp ?? PLATFORM_SETTINGS_DEFAULTS.contact;
 
+  const socials = [
+    { label: "X / Twitter", href: contact.social_x,
+      icon: (
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.73-8.835L1.254 2.25H8.08l4.258 5.63 5.906-5.63Zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+        </svg>
+      ),
+    },
+    { label: "YouTube", href: contact.social_youtube, icon: <Youtube size={16} /> },
+    { label: "Email",   href: `mailto:${contact.info_email}`, icon: <Mail size={15} /> },
+    { label: "TikTok",  href: "#",
+      icon: (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.24 8.24 0 0 0 4.81 1.54V6.78a4.85 4.85 0 0 1-1.04-.09z" />
+        </svg>
+      ),
+    },
+  ];
+
   return (
-    <footer className="relative overflow-hidden text-[color:var(--color-text)] bg-surface border-t border-border pb-[80px] md:pb-0">
+    <footer className="relative overflow-hidden bg-surface border-t border-border pb-[80px] md:pb-0">
 
-      {/* Content */}
-      <div className="relative z-10 max-w-[1280px] mx-auto px-4 sm:px-6 pt-16 pb-12">
-        <div className="grid grid-cols-1 gap-12 lg:grid-cols-6">
+      {/* Newsletter — theme-aware, no hardcoded dark background */}
+      <NewsletterStrip />
 
-          {/* Brand */}
+      {/* Main grid */}
+      <div className="relative z-10 mx-auto max-w-[1280px] px-4 sm:px-6 pt-12 pb-10">
+        <div className="grid grid-cols-1 gap-10 lg:grid-cols-6">
+
+          {/* ── Brand column ─────────────────────────────── */}
           <div className="lg:col-span-2 flex flex-col">
 
-            <Link href="/" className="inline-flex items-center gap-0 mb-7 group">
+            {/* Logo */}
+            <Link href="/" className="inline-flex items-center gap-0 mb-4 group w-fit">
               <Image
                 src="/jimvio-logo.png"
                 alt="Jimvio"
-                width={64}
-                height={64}
-                className="h-12 sm:h-14 w-auto mix-blend-multiply dark:mix-blend-normal brightness-110 contrast-110"
+                width={56}
+                height={56}
+                className="h-11 w-auto mix-blend-multiply dark:mix-blend-normal brightness-110 contrast-110"
               />
-              <span className="text-[36px] sm:text-[48px] font-black tracking-[-0.07em] select-none">
-                <span className="text-stone-950 dark:text-white">Jim</span>
-                <span className="bg-gradient-to-br from-[#fd5000] via-[#fd5000] to-[#ff6a00] bg-clip-text text-transparent drop-shadow-[0_0_12px_rgba(253,80,0,0.12)]">
+              <span className="text-[36px] sm:text-[42px] font-black tracking-[-0.07em] leading-none select-none">
+                <span className="text-text-primary">Jim</span>
+                <span
+                  className="bg-clip-text text-transparent"
+                  style={{
+                    backgroundImage: "linear-gradient(135deg, #fd5000 0%, #ff6a00 100%)",
+                  }}
+                >
                   vio
                 </span>
               </span>
             </Link>
 
-            <p className="text-[13px] leading-relaxed text-stone-500 dark:text-stone-400 max-w-[280px] mb-8 font-medium">
-              The global creator-commerce ecosystem. One platform for verified suppliers, buyers, affiliates & influencers.
+            <p className="text-[13px] leading-relaxed text-text-muted max-w-[260px] mb-6 font-normal">
+              The global creator-commerce ecosystem. One platform for verified
+              suppliers, buyers, affiliates & influencers.
             </p>
 
-            {/* Social */}
-            <div className="flex gap-2.5 mb-7">
-              {[
-                { icon: <Twitter size={18} />, href: contact.social_x },
-                { icon: <Youtube size={18} />, href: contact.social_youtube },
-                { icon: <Mail size={18} />, href: `mailto:${contact.info_email}` },
-              ].map((s, i) => (
-                <a
-                  key={i}
-                  href={s.href}
-                  target="_blank"
-                  className="w-10 h-10 flex items-center justify-center rounded-none border border-border bg-white dark:bg-stone-900 hover:border-orange-500 hover:text-orange-500 transition-all duration-300 active:scale-90 shadow-sm"
-                >
+            {/* Socials */}
+            <div className="flex gap-2 mb-6">
+              {socials.map((s) => (
+                <SocialBtn key={s.label} href={s.href} label={s.label}>
                   {s.icon}
-                </a>
+                </SocialBtn>
               ))}
             </div>
 
             {/* Trust badges */}
-            <div className="flex flex-wrap gap-2">
-              {[Lock, CreditCard, ShieldCheck].map((Icon, i) => (
-                <span
-                  key={i}
-                  className="px-3 py-1 text-xs rounded-none flex items-center gap-1 border border-border bg-stone-50 dark:bg-stone-900 text-stone-500 dark:text-stone-400"
+            <div className="flex flex-col gap-2">
+              {trustBadges.map(({ icon: Icon, label }) => (
+                <div
+                  key={label}
+                  className={cn(
+                    "flex items-center gap-2.5 rounded-sm border-[1.5px] border-border",
+                    "bg-surface-secondary px-3 py-2 text-xs font-medium text-text-secondary",
+                    "shadow-[var(--shadow-sm)]"
+                  )}
                 >
-                  <Icon size={12} />
-                </span>
+                  {/* Live dot */}
+                  <span className="relative flex h-[7px] w-[7px] shrink-0">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-50" />
+                    <span className="relative inline-flex h-[7px] w-[7px] rounded-full bg-success" />
+                  </span>
+                  <Icon size={12} className="text-text-muted shrink-0" />
+                  {label}
+                </div>
               ))}
             </div>
           </div>
 
-          {/* Links */}
-          <div className="lg:col-span-4 grid grid-cols-2 sm:grid-cols-4 gap-5">
+          {/* ── Link columns ──────────────────────────────── */}
+          <div className="lg:col-span-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
             {Object.entries(footerLinks).map(([title, links]) => (
-              <div
-                key={title}
-                className="p-5 rounded-none bg-stone-50 dark:bg-stone-900 border border-border"
-              >
-                <h5 className="text-xs uppercase mb-4 opacity-60">
-                  {title}
-                </h5>
-
-                <ul className="flex flex-col gap-2">
-                  {links.map((link) => (
-                    <li key={link.label}>
-                      <Link
-                        href={link.href}
-                        className="text-sm flex items-center gap-1 opacity-70 hover:opacity-100 transition"
-                      >
-                        <ChevronRight size={12} />
-                        {link.label}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+              <LinkColumn key={title} title={title} links={links} />
             ))}
           </div>
+
         </div>
       </div>
 
-      {/* Bottom */}
-      <div className="py-5 text-xs flex flex-col md:flex-row justify-between items-center gap-4 px-4 sm:px-6 max-w-[1280px] mx-auto text-stone-500 border-t border-border">
-        <p>Â© {new Date().getFullYear()} Jimvio</p>
+      {/* Divider */}
+      <div className="border-t border-border" />
 
-        <div className="flex gap-4">
-          <Link href="/privacy">Privacy</Link>
-          <Link href="/terms">Terms</Link>
-          <Link href="#">Cookies</Link>
+      {/* Bottom bar */}
+      <div className="mx-auto max-w-[1280px] px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="flex items-center gap-4">
+          <p className="text-xs text-text-muted">
+            © {new Date().getFullYear()} Jimvio Inc.
+          </p>
+          {/* Status pill */}
+          <span
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-full border-[1.5px] border-border",
+              "bg-surface-secondary px-2.5 py-1 text-[11px] font-semibold text-text-muted"
+            )}
+          >
+            <span className="relative flex h-[5px] w-[5px]">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-60" />
+              <span className="relative inline-flex h-[5px] w-[5px] rounded-full bg-success" />
+            </span>
+            All systems operational
+          </span>
         </div>
+
+        <nav className="flex items-center gap-1">
+          {legalLinks.map((item, i) => (
+            <React.Fragment key={item}>
+              {i > 0 && (
+                <span className="text-border-strong text-[10px] select-none">·</span>
+              )}
+              <Link
+                href={`/${item.toLowerCase()}`}
+                className={cn(
+                  "rounded px-2 py-1 text-xs text-text-muted",
+                  "transition-[color,background] duration-150",
+                  "hover:text-text-primary hover:bg-surface-secondary"
+                )}
+              >
+                {item}
+              </Link>
+            </React.Fragment>
+          ))}
+        </nav>
       </div>
     </footer>
   );
 }
-

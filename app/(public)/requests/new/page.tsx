@@ -39,7 +39,7 @@ export default function PostBuyingLeadPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-[1fr,300px] gap-10">
           {/* Main Form */}
-          <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-none p-8 shadow-[var(--shadow-none)]">
+          <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-sm p-8 shadow-[var(--shadow-none)]">
             <form className="space-y-8">
               
               <div className="space-y-4">
@@ -66,7 +66,7 @@ export default function PostBuyingLeadPage() {
                     <List className="h-5 w-5 text-[var(--color-accent)]" />
                     Category
                   </div>
-                  <select className="w-full h-12 bg-white dark:bg-surface border-2 border-[var(--color-border)] rounded-none px-4 text-sm focus:outline-none focus:border-[var(--color-accent)] transition-colors">
+                  <select className="w-full h-12 bg-white dark:bg-surface border-2 border-[var(--color-border)] rounded-sm px-4 text-sm focus:outline-none focus:border-[var(--color-accent)] transition-colors">
                     <option>Select a category</option>
                     <option>Electronics</option>
                     <option>Fashion & Apparel</option>
@@ -82,7 +82,7 @@ export default function PostBuyingLeadPage() {
                   </div>
                   <div className="flex gap-2">
                     <Input placeholder="Quantity" className="h-12 border-2" />
-                    <select className="w-24 bg-white dark:bg-surface border-2 border-[var(--color-border)] rounded-none px-2 text-sm">
+                    <select className="w-24 bg-white dark:bg-surface border-2 border-[var(--color-border)] rounded-sm px-2 text-sm">
                       <option>PCS</option>
                       <option>KGs</option>
                       <option>TONS</option>
@@ -119,7 +119,7 @@ export default function PostBuyingLeadPage() {
                 </div>
               </div>
 
-              <Button className="w-full h-14 bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-black text-lg rounded-none shadow-none shadow-[var(--color-accent)]/20">
+              <Button className="w-full h-14 bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-black text-lg rounded-sm shadow-none shadow-[var(--color-accent)]/20">
                 Post Buying Lead <Send className="ml-2 h-5 w-5" />
               </Button>
 
@@ -131,7 +131,7 @@ export default function PostBuyingLeadPage() {
 
           {/* Right Sidebar */}
           <div className="space-y-6">
-            <div className="bg-[var(--color-accent)] rounded-none p-6 text-white shadow-none shadow-[var(--color-accent)]/20">
+            <div className="bg-[var(--color-accent)] rounded-sm p-6 text-white shadow-none shadow-[var(--color-accent)]/20">
               <h3 className="font-black text-xl mb-4">Why post a lead?</h3>
               <ul className="space-y-4">
                 {[
@@ -148,7 +148,7 @@ export default function PostBuyingLeadPage() {
               </ul>
             </div>
 
-            <div className="bg-white dark:bg-surface border border-[var(--color-border)] rounded-none p-6 shadow-none">
+            <div className="bg-white dark:bg-surface border border-[var(--color-border)] rounded-sm p-6 shadow-none">
               <h4 className="font-bold text-[var(--color-text-primary)] mb-4 flex items-center gap-2">
                 <HelpCircle className="h-4 w-4 text-[var(--color-accent)]" /> Pro Tips
               </h4>
@@ -157,9 +157,9 @@ export default function PostBuyingLeadPage() {
               </p>
             </div>
 
-            <div className="bg-[var(--color-surface-secondary)] rounded-none p-6 border border-[var(--color-border)]">
+            <div className="bg-[var(--color-surface-secondary)] rounded-sm p-6 border border-[var(--color-border)]">
               <div className="flex items-center gap-4 mb-4">
-                <div className="h-10 w-10 rounded-none bg-white dark:bg-surface flex items-center justify-center">
+                <div className="h-10 w-10 rounded-sm bg-white dark:bg-surface flex items-center justify-center">
                   <Smartphone className="h-5 w-5 text-[var(--color-accent)]" />
                 </div>
                 <div>

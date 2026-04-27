@@ -42,10 +42,10 @@ const BILLING_PERIODS = ["weekly", "monthly", "quarterly", "yearly"];
 
 const BUTTON_TEXTS = ["Join", "Get access", "Order now", "Purchase", "Sign up", "Download", "Subscribe"];
 
-const inputBase = "h-10 w-full rounded-none border border-border bg-white dark:bg-zinc-900 text-stone-900 dark:text-white placeholder:text-stone-400 focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:border-orange-500 transition-all text-sm px-3.5";
-const selectBase = "h-10 w-full px-3.5 rounded-none border border-border bg-white dark:bg-zinc-900 text-stone-900 dark:text-white text-sm focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 transition-all appearance-none cursor-pointer";
+const inputBase = "h-10 w-full rounded-sm border border-border bg-white dark:bg-zinc-900 text-stone-900 dark:text-white placeholder:text-stone-400 focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:border-orange-500 transition-all text-sm px-3.5";
+const selectBase = "h-10 w-full px-3.5 rounded-sm border border-border bg-white dark:bg-zinc-900 text-stone-900 dark:text-white text-sm focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 transition-all appearance-none cursor-pointer";
 const labelBase = "text-[11px] font-bold uppercase tracking-tight text-stone-500 mb-1.5 block";
-const cardBase = "bg-white dark:bg-zinc-900 border border-border rounded-none p-6 shadow-sm";
+const cardBase = "bg-white dark:bg-zinc-900 border border-border rounded-sm p-6 shadow-sm";
 
 function SectionHeader({ title, subtitle }: { title: string; subtitle: string }) {
   return (
@@ -62,11 +62,11 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
       type="button"
       onClick={() => onChange(!checked)}
       className={cn(
-        "relative inline-flex h-6 w-11 shrink-0 items-center rounded-none transition-colors focus:outline-none",
+        "relative inline-flex h-6 w-11 shrink-0 items-center rounded-sm transition-colors focus:outline-none",
         checked ? "bg-blue-600" : "bg-[#2A2A2A]"
       )}
     >
-      <span className={cn("inline-block h-4 w-4 transform rounded-none bg-white transition-transform shadow-none", checked ? "translate-x-6" : "translate-x-1")} />
+      <span className={cn("inline-block h-4 w-4 transform rounded-sm bg-white transition-transform shadow-none", checked ? "translate-x-6" : "translate-x-1")} />
     </button>
   );
 }
@@ -251,8 +251,8 @@ export default function NewProductPage() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-6 bg-[#060606]">
         <div className="relative">
-          <div className="absolute inset-0 bg-orange-500/20 blur-3xl rounded-none scale-150 animate-pulse" />
-          <div className="relative w-20 h-20 rounded-none bg-[#111] border border-[#222] shadow-none flex items-center justify-center">
+          <div className="absolute inset-0 bg-orange-500/20 blur-3xl rounded-sm scale-150 animate-pulse" />
+          <div className="relative w-20 h-20 rounded-sm bg-[#111] border border-[#222] shadow-none flex items-center justify-center">
             <CheckCircle2 className="h-10 w-10 text-orange-500" />
           </div>
         </div>
@@ -277,7 +277,7 @@ export default function NewProductPage() {
         <div className="flex items-center gap-4">
           <Link
             href="/dashboard/products"
-            className="w-10 h-10 flex items-center justify-center rounded-none border border-[#222] bg-[#111] text-zinc-400 hover:text-white hover:bg-[#1A1A1A] transition-all"
+            className="w-10 h-10 flex items-center justify-center rounded-sm border border-[#222] bg-[#111] text-zinc-400 hover:text-white hover:bg-[#1A1A1A] transition-all"
           >
             <ArrowLeft className="w-5 h-5" />
           </Link>
@@ -291,14 +291,14 @@ export default function NewProductPage() {
           <Button
             variant="ghost"
             onClick={() => router.push("/dashboard/products")}
-            className="text-zinc-400 hover:text-white h-10 px-6 rounded-none underline-offset-4 hover:underline"
+            className="text-zinc-400 hover:text-white h-10 px-6 rounded-sm underline-offset-4 hover:underline"
           >
             Discard
           </Button>
           <Button
             onClick={() => handleSubmit()}
             disabled={isPending}
-            className="bg-orange-600 hover:bg-orange-500 text-white px-8 h-10 rounded-none font-bold text-xs uppercase tracking-widest shadow-[0_0_20px_rgba(249,115,22,0.2)] transition-all active:scale-95"
+            className="bg-orange-600 hover:bg-orange-500 text-white px-8 h-10 rounded-sm font-bold text-xs uppercase tracking-widest shadow-[0_0_20px_rgba(249,115,22,0.2)] transition-all active:scale-95"
           >
             {isPending ? (
               <Loader2 className="w-4 h-4 animate-spin mr-2" />
@@ -433,7 +433,7 @@ export default function NewProductPage() {
                           )}
                         >
                           <div className={cn(
-                            "w-8 h-8 flex items-center justify-center rounded-none transition-colors",
+                            "w-8 h-8 flex items-center justify-center rounded-sm transition-colors",
                             isSelected ? "bg-orange-600 text-white" : "bg-zinc-800 text-zinc-500 group-hover:text-zinc-300"
                           )}>
                             <Icon className="w-4 h-4" />
@@ -596,7 +596,7 @@ export default function NewProductPage() {
                       folder="jimvio/digital-files"
                       resourceType="raw"
                       onUploadSuccess={url => handleChange("digital_file_url", url)}
-                      className="px-6 h-9 rounded-none bg-orange-500 text-[10px] font-bold uppercase tracking-widest hover:bg-orange-400 transition-colors"
+                      className="px-6 h-9 rounded-sm bg-orange-500 text-[10px] font-bold uppercase tracking-widest hover:bg-orange-400 transition-colors"
                     />
                   </div>
                   {form.digital_file_url && (
@@ -766,7 +766,7 @@ export default function NewProductPage() {
                <Button
                 onClick={() => handleSubmit()}
                 disabled={isPending}
-                className="w-full bg-black hover:bg-zinc-900 border-0 text-white rounded-none h-14 font-bold text-xs uppercase tracking-[0.2em] shadow-xl group"
+                className="w-full bg-black hover:bg-zinc-900 border-0 text-white rounded-sm h-14 font-bold text-xs uppercase tracking-[0.2em] shadow-xl group"
               >
                 {isPending ? (
                   <Loader2 className="w-5 h-5 animate-spin mr-3 text-orange-500" />

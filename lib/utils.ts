@@ -162,3 +162,19 @@ export function getStarRating(rating: number): string {
   const half = rating % 1 >= 0.5;
   return "★".repeat(full) + (half ? "½" : "") + "☆".repeat(5 - full - (half ? 1 : 0));
 }
+
+export const getInputValidationClasses = (
+  hasError: boolean,
+  className?: string
+): string => {
+  const baseClasses =
+    "w-full placeholder:text-sm placeholder:text-gray-600 disabled:cursor-not-allowed placeholder:font-medium pl-10 pr-4 py-3 border rounded-sm transition-all duration-300 focus:outline-none focus:ring-2 bg-white";
+
+  return cn(
+    baseClasses,
+    hasError
+      ? "placeholder:text-red-500 bg-red-50 border-red-300 focus:border-red-500 focus:ring-red-200"
+      : "hover:border-green-400 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 hover:border-gray-300",
+    className
+  );
+};

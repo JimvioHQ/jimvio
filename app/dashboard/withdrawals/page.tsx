@@ -268,7 +268,7 @@ export default function AffiliateWithdrawalsPage() {
         </div>
 
         {/* History Registry - Simpler padding */}
-        <GlassCard className="rounded-2xl border-border bg-surface/60 dark:bg-surface-secondary/40 shadow-sm overflow-hidden max-sm:-mx-4 max-sm:rounded-none max-sm:border-x-0">
+        <GlassCard className="rounded-2xl border-border bg-surface/60 dark:bg-surface-secondary/40 shadow-sm overflow-hidden max-sm:-mx-4 max-sm:rounded-sm max-sm:border-x-0">
            <div className="p-6 sm:p-8 border-b border-border bg-surface/40 dark:bg-surface/40 flex items-center gap-3">
               <div className="p-1.5 sm:p-2 rounded-xl bg-surface dark:bg-surface-secondary border border-border shadow-sm text-stone-300 dark:text-stone-700">
                  <History className="h-4 w-4" />

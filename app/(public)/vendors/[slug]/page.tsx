@@ -123,17 +123,17 @@ export default async function VendorStorePage({ params }: PageProps) {
             {/* Content Tabs */}
             <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl shadow-sm overflow-hidden">
               <Tabs defaultValue="products">
-                <TabsList className="bg-transparent border-b border-[var(--color-border)] w-full justify-start h-auto rounded-none p-0">
-                  <TabsTrigger value="products" className="py-4 px-8 font-black rounded-none data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-[var(--color-accent)] data-[state=active]:text-[var(--color-accent)]">
+                <TabsList className="bg-transparent border-b border-[var(--color-border)] w-full justify-start h-auto rounded-sm p-0">
+                  <TabsTrigger value="products" className="py-4 px-8 font-black rounded-sm data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-[var(--color-accent)] data-[state=active]:text-[var(--color-accent)]">
                     Products ({products.length})
                   </TabsTrigger>
-                  <TabsTrigger value="videos" className="py-4 px-8 font-black rounded-none data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-[var(--color-accent)] data-[state=active]:text-[var(--color-accent)]">
+                  <TabsTrigger value="videos" className="py-4 px-8 font-black rounded-sm data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-[var(--color-accent)] data-[state=active]:text-[var(--color-accent)]">
                     Videos ({clips.length})
                   </TabsTrigger>
-                  <TabsTrigger value="profile" className="py-4 px-8 font-black rounded-none data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-[var(--color-accent)] data-[state=active]:text-[var(--color-accent)]">
+                  <TabsTrigger value="profile" className="py-4 px-8 font-black rounded-sm data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-[var(--color-accent)] data-[state=active]:text-[var(--color-accent)]">
                     Company Profile
                   </TabsTrigger>
-                  <TabsTrigger value="capabilities" className="py-4 px-8 font-black rounded-none data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-[var(--color-accent)] data-[state=active]:text-[var(--color-accent)]">
+                  <TabsTrigger value="capabilities" className="py-4 px-8 font-black rounded-sm data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-[var(--color-accent)] data-[state=active]:text-[var(--color-accent)]">
                     Capabilities
                   </TabsTrigger>
                 </TabsList>

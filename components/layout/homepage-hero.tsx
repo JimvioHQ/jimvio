@@ -70,8 +70,8 @@ function VideoMarquee({ videos, mobile = false }: { videos: any[]; mobile?: bool
             className={cn(
               "group relative shrink-0 overflow-hidden bg-stone-900 transition-transform",
               mobile
-                ? "w-[84px] h-[144px] rounded-none"
-                : "w-[115px] h-[196px] rounded-none"
+                ? "w-[84px] h-[144px] rounded-sm"
+                : "w-[115px] h-[196px] rounded-sm"
             )}
           >
             {/* Thumbnail */}
@@ -85,9 +85,9 @@ function VideoMarquee({ videos, mobile = false }: { videos: any[]; mobile?: bool
             <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
 
             {/* Live pip */}
-            <div className="absolute top-2 right-2 flex items-center gap-1 px-1.5 py-0.5 rounded-none bg-black/45 ">
+            <div className="absolute top-2 right-2 flex items-center gap-1 px-1.5 py-0.5 rounded-sm bg-black/45 ">
               <span
-                className="block rounded-none bg-[#fd5000]"
+                className="block rounded-sm bg-[#fd5000]"
                 style={{ width: 4, height: 4, animation: "pulse 1.8s infinite" }}
               />
               <span className="text-[7px] font-black text-white uppercase tracking-[.05em]">Live</span>
@@ -133,13 +133,13 @@ export function HomepageHero({
         </DialogTrigger>
         <DialogContent className="max-w-xl p-0 border-none bg-transparent shadow-none overflow-visible z-[9999]">
           <div
-            className="relative overflow-hidden rounded-none p-6 sm:p-7 max-h-[90vh] overflow-y-auto no-scrollbar bg-surface border border-border shadow-none"
+            className="relative overflow-hidden rounded-sm p-6 sm:p-7 max-h-[90vh] overflow-y-auto no-scrollbar bg-surface border border-border shadow-none"
           >
-            <div className="pointer-events-none absolute bottom-0 right-0 w-48 h-48 rounded-none blur-3xl opacity-5 bg-orange-500" />
+            <div className="pointer-events-none absolute bottom-0 right-0 w-48 h-48 rounded-sm blur-3xl opacity-5 bg-orange-500" />
 
             <DialogHeader className="mb-6 relative z-10 text-center">
               <div
-                className="mx-auto w-12 h-12 rounded-none flex items-center justify-center mb-4 bg-orange-50 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-500/20"
+                className="mx-auto w-12 h-12 rounded-sm flex items-center justify-center mb-4 bg-orange-50 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-500/20"
               >
                 <Sparkles className="h-6 w-6 text-orange-600" />
               </div>
@@ -161,12 +161,12 @@ export function HomepageHero({
                 <Link
                   key={href}
                   href={href}
-                  className="relative overflow-hidden p-4 rounded-none border border-border bg-stone-50/50 dark:bg-stone-900/50 transition-all group flex flex-col gap-3 shadow-none hover:shadow-none"
+                  className="relative overflow-hidden p-4 rounded-sm border border-border bg-stone-50/50 dark:bg-stone-900/50 transition-all group flex flex-col gap-3 shadow-none hover:shadow-none"
                 >
-                  <div className="absolute -top-6 -right-6 w-20 h-20 rounded-none blur-2xl opacity-20"
+                  <div className="absolute -top-6 -right-6 w-20 h-20 rounded-sm blur-2xl opacity-20"
                     style={{ background: color === "orange" ? "#f97316" : color === "blue" ? "#3b82f6" : color === "violet" ? "#8b5cf6" : "#ec4899" }} />
                   <div className={cn(
-                    "flex h-10 w-10 items-center justify-center rounded-none group-hover:scale-110 transition-transform border",
+                    "flex h-10 w-10 items-center justify-center rounded-sm group-hover:scale-110 transition-transform border",
                     color === "blue" ? "bg-blue-50/80 text-blue-600 border-blue-100/80" :
                     color === "violet" ? "bg-violet-50/80 text-violet-600 border-violet-100/80" :
                     color === "pink" ? "bg-pink-50/80 text-pink-600 border-pink-100/80" :
@@ -200,17 +200,17 @@ export function HomepageHero({
       <section className="flex flex-col lg:hidden w-full relative overflow-hidden pb-8 px-5 min-h-[380px] justify-center text-center bg-background">
         {/* Ambient blobs — match HTML prototype */}
         <div
-          className="pointer-events-none absolute top-[-60px] right-[-60px] rounded-none"
+          className="pointer-events-none absolute top-[-60px] right-[-60px] rounded-sm"
           style={{ width: 280, height: 280, background: "radial-gradient(circle, rgba(249,115,22,.08), transparent 65%)" }}
         />
 
         <div className="relative z-10 flex flex-col gap-4 pt-6 items-center">
           {/* Live badge */}
           <div
-            className="inline-flex items-center gap-[7px] px-[14px] py-[6px] rounded-none text-[10px] font-bold uppercase tracking-[.1em] text-orange-700 bg-orange-50 border border-orange-100"
+            className="inline-flex items-center gap-[7px] px-[14px] py-[6px] rounded-sm text-[10px] font-bold uppercase tracking-[.1em] text-orange-700 bg-orange-50 border border-orange-100"
           >
             <span
-              className="block rounded-none bg-[#f97316] shrink-0"
+              className="block rounded-sm bg-[#f97316] shrink-0"
               style={{ width: 6, height: 6 }}
             />
             Global Creator &amp; Sourcing Network
@@ -241,7 +241,7 @@ export function HomepageHero({
 
             <button
               onClick={() => openAssistant()}
-              className="h-11 rounded-none flex items-center justify-center gap-3 font-bold text-stone-700 dark:text-stone-200 text-[12px] uppercase tracking-[.07em] bg-surface border border-border shadow-none"
+              className="h-11 rounded-sm flex items-center justify-center gap-3 font-bold text-stone-700 dark:text-stone-200 text-[12px] uppercase tracking-[.07em] bg-surface border border-border shadow-none"
             >
               <Sparkles className="h-4 w-4 fill-[#f97316] stroke-none" />
               Activate AI Mode
@@ -257,7 +257,7 @@ export function HomepageHero({
               <Link
                 key={item.text}
                 href={item.href}
-                className="shrink-0 flex items-center gap-[6px] px-[14px] py-[8px] rounded-none font-bold text-[10px] uppercase tracking-[.05em] text-[#3c3429] dark:text-stone-300 transition-all bg-white/90 dark:bg-white/[0.05] border border-white/80 dark:border-white/[0.08] shadow-none"
+                className="shrink-0 flex items-center gap-[6px] px-[14px] py-[8px] rounded-sm font-bold text-[10px] uppercase tracking-[.05em] text-[#3c3429] dark:text-stone-300 transition-all bg-white/90 dark:bg-white/[0.05] border border-white/80 dark:border-white/[0.08] shadow-none"
               >
                 <item.icon className="h-[11px] w-[11px] text-[#f97316]" />
                 {item.text}
@@ -296,15 +296,15 @@ export function HomepageHero({
             >
               {/* Ambient blobs */}
               <div
-                className="absolute pointer-events-none rounded-none animate-blob"
+                className="absolute pointer-events-none rounded-sm animate-blob"
                 style={{ width: 520, height: 520, top: -120, right: -40, background: "radial-gradient(circle, rgba(253,80,0,.12), transparent 65%)" }}
               />
               <div
-                className="absolute pointer-events-none rounded-none animate-blob animation-delay-2000"
+                className="absolute pointer-events-none rounded-sm animate-blob animation-delay-2000"
                 style={{ width: 380, height: 380, bottom: -80, left: 60, background: "radial-gradient(circle, rgba(99,102,241,.08), transparent 65%)" }}
               />
               <div
-                className="absolute pointer-events-none rounded-none animate-blob animation-delay-4000"
+                className="absolute pointer-events-none rounded-sm animate-blob animation-delay-4000"
                 style={{ width: 260, height: 260, top: "30%", left: "40%", background: "radial-gradient(circle, rgba(253,80,0,.1), transparent 65%)" }}
               />
 
@@ -361,7 +361,7 @@ export function HomepageHero({
                   <button
                     onClick={() => openAssistant()}
                     title="AI Sourcing"
-                    className="h-11 w-11 rounded-none flex items-center justify-center transition-all bg-surface border border-border shadow-none hover:bg-stone-50"
+                    className="h-11 w-11 rounded-sm flex items-center justify-center transition-all bg-surface border border-border shadow-none hover:bg-stone-50"
                   >
                     <Sparkles className="h-[18px] w-[18px] fill-[#f97316] stroke-none" />
                   </button>
@@ -380,7 +380,7 @@ export function HomepageHero({
                     <Link
                       key={item.text}
                       href={item.href}
-                      className="flex items-center gap-2 px-4 py-[9px] rounded-none font-semibold text-[11px] text-[#3c3429] dark:text-[#d4ccbf] transition-all hover:border-[rgba(249,115,22,0.35)] bg-white/80 dark:bg-white/5 border border-white/90 dark:border-white/10 "
+                      className="flex items-center gap-2 px-4 py-[9px] rounded font-semibold text-[11px] text-[#3c3429] dark:text-[#d4ccbf] transition-all hover:border-[rgba(249,115,22,0.35)] bg-white/80 dark:bg-white/5 border border-white/90 dark:border-white/10 "
                     >
                       <item.icon className="h-[13px] w-[13px] text-[#f97316]" />
                       {item.text}

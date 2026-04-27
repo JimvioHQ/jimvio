@@ -60,7 +60,7 @@ export function ShopifyConnectClient({ platformVendorConfigured }: { platformVen
         </p>
       </div>
 
-      <details className="rounded-none border border-[var(--color-border)] bg-[var(--color-surface-secondary)]/60 px-4 py-3 text-sm text-[var(--color-text-secondary)]">
+      <details className="rounded-sm border border-[var(--color-border)] bg-[var(--color-surface-secondary)]/60 px-4 py-3 text-sm text-[var(--color-text-secondary)]">
         <summary className="cursor-pointer font-semibold text-[var(--color-text-primary)]">
           Where do I get each value?
         </summary>
@@ -95,7 +95,7 @@ export function ShopifyConnectClient({ platformVendorConfigured }: { platformVen
           <>
             <label className="block text-xs font-semibold uppercase tracking-wide text-zinc-500">Vendor ID (UUID)</label>
             <input
-              className="w-full border border-zinc-200 dark:border-border rounded-none px-3 py-2 text-sm"
+              className="w-full border border-zinc-200 dark:border-border rounded-sm px-3 py-2 text-sm"
               value={vendorId}
               onChange={(e) => setVendorId(e.target.value)}
               placeholder="vendors.id from Supabase — or set JIMVIO_PLATFORM_SHOPIFY_VENDOR_ID in .env"
@@ -104,14 +104,14 @@ export function ShopifyConnectClient({ platformVendorConfigured }: { platformVen
         )}
         <label className="block text-xs font-semibold uppercase tracking-wide text-zinc-500">Shop domain</label>
         <input
-          className="w-full border border-zinc-200 dark:border-border rounded-none px-3 py-2 text-sm"
+          className="w-full border border-zinc-200 dark:border-border rounded-sm px-3 py-2 text-sm"
           value={shopDomain}
           onChange={(e) => setShopDomain(e.target.value)}
           placeholder="your-store.myshopify.com"
         />
         <label className="block text-xs font-semibold uppercase tracking-wide text-zinc-500">Admin API access token</label>
         <input
-          className="w-full border border-zinc-200 dark:border-border rounded-none px-3 py-2 text-sm font-mono"
+          className="w-full border border-zinc-200 dark:border-border rounded-sm px-3 py-2 text-sm font-mono"
           type="password"
           autoComplete="off"
           value={accessToken}

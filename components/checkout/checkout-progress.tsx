@@ -22,7 +22,7 @@ export function CheckoutProgress({ activeStep }: { activeStep: 1 | 2 | 3 }) {
             <div key={`step-${step.id}`} className="flex flex-col items-center gap-2 min-w-0">
               <div
                 className={cn(
-                  "flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-none border-2 transition-colors",
+                  "flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-sm border-2 transition-colors",
                   done && "border-[var(--color-accent)] bg-[var(--color-accent)] text-white",
                   current &&
                     !done &&
@@ -47,7 +47,7 @@ export function CheckoutProgress({ activeStep }: { activeStep: 1 | 2 | 3 }) {
             <div
               key={`line-${i}`}
               className={cn(
-                "h-0.5 mt-[18px] rounded-none min-w-[2rem]",
+                "h-0.5 mt-[18px] rounded-sm min-w-[2rem]",
                 activeStep > step.id ? "bg-[var(--color-accent)]" : "bg-[var(--color-border)]"
               )}
               aria-hidden

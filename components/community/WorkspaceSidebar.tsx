@@ -144,7 +144,7 @@ export function WorkspaceSidebar({
         style={{ top: "var(--navbar-height)", height: "calc(100vh - var(--navbar-height))" }}
       >
         <div className="p-3 border-b border-[var(--color-border)] flex items-start gap-2">
-          <div className="h-9 w-9 rounded-none overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface-secondary)] shrink-0">
+          <div className="h-9 w-9 rounded-sm overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface-secondary)] shrink-0">
             {avatarUrl ? (
               <Image src={avatarUrl} alt="" width={36} height={36} className="object-cover h-full w-full" unoptimized />
             ) : (
@@ -160,7 +160,7 @@ export function WorkspaceSidebar({
           {showSettings && (
             <Link
               href="/dashboard"
-              className="p-1.5 rounded-none text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
+              className="p-1.5 rounded-sm text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
               title="Settings"
             >
               <Settings className="h-4 w-4" />
@@ -173,11 +173,11 @@ export function WorkspaceSidebar({
           {spaces.map((space) => {
             const isOpen = expanded[space.id] !== false;
             return (
-              <div key={space.id} className="rounded-none border border-transparent">
+              <div key={space.id} className="rounded-sm border border-transparent">
                 <button
                   type="button"
                   onClick={() => setExpanded((e) => ({ ...e, [space.id]: !isOpen }))}
-                  className="w-full flex items-center gap-2 px-2 py-1.5 rounded-none hover:bg-[var(--color-surface-secondary)] text-left"
+                  className="w-full flex items-center gap-2 px-2 py-1.5 rounded-sm hover:bg-[var(--color-surface-secondary)] text-left"
                 >
                   <span className="text-lg leading-none w-6 text-center">{space.icon || "·"}</span>
                   <span className="flex-1 text-xs font-black text-[var(--color-text-primary)] truncate">{space.name}</span>
@@ -203,7 +203,7 @@ export function WorkspaceSidebar({
                             type="button"
                             onClick={() => handleRoomClick(space, room)}
                             className={cn(
-                              "w-full flex items-center gap-2 px-2 py-1.5 rounded-none text-left text-xs font-semibold",
+                              "w-full flex items-center gap-2 px-2 py-1.5 rounded-sm text-left text-xs font-semibold",
                               active
                                 ? "bg-[var(--color-accent-light)] text-[var(--color-accent)]"
                                 : "text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-secondary)]",
@@ -214,7 +214,7 @@ export function WorkspaceSidebar({
                             <span className="truncate flex-1">{room.name}</span>
                             {!canEnter && <Lock className="h-3 w-3 shrink-0 text-[var(--color-text-muted)]" />}
                             {ur > 0 && (
-                              <span className="text-[10px] font-black px-1.5 py-0 rounded-none bg-[var(--color-danger-light)] text-[var(--color-danger)]">
+                              <span className="text-[10px] font-black px-1.5 py-0 rounded-sm bg-[var(--color-danger-light)] text-[var(--color-danger)]">
                                 {ur > 9 ? "9+" : ur}
                               </span>
                             )}
@@ -234,7 +234,7 @@ export function WorkspaceSidebar({
             href={`${base}/chats`}
             onClick={onNavigate}
             className={cn(
-              "flex items-center gap-2 px-2 py-2 rounded-none text-xs font-bold",
+              "flex items-center gap-2 px-2 py-2 rounded-sm text-xs font-bold",
               chatsActive ? "bg-[var(--color-accent-light)] text-[var(--color-accent)]" : "text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-secondary)]"
             )}
           >
@@ -245,7 +245,7 @@ export function WorkspaceSidebar({
             href={`${base}/members`}
             onClick={onNavigate}
             className={cn(
-              "flex items-center gap-2 px-2 py-2 rounded-none text-xs font-bold",
+              "flex items-center gap-2 px-2 py-2 rounded-sm text-xs font-bold",
               membersActive ? "bg-[var(--color-accent-light)] text-[var(--color-accent)]" : "text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-secondary)]"
             )}
           >
@@ -256,7 +256,7 @@ export function WorkspaceSidebar({
             href={`${base}/leaderboard`}
             onClick={onNavigate}
             className={cn(
-              "flex items-center gap-2 px-2 py-2 rounded-none text-xs font-bold",
+              "flex items-center gap-2 px-2 py-2 rounded-sm text-xs font-bold",
               leaderboardActive ? "bg-[var(--color-accent-light)] text-[var(--color-accent)]" : "text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-secondary)]"
             )}
           >
@@ -266,8 +266,8 @@ export function WorkspaceSidebar({
         </div>
 
         <div className="border-t border-[var(--color-border)] p-2 hidden lg:block">
-          <div className="flex items-center gap-2 px-2 py-2 rounded-none bg-[var(--color-surface-secondary)]/80">
-            <div className="h-9 w-9 rounded-none overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface)] shrink-0">
+          <div className="flex items-center gap-2 px-2 py-2 rounded-sm bg-[var(--color-surface-secondary)]/80">
+            <div className="h-9 w-9 rounded-sm overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface)] shrink-0">
               {profile?.avatar_url ? (
                 <Image src={profile.avatar_url} alt="" width={36} height={36} className="object-cover h-full w-full" unoptimized />
               ) : (
@@ -297,10 +297,10 @@ export function WorkspaceSidebar({
             This room requires <span className="font-bold text-[var(--color-text-primary)]">{upgradePlan}</span> access.
           </p>
           <div className="flex flex-wrap gap-2 sm:gap-0 justify-end pt-2">
-            <Button variant="outline" className="rounded-none border-[var(--color-border)]" onClick={() => setUpgradeOpen(false)}>
+            <Button variant="outline" className="rounded-sm border-[var(--color-border)]" onClick={() => setUpgradeOpen(false)}>
               Close
             </Button>
-            <Button asChild className="rounded-none bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-black">
+            <Button asChild className="rounded-sm bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-black">
               <Link href={`/communities/${slug}/subscribe`}>Upgrade Plan</Link>
             </Button>
           </div>

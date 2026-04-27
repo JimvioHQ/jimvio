@@ -22,8 +22,8 @@ function fixFile(filePath, replacements) {
 
 fixFile('components/dashboard/dashboard-marketplace-client.tsx', [
   {
-    target: /bg-white dark:bg-surface rounded-none border border-stone-100 dark:border-border shadow-none transition-all text-\[12px\] font-bold text-stone-600 hover:border-stone-900 active:scale-95 whitespace-nowrap/g,
-    replacement: 'bg-[var(--color-surface)] rounded-none border border-[var(--color-border)] shadow-none transition-all text-[12px] font-bold text-[var(--color-text-secondary)] hover:border-[var(--color-text-primary)] active:scale-95 whitespace-nowrap'
+    target: /bg-white dark:bg-surface rounded-sm border border-stone-100 dark:border-border shadow-none transition-all text-\[12px\] font-bold text-stone-600 hover:border-stone-900 active:scale-95 whitespace-nowrap/g,
+    replacement: 'bg-[var(--color-surface)] rounded-sm border border-[var(--color-border)] shadow-none transition-all text-[12px] font-bold text-[var(--color-text-secondary)] hover:border-[var(--color-text-primary)] active:scale-95 whitespace-nowrap'
   },
   {
     target: /ring-4 ring-stone-900\/5 border-stone-200 dark:border-border/g,
@@ -38,7 +38,7 @@ fixFile('components/dashboard/dashboard-marketplace-client.tsx', [
     replacement: '<ChevronDown className={cn("h-4 w-4 text-[var(--color-text-muted)] transition-transform", sortOpen && "rotate-180")} />'
   },
   {
-    target: /className="absolute right-0 top-14 w-52 bg-white dark:bg-surface rounded-none border border-stone-100 dark:border-border shadow-none p-2 z-\[120\]"/g,
-    replacement: 'className="absolute right-0 top-14 w-52 bg-[var(--color-surface)] rounded-none border border-[var(--color-border)] shadow-none p-2 z-[120]"'
+    target: /className="absolute right-0 top-14 w-52 bg-white dark:bg-surface rounded-sm border border-stone-100 dark:border-border shadow-none p-2 z-\[120\]"/g,
+    replacement: 'className="absolute right-0 top-14 w-52 bg-[var(--color-surface)] rounded-sm border border-[var(--color-border)] shadow-none p-2 z-[120]"'
   }
 ]);

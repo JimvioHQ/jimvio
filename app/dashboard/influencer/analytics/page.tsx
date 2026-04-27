@@ -391,7 +391,7 @@ export default function CreatorAnalyticsPage() {
 
         {/* Call to Action */}
         <div className="p-6 sm:p-8 rounded-2xl border border-border bg-stone-900 text-white relative overflow-hidden shadow-none">
-           <div className="absolute top-0 right-0 w-64 h-64 bg-orange-500/10 blur-[80px] rounded-none translate-x-1/2 -translate-y-1/2" />
+           <div className="absolute top-0 right-0 w-64 h-64 bg-orange-500/10 blur-[80px] rounded-sm translate-x-1/2 -translate-y-1/2" />
            <div className="flex flex-col md:flex-row items-center justify-between gap-8 relative z-10">
               <div className="space-y-4 text-center md:text-left">
                  <div className="flex items-center justify-center md:justify-start gap-3">

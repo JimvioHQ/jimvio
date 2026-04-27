@@ -72,7 +72,7 @@ function fmtNum(n: number) {
 
 function StatPill({ value, label, icon, color }: { value: string; label: string; icon: React.ReactNode; color: string }) {
   return (
-    <div className={cn("flex items-center gap-1.5 rounded-none px-3 py-1.5 text-xs font-bold", color)}>
+    <div className={cn("flex items-center gap-1.5 rounded-sm px-3 py-1.5 text-xs font-bold", color)}>
       {icon} {value} <span className="font-normal opacity-70">{label}</span>
     </div>
   );
@@ -102,7 +102,7 @@ function VideoCard({
     "bg-zinc-100 text-zinc-500";
 
   return (
-    <div className="bg-white dark:bg-surface rounded-none border border-zinc-100 dark:border-border shadow-none overflow-hidden group hover:shadow-none hover:border-zinc-200 dark:border-border dark:hover:border-zinc-700 transition-all">
+    <div className="bg-white dark:bg-surface rounded-sm border border-zinc-100 dark:border-border shadow-none overflow-hidden group hover:shadow-none hover:border-zinc-200 dark:border-border dark:hover:border-zinc-700 transition-all">
       {/* Thumbnail */}
       <div
         className="relative aspect-[9/14] bg-zinc-50 dark:bg-surface-secondary cursor-pointer overflow-hidden"
@@ -117,23 +117,23 @@ function VideoCard({
         )}
         {/* Play overlay */}
         <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-          <div className="h-12 w-12 rounded-none bg-white dark:bg-surface/90 flex items-center justify-center shadow-none">
+          <div className="h-12 w-12 rounded-sm bg-white dark:bg-surface/90 flex items-center justify-center shadow-none">
             <Play className="h-5 w-5 text-zinc-900 dark:text-white ml-0.5" />
           </div>
         </div>
         {/* Duration pill */}
         {video.duration_sec > 0 && (
-          <span className="absolute bottom-2 right-2 bg-black/70 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-none">
+          <span className="absolute bottom-2 right-2 bg-black/70 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-sm">
             {fmtDur(video.duration_sec)}
           </span>
         )}
         {/* Status */}
-        <span className={cn("absolute top-2 left-2 text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-none shadow-none", statusColor)}>
+        <span className={cn("absolute top-2 left-2 text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-sm shadow-none", statusColor)}>
           {video.status}
         </span>
         {/* Product badge */}
         {video.products && (
-          <span className="absolute top-2 right-2 bg-[var(--color-accent)]/90 text-white text-[9px] font-black px-1.5 py-0.5 rounded-none flex items-center gap-1">
+          <span className="absolute top-2 right-2 bg-[var(--color-accent)]/90 text-white text-[9px] font-black px-1.5 py-0.5 rounded-sm flex items-center gap-1">
             <Package className="h-2.5 w-2.5" /> Linked
           </span>
         )}
@@ -158,7 +158,7 @@ function VideoCard({
             <button
               onClick={() => { setToggling(true); onTogglePause(video.id, video.status); }}
               disabled={toggling || video.status === "processing"}
-              className="h-7 w-7 rounded-none flex items-center justify-center bg-zinc-50 dark:bg-surface-secondary hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors disabled:opacity-40"
+              className="h-7 w-7 rounded-sm flex items-center justify-center bg-zinc-50 dark:bg-surface-secondary hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors disabled:opacity-40"
               title={video.status === "active" ? "Pause" : "Activate"}
             >
               {toggling ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> :
@@ -168,7 +168,7 @@ function VideoCard({
             <button
               onClick={() => { setDeleting(true); onDelete(video.id); }}
               disabled={deleting}
-              className="h-7 w-7 rounded-none flex items-center justify-center bg-red-50 hover:bg-red-100 transition-colors disabled:opacity-40"
+              className="h-7 w-7 rounded-sm flex items-center justify-center bg-red-50 hover:bg-red-100 transition-colors disabled:opacity-40"
               title="Delete"
             >
               {deleting ? <Loader2 className="h-3.5 w-3.5 animate-spin text-red-500" /> :
@@ -280,7 +280,7 @@ function UploadTab({ onSuccess }: { onSuccess: () => void }) {
         onDragOver={(e) => e.preventDefault()}
         onDrop={handleDrop}
         className={cn(
-          "relative border-2 border-dashed rounded-none p-8 text-center cursor-pointer transition-colors",
+          "relative border-2 border-dashed rounded-sm p-8 text-center cursor-pointer transition-colors",
           videoFile
             ? "border-emerald-400 bg-emerald-50/50"
             : "border-zinc-200 dark:border-border bg-zinc-50 dark:bg-surface/50 hover:border-[var(--color-accent)] hover:bg-orange-50/30"
@@ -320,7 +320,7 @@ function UploadTab({ onSuccess }: { onSuccess: () => void }) {
           <div className="flex items-center justify-between text-xs font-bold text-zinc-500">
             <span>Uploading…</span><span>{progress}%</span>
           </div>
-          <div className="h-2 rounded-none bg-zinc-100 overflow-hidden">
+          <div className="h-2 rounded-sm bg-zinc-100 overflow-hidden">
             <div className="h-full bg-gradient-to-r from-[var(--color-accent)] to-orange-400 transition-all" style={{ width: `${progress}%` }} />
           </div>
         </div>
@@ -333,7 +333,7 @@ function UploadTab({ onSuccess }: { onSuccess: () => void }) {
           value={form.title}
           onChange={(e) => setForm(f => ({ ...f, title: e.target.value }))}
           placeholder="Give your video a catchy title…"
-          className="w-full h-11 rounded-none border border-zinc-200 dark:border-border-strong bg-white dark:bg-surface dark:text-white px-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30 focus:border-[var(--color-accent)]"
+          className="w-full h-11 rounded-sm border border-zinc-200 dark:border-border-strong bg-white dark:bg-surface dark:text-white px-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30 focus:border-[var(--color-accent)]"
           maxLength={100}
         />
       </div>
@@ -346,7 +346,7 @@ function UploadTab({ onSuccess }: { onSuccess: () => void }) {
           onChange={(e) => setForm(f => ({ ...f, description: e.target.value }))}
           placeholder="Tell viewers what this is about…"
           rows={3}
-          className="w-full rounded-none border border-zinc-200 dark:border-border-strong bg-white dark:bg-surface dark:text-white px-4 py-3 text-sm font-medium resize-none focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30 focus:border-[var(--color-accent)]"
+          className="w-full rounded-sm border border-zinc-200 dark:border-border-strong bg-white dark:bg-surface dark:text-white px-4 py-3 text-sm font-medium resize-none focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30 focus:border-[var(--color-accent)]"
           maxLength={500}
         />
       </div>
@@ -358,7 +358,7 @@ function UploadTab({ onSuccess }: { onSuccess: () => void }) {
           type="file"
           accept="image/*"
           onChange={(e) => setThumbFile(e.target.files?.[0] ?? null)}
-          className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-none file:border-0 file:bg-zinc-100 file:text-zinc-700 dark:text-zinc-300 file:font-bold hover:file:bg-zinc-200 cursor-pointer"
+          className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-sm file:border-0 file:bg-zinc-100 file:text-zinc-700 dark:text-zinc-300 file:font-bold hover:file:bg-zinc-200 cursor-pointer"
         />
       </div>
 
@@ -376,7 +376,7 @@ function UploadTab({ onSuccess }: { onSuccess: () => void }) {
               type="button"
               onClick={() => setForm(f => ({ ...f, video_type: t.id as any }))}
               className={cn(
-                "flex flex-col items-center justify-center gap-1.5 p-3 rounded-none border transition-all",
+                "flex flex-col items-center justify-center gap-1.5 p-3 rounded-sm border transition-all",
                 form.video_type === t.id
                   ? "border-[var(--color-accent)] bg-orange-50/50 dark:bg-orange-950/20 text-[var(--color-accent)] ring-1 ring-[var(--color-accent)]"
                   : "border-zinc-200 dark:border-border-strong bg-white dark:bg-surface text-zinc-500 dark:text-text-muted hover:border-zinc-300 dark:hover:border-zinc-600"
@@ -400,7 +400,7 @@ function UploadTab({ onSuccess }: { onSuccess: () => void }) {
               required
               value={form.product_id}
               onChange={(e) => setForm(f => ({ ...f, product_id: e.target.value }))}
-              className="w-full h-12 rounded-none border-2 border-zinc-100 dark:border-border-strong bg-white dark:bg-surface dark:text-white px-4 text-sm font-bold focus:outline-none focus:border-[var(--color-accent)] transition-all appearance-none cursor-pointer"
+              className="w-full h-12 rounded-sm border-2 border-zinc-100 dark:border-border-strong bg-white dark:bg-surface dark:text-white px-4 text-sm font-bold focus:outline-none focus:border-[var(--color-accent)] transition-all appearance-none cursor-pointer"
             >
               <option value="">Choose a product…</option>
               {products.map(p => (
@@ -409,7 +409,7 @@ function UploadTab({ onSuccess }: { onSuccess: () => void }) {
             </select>
             <div className="flex flex-wrap gap-2 mt-3">
               {form.product_id && products.find(p => p.id === form.product_id)?.images?.[0] && (
-                <div className="relative h-16 w-16 rounded-none overflow-hidden border border-[var(--color-accent)]/30 ring-4 ring-orange-50 dark:ring-orange-950/30 animate-in zoom-in duration-300">
+                <div className="relative h-16 w-16 rounded-sm overflow-hidden border border-[var(--color-accent)]/30 ring-4 ring-orange-50 dark:ring-orange-950/30 animate-in zoom-in duration-300">
                   <img 
                     src={products.find(p => p.id === form.product_id).images[0]} 
                     className="h-full w-full object-cover" 
@@ -436,7 +436,7 @@ function UploadTab({ onSuccess }: { onSuccess: () => void }) {
               required
               value={form.community_id}
               onChange={(e) => setForm(f => ({ ...f, community_id: e.target.value }))}
-              className="w-full h-12 rounded-none border-2 border-zinc-100 dark:border-border-strong bg-white dark:bg-surface dark:text-white px-4 text-sm font-bold focus:outline-none focus:border-indigo-500 transition-all appearance-none cursor-pointer"
+              className="w-full h-12 rounded-sm border-2 border-zinc-100 dark:border-border-strong bg-white dark:bg-surface dark:text-white px-4 text-sm font-bold focus:outline-none focus:border-indigo-500 transition-all appearance-none cursor-pointer"
             >
               <option value="">Choose a community…</option>
               {communities.map(c => (
@@ -444,8 +444,8 @@ function UploadTab({ onSuccess }: { onSuccess: () => void }) {
               ))}
             </select>
             {form.community_id && (
-              <div className="mt-3 p-3 rounded-none bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/50 flex items-center gap-3 animate-in slide-in-from-left-2 duration-300">
-                <div className="h-10 w-10 rounded-none bg-indigo-500 flex items-center justify-center text-white font-black">
+              <div className="mt-3 p-3 rounded-sm bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/50 flex items-center gap-3 animate-in slide-in-from-left-2 duration-300">
+                <div className="h-10 w-10 rounded-sm bg-indigo-500 flex items-center justify-center text-white font-black">
                   {communities.find(c => c.id === form.community_id)?.name?.[0]}
                 </div>
                 <div>
@@ -472,7 +472,7 @@ function UploadTab({ onSuccess }: { onSuccess: () => void }) {
                 required
                 onChange={(e) => setForm(f => ({ ...f, external_link: e.target.value }))}
                 placeholder="https://yourlink.com/promo"
-                className="w-full h-12 rounded-none border-2 border-zinc-100 dark:border-border-strong bg-white dark:bg-surface dark:text-white px-4 text-sm font-bold focus:outline-none focus:border-amber-400 transition-all"
+                className="w-full h-12 rounded-sm border-2 border-zinc-100 dark:border-border-strong bg-white dark:bg-surface dark:text-white px-4 text-sm font-bold focus:outline-none focus:border-amber-400 transition-all"
               />
               <Zap className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-amber-300" />
             </div>
@@ -483,7 +483,7 @@ function UploadTab({ onSuccess }: { onSuccess: () => void }) {
 
       {/* Result */}
       {result && (
-        <div className={cn("rounded-none px-4 py-3 text-sm font-bold flex items-center gap-2",
+        <div className={cn("rounded-sm px-4 py-3 text-sm font-bold flex items-center gap-2",
           result.ok ? "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400" : "bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400")}>
           {result.ok ? <CheckCircle className="h-4 w-4 shrink-0" /> : <AlertCircle className="h-4 w-4 shrink-0" />}
           {result.ok ? "Video uploaded successfully! Redirecting…" : result.error}
@@ -493,7 +493,7 @@ function UploadTab({ onSuccess }: { onSuccess: () => void }) {
       <Button
         type="submit"
         disabled={submitting || uploading || !videoFile}
-        className="w-full h-12 rounded-none font-black text-sm bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] shadow-none shadow-orange-500/20 transition-all active:scale-95"
+        className="w-full h-12 rounded-sm font-black text-sm bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] shadow-none shadow-orange-500/20 transition-all active:scale-95"
       >
         {uploading ? (
           <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> {progress > 0 ? `Uploading ${progress}%` : "Sending to Storage…"}</>
@@ -541,7 +541,7 @@ function AnalyticsTab({ videos }: { videos: ShortVideo[] }) {
         <select
           value={selectedId ?? ""}
           onChange={(e) => setSelectedId(e.target.value)}
-          className="w-full max-w-md h-11 rounded-none border border-zinc-200 dark:border-border-strong bg-white dark:bg-surface dark:text-white px-4 text-sm font-medium"
+          className="w-full max-w-md h-11 rounded-sm border border-zinc-200 dark:border-border-strong bg-white dark:bg-surface dark:text-white px-4 text-sm font-medium"
         >
           {videos.map(v => (
             <option key={v.id} value={v.id}>{v.title}</option>
@@ -565,8 +565,8 @@ function AnalyticsTab({ videos }: { videos: ShortVideo[] }) {
               { label: "Click Rate", value: `${analytics.clickRate}%`, icon: <MousePointer className="h-4 w-4" />, color: "from-amber-500 to-orange-500" },
               { label: "Conversion", value: `${analytics.conversionRate}%`, icon: <TrendingUp className="h-4 w-4" />, color: "from-emerald-500 to-teal-500" },
             ].map(m => (
-              <div key={m.label} className="rounded-none border border-zinc-100 dark:border-border bg-white dark:bg-surface p-4 shadow-none">
-                <div className={cn("h-8 w-8 rounded-none text-white flex items-center justify-center mb-2 bg-gradient-to-br shadow-none", m.color)}>
+              <div key={m.label} className="rounded-sm border border-zinc-100 dark:border-border bg-white dark:bg-surface p-4 shadow-none">
+                <div className={cn("h-8 w-8 rounded-sm text-white flex items-center justify-center mb-2 bg-gradient-to-br shadow-none", m.color)}>
                   {m.icon}
                 </div>
                 <p className="text-xl font-black text-zinc-900 dark:text-white">{m.value}</p>
@@ -576,7 +576,7 @@ function AnalyticsTab({ videos }: { videos: ShortVideo[] }) {
           </div>
 
           {/* Extra stats */}
-          <div className="rounded-none border border-zinc-100 dark:border-border bg-white dark:bg-surface p-5 shadow-none">
+          <div className="rounded-sm border border-zinc-100 dark:border-border bg-white dark:bg-surface p-5 shadow-none">
             <h3 className="text-xs font-black uppercase tracking-widest text-zinc-400 dark:text-text-muted mb-3">Performance Summary</h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm">
               <div>
@@ -629,7 +629,7 @@ function EarningsTab() {
   return (
     <div className="space-y-5">
       {/* Total + breakdown */}
-      <div className="rounded-none bg-gradient-to-br from-zinc-900 to-zinc-800 p-6 text-white shadow-none">
+      <div className="rounded-sm bg-gradient-to-br from-zinc-900 to-zinc-800 p-6 text-white shadow-none">
         <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-1">Total Video Earnings</p>
         <p className="text-4xl font-black">{formatMoney(data.total, "RWF")}</p>
         <p className="text-[11px] text-zinc-500 mt-1">Separate from affiliate & UGC earnings</p>
@@ -641,8 +641,8 @@ function EarningsTab() {
           { label: "From Clicks", value: data.clickEarnings, icon: <MousePointer className="h-4 w-4" />, color: "from-violet-500 to-purple-500" },
           { label: "From Sales", value: data.saleEarnings, icon: <DollarSign className="h-4 w-4" />, color: "from-emerald-500 to-teal-500" },
         ].map(b => (
-          <div key={b.label} className="rounded-none border border-zinc-100 dark:border-border bg-white dark:bg-surface p-4 shadow-none text-center">
-            <div className={cn("h-8 w-8 rounded-none text-white flex items-center justify-center mx-auto mb-2 bg-gradient-to-br", b.color)}>
+          <div key={b.label} className="rounded-sm border border-zinc-100 dark:border-border bg-white dark:bg-surface p-4 shadow-none text-center">
+            <div className={cn("h-8 w-8 rounded-sm text-white flex items-center justify-center mx-auto mb-2 bg-gradient-to-br", b.color)}>
               {b.icon}
             </div>
             <p className="font-black text-sm text-zinc-900 dark:text-white">{formatMoney(b.value, "RWF")}
@@ -654,7 +654,7 @@ function EarningsTab() {
 
       {/* Top earning videos */}
       {data.topVideos.length > 0 && (
-        <div className="rounded-none border border-zinc-100 dark:border-border bg-white dark:bg-surface shadow-none overflow-hidden">
+        <div className="rounded-sm border border-zinc-100 dark:border-border bg-white dark:bg-surface shadow-none overflow-hidden">
           <div className="px-5 py-4 border-b border-zinc-50 dark:border-border">
             <h3 className="text-xs font-black uppercase tracking-widest text-zinc-400 dark:text-text-muted">Top Earning Videos</h3></div>
           <ul className="divide-y divide-zinc-50 dark:divide-zinc-800">
@@ -677,7 +677,7 @@ function EarningsTab() {
       )}
 
       {/* Earnings rate explanation */}
-      <div className="rounded-none border border-zinc-100 dark:border-border bg-zinc-50 dark:bg-surface/50 p-5 space-y-2 text-xs text-zinc-500 dark:text-text-muted">
+      <div className="rounded-sm border border-zinc-100 dark:border-border bg-zinc-50 dark:bg-surface/50 p-5 space-y-2 text-xs text-zinc-500 dark:text-text-muted">
         <p className="font-black text-zinc-700 dark:text-zinc-300 text-sm">How earnings are calculated</p>
         <div className="flex items-start gap-2"><Zap className="h-3.5 w-3.5 shrink-0 text-blue-500 mt-0.5" /><span><b>Views:</b> FRw 200 per 1,000 valid views (≥5 seconds watched)</span></div>
         <div className="flex items-start gap-2"><MousePointer className="h-3.5 w-3.5 shrink-0 text-violet-500 mt-0.5" /><span><b>Clicks:</b> FRw 10 per product click on your video</span></div>
@@ -742,7 +742,7 @@ export function VideoStudio({ defaultTab = "videos" }: { defaultTab?: Tab }) {
         <Button
           onClick={() => setTab("upload")}
           size="sm"
-          className="rounded-none h-10 bg-[var(--color-accent)] font-bold shadow-none"
+          className="rounded-sm h-10 bg-[var(--color-accent)] font-bold shadow-none"
         >
           <Plus className="h-4 w-4 mr-1.5" /> New Video
         </Button>
@@ -756,8 +756,8 @@ export function VideoStudio({ defaultTab = "videos" }: { defaultTab?: Tab }) {
           { label: "Engaged",   value: fmtNum(videos.reduce((s, v) => s + v.like_count + v.comment_count, 0)), icon: <Zap className="h-4 w-4" />, color: "from-pink-500 to-rose-500" },
           { label: "Earned",    value: `${Math.round(videos.reduce((s, v) => s + Number(v.total_earnings), 0)).toLocaleString()} RWF`, icon: <DollarSign className="h-4 w-4" />, color: "from-emerald-500 to-teal-500" },
         ].map(s => (
-          <div key={s.label} className="rounded-none border border-zinc-100 dark:border-border bg-white dark:bg-surface p-4 shadow-none flex items-center gap-3">
-            <div className={cn("h-9 w-9 rounded-none text-white flex items-center justify-center shrink-0 bg-gradient-to-br", s.color)}>
+          <div key={s.label} className="rounded-sm border border-zinc-100 dark:border-border bg-white dark:bg-surface p-4 shadow-none flex items-center gap-3">
+            <div className={cn("h-9 w-9 rounded-sm text-white flex items-center justify-center shrink-0 bg-gradient-to-br", s.color)}>
               {s.icon}
             </div>
             <div>
@@ -769,13 +769,13 @@ export function VideoStudio({ defaultTab = "videos" }: { defaultTab?: Tab }) {
       </div>
 
       {/* Tab bar */}
-      <div className="flex gap-1 bg-zinc-100 dark:bg-surface-secondary rounded-none p-1">
+      <div className="flex gap-1 bg-zinc-100 dark:bg-surface-secondary rounded-sm p-1">
         {TABS.map(t => (
           <button
             key={t.id}
             onClick={() => setTab(t.id)}
             className={cn(
-              "flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-none text-xs font-black transition-all",
+              "flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-sm text-xs font-black transition-all",
               tab === t.id
                 ? "bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-none"
                 : "text-zinc-500 dark:text-text-muted hover:text-zinc-700 dark:text-zinc-300 dark:hover:text-zinc-200"
@@ -784,7 +784,7 @@ export function VideoStudio({ defaultTab = "videos" }: { defaultTab?: Tab }) {
             {t.icon}
             <span className="hidden sm:block">{t.label}</span>
             {t.count !== undefined && t.count > 0 && (
-              <span className={cn("text-[9px] rounded-none px-1.5 py-0.5 font-black",
+              <span className={cn("text-[9px] rounded-sm px-1.5 py-0.5 font-black",
                 tab === t.id ? "bg-[var(--color-accent-light)] text-[var(--color-accent)]" : "bg-zinc-200 text-zinc-500")}>
                 {t.count}
               </span>
@@ -802,11 +802,11 @@ export function VideoStudio({ defaultTab = "videos" }: { defaultTab?: Tab }) {
               <Loader2 className="h-5 w-5 animate-spin" /><span className="text-sm">Loading your videos…</span>
             </div>
           ) : videos.length === 0 ? (
-            <div className="py-20 text-center border-2 border-dashed border-zinc-200 dark:border-border rounded-none">
+            <div className="py-20 text-center border-2 border-dashed border-zinc-200 dark:border-border rounded-sm">
               <Film className="h-12 w-12 mx-auto mb-3 text-zinc-200" />
               <p className="font-bold text-sm text-zinc-600 mb-1">No videos yet</p>
               <p className="text-xs text-zinc-400 mb-5">Upload your first short video and start earning</p>
-              <Button size="sm" onClick={() => setTab("upload")} className="rounded-none h-9 font-bold bg-[var(--color-accent)]">
+              <Button size="sm" onClick={() => setTab("upload")} className="rounded-sm h-9 font-bold bg-[var(--color-accent)]">
                 <Plus className="h-3.5 w-3.5 mr-1.5" /> Upload Now
               </Button>
             </div>

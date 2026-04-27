@@ -75,12 +75,12 @@ export function ProductShareModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink-darker/50" onClick={onClose}>
-      <div className="bg-[var(--color-surface)] rounded-none shadow-none max-w-md w-full max-h-[80vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-[var(--color-surface)] rounded-sm shadow-none max-w-md w-full max-h-[80vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
         <div className="p-4 border-b border-[var(--color-border)] flex items-center justify-between">
           <h3 className="text-lg font-bold text-[var(--color-text-primary)] flex items-center gap-2">
             <Package className="h-5 w-5 text-[var(--color-accent)]" /> Share product
           </h3>
-          <button type="button" onClick={onClose} className="p-2 rounded-none hover:bg-[var(--color-surface-secondary)]">
+          <button type="button" onClick={onClose} className="p-2 rounded-sm hover:bg-[var(--color-surface-secondary)]">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -91,9 +91,9 @@ export function ProductShareModal({
               value={slug}
               onChange={(e) => setSlug(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && fetchBySlug()}
-              className="rounded-none flex-1"
+              className="rounded-sm flex-1"
             />
-            <Button type="button" onClick={fetchBySlug} disabled={loading} className="rounded-none shrink-0">
+            <Button type="button" onClick={fetchBySlug} disabled={loading} className="rounded-sm shrink-0">
               {loading ? "…" : "Load"}
             </Button>
           </div>
@@ -103,9 +103,9 @@ export function ProductShareModal({
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && searchProducts()}
-              className="rounded-none flex-1"
+              className="rounded-sm flex-1"
             />
-            <Button type="button" variant="outline" onClick={searchProducts} disabled={loading} className="rounded-none shrink-0">
+            <Button type="button" variant="outline" onClick={searchProducts} disabled={loading} className="rounded-sm shrink-0">
               <Search className="h-4 w-4" />
             </Button>
           </div>
@@ -116,10 +116,10 @@ export function ProductShareModal({
               key={p.id}
               type="button"
               onClick={() => selectProduct(p)}
-              className="w-full flex items-center gap-3 p-3 rounded-none border border-[var(--color-border)] hover:bg-[var(--color-surface-secondary)] text-left"
+              className="w-full flex items-center gap-3 p-3 rounded-sm border border-[var(--color-border)] hover:bg-[var(--color-surface-secondary)] text-left"
             >
               {p.images?.[0] && (
-                <img src={p.images[0]} alt="" className="w-12 h-12 rounded-none object-cover shrink-0" />
+                <img src={p.images[0]} alt="" className="w-12 h-12 rounded-sm object-cover shrink-0" />
               )}
               <div className="min-w-0 flex-1">
                 <p className="font-medium truncate">{p.name}</p>

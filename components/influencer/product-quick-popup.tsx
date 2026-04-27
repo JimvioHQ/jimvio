@@ -56,7 +56,7 @@ export function ProductQuickPopup({ product, vendor, open, onClose, className }:
       <div
         className={cn(
           "fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[1001] w-[calc(100%-2rem)] max-w-md",
-          "bg-white dark:bg-surface rounded-none shadow-none overflow-hidden animate-in zoom-in-95 duration-200",
+          "bg-white dark:bg-surface rounded-sm shadow-none overflow-hidden animate-in zoom-in-95 duration-200",
           className
         )}
         onClick={(e) => e.stopPropagation()}
@@ -64,7 +64,7 @@ export function ProductQuickPopup({ product, vendor, open, onClose, className }:
         <button
           type="button"
           aria-label="Close"
-          className="absolute top-4 right-4 z-10 w-10 h-10 rounded-none bg-ink-darker/25 flex items-center justify-center text-white hover:bg-ink-darker/35"
+          className="absolute top-4 right-4 z-10 w-10 h-10 rounded-sm bg-ink-darker/25 flex items-center justify-center text-white hover:bg-ink-darker/35"
           onClick={onClose}
         >
           <X className="h-5 w-5" />
@@ -118,18 +118,18 @@ export function ProductQuickPopup({ product, vendor, open, onClose, className }:
 
           <div className="grid grid-cols-1 gap-2 pt-2">
             <Link href={`${productUrl}?buy=1`} onClick={onClose}>
-              <Button className="w-full h-12 rounded-none bg-[#f97316] hover:bg-[#ea580c] font-black text-white">
+              <Button className="w-full h-12 rounded-sm bg-[#f97316] hover:bg-[#ea580c] font-black text-white">
                 Buy Now
               </Button>
             </Link>
             <Link href={`${productUrl}?cart=1`} onClick={onClose}>
-              <Button variant="outline" className="w-full h-12 rounded-none border-2 font-bold flex items-center justify-center gap-2">
+              <Button variant="outline" className="w-full h-12 rounded-sm border-2 font-bold flex items-center justify-center gap-2">
                 <ShoppingCart className="h-4 w-4" />
                 Add to Cart
               </Button>
             </Link>
             <Link href={storeUrl} onClick={onClose}>
-              <Button variant="ghost" className="w-full h-11 rounded-none text-[#6b7280] font-bold flex items-center justify-center gap-2">
+              <Button variant="ghost" className="w-full h-11 rounded-sm text-[#6b7280] font-bold flex items-center justify-center gap-2">
                 <ExternalLink className="h-4 w-4" />
                 Visit Store
               </Button>

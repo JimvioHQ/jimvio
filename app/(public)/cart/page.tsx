@@ -31,14 +31,14 @@ export default async function CartPage() {
             </nav>
             
             <div className="flex items-center gap-4">
-              <div className="h-10 w-10 bg-orange-50 dark:bg-orange-950/20 rounded-none flex items-center justify-center border border-orange-100/50 dark:border-orange-500/20 shadow-inner">
+              <div className="h-10 w-10 bg-orange-50 dark:bg-orange-950/20 rounded-sm flex items-center justify-center border border-orange-100/50 dark:border-orange-500/20 shadow-inner">
                 <ShoppingCart className="h-5 w-5 text-orange-500" />
               </div>
               <div>
                 <h1 className="text-3xl sm:text-4xl font-black text-stone-900 dark:text-white tracking-tight flex items-center gap-3">
                   My Cart
                   {totalItems > 0 && (
-                    <span className="text-[12px] font-black px-3 py-1 rounded-none bg-orange-500 text-white shadow-none shadow-orange-500/30">
+                    <span className="text-[12px] font-black px-3 py-1 rounded-sm bg-orange-500 text-white shadow-none shadow-orange-500/30">
                       {totalItems} BATCH
                     </span>
                   )}

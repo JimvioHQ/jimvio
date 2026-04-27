@@ -202,7 +202,7 @@ export function ProductCardClient({
           {/* TOP-LEFT: discount % badge */}
           {discount > 0 && (
             <div className="absolute top-2 left-2 z-20">
-              <span className="inline-flex items-center rounded-none bg-red-500 px-2 py-0.5 text-[10px] font-black text-white shadow-none">
+              <span className="inline-flex items-center rounded-sm bg-red-500 px-2 py-0.5 text-[10px] font-black text-white shadow-none">
                 {discount}% OFF
               </span>
             </div>
@@ -214,7 +214,7 @@ export function ProductCardClient({
           {discount > 0 && !imgSrc && (
             <div className="absolute top-1/3 left-0 right-0 flex items-center justify-center z-20">
               <span
-                className="px-4 py-1 rounded-none text-[10px] font-black text-white uppercase tracking-[.2em]"
+                className="px-4 py-1 rounded-sm text-[10px] font-black text-white uppercase tracking-[.2em]"
                 style={{ background: "linear-gradient(90deg, #fd5000, #e04700)" }}
               >
                 SALE
@@ -238,7 +238,7 @@ export function ProductCardClient({
               onClick={handleChat}
               className={cn(
                 "flex-1 flex items-center justify-center gap-1",
-                "rounded-none font-semibold bg-surface/90 dark:bg-surface-secondary/90 text-stone-700 dark:text-text-secondary",
+                "rounded-sm font-semibold bg-surface/90 dark:bg-surface-secondary/90 text-stone-700 dark:text-text-secondary",
                 "border border-border shadow-none hover:text-orange-600 active:scale-95 transition-all text-stone-700 dark:text-text-secondary",
                 compact ? "h-7 text-[9px]" : "h-8 text-[10px]"
               )}
@@ -253,7 +253,7 @@ export function ProductCardClient({
               disabled={loading}
               className={cn(
                 "flex-1 flex items-center justify-center gap-1",
-                "rounded-none font-semibold text-white",
+                "rounded-sm font-semibold text-white",
                 "active:scale-95 transition-all disabled:opacity-60 shadow-none group/cartbtn",
                 compact ? "h-7 text-[9px]" : "h-8 text-[10px]",
                 inCart
@@ -262,7 +262,7 @@ export function ProductCardClient({
               )}
             >
               {loading ? (
-                <span className={cn("border-2 border-white/40 border-t-white rounded-none animate-spin", compact ? "h-2.5 w-2.5" : "h-3 w-3")} />
+                <span className={cn("border-2 border-white/40 border-t-white rounded-sm animate-spin", compact ? "h-2.5 w-2.5" : "h-3 w-3")} />
               ) : inCart ? (
                 <>
                   <CheckCircle2 className={cn("group-hover/cartbtn:hidden", compact ? "h-2.5 w-2.5" : "h-3 w-3")} />
@@ -329,7 +329,7 @@ export function ProductCardClient({
             )}
           >
             {loading ? (
-              <span className="h-3.5 w-3.5 border-2 border-white/40 border-t-white rounded-none animate-spin inline-block" />
+              <span className="h-3.5 w-3.5 border-2 border-white/40 border-t-white rounded-sm animate-spin inline-block" />
             ) : inCart ? (
               <><Trash2 className="h-3 w-3 inline mr-1" />Remove</>
             ) : (

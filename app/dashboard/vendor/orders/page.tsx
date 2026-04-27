@@ -181,11 +181,11 @@ export default function VendorOrdersPage() {
   if (!vendorId) {
     return (
       <div className="min-h-screen flex items-center justify-center px-6" style={{ background: "var(--color-bg)" }}>
-        <GlassCard className="max-w-md w-full p-10 text-center rounded-none border-border shadow-none bg-surface dark:bg-surface/60">
+        <GlassCard className="max-w-md w-full p-10 text-center rounded-sm border-border shadow-none bg-surface dark:bg-surface/60">
           <Truck className="h-10 w-10 text-stone-400 dark:text-stone-600 mx-auto mb-6" />
           <h2 className="text-xl font-bold text-stone-900 dark:text-white mb-2">Vendor Role Needed</h2>
           <p className="text-stone-500 text-sm mb-10 font-medium">Please activate your vendor account to view orders.</p>
-          <Button asChild className="w-full h-12 rounded-none bg-stone-900 text-white font-bold active:scale-95 transition-all outline-none border-none">
+          <Button asChild className="w-full h-12 rounded-sm bg-stone-900 text-white font-bold active:scale-95 transition-all outline-none border-none">
              <Link href="/dashboard/activate/vendor">Become a Vendor</Link>
           </Button>
         </GlassCard>
@@ -215,7 +215,7 @@ export default function VendorOrdersPage() {
               { label: "Total Revenue", value: formatMoney(totalSalesUsd, "USD"), icon: DollarSign, color: "text-emerald-500" },
               { label: "Completed", value: completedSales, icon: CheckCircle2, color: "text-sky-500" },
            ].map((stat, i) => (
-              <GlassCard key={i} className="p-4 sm:p-5 rounded-none sm:rounded-none bg-surface dark:bg-surface/80 border-border shadow-none flex flex-col justify-center gap-0.5 sm:gap-1">
+              <GlassCard key={i} className="p-4 sm:p-5 rounded-sm sm:rounded-sm bg-surface dark:bg-surface/80 border-border shadow-none flex flex-col justify-center gap-0.5 sm:gap-1">
                  <div className="flex items-center gap-2 mb-0.5 sm:mb-1">
                     <stat.icon className={cn("h-3 w-3 sm:h-3.5 sm:w-3.5", stat.color)} />
                     <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-stone-400">{stat.label}</span>
@@ -233,16 +233,16 @@ export default function VendorOrdersPage() {
                 placeholder="Search orders, buyers, or products..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full h-11 pl-11 pr-4 rounded-none bg-surface dark:bg-surface border border-border text-[13px] font-medium text-stone-900 dark:text-white placeholder:text-stone-300 dark:placeholder:text-stone-700 shadow-none focus:outline-none focus:ring-4 focus:ring-stone-500/5 transition-all"
+                className="w-full h-11 pl-11 pr-4 rounded-sm bg-surface dark:bg-surface border border-border text-[13px] font-medium text-stone-900 dark:text-white placeholder:text-stone-300 dark:placeholder:text-stone-700 shadow-none focus:outline-none focus:ring-4 focus:ring-stone-500/5 transition-all"
               />
            </div>
-           <div className="flex items-center gap-1.5 p-1 bg-surface dark:bg-surface border border-border rounded-none shadow-none overflow-x-auto no-scrollbar">
+           <div className="flex items-center gap-1.5 p-1 bg-surface dark:bg-surface border border-border rounded-sm shadow-none overflow-x-auto no-scrollbar">
               {["All", "Pending", "Shipped", "Delivered"].map((f) => (
                 <button
                   key={f}
                   onClick={() => setFilter(f)}
                   className={cn(
-                    "px-4 py-1.5 rounded-none text-[10px] font-bold uppercase tracking-widest transition-all",
+                    "px-4 py-1.5 rounded-sm text-[10px] font-bold uppercase tracking-widest transition-all",
                     filter === f 
                       ? "bg-stone-900 text-white shadow-none" 
                       : "text-stone-400 hover:text-stone-900 dark:text-white hover:bg-stone-50 dark:bg-surface/50"
@@ -255,7 +255,7 @@ export default function VendorOrdersPage() {
         </div>
 
         {/* Orders Table - Full-width Mobile */}
-        <GlassCard className="rounded-none sm:rounded-none border-border max-sm:-mx-4 max-sm:rounded-none max-sm:border-x-0 bg-surface dark:bg-surface/60 shadow-none overflow-hidden">
+        <GlassCard className="rounded-sm sm:rounded-sm border-border max-sm:-mx-4 max-sm:rounded-sm max-sm:border-x-0 bg-surface dark:bg-surface/60 shadow-none overflow-hidden">
            <div className="overflow-x-auto">
               <table className="w-full text-left min-w-[700px] sm:min-w-0">
                  <thead>
@@ -316,25 +316,25 @@ export default function VendorOrdersPage() {
                               <td className="px-4 sm:px-8 py-5 sm:py-6 text-right">
                                  <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
-                                       <Button variant="ghost" size="icon" className="h-9 w-9 rounded-none bg-surface dark:bg-surface border border-border shadow-none hover:border-orange-500/20 transition-all">
+                                       <Button variant="ghost" size="icon" className="h-9 w-9 rounded-sm bg-surface dark:bg-surface border border-border shadow-none hover:border-orange-500/20 transition-all">
                                           <MoreHorizontal className="h-4 w-4 text-stone-400" />
                                        </Button>
                                     </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end" className="w-52 rounded-none shadow-none border-border p-2 bg-surface dark:bg-surface/95 backdrop-blur-xl">
-                                       <DropdownMenuItem asChild className="rounded-none cursor-pointer">
+                                    <DropdownMenuContent align="end" className="w-52 rounded-sm shadow-none border-border p-2 bg-surface dark:bg-surface/95 backdrop-blur-xl">
+                                       <DropdownMenuItem asChild className="rounded-sm cursor-pointer">
                                           <Link href={`/dashboard/vendor/orders/${order.id}`} className="flex items-center gap-2.5">
                                              <Eye className="h-4 w-4 text-stone-400" /> 
                                              <span className="text-[12px] font-bold text-stone-800 dark:text-text-secondary">Review Items</span>
                                           </Link>
                                        </DropdownMenuItem>
-                                       <DropdownMenuItem asChild className="rounded-none cursor-pointer">
+                                       <DropdownMenuItem asChild className="rounded-sm cursor-pointer">
                                           <Link href={`/dashboard/messages?buyer=${order.buyer?.id}`} className="flex items-center gap-2.5">
                                              <MessageSquare className="h-4 w-4 text-emerald-400" /> 
                                              <span className="text-[12px] font-bold text-stone-800 dark:text-text-secondary">Message Buyer</span>
                                           </Link>
                                        </DropdownMenuItem>
                                        <DropdownMenuSeparator className="bg-border my-1" />
-                                       <DropdownMenuItem className="flex items-center gap-2.5 cursor-pointer rounded-none focus:bg-rose-50 dark:focus:bg-rose-500/10" onClick={() => handleStatusChange(order.id, "cancelled")}>
+                                       <DropdownMenuItem className="flex items-center gap-2.5 cursor-pointer rounded-sm focus:bg-rose-50 dark:focus:bg-rose-500/10" onClick={() => handleStatusChange(order.id, "cancelled")}>
                                           <XCircle className="h-4 w-4 text-rose-400" /> 
                                           <span className="text-[12px] font-bold text-rose-500">Cancel Order</span>
                                        </DropdownMenuItem>

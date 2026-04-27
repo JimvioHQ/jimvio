@@ -34,10 +34,10 @@ function SubmissionCard({ sub, onDelete }: { sub: UGCSubmission; onDelete: (id: 
   const pCfg = PLATFORM_ICONS[sub.platform] || { icon: Video, color: "text-stone-500", bg: "bg-stone-50 dark:bg-surface/50" };
 
   return (
-    <GlassCard className="p-8 rounded-none bg-white dark:bg-surface border-white hover:shadow-none hover:shadow-orange-500/5 transition-all duration-500 relative group">
+    <GlassCard className="p-8 rounded-sm bg-white dark:bg-surface border-white hover:shadow-none hover:shadow-orange-500/5 transition-all duration-500 relative group">
       <div className="flex flex-col md:flex-row gap-8 items-start">
         {/* Platform Display */}
-        <div className={cn("w-20 h-20 rounded-none flex items-center justify-center shrink-0 border border-white shadow-none group-hover:scale-110 transition-transform duration-700", pCfg.bg)}>
+        <div className={cn("w-20 h-20 rounded-sm flex items-center justify-center shrink-0 border border-white shadow-none group-hover:scale-110 transition-transform duration-700", pCfg.bg)}>
           <pCfg.icon className={cn("h-8 w-8", pCfg.color)} />
         </div>
 
@@ -61,7 +61,7 @@ function SubmissionCard({ sub, onDelete }: { sub: UGCSubmission; onDelete: (id: 
                   href={sub.post_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="h-10 px-5 rounded-none bg-orange-50/50 border border-orange-100/50 text-orange-600 font-black text-[10px] uppercase tracking-widest flex items-center gap-2 hover:bg-orange-50 transition-all active:scale-95"
+                  className="h-10 px-5 rounded-sm bg-orange-50/50 border border-orange-100/50 text-orange-600 font-black text-[10px] uppercase tracking-widest flex items-center gap-2 hover:bg-orange-50 transition-all active:scale-95"
                 >
                   {sub.platform} Post <ExternalLink className="h-3.5 w-3.5" />
                 </a>
@@ -69,7 +69,7 @@ function SubmissionCard({ sub, onDelete }: { sub: UGCSubmission; onDelete: (id: 
                 {(sub.status === "pending" || sub.status === "rejected") && (
                   <button
                     onClick={() => onDelete(sub.id)}
-                    className="h-10 w-10 flex items-center justify-center rounded-none bg-rose-50 border border-rose-100/50 text-rose-500 hover:bg-rose-100 transition-all opacity-0 group-hover:opacity-100 active:scale-90"
+                    className="h-10 w-10 flex items-center justify-center rounded-sm bg-rose-50 border border-rose-100/50 text-rose-500 hover:bg-rose-100 transition-all opacity-0 group-hover:opacity-100 active:scale-90"
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
@@ -78,7 +78,7 @@ function SubmissionCard({ sub, onDelete }: { sub: UGCSubmission; onDelete: (id: 
           </div>
 
           {sub.status === "rejected" && sub.rejection_reason && (
-            <div className="p-5 rounded-none bg-rose-50 border border-rose-100 text-[11px] font-bold text-rose-600 leading-relaxed shadow-inner">
+            <div className="p-5 rounded-sm bg-rose-50 border border-rose-100 text-[11px] font-bold text-rose-600 leading-relaxed shadow-inner">
               <span className="font-black uppercase tracking-widest mr-2 block mb-1">Brand Feedback:</span> 
               {sub.rejection_reason}
             </div>
@@ -168,9 +168,9 @@ export default function DashboardSubmissionsPage() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center space-y-12 animate-in fade-in duration-700" style={{ background: "var(--color-bg)" }}>
         <div className="relative">
-          <div className="absolute inset-0 bg-orange-400/20 blur-3xl rounded-none scale-150 animate-pulse" />
-          <div className="relative w-24 h-24 rounded-none bg-white dark:bg-surface border border-white shadow-none flex items-center justify-center overflow-hidden">
-            <div className="absolute inset-0 border-2 border-t-orange-500 border-r-transparent border-b-transparent border-l-transparent rounded-none animate-spin m-2" />
+          <div className="absolute inset-0 bg-orange-400/20 blur-3xl rounded-sm scale-150 animate-pulse" />
+          <div className="relative w-24 h-24 rounded-sm bg-white dark:bg-surface border border-white shadow-none flex items-center justify-center overflow-hidden">
+            <div className="absolute inset-0 border-2 border-t-orange-500 border-r-transparent border-b-transparent border-l-transparent rounded-sm animate-spin m-2" />
             <Video className="h-10 w-10 text-stone-900 dark:text-white" />
           </div>
         </div>
@@ -193,7 +193,7 @@ export default function DashboardSubmissionsPage() {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
            <div className="space-y-2">
               <h1 className="text-4xl font-black text-stone-900 dark:text-white tracking-tighter flex items-center gap-4">
-                 <div className="p-2.5 rounded-none bg-white dark:bg-surface border border-white shadow-none shrink-0">
+                 <div className="p-2.5 rounded-sm bg-white dark:bg-surface border border-white shadow-none shrink-0">
                     <Video className="h-8 w-8 text-orange-500" />
                  </div>
                  My Submissions
@@ -202,16 +202,16 @@ export default function DashboardSubmissionsPage() {
                  Track your content performance and earned rewards
               </p>
            </div>
-           <div className="flex items-center gap-4 bg-white dark:bg-surface/40 p-1.5 rounded-none border border-white shadow-none backdrop-blur-xl">
-              <div className="w-3 h-3 rounded-none bg-orange-500 ml-4 animate-pulse shadow-[0_0_12px_rgba(249,115,22,0.5)]" />
+           <div className="flex items-center gap-4 bg-white dark:bg-surface/40 p-1.5 rounded-sm border border-white shadow-none backdrop-blur-xl">
+              <div className="w-3 h-3 rounded-sm bg-orange-500 ml-4 animate-pulse shadow-[0_0_12px_rgba(249,115,22,0.5)]" />
               <span className="text-[10px] font-black uppercase tracking-widest text-stone-900 dark:text-white pr-6 pl-2">Sync Active</span>
            </div>
         </div>
 
         {/* Stats Row */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-           <GlassCard className="p-8 flex flex-col justify-between rounded-none bg-white dark:bg-surface/60 border-white shadow-none transition-all hover:scale-105 duration-700">
-              <div className="w-14 h-14 rounded-none bg-stone-50 dark:bg-surface/50 border border-stone-100 dark:border-border flex items-center justify-center mb-6">
+           <GlassCard className="p-8 flex flex-col justify-between rounded-sm bg-white dark:bg-surface/60 border-white shadow-none transition-all hover:scale-105 duration-700">
+              <div className="w-14 h-14 rounded-sm bg-stone-50 dark:bg-surface/50 border border-stone-100 dark:border-border flex items-center justify-center mb-6">
                  <Video className="h-7 w-7 text-stone-900 dark:text-white" />
               </div>
               <div>
@@ -219,8 +219,8 @@ export default function DashboardSubmissionsPage() {
                  <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mt-2">Total Submissions</p>
               </div>
            </GlassCard>
-           <GlassCard className="p-8 flex flex-col justify-between rounded-none bg-white dark:bg-surface/60 border-white shadow-none transition-all hover:scale-105 duration-700">
-              <div className="w-14 h-14 rounded-none bg-emerald-50 border border-emerald-100 flex items-center justify-center mb-6">
+           <GlassCard className="p-8 flex flex-col justify-between rounded-sm bg-white dark:bg-surface/60 border-white shadow-none transition-all hover:scale-105 duration-700">
+              <div className="w-14 h-14 rounded-sm bg-emerald-50 border border-emerald-100 flex items-center justify-center mb-6">
                  <CheckCircle className="h-7 w-7 text-emerald-500" />
               </div>
               <div>
@@ -228,8 +228,8 @@ export default function DashboardSubmissionsPage() {
                  <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mt-2">Approved Videos</p>
               </div>
            </GlassCard>
-           <GlassCard className="p-8 flex flex-col justify-between rounded-none bg-white dark:bg-surface/60 border-white shadow-none transition-all hover:scale-105 duration-700">
-              <div className="w-14 h-14 rounded-none bg-orange-50 border border-orange-100 flex items-center justify-center mb-6">
+           <GlassCard className="p-8 flex flex-col justify-between rounded-sm bg-white dark:bg-surface/60 border-white shadow-none transition-all hover:scale-105 duration-700">
+              <div className="w-14 h-14 rounded-sm bg-orange-50 border border-orange-100 flex items-center justify-center mb-6">
                  <Clock className="h-7 w-7 text-orange-500" />
               </div>
               <div>
@@ -237,8 +237,8 @@ export default function DashboardSubmissionsPage() {
                  <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mt-2">Pending Review</p>
               </div>
            </GlassCard>
-           <GlassCard className="p-8 flex flex-col justify-between rounded-none bg-white dark:bg-surface border-white shadow-none transition-all hover:scale-105 duration-700">
-              <div className="w-14 h-14 rounded-none bg-stone-900 text-white flex items-center justify-center mb-6">
+           <GlassCard className="p-8 flex flex-col justify-between rounded-sm bg-white dark:bg-surface border-white shadow-none transition-all hover:scale-105 duration-700">
+              <div className="w-14 h-14 rounded-sm bg-stone-900 text-white flex items-center justify-center mb-6">
                  <DollarSign className="h-7 w-7" />
               </div>
               <div>
@@ -256,7 +256,7 @@ export default function DashboardSubmissionsPage() {
                     key={f}
                     onClick={() => setStatusFilter(f)}
                     className={cn(
-                       "px-8 h-12 rounded-none text-[10px] font-black uppercase tracking-widest transition-all border shrink-0 shadow-none",
+                       "px-8 h-12 rounded-sm text-[10px] font-black uppercase tracking-widest transition-all border shrink-0 shadow-none",
                        statusFilter === f
                           ? "bg-stone-900 border-stone-900 text-white shadow-none shadow-stone-900/10"
                           : "bg-white dark:bg-surface border-white text-stone-400 hover:text-stone-900 dark:text-white"
@@ -268,10 +268,10 @@ export default function DashboardSubmissionsPage() {
            </div>
            
            <div className="flex items-center gap-3">
-              <div className="h-12 w-12 flex items-center justify-center rounded-none bg-white dark:bg-surface border border-white text-stone-400 shadow-none">
+              <div className="h-12 w-12 flex items-center justify-center rounded-sm bg-white dark:bg-surface border border-white text-stone-400 shadow-none">
                  <Filter className="h-4 w-4" />
               </div>
-              <Button asChild className="h-12 px-8 rounded-none bg-orange-500 text-white font-black text-[10px] uppercase tracking-widest shadow-none shadow-orange-500/20 active:scale-95 transition-all border-none">
+              <Button asChild className="h-12 px-8 rounded-sm bg-orange-500 text-white font-black text-[10px] uppercase tracking-widest shadow-none shadow-orange-500/20 active:scale-95 transition-all border-none">
                  <Link href="/ugc">Explore missions <ArrowRight className="h-4 w-4 ml-3" /></Link>
               </Button>
            </div>
@@ -281,19 +281,19 @@ export default function DashboardSubmissionsPage() {
         {loading ? (
            <div className="space-y-6">
               {[1, 2, 3].map((i) => (
-                 <div key={i} className="h-48 rounded-none bg-white dark:bg-surface border border-white animate-pulse shadow-none" />
+                 <div key={i} className="h-48 rounded-sm bg-white dark:bg-surface border border-white animate-pulse shadow-none" />
               ))}
            </div>
         ) : submissions.length === 0 ? (
-           <GlassCard className="p-24 text-center rounded-none border-white bg-white dark:bg-surface/20">
-              <div className="w-24 h-24 bg-white dark:bg-surface rounded-none flex items-center justify-center mx-auto mb-8 border border-white shadow-none">
+           <GlassCard className="p-24 text-center rounded-sm border-white bg-white dark:bg-surface/20">
+              <div className="w-24 h-24 bg-white dark:bg-surface rounded-sm flex items-center justify-center mx-auto mb-8 border border-white shadow-none">
                  <Video className="h-10 w-10 text-stone-100" />
               </div>
               <h2 className="text-3xl font-black text-stone-900 dark:text-white tracking-tighter">No Activity Logged</h2>
               <p className="text-[11px] font-black text-stone-400 uppercase tracking-widest mt-4 max-w-xs mx-auto leading-relaxed">
                  You haven't submitted any content yet. Explore missions to start earning.
               </p>
-              <Button asChild className="h-16 px-12 rounded-none bg-stone-900 text-white font-black text-[11px] uppercase tracking-widest shadow-none mt-10 hover:bg-black transition-all border-none">
+              <Button asChild className="h-16 px-12 rounded-sm bg-stone-900 text-white font-black text-[11px] uppercase tracking-widest shadow-none mt-10 hover:bg-black transition-all border-none">
                  <Link href="/ugc">Browse Campaigns</Link>
               </Button>
            </GlassCard>

@@ -60,14 +60,14 @@ export default function CreatorEarningsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-stone-900 dark:text-white flex items-center gap-3">
-             <div className="p-2 rounded-none bg-white dark:bg-surface/60 border border-white/80 shadow-none shrink-0">
+             <div className="p-2 rounded-sm bg-white dark:bg-surface/60 border border-white/80 shadow-none shrink-0">
                <DollarSign className="h-6 w-6 text-emerald-500" />
              </div>
              Creator Earnings
           </h1>
           <p className="text-[12px] font-semibold text-stone-500 mt-1 uppercase tracking-widest pl-14">Earnings from product sales, views, and payouts</p>
         </div>
-        <Button asChild className="h-11 px-6 rounded-none font-bold text-[11px] uppercase tracking-widest bg-stone-900 text-white shadow-[0_4px_16px_rgba(0,0,0,0.15)] active:scale-95 transition-all">
+        <Button asChild className="h-11 px-6 rounded-sm font-bold text-[11px] uppercase tracking-widest bg-stone-900 text-white shadow-[0_4px_16px_rgba(0,0,0,0.15)] active:scale-95 transition-all">
           <Link href="/dashboard/withdrawals"><Wallet className="h-4 w-4 mr-2 text-emerald-400" /> Request Payout</Link>
         </Button>
       </div>

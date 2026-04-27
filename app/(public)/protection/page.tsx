@@ -22,18 +22,18 @@ export default function TradeAssurancePage() {
               Trade Assurance protects your orders from payment to delivery. We ensure your production meets quality standards and arrives on time.
             </p>
             <div className="flex flex-wrap gap-4">
-              <Button size="xl" className="bg-blue-600 hover:bg-blue-700 text-white font-black rounded-none h-16 px-10 shadow-none shadow-blue-600/20">
+              <Button size="xl" className="bg-blue-600 hover:bg-blue-700 text-white font-black rounded-sm h-16 px-10 shadow-none shadow-blue-600/20">
                 Register as Buyer
               </Button>
-              <Button size="xl" variant="outline" className="font-black rounded-none h-16 px-10 border-2">
+              <Button size="xl" variant="outline" className="font-black rounded-sm h-16 px-10 border-2">
                 How it Works
               </Button>
             </div>
           </div>
           <div className="flex-1 hidden md:block">
             <div className="relative">
-              <div className="absolute -inset-4 bg-blue-600/10 blur-3xl rounded-none" />
-              <div className="relative bg-white dark:bg-surface border border-[var(--color-border)] rounded-none p-10 shadow-none">
+              <div className="absolute -inset-4 bg-blue-600/10 blur-3xl rounded-sm" />
+              <div className="relative bg-white dark:bg-surface border border-[var(--color-border)] rounded-sm p-10 shadow-none">
                 <ShieldCheck className="h-24 w-24 text-blue-600 mx-auto mb-6" />
                 <div className="space-y-6">
                   {[
@@ -74,7 +74,7 @@ export default function TradeAssurancePage() {
             }
           ].map((item, i) => (
             <div key={i} className="text-center">
-              <div className="h-16 w-16 rounded-none bg-[var(--color-surface-secondary)] flex items-center justify-center mb-8 mx-auto">
+              <div className="h-16 w-16 rounded-sm bg-[var(--color-surface-secondary)] flex items-center justify-center mb-8 mx-auto">
                 {item.icon}
               </div>
               <h3 className="text-2xl font-black text-[var(--color-text-primary)] mb-4">{item.title}</h3>
@@ -89,12 +89,12 @@ export default function TradeAssurancePage() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 flex flex-col md:flex-row items-center gap-16">
           <div className="flex-1 order-2 md:order-1">
             <div className="grid grid-cols-2 gap-4">
-              <div className="bg-white dark:bg-surface p-6 rounded-none border border-[var(--color-border)] shadow-none">
+              <div className="bg-white dark:bg-surface p-6 rounded-sm border border-[var(--color-border)] shadow-none">
                 <ShieldAlert className="h-10 w-10 text-orange-500 mb-4" />
                 <h4 className="font-black mb-2">Pre-shipment</h4>
                 <p className="text-xs text-[var(--color-text-secondary)]">We verify quality before goods leave the factory.</p>
               </div>
-              <div className="bg-white dark:bg-surface p-6 rounded-none border border-[var(--color-border)] shadow-none mt-8">
+              <div className="bg-white dark:bg-surface p-6 rounded-sm border border-[var(--color-border)] shadow-none mt-8">
                 <Award className="h-10 w-10 text-blue-500 mb-4" />
                 <h4 className="font-black mb-2">Certification</h4>
                 <p className="text-xs text-[var(--color-text-secondary)]">Verification of all industrial standard certificates.</p>
@@ -113,7 +113,7 @@ export default function TradeAssurancePage() {
                 </li>
               ))}
             </ul>
-            <Button className="bg-blue-600 hover:bg-blue-700 font-black h-14 rounded-none px-8">
+            <Button className="bg-blue-600 hover:bg-blue-700 font-black h-14 rounded-sm px-8">
               Learn About Inspections <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
           </div>
@@ -122,17 +122,17 @@ export default function TradeAssurancePage() {
 
       {/* CTA */}
       <section className="py-24 px-4">
-        <div className="max-w-4xl mx-auto bg-blue-600 rounded-none p-16 text-center text-white relative overflow-hidden shadow-none shadow-blue-600/30">
+        <div className="max-w-4xl mx-auto bg-blue-600 rounded-sm p-16 text-center text-white relative overflow-hidden shadow-none shadow-blue-600/30">
           <div className="absolute top-0 right-0 w-64 h-64 bg-white dark:bg-surface opacity-10 blur-[100px]" />
           <h2 className="text-4xl md:text-5xl font-black mb-6">Safe Trading Starts Here</h2>
           <p className="text-white/70 text-lg mb-10 max-w-xl mx-auto">
             Join thousands of businesses sourcing safely from verified manufacturers around the world.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="xl" className="bg-white dark:bg-surface text-blue-600 hover:bg-white dark:bg-surface/90 font-black rounded-none h-16 px-10">
+            <Button size="xl" className="bg-white dark:bg-surface text-blue-600 hover:bg-white dark:bg-surface/90 font-black rounded-sm h-16 px-10">
               Create Secure Account
             </Button>
-            <Button size="xl" variant="outline" className="text-white border-white/20 hover:bg-white dark:bg-surface/5 font-black rounded-none h-16 px-10">
+            <Button size="xl" variant="outline" className="text-white border-white/20 hover:bg-white dark:bg-surface/5 font-black rounded-sm h-16 px-10">
                Contact Support
             </Button>
           </div>

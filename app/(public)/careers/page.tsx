@@ -37,10 +37,10 @@ export default function CareersPage() {
             Jimvio is a remote-first team of polymaths, builders, and dreamers dedicated to empowering independent creators worldwide.
           </p>
           <div className="flex justify-center gap-4">
-            <Button size="xl" className="bg-[var(--color-accent)] font-black rounded-none h-16 px-10 shadow-none shadow-[var(--color-accent)]/20">
+            <Button size="xl" className="bg-[var(--color-accent)] font-black rounded-sm h-16 px-10 shadow-none shadow-[var(--color-accent)]/20">
               View Openings
             </Button>
-            <Button size="xl" variant="outline" className="font-black rounded-none h-16 px-10 border-2">
+            <Button size="xl" variant="outline" className="font-black rounded-sm h-16 px-10 border-2">
               Our Culture
             </Button>
           </div>
@@ -52,7 +52,7 @@ export default function CareersPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
           {values.map((v, i) => (
             <div key={i} className="space-y-4">
-              <div className="h-14 w-14 rounded-none bg-[var(--color-surface-secondary)] text-[var(--color-accent)] flex items-center justify-center border border-[var(--color-border)] shadow-none">
+              <div className="h-14 w-14 rounded-sm bg-[var(--color-surface-secondary)] text-[var(--color-accent)] flex items-center justify-center border border-[var(--color-border)] shadow-none">
                 {v.icon}
               </div>
               <h3 className="text-xl font-black text-[var(--color-text-primary)]">{v.title}</h3>
@@ -84,11 +84,11 @@ export default function CareersPage() {
                    ))}
                 </div>
              </div>
-             <div className="w-full lg:w-96 aspect-square bg-gradient-to-br from-[var(--color-accent)] to-[#4f46e5]/40 rounded-none relative overflow-hidden group">
+             <div className="w-full lg:w-96 aspect-square bg-gradient-to-br from-[var(--color-accent)] to-[#4f46e5]/40 rounded-sm relative overflow-hidden group">
                 <div className="absolute inset-0 flex items-center justify-center">
                    <Sparkles className="h-40 w-40 text-white opacity-20 group-hover:rotate-12 transition-transform duration-700" />
                 </div>
-                <div className="absolute top-10 right-10 p-6 bg-white dark:bg-surface/10 backdrop-blur-xl rounded-none border border-white/20">
+                <div className="absolute top-10 right-10 p-6 bg-white dark:bg-surface/10 backdrop-blur-xl rounded-sm border border-white/20">
                    <p className="text-white font-black text-lg leading-tight">"The best work I've ever done with the best people I've ever met."</p>
                    <p className="text-white/60 text-xs mt-4 font-bold capitalize tracking-widest">— Marie, Lead Designer</p>
                 </div>
@@ -106,7 +106,7 @@ export default function CareersPage() {
 
         <div className="space-y-4">
           {jobs.map((job, i) => (
-            <div key={i} className="group bg-white dark:bg-surface border border-[var(--color-border)] p-8 rounded-none flex flex-col md:flex-row md:items-center justify-between gap-8 hover:border-[var(--color-accent)] hover:shadow-none hover:-translate-y-1 transition-all cursor-pointer">
+            <div key={i} className="group bg-white dark:bg-surface border border-[var(--color-border)] p-8 rounded-sm flex flex-col md:flex-row md:items-center justify-between gap-8 hover:border-[var(--color-accent)] hover:shadow-none hover:-translate-y-1 transition-all cursor-pointer">
                <div className="space-y-2">
                   <div className="flex items-center gap-3">
                      <h4 className="text-xl font-black text-[var(--color-text-primary)] group-hover:text-[var(--color-accent)] transition-colors">{job.title}</h4>
@@ -117,7 +117,7 @@ export default function CareersPage() {
                      <span className="flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5" /> {job.type}</span>
                   </div>
                </div>
-               <Button variant="ghost" className="h-12 w-12 rounded-none border-2 border-transparent group-hover:border-[var(--color-accent)] group-hover:text-[var(--color-accent)]">
+               <Button variant="ghost" className="h-12 w-12 rounded-sm border-2 border-transparent group-hover:border-[var(--color-accent)] group-hover:text-[var(--color-accent)]">
                   <ArrowRight className="h-6 w-6" />
                </Button>
             </div>

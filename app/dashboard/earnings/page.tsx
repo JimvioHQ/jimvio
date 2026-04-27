@@ -64,9 +64,9 @@ export default function AffiliateEarningsPage() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center space-y-12 animate-in fade-in duration-700" style={{ background: "var(--color-bg)" }}>
         <div className="relative">
-          <div className="absolute inset-0 bg-emerald-400/20 blur-3xl rounded-none scale-150 animate-pulse" />
-          <div className="relative w-24 h-24 rounded-none bg-surface dark:bg-surface border border-border shadow-none flex items-center justify-center overflow-hidden">
-            <div className="absolute inset-0 border-2 border-t-emerald-500 border-r-transparent border-b-transparent border-l-transparent rounded-none animate-spin m-2" />
+          <div className="absolute inset-0 bg-emerald-400/20 blur-3xl rounded-sm scale-150 animate-pulse" />
+          <div className="relative w-24 h-24 rounded-sm bg-surface dark:bg-surface border border-border shadow-none flex items-center justify-center overflow-hidden">
+            <div className="absolute inset-0 border-2 border-t-emerald-500 border-r-transparent border-b-transparent border-l-transparent rounded-sm animate-spin m-2" />
             <DollarSign className="h-10 w-10 text-stone-900 dark:text-white" />
           </div>
         </div>
@@ -154,7 +154,7 @@ export default function AffiliateEarningsPage() {
         </div>
 
          {/* Global Registry Table */}
-        <div className="rounded-2xl border border-border bg-surface/40 dark:bg-surface/40 shadow-sm overflow-hidden max-sm:-mx-4 max-sm:rounded-none max-sm:border-x-0">
+        <div className="rounded-2xl border border-border bg-surface/40 dark:bg-surface/40 shadow-sm overflow-hidden max-sm:-mx-4 max-sm:rounded-sm max-sm:border-x-0">
            <div className="p-4 sm:p-6 border-b border-border flex flex-col md:flex-row items-center justify-between gap-4">
               <div className="space-y-0.5 sm:space-y-1 text-center md:text-left">
                  <h3 className="text-base sm:text-lg font-bold text-stone-900 dark:text-white">Commission Log</h3>
@@ -230,7 +230,7 @@ export default function AffiliateEarningsPage() {
         </div>
 
         {/* Settlement Registry */}
-        <div className="rounded-2xl border border-border bg-surface/40 dark:bg-surface/40 shadow-sm overflow-hidden mt-6 sm:mt-8 max-sm:-mx-4 max-sm:rounded-none max-sm:border-x-0">
+        <div className="rounded-2xl border border-border bg-surface/40 dark:bg-surface/40 shadow-sm overflow-hidden mt-6 sm:mt-8 max-sm:-mx-4 max-sm:rounded-sm max-sm:border-x-0">
            <div className="p-4 sm:p-6 border-b border-border flex items-center justify-between">
               <div className="space-y-0.5 sm:space-y-1">
                  <h3 className="text-base sm:text-lg font-bold text-stone-900 dark:text-white">Payout History</h3>

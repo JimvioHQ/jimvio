@@ -86,7 +86,7 @@ function MediaCarousel({ media }: { media: UGCPostMedia[] }) {
 
   const current = media[index];
   return (
-    <div className="relative overflow-hidden bg-black/5 rounded-none">
+    <div className="relative overflow-hidden bg-black/5 rounded-sm">
       {current.type === "video" ? (
         <video
           src={current.url}
@@ -102,7 +102,7 @@ function MediaCarousel({ media }: { media: UGCPostMedia[] }) {
             alt=""
             fill
             sizes="(max-width: 768px) 100vw, 600px"
-            className="object-cover rounded-none"
+            className="object-cover rounded-sm"
           />
         </div>
       )}
@@ -114,7 +114,7 @@ function MediaCarousel({ media }: { media: UGCPostMedia[] }) {
                 key={i}
                 onClick={() => setIndex(i)}
                 className={cn(
-                  "w-1.5 h-1.5 rounded-none transition-all",
+                  "w-1.5 h-1.5 rounded-sm transition-all",
                   i === index ? "bg-white dark:bg-surface w-4" : "bg-white dark:bg-surface/50"
                 )}
               />
@@ -123,7 +123,7 @@ function MediaCarousel({ media }: { media: UGCPostMedia[] }) {
           {index > 0 && (
             <button
               onClick={() => setIndex((i) => i - 1)}
-              className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-none bg-black/40 text-white flex items-center justify-center hover:bg-black/60 transition-colors"
+              className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-sm bg-black/40 text-white flex items-center justify-center hover:bg-black/60 transition-colors"
             >
               "¹
             </button>
@@ -131,7 +131,7 @@ function MediaCarousel({ media }: { media: UGCPostMedia[] }) {
           {index < media.length - 1 && (
             <button
               onClick={() => setIndex((i) => i + 1)}
-              className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-none bg-black/40 text-white flex items-center justify-center hover:bg-black/60 transition-colors"
+              className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-sm bg-black/40 text-white flex items-center justify-center hover:bg-black/60 transition-colors"
             >
               "º
             </button>
@@ -155,10 +155,10 @@ function ProductStrip({ tags }: { tags: Array<{ products: UGCPostProduct }> }) {
           <Link
             key={p.id}
             href={`/marketplace/product/${p.slug}`}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-none bg-[var(--color-surface-secondary)] border border-[var(--color-border)] hover:border-[var(--color-accent)]/40 hover:bg-[var(--color-accent-light)] transition-all group text-xs font-medium"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-sm bg-[var(--color-surface-secondary)] border border-[var(--color-border)] hover:border-[var(--color-accent)]/40 hover:bg-[var(--color-accent-light)] transition-all group text-xs font-medium"
           >
             {img && (
-              <Image src={img} alt={p.name} width={20} height={20} className="w-5 h-5 rounded-none object-cover" />
+              <Image src={img} alt={p.name} width={20} height={20} className="w-5 h-5 rounded-sm object-cover" />
             )}
             <Tag className="h-3 w-3 text-[var(--color-accent)]" />
             <span className="text-[var(--color-text-primary)] group-hover:text-[var(--color-accent)] truncate max-w-[120px]">
@@ -171,7 +171,7 @@ function ProductStrip({ tags }: { tags: Array<{ products: UGCPostProduct }> }) {
         );
       })}
       {tags.length > 3 && (
-        <span className="flex items-center px-3 py-1.5 rounded-none bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)] text-xs border border-[var(--color-border)]">
+        <span className="flex items-center px-3 py-1.5 rounded-sm bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)] text-xs border border-[var(--color-border)]">
           +{tags.length - 3} more
         </span>
       )}
@@ -284,7 +284,7 @@ export function UGCPostCard({ post, currentUserId, onDelete, className }: UGCPos
   return (
     <article
       className={cn(
-        "bg-[var(--color-surface)] border border-[var(--color-border)] rounded-none overflow-hidden transition-shadow hover:shadow-none",
+        "bg-[var(--color-surface)] border border-[var(--color-border)] rounded-sm overflow-hidden transition-shadow hover:shadow-none",
         className
       )}
     >
@@ -327,12 +327,12 @@ export function UGCPostCard({ post, currentUserId, onDelete, className }: UGCPos
         <div className="relative">
           <button
             onClick={() => setShowMenu((s) => !s)}
-            className="p-2 rounded-none text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)] transition-colors"
+            className="p-2 rounded-sm text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)] transition-colors"
           >
             <MoreHorizontal className="h-4 w-4" />
           </button>
           {showMenu && (
-            <div className="absolute right-0 top-9 z-50 w-44 rounded-none border border-[var(--color-border)] bg-[var(--color-surface)] shadow-none py-1 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
+            <div className="absolute right-0 top-9 z-50 w-44 rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] shadow-none py-1 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
               {isOwner && (
                 <button
                   onClick={handleDelete}
@@ -400,7 +400,7 @@ export function UGCPostCard({ post, currentUserId, onDelete, className }: UGCPos
           <button
             onClick={handleLike}
             className={cn(
-              "flex items-center gap-1.5 px-3 py-2 rounded-none text-sm font-medium transition-all active:scale-95",
+              "flex items-center gap-1.5 px-3 py-2 rounded-sm text-sm font-medium transition-all active:scale-95",
               liked
                 ? "text-red-500 bg-red-50 dark:bg-red-950/30 hover:bg-red-100 dark:hover:bg-red-900/40"
                 : "text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
@@ -413,7 +413,7 @@ export function UGCPostCard({ post, currentUserId, onDelete, className }: UGCPos
           {/* Comment */}
           <Link
             href={`/ugc/${post.id}#comments`}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-none text-sm font-medium text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)] transition-all"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-sm text-sm font-medium text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)] transition-all"
           >
             <MessageCircle className="h-4 w-4" />
             <span>{formatCount(post.comment_count ?? 0)}</span>
@@ -422,7 +422,7 @@ export function UGCPostCard({ post, currentUserId, onDelete, className }: UGCPos
           {/* Share */}
           <button
             onClick={handleShare}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-none text-sm font-medium text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)] transition-all"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-sm text-sm font-medium text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)] transition-all"
           >
             {copied ? (
               <CheckCircle className="h-4 w-4 text-green-500" />
@@ -437,13 +437,13 @@ export function UGCPostCard({ post, currentUserId, onDelete, className }: UGCPos
           {tags.length > 0 && (
             <Link
               href={`/marketplace/product/${tags[0].products.slug}`}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-none text-xs font-semibold text-[var(--color-accent)] bg-[var(--color-accent-light)] hover:bg-[var(--color-accent)] hover:text-white transition-all"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-sm text-xs font-semibold text-[var(--color-accent)] bg-[var(--color-accent-light)] hover:bg-[var(--color-accent)] hover:text-white transition-all"
             >
               <ShoppingBag className="h-3.5 w-3.5" />
               Shop now
             </Link>
           )}
-          <button className="p-2 rounded-none text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)] transition-colors">
+          <button className="p-2 rounded-sm text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)] transition-colors">
             <Bookmark className="h-4 w-4" />
           </button>
         </div>

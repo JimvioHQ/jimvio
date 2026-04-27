@@ -75,8 +75,8 @@ export function WorkspaceRoomView() {
     }
     return (
       <div className="flex flex-1 flex-col items-center justify-center p-6 sm:p-10">
-        <div className="w-full max-w-md rounded-none border border-[var(--color-border)] bg-[var(--color-surface)] p-8 shadow-[0_24px_60px_-28px_rgba(67,51,96,0.25)] text-center space-y-4">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-none bg-[var(--color-accent-light)] text-[var(--color-accent)]">
+        <div className="w-full max-w-md rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] p-8 shadow-[0_24px_60px_-28px_rgba(67,51,96,0.25)] text-center space-y-4">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-sm bg-[var(--color-accent-light)] text-[var(--color-accent)]">
             <LayoutGrid className="h-7 w-7" />
           </div>
           <div>
@@ -87,7 +87,7 @@ export function WorkspaceRoomView() {
           </div>
           <Button
             type="button"
-            className="w-full rounded-none bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-black h-11"
+            className="w-full rounded-sm bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-black h-11"
             onClick={() => router.push(`${base}?space=${firstPick.spaceId}&room=${firstPick.roomId}`)}
           >
             Open a room

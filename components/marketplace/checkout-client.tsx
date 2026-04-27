@@ -97,9 +97,9 @@ export function CheckoutClient({ orders, total }: CheckoutClientProps) {
   if (payment) {
     return (
       <div className="max-w-[var(--container-max)] mx-auto">
-        <div className="bg-white dark:bg-surface rounded-none border border-[var(--color-border)] shadow-none overflow-hidden p-8">
+        <div className="bg-white dark:bg-surface rounded-sm border border-[var(--color-border)] shadow-none overflow-hidden p-8">
           <div className="flex items-center gap-3 mb-6">
-            <div className="h-12 w-12 bg-amber-100 rounded-none flex items-center justify-center">
+            <div className="h-12 w-12 bg-amber-100 rounded-sm flex items-center justify-center">
               <Bitcoin className="h-6 w-6 text-amber-600" />
             </div>
             <div>
@@ -115,7 +115,7 @@ export function CheckoutClient({ orders, total }: CheckoutClientProps) {
                 <input
                   readOnly
                   value={payment.payAddress}
-                  className="flex-1 px-4 py-3 rounded-none border border-[var(--color-border)] bg-zinc-50 dark:bg-surface/50 text-sm font-mono"
+                  className="flex-1 px-4 py-3 rounded-sm border border-[var(--color-border)] bg-zinc-50 dark:bg-surface/50 text-sm font-mono"
                 />
                 <Button variant="outline" size="icon" onClick={copyAddress} className="shrink-0">
                   <Copy className="h-4 w-4" />
@@ -123,7 +123,7 @@ export function CheckoutClient({ orders, total }: CheckoutClientProps) {
               </div>
             </div>
 
-            <div className="p-4 bg-zinc-50 dark:bg-surface/50 rounded-none border border-zinc-100 dark:border-border">
+            <div className="p-4 bg-zinc-50 dark:bg-surface/50 rounded-sm border border-zinc-100 dark:border-border">
               <p className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1">Amount due</p>
               <p className="text-2xl font-black text-zinc-900 dark:text-white">
                 {payment.payAmount} {payment.payCurrency.toUpperCase()}
@@ -148,7 +148,7 @@ export function CheckoutClient({ orders, total }: CheckoutClientProps) {
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
       <div className="lg:col-span-2 space-y-6">
         {orders.map((order) => (
-          <div key={order.id} className="bg-white dark:bg-surface rounded-none border border-[var(--color-border)] p-6">
+          <div key={order.id} className="bg-white dark:bg-surface rounded-sm border border-[var(--color-border)] p-6">
             <div className="space-y-3">
               {order.order_items.map((item) => (
                 <div key={item.id} className="flex justify-between items-center">
@@ -168,7 +168,7 @@ export function CheckoutClient({ orders, total }: CheckoutClientProps) {
       </div>
 
       <div className="lg:col-span-1">
-        <div className="sticky top-40 bg-white dark:bg-surface rounded-none border border-[var(--color-border)] p-6 shadow-none">
+        <div className="sticky top-40 bg-white dark:bg-surface rounded-sm border border-[var(--color-border)] p-6 shadow-none">
           <h3 className="text-lg font-bold text-zinc-900 dark:text-white mb-4">Order Summary</h3>
           <div className="space-y-2 mb-6">
             <div className="flex justify-between text-sm">
@@ -189,7 +189,7 @@ export function CheckoutClient({ orders, total }: CheckoutClientProps) {
               <select
                 value={payCurrency}
                 onChange={(e) => setPayCurrency(e.target.value)}
-                className="w-full h-12 px-4 rounded-none border border-[var(--color-border)] bg-white dark:bg-surface text-sm font-medium"
+                className="w-full h-12 px-4 rounded-sm border border-[var(--color-border)] bg-white dark:bg-surface text-sm font-medium"
               >
                 {PAY_CURRENCIES.map((c) => (
                   <option key={c.id} value={c.id}>

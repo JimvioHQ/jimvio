@@ -55,9 +55,9 @@ export default function AffiliatePromotedProductsPage() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center space-y-12 animate-in fade-in duration-700" style={{ background: "var(--color-bg)" }}>
         <div className="relative">
-          <div className="absolute inset-0 bg-orange-400/20 blur-3xl rounded-none scale-150 animate-pulse" />
-          <div className="relative w-24 h-24 rounded-none bg-white dark:bg-surface border border-white shadow-none flex items-center justify-center overflow-hidden">
-            <div className="absolute inset-0 border-2 border-t-orange-500 border-r-transparent border-b-transparent border-l-transparent rounded-none animate-spin m-2" />
+          <div className="absolute inset-0 bg-orange-400/20 blur-3xl rounded-sm scale-150 animate-pulse" />
+          <div className="relative w-24 h-24 rounded-sm bg-white dark:bg-surface border border-white shadow-none flex items-center justify-center overflow-hidden">
+            <div className="absolute inset-0 border-2 border-t-orange-500 border-r-transparent border-b-transparent border-l-transparent rounded-sm animate-spin m-2" />
             <Package className="h-10 w-10 text-stone-900 dark:text-white" />
           </div>
         </div>
@@ -84,7 +84,7 @@ export default function AffiliatePromotedProductsPage() {
         {/* Header Protocol */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
            <div className="flex items-center gap-6">
-              <Button variant="ghost" size="icon" asChild className="shrink-0 rounded-none bg-white dark:bg-surface border border-stone-100 dark:border-border shadow-none hover:bg-stone-50 dark:bg-surface/50 active:scale-95 transition-all text-stone-600 h-14 w-14">
+              <Button variant="ghost" size="icon" asChild className="shrink-0 rounded-sm bg-white dark:bg-surface border border-stone-100 dark:border-border shadow-none hover:bg-stone-50 dark:bg-surface/50 active:scale-95 transition-all text-stone-600 h-14 w-14">
                 <Link href="/dashboard/affiliate/analytics"><ArrowLeft className="h-6 w-6" /></Link>
               </Button>
               <div className="space-y-2">
@@ -93,13 +93,13 @@ export default function AffiliatePromotedProductsPage() {
               </div>
            </div>
            
-           <Button asChild className="h-14 px-8 rounded-none bg-orange-500 text-white shadow-none font-black text-[11px] uppercase tracking-widest active:scale-95 transition-all hover:bg-orange-600 border-none">
+           <Button asChild className="h-14 px-8 rounded-sm bg-orange-500 text-white shadow-none font-black text-[11px] uppercase tracking-widest active:scale-95 transition-all hover:bg-orange-600 border-none">
               <Link href="/marketplace"><Zap className="h-4 w-4 mr-3" /> Find More Products</Link>
            </Button>
         </div>
 
         {/* Assets Registry Protocol */}
-        <GlassCard className="rounded-none border-white bg-white dark:bg-surface/60 shadow-none overflow-hidden">
+        <GlassCard className="rounded-sm border-white bg-white dark:bg-surface/60 shadow-none overflow-hidden">
            <div className="p-10 border-b border-stone-100 dark:border-border flex items-center justify-between">
               <div className="space-y-1">
                  <h3 className="text-3xl font-black text-stone-900 dark:text-white tracking-tighter">Inventory Performance</h3>
@@ -124,7 +124,7 @@ export default function AffiliatePromotedProductsPage() {
                   {rows.length === 0 ? (
                     <tr>
                        <td colSpan={6} className="py-24 text-center space-y-6">
-                          <div className="w-24 h-24 bg-white dark:bg-surface rounded-none flex items-center justify-center mx-auto mb-6 border border-white shadow-none">
+                          <div className="w-24 h-24 bg-white dark:bg-surface rounded-sm flex items-center justify-center mx-auto mb-6 border border-white shadow-none">
                              <Package className="h-10 w-10 text-stone-100" />
                           </div>
                           <p className="text-2xl font-black text-stone-900 dark:text-white tracking-tighter">No Promoted Items Yet</p>
@@ -144,7 +144,7 @@ export default function AffiliatePromotedProductsPage() {
                         <tr key={r.id as string} className="hover:bg-white dark:bg-surface/80 transition-all duration-500 group">
                           <td className="py-10 pl-10 pr-6">
                             <div className="flex items-center gap-6">
-                              <div className="w-20 h-20 shrink-0 rounded-none bg-white dark:bg-surface border border-white shadow-none overflow-hidden flex items-center justify-center transition-transform group-hover:scale-110 duration-700">
+                              <div className="w-20 h-20 shrink-0 rounded-sm bg-white dark:bg-surface border border-white shadow-none overflow-hidden flex items-center justify-center transition-transform group-hover:scale-110 duration-700">
                                 {imgSrc ? (
                                   <img src={imgSrc} alt="" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" />
                                 ) : (
@@ -191,7 +191,7 @@ export default function AffiliatePromotedProductsPage() {
                              <p className="text-[9px] font-black text-emerald-400/60 uppercase tracking-widest mt-1">Total Earned</p>
                           </td>
                           <td className="py-10 pr-10 text-right">
-                            <Button variant="ghost" size="icon" className="h-12 w-12 rounded-none bg-white dark:bg-surface border border-transparent shadow-none text-stone-400 hover:bg-stone-900 hover:text-white transition-all active:scale-90" asChild>
+                            <Button variant="ghost" size="icon" className="h-12 w-12 rounded-sm bg-white dark:bg-surface border border-transparent shadow-none text-stone-400 hover:bg-stone-900 hover:text-white transition-all active:scale-90" asChild>
                               <Link href={`/marketplace/${product?.slug ?? ""}`} target="_blank">
                                 <ArrowRight className="h-5 w-5" />
                               </Link>
@@ -208,21 +208,21 @@ export default function AffiliatePromotedProductsPage() {
 
         {/* Performance Sidebar */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-8">
-           <GlassCard className="p-10 rounded-none bg-white dark:bg-surface/60 border-white shadow-none flex flex-col justify-between">
+           <GlassCard className="p-10 rounded-sm bg-white dark:bg-surface/60 border-white shadow-none flex flex-col justify-between">
               <TrendingUp className="h-10 w-10 text-sky-500 mb-8" />
               <div>
                  <h4 className="text-xl font-black text-stone-900 dark:text-white tracking-tighter">Sales Velocity</h4>
                  <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mt-2">Track how your shared links perform over time cycles.</p>
               </div>
            </GlassCard>
-           <GlassCard className="p-10 rounded-none bg-white dark:bg-surface/60 border-white shadow-none flex flex-col justify-between">
+           <GlassCard className="p-10 rounded-sm bg-white dark:bg-surface/60 border-white shadow-none flex flex-col justify-between">
               <DollarSign className="h-10 w-10 text-emerald-500 mb-8" />
               <div>
                  <h4 className="text-xl font-black text-stone-900 dark:text-white tracking-tighter">Earn More</h4>
                  <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mt-2">Find products with higher commission rates to maximize income.</p>
               </div>
            </GlassCard>
-           <GlassCard className="p-10 rounded-none bg-stone-900 text-white shadow-none flex flex-col justify-between border-none">
+           <GlassCard className="p-10 rounded-sm bg-stone-900 text-white shadow-none flex flex-col justify-between border-none">
               <Zap className="h-10 w-10 text-orange-400 mb-8" />
               <div>
                  <h4 className="text-xl font-black text-white tracking-tighter">Share Often</h4>

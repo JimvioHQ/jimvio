@@ -179,10 +179,10 @@ export function VendorEarningsDashboard() {
         <div className="h-8 w-48 bg-[var(--color-surface-secondary)] rounded animate-pulse" />
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-32 rounded-none bg-[var(--color-surface-secondary)] animate-pulse" />
+            <div key={i} className="h-32 rounded-sm bg-[var(--color-surface-secondary)] animate-pulse" />
           ))}
         </div>
-        <div className="h-64 rounded-none bg-[var(--color-surface-secondary)] animate-pulse" />
+        <div className="h-64 rounded-sm bg-[var(--color-surface-secondary)] animate-pulse" />
       </div>
     );
   }
@@ -284,7 +284,7 @@ export function VendorEarningsDashboard() {
                       type="button"
                       onClick={() => setMethod(opt.id)}
                       className={cn(
-                        "flex flex-col items-center gap-2 rounded-none border p-3 text-center text-xs font-medium transition-colors",
+                        "flex flex-col items-center gap-2 rounded-sm border p-3 text-center text-xs font-medium transition-colors",
                         active
                           ? "border-[var(--color-accent)] bg-[var(--color-accent-light)] text-[var(--color-text-primary)]"
                           : "border-[var(--color-border)] bg-[var(--color-surface-secondary)] text-[var(--color-text-secondary)]"

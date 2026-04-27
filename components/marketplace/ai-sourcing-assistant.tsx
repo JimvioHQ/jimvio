@@ -214,20 +214,20 @@ export function AISourcingAssistant() {
       {/* HEADER */}
       <div className="flex items-center justify-between px-4 sm:px-10 py-3 sm:py-5 border-b border-zinc-100 dark:border-border bg-white dark:bg-surface sticky top-0 z-20">
         <div className="flex items-center gap-3">
-          <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-none bg-orange-500 flex items-center justify-center text-white shadow-none shadow-orange-500/10">
+          <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-sm bg-orange-500 flex items-center justify-center text-white shadow-none shadow-orange-500/10">
             <Brain size={16} className="sm:size-[18px]" />
           </div>
           <div>
             <h2 className="text-[14px] sm:text-[16px] font-black text-zinc-900 dark:text-white leading-none">Jimvio AI</h2>
             <div className="flex items-center gap-1.5 mt-0.5 sm:mt-1">
-               <span className="h-1 w-1 sm:h-1.5 sm:w-1.5 rounded-none bg-green-500 animate-pulse" />
+               <span className="h-1 w-1 sm:h-1.5 sm:w-1.5 rounded-sm bg-green-500 animate-pulse" />
                <p className="text-[8px] sm:text-[9px] font-black text-zinc-400 capitalize tracking-widest hidden xs:block">Active Assistant</p>
             </div>
           </div>
         </div>
         <button 
           onClick={onClose}
-          className="h-9 w-9 sm:h-10 sm:w-10 flex items-center justify-center rounded-none hover:bg-zinc-100 transition-colors"
+          className="h-9 w-9 sm:h-10 sm:w-10 flex items-center justify-center rounded-sm hover:bg-zinc-100 transition-colors"
         >
           <X size={18} className="text-zinc-400" />
         </button>
@@ -239,7 +239,7 @@ export function AISourcingAssistant() {
         <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 sm:p-10 space-y-6 sm:space-y-8 scroll-smooth no-scrollbar">
           {messages.length === 0 && (
             <div className="h-full flex flex-col items-center justify-center text-center max-w-2xl mx-auto py-8 lg:py-20">
-              <div className="p-3 sm:p-4 rounded-none sm:rounded-none bg-orange-50 mb-6 sm:mb-8">
+              <div className="p-3 sm:p-4 rounded-sm sm:rounded-sm bg-orange-50 mb-6 sm:mb-8">
                  <Sparkles className="h-8 w-8 sm:h-12 sm:w-12 text-orange-500" />
               </div>
               <h3 className="text-[22px] sm:text-[36px] font-black text-zinc-900 dark:text-white tracking-tight leading-tight px-4 capitalize">
@@ -255,7 +255,7 @@ export function AISourcingAssistant() {
                     <button
                       key={i}
                       onClick={() => handleSend(sq.query)}
-                      className="flex-none flex items-center gap-2 px-4 py-2.5 sm:px-5 sm:py-3 rounded-none sm:rounded-none bg-zinc-50 dark:bg-surface/50 border border-zinc-100 dark:border-border hover:border-orange-200 hover:bg-white dark:bg-surface hover:shadow-none hover:shadow-orange-500/5 transition-all group"
+                      className="flex-none flex items-center gap-2 px-4 py-2.5 sm:px-5 sm:py-3 rounded-sm sm:rounded-sm bg-zinc-50 dark:bg-surface/50 border border-zinc-100 dark:border-border hover:border-orange-200 hover:bg-white dark:bg-surface hover:shadow-none hover:shadow-orange-500/5 transition-all group"
                     >
                       <sq.icon size={14} className="text-zinc-400 group-hover:text-orange-500" />
                       <span className="text-[12px] sm:text-[13px] font-black text-zinc-600 group-hover:text-zinc-900 dark:text-white whitespace-nowrap">{sq.label}</span>
@@ -282,9 +282,9 @@ export function AISourcingAssistant() {
               )}>
                 {msg.content && (
                   <div className={cn(
-                    "p-4 sm:p-6 rounded-none sm:rounded-none",
+                    "p-4 sm:p-6 rounded-sm sm:rounded-sm",
                     msg.role === "user" 
-                      ? "bg-zinc-900 text-white rounded-none-none" 
+                      ? "bg-zinc-900 text-white rounded-sm-none" 
                       : "bg-zinc-50 dark:bg-surface/50 border border-zinc-100 dark:border-border text-zinc-800 dark:text-text-secondary text-[14px] sm:text-[16px] font-medium leading-relaxed"
                   )}>
                     {msg.content}
@@ -292,13 +292,13 @@ export function AISourcingAssistant() {
                 )}
 
                 {msg.thinking && (
-                   <div className="flex flex-col gap-3 p-4 sm:p-6 rounded-none sm:rounded-none bg-zinc-50 dark:bg-surface/50 border border-dashed border-zinc-200 dark:border-border">
+                   <div className="flex flex-col gap-3 p-4 sm:p-6 rounded-sm sm:rounded-sm bg-zinc-50 dark:bg-surface/50 border border-dashed border-zinc-200 dark:border-border">
                       <div className="flex items-center gap-2 text-[10px] sm:text-[11px] font-black uppercase tracking-widest text-zinc-400 animate-pulse">
                          <Loader2 size={12} className="animate-spin" /> Analyzing data...
                       </div>
                       <div className="space-y-2">
-                         <div className="h-1.5 w-full bg-zinc-200 rounded-none" />
-                         <div className="h-1.5 w-2/3 bg-zinc-200 rounded-none" />
+                         <div className="h-1.5 w-full bg-zinc-200 rounded-sm" />
+                         <div className="h-1.5 w-2/3 bg-zinc-200 rounded-sm" />
                       </div>
                    </div>
                 )}
@@ -312,7 +312,7 @@ export function AISourcingAssistant() {
                           if (link.href?.startsWith("http")) window.open(link.href, "_blank");
                           else { /* handle internal navigation if needed */ }
                         }}
-                        className="px-4 py-2 rounded-none bg-white dark:bg-surface border border-zinc-200 dark:border-border text-[12px] font-black text-zinc-600 hover:border-orange-500 hover:text-orange-600 transition-all flex items-center gap-2 group shadow-none"
+                        className="px-4 py-2 rounded-sm bg-white dark:bg-surface border border-zinc-200 dark:border-border text-[12px] font-black text-zinc-600 hover:border-orange-500 hover:text-orange-600 transition-all flex items-center gap-2 group shadow-none"
                       >
                          {link.label} <ArrowRight size={12} className="opacity-0 group-hover:opacity-100 -translate-x-1 group-hover:translate-x-0 transition-all" />
                       </button>
@@ -323,14 +323,14 @@ export function AISourcingAssistant() {
                 {msg.type === "products" && msg.data && (
                   <div className="flex sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-4 overflow-x-auto pb-6 sm:pb-0 px-1 sm:px-0 no-scrollbar snap-x snap-mandatory">
                     {msg.data.map((p: any) => (
-                      <div key={p.id} className="min-w-[85%] xs:min-w-[75%] sm:min-w-0 snap-center p-4 rounded-none border border-zinc-100 dark:border-border bg-white dark:bg-surface hover:shadow-none hover:shadow-orange-500/10 transition-all group shadow-none flex flex-col">
+                      <div key={p.id} className="min-w-[85%] xs:min-w-[75%] sm:min-w-0 snap-center p-4 rounded-sm border border-zinc-100 dark:border-border bg-white dark:bg-surface hover:shadow-none hover:shadow-orange-500/10 transition-all group shadow-none flex flex-col">
                          <div className="flex items-center gap-1.5 mb-3">
-                            <div className="h-1.5 w-1.5 rounded-none bg-green-500" />
+                            <div className="h-1.5 w-1.5 rounded-sm bg-green-500" />
                             <span className="text-[10px] font-black text-zinc-400 uppercase tracking-tighter">Matches 100% requirements</span>
                          </div>
-                         <div className="h-40 sm:h-48 w-full mb-4 rounded-none bg-zinc-50 dark:bg-surface/50 flex flex-col items-center justify-center relative overflow-hidden group-hover:bg-zinc-100 transition-colors">
+                         <div className="h-40 sm:h-48 w-full mb-4 rounded-sm bg-zinc-50 dark:bg-surface/50 flex flex-col items-center justify-center relative overflow-hidden group-hover:bg-zinc-100 transition-colors">
                             <Package className="h-10 w-10 text-zinc-200 group-hover:scale-110 transition-transform duration-500" />
-                            <div className="absolute top-2 right-2 flex items-center gap-1 px-2 py-1 rounded-none bg-white dark:bg-surface/80 border border-zinc-100 dark:border-border text-[10px] font-black shadow-none">
+                            <div className="absolute top-2 right-2 flex items-center gap-1 px-2 py-1 rounded-sm bg-white dark:bg-surface/80 border border-zinc-100 dark:border-border text-[10px] font-black shadow-none">
                                <ShieldCheck size={12} className="text-orange-500" /> Verified
                             </div>
                          </div>
@@ -343,10 +343,10 @@ export function AISourcingAssistant() {
                             </div>
                             <div className="flex items-center justify-between mt-3 pt-3 border-t border-zinc-50">
                                <div className="flex items-center gap-2">
-                                  <div className="h-4 w-6 rounded-none bg-zinc-100 flex items-center justify-center text-[10px] font-black text-zinc-500">CN</div>
+                                  <div className="h-4 w-6 rounded-sm bg-zinc-100 flex items-center justify-center text-[10px] font-black text-zinc-500">CN</div>
                                   <span className="text-[10px] font-bold text-zinc-400">6 yrs</span>
                                </div>
-                               <Button variant="ghost" size="sm" className="h-7 px-2 rounded-none text-zinc-400 hover:text-zinc-900 dark:text-white">
+                               <Button variant="ghost" size="sm" className="h-7 px-2 rounded-sm text-zinc-400 hover:text-zinc-900 dark:text-white">
                                   <ArrowRight size={14} />
                                 </Button>
                             </div>
@@ -381,7 +381,7 @@ export function AISourcingAssistant() {
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder={messages.length === 0 ? "What are you sourcing?" : "Ask follow-up..."}
-                  className="w-full h-14 sm:h-20 pl-11 sm:pl-16 pr-20 sm:pr-24 bg-zinc-50 dark:bg-surface/50 rounded-none border-2 border-transparent focus:border-orange-500 focus:bg-white dark:bg-surface outline-none text-[14px] sm:text-[18px] font-bold text-zinc-900 dark:text-white shadow-none transition-all"
+                  className="w-full h-14 sm:h-20 pl-11 sm:pl-16 pr-20 sm:pr-24 bg-zinc-50 dark:bg-surface/50 rounded-sm border-2 border-transparent focus:border-orange-500 focus:bg-white dark:bg-surface outline-none text-[14px] sm:text-[18px] font-bold text-zinc-900 dark:text-white shadow-none transition-all"
                 />
                 <div className="absolute right-3 sm:right-4 flex items-center gap-1 sm:gap-2">
                   <button type="button" className="p-2 sm:p-3 text-zinc-400 hover:text-orange-500 transition-colors">
@@ -390,7 +390,7 @@ export function AISourcingAssistant() {
                   <button 
                     type="submit"
                     disabled={!query.trim()}
-                    className="h-10 w-10 sm:h-12 sm:w-12 bg-zinc-900 disabled:bg-zinc-100 text-white rounded-none flex items-center justify-center hover:scale-105 transition-all shadow-none shadow-black/10"
+                    className="h-10 w-10 sm:h-12 sm:w-12 bg-zinc-900 disabled:bg-zinc-100 text-white rounded-sm flex items-center justify-center hover:scale-105 transition-all shadow-none shadow-black/10"
                   >
                     <Send size={15} className="sm:size-[18px]" />
                   </button>

@@ -93,7 +93,7 @@ export function WorkspaceShell({
               type="button"
               variant="ghost"
               size="icon"
-              className="rounded-none"
+              className="rounded-sm"
               onClick={() => setMobileOpen((o) => !o)}
               aria-label={mobileOpen ? "Close sidebar" : "Open sidebar"}
             >
@@ -105,7 +105,7 @@ export function WorkspaceShell({
           <div className="flex-1 min-h-0 overflow-hidden flex flex-col">{children}</div>
 
           <div className="border-t border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 flex items-center gap-2 lg:hidden">
-            <div className="h-8 w-8 rounded-none overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface-secondary)] shrink-0">
+            <div className="h-8 w-8 rounded-sm overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface-secondary)] shrink-0">
               {profile?.avatar_url ? (
                 <Image src={profile.avatar_url} alt="" width={32} height={32} className="object-cover h-full w-full" unoptimized />
               ) : (

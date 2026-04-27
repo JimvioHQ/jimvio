@@ -67,19 +67,19 @@ export default function UGCBrowserPage() {
               placeholder="Search campaigns..."
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-              className="w-full h-10 pl-9 pr-4 text-sm font-medium text-stone-900 dark:text-white outline-none transition-all bg-stone-50 dark:bg-surface/60 border border-border rounded-none focus:border-orange-500 focus:bg-surface placeholder:text-stone-400"
+              className="w-full h-10 pl-9 pr-4 text-sm font-medium text-stone-900 dark:text-white outline-none transition-all bg-stone-50 dark:bg-surface/60 border border-border rounded-sm focus:border-orange-500 focus:bg-surface placeholder:text-stone-400"
             />
           </div>
 
           {/* Filters */}
           <div className="flex items-center gap-2 overflow-x-auto no-scrollbar w-full md:w-auto">
             {/* Type tabs */}
-            <div className="flex items-center gap-1 p-1 rounded-none flex-shrink-0 bg-stone-50 dark:bg-surface/60 border border-border">
+            <div className="flex items-center gap-1 p-1 rounded-sm flex-shrink-0 bg-stone-50 dark:bg-surface/60 border border-border">
               {(['all', 'clipping', 'ugc'] as const).map((f) => (
                 <button
                   key={f}
                   onClick={() => { setFilter(f); setPage(1); }}
-                  className={cn("px-4 py-1.5 rounded-none text-xs font-bold transition-all", filter === f ? "bg-orange-500 text-white shadow-none shadow-orange-500/30" : "text-stone-500 dark:text-text-muted hover:text-stone-900 dark:hover:text-white")}
+                  className={cn("px-4 py-1.5 rounded-sm text-xs font-bold transition-all", filter === f ? "bg-orange-500 text-white shadow-none shadow-orange-500/30" : "text-stone-500 dark:text-text-muted hover:text-stone-900 dark:hover:text-white")}
                 >
                   {f === 'all' ? 'All' : f === 'clipping' ? 'Clipping' : 'UGC'}
                 </button>
@@ -93,14 +93,14 @@ export default function UGCBrowserPage() {
             {[Youtube, Play, Instagram, Share2].map((Icon, i) => (
               <button
                 key={i}
-                className="w-9 h-9 rounded-none flex items-center justify-center transition-all flex-shrink-0 bg-surface dark:bg-surface border border-border text-stone-400 shadow-none hover:bg-orange-500/10 hover:text-orange-500 hover:border-orange-500/30"
+                className="w-9 h-9 rounded-sm flex items-center justify-center transition-all flex-shrink-0 bg-surface dark:bg-surface border border-border text-stone-400 shadow-none hover:bg-orange-500/10 hover:text-orange-500 hover:border-orange-500/30"
               >
                 <Icon className="h-3.5 w-3.5" />
               </button>
             ))}
 
             {/* Total badge */}
-            <div className="ml-auto flex-shrink-0 px-3 py-1.5 rounded-none text-xs font-bold bg-surface dark:bg-surface text-stone-500 dark:text-text-muted border border-border shadow-none">
+            <div className="ml-auto flex-shrink-0 px-3 py-1.5 rounded-sm text-xs font-bold bg-surface dark:bg-surface text-stone-500 dark:text-text-muted border border-border shadow-none">
               {total} campaigns
             </div>
           </div>
@@ -122,7 +122,7 @@ export default function UGCBrowserPage() {
             </div>
 
             <Link href={`/ugc/${featuredCampaign.id}`} className="group block">
-              <div className="relative w-full rounded-none md:rounded-none overflow-hidden bg-surface dark:bg-surface border border-border shadow-none group aspect-[4/4] sm:aspect-[16/9] md:aspect-[21/7]">
+              <div className="relative w-full rounded-sm md:rounded-sm overflow-hidden bg-surface dark:bg-surface border border-border shadow-none group aspect-[4/4] sm:aspect-[16/9] md:aspect-[21/7]">
                 {/* BG */}
                 <div className="absolute inset-0 bg-gradient-to-br from-stone-100 to-stone-200 dark:from-zinc-800 dark:to-zinc-900/50 opacity-10" />
                 {featuredCampaign.media?.find((m) => m.usage === "banner")?.url && (
@@ -139,7 +139,7 @@ export default function UGCBrowserPage() {
                 <div className="relative z-10 h-full p-6 md:p-12 flex flex-col justify-end md:justify-center max-w-xl gap-4">
                   {/* Vendor */}
                   <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-none overflow-hidden flex-shrink-0 shadow-none border border-border">
+                    <div className="w-8 h-8 rounded-sm overflow-hidden flex-shrink-0 shadow-none border border-border">
                       {featuredCampaign.vendor?.business_logo ? (
                         <img
                           src={featuredCampaign.vendor.business_logo}
@@ -158,7 +158,7 @@ export default function UGCBrowserPage() {
                     <span className="text-xs font-bold uppercase tracking-widest text-stone-500 dark:text-text-muted">
                       {featuredCampaign.vendor?.business_name}
                     </span>
-                    <span className="px-2 py-0.5 rounded-none text-[9px] font-bold uppercase tracking-wider bg-orange-500/10 border border-orange-500/20 text-orange-600">
+                    <span className="px-2 py-0.5 rounded-sm text-[9px] font-bold uppercase tracking-wider bg-orange-500/10 border border-orange-500/20 text-orange-600">
                       <Zap className="h-2 w-2 inline mr-0.5" />
                       {featuredCampaign.campaign_type || "UGC"}
                     </span>
@@ -195,7 +195,7 @@ export default function UGCBrowserPage() {
 
                   {/* CTA */}
                   <div>
-                    <span className="inline-flex items-center gap-2 px-6 py-3 rounded-none text-sm font-black text-white transition-all group-hover:gap-3 bg-gradient-to-br from-orange-500 to-orange-600 shadow-none shadow-orange-500/40">
+                    <span className="inline-flex items-center gap-2 px-6 py-3 rounded-sm text-sm font-black text-white transition-all group-hover:gap-3 bg-gradient-to-br from-orange-500 to-orange-600 shadow-none shadow-orange-500/40">
                       Join Campaign
                       <ArrowUpRight className="h-4 w-4" />
                     </span>
@@ -222,13 +222,13 @@ export default function UGCBrowserPage() {
               {Array.from({ length: 8 }).map((_, i) => (
                 <div
                   key={i}
-                  className="rounded-none animate-pulse bg-surface dark:bg-surface border border-border h-[280px]"
+                  className="rounded-sm animate-pulse bg-surface dark:bg-surface border border-border h-[280px]"
                 />
               ))}
             </div>
           ) : campaigns.length === 0 ? (
             <div className="py-32 text-center space-y-4">
-              <div className="w-16 h-16 rounded-none flex items-center justify-center mx-auto bg-surface dark:bg-surface border border-border">
+              <div className="w-16 h-16 rounded-sm flex items-center justify-center mx-auto bg-surface dark:bg-surface border border-border">
                 <Search className="h-6 w-6 text-stone-300 dark:text-stone-600" />
               </div>
               <div>
@@ -252,7 +252,7 @@ export default function UGCBrowserPage() {
               <button
                 disabled={page === 1}
                 onClick={() => setPage((p) => p - 1)}
-                className="h-10 px-5 rounded-none text-sm font-bold transition-all disabled:opacity-30 bg-surface dark:bg-surface border border-border text-stone-600 dark:text-stone-300 shadow-none hover:bg-stone-50 dark:hover:bg-zinc-800"
+                className="h-10 px-5 rounded-sm text-sm font-bold transition-all disabled:opacity-30 bg-surface dark:bg-surface border border-border text-stone-600 dark:text-stone-300 shadow-none hover:bg-stone-50 dark:hover:bg-zinc-800"
               >
                 â† Prev
               </button>
@@ -263,7 +263,7 @@ export default function UGCBrowserPage() {
                     key={i}
                     onClick={() => setPage(i + 1)}
                     className={cn(
-                      "w-10 h-10 rounded-none text-sm font-bold transition-all shadow-none",
+                      "w-10 h-10 rounded-sm text-sm font-bold transition-all shadow-none",
                       page === i + 1
                         ? "bg-orange-500 text-white border-orange-500/50 shadow-orange-500/30"
                         : "bg-surface dark:bg-surface text-stone-600 dark:text-text-muted border-border hover:bg-stone-50 dark:hover:bg-zinc-800"
@@ -277,7 +277,7 @@ export default function UGCBrowserPage() {
               <button
                 disabled={page === totalPages}
                 onClick={() => setPage((p) => p + 1)}
-                className="h-10 px-5 rounded-none text-sm font-bold transition-all disabled:opacity-30 bg-surface dark:bg-surface border border-border text-stone-600 dark:text-stone-300 shadow-none hover:bg-stone-50 dark:hover:bg-zinc-800"
+                className="h-10 px-5 rounded-sm text-sm font-bold transition-all disabled:opacity-30 bg-surface dark:bg-surface border border-border text-stone-600 dark:text-stone-300 shadow-none hover:bg-stone-50 dark:hover:bg-zinc-800"
               >
                 Next →
               </button>

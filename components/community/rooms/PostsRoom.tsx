@@ -96,7 +96,7 @@ function Avatar({ profile, size = 36 }: { profile?: Profile | null; size?: numbe
 
   return (
     <div
-      className={cn("rounded-none overflow-hidden shrink-0 border border-[var(--color-border)]", color)}
+      className={cn("rounded-sm overflow-hidden shrink-0 border border-[var(--color-border)]", color)}
       style={{ width: size, height: size }}
     >
       {profile?.avatar_url ? (
@@ -143,7 +143,7 @@ function PostCard({
   return (
     <article
       className={cn(
-        "group rounded-none border bg-[var(--color-surface)] p-4 shadow-none transition-all duration-200 cursor-pointer",
+        "group rounded-sm border bg-[var(--color-surface)] p-4 shadow-none transition-all duration-200 cursor-pointer",
         "hover:shadow-none hover:border-[var(--color-accent)]/40",
         active
           ? "border-[var(--color-accent)] ring-2 ring-[var(--color-accent)]/20"
@@ -169,7 +169,7 @@ function PostCard({
             </span>
             <span
               className={cn(
-                "text-[10px] font-black uppercase px-2 py-0.5 rounded-none border",
+                "text-[10px] font-black uppercase px-2 py-0.5 rounded-sm border",
                 TYPE_COLORS[post.post_type] ?? "bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)] border-transparent"
               )}
             >
@@ -198,7 +198,7 @@ function PostCard({
               {imgs.map((url) => (
                 <div
                   key={url}
-                  className="relative h-20 w-28 rounded-none overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface-secondary)]"
+                  className="relative h-20 w-28 rounded-sm overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface-secondary)]"
                 >
                   <Image src={url} alt="" fill className="object-cover" unoptimized />
                 </div>
@@ -215,7 +215,7 @@ function PostCard({
               <button
                 type="button"
                 className={cn(
-                  "inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-none transition-colors",
+                  "inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-sm transition-colors",
                   "hover:bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)] hover:text-rose-500"
                 )}
                 onClick={() => setShowReactions((v) => !v)}
@@ -224,12 +224,12 @@ function PostCard({
                 <span>{post.like_count ?? 0}</span>
               </button>
               {showReactions && (
-                <div className="absolute bottom-full left-0 mb-1 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-none px-2 py-1.5 flex gap-1 shadow-none z-10 animate-in fade-in slide-in-from-bottom-2">
+                <div className="absolute bottom-full left-0 mb-1 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-sm px-2 py-1.5 flex gap-1 shadow-none z-10 animate-in fade-in slide-in-from-bottom-2">
                   {REACTIONS.map((r) => (
                     <button
                       key={r}
                       className={cn(
-                        "text-base transition-transform hover:scale-125 rounded-none px-1",
+                        "text-base transition-transform hover:scale-125 rounded-sm px-1",
                         pickedReaction === r && "bg-[var(--color-surface-secondary)]"
                       )}
                       onClick={() => {
@@ -247,7 +247,7 @@ function PostCard({
 
             <button
               type="button"
-              className="inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-none transition-colors hover:bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)] hover:text-[var(--color-accent)]"
+              className="inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-sm transition-colors hover:bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)] hover:text-[var(--color-accent)]"
               onClick={onSelect}
             >
               <MessageCircle className="h-3.5 w-3.5" />
@@ -257,7 +257,7 @@ function PostCard({
             <button
               type="button"
               className={cn(
-                "inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-none transition-colors",
+                "inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-sm transition-colors",
                 saved
                   ? "text-[var(--color-accent)] bg-[var(--color-accent)]/10"
                   : "hover:bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)] hover:text-[var(--color-accent)]"
@@ -269,7 +269,7 @@ function PostCard({
 
             <button
               type="button"
-              className="inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-none transition-colors hover:bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)] hover:text-[var(--color-accent)]"
+              className="inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-sm transition-colors hover:bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)] hover:text-[var(--color-accent)]"
               onClick={() => navigator.clipboard?.writeText(window.location.href)}
             >
               <Share2 className="h-3.5 w-3.5" />
@@ -453,7 +453,7 @@ export function PostsRoom({
             <Button
               type="button"
               size="sm"
-              className="rounded-none bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-black"
+              className="rounded-sm bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-black"
               onClick={() => setCreateOpen(true)}
             >
               <Plus className="h-4 w-4 mr-1" /> New Post
@@ -470,14 +470,14 @@ export function PostsRoom({
                 placeholder="Search posts… (/)"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-8 h-8 text-sm rounded-none border-[var(--color-border)]"
+                className="pl-8 h-8 text-sm rounded-sm border-[var(--color-border)]"
               />
             </div>
             <Button
               type="button"
               variant="outline"
               size="sm"
-              className={cn("rounded-none border-[var(--color-border)] gap-1.5", showFilters && "bg-[var(--color-surface-secondary)]")}
+              className={cn("rounded-sm border-[var(--color-border)] gap-1.5", showFilters && "bg-[var(--color-surface-secondary)]")}
               onClick={() => setShowFilters((v) => !v)}
             >
               <SlidersHorizontal className="h-3.5 w-3.5" />
@@ -494,7 +494,7 @@ export function PostsRoom({
                     type="button"
                     onClick={() => setTypeFilter(t)}
                     className={cn(
-                      "text-[11px] font-bold px-2.5 py-1 rounded-none border capitalize transition-all",
+                      "text-[11px] font-bold px-2.5 py-1 rounded-sm border capitalize transition-all",
                       typeFilter === t
                         ? "bg-[var(--color-accent)] border-[var(--color-accent)] text-white"
                         : "border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
@@ -511,7 +511,7 @@ export function PostsRoom({
                     type="button"
                     onClick={() => setSortBy(value)}
                     className={cn(
-                      "inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-none border transition-all",
+                      "inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-sm border transition-all",
                       sortBy === value
                         ? "bg-[var(--color-accent)] border-[var(--color-accent)] text-white"
                         : "border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
@@ -559,7 +559,7 @@ export function PostsRoom({
       />
 
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="z-[10051] border-[var(--color-border)] bg-[var(--color-surface)] max-w-lg max-h-[90vh] overflow-y-auto rounded-none">
+        <DialogContent className="z-[10051] border-[var(--color-border)] bg-[var(--color-surface)] max-w-lg max-h-[90vh] overflow-y-auto rounded-sm">
           <DialogHeader>
             <DialogTitle className="font-black !text-[var(--color-text-primary)]">New post</DialogTitle>
           </DialogHeader>
@@ -571,7 +571,7 @@ export function PostsRoom({
                 type="button"
                 onClick={() => setPostType(t)}
                 className={cn(
-                  "text-[11px] font-black px-3 py-1.5 rounded-none border capitalize transition-all",
+                  "text-[11px] font-black px-3 py-1.5 rounded-sm border capitalize transition-all",
                   postType === t
                     ? cn("border-transparent", TYPE_COLORS[t])
                     : "border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-border)]"
@@ -587,14 +587,14 @@ export function PostsRoom({
               placeholder="Title (optional)"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="rounded-none border-[var(--color-border)]"
+              className="rounded-sm border-[var(--color-border)]"
             />
             <Textarea
               placeholder="What's on your mind?"
               value={body}
               onChange={(e) => setBody(e.target.value)}
               rows={6}
-              className="rounded-none border-[var(--color-border)] resize-none"
+              className="rounded-sm border-[var(--color-border)] resize-none"
             />
 
             <input
@@ -609,7 +609,7 @@ export function PostsRoom({
             {pendingImages.length > 0 && (
               <div className="flex gap-2 overflow-x-auto pb-2">
                 {pendingImages.map((img, i) => (
-                  <div key={i} className="relative h-20 w-20 shrink-0 rounded-none overflow-hidden border border-[var(--color-border)]">
+                  <div key={i} className="relative h-20 w-20 shrink-0 rounded-sm overflow-hidden border border-[var(--color-border)]">
                     {!img.url ? (
                        <div className="h-full w-full flex items-center justify-center bg-[var(--color-surface-secondary)]">
                           <Loader2 className="h-4 w-4 animate-spin" />
@@ -619,7 +619,7 @@ export function PostsRoom({
                         <Image src={img.url} alt="" fill className="object-cover" unoptimized />
                         <button
                           onClick={() => setPendingImages(prev => prev.filter((_, j) => j !== i))}
-                          className="absolute top-1 right-1 p-0.5 bg-black/50 text-white rounded-none hover:bg-black/70"
+                          className="absolute top-1 right-1 p-0.5 bg-black/50 text-white rounded-sm hover:bg-black/70"
                         >
                           <X className="h-3 w-3" />
                         </button>
@@ -632,7 +632,7 @@ export function PostsRoom({
 
             <Button
               variant="outline"
-              className="w-full rounded-none border-dashed border-2 py-8"
+              className="w-full rounded-sm border-dashed border-2 py-8"
               onClick={() => imageInputRef.current?.click()}
               disabled={uploading}
             >
@@ -642,9 +642,9 @@ export function PostsRoom({
           </div>
 
           <div className="flex justify-end gap-3 mt-4">
-            <Button variant="ghost" onClick={() => setCreateOpen(false)} className="rounded-none">Cancel</Button>
+            <Button variant="ghost" onClick={() => setCreateOpen(false)} className="rounded-sm">Cancel</Button>
             <Button
-              className="rounded-none bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-black px-8"
+              className="rounded-sm bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-black px-8"
               disabled={saving || uploading || !body.trim()}
               onClick={submitPost}
             >
@@ -720,12 +720,12 @@ function PostDetailPanel({
     )}>
       <div className="flex items-center justify-between gap-2 border-b border-[var(--color-border)] px-4 py-3 bg-[var(--color-surface)] shrink-0">
         <div className="flex items-center gap-2">
-           <button onClick={onClose} className="lg:hidden p-1 mr-1 hover:bg-black/5 rounded-none transition-colors text-[var(--color-accent)]">
+           <button onClick={onClose} className="lg:hidden p-1 mr-1 hover:bg-black/5 rounded-sm transition-colors text-[var(--color-accent)]">
               <ChevronLeft className="h-6 w-6" />
            </button>
           <span
             className={cn(
-              "text-[10px] font-black uppercase px-2 py-0.5 rounded-none border",
+              "text-[10px] font-black uppercase px-2 py-0.5 rounded-sm border",
               post ? TYPE_COLORS[post.post_type] ?? "bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)] border-transparent" : "bg-transparent text-transparent border-transparent"
             )}
           >
@@ -733,7 +733,7 @@ function PostDetailPanel({
           </span>
           <h2 className="text-sm font-black truncate">Thread</h2>
         </div>
-        <Button type="button" variant="ghost" size="sm" className="hidden lg:flex rounded-none h-7 px-2" onClick={onClose}>
+        <Button type="button" variant="ghost" size="sm" className="hidden lg:flex rounded-sm h-7 px-2" onClick={onClose}>
           <X className="h-4 w-4" />
         </Button>
       </div>
@@ -767,7 +767,7 @@ function PostDetailPanel({
               {imgs.length > 0 && (
                 <div className="mt-3 grid grid-cols-2 gap-2">
                   {imgs.map((url) => (
-                    <div key={url} className="relative h-44 rounded-none overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface-secondary)]">
+                    <div key={url} className="relative h-44 rounded-sm overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface-secondary)]">
                       <Image src={url} alt="" fill className="object-cover" unoptimized />
                     </div>
                   ))}
@@ -777,7 +777,7 @@ function PostDetailPanel({
               <div className="mt-4 flex items-center gap-4">
                 <button
                   type="button"
-                  className="inline-flex items-center gap-1.5 text-xs font-black px-3 py-1.5 rounded-none transition-colors bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)] hover:text-rose-500"
+                  className="inline-flex items-center gap-1.5 text-xs font-black px-3 py-1.5 rounded-sm transition-colors bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)] hover:text-rose-500"
                   onClick={async () => {
                     await fetch(`/api/posts/${post.id}/like`, { method: "POST" });
                     onChanged();
@@ -819,10 +819,10 @@ function PostDetailPanel({
 
           <div className="p-4 border-t border-[var(--color-border)] bg-[var(--color-surface)] shrink-0 space-y-3">
             {replyTo && (
-              <div className="flex items-center gap-2 text-xs text-[var(--color-text-muted)] bg-[var(--color-surface-secondary)] rounded-none px-3 py-2 border border-[var(--color-border)]">
+              <div className="flex items-center gap-2 text-xs text-[var(--color-text-muted)] bg-[var(--color-surface-secondary)] rounded-sm px-3 py-2 border border-[var(--color-border)]">
                 <Reply className="h-3 w-3.5 shrink-0" />
                 <span className="truncate flex-1">Replying to <strong>{replyTo.profiles?.full_name || replyTo.profiles?.username || "Member"}</strong></span>
-                <button type="button" onClick={() => setReplyTo(null)} className="p-1 hover:bg-black/5 rounded-none"><X className="h-3.5 w-3.5" /></button>
+                <button type="button" onClick={() => setReplyTo(null)} className="p-1 hover:bg-black/5 rounded-sm"><X className="h-3.5 w-3.5" /></button>
               </div>
             )}
             <Textarea
@@ -837,14 +837,14 @@ function PostDetailPanel({
                 }
               }}
               rows={2}
-              className="rounded-none border-[var(--color-border)] resize-none text-sm focus:ring-[var(--color-accent)]"
+              className="rounded-sm border-[var(--color-border)] resize-none text-sm focus:ring-[var(--color-accent)]"
             />
             <div className="flex items-center justify-between">
               <span className="text-[10px] text-[var(--color-text-muted)] font-black">âŒ˜â†µ to post</span>
               <Button
                 type="button"
                 size="sm"
-                className="rounded-none bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-black px-6"
+                className="rounded-sm bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-black px-6"
                 disabled={!text.trim()}
                 onClick={sendComment}
               >

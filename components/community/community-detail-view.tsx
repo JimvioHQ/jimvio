@@ -177,9 +177,9 @@ export function CommunityDetailView({
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="p-1.5 rounded-none bg-white dark:bg-surface shadow-none"
+            className="p-1.5 rounded-sm bg-white dark:bg-surface shadow-none"
           >
-            <div className="h-24 w-24 sm:h-36 sm:w-36 rounded-none bg-zinc-100 dark:bg-surface-secondary overflow-hidden border-4 border-white dark:border-zinc-900">
+            <div className="h-24 w-24 sm:h-36 sm:w-36 rounded-sm bg-zinc-100 dark:bg-surface-secondary overflow-hidden border-4 border-white dark:border-zinc-900">
               {community.avatar_url ? (
                 <img src={community.avatar_url} alt="" className="h-full w-full object-cover" />
               ) : (
@@ -205,17 +205,17 @@ export function CommunityDetailView({
           </motion.div>
 
           <div className="mt-8 flex flex-wrap items-center justify-center gap-2">
-            <div className="flex items-center gap-2 px-4 py-2 rounded-none bg-orange-50 dark:bg-orange-950/30 border border-orange-100 dark:border-orange-900/50 shadow-none">
+            <div className="flex items-center gap-2 px-4 py-2 rounded-sm bg-orange-50 dark:bg-orange-950/30 border border-orange-100 dark:border-orange-900/50 shadow-none">
                 <Users className="h-4 w-4 text-orange-600" />
                 <span className="text-sm font-black text-orange-700 dark:text-orange-400">{formatNumber(community.member_count ?? 0)} Members</span>
             </div>
             {community.category && (
-              <div className="flex items-center gap-2 px-4 py-2 rounded-none bg-zinc-50 dark:bg-surface-secondary border border-zinc-100 dark:border-border-strong shadow-none">
+              <div className="flex items-center gap-2 px-4 py-2 rounded-sm bg-zinc-50 dark:bg-surface-secondary border border-zinc-100 dark:border-border-strong shadow-none">
                   <Zap className="h-4 w-4 text-purple-600" />
                   <span className="text-sm font-black text-zinc-600 dark:text-zinc-300 uppercase tracking-widest text-[10px]">{community.category}</span>
               </div>
             )}
-            <div className="flex items-center gap-2 px-4 py-2 rounded-none bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/50 shadow-none">
+            <div className="flex items-center gap-2 px-4 py-2 rounded-sm bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/50 shadow-none">
                 <Globe className="h-4 w-4 text-blue-600" />
                 <span className="text-sm font-black text-blue-700 dark:text-blue-400">Online Community</span>
             </div>
@@ -231,7 +231,7 @@ export function CommunityDetailView({
           
           <section className="space-y-6">
             <div className="flex items-center gap-3">
-              <div className="w-1 h-8 bg-orange-500 rounded-none" />
+              <div className="w-1 h-8 bg-orange-500 rounded-sm" />
               <h2 className="text-2xl font-black text-stone-900 dark:text-white">Experience Excellence</h2>
             </div>
             <p className="text-lg font-medium text-zinc-500 dark:text-text-muted leading-relaxed whitespace-pre-wrap">
@@ -240,7 +240,7 @@ export function CommunityDetailView({
             {community.tags && (
               <div className="flex flex-wrap gap-2 pt-4">
                 {community.tags.map(t => (
-                  <span key={t} className="px-3 py-1 rounded-none bg-zinc-50 dark:bg-surface-secondary border border-zinc-100 dark:border-border-strong text-xs font-black text-zinc-400 dark:text-text-muted uppercase tracking-widest">
+                  <span key={t} className="px-3 py-1 rounded-sm bg-zinc-50 dark:bg-surface-secondary border border-zinc-100 dark:border-border-strong text-xs font-black text-zinc-400 dark:text-text-muted uppercase tracking-widest">
                     #{t}
                   </span>
                 ))}
@@ -251,18 +251,18 @@ export function CommunityDetailView({
           <section className="space-y-8">
             <h2 className="text-2xl font-black text-stone-900 dark:text-white">Curated Spaces</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-               {spaces === null ? [1,2,3,4].map(i => <div key={i} className="h-32 rounded-none bg-zinc-50 dark:bg-surface-secondary animate-pulse" />) : 
+               {spaces === null ? [1,2,3,4].map(i => <div key={i} className="h-32 rounded-sm bg-zinc-50 dark:bg-surface-secondary animate-pulse" />) : 
                 spaces.length === 0 ? (
-                  <div className="col-span-full p-12 rounded-none bg-zinc-50/50 dark:bg-surface-secondary/30 border-2 border-dashed border-zinc-100 dark:border-border-strong text-center">
+                  <div className="col-span-full p-12 rounded-sm bg-zinc-50/50 dark:bg-surface-secondary/30 border-2 border-dashed border-zinc-100 dark:border-border-strong text-center">
                      <p className="text-sm font-bold text-zinc-400 dark:text-text-muted">Host is currently curating this environment. Check back soon.</p>
                   </div>
                 ) : (
                   spaces.map(s => {
                     const Icon = spaceIcon(s.icon);
                     return (
-                      <div key={s.id} className="p-6 rounded-none border border-zinc-100 dark:border-border bg-white dark:bg-surface hover:shadow-none hover:shadow-orange-500/5 transition-all group cursor-pointer">
+                      <div key={s.id} className="p-6 rounded-sm border border-zinc-100 dark:border-border bg-white dark:bg-surface hover:shadow-none hover:shadow-orange-500/5 transition-all group cursor-pointer">
                         <div className="flex items-start justify-between">
-                          <div className="h-12 w-12 rounded-none bg-orange-50 dark:bg-orange-950/30 text-orange-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                          <div className="h-12 w-12 rounded-sm bg-orange-50 dark:bg-orange-950/30 text-orange-600 flex items-center justify-center group-hover:scale-110 transition-transform">
                             <Icon className="h-6 w-6" />
                           </div>
                           <div className="flex items-center gap-1 text-[10px] font-black text-zinc-300 dark:text-zinc-600 uppercase">
@@ -283,7 +283,7 @@ export function CommunityDetailView({
         {/* Right Side: Action Card */}
         <aside className="lg:col-span-4">
           <div className="sticky top-24 space-y-6">
-            <div className="rounded-none border border-orange-200 dark:border-border bg-white dark:bg-surface overflow-hidden shadow-none shadow-orange-500/5">
+            <div className="rounded-sm border border-orange-200 dark:border-border bg-white dark:bg-surface overflow-hidden shadow-none shadow-orange-500/5">
             <div className="p-6 relative">
               
               <div className="relative z-10 flex flex-col gap-5">
@@ -294,36 +294,36 @@ export function CommunityDetailView({
 
                 {isMember ? (
                   <div className="space-y-4">
-                    <div className="p-4 rounded-none bg-orange-50 dark:bg-orange-950/30 border border-orange-100 dark:border-orange-900/50">
+                    <div className="p-4 rounded-sm bg-orange-50 dark:bg-orange-950/30 border border-orange-100 dark:border-orange-900/50">
                       <p className="text-xs font-black text-orange-700 dark:text-orange-400">ACTIVE MEMBERSHIP</p>
                       <p className="text-xs font-bold text-orange-600/70 dark:text-orange-500/70 mt-0.5">Joined in {memberSince}</p>
                     </div>
-                    <Button asChild className="w-full h-14 rounded-none bg-stone-900 dark:bg-white dark:bg-surface text-white dark:text-stone-900 dark:text-white font-black text-base shadow-none hover:opacity-90">
+                    <Button asChild className="w-full h-14 rounded-sm bg-stone-900 dark:bg-white dark:bg-surface text-white dark:text-stone-900 dark:text-white font-black text-base shadow-none hover:opacity-90">
                        <Link href={`/communities/${community.slug}/workspace`}>Open Workspace <ArrowRight className="ml-2 h-4 w-4" /></Link>
                     </Button>
                   </div>
                 ) : isFree ? (
                   <div className="space-y-6">
-                    <div className="p-5 rounded-none bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/50">
+                    <div className="p-5 rounded-sm bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/50">
                        <p className="text-xs font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-widest">Free Access</p>
                        <p className="text-sm font-bold text-emerald-600 dark:text-emerald-500 mt-1">This community is open to everyone. Join now to start participating.</p>
                     </div>
                     <Button 
                       onClick={handleJoin}
                       disabled={joining}
-                      className="w-full h-14 rounded-none bg-emerald-500 hover:bg-emerald-600 text-white font-black text-base shadow-none shadow-emerald-500/20 active:scale-95 transition-all"
+                      className="w-full h-14 rounded-sm bg-emerald-500 hover:bg-emerald-600 text-white font-black text-base shadow-none shadow-emerald-500/20 active:scale-95 transition-all"
                     >
                        {joining ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : "Join Community"}
                     </Button>
                   </div>
                 ) : (
                   <>
-                    <div className="flex p-1 bg-zinc-100 dark:bg-surface-secondary rounded-none">
+                    <div className="flex p-1 bg-zinc-100 dark:bg-surface-secondary rounded-sm">
                       {["monthly", "yearly", "lifetime"].map(p => (
                         <button 
                           key={p} 
                           onClick={() => setPlan(p as PlanKey)}
-                          className={cn("flex-1 h-10 rounded-none text-[10px] font-black uppercase tracking-tighter transition-all", plan === p ? "bg-white dark:bg-zinc-700 text-orange-600 shadow-none" : "text-zinc-400 dark:text-text-muted hover:text-zinc-600 dark:hover:text-zinc-300")}
+                          className={cn("flex-1 h-10 rounded-sm text-[10px] font-black uppercase tracking-tighter transition-all", plan === p ? "bg-white dark:bg-zinc-700 text-orange-600 shadow-none" : "text-zinc-400 dark:text-text-muted hover:text-zinc-600 dark:hover:text-zinc-300")}
                         >
                           {p}
                         </button>
@@ -345,7 +345,7 @@ export function CommunityDetailView({
                        ))}
                     </div>
 
-                    <Button asChild variant="orange" className="w-full h-12 rounded-none font-black text-sm active:scale-95 transition-all uppercase tracking-widest">
+                    <Button asChild variant="orange" className="w-full h-12 rounded-sm font-black text-sm active:scale-95 transition-all uppercase tracking-widest">
                        <Link href={isLoggedIn ? `/communities/${community.slug}/subscribe?plan=${plan}` : loginNext}>
                           Join Now <ArrowRight className="ml-2 h-4 w-4" />
                        </Link>
@@ -361,15 +361,15 @@ export function CommunityDetailView({
             </div>
           </div>
 
-            <div className="rounded-none border border-zinc-100 dark:border-border p-6 space-y-4 bg-white dark:bg-surface">
+            <div className="rounded-sm border border-zinc-100 dark:border-border p-6 space-y-4 bg-white dark:bg-surface">
              <h3 className="text-sm font-black uppercase tracking-widest text-zinc-400 dark:text-text-muted">Top Members</h3>
              <div className="flex -space-x-3">
                 {[1,2,3,4,5].map(i => (
-                  <div key={i} className="h-12 w-12 rounded-none border-4 border-white dark:border-zinc-900 bg-zinc-100 dark:bg-surface-secondary flex items-center justify-center text-xs font-black text-zinc-300 dark:text-zinc-600">
+                  <div key={i} className="h-12 w-12 rounded-sm border-4 border-white dark:border-zinc-900 bg-zinc-100 dark:bg-surface-secondary flex items-center justify-center text-xs font-black text-zinc-300 dark:text-zinc-600">
                     <Users className="h-4 w-4" />
                   </div>
                 ))}
-                <div className="h-12 w-12 rounded-none border-4 border-white dark:border-zinc-900 bg-orange-100 dark:bg-orange-950/50 flex items-center justify-center text-xs font-black text-orange-600 dark:text-orange-400">
+                <div className="h-12 w-12 rounded-sm border-4 border-white dark:border-zinc-900 bg-orange-100 dark:bg-orange-950/50 flex items-center justify-center text-xs font-black text-orange-600 dark:text-orange-400">
                   +{formatNumber(community.member_count ?? 0)}
                 </div>
              </div>

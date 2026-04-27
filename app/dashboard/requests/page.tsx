@@ -88,9 +88,9 @@ export default function BuyingLeadsPage() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center space-y-12 animate-in fade-in duration-700" style={{ background: "var(--color-bg)" }}>
         <div className="relative">
-          <div className="absolute inset-0 bg-orange-400/20 blur-3xl rounded-none scale-150 animate-pulse" />
-          <div className="relative w-24 h-24 rounded-none bg-surface dark:bg-surface border border-border shadow-none flex items-center justify-center overflow-hidden">
-            <div className="absolute inset-0 border-2 border-t-orange-500 border-r-transparent border-b-transparent border-l-transparent rounded-none animate-spin m-2" />
+          <div className="absolute inset-0 bg-orange-400/20 blur-3xl rounded-sm scale-150 animate-pulse" />
+          <div className="relative w-24 h-24 rounded-sm bg-surface dark:bg-surface border border-border shadow-none flex items-center justify-center overflow-hidden">
+            <div className="absolute inset-0 border-2 border-t-orange-500 border-r-transparent border-b-transparent border-l-transparent rounded-sm animate-spin m-2" />
             <FileText className="h-10 w-10 text-stone-900 dark:text-white" />
           </div>
         </div>
@@ -116,7 +116,7 @@ export default function BuyingLeadsPage() {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
            <div className="space-y-2">
               <h1 className="text-4xl font-black text-stone-900 dark:text-white tracking-tighter flex items-center gap-4">
-                 <div className="p-2.5 rounded-none bg-surface dark:bg-surface border border-border shadow-none shrink-0">
+                 <div className="p-2.5 rounded-sm bg-surface dark:bg-surface border border-border shadow-none shrink-0">
                     <FileText className="h-8 w-8 text-orange-500" />
                  </div>
                  Requests & Payouts
@@ -126,8 +126,8 @@ export default function BuyingLeadsPage() {
               </p>
            </div>
            
-           <div className="flex items-center gap-4 bg-surface dark:bg-surface/40 p-1.5 rounded-none border border-border shadow-none backdrop-blur-xl">
-              <div className="w-3 h-3 rounded-none bg-orange-500 ml-4 animate-pulse shadow-[0_0_12px_rgba(249,115,22,0.5)]" />
+           <div className="flex items-center gap-4 bg-surface dark:bg-surface/40 p-1.5 rounded-sm border border-border shadow-none backdrop-blur-xl">
+              <div className="w-3 h-3 rounded-sm bg-orange-500 ml-4 animate-pulse shadow-[0_0_12px_rgba(249,115,22,0.5)]" />
               <span className="text-[10px] font-black uppercase tracking-widest text-stone-900 dark:text-white pr-6 pl-2">Syncing Global Sourcing</span>
            </div>
         </div>
@@ -136,7 +136,7 @@ export default function BuyingLeadsPage() {
            
            {/* Primary Input Logic */}
            <div className="lg:col-span-12">
-              <GlassCard className="p-12 rounded-none border-white bg-white dark:bg-surface/60 shadow-none relative overflow-hidden">
+              <GlassCard className="p-12 rounded-sm border-white bg-white dark:bg-surface/60 shadow-none relative overflow-hidden">
                  <div className="flex items-center justify-between mb-12">
                     <div className="space-y-1">
                        <h3 className="text-2xl font-black text-stone-900 dark:text-white tracking-tighter">Create New Request</h3>
@@ -153,7 +153,7 @@ export default function BuyingLeadsPage() {
                          value={form.product_name}
                          onChange={(e) => setForm((f) => ({ ...f, product_name: e.target.value }))}
                          placeholder="e.g. HIGH-DENSITY ORGANIC COTTON"
-                         className="h-16 rounded-none bg-white dark:bg-surface border-white shadow-none focus:ring-8 focus:ring-orange-500/5 focus:border-orange-400 text-xl font-black tracking-tighter px-8 transition-all"
+                         className="h-16 rounded-sm bg-white dark:bg-surface border-white shadow-none focus:ring-8 focus:ring-orange-500/5 focus:border-orange-400 text-xl font-black tracking-tighter px-8 transition-all"
                          required
                        />
                     </div>
@@ -164,7 +164,7 @@ export default function BuyingLeadsPage() {
                          value={form.category}
                          onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
                          placeholder="e.g. RAW MATERIALS"
-                         className="h-16 rounded-none bg-surface dark:bg-surface/40 border-border focus:bg-surface dark:focus:bg-zinc-900 text-sm font-black tracking-widest px-8 transition-all"
+                         className="h-16 rounded-sm bg-surface dark:bg-surface/40 border-border focus:bg-surface dark:focus:bg-zinc-900 text-sm font-black tracking-widest px-8 transition-all"
                        />
                     </div>
                     
@@ -176,7 +176,7 @@ export default function BuyingLeadsPage() {
                          min={1}
                          value={form.quantity_needed}
                          onChange={(e) => setForm((f) => ({ ...f, quantity_needed: Number(e.target.value) || 1 }))}
-                         className="h-16 rounded-none bg-white dark:bg-surface/40 border-stone-100 dark:border-border focus:bg-white dark:bg-surface text-sm font-black tracking-widest px-8 transition-all tabular-nums"
+                         className="h-16 rounded-sm bg-white dark:bg-surface/40 border-stone-100 dark:border-border focus:bg-white dark:bg-surface text-sm font-black tracking-widest px-8 transition-all tabular-nums"
                        />
                     </div>
                     
@@ -191,7 +191,7 @@ export default function BuyingLeadsPage() {
                              value={form.budget_min ?? ""}
                              onChange={(e) => setForm((f) => ({ ...f, budget_min: e.target.value ? Number(e.target.value) : undefined }))}
                              placeholder="MIN"
-                             className="h-16 rounded-none bg-surface dark:bg-surface/40 border-border focus:bg-surface dark:focus:bg-zinc-900 text-sm font-black tracking-widest pl-14 transition-all"
+                             className="h-16 rounded-sm bg-surface dark:bg-surface/40 border-border focus:bg-surface dark:focus:bg-zinc-900 text-sm font-black tracking-widest pl-14 transition-all"
                           />
                        </div>
                     </div>
@@ -207,7 +207,7 @@ export default function BuyingLeadsPage() {
                              value={form.budget_max ?? ""}
                              onChange={(e) => setForm((f) => ({ ...f, budget_max: e.target.value ? Number(e.target.value) : undefined }))}
                              placeholder="MAX"
-                             className="h-16 rounded-none bg-surface dark:bg-surface/40 border-border focus:bg-surface dark:focus:bg-zinc-900 text-sm font-black tracking-widest pl-14 transition-all"
+                             className="h-16 rounded-sm bg-surface dark:bg-surface/40 border-border focus:bg-surface dark:focus:bg-zinc-900 text-sm font-black tracking-widest pl-14 transition-all"
                           />
                        </div>
                     </div>
@@ -221,7 +221,7 @@ export default function BuyingLeadsPage() {
                              value={form.delivery_country}
                              onChange={(e) => setForm((f) => ({ ...f, delivery_country: e.target.value }))}
                              placeholder="DESTINATION HUB"
-                             className="h-16 rounded-none bg-surface dark:bg-surface/40 border-border focus:bg-surface dark:focus:bg-zinc-900 text-sm font-black tracking-widest pl-14 transition-all"
+                             className="h-16 rounded-sm bg-surface dark:bg-surface/40 border-border focus:bg-surface dark:focus:bg-zinc-900 text-sm font-black tracking-widest pl-14 transition-all"
                           />
                        </div>
                     </div>
@@ -234,12 +234,12 @@ export default function BuyingLeadsPage() {
                          onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
                          placeholder="Define technical requirements, quality standards, and timelines..."
                          rows={4}
-                         className="rounded-none bg-surface dark:bg-surface/40 border-border focus:bg-surface dark:focus:bg-zinc-900 text-[14px] font-black leading-relaxed tracking-tight px-8 py-6 transition-all min-h-[160px] resize-none"
+                         className="rounded-sm bg-surface dark:bg-surface/40 border-border focus:bg-surface dark:focus:bg-zinc-900 text-[14px] font-black leading-relaxed tracking-tight px-8 py-6 transition-all min-h-[160px] resize-none"
                        />
                     </div>
                     
                     <div className="md:col-span-12 flex justify-end pt-6">
-                       <Button type="submit" disabled={submitting} className="h-20 px-12 rounded-none bg-stone-900 text-white font-black text-[12px] uppercase tracking-[0.4em] shadow-none shadow-stone-900/40 active:scale-95 transition-all hover:bg-black border-none">
+                       <Button type="submit" disabled={submitting} className="h-20 px-12 rounded-sm bg-stone-900 text-white font-black text-[12px] uppercase tracking-[0.4em] shadow-none shadow-stone-900/40 active:scale-95 transition-all hover:bg-black border-none">
                           {submitting ? <RefreshCw className="h-5 w-5 animate-spin" /> : (
                              <div className="flex items-center gap-4">
                                 <Zap className="h-5 w-5 text-orange-400" /> Post Request
@@ -260,15 +260,15 @@ export default function BuyingLeadsPage() {
                        <History className="h-4 w-4" /> Global Pulse Log ({leads.length} Items)
                     </p>
                  </div>
-                 <div className="flex items-center gap-3 bg-white dark:bg-surface/60 p-1.5 rounded-none border border-white shadow-none">
-                    <div className="px-6 py-2 rounded-none bg-stone-900 text-white font-black text-[9px] uppercase tracking-widest shadow-none">ALL</div>
-                    <div className="px-6 py-2 rounded-none text-stone-400 font-black text-[9px] uppercase tracking-widest hover:text-stone-900 dark:text-white transition-colors">ACTIVE</div>
+                 <div className="flex items-center gap-3 bg-white dark:bg-surface/60 p-1.5 rounded-sm border border-white shadow-none">
+                    <div className="px-6 py-2 rounded-sm bg-stone-900 text-white font-black text-[9px] uppercase tracking-widest shadow-none">ALL</div>
+                    <div className="px-6 py-2 rounded-sm text-stone-400 font-black text-[9px] uppercase tracking-widest hover:text-stone-900 dark:text-white transition-colors">ACTIVE</div>
                  </div>
               </div>
 
               {leads.length === 0 ? (
-                 <GlassCard className="py-32 text-center rounded-none border-dashed border-orange-200 bg-white dark:bg-surface/20">
-                    <div className="w-24 h-24 bg-white dark:bg-surface rounded-none flex items-center justify-center mx-auto mb-10 border border-white shadow-none">
+                 <GlassCard className="py-32 text-center rounded-sm border-dashed border-orange-200 bg-white dark:bg-surface/20">
+                    <div className="w-24 h-24 bg-white dark:bg-surface rounded-sm flex items-center justify-center mx-auto mb-10 border border-white shadow-none">
                        <Target className="h-10 w-10 text-stone-100" />
                     </div>
                     <h3 className="text-2xl font-black text-stone-900 dark:text-white tracking-tighter">No Active Requests</h3>
@@ -279,7 +279,7 @@ export default function BuyingLeadsPage() {
                     {leads.map((lead) => (
                       <GlassCard 
                         key={lead.id} 
-                        className="p-10 rounded-none bg-white dark:bg-surface/70 border-white shadow-none hover:shadow-none hover:-translate-y-2 transition-all duration-700 group flex flex-col justify-between h-full"
+                        className="p-10 rounded-sm bg-white dark:bg-surface/70 border-white shadow-none hover:shadow-none hover:-translate-y-2 transition-all duration-700 group flex flex-col justify-between h-full"
                       >
                         <div className="space-y-8">
                            <div className="flex items-start justify-between">
@@ -317,7 +317,7 @@ export default function BuyingLeadsPage() {
                               {lead.buying_lead_offers.slice(0, 3).map((offer) => {
                                 const vendor = Array.isArray(offer.vendors) ? offer.vendors[0] : offer.vendors;
                                 return (
-                                <li key={offer.id} className="p-4 bg-white dark:bg-surface/60 rounded-none border border-white shadow-none flex items-center justify-between group/offer hover:bg-white dark:bg-surface transition-all">
+                                <li key={offer.id} className="p-4 bg-white dark:bg-surface/60 rounded-sm border border-white shadow-none flex items-center justify-between group/offer hover:bg-white dark:bg-surface transition-all">
                                   <div className="space-y-1">
                                      <p className="text-[11px] font-black text-stone-900 dark:text-white tracking-widest uppercase truncate max-w-[180px]">{vendor?.business_name ?? "ANON_SUPPLIER"}</p>
                                      <p className="text-[10px] font-black text-stone-400 truncate max-w-[200px] leading-none uppercase">{offer.message ?? "NO_MESSAGE_LOGGED"}</p>

@@ -41,8 +41,8 @@ export function CreatorNav({
 
   return (
     <nav className="w-full lg:w-56 shrink-0 space-y-4">
-      <div className="rounded-none border border-[var(--color-border)] bg-[var(--color-surface)] p-4 flex items-center gap-3">
-        <div className="h-11 w-11 rounded-none overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface-secondary)]">
+      <div className="rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] p-4 flex items-center gap-3">
+        <div className="h-11 w-11 rounded-sm overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface-secondary)]">
           {avatarUrl ? (
             <Image src={avatarUrl} alt="" width={44} height={44} className="object-cover h-full w-full" unoptimized />
           ) : (
@@ -55,7 +55,7 @@ export function CreatorNav({
         </div>
       </div>
 
-      <div className="flex overflow-x-auto lg:flex-col lg:overflow-visible gap-2 lg:gap-0 lg:space-y-1 rounded-none border border-[var(--color-border)] bg-[var(--color-surface)] p-2 scrollbar-none snap-x">
+      <div className="flex overflow-x-auto lg:flex-col lg:overflow-visible gap-2 lg:gap-0 lg:space-y-1 rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] p-2 scrollbar-none snap-x">
         {links.map(({ href, label, icon: Icon }) => {
           const active = pathname === href || pathname.startsWith(href + "/");
           return (
@@ -63,7 +63,7 @@ export function CreatorNav({
               key={href}
               href={href}
               className={cn(
-                "flex items-center gap-2 px-3 py-2 rounded-none text-sm font-bold transition-colors whitespace-nowrap shrink-0 snap-center",
+                "flex items-center gap-2 px-3 py-2 rounded-sm text-sm font-bold transition-colors whitespace-nowrap shrink-0 snap-center",
                 active
                   ? "bg-[var(--color-accent-light)] text-[var(--color-accent)]"
                   : "text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-secondary)]"

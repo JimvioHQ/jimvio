@@ -39,12 +39,12 @@ export function CreatorClipsHero({ clips, className }: CreatorClipsHeroProps) {
     <section id="trending-clips" className={cn("relative", className)}>
       {/* Section header: For You / Live - TikTok style */}
       <div className="flex items-center gap-3 mb-4 px-1">
-        <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-none bg-[#f97316] text-white text-[12px] font-black uppercase tracking-widest">
+        <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-sm bg-[#f97316] text-white text-[12px] font-black uppercase tracking-widest">
           <Sparkles className="h-3.5 w-3.5" />
           For You
         </span>
-        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-none bg-[#f0f0f0] text-[#4b5563] text-[12px] font-bold">
-          <span className="w-2 h-2 rounded-none bg-red-500 animate-pulse" />
+        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-[#f0f0f0] text-[#4b5563] text-[12px] font-bold">
+          <span className="w-2 h-2 rounded-sm bg-red-500 animate-pulse" />
           Live
         </span>
         <Link href="/marketplace" className="ml-auto text-[11px] font-black text-[#f97316] uppercase tracking-widest hover:underline flex items-center gap-1">
@@ -61,7 +61,7 @@ export function CreatorClipsHero({ clips, className }: CreatorClipsHeroProps) {
             tabIndex={0}
             onClick={() => setModalClip(clip)}
             onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setModalClip(clip); } }}
-            className="group relative flex-shrink-0 w-[160px] sm:w-[180px] md:w-[200px] rounded-none overflow-hidden bg-ink-dark shadow-none hover:shadow-none hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 text-left cursor-pointer ring-2 ring-transparent hover:ring-[#f97316]/40"
+            className="group relative flex-shrink-0 w-[160px] sm:w-[180px] md:w-[200px] rounded-sm overflow-hidden bg-ink-dark shadow-none hover:shadow-none hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 text-left cursor-pointer ring-2 ring-transparent hover:ring-[#f97316]/40"
           >
             <div className="aspect-[9/16] relative">
               <div
@@ -92,7 +92,7 @@ export function CreatorClipsHero({ clips, className }: CreatorClipsHeroProps) {
                   <span className="text-[11px] font-black">{(clip.total_views ?? 0).toLocaleString()} views</span>
                 </div>
                 {clip.products && (
-                  <div className="bg-ink-darker/50 rounded-none px-2.5 py-2 flex items-center justify-between gap-2">
+                  <div className="bg-ink-darker/50 rounded-sm px-2.5 py-2 flex items-center justify-between gap-2">
                     <span className="text-[10px] font-bold text-white truncate flex-1">{clip.products.name}</span>
                     <ShoppingBag className="h-4 w-4 text-[#f97316] shrink-0" />
                   </div>
@@ -102,14 +102,14 @@ export function CreatorClipsHero({ clips, className }: CreatorClipsHeroProps) {
                     <FollowButton
                       vendorId={clip.vendors.id}
                       variant="ghost"
-                      className="w-full h-9 rounded-none bg-[#f97316] hover:bg-[#ea580c] text-white text-[11px] font-black border-0"
+                      className="w-full h-9 rounded-sm bg-[#f97316] hover:bg-[#ea580c] text-white text-[11px] font-black border-0"
                     />
                   </div>
                 )}
               </div>
 
               <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                <div className="w-14 h-14 rounded-none bg-white dark:bg-surface/25 border-2 border-white/40 flex items-center justify-center">
+                <div className="w-14 h-14 rounded-sm bg-white dark:bg-surface/25 border-2 border-white/40 flex items-center justify-center">
                   <Play className="h-7 w-7 text-white fill-white ml-1" />
                 </div>
               </div>
@@ -123,8 +123,8 @@ export function CreatorClipsHero({ clips, className }: CreatorClipsHeroProps) {
         <>
           <div className="fixed inset-0 z-[1000] overscroll-none bg-ink-darker/85 animate-in fade-in duration-200" onClick={closeModal} aria-hidden />
           <div className="fixed inset-0 z-[1001] flex items-center justify-center p-4 pointer-events-none">
-            <div className="pointer-events-auto w-full max-w-lg flex flex-col gap-0 bg-[#121212] rounded-none overflow-hidden shadow-none border border-white/10 relative">
-              <button type="button" onClick={closeModal} className="absolute top-3 right-3 z-20 w-10 h-10 rounded-none bg-ink-darker/50 flex items-center justify-center text-white hover:bg-ink-darker/70">
+            <div className="pointer-events-auto w-full max-w-lg flex flex-col gap-0 bg-[#121212] rounded-sm overflow-hidden shadow-none border border-white/10 relative">
+              <button type="button" onClick={closeModal} className="absolute top-3 right-3 z-20 w-10 h-10 rounded-sm bg-ink-darker/50 flex items-center justify-center text-white hover:bg-ink-darker/70">
                 <X className="h-5 w-5" />
               </button>
               <div className="aspect-[9/16] max-h-[50vh] relative bg-ink-dark">
@@ -151,12 +151,12 @@ export function CreatorClipsHero({ clips, className }: CreatorClipsHeroProps) {
                     <p className="text-white font-black truncate">{modalClip.vendors?.business_name ?? "Creator"}</p>
                     <p className="text-[11px] text-white/70">{(modalClip.total_views ?? 0).toLocaleString()} views</p>
                   </div>
-                  {modalClip.vendors?.id && <FollowButton vendorId={modalClip.vendors.id} className="rounded-none h-9 px-4 text-xs font-black bg-[#f97316] border-0 text-white hover:bg-[#ea580c] shrink-0" />}
+                  {modalClip.vendors?.id && <FollowButton vendorId={modalClip.vendors.id} className="rounded-sm h-9 px-4 text-xs font-black bg-[#f97316] border-0 text-white hover:bg-[#ea580c] shrink-0" />}
                 </div>
               </div>
               {modalClip.products && (
                 <div className="p-4 border-t border-white/10 flex items-center gap-4 bg-ink-darker">
-                  <div className="w-14 h-14 rounded-none bg-white dark:bg-surface/10 flex items-center justify-center overflow-hidden shrink-0">
+                  <div className="w-14 h-14 rounded-sm bg-white dark:bg-surface/10 flex items-center justify-center overflow-hidden shrink-0">
                     {Array.isArray(modalClip.products.images) && modalClip.products.images[0] ? (
                       <img src={modalClip.products.images[0]} alt="" className="w-full h-full object-cover" />
                     ) : (
@@ -172,7 +172,7 @@ export function CreatorClipsHero({ clips, className }: CreatorClipsHeroProps) {
                     />
                   </div>
                   <Link href={`/marketplace/${modalClip.products.slug ?? ""}?buy=1`} onClick={closeModal}>
-                    <Button className="rounded-none h-10 px-5 bg-[#f97316] hover:bg-[#ea580c] font-black text-white text-xs">Buy Product</Button>
+                    <Button className="rounded-sm h-10 px-5 bg-[#f97316] hover:bg-[#ea580c] font-black text-white text-xs">Buy Product</Button>
                   </Link>
                 </div>
               )}

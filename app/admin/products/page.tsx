@@ -21,8 +21,8 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
       <Card>
         <CardHeader className="pb-3">
           <form method="get" action="/admin/products" className="flex gap-2 max-w-sm">
-            <Input name="q" defaultValue={q ?? ""} placeholder="Search by name or slug..." className="rounded-none" />
-            <Button type="submit" variant="secondary" size="icon" className="rounded-none">
+            <Input name="q" defaultValue={q ?? ""} placeholder="Search by name or slug..." className="rounded-sm" />
+            <Button type="submit" variant="secondary" size="icon" className="rounded-sm">
               <Search className="h-4 w-4" />
             </Button>
           </form>

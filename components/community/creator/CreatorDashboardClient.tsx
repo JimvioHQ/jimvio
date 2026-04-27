@@ -19,7 +19,7 @@ export function CreatorRevenueChart({
 }) {
   if (!data.length) {
     return (
-      <div className="h-64 flex items-center justify-center rounded-none border border-dashed border-[var(--color-border)] text-sm text-[var(--color-text-muted)]">
+      <div className="h-64 flex items-center justify-center rounded-sm border border-dashed border-[var(--color-border)] text-sm text-[var(--color-text-muted)]">
         No payment data in the last 30 days.
       </div>
     );
@@ -50,7 +50,7 @@ export function CreatorSettingsButton({ communityId }: { communityId: string }) 
   return (
     <Link
       href={`/creator/${communityId}/spaces`}
-      className="inline-flex items-center rounded-none border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2 text-sm font-bold text-[var(--color-text-primary)] hover:border-[var(--color-accent)]"
+      className="inline-flex items-center rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2 text-sm font-bold text-[var(--color-text-primary)] hover:border-[var(--color-accent)]"
     >
       Settings
     </Link>

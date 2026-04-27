@@ -47,7 +47,7 @@ export default function AdminAllSubmissionsPage() {
             <button
               key={f}
               onClick={() => setStatus(f)}
-              className={`px-3 py-1 rounded-none text-xs font-medium capitalize transition-all ${
+              className={`px-3 py-1 rounded-sm text-xs font-medium capitalize transition-all ${
                 status === f ? 'bg-[var(--color-accent)] text-[var(--color-text-primary)]' : 'bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)] hover:bg-[var(--color-surface-secondary)]/80 hover:text-[var(--color-text-primary)]'
               }`}
             >
@@ -59,10 +59,10 @@ export default function AdminAllSubmissionsPage() {
 
         {loading ? (
           <div className="space-y-2">
-            {[1,2,3,4,5].map(i => <div key={i} className="h-16 rounded-none animate-pulse bg-[var(--color-surface-secondary)]" />)}
+            {[1,2,3,4,5].map(i => <div key={i} className="h-16 rounded-sm animate-pulse bg-[var(--color-surface-secondary)]" />)}
           </div>
         ) : (
-          <div className="rounded-none border border-[var(--color-border)] overflow-hidden">
+          <div className="rounded-sm border border-[var(--color-border)] overflow-hidden">
             <table className="w-full text-sm">
               <thead className="border-b border-[var(--color-border)] bg-[var(--color-surface-secondary)]">
                 <tr>
@@ -86,7 +86,7 @@ export default function AdminAllSubmissionsPage() {
                     <td className="px-4 py-3 text-[var(--color-text-primary)] text-xs">{(sub.total_views_earned ?? 0).toLocaleString()}</td>
                     <td className="px-4 py-3 text-[var(--color-text-primary)] text-xs">${(sub.total_earnings ?? 0).toFixed(2)}</td>
                     <td className="px-4 py-3">
-                      <span className={`text-[10px] font-medium px-2 py-0.5 rounded-none ${STATUS_STYLES[sub.status]}`}>
+                      <span className={`text-[10px] font-medium px-2 py-0.5 rounded-sm ${STATUS_STYLES[sub.status]}`}>
                         {sub.status}
                       </span>
                     </td>
@@ -94,7 +94,7 @@ export default function AdminAllSubmissionsPage() {
                       {sub.status === 'pending' && (
                         <button
                           onClick={() => handleApprove(sub.id)}
-                          className="text-[11px] px-2.5 py-1 rounded-none bg-emerald-600/80 text-[var(--color-text-primary)] hover:bg-emerald-600 transition-colors"
+                          className="text-[11px] px-2.5 py-1 rounded-sm bg-emerald-600/80 text-[var(--color-text-primary)] hover:bg-emerald-600 transition-colors"
                         >
                           Approve
                         </button>

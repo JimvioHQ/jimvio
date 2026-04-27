@@ -19,8 +19,8 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
       <Card>
         <CardHeader className="pb-3">
           <form method="get" action="/admin/users" className="flex gap-2 max-w-sm">
-            <Input name="q" defaultValue={q ?? ""} placeholder="Search by email or name..." className="rounded-none" />
-            <Button type="submit" variant="secondary" size="icon" className="rounded-none">
+            <Input name="q" defaultValue={q ?? ""} placeholder="Search by email or name..." className="rounded-sm" />
+            <Button type="submit" variant="secondary" size="icon" className="rounded-sm">
               <Search className="h-4 w-4" />
             </Button>
           </form>
@@ -50,7 +50,7 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
                       <td className="py-3 px-4">
                         <span className="flex flex-wrap gap-1">
                           {(u.roles ?? []).map((r: string) => (
-                            <span key={r} className="inline-flex px-2 py-0.5 rounded-none bg-[var(--color-surface-secondary)] text-xs font-medium">{r}</span>
+                            <span key={r} className="inline-flex px-2 py-0.5 rounded-sm bg-[var(--color-surface-secondary)] text-xs font-medium">{r}</span>
                           ))}
                           {(!u.roles || u.roles.length === 0) && ""}
                         </span>

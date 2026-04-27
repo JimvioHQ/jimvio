@@ -89,7 +89,7 @@ export function CloudinaryAvatar({
       alt={alt}
       crop="thumb"
       gravity="face"
-      className={cn("rounded-none object-cover", className)}
+      className={cn("rounded-sm object-cover", className)}
       fallback={fallback}
     />
   );

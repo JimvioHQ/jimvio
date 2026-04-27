@@ -30,6 +30,12 @@ import { FollowButton } from "@/components/marketplace/follow-button";
 import { LocalizedPrice } from "@/components/currency/localized-price";
 import { GlassAmbientGlow } from "@/components/ui/glass";
 
+import {
+  Shirt, Home, Sofa, HeartPulse,
+  Apple, Trophy, Puzzle, BookOpen, Car, Flower2, Gem, Music,
+  Palette, Plane, PawPrint, Baby, Wrench,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 /* ─── Types ─── */
 interface Product {
   id: string;
@@ -94,24 +100,24 @@ function HeroDealBanner({ params, basePath }: { params: Record<string, string | 
   const isPhysical = type === "physical";
 
   return (
-    <div className="relative overflow-hidden rounded-none mx-0 mb-6 shadow-none border border-border">
+    <div className="relative overflow-hidden rounded-sm mx-0 mb-6 shadow-none border border-border">
       {/* Background with premium dynamic gradient */}
       <div
         className={cn(
           "absolute inset-0 bg-gradient-to-br transition-all duration-700",
-          isDigital 
-            ? "from-sky-50 dark:from-sky-950/20 via-white dark:via-[#0a0a0a] to-sky-50 dark:to-sky-900/10" 
+          isDigital
+            ? "from-sky-50 dark:from-sky-950/20 via-white dark:via-[#0a0a0a] to-sky-50 dark:to-sky-900/10"
             : "from-orange-50 dark:from-orange-950/10 via-surface dark:via-zinc-900 to-orange-50/50 dark:to-orange-900/5"
         )}
       />
-      
+
       {/* Ambient glowing orbs for depth */}
-      <div className="absolute -top-10 -left-10 w-48 h-48 rounded-none mix-blend-multiply opacity-50 blur-2xl" style={{ background: "radial-gradient(circle, #fcd34d 0%, transparent 70%)" }} />
-      <div className="absolute top-10 -right-12 w-56 h-56 rounded-none mix-blend-multiply opacity-40 blur-2xl" style={{ background: "radial-gradient(circle, #fb923c 0%, transparent 70%)" }} />
-      <div className="absolute -bottom-16 left-1/4 w-40 h-40 rounded-none mix-blend-multiply opacity-30 blur-2xl" style={{ background: "radial-gradient(circle, #f97316 0%, transparent 70%)" }} />
+      <div className="absolute -top-10 -left-10 w-48 h-48 rounded-sm mix-blend-multiply opacity-50 blur-2xl" style={{ background: "radial-gradient(circle, #fcd34d 0%, transparent 70%)" }} />
+      <div className="absolute top-10 -right-12 w-56 h-56 rounded-sm mix-blend-multiply opacity-40 blur-2xl" style={{ background: "radial-gradient(circle, #fb923c 0%, transparent 70%)" }} />
+      <div className="absolute -bottom-16 left-1/4 w-40 h-40 rounded-sm mix-blend-multiply opacity-30 blur-2xl" style={{ background: "radial-gradient(circle, #f97316 0%, transparent 70%)" }} />
 
       {/* ── Dynamic Decorative Elements (Real Images) ── */}
-      
+
       {/* 1. DIGITAL ITEMS */}
       {(isAll || isDigital) && (
         <>
@@ -121,7 +127,7 @@ function HeroDealBanner({ params, basePath }: { params: Record<string, string | 
             "animate-[bounce_6s_infinite]"
           )}>
             <div className="relative w-48 h-48 sm:w-80 sm:h-80 overflow-visible flex items-center justify-center">
-               <img src="/digital-cart.png" alt="3D Digital Cart" className="w-full h-full object-contain filter drop-shadow-[0_20px_30px_rgba(0,0,0,0.3)]" />
+              <img src="/digital-cart.png" alt="3D Digital Cart" className="w-full h-full object-contain filter drop-shadow-[0_20px_30px_rgba(0,0,0,0.3)]" />
             </div>
           </div>
         </>
@@ -129,8 +135,8 @@ function HeroDealBanner({ params, basePath }: { params: Record<string, string | 
 
       {/* 2. DELIVERY CAR (Center) */}
       {isAll && (
-        <div className="absolute z-0 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-20 sm:opacity-30 blur-[2px] pointer-events-none mix-blend-overlay w-[400px] sm:w-[600px] h-[400px] sm:h-[600px] rounded-none overflow-hidden">
-          <img src="https://images.unsplash.com/photo-1617469165786-8a07f0f6707f?q=80&w=800&auto=format&fit=crop" alt="Delivery Van" className="w-full h-full object-cover rounded-none filter contrast-125" />
+        <div className="absolute z-0 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-20 sm:opacity-30 blur-[2px] pointer-events-none mix-blend-overlay w-[400px] sm:w-[600px] h-[400px] sm:h-[600px] rounded-sm overflow-hidden">
+          <img src="https://images.unsplash.com/photo-1617469165786-8a07f0f6707f?q=80&w=800&auto=format&fit=crop" alt="Delivery Van" className="w-full h-full object-cover rounded-sm filter contrast-125" />
         </div>
       )}
 
@@ -143,7 +149,7 @@ function HeroDealBanner({ params, basePath }: { params: Record<string, string | 
             "animate-[bounce_5s_infinite_0.5s]"
           )}>
             <div className="relative w-48 h-48 sm:w-80 sm:h-80 overflow-visible flex items-center justify-center">
-               <img src="https://png.pngtree.com/png-clipart/20250225/original/pngtree-shopping-cart-filled-with-electronic-gadgets-and-colorful-bags-looks-modern-png-image_20511724.png" alt="3D Shopping Cart" className="w-full h-full object-contain filter drop-shadow-[0_20px_30px_rgba(0,0,0,0.3)] mix-blend-multiply contrast-125" />
+              <img src="https://png.pngtree.com/png-clipart/20250225/original/pngtree-shopping-cart-filled-with-electronic-gadgets-and-colorful-bags-looks-modern-png-image_20511724.png" alt="3D Shopping Cart" className="w-full h-full object-contain filter drop-shadow-[0_20px_30px_rgba(0,0,0,0.3)] mix-blend-multiply contrast-125" />
             </div>
           </div>
         </>
@@ -155,14 +161,14 @@ function HeroDealBanner({ params, basePath }: { params: Record<string, string | 
           <Star className="h-7 w-7 text-orange-500 fill-orange-500 animate-[spin_4s_linear_infinite]" />
           Top Deals Today!
         </h2>
-        
+
         {/* Subtitle */}
         <p className="text-[14px] sm:text-[16px] text-stone-600 dark:text-text-muted font-medium mb-5">
           Best offers waiting for you!
         </p>
-        
+
         {/* Delivery Badge */}
-        <div className="inline-flex items-center gap-1.5 px-4 py-2 rounded-none bg-stone-50 dark:bg-stone-900 border border-border shadow-none mb-6">
+        <div className="inline-flex items-center gap-1.5 px-4 py-2 rounded-sm bg-stone-50 dark:bg-stone-900 border border-border shadow-none mb-6">
           <MapPin className="h-4 w-4 text-emerald-500" />
           <span className="text-[12px] font-bold text-stone-700 dark:text-stone-300">Worldwide Delivery Available</span>
         </div>
@@ -170,7 +176,7 @@ function HeroDealBanner({ params, basePath }: { params: Record<string, string | 
         {/* Action Button */}
         <Link
           href={marketplaceHref(params, { sort: "trending" }, basePath)}
-          className="group relative inline-flex items-center justify-center overflow-hidden rounded-none p-4 px-8 font-black text-white shadow-[0_8px_20px_rgba(249,115,22,0.4)] transition-transform hover:scale-105 active:scale-95"
+          className="group relative inline-flex items-center justify-center overflow-hidden rounded-sm p-4 px-8 font-black text-white shadow-[0_8px_20px_rgba(249,115,22,0.4)] transition-transform hover:scale-105 active:scale-95"
         >
           <span className="absolute inset-0 bg-gradient-to-r from-orange-400 via-orange-500 to-amber-500" />
           <span className="absolute inset-0 opacity-0 transition-opacity group-hover:opacity-20 flex" style={{ background: "linear-gradient(to right, transparent, white, transparent)" }} />
@@ -192,13 +198,13 @@ function TypeTabs({ params, basePath }: { params: Record<string, string | undefi
     { label: "Digital", type: "digital" },
     { label: "Physical", type: "physical" },
   ].filter(tab => {
-    if (!params.type) return true; // Show all on main marketplace
-    return tab.type === params.type; // Only show current type on specialized pages
+    if (!params.type) return true;
+    return tab.type === params.type;
   });
 
   return (
     <div className="flex justify-center w-full">
-      <div className="flex items-center p-1.5 rounded-none bg-stone-100 dark:bg-stone-900 shadow-inner border border-border w-full md:w-auto overflow-hidden">
+      <div className="flex items-center p-1 rounded-sm w-full md:w-auto overflow-hidden">
         {tabs.map((tab) => {
           const isActive = tab.type === null ? isAll : params.type === tab.type;
           const href = tab.type
@@ -210,7 +216,7 @@ function TypeTabs({ params, basePath }: { params: Record<string, string | undefi
               key={tab.label}
               href={href}
               className={cn(
-                "relative flex-1 md:flex-none shrink-0 flex items-center justify-center px-3 sm:px-6 py-2.5 rounded-none text-[13px] sm:text-[14px] font-bold transition-all whitespace-nowrap z-10",
+                "relative flex-1 md:flex-none shrink-0 flex items-center justify-center px-3 sm:px-6 py-2 rounded-sm text-[13px] sm:text-[14px] font-bold transition-all whitespace-nowrap z-10",
                 isActive
                   ? "text-stone-900 dark:text-white"
                   : "text-stone-500 hover:text-stone-800 dark:text-text-secondary dark:hover:text-stone-300 hover:bg-surface/50"
@@ -220,10 +226,10 @@ function TypeTabs({ params, basePath }: { params: Record<string, string | undefi
                 <motion.div
                   layoutId="activeTabIndicator"
                   className={cn(
-                    "absolute inset-0 rounded-none shadow-none border",
+                    "absolute inset-0 rounded-sm shadow-none border",
                     tab.type === "digital" ? "bg-sky-500/10 border-sky-500/20 shadow-sky-500/5" :
-                    tab.type === "physical" ? "bg-orange-500/10 border-orange-500/20 shadow-orange-500/5" :
-                    "bg-surface dark:bg-surface-secondary border-border"
+                      tab.type === "physical" ? "bg-orange-500/10 border-orange-500/20 shadow-orange-500/5" :
+                        "bg-surface dark:bg-surface-secondary border-border"
                   )}
                   style={{ zIndex: -1 }}
                   transition={{ type: "spring", stiffness: 450, damping: 35 }}
@@ -243,24 +249,26 @@ function CategoryChip({
   label,
   active,
   href,
-  icon,
+  Icon,
 }: {
   label: string;
   active: boolean;
   href: string;
-  icon?: string;
+  Icon?: LucideIcon;
 }) {
   return (
     <Link
       href={href}
       className={cn(
-        "shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-none text-[12px] font-semibold transition-all border whitespace-nowrap shadow-none",
+        "shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-sm text-[12px] font-semibold transition-all border whitespace-nowrap shadow-none",
         active
           ? "bg-orange-500 text-white border-orange-400 shadow-[0_4px_12px_rgba(249,115,22,0.30)]"
           : "bg-surface dark:bg-surface border-border text-stone-600 dark:text-stone-300 hover:border-orange-300 dark:hover:border-orange-500 hover:text-orange-600 dark:hover:text-orange-500"
       )}
     >
-      {icon && <span className="text-base leading-none">{icon}</span>}
+      {Icon && <span className="text-base leading-none">
+        <Icon className="h-4 w-4 " />
+      </span>}
       {label}
     </Link>
   );
@@ -282,48 +290,48 @@ function SortPill({
     <Link
       href={href}
       className={cn(
-        "shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-none text-[12px] font-semibold border transition-all whitespace-nowrap shadow-none",
+        "shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-sm text-[12px] font-semibold border transition-all whitespace-nowrap shadow-none",
         active
           ? "bg-orange-500 text-white border-orange-400 shadow-[0_4px_12px_rgba(249,115,22,0.30)]"
           : "bg-surface dark:bg-surface border-border text-stone-500 dark:text-stone-300 hover:border-orange-300 dark:hover:border-orange-500 hover:text-orange-600 dark:hover:text-orange-500"
       )}
     >
-      {Icon && <Icon className="h-3.5 w-3.5" />}
+      {Icon && <Icon className="h-4 w-4 " />}
       {label}
     </Link>
   );
 }
 
 /* ─── Category icon map ─── */
-const CATEGORY_ICONS: Record<string, string> = {
-  electronics: "âš¡",
-  fashion: "👗",
-  apparel: "👕",
-  home: "🏠",
-  furniture: "🛋️",
-  beauty: "💄",
-  health: "💊",
-  food: "🍎",
-  sports: "⚽",
-  toys: "🧸",
-  books: "📚",
-  automotive: "🚗",
-  garden: "🌿",
-  jewelry: "💎",
-  music: "🎵",
-  art: "🎨",
-  travel: "✈️",
-  pets: "🐾",
-  baby: "👶",
-  tools: "🔧",
+const CATEGORY_ICONS: Record<string, LucideIcon> = {
+  electronics: Zap,
+  fashion: Shirt,
+  apparel: ShoppingBag,
+  home: Home,
+  furniture: Sofa,
+  beauty: Sparkles,
+  health: HeartPulse,
+  food: Apple,
+  sports: Trophy,
+  toys: Puzzle,
+  books: BookOpen,
+  automotive: Car,
+  garden: Flower2,
+  jewelry: Gem,
+  music: Music,
+  art: Palette,
+  travel: Plane,
+  pets: PawPrint,
+  baby: Baby,
+  tools: Wrench,
 };
 
-function getCategoryIcon(slug: string, name: string): string | undefined {
+function getCategoryIcon(slug: string, name: string): LucideIcon | undefined {
   const s = `${slug} ${name}`.toLowerCase();
   for (const [key, icon] of Object.entries(CATEGORY_ICONS)) {
     if (s.includes(key)) return icon;
   }
-  return undefined;
+  return ShoppingBag;
 }
 
 /* ─── Main Component ─── */
@@ -347,7 +355,7 @@ export function MarketplaceClient({
   const DIGITAL_SLUG_PATTERNS = ["ebook", "course", "software", "template", "digital", "asset"];
   const displayCategories = useMemo(() => {
     if (params.type === "digital") {
-      const dCats = categories.filter(c => 
+      const dCats = categories.filter(c =>
         DIGITAL_SLUG_PATTERNS.some(p => `${c.slug} ${c.name}`.toLowerCase().includes(p))
       );
       if (dCats.length > 0) return dCats;
@@ -359,7 +367,7 @@ export function MarketplaceClient({
       ];
     }
     if (params.type === "physical") {
-      return categories.filter(c => 
+      return categories.filter(c =>
         !DIGITAL_SLUG_PATTERNS.some(p => `${c.slug} ${c.name}`.toLowerCase().includes(p))
       );
     }
@@ -390,22 +398,24 @@ export function MarketplaceClient({
 
   const renderCat = (cat: { slug: string | null; name: string }) => {
     const isActive = (!params.cat && !cat.slug) || params.cat === cat.slug;
-    const icon = cat.slug ? getCategoryIcon(cat.slug, cat.name) : "🛒";
+    const IconItem = cat.slug ? getCategoryIcon(cat.slug, cat.name) : ShoppingBag;
     return (
       <Link
         key={cat.slug || "all"}
         href={marketplaceHref(paramsRecord, { cat: cat.slug ?? null }, basePath)}
         className={cn(
-          "flex items-center gap-2.5 py-2 px-3 rounded-none text-[12px] font-semibold transition-all",
+          "flex items-center gap-2.5 py-2 px-3 rounded-sm text-[12px] font-semibold transition-all",
           isActive
             ? "bg-orange-500/10 text-orange-600 border border-orange-500/20"
-            : "text-stone-500 dark:text-text-muted hover:bg-surface-secondary dark:hover:bg-zinc-800 hover:text-stone-800 dark:text-text-secondary dark:hover:text-white border border-transparent"
+            : "text-stone-500 dark:text-text-muted hover:bg-surface-secondary dark:hover:bg-zinc-800 hover:text-stone-800 dark:hover:text-white border border-transparent"
         )}
       >
-        {icon && <span className="text-base leading-none">{icon}</span>}
+        {IconItem && <span className="text-base leading-none">
+          <IconItem className="h-4 w-4 " />
+        </span>}
         <span className="flex-1 truncate">{cat.name}</span>
         {isActive && (
-          <span className="w-1.5 h-1.5 rounded-none bg-orange-500 shadow-[0_0_6px_rgba(249,115,22,0.8)]" />
+          <span className="w-1.5 h-1.5 rounded-sm bg-orange-500 shadow-[0_0_6px_rgba(249,115,22,0.8)]" />
         )}
       </Link>
     );
@@ -414,15 +424,15 @@ export function MarketplaceClient({
   return (
     <div className={cn(
       "min-h-screen relative transition-colors duration-500",
-      uiVariant === "digital" 
-        ? "bg-[#fafcfe] dark:bg-[#050505]" 
+      uiVariant === "digital"
+        ? "bg-[#fafcfe] dark:bg-[#050505]"
         : "bg-white dark:bg-bg"
     )}>
       {/* ── Sticky Top Bar ── */}
       <div className="sticky top-0 z-50 border-b border-border shadow-none bg-surface">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 pt-3 pb-3">
           <div className="flex flex-col md:flex-row items-center justify-between gap-3 md:gap-6">
-            
+
             {/* Search bar */}
             <div className="w-full md:max-w-[420px] lg:max-w-[500px]">
               <MarketplaceSearch currentParams={paramsRecord} className="w-full" basePath={basePath} />
@@ -430,7 +440,7 @@ export function MarketplaceClient({
 
             {/* Right side controls */}
             <div className="w-full md:w-auto flex flex-col md:flex-row items-center gap-4">
-              
+
               {/* Segmented Type tabs */}
               <div className="w-full md:w-auto">
                 <TypeTabs params={paramsRecord} basePath={basePath} />
@@ -444,11 +454,11 @@ export function MarketplaceClient({
                 )}>
                   <div className="relative flex h-2.5 w-2.5">
                     <span className={cn(
-                      "animate-ping absolute inline-flex h-full w-full rounded-none opacity-75",
+                      "animate-ping absolute inline-flex h-full w-full rounded-sm opacity-75",
                       uiVariant === "digital" ? "bg-sky-400" : "bg-emerald-400"
                     )}></span>
                     <span className={cn(
-                      "relative inline-flex rounded-none h-2.5 w-2.5",
+                      "relative inline-flex rounded-sm h-2.5 w-2.5",
                       uiVariant === "digital" ? "bg-sky-500 shadow-[0_0_8px_rgba(14,165,233,0.8)]" : "bg-emerald-500"
                     )}></span>
                   </div>
@@ -468,7 +478,7 @@ export function MarketplaceClient({
                   </div>
                 </div>
               )}
-              
+
             </div>
           </div>
         </div>
@@ -482,15 +492,15 @@ export function MarketplaceClient({
           <div className="sticky top-[130px] space-y-5">
             {/* Main sidebar shell with variant-aware borders */}
             <div className={cn(
-               "bg-surface dark:bg-surface rounded-none border border-border shadow-none overflow-hidden",
-               uiVariant === "digital" && "border-sky-500/20 shadow-[0_0_20px_rgba(14,165,233,0.05)]",
-               uiVariant === "physical" && "border-orange-500/10 shadow-[0_0_20px_rgba(249,115,22,0.05)]"
+              "bg-surface dark:bg-surface rounded-sm border border-border shadow-none overflow-hidden",
+              uiVariant === "digital" && "border-sky-500/20 shadow-[0_0_20px_rgba(14,165,233,0.05)]",
+              uiVariant === "physical" && "border-orange-500/10 shadow-[0_0_20px_rgba(249,115,22,0.05)]"
             )}>
               <div className="p-4">
                 <div className="mb-4">
                   {renderCat({ slug: null, name: "All Browse" })}
                 </div>
-                
+
                 {uiVariant === "all" ? (
                   <div className="space-y-5">
                     {(() => {
@@ -498,9 +508,9 @@ export function MarketplaceClient({
                       if (digitals.length === 0) return null;
                       return (
                         <div>
-                          <div className="flex items-center gap-2 mb-2 px-3 py-1 bg-sky-50 dark:bg-sky-500/10 rounded-none">
-                             <Zap className="h-3 w-3 text-sky-500" />
-                             <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-sky-600 dark:text-sky-400">Digital Hub</h3>
+                          <div className="flex items-center gap-2 mb-2 px-3 py-1 bg-sky-50 dark:bg-sky-500/10 rounded-sm">
+                            <Zap className="h-3 w-3 text-sky-500" />
+                            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-sky-600 dark:text-sky-400">Digital Hub</h3>
                           </div>
                           <div className="flex flex-col gap-0.5">
                             {digitals.map(renderCat)}
@@ -513,9 +523,9 @@ export function MarketplaceClient({
                       if (physicals.length === 0) return null;
                       return (
                         <div>
-                          <div className="flex items-center gap-2 mb-2 px-3 py-1 bg-orange-50 dark:bg-orange-500/10 rounded-none">
-                             <Package className="h-3 w-3 text-orange-500" />
-                             <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-600 dark:text-orange-400">Physical Goods</h3>
+                          <div className="flex items-center gap-2 mb-2 px-3 py-1 bg-orange-50 dark:bg-orange-500/10 rounded-sm">
+                            <Package className="h-3 w-3 text-orange-500" />
+                            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-600 dark:text-orange-400">Physical Goods</h3>
                           </div>
                           <div className="flex flex-col gap-0.5">
                             {physicals.map(renderCat)}
@@ -542,23 +552,23 @@ export function MarketplaceClient({
 
             {/* Contextual Info Card */}
             <div className={cn(
-              "rounded-none border p-5 relative overflow-hidden group",
+              "rounded-sm border p-5 relative overflow-hidden group",
               uiVariant === "digital" ? "bg-sky-500/[0.03] border-sky-500/10" : "bg-orange-50 dark:bg-zinc-900 border-orange-200/50 dark:border-white/5"
             )}>
               <div className="relative z-10">
                 <div className={cn(
-                  "h-8 w-8 rounded-none flex items-center justify-center mb-3",
+                  "h-8 w-8 rounded-sm flex items-center justify-center mb-3",
                   uiVariant === "digital" ? "bg-sky-500/20 text-sky-400" : "bg-orange-500 text-white"
                 )}>
                   <ShieldCheck className="h-4 w-4" />
                 </div>
                 <h4 className="text-[13px] font-bold text-stone-900 dark:text-white mb-1">
-                   {uiVariant === "digital" ? "Verified License" : "Trust & Tracking"}
+                  {uiVariant === "digital" ? "Verified License" : "Trust & Tracking"}
                 </h4>
                 <p className="text-[11px] text-stone-500 dark:text-stone-400 leading-relaxed italic">
-                   {uiVariant === "digital" 
-                     ? "Ownership confirmed on chain. Access your files instantly via your library."
-                     : "Secure door-to-door delivery. Track your package live from our network."}
+                  {uiVariant === "digital"
+                    ? "Ownership confirmed on chain. Access your files instantly via your library."
+                    : "Secure door-to-door delivery. Track your package live from our network."}
                 </p>
               </div>
             </div>
@@ -577,7 +587,7 @@ export function MarketplaceClient({
               label="All"
               active={!params.cat}
               href={marketplaceHref(paramsRecord, { cat: null }, basePath)}
-              icon="🛒"
+              Icon={ShoppingBag}
             />
             {displayCategories.slice(0, 12).map((cat) => (
               <CategoryChip
@@ -585,7 +595,7 @@ export function MarketplaceClient({
                 label={cat.name}
                 active={params.cat === cat.slug}
                 href={marketplaceHref(paramsRecord, { cat: cat.slug }, basePath)}
-                icon={getCategoryIcon(cat.slug, cat.name)}
+                Icon={getCategoryIcon(cat.slug, cat.name)}
               />
             ))}
           </div>
@@ -629,7 +639,7 @@ export function MarketplaceClient({
               {params.q?.trim() ? (
                 <Link
                   href={marketplaceHref(paramsRecord, { q: null }, basePath)}
-                  className="inline-flex items-center gap-1 rounded-none bg-surface dark:bg-surface border border-border px-3 py-1 text-[11px] font-semibold text-stone-700 dark:text-stone-300 hover:border-orange-300 dark:hover:border-orange-700 hover:text-orange-600 dark:hover:text-orange-400 transition-all shadow-none"
+                  className="inline-flex items-center gap-1 rounded-sm bg-surface dark:bg-surface border border-border px-3 py-1 text-[11px] font-semibold text-stone-700 dark:text-stone-300 hover:border-orange-300 dark:hover:border-orange-700 hover:text-orange-600 dark:hover:text-orange-400 transition-all shadow-none"
                 >
                   "{params.q.trim()}" <X className="h-3 w-3 opacity-50" />
                 </Link>
@@ -637,7 +647,7 @@ export function MarketplaceClient({
               {params.cat ? (
                 <Link
                   href={marketplaceHref(paramsRecord, { cat: null }, basePath)}
-                  className="inline-flex items-center gap-1 rounded-none bg-surface dark:bg-surface border border-border px-3 py-1 text-[11px] font-semibold text-stone-700 dark:text-stone-300 hover:border-orange-300 dark:hover:border-orange-700 hover:text-orange-600 dark:hover:text-orange-400 transition-all shadow-none"
+                  className="inline-flex items-center gap-1 rounded-sm bg-surface dark:bg-surface border border-border px-3 py-1 text-[11px] font-semibold text-stone-700 dark:text-stone-300 hover:border-orange-300 dark:hover:border-orange-700 hover:text-orange-600 dark:hover:text-orange-400 transition-all shadow-none"
                 >
                   {displayCategories.find((c) => c.slug === params.cat)?.name ?? params.cat}{" "}
                   <X className="h-3 w-3 opacity-50" />
@@ -646,7 +656,7 @@ export function MarketplaceClient({
               {params.affiliate === "1" ? (
                 <Link
                   href={marketplaceHref(paramsRecord, { affiliate: null }, basePath)}
-                  className="inline-flex items-center gap-1 rounded-none bg-surface dark:bg-surface border border-border px-3 py-1 text-[11px] font-semibold text-stone-700 dark:text-stone-300 hover:border-orange-300 dark:hover:border-orange-700 hover:text-orange-600 dark:hover:text-orange-400 transition-all shadow-none"
+                  className="inline-flex items-center gap-1 rounded-sm bg-surface dark:bg-surface border border-border px-3 py-1 text-[11px] font-semibold text-stone-700 dark:text-stone-300 hover:border-orange-300 dark:hover:border-orange-700 hover:text-orange-600 dark:hover:text-orange-400 transition-all shadow-none"
                 >
                   Affiliate <X className="h-3 w-3 opacity-50" />
                 </Link>
@@ -663,12 +673,12 @@ export function MarketplaceClient({
               {params.q?.trim()
                 ? `Results for "${params.q.trim()}"`
                 : params.type === "digital"
-                ? "Digital Products"
-                : params.type === "physical"
-                ? "Physical Products"
-                : params.cat
-                ? (displayCategories.find((c) => c.slug === params.cat)?.name ?? "Products")
-                : "All Products"}
+                  ? "Digital Products"
+                  : params.type === "physical"
+                    ? "Physical Products"
+                    : params.cat
+                      ? (displayCategories.find((c) => c.slug === params.cat)?.name ?? "Products")
+                      : "All Products"}
             </h2>
             <span className="text-[12px] text-stone-400 dark:text-text-muted tabular-nums">
               <span className="font-semibold text-stone-600 dark:text-stone-300">{total}</span>{" "}
@@ -753,11 +763,11 @@ export function MarketplaceClient({
                         }}
                       >
                         {uiVariant === "digital" ? (
-                           <ProductCardDigital p={item.data} detailBasePath="/marketplace" initialInCart={cartSet.has(item.data.id)} />
+                          <ProductCardDigital p={item.data} detailBasePath="/marketplace" initialInCart={cartSet.has(item.data.id)} />
                         ) : uiVariant === "physical" ? (
-                           <ProductCardPhysical p={item.data} detailBasePath="/marketplace" initialInCart={cartSet.has(item.data.id)} />
+                          <ProductCardPhysical p={item.data} detailBasePath="/marketplace" initialInCart={cartSet.has(item.data.id)} />
                         ) : (
-                           <ProductCardClient p={item.data} detailBasePath="/marketplace" initialInCart={cartSet.has(item.data.id)} />
+                          <ProductCardClient p={item.data} detailBasePath="/marketplace" initialInCart={cartSet.has(item.data.id)} />
                         )}
 
                       </motion.div>
@@ -769,8 +779,8 @@ export function MarketplaceClient({
                 {initialProducts.length >= 8 && (
                   <div className="mt-8 flex items-center justify-between">
                     <h3 className="text-[15px] font-bold text-stone-800 dark:text-white flex items-center gap-2">
-                       <Sparkles className="h-4 w-4 text-orange-500" />
-                       Recommended for you
+                      <Sparkles className="h-4 w-4 text-orange-500" />
+                      Recommended for you
                     </h3>
                     <Link
                       href="/marketplace"
@@ -786,9 +796,9 @@ export function MarketplaceClient({
               <motion.div
                 initial={{ opacity: 0, scale: 0.98 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="bg-surface dark:bg-surface rounded-none border border-border shadow-none p-12 sm:p-16 text-center"
+                className="bg-surface dark:bg-surface rounded-sm border border-border shadow-none p-12 sm:p-16 text-center"
               >
-                <div className="h-16 w-16 rounded-none flex items-center justify-center mx-auto mb-5"
+                <div className="h-16 w-16 rounded-sm flex items-center justify-center mx-auto mb-5"
                   style={{ background: "rgba(249,115,22,0.08)", border: "1px solid rgba(249,115,22,0.15)" }}
                 >
                   <Search className="h-7 w-7 text-orange-400" />
@@ -800,7 +810,7 @@ export function MarketplaceClient({
                 <Link href={basePath}>
                   <button
                     type="button"
-                    className="inline-flex items-center gap-2 px-6 py-3 rounded-none text-white text-[13px] font-bold transition-all hover:scale-105 active:scale-95 shadow-[0_4px_16px_rgba(249,115,22,0.35)]"
+                    className="inline-flex items-center gap-2 px-6 py-3 rounded-sm text-white text-[13px] font-bold transition-all hover:scale-105 active:scale-95 shadow-[0_4px_16px_rgba(249,115,22,0.35)]"
                     style={{ background: "linear-gradient(135deg, #f97316, #ea580c)" }}
                   >
                     View all products
@@ -817,7 +827,7 @@ export function MarketplaceClient({
                 <Link href={marketplaceHref(paramsRecord, { page: String(currentPage - 1) }, basePath)}>
                   <button
                     type="button"
-                    className="px-4 py-2 rounded-none bg-surface dark:bg-surface border border-border text-[12px] font-semibold text-stone-600 dark:text-stone-300 shadow-none hover:border-orange-300 dark:hover:border-orange-700 hover:text-orange-600 dark:hover:text-orange-400 transition-all"
+                    className="px-4 py-2 rounded-sm bg-surface dark:bg-surface border border-border text-[12px] font-semibold text-stone-600 dark:text-stone-300 shadow-none hover:border-orange-300 dark:hover:border-orange-700 hover:text-orange-600 dark:hover:text-orange-400 transition-all"
                   >
                     Previous
                   </button>
@@ -831,7 +841,7 @@ export function MarketplaceClient({
                     <button
                       type="button"
                       className={cn(
-                        "min-w-[40px] h-10 px-3 rounded-none text-[12px] font-black transition-all border",
+                        "min-w-[40px] h-10 px-3 rounded-sm text-[12px] font-black transition-all border",
                         pg === currentPage
                           ? "bg-orange-500 border-orange-400 text-white shadow-[0_4px_12px_rgba(249,115,22,0.30)]"
                           : "bg-surface dark:bg-surface border-border text-stone-600 dark:text-stone-300 hover:border-orange-300 dark:hover:border-orange-700 hover:text-orange-600 dark:hover:text-orange-400"
@@ -846,7 +856,7 @@ export function MarketplaceClient({
                 <Link href={marketplaceHref(paramsRecord, { page: String(currentPage + 1) }, basePath)}>
                   <button
                     type="button"
-                    className="px-4 py-2 rounded-none bg-surface dark:bg-surface border border-border text-[12px] font-semibold text-stone-600 dark:text-stone-300 shadow-none hover:border-orange-300 dark:hover:border-orange-700 hover:text-orange-600 dark:hover:text-orange-400 transition-all"
+                    className="px-4 py-2 rounded-sm bg-surface dark:bg-surface border border-border text-[12px] font-semibold text-stone-600 dark:text-stone-300 shadow-none hover:border-orange-300 dark:hover:border-orange-700 hover:text-orange-600 dark:hover:text-orange-400 transition-all"
                   >
                     Next
                   </button>
@@ -866,11 +876,11 @@ export function MarketplaceClient({
             aria-hidden
           />
           <div className="fixed inset-0 z-[1001] flex items-center justify-center p-4 pointer-events-none">
-            <div className="pointer-events-auto w-full max-w-lg flex flex-col bg-white dark:bg-surface rounded-none overflow-hidden shadow-none border border-border relative">
+            <div className="pointer-events-auto w-full max-w-lg flex flex-col bg-white dark:bg-surface rounded-sm overflow-hidden shadow-none border border-border relative">
               <button
                 type="button"
                 onClick={closeModalClip}
-                className="absolute top-3 right-3 z-20 w-8 h-8 rounded-none bg-black/50 flex items-center justify-center text-white hover:bg-black/80 transition-all shadow-none"
+                className="absolute top-3 right-3 z-20 w-8 h-8 rounded-sm bg-black/50 flex items-center justify-center text-white hover:bg-black/80 transition-all shadow-none"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -909,14 +919,14 @@ export function MarketplaceClient({
                   {modalClip.vendors?.id && (
                     <FollowButton
                       vendorId={modalClip.vendors.id}
-                      className="rounded-none h-9 px-4 text-xs font-bold bg-orange-500 border-0 text-white hover:bg-orange-400 shrink-0"
+                      className="rounded-sm h-9 px-4 text-xs font-bold bg-orange-500 border-0 text-white hover:bg-orange-400 shrink-0"
                     />
                   )}
                 </div>
               </div>
               {modalClip.products && (
                 <div className="p-4 border-t border-border flex items-center gap-4 bg-stone-50 dark:bg-stone-900">
-                  <div className="w-14 h-14 rounded-none bg-white dark:bg-stone-800 border border-border flex items-center justify-center overflow-hidden shrink-0">
+                  <div className="w-14 h-14 rounded-sm bg-white dark:bg-stone-800 border border-border flex items-center justify-center overflow-hidden shrink-0">
                     {Array.isArray(modalClip.products.images) && modalClip.products.images[0] ? (
                       <img src={modalClip.products.images[0]} alt="" className="w-full h-full object-cover" />
                     ) : (
@@ -937,7 +947,7 @@ export function MarketplaceClient({
                   >
                     <button
                       type="button"
-                      className="px-5 py-2.5 rounded-none text-white text-[12px] font-semibold hover:opacity-90 transition-all shadow-none"
+                      className="px-5 py-2.5 rounded-sm text-white text-[12px] font-semibold hover:opacity-90 transition-all shadow-none"
                       style={{ background: "linear-gradient(135deg, #f97316, #ea580c)" }}
                     >
                       Buy Now

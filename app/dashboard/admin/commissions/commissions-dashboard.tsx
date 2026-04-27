@@ -127,7 +127,7 @@ export function CommissionsDashboard({
 
       <CommissionStats cards={stats} />
 
-      <div className="rounded-none border border-[var(--color-border)] bg-[var(--color-surface)] p-4 h-[320px]">
+      <div className="rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] p-4 h-[320px]">
         <h2 className="text-sm font-bold text-[var(--color-text-primary)] mb-4">Daily commission</h2>
         <ResponsiveContainer width="100%" height="85%">
           <LineChart data={chartData}>

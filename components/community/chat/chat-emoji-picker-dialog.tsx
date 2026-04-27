@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 const Picker = dynamic(() => import("@emoji-mart/react"), {
   ssr: false,
   loading: () => (
-    <div className="flex h-[min(45vh,360px)] items-center justify-center rounded-none border border-[var(--color-border)] bg-[var(--color-surface-secondary)]">
+    <div className="flex h-[min(45vh,360px)] items-center justify-center rounded-sm border border-[var(--color-border)] bg-[var(--color-surface-secondary)]">
       <Loader2 className="h-8 w-8 animate-spin text-[var(--color-text-muted)]" />
     </div>
   ),
@@ -52,7 +52,7 @@ export function ChatEmojiPickerDialog({
               Stickers
             </TabsTrigger>
           </TabsList>
-          <TabsContent value="emoji" className="mt-3 max-h-[min(45vh,360px)] overflow-y-auto overflow-x-hidden rounded-none border border-[var(--color-border)] bg-[var(--color-bg)] p-1">
+          <TabsContent value="emoji" className="mt-3 max-h-[min(45vh,360px)] overflow-y-auto overflow-x-hidden rounded-sm border border-[var(--color-border)] bg-[var(--color-bg)] p-1">
             <Picker
               data={data}
               theme="light"
@@ -61,7 +61,7 @@ export function ChatEmojiPickerDialog({
               onEmojiSelect={handleEmoji}
             />
           </TabsContent>
-          <TabsContent value="stickers" className="mt-3 max-h-[min(45vh,360px)] overflow-y-auto overflow-x-hidden rounded-none border border-[var(--color-border)] bg-[var(--color-bg)] p-1">
+          <TabsContent value="stickers" className="mt-3 max-h-[min(45vh,360px)] overflow-y-auto overflow-x-hidden rounded-sm border border-[var(--color-border)] bg-[var(--color-bg)] p-1">
             <Picker
               data={data}
               theme="light"

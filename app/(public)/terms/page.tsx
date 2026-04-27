@@ -39,9 +39,9 @@ export default function TermsPage() {
 
         <div className="space-y-8">
           {laws.map((law, i) => (
-            <div key={i} className="bg-white dark:bg-surface border border-[var(--color-border)] p-10 rounded-none shadow-none hover:shadow-none transition-all duration-500 group">
+            <div key={i} className="bg-white dark:bg-surface border border-[var(--color-border)] p-10 rounded-sm shadow-none hover:shadow-none transition-all duration-500 group">
               <div className="flex flex-col md:flex-row gap-8">
-                <div className="h-14 w-14 shrink-0 rounded-none bg-amber-50 text-amber-500 flex items-center justify-center group-hover:bg-amber-500 group-hover:text-white transition-colors duration-500">
+                <div className="h-14 w-14 shrink-0 rounded-sm bg-amber-50 text-amber-500 flex items-center justify-center group-hover:bg-amber-500 group-hover:text-white transition-colors duration-500">
                   {i === 0 ? <FileText /> : i === 1 ? <Scale /> : i === 2 ? <Gavel /> : <Shield />}
                 </div>
                 <div className="space-y-4">
@@ -54,10 +54,10 @@ export default function TermsPage() {
             </div>
           ))}
 
-          <div className="bg-orange-600 rounded-none p-12 text-white relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-white dark:bg-surface/10 -mr-32 -mt-32 rounded-none" />
+          <div className="bg-orange-600 rounded-sm p-12 text-white relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-white dark:bg-surface/10 -mr-32 -mt-32 rounded-sm" />
             <div className="relative z-10 flex flex-col md:flex-row items-center gap-10">
-              <div className="h-20 w-20 shrink-0 rounded-none bg-white dark:bg-surface/20 flex items-center justify-center">
+              <div className="h-20 w-20 shrink-0 rounded-sm bg-white dark:bg-surface/20 flex items-center justify-center">
                 <AlertTriangle className="h-10 w-10 text-white" />
               </div>
               <div className="space-y-4">

@@ -47,7 +47,7 @@ export function ReviewForm({ productId, vendorId }: ReviewFormProps) {
   };
 
   return (
-    <div className="bg-[var(--color-surface-secondary)] rounded-none p-6 border border-[var(--color-border)] mb-8">
+    <div className="bg-[var(--color-surface-secondary)] rounded-sm p-6 border border-[var(--color-border)] mb-8">
       <h3 className="text-lg font-black mb-4">Leave a Review</h3>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="flex flex-col gap-2">
@@ -82,7 +82,7 @@ export function ReviewForm({ productId, vendorId }: ReviewFormProps) {
             placeholder="Great product!" 
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-none px-4 py-3 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:ring-2 focus:ring-[var(--color-accent)] outline-none"
+            className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-sm px-4 py-3 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:ring-2 focus:ring-[var(--color-accent)] outline-none"
           />
         </div>
 
@@ -93,14 +93,14 @@ export function ReviewForm({ productId, vendorId }: ReviewFormProps) {
             rows={3}
             value={body}
             onChange={(e) => setBody(e.target.value)}
-            className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-none px-4 py-3 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:ring-2 focus:ring-[var(--color-accent)] outline-none resize-none"
+            className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-sm px-4 py-3 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:ring-2 focus:ring-[var(--color-accent)] outline-none resize-none"
           />
         </div>
 
         <Button 
           type="submit" 
           disabled={loading}
-          className="w-full bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] font-black h-12 rounded-none border-none"
+          className="w-full bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] font-black h-12 rounded-sm border-none"
         >
           {loading ? "Submitting..." : <><Send className="mr-2 h-4 w-4" /> Post Review</>}
         </Button>

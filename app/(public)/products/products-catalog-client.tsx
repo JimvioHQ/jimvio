@@ -50,7 +50,7 @@ export function ProductsCatalogClient({
           <select
             value={cat}
             onChange={(e) => setCat(e.target.value)}
-            className="h-12 rounded-none border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-sm min-w-[160px]"
+            className="h-12 rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-sm min-w-[160px]"
           >
             <option value="all">All categories</option>
             {categories.map((c) => (
@@ -78,7 +78,7 @@ export function ProductsCatalogClient({
       </div>
 
       {filtered.length === 0 ? (
-        <div className="rounded-none border border-dashed border-[var(--color-border)] p-12 text-center text-[var(--color-text-secondary)]">
+        <div className="rounded-sm border border-dashed border-[var(--color-border)] p-12 text-center text-[var(--color-text-secondary)]">
           No products match your filters.
         </div>
       ) : (

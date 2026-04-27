@@ -120,9 +120,9 @@ export default function VendorAnalyticsPage() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center space-y-12 animate-in fade-in duration-700" style={{ background: "#f0ede8" }}>
         <div className="relative">
-          <div className="absolute inset-0 bg-violet-400/20 blur-3xl rounded-none scale-150 animate-pulse" />
-          <div className="relative w-24 h-24 rounded-none bg-white dark:bg-surface border border-white shadow-none flex items-center justify-center overflow-hidden">
-            <div className="absolute inset-0 border-2 border-t-violet-500 border-r-transparent border-b-transparent border-l-transparent rounded-none animate-spin m-2" />
+          <div className="absolute inset-0 bg-violet-400/20 blur-3xl rounded-sm scale-150 animate-pulse" />
+          <div className="relative w-24 h-24 rounded-sm bg-white dark:bg-surface border border-white shadow-none flex items-center justify-center overflow-hidden">
+            <div className="absolute inset-0 border-2 border-t-violet-500 border-r-transparent border-b-transparent border-l-transparent rounded-sm animate-spin m-2" />
             <Activity className="h-10 w-10 text-stone-900 dark:text-white" />
           </div>
         </div>
@@ -137,13 +137,13 @@ export default function VendorAnalyticsPage() {
   if (!vendorId) {
     return (
       <div className="min-h-screen flex items-center justify-center px-6" style={{ background: "#f0ede8" }}>
-        <GlassCard className="max-w-md w-full p-12 text-center rounded-none border-white shadow-none">
-          <div className="w-24 h-24 bg-white dark:bg-surface rounded-none flex items-center justify-center mx-auto mb-10 border border-white shadow-none">
+        <GlassCard className="max-w-md w-full p-12 text-center rounded-sm border-white shadow-none">
+          <div className="w-24 h-24 bg-white dark:bg-surface rounded-sm flex items-center justify-center mx-auto mb-10 border border-white shadow-none">
              <ShieldCheck className="h-10 w-10 text-stone-100" />
           </div>
           <h2 className="text-4xl font-black text-stone-900 dark:text-white mb-4 tracking-tighter">Proxy Activation Required</h2>
           <p className="text-stone-500 text-sm mb-12 leading-relaxed font-black uppercase tracking-widest">Identify required vendor credentials to access global commerce analytics.</p>
-          <Button asChild className="w-full h-16 rounded-none bg-stone-900 text-white hover:bg-black font-black active:scale-95 transition-all text-[11px] uppercase tracking-widest shadow-none">
+          <Button asChild className="w-full h-16 rounded-sm bg-stone-900 text-white hover:bg-black font-black active:scale-95 transition-all text-[11px] uppercase tracking-widest shadow-none">
              <Link href="/dashboard/roles">Verify Protocol <ArrowRight className="h-4 w-4 ml-2" /></Link>
           </Button>
         </GlassCard>
@@ -166,7 +166,7 @@ export default function VendorAnalyticsPage() {
         {/* Header Protocol */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
            <div className="flex items-center gap-6">
-              <Button asChild variant="ghost" size="icon" className="shrink-0 h-14 w-14 rounded-none bg-white dark:bg-surface border border-white shadow-none hover:bg-stone-50 dark:bg-surface/50 active:scale-95 transition-all text-stone-600">
+              <Button asChild variant="ghost" size="icon" className="shrink-0 h-14 w-14 rounded-sm bg-white dark:bg-surface border border-white shadow-none hover:bg-stone-50 dark:bg-surface/50 active:scale-95 transition-all text-stone-600">
                 <Link href="/dashboard"><ArrowLeft className="h-6 w-6" /></Link>
               </Button>
               <div className="space-y-2">
@@ -175,16 +175,16 @@ export default function VendorAnalyticsPage() {
               </div>
            </div>
            
-           <div className="flex items-center gap-4 bg-white dark:bg-surface/40 p-1.5 rounded-none border border-white shadow-none backdrop-blur-xl">
-              <div className="w-3 h-3 rounded-none bg-indigo-500 ml-4 animate-pulse shadow-[0_0_12px_rgba(99,102,241,0.5)]" />
+           <div className="flex items-center gap-4 bg-white dark:bg-surface/40 p-1.5 rounded-sm border border-white shadow-none backdrop-blur-xl">
+              <div className="w-3 h-3 rounded-sm bg-indigo-500 ml-4 animate-pulse shadow-[0_0_12px_rgba(99,102,241,0.5)]" />
               <span className="text-[10px] font-black uppercase tracking-widest text-stone-900 dark:text-white pr-6 pl-2">Signal Tracking Optimized</span>
            </div>
         </div>
 
         {/* Intelligence Matrix */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-           <GlassCard className="p-8 flex flex-col justify-between rounded-none bg-white dark:bg-surface/60 border-white shadow-none group">
-              <div className="w-14 h-14 rounded-none bg-sky-50 border border-sky-100 flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-700">
+           <GlassCard className="p-8 flex flex-col justify-between rounded-sm bg-white dark:bg-surface/60 border-white shadow-none group">
+              <div className="w-14 h-14 rounded-sm bg-sky-50 border border-sky-100 flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-700">
                  <Eye className="h-7 w-7 text-sky-500" />
               </div>
               <div>
@@ -192,8 +192,8 @@ export default function VendorAnalyticsPage() {
                  <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mt-3">Node Impressions</p>
               </div>
            </GlassCard>
-           <GlassCard className="p-8 flex flex-col justify-between rounded-none bg-white dark:bg-surface/60 border-white shadow-none group">
-              <div className="w-14 h-14 rounded-none bg-amber-50 border border-amber-100 flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-700">
+           <GlassCard className="p-8 flex flex-col justify-between rounded-sm bg-white dark:bg-surface/60 border-white shadow-none group">
+              <div className="w-14 h-14 rounded-sm bg-amber-50 border border-amber-100 flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-700">
                  <ShoppingCart className="h-7 w-7 text-amber-500" />
               </div>
               <div>
@@ -201,8 +201,8 @@ export default function VendorAnalyticsPage() {
                  <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mt-3">Success Acquisitions</p>
               </div>
            </GlassCard>
-           <GlassCard className="p-8 flex flex-col justify-between rounded-none bg-white dark:bg-surface/60 border-white shadow-none group">
-              <div className="w-14 h-14 rounded-none bg-emerald-50 border border-emerald-100 flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-700">
+           <GlassCard className="p-8 flex flex-col justify-between rounded-sm bg-white dark:bg-surface/60 border-white shadow-none group">
+              <div className="w-14 h-14 rounded-sm bg-emerald-50 border border-emerald-100 flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-700">
                  <DollarSign className="h-7 w-7 text-emerald-500" />
               </div>
               <div>
@@ -210,8 +210,8 @@ export default function VendorAnalyticsPage() {
                  <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mt-3">Gross Liquidity Yield</p>
               </div>
            </GlassCard>
-           <GlassCard className="p-8 flex flex-col justify-between rounded-none bg-white dark:bg-surface/60 border-white shadow-none group">
-              <div className="w-14 h-14 rounded-none bg-violet-50 border border-violet-100 flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-700">
+           <GlassCard className="p-8 flex flex-col justify-between rounded-sm bg-white dark:bg-surface/60 border-white shadow-none group">
+              <div className="w-14 h-14 rounded-sm bg-violet-50 border border-violet-100 flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-700">
                  <TrendingUp className="h-7 w-7 text-violet-500" />
               </div>
               <div>
@@ -223,7 +223,7 @@ export default function VendorAnalyticsPage() {
 
         {/* Visualization Hub */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-12">
-            <GlassCard className="rounded-none border-white bg-white dark:bg-surface/60 shadow-none overflow-hidden group">
+            <GlassCard className="rounded-sm border-white bg-white dark:bg-surface/60 shadow-none overflow-hidden group">
                <div className="p-10 border-b border-stone-100 dark:border-border flex items-center justify-between">
                   <div className="space-y-1">
                      <h3 className="text-2xl font-black text-stone-900 dark:text-white tracking-tighter">Acquisition Trajectory</h3>
@@ -247,7 +247,7 @@ export default function VendorAnalyticsPage() {
                </div>
             </GlassCard>
 
-            <GlassCard className="rounded-none border-white bg-white dark:bg-surface/60 shadow-none overflow-hidden group">
+            <GlassCard className="rounded-sm border-white bg-white dark:bg-surface/60 shadow-none overflow-hidden group">
                <div className="p-10 border-b border-stone-100 dark:border-border flex items-center justify-between">
                   <div className="space-y-1">
                      <h3 className="text-2xl font-black text-stone-900 dark:text-white tracking-tighter">Settlement Flux</h3>
@@ -274,8 +274,8 @@ export default function VendorAnalyticsPage() {
         </div>
 
         {/* Operational Excellence Hub */}
-        <GlassCard className="p-12 rounded-none border-white bg-stone-900 text-white relative overflow-hidden shadow-none mt-12">
-           <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-500/20 blur-[120px] rounded-none translate-x-1/2 -translate-y-1/2" />
+        <GlassCard className="p-12 rounded-sm border-white bg-stone-900 text-white relative overflow-hidden shadow-none mt-12">
+           <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-500/20 blur-[120px] rounded-sm translate-x-1/2 -translate-y-1/2" />
            <div className="flex flex-col md:flex-row items-center justify-between gap-12 relative z-10">
               <div className="space-y-6 text-center md:text-left">
                  <div className="flex items-center justify-center md:justify-start gap-4">
@@ -287,7 +287,7 @@ export default function VendorAnalyticsPage() {
                     Deploy targeted marketing campaigns and optimize inventory hubs to maximize global acquisition throughput and commercial attribution.
                  </p>
               </div>
-              <Button asChild className="h-20 px-12 rounded-none bg-white dark:bg-surface text-stone-900 dark:text-white font-black text-[12px] uppercase tracking-[0.3em] shadow-none active:scale-95 transition-all hover:bg-stone-50 dark:bg-surface/50 border-none">
+              <Button asChild className="h-20 px-12 rounded-sm bg-white dark:bg-surface text-stone-900 dark:text-white font-black text-[12px] uppercase tracking-[0.3em] shadow-none active:scale-95 transition-all hover:bg-stone-50 dark:bg-surface/50 border-none">
                  <Link href="/dashboard/products">Manage Inventory Hub <ArrowRight className="h-5 w-5 ml-4" /></Link>
               </Button>
            </div>

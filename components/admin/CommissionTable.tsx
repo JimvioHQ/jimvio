@@ -75,7 +75,7 @@ export function CommissionTable({
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-none border border-[var(--color-border)] bg-[var(--color-surface)]">
+      <div className="overflow-x-auto rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)]">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-[var(--color-border)] bg-[var(--color-surface-secondary)] text-left text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)]">

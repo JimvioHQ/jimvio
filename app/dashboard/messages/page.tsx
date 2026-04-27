@@ -295,7 +295,7 @@ export default function MessagesPage() {
   if (loading) {
     return (
       <div className="min-h-[50vh] flex flex-col items-center justify-center space-y-4">
-        <div className="w-8 h-8 border-4 border-border border-t-orange-500 rounded-none animate-spin" />
+        <div className="w-8 h-8 border-4 border-border border-t-orange-500 rounded-sm animate-spin" />
         <p className="text-[10px] font-bold text-stone-400 dark:text-text-muted uppercase tracking-widest">Loading Chats...</p>
       </div>
     );
@@ -313,7 +313,7 @@ export default function MessagesPage() {
          </div>
       </div>
 
-      <div className="flex-1 flex overflow-hidden rounded-none bg-surface dark:bg-surface border border-border shadow-none relative">
+      <div className="flex-1 flex overflow-hidden rounded-sm bg-surface dark:bg-surface border border-border shadow-none relative">
           {/* Conversation List Sidebar */}
           <div className={cn(
              "w-full lg:w-80 border-r border-border flex flex-col shrink-0 lg:flex",
@@ -325,7 +325,7 @@ export default function MessagesPage() {
                    <input 
                       type="text" 
                       placeholder="Search chats..." 
-                      className="w-full h-9 pl-9 pr-4 rounded-none bg-surface-secondary dark:bg-surface-secondary border-none text-[12px] placeholder:text-stone-300 dark:placeholder:text-stone-700 text-stone-900 dark:text-white focus:ring-2 focus:ring-orange-500/20 transition-all"
+                      className="w-full h-9 pl-9 pr-4 rounded-sm bg-surface-secondary dark:bg-surface-secondary border-none text-[12px] placeholder:text-stone-300 dark:placeholder:text-stone-700 text-stone-900 dark:text-white focus:ring-2 focus:ring-orange-500/20 transition-all"
                    />
                 </div>
              </div>
@@ -333,7 +333,7 @@ export default function MessagesPage() {
              <div className="flex-1 overflow-y-auto p-2 space-y-1 no-scrollbar text-stone-900 dark:text-white">
                 {conversations.length === 0 ? (
                    <div className="h-full flex flex-col items-center justify-center p-8 text-center space-y-4">
-                      <div className="w-12 h-12 rounded-none bg-surface-secondary dark:bg-surface-secondary flex items-center justify-center text-stone-200 dark:text-stone-800 dark:text-text-secondary">
+                      <div className="w-12 h-12 rounded-sm bg-surface-secondary dark:bg-surface-secondary flex items-center justify-center text-stone-200 dark:text-stone-800 dark:text-text-secondary">
                          <MessageSquare className="h-6 w-6" />
                       </div>
                       <p className="text-[12px] font-bold text-stone-400 dark:text-text-muted uppercase tracking-widest">No conversations</p>
@@ -349,11 +349,11 @@ export default function MessagesPage() {
                            key={c.id}
                            onClick={() => { setSelectedId(c.id); setMobileShowChat(true); }}
                            className={cn(
-                             "w-full flex items-center gap-3 p-3 rounded-none transition-all duration-200 group text-left",
+                             "w-full flex items-center gap-3 p-3 rounded-sm transition-all duration-200 group text-left",
                              active ? "bg-surface-secondary dark:bg-surface-secondary border border-border" : "hover:bg-surface-secondary/50 dark:hover:bg-zinc-800/20 border border-transparent"
                            )}
                          >
-                           <div className="w-10 h-10 rounded-none overflow-hidden bg-surface-secondary dark:bg-surface-secondary border border-border shrink-0">
+                           <div className="w-10 h-10 rounded-sm overflow-hidden bg-surface-secondary dark:bg-surface-secondary border border-border shrink-0">
                               {avatar ? (
                                 <img src={avatar} alt="" className="w-full h-full object-cover" />
                               ) : (
@@ -393,26 +393,26 @@ export default function MessagesPage() {
                            variant="ghost" 
                            size="icon" 
                            onClick={() => setMobileShowChat(false)}
-                           className="lg:hidden h-8 w-8 rounded-none text-stone-400 dark:text-stone-600"
+                           className="lg:hidden h-8 w-8 rounded-sm text-stone-400 dark:text-stone-600"
                          >
                             <ArrowLeft className="h-4 w-4" />
                          </Button>
-                         <div className="w-8 h-8 rounded-none overflow-hidden bg-surface-secondary dark:bg-surface-secondary border border-border shrink-0">
+                         <div className="w-8 h-8 rounded-sm overflow-hidden bg-surface-secondary dark:bg-surface-secondary border border-border shrink-0">
                             {otherPartyAvatar ? <img src={otherPartyAvatar} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-[10px] font-bold text-stone-400 dark:text-stone-600">{otherPartyName[0]}</div>}
                          </div>
                          <div className="min-w-0">
                             <h3 className="text-[14px] font-bold text-stone-900 dark:text-white truncate tracking-tight leading-none">{otherPartyName}</h3>
                             <div className="flex items-center gap-1.5 mt-0.5">
-                               <div className="w-1.5 h-1.5 rounded-none bg-emerald-500" />
+                               <div className="w-1.5 h-1.5 rounded-sm bg-emerald-500" />
                                <span className="text-[9px] font-bold text-stone-400 dark:text-text-muted uppercase tracking-widest">Active</span>
                             </div>
                          </div>
                       </div>
                       <div className="flex items-center gap-2">
-                         <Button variant="ghost" size="icon" className="h-8 w-8 rounded-none text-stone-400 dark:text-stone-600 hover:text-stone-900 dark:text-white dark:hover:text-white">
+                         <Button variant="ghost" size="icon" className="h-8 w-8 rounded-sm text-stone-400 dark:text-stone-600 hover:text-stone-900 dark:text-white dark:hover:text-white">
                             <Plus className="h-4 w-4" />
                          </Button>
-                         <Button variant="ghost" size="icon" className="h-8 w-8 rounded-none text-stone-400 dark:text-stone-600 hover:text-stone-900 dark:text-white dark:hover:text-white">
+                         <Button variant="ghost" size="icon" className="h-8 w-8 rounded-sm text-stone-400 dark:text-stone-600 hover:text-stone-900 dark:text-white dark:hover:text-white">
                             <MoreVertical className="h-4 w-4" />
                          </Button>
                       </div>
@@ -433,7 +433,7 @@ export default function MessagesPage() {
                                   <Button
                                     size="sm"
                                     onClick={() => { setQuoteReplyTarget(m); setShowQuoteReply(true); }}
-                                    className="h-8 rounded-none bg-orange-600 text-white font-bold text-[10px] uppercase tracking-widest px-4 border-none shadow-none hover:bg-orange-700"
+                                    className="h-8 rounded-sm bg-orange-600 text-white font-bold text-[10px] uppercase tracking-widest px-4 border-none shadow-none hover:bg-orange-700"
                                   >
                                     Create Offer
                                   </Button>
@@ -460,7 +460,7 @@ export default function MessagesPage() {
                 </>
              ) : (
                 <div className="flex-1 flex flex-col items-center justify-center p-12 text-center space-y-4 text-stone-900 dark:text-white">
-                   <div className="w-16 h-16 rounded-none bg-surface-secondary dark:bg-surface-secondary border border-border flex items-center justify-center text-stone-200 dark:text-stone-800 dark:text-text-secondary">
+                   <div className="w-16 h-16 rounded-sm bg-surface-secondary dark:bg-surface-secondary border border-border flex items-center justify-center text-stone-200 dark:text-stone-800 dark:text-text-secondary">
                       <MessageSquare className="h-8 w-8" />
                    </div>
                    <div>

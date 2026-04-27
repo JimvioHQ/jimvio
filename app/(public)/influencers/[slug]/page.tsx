@@ -76,16 +76,16 @@ export default async function InfluencerProfilePage({ params }: PageProps) {
         </div>
 
         <Tabs defaultValue="videos" className="w-full">
-          <TabsList className="w-full max-w-[900px] mx-auto rounded-none border-b border-[var(--color-border)] bg-transparent h-12 px-4 gap-0">
-            <TabsTrigger value="videos" className="rounded-none border-b-2 border-transparent data-[state=active]:border-[var(--color-accent)] data-[state=active]:bg-transparent font-black">
+          <TabsList className="w-full max-w-[900px] mx-auto rounded-sm border-b border-[var(--color-border)] bg-transparent h-12 px-4 gap-0">
+            <TabsTrigger value="videos" className="rounded-sm border-b-2 border-transparent data-[state=active]:border-[var(--color-accent)] data-[state=active]:bg-transparent font-black">
               <Video className="h-4 w-4 mr-2" />
               Videos
             </TabsTrigger>
-            <TabsTrigger value="products" className="rounded-none border-b-2 border-transparent data-[state=active]:border-[var(--color-accent)] data-[state=active]:bg-transparent font-black">
+            <TabsTrigger value="products" className="rounded-sm border-b-2 border-transparent data-[state=active]:border-[var(--color-accent)] data-[state=active]:bg-transparent font-black">
               <Package className="h-4 w-4 mr-2" />
               Products
             </TabsTrigger>
-            <TabsTrigger value="about" className="rounded-none border-b-2 border-transparent data-[state=active]:border-[var(--color-accent)] data-[state=active]:bg-transparent font-black">
+            <TabsTrigger value="about" className="rounded-sm border-b-2 border-transparent data-[state=active]:border-[var(--color-accent)] data-[state=active]:bg-transparent font-black">
               <User className="h-4 w-4 mr-2" />
               About
             </TabsTrigger>

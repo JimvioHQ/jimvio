@@ -46,7 +46,7 @@ export function MessageBubble({
   return (
     <div
       className={cn(
-        "group max-w-[85%] sm:max-w-[75%] rounded-none overflow-hidden",
+        "group max-w-[85%] sm:max-w-[75%] rounded-sm overflow-hidden",
         isOwn ? "ml-auto" : "mr-auto"
       )}
     >
@@ -64,18 +64,18 @@ export function MessageBubble({
       {/* Content by type */}
       {msg.message_type === "product" && meta.product_id && (
         <div className={cn(
-          "p-3 rounded-none",
+          "p-3 rounded-sm",
           isOwn ? "bg-[var(--color-accent)] text-white" : "bg-[var(--color-surface-secondary)] text-[var(--color-text-primary)]"
         )}>
           <div className="flex gap-3">
             {meta.image && (
-              <img src={String(meta.image)} alt="" className="w-16 h-16 rounded-none object-cover shrink-0" />
+              <img src={String(meta.image)} alt="" className="w-16 h-16 rounded-sm object-cover shrink-0" />
             )}
             <div className="min-w-0 flex-1">
               <p className="font-semibold truncate">{String(meta.name ?? "Product")}</p>
               <p className="text-sm opacity-90">{typeof meta.price === "number" ? meta.price.toLocaleString() : meta.price} RWF</p>
               <Link href={`/marketplace/${meta.slug ?? meta.product_id}`} className="inline-block mt-2">
-                <Button size="sm" variant={isOwn ? "secondary" : "default"} className="rounded-none h-8 text-xs">
+                <Button size="sm" variant={isOwn ? "secondary" : "default"} className="rounded-sm h-8 text-xs">
                   View Product
                 </Button>
               </Link>
@@ -88,7 +88,7 @@ export function MessageBubble({
 
       {msg.message_type === "quote_request" && (
         <div className={cn(
-          "p-4 rounded-none border",
+          "p-4 rounded-sm border",
           isOwn ? "bg-[var(--color-accent)] text-white border-transparent" : "bg-[var(--color-surface-secondary)] border-[var(--color-border)]"
         )}>
           <div className="flex items-center gap-2 mb-2">
@@ -107,7 +107,7 @@ export function MessageBubble({
 
       {msg.message_type === "quote_reply" && (
         <div className={cn(
-          "p-4 rounded-none border",
+          "p-4 rounded-sm border",
           isOwn ? "bg-[var(--color-accent)] text-white border-transparent" : "bg-[var(--color-surface-secondary)] border-[var(--color-border)]"
         )}>
           <div className="flex items-center gap-2 mb-2">
@@ -127,11 +127,11 @@ export function MessageBubble({
 
       {msg.message_type === "image" && meta.url && (
         <div className={cn(
-          "p-2 rounded-none",
+          "p-2 rounded-sm",
           isOwn ? "bg-[var(--color-accent)]" : "bg-[var(--color-surface-secondary)]"
         )}>
           <a href={String(meta.url)} target="_blank" rel="noopener noreferrer" className="block">
-            <img src={String(meta.url)} alt="" className="rounded-none max-h-64 object-cover" />
+            <img src={String(meta.url)} alt="" className="rounded-sm max-h-64 object-cover" />
           </a>
           {msg.body && <p className="mt-2 text-sm px-1 whitespace-pre-wrap">{msg.body}</p>}
           <p className={cn("text-xs mt-1 px-1", isOwn ? "text-white/80" : "text-[var(--color-text-muted)]")}>{time}</p>
@@ -140,7 +140,7 @@ export function MessageBubble({
 
       {msg.message_type === "file" && meta.url && (
         <div className={cn(
-          "p-3 rounded-none flex items-center gap-3",
+          "p-3 rounded-sm flex items-center gap-3",
           isOwn ? "bg-[var(--color-accent)] text-white" : "bg-[var(--color-surface-secondary)]"
         )}>
           <FileText className="h-8 w-8 shrink-0 opacity-80" />
@@ -157,7 +157,7 @@ export function MessageBubble({
       {(msg.message_type === "text" || !msg.message_type) && (
         <div
           className={cn(
-            "rounded-none px-4 py-2.5",
+            "rounded-sm px-4 py-2.5",
             isOwn ? "bg-[var(--color-accent)] text-white" : "bg-[var(--color-surface-secondary)] text-[var(--color-text-primary)]"
           )}
         >

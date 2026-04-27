@@ -51,8 +51,8 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       <div className="relative hidden w-0 flex-1 lg:block bg-zinc-950 overflow-hidden">
         {/* Subtle, beautiful ambient lighting */}
         <div className="absolute inset-0 z-0 pointer-events-none">
-          <div className="absolute top-[-20%] right-[-10%] w-[60%] h-[70%] rounded-none bg-gradient-to-bl from-orange-500/20 via-amber-500/5 to-transparent blur-[130px]" />
-          <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] rounded-none bg-gradient-to-tr from-orange-600/10 to-transparent blur-[100px]" />
+          <div className="absolute top-[-20%] right-[-10%] w-[60%] h-[70%] rounded-sm bg-gradient-to-bl from-orange-500/20 via-amber-500/5 to-transparent blur-[130px]" />
+          <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] rounded-sm bg-gradient-to-tr from-orange-600/10 to-transparent blur-[100px]" />
           <div 
             className="absolute inset-0 opacity-[0.1] mix-blend-overlay"
             style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }}
@@ -72,12 +72,12 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             <div>
               <p className="text-3xl xl:text-4xl font-black text-white mb-1.5">500k+</p>
               <p className="text-[12px] font-bold text-zinc-500 uppercase tracking-widest">Active Products</p>
-              <div className="h-0.5 w-8 bg-orange-500/50 mt-4 rounded-none" />
+              <div className="h-0.5 w-8 bg-orange-500/50 mt-4 rounded-sm" />
             </div>
             <div>
               <p className="text-3xl xl:text-4xl font-black text-white mb-1.5">$2M+</p>
               <p className="text-[12px] font-bold text-zinc-500 uppercase tracking-widest">Commissions Paid</p>
-              <div className="h-0.5 w-8 bg-amber-500/50 mt-4 rounded-none" />
+              <div className="h-0.5 w-8 bg-amber-500/50 mt-4 rounded-sm" />
             </div>
           </div>
           

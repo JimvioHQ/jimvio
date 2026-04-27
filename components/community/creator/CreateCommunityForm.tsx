@@ -125,12 +125,12 @@ export function CreateCommunityForm() {
   if (successId) {
     return (
       <div className="max-w-[680px] mx-auto px-4 py-16 text-center space-y-6">
-        <div className="inline-flex h-16 w-16 items-center justify-center rounded-none bg-[var(--color-success-light)] text-[var(--color-success)]">
+        <div className="inline-flex h-16 w-16 items-center justify-center rounded-sm bg-[var(--color-success-light)] text-[var(--color-success)]">
           <Check className="h-8 w-8" />
         </div>
         <h1 className="text-2xl font-black text-[var(--color-text-primary)]">Community created</h1>
         <p className="text-[var(--color-text-muted)]">You're ready to add spaces and rooms.</p>
-        <Button asChild className="rounded-none bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-black px-8">
+        <Button asChild className="rounded-sm bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-black px-8">
           <Link href={`/creator/${successId}/spaces`}>Set up your spaces</Link>
         </Button>
         <div>
@@ -149,7 +149,7 @@ export function CreateCommunityForm() {
           <div key={s} className="flex items-center gap-2 flex-1 min-w-0">
             <div
               className={cn(
-                "h-8 w-8 rounded-none flex items-center justify-center text-xs font-black shrink-0",
+                "h-8 w-8 rounded-sm flex items-center justify-center text-xs font-black shrink-0",
                 i <= step ? "bg-[var(--color-accent)] text-white" : "bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)]"
               )}
             >
@@ -164,7 +164,7 @@ export function CreateCommunityForm() {
       </div>
 
       {error && (
-        <div className="mb-4 p-3 rounded-none border border-[var(--color-danger-light)] bg-[var(--color-danger-light)]/40 text-sm text-[var(--color-danger)] font-semibold">
+        <div className="mb-4 p-3 rounded-sm border border-[var(--color-danger-light)] bg-[var(--color-danger-light)]/40 text-sm text-[var(--color-danger)] font-semibold">
           {error}
         </div>
       )}
@@ -173,14 +173,14 @@ export function CreateCommunityForm() {
         <div className="space-y-4">
           <div>
             <label className="text-xs font-bold text-[var(--color-text-muted)]">Community name</label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} className="mt-1 rounded-none border-[var(--color-border)]" placeholder="e.g. Creator Lab" />
+            <Input value={name} onChange={(e) => setName(e.target.value)} className="mt-1 rounded-sm border-[var(--color-border)]" placeholder="e.g. Creator Lab" />
           </div>
           <div>
             <label className="text-xs font-bold text-[var(--color-text-muted)]">Tagline (max 100)</label>
             <Input
               value={tagline}
               onChange={(e) => setTagline(e.target.value.slice(0, 100))}
-              className="mt-1 rounded-none border-[var(--color-border)]"
+              className="mt-1 rounded-sm border-[var(--color-border)]"
               placeholder="Short promise to members"
             />
             <p className="text-[10px] text-[var(--color-text-muted)] mt-1">{tagline.length}/100</p>
@@ -190,7 +190,7 @@ export function CreateCommunityForm() {
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value)}
-              className="mt-1 w-full rounded-none border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm font-semibold"
+              className="mt-1 w-full rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm font-semibold"
             >
               {CATEGORIES.map((c) => (
                 <option key={c} value={c}>
@@ -201,7 +201,7 @@ export function CreateCommunityForm() {
           </div>
           <div>
             <label className="text-xs font-bold text-[var(--color-text-muted)]">Description</label>
-            <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={5} className="mt-1 rounded-none border-[var(--color-border)]" placeholder="What is this community about?" />
+            <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={5} className="mt-1 rounded-sm border-[var(--color-border)]" placeholder="What is this community about?" />
           </div>
         </div>
       )}
@@ -220,7 +220,7 @@ export function CreateCommunityForm() {
             </div>
             {avatarUrl && (
               <div className="mt-3 flex justify-center">
-                <div className="h-24 w-24 rounded-none overflow-hidden border-4 border-[var(--color-border)]">
+                <div className="h-24 w-24 rounded-sm overflow-hidden border-4 border-[var(--color-border)]">
                   <Image src={avatarUrl} alt="" width={96} height={96} className="object-cover h-full w-full" unoptimized />
                 </div>
               </div>
@@ -237,7 +237,7 @@ export function CreateCommunityForm() {
               />
             </div>
             {coverUrl && (
-              <div className="mt-3 h-36 rounded-none overflow-hidden border border-[var(--color-border)] relative">
+              <div className="mt-3 h-36 rounded-sm overflow-hidden border border-[var(--color-border)] relative">
                 <Image src={coverUrl} alt="" fill className="object-cover" unoptimized />
               </div>
             )}
@@ -246,7 +246,7 @@ export function CreateCommunityForm() {
             <label className="text-xs font-bold text-[var(--color-text-muted)]">Tags (max 5)</label>
             <div className="flex flex-wrap gap-2 mt-2">
               {tags.map((t) => (
-                <button key={t} type="button" onClick={() => removeTag(t)} className="text-xs font-bold px-2 py-1 rounded-none bg-[var(--color-accent-light)] text-[var(--color-accent)]">
+                <button key={t} type="button" onClick={() => removeTag(t)} className="text-xs font-bold px-2 py-1 rounded-sm bg-[var(--color-accent-light)] text-[var(--color-accent)]">
                   {t} Ã—
                 </button>
               ))}
@@ -256,11 +256,11 @@ export function CreateCommunityForm() {
                 value={tagInput}
                 onChange={(e) => setTagInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addTag())}
-                className="rounded-none border-[var(--color-border)]"
+                className="rounded-sm border-[var(--color-border)]"
                 placeholder="Add tag, Enter"
                 disabled={tags.length >= 5}
               />
-              <Button type="button" variant="outline" className="rounded-none" onClick={addTag} disabled={tags.length >= 5}>
+              <Button type="button" variant="outline" className="rounded-sm" onClick={addTag} disabled={tags.length >= 5}>
                 Add
               </Button>
             </div>
@@ -270,17 +270,17 @@ export function CreateCommunityForm() {
 
       {step === 2 && (
         <div className="space-y-4">
-          <div className="flex rounded-none border border-[var(--color-border)] p-1 bg-[var(--color-surface-secondary)]">
+          <div className="flex rounded-sm border border-[var(--color-border)] p-1 bg-[var(--color-surface-secondary)]">
             <button
               type="button"
-              className={cn("flex-1 py-2 rounded-none text-sm font-black", isFree ? "bg-[var(--color-surface)] shadow-none" : "text-[var(--color-text-muted)]")}
+              className={cn("flex-1 py-2 rounded-sm text-sm font-black", isFree ? "bg-[var(--color-surface)] shadow-none" : "text-[var(--color-text-muted)]")}
               onClick={() => setIsFree(true)}
             >
               Free
             </button>
             <button
               type="button"
-              className={cn("flex-1 py-2 rounded-none text-sm font-black", !isFree ? "bg-[var(--color-surface)] shadow-none" : "text-[var(--color-text-muted)]")}
+              className={cn("flex-1 py-2 rounded-sm text-sm font-black", !isFree ? "bg-[var(--color-surface)] shadow-none" : "text-[var(--color-text-muted)]")}
               onClick={() => setIsFree(false)}
             >
               Paid
@@ -294,24 +294,24 @@ export function CreateCommunityForm() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-bold text-[var(--color-text-muted)]">Monthly price</label>
-                  <Input value={monthly} onChange={(e) => setMonthly(e.target.value)} type="number" min="0" step="0.01" className="mt-1 rounded-none border-[var(--color-border)]" />
+                  <Input value={monthly} onChange={(e) => setMonthly(e.target.value)} type="number" min="0" step="0.01" className="mt-1 rounded-sm border-[var(--color-border)]" />
                 </div>
                 <div>
                   <label className="text-xs font-bold text-[var(--color-text-muted)]">Yearly price</label>
-                  <Input value={yearly} onChange={(e) => setYearly(e.target.value)} type="number" min="0" step="0.01" className="mt-1 rounded-none border-[var(--color-border)]" />
+                  <Input value={yearly} onChange={(e) => setYearly(e.target.value)} type="number" min="0" step="0.01" className="mt-1 rounded-sm border-[var(--color-border)]" />
                 </div>
               </div>
               {yearlySave != null && <p className="text-xs font-bold text-[var(--color-success)]">Save {yearlySave}% vs paying monthly</p>}
               <div>
                 <label className="text-xs font-bold text-[var(--color-text-muted)]">Lifetime price (optional)</label>
-                <Input value={lifetime} onChange={(e) => setLifetime(e.target.value)} type="number" min="0" step="0.01" className="mt-1 rounded-none border-[var(--color-border)]" />
+                <Input value={lifetime} onChange={(e) => setLifetime(e.target.value)} type="number" min="0" step="0.01" className="mt-1 rounded-sm border-[var(--color-border)]" />
               </div>
               <div>
                 <label className="text-xs font-bold text-[var(--color-text-muted)]">Currency</label>
                 <select
                   value={currency}
                   onChange={(e) => setCurrency(e.target.value as "USD" | "RWF")}
-                  className="mt-1 w-full rounded-none border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm font-semibold"
+                  className="mt-1 w-full rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm font-semibold"
                 >
                   <option value="USD">USD</option>
                   <option value="RWF">RWF</option>
@@ -319,12 +319,12 @@ export function CreateCommunityForm() {
               </div>
               <div>
                 <label className="text-xs font-bold text-[var(--color-text-muted)]">Trial days</label>
-                <Input value={trialDays} onChange={(e) => setTrialDays(e.target.value)} type="number" min="0" className="mt-1 rounded-none border-[var(--color-border)]" />
+                <Input value={trialDays} onChange={(e) => setTrialDays(e.target.value)} type="number" min="0" className="mt-1 rounded-sm border-[var(--color-border)]" />
               </div>
             </div>
           )}
 
-          <div className="rounded-none border border-[var(--color-border)] bg-[var(--color-surface-secondary)]/60 p-4 text-sm text-[var(--color-text-secondary)]">
+          <div className="rounded-sm border border-[var(--color-border)] bg-[var(--color-surface-secondary)]/60 p-4 text-sm text-[var(--color-text-secondary)]">
             <p className="font-black text-[var(--color-text-primary)] mb-1">Platform commission</p>
             <p>Jimvio takes <span className="font-bold">15%</span> commission on all subscriptions.</p>
             <p>You keep <span className="font-bold text-[var(--color-success)]">85%</span> of all revenue.</p>
@@ -335,7 +335,7 @@ export function CreateCommunityForm() {
       {step === 3 && (
         <div className="space-y-3 text-sm">
           <h2 className="text-lg font-black text-[var(--color-text-primary)]">Review</h2>
-          <div className="rounded-none border border-[var(--color-border)] bg-[var(--color-surface)] p-4 space-y-2">
+          <div className="rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] p-4 space-y-2">
             <p>
               <span className="text-[var(--color-text-muted)]">Name:</span> <span className="font-bold">{name}</span>
             </p>
@@ -365,20 +365,20 @@ export function CreateCommunityForm() {
         <Button
           type="button"
           variant="outline"
-          className="rounded-none border-[var(--color-border)]"
+          className="rounded-sm border-[var(--color-border)]"
           disabled={step === 0}
           onClick={() => setStep((s) => Math.max(0, s - 1))}
         >
           <ChevronLeft className="h-4 w-4 mr-1" /> Back
         </Button>
         {step < STEPS.length - 1 ? (
-          <Button type="button" className="rounded-none bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-black" disabled={!canNext()} onClick={() => setStep((s) => s + 1)}>
+          <Button type="button" className="rounded-sm bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-black" disabled={!canNext()} onClick={() => setStep((s) => s + 1)}>
             Next <ChevronRight className="h-4 w-4 ml-1" />
           </Button>
         ) : (
           <Button
             type="button"
-            className="rounded-none bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-black"
+            className="rounded-sm bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-black"
             disabled={submitting || !canNext()}
             onClick={createCommunity}
           >

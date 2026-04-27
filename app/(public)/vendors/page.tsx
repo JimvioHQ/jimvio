@@ -41,10 +41,10 @@ export default async function VendorsPage() {
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-[var(--color-text-muted)]" />
                 <Input 
                   placeholder="Search by company name or industry..." 
-                  className="pl-12 h-14 rounded-none border-2 shadow-none focus-visible:ring-[var(--color-accent)]"
+                  className="pl-12 h-14 rounded-sm border-2 shadow-none focus-visible:ring-[var(--color-accent)]"
                 />
               </div>
-              <Button className="h-14 px-8 bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] font-black rounded-none">
+              <Button className="h-14 px-8 bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] font-black rounded-sm">
                 Search Suppliers
               </Button>
             </div>
@@ -60,8 +60,8 @@ export default async function VendorsPage() {
             { icon: <ShieldCheck />, label: "Gold Suppliers", desc: "Top tier verified premium vendors" },
             { icon: <Award />, label: "Award Winning", desc: "Recognized for product quality and service" }
           ].map((item, i) => (
-            <div key={i} className="bg-white dark:bg-surface border border-[var(--color-border)] rounded-none p-6 shadow-none hover:shadow-none transition-shadow">
-              <div className="h-12 w-12 rounded-none bg-[var(--color-accent-light)] text-[var(--color-accent)] flex items-center justify-center mb-6">
+            <div key={i} className="bg-white dark:bg-surface border border-[var(--color-border)] rounded-sm p-6 shadow-none hover:shadow-none transition-shadow">
+              <div className="h-12 w-12 rounded-sm bg-[var(--color-accent-light)] text-[var(--color-accent)] flex items-center justify-center mb-6">
                 {item.icon}
               </div>
               <h3 className="text-lg font-black text-[var(--color-text-primary)] mb-2">{item.label}</h3>
@@ -78,7 +78,7 @@ export default async function VendorsPage() {
       <section className="py-10 max-w-[var(--container-max)] mx-auto px-4 sm:px-6 mb-20">
         <div className="flex items-center justify-between mb-10">
           <h2 className="text-2xl font-black text-[var(--color-text-primary)]">Verified Suppliers</h2>
-          <select className="bg-white dark:bg-surface border border-[var(--color-border)] rounded-none px-4 py-2 text-sm font-bold">
+          <select className="bg-white dark:bg-surface border border-[var(--color-border)] rounded-sm px-4 py-2 text-sm font-bold">
             <option>Top Sales</option>
             <option>Highest Rated</option>
             <option>Newest</option>
@@ -87,9 +87,9 @@ export default async function VendorsPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {vendors.map((vendor: any) => (
-            <div key={vendor.id} className="bg-white dark:bg-surface border border-[var(--color-border)] rounded-none p-6 shadow-none hover:shadow-none hover:-translate-y-1 transition-all duration-300">
+            <div key={vendor.id} className="bg-white dark:bg-surface border border-[var(--color-border)] rounded-sm p-6 shadow-none hover:shadow-none hover:-translate-y-1 transition-all duration-300">
               <div className="flex items-start gap-5">
-                <div className="h-24 w-24 rounded-none bg-[var(--color-accent-light)] border border-[var(--color-accent-subtle)] flex items-center justify-center text-[var(--color-accent)] font-black text-3xl overflow-hidden shrink-0">
+                <div className="h-24 w-24 rounded-sm bg-[var(--color-accent-light)] border border-[var(--color-accent-subtle)] flex items-center justify-center text-[var(--color-accent)] font-black text-3xl overflow-hidden shrink-0">
                   {vendor.business_logo ? (
                     <img src={vendor.business_logo} alt={vendor.business_name} className="w-full h-full object-cover" />
                   ) : (
@@ -129,10 +129,10 @@ export default async function VendorsPage() {
                   </div>
 
                   <div className="flex gap-3">
-                    <Button className="flex-1 bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] font-bold rounded-none h-11">
+                    <Button className="flex-1 bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] font-bold rounded-sm h-11">
                       Contact Supplier
                     </Button>
-                    <Button variant="outline" className="flex-1 font-bold rounded-none h-11 border-2" asChild>
+                    <Button variant="outline" className="flex-1 font-bold rounded-sm h-11 border-2" asChild>
                       <Link href={`/vendors/${vendor.business_slug}`}>Visit Store</Link>
                     </Button>
                   </div>
@@ -142,7 +142,7 @@ export default async function VendorsPage() {
           ))}
 
           {vendors.length === 0 && (
-            <div className="col-span-full py-20 text-center bg-[var(--color-surface-secondary)] rounded-none border-2 border-dashed border-[var(--color-border)]">
+            <div className="col-span-full py-20 text-center bg-[var(--color-surface-secondary)] rounded-sm border-2 border-dashed border-[var(--color-border)]">
               <Users className="h-12 w-12 text-[var(--color-text-muted)] mx-auto mb-4" />
               <p className="text-[var(--color-text-secondary)] font-medium">No vendors found. Try a different search.</p>
             </div>

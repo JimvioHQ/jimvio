@@ -233,7 +233,7 @@ export function CourseRoom({
   if (!editing && (!course || flatLessons.length === 0)) {
     return (
       <div className="flex flex-1 items-center justify-center p-8 flex-col gap-5 text-center">
-        <div className="h-20 w-20 rounded-none bg-[var(--color-surface-secondary)] flex items-center justify-center">
+        <div className="h-20 w-20 rounded-sm bg-[var(--color-surface-secondary)] flex items-center justify-center">
           <BookOpen size={36} className="text-[var(--color-accent)]" />
         </div>
         <div>
@@ -243,7 +243,7 @@ export function CourseRoom({
         {isStaff && (
           <Button
             onClick={() => setEditing(true)}
-            className="rounded-none border-[var(--color-accent)] text-[var(--color-accent)] hover:bg-[var(--color-accent)] hover:text-white font-bold"
+            className="rounded-sm border-[var(--color-accent)] text-[var(--color-accent)] hover:bg-[var(--color-accent)] hover:text-white font-bold"
             variant="outline"
           >
             Build Course
@@ -293,7 +293,7 @@ export function CourseRoom({
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 shrink-0 rounded-none xl:hidden"
+            className="h-8 w-8 shrink-0 rounded-sm xl:hidden"
             onClick={() => setPeopleOpen(true)}
           >
             <Users className="h-4 w-4 text-[var(--color-accent)]" />
@@ -302,9 +302,9 @@ export function CourseRoom({
 
         {/* Progress bar */}
         <div className="space-y-1.5">
-          <div className="h-1.5 rounded-none bg-[var(--color-surface-secondary)] overflow-hidden">
+          <div className="h-1.5 rounded-sm bg-[var(--color-surface-secondary)] overflow-hidden">
             <div
-              className="h-full bg-[var(--color-accent)] rounded-none transition-all duration-500"
+              className="h-full bg-[var(--color-accent)] rounded-sm transition-all duration-500"
               style={{ width: `${progressPct}%` }}
             />
           </div>
@@ -326,7 +326,7 @@ export function CourseRoom({
             const modCompleted = lessons.filter((l) => progress[l.id]).length;
 
             return (
-              <div key={mod.id} className="rounded-none border border-[var(--color-border)] overflow-hidden">
+              <div key={mod.id} className="rounded-sm border border-[var(--color-border)] overflow-hidden">
                 {/* Module header */}
                 <div className="flex items-center gap-1 px-3 py-2.5 bg-[var(--color-surface-secondary)]">
                   <button
@@ -348,13 +348,13 @@ export function CourseRoom({
                     <div className="flex gap-0.5 ml-1 shrink-0">
                       <button
                         onClick={() => setEditingItem({ type: "module", id: mod.id, data: mod })}
-                        className="p-1.5 hover:bg-black/5 rounded-none text-[var(--color-accent)] transition-colors"
+                        className="p-1.5 hover:bg-black/5 rounded-sm text-[var(--color-accent)] transition-colors"
                       >
                         <Pencil size={13} />
                       </button>
                       <button
                         onClick={() => deleteItem("module", mod.id)}
-                        className="p-1.5 hover:bg-black/5 rounded-none text-[var(--color-danger)] transition-colors"
+                        className="p-1.5 hover:bg-black/5 rounded-sm text-[var(--color-danger)] transition-colors"
                       >
                         <Trash2 size={13} />
                       </button>
@@ -383,7 +383,7 @@ export function CourseRoom({
                             >
                               <div
                                 className={cn(
-                                  "h-5 w-5 rounded-none shrink-0 flex items-center justify-center border",
+                                  "h-5 w-5 rounded-sm shrink-0 flex items-center justify-center border",
                                   isDone
                                     ? "bg-[var(--color-success)] border-[var(--color-success)]"
                                     : isActive
@@ -394,7 +394,7 @@ export function CourseRoom({
                                 {isDone ? (
                                   <Check size={11} className="text-white" />
                                 ) : isActive ? (
-                                  <div className="h-2 w-2 rounded-none bg-[var(--color-accent)]" />
+                                  <div className="h-2 w-2 rounded-sm bg-[var(--color-accent)]" />
                                 ) : null}
                               </div>
                               <span
@@ -412,13 +412,13 @@ export function CourseRoom({
                               <div className="flex gap-0.5 pr-2">
                                 <button
                                   onClick={() => setEditingItem({ type: "lesson", id: les.id, data: les })}
-                                  className="p-1.5 hover:bg-black/5 rounded-none text-[var(--color-accent)] transition-colors"
+                                  className="p-1.5 hover:bg-black/5 rounded-sm text-[var(--color-accent)] transition-colors"
                                 >
                                   <Pencil size={13} />
                                 </button>
                                 <button
                                   onClick={() => deleteItem("lesson", les.id)}
-                                  className="p-1.5 hover:bg-black/5 rounded-none text-[var(--color-danger)] transition-colors"
+                                  className="p-1.5 hover:bg-black/5 rounded-sm text-[var(--color-danger)] transition-colors"
                                 >
                                   <Trash2 size={13} />
                                 </button>
@@ -445,7 +445,7 @@ export function CourseRoom({
           })}
 
         {editing && (
-          <div className="mt-2 p-4 rounded-none bg-[var(--color-surface-secondary)] border border-[var(--color-border)]">
+          <div className="mt-2 p-4 rounded-sm bg-[var(--color-surface-secondary)] border border-[var(--color-border)]">
             <label className="text-[10px] font-black uppercase text-[var(--color-text-muted)] tracking-widest mb-2 block">
               New Module
             </label>
@@ -455,12 +455,12 @@ export function CourseRoom({
                 value={newModuleTitle}
                 onChange={(e) => setNewModuleTitle(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && addModule()}
-                className="h-10 text-sm rounded-none border-[var(--color-border)] bg-[var(--color-surface)]"
+                className="h-10 text-sm rounded-sm border-[var(--color-border)] bg-[var(--color-surface)]"
               />
               <Button
                 onClick={addModule}
                 disabled={!newModuleTitle.trim() || marking}
-                className="h-10 rounded-none bg-[var(--color-accent)] text-white font-bold text-xs w-full"
+                className="h-10 rounded-sm bg-[var(--color-accent)] text-white font-bold text-xs w-full"
               >
                 {marking ? <Loader2 className="animate-spin h-4 w-4" /> : <><Plus className="h-4 w-4 mr-1" /> Add Module</>}
               </Button>
@@ -505,12 +505,12 @@ export function CourseRoom({
                   {editing && (
                     <button
                       onClick={() => setEditingItem({ type: "lesson", id: activeLesson.id, data: activeLesson })}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-none border border-[var(--color-accent)] text-[var(--color-accent)] text-[10px] font-black uppercase hover:bg-[var(--color-accent)] hover:text-white transition-all"
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm border border-[var(--color-accent)] text-[var(--color-accent)] text-[10px] font-black uppercase hover:bg-[var(--color-accent)] hover:text-white transition-all"
                     >
                       <Pencil size={12} /> Edit
                     </button>
                   )}
-                  <button onClick={() => setPeopleOpen(true)} className="xl:hidden p-2 hover:bg-black/5 rounded-none text-[var(--color-text-muted)]">
+                  <button onClick={() => setPeopleOpen(true)} className="xl:hidden p-2 hover:bg-black/5 rounded-sm text-[var(--color-text-muted)]">
                     <Users size={20} />
                   </button>
                 </div>
@@ -522,7 +522,7 @@ export function CourseRoom({
                 {editing && (
                   <button
                     onClick={() => setEditingItem({ type: "lesson", id: activeLesson.id, data: activeLesson })}
-                    className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-none border border-[var(--color-accent)] text-[var(--color-accent)] text-[9px] font-black uppercase"
+                    className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-sm border border-[var(--color-accent)] text-[var(--color-accent)] text-[9px] font-black uppercase"
                   >
                     <Pencil size={10} /> Edit
                   </button>
@@ -532,7 +532,7 @@ export function CourseRoom({
               {/* Media */}
               {activeLesson.video_url ? (
                 activeLesson.video_url.includes("youtube.com") || activeLesson.video_url.includes("youtu.be") ? (
-                  <div className="aspect-video rounded-none overflow-hidden border border-[var(--color-border)] bg-black shadow-none">
+                  <div className="aspect-video rounded-sm overflow-hidden border border-[var(--color-border)] bg-black shadow-none">
                     <iframe
                       src={youtubeEmbedUrl(activeLesson.video_url)}
                       className="w-full h-full"
@@ -546,12 +546,12 @@ export function CourseRoom({
                     key={activeLesson.video_url}
                     src={activeLesson.video_url}
                     controls
-                    className="w-full rounded-none border border-[var(--color-border)] bg-black shadow-none max-h-[480px]"
+                    className="w-full rounded-sm border border-[var(--color-border)] bg-black shadow-none max-h-[480px]"
                     onTimeUpdate={onVideoTime}
                   />
                 )
               ) : activeLesson.slideshow && activeLesson.slideshow.length > 0 ? (
-                <div className="bg-[var(--color-surface-secondary)] rounded-none overflow-hidden aspect-video relative group border border-[var(--color-border)] shadow-none">
+                <div className="bg-[var(--color-surface-secondary)] rounded-sm overflow-hidden aspect-video relative group border border-[var(--color-border)] shadow-none">
                   <img
                     src={activeLesson.slideshow[currentSlide]?.url}
                     className="h-full w-full object-contain"
@@ -560,17 +560,17 @@ export function CourseRoom({
                   <div className="absolute inset-0 flex items-center justify-between px-4 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
                       onClick={() => setCurrentSlide((p) => Math.max(0, p - 1))}
-                      className="h-10 w-10 rounded-none bg-black/40 text-white flex items-center justify-center hover:bg-black/60 disabled:opacity-30"
+                      className="h-10 w-10 rounded-sm bg-black/40 text-white flex items-center justify-center hover:bg-black/60 disabled:opacity-30"
                       disabled={currentSlide === 0}
                     >
                       <ChevronLeft size={22} />
                     </button>
-                    <span className="text-[11px] font-bold text-white px-3 py-1.5 bg-black/40 rounded-none ">
+                    <span className="text-[11px] font-bold text-white px-3 py-1.5 bg-black/40 rounded-sm ">
                       {currentSlide + 1} / {activeLesson.slideshow.length}
                     </span>
                     <button
                       onClick={() => setCurrentSlide((p) => Math.min((activeLesson.slideshow?.length || 1) - 1, p + 1))}
-                      className="h-10 w-10 rounded-none bg-black/40 text-white flex items-center justify-center hover:bg-black/60 disabled:opacity-30"
+                      className="h-10 w-10 rounded-sm bg-black/40 text-white flex items-center justify-center hover:bg-black/60 disabled:opacity-30"
                       disabled={currentSlide === (activeLesson.slideshow.length || 1) - 1}
                     >
                       <ChevronRight size={22} />
@@ -583,7 +583,7 @@ export function CourseRoom({
                         key={i}
                         onClick={() => setCurrentSlide(i)}
                         className={cn(
-                          "rounded-none transition-all",
+                          "rounded-sm transition-all",
                           i === currentSlide ? "w-4 h-1.5 bg-white dark:bg-surface" : "w-1.5 h-1.5 bg-white dark:bg-surface/50"
                         )}
                       />
@@ -612,9 +612,9 @@ export function CourseRoom({
                         href={file.url}
                         target="_blank"
                         rel="noreferrer"
-                        className="flex items-center gap-3 p-3 rounded-none border border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[var(--color-accent)] transition-all group"
+                        className="flex items-center gap-3 p-3 rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[var(--color-accent)] transition-all group"
                       >
-                        <div className="h-9 w-9 shrink-0 rounded-none bg-[var(--color-surface-secondary)] flex items-center justify-center text-[var(--color-text-muted)] group-hover:text-[var(--color-accent)]">
+                        <div className="h-9 w-9 shrink-0 rounded-sm bg-[var(--color-surface-secondary)] flex items-center justify-center text-[var(--color-text-muted)] group-hover:text-[var(--color-accent)]">
                           <FileText size={18} />
                         </div>
                         <div className="min-w-0 flex-1">
@@ -635,7 +635,7 @@ export function CourseRoom({
             <Button
               variant="outline"
               size="sm"
-              className="rounded-none border-[var(--color-border)] h-9 px-3"
+              className="rounded-sm border-[var(--color-border)] h-9 px-3"
               disabled={!prevLesson}
               onClick={() => prevLesson && selectLesson(prevLesson.id)}
             >
@@ -646,7 +646,7 @@ export function CourseRoom({
             <Button
               size="sm"
               className={cn(
-                "rounded-none font-bold px-4 h-9 flex-1 max-w-[200px] transition-all",
+                "rounded-sm font-bold px-4 h-9 flex-1 max-w-[200px] transition-all",
                 progress[activeLesson.id]
                   ? "bg-[var(--color-success)]/10 text-[var(--color-success)] border border-[var(--color-success)]/30 hover:bg-[var(--color-success)]/20"
                   : "bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white"
@@ -666,7 +666,7 @@ export function CourseRoom({
             <Button
               variant="outline"
               size="sm"
-              className="rounded-none border-[var(--color-border)] h-9 px-3"
+              className="rounded-sm border-[var(--color-border)] h-9 px-3"
               disabled={!nextLesson}
               onClick={() => nextLesson && selectLesson(nextLesson.id)}
             >
@@ -678,7 +678,7 @@ export function CourseRoom({
       ) : (
         /* No lesson selected (desktop only) */
         <div className="flex flex-1 flex-col items-center justify-center p-8 text-center">
-          <div className="h-16 w-16 rounded-none bg-[var(--color-surface)] border-2 border-dashed border-[var(--color-border)] flex items-center justify-center text-[var(--color-text-muted)] mb-4">
+          <div className="h-16 w-16 rounded-sm bg-[var(--color-surface)] border-2 border-dashed border-[var(--color-border)] flex items-center justify-center text-[var(--color-text-muted)] mb-4">
             <Sparkles size={32} className="animate-pulse" />
           </div>
           <h3 className="text-lg font-black text-[var(--color-text-primary)] mb-1">
@@ -699,11 +699,11 @@ export function CourseRoom({
     <div className="fixed inset-0 z-[20000] flex items-end sm:items-center justify-center pointer-events-auto">
       <div className="absolute inset-0 bg-black/60 " onClick={() => setEditingItem(null)} />
 
-      <div className="relative w-full sm:max-w-4xl max-h-[95dvh] sm:max-h-[90vh] bg-[var(--color-surface)] sm:rounded-none shadow-none overflow-hidden flex flex-col border border-[var(--color-border)] animate-in slide-in-from-bottom-4 sm:zoom-in-95 duration-300">
+      <div className="relative w-full sm:max-w-4xl max-h-[95dvh] sm:max-h-[90vh] bg-[var(--color-surface)] sm:rounded-sm shadow-none overflow-hidden flex flex-col border border-[var(--color-border)] animate-in slide-in-from-bottom-4 sm:zoom-in-95 duration-300">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--color-border)] bg-[var(--color-surface-secondary)]/50">
           <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-none bg-[var(--color-accent)] flex items-center justify-center text-white">
+            <div className="h-9 w-9 rounded-sm bg-[var(--color-accent)] flex items-center justify-center text-white">
               <Pencil size={16} />
             </div>
             <div>
@@ -715,7 +715,7 @@ export function CourseRoom({
           </div>
           <button
             onClick={() => setEditingItem(null)}
-            className="h-9 w-9 flex items-center justify-center rounded-none hover:bg-black/5 transition-all text-[var(--color-text-muted)]"
+            className="h-9 w-9 flex items-center justify-center rounded-sm hover:bg-black/5 transition-all text-[var(--color-text-muted)]"
           >
             <X size={20} />
           </button>
@@ -732,7 +732,7 @@ export function CourseRoom({
                   value={editingItem.data.title || ""}
                   onChange={(e) => setEditingItem((p) => p ? { ...p, data: { ...p.data, title: e.target.value } } : null)}
                   placeholder="e.g. Fundamental Trading Patterns"
-                  className="h-12 rounded-none text-base font-bold border-[var(--color-border)] bg-[var(--color-bg)]"
+                  className="h-12 rounded-sm text-base font-bold border-[var(--color-border)] bg-[var(--color-bg)]"
                 />
               </div>
 
@@ -744,7 +744,7 @@ export function CourseRoom({
                     onChange={(e) => setEditingItem((p) => p ? { ...p, data: { ...p.data, description: e.target.value } } : null)}
                     rows={8}
                     placeholder="Learning objectives for this section..."
-                    className="rounded-none border-[var(--color-border)] bg-[var(--color-bg)] resize-none"
+                    className="rounded-sm border-[var(--color-border)] bg-[var(--color-bg)] resize-none"
                   />
                 </div>
               )}
@@ -757,7 +757,7 @@ export function CourseRoom({
                     onChange={(e) => setEditingItem((p) => p ? { ...p, data: { ...p.data, body: e.target.value } } : null)}
                     rows={12}
                     placeholder="Full lesson content, notes, or step-by-step instructions..."
-                    className="rounded-none border-[var(--color-border)] bg-[var(--color-bg)] resize-none"
+                    className="rounded-sm border-[var(--color-border)] bg-[var(--color-bg)] resize-none"
                   />
                 </div>
               )}
@@ -769,13 +769,13 @@ export function CourseRoom({
                 {/* Media mode tabs */}
                 <div className="space-y-3">
                   <label className="text-[10px] font-black uppercase text-[var(--color-text-muted)] tracking-widest">Media Type</label>
-                  <div className="flex rounded-none border border-[var(--color-border)] p-1 bg-[var(--color-surface-secondary)] gap-1">
+                  <div className="flex rounded-sm border border-[var(--color-border)] p-1 bg-[var(--color-surface-secondary)] gap-1">
                     {(["video", "manual", "slides"] as const).map((mode) => (
                       <button
                         key={mode}
                         onClick={() => setEditingItem((p) => p ? { ...p, data: { ...p.data, media_mode: mode } } : null)}
                         className={cn(
-                          "flex-1 py-1.5 rounded-none text-[11px] font-bold uppercase tracking-tight transition-all",
+                          "flex-1 py-1.5 rounded-sm text-[11px] font-bold uppercase tracking-tight transition-all",
                           (editingItem.data.media_mode || "video") === mode
                             ? "bg-[var(--color-accent)] text-white shadow-none"
                             : "text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"
@@ -793,7 +793,7 @@ export function CourseRoom({
                         value={editingItem.data.video_url || ""}
                         onChange={(e) => setEditingItem((p) => p ? { ...p, data: { ...p.data, video_url: e.target.value } } : null)}
                         placeholder="Paste YouTube / Vimeo / MP4 URL"
-                        className="h-11 rounded-none border-[var(--color-border)] bg-[var(--color-bg)] pr-10"
+                        className="h-11 rounded-sm border-[var(--color-border)] bg-[var(--color-bg)] pr-10"
                       />
                       <Video size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-accent)] opacity-50" />
                     </div>
@@ -817,7 +817,7 @@ export function CourseRoom({
                         };
                         input.click();
                       }}
-                      className="w-full h-20 rounded-none border-2 border-dashed border-[var(--color-border)] hover:border-[var(--color-accent)] hover:bg-[var(--color-accent)]/5 flex flex-col items-center justify-center gap-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-accent)] transition-all"
+                      className="w-full h-20 rounded-sm border-2 border-dashed border-[var(--color-border)] hover:border-[var(--color-accent)] hover:bg-[var(--color-accent)]/5 flex flex-col items-center justify-center gap-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-accent)] transition-all"
                     >
                       {marking ? <Loader2 size={20} className="animate-spin" /> : (
                         <>
@@ -833,11 +833,11 @@ export function CourseRoom({
                     <div className="space-y-2">
                       <div className="grid grid-cols-4 gap-2">
                         {(editingItem.data.slideshow || []).map((img: Attachment, i: number) => (
-                          <div key={i} className="aspect-square rounded-none border bg-black/5 relative group overflow-hidden">
+                          <div key={i} className="aspect-square rounded-sm border bg-black/5 relative group overflow-hidden">
                             <img src={img.url} className="w-full h-full object-cover" alt="slide" />
                             <button
                               onClick={() => setEditingItem((p) => p ? { ...p, data: { ...p.data, slideshow: (p.data.slideshow as Attachment[]).filter((_, idx) => idx !== i) } } : null)}
-                              className="absolute top-1 right-1 h-5 w-5 bg-red-500 text-white rounded-none flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                              className="absolute top-1 right-1 h-5 w-5 bg-red-500 text-white rounded-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                             >
                               <X size={10} />
                             </button>
@@ -865,7 +865,7 @@ export function CourseRoom({
                             input.click();
                           }}
                           disabled={marking}
-                          className="aspect-square rounded-none border-2 border-dashed border-[var(--color-border)] flex items-center justify-center hover:bg-[var(--color-accent)]/5 hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] text-[var(--color-text-muted)] transition-all"
+                          className="aspect-square rounded-sm border-2 border-dashed border-[var(--color-border)] flex items-center justify-center hover:bg-[var(--color-accent)]/5 hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] text-[var(--color-text-muted)] transition-all"
                         >
                           {marking ? <Loader2 size={14} className="animate-spin" /> : <Plus size={16} />}
                         </button>
@@ -881,13 +881,13 @@ export function CourseRoom({
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <label className="text-[10px] font-black uppercase text-[var(--color-text-muted)] tracking-widest">Attachments</label>
-                    <span className="text-[10px] font-bold text-[var(--color-accent)] bg-[var(--color-accent)]/10 px-2 py-0.5 rounded-none">
+                    <span className="text-[10px] font-bold text-[var(--color-accent)] bg-[var(--color-accent)]/10 px-2 py-0.5 rounded-sm">
                       {(editingItem.data.attachments || []).length} files
                     </span>
                   </div>
 
                   {(editingItem.data.attachments || []).map((file: Attachment, idx: number) => (
-                    <div key={idx} className="flex items-center gap-3 p-3 rounded-none border border-[var(--color-border)] bg-[var(--color-bg)] group">
+                    <div key={idx} className="flex items-center gap-3 p-3 rounded-sm border border-[var(--color-border)] bg-[var(--color-bg)] group">
                       <FileText size={18} className="text-[var(--color-accent)] shrink-0" />
                       <div className="min-w-0 flex-1">
                         <p className="text-xs font-bold truncate text-[var(--color-text-primary)]">{file.name}</p>
@@ -895,7 +895,7 @@ export function CourseRoom({
                       </div>
                       <button
                         onClick={() => setEditingItem((p) => p ? { ...p, data: { ...p.data, attachments: (p.data.attachments as Attachment[]).filter((_, i) => i !== idx) } } : null)}
-                        className="h-7 w-7 flex items-center justify-center hover:bg-red-500/10 rounded-none text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+                        className="h-7 w-7 flex items-center justify-center hover:bg-red-500/10 rounded-sm text-red-500 opacity-0 group-hover:opacity-100 transition-all"
                       >
                         <X size={14} />
                       </button>
@@ -923,7 +923,7 @@ export function CourseRoom({
                       input.click();
                     }}
                     disabled={marking}
-                    className="w-full h-16 rounded-none border-2 border-dashed border-[var(--color-border)] hover:border-[var(--color-accent)] hover:bg-[var(--color-accent)]/5 flex items-center justify-center gap-2 text-[var(--color-text-muted)] hover:text-[var(--color-accent)] transition-all"
+                    className="w-full h-16 rounded-sm border-2 border-dashed border-[var(--color-border)] hover:border-[var(--color-accent)] hover:bg-[var(--color-accent)]/5 flex items-center justify-center gap-2 text-[var(--color-text-muted)] hover:text-[var(--color-accent)] transition-all"
                   >
                     {marking ? <Loader2 size={18} className="animate-spin" /> : (
                       <><Paperclip size={18} /><span className="text-xs font-bold">Upload Files</span></>
@@ -937,11 +937,11 @@ export function CourseRoom({
 
         {/* Footer */}
         <div className="px-5 py-4 border-t border-[var(--color-border)] flex gap-3 justify-end bg-[var(--color-surface-secondary)]/30">
-          <Button variant="outline" className="rounded-none h-10" onClick={() => setEditingItem(null)}>
+          <Button variant="outline" className="rounded-sm h-10" onClick={() => setEditingItem(null)}>
             Cancel
           </Button>
           <Button
-            className="rounded-none h-10 bg-[var(--color-accent)] text-white font-bold px-6"
+            className="rounded-sm h-10 bg-[var(--color-accent)] text-white font-bold px-6"
             onClick={updateItem}
             disabled={marking}
           >
@@ -1055,7 +1055,7 @@ export function DashboardCourseStudio({ roomId, communityId, onClose }: { roomId
     <div className="fixed inset-0 z-[100000] bg-[var(--color-bg)] flex flex-col pt-[72px] lg:pt-0">
        <div className="h-16 lg:h-14 border-b border-[var(--color-border)] flex items-center px-4 md:px-8 justify-between bg-[var(--color-surface)] shadow-[0_4px_24px_rgba(0,0,0,0.02)] shrink-0 z-10 relative">
           <div className="flex items-center gap-3">
-             <div className="h-8 w-8 rounded-none bg-[var(--color-accent)] flex items-center justify-center text-white shadow-none shadow-[var(--color-accent)]/20">
+             <div className="h-8 w-8 rounded-sm bg-[var(--color-accent)] flex items-center justify-center text-white shadow-none shadow-[var(--color-accent)]/20">
                 <Sparkles size={16} />
              </div>
              <div>
@@ -1063,7 +1063,7 @@ export function DashboardCourseStudio({ roomId, communityId, onClose }: { roomId
                 <p className="text-[10px] uppercase font-bold text-[var(--color-accent)] tracking-widest leading-none">Draft & Publish Mode</p>
              </div>
           </div>
-          <Button onClick={onClose} variant="outline" className="rounded-none border-[var(--color-border)] hover:bg-[var(--color-danger)]/10 hover:text-[var(--color-danger)] hover:border-[var(--color-danger)]/30 font-black text-[10px] md:text-[11px] uppercase tracking-widest gap-2 transition-all">
+          <Button onClick={onClose} variant="outline" className="rounded-sm border-[var(--color-border)] hover:bg-[var(--color-danger)]/10 hover:text-[var(--color-danger)] hover:border-[var(--color-danger)]/30 font-black text-[10px] md:text-[11px] uppercase tracking-widest gap-2 transition-all">
              <X size={14} /> Close Editor
           </Button>
        </div>

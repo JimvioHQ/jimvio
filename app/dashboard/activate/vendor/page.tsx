@@ -287,7 +287,7 @@ export default function ActivateVendorPage() {
            </Button>
            
            <div className="space-y-2">
-              <div className="w-16 h-16 rounded-none bg-white dark:bg-surface border border-stone-50 shadow-none flex items-center justify-center mx-auto relative group overflow-hidden">
+              <div className="w-16 h-16 rounded-sm bg-white dark:bg-surface border border-stone-50 shadow-none flex items-center justify-center mx-auto relative group overflow-hidden">
                  <Store className="h-7 w-7 text-stone-900 dark:text-white group-hover:scale-110 transition-transform duration-500" />
               </div>
               <h1 className="text-3xl font-bold text-stone-900 dark:text-white tracking-tight">Vendor Activation</h1>
@@ -407,7 +407,7 @@ export default function ActivateVendorPage() {
                          </div>
                       );
                    })}
-                   <div className="absolute top-6 left-0 right-0 h-1 bg-stone-100 -z-0 rounded-none mx-10 overflow-hidden">
+                   <div className="absolute top-6 left-0 right-0 h-1 bg-stone-100 -z-0 rounded-sm mx-10 overflow-hidden">
                       <div className="h-full bg-emerald-500 transition-all duration-700" style={{ width: `${((step - 1) / (FORM_STEPS.length - 1)) * 100}%` }} />
                    </div>
                 </div>

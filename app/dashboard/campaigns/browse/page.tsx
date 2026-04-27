@@ -58,7 +58,7 @@ export default function InfluencerBrowseCampaignsPage() {
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-stone-900 dark:text-white flex items-center gap-3">
-             <div className="p-2 rounded-none bg-white dark:bg-surface/60 border border-white/80 shadow-none shrink-0">
+             <div className="p-2 rounded-sm bg-white dark:bg-surface/60 border border-white/80 shadow-none shrink-0">
                <Zap className="h-6 w-6 text-orange-500" />
              </div>
              Campaign Marketplace
@@ -70,12 +70,12 @@ export default function InfluencerBrowseCampaignsPage() {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400 pointer-events-none" />
             <input 
               placeholder="Search campaigns..." 
-              className="pl-11 pr-4 h-11 w-64 rounded-none bg-white dark:bg-surface/60 border border-white/80 text-[13px] font-semibold text-stone-900 dark:text-white placeholder:text-stone-400 focus:outline-none focus:border-stone-300 shadow-[inset_0_1px_4px_rgba(255,255,255,1)] transition-colors" 
+              className="pl-11 pr-4 h-11 w-64 rounded-sm bg-white dark:bg-surface/60 border border-white/80 text-[13px] font-semibold text-stone-900 dark:text-white placeholder:text-stone-400 focus:outline-none focus:border-stone-300 shadow-[inset_0_1px_4px_rgba(255,255,255,1)] transition-colors" 
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <Button variant="outline" size="icon" className="h-11 w-11 rounded-none bg-white dark:bg-surface border border-stone-200 dark:border-border shadow-[0_2px_8px_rgba(0,0,0,0.03)] active:scale-95 transition-all outline-none">
+          <Button variant="outline" size="icon" className="h-11 w-11 rounded-sm bg-white dark:bg-surface border border-stone-200 dark:border-border shadow-[0_2px_8px_rgba(0,0,0,0.03)] active:scale-95 transition-all outline-none">
             <Filter className="h-4 w-4 text-stone-600" />
           </Button>
         </div>
@@ -97,11 +97,11 @@ export default function InfluencerBrowseCampaignsPage() {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                 <div className="absolute top-3 left-3 flex gap-2">
-                  <div className="bg-white dark:bg-surface/90 backdrop-blur-md px-3 py-1 rounded-none text-[10px] font-black uppercase tracking-widest text-stone-900 dark:text-white shadow-none border border-white/20">
+                  <div className="bg-white dark:bg-surface/90 backdrop-blur-md px-3 py-1 rounded-sm text-[10px] font-black uppercase tracking-widest text-stone-900 dark:text-white shadow-none border border-white/20">
                     {c.campaign_type === "promotion" ? "Affiliate" : "Sponsorship"}
                   </div>
                   {c.is_featured && (
-                    <div className="bg-amber-400 text-amber-950 px-3 py-1 rounded-none text-[10px] font-black uppercase tracking-widest flex items-center shadow-none">
+                    <div className="bg-amber-400 text-amber-950 px-3 py-1 rounded-sm text-[10px] font-black uppercase tracking-widest flex items-center shadow-none">
                       <Zap className="h-3 w-3 mr-1 fill-current" /> Featured
                     </div>
                   )}
@@ -113,7 +113,7 @@ export default function InfluencerBrowseCampaignsPage() {
               </div>
 
               <div className="p-5">
-                <div className="flex items-center justify-between mb-5 bg-white dark:bg-surface/40 border border-white/60 shadow-[inset_0_1px_4px_rgba(255,255,255,1)] rounded-none p-4">
+                <div className="flex items-center justify-between mb-5 bg-white dark:bg-surface/40 border border-white/60 shadow-[inset_0_1px_4px_rgba(255,255,255,1)] rounded-sm p-4">
                   <div>
                     <p className="text-[9px] font-bold uppercase tracking-widest text-stone-500 mb-1 flex items-center gap-1"><DollarSign className="h-3 w-3 text-emerald-500" /> Commission</p>
                     <p className="text-[20px] font-black text-emerald-600 leading-none">{commissionRate}%</p>
@@ -125,13 +125,13 @@ export default function InfluencerBrowseCampaignsPage() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 mb-5">
-                  <div className="bg-white dark:bg-surface/40 border border-white/80 shadow-[inset_0_1px_4px_rgba(255,255,255,1)] rounded-none p-4">
+                  <div className="bg-white dark:bg-surface/40 border border-white/80 shadow-[inset_0_1px_4px_rgba(255,255,255,1)] rounded-sm p-4">
                     <div className="flex items-center gap-1.5 text-stone-500 mb-1.5 text-[9px] font-bold uppercase tracking-widest">
                       <Eye className="h-3 w-3 text-sky-500" /> Total Views
                     </div>
                     <p className="text-[16px] font-black text-stone-900 dark:text-white leading-none">{(c.total_views || 0).toLocaleString()}</p>
                   </div>
-                  <div className="bg-white dark:bg-surface/40 border border-white/80 shadow-[inset_0_1px_4px_rgba(255,255,255,1)] rounded-none p-4">
+                  <div className="bg-white dark:bg-surface/40 border border-white/80 shadow-[inset_0_1px_4px_rgba(255,255,255,1)] rounded-sm p-4">
                     <div className="flex items-center gap-1.5 text-stone-500 mb-1.5 text-[9px] font-bold uppercase tracking-widest">
                       <TrendingUp className="h-3 w-3 text-purple-500" /> Conv. (All)
                     </div>
@@ -140,10 +140,10 @@ export default function InfluencerBrowseCampaignsPage() {
                 </div>
 
                 <div className="flex gap-2">
-                  <Button className="flex-1 h-12 rounded-none bg-stone-900 text-white font-bold text-[12px] uppercase tracking-widest shadow-[0_4px_16px_rgba(0,0,0,0.15)] active:scale-95 transition-all hover:bg-stone-800">
+                  <Button className="flex-1 h-12 rounded-sm bg-stone-900 text-white font-bold text-[12px] uppercase tracking-widest shadow-[0_4px_16px_rgba(0,0,0,0.15)] active:scale-95 transition-all hover:bg-stone-800">
                     Apply Now
                   </Button>
-                  <Button variant="outline" size="icon" className="h-12 w-12 rounded-none bg-white dark:bg-surface border border-stone-200 dark:border-border shadow-[0_2px_8px_rgba(0,0,0,0.03)] active:scale-95 transition-all text-stone-600 hover:bg-stone-50 dark:bg-surface/50" asChild>
+                  <Button variant="outline" size="icon" className="h-12 w-12 rounded-sm bg-white dark:bg-surface border border-stone-200 dark:border-border shadow-[0_2px_8px_rgba(0,0,0,0.03)] active:scale-95 transition-all text-stone-600 hover:bg-stone-50 dark:bg-surface/50" asChild>
                     <Link href={`/marketplace/${product?.slug}`}>
                       <ExternalLink className="h-5 w-5" />
                     </Link>
@@ -157,7 +157,7 @@ export default function InfluencerBrowseCampaignsPage() {
 
       {filtered.length === 0 && (
         <GlassCard className="text-center py-24 mb-6 border-dashed flex flex-col items-center justify-center">
-          <div className="w-20 h-20 rounded-none bg-white dark:bg-surface/60 border border-white/80 shadow-[inset_0_1px_4px_rgba(255,255,255,1)] flex items-center justify-center mb-5">
+          <div className="w-20 h-20 rounded-sm bg-white dark:bg-surface/60 border border-white/80 shadow-[inset_0_1px_4px_rgba(255,255,255,1)] flex items-center justify-center mb-5">
             <Zap className="h-10 w-10 text-stone-300" />
           </div>
           <h3 className="text-[20px] font-black text-stone-900 dark:text-white tracking-tight">No campaigns found</h3>

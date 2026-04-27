@@ -10,10 +10,10 @@ export default function LoginPage() {
     <Suspense
       fallback={
         <div className="w-full space-y-6 animate-pulse">
-          <div className="h-8 bg-[var(--color-surface-secondary)] rounded-none w-3/4 mx-auto" />
-          <div className="h-11 bg-[var(--color-surface-secondary)] rounded-none" />
-          <div className="h-11 bg-[var(--color-surface-secondary)] rounded-none" />
-          <div className="h-11 bg-[var(--color-surface-secondary)] rounded-none" />
+          <div className="h-8 bg-[var(--color-surface-secondary)] rounded-sm w-3/4 mx-auto" />
+          <div className="h-11 bg-[var(--color-surface-secondary)] rounded-sm" />
+          <div className="h-11 bg-[var(--color-surface-secondary)] rounded-sm" />
+          <div className="h-11 bg-[var(--color-surface-secondary)] rounded-sm" />
         </div>
       }
     >

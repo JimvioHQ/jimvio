@@ -21,8 +21,8 @@ export default async function AdminVendorsPage({ searchParams }: { searchParams:
       <Card>
         <CardHeader className="pb-3">
           <form method="get" action="/admin/vendors" className="flex gap-2 max-w-sm">
-            <Input name="q" defaultValue={q ?? ""} placeholder="Search by store name..." className="rounded-none" />
-            <Button type="submit" variant="secondary" size="icon" className="rounded-none">
+            <Input name="q" defaultValue={q ?? ""} placeholder="Search by store name..." className="rounded-sm" />
+            <Button type="submit" variant="secondary" size="icon" className="rounded-sm">
               <Search className="h-4 w-4" />
             </Button>
           </form>

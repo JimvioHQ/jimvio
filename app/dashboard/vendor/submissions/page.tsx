@@ -68,9 +68,9 @@ export default function VendorSubmissionsPage() {
     return (
        <div className="min-h-screen flex flex-col items-center justify-center space-y-12 animate-in fade-in duration-700" style={{ background: "var(--color-bg)" }}>
          <div className="relative">
-           <div className="absolute inset-0 bg-orange-400/20 blur-3xl rounded-none scale-150 animate-pulse" />
-           <div className="relative w-24 h-24 rounded-none bg-white dark:bg-surface border border-white shadow-none flex items-center justify-center overflow-hidden">
-             <div className="absolute inset-0 border-2 border-t-orange-500 border-r-transparent border-b-transparent border-l-transparent rounded-none animate-spin m-2" />
+           <div className="absolute inset-0 bg-orange-400/20 blur-3xl rounded-sm scale-150 animate-pulse" />
+           <div className="relative w-24 h-24 rounded-sm bg-white dark:bg-surface border border-white shadow-none flex items-center justify-center overflow-hidden">
+             <div className="absolute inset-0 border-2 border-t-orange-500 border-r-transparent border-b-transparent border-l-transparent rounded-sm animate-spin m-2" />
              <Video className="h-10 w-10 text-stone-900 dark:text-white" />
            </div>
          </div>
@@ -93,7 +93,7 @@ export default function VendorSubmissionsPage() {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
            <div className="space-y-2">
               <h1 className="text-4xl font-black text-stone-900 dark:text-white tracking-tighter flex items-center gap-4">
-                 <div className="p-2.5 rounded-none bg-white dark:bg-surface border border-white shadow-none shrink-0">
+                 <div className="p-2.5 rounded-sm bg-white dark:bg-surface border border-white shadow-none shrink-0">
                     <Video className="h-8 w-8 text-orange-500" />
                  </div>
                  Mission Submissions
@@ -103,13 +103,13 @@ export default function VendorSubmissionsPage() {
               </p>
            </div>
            
-           <div className="flex flex-wrap items-center gap-2 bg-white dark:bg-surface/40 p-1.5 rounded-none border border-white shadow-none backdrop-blur-xl shrink-0">
+           <div className="flex flex-wrap items-center gap-2 bg-white dark:bg-surface/40 p-1.5 rounded-sm border border-white shadow-none backdrop-blur-xl shrink-0">
               {["pending", "approved", "rejected", "all"].map((f) => (
                  <button
                     key={f}
                     onClick={() => setStatusFilter(f)}
                     className={cn(
-                       "px-6 h-11 rounded-none text-[10px] font-black uppercase tracking-widest transition-all",
+                       "px-6 h-11 rounded-sm text-[10px] font-black uppercase tracking-widest transition-all",
                        statusFilter === f
                           ? "bg-stone-900 text-white shadow-none"
                           : "text-stone-400 hover:text-stone-900 dark:text-white"
@@ -117,7 +117,7 @@ export default function VendorSubmissionsPage() {
                  >
                     {f}
                     {f === "pending" && pendingCount > 0 && (
-                       <span className="ml-2 bg-orange-500 text-white text-[8px] px-1.5 py-0.5 rounded-none ring-2 ring-white">
+                       <span className="ml-2 bg-orange-500 text-white text-[8px] px-1.5 py-0.5 rounded-sm ring-2 ring-white">
                           {pendingCount}
                        </span>
                     )}
@@ -129,15 +129,15 @@ export default function VendorSubmissionsPage() {
         {/* Content Feed */}
         <div className="space-y-6">
           {submissions.length === 0 ? (
-            <GlassCard className="p-24 text-center rounded-none border-white bg-white dark:bg-surface/20">
-               <div className="w-24 h-24 bg-white dark:bg-surface rounded-none flex items-center justify-center mx-auto mb-8 border border-white shadow-none">
+            <GlassCard className="p-24 text-center rounded-sm border-white bg-white dark:bg-surface/20">
+               <div className="w-24 h-24 bg-white dark:bg-surface rounded-sm flex items-center justify-center mx-auto mb-8 border border-white shadow-none">
                   <CheckCircle2 className="h-10 w-10 text-stone-100" />
                </div>
                <h2 className="text-3xl font-black text-stone-900 dark:text-white tracking-tighter">You're All Caught Up</h2>
                <p className="text-[11px] font-black text-stone-400 uppercase tracking-widest mt-4 max-w-xs mx-auto leading-relaxed">
                   No {statusFilter !== "all" ? statusFilter : ""} assets require review right now.
                </p>
-               <Button asChild className="h-16 px-12 rounded-none bg-stone-900 text-white font-black text-[11px] uppercase tracking-widest shadow-none mt-10 hover:bg-black transition-all border-none">
+               <Button asChild className="h-16 px-12 rounded-sm bg-stone-900 text-white font-black text-[11px] uppercase tracking-widest shadow-none mt-10 hover:bg-black transition-all border-none">
                   <Link href="/dashboard/vendor/campaigns">Back to Missions</Link>
                </Button>
             </GlassCard>
@@ -151,13 +151,13 @@ export default function VendorSubmissionsPage() {
                 return (
                   <GlassCard 
                     key={sub.id} 
-                    className="group bg-white dark:bg-surface/60 border-white rounded-none p-8 hover:shadow-none transition-all duration-500"
+                    className="group bg-white dark:bg-surface/60 border-white rounded-sm p-8 hover:shadow-none transition-all duration-500"
                   >
                     <div className="flex flex-col lg:flex-row gap-8 items-start lg:items-center">
                       
                       {/* Creator Profile */}
                       <div className="flex items-center gap-5 lg:w-[280px] shrink-0">
-                        <div className="w-16 h-16 rounded-none bg-stone-900 flex items-center justify-center text-white font-black shadow-none shrink-0 group-hover:scale-110 transition-transform duration-700">
+                        <div className="w-16 h-16 rounded-sm bg-stone-900 flex items-center justify-center text-white font-black shadow-none shrink-0 group-hover:scale-110 transition-transform duration-700">
                           {sub.influencer?.display_name?.[0]?.toUpperCase() || "C"}
                         </div>
                         <div className="min-w-0">
@@ -165,14 +165,14 @@ export default function VendorSubmissionsPage() {
                             {sub.influencer?.display_name || "Anonymous Creator"}
                           </p>
                           <div className="flex items-center gap-3">
-                             <span className="text-[9px] font-black uppercase tracking-widest text-orange-500 bg-orange-50 px-2.5 py-1 rounded-none border border-orange-100">{sub.platform}</span>
+                             <span className="text-[9px] font-black uppercase tracking-widest text-orange-500 bg-orange-50 px-2.5 py-1 rounded-sm border border-orange-100">{sub.platform}</span>
                              <span className="text-[10px] font-bold text-stone-300 uppercase tracking-widest flex items-center gap-1.5"><Calendar className="w-3 h-3" /> {new Date(sub.created_at).toLocaleDateString()}</span>
                           </div>
                         </div>
                       </div>
 
                       {/* Details Segment */}
-                      <div className="flex-1 min-w-0 grid grid-cols-1 md:grid-cols-2 gap-6 bg-stone-50/50 rounded-none p-6 border border-stone-100/50">
+                      <div className="flex-1 min-w-0 grid grid-cols-1 md:grid-cols-2 gap-6 bg-stone-50/50 rounded-sm p-6 border border-stone-100/50">
                         <div>
                            <p className="text-[10px] font-bold text-stone-300 uppercase tracking-widest mb-1.5">Mission Title</p>
                            <p className="text-[14px] text-stone-900 dark:text-white font-black truncate tracking-tight">
@@ -208,14 +208,14 @@ export default function VendorSubmissionsPage() {
                               disabled={isProcessing}
                               onClick={() => handleUpdateStatus(sub.id, "rejected")}
                               variant="ghost"
-                              className="flex-1 h-14 rounded-none text-rose-500 hover:bg-rose-50 font-black text-[11px] uppercase tracking-widest border border-transparent hover:border-rose-100 transition-all"
+                              className="flex-1 h-14 rounded-sm text-rose-500 hover:bg-rose-50 font-black text-[11px] uppercase tracking-widest border border-transparent hover:border-rose-100 transition-all"
                             >
                               Reject
                             </Button>
                             <Button 
                               disabled={isProcessing}
                               onClick={() => handleUpdateStatus(sub.id, "approved")}
-                              className="flex-1 h-14 rounded-none bg-stone-900 text-white font-black text-[11px] uppercase tracking-widest shadow-none active:scale-95 transition-all hover:bg-black border-none"
+                              className="flex-1 h-14 rounded-sm bg-stone-900 text-white font-black text-[11px] uppercase tracking-widest shadow-none active:scale-95 transition-all hover:bg-black border-none"
                             >
                               {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : "Approve"}
                             </Button>

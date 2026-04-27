@@ -78,7 +78,7 @@ function NativeVideoPlayer({ clip, muted }: { clip: any; muted: boolean }) {
       />
       {(isBuffering || !isPlaying) && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="w-16 h-16 rounded-none bg-white dark:bg-surface/70 flex items-center justify-center border border-[#E8E3D8] shadow-none shadow-black/10">
+          <div className="w-16 h-16 rounded-sm bg-white dark:bg-surface/70 flex items-center justify-center border border-[#E8E3D8] shadow-none shadow-black/10">
             {isBuffering
               ? <Loader2 className="h-7 w-7 animate-spin text-[#D85A30]" />
               : <Play className="h-7 w-7 ml-1 text-[#1C1A17]" />}
@@ -211,7 +211,7 @@ export function TikTokFeed({ clips, className, initialIndex = 0, onClose }: TikT
   if (!clips.length) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] bg-[#FAF8F5]">
-        <div className="w-20 h-20 rounded-none bg-white dark:bg-surface border-2 border-[#E8E3D8] flex items-center justify-center mb-5 shadow-none">
+        <div className="w-20 h-20 rounded-sm bg-white dark:bg-surface border-2 border-[#E8E3D8] flex items-center justify-center mb-5 shadow-none">
           <Play className="h-8 w-8 text-[#D8D3C5]" />
         </div>
         <p className="font-semibold text-[#1C1A17] text-[17px]">No clips yet</p>
@@ -283,7 +283,7 @@ export function TikTokFeed({ clips, className, initialIndex = 0, onClose }: TikT
         {/* Close */}
         <button
           onClick={() => (window.location.href = "/")}
-          className="absolute top-5 left-5 z-[250] h-10 px-4 bg-white dark:bg-surface/85 hover:bg-white dark:bg-surface rounded-none flex items-center justify-center border border-[#E8E3D8] transition-all shadow-none group active:scale-95"
+          className="absolute top-5 left-5 z-[250] h-10 px-4 bg-white dark:bg-surface/85 hover:bg-white dark:bg-surface rounded-sm flex items-center justify-center border border-[#E8E3D8] transition-all shadow-none group active:scale-95"
         >
           <X className="h-4 w-4 mr-2 text-[#5C574F] transition-transform group-hover:rotate-90" />
           <span className="text-[11px] font-black uppercase tracking-widest text-[#5C574F]">Exit</span>
@@ -291,7 +291,7 @@ export function TikTokFeed({ clips, className, initialIndex = 0, onClose }: TikT
 
         {/* Desktop video pill */}
         <div className="relative hidden lg:flex w-full h-full items-center justify-center p-10">
-          <div className="relative h-full max-h-full aspect-[9/16] w-auto max-w-[360px] rounded-none overflow-hidden border border-[#D8D3C5]/60 bg-[#EDE9E0] shadow-[0_20px_80px_rgba(0,0,0,0.15)] ring-1 ring-black/5">
+          <div className="relative h-full max-h-full aspect-[9/16] w-auto max-w-[360px] rounded-sm overflow-hidden border border-[#D8D3C5]/60 bg-[#EDE9E0] shadow-[0_20px_80px_rgba(0,0,0,0.15)] ring-1 ring-black/5">
             {(clip.video_url || "").includes("youtube.com") || (clip.video_url || "").includes("youtu.be") ? (
               <iframe key={clip.id} src={clip.video_url.replace("watch?v=", "embed/") + "?autoplay=1&mute=" + (muted ? "1" : "0") + "&loop=1&controls=0"} className="absolute inset-0 w-full h-full pointer-events-none scale-[1.2]" allow="autoplay" title={clip.title} />
             ) : clip.video_url ? (
@@ -303,19 +303,19 @@ export function TikTokFeed({ clips, className, initialIndex = 0, onClose }: TikT
             {/* Type badge on video */}
             <div className="absolute top-4 left-4 z-20 pointer-events-none">
               {clip.video_type === "product" && clip.products && (
-                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-surface/90 rounded-none border border-[#E8E3D8] shadow-none">
+                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-surface/90 rounded-sm border border-[#E8E3D8] shadow-none">
                   <ShoppingCart className="w-3 h-3 text-[#D85A30]" />
                   <span className="text-[11px] font-bold truncate max-w-[120px] text-[#1C1A17]">{clip.products.name}</span>
                 </div>
               )}
               {clip.video_type === "community" && clip.communities && (
-                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-surface/90 rounded-none border border-[#E8E3D8] shadow-none">
+                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-surface/90 rounded-sm border border-[#E8E3D8] shadow-none">
                   <CheckCircle2 className="w-3 h-3 text-indigo-500" />
                   <span className="text-[11px] font-bold truncate max-w-[120px] text-[#1C1A17]">{clip.communities.name}</span>
                 </div>
               )}
             </div>
-            <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/20 to-transparent pointer-events-none rounded-none-3xl" />
+            <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/20 to-transparent pointer-events-none rounded-sm-3xl" />
           </div>
         </div>
 
@@ -335,24 +335,24 @@ export function TikTokFeed({ clips, className, initialIndex = 0, onClose }: TikT
         <button
           type="button"
           onClick={() => setMuted((m) => !m)}
-          className="absolute top-5 right-5 lg:left-5 z-20 h-9 w-9 rounded-none bg-white dark:bg-surface/85 hover:bg-white dark:bg-surface flex items-center justify-center border border-[#E8E3D8] transition-all shadow-none"
+          className="absolute top-5 right-5 lg:left-5 z-20 h-9 w-9 rounded-sm bg-white dark:bg-surface/85 hover:bg-white dark:bg-surface flex items-center justify-center border border-[#E8E3D8] transition-all shadow-none"
         >
           {muted ? <VolumeX className="h-4 w-4 text-[#5C574F]" /> : <Volume2 className="h-4 w-4 text-[#5C574F]" />}
         </button>
 
         {/* Counter pill (desktop) */}
-        <div className="absolute top-5 left-1/2 -translate-x-1/2 z-20 hidden lg:flex items-center gap-1.5 px-3.5 py-2 bg-white dark:bg-surface/85 rounded-none border border-[#E8E3D8] shadow-none">
+        <div className="absolute top-5 left-1/2 -translate-x-1/2 z-20 hidden lg:flex items-center gap-1.5 px-3.5 py-2 bg-white dark:bg-surface/85 rounded-sm border border-[#E8E3D8] shadow-none">
           <span className="text-[12px] font-bold text-[#1C1A17]">{index + 1}</span>
           <span className="text-[12px] text-[#D8D3C5]">/</span>
           <span className="text-[12px] font-bold text-[#9C978D]">{clips.length}</span>
         </div>
 
         {/* Nav prev */}
-        <button type="button" onClick={goPrev} className="absolute left-5 top-1/2 -translate-y-1/2 z-20 h-10 w-10 rounded-none bg-white dark:bg-surface/85 hover:bg-white dark:bg-surface flex items-center justify-center border border-[#E8E3D8] transition-all shadow-none lg:left-[max(1.5rem,calc(50%-210px))]">
+        <button type="button" onClick={goPrev} className="absolute left-5 top-1/2 -translate-y-1/2 z-20 h-10 w-10 rounded-sm bg-white dark:bg-surface/85 hover:bg-white dark:bg-surface flex items-center justify-center border border-[#E8E3D8] transition-all shadow-none lg:left-[max(1.5rem,calc(50%-210px))]">
           <ChevronUp className="h-5 w-5 text-[#5C574F]" />
         </button>
         {/* Nav next */}
-        <button type="button" onClick={goNext} className="absolute left-5 bottom-28 lg:bottom-6 z-20 h-10 w-10 rounded-none bg-white dark:bg-surface/85 hover:bg-white dark:bg-surface flex items-center justify-center border border-[#E8E3D8] transition-all shadow-none lg:left-[max(1.5rem,calc(50%-210px))]">
+        <button type="button" onClick={goNext} className="absolute left-5 bottom-28 lg:bottom-6 z-20 h-10 w-10 rounded-sm bg-white dark:bg-surface/85 hover:bg-white dark:bg-surface flex items-center justify-center border border-[#E8E3D8] transition-all shadow-none lg:left-[max(1.5rem,calc(50%-210px))]">
           <ChevronDown className="h-5 w-5 text-[#5C574F]" />
         </button>
 
@@ -371,7 +371,7 @@ export function TikTokFeed({ clips, className, initialIndex = 0, onClose }: TikT
                 <FollowButton
                   followLabel="+"
                   vendorId={clip.vendors.id}
-                  className="h-6 w-6 rounded-none bg-[#D85A30] text-white text-[13px] font-black flex items-center justify-center border-2 border-white shadow-none p-0 min-w-0"
+                  className="h-6 w-6 rounded-sm bg-[#D85A30] text-white text-[13px] font-black flex items-center justify-center border-2 border-white shadow-none p-0 min-w-0"
                 />
               </div>
             )}
@@ -395,7 +395,7 @@ export function TikTokFeed({ clips, className, initialIndex = 0, onClose }: TikT
               <motion.div
                 whileTap={action.onClick ? { scale: 0.85 } : undefined}
                 className={cn(
-                  "w-12 h-12 rounded-none flex items-center justify-center border transition-all shadow-none shadow-black/10",
+                  "w-12 h-12 rounded-sm flex items-center justify-center border transition-all shadow-none shadow-black/10",
                   action.active
                     ? "bg-rose-500 border-rose-400"
                     : "bg-black/30 border-white/20 "
@@ -425,17 +425,17 @@ export function TikTokFeed({ clips, className, initialIndex = 0, onClose }: TikT
           {/* Video type badge */}
           <div className="mb-2">
             {clip.video_type === "product" && clip.products && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-black text-white bg-[#D85A30] rounded-none shadow-none">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-black text-white bg-[#D85A30] rounded-sm shadow-none">
                 <ShoppingCart className="w-3 h-3" /> {clip.products.name}
               </span>
             )}
             {clip.video_type === "community" && clip.communities && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-black text-white bg-indigo-600 rounded-none shadow-none">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-black text-white bg-indigo-600 rounded-sm shadow-none">
                 <CheckCircle2 className="w-3 h-3" /> {clip.communities.name}
               </span>
             )}
             {(clip.video_type === "general" || !clip.video_type) && clip.external_link && (
-              <span className="inline-block px-2.5 py-1 text-[10px] font-black text-[#1C1A17] bg-white dark:bg-surface/90 rounded-none shadow-none">Sponsored</span>
+              <span className="inline-block px-2.5 py-1 text-[10px] font-black text-[#1C1A17] bg-white dark:bg-surface/90 rounded-sm shadow-none">Sponsored</span>
             )}
           </div>
 
@@ -447,9 +447,9 @@ export function TikTokFeed({ clips, className, initialIndex = 0, onClose }: TikT
               <button
                 type="button"
                 onClick={() => setProductPopup(clip)}
-                className="flex items-center gap-3 w-full px-3.5 py-3 rounded-none bg-white dark:bg-surface shadow-none shadow-black/15 border border-[#E8E3D8] hover:bg-[#FAF8F5] transition-colors text-left"
+                className="flex items-center gap-3 w-full px-3.5 py-3 rounded-sm bg-white dark:bg-surface shadow-none shadow-black/15 border border-[#E8E3D8] hover:bg-[#FAF8F5] transition-colors text-left"
               >
-                <div className="w-11 h-11 rounded-none bg-[#F3F0EA] flex-shrink-0 overflow-hidden border border-[#E8E3D8]">
+                <div className="w-11 h-11 rounded-sm bg-[#F3F0EA] flex-shrink-0 overflow-hidden border border-[#E8E3D8]">
                   {Array.isArray(clip.products.images) && clip.products.images[0]
                     ? <img src={clip.products.images[0]} alt="" className="w-full h-full object-cover" />
                     : <ShoppingCart className="h-5 w-5 text-[#D8D3C5] m-auto mt-2.5" />}
@@ -461,7 +461,7 @@ export function TikTokFeed({ clips, className, initialIndex = 0, onClose }: TikT
               </button>
               <div className="flex gap-2">
                 <button
-                  className="flex-1 h-11 rounded-none bg-[#D85A30] hover:bg-[#C24D25] text-white text-[13px] font-black transition-colors shadow-none shadow-[#D85A30]/30 active:scale-[0.98]"
+                  className="flex-1 h-11 rounded-sm bg-[#D85A30] hover:bg-[#C24D25] text-white text-[13px] font-black transition-colors shadow-none shadow-[#D85A30]/30 active:scale-[0.98]"
                   onClick={() => {
                     document.cookie = `jimvio_last_video_id=${clip.id}; path=/; max-age=86400`;
                     if (clip.itemType === "short" && clip.products?.id) recordVideoClick(clip.id, clip.products.id).catch(() => { });
@@ -472,7 +472,7 @@ export function TikTokFeed({ clips, className, initialIndex = 0, onClose }: TikT
                 </button>
                 <button
                   disabled={addingToCart[clip.id] || addedItems[clip.id]}
-                  className="w-11 h-11 rounded-none bg-white dark:bg-surface border border-[#E8E3D8] text-[#1C1A17] flex items-center justify-center transition-all shadow-none disabled:opacity-50 active:scale-[0.98]"
+                  className="w-11 h-11 rounded-sm bg-white dark:bg-surface border border-[#E8E3D8] text-[#1C1A17] flex items-center justify-center transition-all shadow-none disabled:opacity-50 active:scale-[0.98]"
                   onClick={(e) => { e.stopPropagation(); handleAddToCart(clip); }}
                 >
                   {addingToCart[clip.id] ? <Loader2 className="h-4 w-4 animate-spin text-[#D85A30]" /> : addedItems[clip.id] ? <CheckCircle2 className="h-4 w-4 text-emerald-500" /> : <ShoppingCart className="h-4 w-4" />}
@@ -488,7 +488,7 @@ export function TikTokFeed({ clips, className, initialIndex = 0, onClose }: TikT
                 if (clip.itemType === "short") recordVideoClick(clip.id).catch(() => { });
                 window.location.href = `/groups/community/${clip.communities!.slug || clip.communities!.id}`;
               }}
-              className="flex items-center justify-center gap-2 h-11 px-5 rounded-none bg-indigo-600 hover:bg-indigo-700 text-white text-[13px] font-black shadow-none shadow-indigo-600/30 transition-colors active:scale-[0.98]"
+              className="flex items-center justify-center gap-2 h-11 px-5 rounded-sm bg-indigo-600 hover:bg-indigo-700 text-white text-[13px] font-black shadow-none shadow-indigo-600/30 transition-colors active:scale-[0.98]"
             >
               <CheckCircle2 className="w-4 h-4" /> Join {clip.communities.name}
             </button>
@@ -501,7 +501,7 @@ export function TikTokFeed({ clips, className, initialIndex = 0, onClose }: TikT
                 if (clip.itemType === "short") recordVideoClick(clip.id).catch(() => { });
                 window.open(clip.external_link!, "_blank");
               }}
-              className="flex items-center justify-center gap-2 h-11 px-5 rounded-none bg-white dark:bg-surface border border-[#E8E3D8] text-[#1C1A17] text-[13px] font-black shadow-none transition-colors active:scale-[0.98]"
+              className="flex items-center justify-center gap-2 h-11 px-5 rounded-sm bg-white dark:bg-surface border border-[#E8E3D8] text-[#1C1A17] text-[13px] font-black shadow-none transition-colors active:scale-[0.98]"
             >
               Visit Link <CornerDownRight className="w-4 h-4" />
             </button>
@@ -509,7 +509,7 @@ export function TikTokFeed({ clips, className, initialIndex = 0, onClose }: TikT
         </div>
 
         {/* Mobile counter pill */}
-        <div className="lg:hidden absolute top-5 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 px-3 py-1.5 bg-black/30 rounded-none border border-white/20">
+        <div className="lg:hidden absolute top-5 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 px-3 py-1.5 bg-black/30 rounded-sm border border-white/20">
           <span className="text-[12px] font-bold text-white">{index + 1}</span>
           <span className="text-[12px] text-white/40">/</span>
           <span className="text-[12px] font-bold text-white/60">{clips.length}</span>
@@ -530,7 +530,7 @@ export function TikTokFeed({ clips, className, initialIndex = 0, onClose }: TikT
                   onClick={action.onClick ?? undefined}
                   disabled={!action.onClick}
                   className={cn(
-                    "flex items-center gap-2 flex-1 h-10 rounded-none px-3 font-bold text-[13px] transition-all border",
+                    "flex items-center gap-2 flex-1 h-10 rounded-sm px-3 font-bold text-[13px] transition-all border",
                     !action.onClick && "pointer-events-none cursor-default",
                     action.key === "like" && action.active
                       ? "bg-rose-50 border-rose-200 text-rose-600"
@@ -569,7 +569,7 @@ export function TikTokFeed({ clips, className, initialIndex = 0, onClose }: TikT
                 <FollowButton
                   followLabel="Follow"
                   vendorId={clip.vendors.id}
-                  className="rounded-none h-9 px-4 text-[12px] font-black bg-[#1C1A17] border-0 text-white hover:bg-[#2C2A27] shrink-0 transition-all uppercase tracking-tight shadow-none active:scale-95"
+                  className="rounded-sm h-9 px-4 text-[12px] font-black bg-[#1C1A17] border-0 text-white hover:bg-[#2C2A27] shrink-0 transition-all uppercase tracking-tight shadow-none active:scale-95"
                 />
               )}
             </div>
@@ -578,17 +578,17 @@ export function TikTokFeed({ clips, className, initialIndex = 0, onClose }: TikT
           {/* Caption */}
           <div className="px-7 py-5 border-b border-[#F3F0EA]">
             {clip.video_type === "product" && clip.products && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 mb-3 text-[11px] font-bold text-[#D85A30] bg-[#D85A30]/8 rounded-none border border-[#D85A30]/15">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 mb-3 text-[11px] font-bold text-[#D85A30] bg-[#D85A30]/8 rounded-sm border border-[#D85A30]/15">
                 <ShoppingCart className="w-3 h-3" /> Promoting: {clip.products.name}
               </span>
             )}
             {clip.video_type === "community" && clip.communities && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 mb-3 text-[11px] font-bold text-indigo-600 bg-indigo-50 rounded-none border border-indigo-100">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 mb-3 text-[11px] font-bold text-indigo-600 bg-indigo-50 rounded-sm border border-indigo-100">
                 <CheckCircle2 className="w-3 h-3" /> Community: {clip.communities.name}
               </span>
             )}
             {(clip.video_type === "general" || !clip.video_type) && clip.external_link && (
-              <span className="inline-block px-2.5 py-1 mb-3 text-[11px] font-bold text-[#5C574F] bg-[#F3F0EA] rounded-none border border-[#E8E3D8]">Sponsored Link</span>
+              <span className="inline-block px-2.5 py-1 mb-3 text-[11px] font-bold text-[#5C574F] bg-[#F3F0EA] rounded-sm border border-[#E8E3D8]">Sponsored Link</span>
             )}
             <p className="text-[14px] text-[#5C574F] leading-relaxed line-clamp-4">{clip.title}</p>
           </div>
@@ -597,9 +597,9 @@ export function TikTokFeed({ clips, className, initialIndex = 0, onClose }: TikT
           {(!clip.video_type || clip.video_type === "product") && clip.products && (
             <div className="px-7 py-7 border-b border-[#F3F0EA]">
               <p className="text-[10px] font-black text-[#9C978D] uppercase tracking-widest mb-4">Creator Selection</p>
-              <div className="w-full rounded-none overflow-hidden bg-[#FAF8F5] border border-[#E8E3D8] shadow-none mb-5">
+              <div className="w-full rounded-sm overflow-hidden bg-[#FAF8F5] border border-[#E8E3D8] shadow-none mb-5">
                 <button type="button" onClick={() => setProductPopup(clip)} className="flex items-center gap-4 w-full p-4 text-left group">
-                  <div className="w-18 h-18 rounded-none bg-white dark:bg-surface flex items-center justify-center shrink-0 overflow-hidden border border-[#E8E3D8] shadow-none" style={{ width: 72, height: 72 }}>
+                  <div className="w-18 h-18 rounded-sm bg-white dark:bg-surface flex items-center justify-center shrink-0 overflow-hidden border border-[#E8E3D8] shadow-none" style={{ width: 72, height: 72 }}>
                     {Array.isArray(clip.products.images) && clip.products.images[0]
                       ? <img src={clip.products.images[0]} alt="" className="w-full h-full object-cover transition-transform group-hover:scale-105" />
                       : <ShoppingCart className="h-6 w-6 text-[#D8D3C5]" />}
@@ -612,7 +612,7 @@ export function TikTokFeed({ clips, className, initialIndex = 0, onClose }: TikT
               </div>
               <div className="flex gap-3">
                 <button
-                  className="flex-1 h-12 rounded-none bg-[#D85A30] hover:bg-[#C24D25] text-white text-[13px] font-black uppercase tracking-widest transition-all shadow-none shadow-[#D85A30]/15 active:scale-95"
+                  className="flex-1 h-12 rounded-sm bg-[#D85A30] hover:bg-[#C24D25] text-white text-[13px] font-black uppercase tracking-widest transition-all shadow-none shadow-[#D85A30]/15 active:scale-95"
                   onClick={() => {
                     document.cookie = `jimvio_last_video_id=${clip.id}; path=/; max-age=86400`;
                     if (clip.itemType === "short" && clip.products?.id) recordVideoClick(clip.id, clip.products.id).catch(() => { });
@@ -623,7 +623,7 @@ export function TikTokFeed({ clips, className, initialIndex = 0, onClose }: TikT
                 </button>
                 <button
                   disabled={addingToCart[clip.id] || addedItems[clip.id]}
-                  className="w-12 h-12 rounded-none bg-white dark:bg-surface border border-[#E8E3D8] hover:bg-[#F3F0EA] text-[#1C1A17] flex items-center justify-center transition-all disabled:opacity-50 active:scale-95 shadow-none"
+                  className="w-12 h-12 rounded-sm bg-white dark:bg-surface border border-[#E8E3D8] hover:bg-[#F3F0EA] text-[#1C1A17] flex items-center justify-center transition-all disabled:opacity-50 active:scale-95 shadow-none"
                   onClick={(e) => { e.stopPropagation(); handleAddToCart(clip); }}
                 >
                   {addingToCart[clip.id] ? <Loader2 className="h-4 w-4 animate-spin text-[#D85A30]" /> : addedItems[clip.id] ? <CheckCircle2 className="h-5 w-5 text-emerald-500" /> : <ShoppingCart className="h-5 w-5" />}
@@ -636,11 +636,11 @@ export function TikTokFeed({ clips, className, initialIndex = 0, onClose }: TikT
           {clip.video_type === "community" && clip.communities && (
             <div className="px-7 py-7 border-b border-[#F3F0EA]">
               <p className="text-[10px] font-black text-[#9C978D] uppercase tracking-widest mb-4">Exclusive Community</p>
-              <div className="w-full rounded-none overflow-hidden bg-[#FAF8F5] border border-[#E8E3D8] shadow-none mb-5 group/comm">
+              <div className="w-full rounded-sm overflow-hidden bg-[#FAF8F5] border border-[#E8E3D8] shadow-none mb-5 group/comm">
                 <div className="h-24 bg-gradient-to-br from-[#D85A30]/10 to-indigo-100/50 relative overflow-hidden">
                   {clip.communities.cover_image && <img src={clip.communities.cover_image} alt="" className="absolute inset-0 w-full h-full object-cover opacity-50 group-hover/comm:scale-105 transition-transform duration-700" />}
                   <div className="absolute bottom-3 left-4 flex items-center gap-2.5">
-                    <div className="w-10 h-10 rounded-none bg-white dark:bg-surface shadow-none border border-[#E8E3D8] flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-sm bg-white dark:bg-surface shadow-none border border-[#E8E3D8] flex items-center justify-center">
                       <span className="text-lg font-black text-[#D85A30]">{clip.communities.name.charAt(0)}</span>
                     </div>
                   </div>
@@ -649,7 +649,7 @@ export function TikTokFeed({ clips, className, initialIndex = 0, onClose }: TikT
                   <h4 className="text-[17px] font-black text-[#1C1A17] mb-1">{clip.communities.name}</h4>
                   <div className="flex items-center gap-2 mb-4">
                     <div className="flex -space-x-1.5">
-                      {[1, 2, 3].map(i => <div key={i} className="h-5 w-5 rounded-none bg-[#E8E3D8] border-2 border-white" />)}
+                      {[1, 2, 3].map(i => <div key={i} className="h-5 w-5 rounded-sm bg-[#E8E3D8] border-2 border-white" />)}
                     </div>
                     <span className="text-[11px] font-bold text-[#9C978D]">
                       {clip.communities.member_count ? formatViews(clip.communities.member_count) : "0"} members
@@ -661,14 +661,14 @@ export function TikTokFeed({ clips, className, initialIndex = 0, onClose }: TikT
                       <div className="space-y-2.5 mb-4">
                         {[{ icon: <Sparkles className="h-3 w-3" />, text: "Premium Networking" }, { icon: <Play className="h-3 w-3" />, text: "Exclusive Content" }, { icon: <CheckCircle2 className="h-3 w-3" />, text: "Verified Community" }].map((feat, i) => (
                           <div key={i} className="flex items-center gap-2.5 text-[13px] font-medium text-[#5C574F]">
-                            <div className="w-6 h-6 rounded-none bg-white dark:bg-surface border border-[#E8E3D8] flex items-center justify-center text-[#D85A30]">{feat.icon}</div>
+                            <div className="w-6 h-6 rounded-sm bg-white dark:bg-surface border border-[#E8E3D8] flex items-center justify-center text-[#D85A30]">{feat.icon}</div>
                             {feat.text}
                           </div>
                         ))}
                       </div>
                     )}
                   <button
-                    className="w-full h-11 rounded-none bg-[#1C1A17] hover:bg-black text-white text-[13px] font-black uppercase tracking-widest transition-all shadow-none active:scale-95"
+                    className="w-full h-11 rounded-sm bg-[#1C1A17] hover:bg-black text-white text-[13px] font-black uppercase tracking-widest transition-all shadow-none active:scale-95"
                     onClick={() => {
                       document.cookie = `jimvio_last_video_id=${clip.id}; path=/; max-age=86400`;
                       if (clip.itemType === "short") recordVideoClick(clip.id).catch(() => { });
@@ -687,7 +687,7 @@ export function TikTokFeed({ clips, className, initialIndex = 0, onClose }: TikT
             <div className="px-7 py-6 border-b border-[#F3F0EA]">
               <p className="text-[10px] font-black text-[#9C978D] uppercase tracking-widest mb-4">Promotional Link</p>
               <button
-                className="w-full h-11 rounded-none bg-[#1C1A17] hover:bg-[#2C2A27] text-white text-[13px] font-bold transition-colors flex items-center justify-center gap-2 shadow-none"
+                className="w-full h-11 rounded-sm bg-[#1C1A17] hover:bg-[#2C2A27] text-white text-[13px] font-bold transition-colors flex items-center justify-center gap-2 shadow-none"
                 onClick={() => {
                   document.cookie = `jimvio_last_video_id=${clip.id}; path=/; max-age=86400`;
                   if (clip.itemType === "short") recordVideoClick(clip.id).catch(() => { });
@@ -707,9 +707,9 @@ export function TikTokFeed({ clips, className, initialIndex = 0, onClose }: TikT
                 <button
                   key={c.id}
                   onClick={() => setIndex(index + 1 + i)}
-                  className="flex items-center gap-3.5 p-3 rounded-none hover:bg-[#F3F0EA] transition-all text-left group border border-transparent hover:border-[#E8E3D8]"
+                  className="flex items-center gap-3.5 p-3 rounded-sm hover:bg-[#F3F0EA] transition-all text-left group border border-transparent hover:border-[#E8E3D8]"
                 >
-                  <div className="w-11 h-11 rounded-none overflow-hidden shrink-0 bg-[#F3F0EA] border border-[#E8E3D8]">
+                  <div className="w-11 h-11 rounded-sm overflow-hidden shrink-0 bg-[#F3F0EA] border border-[#E8E3D8]">
                     {c.thumbnail_url
                       ? <img src={c.thumbnail_url} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                       : <div className="w-full h-full flex items-center justify-center"><Play className="h-4 w-4 text-[#D8D3C5]" /></div>}
@@ -775,16 +775,16 @@ function CommentDrawer({ isOpen, onClose, comments, loading, onAddComment }: {
           <motion.div
             initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
             transition={{ type: "spring", damping: 28, stiffness: 220 }}
-            className="relative w-full h-[72vh] bg-white dark:bg-surface rounded-none-[28px] flex flex-col overflow-hidden lg:h-full lg:w-96 lg:translate-x-0 lg:rounded-none border-t border-[#E8E3D8] shadow-[0_-8px_40px_rgba(0,0,0,0.1)]"
+            className="relative w-full h-[72vh] bg-white dark:bg-surface rounded-sm-[28px] flex flex-col overflow-hidden lg:h-full lg:w-96 lg:translate-x-0 lg:rounded-sm border-t border-[#E8E3D8] shadow-[0_-8px_40px_rgba(0,0,0,0.1)]"
           >
             <div className="flex items-center justify-between px-6 py-5 border-b border-[#F3F0EA] shrink-0">
               {/* Drag pill (mobile) */}
-              <div className="absolute top-3 left-1/2 -translate-x-1/2 w-10 h-1 rounded-none bg-[#E8E3D8] lg:hidden" />
+              <div className="absolute top-3 left-1/2 -translate-x-1/2 w-10 h-1 rounded-sm bg-[#E8E3D8] lg:hidden" />
               <div>
                 <h3 className="text-[16px] font-black text-[#1C1A17]">Comments</h3>
                 {comments.length > 0 && <p className="text-[12px] text-[#9C978D] mt-0.5">{comments.length} comment{comments.length !== 1 ? "s" : ""}</p>}
               </div>
-              <button onClick={onClose} className="p-2 hover:bg-[#F3F0EA] rounded-none transition-colors">
+              <button onClick={onClose} className="p-2 hover:bg-[#F3F0EA] rounded-sm transition-colors">
                 <X className="h-5 w-5 text-[#9C978D]" />
               </button>
             </div>
@@ -797,14 +797,14 @@ function CommentDrawer({ isOpen, onClose, comments, loading, onAddComment }: {
                 </div>
               ) : comments.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-40 text-center gap-3">
-                  <div className="w-14 h-14 rounded-none bg-white dark:bg-surface border border-[#E8E3D8] flex items-center justify-center shadow-none">
+                  <div className="w-14 h-14 rounded-sm bg-white dark:bg-surface border border-[#E8E3D8] flex items-center justify-center shadow-none">
                     <MessageCircle className="h-6 w-6 text-[#D8D3C5]" />
                   </div>
                   <p className="text-[14px] font-semibold text-[#1C1A17]">No comments yet</p>
                   <p className="text-[12px] text-[#9C978D]">Be the first to share your thoughts!</p>
                 </div>
               ) : comments.map((comment) => (
-                <div key={comment.id} className="flex gap-3 p-3.5 bg-white dark:bg-surface rounded-none border border-[#F3F0EA] shadow-none">
+                <div key={comment.id} className="flex gap-3 p-3.5 bg-white dark:bg-surface rounded-sm border border-[#F3F0EA] shadow-none">
                   <Avatar className="h-9 w-9 shrink-0 border border-[#E8E3D8]">
                     <AvatarImage src={comment.user.avatar_url} />
                     <AvatarFallback className="bg-[#F3F0EA] text-[#1C1A17] font-bold text-[11px]">{comment.user.full_name?.charAt(0) || "C"}</AvatarFallback>
@@ -821,7 +821,7 @@ function CommentDrawer({ isOpen, onClose, comments, loading, onAddComment }: {
             </div>
 
             <div className="p-4 bg-white dark:bg-surface border-t border-[#E8E3D8] shrink-0">
-              <form onSubmit={handleSubmit} className="flex items-center gap-2 bg-[#FAF8F5] rounded-none border border-[#E8E3D8] p-1.5 focus-within:border-[#D85A30] focus-within:ring-2 focus-within:ring-[#D85A30]/10 transition-all">
+              <form onSubmit={handleSubmit} className="flex items-center gap-2 bg-[#FAF8F5] rounded-sm border border-[#E8E3D8] p-1.5 focus-within:border-[#D85A30] focus-within:ring-2 focus-within:ring-[#D85A30]/10 transition-all">
                 <input
                   type="text"
                   placeholder="Add a comment..."
@@ -832,7 +832,7 @@ function CommentDrawer({ isOpen, onClose, comments, loading, onAddComment }: {
                 <button
                   type="submit"
                   disabled={!newComment.trim() || submitting}
-                  className="h-9 w-9 rounded-none bg-[#D85A30] hover:bg-[#C24D25] text-white flex items-center justify-center transition-all disabled:opacity-40 active:scale-95"
+                  className="h-9 w-9 rounded-sm bg-[#D85A30] hover:bg-[#C24D25] text-white flex items-center justify-center transition-all disabled:opacity-40 active:scale-95"
                 >
                   {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                 </button>

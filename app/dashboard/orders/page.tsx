@@ -202,7 +202,7 @@ export default function BuyerOrdersPage() {
                     const date = new Date(o.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
  
                      return (
-                       <GlassCard key={o.id} className="p-4 sm:p-6 rounded-2xl bg-surface/60 dark:bg-surface-secondary/40 border border-border hover:bg-surface dark:hover:bg-zinc-800 transition-all shadow-sm max-sm:-mx-4 max-sm:rounded-none max-sm:border-x-0">
+                       <GlassCard key={o.id} className="p-4 sm:p-6 rounded-2xl bg-surface/60 dark:bg-surface-secondary/40 border border-border hover:bg-surface dark:hover:bg-zinc-800 transition-all shadow-sm max-sm:-mx-4 max-sm:rounded-sm max-sm:border-x-0">
                           <div className="flex flex-col lg:flex-row gap-6 sm:gap-8 items-start">
                              
                              <div className="flex-1 space-y-4 sm:space-y-6 w-full">

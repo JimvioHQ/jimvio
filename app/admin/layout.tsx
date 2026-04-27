@@ -86,7 +86,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-none border border-[var(--color-border)]/70 bg-[var(--color-surface-secondary)]/80 text-[var(--color-text-muted)] shadow-none outline-none transition-colors hover:text-[var(--color-text-primary)] focus-visible:ring-2 focus-visible:ring-red-500/40 active:scale-[0.98] touch-manipulation"
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-sm border border-[var(--color-border)]/70 bg-[var(--color-surface-secondary)]/80 text-[var(--color-text-muted)] shadow-none outline-none transition-colors hover:text-[var(--color-text-primary)] focus-visible:ring-2 focus-visible:ring-red-500/40 active:scale-[0.98] touch-manipulation"
                   aria-label="Account menu"
                 >
                   <UserRound className="h-5 w-5" strokeWidth={1.35} />
@@ -131,7 +131,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           style={{ bottom: "max(0.5rem, env(safe-area-inset-bottom, 0px))" }}
           aria-label="Admin primary"
         >
-          <div className="pointer-events-auto mx-3 rounded-none border border-[var(--color-border)]/60 bg-[var(--color-surface)]/85 backdrop-blur-xl backdrop-saturate-150 shadow-[0_-4px_24px_-4px_rgba(0,0,0,0.12),0_8px_32px_-8px_rgba(239,68,68,0.14)] supports-[backdrop-filter]:bg-[var(--color-surface)]/72">
+          <div className="pointer-events-auto mx-3 rounded-sm border border-[var(--color-border)]/60 bg-[var(--color-surface)]/85 backdrop-blur-xl backdrop-saturate-150 shadow-[0_-4px_24px_-4px_rgba(0,0,0,0.12),0_8px_32px_-8px_rgba(239,68,68,0.14)] supports-[backdrop-filter]:bg-[var(--color-surface)]/72">
             <div className="flex items-stretch justify-between px-0.5 py-1 min-h-[3.5rem]">
               <AdminBottomNavLink
                 href="/admin"
@@ -166,11 +166,11 @@ function AdminBottomNavMore({ onClick }: { onClick: () => void }) {
       type="button"
       onClick={onClick}
       className={cn(
-        "flex flex-col items-center justify-center gap-0.5 flex-1 min-w-0 py-1.5 rounded-none transition-colors duration-200 active:opacity-80",
+        "flex flex-col items-center justify-center gap-0.5 flex-1 min-w-0 py-1.5 rounded-sm transition-colors duration-200 active:opacity-80",
         "touch-manipulation select-none text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"
       )}
     >
-      <span className="flex h-9 w-9 items-center justify-center rounded-none transition-transform duration-200">
+      <span className="flex h-9 w-9 items-center justify-center rounded-sm transition-transform duration-200">
         <Menu className="h-[1.35rem] w-[1.35rem]" />
       </span>
       <span className="text-[9px] sm:text-[10px] font-semibold tracking-tight truncate max-w-[4.25rem] text-center leading-tight">
@@ -196,7 +196,7 @@ function AdminBottomNavLink({
     <Link
       href={href}
       className={cn(
-        "flex flex-col items-center justify-center gap-0.5 flex-1 min-w-0 py-1.5 rounded-none transition-colors duration-200 active:opacity-80",
+        "flex flex-col items-center justify-center gap-0.5 flex-1 min-w-0 py-1.5 rounded-sm transition-colors duration-200 active:opacity-80",
         "touch-manipulation select-none",
         isActive
           ? "text-red-600 bg-red-500/10"
@@ -205,7 +205,7 @@ function AdminBottomNavLink({
     >
       <span
         className={cn(
-          "flex h-9 w-9 items-center justify-center rounded-none duration-200",
+          "flex h-9 w-9 items-center justify-center rounded-sm duration-200",
           isActive && "scale-105"
         )}
       >

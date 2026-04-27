@@ -63,14 +63,14 @@ export function OrderStatusBadge({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-none border border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-2.5 py-0.5 font-semibold",
+        "inline-flex items-center gap-1.5 rounded-sm border border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-2.5 py-0.5 font-semibold",
         cfg.text,
         size === "md" && "px-3 py-1 text-sm",
         size === "sm" && "text-xs",
         className
       )}
     >
-      <span className={cn("h-1.5 w-1.5 shrink-0 rounded-none", cfg.dot)} />
+      <span className={cn("h-1.5 w-1.5 shrink-0 rounded-sm", cfg.dot)} />
       {cfg.label}
     </span>
   );

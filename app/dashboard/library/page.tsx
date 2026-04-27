@@ -91,9 +91,9 @@ export default function DigitalLibraryPage() {
     return (
        <div className="min-h-screen flex flex-col items-center justify-center space-y-12 animate-in fade-in duration-700" style={{ background: "var(--color-bg)" }}>
          <div className="relative">
-           <div className="absolute inset-0 bg-orange-400/20 blur-3xl rounded-none scale-150 animate-pulse" />
-           <div className="relative w-24 h-24 rounded-none bg-surface dark:bg-surface border border-border shadow-none flex items-center justify-center overflow-hidden">
-             <div className="absolute inset-0 border-2 border-t-orange-500 border-r-transparent border-b-transparent border-l-transparent rounded-none animate-spin m-2" />
+           <div className="absolute inset-0 bg-orange-400/20 blur-3xl rounded-sm scale-150 animate-pulse" />
+           <div className="relative w-24 h-24 rounded-sm bg-surface dark:bg-surface border border-border shadow-none flex items-center justify-center overflow-hidden">
+             <div className="absolute inset-0 border-2 border-t-orange-500 border-r-transparent border-b-transparent border-l-transparent rounded-sm animate-spin m-2" />
              <Video className="h-10 w-10 text-stone-900 dark:text-white" />
            </div>
          </div>
@@ -116,7 +116,7 @@ export default function DigitalLibraryPage() {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 sm:gap-8">
            <div className="space-y-2">
               <h1 className="text-3xl sm:text-4xl font-black text-stone-900 dark:text-white tracking-tighter flex items-center gap-4">
-                 <div className="p-2.5 rounded-none bg-surface dark:bg-surface border border-border shadow-none shrink-0">
+                 <div className="p-2.5 rounded-sm bg-surface dark:bg-surface border border-border shadow-none shrink-0">
                     <Zap className="h-7 w-7 sm:h-8 sm:w-8 text-orange-500" />
                  </div>
                  Digital Library
@@ -132,21 +132,21 @@ export default function DigitalLibraryPage() {
                  placeholder="Search your library..."
                  value={search}
                  onChange={(e) => setSearch(e.target.value)}
-                 className="w-full h-12 sm:h-14 pl-12 pr-6 rounded-none bg-surface dark:bg-surface border border-border text-[13px] font-bold text-stone-900 dark:text-white placeholder:text-stone-300 dark:placeholder:text-stone-600 shadow-none focus:outline-none focus:bg-surface-secondary dark:focus:bg-zinc-800 transition-all"
+                 className="w-full h-12 sm:h-14 pl-12 pr-6 rounded-sm bg-surface dark:bg-surface border border-border text-[13px] font-bold text-stone-900 dark:text-white placeholder:text-stone-300 dark:placeholder:text-stone-600 shadow-none focus:outline-none focus:bg-surface-secondary dark:focus:bg-zinc-800 transition-all"
               />
            </div>
         </div>
 
         {filtered.length === 0 ? (
-           <GlassCard className="p-16 sm:p-24 text-center rounded-none sm:rounded-none border-border bg-surface dark:bg-surface/20">
-              <div className="w-20 h-20 sm:w-24 sm:h-24 bg-surface dark:bg-surface rounded-none sm:rounded-none flex items-center justify-center mx-auto mb-6 sm:mb-8 border border-border shadow-none">
+           <GlassCard className="p-16 sm:p-24 text-center rounded-sm sm:rounded-sm border-border bg-surface dark:bg-surface/20">
+              <div className="w-20 h-20 sm:w-24 sm:h-24 bg-surface dark:bg-surface rounded-sm sm:rounded-sm flex items-center justify-center mx-auto mb-6 sm:mb-8 border border-border shadow-none">
                  <Zap className="h-8 w-8 sm:h-10 sm:w-10 text-stone-300 dark:text-stone-600" />
               </div>
               <h2 className="text-2xl sm:text-3xl font-black text-stone-900 dark:text-white tracking-tighter uppercase">Library is Empty</h2>
               <p className="text-[10px] sm:text-[11px] font-bold text-stone-400 dark:text-text-muted uppercase tracking-widest mt-4 max-w-sm mx-auto leading-relaxed">
                  Digital purchases like templates, courses, and software will appear here instantly after payment.
               </p>
-              <Button asChild className="h-14 sm:h-16 px-10 sm:px-12 rounded-none sm:rounded-none bg-stone-900 dark:bg-white dark:bg-surface text-white dark:text-stone-900 dark:text-white font-black text-[10px] sm:text-[11px] uppercase tracking-widest shadow-none mt-8 sm:mt-10 hover:bg-black dark:hover:bg-stone-100 transition-all border-none">
+              <Button asChild className="h-14 sm:h-16 px-10 sm:px-12 rounded-sm sm:rounded-sm bg-stone-900 dark:bg-white dark:bg-surface text-white dark:text-stone-900 dark:text-white font-black text-[10px] sm:text-[11px] uppercase tracking-widest shadow-none mt-8 sm:mt-10 hover:bg-black dark:hover:bg-stone-100 transition-all border-none">
                  <Link href="/marketplace">Explore Marketplace</Link>
               </Button>
            </GlassCard>
@@ -159,7 +159,7 @@ export default function DigitalLibraryPage() {
                   : new Date(item.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 
                 return (
-                  <GlassCard key={item.id} className="overflow-hidden p-0 rounded-none sm:rounded-none border-border bg-surface dark:bg-surface/60 hover:shadow-none hover:bg-surface-secondary dark:hover:bg-zinc-800 transition-all duration-500 group">
+                  <GlassCard key={item.id} className="overflow-hidden p-0 rounded-sm sm:rounded-sm border-border bg-surface dark:bg-surface/60 hover:shadow-none hover:bg-surface-secondary dark:hover:bg-zinc-800 transition-all duration-500 group">
                     {/* Thumbnail */}
                     <div className="aspect-[4/3] relative bg-stone-100 dark:bg-surface-secondary overflow-hidden">
                       {item.product_image ? (
@@ -175,35 +175,35 @@ export default function DigitalLibraryPage() {
                       <div className="absolute inset-0 bg-stone-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3 backdrop-blur-[2px]">
                          {item.digital_download_url ? (
                            <a href={item.digital_download_url} target="_blank" rel="noopener noreferrer" download>
-                             <Button size="icon" className="rounded-none h-12 w-12 sm:h-14 sm:w-14 bg-surface dark:bg-surface text-stone-900 dark:text-white hover:bg-surface-secondary dark:hover:bg-zinc-800 border-0 shadow-none hover:scale-110 transition-all">
+                             <Button size="icon" className="rounded-sm h-12 w-12 sm:h-14 sm:w-14 bg-surface dark:bg-surface text-stone-900 dark:text-white hover:bg-surface-secondary dark:hover:bg-zinc-800 border-0 shadow-none hover:scale-110 transition-all">
                                <Download className="h-5 w-5 sm:h-6 sm:w-6" />
                              </Button>
                            </a>
                          ) : (
-                           <Button size="icon" disabled className="rounded-none h-12 w-12 sm:h-14 sm:w-14 opacity-50 bg-surface dark:bg-surface border-0">
+                           <Button size="icon" disabled className="rounded-sm h-12 w-12 sm:h-14 sm:w-14 opacity-50 bg-surface dark:bg-surface border-0">
                              <RefreshCw className="h-5 w-5 sm:h-6 sm:w-6 animate-spin" />
                            </Button>
                          )}
                          <a href={item.digital_download_url ?? "#"} target="_blank" rel="noopener noreferrer">
-                           <Button size="icon" className="rounded-none h-12 w-12 sm:h-14 sm:w-14 bg-surface dark:bg-surface text-stone-900 dark:text-white hover:bg-surface-secondary dark:hover:bg-zinc-800 border-0 shadow-none hover:scale-110 transition-all">
+                           <Button size="icon" className="rounded-sm h-12 w-12 sm:h-14 sm:w-14 bg-surface dark:bg-surface text-stone-900 dark:text-white hover:bg-surface-secondary dark:hover:bg-zinc-800 border-0 shadow-none hover:scale-110 transition-all">
                              <ExternalLink className="h-5 w-5 sm:h-6 sm:w-6" />
                            </Button>
                          </a>
                       </div>
 
                       {/* Type badge */}
-                      <div className="absolute top-3 right-3 sm:top-4 sm:right-4 bg-surface/90 dark:bg-surface/90 backdrop-blur-xl px-3 py-1.5 sm:px-4 rounded-none text-[7px] sm:text-[8px] font-black uppercase tracking-[0.2em] text-stone-900 dark:text-white shadow-none border border-border">
+                      <div className="absolute top-3 right-3 sm:top-4 sm:right-4 bg-surface/90 dark:bg-surface/90 backdrop-blur-xl px-3 py-1.5 sm:px-4 rounded-sm text-[7px] sm:text-[8px] font-black uppercase tracking-[0.2em] text-stone-900 dark:text-white shadow-none border border-border">
                           âš¡ Digital
                       </div>
 
                       {/* Access granted indicator */}
                       {item.digital_download_url && (
-                        <div className="absolute bottom-3 left-3 sm:bottom-4 sm:left-4 bg-emerald-500/90 backdrop-blur-md px-2.5 py-1 rounded-none text-[7px] sm:text-[8px] font-black uppercase tracking-widest text-white">
+                        <div className="absolute bottom-3 left-3 sm:bottom-4 sm:left-4 bg-emerald-500/90 backdrop-blur-md px-2.5 py-1 rounded-sm text-[7px] sm:text-[8px] font-black uppercase tracking-widest text-white">
                           ✓" Access Granted
                         </div>
                       )}
                       {!item.digital_download_url && (
-                        <div className="absolute bottom-3 left-3 sm:bottom-4 sm:left-4 bg-amber-500/90 backdrop-blur-md px-2.5 py-1 rounded-none text-[7px] sm:text-[8px] font-black uppercase tracking-widest text-white">
+                        <div className="absolute bottom-3 left-3 sm:bottom-4 sm:left-4 bg-amber-500/90 backdrop-blur-md px-2.5 py-1 rounded-sm text-[7px] sm:text-[8px] font-black uppercase tracking-widest text-white">
                           â³ Processing
                         </div>
                       )}
@@ -213,7 +213,7 @@ export default function DigitalLibraryPage() {
                     <div className="p-5 sm:p-8">
                       <h4 className="font-black text-base sm:text-xl text-stone-900 dark:text-white truncate tracking-tighter mb-3 sm:mb-4 group-hover:text-orange-600 transition-colors">{item.product_name}</h4>
                       <div className="flex items-center justify-between mb-4 sm:mb-5">
-                        <div className="flex items-center gap-2 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-stone-400 dark:text-text-muted bg-surface-secondary dark:bg-surface-secondary px-2.5 py-1.5 rounded-none">
+                        <div className="flex items-center gap-2 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-stone-400 dark:text-text-muted bg-surface-secondary dark:bg-surface-secondary px-2.5 py-1.5 rounded-sm">
                            <FileText className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> {fileLabel}
                         </div>
                         <span className="text-[9px] sm:text-[10px] font-bold text-stone-300 dark:text-stone-600 uppercase tracking-widest">{grantedDate}</span>
@@ -222,12 +222,12 @@ export default function DigitalLibraryPage() {
                       {/* Download button */}
                       {item.digital_download_url ? (
                         <a href={item.digital_download_url} target="_blank" rel="noopener noreferrer" download className="block">
-                          <Button className="w-full justify-center gap-2 sm:gap-3 rounded-none sm:rounded-none text-[10px] sm:text-[11px] font-black uppercase tracking-widest h-12 sm:h-14 bg-stone-900 dark:bg-white dark:bg-surface text-white dark:text-stone-900 dark:text-white shadow-none hover:bg-black dark:hover:bg-stone-100 active:scale-95 transition-all border-none">
+                          <Button className="w-full justify-center gap-2 sm:gap-3 rounded-sm sm:rounded-sm text-[10px] sm:text-[11px] font-black uppercase tracking-widest h-12 sm:h-14 bg-stone-900 dark:bg-white dark:bg-surface text-white dark:text-stone-900 dark:text-white shadow-none hover:bg-black dark:hover:bg-stone-100 active:scale-95 transition-all border-none">
                              <Download className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Download File
                           </Button>
                         </a>
                       ) : (
-                        <Button disabled className="w-full justify-center gap-2 sm:gap-3 rounded-none sm:rounded-none text-[10px] sm:text-[11px] font-black uppercase tracking-widest h-12 sm:h-14 bg-stone-200 dark:bg-surface-secondary text-stone-400 dark:text-text-muted border-none opacity-70">
+                        <Button disabled className="w-full justify-center gap-2 sm:gap-3 rounded-sm sm:rounded-sm text-[10px] sm:text-[11px] font-black uppercase tracking-widest h-12 sm:h-14 bg-stone-200 dark:bg-surface-secondary text-stone-400 dark:text-text-muted border-none opacity-70">
                            <RefreshCw className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" /> Preparing...
                         </Button>
                       )}

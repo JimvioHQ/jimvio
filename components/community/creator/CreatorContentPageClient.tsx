@@ -169,7 +169,7 @@ export function CreatorContentPageClient({ communityId }: { communityId: string 
             type="button"
             onClick={() => setTab(t)}
             className={cn(
-              "px-4 py-2 rounded-none text-sm font-black",
+              "px-4 py-2 rounded-sm text-sm font-black",
               tab === t ? "bg-[var(--color-accent-light)] text-[var(--color-accent)]" : "text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)]"
             )}
           >
@@ -185,7 +185,7 @@ export function CreatorContentPageClient({ communityId }: { communityId: string 
       ) : (
         <>
           {tab === "Posts" && (
-            <div className="rounded-none border border-[var(--color-border)] overflow-x-auto bg-[var(--color-surface)]">
+            <div className="rounded-sm border border-[var(--color-border)] overflow-x-auto bg-[var(--color-surface)]">
               <table className="w-full text-sm min-w-[700px]">
                 <thead>
                   <tr className="border-b border-[var(--color-border)] bg-[var(--color-surface-secondary)]/60 text-[10px] font-black uppercase text-[var(--color-text-muted)] text-left">
@@ -222,32 +222,32 @@ export function CreatorContentPageClient({ communityId }: { communityId: string 
           {tab === "Courses" && (
             <div className="space-y-3">
               {courses.map((c) => (
-                <div key={c.id} className="flex flex-wrap items-center justify-between gap-3 rounded-none border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+                <div key={c.id} className="flex flex-wrap items-center justify-between gap-3 rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
                   <div>
                     <p className="font-black">{c.title}</p>
                     <p className="text-xs text-[var(--color-text-muted)]">Room: {(c.rooms as { name?: string } | null)?.name || ""}</p>
                   </div>
-                  <span className="text-xs font-black px-2 py-1 rounded-none bg-[var(--color-surface-secondary)]">{c.is_published ? "Published" : "Draft"}</span>
-                  <Button type="button" variant="outline" className="rounded-none text-xs" onClick={() => toggleCoursePub(c.id, c.is_published)}>
+                  <span className="text-xs font-black px-2 py-1 rounded-sm bg-[var(--color-surface-secondary)]">{c.is_published ? "Published" : "Draft"}</span>
+                  <Button type="button" variant="outline" className="rounded-sm text-xs" onClick={() => toggleCoursePub(c.id, c.is_published)}>
                     {c.is_published ? "Unpublish" : "Publish"}
                   </Button>
                 </div>
               ))}
-              {courses.length === 0 && <p className="text-sm text-[var(--color-text-muted)] py-8 text-center border border-dashed border-[var(--color-border)] rounded-none">No courses yet.</p>}
+              {courses.length === 0 && <p className="text-sm text-[var(--color-text-muted)] py-8 text-center border border-dashed border-[var(--color-border)] rounded-sm">No courses yet.</p>}
             </div>
           )}
 
           {tab === "Tasks" && (
             <div className="space-y-3">
               <div className="flex justify-end">
-                <Button type="button" className="rounded-none bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-black" onClick={() => setTaskModal(true)}>
+                <Button type="button" className="rounded-sm bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-black" onClick={() => setTaskModal(true)}>
                   Create Task
                 </Button>
               </div>
               {tasks.map((t) => {
                 const subs = taskCompletionsByTaskId[t.id] ?? [];
                 return (
-                  <div key={t.id} className="rounded-none border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden">
+                  <div key={t.id} className="rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden">
                     <div className="flex flex-wrap items-center justify-between gap-3 p-4">
                       <div>
                         <p className="font-black">{t.title}</p>
@@ -255,7 +255,7 @@ export function CreatorContentPageClient({ communityId }: { communityId: string 
                           {t.task_type} · {t.difficulty} · {t.points} pts · submissions: {subs.length}
                         </p>
                       </div>
-                      <Button type="button" variant="outline" className="rounded-none text-xs" onClick={() => toggleTaskActive(t.id, t.is_active)}>
+                      <Button type="button" variant="outline" className="rounded-sm text-xs" onClick={() => toggleTaskActive(t.id, t.is_active)}>
                         {t.is_active ? "Deactivate" : "Activate"}
                       </Button>
                     </div>
@@ -303,12 +303,12 @@ export function CreatorContentPageClient({ communityId }: { communityId: string 
                   </div>
                 );
               })}
-              {tasks.length === 0 && <p className="text-sm text-[var(--color-text-muted)] py-8 text-center border border-dashed border-[var(--color-border)] rounded-none">No tasks yet.</p>}
+              {tasks.length === 0 && <p className="text-sm text-[var(--color-text-muted)] py-8 text-center border border-dashed border-[var(--color-border)] rounded-sm">No tasks yet.</p>}
             </div>
           )}
 
           {tab === "Resources" && (
-            <p className="text-sm text-[var(--color-text-muted)] py-8 text-center border border-dashed border-[var(--color-border)] rounded-none">
+            <p className="text-sm text-[var(--color-text-muted)] py-8 text-center border border-dashed border-[var(--color-border)] rounded-sm">
               Manage files and links via resource rooms and posts with attachments. Upload flows can be wired to your storage provider.
             </p>
           )}
@@ -321,27 +321,27 @@ export function CreatorContentPageClient({ communityId }: { communityId: string 
             <DialogTitle className="font-black !text-[var(--color-text-primary)]">New task</DialogTitle>
           </DialogHeader>
           <div className="space-y-2">
-            <Input placeholder="Title" value={tTitle} onChange={(e) => setTTitle(e.target.value)} className="rounded-none" />
-            <Textarea placeholder="Description" value={tDesc} onChange={(e) => setTDesc(e.target.value)} rows={3} className="rounded-none" />
-            <select value={tType} onChange={(e) => setTType(e.target.value)} className="w-full rounded-none border border-[var(--color-border)] px-3 py-2 text-sm">
+            <Input placeholder="Title" value={tTitle} onChange={(e) => setTTitle(e.target.value)} className="rounded-sm" />
+            <Textarea placeholder="Description" value={tDesc} onChange={(e) => setTDesc(e.target.value)} rows={3} className="rounded-sm" />
+            <select value={tType} onChange={(e) => setTType(e.target.value)} className="w-full rounded-sm border border-[var(--color-border)] px-3 py-2 text-sm">
               <option value="daily">Daily</option>
               <option value="weekly">Weekly</option>
               <option value="challenge">Challenge</option>
               <option value="milestone">Milestone</option>
             </select>
-            <select value={tDiff} onChange={(e) => setTDiff(e.target.value)} className="w-full rounded-none border border-[var(--color-border)] px-3 py-2 text-sm">
+            <select value={tDiff} onChange={(e) => setTDiff(e.target.value)} className="w-full rounded-sm border border-[var(--color-border)] px-3 py-2 text-sm">
               <option value="easy">Easy</option>
               <option value="medium">Medium</option>
               <option value="hard">Hard</option>
             </select>
-            <Input type="number" value={tPoints} onChange={(e) => setTPoints(e.target.value)} className="rounded-none" placeholder="Points" />
+            <Input type="number" value={tPoints} onChange={(e) => setTPoints(e.target.value)} className="rounded-sm" placeholder="Points" />
             <RoomSelect communityId={communityId} value={tRoom} onChange={setTRoom} filterTasks />
           </div>
           <div className="flex justify-end gap-2 pt-2">
-            <Button variant="outline" className="rounded-none" onClick={() => setTaskModal(false)}>
+            <Button variant="outline" className="rounded-sm" onClick={() => setTaskModal(false)}>
               Cancel
             </Button>
-            <Button className="rounded-none bg-[var(--color-accent)] text-white font-black" disabled={saving} onClick={createTask}>
+            <Button className="rounded-sm bg-[var(--color-accent)] text-white font-black" disabled={saving} onClick={createTask}>
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
             </Button>
           </div>
@@ -378,7 +378,7 @@ function RoomSelect({
   }, [communityId, filterTasks]);
 
   return (
-    <select value={value} onChange={(e) => onChange(e.target.value)} className="w-full rounded-none border border-[var(--color-border)] px-3 py-2 text-sm">
+    <select value={value} onChange={(e) => onChange(e.target.value)} className="w-full rounded-sm border border-[var(--color-border)] px-3 py-2 text-sm">
       {rooms.map((r) => (
         <option key={r.id} value={r.id}>
           {r.name} ({r.room_type})

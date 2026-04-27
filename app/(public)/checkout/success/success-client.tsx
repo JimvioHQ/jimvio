@@ -78,8 +78,8 @@ export function CheckoutSuccessClient({ order }: { order: Order }) {
 
   return (
     <div className="text-center">
-      <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-none bg-[var(--color-success-light)] animate-[fade-in_0.5s_ease-out]">
-        <div className="flex h-14 w-14 items-center justify-center rounded-none bg-[var(--color-success)] text-white shadow-none animate-[scale-in_0.4s_ease-out]">
+      <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-sm bg-[var(--color-success-light)] animate-[fade-in_0.5s_ease-out]">
+        <div className="flex h-14 w-14 items-center justify-center rounded-sm bg-[var(--color-success)] text-white shadow-none animate-[scale-in_0.4s_ease-out]">
           <Check className="h-8 w-8" strokeWidth={3} />
         </div>
       </div>
@@ -89,7 +89,7 @@ export function CheckoutSuccessClient({ order }: { order: Order }) {
         Order <span className="text-[var(--color-accent)]">#{label}</span>
       </p>
 
-      <div className="mt-8 rounded-none border border-[var(--color-border)] bg-[var(--color-surface)] p-5 text-left shadow-[var(--shadow-none)]">
+      <div className="mt-8 rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] p-5 text-left shadow-[var(--shadow-none)]">
         <p className="text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-3">Items</p>
         <ul className="space-y-2 mb-4">
           {order.order_items?.map((i) => (

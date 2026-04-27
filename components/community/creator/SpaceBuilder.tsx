@@ -94,13 +94,13 @@ export function SpaceBuilder({
   return (
     <div className="space-y-3">
       {sortedSpaces.length === 0 ? (
-        <p className="text-sm text-[var(--color-text-muted)] py-8 text-center border border-dashed border-[var(--color-border)] rounded-none">No spaces yet. Add one to get started.</p>
+        <p className="text-sm text-[var(--color-text-muted)] py-8 text-center border border-dashed border-[var(--color-border)] rounded-sm">No spaces yet. Add one to get started.</p>
       ) : (
         sortedSpaces.map((s, i) => {
           const isOpen = open[s.id] !== false;
           const rs = bySpace.get(s.id) ?? [];
           return (
-            <div key={s.id} className="rounded-none border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden">
+            <div key={s.id} className="rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden">
               <div className="flex items-center gap-2 px-3 py-2 border-b border-[var(--color-border)] bg-[var(--color-surface-secondary)]/50">
                 <GripVertical className="h-4 w-4 text-[var(--color-text-muted)] shrink-0" aria-hidden />
                 <div className="flex flex-col gap-0.5">
@@ -114,7 +114,7 @@ export function SpaceBuilder({
                 <button type="button" className="flex items-center gap-2 flex-1 min-w-0 text-left" onClick={() => setOpen((o) => ({ ...o, [s.id]: !isOpen }))}>
                   <span className="text-lg">{s.icon || "·"}</span>
                   <span className="font-black text-[var(--color-text-primary)] truncate">{s.name}</span>
-                  <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-none bg-[var(--color-accent-light)] text-[var(--color-accent)]">{s.access_type}</span>
+                  <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-sm bg-[var(--color-accent-light)] text-[var(--color-accent)]">{s.access_type}</span>
                 </button>
                 <Button type="button" size="icon" variant="ghost" className="h-7 w-7 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]" onClick={(e) => { e.stopPropagation(); onEditSpace(s); }}>
                   <Pencil className="h-3 w-3" />
@@ -137,7 +137,7 @@ export function SpaceBuilder({
                       </div>
                       <span className="font-semibold text-[var(--color-text-primary)] flex-1 truncate">{r.name}</span>
                       {r.room_type === "course" && (
-                        <button onClick={() => setEditingCourseId(r.id)} className="px-3 py-1 rounded-none bg-[var(--color-accent)]/10 text-[var(--color-accent)] font-black text-[10px] uppercase hover:bg-[var(--color-accent)] hover:text-white transition-all flex items-center gap-1.5 shrink-0 mx-2 shadow-none border border-[var(--color-accent)]/10">
+                        <button onClick={() => setEditingCourseId(r.id)} className="px-3 py-1 rounded-sm bg-[var(--color-accent)]/10 text-[var(--color-accent)] font-black text-[10px] uppercase hover:bg-[var(--color-accent)] hover:text-white transition-all flex items-center gap-1.5 shrink-0 mx-2 shadow-none border border-[var(--color-accent)]/10">
                            <Settings size={12} /> Manage Course
                         </button>
                       )}

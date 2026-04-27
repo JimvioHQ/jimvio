@@ -19,7 +19,7 @@ export function NewsletterForm() {
 
   if (submitted) {
     return (
-      <div className="flex items-center gap-1.5 px-3 py-2 rounded-none bg-[var(--color-success-light)] border border-[var(--color-success)] text-[var(--color-success)] text-xs font-medium">
+      <div className="flex items-center gap-1.5 px-3 py-2 rounded-sm bg-[var(--color-success-light)] border border-[var(--color-success)] text-[var(--color-success)] text-xs font-medium">
         <CheckCircle className="h-3.5 w-3.5 shrink-0" />
         You&apos;re subscribed. Check your inbox.
       </div>
@@ -29,7 +29,7 @@ export function NewsletterForm() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex flex-col sm:flex-row items-stretch sm:items-center w-full sm:max-w-[280px] rounded-none border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-none)] overflow-hidden focus-within:ring-2 focus-within:ring-[var(--color-accent)]/20 focus-within:border-[var(--color-accent)] transition-[box-shadow,border-color]"
+      className="flex flex-col sm:flex-row items-stretch sm:items-center w-full sm:max-w-[280px] rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-none)] overflow-hidden focus-within:ring-2 focus-within:ring-[var(--color-accent)]/20 focus-within:border-[var(--color-accent)] transition-[box-shadow,border-color]"
     >
       <input
         type="email"
@@ -45,7 +45,7 @@ export function NewsletterForm() {
         className="h-9 shrink-0 inline-flex items-center justify-center gap-1.5 px-4 bg-[var(--color-accent)] text-white text-sm font-medium hover:bg-[var(--color-accent-hover)] disabled:opacity-60 disabled:cursor-not-allowed transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-surface)]"
       >
         {loading ? (
-          <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-none animate-spin" />
+          <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-sm animate-spin" />
         ) : (
           <>
             Subscribe <ArrowRight className="h-3.5 w-3.5" />

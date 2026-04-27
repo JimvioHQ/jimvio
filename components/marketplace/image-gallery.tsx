@@ -19,7 +19,7 @@ export function ImageGallery({ images, productName, isFeatured, savings, classNa
   return (
     <div className={cn("space-y-3", className)}>
       {/* Main Image */}
-      <div className="relative aspect-square bg-white dark:bg-surface rounded-none border border-zinc-200 dark:border-border overflow-hidden group cursor-zoom-in">
+      <div className="relative aspect-square bg-white dark:bg-surface rounded-sm border border-zinc-200 dark:border-border overflow-hidden group cursor-zoom-in">
         {mainImage ? (
           <img
             src={mainImage}
@@ -35,12 +35,12 @@ export function ImageGallery({ images, productName, isFeatured, savings, classNa
         {/* Badges */}
         <div className="absolute top-3 left-3 flex gap-2">
           {savings && savings > 0 && (
-            <span className="bg-red-500 text-white text-[10px] font-black px-2.5 py-1 rounded-none shadow">
+            <span className="bg-red-500 text-white text-[10px] font-black px-2.5 py-1 rounded-sm shadow">
               âˆ’{savings}%
             </span>
           )}
           {isFeatured && (
-            <span className="bg-gradient-to-r from-orange-500 to-red-500 text-white text-[10px] font-black px-2.5 py-1 rounded-none shadow flex items-center gap-1">
+            <span className="bg-gradient-to-r from-orange-500 to-red-500 text-white text-[10px] font-black px-2.5 py-1 rounded-sm shadow flex items-center gap-1">
               <Zap className="h-2.5 w-2.5" /> Hot
             </span>
           )}
@@ -55,7 +55,7 @@ export function ImageGallery({ images, productName, isFeatured, savings, classNa
               key={i}
               onClick={() => setActiveIndex(i)}
               className={cn(
-                "h-14 w-14 shrink-0 rounded-none border-2 overflow-hidden bg-white dark:bg-surface p-1 cursor-pointer transition-all",
+                "h-14 w-14 shrink-0 rounded-sm border-2 overflow-hidden bg-white dark:bg-surface p-1 cursor-pointer transition-all",
                 i === activeIndex
                   ? "border-[var(--color-accent)] shadow-none ring-2 ring-[var(--color-accent)]/20"
                   : "border-zinc-200 dark:border-border-strong hover:border-zinc-400 dark:hover:border-zinc-500 opacity-70 hover:opacity-100"

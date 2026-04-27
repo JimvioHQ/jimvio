@@ -99,7 +99,7 @@ export function GlassPill({
   return (
     <div
       className={cn(
-        "px-3 py-1 rounded-none text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5 border transition-all",
+        "px-3 py-1 rounded-sm text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5 border transition-all",
         variants[color],
         className
       )}

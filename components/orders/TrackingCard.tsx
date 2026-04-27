@@ -30,7 +30,7 @@ function Step({
       <div className="flex flex-col items-center">
         <div
           className={cn(
-            "flex h-8 w-8 items-center justify-center rounded-none border-2 text-xs",
+            "flex h-8 w-8 items-center justify-center rounded-sm border-2 text-xs",
             done && "border-[var(--color-success)] bg-[var(--color-success-light)] text-[var(--color-success)]",
             active && !done && "border-[var(--color-accent)] bg-[var(--color-accent-light)] text-[var(--color-accent)] shadow-[0_0_12px_rgba(249,115,22,0.35)]",
             !done && !active && "border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-muted)]"
@@ -64,24 +64,24 @@ export function TrackingCard({ order }: { order: TrackingOrder }) {
   const hasTracking = Boolean(order.tracking_number);
 
   return (
-    <div className="rounded-none border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-none)]">
+    <div className="rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-none)]">
       <h3 className="text-lg font-bold text-[var(--color-text-primary)] mb-4">Order Tracking</h3>
 
       {!hasTracking && (
         <div className="mb-6 flex items-center gap-2 text-sm text-[var(--color-text-secondary)]">
           <span className="relative flex h-2 w-2">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-none bg-[var(--color-accent)] opacity-40" />
-            <span className="relative inline-flex h-2 w-2 rounded-none bg-[var(--color-accent)]" />
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-sm bg-[var(--color-accent)] opacity-40" />
+            <span className="relative inline-flex h-2 w-2 rounded-sm bg-[var(--color-accent)]" />
           </span>
           Your order is being prepared
         </div>
       )}
 
       {hasTracking && (
-        <div className="mb-6 space-y-2 rounded-none bg-[var(--color-surface-secondary)] p-4">
+        <div className="mb-6 space-y-2 rounded-sm bg-[var(--color-surface-secondary)] p-4">
           <p className="text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)]">Tracking number</p>
           <div className="flex flex-wrap items-center gap-2">
-            <code className="rounded-none bg-[var(--color-surface)] px-2 py-1 text-sm font-mono">{order.tracking_number}</code>
+            <code className="rounded-sm bg-[var(--color-surface)] px-2 py-1 text-sm font-mono">{order.tracking_number}</code>
             {order.tracking_status && (
               <span className="text-xs text-[var(--color-text-secondary)]">{order.tracking_status}</span>
             )}

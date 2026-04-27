@@ -145,7 +145,7 @@ export function ShopifyConnectForm({ vendorId }: Props) {
     const mins = Math.floor((Date.now() - new Date(connected.updatedAt).getTime()) / 60000);
     return (
       <div className="space-y-8">
-        <div className="rounded-none border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
+        <div className="rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
           <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">Sync status</p>
           <div className="flex items-start gap-3 mt-3">
             <CheckCircle2 className="h-8 w-8 text-[var(--color-success)] shrink-0" />
@@ -190,7 +190,7 @@ export function ShopifyConnectForm({ vendorId }: Props) {
                 return (
                   <div
                     key={p.id}
-                    className="rounded-none border border-[var(--color-border)] bg-[var(--color-surface-secondary)] overflow-hidden"
+                    className="rounded-sm border border-[var(--color-border)] bg-[var(--color-surface-secondary)] overflow-hidden"
                   >
                     <div className="aspect-square bg-[var(--color-border)] relative">
                       {img ? (
@@ -244,7 +244,7 @@ export function ShopifyConnectForm({ vendorId }: Props) {
           value={accessToken}
           onChange={(e) => setAccessToken(e.target.value)}
           className={cn(
-            "w-full rounded-none border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm",
+            "w-full rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm",
             "focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
           )}
           required
@@ -262,7 +262,7 @@ export function ShopifyConnectForm({ vendorId }: Props) {
         )}
       </Button>
 
-      <div className="border border-[var(--color-border)] rounded-none overflow-hidden">
+      <div className="border border-[var(--color-border)] rounded-sm overflow-hidden">
         <button
           type="button"
           className="w-full flex items-center justify-between px-4 py-3 text-sm font-semibold text-[var(--color-text-primary)] bg-[var(--color-surface-secondary)]"

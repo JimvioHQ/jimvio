@@ -115,7 +115,7 @@ export function CreatorMembersPageClient({
           { label: "Paid", value: rows.filter((r) => r.plan_type && r.plan_type !== "free").length },
           { label: "Free", value: rows.filter((r) => !r.plan_type || r.plan_type === "free").length },
         ].map((s) => (
-          <div key={s.label} className="rounded-none border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+          <div key={s.label} className="rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
             <p className="text-[10px] font-black uppercase text-[var(--color-text-muted)]">{s.label}</p>
             <p className="text-2xl font-black text-[var(--color-text-primary)]">{s.value}</p>
           </div>
@@ -130,7 +130,7 @@ export function CreatorMembersPageClient({
               type="button"
               onClick={() => setTab(t)}
               className={cn(
-                "px-3 py-1.5 rounded-none text-xs font-black",
+                "px-3 py-1.5 rounded-sm text-xs font-black",
                 tab === t ? "bg-[var(--color-accent-light)] text-[var(--color-accent)]" : "bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)]"
               )}
             >
@@ -139,14 +139,14 @@ export function CreatorMembersPageClient({
           ))}
         </div>
         <div className="flex gap-2 flex-wrap">
-          <Input placeholder="Search name or email…" value={q} onChange={(e) => setQ(e.target.value)} className="max-w-xs rounded-none border-[var(--color-border)]" />
-          <Button type="button" variant="outline" className="rounded-none border-[var(--color-border)] font-bold" onClick={exportCsv}>
+          <Input placeholder="Search name or email…" value={q} onChange={(e) => setQ(e.target.value)} className="max-w-xs rounded-sm border-[var(--color-border)]" />
+          <Button type="button" variant="outline" className="rounded-sm border-[var(--color-border)] font-bold" onClick={exportCsv}>
             <Download className="h-4 w-4 mr-2" /> Export CSV
           </Button>
         </div>
       </div>
 
-      <div className="rounded-none border border-[var(--color-border)] overflow-x-auto bg-[var(--color-surface)]">
+      <div className="rounded-sm border border-[var(--color-border)] overflow-x-auto bg-[var(--color-surface)]">
         <table className="w-full text-sm min-w-[800px]">
           <thead>
             <tr className="border-b border-[var(--color-border)] bg-[var(--color-surface-secondary)]/60 text-left text-[10px] font-black uppercase text-[var(--color-text-muted)]">
@@ -163,7 +163,7 @@ export function CreatorMembersPageClient({
               <tr key={r.id} className="border-b border-[var(--color-border)] last:border-0">
                 <td className="py-3 px-3">
                   <div className="flex items-center gap-2">
-                    <div className="h-9 w-9 rounded-none overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface-secondary)]">
+                    <div className="h-9 w-9 rounded-sm overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface-secondary)]">
                       {r.profiles?.avatar_url ? (
                         <Image src={r.profiles.avatar_url} alt="" width={36} height={36} className="object-cover h-full w-full" unoptimized />
                       ) : (
@@ -180,7 +180,7 @@ export function CreatorMembersPageClient({
                 </td>
                 <td className="py-3 px-3 font-semibold">{r.plan_type || "free"}</td>
                 <td className="py-3 px-3">
-                  <span className="text-xs font-black px-2 py-0.5 rounded-none bg-[var(--color-surface-secondary)]">{r.status}</span>
+                  <span className="text-xs font-black px-2 py-0.5 rounded-sm bg-[var(--color-surface-secondary)]">{r.status}</span>
                 </td>
                 <td className="py-3 px-3 text-xs text-[var(--color-text-muted)]">{r.created_at ? new Date(r.created_at).toLocaleDateString() : ""}</td>
                 <td className="py-3 px-3 text-xs">{r.amount_paid != null ? Number(r.amount_paid).toFixed(2) : ""}</td>
@@ -190,14 +190,14 @@ export function CreatorMembersPageClient({
                       type="button"
                       size="sm"
                       variant="outline"
-                      className="rounded-none border-[var(--color-danger)] text-[var(--color-danger)] text-[10px] h-7"
+                      className="rounded-sm border-[var(--color-danger)] text-[var(--color-danger)] text-[10px] h-7"
                       disabled={busy === r.id}
                       onClick={() => banMember(r.id)}
                     >
                       Ban
                     </Button>
                     <select
-                      className="text-[10px] rounded-none border border-[var(--color-border)] bg-[var(--color-surface)] px-1 py-0.5"
+                      className="text-[10px] rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] px-1 py-0.5"
                       value={r.plan_type || "free"}
                       onChange={(e) => setPlan(r.id, e.target.value)}
                       disabled={busy === r.id}

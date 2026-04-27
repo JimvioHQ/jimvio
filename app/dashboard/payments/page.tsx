@@ -143,9 +143,9 @@ export default function PaymentsPage() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center space-y-12 animate-in fade-in duration-700" style={{ background: "#f0ede8" }}>
         <div className="relative">
-          <div className="absolute inset-0 bg-emerald-400/20 blur-3xl rounded-none scale-150 animate-pulse" />
-          <div className="relative w-24 h-24 rounded-none bg-white dark:bg-surface border border-white shadow-none flex items-center justify-center overflow-hidden">
-            <div className="absolute inset-0 border-2 border-t-emerald-500 border-r-transparent border-b-transparent border-l-transparent rounded-none animate-spin m-2" />
+          <div className="absolute inset-0 bg-emerald-400/20 blur-3xl rounded-sm scale-150 animate-pulse" />
+          <div className="relative w-24 h-24 rounded-sm bg-white dark:bg-surface border border-white shadow-none flex items-center justify-center overflow-hidden">
+            <div className="absolute inset-0 border-2 border-t-emerald-500 border-r-transparent border-b-transparent border-l-transparent rounded-sm animate-spin m-2" />
             <Wallet className="h-10 w-10 text-stone-900 dark:text-white" />
           </div>
         </div>
@@ -179,7 +179,7 @@ export default function PaymentsPage() {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
            <div className="space-y-2">
               <h1 className="text-4xl font-black text-stone-900 dark:text-white tracking-tighter flex items-center gap-4">
-                 <div className="p-2.5 rounded-none bg-white dark:bg-surface border border-white shadow-none shrink-0">
+                 <div className="p-2.5 rounded-sm bg-white dark:bg-surface border border-white shadow-none shrink-0">
                     <Activity className="h-8 w-8 text-emerald-500" />
                  </div>
                  Liquid Logic Vault
@@ -197,11 +197,11 @@ export default function PaymentsPage() {
         {/* Global Asset Matrix */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
            <div className="lg:col-span-12">
-              <GlassCard className="relative p-0 overflow-hidden border-white bg-white dark:bg-surface/70 shadow-none rounded-none">
+              <GlassCard className="relative p-0 overflow-hidden border-white bg-white dark:bg-surface/70 shadow-none rounded-sm">
                  <div className="grid grid-cols-1 lg:grid-cols-3">
                     <div className="lg:col-span-2 p-12 border-r border-stone-100 dark:border-border">
                        <div className="flex items-center gap-6 mb-12">
-                          <div className="w-16 h-16 rounded-none bg-stone-900 flex items-center justify-center text-white shadow-none group-hover:scale-110 transition-transform">
+                          <div className="w-16 h-16 rounded-sm bg-stone-900 flex items-center justify-center text-white shadow-none group-hover:scale-110 transition-transform">
                              <Wallet className="h-7 w-7" />
                           </div>
                           <div>
@@ -235,7 +235,7 @@ export default function PaymentsPage() {
                     
                     <div className="p-12 bg-stone-50/30 flex flex-col justify-between items-start">
                        <div className="space-y-6">
-                          <div className="w-14 h-14 rounded-none bg-white dark:bg-surface border border-white shadow-none flex items-center justify-center text-emerald-500">
+                          <div className="w-14 h-14 rounded-sm bg-white dark:bg-surface border border-white shadow-none flex items-center justify-center text-emerald-500">
                              <ShieldCheck className="h-7 w-7" />
                           </div>
                           <p className="text-[12px] font-bold text-stone-500 leading-relaxed uppercase tracking-wider">
@@ -245,7 +245,7 @@ export default function PaymentsPage() {
                        
                        <button 
                           onClick={() => document.getElementById('settlement-trigger')?.scrollIntoView({ behavior: 'smooth' })}
-                          className="group/btn flex items-center justify-between w-full h-20 px-10 rounded-none bg-stone-900 text-white shadow-none shadow-stone-900/40 hover:scale-[1.02] transition-all border-none"
+                          className="group/btn flex items-center justify-between w-full h-20 px-10 rounded-sm bg-stone-900 text-white shadow-none shadow-stone-900/40 hover:scale-[1.02] transition-all border-none"
                        >
                           <span className="text-[12px] font-black uppercase tracking-[0.3em]">Execute Outflow</span>
                           <ArrowUpRight className="h-6 w-6 group-hover/btn:translate-x-1 group-hover/btn:-translate-y-1 transition-transform" />
@@ -263,7 +263,7 @@ export default function PaymentsPage() {
            <div className="space-y-8">
               <div className="space-y-1">
                  <h3 className="text-3xl font-black text-stone-900 dark:text-white tracking-tighter flex items-center gap-4">
-                    <div className="p-2.5 rounded-none bg-emerald-50 text-emerald-600 border border-emerald-100 shadow-none">
+                    <div className="p-2.5 rounded-sm bg-emerald-50 text-emerald-600 border border-emerald-100 shadow-none">
                        <ArrowDownRight className="h-6 w-6" />
                     </div>
                     Request Settlement
@@ -271,9 +271,9 @@ export default function PaymentsPage() {
                  <p className="text-[11px] font-black text-stone-400 uppercase tracking-[0.4em] pl-16">Global Liquidity Distribution Protocol</p>
               </div>
               
-              <GlassCard className="p-10 space-y-10 rounded-none bg-white dark:bg-surface/60 border-white shadow-none">
+              <GlassCard className="p-10 space-y-10 rounded-sm bg-white dark:bg-surface/60 border-white shadow-none">
                  {withdrawSuccess && (
-                    <div className="flex items-center gap-6 p-6 rounded-none bg-emerald-50 border border-emerald-100 text-emerald-600 animate-in slide-in-from-top-8 duration-700">
+                    <div className="flex items-center gap-6 p-6 rounded-sm bg-emerald-50 border border-emerald-100 text-emerald-600 animate-in slide-in-from-top-8 duration-700">
                        <CheckCircle2 className="h-8 w-8 shrink-0" />
                        <div className="space-y-1">
                           <p className="text-[14px] font-black uppercase tracking-widest">Protocol Accepted</p>
@@ -293,7 +293,7 @@ export default function PaymentsPage() {
                          max={available}
                          value={withdrawAmount}
                          onChange={e => setWithdrawAmount(e.target.value)}
-                         className="h-20 rounded-none bg-white dark:bg-surface border-stone-200 dark:border-border focus:ring-8 focus:ring-emerald-500/5 focus:border-emerald-400 text-4xl font-black tracking-tighter px-10 transition-all shadow-none tabular-nums placeholder:text-stone-100"
+                         className="h-20 rounded-sm bg-white dark:bg-surface border-stone-200 dark:border-border focus:ring-8 focus:ring-emerald-500/5 focus:border-emerald-400 text-4xl font-black tracking-tighter px-10 transition-all shadow-none tabular-nums placeholder:text-stone-100"
                        />
                     </div>
                     
@@ -311,7 +311,7 @@ export default function PaymentsPage() {
                  <Button
                     onClick={requestWithdrawal}
                     disabled={withdrawing || !withdrawAmount || parseFloat(withdrawAmount) <= 0 || parseFloat(withdrawAmount) > available}
-                    className="h-20 w-full rounded-none bg-stone-900 text-white font-black text-[12px] uppercase tracking-[0.4em] shadow-none shadow-stone-900/40 active:scale-95 transition-all hover:bg-black border-none"
+                    className="h-20 w-full rounded-sm bg-stone-900 text-white font-black text-[12px] uppercase tracking-[0.4em] shadow-none shadow-stone-900/40 active:scale-95 transition-all hover:bg-black border-none"
                  >
                     {withdrawing ? (
                        <RefreshCw className="h-5 w-5 animate-spin" />
@@ -322,8 +322,8 @@ export default function PaymentsPage() {
                     )}
                  </Button>
                  
-                 <div className="p-8 rounded-none bg-stone-50/50 border border-stone-100 dark:border-border flex items-start gap-4">
-                    <div className="p-2 rounded-none bg-white dark:bg-surface border border-stone-100 dark:border-border text-stone-300 shadow-none mt-1">
+                 <div className="p-8 rounded-sm bg-stone-50/50 border border-stone-100 dark:border-border flex items-start gap-4">
+                    <div className="p-2 rounded-sm bg-white dark:bg-surface border border-stone-100 dark:border-border text-stone-300 shadow-none mt-1">
                        <Clock className="h-4 w-4" />
                     </div>
                     <p className="text-[11px] font-black text-stone-400 uppercase tracking-widest leading-[1.8] flex-1">
@@ -337,7 +337,7 @@ export default function PaymentsPage() {
            <div className="space-y-8">
               <div className="space-y-1">
                  <h3 className="text-3xl font-black text-stone-900 dark:text-white tracking-tighter flex items-center gap-4">
-                    <div className="p-2.5 rounded-none bg-sky-50 text-sky-600 border border-sky-100 shadow-none">
+                    <div className="p-2.5 rounded-sm bg-sky-50 text-sky-600 border border-sky-100 shadow-none">
                        <Target className="h-6 w-6" />
                     </div>
                     Synchronization Hub
@@ -345,7 +345,7 @@ export default function PaymentsPage() {
                  <p className="text-[11px] font-black text-stone-400 uppercase tracking-[0.4em] pl-16">Manual Reconciliation & Signal Sync</p>
               </div>
               
-              <GlassCard className="p-10 space-y-10 rounded-none bg-white dark:bg-surface/40 border-white/80 h-[calc(100%-80px)] flex flex-col justify-between shadow-none">
+              <GlassCard className="p-10 space-y-10 rounded-sm bg-white dark:bg-surface/40 border-white/80 h-[calc(100%-80px)] flex flex-col justify-between shadow-none">
                  <div className="space-y-8">
                     <div className="flex items-center gap-4">
                        <Activity className="h-6 w-6 text-sky-500" />
@@ -360,11 +360,11 @@ export default function PaymentsPage() {
                         value={syncOrderId}
                         onChange={(e) => setSyncOrderId(e.target.value)}
                         placeholder="PROTOCOL_HEX_IDENTIFIER"
-                        className="h-16 rounded-none bg-white dark:bg-surface border-stone-100 dark:border-border focus:ring-8 focus:ring-sky-500/5 focus:border-sky-400 text-base font-black tracking-[0.2em] px-8 transition-all shadow-none font-mono placeholder:text-stone-100"
+                        className="h-16 rounded-sm bg-white dark:bg-surface border-stone-100 dark:border-border focus:ring-8 focus:ring-sky-500/5 focus:border-sky-400 text-base font-black tracking-[0.2em] px-8 transition-all shadow-none font-mono placeholder:text-stone-100"
                        />
                        {syncOrderMsg && (
-                          <div className={cn("p-4 rounded-none text-[10px] font-black uppercase tracking-widest animate-in fade-in flex items-center gap-3", syncOrderMsg.includes('failed') ? "bg-rose-50 text-rose-500 border border-rose-100" : "bg-sky-50 text-sky-600 border border-sky-100")}>
-                             <div className={cn("w-2 h-2 rounded-none", syncOrderMsg.includes('failed') ? "bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]" : "bg-sky-500 shadow-[0_0_8px_rgba(14,165,233,0.5)]")} />
+                          <div className={cn("p-4 rounded-sm text-[10px] font-black uppercase tracking-widest animate-in fade-in flex items-center gap-3", syncOrderMsg.includes('failed') ? "bg-rose-50 text-rose-500 border border-rose-100" : "bg-sky-50 text-sky-600 border border-sky-100")}>
+                             <div className={cn("w-2 h-2 rounded-sm", syncOrderMsg.includes('failed') ? "bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]" : "bg-sky-500 shadow-[0_0_8px_rgba(14,165,233,0.5)]")} />
                              {syncOrderMsg}
                           </div>
                        )}
@@ -376,7 +376,7 @@ export default function PaymentsPage() {
                     variant="ghost" 
                     disabled={syncingOrder || !syncOrderId}
                     onClick={syncCreditsForOrder}
-                    className="h-20 w-full rounded-none bg-white dark:bg-surface border border-stone-100 dark:border-border text-stone-900 dark:text-white font-black text-[12px] uppercase tracking-[0.4em] shadow-none active:scale-95 transition-all hover:bg-stone-50 dark:bg-surface/50"
+                    className="h-20 w-full rounded-sm bg-white dark:bg-surface border border-stone-100 dark:border-border text-stone-900 dark:text-white font-black text-[12px] uppercase tracking-[0.4em] shadow-none active:scale-95 transition-all hover:bg-stone-50 dark:bg-surface/50"
                  >
                     {syncingOrder ? <RefreshCw className="h-5 w-5 animate-spin text-sky-500" /> : "Sync Node Protocol"}
                  </Button>
@@ -388,7 +388,7 @@ export default function PaymentsPage() {
         <div className="space-y-8 pt-12 border-t border-stone-100 dark:border-border">
            <div className="space-y-1">
               <h3 className="text-3xl font-black text-stone-900 dark:text-white tracking-tighter flex items-center gap-4">
-                 <div className="p-2.5 rounded-none bg-stone-900 text-white shadow-none">
+                 <div className="p-2.5 rounded-sm bg-stone-900 text-white shadow-none">
                     <History className="h-6 w-6" />
                  </div>
                  Settlement Ledger
@@ -396,11 +396,11 @@ export default function PaymentsPage() {
               <p className="text-[11px] font-black text-stone-400 uppercase tracking-[0.4em] pl-16">Immutable Financial Outflow Records</p>
            </div>
            
-           <GlassCard className="p-0 overflow-hidden border-white bg-white dark:bg-surface/40 shadow-none rounded-none">
+           <GlassCard className="p-0 overflow-hidden border-white bg-white dark:bg-surface/40 shadow-none rounded-sm">
               <div className="overflow-x-auto">
                  {payouts.length === 0 ? (
                     <div className="p-32 text-center space-y-8 animate-in fade-in duration-700">
-                       <div className="w-24 h-24 rounded-none bg-white dark:bg-surface border border-stone-100 dark:border-border flex items-center justify-center mx-auto shadow-none shadow-stone-900/5">
+                       <div className="w-24 h-24 rounded-sm bg-white dark:bg-surface border border-stone-100 dark:border-border flex items-center justify-center mx-auto shadow-none shadow-stone-900/5">
                           <DollarSign className="h-10 w-10 text-stone-100" />
                        </div>
                        <div className="space-y-3">
@@ -426,7 +426,7 @@ export default function PaymentsPage() {
                              <tr key={p.id as string} className="group hover:bg-white dark:bg-surface/80 transition-all duration-500">
                                 <td className="px-12 py-12">
                                    <div className="flex items-center gap-6">
-                                      <div className={cn("w-12 h-12 rounded-none flex items-center justify-center shadow-none transition-transform group-hover:scale-110 duration-500", p.status === 'paid' ? "bg-emerald-500 text-white shadow-emerald-500/20" : "bg-stone-100 text-stone-400")}>
+                                      <div className={cn("w-12 h-12 rounded-sm flex items-center justify-center shadow-none transition-transform group-hover:scale-110 duration-500", p.status === 'paid' ? "bg-emerald-500 text-white shadow-emerald-500/20" : "bg-stone-100 text-stone-400")}>
                                          <DollarSign className="h-5 w-5" />
                                       </div>
                                       <span className="text-2xl font-black text-stone-900 dark:text-white tracking-tighter tabular-nums">
@@ -435,7 +435,7 @@ export default function PaymentsPage() {
                                    </div>
                                 </td>
                                 <td className="px-10 py-12 text-center">
-                                   <div className="inline-flex items-center gap-3 bg-white dark:bg-surface px-4 py-2 rounded-none border border-stone-100 dark:border-border shadow-none">
+                                   <div className="inline-flex items-center gap-3 bg-white dark:bg-surface px-4 py-2 rounded-sm border border-stone-100 dark:border-border shadow-none">
                                       {String(p.payout_method).toLowerCase().includes('bank') ? <Building className="h-4 w-4 text-stone-400" /> : <Smartphone className="h-4 w-4 text-stone-400" />}
                                       <span className="text-[11px] font-black text-stone-900 dark:text-white uppercase tracking-widest">{p.payout_method as string}</span>
                                    </div>

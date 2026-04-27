@@ -60,9 +60,9 @@ export default function CampaignsPage() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center space-y-12 animate-in fade-in duration-700" style={{ background: "var(--color-bg)" }}>
         <div className="relative">
-          <div className="absolute inset-0 bg-orange-400/20 blur-3xl rounded-none scale-150 animate-pulse" />
-          <div className="relative w-24 h-24 rounded-none bg-white dark:bg-surface border border-white shadow-none flex items-center justify-center overflow-hidden">
-            <div className="absolute inset-0 border-2 border-t-orange-500 border-r-transparent border-b-transparent border-l-transparent rounded-none animate-spin m-2" />
+          <div className="absolute inset-0 bg-orange-400/20 blur-3xl rounded-sm scale-150 animate-pulse" />
+          <div className="relative w-24 h-24 rounded-sm bg-white dark:bg-surface border border-white shadow-none flex items-center justify-center overflow-hidden">
+            <div className="absolute inset-0 border-2 border-t-orange-500 border-r-transparent border-b-transparent border-l-transparent rounded-sm animate-spin m-2" />
             <Zap className="h-10 w-10 text-stone-900 dark:text-white" />
           </div>
         </div>
@@ -76,12 +76,12 @@ export default function CampaignsPage() {
 
   if (!vendor) return (
     <div className="max-w-4xl mx-auto py-24 text-center space-y-8 px-6">
-      <div className="w-24 h-24 rounded-none flex items-center justify-center mx-auto text-4xl bg-white dark:bg-surface border border-white shadow-none">🎯</div>
+      <div className="w-24 h-24 rounded-sm flex items-center justify-center mx-auto text-4xl bg-white dark:bg-surface border border-white shadow-none">🎯</div>
       <div className="space-y-3">
          <h3 className="text-3xl font-black text-stone-900 dark:text-white tracking-tighter">Mission Hub Offline</h3>
          <p className="text-stone-500 font-bold max-w-md mx-auto leading-relaxed">System requires active vendor status to create missions.</p>
       </div>
-      <Button asChild className="h-14 px-10 rounded-none bg-stone-900 text-white font-black text-[12px] uppercase tracking-widest shadow-none transition-all hover:bg-black">
+      <Button asChild className="h-14 px-10 rounded-sm bg-stone-900 text-white font-black text-[12px] uppercase tracking-widest shadow-none transition-all hover:bg-black">
          <Link href="/dashboard/activate/vendor">Activate Vendor Store</Link>
       </Button>
     </div>

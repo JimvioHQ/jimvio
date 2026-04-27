@@ -145,7 +145,7 @@ export default function WalletDashboardPage() {
          </div>
  
         {/* Transaction History - Soft Table - Mobile Optimized */}
-         <GlassCard className="rounded-2xl border-border bg-surface/60 dark:bg-surface-secondary/40 shadow-sm overflow-hidden max-sm:-mx-4 max-sm:rounded-none max-sm:border-x-0">
+         <GlassCard className="rounded-2xl border-border bg-surface/60 dark:bg-surface-secondary/40 shadow-sm overflow-hidden max-sm:-mx-4 max-sm:rounded-sm max-sm:border-x-0">
             <div className="p-4 sm:p-8 border-b border-border bg-surface/40 dark:bg-surface/40 flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-6">
                <div className="flex items-center gap-3">
                   <div className="p-1.5 sm:p-2 rounded-xl bg-surface dark:bg-surface-secondary border border-border shadow-sm text-stone-400 dark:text-stone-500">

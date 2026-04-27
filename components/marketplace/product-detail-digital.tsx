@@ -68,7 +68,7 @@ export function DigitalProductDetail({
 
       {/* Hero Header Area */}
       <div className="relative pt-10 pb-16 px-4 max-w-6xl mx-auto text-center">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-none bg-sky-500/10 border border-sky-500/20 text-sky-500 text-[10px] font-bold uppercase tracking-widest mb-6 animate-fade-in">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-sm bg-sky-500/10 border border-sky-500/20 text-sky-500 text-[10px] font-bold uppercase tracking-widest mb-6 animate-fade-in">
           <Sparkles className="h-3 w-3" /> Digital Asset
         </div>
         
@@ -96,9 +96,9 @@ export function DigitalProductDetail({
              product={productProps} 
              vendor={vendorProps} 
              currentPath={`/marketplace/${product.slug}`}
-             className="w-full md:w-auto h-14 md:px-12 rounded-none text-lg"
+             className="w-full md:w-auto h-14 md:px-12 rounded-sm text-lg"
           />
-          <Button variant="outline" className="w-full md:w-auto h-14 md:px-10 rounded-none border-2 border-stone-200 dark:border-stone-800 font-bold">
+          <Button variant="outline" className="w-full md:w-auto h-14 md:px-10 rounded-sm border-2 border-stone-200 dark:border-stone-800 font-bold">
             <PlayCircle className="h-5 w-5 mr-2" /> Live Preview
           </Button>
         </div>
@@ -109,7 +109,7 @@ export function DigitalProductDetail({
           
           {/* Main Content (Images + Specs) */}
           <div className="lg:col-span-8 space-y-12">
-            <div className="rounded-none overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface-secondary)]/50 dark:bg-[var(--color-surface)]/20 shadow-none">
+            <div className="rounded-sm overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface-secondary)]/50 dark:bg-[var(--color-surface)]/20 shadow-none">
                <ImageGallery
                   images={images}
                   productName={product.name}
@@ -122,10 +122,10 @@ export function DigitalProductDetail({
             {/* Content Tabs */}
             <div className="space-y-6">
               <Tabs defaultValue="overview" className="w-full">
-                <TabsList className="bg-[var(--color-surface-secondary)] dark:bg-[var(--color-surface-secondary)] border-none h-12 p-1.5 rounded-none mb-8">
-                  <TabsTrigger value="overview" className="rounded-none px-8 font-bold data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 shadow-none">Overview</TabsTrigger>
-                  <TabsTrigger value="curriculum" className="rounded-none px-8 font-bold data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 shadow-none">Features</TabsTrigger>
-                  <TabsTrigger value="reviews" className="rounded-none px-8 font-bold data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 shadow-none">Reviews</TabsTrigger>
+                <TabsList className="bg-[var(--color-surface-secondary)] dark:bg-[var(--color-surface-secondary)] border-none h-12 p-1.5 rounded-sm mb-8">
+                  <TabsTrigger value="overview" className="rounded-sm px-8 font-bold data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 shadow-none">Overview</TabsTrigger>
+                  <TabsTrigger value="curriculum" className="rounded-sm px-8 font-bold data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 shadow-none">Features</TabsTrigger>
+                  <TabsTrigger value="reviews" className="rounded-sm px-8 font-bold data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 shadow-none">Reviews</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="overview" className="prose prose-stone dark:prose-invert max-w-none">
@@ -157,7 +157,7 @@ export function DigitalProductDetail({
 
           {/* Sidebar (Vendor + Security) */}
           <div className="lg:col-span-4 space-y-6">
-             <GlassCard className="p-8 rounded-none border border-[var(--color-border)] bg-[var(--color-surface)] dark:bg-[var(--color-surface)] shadow-none overflow-hidden relative">
+             <GlassCard className="p-8 rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] dark:bg-[var(--color-surface)] shadow-none overflow-hidden relative">
                 <div className="absolute top-0 right-0 p-4 opacity-5">
                    <Lock className="h-24 w-24" />
                 </div>
@@ -172,7 +172,7 @@ export function DigitalProductDetail({
 
                 <div className="mt-10 pt-8 border-t border-stone-100 dark:border-white/5">
                    <div className="flex items-center gap-4 mb-6">
-                      <div className="h-16 w-16 rounded-none border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-zinc-900 overflow-hidden flex items-center justify-center">
+                      <div className="h-16 w-16 rounded-sm border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-zinc-900 overflow-hidden flex items-center justify-center">
                          {vendor?.business_logo ? (
                            <img src={vendor.business_logo} className="w-full h-full object-cover" />
                          ) : (
@@ -188,17 +188,17 @@ export function DigitalProductDetail({
                    <FollowButton
                       vendorId={vendor?.id ?? ""}
                       initialFollowing={followedVendorIds.includes(String(vendor?.id ?? ""))}
-                      className="w-full h-12 rounded-none border-2 font-bold"
+                      className="w-full h-12 rounded-sm border-2 font-bold"
                    />
                 </div>
              </GlassCard>
 
-             <div className="rounded-none bg-sky-600 p-8 text-white relative overflow-hidden group">
-                <div className="absolute -bottom-6 -right-6 w-32 h-32 bg-white/10 rounded-none blur-2xl transition-transform group-hover:scale-150" />
+             <div className="rounded-sm bg-sky-600 p-8 text-white relative overflow-hidden group">
+                <div className="absolute -bottom-6 -right-6 w-32 h-32 bg-white/10 rounded-sm blur-2xl transition-transform group-hover:scale-150" />
                 <Zap className="h-8 w-8 mb-4" />
                 <h3 className="text-xl font-bold mb-2">Need a custom plan?</h3>
                 <p className="text-white/70 text-sm mb-6">Connect with the creator for enterprise-level licenses and personalized support.</p>
-                <Button className="w-full bg-white text-sky-600 hover:bg-stone-50 font-black rounded-none h-11">Message Creator</Button>
+                <Button className="w-full bg-white text-sky-600 hover:bg-stone-50 font-black rounded-sm h-11">Message Creator</Button>
              </div>
           </div>
         </div>
@@ -209,8 +209,8 @@ export function DigitalProductDetail({
 
 function BenefitCard({ icon, title, desc }: { icon: React.ReactNode; title: string; desc: string }) {
   return (
-    <div className="p-6 rounded-none bg-[var(--color-surface-secondary)]/50 dark:bg-[var(--color-surface-secondary)]/50 border border-[var(--color-border)]">
-      <div className="h-10 w-10 rounded-none bg-[var(--color-surface)] dark:bg-[var(--color-surface)] shadow-none flex items-center justify-center mb-4">
+    <div className="p-6 rounded-sm bg-[var(--color-surface-secondary)]/50 dark:bg-[var(--color-surface-secondary)]/50 border border-[var(--color-border)]">
+      <div className="h-10 w-10 rounded-sm bg-[var(--color-surface)] dark:bg-[var(--color-surface)] shadow-none flex items-center justify-center mb-4">
         {icon}
       </div>
       <h4 className="font-bold text-stone-900 dark:text-white mb-2">{title}</h4>
@@ -223,7 +223,7 @@ function SecurityFeature({ title, desc }: { title: string; desc: string }) {
   return (
     <div className="flex gap-4">
       <div className="mt-1">
-        <div className="h-2 w-2 rounded-none bg-sky-500" />
+        <div className="h-2 w-2 rounded-sm bg-sky-500" />
       </div>
       <div>
         <p className="font-bold text-stone-900 dark:text-white text-sm">{title}</p>

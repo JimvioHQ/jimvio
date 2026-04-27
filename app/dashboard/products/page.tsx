@@ -92,9 +92,9 @@ export default function ProductsPage() {
     return (
        <div className="min-h-screen flex flex-col items-center justify-center space-y-12 animate-in fade-in duration-700 bg-[#060606]">
          <div className="relative">
-           <div className="absolute inset-0 bg-orange-500/20 blur-3xl rounded-none scale-150 animate-pulse" />
-           <div className="relative w-24 h-24 rounded-none bg-[#111] border border-[#222] shadow-none flex items-center justify-center overflow-hidden">
-             <div className="absolute inset-0 border-2 border-t-orange-500 border-r-transparent border-b-transparent border-l-transparent rounded-none animate-spin m-2" />
+           <div className="absolute inset-0 bg-orange-500/20 blur-3xl rounded-sm scale-150 animate-pulse" />
+           <div className="relative w-24 h-24 rounded-sm bg-[#111] border border-[#222] shadow-none flex items-center justify-center overflow-hidden">
+             <div className="absolute inset-0 border-2 border-t-orange-500 border-r-transparent border-b-transparent border-l-transparent rounded-sm animate-spin m-2" />
              <Box className="h-10 w-10 text-white" />
            </div>
          </div>
@@ -109,13 +109,13 @@ export default function ProductsPage() {
   if (!loading && !vendor) {
     return (
       <div className="min-h-screen flex items-center justify-center px-6 bg-[#060606]">
-        <div className="max-w-md w-full p-10 text-center rounded-none border border-[#222] bg-[#0A0A0A] shadow-none">
-           <div className="w-24 h-24 bg-[#111] rounded-none flex items-center justify-center mx-auto mb-8 border border-[#222] shadow-none">
+        <div className="max-w-md w-full p-10 text-center rounded-sm border border-[#222] bg-[#0A0A0A] shadow-none">
+           <div className="w-24 h-24 bg-[#111] rounded-sm flex items-center justify-center mx-auto mb-8 border border-[#222] shadow-none">
               <Store className="h-10 w-10 text-zinc-400" />
            </div>
            <h3 className="text-3xl font-black text-white tracking-tighter">Vendor Account Required</h3>
            <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest mt-4 leading-relaxed">System requires active vendor status to access inventory management.</p>
-           <Button asChild className="w-full h-16 rounded-none bg-white text-black font-black text-[11px] uppercase tracking-widest mt-10 hover:bg-zinc-200 transition-all border-none">
+           <Button asChild className="w-full h-16 rounded-sm bg-white text-black font-black text-[11px] uppercase tracking-widest mt-10 hover:bg-zinc-200 transition-all border-none">
               <Link href="/dashboard/activate/vendor">Become a Vendor</Link>
            </Button>
         </div>
