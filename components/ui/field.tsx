@@ -34,7 +34,7 @@ function FieldError({ message }: { message: string }) {
     );
 }
 
- function Field({
+function Field({
     label,
     icon,
     required,
@@ -46,7 +46,7 @@ function FieldError({ message }: { message: string }) {
     icon?: React.ReactNode;
     required?: boolean;
     hint?: string;
-    error?: string;
+    error?: string | undefined | null;
     children: React.ReactNode;
 }) {
     return (

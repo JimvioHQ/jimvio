@@ -710,7 +710,7 @@ export function CheckoutExperience({ orders, profile, mode = "cart" }: CheckoutE
                                  {selectedOrders.flatMap((o) => o.order_items).map((item) => (
                                     <div
                                        key={item.id}
-                                       className="flex gap-3 items-center p-3 bg-[var(--color-surface-secondary)] rounded-xl border border-transparent hover:border-[var(--color-border)] transition-all"
+                                       className="flex gap-3 items-center p-3 bg-[var(--color-surface-secondary)] rounded-md border border-transparent hover:border-[var(--color-border)] transition-all"
                                     >
                                        <div className="w-12 h-12 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg overflow-hidden flex-shrink-0">
                                           {item.product_image ? (

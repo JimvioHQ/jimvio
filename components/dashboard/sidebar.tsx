@@ -109,7 +109,7 @@ const sidebarSections: NavSection[] = [
     items: [
       { label: "Messages", href: "/dashboard/messages", icon: <MessageSquare className="h-[14px] w-[14px]" /> },
       { label: "Notifications", href: "/dashboard/notifications", icon: <Bell className="h-[14px] w-[14px]" /> },
-      { label: "Profile", href: "/dashboard/settings", icon: <User className="h-[14px] w-[14px]" /> },
+      // { label: "Profile", href: "/dashboard/settings", icon: <User className="h-[14px] w-[14px]" /> },
       { label: "Settings", href: "/dashboard/settings", icon: <Settings className="h-[14px] w-[14px]" /> },
     ],
   },
@@ -162,11 +162,11 @@ export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobil
         <Link href="/" onClick={onMobileClose} className="flex items-center gap-0 min-w-0 group">
           {!collapsed ? (
             <>
-             <Image 
-                src="/jimvio-logo.png" 
-                alt="Jimvio" 
-                width={32} 
-                height={32} 
+              <Image
+                src="/jimvio-logo.png"
+                alt="Jimvio"
+                width={32}
+                height={32}
                 className="h-7 w-auto mix-blend-multiply dark:mix-blend-normal"
                 priority
               />
@@ -178,7 +178,7 @@ export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobil
               </span>
             </>
           ) : (
-             <div className="w-8 h-8 rounded-sm bg-orange-500 flex items-center justify-center text-white font-black text-xs">J</div>
+            <div className="w-8 h-8 rounded-sm bg-orange-500 flex items-center justify-center text-white font-black text-xs">J</div>
           )}
         </Link>
 
@@ -188,8 +188,8 @@ export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobil
             onClick={() => onCollapsedChange(!collapsed)}
             className="hidden lg:flex items-center justify-center transition-all hover:scale-105 active:scale-95 rounded-sm bg-surface-secondary dark:bg-surface-secondary border border-border text-stone-400 dark:text-text-muted"
             style={{
-                width: 28, height: 28,
-              }}
+              width: 28, height: 28,
+            }}
             aria-label={collapsed ? "Expand" : "Collapse"}
           >
             {collapsed ? <ChevronRight style={{ width: 12, height: 12 }} /> : <ChevronLeft style={{ width: 12, height: 12 }} />}
@@ -198,7 +198,7 @@ export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobil
             <button
               type="button"
               onClick={onMobileClose}
-              className="lg:hidden flex items-center justify-center transition-all active:scale-95 rounded-sm bg-surface-secondary dark:bg-surface-secondary border border-border text-stone-400 dark:text-text-muted hover:text-stone-800 dark:text-text-secondary dark:hover:text-stone-200"
+              className="lg:hidden flex items-center justify-center transition-all active:scale-95 rounded-sm bg-surface-secondary dark:bg-surface-secondary border border-border text-stone-400  hover:text-stone-800 dark:text-text-secondary dark:hover:text-stone-200"
               style={{ width: 30, height: 30 }}
               aria-label="Close"
             >
@@ -210,41 +210,41 @@ export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobil
 
       {/* ── Wallet Card ── */}
       {!collapsed && (
-        <motion.div 
+        <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.15 }}
           className="px-4 pt-4 pb-2"
         >
           <div className="relative overflow-hidden rounded-sm bg-[var(--color-bg-dark)] border border-stone-800 p-4 group">
-             <div className="relative z-10">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <div className="w-5 h-5 rounded-sm bg-orange-500/10 flex items-center justify-center text-orange-400 border border-orange-500/20">
-                      <Wallet className="w-3 h-3" />
-                    </div>
-                    <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Available Balance</span>
+            <div className="relative z-10">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 rounded-sm bg-orange-500/10 flex items-center justify-center text-orange-400 border border-orange-500/20">
+                    <Wallet className="w-3 h-3" />
                   </div>
-                  <button
-                    onClick={() => setBalanceHidden(!balanceHidden)}
-                    className="text-stone-500 hover:text-white transition-colors"
-                  >
-                    {balanceHidden ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                  </button>
+                  <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Available Balance</span>
                 </div>
+                <button
+                  onClick={() => setBalanceHidden(!balanceHidden)}
+                  className="text-stone-500 hover:text-white transition-colors"
+                >
+                  {balanceHidden ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                </button>
+              </div>
 
-                <Link href="/dashboard/wallet" onClick={onMobileClose}>
-                   <div className="text-xl font-bold text-[var(--color-text-primary)] tabular-nums tracking-tight">
-                     {balanceHidden ? "••••••" : formatMoney(balance.available, "USD")}
-                   </div>
-                   <div className="flex items-center justify-between mt-2">
-                     <span className="text-[10px] font-medium text-stone-500">
-                       {balanceHidden ? "•••" : formatMoney(balance.pending, "USD")} pending
-                     </span>
-                     <ArrowUpRight className="w-3 h-3 text-stone-500 group-hover:text-orange-400 transition-colors" />
-                   </div>
-                </Link>
-             </div>
+              <Link href="/dashboard/wallet" onClick={onMobileClose}>
+                <div className="text-xl font-bold text-[var(--color-text-primary)] tabular-nums tracking-tight">
+                  {balanceHidden ? "••••••" : formatMoney(balance.available, "USD")}
+                </div>
+                <div className="flex items-center justify-between mt-2">
+                  <span className="text-[10px] font-medium text-stone-500">
+                    {balanceHidden ? "•••" : formatMoney(balance.pending, "USD")} pending
+                  </span>
+                  <ArrowUpRight className="w-3 h-3 text-stone-500 group-hover:text-orange-400 transition-colors" />
+                </div>
+              </Link>
+            </div>
           </div>
         </motion.div>
       )}
@@ -270,15 +270,15 @@ export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobil
               {section.title && !collapsed && (
                 <div className="flex items-center gap-2 px-2 pt-3 pb-1">
                   {section.accentRgb && (<span className="block shrink-0 rounded-sm" style={{ width: 5, height: 5, background: `rgb(${section.accentRgb})` }} />)}
-                      <span
-                        style={{
-                          fontSize: 9, fontWeight: 800, letterSpacing: "0.14em",
-                          textTransform: "uppercase",
-                        }}
-                        className="text-stone-400 dark:text-text-muted"
-                      >
-                        {section.title}
-                      </span>
+                  <span
+                    style={{
+                      fontSize: 9, fontWeight: 800, letterSpacing: "0.14em",
+                      textTransform: "uppercase",
+                    }}
+                    className="text-stone-400 dark:text-text-muted"
+                  >
+                    {section.title}
+                  </span>
                 </div>
               )}
 
@@ -289,7 +289,7 @@ export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobil
                   const locked = needsActivation(item);
 
                   return (
-                    <motion.li 
+                    <motion.li
                       key={`${section.title}-${item.label}`}
                       initial={{ x: -5, opacity: 0 }}
                       animate={{ x: 0, opacity: 1 }}
@@ -301,8 +301,8 @@ export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobil
                         title={collapsed ? item.label : undefined}
                         className={cn(
                           "flex items-center group relative transition-all duration-150",
-                          isActive 
-                            ? "bg-[var(--color-surface-secondary)] border border-border shadow-sm" 
+                          isActive
+                            ? "bg-[var(--color-surface-secondary)] border border-border shadow-sm"
                             : "hover:bg-[var(--color-surface-secondary)]/50 border border-transparent"
                         )}
                         style={{
@@ -332,8 +332,8 @@ export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobil
                           whileHover={{ scale: 1.1 }}
                           className={cn(
                             "flex items-center justify-center flex-shrink-0 transition-all z-10",
-                            isActive 
-                              ? "text-orange-600" 
+                            isActive
+                              ? "text-orange-600"
                               : "text-neutral-400 group-hover:text-neutral-600 dark:text-text-muted dark:group-hover:text-zinc-300"
                           )}
                           style={{
@@ -355,9 +355,9 @@ export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobil
                               {item.label}
                             </span>
                             {locked && (
-                               <span className="text-[9px] font-bold tracking-widest uppercase text-stone-400/40 dark:text-text-muted/40 flex-shrink-0">
-                                 Unlock
-                               </span>
+                              <span className="text-[9px] font-bold tracking-widest uppercase text-stone-400/40 dark:text-text-muted/40 flex-shrink-0">
+                                Unlock
+                              </span>
                             )}
                           </>
                         )}

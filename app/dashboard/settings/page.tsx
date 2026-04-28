@@ -498,8 +498,9 @@ import {
    Smartphone, MapPin, Mail, Zap, CreditCard, Building, Image as ImageIcon,
    CheckCircle2, RefreshCw, MoreVertical, ArrowLeft, AlertCircle, Eye, EyeOff,
    Info, X, ChevronDown,
+   Edit,
 } from "lucide-react";
-import { Textarea } from "@/components/ui/textarea";
+import { StyledTextarea, Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -511,8 +512,9 @@ import { CloudinaryUploadButton } from "@/components/ui/cloudinary-upload";
 import { CloudinaryAvatar, CloudinaryImage } from "@/components/ui/cloudinary-image";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
-
-// ─── Validation Helpers ────────────────────────────────────────────────────────
+import { Field } from "@/components/ui/field";
+import { FieldInput } from "@/components/ui/field-input";
+import CustomSelect from "@/components/ui/select-2";
 
 type FieldError = string | null;
 
@@ -652,23 +654,7 @@ function StyledInput({ error, className, icon, ...props }: React.InputHTMLAttrib
    );
 }
 
-function StyledTextarea({ error, className, ...props }: React.TextareaHTMLAttributes<HTMLTextAreaElement> & {
-   error?: FieldError;
-}) {
-   return (
-      <textarea
-         className={cn(
-            "w-full rounded-sm border transition-all duration-200 text-sm font-medium px-4 py-3 resize-none min-h-[100px] outline-none",
-            "bg-white dark:bg-zinc-900 border-stone-200 dark:border-zinc-700",
-            "text-stone-900 dark:text-white placeholder:text-stone-300 dark:placeholder:text-zinc-600",
-            "focus:border-orange-400 focus:ring-2 focus:ring-orange-400/20",
-            error && inputError,
-            className
-         )}
-         {...props}
-      />
-   );
-}
+
 
 // ─── Toast Notification ────────────────────────────────────────────────────────
 
@@ -947,10 +933,10 @@ export default function SettingsPage() {
    if (loading) {
       return (
          <div className="min-h-screen flex flex-col items-center justify-center gap-4" style={{ background: "var(--color-bg)" }}>
-            <div className="h-10 w-10 rounded-2xl bg-orange-500/10 flex items-center justify-center">
-               <RefreshCw className="h-5 w-5 animate-spin text-orange-500" />
+            <div className="h-10 w-10 rounded-2xl bg-transparent flex items-center justify-center">
+               <Loader2 className="h-5 w-5 animate-spin text-orange-500" />
             </div>
-            <p className="text-[11px] font-bold text-stone-400 uppercase tracking-widest">Loading Settings…</p>
+            <p className="text-[11px] font-bold text-stone-600 tracking-widest">Loading Settings…</p>
          </div>
       );
    }
@@ -981,7 +967,7 @@ export default function SettingsPage() {
                   </Button>
                   <div>
                      <h1 className="text-xl sm:text-2xl font-black text-stone-900 dark:text-white tracking-tight">Account Settings</h1>
-                     <p className="text-[10px] text-stone-400 dark:text-zinc-500 uppercase tracking-widest mt-0.5">Manage your profile and business</p>
+                     <p className="text-[10px] text-stone-600 dark:text-zinc-500 uppercase tracking-widest mt-0.5">Manage your profile and business</p>
                   </div>
                </div>
 
@@ -993,7 +979,7 @@ export default function SettingsPage() {
 
             {/* Tabs */}
             <Tabs defaultValue="profile" className="space-y-6">
-               <TabsList className="flex items-center gap-1 p-1 rounded-2xl bg-stone-100 dark:bg-zinc-900 border border-stone-200 dark:border-zinc-800 w-fit max-sm:w-full overflow-x-auto no-scrollbar">
+               <TabsList className="flex items-center gap-1 p-1 rounded-full bg-stone-100 dark:bg-zinc-900 border border-stone-200 dark:border-zinc-800 w-fit max-sm:w-full overflow-x-auto no-scrollbar">
                   {[
                      { value: "profile", icon: <User className="h-3.5 w-3.5" />, label: "Profile" },
                      ...(vendor ? [{ value: "vendor", icon: <Store className="h-3.5 w-3.5" />, label: "Business" }] : []),
@@ -1007,7 +993,7 @@ export default function SettingsPage() {
                            data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800
                            data-[state=active]:text-orange-500 dark:data-[state=active]:text-orange-400
                            data-[state=active]:shadow-sm
-                           text-stone-400 dark:text-zinc-500
+                           text-stone-600 dark:text-zinc-500
                            hover:text-stone-700 dark:hover:text-zinc-300"
                      >
                         {tab.icon} {tab.label}
@@ -1053,33 +1039,33 @@ export default function SettingsPage() {
                      <div className="lg:col-span-8">
                         <div className="rounded-2xl border border-stone-100 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-6 sm:p-8 space-y-6 shadow-sm">
                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                              <FieldWrapper label="Full Name *" error={profileTouched.full_name ? profileErrors.full_name : null}>
-                                 <StyledInput
+                              <Field label="Full Name" required error={profileErrors.full_name ?? ""}>
+                                 <FieldInput
                                     value={profile.full_name}
                                     onChange={e => updateProfile("full_name", e.target.value)}
                                     onBlur={() => touchProfile("full_name")}
                                     placeholder="Jane Doe"
-                                    error={profileTouched.full_name ? profileErrors.full_name : null}
+                                    hasError={!!profileErrors.full_name}
+                                    className="pl-3"
                                  />
-                              </FieldWrapper>
-
-                              <FieldWrapper
+                              </Field>
+                              <Field
                                  label="Username"
-                                 error={profileTouched.username ? profileErrors.username : null}
+                                 error={profileErrors.username ?? ""}
                                  hint="optional"
+                                 icon={<span className="text-lg font-bold">@</span>}
                               >
-                                 <StyledInput
+                                 <FieldInput
                                     value={profile.username}
                                     onChange={e => updateProfile("username", e.target.value.toLowerCase())}
                                     onBlur={() => touchProfile("username")}
                                     placeholder="jane_doe"
-                                    icon={<span className="text-xs font-bold">@</span>}
-                                    error={profileTouched.username ? profileErrors.username : null}
+                                    hasError={!!profileErrors.username}
                                  />
-                              </FieldWrapper>
+                              </Field>
                            </div>
 
-                           <FieldWrapper label="Bio" error={profileTouched.bio ? profileErrors.bio : null}>
+                           <Field label="Bio" error={profileErrors.bio ?? ""} hint="optional">
                               <div className="relative">
                                  <StyledTextarea
                                     value={profile.bio}
@@ -1093,30 +1079,28 @@ export default function SettingsPage() {
                                     <CharCount value={profile.bio} max={300} />
                                  </div>
                               </div>
-                           </FieldWrapper>
+                           </Field>
 
                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                              <FieldWrapper label="Website" error={profileTouched.website ? profileErrors.website : null} hint="optional">
-                                 <StyledInput
+                              <Field label="Website" icon={<Globe className="h-4 w-4" />} error={profileErrors.website ?? ""} hint="optional">
+                                 <FieldInput
                                     value={profile.website}
                                     onChange={e => updateProfile("website", e.target.value)}
                                     onBlur={() => touchProfile("website")}
                                     placeholder="https://yoursite.com"
-                                    icon={<Globe className="h-4 w-4" />}
-                                    error={profileTouched.website ? profileErrors.website : null}
+                                    hasError={!!profileErrors.website}
                                  />
-                              </FieldWrapper>
+                              </Field>
 
-                              <FieldWrapper label="Phone Number" error={profileTouched.phone ? profileErrors.phone : null} hint="optional">
-                                 <StyledInput
+                              <Field label="Phone Number" icon={<Smartphone className="h-4 w-4" />} error={profileErrors.phone ?? ""} hint="optional">
+                                 <FieldInput
                                     value={profile.phone}
                                     onChange={e => updateProfile("phone", e.target.value)}
                                     onBlur={() => touchProfile("phone")}
                                     placeholder="+250 7XX XXX XXX"
-                                    icon={<Smartphone className="h-4 w-4" />}
-                                    error={profileTouched.phone ? profileErrors.phone : null}
+                                    hasError={!!profileErrors.phone}
                                  />
-                              </FieldWrapper>
+                              </Field>
                            </div>
 
                            {/* Validation summary */}
@@ -1128,15 +1112,15 @@ export default function SettingsPage() {
                            )}
 
                            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2 border-t border-stone-100 dark:border-zinc-800">
-                              <p className="text-[9px] font-bold text-stone-300 dark:text-zinc-600 uppercase tracking-widest">
+                              <p className="text-[9px] font-normal text-stone-600 dark:text-zinc-600 tracking-normal leading-relaxed">
                                  Changes auto-validate on blur
                               </p>
                               <Button
                                  onClick={saveProfile}
                                  disabled={isPending}
-                                 className="w-full sm:w-auto h-11 px-8 rounded-xl bg-orange-500 text-white font-bold text-[10px] uppercase tracking-widest hover:bg-orange-600 active:scale-95 transition-all shadow-lg shadow-orange-500/20 border-none"
+                                 className="w-full sm:w-auto h-11 px-8 rounded-xl bg-orange-500 text-white font-bold text-[10px] tracking-widest hover:bg-orange-600 active:scale-95 transition-all shadow-lg shadow-orange-500/20 border-none"
                               >
-                                 {isPending ? <RefreshCw className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                                 {isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Edit className="h-4 w-4 mr-2" />}
                                  Save Profile
                               </Button>
                            </div>
@@ -1185,17 +1169,17 @@ export default function SettingsPage() {
                            <div className="rounded-2xl border border-stone-100 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-6 sm:p-8 space-y-6 shadow-sm">
                               <SectionHeader icon={<Building className="h-3.5 w-3.5" />} title="Business Details" />
 
-                              <FieldWrapper label="Store Name *" error={vendorTouched.business_name ? vendorErrors.business_name : null}>
-                                 <StyledInput
+                              <Field label="Store Name" required error={vendorTouched.business_name ? vendorErrors.business_name : null}>
+                                 <FieldInput
                                     value={vendor.business_name}
                                     onChange={e => updateVendor("business_name", e.target.value)}
                                     onBlur={() => touchVendor("business_name")}
                                     placeholder="Acme Digital Co."
-                                    error={vendorTouched.business_name ? vendorErrors.business_name : null}
+                                    hasError={!!vendorErrors.business_name}
                                  />
-                              </FieldWrapper>
+                              </Field>
 
-                              <FieldWrapper label="Description" error={vendorTouched.business_description ? vendorErrors.business_description : null} hint="optional">
+                              <Field label="Description" error={vendorTouched.business_description ? vendorErrors.business_description : null} hint="optional">
                                  <div className="relative">
                                     <StyledTextarea
                                        value={vendor.business_description}
@@ -1209,29 +1193,28 @@ export default function SettingsPage() {
                                        <CharCount value={vendor.business_description} max={500} />
                                     </div>
                                  </div>
-                              </FieldWrapper>
+                              </Field>
 
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                 <FieldWrapper label="Support Email *" error={vendorTouched.business_email ? vendorErrors.business_email : null}>
-                                    <StyledInput
+                                 <Field label="Support Email" required icon={<Mail className="h-4 w-4" />} error={vendorTouched.business_email ? vendorErrors.business_email : null}>
+                                    <FieldInput
                                        value={vendor.business_email}
                                        onChange={e => updateVendor("business_email", e.target.value)}
                                        onBlur={() => touchVendor("business_email")}
                                        placeholder="support@yourstore.com"
                                        type="email"
-                                       icon={<Mail className="h-4 w-4" />}
-                                       error={vendorTouched.business_email ? vendorErrors.business_email : null}
+                                       hasError={!!vendorErrors.business_email}
                                     />
-                                 </FieldWrapper>
+                                 </Field>
 
-                                 <FieldWrapper label="Business Address" hint="optional">
-                                    <StyledInput
+                                 <Field label="Business Address" icon={<MapPin className="h-4 w-4" />} hint="optional">
+                                    <FieldInput
                                        value={vendor.business_address}
                                        onChange={e => updateVendor("business_address", e.target.value)}
                                        placeholder="Kigali, Rwanda"
-                                       icon={<MapPin className="h-4 w-4" />}
+                                       hasError={!!vendorErrors.business_address}
                                     />
-                                 </FieldWrapper>
+                                 </Field>
                               </div>
                            </div>
 
@@ -1240,32 +1223,30 @@ export default function SettingsPage() {
                               <SectionHeader icon={<CreditCard className="h-3.5 w-3.5" />} title="Payout Settings" />
 
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                 <FieldWrapper label="Payment Method">
-                                    <div className="relative">
-                                       <select
-                                          value={vendor.payout_method}
-                                          onChange={e => updateVendor("payout_method", e.target.value)}
-                                          className={cn(inputBase, "pr-9 appearance-none cursor-pointer")}
-                                       >
-                                          <option value="bank">Bank Transfer</option>
-                                          <option value="momo">Mobile Money</option>
-                                          <option value="paypal">PayPal</option>
-                                       </select>
-                                       <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-300 pointer-events-none" />
-                                    </div>
-                                 </FieldWrapper>
+                                 <Field label="Payment Method">
+                                    <CustomSelect
+                                       options={[
+                                          { value: "bank", label: "Bank Transfer" },
+                                          { value: "momo", label: "Mobile Money" },
+                                          { value: "paypal", label: "PayPal" },
+                                       ]}
+                                       searchable
+                                       value={vendor.payout_method}
+                                       onChange={v => updateVendor("payout_method", v)}
+                                       className="w-full"
+                                    />
+                                 </Field>
 
-                                 <FieldWrapper label="Account Number / ID *" error={vendorTouched.payout_account ? vendorErrors.payout_account : null}>
-                                    <StyledInput
+                                 <Field label="Account Number / ID Number" icon error={vendorTouched.payout_account ? vendorErrors.payout_account : null}>
+                                    <FieldInput
                                        value={vendor.payout_account}
                                        onChange={e => updateVendor("payout_account", e.target.value)}
                                        onBlur={() => touchVendor("payout_account")}
                                        placeholder={vendor.payout_method === "paypal" ? "email@paypal.com" : "Enter account number"}
-                                       icon={<CreditCard className="h-4 w-4" />}
-                                       className="font-mono"
-                                       error={vendorTouched.payout_account ? vendorErrors.payout_account : null}
+                                       className="pl-3"
+                                       hasError={!!vendorErrors.payout_account}
                                     />
-                                 </FieldWrapper>
+                                 </Field>
                               </div>
                            </div>
 
@@ -1282,24 +1263,24 @@ export default function SettingsPage() {
 
                               {vendor.affiliate_enabled && (
                                  <div className="animate-in slide-in-from-top-1 duration-200">
-                                    <FieldWrapper
+                                    <Field
                                        label="Base Commission Rate (%)"
                                        error={vendorTouched.affiliate_commission_rate ? vendorErrors.affiliate_commission_rate : null}
                                        hint="1–100"
                                     >
                                        <div className="flex items-center gap-3">
-                                          <StyledInput
+                                          <FieldInput
                                              type="number"
                                              value={vendor.affiliate_commission_rate}
                                              onChange={e => updateVendor("affiliate_commission_rate", e.target.value)}
                                              onBlur={() => touchVendor("affiliate_commission_rate")}
                                              min={1} max={100}
                                              className="max-w-[130px] text-lg font-bold text-center"
-                                             error={vendorTouched.affiliate_commission_rate ? vendorErrors.affiliate_commission_rate : null}
+                                             hasError={!!vendorErrors.affiliate_commission_rate}
                                           />
                                           <span className="text-stone-400 dark:text-zinc-500 text-sm font-medium">% per sale</span>
                                        </div>
-                                    </FieldWrapper>
+                                    </Field>
                                  </div>
                               )}
                            </div>
@@ -1377,40 +1358,42 @@ export default function SettingsPage() {
                            <p className="text-[10px] text-stone-400 dark:text-zinc-500 uppercase tracking-widest mt-1">Protect your account and assets</p>
                         </div>
 
-                        <FieldWrapper label="Current Password" error={securityTouched.current_password ? securityErrors.current_password : null}>
+                        <Field label="Current Password" error={securityTouched.current_password ? securityErrors.current_password : null}>
                            <div className="relative">
-                              <StyledInput
+                              <FieldInput
                                  type={showCurrentPw ? "text" : "password"}
                                  value={security.current_password}
                                  onChange={e => updateSecurity("current_password", e.target.value)}
                                  onBlur={() => touchSecurity("current_password")}
                                  placeholder="Enter current password"
-                                 error={securityTouched.current_password ? securityErrors.current_password : null}
+                                 className={"pl-4"}
+                                 hasError={!!securityErrors.current_password}
                               />
                               <button
                                  type="button"
                                  onClick={() => setShowCurrentPw(!showCurrentPw)}
-                                 className="absolute right-10 top-1/2 -translate-y-1/2 text-stone-300 dark:text-zinc-600 hover:text-stone-500 transition-colors"
+                                 className="absolute right-5 top-1/2 -translate-y-1/2 text-stone-300 dark:text-zinc-600 hover:text-stone-500 transition-colors"
                               >
                                  {showCurrentPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                               </button>
                            </div>
-                        </FieldWrapper>
+                        </Field>
 
-                        <FieldWrapper label="New Password" error={securityTouched.new_password ? securityErrors.new_password : null} hint="min 8 chars">
+                        <Field label="New Password" error={securityTouched.new_password ? securityErrors.new_password : null} hint="min 8 chars">
                            <div className="relative">
-                              <StyledInput
+                              <FieldInput
                                  type={showNewPw ? "text" : "password"}
                                  value={security.new_password}
                                  onChange={e => updateSecurity("new_password", e.target.value)}
                                  onBlur={() => touchSecurity("new_password")}
                                  placeholder="Enter new password"
-                                 error={securityTouched.new_password ? securityErrors.new_password : null}
+                                 className={"pl-4"}
+                                 hasError={!!securityErrors.new_password}
                               />
                               <button
                                  type="button"
                                  onClick={() => setShowNewPw(!showNewPw)}
-                                 className="absolute right-10 top-1/2 -translate-y-1/2 text-stone-300 dark:text-zinc-600 hover:text-stone-500 transition-colors"
+                                 className="absolute right-5 top-1/2 -translate-y-1/2 text-stone-300 dark:text-zinc-600 hover:text-stone-500 transition-colors"
                               >
                                  {showNewPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                               </button>
@@ -1437,27 +1420,28 @@ export default function SettingsPage() {
                                  </p>
                               </div>
                            )}
-                        </FieldWrapper>
+                        </Field>
 
-                        <FieldWrapper label="Confirm New Password" error={securityTouched.confirm_password ? securityErrors.confirm_password : null}>
+                        <Field label="Confirm New Password" error={securityTouched.confirm_password ? securityErrors.confirm_password : null}>
                            <div className="relative">
-                              <StyledInput
+                              <FieldInput
                                  type={showConfirmPw ? "text" : "password"}
                                  value={security.confirm_password}
                                  onChange={e => updateSecurity("confirm_password", e.target.value)}
                                  onBlur={() => touchSecurity("confirm_password")}
                                  placeholder="Re-enter new password"
-                                 error={securityTouched.confirm_password ? securityErrors.confirm_password : null}
+                                 className={"pl-4"}
+                                 hasError={!!securityErrors.confirm_password}
                               />
                               <button
                                  type="button"
                                  onClick={() => setShowConfirmPw(!showConfirmPw)}
-                                 className="absolute right-10 top-1/2 -translate-y-1/2 text-stone-300 dark:text-zinc-600 hover:text-stone-500 transition-colors"
+                                 className="absolute right-5 top-1/2 -translate-y-1/2 text-stone-300 dark:text-zinc-600 hover:text-stone-500 transition-colors"
                               >
                                  {showConfirmPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                               </button>
                            </div>
-                        </FieldWrapper>
+                        </Field>
 
                         <Button
                            onClick={savePassword}

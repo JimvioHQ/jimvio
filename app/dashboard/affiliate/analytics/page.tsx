@@ -4,278 +4,452 @@ export const dynamic = "force-dynamic";
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, MousePointer, ShoppingCart, DollarSign, TrendingUp, BarChart3, Package, Zap, Target, ShieldCheck, Activity, Globe, ArrowRight } from "lucide-react";
+import {
+  ArrowLeft, MousePointer, ShoppingCart, DollarSign,
+  TrendingUp, BarChart3, Package, ShieldCheck, Activity,
+  RefreshCw, ArrowUpRight, Percent, Link2
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { GlassCard, GlassPill, GlassAmbientGlow } from "@/components/ui/glass";
-import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid,
+  Tooltip, ResponsiveContainer, Cell
 } from "recharts";
 import { useCurrency } from "@/context/CurrencyContext";
 import { createClient } from "@/lib/supabase/client";
+import { cn } from "@/lib/utils";
 
+/* ── Types ────────────────────────────────────────────────────────────────── */
+interface AffLink {
+  id: string;
+  total_clicks: number;
+  total_conversions: number;
+  total_earnings: number;
+  products: { id: string; name: string; slug: string; images: string[] } | null;
+}
+
+/* ── Custom tooltip ───────────────────────────────────────────────────────── */
+function ChartTooltip({ active, payload, label }: any) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] shadow-lg px-3 py-2.5 text-xs">
+      <p className="font-semibold text-[var(--color-text-primary)] mb-1.5">{label}</p>
+      {payload.map((p: any) => (
+        <div key={p.dataKey} className="flex items-center gap-2">
+          <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ background: p.fill }} />
+          <span className="text-[var(--color-text-muted)] capitalize">{p.dataKey}:</span>
+          <span className="font-semibold text-[var(--color-text-primary)] tabular-nums">{p.value}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ── Stat card ────────────────────────────────────────────────────────────── */
+function StatCard({
+  icon: Icon, label, value, sub, accent = false, iconColor
+}: {
+  icon: React.ElementType;
+  label: string;
+  value: string;
+  sub?: string;
+  accent?: boolean;
+  iconColor: string;
+}) {
+  return (
+    <div className={cn(
+      "rounded-xl border p-4 sm:p-5 flex flex-col gap-4 transition-colors",
+      accent
+        ? "border-orange-500/20 bg-orange-500/5"
+        : "border-[var(--color-border)] bg-[var(--color-surface)]"
+    )}>
+      <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center", iconColor)}>
+        <Icon className="h-4 w-4" />
+      </div>
+      <div>
+        <p className={cn(
+          "text-2xl font-bold tabular-nums tracking-tight leading-none",
+          accent ? "text-orange-500" : "text-[var(--color-text-primary)]"
+        )}>
+          {value}
+        </p>
+        <p className="text-xs text-[var(--color-text-muted)] mt-1.5">{label}</p>
+        {sub && (
+          <p className="text-[10px] text-[var(--color-text-muted)] opacity-60 mt-0.5">{sub}</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ── Page ─────────────────────────────────────────────────────────────────── */
 export default function AffiliateAnalyticsPage() {
   const { formatMoney } = useCurrency();
-  const router = useRouter();
   const [affiliate, setAffiliate] = useState<{ id: string } | null>(null);
-  const [links, setLinks] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [links, setLinks]         = useState<AffLink[]>([]);
+  const [loading, setLoading]     = useState(true);
+  const [activeBar, setActiveBar] = useState<number | null>(null);
 
   useEffect(() => {
     async function load() {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      const { data: aff } = await supabase.from("affiliates").select("id").eq("user_id", user.id).maybeSingle();
+
+      const { data: aff } = await supabase
+        .from("affiliates").select("id").eq("user_id", user.id).maybeSingle();
       setAffiliate(aff ?? null);
+
       if (aff) {
         const { data } = await supabase
           .from("affiliate_links")
           .select("id, total_clicks, total_conversions, total_earnings, products(id, name, slug, images)")
           .eq("affiliate_id", aff.id)
           .order("total_clicks", { ascending: false });
-        setLinks(data ?? []);
+        setLinks((data ?? []) as AffLink[]);
       }
       setLoading(false);
     }
     load();
   }, []);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center space-y-6" style={{ background: "var(--color-bg)" }}>
-        <RefreshCw className="h-6 w-6 animate-spin text-orange-500" />
-        <p className="text-[11px] font-bold text-stone-400 capitalize pl-1">Loading Analytics...</p>
+  /* ── Loading ── */
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--color-bg)" }}>
+      <div className="flex flex-col items-center gap-4">
+        <RefreshCw className="h-5 w-5 animate-spin text-orange-500" />
+        <p className="text-xs font-semibold text-[var(--color-text-muted)] tracking-widest uppercase">Loading…</p>
       </div>
-    );
-  }
+    </div>
+  );
 
-  if (!affiliate) {
-    return (
-      <div className="min-h-screen flex items-center justify-center px-6" style={{ background: "var(--color-bg)" }}>
-        <GlassCard className="max-w-md w-full p-6 sm:p-8 text-center rounded-2xl border-[var(--color-border)] shadow-sm bg-[var(--color-surface)]">
-          <div className="w-14 h-14 sm:w-16 sm:h-16 bg-[var(--color-surface-secondary)] rounded-2xl flex items-center justify-center mx-auto mb-5 sm:mb-6 border border-[var(--color-border)] shadow-sm">
-             <ShieldCheck className="h-7 w-7 text-stone-300" />
-          </div>
-          <h2 className="text-2xl font-bold text-stone-900 dark:text-white mb-3 tracking-tight">Access Denied</h2>
-          <p className="text-stone-500 text-sm mb-8 leading-relaxed font-medium">Please activate your affiliate account to view detailed analytics.</p>
-          <Button asChild className="w-full h-11 sm:h-12 rounded-xl bg-stone-900 dark:bg-white text-white dark:text-stone-900 font-bold hover:bg-black dark:hover:bg-stone-200 active:scale-95 transition-all text-sm shadow-sm border-none">
-             <Link href="/dashboard/roles">Activate Now</Link>
-          </Button>
-        </GlassCard>
+  /* ── Not affiliate ── */
+  if (!affiliate) return (
+    <div className="min-h-screen flex items-center justify-center px-6" style={{ background: "var(--color-bg)" }}>
+      <div className="max-w-sm w-full text-center space-y-5">
+        <div className="h-14 w-14 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] flex items-center justify-center mx-auto">
+          <ShieldCheck className="h-6 w-6 text-[var(--color-text-muted)]" />
+        </div>
+        <div>
+          <h2 className="text-lg font-bold text-[var(--color-text-primary)] tracking-tight">Access Restricted</h2>
+          <p className="text-sm text-[var(--color-text-muted)] mt-1">
+            Activate your affiliate account to view analytics.
+          </p>
+        </div>
+        <Button asChild className="w-full h-10 rounded-lg bg-orange-500 text-white hover:bg-orange-600 border-none text-sm font-semibold">
+          <Link href="/dashboard/roles">Activate Now</Link>
+        </Button>
       </div>
-    );
-  }
+    </div>
+  );
 
-  const totalClicks = links.reduce((s, l) => s + (l.total_clicks ?? 0), 0);
-  const totalConversions = links.reduce((s, l) => s + (l.total_conversions ?? 0), 0);
-  const totalEarnings = links.reduce((s, l) => s + Number(l.total_earnings ?? 0), 0);
+  /* ── Aggregates ── */
+  const totalClicks      = links.reduce((s, l) => s + (l.total_clicks      ?? 0), 0);
+  const totalConversions = links.reduce((s, l) => s + (l.total_conversions  ?? 0), 0);
+  const totalEarnings    = links.reduce((s, l) => s + Number(l.total_earnings ?? 0), 0);
+  const convRate         = totalClicks > 0 ? ((totalConversions / totalClicks) * 100).toFixed(1) : "0.0";
 
-  const chartData = links.slice(0, 10).map((l, i) => {
-    const name = (l.products as { name?: string })?.name ?? `Link ${i + 1}`;
+  const chartData = links.slice(0, 8).map((l, i) => {
+    const name = l.products?.name ?? `Link ${i + 1}`;
     return {
-      name: name.length > 12 ? name.slice(0, 10) + "…" : name,
-      clicks: l.total_clicks ?? 0,
+      name:        name.length > 14 ? name.slice(0, 13) + "…" : name,
+      clicks:      l.total_clicks      ?? 0,
       conversions: l.total_conversions ?? 0,
     };
   });
 
-  const topByEarnings = [...links].sort((a, b) => Number(b.total_earnings ?? 0) - Number(a.total_earnings ?? 0)).slice(0, 5);
+  const topByEarnings = [...links]
+    .sort((a, b) => Number(b.total_earnings ?? 0) - Number(a.total_earnings ?? 0))
+    .slice(0, 5);
 
+  const hasData = links.length > 0;
+
+  /* ── Render ── */
   return (
-    <div
-      className="min-h-screen animate-in fade-in duration-500 pb-20 relative overflow-hidden"
-      style={{
-        background: "radial-gradient(ellipse 80% 60% at 80% 0%, rgba(251,146,60,0.04) 0%, transparent 50%), radial-gradient(ellipse 60% 50% at 0% 100%, rgba(186,230,253,0.04) 0%, transparent 55%), var(--color-bg)",
-      }}
-    >
-      <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8 px-4 sm:px-6 pt-6 sm:pt-10 relative z-10">
-        
-        {/* Header - Simpler */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-6">
-           <div className="flex items-center gap-3 sm:gap-4">
-              <Button asChild variant="ghost" size="icon" className="shrink-0 h-9 w-9 sm:h-10 sm:w-10 rounded-xl bg-white dark:bg-surface border border-stone-100 dark:border-border shadow-sm hover:bg-white dark:bg-surface active:scale-95 transition-all text-stone-500">
-                <Link href="/dashboard/links"><ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5" /></Link>
-              </Button>
-              <div className="space-y-0.5 sm:space-y-1">
-                 <h1 className="text-xl sm:text-2xl font-bold text-stone-900 dark:text-white tracking-tight">Affiliate Analytics</h1>
-                 <p className="text-[9px] sm:text-[11px] font-bold text-stone-400 capitalize pl-0.5">Performance Overview</p>
-              </div>
-           </div>
-           
-           <div className="flex items-center gap-2 sm:gap-3 bg-white dark:bg-surface p-2 sm:p-3 rounded-xl border border-stone-100 dark:border-border shadow-sm">
-              <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-500 animate-pulse ml-1.5 sm:ml-2" />
-              <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-stone-500 pr-3 sm:pr-4">Active Monitoring</span>
-           </div>
-        </div>
+    <div className="min-h-screen pb-24" style={{ background: "var(--color-bg)" }}>
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-8 sm:pt-12 space-y-8">
 
-        {/* Stats Grid - Smaller */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-           <GlassCard className="p-4 sm:p-5 flex flex-col justify-between rounded-2xl bg-white dark:bg-surface/60 border-white shadow-sm transition-all hover:bg-white dark:bg-surface/80">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-sky-50 flex items-center justify-center mb-3 sm:mb-4">
-                 <MousePointer className="h-4 w-4 sm:h-5 sm:w-5 text-sky-500" />
-              </div>
-              <div>
-                 <p className="text-xl sm:text-2xl font-black text-stone-900 dark:text-white tracking-tight tabular-nums">{totalClicks.toLocaleString()}</p>
-                 <p className="text-[8px] sm:text-[9px] font-bold capitalize text-stone-400 mt-1">Total Clicks</p>
-              </div>
-           </GlassCard>
-           <GlassCard className="p-4 sm:p-5 flex flex-col justify-between rounded-2xl bg-white dark:bg-surface/60 border-white shadow-sm transition-all hover:bg-white dark:bg-surface/80">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-emerald-50 flex items-center justify-center mb-3 sm:mb-4">
-                 <ShoppingCart className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-500" />
-              </div>
-              <div>
-                 <p className="text-xl sm:text-2xl font-black text-stone-900 dark:text-white tracking-tight tabular-nums">{totalConversions.toLocaleString()}</p>
-                 <p className="text-[8px] sm:text-[9px] font-bold capitalize text-stone-400 mt-1">Sales Made</p>
-              </div>
-           </GlassCard>
-           <GlassCard className="p-4 sm:p-5 flex flex-col justify-between rounded-2xl bg-white dark:bg-surface/60 border-white shadow-sm transition-all hover:bg-white dark:bg-surface/80">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-orange-50 flex items-center justify-center mb-3 sm:mb-4">
-                 <DollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-orange-500" />
-              </div>
-              <div>
-                 <p className="text-xl sm:text-2xl font-black text-emerald-600 tracking-tight tabular-nums">{formatMoney(totalEarnings, "USD")}</p>
-                 <p className="text-[8px] sm:text-[9px] font-bold capitalize text-stone-400 mt-1">Total Earnings</p>
-              </div>
-           </GlassCard>
-           <GlassCard className="p-4 sm:p-5 flex flex-col justify-between rounded-2xl bg-white dark:bg-surface/60 border-white shadow-sm transition-all hover:bg-white dark:bg-surface/80">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-purple-50 flex items-center justify-center mb-3 sm:mb-4">
-                 <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-purple-500" />
-              </div>
-              <div>
-                 <p className="text-xl sm:text-2xl font-black text-stone-900 dark:text-white tracking-tight tabular-nums">{links.length}</p>
-                 <p className="text-[8px] sm:text-[9px] font-bold capitalize text-stone-400 mt-1">Active Links</p>
-              </div>
-           </GlassCard>
-        </div>
-
-        {/* Charts - Soft size */}
-        <GlassCard className="rounded-2xl border-white dark:border-border bg-white dark:bg-surface/60 shadow-sm overflow-hidden">
-           <div className="p-5 sm:p-8 border-b border-stone-50 dark:border-border flex items-center justify-between">
-              <div>
-                 <h3 className="text-base sm:text-lg font-bold text-stone-900 dark:text-white tracking-tight">Performance Summary</h3>
-                 <p className="text-[9px] sm:text-[10px] font-bold capitalize text-stone-400 mt-1">Clicks vs Sales by product</p>
-              </div>
-              <BarChart3 className="h-5 w-5 sm:h-6 sm:w-6 text-stone-300" />
-           </div>
-           <div className="p-4 sm:p-8 h-[250px] sm:h-[300px]">
-              {chartData.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-center py-10">
-                  <BarChart3 className="h-10 w-10 text-stone-100 mb-4" />
-                  <p className="text-[11px] font-bold text-stone-300 uppercase tracking-widest">No link activity detected yet</p>
-                </div>
-              ) : (
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={chartData} margin={{ left: -15, right: 0, top: 10, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.03)" vertical={false} />
-                    <XAxis dataKey="name" tick={{ fontSize: 9, fill: "#a8a29e", fontWeight: 700 }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fontSize: 9, fill: "#a8a29e", fontWeight: 700 }} axisLine={false} tickLine={false} />
-                    <Tooltip
-                      cursor={{ fill: 'rgba(255,146,60,0.03)' }}
-                      contentStyle={{ background: "#fff", border: "1px solid #f2f2f2", borderRadius: 16, fontSize: 10, fontWeight: 700, boxShadow: "0 10px 30px rgba(0,0,0,0.05)" }}
-                    />
-                    <Bar dataKey="clicks" stackId="a" fill="#38bdf8" radius={[0, 0, 4, 4]} />
-                    <Bar dataKey="conversions" stackId="a" fill="#10b981" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Link
+              href="/dashboard/links"
+              className={cn(
+                "h-9 w-9 rounded-xl flex items-center justify-center shrink-0 transition-all",
+                "border border-[var(--color-border)] bg-[var(--color-surface)]",
+                "text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:border-[var(--color-border-strong)]"
               )}
-           </div>
-        </GlassCard>
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Link>
+            <div>
+              <h1 className="text-xl font-bold text-[var(--color-text-primary)] tracking-tight leading-none">
+                Analytics
+              </h1>
+              <p className="text-xs text-[var(--color-text-muted)] mt-1">
+                {links.length} active link{links.length !== 1 ? "s" : ""} tracked
+              </p>
+            </div>
+          </div>
 
-        {/* Product Registry - Smaller padding */}
-        <GlassCard className="rounded-2xl border-white dark:border-border bg-white dark:bg-surface/60 shadow-sm overflow-hidden mt-4">
-           <div className="p-5 sm:p-8 border-b border-stone-50 dark:border-border flex items-center justify-between">
-              <div>
-                 <h3 className="text-base sm:text-lg font-bold text-stone-900 dark:text-white tracking-tight">Top Products</h3>
-                 <p className="text-[9px] sm:text-[10px] font-bold capitalize text-stone-400 mt-1">Sorted by revenue generated</p>
+          <div className="hidden sm:flex items-center gap-2 text-xs font-medium text-emerald-500">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            Live
+          </div>
+        </div>
+
+        {/* Stats */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <StatCard
+            icon={MousePointer}
+            label="Total Clicks"
+            value={totalClicks.toLocaleString()}
+            iconColor="bg-sky-500/10 text-sky-500"
+          />
+          <StatCard
+            icon={ShoppingCart}
+            label="Conversions"
+            value={totalConversions.toLocaleString()}
+            sub={`${convRate}% rate`}
+            iconColor="bg-emerald-500/10 text-emerald-500"
+          />
+          <StatCard
+            icon={DollarSign}
+            label="Total Earnings"
+            value={formatMoney(totalEarnings, "USD")}
+            accent
+            iconColor="bg-orange-500/10 text-orange-500"
+          />
+          <StatCard
+            icon={Link2}
+            label="Active Links"
+            value={String(links.length)}
+            sub={totalConversions > 0 ? `${(totalEarnings / totalConversions).toFixed(2)} avg/sale` : undefined}
+            iconColor="bg-violet-500/10 text-violet-500"
+          />
+        </div>
+
+        {/* Chart */}
+        <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden">
+          <div className="px-5 sm:px-6 py-4 border-b border-[var(--color-border)] flex items-center justify-between">
+            <div>
+              <h2 className="text-sm font-semibold text-[var(--color-text-primary)] tracking-tight">
+                Clicks vs Conversions
+              </h2>
+              <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
+                By product · top {Math.min(links.length, 8)} links
+              </p>
+            </div>
+            <div className="flex items-center gap-4 text-[10px] font-semibold text-[var(--color-text-muted)]">
+              <span className="flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-sm bg-sky-400 inline-block" /> Clicks
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-sm bg-emerald-400 inline-block" /> Conversions
+              </span>
+            </div>
+          </div>
+
+          <div className="p-4 sm:p-6 h-[240px] sm:h-[280px]">
+            {!hasData ? (
+              <div className="flex flex-col items-center justify-center h-full gap-3">
+                <BarChart3 className="h-8 w-8 text-[var(--color-border)]" />
+                <p className="text-sm font-medium text-[var(--color-text-muted)]">No link activity yet</p>
+                <p className="text-xs text-[var(--color-text-muted)] opacity-60">
+                  Share your affiliate links to start tracking
+                </p>
               </div>
-              <Activity className="h-5 w-5 sm:h-6 sm:w-6 text-stone-300" />
-           </div>
-           
-           <div className="overflow-x-auto">
-              <table className="w-full text-left whitespace-nowrap">
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={chartData}
+                  margin={{ left: -20, right: 0, top: 4, bottom: 0 }}
+                  barGap={3}
+                  onMouseLeave={() => setActiveBar(null)}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
+                  <XAxis
+                    dataKey="name"
+                    tick={{ fontSize: 10, fill: "var(--color-text-muted)", fontWeight: 500 }}
+                    axisLine={false} tickLine={false}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 10, fill: "var(--color-text-muted)", fontWeight: 500 }}
+                    axisLine={false} tickLine={false}
+                  />
+                  <Tooltip content={<ChartTooltip />} cursor={{ fill: "var(--color-surface-secondary)", radius: 4 }} />
+                  <Bar dataKey="clicks" fill="#38bdf8" radius={[4, 4, 0, 0]} maxBarSize={32}
+                    onMouseEnter={(_, i) => setActiveBar(i)}
+                  >
+                    {chartData.map((_, i) => (
+                      <Cell key={i} fill={activeBar === i ? "#0ea5e9" : "#38bdf8"} fillOpacity={activeBar !== null && activeBar !== i ? 0.5 : 1} />
+                    ))}
+                  </Bar>
+                  <Bar dataKey="conversions" fill="#34d399" radius={[4, 4, 0, 0]} maxBarSize={32}
+                    onMouseEnter={(_, i) => setActiveBar(i)}
+                  >
+                    {chartData.map((_, i) => (
+                      <Cell key={i} fill={activeBar === i ? "#10b981" : "#34d399"} fillOpacity={activeBar !== null && activeBar !== i ? 0.5 : 1} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </div>
+
+        {/* Conversion rate callout — only when there's data */}
+        {hasData && totalClicks > 0 && (
+          <div className={cn(
+            "rounded-xl border px-5 py-4 flex items-center justify-between",
+            Number(convRate) >= 3
+              ? "border-emerald-500/20 bg-emerald-500/5"
+              : Number(convRate) >= 1
+              ? "border-amber-500/20 bg-amber-500/5"
+              : "border-[var(--color-border)] bg-[var(--color-surface)]"
+          )}>
+            <div className="flex items-center gap-3">
+              <Percent className={cn(
+                "h-4 w-4",
+                Number(convRate) >= 3 ? "text-emerald-500" : Number(convRate) >= 1 ? "text-amber-500" : "text-[var(--color-text-muted)]"
+              )} />
+              <div>
+                <p className="text-sm font-semibold text-[var(--color-text-primary)]">
+                  Conversion rate: <span className={Number(convRate) >= 3 ? "text-emerald-500" : Number(convRate) >= 1 ? "text-amber-500" : "text-[var(--color-text-primary)]"}>{convRate}%</span>
+                </p>
+                <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
+                  {Number(convRate) >= 3
+                    ? "Great performance — above industry average"
+                    : Number(convRate) >= 1
+                    ? "Decent — try featuring higher-intent products"
+                    : "Low — consider improving your link placement"}
+                </p>
+              </div>
+            </div>
+            <TrendingUp className={cn(
+              "h-5 w-5 shrink-0 hidden sm:block",
+              Number(convRate) >= 3 ? "text-emerald-500" : Number(convRate) >= 1 ? "text-amber-500" : "text-[var(--color-text-muted)]"
+            )} />
+          </div>
+        )}
+
+        {/* Top products table */}
+        <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden">
+          <div className="px-5 sm:px-6 py-4 border-b border-[var(--color-border)] flex items-center justify-between">
+            <div>
+              <h2 className="text-sm font-semibold text-[var(--color-text-primary)] tracking-tight">
+                Top Products
+              </h2>
+              <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
+                Sorted by revenue generated
+              </p>
+            </div>
+            <Activity className="h-4 w-4 text-[var(--color-text-muted)]" />
+          </div>
+
+          {topByEarnings.length === 0 ? (
+            <div className="py-16 text-center">
+              <Package className="h-8 w-8 text-[var(--color-border)] mx-auto mb-3" />
+              <p className="text-sm font-medium text-[var(--color-text-muted)]">No sales yet</p>
+              <p className="text-xs text-[var(--color-text-muted)] opacity-60 mt-1">
+                Your top-earning products will appear here
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
                 <thead>
-                  <tr className="bg-stone-50/40 dark:bg-surface/40">
-                    <th className="py-4 sm:py-5 pl-4 sm:pl-8 pr-4 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-stone-400 border-b border-stone-50 dark:border-border">Product</th>
-                    <th className="py-4 sm:py-5 px-4 text-right text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-stone-400 border-b border-stone-50 dark:border-border">Clicks</th>
-                    <th className="py-4 sm:py-5 px-4 text-right text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-stone-400 border-b border-stone-50 dark:border-border">Sales</th>
-                    <th className="py-4 sm:py-5 pl-4 pr-4 sm:pr-8 text-right text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-emerald-500 border-b border-stone-50 dark:border-border">Revenue</th>
+                  <tr className="border-b border-[var(--color-border)]">
+                    {["Product", "Clicks", "Conv.", "Conv. Rate", "Revenue"].map((h, i) => (
+                      <th key={h} className={cn(
+                        "px-5 sm:px-6 py-3 text-[10px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]",
+                        i > 0 && "text-right"
+                      )}>
+                        {h}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-stone-50 dark:divide-border/60">
-                  {topByEarnings.length === 0 ? (
-                    <tr>
-                       <td colSpan={4} className="py-16 sm:py-20 text-center">
-                          <p className="text-[10px] sm:text-[11px] font-bold text-stone-300 uppercase tracking-widest">Awaiting First Sale...</p>
-                       </td>
-                    </tr>
-                  ) : (
-                    topByEarnings.map((l) => {
-                      const product = l.products as { name?: string; slug?: string; images?: string[] } | null;
-                      const imgSrc = product && Array.isArray(product.images) && product.images[0] ? product.images[0] : null;
-                      return (
-                        <tr key={l.id} className="hover:bg-stone-50/50 dark:hover:bg-surface transition-all duration-300">
-                           <td className="py-4 sm:py-6 pl-4 sm:pl-8 pr-4">
-                             <div className="flex items-center gap-3 sm:gap-4">
-                               <div className="w-10 h-10 sm:w-12 sm:h-12 shrink-0 rounded-lg bg-white dark:bg-surface-secondary border border-stone-50 dark:border-border shadow-sm overflow-hidden flex items-center justify-center p-0.5 sm:p-1">
-                                 {imgSrc ? (
-                                   <img src={imgSrc} alt="" className="w-full h-full object-cover rounded-md" />
-                                 ) : (
-                                   <Package className="h-4 w-4 sm:h-5 sm:w-5 text-stone-300" />
-                                 )}
-                               </div>
-                               <div className="min-w-0">
-                                  {product?.slug ? (
-                                    <Link href={`/marketplace/${product.slug}`} className="font-bold text-[13px] sm:text-sm text-stone-900 dark:text-white hover:text-orange-600 transition-colors truncate block tracking-tight max-w-[150px] sm:max-w-xs">
-                                      {product?.name ?? "Default Link"}
-                                    </Link>
-                                  ) : (
-                                    <span className="font-bold text-[13px] sm:text-sm text-stone-900 dark:text-white tracking-tight max-w-[150px] sm:max-w-xs truncate block">Manual Link</span>
-                                  )}
-                               </div>
-                             </div>
-                           </td>
-                           <td className="py-4 sm:py-6 px-4 text-right">
-                             <p className="text-[14px] sm:text-base font-bold text-stone-900 dark:text-white tabular-nums">{l.total_clicks ?? 0}</p>
-                           </td>
-                           <td className="py-4 sm:py-6 px-4 text-right">
-                             <p className="text-[14px] sm:text-base font-bold text-stone-900 dark:text-white tabular-nums">{l.total_conversions ?? 0}</p>
-                           </td>
-                           <td className="py-4 sm:py-6 pl-4 pr-4 sm:pr-8 text-right">
-                             <p className="text-[14px] sm:text-base font-bold text-emerald-600 tabular-nums">{formatMoney(Number(l.total_earnings ?? 0), "USD")}</p>
-                           </td>
-                        </tr>
-                      );
-                    })
-                  )}
+                <tbody className="divide-y divide-[var(--color-border)]">
+                  {topByEarnings.map((l) => {
+                    const product  = l.products;
+                    const imgSrc   = product?.images?.[0] ?? null;
+                    const rate     = l.total_clicks > 0
+                      ? ((l.total_conversions / l.total_clicks) * 100).toFixed(1)
+                      : "0.0";
+                    const isTopRate = Number(rate) >= 3;
+
+                    return (
+                      <tr key={l.id} className="hover:bg-[var(--color-surface-secondary)] transition-colors group">
+                        <td className="px-5 sm:px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="h-9 w-9 shrink-0 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-secondary)] overflow-hidden flex items-center justify-center">
+                              {imgSrc
+                                ? <img src={imgSrc} alt="" className="h-full w-full object-cover" />
+                                : <Package className="h-4 w-4 text-[var(--color-text-muted)]" />
+                              }
+                            </div>
+                            <div className="min-w-0">
+                              {product?.slug ? (
+                                <Link
+                                  href={`/marketplace/${product.slug}`}
+                                  className="text-sm font-semibold text-[var(--color-text-primary)] hover:text-orange-500 transition-colors truncate block max-w-[140px] sm:max-w-[200px]"
+                                >
+                                  {product.name}
+                                </Link>
+                              ) : (
+                                <span className="text-sm font-semibold text-[var(--color-text-primary)] truncate block max-w-[140px]">
+                                  {product?.name ?? "Manual Link"}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-5 sm:px-6 py-4 text-right">
+                          <span className="text-sm font-semibold text-[var(--color-text-primary)] tabular-nums">
+                            {(l.total_clicks ?? 0).toLocaleString()}
+                          </span>
+                        </td>
+                        <td className="px-5 sm:px-6 py-4 text-right">
+                          <span className="text-sm font-semibold text-[var(--color-text-primary)] tabular-nums">
+                            {l.total_conversions ?? 0}
+                          </span>
+                        </td>
+                        <td className="px-5 sm:px-6 py-4 text-right">
+                          <span className={cn(
+                            "inline-flex items-center justify-end gap-1 text-xs font-semibold tabular-nums",
+                            isTopRate ? "text-emerald-500" : "text-[var(--color-text-muted)]"
+                          )}>
+                            {isTopRate && <TrendingUp className="h-3 w-3" />}
+                            {rate}%
+                          </span>
+                        </td>
+                        <td className="px-5 sm:px-6 py-4 text-right">
+                          <span className="text-sm font-bold text-emerald-500 tabular-nums">
+                            {formatMoney(Number(l.total_earnings ?? 0), "USD")}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
-           </div>
-         </GlassCard>
+
+              {/* Footer summary row */}
+              {topByEarnings.length > 0 && (
+                <div className="px-5 sm:px-6 py-3 border-t border-[var(--color-border)] bg-[var(--color-surface-secondary)] flex items-center justify-between">
+                  <span className="text-xs text-[var(--color-text-muted)]">
+                    Showing top {topByEarnings.length} of {links.length} links
+                  </span>
+                  <span className="text-xs font-bold text-emerald-500">
+                    Total: {formatMoney(totalEarnings, "USD")}
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
       </div>
     </div>
   );
 }
-
-// Helper icons
-function RefreshCw(props: any) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
-      <path d="M21 3v5h-5" />
-      <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
-      <path d="M3 21v-5h5" />
-    </svg>
-  );
-}
-

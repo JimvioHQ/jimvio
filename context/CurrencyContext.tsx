@@ -16,6 +16,8 @@ import {
   formatMoneyWithRates,
   type CartOrderLikeForTotal,
 } from "@/lib/currency/format";
+import CustomSelect from "@/components/ui/select-2";
+import { cn } from "@/lib/utils";
 
 const STORAGE_KEY = "jimvio_currency";
 
@@ -131,7 +133,7 @@ export function useCurrency(): CurrencyContextValue {
       rates: {},
       userCurrency: "RWF",
       loading: true,
-      setUserCurrency: () => {},
+      setUserCurrency: () => { },
       formatPrice: (a) => `...`,
       formatMoney: (a) => `...`,
       formatCartTotalsLabel: () => `...`,
@@ -144,27 +146,48 @@ export function CurrencySelector({ className, style }: { className?: string; sty
   const { userCurrency, setUserCurrency } = useCurrency();
 
   return (
-    <select
-      style={style}
-      value={userCurrency}
-      onChange={(e) => {
-        const v = e.target.value;
-        if (isCurrencyCode(v)) setUserCurrency(v);
-      }}
-      className={
-        className ??
-        "rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text-primary)]"
-      }
-      aria-label="Display currency"
-    >
-      {(Object.keys(SUPPORTED_CURRENCIES) as CurrencyCode[]).map((code) => {
-        const c = SUPPORTED_CURRENCIES[code];
-        return (
-          <option key={code} value={code}>
-            {c.symbol} — {c.name}
-          </option>
-        );
-      })}
-    </select>
+    <>
+      <CustomSelect
+        className={
+          cn(
+            "rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text-primary)]",
+            className
+          )
+
+        }
+        options={(Object.keys(SUPPORTED_CURRENCIES) as CurrencyCode[]).map((code) => {
+          const c = SUPPORTED_CURRENCIES[code];
+          return ({
+            label: `${c.symbol} — ${c.name}`,
+            value: code
+          }
+          );
+        })}
+        textSize="xs"
+        value={userCurrency}
+        onChange={setUserCurrency} />
+    </>
+    // <select
+    //   style={style}
+    //   value={userCurrency}
+    //   onChange={(e) => {
+    //     const v = e.target.value;
+    //     if (isCurrencyCode(v)) setUserCurrency(v);
+    //   }}
+    // className={
+    //   className ??
+    //   "rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text-primary)]"
+    // }
+    //   aria-label="Display currency"
+    // >
+    // {(Object.keys(SUPPORTED_CURRENCIES) as CurrencyCode[]).map((code) => {
+    //   const c = SUPPORTED_CURRENCIES[code];
+    //   return (
+    //     <option key={code} value={code}>
+    //       {c.symbol} — {c.name}
+    //     </option>
+    //   );
+    // })}
+    // </select>
   );
 }

@@ -167,60 +167,55 @@ import {
 import { cn } from "@/lib/utils";
 import type { ContactSettings } from "@/lib/platform-settings-shared";
 import { PLATFORM_SETTINGS_DEFAULTS } from "@/lib/platform-settings-shared";
+import { FieldInput } from "../ui/field-input";
 
 // ── Data ─────────────────────────────────────────────────────────────────────
 
 const footerLinks = {
   Marketplace: [
-    { label: "Browse Products",    href: "/marketplace" },
-    { label: "Top Suppliers",      href: "/vendors" },
-    { label: "Post Buying Lead",   href: "/requests/new" },
-    { label: "Trade Assurance",    href: "/protection" },
+    { label: "Browse Products", href: "/marketplace" },
+    { label: "Top Suppliers", href: "/vendors" },
+    { label: "Post Buying Lead", href: "/requests/new" },
+    { label: "Trade Assurance", href: "/protection" },
     { label: "Verified Exporters", href: "/verified" },
-    { label: "Flash Deals",        href: "/deals" },
+    { label: "Flash Deals", href: "/deals" },
   ],
   "Earn & Grow": [
     { label: "Affiliate Program", href: "/affiliates" },
-    { label: "Influencer Hub",    href: "/influencers" },
-    { label: "Clips",             href: "/clips" },
-    { label: "Clippings",         href: "/clippings" },
-    { label: "Partner API",       href: "/api" },
-    { label: "Creator Studio",    href: "/creator" },
+    { label: "Influencer Hub", href: "/influencers" },
+    { label: "Clips", href: "/clips" },
+    { label: "Clippings", href: "/clippings" },
+    { label: "Partner API", href: "/api" },
+    { label: "Creator Studio", href: "/creator" },
   ],
   Resources: [
     { label: "Market Reports", href: "/reports" },
-    { label: "Trade Guides",   href: "/guides" },
-    { label: "Blog",           href: "/blog" },
-    { label: "Help Center",    href: "/help" },
-    { label: "Webinars",       href: "/webinars" },
-    { label: "API Docs",       href: "/docs" },
+    { label: "Trade Guides", href: "/guides" },
+    { label: "Blog", href: "/blog" },
+    { label: "Help Center", href: "/help" },
+    { label: "Webinars", href: "/webinars" },
+    { label: "API Docs", href: "/docs" },
   ],
   Company: [
-    { label: "About Us",            href: "/about" },
-    { label: "Careers",             href: "/careers" },
-    { label: "Press",               href: "/press" },
-    { label: "Trust & Safety",      href: "/safety" },
-    { label: "Contact",             href: "/contact" },
-    { label: "Investor Relations",  href: "/investors" },
+    { label: "About Us", href: "/about" },
+    { label: "Careers", href: "/careers" },
+    { label: "Press", href: "/press" },
+    { label: "Trust & Safety", href: "/safety" },
+    { label: "Contact", href: "/contact" },
+    { label: "Investor Relations", href: "/investors" },
   ],
 };
 
 const trustBadges = [
   { icon: ShieldCheck, label: "Trade Assurance Protected" },
-  { icon: CreditCard,  label: "Secure Payments" },
-  { icon: Lock,        label: "SSL Encrypted" },
+  { icon: CreditCard, label: "Secure Payments" },
+  { icon: Lock, label: "SSL Encrypted" },
 ];
 
 const legalLinks = ["Privacy", "Terms", "Cookies", "Sitemap"];
 
-// ── Sub-components ────────────────────────────────────────────────────────────
-
-/**
- * Newsletter CTA — fully theme-aware, no hardcoded colors.
- * Uses Tailwind semantic tokens so light/dark mode is handled automatically.
- */
 function NewsletterStrip() {
-  const [email, setEmail]     = useState("");
+  const [email, setEmail] = useState("");
   const [submitted, setSubmit] = useState(false);
 
   function handleSubmit(e: React.FormEvent) {
@@ -229,8 +224,6 @@ function NewsletterStrip() {
   }
 
   return (
-    // bg-surface       → your site's card/panel surface (adapts to light/dark)
-    // border-b         → separates strip from the main footer grid
     <div className="bg-surface border-b border-border">
       <div className="mx-auto max-w-[1280px] px-4 py-8 sm:px-6">
         <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
@@ -256,21 +249,15 @@ function NewsletterStrip() {
               onSubmit={handleSubmit}
               className="flex gap-2.5 flex-wrap sm:flex-nowrap"
             >
-              <input
+              <FieldInput
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="your@email.com"
                 required
                 className={cn(
-                  // Base sizing & shape
+                  "pl-3 rounded-full",
                   "h-[42px] w-full sm:w-[220px] rounded-md px-4 text-[13px] font-medium outline-none",
-                  // Theme-aware colors — bg, border, text all follow site theme
-                  "border-[1.5px] border-border bg-background text-text-primary placeholder:text-text-muted",
-                  // Smooth transitions on focus
-                  "transition-[border-color,box-shadow] duration-[180ms]",
-                  // Focus ring uses accent color
-                  "focus:border-accent focus:shadow-[0_0_0_3px_rgba(var(--accent-rgb),0.15)]"
                 )}
               />
               <button
@@ -364,7 +351,8 @@ export function Footer({ contact: contactProp }: { contact?: ContactSettings }) 
   const contact = contactProp ?? PLATFORM_SETTINGS_DEFAULTS.contact;
 
   const socials = [
-    { label: "X / Twitter", href: contact.social_x,
+    {
+      label: "X / Twitter", href: contact.social_x,
       icon: (
         <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
           <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.73-8.835L1.254 2.25H8.08l4.258 5.63 5.906-5.63Zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
@@ -372,8 +360,9 @@ export function Footer({ contact: contactProp }: { contact?: ContactSettings }) 
       ),
     },
     { label: "YouTube", href: contact.social_youtube, icon: <Youtube size={16} /> },
-    { label: "Email",   href: `mailto:${contact.info_email}`, icon: <Mail size={15} /> },
-    { label: "TikTok",  href: "#",
+    { label: "Email", href: `mailto:${contact.info_email}`, icon: <Mail size={15} /> },
+    {
+      label: "TikTok", href: "#",
       icon: (
         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
           <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.24 8.24 0 0 0 4.81 1.54V6.78a4.85 4.85 0 0 1-1.04-.09z" />

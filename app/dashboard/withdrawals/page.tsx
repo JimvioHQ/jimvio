@@ -1,23 +1,36 @@
+
 "use client";
 export const dynamic = "force-dynamic";
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Wallet, ArrowDownRight, CreditCard, Banknote, History, Clock, CheckCircle, Smartphone, ArrowLeft, RefreshCw, ChevronRight } from "lucide-react";
+import {
+  Wallet, CreditCard, Banknote, History, Clock,
+  CheckCircle, Smartphone, ArrowLeft, RefreshCw,
+  AlertCircle, ChevronRight,
+  Loader2
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { GlassCard, GlassPill, GlassAmbientGlow } from "@/components/ui/glass";
 import { Input } from "@/components/ui/input";
 import { useCurrency } from "@/context/CurrencyContext";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { FieldInput } from "@/components/ui/field-input";
+import { Field } from "@/components/ui/field";
 
 const PAYMENT_METHODS = [
-  { id: "bank", label: "Bank Transfer", desc: "2—3 business days", icon: CreditCard },
-  { id: "mobile_money", label: "Mobile Money", desc: "MTN MoMo, Airtel, etc.", icon: Smartphone },
-  { id: "paypal", label: "PayPal", desc: "PayPal email", icon: Banknote },
+  { id: "bank", label: "Bank Transfer", desc: "2–3 business days", icon: CreditCard },
+  { id: "mobile_money", label: "Mobile Money", desc: "MTN MoMo · Airtel", icon: Smartphone },
+  { id: "paypal", label: "PayPal", desc: "Send to email", icon: Banknote },
 ] as const;
+
+const STATUS_MAP: Record<string, { label: string; className: string }> = {
+  paid: { label: "Paid", className: "bg-emerald-500/10 text-emerald-500" },
+  failed: { label: "Failed", className: "bg-rose-500/10 text-rose-500" },
+  pending: { label: "Pending", className: "bg-amber-500/10 text-amber-600 dark:text-amber-400" },
+};
 
 export default function AffiliateWithdrawalsPage() {
   const { formatMoney } = useCurrency();
@@ -38,13 +51,17 @@ export default function AffiliateWithdrawalsPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data: feeRow } = await supabase.from("platform_settings").select("value").eq("key", "fees").maybeSingle();
+      const { data: feeRow } = await supabase
+        .from("platform_settings").select("value").eq("key", "fees").maybeSingle();
       const rawMin = (feeRow?.value as { min_payout_rwf?: number } | null)?.min_payout_rwf;
-      if (rawMin != null && Number.isFinite(Number(rawMin)) && Number(rawMin) > 0) {
+      if (rawMin != null && Number.isFinite(Number(rawMin)) && Number(rawMin) > 0)
         setMinPayout(Number(rawMin));
-      }
 
-      const affRes = await supabase.from("affiliates").select("id, available_balance, pending_earnings, paid_earnings, payout_method, payout_account").eq("user_id", user.id).maybeSingle();
+      const affRes = await supabase
+        .from("affiliates")
+        .select("id, available_balance, pending_earnings, paid_earnings, payout_method, payout_account")
+        .eq("user_id", user.id).maybeSingle();
+
       if (affRes.data) {
         const a = affRes.data as Record<string, unknown>;
         setAffiliateId(a.id as string);
@@ -59,10 +76,13 @@ export default function AffiliateWithdrawalsPage() {
         router.replace("/dashboard/activate/affiliate");
       }
 
-      const { data: payoutsData } = await supabase.from("payouts").select("id, amount, status, payout_method, created_at")
+      const { data: payoutsData } = await supabase
+        .from("payouts")
+        .select("id, amount, status, payout_method, created_at")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
         .limit(20);
+
       setPayouts(payoutsData ?? []);
       setLoading(false);
     }
@@ -83,21 +103,19 @@ export default function AffiliateWithdrawalsPage() {
   async function requestPayout() {
     const amount = parseFloat(requestAmount);
     if (amount < minPayout) {
-      toast.error(`Minimum withdrawal is ${formatMoney(minPayout, "USD")}.`);
-      return;
+      toast.error(`Minimum withdrawal is ${formatMoney(minPayout, "USD")}.`); return;
     }
     if (amount > balance.available) {
-      toast.error("Amount exceeds available balance.");
-      return;
+      toast.error("Amount exceeds available balance."); return;
     }
     if (!payoutAccount.trim()) {
-      toast.error("Please add and save your payout account first.");
-      return;
+      toast.error("Please add and save your payout account first."); return;
     }
     setSubmitting(true);
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setSubmitting(false); return; }
+
     const { error } = await supabase.from("payouts").insert({
       user_id: user.id,
       type: "affiliate_withdrawal",
@@ -106,222 +124,367 @@ export default function AffiliateWithdrawalsPage() {
       payout_method: payoutMethod,
       payout_account: payoutAccount.trim(),
     });
-    if (error) {
-      toast.error(error.message);
-      setSubmitting(false);
-      return;
-    }
+
+    if (error) { toast.error(error.message); setSubmitting(false); return; }
+
     toast.success("Withdrawal requested successfully.");
     setRequestAmount("");
     setSubmitting(false);
     router.refresh();
-    const { data: payoutsData } = await supabase.from("payouts").select("id, amount, status, payout_method, created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(20);
+
+    const { data: payoutsData } = await supabase
+      .from("payouts")
+      .select("id, amount, status, payout_method, created_at")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(20);
     setPayouts(payoutsData ?? []);
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center space-y-6" style={{ background: "var(--color-bg)" }}>
-        <RefreshCw className="h-6 w-6 animate-spin text-orange-500" />
-        <p className="text-[11px] font-bold text-stone-400 dark:text-text-muted uppercase tracking-widest pl-1">Syncing Balance...</p>
+  /* ── Loading ──────────────────────────────────────────────────────────── */
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--color-bg)" }}>
+      <div className="flex flex-col items-center gap-4">
+        <Loader2 className="h-5 w-5 animate-spin text-orange-500" />
+        <p className="text-xs font-semibold text-[var(--color-text-muted)] tracking-widest uppercase">
+          Loading…
+        </p>
       </div>
-    );
-  }
+    </div>
+  );
 
-  const canRequest = balance.available >= minPayout && payoutAccount.trim();
+  const amount = parseFloat(requestAmount) || 0;
+  const canRequest = balance.available >= minPayout && !!payoutAccount.trim();
+  const amountInvalid = !!requestAmount && (amount < minPayout || amount > balance.available);
 
+  /* ── Page ─────────────────────────────────────────────────────────────── */
   return (
-    <div
-      className="min-h-screen animate-in fade-in duration-500 pb-20 relative overflow-hidden"
-      style={{
-        background: "var(--color-bg)",
-      }}
-    >
-      <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8 px-4 sm:px-6 pt-6 sm:pt-10 relative z-10">
-        
-        {/* Header - Simpler */}
-         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-6">
-            <div className="flex items-center gap-3 sm:gap-4">
-               <Button asChild variant="ghost" size="icon" className="shrink-0 h-9 w-9 sm:h-10 sm:w-10 rounded-xl bg-surface dark:bg-surface-secondary border border-border shadow-sm hover:bg-surface dark:hover:bg-zinc-700 active:scale-95 transition-all text-stone-500 dark:text-text-muted">
-                 <Link href="/dashboard"><ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5" /></Link>
-               </Button>
-               <div className="space-y-0.5 sm:space-y-1">
-                  <h1 className="text-xl sm:text-2xl font-bold text-stone-900 dark:text-white tracking-tight">Withdraw Funds</h1>
-                  <p className="text-[9px] sm:text-[11px] font-bold text-stone-400 dark:text-text-muted capitalize">Manage your earnings and payouts</p>
-               </div>
+    <div className="min-h-screen pb-24" style={{ background: "var(--color-bg)" }}>
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-8 sm:pt-12 space-y-8">
+
+        {/* ── Header ── */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Link
+              href="/dashboard"
+              className={cn(
+                "h-9 w-9 rounded-md flex items-center justify-center shrink-0 transition-all",
+                "border border-[var(--color-border)] bg-[var(--color-surface)]",
+                "text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:border-[var(--color-border-strong)]"
+              )}
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Link>
+            <div>
+              <h1 className="text-xl font-bold text-[var(--color-text-primary)] tracking-tight leading-none">
+                Withdraw Funds
+              </h1>
+              <p className="text-xs text-[var(--color-text-muted)] mt-1">
+                Manage your affiliate earnings
+              </p>
             </div>
-            
-            <div className="flex items-center gap-2 sm:gap-3 bg-surface dark:bg-surface-secondary p-2 sm:p-3 rounded-xl border border-border shadow-sm px-4 sm:px-5">
-               <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-500 animate-pulse ml-1" />
-               <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-stone-500 dark:text-text-muted">Secure Processing</span>
-            </div>
-         </div>
+          </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
-          
-          {/* Main Withdrawal Panel */}
-          <GlassCard className="lg:col-span-2 rounded-2xl border-border bg-surface/60 dark:bg-surface-secondary/40 shadow-sm overflow-hidden flex flex-col">
-             <div className="p-5 sm:p-10 space-y-8 sm:space-y-10 flex-1">
-                <div className="space-y-4">
-                   <div className="flex items-center gap-2">
-                       <Wallet className="h-4 w-4 text-orange-400" />
-                       <span className="text-[9px] sm:text-[10px] font-bold text-stone-400 dark:text-text-muted capitalize leading-none">Available Balance</span>
-                   </div>
-                   <h2 className="text-4xl sm:text-5xl font-black text-stone-900 dark:text-white tracking-tight leading-none tabular-nums">{formatMoney(balance.available, "USD")}</h2>
-                   <div className="flex flex-wrap items-center gap-2 sm:gap-3 pt-2">
-                     <GlassPill color="orange" className="font-bold py-1.5 px-3 sm:px-4 text-[8px] sm:text-[9px] border-none shadow-sm bg-orange-500/10 text-orange-600 dark:text-orange-400 uppercase tracking-wider rounded-xl"><Clock className="h-3 w-3 mr-1.5" /> {formatMoney(balance.pending, "USD")} Pending</GlassPill>
-                     <GlassPill color="emerald" className="font-bold py-1.5 px-3 sm:px-4 text-[8px] sm:text-[9px] border-none shadow-sm bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 uppercase tracking-wider rounded-xl"><CheckCircle className="h-3 w-3 mr-1.5" /> {formatMoney(balance.paid, "USD")} Paid</GlassPill>
-                   </div>
-                </div>
-
-                <div className="p-5 sm:p-8 rounded-2xl bg-stone-900 dark:bg-bg text-white space-y-5 sm:space-y-6 shadow-sm relative overflow-hidden group">
-                   <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/10 blur-[60px] rounded-full translate-x-1/2 -translate-y-1/2" />
-                   
-                   <div className="space-y-2">
-                      <label className="text-[9px] sm:text-[10px] font-bold text-white/30 uppercase tracking-[0.1em] sm:tracking-[0.2em] block pl-1">Withdrawal Amount (USD)</label>
-                      <Input 
-                        type="number" 
-                        min={minPayout} 
-                        step="0.01" 
-                        value={requestAmount} 
-                        onChange={e => setRequestAmount(e.target.value)} 
-                        placeholder={`Min: $${minPayout}`} 
-                        className="rounded-xl h-12 sm:h-14 bg-white dark:bg-surface/5 border-white/10 font-bold text-lg sm:text-xl shadow-inner text-stone-900 dark:text-white focus:ring-orange-500 px-4 sm:px-6 transition-all focus:bg-white dark:bg-surface/10" 
-                      />
-                   </div>
-                   <Button 
-                     className="w-full h-12 sm:h-14 rounded-xl bg-orange-500 text-white shadow-[0_8px_24px_rgba(249,115,22,0.3)] hover:bg-orange-600 active:scale-95 transition-all text-sm font-bold capitalize border-none" 
-                     disabled={!canRequest || submitting} 
-                     onClick={requestPayout}
-                   >
-                     {submitting ? "Processing..." : "Confirm Withdrawal"}
-                   </Button>
-                   <p className="text-[8px] sm:text-[9px] font-bold text-white/20 uppercase tracking-[0.1em] sm:tracking-[0.2em] text-center">
-                     Min threshold: {formatMoney(minPayout, "USD")}
-                   </p>
-                </div>
-             </div>
-          </GlassCard>
-
-          {/* Payout Method Sidebar */}
-          <GlassCard className="rounded-2xl border-border bg-surface/60 dark:bg-surface-secondary/40 shadow-sm flex flex-col overflow-hidden">
-             <div className="p-6 sm:p-8 border-b border-border bg-surface/40 dark:bg-surface/40">
-                <h3 className="text-base sm:text-lg font-bold text-stone-900 dark:text-white tracking-tight">Payout Method</h3>
-                <p className="text-[9px] sm:text-[10px] font-bold text-stone-400 dark:text-text-muted capitalize mt-0.5">Where you'll receive your funds</p>
-             </div>
-             <div className="p-5 sm:p-8 space-y-4 flex-1">
-               {PAYMENT_METHODS.map((m) => {
-                 const Icon = m.icon;
-                 const active = payoutMethod === m.id;
-                 return (
-                   <button
-                     key={m.id}
-                     type="button"
-                     onClick={() => setPayoutMethod(m.id)}
-                     className={cn(
-                       "group w-full flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl border transition-all duration-300",
-                       active 
-                         ? "border-orange-500/20 bg-surface dark:bg-surface-secondary shadow-sm" 
-                         : "border-border bg-surface/40 dark:bg-surface/40 hover:border-orange-500/10 hover:bg-surface dark:hover:bg-zinc-800"
-                     )}
-                   >
-                     <div className={cn(
-                        "h-8 w-8 sm:h-10 sm:w-10 rounded-lg border flex items-center justify-center shrink-0 transition-colors shadow-sm",
-                        active ? "bg-orange-500/10 border-orange-500/10 text-orange-500" : "bg-surface dark:bg-surface-secondary border-border text-stone-300 dark:text-stone-700 group-hover:text-stone-400 dark:group-hover:text-stone-600"
-                     )}>
-                       <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
-                     </div>
-                     <div className="text-left min-w-0">
-                       <p className="text-[12px] sm:text-[13px] font-bold text-stone-900 dark:text-white tracking-tight">{m.label}</p>
-                       <p className="text-[8px] sm:text-[9px] font-bold text-stone-400 dark:text-text-muted uppercase tracking-widest truncate">{m.desc}</p>
-                     </div>
-                   </button>
-                 );
-               })}
-               
-               <div className="bg-surface dark:bg-surface/40 p-4 sm:p-6 rounded-xl border border-border shadow-sm mt-4 space-y-3 sm:space-y-4">
-                 <label className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-stone-400 dark:text-text-muted block pl-1">
-                   {payoutMethod === "bank" ? "Account Details" : payoutMethod === "paypal" ? "PayPal Email" : "Phone Number"}
-                 </label>
-                 <Input 
-                    value={payoutAccount} 
-                    onChange={e => setPayoutAccount(e.target.value)} 
-                    placeholder={payoutMethod === "paypal" ? "your@email.com" : "+250 ..."} 
-                    className="rounded-lg h-10 sm:h-11 bg-surface dark:bg-surface-secondary border-border text-sm font-bold shadow-sm focus:ring-0 text-stone-900 dark:text-white" 
-                 />
-                 <Button 
-                    variant="default"
-                    size="sm" 
-                    className="h-9 sm:h-10 rounded-lg w-full bg-stone-900 dark:bg-white text-white dark:text-stone-900 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest shadow-sm hover:bg-black dark:hover:bg-stone-200 transition-all active:scale-95 border-none" 
-                    onClick={savePayoutMethod}
-                 >
-                    Save Method
-                 </Button>
-               </div>
-             </div>
-             <div className="p-4 sm:p-6 bg-surface/50 dark:bg-surface/20 border-t border-border text-center">
-                <p className="text-[8px] sm:text-[9px] font-bold text-stone-400 dark:text-text-muted uppercase tracking-widest">
-                   Processing time: 2—3 business days
-                </p>
-             </div>
-          </GlassCard>
+          <div className="hidden sm:flex items-center gap-2 text-xs font-medium text-emerald-500">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            Secure
+          </div>
         </div>
 
-        {/* History Registry - Simpler padding */}
-        <GlassCard className="rounded-2xl border-border bg-surface/60 dark:bg-surface-secondary/40 shadow-sm overflow-hidden max-sm:-mx-4 max-sm:rounded-sm max-sm:border-x-0">
-           <div className="p-6 sm:p-8 border-b border-border bg-surface/40 dark:bg-surface/40 flex items-center gap-3">
-              <div className="p-1.5 sm:p-2 rounded-xl bg-surface dark:bg-surface-secondary border border-border shadow-sm text-stone-300 dark:text-stone-700">
-                 <History className="h-4 w-4" />
+        {/* ── Balance strip ── */}
+        <div className="grid grid-cols-3 gap-3">
+          {[
+            { label: "Available", value: balance.available, accent: true },
+            { label: "Pending", value: balance.pending, accent: false },
+            { label: "Total Paid", value: balance.paid, accent: false },
+          ].map(({ label, value, accent }) => (
+            <div
+              key={label}
+              className={cn(
+                "rounded-md p-4 sm:p-5 border transition-colors",
+                accent
+                  ? "border-orange-500/20 bg-orange-500/5"
+                  : "border-[var(--color-border)] bg-[var(--color-surface)]"
+              )}
+            >
+              <p className="text-[10px] font-semibold text-[var(--color-text-muted)] uppercase tracking-wider mb-2">
+                {label}
+              </p>
+              <p className={cn(
+                "text-lg sm:text-2xl font-bold tabular-nums tracking-tight leading-none",
+                accent ? "text-orange-500" : "text-[var(--color-text-primary)]"
+              )}>
+                {formatMoney(value, "USD")}
+              </p>
+            </div>
+          ))}
+        </div>
+
+        {/* ── Main grid ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+
+          {/* ── Withdrawal form — 3 cols ── */}
+          <div className="lg:col-span-3 space-y-5">
+
+            {/* Amount card */}
+            <div className="rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden">
+              <div className="px-5 sm:px-6 pt-5 sm:pt-6 pb-4 border-b border-[var(--color-border)]">
+                <h2 className="text-sm font-semibold text-[var(--color-text-primary)] tracking-tight">
+                  Withdrawal Amount
+                </h2>
+                <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
+                  Minimum {formatMoney(minPayout, "USD")} · Available {formatMoney(balance.available, "USD")}
+                </p>
               </div>
-              <div>
-                 <h3 className="text-base sm:text-lg font-bold text-stone-900 dark:text-white tracking-tight">Withdrawal History</h3>
-                 <p className="text-[9px] sm:text-[10px] font-bold text-stone-400 dark:text-text-muted capitalize mt-0.5">Your payout history</p>
+
+              <div className="p-5 sm:p-6 space-y-4">
+                {/* Amount input */}
+                <div className="relative">
+
+                  <Field label="amount" icon={<span className="text-xl font-bold text-[var(--color-text-muted)] select-none pointer-events-none">
+                    $
+                  </span>}
+                    error={amount < minPayout
+                      ? `Minimum is ${formatMoney(minPayout, "USD")}`
+                      : "Exceeds available balance"}
+                  >
+                    <FieldInput
+                      type="number"
+                      min={minPayout}
+                      step="0.01"
+                      value={requestAmount}
+                      onChange={e => setRequestAmount(e.target.value)}
+                      placeholder={`${minPayout}.00`}
+                      className={cn(
+                        "w-full h-14 pl-8 pr-4 rounded-sm border text-2xl font-bold tabular-nums",
+                        "bg-[var(--color-surface)] text-[var(--color-text-primary)]",
+                        "placeholder:text-[var(--color-text-muted)] placeholder:font-normal placeholder:text-base",
+                        "outline-none transition-all duration-150"
+                      )}
+                      hasError={amountInvalid}
+                    />
+                  </Field>
+                </div>
+
+                {/* Quick-fill buttons */}
+                <div className="flex gap-2">
+                  {[25, 50, 100].map(pct => {
+                    const val = Math.floor(balance.available * (pct / 100) * 100) / 100;
+                    return (
+                      <button
+                        key={pct}
+                        type="button"
+                        onClick={() => setRequestAmount(String(val))}
+                        disabled={balance.available === 0}
+                        className={cn(
+                          "flex-1 h-8 rounded-lg text-xs font-semibold border transition-all",
+                          "border-[var(--color-border)] bg-[var(--color-surface-secondary)]",
+                          "text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]",
+                          "hover:border-[var(--color-border-strong)] disabled:opacity-40 disabled:cursor-not-allowed"
+                        )}
+                      >
+                        {pct}%
+                      </button>
+                    );
+                  })}
+                  <button
+                    type="button"
+                    onClick={() => setRequestAmount(String(balance.available))}
+                    disabled={balance.available === 0}
+                    className={cn(
+                      "flex-1 h-8 rounded-lg text-xs font-semibold border transition-all",
+                      "border-[var(--color-border)] bg-[var(--color-surface-secondary)]",
+                      "text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]",
+                      "hover:border-[var(--color-border-strong)] disabled:opacity-40 disabled:cursor-not-allowed"
+                    )}
+                  >
+                    Max
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  disabled={!canRequest || submitting || amountInvalid || !requestAmount}
+                  onClick={requestPayout}
+                  className={cn(
+                    "w-full h-11 rounded-sm text-sm font-semibold transition-all duration-150",
+                    "bg-orange-500 text-white",
+                    "hover:bg-orange-600 active:scale-[0.98]",
+                    "disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100",
+                    "shadow-[0_4px_16px_rgba(249,115,22,0.25)]"
+                  )}
+                >
+                  {submitting ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      Processing…
+                    </span>
+                  ) : "Confirm Withdrawal"}
+                </button>
+
+                {!payoutAccount.trim() && (
+                  <p className="flex items-center gap-1.5 text-xs text-[var(--color-text-muted)]">
+                    <AlertCircle className="h-3.5 w-3.5 shrink-0 text-amber-500" />
+                    Set a payout account before withdrawing
+                  </p>
+                )}
               </div>
-           </div>
-           
-           <div className="overflow-x-auto">
-              <table className="w-full text-left whitespace-nowrap">
-                 <thead>
-                    <tr className="bg-surface/40 dark:bg-surface/20">
-                       <th className="px-4 sm:px-8 py-4 sm:py-5 text-[9px] sm:text-[10px] font-bold text-stone-400 dark:text-text-muted uppercase tracking-widest border-b border-border">Date</th>
-                       <th className="px-4 sm:px-8 py-4 sm:py-5 text-[9px] sm:text-[10px] font-bold text-stone-400 dark:text-text-muted uppercase tracking-widest border-b border-border">Method</th>
-                       <th className="px-4 sm:px-8 py-4 sm:py-5 text-right text-[9px] sm:text-[10px] font-bold text-stone-400 dark:text-text-muted uppercase tracking-widest border-b border-border">Amount</th>
-                       <th className="px-4 sm:px-8 py-4 sm:py-5 text-center text-[9px] sm:text-[10px] font-bold text-stone-400 dark:text-text-muted uppercase tracking-widest border-b border-border">Status</th>
-                    </tr>
-                 </thead>
-                 <tbody className="divide-y divide-border/60">
-                    {payouts.length === 0 ? (
-                      <tr>
-                         <td colSpan={4} className="py-16 sm:py-20 text-center">
-                            <p className="text-[10px] sm:text-[11px] font-bold text-stone-300 dark:text-stone-700 uppercase tracking-widest">No past withdrawals found</p>
-                         </td>
-                      </tr>
-                    ) : payouts.map((p) => (
-                      <tr key={p.id} className="hover:bg-surface/60 dark:hover:bg-zinc-800/40 transition-all duration-300 group">
-                         <td className="px-4 sm:px-8 py-5 sm:py-6 text-[12px] sm:text-sm font-bold text-stone-400 dark:text-text-muted tabular-nums">
-                            {new Date(p.created_at).toLocaleDateString()}
-                         </td>
-                         <td className="px-4 sm:px-8 py-5 sm:py-6">
-                            <span className="capitalize font-bold text-[12px] sm:text-sm text-stone-900 dark:text-white tracking-tight">{String(p.payout_method || "").replace(/_/g, " ")}</span>
-                         </td>
-                         <td className="px-4 sm:px-8 py-5 sm:py-6 text-right">
-                            <span className="font-bold text-[14px] sm:text-base text-stone-900 dark:text-white tabular-nums tracking-tight">{formatMoney(Number(p.amount ?? 0), "USD")}</span>
-                         </td>
-                         <td className="px-4 sm:px-8 py-5 sm:py-6">
-                            <div className="flex justify-center">
-                               <GlassPill color={p.status === "paid" ? "emerald" : p.status === "failed" ? "rose" : "orange"} className="font-bold text-[8px] sm:text-[9px] px-3 sm:px-4 py-1 sm:py-1.5 uppercase tracking-widest border-none shadow-sm rounded-lg">
-                                  {p.status || "pending"}
-                               </GlassPill>
-                            </div>
-                         </td>
-                      </tr>
+            </div>
+          </div>
+
+          {/* ── Payout method — 2 cols ── */}
+          <div className="lg:col-span-2">
+            <div className="rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden h-full flex flex-col">
+              <div className="px-5 pt-5 pb-4 border-b border-[var(--color-border)]">
+                <h2 className="text-sm font-semibold text-[var(--color-text-primary)] tracking-tight">
+                  Payout Method
+                </h2>
+                <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
+                  Where you'll receive funds
+                </p>
+              </div>
+
+              <div className="p-4 space-y-2 flex-1">
+                {PAYMENT_METHODS.map((m) => {
+                  const Icon = m.icon;
+                  const active = payoutMethod === m.id;
+                  return (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => setPayoutMethod(m.id)}
+                      className={cn(
+                        "w-full flex items-center gap-3 px-3 py-3 rounded-sm border text-left transition-all duration-150",
+                        active
+                          ? "border-orange-500/30 bg-orange-500/5 text-orange-500"
+                          : "border-[var(--color-border)] bg-transparent text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)] hover:border-[var(--color-border-strong)]"
+                      )}
+                    >
+                      <Icon className="h-4 w-4 shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <p className={cn(
+                          "text-xs font-semibold leading-none truncate",
+                          active ? "text-orange-600 dark:text-orange-400" : "text-[var(--color-text-primary)]"
+                        )}>
+                          {m.label}
+                        </p>
+                        <p className="text-[10px] text-[var(--color-text-muted)] mt-0.5 truncate">
+                          {m.desc}
+                        </p>
+                      </div>
+                      {active && <ChevronRight className="h-3.5 w-3.5 shrink-0 text-orange-500" />}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Account input */}
+              <div className="p-4 border-t border-[var(--color-border)] space-y-3">
+                <Field label={payoutMethod === "bank"
+                  ? "Account Details"
+                  : payoutMethod === "paypal"
+                    ? "PayPal Email"
+                    : "Phone Number"}>
+                  <FieldInput
+                    value={payoutAccount}
+                    onChange={e => setPayoutAccount(e.target.value)}
+                    placeholder={payoutMethod === "paypal" ? "your@email.com" : "+250 7xx xxx xxx"}
+                    className="pl-3"
+                  />
+                </Field>
+
+
+                <button
+                  type="button"
+                  onClick={savePayoutMethod}
+                  className={cn(
+                    "w-full h-9 rounded-lg text-xs font-semibold border transition-all duration-150",
+                    "border-[var(--color-border)] bg-[var(--color-surface-secondary)]",
+                    "text-[var(--color-text-primary)] hover:border-[var(--color-border-strong)]",
+                    "active:scale-[0.98]"
+                  )}
+                >
+                  Save Method
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── History ── */}
+        <div className="rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden">
+          <div className="px-5 sm:px-6 py-4 border-b border-[var(--color-border)] flex items-center gap-3">
+            <History className="h-4 w-4 text-[var(--color-text-muted)]" />
+            <div>
+              <h2 className="text-sm font-semibold text-[var(--color-text-primary)] tracking-tight">
+                Withdrawal History
+              </h2>
+            </div>
+          </div>
+
+          {payouts.length === 0 ? (
+            <div className="py-16 text-center">
+              <Wallet className="h-8 w-8 text-[var(--color-border)] mx-auto mb-3" />
+              <p className="text-sm font-medium text-[var(--color-text-muted)]">
+                No withdrawals yet
+              </p>
+              <p className="text-xs text-[var(--color-text-muted)] mt-1 opacity-60">
+                Your payout history will appear here
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="border-b border-[var(--color-border)]">
+                    {["Date", "Method", "Amount", "Status"].map((h, i) => (
+                      <th
+                        key={h}
+                        className={cn(
+                          "px-5 sm:px-6 py-3 text-[10px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]",
+                          i >= 2 && "text-right",
+                          i === 3 && "text-center"
+                        )}
+                      >
+                        {h}
+                      </th>
                     ))}
-                 </tbody>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[var(--color-border)]">
+                  {payouts.map((p) => {
+                    const s = STATUS_MAP[p.status] ?? STATUS_MAP.pending;
+                    return (
+                      <tr key={p.id} className="hover:bg-[var(--color-surface-secondary)] transition-colors">
+                        <td className="px-5 sm:px-6 py-4 text-sm text-[var(--color-text-muted)] tabular-nums whitespace-nowrap">
+                          {new Date(p.created_at).toLocaleDateString(undefined, {
+                            year: "numeric", month: "short", day: "numeric"
+                          })}
+                        </td>
+                        <td className="px-5 sm:px-6 py-4 text-sm font-medium text-[var(--color-text-primary)] capitalize whitespace-nowrap">
+                          {String(p.payout_method || "").replace(/_/g, " ")}
+                        </td>
+                        <td className="px-5 sm:px-6 py-4 text-sm font-bold text-[var(--color-text-primary)] tabular-nums text-right whitespace-nowrap">
+                          {formatMoney(Number(p.amount ?? 0), "USD")}
+                        </td>
+                        <td className="px-5 sm:px-6 py-4 text-center">
+                          <span className={cn(
+                            "inline-flex items-center px-2.5 py-1 rounded-md text-[10px] font-semibold uppercase tracking-wide",
+                            s.className
+                          )}>
+                            {s.label}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
               </table>
-           </div>
-        </GlassCard>
+            </div>
+          )}
+        </div>
+
       </div>
     </div>
   );
 }
-

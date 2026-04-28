@@ -12,7 +12,6 @@ export function FieldInput({
                 "bg-[var(--color-surface)]b bg-surface border border-[var(--color-border)]",
                 "text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)]",
                 "focus:outline-none focus:ring-2 focus:border-transparent",
-                // getInputValidationClasses(false),
                 hasError
                     ? "border-red-500/60 focus:ring-red-500/40 focus:border-red-500/60"
                     : "focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all duration-150",

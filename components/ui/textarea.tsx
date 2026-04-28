@@ -6,6 +6,8 @@ export interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextArea
   error?: string;
 }
 
+type FieldError = string | null;
+
 const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
   ({ className, label, error, ...props }, ref) => {
     return (
@@ -29,5 +31,23 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
 );
 Textarea.displayName = "Textarea";
 
-export { Textarea };
+function StyledTextarea({ error, className, ...props }: React.TextareaHTMLAttributes<HTMLTextAreaElement> & {
+  error?: FieldError;
+}) {
+  return (
+    <textarea
+      className={cn(
+        "w-full rounded-sm border transition-all duration-150 text-sm font-medium px-4 py-3 resize-none min-h-[100px]",
+        "bg-[var(--color-surface)] border-[var(--color-border)]",
+        "text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)]",
+        "outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500",
+        error && "border-red-500/60 focus:ring-red-500/40 focus:border-red-500/60",
+        className
+      )}
+      {...props}
+    />
+  );
+}
+
+export { Textarea, StyledTextarea };
 

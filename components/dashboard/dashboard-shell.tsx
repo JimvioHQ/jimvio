@@ -73,9 +73,6 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
       />
 
       <div className="flex-1 flex flex-col min-w-0 min-h-0">
-        {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-            HEADER — Professional Solid
-        â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
         <header className="sticky top-0 z-40 shrink-0 bg-surface border-b border-border">
           <div className="flex items-center justify-between gap-4 px-4 sm:px-6 h-14 w-full">
 
@@ -124,7 +121,7 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
               {/* Notifications */}
               <Link
                 href="/dashboard/notifications"
-                className="flex items-center justify-center h-9 w-9 rounded-sm text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-all active:scale-95 relative bg-surface border border-border"
+                className="flex items-center justify-center h-9 w-9 rounded-full text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-all active:scale-95 relative bg-surface border border-border"
               >
                 <Bell className="h-4 w-4" />
                 <span className="absolute top-2 right-2 w-1.5 h-1.5 bg-orange-500 rounded-sm border border-white dark:border-stone-900" />
@@ -133,13 +130,10 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
               {/* User Menu */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="flex items-center gap-2 p-1 pl-1 pr-2.5 rounded-sm transition-all hover:shadow-none active:scale-95 bg-surface border border-border hover:bg-background">
-                    <div className="w-7 h-7 rounded-sm bg-background flex items-center justify-center text-[10px] font-bold text-[var(--color-text-secondary)] border border-border overflow-hidden">
+                  <button className="flex items-center gap-2 p-1 rounded-full transition-all hover:shadow-none active:scale-95 bg-surface border border-border hover:bg-background">
+                    <div className="w-7 h-7 rounded-full bg-background flex items-center justify-center text-[10px] font-bold text-[var(--color-text-secondary)] border border-border overflow-hidden">
                       {user.avatar_url ? <img src={user.avatar_url} className="w-full h-full object-cover" /> : initials}
                     </div>
-                    <span className="hidden sm:block text-[12px] font-bold text-[var(--color-text-primary)]">
-                      Admin
-                    </span>
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
@@ -147,10 +141,10 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
                   className="w-56 rounded-sm p-2 shadow-none border border-border bg-surface"
                 >
                   <DropdownMenuLabel className="px-3 py-2">
-                    <p className="text-xs font-bold text-stone-900 dark:text-white uppercase tracking-tighter">{user.full_name || 'Account'}</p>
-                    <p className="text-[10px] font-medium text-stone-400 dark:text-stone-500 truncate">{user.email}</p>
+                    <p className="text-xs font-semibold tracking-[0.05em] text-stone-900 dark:text-white uppercase">{user.full_name || 'Account'}</p>
+                    <p className="text-[10px] font-medium text-stone-400 dark:text-stone-600 truncate">{user.email}</p>
                   </DropdownMenuLabel>
-                  <DropdownMenuSeparator className="bg-stone-100/60" />
+                  <DropdownMenuSeparator className="bg-stone-100/60 dark:bg-stone-800" />
                   <DropdownMenuItem asChild className="rounded-sm focus:bg-orange-500/10 cursor-pointer">
                     <Link href="/dashboard/settings" className="flex items-center gap-2.5 p-2.5">
                       <UserRound className="h-4 w-4 text-stone-400 dark:text-text-muted" />
@@ -159,11 +153,11 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild className="rounded-sm focus:bg-orange-500/10 cursor-pointer">
                     <Link href="/dashboard/wallet" className="flex items-center gap-2.5 p-2.5">
-                      <Wallet className="h-4 w-4 text-orange-500" />
+                      <Wallet className="h-4 w-4 text-orange-500 dark:text-stone-500" />
                       <span className="text-[12px] font-bold text-stone-700 dark:text-stone-300">My Wallet</span>
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuSeparator className="bg-stone-100/60" />
+                  <DropdownMenuSeparator className="bg-stone-100/60 dark:bg-stone-800" />
                   <div className="p-1">
                     <SignOutButton variant="menu" />
                   </div>
@@ -248,14 +242,154 @@ function BottomNavLink({
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   return (
-    <Suspense fallback={
-      <div className="flex flex-col h-screen items-center justify-center bg-background space-y-4">
-        <div className="w-10 h-10 border-4 border-stone-100 dark:border-border border-t-orange-500 rounded-sm animate-spin" />
-        <p className="text-[10px] font-bold text-stone-400 dark:text-text-muted uppercase tracking-widest">Loading...</p>
-      </div>
-    }>
+    <Suspense fallback={<DashboardLoadingSkeleton />}>
       <DashboardShellContent>{children}</DashboardShellContent>
     </Suspense>
   );
 }
 
+function DashboardLoadingSkeleton() {
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center bg-[#f5f5f5] dark:bg-[#0a0a0a] px-4 py-10 gap-10 animate-in fade-in duration-500">
+
+      {/* ── Spinner + Label ── */}
+      <div className="flex flex-col items-center gap-5">
+        <div className="relative w-[72px] h-[72px]">
+          {/* outer spinning ring */}
+          <svg
+            className="absolute inset-0 animate-spin"
+            style={{ animationDuration: "1.1s" }}
+            width="72" height="72" viewBox="0 0 72 72"
+          >
+            <circle cx="36" cy="36" r="30" fill="none" stroke="#e8e8e8" strokeWidth="3" />
+            <circle
+              cx="36" cy="36" r="30" fill="none"
+              stroke="#fd5000" strokeWidth="3"
+              strokeLinecap="round" strokeDasharray="60 130"
+            />
+          </svg>
+          {/* inner icon surface */}
+          <div className="absolute inset-[10px] rounded-[14px] bg-white dark:bg-[#111111] border border-[#e8e8e8] dark:border-[#222222] flex items-center justify-center">
+            <LayoutDashboard className="h-5 w-5 text-[#fd5000]" />
+          </div>
+        </div>
+
+        <div className="text-center space-y-2">
+          <p className="text-[11px] font-black text-[#11181c] dark:text-[#ededed] uppercase tracking-[0.3em]">
+            Loading Console
+          </p>
+          <div className="flex items-center justify-center gap-2">
+            <span className="text-[10px] font-bold text-[#889096] dark:text-[#6a6a6a] uppercase tracking-[0.2em]">
+              Establishing parameters
+            </span>
+            <span className="flex gap-[3px] items-center">
+              {[0, 200, 400].map((delay) => (
+                <span
+                  key={delay}
+                  className="w-[3px] h-[3px] rounded-full bg-[#fd5000] animate-pulse"
+                  style={{ animationDelay: `${delay}ms` }}
+                />
+              ))}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Skeleton Layout ── */}
+      <div className="w-full max-w-3xl flex flex-col gap-3">
+
+        {/* Wallet skeleton */}
+        <div className="bg-white dark:bg-[#111111] border border-[#e8e8e8] dark:border-[#222222] rounded-[24px] p-6 flex flex-col gap-5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Skeleton className="w-[46px] h-[46px] rounded-[13px]" />
+              <div className="flex flex-col gap-1.5">
+                <Skeleton className="h-[9px] w-[90px] rounded" />
+                <Skeleton className="h-[13px] w-[130px] rounded" />
+              </div>
+            </div>
+            <Skeleton className="w-[38px] h-[38px] rounded-[11px]" />
+          </div>
+          <div className="flex items-end justify-between">
+            <div className="flex flex-col gap-2">
+              <Skeleton className="h-[9px] w-[110px] rounded" />
+              <Skeleton className="h-[40px] w-[180px] rounded-lg" />
+            </div>
+            <div className="flex flex-col gap-2 items-end">
+              <Skeleton className="h-[28px] w-[130px] rounded-[10px]" />
+              <Skeleton className="h-[10px] w-[100px] rounded" />
+            </div>
+          </div>
+        </div>
+
+        {/* Quick actions skeleton */}
+        <div className="grid grid-cols-4 gap-2">
+          {[...Array(4)].map((_, i) => (
+            <Skeleton key={i} className="h-[82px] rounded-[20px]" />
+          ))}
+        </div>
+
+        {/* Chart + side cards */}
+        <div className="grid grid-cols-[1fr_200px] gap-3">
+          <div className="bg-white dark:bg-[#111111] border border-[#e8e8e8] dark:border-[#222222] rounded-[18px] p-5 flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-1.5">
+                <Skeleton className="h-[16px] w-[150px] rounded" />
+                <Skeleton className="h-[9px] w-[100px] rounded" />
+              </div>
+              <Skeleton className="h-[26px] w-[80px] rounded-lg" />
+            </div>
+            {/* Animated bar chart skeleton */}
+            <div className="flex items-end gap-2 h-[130px] pb-1">
+              {[45, 65, 52, 88, 72, 95, 80].map((h, i) => (
+                <div
+                  key={i}
+                  className="flex-1 rounded-t-md animate-pulse bg-[#efefef] dark:bg-[#1a1a1a]"
+                  style={{ height: `${h}%`, animationDelay: `${i * 80}ms` }}
+                />
+              ))}
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-3">
+            <Skeleton className="h-[110px] rounded-[18px]" />
+            <Skeleton className="h-[110px] rounded-[18px]" />
+          </div>
+        </div>
+
+        {/* Role section skeletons */}
+        <div className="grid grid-cols-2 gap-3">
+          {[...Array(2)].map((_, i) => (
+            <div key={i} className="bg-white dark:bg-[#111111] border border-[#e8e8e8] dark:border-[#222222] rounded-[18px] p-4 flex flex-col gap-3">
+              <div className="flex items-center gap-2">
+                <Skeleton className="w-[26px] h-[26px] rounded-lg" />
+                <Skeleton className="h-[10px] w-[100px] rounded" />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <Skeleton className="h-[100px] rounded-[14px]" />
+                <Skeleton className="h-[100px] rounded-[14px]" />
+              </div>
+              <Skeleton className="h-[40px] rounded-[12px]" />
+              <Skeleton className="h-[40px] rounded-[12px]" />
+            </div>
+          ))}
+        </div>
+
+      </div>
+    </div>
+  );
+}
+
+function Skeleton({ className }: { className?: string }) {
+  return (
+    <div
+      className={cn("relative overflow-hidden bg-[#efefef] dark:bg-[#1a1a1a]", className)}
+      style={{
+        backgroundImage:
+          "linear-gradient(90deg, #efefef 25%, #f8f8f8 50%, #efefef 75%)",
+        backgroundSize: "600px 100%",
+        animation: "shimmer 1.6s infinite linear",
+      }}
+    />
+  );
+}

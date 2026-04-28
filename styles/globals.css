@@ -235,6 +235,25 @@
       color 0.3s ease,
       box-shadow 0.3s ease;
   }
+  
+
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 999px var(--color-surface) inset !important;
+    -webkit-text-fill-color: var(--color-text-primary) !important;
+    caret-color: var(--color-text-primary);
+    transition: background-color 9999s ease-in-out 0s;
+  }
+
+  input:-webkit-autofill:focus {
+    outline: none;
+    box-shadow:
+      0 0 0 999px var(--color-surface) inset,
+      0 0 0 2px color-mix(in srgb, #f97316 20%, transparent) !important;
+    border-color: #f97316 !important;
+  }
 
   html,
   body {
@@ -591,6 +610,14 @@
     }
   }
 
+  @keyframes shimmer {
+    0% {
+      background-position: -600px 0;
+    }
+    100% {
+      background-position: 600px 0;
+    }
+  }
   @keyframes float-slow {
     0%,
     100% {
