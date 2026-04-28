@@ -117,6 +117,9 @@ import { Button } from "@/components/ui/button";
 import { submitReview } from "@/lib/actions/marketplace";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { Field } from "../ui/field";
+import { FieldInput } from "../ui/field-input";
+import { StyledTextarea } from "../ui/textarea";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -270,74 +273,33 @@ export function ReviewForm({ productId, vendorId }: ReviewFormProps) {
 
         {/* Title */}
         <div>
-          <div className="flex items-center justify-between mb-1.5">
-            <label
-              htmlFor="review-title"
-              className="text-[11px] font-semibold text-[var(--color-text-muted)] uppercase tracking-widest"
-            >
-              Summary
-            </label>
-            <span className="text-[10px] text-[var(--color-text-muted)]">Optional</span>
-          </div>
-          <input
-            id="review-title"
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="e.g. Great component library"
-            maxLength={100}
-            className={cn(
-              "w-full h-10 px-3 text-[13px] rounded-xl",
-              "bg-[var(--color-surface-secondary)] border border-[var(--color-border)]",
-              "text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)]",
-              "focus:outline-none focus:border-[var(--color-accent)]/60 focus:ring-2 focus:ring-[var(--color-accent)]/10",
-              "transition-all duration-150"
-            )}
-          />
+          <Field label="Summary" required>
+            <FieldInput
+              id="review-title"
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="e.g. Great component library"
+              maxLength={100}
+              className="px-3"
+            />
+          </Field>
         </div>
 
         {/* Body */}
         <div>
-          <div className="flex items-center justify-between mb-1.5">
-            <label
-              htmlFor="review-body"
-              className="text-[11px] font-semibold text-[var(--color-text-muted)] uppercase tracking-widest"
-            >
-              Feedback <span className="text-[var(--color-accent)]" aria-hidden="true">*</span>
-            </label>
-            <span className={cn(
-              "text-[10px] tabular-nums transition-colors",
-              body.length > 480
-                ? "text-[var(--color-danger)]"
-                : "text-[var(--color-text-muted)]"
-            )}>
-              {body.length} / 500
-            </span>
-          </div>
-          <textarea
-            id="review-body"
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            onBlur={() => setBodyTouched(true)}
-            placeholder="What did you like or dislike? How did it help you?"
-            rows={4}
-            maxLength={500}
-            className={cn(
-              "w-full px-3 py-2.5 text-[13px] rounded-xl resize-none leading-relaxed",
-              "bg-[var(--color-surface-secondary)] border",
-              bodyError
-                ? "border-[var(--color-danger)]/60 focus:ring-[var(--color-danger)]/15"
-                : "border-[var(--color-border)] focus:border-[var(--color-accent)]/60 focus:ring-[var(--color-accent)]/10",
-              "text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)]",
-              "focus:outline-none focus:ring-2",
-              "transition-all duration-150"
-            )}
-          />
-          {bodyError && (
-            <p className="mt-1.5 text-[11px] font-medium text-[var(--color-danger)]">
-              Please write at least 10 characters.
-            </p>
-          )}
+          <Field label="Feedback" required>
+            <StyledTextarea
+              id="review-body"
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+              onBlur={() => setBodyTouched(true)}
+              placeholder="What did you like or dislike? How did it help you?"
+              rows={4}
+              maxLength={500}
+              error={bodyError ? "Please write at least 10 characters." : undefined}
+            />
+          </Field>
         </div>
 
         {/* Submit */}

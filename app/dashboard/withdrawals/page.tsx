@@ -159,9 +159,8 @@ export default function AffiliateWithdrawalsPage() {
   /* ── Page ─────────────────────────────────────────────────────────────── */
   return (
     <div className="min-h-screen pb-24" style={{ background: "var(--color-bg)" }}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-8 sm:pt-12 space-y-8">
+      <div className=" w-full xl:max-w-7xl mx-auto px-2 sm:px-6 pt-8 sm:pt-12 space-y-8">
 
-        {/* ── Header ── */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Link

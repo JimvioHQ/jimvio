@@ -664,7 +664,7 @@ export function CheckoutExperience({ orders, profile, mode = "cart" }: CheckoutE
 
                   {/* Shipping summary on steps 2–3 */}
                   {currentStep > 1 && (
-                     <div className="flex items-center justify-between p-4 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl">
+                     <div className="flex items-center justify-between p-4 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-md">
                         <div className="flex items-center gap-3">
                            <div className="w-8 h-8 rounded-lg bg-orange-500/10 flex items-center justify-center flex-shrink-0">
                               <Package className="h-4 w-4 text-orange-500" />
@@ -937,7 +937,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 
 function ReviewBlock({ title, children }: { title: string; children: React.ReactNode }) {
    return (
-      <div className="p-4 rounded-xl bg-[var(--color-surface-secondary)] border border-[var(--color-border)]">
+      <div className="p-4 rounded-md bg-[var(--color-surface-secondary)] border border-[var(--color-border)]">
          <p className="text-[10px] font-semibold text-[var(--color-text-muted)] uppercase tracking-widest mb-2">{title}</p>
          <div>{children}</div>
       </div>

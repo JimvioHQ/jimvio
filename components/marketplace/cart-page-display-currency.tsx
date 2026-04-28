@@ -9,9 +9,9 @@ export function CartPageDisplayCurrency() {
   const m = SUPPORTED_CURRENCIES[userCurrency];
   return (
     <>
-      <p className="text-[10px] font-black text-zinc-400 capitalize tracking-widest mb-1">Prices in</p>
-      <p className="text-xl font-black text-zinc-900 dark:text-white" title="Amounts are converted for display; checkout uses each order's currency.">
-        {loading ? "…" : `${m.symbol} ${userCurrency}`}
+      <span className="text-[10px] font-black text-zinc-700 capitalize tracking-widest mb-1">Prices in</span>
+      <p className="text-lg font-black text-zinc-900 ml-2 dark:text-white" title="Amounts are converted for display; checkout uses each order's currency.">
+        {loading ? "…" : `${userCurrency}`}
       </p>
     </>
   );
