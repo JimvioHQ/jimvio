@@ -27,14 +27,13 @@ import {
   Mail,
   Calendar,
   Sparkles,
-  Loader2,
   ChevronRight,
   ShieldCheck,
   Activity,
   Zap,
   Target,
   Rocket,
-  RefreshCw
+  Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -258,7 +257,7 @@ export default function ActivateVendorPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center space-y-6" style={{ background: "var(--color-bg)" }}>
-        <RefreshCw className="h-6 w-6 animate-spin text-orange-500" />
+        <Loader2 className="h-6 w-6 animate-spin text-orange-500" />
         <p className="text-[11px] font-bold text-stone-400 uppercase tracking-widest pl-1">Starting Application...</p>
       </div>
     );
@@ -611,7 +610,7 @@ export default function ActivateVendorPage() {
                        disabled={submitting}
                        className="h-12 sm:h-14 px-8 sm:px-10 rounded-xl bg-orange-500 text-white font-bold text-xs uppercase tracking-widest shadow-sm active:scale-95 transition-all outline-none border-none"
                      >
-                        {submitting ? <RefreshCw className="h-4 w-4 animate-spin" /> : "Submit Application"}
+                        {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Submit Application"}
                      </Button>
                    )}
                 </div>

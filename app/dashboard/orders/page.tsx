@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { 
   ShoppingCart, Search, Eye, Package, Truck, CheckCircle, XCircle, Clock, 
-  MoreHorizontal, MessageSquare, Download, Filter, ArrowUpDown, ChevronDown, ShoppingBag, ArrowLeft, MoreVertical, RefreshCw
+  MoreHorizontal, MessageSquare, Download, Filter, ArrowUpDown, ChevronDown, ShoppingBag, ArrowLeft, MoreVertical, Loader2
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -99,7 +99,7 @@ export default function BuyerOrdersPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center space-y-4" style={{ background: "var(--color-bg)" }}>
-        <RefreshCw className="h-6 w-6 animate-spin text-orange-500" />
+        <Loader2 className="h-6 w-6 animate-spin text-orange-500" />
         <p className="text-[11px] font-bold text-stone-400 dark:text-text-muted capitalize pl-1">Syncing Orders...</p>
       </div>
     );

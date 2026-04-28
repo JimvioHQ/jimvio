@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { Download, Package, Search, ExternalLink, Video, FileText, Zap, RefreshCw } from "lucide-react";
+import { Download, Package, Search, ExternalLink, Video, FileText, Zap, Loader2 } from "lucide-react";
 import { GlassCard, GlassPill, GlassAmbientGlow } from "@/components/ui/glass";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
@@ -181,7 +181,7 @@ export default function DigitalLibraryPage() {
                            </a>
                          ) : (
                            <Button size="icon" disabled className="rounded-sm h-12 w-12 sm:h-14 sm:w-14 opacity-50 bg-surface dark:bg-surface border-0">
-                             <RefreshCw className="h-5 w-5 sm:h-6 sm:w-6 animate-spin" />
+                             <Loader2 className="h-5 w-5 sm:h-6 sm:w-6 animate-spin" />
                            </Button>
                          )}
                          <a href={item.digital_download_url ?? "#"} target="_blank" rel="noopener noreferrer">
@@ -228,7 +228,7 @@ export default function DigitalLibraryPage() {
                         </a>
                       ) : (
                         <Button disabled className="w-full justify-center gap-2 sm:gap-3 rounded-sm sm:rounded-sm text-[10px] sm:text-[11px] font-black uppercase tracking-widest h-12 sm:h-14 bg-stone-200 dark:bg-surface-secondary text-stone-400 dark:text-text-muted border-none opacity-70">
-                           <RefreshCw className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" /> Preparing...
+                           <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" /> Preparing...
                         </Button>
                       )}
                     </div>

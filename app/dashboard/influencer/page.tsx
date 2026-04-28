@@ -7,7 +7,7 @@ import {
   Video, Zap, DollarSign, TrendingUp, Users, 
   Play, Plus, ArrowRight, MousePointer, ExternalLink,
   ShoppingBag, Star, LayoutDashboard, Globe, Eye, Package,
-  Send, CheckCircle, BarChart3, Loader2, Film, Target, Sparkles,
+  Send, CheckCircle, BarChart3, Film, Target, Sparkles,
   Building2, ChevronRight, Crown
 } from "lucide-react";
 import { GlassCard, GlassPill } from "@/components/ui/glass";
@@ -242,7 +242,7 @@ export default function InfluencerDashboardPage() {
   );
 }
 
-function RefreshCw(props: any) {
+function Loader2(props: any) {
   return (
     <svg
       {...props}

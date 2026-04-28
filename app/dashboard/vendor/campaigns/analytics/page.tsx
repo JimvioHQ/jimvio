@@ -4,7 +4,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
 } from "recharts";
-import { BarChart3, Megaphone, Flag, Wallet, CheckCircle, Loader2, Target, TrendingUp, RefreshCw } from "lucide-react";
+import { BarChart3, Megaphone, Flag, Wallet, CheckCircle, Loader2, Target, TrendingUp } from "lucide-react";
 import { GlassCard, GlassPill, GlassAmbientGlow } from "@/components/ui/glass";
 import { useCurrency } from "@/context/CurrencyContext";
 
@@ -67,7 +67,7 @@ export default function CampaignAnalyticsPage() {
            </div>
            
            <div className="flex items-center gap-4 bg-white dark:bg-surface/40 p-1.5 rounded-sm border border-white shadow-none backdrop-blur-xl">
-              <RefreshCw className="h-3.5 w-3.5 text-stone-400 ml-4 animate-spin-slow" />
+              <Loader2 className="h-3.5 w-3.5 text-stone-400 ml-4 animate-spin-slow" />
               <span className="text-[10px] font-black uppercase tracking-widest text-stone-900 dark:text-white pr-6 pl-2">Live Sync</span>
            </div>
         </div>

@@ -4,7 +4,7 @@ export const dynamic = "force-dynamic";
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Link2, Plus, Copy, TrendingUp, DollarSign, MousePointer, ShoppingCart, ExternalLink, CheckCircle, Search, Trash2, Zap, Target, Activity, Globe, ShieldCheck, ArrowRight, ArrowLeft, RefreshCw, Layers, Package } from "lucide-react";
+import { Link2, Plus, Copy, TrendingUp, DollarSign, MousePointer, ShoppingCart, ExternalLink, CheckCircle, Search, Trash2, Zap, Target, Activity, Globe, ShieldCheck, ArrowRight, ArrowLeft, Loader2, Layers, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { GlassCard, GlassPill, GlassAmbientGlow } from "@/components/ui/glass";
@@ -73,7 +73,7 @@ export default function AffiliateLinksPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center space-y-6" style={{ background: "var(--color-bg)" }}>
-        <RefreshCw className="h-6 w-6 animate-spin text-orange-500" />
+        <Loader2 className="h-6 w-6 animate-spin text-orange-500" />
         <p className="text-[11px] font-bold text-stone-400 uppercase tracking-widest pl-1">Loading Affiliate Hub...</p>
       </div>
     );
@@ -322,7 +322,7 @@ export default function AffiliateLinksPage() {
                                      </div>
                                   </div>
                                   <Button onClick={createLinkFromProduct} disabled={creating} className="h-12 w-full rounded-sm bg-stone-900 text-white font-bold text-xs uppercase tracking-widest shadow-none active:scale-95 transition-all border-none group">
-                                     {creating ? <RefreshCw className="h-4 w-4 animate-spin text-orange-500" /> : "Create Affiliate Link"}
+                                     {creating ? <Loader2 className="h-4 w-4 animate-spin text-orange-500" /> : "Create Affiliate Link"}
                                   </Button>
                                </div>
                              ) : (

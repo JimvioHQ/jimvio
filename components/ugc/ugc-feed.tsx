@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { Loader2, TrendingUp, Clock, Award, RefreshCw, Plus, Flame } from "lucide-react";
+import { Loader2, TrendingUp, Clock, Award, Plus, Flame } from "lucide-react";
 import { UGCPostCard, type UGCPost } from "./ugc-post-card";
 import { cn } from "@/lib/utils";
 
@@ -170,7 +170,7 @@ export function UGCFeed({
             className="p-2 rounded-sm text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)] transition-all active:scale-95"
             title="Refresh feed"
           >
-            <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
+            <Loader2 className={cn("h-4 w-4", loading && "animate-spin")} />
           </button>
         </div>
       )}

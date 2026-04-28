@@ -6,7 +6,7 @@ import Link from "next/link";
 import { 
   Truck, Package, Search, Eye, MoreHorizontal, 
   MessageSquare, CheckCircle2, XCircle, ArrowRight, 
-  Download, Filter, Clock, DollarSign, RefreshCw, ChevronRight
+  Download, Filter, Clock, DollarSign, Loader2, ChevronRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -172,7 +172,7 @@ export default function VendorOrdersPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center space-y-6" style={{ background: "var(--color-bg)" }}>
-        <RefreshCw className="h-6 w-6 animate-spin text-orange-500" />
+        <Loader2 className="h-6 w-6 animate-spin text-orange-500" />
         <p className="text-[11px] font-bold text-stone-400 uppercase tracking-widest pl-1">Syncing Orders...</p>
       </div>
     );

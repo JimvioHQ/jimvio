@@ -7,7 +7,7 @@ import {
   Video, Play, CheckCircle, 
   Clock, XCircle, TrendingUp, 
   DollarSign, ExternalLink, Filter,
-  LayoutDashboard, Camera, MessageSquare, ArrowRight, Trash2, RefreshCw
+  LayoutDashboard, Camera, MessageSquare, ArrowRight, Trash2, Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { GlassCard, GlassPill, GlassAmbientGlow } from "@/components/ui/glass";

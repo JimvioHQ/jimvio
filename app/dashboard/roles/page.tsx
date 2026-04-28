@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Package, Link2, Video, ShoppingBag, CheckCircle,
-  ArrowRight, Crown, Loader2, Sparkles, Rocket, Users, ShieldCheck, ArrowLeft, RefreshCw
+  ArrowRight, Crown, Loader2, Sparkles, Rocket, Users, ShieldCheck, ArrowLeft,
 } from "lucide-react";
 import { GlassCard, GlassPill, GlassAmbientGlow } from "@/components/ui/glass";
 import { Button } from "@/components/ui/button";
@@ -147,7 +147,7 @@ export default function RolesPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center space-y-6" style={{ background: "var(--color-bg)" }}>
-        <RefreshCw className="h-6 w-6 animate-spin text-orange-500" />
+        <Loader2 className="h-6 w-6 animate-spin text-orange-500" />
         <p className="text-[11px] font-bold text-stone-400 dark:text-text-muted uppercase tracking-widest pl-1">Loading Roles...</p>
       </div>
     );

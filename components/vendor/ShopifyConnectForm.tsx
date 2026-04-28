@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { Loader2, CheckCircle2, RefreshCw, Unplug, ChevronDown, ChevronUp } from "lucide-react";
+import { Loader2, CheckCircle2, Unplug, ChevronDown, ChevronUp } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -164,7 +164,7 @@ export function ShopifyConnectForm({ vendorId }: Props) {
           </div>
           <div className="mt-6 flex flex-wrap gap-3">
             <Button type="button" variant="default" onClick={handleSync} disabled={syncing}>
-              {syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+              {syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Loader2 className="h-4 w-4" />}
               Sync now
             </Button>
             <Button type="button" variant="outline" onClick={handleDisconnect}>

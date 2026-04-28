@@ -6,7 +6,7 @@ import type { UGCCampaign } from "@/types/ugc";
 import { 
   Plus, Eye, Target, Video, Wallet, ArrowRight,
   TrendingUp, CircleDollarSign, BarChart3, AlertCircle, Trash2,
-  Loader2, Megaphone, RefreshCw
+  Loader2, Megaphone,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";

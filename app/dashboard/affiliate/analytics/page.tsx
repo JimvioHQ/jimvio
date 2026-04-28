@@ -7,7 +7,7 @@ import Link from "next/link";
 import {
   ArrowLeft, MousePointer, ShoppingCart, DollarSign,
   TrendingUp, BarChart3, Package, ShieldCheck, Activity,
-  RefreshCw, ArrowUpRight, Percent, Link2
+  Loader2, ArrowUpRight, Percent, Link2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -85,8 +85,8 @@ function StatCard({
 export default function AffiliateAnalyticsPage() {
   const { formatMoney } = useCurrency();
   const [affiliate, setAffiliate] = useState<{ id: string } | null>(null);
-  const [links, setLinks]         = useState<AffLink[]>([]);
-  const [loading, setLoading]     = useState(true);
+  const [links, setLinks] = useState<AffLink[]>([]);
+  const [loading, setLoading] = useState(true);
   const [activeBar, setActiveBar] = useState<number | null>(null);
 
   useEffect(() => {
@@ -116,7 +116,7 @@ export default function AffiliateAnalyticsPage() {
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--color-bg)" }}>
       <div className="flex flex-col items-center gap-4">
-        <RefreshCw className="h-5 w-5 animate-spin text-orange-500" />
+        <Loader2 className="h-5 w-5 animate-spin text-orange-500" />
         <p className="text-xs font-semibold text-[var(--color-text-muted)] tracking-widest uppercase">Loading…</p>
       </div>
     </div>
@@ -143,16 +143,16 @@ export default function AffiliateAnalyticsPage() {
   );
 
   /* ── Aggregates ── */
-  const totalClicks      = links.reduce((s, l) => s + (l.total_clicks      ?? 0), 0);
-  const totalConversions = links.reduce((s, l) => s + (l.total_conversions  ?? 0), 0);
-  const totalEarnings    = links.reduce((s, l) => s + Number(l.total_earnings ?? 0), 0);
-  const convRate         = totalClicks > 0 ? ((totalConversions / totalClicks) * 100).toFixed(1) : "0.0";
+  const totalClicks = links.reduce((s, l) => s + (l.total_clicks ?? 0), 0);
+  const totalConversions = links.reduce((s, l) => s + (l.total_conversions ?? 0), 0);
+  const totalEarnings = links.reduce((s, l) => s + Number(l.total_earnings ?? 0), 0);
+  const convRate = totalClicks > 0 ? ((totalConversions / totalClicks) * 100).toFixed(1) : "0.0";
 
   const chartData = links.slice(0, 8).map((l, i) => {
     const name = l.products?.name ?? `Link ${i + 1}`;
     return {
-      name:        name.length > 14 ? name.slice(0, 13) + "…" : name,
-      clicks:      l.total_clicks      ?? 0,
+      name: name.length > 14 ? name.slice(0, 13) + "…" : name,
+      clicks: l.total_clicks ?? 0,
       conversions: l.total_conversions ?? 0,
     };
   });
@@ -304,8 +304,8 @@ export default function AffiliateAnalyticsPage() {
             Number(convRate) >= 3
               ? "border-emerald-500/20 bg-emerald-500/5"
               : Number(convRate) >= 1
-              ? "border-amber-500/20 bg-amber-500/5"
-              : "border-[var(--color-border)] bg-[var(--color-surface)]"
+                ? "border-amber-500/20 bg-amber-500/5"
+                : "border-[var(--color-border)] bg-[var(--color-surface)]"
           )}>
             <div className="flex items-center gap-3">
               <Percent className={cn(
@@ -320,8 +320,8 @@ export default function AffiliateAnalyticsPage() {
                   {Number(convRate) >= 3
                     ? "Great performance — above industry average"
                     : Number(convRate) >= 1
-                    ? "Decent — try featuring higher-intent products"
-                    : "Low — consider improving your link placement"}
+                      ? "Decent — try featuring higher-intent products"
+                      : "Low — consider improving your link placement"}
                 </p>
               </div>
             </div>
@@ -371,9 +371,9 @@ export default function AffiliateAnalyticsPage() {
                 </thead>
                 <tbody className="divide-y divide-[var(--color-border)]">
                   {topByEarnings.map((l) => {
-                    const product  = l.products;
-                    const imgSrc   = product?.images?.[0] ?? null;
-                    const rate     = l.total_clicks > 0
+                    const product = l.products;
+                    const imgSrc = product?.images?.[0] ?? null;
+                    const rate = l.total_clicks > 0
                       ? ((l.total_conversions / l.total_clicks) * 100).toFixed(1)
                       : "0.0";
                     const isTopRate = Number(rate) >= 3;

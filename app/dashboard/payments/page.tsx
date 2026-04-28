@@ -9,7 +9,7 @@
 //   CheckCircle,
 //   Wallet,
 //   ArrowRight,
-//   RefreshCw,
+//   Loader2,
 //   Building,
 //   CreditCard,
 //   History,
@@ -314,7 +314,7 @@
 //                     className="h-20 w-full rounded-sm bg-stone-900 text-white font-black text-[12px] uppercase tracking-[0.4em] shadow-none shadow-stone-900/40 active:scale-95 transition-all hover:bg-black border-none"
 //                  >
 //                     {withdrawing ? (
-//                        <RefreshCw className="h-5 w-5 animate-spin" />
+//                        <Loader2 className="h-5 w-5 animate-spin" />
 //                     ) : (
 //                        <div className="flex items-center gap-3">
 //                           <Zap className="h-4 w-4 text-orange-400" /> Execute Flux Payout
@@ -378,7 +378,7 @@
 //                     onClick={syncCreditsForOrder}
 //                     className="h-20 w-full rounded-sm bg-white dark:bg-surface border border-stone-100 dark:border-border text-stone-900 dark:text-white font-black text-[12px] uppercase tracking-[0.4em] shadow-none active:scale-95 transition-all hover:bg-stone-50 dark:bg-surface/50"
 //                  >
-//                     {syncingOrder ? <RefreshCw className="h-5 w-5 animate-spin text-sky-500" /> : "Sync Node Protocol"}
+//                     {syncingOrder ? <Loader2 className="h-5 w-5 animate-spin text-sky-500" /> : "Sync Node Protocol"}
 //                  </Button>
 //               </GlassCard>
 //            </div>
@@ -477,7 +477,7 @@ export const dynamic = "force-dynamic";
 import React, { useEffect, useState } from "react";
 import {
    DollarSign, ArrowDownRight, Clock, CheckCircle2,
-   Wallet, RefreshCw, Building, History,
+   Wallet, Loader2, Building, History,
    Target, ShieldCheck, Smartphone, Activity,
    AlertCircle, ArrowRight, Percent,
 } from "lucide-react";
@@ -623,7 +623,7 @@ export default function PaymentsPage() {
    if (loading) return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--color-bg)" }}>
          <div className="flex flex-col items-center gap-4">
-            <RefreshCw className="h-5 w-5 animate-spin text-orange-500" />
+            <Loader2 className="h-5 w-5 animate-spin text-orange-500" />
             <p className="text-xs font-semibold text-[var(--color-text-muted)] uppercase tracking-widest">Loading…</p>
          </div>
       </div>
@@ -828,7 +828,7 @@ export default function PaymentsPage() {
                         >
                            {withdrawing ? (
                               <span className="flex items-center justify-center gap-2">
-                                 <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
                                  Processing…
                               </span>
                            ) : "Confirm Withdrawal"}
@@ -909,7 +909,7 @@ export default function PaymentsPage() {
                         >
                            {syncingOrder ? (
                               <span className="flex items-center justify-center gap-2">
-                                 <RefreshCw className="h-3.5 w-3.5 animate-spin text-sky-500" />
+                                 <Loader2 className="h-3.5 w-3.5 animate-spin text-sky-500" />
                                  Syncing…
                               </span>
                            ) : (

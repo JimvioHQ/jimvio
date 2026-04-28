@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { Package, AlertTriangle, TrendingDown, RefreshCw, Loader2, ArrowRight, Zap, ShieldCheck, Activity, Search, ArrowLeft, MoreVertical, Plus } from "lucide-react";
+import { Package, AlertTriangle, TrendingDown, Loader2, ArrowRight, Zap, ShieldCheck, Activity, Search, ArrowLeft, MoreVertical, Plus } from "lucide-react";
 import { GlassCard, GlassPill } from "@/components/ui/glass";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
@@ -57,7 +57,7 @@ export default function InventoryPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center space-y-4" style={{ background: "var(--color-bg)" }}>
-        <RefreshCw className="h-6 w-6 animate-spin text-orange-500" />
+        <Loader2 className="h-6 w-6 animate-spin text-orange-500" />
         <p className="text-[11px] font-bold text-stone-400 dark:text-text-muted capitalize pl-1">Loading Inventory...</p>
       </div>
     );
@@ -245,7 +245,7 @@ export default function InventoryPage() {
                             ) : (
                                 <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9 rounded-sm text-stone-300 dark:text-stone-700 hover:text-stone-900 dark:text-white dark:hover:text-white hover:bg-surface dark:hover:bg-zinc-800 transition-colors"
                                  onClick={() => setEditQty(prev => ({ ...prev, [p.id as string]: String(qty) }))}>
-                                <RefreshCw className="h-3.5 w-3.5" />
+                                <Loader2 className="h-3.5 w-3.5" />
                               </Button>
                             )}
                           </td>

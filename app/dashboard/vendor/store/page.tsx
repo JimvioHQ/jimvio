@@ -15,14 +15,13 @@ import {
   ArrowUpRight,
   CheckCircle,
   ExternalLink,
-  Loader2,
   Plus,
   Sparkles,
   ChevronRight,
   ArrowRight,
   Globe,
   Settings,
-  RefreshCw,
+  Loader2,
   LayoutGrid,
   Heart,
   Image as ImageIcon
@@ -134,7 +133,7 @@ export default function VendorStorePage() {
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center space-y-6" style={{ background: "var(--color-bg)" }}>
-        <RefreshCw className="h-6 w-6 animate-spin text-orange-500" />
+        <Loader2 className="h-6 w-6 animate-spin text-orange-500" />
         <p className="text-[11px] font-bold text-stone-400 uppercase tracking-widest pl-1">Loading Storefront...</p>
       </div>
     );

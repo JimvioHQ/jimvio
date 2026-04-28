@@ -5,7 +5,7 @@
 // import {
 //   Star, MapPin, ShieldCheck, Clock, MessageSquare, 
 //   CheckCircle2, Globe, Share2, Truck, ChevronRight, 
-//   TrendingUp, RefreshCw, Package, BadgeCheck,
+//   TrendingUp, Loader2, Package, BadgeCheck,
 //   ShoppingBag, Shield
 // } from "lucide-react";
 // import { Button } from "@/components/ui/button";
@@ -97,7 +97,7 @@
 //                   {/* trust trust trust */}
 //                   <div className="grid grid-cols-3 gap-2">
 //                      <TrustMiniCard icon={<Truck className="h-3 w-3 text-blue-500" />} label="Free Ship" />
-//                      <TrustMiniCard icon={<RefreshCw className="h-3 w-3 text-purple-500" />} label="14d Returns" />
+//                      <TrustMiniCard icon={<Loader2 className="h-3 w-3 text-purple-500" />} label="14d Returns" />
 //                      <TrustMiniCard icon={<Shield className="h-3 w-3 text-green-500" />} label="Buy Safe" />
 //                   </div>
 //                </div>
@@ -258,7 +258,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import {
    Star, ShieldCheck, Clock, CheckCircle2,
-   ChevronRight, RefreshCw, Package, BadgeCheck,
+   ChevronRight, Loader2, Package, BadgeCheck,
    ShoppingBag, Shield, Truck, Share2, Heart,
    MapPin, ArrowRight, Minus, Plus, Info,
 } from "lucide-react";
@@ -382,7 +382,7 @@ export function PhysicalProductDetail({
                               color="blue"
                            />
                            <TrustPill
-                              icon={<RefreshCw className="h-3.5 w-3.5" />}
+                              icon={<Loader2 className="h-3.5 w-3.5" />}
                               label="14-day Returns"
                               color="violet"
                            />

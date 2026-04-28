@@ -6,7 +6,7 @@ import {
   Wallet, DollarSign, ArrowUpRight, ArrowDownRight, 
   Clock, CheckCircle2, Filter, Download, 
   Store, Users, Sparkles, TrendingUp, History,
-  ArrowLeft, RefreshCw, ChevronRight, ShieldCheck, ShoppingBag
+  ArrowLeft, Loader2, ChevronRight, ShieldCheck, ShoppingBag
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { GlassCard, GlassPill, GlassAmbientGlow } from "@/components/ui/glass";
@@ -35,7 +35,7 @@ export default function WalletDashboardPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center space-y-6" style={{ background: "var(--color-bg)" }}>
-        <RefreshCw className="h-6 w-6 animate-spin text-orange-500" />
+        <Loader2 className="h-6 w-6 animate-spin text-orange-500" />
         <p className="text-[11px] font-bold text-stone-400 dark:text-text-muted capitalize pl-1">Accessing Wallet...</p>
       </div>
     );

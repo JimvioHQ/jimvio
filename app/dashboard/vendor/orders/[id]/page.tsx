@@ -4,7 +4,7 @@ export const dynamic = "force-dynamic";
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArrowLeft, Package, Clock, Loader2, CheckCircle, CheckCircle2, Truck, ShoppingBag, XCircle, User, Mail, Phone, MapPin, Zap, ExternalLink, Activity, Globe, ShieldCheck, RefreshCw } from "lucide-react";
+import { ArrowLeft, Package, Clock, CheckCircle, CheckCircle2, Truck, ShoppingBag, XCircle, User, Mail, Phone, MapPin, Zap, ExternalLink, Activity, Globe, ShieldCheck, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { GlassCard, GlassPill, GlassAmbientGlow } from "@/components/ui/glass";
 import { Badge } from "@/components/ui/badge";
@@ -106,7 +106,7 @@ export default function VendorOrderDetailPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center space-y-6" style={{ background: "var(--color-bg)" }}>
-        <RefreshCw className="h-6 w-6 animate-spin text-orange-500" />
+        <Loader2 className="h-6 w-6 animate-spin text-orange-500" />
         <p className="text-[11px] font-bold text-stone-400 uppercase tracking-widest pl-1">Loading Order...</p>
       </div>
     );

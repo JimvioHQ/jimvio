@@ -7,9 +7,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Wallet, CreditCard, Banknote, History, Clock,
-  CheckCircle, Smartphone, ArrowLeft, RefreshCw,
+  CheckCircle, Smartphone, ArrowLeft, Loader2,
   AlertCircle, ChevronRight,
-  Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

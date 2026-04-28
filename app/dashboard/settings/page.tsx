@@ -20,7 +20,7 @@
 //    Building,
 //    Image as ImageIcon,
 //    CheckCircle2,
-//    RefreshCw,
+//    Loader2,
 //    MoreVertical,
 //    ArrowLeft,
 // } from "lucide-react";
@@ -140,7 +140,7 @@
 //    if (loading) {
 //       return (
 //          <div className="min-h-screen flex flex-col items-center justify-center space-y-6" style={{ background: "var(--color-bg)" }}>
-//             <RefreshCw className="h-6 w-6 animate-spin text-orange-500" />
+//             <Loader2 className="h-6 w-6 animate-spin text-orange-500" />
 //             <p className="text-[11px] font-bold text-stone-400 dark:text-text-muted capitalize pl-1">Loading Settings...</p>
 //          </div>
 //       );
@@ -269,7 +269,7 @@
 //                                  )}
 //                               </div>
 //                               <Button onClick={saveProfile} disabled={isPending} className="w-full md:w-auto h-11 sm:h-12 px-8 sm:px-10 rounded-sm bg-orange-500 text-white font-bold text-[9px] sm:text-[10px] uppercase tracking-widest shadow-[0_8px_20px_rgba(249,115,22,0.25)] hover:bg-orange-600 active:scale-95 transition-all border-none">
-//                                  {isPending ? <RefreshCw className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+//                                  {isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
 //                                  Synchronize Profile
 //                               </Button>
 //                            </div>
@@ -405,7 +405,7 @@
 //                                     )}
 //                                  </div>
 //                                  <Button onClick={saveVendor} disabled={isPending} className="w-full md:w-auto h-11 sm:h-12 px-8 sm:px-10 rounded-sm bg-orange-500 text-white font-bold text-[9px] sm:text-[10px] uppercase tracking-widest shadow-[0_8px_20px_rgba(249,115,22,0.25)] hover:bg-orange-600 active:scale-95 transition-all border-none">
-//                                     {isPending ? <RefreshCw className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+//                                     {isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
 //                                     Save Protocol
 //                                  </Button>
 //                               </div>
@@ -494,9 +494,9 @@ export const dynamic = "force-dynamic";
 
 import React, { useEffect, useState, useTransition, useCallback } from "react";
 import {
-   User, Store, Bell, Shield, Loader2, Save, CheckCircle, Camera, Globe,
+   User, Store, Bell, Shield, Save, CheckCircle, Camera, Globe,
    Smartphone, MapPin, Mail, Zap, CreditCard, Building, Image as ImageIcon,
-   CheckCircle2, RefreshCw, MoreVertical, ArrowLeft, AlertCircle, Eye, EyeOff,
+   CheckCircle2, Loader2, MoreVertical, ArrowLeft, AlertCircle, Eye, EyeOff,
    Info, X, ChevronDown,
    Edit,
 } from "lucide-react";
@@ -1302,7 +1302,7 @@ export default function SettingsPage() {
                                  disabled={isPending}
                                  className="w-full sm:w-auto h-11 px-8 rounded-xl bg-orange-500 text-white font-bold text-[10px] uppercase tracking-widest hover:bg-orange-600 active:scale-95 transition-all shadow-lg shadow-orange-500/20 border-none"
                               >
-                                 {isPending ? <RefreshCw className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                                 {isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
                                  Save Business
                               </Button>
                            </div>
@@ -1448,7 +1448,7 @@ export default function SettingsPage() {
                            disabled={isPending}
                            className="h-11 px-8 rounded-xl bg-orange-500 text-white font-bold text-[10px] uppercase tracking-widest hover:bg-orange-600 active:scale-95 transition-all shadow-lg shadow-orange-500/20 border-none w-full"
                         >
-                           {isPending ? <RefreshCw className="h-4 w-4 animate-spin mr-2" /> : <Shield className="h-4 w-4 mr-2" />}
+                           {isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Shield className="h-4 w-4 mr-2" />}
                            Update Password
                         </Button>
                      </div>

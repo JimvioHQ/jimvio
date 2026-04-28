@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { 
   Plus, Search, TrendingUp, Edit, Trash2, 
-  Package, AlertCircle, Store, Layers, MousePointer, Eye, ShoppingBag, Box, RefreshCw
+  Package, AlertCircle, Store, Layers, MousePointer, Eye, ShoppingBag, Box, Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -228,7 +228,7 @@ export default function ProductsPage() {
               <div className="flex items-center justify-between px-1">
                  <h2 className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Inventory Registry</h2>
                  <div className="flex items-center gap-2 text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">
-                    <RefreshCw className="h-3 w-3 animate-spin-slow" />
+                    <Loader2 className="h-3 w-3 animate-spin-slow" />
                     Marketplace Sync
                  </div>
               </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { FileText, Send, Package, MapPin, DollarSign, ArrowRight, Zap, Target, History, Plus, RefreshCw } from "lucide-react";
+import { FileText, Send, Package, MapPin, DollarSign, ArrowRight, Zap, Target, History, Plus, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { GlassCard, GlassPill, GlassAmbientGlow } from "@/components/ui/glass";
 import { Input } from "@/components/ui/input";
@@ -240,7 +240,7 @@ export default function BuyingLeadsPage() {
                     
                     <div className="md:col-span-12 flex justify-end pt-6">
                        <Button type="submit" disabled={submitting} className="h-20 px-12 rounded-sm bg-stone-900 text-white font-black text-[12px] uppercase tracking-[0.4em] shadow-none shadow-stone-900/40 active:scale-95 transition-all hover:bg-black border-none">
-                          {submitting ? <RefreshCw className="h-5 w-5 animate-spin" /> : (
+                          {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : (
                              <div className="flex items-center gap-4">
                                 <Zap className="h-5 w-5 text-orange-400" /> Post Request
                              </div>
