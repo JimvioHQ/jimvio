@@ -347,8 +347,8 @@ export function Navbar({ user, marketing }: NavbarProps) {
                 priority
               />
             </div>
-            <span className="text-[24px]  text-stone-950 dark:text-white sm:text-[28px] font-black tracking-[0.08em] flex items-center leading-none select-none">
-              JimVio
+            <span className="text-[24px]  text-stone-950 dark:text-white sm:text-[28px] font-black tracking-[0.05em] flex items-center leading-none select-none">
+              Jimvio
             </span>
           </Link>
 

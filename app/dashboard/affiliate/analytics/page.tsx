@@ -85,7 +85,7 @@ function StatCard({
 export default function AffiliateAnalyticsPage() {
   const { formatMoney } = useCurrency();
   const [affiliate, setAffiliate] = useState<{ id: string } | null>(null);
-  const [links, setLinks] = useState<AffLink[]>([]);
+  const [links, setLinks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeBar, setActiveBar] = useState<number | null>(null);
 
@@ -105,7 +105,9 @@ export default function AffiliateAnalyticsPage() {
           .select("id, total_clicks, total_conversions, total_earnings, products(id, name, slug, images)")
           .eq("affiliate_id", aff.id)
           .order("total_clicks", { ascending: false });
-        setLinks((data ?? []) as AffLink[]);
+        console.log(data);
+
+        setLinks((data ?? []) as any[]);
       }
       setLoading(false);
     }

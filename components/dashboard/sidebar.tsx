@@ -170,11 +170,8 @@ export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobil
                 className="h-7 w-auto mix-blend-multiply dark:mix-blend-normal"
                 priority
               />
-              <span className="text-[22px] font-black tracking-[-0.07em] select-none truncate">
-                <span className="text-stone-950 dark:text-white">Jim</span>
-                <span className="bg-gradient-to-br from-[#fd5000] via-[#fd5000] to-[#ff6a00] bg-clip-text text-transparent drop-shadow-[0_0_10px_rgba(253,80,0,0.12)]">
-                  vio
-                </span>
+              <span className="text-[22px] font-black tracking-[0.05em] select-none truncate">
+                <span className="text-stone-950 dark:text-white">Jimvio</span>
               </span>
             </>
           ) : (
