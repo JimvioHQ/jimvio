@@ -336,7 +336,7 @@ const FILTERS = ["All", "Active", "Completed", "Cancelled"] as const;
 function CancelDialog({ onConfirm, onClose }: { onConfirm: () => void; onClose: () => void }) {
    return (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-150">
-         <div className="w-full max-w-sm rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-xl animate-in zoom-in-95 duration-150">
+         <div className="w-full max-w-sm rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-xl animate-in zoom-in-95 duration-150">
             <div className="h-10 w-10 rounded-full bg-rose-500/10 flex items-center justify-center mb-4">
                <AlertCircle className="h-5 w-5 text-rose-500" />
             </div>

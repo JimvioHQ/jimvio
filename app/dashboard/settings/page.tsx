@@ -1339,10 +1339,11 @@ export default function SettingsPage() {
 
                         <div className="pt-2 border-t border-stone-100 dark:border-zinc-800">
                            <Button
-                              className="h-11 px-8 rounded-xl bg-orange-500 text-white font-bold text-[10px] uppercase tracking-widest hover:bg-orange-600 active:scale-95 transition-all shadow-lg shadow-orange-500/20 border-none"
+                              className="h-11 px-8 rounded-xl bg-orange-500 text-white font-bold text-[10px]  tracking-widest hover:bg-orange-600 active:scale-95 transition-all shadow-lg shadow-orange-500/20 border-none"
                               onClick={() => showToast("Notification preferences saved", "success")}
                            >
-                              <Save className="h-4 w-4 mr-2" /> Save Preferences
+                              <Edit className="h-4 w-4 mr-2" />
+                              <span>Save Preferences</span>
                            </Button>
                         </div>
                      </div>
@@ -1446,9 +1447,9 @@ export default function SettingsPage() {
                         <Button
                            onClick={savePassword}
                            disabled={isPending}
-                           className="h-11 px-8 rounded-xl bg-orange-500 text-white font-bold text-[10px] uppercase tracking-widest hover:bg-orange-600 active:scale-95 transition-all shadow-lg shadow-orange-500/20 border-none w-full"
+                           className="h-11 px-8 rounded-xl bg-orange-500 text-white font-bold text-[10px] tracking-widest hover:bg-orange-600 active:scale-95 transition-all shadow-lg shadow-orange-500/20 border-none w-full"
                         >
-                           {isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Shield className="h-4 w-4 mr-2" />}
+                           {isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Edit className="h-4 w-4 mr-2" />}
                            Update Password
                         </Button>
                      </div>

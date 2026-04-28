@@ -57,7 +57,7 @@ function StatCard({
 }) {
   return (
     <div className={cn(
-      "rounded-xl border p-4 sm:p-5 flex flex-col gap-4 transition-colors",
+      "rounded-md border p-4 sm:p-5 flex flex-col gap-4 transition-colors",
       accent
         ? "border-orange-500/20 bg-orange-500/5"
         : "border-[var(--color-border)] bg-[var(--color-surface)]"
@@ -168,7 +168,7 @@ export default function AffiliateAnalyticsPage() {
   /* ── Render ── */
   return (
     <div className="min-h-screen pb-24" style={{ background: "var(--color-bg)" }}>
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-8 sm:pt-12 space-y-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-8 sm:pt-12 space-y-8">
 
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -231,7 +231,7 @@ export default function AffiliateAnalyticsPage() {
         </div>
 
         {/* Chart */}
-        <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden">
+        <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden">
           <div className="px-5 sm:px-6 py-4 border-b border-[var(--color-border)] flex items-center justify-between">
             <div>
               <h2 className="text-sm font-semibold text-[var(--color-text-primary)] tracking-tight">
@@ -302,7 +302,7 @@ export default function AffiliateAnalyticsPage() {
         {/* Conversion rate callout — only when there's data */}
         {hasData && totalClicks > 0 && (
           <div className={cn(
-            "rounded-xl border px-5 py-4 flex items-center justify-between",
+            "rounded-lg border px-5 py-4 flex items-center justify-between",
             Number(convRate) >= 3
               ? "border-emerald-500/20 bg-emerald-500/5"
               : Number(convRate) >= 1
@@ -335,7 +335,7 @@ export default function AffiliateAnalyticsPage() {
         )}
 
         {/* Top products table */}
-        <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden">
+        <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden">
           <div className="px-5 sm:px-6 py-4 border-b border-[var(--color-border)] flex items-center justify-between">
             <div>
               <h2 className="text-sm font-semibold text-[var(--color-text-primary)] tracking-tight">
