@@ -10,6 +10,7 @@ import { JimvioJsonLd } from "@/components/seo/JimvioJsonLd";
 export const metadata = constructMetadata();
 
 import { ReferralTracker } from "@/components/affiliate/referral-tracker";
+import Script from "next/script";
 
 // Do not add <head> here: Next injects CSS into <head>; a manual <head> can drop stylesheets. Fonts: globals.css @import.
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -37,7 +38,25 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               },
             }}
           />
+
         </ThemeProvider>
+        <Script
+          id="tawk-to"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `
+              var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();
+              (function(){
+                var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];
+                s1.async=true;
+                s1.src='https://embed.tawk.to/69dc3f6fe317ee1c32277901/1jm25fj6v';
+                s1.charset='UTF-8';
+                s1.setAttribute('crossorigin','*');
+                s0.parentNode.insertBefore(s1,s0);
+              })();
+            `,
+          }}
+        />
       </body>
     </html>
   );

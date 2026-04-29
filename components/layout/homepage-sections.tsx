@@ -166,10 +166,10 @@ export function FlashDeals({ products }: { products: any[] }) {
       className="rounded-sm overflow-hidden relative bg-surface border border-border shadow-none"
     >
       <div className="absolute top-0 right-0 p-4">
-         <div className="flex items-center gap-1.5 px-3 py-1 bg-orange-50 rounded-sm border border-orange-100">
-            <span className="h-2 w-2 rounded-sm bg-orange-500" />
-            <span className="text-[10px] font-bold text-orange-600 uppercase tracking-wider">High Demand</span>
-         </div>
+        <div className="flex items-center gap-1.5 px-3 py-1 bg-orange-50 rounded-sm border border-orange-100">
+          <span className="h-2 w-2 rounded-sm bg-orange-500" />
+          <span className="text-[10px] font-bold text-orange-600 uppercase tracking-wider">High Demand</span>
+        </div>
       </div>
 
       <div className="px-6 py-6 border-b border-border flex items-center gap-4">
@@ -202,7 +202,7 @@ export function FlashDeals({ products }: { products: any[] }) {
                     ) : (
                       <Package className="h-8 w-8 text-stone-300" />
                     )}
-                    
+
                     <div className="absolute top-2 right-2 bg-orange-500 text-white text-[11px] font-bold px-2 py-0.5 rounded shadow-none">
                       -{dealPct}%
                     </div>
@@ -212,26 +212,26 @@ export function FlashDeals({ products }: { products: any[] }) {
                     <h4 className="text-[13px] font-black text-zinc-800 dark:text-white line-clamp-1 group-hover:text-[#fd5000] transition-colors uppercase tracking-tight">
                       {p.name || "Refined Goods"}
                     </h4>
-                    
+
                     <div className="flex items-baseline gap-1.5">
-                       <span className="text-[16px] font-black text-zinc-950 dark:text-white tracking-tighter">
-                         {formatDisplayMoney(Number(p.price), (p as any).currency ?? "RWF")}
-                       </span>
+                      <span className="text-[16px] font-black text-zinc-950 dark:text-white tracking-tighter">
+                        {formatDisplayMoney(Number(p.price), (p as any).currency ?? "RWF")}
+                      </span>
                     </div>
 
                     <div className="pt-2">
-                       <div className="flex justify-between items-center mb-1.5">
-                          <span className="text-[9px] font-black text-orange-600 uppercase tracking-widest">{heat}% Sold</span>
-                          {heat > 80 && <span className="text-[9px] font-black text-orange-500 animate-pulse uppercase">Hot</span>}
-                       </div>
-                       <div className="w-full h-2 bg-zinc-100 dark:bg-surface-secondary rounded-sm overflow-hidden border border-zinc-50 dark:border-border-strong shadow-inner">
-                          <motion.div 
-                            initial={{ width: 0 }}
-                            whileInView={{ width: `${heat}%` }}
-                            transition={{ duration: 1, delay: 0.2 }}
-                            className="h-full bg-gradient-to-r from-orange-400 via-[#fd5000] to-orange-600 rounded-sm shadow-[0_0_8px_rgba(253,80,0,0.4)]" 
-                          />
-                       </div>
+                      <div className="flex justify-between items-center mb-1.5">
+                        <span className="text-[9px] font-black text-orange-600 uppercase tracking-widest">{heat}% Sold</span>
+                        {heat > 80 && <span className="text-[9px] font-black text-orange-500 animate-pulse uppercase">Hot</span>}
+                      </div>
+                      <div className="w-full h-2 bg-zinc-100 dark:bg-surface-secondary rounded-sm overflow-hidden border border-zinc-50 dark:border-border-strong shadow-inner">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          whileInView={{ width: `${heat}%` }}
+                          transition={{ duration: 1, delay: 0.2 }}
+                          className="h-full bg-gradient-to-r from-orange-400 via-[#fd5000] to-orange-600 rounded-sm shadow-[0_0_8px_rgba(253,80,0,0.4)]"
+                        />
+                      </div>
                     </div>
                   </div>
                 </Link>
@@ -287,7 +287,7 @@ export function TrendingSidePanel({ trendingCats, suppliers }: { trendingCats: T
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-[13px] font-black text-zinc-800 dark:text-stone-300 truncate group-hover:text-[#fd5000] transition-colors">{v.business_name}</p>
-                    <p className="text-[10px] font-bold text-zinc-400 dark:text-text-muted">⭐ {Number(v.rating ?? 0).toFixed(1) || "N/A"} · Active</p>
+                    <p className="text-[10px] font-bold text-zinc-400 dark:text-text-muted"><Star className="h-4 w-4 fill-[#fd5000] text-[#fd5000]" /> {Number(v.rating ?? 0).toFixed(1) || "N/A"} · Active</p>
                   </div>
                 </Link>
               </motion.div>
@@ -422,8 +422,8 @@ export function AffiliatePanel({ valueProps, campaigns = [], spotlightCreator, t
                 <motion.span key={`${t}-${i}`} whileHover={{ scale: 1.06, y: -2 }} whileTap={{ scale: 0.97 }}
                   className={cn(
                     "px-4 py-2.5 rounded-sm text-[11px] font-black border capitalize tracking-[0.12em] cursor-default transition-all shadow-none",
-                    i === 0 
-                      ? "bg-orange-500 text-white border-orange-500 shadow-orange-500/20" 
+                    i === 0
+                      ? "bg-orange-500 text-white border-orange-500 shadow-orange-500/20"
                       : "bg-black/5 dark:bg-white/5 text-zinc-700 dark:text-white border-black/5 dark:border-white/10 hover:border-orange-500/40 hover:text-orange-500"
                   )}>
                   {t}
@@ -436,7 +436,7 @@ export function AffiliatePanel({ valueProps, campaigns = [], spotlightCreator, t
         <div className="bg-stone-50 dark:bg-stone-900 border border-border rounded-sm p-5 flex items-center gap-4 mb-8 border-l-4 border-l-orange-500">
           {spotlightCreator ? (
             <>
-               <Avatar className="h-12 w-12 border-2 border-black/5 dark:border-white/15 shrink-0">
+              <Avatar className="h-12 w-12 border-2 border-black/5 dark:border-white/15 shrink-0">
                 <AvatarFallback className="bg-[#f97316] text-white font-black text-[16px]">
                   {(spotlightCreator.full_name ?? "C")[0]}
                 </AvatarFallback>

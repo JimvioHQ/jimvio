@@ -800,6 +800,10 @@ import Link from "next/link";
 import { CloudinaryUploadButton, CloudinaryDropzone } from "@/components/ui/cloudinary-upload";
 import { CloudinaryImage } from "@/components/ui/cloudinary-image";
 import { cn } from "@/lib/utils";
+import { FieldInput } from "@/components/ui/field-input";
+import { Field, FieldLabel } from "@/components/ui/field";
+import CustomSelect from "@/components/ui/select-2";
+import { StyledTextarea } from "@/components/ui/textarea";
 
 /* ─── helpers ─────────────────────────────────────────────── */
 function slugify(text: string) {
@@ -827,16 +831,6 @@ const STATUS_OPTIONS = [
 ];
 
 const BUTTON_TEXTS = ["Buy Now", "Get Access", "Order Now", "Purchase", "Download", "Subscribe", "Join"];
-
-/* ─── sub-components ─────────────────────────────────────── */
-function FieldLabel({ children, hint }: { children: React.ReactNode; hint?: string }) {
-  return (
-    <div className="flex items-center gap-2 mb-2">
-      <label className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">{children}</label>
-      {hint && <span className="text-[10px] text-zinc-600 font-normal normal-case tracking-normal">{hint}</span>}
-    </div>
-  );
-}
 
 function SectionCard({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
@@ -891,18 +885,7 @@ function ToggleRow({ title, description, checked, onChange }: {
   );
 }
 
-function StyledInput({ className, ...props }: React.InputHTMLAttributes<HTMLInputElement>) {
-  return (
-    <input
-      {...props}
-      className={cn(
-        "w-full h-10 px-3.5 bg-[#111] border border-[#1E1E1E] rounded-xl text-sm text-white placeholder:text-zinc-600",
-        "focus:outline-none focus:border-zinc-600 focus:bg-[#141414] transition-all duration-150",
-        className
-      )}
-    />
-  );
-}
+
 
 function StyledSelect({ className, children, ...props }: React.SelectHTMLAttributes<HTMLSelectElement> & { children: React.ReactNode }) {
   return (
@@ -922,18 +905,6 @@ function StyledSelect({ className, children, ...props }: React.SelectHTMLAttribu
   );
 }
 
-function StyledTextarea({ className, ...props }: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
-  return (
-    <textarea
-      {...props}
-      className={cn(
-        "w-full px-3.5 py-3 bg-[#111] border border-[#1E1E1E] rounded-xl text-sm text-white placeholder:text-zinc-600",
-        "focus:outline-none focus:border-zinc-600 focus:bg-[#141414] transition-all duration-150 resize-none leading-relaxed",
-        className
-      )}
-    />
-  );
-}
 
 /* ─── main ───────────────────────────────────────────────── */
 export default function NewProductPage() {
@@ -1102,6 +1073,7 @@ export default function NewProductPage() {
     );
   }
 
+  const inputStyle = "pl-3 h-10"
   return (
     <div className="min-h-screen bg-[#080808]">
 
@@ -1178,47 +1150,54 @@ export default function NewProductPage() {
               <SectionTitle label="Core Details" step="1" />
               <div className="space-y-5">
                 <div>
-                  <FieldLabel>Product name</FieldLabel>
-                  <StyledInput
-                    value={form.name}
-                    onChange={e => handleChange("name", e.target.value)}
-                    placeholder="Give your product a clear, descriptive name"
-                    autoFocus
-                  />
-                </div>
-
-                <div>
-                  <FieldLabel hint="Auto-generated from name">URL slug</FieldLabel>
-                  <div className="flex items-center">
-                    <span className="h-10 flex items-center px-3 bg-[#0A0A0A] border border-r-0 border-[#1E1E1E] rounded-l-xl text-[11px] font-mono text-zinc-600 whitespace-nowrap">
-                      /product/
-                    </span>
-                    <StyledInput
-                      value={form.slug}
-                      onChange={e => handleChange("slug", e.target.value)}
-                      className="rounded-l-none font-mono text-zinc-400 text-xs"
-                      placeholder="my-product-name"
+                  <Field label="Name your product" required error={!form.name.trim().length && error ? "Product name is required." : undefined}>
+                    <FieldInput
+                      value={form.name}
+                      onChange={e => handleChange("name", e.target.value)}
+                      placeholder="Product name"
+                      className={cn(inputStyle)}
+                      hasError={!!error && !form.name.trim()}
                     />
-                  </div>
+                  </Field>
                 </div>
 
                 <div>
-                  <FieldLabel hint="Shown in listings and search">Short description</FieldLabel>
-                  <StyledInput
-                    value={form.short_description}
-                    onChange={e => handleChange("short_description", e.target.value)}
-                    placeholder="One compelling sentence about your product"
-                  />
+                  <Field label="URL slug" hint="Auto-generated from name" required error={!form.slug.trim().length && error ? "URL slug is required." : undefined}>
+                    <div className="flex items-center">
+                      <span className="h-10 flex items-center px-3 bg-bg border border-r-0 border-[#1E1E1E] rounded-l-md text-[11px] font-mono text-zinc-600 whitespace-nowrap">
+                        /product/
+                      </span>
+                      <FieldInput
+                        value={form.slug}
+                        onChange={e => handleChange("slug", e.target.value)}
+                        className={cn(inputStyle, "rounded-l-none")}
+                        placeholder="my-product-name"
+                      />
+                    </div>
+                  </Field>
+
                 </div>
 
                 <div>
-                  <FieldLabel hint="Markdown supported">Full description</FieldLabel>
-                  <StyledTextarea
-                    value={form.description}
-                    onChange={e => handleChange("description", e.target.value)}
-                    rows={7}
-                    placeholder="Describe your product in detail — features, specs, what's included…"
-                  />
+                  <Field label="Short description" hint="Shown in listings and search">
+                    <FieldInput
+                      value={form.short_description}
+                      onChange={e => handleChange("short_description", e.target.value)}
+                      placeholder="One compelling sentence about your product"
+                      className={cn(inputStyle, "pl-3")}
+                    />
+                  </Field>
+                </div>
+
+                <div>
+                  <Field label="Full description" hint="Markdown supported">
+                    <StyledTextarea
+                      value={form.description}
+                      onChange={e => handleChange("description", e.target.value)}
+                      rows={7}
+                      placeholder="Describe your product in detail — features, specs, what's included…"
+                    />
+                  </Field>
                 </div>
               </div>
             </SectionCard>
@@ -1226,7 +1205,7 @@ export default function NewProductPage() {
             {/* 2. Media */}
             <SectionCard>
               <SectionTitle label="Media" step="2" />
-              <div className="border-2 border-dashed border-[#1E1E1E] rounded-xl p-8 text-center hover:border-[#2A2A2A] transition-colors group cursor-pointer">
+              <div className="border-0 border-dashed border-[#1E1E1E] rounded-xl p-8 text-center hover:border-[#2A2A2A] transition-colors group cursor-pointer">
                 <CloudinaryDropzone
                   folder="jimvio/products"
                   onUploadSuccess={handleImageUpload}
@@ -1281,7 +1260,7 @@ export default function NewProductPage() {
                 {/* Product type + category */}
                 <div className="space-y-5">
                   <div>
-                    <FieldLabel>Product type</FieldLabel>
+                    <FieldLabel label="Product type" />
                     <div className="grid grid-cols-2 gap-2">
                       {PRODUCT_TYPES.map(type => {
                         const Icon = type.icon;
@@ -1291,7 +1270,7 @@ export default function NewProductPage() {
                             key={type.id}
                             onClick={() => handleChange("product_type", type.id)}
                             className={cn(
-                              "flex items-center gap-3 p-3.5 rounded-xl border text-left transition-all",
+                              "flex items-center gap-3 p-3.5 rounded-md border text-left transition-all",
                               sel ? "border-orange-500/60 bg-orange-500/5" : "border-[#1E1E1E] bg-[#0A0A0A] hover:border-[#2A2A2A]"
                             )}
                           >
@@ -1312,23 +1291,23 @@ export default function NewProductPage() {
                   </div>
 
                   <div>
-                    <FieldLabel>Category</FieldLabel>
-                    <StyledSelect
-                      value={form.category_id}
-                      onChange={e => handleChange("category_id", e.target.value)}
-                    >
-                      <option value="">— Uncategorized —</option>
-                      {filteredCategories.map(cat => (
-                        <option key={cat.id} value={cat.id}>{cat.name}</option>
-                      ))}
-                    </StyledSelect>
+                    <Field label="Category" hint="Helps buyers find your product">
+                      <CustomSelect
+                        value={form.category_id}
+                        onChange={e => handleChange("category_id", e)}
+                        options={[
+                          ...filteredCategories.map(c => ({ value: c.id, label: c.name })),
+                          { value: "", label: "Uncategorized" }
+                        ]}
+                      />
+                    </Field>
                   </div>
                 </div>
 
                 {/* Pricing */}
                 <div className="border-l border-[#1A1A1A] pl-8 space-y-5">
                   <div>
-                    <FieldLabel>Pricing model</FieldLabel>
+                    <FieldLabel label="Pricing model" />
                     <div className="grid grid-cols-2 gap-2">
                       {[
                         { id: "free", label: "Free" },
@@ -1355,30 +1334,31 @@ export default function NewProductPage() {
                     <div className="space-y-4">
                       <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <FieldLabel>Currency</FieldLabel>
-                          <StyledSelect value={form.currency} onChange={e => handleChange("currency", e.target.value)}>
-                            <option value="USD">USD</option>
-                            <option value="EUR">EUR</option>
-                            <option value="GBP">GBP</option>
-                          </StyledSelect>
+                          <Field label="Currency">
+                            <CustomSelect options={[
+                              { value: "USD", label: "USD" },
+                              { value: "EUR", label: "EUR" },
+                              { value: "GBP", label: "GBP" }]}
+                              value={form.currency}
+                              onChange={value => handleChange("currency", value)} />
+                          </Field>
                         </div>
                         <div>
-                          <FieldLabel>Price</FieldLabel>
-                          <div className="relative">
-                            <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-600" />
-                            <StyledInput
+                          <Field label="Price" icon={<DollarSign className="h-3.5 w-3.5 text-zinc-600" />}>
+                            <FieldInput
                               type="number"
                               value={form.price}
                               onChange={e => handleChange("price", e.target.value)}
-                              className="pl-8 font-mono"
+                              className="pl-8"
+                              min={0}
                             />
-                          </div>
+                          </Field>
                         </div>
                       </div>
 
                       {form.product_type === "digital" && (
                         <div className="space-y-3">
-                          <FieldLabel>Billing type</FieldLabel>
+                          <FieldLabel label="Billing type" />
                           <div className="grid grid-cols-2 gap-2">
                             {[
                               { id: "one_time", label: "One-time" },
@@ -1402,7 +1382,7 @@ export default function NewProductPage() {
 
                           {form.pricing_type === "recurring" && (
                             <div>
-                              <FieldLabel>Billing period</FieldLabel>
+                              <FieldLabel label="Billing period" />
                               <div className="flex flex-wrap gap-2">
                                 {BILLING_PERIODS.map(p => (
                                   <button
@@ -1462,8 +1442,8 @@ export default function NewProductPage() {
                   </div>
 
                   <div>
-                    <FieldLabel hint="Or paste a direct URL">Manual file URL</FieldLabel>
-                    <StyledInput
+                    <FieldLabel hint="Or paste a direct URL" label="Manual file URL" />
+                    <FieldInput
                       placeholder="https://your-cdn.com/file.zip"
                       value={form.digital_file_url}
                       onChange={e => handleChange("digital_file_url", e.target.value)}
@@ -1484,18 +1464,19 @@ export default function NewProductPage() {
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
-                      <FieldLabel>Stock quantity</FieldLabel>
-                      <StyledInput
+                      <FieldLabel label="Stock quantity" />
+                      <FieldInput
                         type="number"
                         value={form.inventory_quantity}
                         onChange={e => handleChange("inventory_quantity", e.target.value)}
                         disabled={!form.track_inventory}
-                        className={cn(!form.track_inventory && "opacity-40 cursor-not-allowed")}
+                        className={cn(!form.track_inventory && "opacity-40 cursor-not-allowed", inputStyle)}
+                        placeholder="0"
                       />
                     </div>
                     <div>
-                      <FieldLabel hint="kg">Weight</FieldLabel>
-                      <StyledInput
+                      <FieldLabel hint="kg" label="Weight" />
+                      <FieldInput
                         type="number"
                         step="0.01"
                         value={form.weight}
@@ -1504,8 +1485,8 @@ export default function NewProductPage() {
                       />
                     </div>
                     <div>
-                      <FieldLabel hint="e.g. 10×10×5 cm">Dimensions</FieldLabel>
-                      <StyledInput
+                      <FieldLabel hint="e.g. 10×10×5 cm" label="Dimensions" />
+                      <FieldInput
                         value={form.dimensions}
                         onChange={e => handleChange("dimensions", e.target.value)}
                         placeholder="L × W × H"
@@ -1523,7 +1504,7 @@ export default function NewProductPage() {
 
             {/* Status & Visibility */}
             <SectionCard>
-              <FieldLabel>Status</FieldLabel>
+              <FieldLabel label="Visibility / Status" />
               <div className="space-y-1.5">
                 {STATUS_OPTIONS.map(opt => (
                   <button
@@ -1561,13 +1542,15 @@ export default function NewProductPage() {
             <SectionCard>
               <div className="space-y-5">
                 <div>
-                  <FieldLabel>Button text</FieldLabel>
-                  <StyledInput
-                    value={form.button_text}
-                    onChange={e => handleChange("button_text", e.target.value)}
-                    placeholder="e.g. Buy Now"
-                    className="mb-2"
-                  />
+                  <Field label="Call-to-action button" required error={!form.button_text.trim() && error ? "Button text is required." : undefined}>
+                    <FieldInput
+                      value={form.button_text}
+                      onChange={e => handleChange("button_text", e.target.value)}
+                      placeholder="e.g. Buy Now"
+                      className={cn(inputStyle, "mb-2")}
+                    />
+                  </Field>
+
                   <div className="flex flex-wrap gap-1.5 mt-2">
                     {BUTTON_TEXTS.map(txt => (
                       <button
@@ -1587,12 +1570,14 @@ export default function NewProductPage() {
                 </div>
 
                 <div>
-                  <FieldLabel hint="Comma-separated">Tags</FieldLabel>
-                  <StyledInput
-                    value={form.tags}
-                    onChange={e => handleChange("tags", e.target.value)}
-                    placeholder="design, template, minimal"
-                  />
+                  <Field label="Tags" >
+                    <FieldInput
+                      value={form.tags}
+                      onChange={e => handleChange("tags", e.target.value)}
+                      placeholder="design, template, minimal"
+                      className={cn(inputStyle, "mb-2")}
+                    />
+                  </Field>
                 </div>
               </div>
             </SectionCard>
@@ -1612,31 +1597,34 @@ export default function NewProductPage() {
 
               {form.affiliate_enabled && (
                 <div className="mt-4 pt-4 border-t border-[#1A1A1A]">
-                  <FieldLabel>Commission rate</FieldLabel>
-                  <div className="relative">
-                    <StyledInput
-                      type="number"
-                      value={form.affiliate_commission_rate}
-                      onChange={e => handleChange("affiliate_commission_rate", e.target.value)}
-                      className="pr-8 font-mono"
-                      min="1"
-                      max="100"
-                    />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-mono text-zinc-500">%</span>
-                  </div>
+                  <Field label="Commission rate" hint="Percentage of sale price that affiliates earn">
+                    <div className="relative">
+                      <FieldInput
+                        type="number"
+                        value={form.affiliate_commission_rate}
+                        onChange={e => handleChange("affiliate_commission_rate", e.target.value)}
+                        className={cn(inputStyle, "pr-10")}
+                        min="1"
+                        max="100"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-lg text-zinc-500">%</span>
+                    </div>
+                  </Field>
+
                 </div>
               )}
             </SectionCard>
 
             {/* Publish button */}
-            <button
+            <Button
               onClick={handleSubmit}
               disabled={isPending}
-              className="w-full h-11 rounded-2xl text-sm font-semibold flex items-center justify-center gap-2 bg-orange-600 hover:bg-orange-500 text-white shadow-[0_0_20px_rgba(249,115,22,0.2)] transition-all"
+              className="w-full h-11 rounded-md text-sm font-semibold flex items-center justify-center gap-2
+               bg-orange-600 hover:bg-orange-500 text-white shadow-[0_0_20px_rgba(249,115,22,0.2)] transition-all"
             >
               {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
               {isPending ? "Publishing…" : "Publish product"}
-            </button>
+            </Button>
 
             <p className="text-[10px] text-zinc-600 text-center">
               Draft products are saved but not visible to buyers

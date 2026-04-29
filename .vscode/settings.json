@@ -1,5 +1,0 @@
-{
-    "files.autoSave": "afterDelay",
-    "testing.automaticallyOpenPeekViewDuringAutoRun": true,
-    "terminal.integrated.suggest.runOnEnter": "always"
-}
