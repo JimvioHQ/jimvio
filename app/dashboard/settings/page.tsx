@@ -956,7 +956,7 @@ export default function SettingsPage() {
             <div className="absolute bottom-[-10%] left-[-5%] w-[400px] h-[400px] bg-amber-300/5 rounded-full blur-3xl" />
          </div>
 
-         <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-8 sm:pt-12 space-y-8 relative z-10">
+         <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-8 sm:pt-12 space-y-8 relative z-10">
 
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
