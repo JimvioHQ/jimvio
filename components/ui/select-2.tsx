@@ -714,7 +714,7 @@ function CustomSelectInner<T extends string>(
             className={cn(
                 "overflow-hidden flex flex-col rounded-sm border",
                 "bg-[var(--color-surface)] border-[var(--color-border)] shadow-[var(--shadow-xl)]",
-                !menuPortalTarget && "absolute left-0 right-0 z-50",
+                !menuPortalTarget && "absolute left-0 right-0 z-[99]",
                 !menuPortalTarget && (openAbove ? "bottom-full mb-2" : "top-full mt-2")
             )}
             style={menuPortalTarget ? menuStyle : { maxHeight: "16rem" }}

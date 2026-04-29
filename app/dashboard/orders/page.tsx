@@ -314,7 +314,6 @@ import { cn } from "@/lib/utils";
 import { updateOrderStatus } from "@/lib/actions/marketplace";
 import { toast } from "sonner";
 
-/* ── Status config ─────────────────────────────────────────────────────────── */
 const STATUS_CFG: Record<string, {
    label: string;
    icon: React.ElementType;
