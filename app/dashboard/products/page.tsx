@@ -13,13 +13,14 @@ import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { Field } from "@/components/ui/field";
 import { FieldInput } from "@/components/ui/field-input";
+import { Input } from "@/components/ui/input";
 
 /* ── status config ── */
 const STATUS = {
-  active:   { label: "Active",   dot: "bg-emerald-500", badge: "bg-emerald-500/10 border-emerald-500/20 text-emerald-500" },
-  paused:   { label: "Paused",   dot: "bg-amber-500",   badge: "bg-amber-500/10  border-amber-500/20  text-amber-500"   },
-  draft:    { label: "Draft",    dot: "bg-[var(--color-text-muted)]", badge: "bg-[var(--color-surface-secondary)] border-[var(--color-border)] text-[var(--color-text-muted)]" },
-  archived: { label: "Archived", dot: "bg-rose-500",    badge: "bg-rose-500/10   border-rose-500/20   text-rose-500"    },
+  active: { label: "Active", dot: "bg-emerald-500", badge: "bg-emerald-500/10 border-emerald-500/20 text-emerald-500" },
+  paused: { label: "Paused", dot: "bg-amber-500", badge: "bg-amber-500/10  border-amber-500/20  text-amber-500" },
+  draft: { label: "Draft", dot: "bg-[var(--color-text-muted)]", badge: "bg-[var(--color-surface-secondary)] border-[var(--color-border)] text-[var(--color-text-muted)]" },
+  archived: { label: "Archived", dot: "bg-rose-500", badge: "bg-rose-500/10   border-rose-500/20   text-rose-500" },
 } as Record<string, { label: string; dot: string; badge: string }>;
 
 const FILTERS = ["All", "Active", "Digital", "Physical", "Low Stock"] as const;
@@ -51,13 +52,13 @@ function StatCard({ icon: Icon, color, value, label }: {
 
 export default function ProductsPage() {
   const { formatMoney } = useCurrency();
-  const [products,     setProducts    ] = useState<Record<string, unknown>[]>([]);
-  const [filtered,     setFiltered    ] = useState<Record<string, unknown>[]>([]);
-  const [loading,      setLoading     ] = useState(true);
-  const [vendor,       setVendor      ] = useState<Record<string, unknown> | null>(null);
-  const [search,       setSearch      ] = useState("");
-  const [activeFilter, setFilter      ] = useState<Filter>("All");
-  const [openMenu,     setOpenMenu    ] = useState<string | null>(null);
+  const [products, setProducts] = useState<Record<string, unknown>[]>([]);
+  const [filtered, setFiltered] = useState<Record<string, unknown>[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [vendor, setVendor] = useState<Record<string, unknown> | null>(null);
+  const [search, setSearch] = useState("");
+  const [activeFilter, setFilter] = useState<Filter>("All");
+  const [openMenu, setOpenMenu] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -85,10 +86,10 @@ export default function ProductsPage() {
 
   useEffect(() => {
     let result = products;
-    if (search)                  result = result.filter(p => (p.name as string)?.toLowerCase().includes(search.toLowerCase()));
-    if (activeFilter === "Active")    result = result.filter(p => p.status === "active");
-    if (activeFilter === "Digital")   result = result.filter(p => p.is_digital === true);
-    if (activeFilter === "Physical")  result = result.filter(p => p.is_digital === false);
+    if (search) result = result.filter(p => (p.name as string)?.toLowerCase().includes(search.toLowerCase()));
+    if (activeFilter === "Active") result = result.filter(p => p.status === "active");
+    if (activeFilter === "Digital") result = result.filter(p => p.is_digital === true);
+    if (activeFilter === "Physical") result = result.filter(p => p.is_digital === false);
     if (activeFilter === "Low Stock") result = result.filter(p => !p.is_digital && (p.inventory_quantity as number) <= 5);
     setFiltered(result);
   }, [search, activeFilter, products]);
@@ -109,10 +110,10 @@ export default function ProductsPage() {
     setOpenMenu(null);
   }
 
-  const active   = products.filter(p => p.status === "active").length;
+  const active = products.filter(p => p.status === "active").length;
   const lowStock = products.filter(p => !p.is_digital && (p.inventory_quantity as number) <= 5).length;
-  const total    = products.reduce((s, p) => s + ((p.sale_count as number) || 0), 0);
-  const digital  = products.filter(p => p.is_digital).length;
+  const total = products.reduce((s, p) => s + ((p.sale_count as number) || 0), 0);
+  const digital = products.filter(p => p.is_digital).length;
 
   /* ── loading ── */
   if (loading) return (
@@ -203,32 +204,24 @@ export default function ProductsPage() {
 
         {/* ── Stats ── */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          <StatCard icon={ShoppingBag} color="bg-orange-500/10 text-orange-500"   value={active}   label="Active"      />
-          <StatCard icon={ShoppingCart} color="bg-emerald-500/10 text-emerald-500" value={total}    label="Total sales" />
-          <StatCard icon={AlertCircle}  color="bg-rose-500/10 text-rose-500"       value={lowStock} label="Low stock"   />
-          <StatCard icon={MousePointer} color="bg-sky-500/10 text-sky-500"         value={digital}  label="Digital"     />
+          <StatCard icon={ShoppingBag} color="bg-orange-500/10 text-orange-500" value={active} label="Active" />
+          <StatCard icon={ShoppingCart} color="bg-emerald-500/10 text-emerald-500" value={total} label="Total sales" />
+          <StatCard icon={AlertCircle} color="bg-rose-500/10 text-rose-500" value={lowStock} label="Low stock" />
+          <StatCard icon={MousePointer} color="bg-sky-500/10 text-sky-500" value={digital} label="Digital" />
         </div>
 
         {/* ── Filters bar ── */}
         <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
           <div className="relative flex-1 w-full">
-            <Search
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 pointer-events-none"
-              style={{ color: "var(--color-text-muted)" }}
-            />
-            <input
+            <Input
               value={search}
+              icon={<Search className="w-3.5 h-3.5"  />}
               onChange={e => setSearch(e.target.value)}
               placeholder="Search products…"
               className={cn(
                 "w-full h-10 pl-9 pr-4 rounded-xl border text-sm font-medium outline-none transition-all duration-150",
                 "focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
               )}
-              style={{
-                background: "var(--color-surface)",
-                border: "1px solid var(--color-border)",
-                color: "var(--color-text-primary)",
-              }}
             />
           </div>
 
@@ -269,10 +262,10 @@ export default function ProductsPage() {
         ) : (
           <div className="space-y-2.5">
             {filtered.map(p => {
-              const s          = STATUS[p.status as string] ?? STATUS.draft;
-              const img        = (p.images as string[])?.[0];
+              const s = STATUS[p.status as string] ?? STATUS.draft;
+              const img = (p.images as string[])?.[0];
               const isLowStock = !p.is_digital && (p.inventory_quantity as number) <= 5;
-              const id         = p.id as string;
+              const id = p.id as string;
 
               return (
                 <div
@@ -351,7 +344,7 @@ export default function ProductsPage() {
                           "flex items-center gap-1.5 text-xs font-medium",
                           isLowStock ? "text-rose-500" : ""
                         )}
-                        style={!isLowStock ? { color: "var(--color-text-muted)" } : {}}
+                          style={!isLowStock ? { color: "var(--color-text-muted)" } : {}}
                         >
                           <span className={cn("w-1.5 h-1.5 rounded-full", isLowStock ? "bg-rose-500 animate-pulse" : "bg-[var(--color-border-strong)]")} />
                           {(p.inventory_quantity as number) || 0} in stock
@@ -408,8 +401,8 @@ export default function ProductsPage() {
                             style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}
                           >
                             {[
-                              { href: `/dashboard/products/${id}/edit`, icon: Edit,         label: "Edit product",  danger: false },
-                              { href: `/product/${p.slug}`,             icon: Eye,          label: "View live",     danger: false, target: "_blank" },
+                              { href: `/dashboard/products/${id}/edit`, icon: Edit, label: "Edit product", danger: false },
+                              { href: `/product/${p.slug}`, icon: Eye, label: "View live", danger: false, target: "_blank" },
                             ].map(({ href, icon: Icon, label, target }) => (
                               <Link
                                 key={label}

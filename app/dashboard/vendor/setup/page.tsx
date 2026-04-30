@@ -147,7 +147,7 @@ export default function VendorSetupPage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6 animate-fade-in">
+    <div className="max-w-5xl mx-auto space-y-6 animate-fade-in">
       {/* Header */}
       <div className="flex items-center gap-3">
         <button onClick={() => router.back()} className="btn btn-ghost btn-icon">

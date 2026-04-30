@@ -15,7 +15,7 @@ import { FieldInput } from "@/components/ui/field-input";
 
 export function LoginForm() {
   const searchParams = useSearchParams();
-  /** Middleware uses `redirect`; rest of app uses `next`. */
+  
   const next = searchParams.get("next") ?? searchParams.get("redirect") ?? "";
   const urlError = searchParams.get("error");
 

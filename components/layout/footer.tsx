@@ -180,7 +180,7 @@ function LinkColumn({
 }) {
   return (
     <div className="rounded-md border-0 border-border p-[18px] shadow-[var(--shadow-sm)]">
-      <h5 className="home-section-eyebrow mb-3.5">{title}</h5>
+      <h5 className="font-semibold text-stone-600 mb-3.5">{title}</h5>
       <ul className="flex flex-col gap-0.5">
         {links.map((link) => (
           <li key={link.label}>
@@ -239,14 +239,12 @@ export function Footer({ contact: contactProp }: { contact?: ContactSettings }) 
       <NewsletterStrip />
 
       {/* Main grid */}
-      <div className="relative z-10 mx-auto max-w-[1280px] px-4 sm:px-6 pt-12 pb-10">
+      <div className="relative z-10 mx-auto max-w-[1280px] px-3 sm:px-6 pt-12 pb-10">
         <div className="grid grid-cols-1 gap-10 lg:grid-cols-6">
-
-          {/* ── Brand column ─────────────────────────────── */}
           <div className="lg:col-span-2 flex flex-col">
 
             {/* Logo */}
-            <Link href="/" className="inline-flex items-center gap-0 mb-4 group w-fit">
+            <Link href="/" className="inline-flex items-center gap-2 mb-4 group w-fit">
               <Image
                 src="/jimvio-logo.png"
                 alt="Jimvio"
@@ -254,16 +252,8 @@ export function Footer({ contact: contactProp }: { contact?: ContactSettings }) 
                 height={56}
                 className="h-11 w-auto mix-blend-multiply dark:mix-blend-normal brightness-110 contrast-110"
               />
-              <span className="text-[36px] sm:text-[42px] font-black tracking-[-0.07em] leading-none select-none">
-                <span className="text-text-primary">Jim</span>
-                <span
-                  className="bg-clip-text text-transparent"
-                  style={{
-                    backgroundImage: "linear-gradient(135deg, #fd5000 0%, #ff6a00 100%)",
-                  }}
-                >
-                  vio
-                </span>
+              <span className="text-[28px] sm:text-[32px] font-black tracking-[0.03em] leading-none select-none">
+                <span className="text-text-primary">Jimvio</span>
               </span>
             </Link>
 
@@ -305,7 +295,7 @@ export function Footer({ contact: contactProp }: { contact?: ContactSettings }) 
           </div>
 
           {/* ── Link columns ──────────────────────────────── */}
-          <div className="lg:col-span-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="lg:col-span-4 grid grid-cols-2 sm:grid-cols-4 gap-1 sm:gap-3">
             {Object.entries(footerLinks).map(([title, links]) => (
               <LinkColumn key={title} title={title} links={links} />
             ))}
@@ -363,9 +353,9 @@ export function LegalLinkItem({ label, href, external }: Props) {
         target="_blank"
         rel="noopener noreferrer"
         className={cn(
-          "rounded flex items-center gap-1 px-2 py-1 text-xs text-text-muted",
+          "rounded-md flex items-center gap-1 px-2 py-1 text-xs text-text-muted",
           "transition-[color,background] duration-150",
-          "hover:text-text-primary hover:bg-surface-secondary"
+          "hover:text-text-primary"
         )}
       >
         {label}
@@ -379,7 +369,7 @@ export function LegalLinkItem({ label, href, external }: Props) {
       className={cn(
         "rounded flex items-center gap-1 px-2 py-1 text-xs text-text-muted",
         "transition-[color,background] duration-150",
-        "hover:text-text-primary hover:bg-surface-secondary"
+        "hover:text-text-primary"
       )}>
       {label}
     </Link>

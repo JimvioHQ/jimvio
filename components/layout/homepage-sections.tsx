@@ -282,12 +282,14 @@ export function TrendingSidePanel({ trendingCats, suppliers }: { trendingCats: T
             suppliers.map((v) => (
               <motion.div key={v.business_slug ?? v.business_name} whileHover={{ x: 3 }}>
                 <Link href={v.business_slug ? `/vendors/${v.business_slug}` : "/vendors"} className="flex items-center gap-3 group">
-                  <div className="h-9 w-9 rounded-sm bg-orange-50 dark:bg-orange-500/10 flex items-center justify-center text-[#fd5000] text-[12px] font-black group-hover:bg-[#fd5000] group-hover:text-white transition-colors">
+                  <div className="h-9 w-9 rounded-full bg-orange-50 dark:bg-orange-500/10 flex items-center justify-center text-[#fd5000] text-[12px] font-black group-hover:bg-[#fd5000] group-hover:text-white transition-colors">
                     {(v.business_name ?? "?")[0]}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-[13px] font-black text-zinc-800 dark:text-stone-300 truncate group-hover:text-[#fd5000] transition-colors">{v.business_name}</p>
-                    <p className="text-[10px] font-bold text-zinc-400 dark:text-text-muted"><Star className="h-4 w-4 fill-[#fd5000] text-[#fd5000]" /> {Number(v.rating ?? 0).toFixed(1) || "N/A"} · Active</p>
+                    <p className="text-[10px] flex items-center gap-x-2 font-bold text-zinc-400 dark:text-text-muted">
+                      <Star className="h-4 w-4 fill-[#fd5000] text-[#fd5000]" /> 
+                      {Number(v.rating ?? 0).toFixed(1) || "N/A"} · Active</p>
                   </div>
                 </Link>
               </motion.div>

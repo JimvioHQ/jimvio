@@ -10,8 +10,11 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['"Vend Sans"', "sans-serif"],
-        outfit: ['"Vend Sans"', "sans-serif"],
+        sans: ['var(--font-dm-sans)', 'sans-serif'],
+        mono: ['var(--font-jetbrains-mono)', 'monospace'],
+        primary: ['var(--font-dm-sans)', 'sans-serif'],
+        secondary: ['var(--font-dm-sans)', 'sans-serif'],
+        outfit: ['var(--font-dm-sans)', 'sans-serif'],
       },
       colors: {
         bg: "var(--color-bg)",

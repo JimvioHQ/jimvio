@@ -74,7 +74,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
     // ── Shared input classes ─────────────────────────────────────────────────
     const inputClass = cn(
       "w-full outline-none border-[1.5px]",
-      "font-['Inter',sans-serif] font-normal tracking-[-0.01em]",
+      "font-normal tracking-[-0.01em]",
       "text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)]",
       "transition-[border-color,box-shadow,background] duration-[180ms] ease-out",
       "disabled:opacity-45 disabled:cursor-not-allowed disabled:bg-[var(--color-bg)]",
