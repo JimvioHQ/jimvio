@@ -131,6 +131,7 @@ export async function POST(req: NextRequest) {
         payment_provider: "flutterwave",
         flutterwave_transaction_id: txData.id ?? null,
         updated_at: new Date().toISOString(),
+        payment_status: "completed",
       })
       .eq("id", order.id);
 

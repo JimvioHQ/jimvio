@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { verifyFlutterwaveTransaction } from "@/lib/flutterwave";
 
 const serviceSupabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -36,15 +37,20 @@ export async function GET(
     const { data, error } = await serviceSupabase
         .from("orders")
         .select("id, payment_status, status, paid_at, flutterwave_transaction_id, payment_provider")
-        .eq("id", orderId) 
+        .eq("id", orderId)
         .eq("buyer_id", user.id)
         .single();
 
     if (error || !data) {
         return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
-    console.log(data);
     
+    // if (data.payment_status === "pending") {
+
+    //     const txData = await verifyFlutterwaveTransaction(data.id);
+    //     console.log({ txData });
+    // }
+
     return NextResponse.json({
         paymentStatus: data.payment_status,
         orderStatus: data.status,

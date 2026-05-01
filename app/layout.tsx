@@ -131,12 +131,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             position="top-right"
             toastOptions={{
               style: {
-                borderRadius: "16px",
-                fontFamily: 'var(--font-dm-sans), sans-serif',  // 👈 fixed
+                borderRadius: "10px",
+                fontFamily: 'var(--font-dm-sans), sans-serif',
                 fontWeight: 600,
                 border: "1px solid var(--color-border)",
                 background: "var(--color-surface)",
-                color: "var(--color-text-primary)",             // 👈 was --color-text (doesn't exist)
+                color: "var(--color-text-primary)",
               },
             }}
           />

@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
       customerName: profile.full_name || "Customer",
       customerPhone: profile.phone || "",
       orderDescription: `Order ${order.order_number || orderId.slice(0, 8)}`,
-      // paymentOptions: "card,applepay,googlepay,mobilemoneyrwanda",
+      paymentOptions: "card,applepay,googlepay,mobilemoneyrwanda",
       channel: body.channel || "sms",
     });
 
