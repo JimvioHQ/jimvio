@@ -16,7 +16,6 @@ export default async function CheckoutSuccessPage({
     if (Array.isArray(v)) return v[0];
     return typeof v === "string" ? v : undefined;
   };
-
   const status = pick(sp.status)?.toLowerCase();
   const cancelled = pick(sp.cancelled)?.toLowerCase() === "true" || pick(sp.cancel)?.toLowerCase() === "true";
 
