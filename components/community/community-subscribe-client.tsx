@@ -126,7 +126,7 @@ export function CommunitySubscribeClient({
       }
       
       if (data.redirectUrl || data.invoiceUrl) {
-        window.location.href = data.redirectUrl || data.invoiceUrl;
+        window.open(data.redirectUrl || data.invoiceUrl, "_blank");
       } else {
         toast.success("Joined community!");
         router.push(`/communities/${community.slug}`);
@@ -253,7 +253,7 @@ export function CommunitySubscribeClient({
                         onClick={() => setPlan(key)}
                         className={cn(
                           "w-full flex items-center justify-between p-6 rounded-sm border-2 transition-all group",
-                          plan === key ? "border-orange-500 bg-orange-50/30 dark:bg-orange-950/20" : "border-zinc-100 dark:border-border bg-white dark:bg-surface hover:border-zinc-200 dark:border-border dark:hover:border-zinc-700"
+                          plan === key ? "border-orange-500 bg-orange-50/30 dark:bg-orange-950/20" : "border-zinc-100 bg-white dark:bg-surface hover:border-zinc-200 dark:border-border dark:hover:border-zinc-700"
                         )}
                       >
                          <div className="flex items-center gap-4">

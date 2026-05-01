@@ -12,7 +12,7 @@ export async function POST(request: Request) {
     const isSandbox = process.env.PAWAPAY_ENV === "sandbox";
     const baseUrl = isSandbox ? "https://api.sandbox.pawapay.io" : "https://api.pawapay.io";
 
-    console.log(`pawaPay: Initiation using API v2 [/v2/paymentpage] in ${process.env.PAWAPAY_ENV} mode`);
+    // console.log(`pawaPay: Initiation using API v2 [/v2/paymentpage] in ${process.env.PAWAPAY_ENV} mode`);
 
     const body = await request.json();
     let { amount, currency, orderId, country, returnUrl } = body;

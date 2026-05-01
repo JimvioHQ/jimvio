@@ -488,50 +488,100 @@ export function PhysicalProductDetail({
                   </div>
 
                   {/* ── Tabs: Details / Specs / Reviews ── */}
-                  <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden">
+                  <div
+                     className="rounded-xl overflow-hidden"
+                     style={{ border: "1px solid var(--color-border)", background: "var(--color-surface)" }}
+                  >
                      <Tabs defaultValue="details">
-                        <TabsList className="w-full h-12 bg-[var(--color-surface-secondary)] border-b border-[var(--color-border)] rounded-none p-0 gap-0">
-                           {["details", "specs", "reviews"].map((tab) => (
+                        {/* ── Tab bar ── */}
+                        <TabsList
+                           className="w-full rounded-none p-0 gap-0"
+                           style={{
+                              height: "auto",
+                              background: "var(--color-surface-secondary)",
+                              borderBottom: "1px solid var(--color-border)",
+                           }}
+                        >
+                           {[
+                              { id: "details", label: "Details", badge: null },
+                              { id: "specs", label: "Specs", badge: null },
+                              { id: "reviews", label: "Reviews", badge: reviewCount > 0 ? reviewCount : null },
+                           ].map(({ id, label, badge }) => (
                               <TabsTrigger
-                                 key={tab}
-                                 value={tab}
+                                 key={id}
+                                 value={id}
                                  className={cn(
-                                    "flex-1 h-full rounded-none text-xs font-semibold uppercase tracking-wider border-b-2 border-transparent",
-                                    "text-[var(--color-text-muted)] transition-all",
-                                    "data-[state=active]:bg-transparent data-[state=active]:text-orange-500 data-[state=active]:border-orange-500 data-[state=active]:shadow-none"
+                                    "relative flex-1 h-11 rounded-none gap-2",
+                                    "text-xs font-semibold uppercase tracking-wider shadow-none",
+                                    "border-b-2 border-transparent",
+                                    "text-[var(--color-text-muted)] transition-all duration-150",
+                                    "data-[state=active]:bg-transparent",
+                                    "data-[state=active]:text-[var(--color-text-primary)]",
+                                    "data-[state=active]:border-orange-500",
+                                    "data-[state=active]:shadow-none",
+                                    "hover:text-[var(--color-text-primary)]"
                                  )}
                               >
-                                 {tab}
-                                 {tab === "reviews" && reviewCount > 0 && (
-                                    <span className="ml-1.5 text-[9px] bg-orange-500/10 text-orange-500 px-1.5 py-0.5 rounded-full font-bold">
-                                       {reviewCount}
+                                 {label}
+                                 {badge !== null && (
+                                    <span
+                                       className="inline-flex items-center justify-center h-4 min-w-[16px] px-1 rounded-full text-[9px] font-bold"
+                                       style={{
+                                          background: "var(--color-accent-light)",
+                                          color: "var(--color-accent)",
+                                          border: "1px solid var(--color-accent-subtle)",
+                                       }}
+                                    >
+                                       {badge}
                                     </span>
                                  )}
                               </TabsTrigger>
                            ))}
                         </TabsList>
 
-                        <div className="p-6 sm:p-8">
+                        {/* ── Tab content ── */}
+                        <div className="p-5 sm:p-7">
+
+                           {/* Details */}
                            <TabsContent value="details" className="mt-0">
-                              <div className="prose prose-sm prose-stone dark:prose-invert max-w-none">
+                              <div className="prose prose-sm prose-stone dark:prose-invert max-w-none text-sm leading-relaxed"
+                                 style={{ color: "var(--color-text-muted)" }}
+                              >
                                  {product.description}
                               </div>
                            </TabsContent>
 
+                           {/* Specs */}
                            <TabsContent value="specs" className="mt-0">
-                              <div className="divide-y divide-[var(--color-border)]">
+                              <div
+                                 className="rounded-xl overflow-hidden"
+                                 style={{ border: "1px solid var(--color-border)" }}
+                              >
                                  {[
                                     { label: "Material", value: "Premium Composite" },
                                     { label: "Weight", value: product.weight ? `${product.weight} kg` : "1.2 kg" },
                                     { label: "Condition", value: "Brand New" },
                                     { label: "SKU", value: product.sku || "JMV-PRO-X" },
                                     { label: "Shipping", value: "Worldwide · Free on first order" },
-                                 ].map(({ label, value }) => (
-                                    <div key={label} className="flex items-center justify-between py-3.5">
-                                       <span className="text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">
+                                 ].map(({ label, value }, i, arr) => (
+                                    <div
+                                       key={label}
+                                       className="flex items-center justify-between px-4 py-3.5"
+                                       style={{
+                                          borderBottom: i < arr.length - 1 ? "1px solid var(--color-border)" : "none",
+                                          background: i % 2 === 0 ? "var(--color-surface)" : "var(--color-surface-secondary)",
+                                       }}
+                                    >
+                                       <span
+                                          className="text-[10px] font-semibold uppercase tracking-wider"
+                                          style={{ color: "var(--color-text-muted)" }}
+                                       >
                                           {label}
                                        </span>
-                                       <span className="text-sm font-medium text-[var(--color-text-primary)]">
+                                       <span
+                                          className="text-sm font-medium text-right max-w-[60%]"
+                                          style={{ color: "var(--color-text-primary)" }}
+                                       >
                                           {value}
                                        </span>
                                     </div>
@@ -539,34 +589,89 @@ export function PhysicalProductDetail({
                               </div>
                            </TabsContent>
 
-                           <TabsContent value="reviews" className="mt-0">
+                           {/* Reviews */}
+                           <TabsContent value="reviews" className="mt-0 space-y-6">
+
                               {/* Rating summary */}
                               {reviewCount > 0 && (
-                                 <div className="flex items-center gap-6 p-4 rounded-xl bg-[var(--color-surface-secondary)] border border-[var(--color-border)] mb-6">
-                                    <div className="text-center">
-                                       <p className="text-4xl font-bold text-[var(--color-text-primary)]">4.8</p>
-                                       <div className="flex gap-0.5 mt-1 justify-center">
+                                 <div
+                                    className="flex items-center gap-6 p-5 rounded-xl"
+                                    style={{
+                                       background: "var(--color-surface-secondary)",
+                                       border: "1px solid var(--color-border)",
+                                    }}
+                                 >
+                                    {/* Score */}
+                                    <div className="text-center shrink-0">
+                                       <p
+                                          className="text-5xl font-bold tabular-nums leading-none"
+                                          style={{ color: "var(--color-text-primary)" }}
+                                       >
+                                          4.8
+                                       </p>
+                                       <div className="flex gap-0.5 mt-2 justify-center">
                                           {[1, 2, 3, 4, 5].map(i => (
-                                             <Star key={i} className={cn("h-3 w-3", i <= 4 ? "fill-amber-400 text-amber-400" : "fill-amber-200 text-amber-200")} />
+                                             <Star
+                                                key={i}
+                                                className={cn(
+                                                   "h-3.5 w-3.5",
+                                                   i <= 4 ? "fill-amber-400 text-amber-400" : "fill-amber-200 text-amber-200"
+                                                )}
+                                             />
                                           ))}
                                        </div>
-                                       <p className="text-[10px] text-[var(--color-text-muted)] mt-1">{reviewCount} reviews</p>
+                                       <p className="text-[10px] mt-1.5" style={{ color: "var(--color-text-muted)" }}>
+                                          {reviewCount} review{reviewCount !== 1 ? "s" : ""}
+                                       </p>
                                     </div>
-                                    <div className="flex-1 space-y-1.5">
-                                       {[5, 4, 3, 2, 1].map(star => (
-                                          <div key={star} className="flex items-center gap-2">
-                                             <span className="text-[10px] font-medium text-[var(--color-text-muted)] w-3">{star}</span>
-                                             <div className="flex-1 h-1.5 rounded-full bg-[var(--color-border)] overflow-hidden">
+
+                                    {/* Divider */}
+                                    <div className="h-16 w-px" style={{ background: "var(--color-border)" }} />
+
+                                    {/* Bars */}
+                                    <div className="flex-1 space-y-2">
+                                       {[
+                                          { star: 5, pct: 72 },
+                                          { star: 4, pct: 18 },
+                                          { star: 3, pct: 6 },
+                                          { star: 2, pct: 2 },
+                                          { star: 1, pct: 2 },
+                                       ].map(({ star, pct }) => (
+                                          <div key={star} className="flex items-center gap-2.5">
+                                             <span
+                                                className="text-[10px] font-semibold tabular-nums w-2 text-right shrink-0"
+                                                style={{ color: "var(--color-text-muted)" }}
+                                             >
+                                                {star}
+                                             </span>
+                                             <div
+                                                className="flex-1 h-1.5 rounded-full overflow-hidden"
+                                                style={{ background: "var(--color-border)" }}
+                                             >
                                                 <div
-                                                   className="h-full bg-amber-400 rounded-full"
-                                                   style={{ width: `${star === 5 ? 72 : star === 4 ? 18 : star === 3 ? 6 : 2}%` }}
+                                                   className="h-full rounded-full transition-all duration-700"
+                                                   style={{
+                                                      width: `${pct}%`,
+                                                      background: pct >= 50
+                                                         ? "#f59e0b"        /* amber-400 — majority */
+                                                         : pct >= 15
+                                                            ? "#fbbf24"        /* amber-300 */
+                                                            : "var(--color-border-strong)",
+                                                   }}
                                                 />
                                              </div>
+                                             <span
+                                                className="text-[10px] tabular-nums w-6 text-right shrink-0"
+                                                style={{ color: "var(--color-text-muted)" }}
+                                             >
+                                                {pct}%
+                                             </span>
                                           </div>
                                        ))}
                                     </div>
                                  </div>
                               )}
+
                               <ReviewForm productId={product.id} vendorId={product.vendor_id} />
                            </TabsContent>
                         </div>

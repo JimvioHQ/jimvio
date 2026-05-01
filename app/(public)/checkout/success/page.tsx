@@ -28,7 +28,6 @@ export default async function CheckoutSuccessPage({
     rawRef?.split(":")[0];
 
   if (status === "failed" || status === "cancelled" || cancelled) {
-    // If we know it failed, send them to a failure page or back to checkout with error
     return redirect(`/checkout?error=Payment failed or was cancelled.&orderId=${orderId}`);
   }
 

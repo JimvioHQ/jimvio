@@ -72,6 +72,8 @@ export async function GET(req: NextRequest) {
         payment_provider: "flutterwave",
         flutterwave_transaction_id: Number(transactionId),
         updated_at: new Date().toISOString(),
+        flutterwave_tx_ref: txRef,
+        payment_status: "completed",
       })
       .eq("id", resolvedOrderId);
 

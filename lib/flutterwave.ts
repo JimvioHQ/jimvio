@@ -120,11 +120,11 @@ export async function createFlutterwavePaymentLink(
     // it helps Flutterwave route notifications correctly.
     channel: otpChannel, 
     country: (params.currency || "USD").toUpperCase() === "USD" ? undefined : "RW",
-    payment_options: params.paymentOptions || (
-      (params.currency || "USD").toUpperCase() === "RWF" 
-        ? "mobilemoneyrwanda" 
-        : "card,applepay,googlepay"
-    ),
+    // payment_options: params.paymentOptions || (
+    //   (params.currency || "USD").toUpperCase() === "RWF" 
+    //     ? "mobilemoneyrwanda" 
+    //     : "card,mobilemoneyrwanda,googlepay,ugx,ussd"
+    // ),
     customizations: {
       title: "Jimvio",
       description: params.orderDescription || "Order Payment",
