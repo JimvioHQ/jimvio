@@ -424,7 +424,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { ChevronRight, Sparkles, ShoppingBag, TrendingUp, Store, Video, Share2, Users } from "lucide-react";
+import { ChevronRight, Sparkles, ShoppingBag, TrendingUp, Store, Video, Share2, Users, LayoutDashboard } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { useAIStore } from "@/lib/store/use-ai-store";
@@ -635,11 +635,9 @@ function VideoMarquee({ videos, mobile = false }: { videos: any[]; mobile?: bool
   );
 }
 
-// ─── Quick nav pills ──────────────────────────────────────────────────────────
-
 const QUICK_LINKS = [
   { icon: ShoppingBag, text: "Explore marketplace", href: "/marketplace" },
-  { icon: TrendingUp, text: "Creators hub", href: "/influencers/browse" },
+  { icon: LayoutDashboard, text: "Creators hub", href: "/influencers/browse" },
 ];
 
 // ─── Hero component ───────────────────────────────────────────────────────────

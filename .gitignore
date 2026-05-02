@@ -40,3 +40,5 @@ Thumbs.db
 
 # Antigravity Scratch
 scratch/
+
+/lib/generated/prisma

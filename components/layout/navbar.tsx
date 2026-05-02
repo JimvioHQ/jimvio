@@ -40,6 +40,9 @@ import {
   Smartphone,
   Clock,
   Flame,
+  PlaySquare,
+  Store,
+  Handshake,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -296,11 +299,11 @@ export function Navbar({ user, marketing }: NavbarProps) {
   const navLinks = ensureCoreNavLinks(marketing.nav_links ?? []);
 
   const solutions = [
-    { title: "Videos", desc: "Creator shorts & clips", href: "/shorts", icon: Clapperboard, color: "rgba(239,68,68,0.8)" },
+    { title: "Videos", desc: "Creator shorts & clips", href: "/shorts", icon: PlaySquare, color: "rgba(239,68,68,0.8)" },
     { title: "Campaigns", desc: "Active UGC missions", href: "/ugc", icon: Megaphone, color: "rgba(139,92,246,0.8)" },
-    { title: "Suppliers", desc: "Vendor tools & storefronts", href: "/vendors", icon: Factory, color: "rgba(16,185,129,0.8)" },
-    { title: "Affiliate", desc: "Your referral network", href: "/affiliates", icon: TrendingUp, color: "rgba(168,85,247,0.8)" },
-    { title: "Creators", desc: "Find top creator talent", href: "/influencers/browse", icon: User, color: "rgba(236,72,153,0.8)" },
+    { title: "Suppliers", desc: "Vendor tools & storefronts", href: "/vendors", icon: Store, color: "rgba(16,185,129,0.8)" },
+    { title: "Affiliate", desc: "Your referral network", href: "/affiliates", icon: Handshake, color: "rgba(168,85,247,0.8)" },
+    { title: "Creators", desc: "Find top creator talent", href: "/influencers/browse", icon: Sparkles, color: "rgba(236,72,153,0.8)" },
   ];
 
   const marketplaceVariants = [
@@ -406,13 +409,13 @@ export function Navbar({ user, marketing }: NavbarProps) {
                   className="w-72 p-1.5 rounded-sm border border-border shadow-none bg-surface"
                 >
                   {solutions.map((s) => (
-                    <DropdownMenuItem key={s.href} asChild className="p-0 focus:bg-transparent">
+                    <DropdownMenuItem key={s.href} asChild className="p-0 focus:bg-transparent cursor-pointer">
                       <Link href={s.href} className="flex items-center gap-3 p-3 rounded-sm transition-all hover:bg-stone-50 dark:hover:bg-white/5" style={{ outline: "none" }}>
                         <div className="h-9 w-9 rounded-sm flex items-center justify-center shrink-0 bg-stone-50 dark:bg-stone-900 border border-stone-100 dark:border-stone-800" style={{ color: s.color }}>
                           <s.icon className="h-4 w-4" />
                         </div>
                         <div className="min-w-0">
-                          <p className="text-[13px] font-semibold text-stone-800 dark:text-stone-100 leading-none mb-0.5">{s.title}</p>
+                          <p className="text-[13px] font-bold text-stone-800 dark:text-white leading-none mb-0.5">{s.title}</p>
                           <p className="text-[11px] text-stone-400 truncate">{s.desc}</p>
                         </div>
                       </Link>
