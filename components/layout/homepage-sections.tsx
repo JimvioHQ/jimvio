@@ -746,7 +746,7 @@ export function RecommendedHeader() {
       <motion.div variants={fadeUp}>
         <Eyebrow text="Hand-Picked Listings" />
         <h2 className="text-[28px] sm:text-[34px] font-black text-foreground leading-tight tracking-tight flex items-center gap-3">
-          <span className="inline-flex items-center justify-center w-9 h-9 border border-[#fd5000]/30 bg-[#fd5000]/5">
+          <span className="inline-flex rounded-sm items-center justify-center w-9 h-9 border border-[#fd5000]/30 bg-[#fd5000]/5">
             <Star className="h-4 w-4 fill-[#fd5000] text-[#fd5000]" />
           </span>
           Recommended Picks
@@ -758,7 +758,7 @@ export function RecommendedHeader() {
       <motion.div variants={fadeUp}>
         <Link
           href="/marketplace"
-          className="inline-flex items-center gap-2 px-5 py-2.5 text-[13px] font-semibold text-muted-foreground hover:text-foreground transition-colors border border-border hover:border-foreground/30 bg-background"
+          className="inline-flex rounded-sm items-center gap-2 px-5 py-2.5 text-[13px] font-semibold text-muted-foreground hover:text-foreground transition-colors border border-border hover:border-foreground/30 bg-background"
         >
           Browse all <ChevronRight className="h-4 w-4" />
         </Link>
@@ -817,10 +817,10 @@ export function FlashDeals({ products }: { products: any[] }) {
     <motion.div
       initial="hidden" whileInView="show" viewport={{ once: true, margin: "-60px" }}
       variants={stagger}
-      className="bg-background border border-border overflow-hidden"
+      className="bg-background border border-border overflow-hidden rounded-xl"
     >
       {/* Header row — ruled, no card shadows */}
-      <div className="px-6 py-4 border-b border-border flex items-center justify-between">
+      <div className="px-6 py-4 border-b border-border flex items-center justify-between ">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 bg-[#fd5000] rounded-full flex items-center justify-center flex-shrink-0">
             <Zap className="h-4 w-4 text-white fill-white stroke-none" />
@@ -830,7 +830,7 @@ export function FlashDeals({ products }: { products: any[] }) {
             <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Live · Refreshed daily</p>
           </div>
         </div>
-        <div className="flex items-center gap-1.5 px-3 py-1 border border-[#fd5000]/30 bg-[#fd5000]/5">
+        <div className="flex items-center gap-1.5 rounded px-3 py-1 border border-[#fd5000]/30 bg-[#fd5000]/5">
           <AccentDot className="animate-pulse" />
           <span className="text-[10px] font-bold text-[#fd5000] uppercase tracking-wider">High Demand</span>
         </div>
@@ -849,7 +849,7 @@ export function FlashDeals({ products }: { products: any[] }) {
                 className="block p-4 hover:bg-muted/30 transition-colors border-t border-border md:border-t-0 relative"
               >
                 {/* Discount badge — top-left corner, not floating */}
-                <div className="absolute top-0 left-0 bg-[#fd5000] text-white text-[10px] font-bold px-2 py-0.5 leading-none">
+                <div className="absolute rounded-br top-0 left-0 bg-[#fd5000] text-white text-[10px] font-bold px-2 py-0.5 leading-none">
                   -{dealPct}%
                 </div>
 
@@ -909,10 +909,10 @@ export function TrendingSidePanel({
       whileInView={{ opacity: 1, x: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-      className="hidden lg:flex flex-col gap-4"
+      className="hidden lg:flex flex-col gap-4 "
     >
       {/* Trending Now — dark panel */}
-      <div className="bg-stone-900 dark:bg-stone-950 border border-stone-800 overflow-hidden">
+      <div className="bg-stone-900 dark:bg-stone-950 border border-stone-800 overflow-hidden rounded-lg">
         <div className="px-5 py-3.5 border-b border-stone-800 flex items-center justify-between">
           <div>
             <p className="text-[10px] font-bold text-stone-500 uppercase tracking-[0.2em] mb-0.5">Hot This Week</p>
@@ -942,7 +942,7 @@ export function TrendingSidePanel({
       </div>
 
       {/* Top Suppliers */}
-      <div className="bg-background border border-border overflow-hidden">
+      <div className="bg-background border border-border overflow-hidden rounded-lg">
         <div className="px-5 py-3.5 border-b border-border">
           <Eyebrow text="Top Suppliers" />
         </div>
@@ -998,14 +998,14 @@ export function IndustriesSection({ industries }: { industries: Industry[] }) {
     <motion.section
       initial="hidden" whileInView="show" viewport={{ once: true, margin: "-60px" }}
       variants={stagger}
-      className="bg-background border border-border overflow-hidden"
+      className="bg-background border border-border overflow-hidden rounded-xl"
     >
       {/* Section header */}
-      <div className="px-8 py-5 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <motion.div variants={fadeUp}>
+      <div className="px-8 py-5 border-b rounded-md border-border flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <motion.div variants={fadeUp} className="rounded-md">
           <Eyebrow text="Browse by Sector" />
           <h2 className="text-[28px] sm:text-[34px] font-bold text-foreground tracking-tight leading-tight flex items-center gap-3">
-            <span className="inline-flex items-center justify-center w-9 h-9 border border-border text-muted-foreground">
+            <span className="inline-flex rounded-sm items-center justify-center w-9 h-9 border border-border text-muted-foreground">
               <Menu className="h-4 w-4" />
             </span>
             Global Industries
@@ -1079,7 +1079,7 @@ export function AffiliatePanel({
     <motion.section
       initial="hidden" whileInView="show" viewport={{ once: true, margin: "-60px" }}
       variants={stagger}
-      className="border border-border overflow-hidden grid grid-cols-1 lg:grid-cols-2 min-h-[460px]"
+      className="border border-border overflow-hidden grid grid-cols-1 lg:grid-cols-2 min-h-[460px] rounded-xl"
     >
       {/* Left — value prop */}
       <motion.div
@@ -1100,7 +1100,7 @@ export function AffiliatePanel({
         <div className="space-y-2.5 mb-10">
           {valueProps.map((t) => (
             <div key={t} className="flex items-center gap-3 text-[14px] font-medium text-foreground">
-              <div className="w-5 h-5 flex items-center justify-center bg-[#fd5000] text-white text-[10px] font-black flex-shrink-0">
+              <div className="w-5 h-5 flex items-center rounded justify-center bg-[#fd5000] text-white text-[10px] font-black flex-shrink-0">
                 ✓
               </div>
               {t}
@@ -1139,7 +1139,7 @@ export function AffiliatePanel({
                 <span
                   key={`${t}-${i}`}
                   className={cn(
-                    "px-3 py-1.5 text-[11px] font-bold border capitalize tracking-[0.08em]",
+                    "px-3 py-1.5 rounded text-[11px] font-bold border capitalize tracking-[0.08em]",
                     i === 0
                       ? "bg-[#fd5000] text-white border-[#fd5000]"
                       : "bg-background text-muted-foreground border-border hover:border-[#fd5000]/40 hover:text-[#fd5000] transition-colors cursor-default"
@@ -1211,7 +1211,7 @@ export function MarketIntelligence({
     <motion.div
       initial="hidden" whileInView="show" viewport={{ once: true, margin: "-60px" }}
       variants={stagger}
-      className="grid grid-cols-1 gap-px lg:grid-cols-2 border border-border bg-border"
+      className="grid grid-cols-1 gap-px lg:grid-cols-2 border border-border bg-border rounded-xl"
     >
       {/* Market Pulse */}
       <motion.div variants={fadeUp} className="bg-background p-7">
@@ -1229,7 +1229,7 @@ export function MarketIntelligence({
           {displayCats.map((cat, i) => (
             <div key={i} className="space-y-2 group">
               <div className="flex justify-between items-baseline">
-                <span className="text-[13px] font-semibold text-foreground group-hover:text-[#fd5000] transition-colors">
+                <span className="text-[13px] font-semibold rounded-r text-foreground group-hover:text-[#fd5000] transition-colors">
                   {cat.name}
                 </span>
                 <span className="text-[11px] font-bold text-emerald-500 tabular-nums">↑ {8 + i}%</span>
@@ -1240,7 +1240,7 @@ export function MarketIntelligence({
                   whileInView={{ width: `${60 + i * 10}%` }}
                   viewport={{ once: true }}
                   transition={{ duration: 1, delay: i * 0.12, ease: "easeOut" }}
-                  className="h-full bg-[#fd5000]"
+                  className="h-full bg-[#fd5000] rounded-md"
                 />
               </div>
             </div>
@@ -1269,7 +1269,7 @@ export function MarketIntelligence({
         <div className="flex flex-wrap gap-1.5 mb-5">
           {categories.slice(0, 8).map((cat: any) => (
             <Link key={cat.id} href={`/marketplace?cat=${encodeURIComponent(cat.slug)}`}>
-              <span className="inline-flex cursor-pointer border border-border bg-muted/40 px-3 py-1.5 text-[11px] font-semibold text-muted-foreground hover:border-[#fd5000]/40 hover:text-[#fd5000] hover:bg-[#fd5000]/5 transition-all">
+              <span className="inline-flex cursor-pointer rounded border border-border bg-muted/40 px-3 py-1.5 text-[11px] font-semibold text-muted-foreground hover:border-[#fd5000]/40 hover:text-[#fd5000] hover:bg-[#fd5000]/5 transition-all">
                 {cat.name}
               </span>
             </Link>
@@ -1280,7 +1280,7 @@ export function MarketIntelligence({
         <div className="divide-y divide-border">
           {trending.slice(0, 3).map((prod: any, i: number) => (
             <Link key={prod.id ?? i} href={`/marketplace/${prod.slug}`} className="group flex gap-3 py-3 first:pt-0 last:pb-0 items-center">
-              <div className="w-11 h-11 flex-shrink-0 bg-muted border border-border overflow-hidden">
+              <div className="w-11 h-11 items-center justify-center flex-shrink-0 bg-muted border rounded-md border-border overflow-hidden">
                 {prod.images?.[0]
                   ? <img src={prod.images[0]} className="h-full w-full object-cover" alt="" />
                   : <Package className="h-4 w-4 text-muted-foreground/40 m-auto" />
@@ -1324,13 +1324,13 @@ export function HowItWorks() {
           </motion.div>
 
           {/* Steps — ruled grid, numbered */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 border border-border divide-x divide-y sm:divide-y-0 divide-border">
+          <div className="grid grid-cols-1 sm:grid-cols-2 rounded-lg lg:grid-cols-4 border border-border divide-x divide-y sm:divide-y-0 divide-border">
             {steps.map((s, idx) => (
               <motion.div key={idx} variants={fadeUp}>
                 <div className="p-7 group hover:bg-muted/30 transition-colors h-full">
                   {/* Step number */}
                   <p className="text-[11px] font-bold text-muted-foreground/40 tracking-widest mb-4">{s.num}</p>
-                  <div className="w-10 h-10 flex items-center justify-center border border-border text-muted-foreground mb-4 group-hover:border-[#fd5000]/40 group-hover:text-[#fd5000] transition-colors">
+                  <div className="w-10 h-10 rounded flex items-center justify-center border border-border text-muted-foreground mb-4 group-hover:border-[#fd5000]/40 group-hover:text-[#fd5000] transition-colors">
                     {s.icon}
                   </div>
                   <h4 className="text-[15px] font-semibold text-foreground mb-2">{s.title}</h4>
@@ -1394,16 +1394,6 @@ export function AppPromo() {
               </div>
             ))}
           </div>
-        </motion.div>
-
-        {/* QR code placeholder — architectural, not decorative */}
-        <motion.div variants={scaleIn} className="flex flex-col items-center gap-4">
-          <div className="w-32 h-32 border border-stone-700 flex items-center justify-center">
-            <div className="w-16 h-16 bg-[#fd5000] flex items-center justify-center">
-              <Zap className="h-8 w-8 text-white fill-white stroke-none" />
-            </div>
-          </div>
-          <p className="text-[11px] text-stone-600 font-bold uppercase tracking-[0.2em]">Scan to download</p>
         </motion.div>
       </motion.div>
     </div>
