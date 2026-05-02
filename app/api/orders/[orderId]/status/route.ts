@@ -44,12 +44,11 @@ export async function GET(
     if (error || !data) {
         return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
-    
-    // if (data.payment_status === "pending") {
 
-    //     const txData = await verifyFlutterwaveTransaction(data.id);
-    //     console.log({ txData });
-    // }
+    if (data.payment_status === "pending") {
+        const txData = await verifyFlutterwaveTransaction(data.id);
+        console.log({ txData });
+    }
 
     return NextResponse.json({
         paymentStatus: data.payment_status,

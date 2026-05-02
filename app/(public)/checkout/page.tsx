@@ -58,12 +58,12 @@ export default async function CheckoutPage(props: { searchParams: Promise<{ orde
   const isCommunity = normalized.some((o: any) => o.integration_source === "community");
 
   return (
-    <div className="min-h-screen bg-[var(--color-bg)] pb-12">
-      <div className="max-w-[1200px] mx-auto px-4 sm:px-4 md:px-6">
-        <CheckoutExperience 
-          orders={normalized as never} 
-          profile={profile} 
-          mode={isCommunity ? "community" : "cart"} 
+    <div className="min-h-screen bg-[var(--color-bg)]">
+      <div className="max-w-[1200px] mx-auto px-0 sm:px-4 md:px-6">
+        <CheckoutExperience
+          orders={normalized as never}
+          profile={profile}
+          mode={isCommunity ? "community" : "cart"}
         />
       </div>
     </div>

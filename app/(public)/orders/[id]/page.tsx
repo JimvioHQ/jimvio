@@ -3,7 +3,20 @@
 import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Package, CreditCard, Lock, Loader2 } from "lucide-react";
+import {
+  ArrowLeft,
+  Package,
+  CreditCard,
+  Lock,
+  Loader2,
+  CheckCircle2,
+  Clock,
+  Truck,
+  MapPin,
+  ChevronRight,
+  Receipt,
+  ShieldCheck,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
@@ -12,6 +25,194 @@ import { TrackingCard } from "@/components/orders/TrackingCard";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 
+
+function getProviderLabel(provider: string | undefined) {
+  const map: Record<string, string> = {
+    nowpayments: "Crypto",
+    pesapal: "PesaPal",
+    pawapay: "PawaPay",
+    flutterwave: "Flutterwave",
+  };
+  return provider ? (map[provider] ?? provider) : "—";
+}
+
+function getPaymentRef(order: any): string {
+  return (
+    order.pesapal_tracking_id ||
+    order.nowpayments_payment_id ||
+    order.pawapay_deposit_id ||
+    order.flutterwave_transaction_id ||
+    order.tx_ref ||
+    order.payment_reference ||
+    "—"
+  );
+}
+
+function getOrderSteps(status: string) {
+  const steps = [
+    { key: "pending", label: "Order Placed", icon: Receipt },
+    { key: "processing", label: "Processing", icon: Clock },
+    { key: "shipped", label: "Shipped", icon: Truck },
+    { key: "delivered", label: "Delivered", icon: CheckCircle2 },
+  ];
+  const order = ["pending", "processing", "shipped", "delivered"];
+  const currentIdx = order.indexOf(status);
+  return steps.map((s, i) => ({
+    ...s,
+    done: i <= currentIdx,
+    active: i === currentIdx,
+  }));
+}
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+function SkeletonPulse({ className }: { className?: string }) {
+  return (
+    <div
+      className={`rounded-xl bg-[var(--color-surface-secondary)] animate-pulse ${className}`}
+    />
+  );
+}
+
+function OrderSkeleton() {
+  return (
+    <div className="min-h-screen bg-[var(--color-bg)] pt-28 pb-20">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 space-y-6">
+        <SkeletonPulse className="h-5 w-28" />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-4">
+            <SkeletonPulse className="h-52" />
+            <SkeletonPulse className="h-40" />
+          </div>
+          <SkeletonPulse className="h-80" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StatusStepper({ status }: { status: string }) {
+  if (status === "cancelled") return null;
+  const steps = getOrderSteps(status);
+  return (
+    <div className="flex items-center gap-0 w-full">
+      {steps.map((step, i) => {
+        const Icon = step.icon;
+        return (
+          <React.Fragment key={step.key}>
+            <div className="flex flex-col items-center gap-1.5 flex-shrink-0">
+              <div
+                className={`
+                  h-9 w-9 rounded-full flex items-center justify-center transition-all duration-300
+                  ${step.done
+                    ? "bg-[var(--color-accent)] text-white shadow-md shadow-[var(--color-accent)]/30"
+                    : "bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)]"}
+                  ${step.active ? "ring-4 ring-[var(--color-accent)]/20 scale-110" : ""}
+                `}
+              >
+                <Icon className="h-4 w-4" />
+              </div>
+              <span
+                className={`text-[10px] font-semibold tracking-wide uppercase whitespace-nowrap
+                  ${step.done ? "text-[var(--color-text-primary)]" : "text-[var(--color-text-muted)]"}`}
+              >
+                {step.label}
+              </span>
+            </div>
+            {i < steps.length - 1 && (
+              <div
+                className={`h-[2px] flex-1 mb-4 mx-1 rounded-full transition-all duration-500
+                  ${steps[i + 1].done ? "bg-[var(--color-accent)]" : "bg-[var(--color-border)]"}`}
+              />
+            )}
+          </React.Fragment>
+        );
+      })}
+    </div>
+  );
+}
+
+function OrderItem({ item, currency }: { item: any; currency: string }) {
+  return (
+    <li className="group flex gap-4 items-center py-3">
+      <div className="relative h-16 w-16 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)] overflow-hidden flex items-center justify-center shrink-0 transition-transform group-hover:scale-105">
+        {item.product_image ? (
+          <img
+            src={item.product_image}
+            alt={item.product_name}
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <Package className="h-6 w-6 text-[var(--color-text-muted)]" />
+        )}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="font-semibold text-[var(--color-text-primary)] truncate">
+          {item.product_name}
+        </p>
+        <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
+          Qty {item.quantity} · {formatCurrency(Number(item.unit_price), currency)} each
+        </p>
+      </div>
+      <p className="text-sm font-bold text-[var(--color-text-primary)] shrink-0">
+        {formatCurrency(Number(item.total_price), currency)}
+      </p>
+    </li>
+  );
+}
+
+function PaymentBanner({
+  paying,
+  onPay,
+}: {
+  paying: boolean;
+  onPay: () => void;
+}) {
+  return (
+    <div className="mt-6 rounded-2xl overflow-hidden border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50">
+      <div className="px-5 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex items-start gap-3">
+          <div className="mt-0.5 h-10 w-10 rounded-xl bg-amber-100 flex items-center justify-center text-amber-600 shrink-0">
+            <CreditCard className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="text-sm font-bold text-amber-950">Awaiting Payment</p>
+            <p className="text-xs text-amber-700 mt-0.5 leading-relaxed">
+              Complete your payment to begin processing. Your items are reserved.
+            </p>
+          </div>
+        </div>
+        <Button
+          onClick={onPay}
+          disabled={paying}
+          size="sm"
+          className="w-full sm:w-auto shrink-0 bg-amber-500 hover:bg-amber-600 active:scale-95 text-white font-bold rounded-xl transition-all shadow-lg shadow-amber-200 border-0"
+        >
+          {paying ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              Redirecting…
+            </>
+          ) : (
+            <>
+              <Lock className="h-3.5 w-3.5 mr-2" />
+              Pay Now
+            </>
+          )}
+        </Button>
+      </div>
+      <div className="px-5 py-2.5 bg-amber-100/60 border-t border-amber-200 flex items-center gap-2">
+        <ShieldCheck className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+        <span className="text-[11px] text-amber-700 font-medium">
+          Secured by end-to-end encryption
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main Page ────────────────────────────────────────────────────────────────
+
 export default function PublicOrderDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -19,33 +220,39 @@ export default function PublicOrderDetailPage() {
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
-  const channelRef = useRef<ReturnType<ReturnType<typeof createClient>["channel"]> | null>(null);
+  const channelRef = useRef<ReturnType<
+    ReturnType<typeof createClient>["channel"]
+  > | null>(null);
 
   const handlePay = async () => {
     if (!order) return;
     setPaying(true);
     try {
       const provider = order.payment_provider || "flutterwave";
-      let endpoint = `/api/payments/${provider}/initiate`;
-      
-      // Special case for pawaPay which has a different route structure in this project
-      if (provider === "pawapay") endpoint = "/api/pawapay/checkout";
+      const endpoint =
+        provider === "pawapay"
+          ? "/api/pawapay/checkout"
+          : `/api/payments/${provider}/initiate`;
 
       const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           orderId: order.id,
-          // For PawaPay we might need amount/currency if it doesn't fetch them from order ID
           amount: order.total_amount,
           currency: order.currency,
-          country: order.shipping_address?.countryCode || "RW"
+          country: order.shipping_address?.countryCode || "RW",
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || data.message || "Payment initiation failed");
+      if (!res.ok)
+        throw new Error(data.error || data.message || "Payment initiation failed");
 
-      const url = data.redirectUrl || data.invoiceUrl || data.approvalUrl || data.redirectURL;
+      const url =
+        data.redirectUrl ||
+        data.invoiceUrl ||
+        data.approvalUrl ||
+        data.redirectURL;
       if (url) {
         window.location.href = url;
       } else {
@@ -72,11 +279,8 @@ export default function PublicOrderDetailPage() {
       const { data, error } = await supabase
         .from("orders")
         .select(
-          `
-          *,
-          order_items ( id, product_name, product_image, quantity, unit_price, total_price ),
-          profiles!orders_buyer_id_fkey ( full_name, email )
-        `
+          `*, order_items ( id, product_name, product_image, quantity, unit_price, total_price ),
+           profiles!orders_buyer_id_fkey ( full_name, email )`
         )
         .eq("id", id)
         .eq("buyer_id", user.id)
@@ -98,9 +302,7 @@ export default function PublicOrderDetailPage() {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "orders", filter: `id=eq.${id}` },
-        () => {
-          void load();
-        }
+        () => { void load(); }
       )
       .subscribe();
 
@@ -111,159 +313,194 @@ export default function PublicOrderDetailPage() {
 
   useEffect(() => {
     if (!order || order.payment_status !== "pending") return;
-    
     const provider = (order.payment_provider || "").toLowerCase();
     const depositId = order.pawapay_deposit_id;
-
     if (provider === "pawapay" && depositId) {
-      console.log("[AutoSync] Triggering PawaPay status check...");
       fetch("/api/payments/pawapay/sync-status", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ orderId: order.id, trackingId: depositId }),
-      }).catch(err => console.error("[AutoSync] Sync failed:", err));
+      }).catch(console.error);
     }
   }, [order?.id, order?.payment_status]);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[var(--color-bg)] pt-28 pb-20">
-        <div className="max-w-[var(--container-max)] mx-auto px-4">
-          <div className="h-40 rounded-2xl bg-[var(--color-surface-secondary)] animate-pulse" />
-        </div>
-      </div>
-    );
-  }
+  if (loading) return <OrderSkeleton />;
 
   if (!order) {
     return (
-      <div className="min-h-screen bg-[var(--color-bg)] pt-28 pb-20 text-center px-4">
-        <p className="text-[var(--color-text-secondary)] mb-4">Order not found.</p>
-        <Button asChild variant="outline">
-          <Link href="/orders">Back to orders</Link>
+      <div className="min-h-screen bg-[var(--color-bg)] pt-28 pb-20 flex flex-col items-center justify-center gap-4 px-4">
+        <div className="h-16 w-16 rounded-2xl bg-[var(--color-surface-secondary)] flex items-center justify-center">
+          <Package className="h-8 w-8 text-[var(--color-text-muted)]" />
+        </div>
+        <p className="text-[var(--color-text-secondary)] font-medium">
+          Order not found or you don't have access.
+        </p>
+        <Button asChild variant="outline" size="sm">
+          <Link href="/orders">
+            <ArrowLeft className="h-4 w-4 mr-2" /> Back to orders
+          </Link>
         </Button>
       </div>
     );
   }
 
-  const pay =
-    order.payment_provider === "nowpayments"
-      ? "Crypto"
-      : order.payment_provider === "pesapal"
-        ? "PesaPal"
-        : order.payment_provider === "pawapay"
-          ? "PawaPay"
-          : order.payment_provider || "—";
-  const ref =
-    order.pesapal_tracking_id ||
-    order.nowpayments_payment_id ||
-    order.pawapay_deposit_id ||
-    order.payment_provider ||
-    "—";
+  const currency = order.currency || "USD";
+  const orderRef = String(order.order_number || order.id)
+    .slice(0, 12)
+    .toUpperCase();
+  const paymentRef = getPaymentRef(order);
+  const providerLabel = getProviderLabel(order.payment_provider);
+  const shippingAddr = order.shipping_address;
 
   return (
-    <div className="min-h-screen bg-[var(--color-bg)] pt-28 pb-20">
-      <div className="max-w-[var(--container-max)] mx-auto px-4 sm:px-6">
-        <Link href="/orders" className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--color-accent)] mb-6">
-          <ArrowLeft className="h-4 w-4" /> Back to orders
-        </Link>
+    <div className="min-h-screen bg-[var(--color-bg)] pt-10 pb-20">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6">
+        {/* Breadcrumb */}
+        <nav className="flex items-center gap-1.5 text-sm text-[var(--color-text-muted)] mb-7">
+          <Link
+            href="/orders"
+            className="hover:text-[var(--color-accent)] transition-colors font-medium"
+          >
+            Orders
+          </Link>
+          <ChevronRight className="h-3.5 w-3.5" />
+          <span className="text-[var(--color-text-primary)] font-semibold">
+            #{orderRef}
+          </span>
+        </nav>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* ── Left column ── */}
+          <div className="lg:col-span-2 space-y-5">
+            {/* Header card */}
             <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-sm)]">
-              <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <p className="text-xs font-bold uppercase text-[var(--color-text-muted)]">Order</p>
-                  <h1 className="text-2xl font-black text-[var(--color-text-primary)]">
-                    #{String(order.order_number || order.id).slice(0, 12).toUpperCase()}
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--color-text-muted)]">
+                    Order ID
+                  </span>
+                  <h1 className="text-xl font-black text-[var(--color-text-primary)] mt-0.5 tracking-tight">
+                    #{orderRef}
                   </h1>
-                  <p className="text-sm text-[var(--color-text-muted)] mt-1">
-                    {new Date(order.created_at).toLocaleString()}
+                  <p className="text-xs text-[var(--color-text-muted)] mt-1">
+                    Placed on{" "}
+                    {new Date(order.created_at).toLocaleDateString("en-US", {
+                      month: "long",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
+                    {" · "}
+                    {new Date(order.created_at).toLocaleTimeString("en-US", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
                   </p>
                 </div>
                 <OrderStatusBadge status={order.status} size="md" />
               </div>
 
-              <div className="mt-6 flex flex-wrap gap-2 items-center">
-                <span className="text-sm text-[var(--color-text-secondary)]">Payment:</span>
-                <Badge variant="accent">{pay}</Badge>
-                <span className="text-xs font-mono text-[var(--color-text-muted)] truncate max-w-[200px]">{String(ref)}</span>
+              {/* Status stepper */}
+              <div className="mt-7 pb-1">
+                {/* <StatusStepper status={order.status} /> */}
               </div>
 
+              {/* Payment banner */}
               {order.payment_status === "pending" && (
-                <div className="mt-6 p-5 rounded-2xl bg-orange-50 border border-orange-100 flex flex-col sm:flex-row items-center justify-between gap-6 shadow-sm">
-                  <div className="flex items-center gap-4">
-                    <div className="h-12 w-12 rounded-xl bg-orange-100 flex items-center justify-center text-orange-600 shrink-0">
-                      <CreditCard className="h-6 w-6" />
-                    </div>
-                    <div>
-                      <p className="text-[15px] font-bold text-orange-950">Payment Pending</p>
-                      <p className="text-[13px] text-orange-700 font-medium">Please complete your payment to start order processing.</p>
-                    </div>
-                  </div>
-                  <Button 
-                    onClick={handlePay} 
-                    disabled={paying} 
-                    className="w-full sm:w-auto h-12 px-8 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-xl transition-all shadow-lg shadow-orange-200"
-                  >
-                    {paying ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                        Redirecting...
-                      </>
-                    ) : (
-                      <>
-                        <Lock className="h-4 w-4 mr-2" />
-                        Complete Payment
-                      </>
-                    )}
-                  </Button>
-                </div>
+                <PaymentBanner paying={paying} onPay={handlePay} />
               )}
+            </div>
 
-              <div className="mt-8 space-y-4">
-                <p className="text-sm font-bold text-[var(--color-text-primary)]">Items</p>
-                <ul className="space-y-4">
-                  {order.order_items?.map((i: any) => (
-                    <li key={i.id} className="flex gap-4">
-                      <div className="h-16 w-16 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)] overflow-hidden flex items-center justify-center shrink-0">
-                        {i.product_image ? (
-                          <img src={i.product_image} alt="" className="h-full w-full object-cover" />
-                        ) : (
-                          <Package className="h-6 w-6 text-[var(--color-text-muted)]" />
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-[var(--color-text-primary)]">{i.product_name}</p>
-                        <p className="text-xs text-[var(--color-text-muted)]">
-                          {i.quantity} × {formatCurrency(Number(i.unit_price), order.currency || "USD")}
-                        </p>
-                      </div>
-                      <p className="font-bold">{formatCurrency(Number(i.total_price), order.currency || "USD")}</p>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+            {/* Items card */}
+            <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-sm)]">
+              <h2 className="text-sm font-bold text-[var(--color-text-primary)] mb-1">
+                Items ({order.order_items?.length ?? 0})
+              </h2>
+              <ul className="divide-y divide-[var(--color-border)]">
+                {order.order_items?.map((item: any) => (
+                  <OrderItem key={item.id} item={item} currency={currency} />
+                ))}
+              </ul>
 
-              <div className="mt-8 border-t border-[var(--color-border)] pt-4 space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-[var(--color-text-secondary)]">Subtotal</span>
-                  <span>{formatCurrency(Number(order.subtotal ?? order.total_amount), order.currency || "USD")}</span>
+              {/* Totals */}
+              <div className="mt-4 pt-4 border-t border-[var(--color-border)] space-y-2 text-sm">
+                <div className="flex justify-between text-[var(--color-text-secondary)]">
+                  <span>Subtotal</span>
+                  <span>
+                    {formatCurrency(
+                      Number(order.subtotal ?? order.total_amount),
+                      currency
+                    )}
+                  </span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-[var(--color-text-secondary)]">Shipping</span>
-                  <span>{formatCurrency(0, order.currency || "USD")}</span>
+                <div className="flex justify-between text-[var(--color-text-secondary)]">
+                  <span>Shipping</span>
+                  <span className="text-emerald-600 font-medium">Free</span>
                 </div>
-                <div className="flex justify-between text-lg font-black pt-2">
-                  <span>Total</span>
+                <div className="flex justify-between font-black text-base pt-1.5 border-t border-[var(--color-border)]">
+                  <span className="text-[var(--color-text-primary)]">Total</span>
                   <span className="text-[var(--color-accent)]">
-                    {formatCurrency(Number(order.total_amount), order.currency || "USD")}
+                    {formatCurrency(Number(order.total_amount), currency)}
                   </span>
                 </div>
               </div>
             </div>
+
+            {/* Payment + Shipping meta */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Payment info */}
+              <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-sm)]">
+                <div className="flex items-center gap-2 mb-3">
+                  <CreditCard className="h-4 w-4 text-[var(--color-text-muted)]" />
+                  <span className="text-xs font-bold uppercase tracking-widest text-[var(--color-text-muted)]">
+                    Payment
+                  </span>
+                </div>
+                <p className="font-semibold text-[var(--color-text-primary)]">
+                  {providerLabel}
+                </p>
+                <p className="text-xs text-[var(--color-text-muted)] mt-1 font-mono truncate">
+                  {paymentRef}
+                </p>
+                <div className="mt-3">
+                  <Badge
+                    variant={
+                      order.payment_status === "paid" ? "default" : "secondary"
+                    }
+                    className="text-[11px] rounded-sm"
+                  >
+                    {order.payment_status === "paid" ? "Paid" : "Pending"}
+                  </Badge>
+                </div>
+              </div>
+
+              {/* Shipping address */}
+              {shippingAddr && (
+                <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-sm)]">
+                  <div className="flex items-center gap-2 mb-3">
+                    <MapPin className="h-4 w-4 text-[var(--color-text-muted)]" />
+                    <span className="text-xs font-bold uppercase tracking-widest text-[var(--color-text-muted)]">
+                      Ship To
+                    </span>
+                  </div>
+                  <p className="font-semibold text-[var(--color-text-primary)]">
+                    {shippingAddr.name || order.profiles?.full_name}
+                  </p>
+                  <p className="text-xs text-[var(--color-text-muted)] mt-1 leading-relaxed">
+                    {[
+                      shippingAddr.line1,
+                      shippingAddr.line2,
+                      shippingAddr.city,
+                      shippingAddr.country,
+                    ]
+                      .filter(Boolean)
+                      .join(", ")}
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
 
+          {/* ── Right column ── */}
           <div className="lg:col-span-1">
             <TrackingCard order={order} />
           </div>

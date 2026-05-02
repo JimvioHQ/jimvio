@@ -29,6 +29,9 @@ export default async function CheckoutSuccessPage({
   if (status === "failed" || status === "cancelled" || cancelled) {
     return redirect(`/checkout?error=Payment failed or was cancelled.&orderId=${orderId}`);
   }
+  else if (status === "") {
+    return redirect(`/checkout?error=Payment failed or was cancelled.`);
+  }
 
   if (!orderId) {
     console.warn("[CheckoutSuccess] No orderId found in searchParams", sp);
@@ -37,8 +40,7 @@ export default async function CheckoutSuccessPage({
 
   const supabase = await createClient();
   const { data: order, error } = await supabase
-    .from("orders")
-    .select(
+    .from("orders").select(
       `
       id,
       order_number,

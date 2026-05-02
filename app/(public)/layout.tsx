@@ -46,7 +46,6 @@ export default async function PublicLayout({ children }: { children: React.React
         {children}
       </main>
       <Footer contact={platformSettings?.contact} />
-      {/* Global AI & Chat widgets */}
       <AISourcingAssistant />
       <ProductChatWidgetLoader />
     </div>

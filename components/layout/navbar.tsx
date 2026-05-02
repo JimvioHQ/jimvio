@@ -80,6 +80,35 @@ const TRENDING_SEARCHES: {
 /* ─────────────────────────────────────────────────────────
    ConsoleButton
    ───────────────────────────────────────────────────────── */
+
+
+// ─── Hook ─────────────────────────────────────────────────────────────────────
+
+function useScrollDirection(
+  scrollRef?: React.RefObject<HTMLDivElement | null>,
+  threshold = 8
+) {
+  const [hidden, setHidden] = useState(false);
+  const lastY = useRef(0);
+
+  useEffect(() => {
+    const el = scrollRef?.current ?? window;
+
+    const onScroll = () => {
+      const y = el instanceof Window ? el.scrollY : (el as HTMLDivElement).scrollTop;
+      if (Math.abs(y - lastY.current) < threshold) return;
+      setHidden(y > lastY.current && y > 60);
+      lastY.current = y;
+    };
+
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => el.removeEventListener("scroll", onScroll);
+  }, [scrollRef, threshold]);
+
+  return hidden;
+}
+
+
 const ConsoleButton = React.forwardRef<
   any,
   {
@@ -228,7 +257,8 @@ export function Navbar({ user, marketing }: NavbarProps) {
   const { openAssistant } = useAIStore();
   const pathname = usePathname();
   const router = useRouter();
-
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const navHidden = useScrollDirection(scrollRef);
   /* scroll */
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 15);
@@ -302,6 +332,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
   return (
     <header className="fixed top-0 inset-x-0 z-[100] pointer-events-none transition-all duration-300">
       <div
+        ref={scrollRef}
         className={cn(
           "pointer-events-auto relative w-full mx-auto transition-all duration-300 flex flex-col",
           scrolled
@@ -755,16 +786,16 @@ export function Navbar({ user, marketing }: NavbarProps) {
           document.body
         )}
 
-      {/* ══════════════════════════════════════════
-          MOBILE BOTTOM NAV
-          ══════════════════════════════════════════ */}
       <div className="md:hidden fixed bottom-0 inset-x-0 z-[100] h-[68px] pointer-events-none">
         <motion.nav
           initial={{ y: 80 }}
-          animate={{ y: 0 }}
+          animate={{ y: navHidden ? 80 : 0 }}
           transition={{ type: "spring", damping: 30, stiffness: 300 }}
           className="h-full bg-white/95 dark:bg-stone-950/95 backdrop-blur-md border-t border-stone-100 dark:border-white/5 flex items-center px-1 pointer-events-auto relative shadow-[0_-10px_30px_rgba(0,0,0,0.04)]"
         >
+          <pre>
+            <code>{JSON.stringify(navHidden, null, 2)}</code>
+          </pre>
           {mobileBottomLinks.map((link) => {
             const active = isActive(pathname, link.href);
             return (

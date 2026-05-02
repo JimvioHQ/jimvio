@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const txRef = randomUUID(); // Our unique reference to Flutterwave
+    const txRef = `TXID-${Date.now()}`
     const origin =
       req.headers.get("origin") ||
       process.env.NEXT_PUBLIC_APP_URL ||
@@ -68,9 +68,6 @@ export async function POST(req: NextRequest) {
     let amount = Number(order.total_amount);
     let currency = (order.currency || "USD").toUpperCase();
 
-    // CRITICAL: Flutterwave Hosted Checkout ONLY shows 'mobilemoneyrwanda' if the currency is RWF.
-    // Since we want the user to choose between Card and MoMo on Flutterwave's site,
-    // we MUST use RWF. If the order is in USD, we convert it now.
     if (currency !== "RWF") {
       const { usdToRwfAmount } = await import("@/lib/money");
       const converted = usdToRwfAmount(amount);
@@ -92,7 +89,6 @@ export async function POST(req: NextRequest) {
       channel: body.channel || "sms",
     });
 
-    // Save tx_ref to order so webhook can reconcile
     const orderIdsToUpdate = body.orderIds?.length ? body.orderIds : [orderId];
     await supabase
       .from("orders")

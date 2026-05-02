@@ -10,7 +10,7 @@ export default function PaymentPage() {
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState<any>(null);
     const [error, setError] = useState("");
-
+    const [link, setLink] = useState<string>("");
     const handleMoMo = async () => {
         setLoading(true);
         setError("");
@@ -69,8 +69,8 @@ export default function PaymentPage() {
             });
 
             const data = await res.json();
-
-            window.location.href = data.link; // redirect to Flutterwave
+            setLink(data.link)
+            // window.location.href = data.link;
         } catch (err: any) {
             setError("Card payment failed");
         } finally {
@@ -112,7 +112,9 @@ export default function PaymentPage() {
                         Card
                     </button>
                 </div>
-
+                {
+                    link
+                }
                 {/* Inputs */}
                 {method === "momo" && (
                     <input

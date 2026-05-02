@@ -456,8 +456,6 @@ interface SidebarProps {
   onMobileClose?: () => void;
 }
 
-// ─── Nav definition ───────────────────────────────────────────────────────────
-
 function icon(Icon: React.ElementType) {
   return <Icon className="h-[14px] w-[14px]" />;
 }
