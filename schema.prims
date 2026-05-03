@@ -1,0 +1,1819 @@
+generator client {
+  provider        = "prisma-client"
+  output          = "../lib/generated/prisma"
+  previewFeatures = ["multiSchema", "partialIndexes"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+  schemas   = ["public"]
+}
+
+// ─────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────
+
+enum campaign_status {
+  draft
+  active
+  paused
+  completed
+  cancelled
+
+  @@schema("public")
+}
+
+enum notification_type {
+  order
+  payment
+  affiliate
+  influencer
+  community
+  system
+  review
+  message
+
+  @@schema("public")
+}
+
+enum order_status {
+  pending
+  confirmed
+  processing
+  shipped
+  delivered
+  cancelled
+  refunded
+  completed
+
+  @@schema("public")
+}
+
+enum payment_status {
+  pending
+  processing
+  completed
+  failed
+  refunded
+  cancelled
+  paid
+
+  @@schema("public")
+}
+
+enum payout_status {
+  pending
+  processing
+  paid
+  failed
+
+  @@schema("public")
+}
+
+enum product_status {
+  draft
+  active
+  paused
+  archived
+
+  @@schema("public")
+}
+
+enum product_type {
+  physical
+  digital
+  subscription
+  course
+  software
+  template
+  ebook
+
+  @@schema("public")
+}
+
+enum ugc_campaign_status {
+  draft
+  active
+  paused
+  completed
+  cancelled
+
+  @@schema("public")
+}
+
+enum ugc_campaign_type {
+  clipping
+  ugc
+  music_clipping
+  promotion
+
+  @@schema("public")
+}
+
+enum ugc_media_type {
+  image
+  video
+  file
+
+  @@schema("public")
+}
+
+enum ugc_media_usage {
+  banner
+  example
+  ad_creative
+
+  @@schema("public")
+}
+
+enum ugc_participation_status {
+  invited
+  accepted
+  rejected
+  banned
+
+  @@schema("public")
+}
+
+enum ugc_payment_model {
+  per_views
+  fixed_per_content
+
+  @@schema("public")
+}
+
+enum ugc_payout_status {
+  pending
+  approved
+  paid
+
+  @@schema("public")
+}
+
+enum ugc_platform {
+  tiktok
+  instagram
+  youtube
+  x
+
+  @@schema("public")
+}
+
+enum ugc_platform_format {
+  reels
+  tiktok_video
+  youtube_short
+  post
+  story
+
+  @@schema("public")
+}
+
+enum ugc_submission_status {
+  pending
+  approved
+  rejected
+  removed
+
+  @@schema("public")
+}
+
+enum user_role {
+  buyer
+  vendor
+  affiliate
+  influencer
+  community_owner
+  admin
+
+  @@schema("public")
+}
+
+enum verification_status {
+  pending
+  verified
+  rejected
+  suspended
+
+  @@schema("public")
+}
+
+// ─────────────────────────────────────────────
+// MODELS — public schema only
+// ─────────────────────────────────────────────
+
+/// Central user profile — mirrors auth.users via shared UUID primary key.
+/// All app logic should reference this table rather than auth.users directly.
+model profiles {
+  id                 String  @id @db.Uuid // same UUID as auth.users.id
+  email              String  @unique
+  username           String? @unique
+  full_name          String?
+  avatar_url         String?
+  bio                String?
+  website            String?
+  phone              String?
+  country            String? @default("RW")
+  city               String?
+  timezone           String? @default("Africa/Kigali")
+  language           String? @default("en")
+  is_verified        Boolean? @default(false)
+  is_active          Boolean? @default(true)
+  two_factor_enabled Boolean? @default(false)
+  created_at         DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at         DateTime? @default(now()) @db.Timestamptz(6)
+
+  // Relations
+  affiliates                                                                      affiliates?
+  buying_requests                                                                 buying_requests[]
+  communities                                                                     communities[]
+  community_courses                                                               community_courses[]
+  community_inbox_conversations_community_inbox_conversations_user_highToprofiles community_inbox_conversations[] @relation("community_inbox_conversations_user_highToprofiles")
+  community_inbox_conversations_community_inbox_conversations_user_lowToprofiles  community_inbox_conversations[] @relation("community_inbox_conversations_user_lowToprofiles")
+  community_inbox_messages                                                        community_inbox_messages[]
+  community_memberships                                                           community_memberships[]
+  community_messages                                                              community_messages[]
+  community_payments                                                              community_payments[]
+  community_post_comments                                                         community_post_comments[]
+  community_post_likes                                                            community_post_likes[]
+  community_posts                                                                 community_posts[]
+  community_saved_posts                                                           community_saved_posts[]
+  community_tasks                                                                 community_tasks[]
+  conversations                                                                   conversations[]
+  influencers                                                                     influencers?
+  lesson_progress                                                                 lesson_progress[]
+  member_points                                                                   member_points[]
+  notifications                                                                   notifications[]
+  orders                                                                          orders[]
+  payouts                                                                         payouts[]
+  product_views                                                                   product_views[]
+  reviews                                                                         reviews[]
+  short_video_comments                                                            short_video_comments[]
+  short_videos                                                                    short_videos[]
+  task_completions_task_completions_reviewed_byToprofiles                         task_completions[] @relation("task_completions_reviewed_byToprofiles")
+  task_completions_task_completions_user_idToprofiles                             task_completions[] @relation("task_completions_user_idToprofiles")
+  transactions                                                                    transactions[]
+  ugc_campaign_escrow                                                             ugc_campaign_escrow[]
+  ugc_reports_ugc_reports_reporter_idToprofiles                                   ugc_reports[] @relation("ugc_reports_reporter_idToprofiles")
+  ugc_reports_ugc_reports_reviewed_byToprofiles                                   ugc_reports[] @relation("ugc_reports_reviewed_byToprofiles")
+  ugc_submissions                                                                 ugc_submissions[]
+  user_roles                                                                      user_roles[]
+  vendor_followers                                                                vendor_followers[]
+  vendors                                                                         vendors[]
+  wallets                                                                         wallets?
+  wishlists                                                                       wishlists[]
+
+  @@index([email], map: "idx_profiles_email")
+  @@index([username], map: "idx_profiles_username")
+  @@schema("public")
+}
+
+model user_roles {
+  id           String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_id      String    @db.Uuid
+  role         user_role
+  is_active    Boolean?  @default(true)
+  activated_at DateTime? @default(now()) @db.Timestamptz(6)
+  profiles     profiles  @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([user_id, role])
+  @@index([role], map: "idx_user_roles_role")
+  @@index([user_id], map: "idx_user_roles_user_id")
+  @@schema("public")
+}
+
+// ── Marketplace ───────────────────────────────
+
+model vendors {
+  id                        String               @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_id                   String               @db.Uuid
+  business_name             String
+  business_slug             String               @unique
+  business_description      String?
+  business_logo             String?
+  business_banner           String?
+  business_email            String?
+  business_phone            String?
+  business_address          String?
+  business_country          String?              @default("RW")
+  tax_id                    String?
+  website                   String?
+  verification_status       verification_status? @default(pending)
+  verification_notes        String?
+  verified_at               DateTime?            @db.Timestamptz(6)
+  rating                    Decimal?             @default(0) @db.Decimal(3, 2)
+  total_sales               Int?                 @default(0)
+  total_revenue             Decimal?             @default(0) @db.Decimal(14, 2)
+  commission_rate           Decimal?             @default(0) @db.Decimal(5, 2)
+  affiliate_enabled         Boolean?             @default(true)
+  affiliate_commission_rate Decimal?             @default(10) @db.Decimal(5, 2)
+  stripe_account_id         String?
+  payout_method             String?              @default("mtn")
+  payout_account            String?
+  is_featured               Boolean?             @default(false)
+  is_active                 Boolean?             @default(true)
+  created_at                DateTime?            @default(now()) @db.Timestamptz(6)
+  updated_at                DateTime?            @default(now()) @db.Timestamptz(6)
+  follower_count            Int?                 @default(0)
+  business_type             String?
+  product_categories        String?
+
+  profiles              profiles                @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  affiliate_commissions affiliate_commissions[]
+  affiliate_links       affiliate_links[]
+  buying_lead_offers    buying_lead_offers[]
+  conversations         conversations[]
+  order_items           order_items[]
+  orders                orders[]
+  products              products[]
+  reviews               reviews[]
+  shopify_credentials   shopify_credentials?
+  ugc_campaigns         ugc_campaigns[]
+  vendor_followers      vendor_followers[]
+
+  @@index([business_name(ops: raw("gin_trgm_ops"))], map: "idx_vendors_name_trgm", type: Gin)
+  @@index([business_slug], map: "idx_vendors_slug")
+  @@index([user_id], map: "idx_vendors_user_id")
+  @@index([verification_status], map: "idx_vendors_verification")
+  @@schema("public")
+}
+
+model vendor_followers {
+  id         String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  vendor_id  String    @db.Uuid
+  user_id    String    @db.Uuid
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  profiles   profiles  @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  vendors    vendors   @relation(fields: [vendor_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([vendor_id, user_id], map: "idx_vendor_followers_composite")
+  @@unique([vendor_id, user_id])
+  @@index([vendor_id], map: "idx_vendor_followers_count")
+  @@schema("public")
+}
+
+model product_categories {
+  id                       String               @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  parent_id                String?              @db.Uuid
+  name                     String
+  slug                     String               @unique
+  description              String?
+  icon                     String?
+  image_url                String?
+  color                    String?
+  is_active                Boolean?             @default(true)
+  sort_order               Int?                 @default(0)
+  product_count            Int?                 @default(0)
+  created_at               DateTime?            @default(now()) @db.Timestamptz(6)
+  category_type            String               @default("physical")
+  product_categories       product_categories?  @relation("product_categoriesToproduct_categories", fields: [parent_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  other_product_categories product_categories[] @relation("product_categoriesToproduct_categories")
+  products                 products[]
+
+  @@schema("public")
+}
+
+model products {
+  id                        String         @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  vendor_id                 String         @db.Uuid
+  category_id               String?        @db.Uuid
+  name                      String
+  slug                      String         @unique
+  short_description         String?
+  description               String?
+  product_type              product_type?  @default(physical)
+  status                    product_status? @default(draft)
+  price                     Decimal        @default(0) @db.Decimal(14, 2)
+  compare_at_price          Decimal?       @db.Decimal(14, 2)
+  cost_price                Decimal?       @db.Decimal(14, 2)
+  currency                  String?        @default("RWF")
+  sku                       String?        @unique
+  barcode                   String?
+  weight                    Decimal?       @db.Decimal(10, 3)
+  dimensions                Json?
+  images                    Json?          @default("[]")
+  videos                    Json?          @default("[]")
+  tags                      String[]
+  meta_title                String?
+  meta_description          String?
+  is_digital                Boolean?       @default(false)
+  digital_file_url          String?
+  digital_file_size         BigInt?
+  requires_shipping         Boolean?       @default(true)
+  track_inventory           Boolean?       @default(true)
+  inventory_quantity        Int?           @default(0)
+  low_stock_threshold       Int?           @default(5)
+  allow_backorder           Boolean?       @default(false)
+  affiliate_enabled         Boolean?       @default(true)
+  affiliate_commission_rate Decimal?       @db.Decimal(5, 2)
+  influencer_enabled        Boolean?       @default(true)
+  is_featured               Boolean?       @default(false)
+  is_active                 Boolean?       @default(true)
+  view_count                Int?           @default(0)
+  sale_count                Int?           @default(0)
+  rating                    Decimal?       @default(0) @db.Decimal(3, 2)
+  review_count              Int?           @default(0)
+  wishlist_count            Int?           @default(0)
+  published_at              DateTime?      @db.Timestamptz(6)
+  created_at                DateTime?      @default(now()) @db.Timestamptz(6)
+  updated_at                DateTime?      @default(now()) @db.Timestamptz(6)
+  shopify_product_id        String?
+  shopify_variant_id        BigInt?
+  shopify_handle            String?
+  shopify_synced_at         DateTime?      @db.Timestamptz(6)
+  source                    String?        @default("vendor")
+  source_metadata           Json           @default("{}")
+  price_usd                 Decimal        @default(0) @db.Decimal(10, 2)
+  button_text               String?
+  pricing_type              String?        @default("one_time")
+  billing_period            String?
+
+  product_categories    product_categories?     @relation(fields: [category_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  vendors               vendors                 @relation(fields: [vendor_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  affiliate_commissions affiliate_commissions[]
+  affiliate_links       affiliate_links[]
+  order_items           order_items[]
+  product_variants      product_variants[]
+  product_views         product_views[]
+  reviews               reviews[]
+  short_video_clicks    short_video_clicks[]
+  short_videos          short_videos[]
+  wishlists             wishlists[]
+
+  @@unique([shopify_product_id, vendor_id], map: "idx_products_shopify_id", where: raw("(shopify_product_id IS NOT NULL)"))
+  @@index([is_active], map: "idx_products_active", where: raw("(is_active = true)"))
+  @@index([category_id], map: "idx_products_category_id")
+  @@index([is_featured], map: "idx_products_featured", where: raw("(is_featured = true)"))
+  @@index([name(ops: raw("gin_trgm_ops"))], map: "idx_products_name_trgm", type: Gin)
+  @@index([product_type], map: "idx_products_product_type")
+  @@index([slug], map: "idx_products_slug")
+  @@index([source], map: "idx_products_source")
+  @@index([status], map: "idx_products_status")
+  @@index([product_type], map: "idx_products_type")
+  @@index([vendor_id], map: "idx_products_vendor_id")
+  @@schema("public")
+}
+
+model product_variants {
+  id                 String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  product_id         String    @db.Uuid
+  name               String
+  sku                String?   @unique
+  price              Decimal   @db.Decimal(14, 2)
+  compare_at_price   Decimal?  @db.Decimal(14, 2)
+  inventory_quantity Int?      @default(0)
+  image_url          String?
+  options            Json?     @default("{}")
+  is_active          Boolean?  @default(true)
+  created_at         DateTime? @default(now()) @db.Timestamptz(6)
+  order_items        order_items[]
+  products           products  @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@schema("public")
+}
+
+model product_views {
+  id          String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  product_id  String    @db.Uuid
+  user_id     String?   @db.Uuid
+  session_id  String?
+  ip_address  String?   @db.Inet
+  referrer    String?
+  country     String?
+  device_type String?
+  created_at  DateTime? @default(now()) @db.Timestamptz(6)
+  products    products  @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  profiles    profiles? @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([created_at(sort: Desc)], map: "idx_product_views_created_at")
+  @@index([product_id], map: "idx_product_views_product_id")
+  @@schema("public")
+}
+
+model wishlists {
+  id         String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_id    String    @db.Uuid
+  product_id String    @db.Uuid
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  products   products  @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  profiles   profiles  @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([user_id, product_id])
+  @@schema("public")
+}
+
+model reviews {
+  id                   String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  product_id           String?   @db.Uuid
+  buyer_id             String    @db.Uuid
+  order_item_id        String?   @db.Uuid
+  vendor_id            String?   @db.Uuid
+  rating               Int
+  title                String?
+  body                 String?
+  images               Json?     @default("[]")
+  is_verified_purchase Boolean?  @default(false)
+  is_featured          Boolean?  @default(false)
+  helpful_count        Int?      @default(0)
+  vendor_reply         String?
+  vendor_replied_at    DateTime? @db.Timestamptz(6)
+  created_at           DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at           DateTime? @default(now()) @db.Timestamptz(6)
+
+  profiles    profiles     @relation(fields: [buyer_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  order_items order_items? @relation(fields: [order_item_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  products    products?    @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  vendors     vendors?     @relation(fields: [vendor_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([product_id, buyer_id])
+  @@schema("public")
+}
+
+model shopify_credentials {
+  id                       String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  vendor_id                String    @unique @db.Uuid
+  shop_domain              String
+  access_token             String
+  api_version              String    @default("2024-07")
+  platform_commission_rate Decimal   @default(8) @db.Decimal
+  connected_at             DateTime? @default(now()) @db.Timestamptz(6)
+  last_synced_at           DateTime? @db.Timestamptz(6)
+  is_active                Boolean?  @default(true)
+  vendors                  vendors   @relation(fields: [vendor_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([shop_domain], map: "idx_shopify_creds_domain")
+  @@schema("public")
+}
+
+// ── Orders & Transactions ─────────────────────
+
+model orders {
+  id               String          @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  order_number     String          @unique @default(dbgenerated("('ORD-'::text || upper(\"substring\"((gen_random_uuid())::text, 1, 8)))"))
+  buyer_id         String          @db.Uuid
+  vendor_id        String?         @db.Uuid
+  affiliate_id     String?         @db.Uuid
+  status           order_status?   @default(pending)
+  payment_status   payment_status? @default(pending)
+  subtotal         Decimal         @default(0) @db.Decimal(14, 2)
+  discount_amount  Decimal?        @default(0) @db.Decimal(14, 2)
+  shipping_amount  Decimal?        @default(0) @db.Decimal(14, 2)
+  tax_amount       Decimal?        @default(0) @db.Decimal(14, 2)
+  total_amount     Decimal         @db.Decimal(14, 2)
+  currency         String?         @default("RWF")
+  shipping_address Json?
+  billing_address  Json?
+  notes            String?
+  metadata         Json?           @default("{}")
+  paid_at          DateTime?       @db.Timestamptz(6)
+  shipped_at       DateTime?       @db.Timestamptz(6)
+  delivered_at     DateTime?       @db.Timestamptz(6)
+  cancelled_at     DateTime?       @db.Timestamptz(6)
+  created_at       DateTime?       @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime?       @default(now()) @db.Timestamptz(6)
+
+  // Shopify fulfillment
+  integration_source         String?
+  shopify_order_id           String?
+  shopify_order_number       Int?
+  shopify_fulfillment_status String?  @default("unfulfilled")
+  shopify_order_ids          String[] @default([])
+  tracking_number            String?
+  tracking_status            String?
+
+  profiles              profiles                @relation(fields: [buyer_id], references: [id])
+  vendors               vendors?                @relation(fields: [vendor_id], references: [id])
+  order_items           order_items[]
+  order_status_history  order_status_history[]
+  affiliate_commissions affiliate_commissions[]
+  exchange_rate_logs    exchange_rate_logs[]
+  transactions          transactions[]
+  webhook_events        webhook_events[]
+
+  @@index([buyer_id], map: "idx_orders_buyer_id")
+  @@index([vendor_id], map: "idx_orders_vendor_id")
+  @@index([status], map: "idx_orders_status")
+  @@index([payment_status], map: "idx_orders_payment_status")
+  @@index([created_at(sort: Desc)], map: "idx_orders_created_at")
+  @@index([integration_source], map: "idx_orders_integration_source")
+  @@schema("public")
+}
+
+model order_items {
+  id                          String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  order_id                    String    @db.Uuid
+  product_id                  String?   @db.Uuid
+  variant_id                  String?   @db.Uuid
+  vendor_id                   String?   @db.Uuid
+  product_name                String
+  product_image               String?
+  variant_name                String?
+  quantity                    Int       @default(1)
+  unit_price                  Decimal   @db.Decimal(14, 2)
+  total_price                 Decimal   @db.Decimal(14, 2)
+  affiliate_id                String?   @db.Uuid
+  affiliate_commission_rate   Decimal?  @db.Decimal(5, 2)
+  affiliate_commission_amount Decimal?  @db.Decimal(14, 2)
+  digital_download_url        String?
+  download_count              Int?      @default(0)
+  created_at                  DateTime? @default(now()) @db.Timestamptz(6)
+  shopify_variant_id          BigInt?
+  shopify_product_id          String?
+  product_source              String    @default("vendor")
+  source_metadata             Json      @default("{}")
+  metadata                    Json?     @default("{}")
+  product_type                String?   @default("physical")
+  access_granted_at           DateTime? @db.Timestamptz(6)
+  pricing_type                String?   @default("one_time")
+  billing_period              String?
+
+  orders           orders            @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  products         products?         @relation(fields: [product_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  product_variants product_variants? @relation(fields: [variant_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  vendors          vendors?          @relation(fields: [vendor_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  affiliate_commissions affiliate_commissions[]
+  reviews          reviews[]
+
+  @@index([order_id], map: "idx_order_items_order_id")
+  @@index([pricing_type], map: "idx_order_items_pricing_type")
+  @@index([product_id], map: "idx_order_items_product_id")
+  @@index([product_source], map: "idx_order_items_product_source")
+  @@index([product_type], map: "idx_order_items_product_type")
+  @@schema("public")
+}
+
+model order_status_history {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  order_id        String    @db.Uuid
+  user_id         String?   @db.Uuid
+  previous_status String?
+  new_status      String
+  notes           String?
+  metadata        Json?
+  created_at      DateTime? @default(now()) @db.Timestamptz(6)
+  orders          orders    @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([order_id], map: "idx_order_status_history_order_id")
+  @@schema("public")
+}
+
+model transactions {
+  id                      String         @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_id                 String         @db.Uuid
+  order_id                String?        @db.Uuid
+  webhook_event_id        String?        @db.Uuid
+  type                    String
+  direction               String         @default("credit")
+  amount                  Decimal        @db.Decimal(14, 2)
+  currency                String         @default("RWF")
+  amount_usd              Decimal?       @db.Decimal(10, 2)
+  exchange_rate           Decimal?       @db.Decimal(14, 6)
+  status                  payment_status @default(pending)
+  provider                String?
+  provider_transaction_id String?
+  description             String?
+  metadata                Json           @default("{}")
+  created_at              DateTime       @default(now()) @db.Timestamptz(6)
+  updated_at              DateTime       @default(now()) @db.Timestamptz(6)
+
+  orders         orders?         @relation(fields: [order_id], references: [id])
+  profiles       profiles        @relation(fields: [user_id], references: [id])
+  webhook_events webhook_events? @relation(fields: [webhook_event_id], references: [id])
+
+  @@unique([provider, provider_transaction_id])
+  @@index([order_id])
+  @@index([user_id])
+  @@index([status])
+  @@index([webhook_event_id])
+  @@schema("public")
+}
+
+model exchange_rate_logs {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  from_currency String
+  to_currency   String
+  rate          Decimal   @db.Decimal(14, 6)
+  order_id      String?   @db.Uuid
+  recorded_at   DateTime? @default(now()) @db.Timestamptz(6)
+  orders        orders?   @relation(fields: [order_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@schema("public")
+}
+
+model webhook_events {
+  id              String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  provider        String
+  idempotency_key String         @unique
+  payload         Json?
+  status          String         @default("received")
+  error           String?
+  order_id        String?        @db.Uuid
+  created_at      DateTime       @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime       @default(now()) @db.Timestamptz(6)
+  orders          orders?        @relation(fields: [order_id], references: [id], onUpdate: NoAction)
+  transactions    transactions[]
+
+  @@index([order_id], where: raw("(order_id IS NOT NULL)"))
+  @@index([provider, created_at(sort: Desc)], map: "webhook_events_provider_idx")
+  @@index([status, created_at(sort: Desc)], map: "webhook_events_status_idx")
+  @@schema("public")
+}
+
+model payouts {
+  id                 String        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_id            String        @db.Uuid
+  type               String
+  amount             Decimal       @db.Decimal(14, 2)
+  fee                Decimal?      @default(0) @db.Decimal(14, 2)
+  net_amount         Decimal?      @db.Decimal(14, 2)
+  currency           String?       @default("RWF")
+  status             payout_status? @default(pending)
+  payout_method      String?       @default("mtn")
+  payout_account     String?
+  provider_reference String?
+  notes              String?
+  processed_at       DateTime?     @db.Timestamptz(6)
+  created_at         DateTime?     @default(now()) @db.Timestamptz(6)
+  updated_at         DateTime?     @default(now()) @db.Timestamptz(6)
+  release_date       DateTime?     @db.Timestamptz(6)
+  profiles           profiles      @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  ugc_payouts        ugc_payouts[]
+
+  @@schema("public")
+}
+
+model wallets {
+  id                String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_id           String    @unique @db.Uuid
+  available_balance Decimal?  @default(0) @db.Decimal(14, 2)
+  pending_balance   Decimal?  @default(0) @db.Decimal(14, 2)
+  total_earned      Decimal?  @default(0) @db.Decimal(14, 2)
+  total_paid        Decimal?  @default(0) @db.Decimal(14, 2)
+  currency          String?   @default("RWF")
+  updated_at        DateTime? @default(now()) @db.Timestamptz(6)
+  profiles          profiles  @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@schema("public")
+}
+
+// ── Affiliates ────────────────────────────────
+
+model affiliates {
+  id                    String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_id               String    @unique @db.Uuid
+  affiliate_code        String    @unique @default(dbgenerated("('AFF-'::text || upper(\"substring\"((gen_random_uuid())::text, 1, 8)))"))
+  bio                   String?
+  website               String?
+  social_links          Json?     @default("{}")
+  niche                 String[]
+  tier                  String?   @default("bronze")
+  total_clicks          BigInt?   @default(0)
+  total_conversions     BigInt?   @default(0)
+  total_earnings        Decimal?  @default(0) @db.Decimal(14, 2)
+  available_balance     Decimal?  @default(0) @db.Decimal(14, 2)
+  pending_earnings      Decimal?  @default(0) @db.Decimal(14, 2)
+  paid_earnings         Decimal?  @default(0) @db.Decimal(14, 2)
+  conversion_rate       Decimal?  @default(0) @db.Decimal(5, 2)
+  is_active             Boolean?  @default(true)
+  created_at            DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at            DateTime? @default(now()) @db.Timestamptz(6)
+  payout_method         String?   @default("bank")
+  payout_account        String?
+
+  profiles              profiles                @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  affiliate_clicks      affiliate_clicks[]
+  affiliate_commissions affiliate_commissions[]
+  affiliate_links       affiliate_links[]
+
+  @@index([affiliate_code], map: "idx_affiliates_code")
+  @@index([user_id], map: "idx_affiliates_user_id")
+  @@schema("public")
+}
+
+model affiliate_links {
+  id                    String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  affiliate_id          String    @db.Uuid
+  product_id            String?   @db.Uuid
+  vendor_id             String?   @db.Uuid
+  link_code             String    @unique @default(dbgenerated("('LNK-'::text || upper(\"substring\"((gen_random_uuid())::text, 1, 10)))"))
+  custom_slug           String?   @unique
+  destination_url       String
+  full_url              String?
+  commission_rate       Decimal?  @db.Decimal(5, 2)
+  total_clicks          BigInt?   @default(0)
+  unique_clicks         BigInt?   @default(0)
+  total_conversions     BigInt?   @default(0)
+  total_earnings        Decimal?  @default(0) @db.Decimal(14, 2)
+  is_active             Boolean?  @default(true)
+  expires_at            DateTime? @db.Timestamptz(6)
+  created_at            DateTime? @default(now()) @db.Timestamptz(6)
+
+  affiliates            affiliates              @relation(fields: [affiliate_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  products              products?               @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  vendors               vendors?                @relation(fields: [vendor_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  affiliate_clicks      affiliate_clicks[]
+  affiliate_commissions affiliate_commissions[]
+
+  @@index([affiliate_id], map: "idx_affiliate_links_affiliate_id")
+  @@index([product_id], map: "idx_affiliate_links_product_id")
+  @@schema("public")
+}
+
+model affiliate_clicks {
+  id           String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  link_id      String    @db.Uuid
+  affiliate_id String    @db.Uuid
+  ip_address   String?   @db.Inet
+  user_agent   String?
+  referrer     String?
+  country      String?
+  device_type  String?
+  session_id   String?
+  converted    Boolean?  @default(false)
+  converted_at DateTime? @db.Timestamptz(6)
+  created_at   DateTime? @default(now()) @db.Timestamptz(6)
+
+  affiliates      affiliates      @relation(fields: [affiliate_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  affiliate_links affiliate_links @relation(fields: [link_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([created_at(sort: Desc)], map: "idx_affiliate_clicks_created_at")
+  @@index([link_id], map: "idx_affiliate_clicks_link_id")
+  @@schema("public")
+}
+
+model affiliate_commissions {
+  id                String         @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  affiliate_id      String         @db.Uuid
+  link_id           String?        @db.Uuid
+  order_id          String         @db.Uuid
+  order_item_id     String?        @db.Uuid
+  product_id        String?        @db.Uuid
+  vendor_id         String?        @db.Uuid
+  commission_rate   Decimal        @db.Decimal(5, 2)
+  order_amount      Decimal        @db.Decimal(14, 2)
+  commission_amount Decimal        @db.Decimal(14, 2)
+  status            payout_status? @default(pending)
+  paid_at           DateTime?      @db.Timestamptz(6)
+  payout_id         String?        @db.Uuid
+  created_at        DateTime?      @default(now()) @db.Timestamptz(6)
+
+  affiliates      affiliates       @relation(fields: [affiliate_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  affiliate_links affiliate_links? @relation(fields: [link_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  orders          orders           @relation(fields: [order_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  order_items     order_items?     @relation(fields: [order_item_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  products        products?        @relation(fields: [product_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  vendors         vendors?         @relation(fields: [vendor_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([affiliate_id], map: "idx_affiliate_commissions_affiliate_id")
+  @@schema("public")
+}
+
+// ── Influencers & UGC ─────────────────────────
+
+model influencers {
+  id                        String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_id                   String    @unique @db.Uuid
+  display_name              String
+  niche                     String[]
+  bio                       String?
+  profile_image             String?
+  cover_image               String?
+  social_platforms          Json?     @default("{}")
+  total_followers           BigInt?   @default(0)
+  engagement_rate           Decimal?  @default(0) @db.Decimal(5, 2)
+  total_campaigns           Int?      @default(0)
+  total_earnings            Decimal?  @default(0) @db.Decimal(14, 2)
+  available_balance         Decimal?  @default(0) @db.Decimal(14, 2)
+  rating                    Decimal?  @default(0) @db.Decimal(3, 2)
+  is_verified               Boolean?  @default(false)
+  is_featured               Boolean?  @default(false)
+  is_active                 Boolean?  @default(true)
+  created_at                DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at                DateTime? @default(now()) @db.Timestamptz(6)
+  guidelines_accepted_at    DateTime? @db.Timestamptz(6)
+  pending_balance           Decimal?  @default(0) @db.Decimal
+
+  profiles                  profiles                    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  short_video_earnings      short_video_earnings[]
+  short_videos              short_videos[]
+  ugc_campaign_participants ugc_campaign_participants[]
+  ugc_payouts               ugc_payouts[]
+  ugc_submissions           ugc_submissions[]
+
+  @@index([user_id], map: "idx_influencers_user_id")
+  @@schema("public")
+}
+
+model ugc_campaigns {
+  id                        String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  brand_id                  String              @db.Uuid
+  title                     String
+  description               String?
+  campaign_type             ugc_campaign_type   @default(clipping)
+  status                    ugc_campaign_status @default(draft)
+  rate_per_1k_views         Decimal             @default(3.00) @db.Decimal
+  total_budget              Decimal             @default(0) @db.Decimal
+  spent_budget              Decimal             @default(0) @db.Decimal
+  max_payout_per_sub        Decimal?            @default(400) @db.Decimal
+  allowed_platforms         String[]            @default(["tiktok", "instagram", "youtube", "x"])
+  requires_face             Boolean?            @default(false)
+  submission_count          Int?                @default(0)
+  approved_count            Int?                @default(0)
+  total_views_tracked       BigInt?             @default(0)
+  starts_at                 DateTime?           @db.Timestamptz(6)
+  ends_at                   DateTime?           @db.Timestamptz(6)
+  created_at                DateTime?           @default(now()) @db.Timestamptz(6)
+  updated_at                DateTime?           @default(now()) @db.Timestamptz(6)
+  min_duration              Int?
+  max_duration              Int?
+  required_hashtags         Json?               @default("[]")
+  required_mentions         Json?               @default("[]")
+  required_keywords         Json?               @default("[]")
+  music_track_url           String?
+  music_artist_name         String?
+  promotion_target          String?
+  promotion_target_url      String?
+  payment_model             ugc_payment_model?  @default(per_views)
+  fixed_rate                Decimal?            @default(0) @db.Decimal
+
+  vendors                   vendors                     @relation(fields: [brand_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  ugc_campaign_escrow       ugc_campaign_escrow?
+  ugc_campaign_media        ugc_campaign_media[]
+  ugc_campaign_participants ugc_campaign_participants[]
+  ugc_submissions           ugc_submissions[]
+
+  @@index([brand_id], map: "idx_ugc_campaigns_brand_id")
+  @@index([status], map: "idx_ugc_campaigns_status")
+  @@index([campaign_type], map: "idx_ugc_campaigns_type")
+  @@schema("public")
+}
+
+model ugc_campaign_escrow {
+  id             String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  campaign_id    String        @unique @db.Uuid
+  deposited_by   String        @db.Uuid
+  amount         Decimal       @db.Decimal
+  currency       String        @default("RWF")
+  status         String        @default("held")
+  payment_method String?
+  payment_ref    String?
+  deposited_at   DateTime?     @default(now()) @db.Timestamptz(6)
+  released_at    DateTime?     @db.Timestamptz(6)
+  ugc_campaigns  ugc_campaigns @relation(fields: [campaign_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  profiles       profiles      @relation(fields: [deposited_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@schema("public")
+}
+
+model ugc_campaign_media {
+  id              String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  campaign_id     String               @db.Uuid
+  type            ugc_media_type       @default(image)
+  url             String
+  thumbnail_url   String?
+  usage           ugc_media_usage      @default(example)
+  platform_format ugc_platform_format?
+  order_index     Int?                 @default(0)
+  created_at      DateTime?            @default(now()) @db.Timestamptz(6)
+  ugc_campaigns   ugc_campaigns        @relation(fields: [campaign_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([campaign_id], map: "idx_ugc_campaign_media_campaign_id")
+  @@index([campaign_id], map: "idx_ugc_media_camp_id")
+  @@schema("public")
+}
+
+model ugc_campaign_participants {
+  id            String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  campaign_id   String                   @db.Uuid
+  influencer_id String                   @db.Uuid
+  status        ugc_participation_status @default(accepted)
+  joined_at     DateTime?                @default(now()) @db.Timestamptz(6)
+  ugc_campaigns ugc_campaigns            @relation(fields: [campaign_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  influencers   influencers              @relation(fields: [influencer_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([campaign_id, influencer_id])
+  @@index([campaign_id], map: "idx_ugc_parts_camp_id")
+  @@index([influencer_id], map: "idx_ugc_parts_inf_id")
+  @@schema("public")
+}
+
+model ugc_submissions {
+  id                   String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  campaign_id          String                @db.Uuid
+  influencer_id        String                @db.Uuid
+  post_url             String
+  platform             ugc_platform
+  caption              String?
+  status               ugc_submission_status @default(pending)
+  rejection_reason     String?
+  reviewed_by          String?               @db.Uuid
+  reviewed_at          DateTime?             @db.Timestamptz(6)
+  total_views_earned   BigInt?               @default(0)
+  total_earnings       Decimal?              @default(0) @db.Decimal
+  last_synced_at       DateTime?             @db.Timestamptz(6)
+  created_at           DateTime?             @default(now()) @db.Timestamptz(6)
+  updated_at           DateTime?             @default(now()) @db.Timestamptz(6)
+  is_suspicious        Boolean?              @default(false)
+  fraud_score          Decimal?              @default(0.00) @db.Decimal(5, 2)
+
+  ugc_campaigns        ugc_campaigns         @relation(fields: [campaign_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  influencers          influencers           @relation(fields: [influencer_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  profiles             profiles?             @relation(fields: [reviewed_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  ugc_payouts          ugc_payouts[]
+  ugc_reports          ugc_reports[]
+  ugc_submission_media ugc_submission_media[]
+  ugc_view_snapshots   ugc_view_snapshots[]
+
+  @@unique([campaign_id, post_url])
+  @@index([created_at(sort: Desc)], map: "idx_ugc_sub_created_at")
+  @@index([campaign_id], map: "idx_ugc_submissions_campaign_id")
+  @@index([influencer_id], map: "idx_ugc_submissions_influencer_id")
+  @@index([status], map: "idx_ugc_submissions_status")
+  @@schema("public")
+}
+
+model ugc_submission_media {
+  id              String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  submission_id   String               @db.Uuid
+  type            ugc_media_type       @default(video)
+  url             String
+  thumbnail_url   String?
+  duration        Int?
+  aspect_ratio    String?
+  platform_format ugc_platform_format?
+  file_size       BigInt?
+  mime_type       String?
+  order_index     Int?                 @default(0)
+  created_at      DateTime?            @default(now()) @db.Timestamptz(6)
+  ugc_submissions ugc_submissions      @relation(fields: [submission_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([submission_id], map: "idx_ugc_media_sub_id")
+  @@schema("public")
+}
+
+model ugc_view_snapshots {
+  id                     String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  submission_id          String          @db.Uuid
+  views_at_snapshot      BigInt          @default(0)
+  delta_views            BigInt          @default(0)
+  earnings_this_snapshot Decimal         @default(0) @db.Decimal
+  snapshotted_at         DateTime?       @default(now()) @db.Timestamptz(6)
+  likes                  BigInt?         @default(0)
+  comments               BigInt?         @default(0)
+  shares                 BigInt?         @default(0)
+  saves                  BigInt?         @default(0)
+  ugc_submissions        ugc_submissions @relation(fields: [submission_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([snapshotted_at(sort: Desc)], map: "idx_ugc_view_snapshots_at")
+  @@index([submission_id], map: "idx_ugc_view_snapshots_submission_id")
+  @@schema("public")
+}
+
+model ugc_payouts {
+  id              String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  submission_id   String            @db.Uuid
+  influencer_id   String            @db.Uuid
+  amount          Decimal           @default(0.00) @db.Decimal(12, 2)
+  status          ugc_payout_status @default(pending)
+  paid_at         DateTime?         @db.Timestamptz(6)
+  payout_id       String?           @db.Uuid
+  created_at      DateTime?         @default(now()) @db.Timestamptz(6)
+
+  influencers     influencers       @relation(fields: [influencer_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  payouts         payouts?          @relation(fields: [payout_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  ugc_submissions ugc_submissions   @relation(fields: [submission_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([created_at(sort: Desc)], map: "idx_ugc_payouts_created_at")
+  @@index([influencer_id], map: "idx_ugc_payouts_inf_id")
+  @@index([status], map: "idx_ugc_payouts_status")
+  @@index([submission_id], map: "idx_ugc_payouts_sub_id")
+  @@schema("public")
+}
+
+model ugc_reports {
+  id                                         String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  reporter_id                                String           @db.Uuid
+  submission_id                              String?          @db.Uuid
+  reason                                     String
+  details                                    String?
+  status                                     String?          @default("pending")
+  reviewed_by                                String?          @db.Uuid
+  reviewed_at                                DateTime?        @db.Timestamptz(6)
+  created_at                                 DateTime?        @default(now()) @db.Timestamptz(6)
+
+  profiles_ugc_reports_reporter_idToprofiles profiles         @relation("ugc_reports_reporter_idToprofiles", fields: [reporter_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  profiles_ugc_reports_reviewed_byToprofiles profiles?        @relation("ugc_reports_reviewed_byToprofiles", fields: [reviewed_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  ugc_submissions                            ugc_submissions? @relation(fields: [submission_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([status], map: "idx_ugc_reports_status")
+  @@index([submission_id], map: "idx_ugc_reports_submission_id")
+  @@schema("public")
+}
+
+// ── Short Videos ──────────────────────────────
+
+model short_videos {
+  id                   String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  creator_id           String    @db.Uuid
+  user_id              String    @db.Uuid
+  title                String
+  description          String?
+  video_url            String
+  thumbnail_url        String?
+  duration_sec         Int?      @default(0)
+  product_id           String?   @db.Uuid
+  community_id         String?   @db.Uuid
+  status               String    @default("processing")
+  view_count           BigInt    @default(0)
+  like_count           BigInt    @default(0)
+  click_count          BigInt    @default(0)
+  total_earnings       Decimal   @default(0) @db.Decimal(14, 4)
+  created_at           DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at           DateTime  @default(now()) @db.Timestamptz(6)
+  video_type           String?   @default("product") @db.VarChar(50)
+  external_link        String?
+  comment_count        Int?      @default(0)
+
+  influencers          influencers            @relation(fields: [creator_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users                profiles               @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "short_videos_user_id_profiles_fkey")
+  communities          communities?           @relation(fields: [community_id], references: [id], onUpdate: NoAction)
+  products             products?              @relation(fields: [product_id], references: [id], onUpdate: NoAction)
+  short_video_clicks   short_video_clicks[]
+  short_video_comments short_video_comments[]
+  short_video_earnings short_video_earnings[]
+  short_video_likes    short_video_likes[]
+  short_video_views    short_video_views[]
+
+  @@index([community_id], map: "idx_short_videos_community")
+  @@index([creator_id], map: "idx_short_videos_creator")
+  @@index([product_id], map: "idx_short_videos_product")
+  @@index([status], map: "idx_short_videos_status")
+  @@index([user_id], map: "idx_short_videos_user")
+  @@schema("public")
+}
+
+model short_video_clicks {
+  id           String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  video_id     String       @db.Uuid
+  user_id      String?      @db.Uuid
+  product_id   String?      @db.Uuid
+  converted    Boolean      @default(false)
+  order_id     String?      @db.Uuid
+  created_at   DateTime     @default(now()) @db.Timestamptz(6)
+  community_id String?      @db.Uuid
+
+  communities  communities? @relation(fields: [community_id], references: [id], onUpdate: NoAction)
+  products     products?    @relation(fields: [product_id], references: [id], onUpdate: NoAction)
+  users        profiles?    @relation(fields: [user_id], references: [id], onUpdate: NoAction)
+  short_videos short_videos @relation(fields: [video_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([product_id], map: "idx_svclicks_product")
+  @@index([video_id], map: "idx_svclicks_video")
+  @@schema("public")
+}
+
+model short_video_comments {
+  id           String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  video_id     String       @db.Uuid
+  user_id      String       @db.Uuid
+  body         String
+  created_at   DateTime     @default(now()) @db.Timestamptz(6)
+
+  profiles     profiles     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  short_videos short_videos @relation(fields: [video_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@schema("public")
+}
+
+model short_video_likes {
+  id           String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  video_id     String       @db.Uuid
+  user_id      String       @db.Uuid
+  created_at   DateTime     @default(now()) @db.Timestamptz(6)
+
+  short_videos short_videos @relation(fields: [video_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([video_id, user_id])
+  @@index([video_id], map: "idx_svlikes_video")
+  @@schema("public")
+}
+
+model short_video_views {
+  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  video_id       String       @db.Uuid
+  viewer_id      String?      @db.Uuid
+  watch_time_sec Int          @default(0)
+  created_at     DateTime     @default(now()) @db.Timestamptz(6)
+
+  short_videos   short_videos @relation(fields: [video_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([video_id, viewer_id])
+  @@index([video_id], map: "idx_svviews_video")
+  @@index([viewer_id], map: "idx_svviews_viewer")
+  @@schema("public")
+}
+
+model short_video_earnings {
+  id           String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  video_id     String      @db.Uuid
+  creator_id   String      @db.Uuid
+  event_type   String
+  amount       Decimal     @default(0) @db.Decimal(14, 4)
+  currency     String      @default("RWF")
+  reference_id String?     @db.Uuid
+  created_at   DateTime    @default(now()) @db.Timestamptz(6)
+
+  influencers  influencers  @relation(fields: [creator_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  short_videos short_videos @relation(fields: [video_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([creator_id], map: "idx_svearnings_creator")
+  @@index([video_id], map: "idx_svearnings_video")
+  @@schema("public")
+}
+
+// ── Communities ───────────────────────────────
+
+model communities {
+  id                       String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  owner_id                 String    @db.Uuid
+  name                     String
+  slug                     String    @unique
+  tagline                  String?
+  description              String?
+  long_description         String?
+  avatar_url               String?
+  cover_image              String?
+  category                 String?
+  tags                     String[]
+  is_private               Boolean?  @default(false)
+  is_free                  Boolean?  @default(true)
+  monthly_price            Decimal?  @default(0) @db.Decimal
+  yearly_price             Decimal?  @default(0) @db.Decimal
+  lifetime_price           Decimal?  @default(0) @db.Decimal
+  currency                 String?   @default("USD")
+  trial_days               Int?      @default(0)
+  member_count             Int?      @default(0)
+  space_count              Int?      @default(0)
+  post_count               Int?      @default(0)
+  is_featured              Boolean?  @default(false)
+  is_active                Boolean?  @default(true)
+  platform_commission_rate Decimal?  @default(15) @db.Decimal
+  created_at               DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at               DateTime? @default(now()) @db.Timestamptz(6)
+
+  profiles                      profiles                        @relation(fields: [owner_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  community_courses             community_courses[]
+  community_inbox_conversations community_inbox_conversations[]
+  community_memberships         community_memberships[]
+  community_messages            community_messages[]
+  community_payments            community_payments[]
+  community_posts               community_posts[]
+  community_tasks               community_tasks[]
+  member_points                 member_points[]
+  rooms                         rooms[]
+  short_video_clicks            short_video_clicks[]
+  short_videos                  short_videos[]
+  spaces                        spaces[]
+
+  @@index([owner_id], map: "idx_communities_owner")
+  @@index([slug], map: "idx_communities_slug")
+  @@schema("public")
+}
+
+model spaces {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  community_id String    @db.Uuid
+  name         String
+  slug         String
+  description  String?
+  icon         String?
+  color        String?
+  sort_order   Int?      @default(0)
+  access_type  String?   @default("free")
+  price        Decimal?  @db.Decimal
+  currency     String?   @default("USD")
+  room_count   Int?      @default(0)
+  member_count Int?      @default(0)
+  is_active    Boolean?  @default(true)
+  created_at   DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime? @default(now()) @db.Timestamptz(6)
+
+  communities     communities       @relation(fields: [community_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  community_posts community_posts[]
+  rooms           rooms[]
+
+  @@unique([community_id, slug])
+  @@index([community_id], map: "idx_spaces_community")
+  @@schema("public")
+}
+
+model rooms {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  space_id     String    @db.Uuid
+  community_id String    @db.Uuid
+  name         String
+  slug         String
+  description  String?
+  icon         String?
+  sort_order   Int?      @default(0)
+  room_type    String    @default("chat")
+  access_type  String?   @default("inherit")
+  is_locked    Boolean?  @default(false)
+  is_active    Boolean?  @default(true)
+  created_at   DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime? @default(now()) @db.Timestamptz(6)
+
+  communities        communities          @relation(fields: [community_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  spaces             spaces               @relation(fields: [space_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  community_courses  community_courses[]
+  community_messages community_messages[]
+  community_posts    community_posts[]
+  community_tasks    community_tasks[]
+
+  @@unique([space_id, slug])
+  @@index([community_id], map: "idx_rooms_community")
+  @@index([room_type], map: "idx_rooms_room_type")
+  @@index([space_id], map: "idx_rooms_space")
+  @@schema("public")
+}
+
+model community_memberships {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  community_id      String    @db.Uuid
+  user_id           String    @db.Uuid
+  role              String?   @default("member")
+  plan_type         String?   @default("free")
+  status            String?   @default("active")
+  subscribed_at     DateTime? @default(now()) @db.Timestamptz(6)
+  expires_at        DateTime? @db.Timestamptz(6)
+  cancelled_at      DateTime? @db.Timestamptz(6)
+  payment_reference String?
+  payment_provider  String?
+  amount_paid       Decimal?  @default(0) @db.Decimal
+  space_access      String[]  @default([]) @db.Uuid
+  created_at        DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime? @default(now()) @db.Timestamptz(6)
+
+  communities        communities          @relation(fields: [community_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  profiles           profiles             @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  community_payments community_payments[]
+
+  @@unique([community_id, user_id])
+  @@index([community_id], map: "idx_memberships_community")
+  @@index([status], map: "idx_memberships_status")
+  @@index([user_id], map: "idx_memberships_user")
+  @@schema("public")
+}
+
+model community_payments {
+  id                    String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  community_id          String                @db.Uuid
+  membership_id         String                @db.Uuid
+  user_id               String                @db.Uuid
+  amount                Decimal               @db.Decimal
+  currency              String?               @default("USD")
+  plan_type             String
+  payment_provider      String?
+  payment_reference     String?               @unique
+  platform_commission   Decimal?              @default(0) @db.Decimal
+  creator_earnings      Decimal?              @default(0) @db.Decimal
+  status                String?               @default("pending")
+  created_at            DateTime?             @default(now()) @db.Timestamptz(6)
+
+  communities           communities           @relation(fields: [community_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  community_memberships community_memberships @relation(fields: [membership_id], references: [id], onUpdate: NoAction)
+  profiles              profiles              @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([community_id], map: "idx_payments_community")
+  @@index([user_id], map: "idx_payments_user")
+  @@schema("public")
+}
+
+model community_posts {
+  id                      String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  room_id                 String    @db.Uuid
+  space_id                String    @db.Uuid
+  community_id            String    @db.Uuid
+  author_id               String    @db.Uuid
+  title                   String?
+  body                    String
+  post_type               String?   @default("discussion")
+  images                  Json?     @default("[]")
+  attachments             Json?     @default("[]")
+  video_url               String?
+  like_count              Int?      @default(0)
+  comment_count           Int?      @default(0)
+  view_count              Int?      @default(0)
+  is_pinned               Boolean?  @default(false)
+  is_exclusive            Boolean?  @default(false)
+  is_published            Boolean?  @default(true)
+  published_at            DateTime? @default(now()) @db.Timestamptz(6)
+  created_at              DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at              DateTime? @default(now()) @db.Timestamptz(6)
+
+  profiles                profiles                  @relation(fields: [author_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  communities             communities               @relation(fields: [community_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  rooms                   rooms                     @relation(fields: [room_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  spaces                  spaces                    @relation(fields: [space_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  community_post_comments community_post_comments[]
+  community_post_likes    community_post_likes[]
+  community_saved_posts   community_saved_posts[]
+
+  @@index([author_id], map: "idx_posts_author")
+  @@index([community_id], map: "idx_posts_community")
+  @@index([room_id], map: "idx_posts_room")
+  @@schema("public")
+}
+
+model community_post_comments {
+  id                            String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  post_id                       String                    @db.Uuid
+  author_id                     String                    @db.Uuid
+  parent_id                     String?                   @db.Uuid
+  body                          String
+  like_count                    Int?                      @default(0)
+  is_published                  Boolean?                  @default(true)
+  created_at                    DateTime?                 @default(now()) @db.Timestamptz(6)
+
+  profiles                      profiles                  @relation(fields: [author_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  community_post_comments       community_post_comments?  @relation("community_post_commentsTocommunity_post_comments", fields: [parent_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  other_community_post_comments community_post_comments[] @relation("community_post_commentsTocommunity_post_comments")
+  community_posts               community_posts           @relation(fields: [post_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([post_id], map: "idx_post_comments_post")
+  @@schema("public")
+}
+
+model community_post_likes {
+  id              String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  post_id         String          @db.Uuid
+  user_id         String          @db.Uuid
+  created_at      DateTime?       @default(now()) @db.Timestamptz(6)
+  community_posts community_posts @relation(fields: [post_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  profiles        profiles        @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([post_id, user_id])
+  @@index([post_id], map: "idx_post_likes_post")
+  @@schema("public")
+}
+
+model community_saved_posts {
+  id              String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id         String          @db.Uuid
+  post_id         String          @db.Uuid
+  created_at      DateTime?       @default(now()) @db.Timestamptz(6)
+  community_posts community_posts @relation(fields: [post_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  profiles        profiles        @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([user_id, post_id])
+  @@index([user_id], map: "idx_saved_posts_user")
+  @@schema("public")
+}
+
+model community_messages {
+  id                       String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  room_id                  String               @db.Uuid
+  community_id             String               @db.Uuid
+  sender_id                String               @db.Uuid
+  body                     String?              @default("")
+  message_type             String?              @default("text")
+  thread_id                String?              @db.Uuid
+  reply_count              Int?                 @default(0)
+  attachments              Json?                @default("[]")
+  reactions                Json?                @default("{}")
+  is_pinned                Boolean?             @default(false)
+  is_edited                Boolean?             @default(false)
+  edited_at                DateTime?            @db.Timestamptz(6)
+  is_deleted               Boolean?             @default(false)
+  created_at               DateTime?            @default(now()) @db.Timestamptz(6)
+
+  communities              communities          @relation(fields: [community_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  rooms                    rooms                @relation(fields: [room_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  profiles                 profiles             @relation(fields: [sender_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  community_messages       community_messages?  @relation("community_messagesTocommunity_messages", fields: [thread_id], references: [id], onUpdate: NoAction)
+  other_community_messages community_messages[] @relation("community_messagesTocommunity_messages")
+
+  @@index([community_id], map: "idx_messages_community")
+  @@index([created_at], map: "idx_messages_created")
+  @@index([room_id], map: "idx_messages_room")
+  @@index([thread_id], map: "idx_messages_thread")
+  @@schema("public")
+}
+
+model community_inbox_conversations {
+  id                                                         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  community_id                                               String    @db.Uuid
+  user_low                                                   String    @db.Uuid
+  user_high                                                  String    @db.Uuid
+  created_at                                                 DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at                                                 DateTime? @default(now()) @db.Timestamptz(6)
+
+  communities                                                communities                @relation(fields: [community_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  profiles_community_inbox_conversations_user_highToprofiles profiles                   @relation("community_inbox_conversations_user_highToprofiles", fields: [user_high], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  profiles_community_inbox_conversations_user_lowToprofiles  profiles                   @relation("community_inbox_conversations_user_lowToprofiles", fields: [user_low], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  community_inbox_messages                                   community_inbox_messages[]
+
+  @@unique([community_id, user_low, user_high])
+  @@index([community_id], map: "idx_community_inbox_conv_community")
+  @@schema("public")
+}
+
+model community_inbox_messages {
+  id                            String                        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  conversation_id               String                        @db.Uuid
+  sender_id                     String                        @db.Uuid
+  body                          String                        @default("")
+  is_deleted                    Boolean?                      @default(false)
+  created_at                    DateTime?                     @default(now()) @db.Timestamptz(6)
+  attachments                   Json?                         @default("[]")
+  message_type                  String?                       @default("text")
+  reactions                     Json?                         @default("{}")
+
+  community_inbox_conversations community_inbox_conversations @relation(fields: [conversation_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  profiles                      profiles                      @relation(fields: [sender_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([conversation_id, created_at], map: "idx_community_inbox_msg_conv")
+  @@schema("public")
+}
+
+model community_courses {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  room_id       String    @db.Uuid
+  community_id  String    @db.Uuid
+  creator_id    String    @db.Uuid
+  title         String
+  description   String?
+  thumbnail_url String?
+  total_modules Int?      @default(0)
+  total_lessons Int?      @default(0)
+  total_duration Int?     @default(0)
+  difficulty    String?   @default("beginner")
+  is_published  Boolean?  @default(false)
+  published_at  DateTime? @db.Timestamptz(6)
+  created_at    DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at    DateTime? @default(now()) @db.Timestamptz(6)
+
+  communities     communities       @relation(fields: [community_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  profiles        profiles          @relation(fields: [creator_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  rooms           rooms             @relation(fields: [room_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  course_lessons  course_lessons[]
+  course_modules  course_modules[]
+  lesson_progress lesson_progress[]
+
+  @@index([room_id], map: "idx_courses_room")
+  @@schema("public")
+}
+
+model course_modules {
+  id            String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  course_id     String            @db.Uuid
+  title         String
+  description   String?
+  sort_order    Int?              @default(0)
+  is_free       Boolean?          @default(false)
+  created_at    DateTime?         @default(now()) @db.Timestamptz(6)
+
+  community_courses community_courses @relation(fields: [course_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  course_lessons    course_lessons[]
+
+  @@index([course_id], map: "idx_modules_course")
+  @@schema("public")
+}
+
+model course_lessons {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  module_id   String    @db.Uuid
+  course_id   String    @db.Uuid
+  title       String
+  body        String?
+  video_url   String?
+  duration    Int?      @default(0)
+  sort_order  Int?      @default(0)
+  is_free     Boolean?  @default(false)
+  attachments Json?     @default("[]")
+  created_at  DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime? @default(now()) @db.Timestamptz(6)
+
+  community_courses community_courses @relation(fields: [course_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  course_modules    course_modules    @relation(fields: [module_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  lesson_progress   lesson_progress[]
+
+  @@index([course_id], map: "idx_lessons_course")
+  @@index([module_id], map: "idx_lessons_module")
+  @@schema("public")
+}
+
+model lesson_progress {
+  id            String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id       String            @db.Uuid
+  lesson_id     String            @db.Uuid
+  course_id     String            @db.Uuid
+  is_completed  Boolean?          @default(false)
+  completed_at  DateTime?         @db.Timestamptz(6)
+  watch_time    Int?              @default(0)
+  created_at    DateTime?         @default(now()) @db.Timestamptz(6)
+
+  community_courses community_courses @relation(fields: [course_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  course_lessons    course_lessons    @relation(fields: [lesson_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  profiles          profiles          @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([user_id, lesson_id])
+  @@index([lesson_id], map: "idx_progress_lesson")
+  @@index([user_id], map: "idx_progress_user")
+  @@schema("public")
+}
+
+model community_tasks {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  room_id          String    @db.Uuid
+  community_id     String    @db.Uuid
+  creator_id       String    @db.Uuid
+  title            String
+  description      String?
+  task_type        String?   @default("daily")
+  difficulty       String?   @default("easy")
+  points           Int?      @default(10)
+  is_recurring     Boolean?  @default(false)
+  recurrence_days  Int?      @default(1)
+  due_date         DateTime? @db.Timestamptz(6)
+  completion_count Int?      @default(0)
+  is_active        Boolean?  @default(true)
+  created_at       DateTime? @default(now()) @db.Timestamptz(6)
+
+  communities      communities        @relation(fields: [community_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  profiles         profiles           @relation(fields: [creator_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  rooms            rooms              @relation(fields: [room_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  task_completions task_completions[]
+
+  @@index([room_id], map: "idx_tasks_room")
+  @@schema("public")
+}
+
+model task_completions {
+  id                                              String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  task_id                                         String          @db.Uuid
+  user_id                                         String          @db.Uuid
+  proof_text                                      String?
+  proof_url                                       String?
+  status                                          String?         @default("submitted")
+  points_earned                                   Int?            @default(0)
+  reviewed_by                                     String?         @db.Uuid
+  reviewed_at                                     DateTime?       @db.Timestamptz(6)
+  created_at                                      DateTime?       @default(now()) @db.Timestamptz(6)
+
+  profiles_task_completions_reviewed_byToprofiles profiles?       @relation("task_completions_reviewed_byToprofiles", fields: [reviewed_by], references: [id], onUpdate: NoAction)
+  community_tasks                                 community_tasks @relation(fields: [task_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  profiles_task_completions_user_idToprofiles     profiles        @relation("task_completions_user_idToprofiles", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([task_id, user_id])
+  @@index([task_id], map: "idx_completions_task")
+  @@index([user_id], map: "idx_completions_user")
+  @@schema("public")
+}
+
+model member_points {
+  id             String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id        String      @db.Uuid
+  community_id   String      @db.Uuid
+  total_points   Int?        @default(0)
+  level          Int?        @default(1)
+  streak_days    Int?        @default(0)
+  last_active_at DateTime?   @default(now()) @db.Timestamptz(6)
+  created_at     DateTime?   @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime?   @default(now()) @db.Timestamptz(6)
+
+  communities    communities @relation(fields: [community_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  profiles       profiles    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([user_id, community_id])
+  @@index([community_id], map: "idx_points_community")
+  @@index([user_id], map: "idx_points_user")
+  @@schema("public")
+}
+
+// ── Messaging ─────────────────────────────────
+
+model conversations {
+  id                    String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  buyer_id              String                  @db.Uuid
+  vendor_id             String                  @db.Uuid
+  created_at            DateTime                @default(now()) @db.Timestamptz(6)
+  updated_at            DateTime                @default(now()) @db.Timestamptz(6)
+
+  profiles              profiles                @relation(fields: [buyer_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  vendors               vendors                 @relation(fields: [vendor_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  conversation_messages conversation_messages[]
+
+  @@unique([buyer_id, vendor_id])
+  @@index([buyer_id], map: "idx_conversations_buyer")
+  @@index([vendor_id], map: "idx_conversations_vendor")
+  @@schema("public")
+}
+
+model conversation_messages {
+  id                          String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  conversation_id             String                  @db.Uuid
+  sender_id                   String                  @db.Uuid
+  body                        String?                 @default("")
+  created_at                  DateTime                @default(now()) @db.Timestamptz(6)
+  message_type                String                  @default("text")
+  reply_to_id                 String?                 @db.Uuid
+  metadata                    Json                    @default("{}")
+
+  conversations               conversations           @relation(fields: [conversation_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  conversation_messages       conversation_messages?  @relation("conversation_messagesToconversation_messages", fields: [reply_to_id], references: [id], onUpdate: NoAction)
+  other_conversation_messages conversation_messages[] @relation("conversation_messagesToconversation_messages")
+  profiles                    profiles                @relation(fields: [sender_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([conversation_id], map: "idx_conversation_messages_conversation")
+  @@index([conversation_id, created_at], map: "idx_conversation_messages_created")
+  @@index([reply_to_id], map: "idx_conversation_messages_reply_to")
+  @@schema("public")
+}
+
+// ── Misc ──────────────────────────────────────
+
+model notifications {
+  id         String            @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_id    String            @db.Uuid
+  type       notification_type
+  title      String
+  message    String
+  data       Json?             @default("{}")
+  is_read    Boolean?          @default(false)
+  read_at    DateTime?         @db.Timestamptz(6)
+  action_url String?
+  created_at DateTime?         @default(now()) @db.Timestamptz(6)
+  profiles   profiles          @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([user_id, is_read], map: "idx_notifications_unread", where: raw("(is_read = false)"))
+  @@index([user_id], map: "idx_notifications_user_id")
+  @@schema("public")
+}
+
+model blog_posts {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  slug              String   @unique
+  title             String
+  excerpt           String
+  author_name       String
+  published_at      DateTime @default(now()) @db.Timestamptz(6)
+  read_time_minutes Int      @default(5)
+  category          String   @default("General")
+  image_url         String?
+  body              String?
+  is_published      Boolean  @default(false)
+  created_at        DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([is_published, published_at(sort: Desc)], map: "blog_posts_published_idx")
+  @@schema("public")
+}
+
+model buying_requests {
+  id                 String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  buyer_id           String               @db.Uuid
+  product_name       String
+  category           String?
+  quantity_needed    Decimal              @default(1) @db.Decimal
+  budget_min         Decimal?             @db.Decimal
+  budget_max         Decimal?             @db.Decimal
+  delivery_country   String?
+  description        String?
+  status             String               @default("open")
+  created_at         DateTime             @default(now()) @db.Timestamptz(6)
+  updated_at         DateTime             @default(now()) @db.Timestamptz(6)
+
+  profiles           profiles             @relation(fields: [buyer_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  buying_lead_offers buying_lead_offers[]
+
+  @@index([buyer_id], map: "idx_buying_requests_buyer")
+  @@index([status], map: "idx_buying_requests_status")
+  @@schema("public")
+}
+
+model buying_lead_offers {
+  id                String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  buying_request_id String          @db.Uuid
+  vendor_id         String          @db.Uuid
+  message           String?
+  offered_price     Decimal?        @db.Decimal
+  status            String          @default("pending")
+  created_at        DateTime        @default(now()) @db.Timestamptz(6)
+
+  buying_requests   buying_requests @relation(fields: [buying_request_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  vendors           vendors         @relation(fields: [vendor_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([buying_request_id], map: "idx_buying_lead_offers_request")
+  @@schema("public")
+}
+
+model platform_settings {
+  key        String   @id
+  value      Json     @default("{}")
+  updated_at DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([updated_at(sort: Desc)])
+  @@schema("public")
+}

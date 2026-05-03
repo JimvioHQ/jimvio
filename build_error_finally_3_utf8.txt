@@ -1,0 +1,79 @@
+﻿
+> jimvio@1.0.0 build
+> next build
+
+   Γû▓ Next.js 15.5.12
+   - Environments: .env.local, .env
+   - Experiments (use with caution):
+     ┬╖ serverActions
+
+   Creating an optimized production build ...
+ Γ£ô Compiled successfully in 54s
+   Linting and checking validity of types ...
+node.exe : Failed to 
+compile.
+At line:1 char:1
++ & "C:\Program 
+Files\nodejs/node.exe" 
+"C:\Program 
+Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo        
+      : NotSpecified: (F  
+  ailed to compile.:Str   
+ ing) [], RemoteExcept    
+ion
+    + FullyQualifiedError 
+   Id : NativeCommandErr  
+  or
+ 
+
+./services/clips.ts:117:66
+Type error: Property 'id' 
+does not exist on type 
+'never'.
+
+[0m [90m 115 |[39m
+ [90m 116 |[39m   
+[36mconst[39m order 
+[33m=[39m [36mnew[39m 
+[33mMap[39m(rankedIds[3
+3m.[39mmap((id[33m,[39m
+ i) [33m=>[39m 
+[id[33m,[39m 
+i]))[33m;[39m
+[31m[1m>[22m[39m[90m 
+117 |[39m   
+[36mconst[39m sorted 
+[33m=[39m (influencers 
+[33m?[39m[33m?[39m [])
+[33m.[39msort((a[33m,[
+39m b) [33m=>[39m (order
+[33m.[39m[36mget[39m(a
+[33m.[39mid) 
+[33m?[39m[33m?[39m 
+[35m999[39m) 
+[33m-[39m (order[33m.[
+39m[36mget[39m(b[33m.[
+39mid) 
+[33m?[39m[33m?[39m [3
+5m999[39m))[33m.[39msli
+ce([35m0[39m[33m,[39m 
+limit)[33m;[39m
+ [90m     |[39m         
+                          
+                          
+     [31m[1m^[22m[39m
+ [90m 118 |[39m
+ [90m 119 |[39m   
+[36mreturn[39m sorted[3
+3m.[39mmap((inf) 
+[33m=>[39m ({
+ [90m 120 |[39m     
+id[33m:[39m inf[33m.[3
+9mid[33m,[39m[0m
+Next.js build worker 
+exited with code: 1 and 
+signal: null

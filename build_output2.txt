@@ -1,0 +1,84 @@
+﻿
+> jimvio@1.0.0 build
+> next build
+
+   Γû▓ Next.js 15.5.12
+   - Environments: .env.local, .env
+   - Experiments (use with caution):
+     ┬╖ serverActions
+
+   Creating an optimized production build ...
+ Γ£ô Compiled successfully in 83s
+   Linting and checking validity of types ...
+node.exe : Failed to 
+compile.
+At line:1 char:1
++ & "C:\Program 
+Files\nodejs/node.exe" 
+"C:\Program 
+Files\nodejs/node_mo 
+...
++ ~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
+~~
+    + CategoryInfo     
+         : 
+NotSpecified: (F    
+ailed to compile.:Str  
+  ing) [], 
+RemoteExcept    ion
+    + 
+FullyQualifiedError    
+Id : NativeCommandErr  
+  or
+ 
+
+./app/dashboard/product
+s/new/page.tsx:416:23
+Type error: Type '"jimv
+io/digital-files"' is 
+not assignable to type 
+'CloudinaryFolder'.
+
+[0m [90m 414 |[39m  
+                   [33
+m<[39m[33mLabel[39m 
+className[33m=[39m[3
+2m"text-[var(--color-te
+xt-secondary)] font-med
+ium"[39m[33m>[39m[3
+3mUpload[39m [33mFile
+[39m[33m<[39m[33m/
+[39m[33mLabel[39m[33
+m>[39m
+ [90m 415 |[39m      
+               [33m<[
+39m[33mCloudinaryUploa
+dButton[39m
+[31m[1m>[22m[39m[9
+0m 416 |[39m          
+             folder[33
+m=[39m[32m"jimvio/dig
+ital-files"[39m
+ [90m     |[39m      
+                 
+[31m[1m^[22m[39m
+ [90m 417 |[39m      
+                 resour
+ceType[33m=[39m[32m"
+raw"[39m
+ [90m 418 |[39m      
+                 onUplo
+adSuccess[33m=[39m{(u
+rl) [33m=>[39m handle
+Change([32m"digital_fi
+le_url"[39m[33m,[39m
+ url)}
+ [90m 419 |[39m      
+                 button
+Text[33m=[39m[32m"Br
+owse File"[39m[0m
+Next.js build worker 
+exited with code: 1 
+and signal: null

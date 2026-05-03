@@ -1,0 +1,154 @@
+﻿// import React from "react";
+// import Link from "next/link";
+// import { ShoppingCart, ChevronRight } from "lucide-react";
+// import { getCart } from "@/lib/actions/marketplace";
+// import { CartClient } from "@/components/marketplace/cart-client";
+// import { GlassCard, GlassAmbientGlow } from "@/components/ui/glass";
+// import { CartPageDisplayCurrency } from "@/components/marketplace/cart-page-display-currency";
+
+// export const dynamic = "force-dynamic";
+
+// export default async function CartPage() {
+//   const { orders } = await getCart();
+//   const totalItems = orders.reduce((acc, o) => acc + o.order_items.length, 0);
+
+//   return (
+//     <div className="min-h-screen relative overflow-hidden pb-20" style={{ background: "var(--color-bg)" }}>
+//       {/* Signature Dashboard Glows */}
+//       <GlassAmbientGlow color="orange" position="top-right" className="opacity-30" />
+//       <GlassAmbientGlow color="sky" position="bottom-left" className="opacity-20" />
+
+//       {/* Dispatch Terminal Header */}
+//       <div className="relative z-20 border-b border-border bg-surface/40 dark:bg-surface/40 backdrop-blur-md mb-8">
+//         <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
+//           <div className="space-y-4">
+//             <nav className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-stone-400 dark:text-stone-600">
+//               <Link href="/" className="hover:text-orange-500 transition-colors">Home</Link>
+//               <ChevronRight className="h-3 w-3" />
+//               <Link href="/marketplace" className="hover:text-orange-500 transition-colors">Marketplace</Link>
+//               <ChevronRight className="h-3 w-3" />
+//               <span className="text-stone-900 dark:text-white border-b border-orange-500 pb-0.5">Secure Cart</span>
+//             </nav>
+            
+//             <div className="flex items-center gap-4">
+//               <div className="h-10 w-10 bg-orange-50 dark:bg-orange-950/20 rounded-sm flex items-center justify-center border border-orange-100/50 dark:border-orange-500/20 shadow-inner">
+//                 <ShoppingCart className="h-5 w-5 text-orange-500" />
+//               </div>
+//               <div>
+//                 <h1 className="text-3xl sm:text-4xl font-black text-stone-900 dark:text-white tracking-tight flex items-center gap-3">
+//                   My Cart
+//                   {totalItems > 0 && (
+//                     <span className="text-[12px] font-black px-3 py-1 rounded-sm bg-orange-500 text-white shadow-none shadow-orange-500/30">
+//                       {totalItems} BATCH
+//                     </span>
+//                   )}
+//                 </h1>
+//                 <p className="text-[14px] text-stone-400 dark:text-text-muted font-bold mt-1">Review your selections before finalizing trade authorization.</p>
+//               </div>
+//             </div>
+//           </div>
+          
+//           <div className="flex items-center gap-4 text-xs">
+//             <GlassCard className="px-4 py-2 border-white/60 dark:border-white/10">
+//               <CartPageDisplayCurrency />
+//             </GlassCard>
+//           </div>
+//         </div>
+//       </div>
+
+//       <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 pt-8">
+//         <CartClient initialOrders={orders} />
+//       </div>
+//     </div>
+//   );
+// }
+
+import React from "react";
+import Link from "next/link";
+import { ShoppingCart, ChevronRight, ShieldCheck } from "lucide-react";
+import { getCart } from "@/lib/actions/marketplace";
+import { CartClient } from "@/components/marketplace/cart-client";
+import { CartPageDisplayCurrency } from "@/components/marketplace/cart-page-display-currency";
+
+export const dynamic = "force-dynamic";
+
+export default async function CartPage() {
+  const { orders } = await getCart();
+  const totalItems = orders.reduce((acc, o) => acc + o.order_items.length, 0);
+
+  return (
+    <div
+      className="min-h-screen pb-24"
+      style={{ background: "var(--color-bg)" }}
+    >
+      {/* ── Page header ── */}
+      <div className="border-b border-[var(--color-border)] bg-[var(--color-surface)]">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6">
+
+          {/* Breadcrumb */}
+          <nav
+            aria-label="Breadcrumb"
+            className="flex items-center gap-1.5 text-[11px] font-semibold text-[var(--color-text-muted)] uppercase tracking-widest mb-5"
+          >
+            <Link
+              href="/"
+              className="hover:text-[var(--color-accent)] transition-colors"
+            >
+              Home
+            </Link>
+            <ChevronRight className="h-3 w-3 flex-shrink-0" />
+            <Link
+              href="/marketplace"
+              className="hover:text-[var(--color-accent)] transition-colors"
+            >
+              Marketplace
+            </Link>
+            <ChevronRight className="h-3 w-3 flex-shrink-0" />
+            <span className="text-[var(--color-text-primary)]">Cart</span>
+          </nav>
+
+          {/* Title row */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center flex-shrink-0">
+                <ShoppingCart className="h-4.5 w-4.5 text-orange-500" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2.5">
+                  <h1 className="text-xl font-semibold text-[var(--color-text-primary)] tracking-tight">
+                    My cart
+                  </h1>
+                  {totalItems > 0 && (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-500/20">
+                      {totalItems} {totalItems === 1 ? "item" : "items"}
+                    </span>
+                  )}
+                </div>
+                <p className="text-[12px] text-[var(--color-text-muted)] mt-0.5">
+                  Review your selections before checkout
+                </p>
+              </div>
+            </div>
+
+            {/* Currency selector + security badge */}
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1.5 text-[11px] text-[var(--color-text-muted)]">
+                <ShieldCheck className="h-3.5 w-3.5 text-[var(--color-success)] flex-shrink-0" />
+                <span>Secure checkout</span>
+              </div>
+              <div className="h-4 w-px bg-[var(--color-border)]" />
+              <div className="bg-[var(--color-surface-secondary)] flex items-center border border-[var(--color-border)] rounded-sm px-3 py-1 text-[12px]">
+                <CartPageDisplayCurrency />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Cart body ── */}
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-8">
+        <CartClient initialOrders={orders} />
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,139 @@
+﻿
+> jimvio@1.0.0 build
+> next build
+
+   Γû▓ Next.js 15.5.12
+   - Environments: .env.local, .env
+   - Experiments (use with caution):
+     ┬╖ serverActions
+
+   Creating an optimized production build ...
+ Γ£ô Compiled successfully in 37.0s
+   Linting and checking validity of types ...
+node.exe : Failed to 
+compile.
+At line:1 char:1
++ & "C:\Program 
+Files\nodejs/node.exe" 
+"C:\Program 
+Files\nodejs/node_mo 
+...
++ ~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
+~~
+    + CategoryInfo     
+         : 
+NotSpecified: (F    
+ailed to compile.:Str  
+  ing) [], 
+RemoteExcept    ion
+    + 
+FullyQualifiedError    
+Id : NativeCommandErr  
+  or
+ 
+
+./lib/actions/admin-pla
+tform-settings.ts:26:68
+Type error: No 
+overload matches this 
+call.
+  Overload 1 of 2, 
+'(values: never, 
+options?: { 
+onConflict?: string | 
+undefined; 
+ignoreDuplicates?: 
+boolean | undefined; 
+count?: "exact" | 
+"planned" | 
+"estimated" | 
+undefined; } | 
+undefined): PostgrestFi
+lterBuilder<{ ...; }, 
+... 5 more ..., 
+"POST">', gave the 
+following error.
+    Argument of type 
+'{ key: string; value: 
+Record<string, 
+unknown>; }[]' is not 
+assignable to 
+parameter of type 
+'never'.
+  Overload 2 of 2, 
+'(values: never[], 
+options?: { 
+onConflict?: string | 
+undefined; 
+ignoreDuplicates?: 
+boolean | undefined; 
+count?: "exact" | 
+"planned" | 
+"estimated" | 
+undefined; 
+defaultToNull?: 
+boolean | undefined; } 
+| undefined): Postgrest
+FilterBuilder<...>', 
+gave the following 
+error.
+    Argument of type 
+'{ key: string; value: 
+Record<string, 
+unknown>; }[]' is not 
+assignable to 
+parameter of type 
+'never[]'.
+      Type '{ key: 
+string; value: 
+Record<string, 
+unknown>; }' is not 
+assignable to type 
+'never'.
+
+[0m [90m 24 |[39m   
+    { key[33m:[39m [
+32m"contact"[39m[33m,
+[39m value[33m:[39m 
+next[33m.[39mcontact 
+[36mas[39m unknown 
+[36mas[39m [33mRecor
+d[39m[33m<[39m[33ms
+tring[39m[33m,[39m 
+unknown[33m>[39m 
+}[33m,[39m
+ [90m 25 |[39m     
+][33m;[39m
+[31m[1m>[22m[39m[9
+0m 26 |[39m     
+[36mconst[39m { 
+error } [33m=[39m 
+[36mawait[39m admin[
+33m.[39m[36mfrom[39m
+([32m"platform_setting
+s"[39m)[33m.[39mupse
+rt(rows[33m,[39m { 
+onConflict[33m:[39m 
+[32m"key"[39m 
+})[33m;[39m
+ [90m    |[39m       
+                       
+                       
+               
+[31m[1m^[22m[39m
+ [90m 27 |[39m     
+[36mif[39m (error) 
+[36mreturn[39m { 
+error[33m:[39m error
+[33m.[39mmessage 
+}[33m;[39m
+ [90m 28 |[39m
+ [90m 29 |[39m     re
+validatePath([32m"/adm
+in/settings"[39m)[33m
+;[39m[0m
+Next.js build worker 
+exited with code: 1 
+and signal: null

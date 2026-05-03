@@ -1,0 +1,111 @@
+﻿
+> jimvio@1.0.0 build
+> next build
+
+   Γû▓ Next.js 15.5.12
+   - Environments: .env.local, .env
+   - Experiments (use with caution):
+     ┬╖ serverActions
+
+   Creating an optimized production build ...
+ Γ£ô Compiled successfully in 25.1s
+   Linting and checking validity of types ...
+node.exe : Failed to 
+compile.
+At line:1 char:1
++ & "C:\Program 
+Files\nodejs/node.exe" 
+"C:\Program 
+Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo        
+      : NotSpecified: (F  
+  ailed to compile.:Str   
+ ing) [], RemoteExcept    
+ion
+    + FullyQualifiedError 
+   Id : NativeCommandErr  
+  or
+ 
+
+./lib/actions/admin-suppli
+er-sources.ts:22:61
+Type error: No overload 
+matches this call.
+  Overload 1 of 2, 
+'(values: never, 
+options?: { onConflict?: 
+string | undefined; 
+ignoreDuplicates?: 
+boolean | undefined; 
+count?: "exact" | 
+"planned" | "estimated" | 
+undefined; } | 
+undefined): 
+PostgrestFilterBuilder<{ 
+...; }, ... 5 more ..., 
+"POST">', gave the 
+following error.
+    Argument of type '{ 
+key: string; value: 
+Record<string, unknown>; 
+}' is not assignable to 
+parameter of type 'never'.
+  Overload 2 of 2, 
+'(values: never[], 
+options?: { onConflict?: 
+string | undefined; 
+ignoreDuplicates?: 
+boolean | undefined; 
+count?: "exact" | 
+"planned" | "estimated" | 
+undefined; 
+defaultToNull?: boolean | 
+undefined; } | 
+undefined): PostgrestFilte
+rBuilder<...>', gave the 
+following error.
+    Object literal may 
+only specify known 
+properties, but 'key' 
+does not exist in type 
+'never[]'. Did you mean 
+to write 'keys'?
+
+[0m [90m 20 |[39m
+ [90m 21 |[39m     
+[36mconst[39m admin 
+[33m=[39m 
+getAdminDB()[33m;[39m
+[31m[1m>[22m[39m[90m 
+22 |[39m     
+[36mconst[39m { error } 
+[33m=[39m 
+[36mawait[39m admin[33m
+.[39m[36mfrom[39m([32m
+"platform_settings"[39m)
+[33m.[39mupsert(
+ [90m    |[39m          
+                          
+                         
+[31m[1m^[22m[39m
+ [90m 23 |[39m       { 
+key[33m:[39m [32m"suppl
+ier_sources"[39m[33m,[3
+9m value[33m:[39m next 
+[36mas[39m unknown 
+[36mas[39m [33mRecord[
+39m[33m<[39m[33mstring
+[39m[33m,[39m 
+unknown[33m>[39m 
+}[33m,[39m
+ [90m 24 |[39m       { 
+onConflict[33m:[39m 
+[32m"key"[39m }
+ [90m 25 |[39m     
+)[33m;[39m[0m
+Next.js build worker 
+exited with code: 1 and 
+signal: null
