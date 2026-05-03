@@ -18,11 +18,8 @@
     "@emoji-mart/react": "^1.1.1",
     "@google/generative-ai": "^0.24.1",
     "@hookform/resolvers": "^3.9.1",
-<<<<<<< HEAD
     "@neondatabase/serverless": "^1.1.0",
     "@prisma/adapter-neon": "^7.8.0",
-=======
->>>>>>> 19eef18d92562398c621f7b625224cc0b9671b49
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
     "@radix-ui/react-accordion": "^1.2.2",

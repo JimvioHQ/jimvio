@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 generator client {
   provider        = "prisma-client"
   output          = "../lib/generated/prisma"
@@ -1817,18 +1817,4 @@ model platform_settings {
 
   @@index([updated_at(sort: Desc)])
   @@schema("public")
-=======
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
-generator client {
-  provider = "prisma-client"
-  output   = "../lib/generated/prisma"
-}
-
-datasource db {
-  provider = "postgresql"
->>>>>>> 19eef18d92562398c621f7b625224cc0b9671b49
 }

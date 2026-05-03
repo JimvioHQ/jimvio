@@ -299,19 +299,11 @@ export function Navbar({ user, marketing }: NavbarProps) {
   const navLinks = ensureCoreNavLinks(marketing.nav_links ?? []);
 
   const solutions = [
-<<<<<<< HEAD
     // { title: "Videos", desc: "Creator shorts & clips", href: "/shorts", icon: PlaySquare, color: "rgba(239,68,68,0.8)" },
     { title: "Campaigns", desc: "Active UGC missions", href: "/ugc", icon: Megaphone, color: "rgba(139,92,246,0.8)" },
     { title: "Suppliers", desc: "Vendor tools & storefronts", href: "/vendors", icon: Store, color: "rgba(16,185,129,0.8)" },
     { title: "Affiliate", desc: "Your referral network", href: "/affiliates", icon: Handshake, color: "rgba(168,85,247,0.8)" },
     // { title: "Creators", desc: "Find top creator talent", href: "/influencers/browse", icon: Sparkles, color: "rgba(236,72,153,0.8)" },
-=======
-    { title: "Videos", desc: "Creator shorts & clips", href: "/shorts", icon: PlaySquare, color: "rgba(239,68,68,0.8)" },
-    { title: "Campaigns", desc: "Active UGC missions", href: "/ugc", icon: Megaphone, color: "rgba(139,92,246,0.8)" },
-    { title: "Suppliers", desc: "Vendor tools & storefronts", href: "/vendors", icon: Store, color: "rgba(16,185,129,0.8)" },
-    { title: "Affiliate", desc: "Your referral network", href: "/affiliates", icon: Handshake, color: "rgba(168,85,247,0.8)" },
-    { title: "Creators", desc: "Find top creator talent", href: "/influencers/browse", icon: Sparkles, color: "rgba(236,72,153,0.8)" },
->>>>>>> 19eef18d92562398c621f7b625224cc0b9671b49
   ];
 
   const marketplaceVariants = [
@@ -804,12 +796,6 @@ export function Navbar({ user, marketing }: NavbarProps) {
           transition={{ type: "spring", damping: 30, stiffness: 300 }}
           className="h-full bg-white/95 dark:bg-stone-950/95 backdrop-blur-md border-t border-stone-100 dark:border-white/5 flex items-center px-1 pointer-events-auto relative shadow-[0_-10px_30px_rgba(0,0,0,0.04)]"
         >
-<<<<<<< HEAD
-=======
-          <pre>
-            <code>{JSON.stringify(navHidden, null, 2)}</code>
-          </pre>
->>>>>>> 19eef18d92562398c621f7b625224cc0b9671b49
           {mobileBottomLinks.map((link) => {
             const active = isActive(pathname, link.href);
             return (
