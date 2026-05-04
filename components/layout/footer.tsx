@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import type { ContactSettings } from "@/lib/platform-settings-shared";
 import { PLATFORM_SETTINGS_DEFAULTS } from "@/lib/platform-settings-shared";
 import { FieldInput } from "../ui/field-input";
+import JimvioLogo from "../ui/logo";
 
 // ── Data ─────────────────────────────────────────────────────────────────────
 
@@ -86,7 +87,7 @@ function NewsletterStrip() {
 
   return (
     <div className="bg-surface border-b border-border">
-      <div className="mx-auto max-w-[1280px] px-4 py-8 sm:px-6">
+      <div className="mx-auto max-w-8xl px-4 py-8 sm:px-6">
         <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
 
           {/* Copy */}
@@ -239,23 +240,14 @@ export function Footer({ contact: contactProp }: { contact?: ContactSettings }) 
       <NewsletterStrip />
 
       {/* Main grid */}
-      <div className="relative z-10 mx-auto max-w-[1280px] px-3 sm:px-6 pt-12 pb-10">
+      <div className="relative z-10 mx-auto max-w-8xl px-3 sm:px-6 pt-12 pb-10">
         <div className="grid grid-cols-1 gap-10 lg:grid-cols-6">
           <div className="lg:col-span-2 flex flex-col">
 
             {/* Logo */}
-            <Link href="/" className="inline-flex items-center gap-2 mb-4 group w-fit">
-              <Image
-                src="/jimvio-logo.png"
-                alt="Jimvio"
-                width={56}
-                height={56}
-                className="h-11 w-auto mix-blend-multiply dark:mix-blend-normal brightness-110 contrast-110"
-              />
-              <span className="text-[28px] sm:text-[32px] font-black tracking-[0.03em] leading-none select-none">
-                <span className="text-text-primary">Jimvio</span>
-              </span>
-            </Link>
+            <div className="mb-3">
+              <JimvioLogo href="/" size="xl" className="text-[36px] tracking-[0.03em]" />
+            </div>
 
             <p className="text-[13px] leading-relaxed text-text-muted max-w-[260px] mb-6 font-normal">
               The global creator-commerce ecosystem. One platform for verified

@@ -622,7 +622,7 @@ export function Sidebar({
               priority
             />
             <span className="text-[19px] font-semibold tracking-tight text-[var(--color-text-primary)] select-none truncate">
-              Jim<span className="text-orange-500">vio</span>
+              Jim<span className="text-orange-600">vio</span>
             </span>
           </Link>
         )}

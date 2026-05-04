@@ -88,6 +88,7 @@ const config: Config = {
       },
       maxWidth: {
         container: "var(--container-max)",
+        '8xl': '90rem',
       },
       animation: {
         "fade-in": "fadeIn 0.3s ease-out",
