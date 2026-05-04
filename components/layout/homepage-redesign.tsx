@@ -12,6 +12,7 @@ import {
     Clapperboard,
 } from "lucide-react";
 import { Hero } from "./hero-globe";
+import { SharedCampaignCard, SharedCampaignRow } from "../ugc/campaign-card-shared";
 const fadeUp = {
     hidden: { opacity: 0, y: 24 },
     show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] } },
@@ -22,7 +23,7 @@ const stagger = { show: { transition: { staggerChildren: 0.08 } } };
 interface Campaign { id: string; title: string; campaign_type?: string; rate_per_1k_views?: number; slug?: string; }
 interface Community { id: string; name: string; member_count?: number; avatar_url?: string; slug?: string; }
 interface HomepageRedesignProps {
-    campaigns?: Campaign[];
+    campaigns?: SharedCampaignRow[];
     communities?: Community[];
     stats?: { users: string; earned: string; secure: string; countries: string; };
 }
@@ -144,6 +145,100 @@ function ProductCard({ p, index }: { p: typeof HERO_PRODUCTS[0]; index: number }
     );
 }
 
+/* ═══════════════════════════════════════════════
+   UGC CAMPAIGNS
+═══════════════════════════════════════════════ */
+function UGCCampaigns({ campaigns = [] }: { campaigns: SharedCampaignRow[] }) {
+    const demo: Campaign[] = campaigns.length > 0 ? campaigns : [
+        { id: "1", title: "Summer Skincare Review", campaign_type: "UGC", rate_per_1k_views: 8, slug: "skincare-review" },
+        { id: "2", title: "Tech Unboxing Series", campaign_type: "Clipping", rate_per_1k_views: 12, slug: "tech-unbox" },
+        { id: "3", title: "Fashion Haul Africa", campaign_type: "UGC", rate_per_1k_views: 6, slug: "fashion-haul" },
+        { id: "4", title: "Fitness Transformation", campaign_type: "Clipping", rate_per_1k_views: 10, slug: "fitness" },
+        { id: "5", title: "Home Setup Tour", campaign_type: "UGC", rate_per_1k_views: 7, slug: "home-setup" },
+        { id: "6", title: "Food & Lifestyle Clips", campaign_type: "Clipping", rate_per_1k_views: 9, slug: "food-clips" },
+    ];
+
+    const typeColor = (type?: string) =>
+        type === "Clipping"
+            ? { bg: "rgba(14,165,233,0.1)", color: "#0ea5e9", border: "rgba(14,165,233,0.2)" }
+            : { bg: "rgba(253,80,0,0.08)", color: "var(--color-accent)", border: "rgba(253,80,0,0.15)" };
+
+    return (
+        <section
+            className="py-20 sm:py-28"
+            style={{ background: "var(--color-surface)", borderTop: "1px solid var(--color-border)", borderBottom: "1px solid var(--color-border)" }}
+        >
+            <div className="max-w-8xl mx-auto px-4 sm:px-6">
+                <motion.div initial="hidden" whileInView="show" viewport={{ once: true, margin: "-80px" }} variants={stagger}>
+
+                    {/* Header */}
+                    <motion.div variants={fadeUp} className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-8 items-end mb-12">
+                        <div>
+                            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full mb-4 text-[10px] font-bold uppercase tracking-widest"
+                                style={{ background: "rgba(253,80,0,0.08)", border: "1px solid rgba(253,80,0,0.18)", color: "var(--color-accent)" }}>
+                                <Clapperboard className="h-3 w-3" />
+                                UGC &amp; Clipping campaigns
+                            </div>
+                            <h2
+                                className="font-black tracking-tight mb-4"
+                                style={{ fontSize: "clamp(1.75rem, 3vw, 2.75rem)", color: "var(--color-text-primary)", letterSpacing: "-0.025em" }}
+                            >
+                                Get paid to create content.<br />
+                                <span style={{ color: "var(--color-accent)" }}>No followers needed.</span>
+                            </h2>
+                            <p className="text-base max-w-lg" style={{ color: "var(--color-text-muted)" }}>
+                                Join a brand campaign, film or clip content, and earn per 1,000 views — on any platform. It's that simple.
+                            </p>
+                        </div>
+
+                        {/* Stats pill */}
+                        <div
+                            className="flex flex-col gap-4 p-5 rounded-2xl shrink-0 w-full lg:w-56"
+                            style={{ background: "rgba(253,80,0,0.05)", border: "1px solid rgba(253,80,0,0.15)" }}
+                        >
+                            {[
+                                { label: "Avg. per 1K views", value: "$8" },
+                                { label: "Active campaigns", value: "120+" },
+                                { label: "Platforms accepted", value: "Any" },
+                            ].map(row => (
+                                <div key={row.label} className="flex items-center justify-between">
+                                    <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>{row.label}</span>
+                                    <span className="text-sm font-black" style={{ color: "var(--color-accent)" }}>{row.value}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </motion.div>
+
+                    {/* Campaign cards */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {demo.map((c) => {
+                            const tc = typeColor(c.campaign_type);
+                            return (
+                                <motion.div key={c.id} variants={fadeUp}>
+                                    <SharedCampaignCard c={c as any} />
+                                </motion.div>
+                            );
+                        })}
+                    </div>
+
+                    {/* Bottom CTA */}
+                    <motion.div variants={fadeUp} className="flex justify-center mt-9">
+                        <Link
+                            href="/ugc"
+                            className="inline-flex items-center gap-2.5 h-12 px-8 rounded-2xl text-sm font-bold text-white"
+                            style={{ background: "var(--color-accent)", boxShadow: "0 6px 20px rgba(253,80,0,0.28)" }}
+                            onMouseEnter={e => (e.currentTarget.style.background = "var(--color-accent-hover)")}
+                            onMouseLeave={e => (e.currentTarget.style.background = "var(--color-accent)")}
+                        >
+                            Browse all campaigns <ArrowRight className="h-4 w-4" />
+                        </Link>
+                    </motion.div>
+
+                </motion.div>
+            </div>
+        </section>
+    );
+}
 
 function CorePillars() {
     const pillars = [
@@ -770,6 +865,7 @@ export function HomepageRedesign({ campaigns = [], communities = [], stats }: Ho
             <Hero />
             <CorePillars />
             <CategoryBrowse />
+            <UGCCampaigns campaigns={campaigns} />
             <AffiliateSpotlight campaigns={campaigns} />
             <CommunitiesSection communities={communities} />
             <HowItWorks />

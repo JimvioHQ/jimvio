@@ -301,9 +301,9 @@
 
 //   const solutions = [
 //     // { title: "Videos", desc: "Creator shorts & clips", href: "/shorts", icon: PlaySquare, color: "rgba(239,68,68,0.8)" },
-//     { title: "Campaigns", desc: "Active UGC missions", href: "/ugc", icon: Megaphone, color: "rgba(139,92,246,0.8)" },
+// { title: "Campaigns", desc: "Active UGC missions", href: "/ugc", icon: Megaphone, color: "rgba(139,92,246,0.8)" },
+// { title: "Affiliate", desc: "Your referral network", href: "/affiliates", icon: Handshake, color: "rgba(168,85,247,0.8)" },
 //     { title: "Suppliers", desc: "Vendor tools & storefronts", href: "/vendors", icon: Store, color: "rgba(16,185,129,0.8)" },
-//     { title: "Affiliate", desc: "Your referral network", href: "/affiliates", icon: Handshake, color: "rgba(168,85,247,0.8)" },
 //     // { title: "Creators", desc: "Find top creator talent", href: "/influencers/browse", icon: Sparkles, color: "rgba(236,72,153,0.8)" },
 //   ];
 
@@ -1343,18 +1343,30 @@ ConsoleIconBtn.displayName = "ConsoleIconBtn";
    ───────────────────────────────────────────────────────── */
 function ensureCoreNavLinks(links: NavLinkConfig[]): NavLinkConfig[] {
   const hide = [
-    "/ugc", "/vendors", "/affiliates",
-    "/influencers", "/influencers/browse", "/influencers/program", "/shorts",
+    "/vendors",
+    "/influencers",
+    "/influencers/browse",
+    "/influencers/program",
+    "/shorts",
   ];
+
   let out = links.filter((l) => {
     const h = l.href.replace(/\/$/, "") || "/";
     return h !== "/clips" && !hide.includes(h);
   });
+
   const norm = (h: string) => h.replace(/\/$/, "") || "/";
+  
+  if (!out.some((l) => norm(l.href) === "/ugc")) {
+    out.push({ label: "UGC", href: "/ugc" });
+  }
+
   if (!out.some((l) => norm(l.href) === "/marketplace"))
     out.push({ label: "Marketplace", href: "/marketplace" });
+
   if (!out.some((l) => norm(l.href) === "/communities"))
     out.push({ label: "Communities", href: "/communities" });
+
   const hi = out.findIndex((l) => norm(l.href) === "/");
   if (hi > 0) {
     const home = out[hi];
@@ -1363,6 +1375,7 @@ function ensureCoreNavLinks(links: NavLinkConfig[]): NavLinkConfig[] {
   }
   return out;
 }
+
 
 function iconForHref(href: string): LucideIcon {
   const h = href.replace(/\/$/, "") || "/";
@@ -1471,6 +1484,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
     [router, searchQ]
   );
 
+  console.log({ navLinks })
   /* ── render ── */
   return (
     <header className="fixed top-0 inset-x-0 z-[100] pointer-events-none transition-all duration-300">
@@ -1523,9 +1537,6 @@ export function Navbar({ user, marketing }: NavbarProps) {
               >
                 <DropdownMenu open={marketplaceOpen} onOpenChange={setMarketplaceOpen} modal={false}>
                   <DropdownMenuTrigger asChild>
-                    {/* FIX #3: Removed `dark:hover:text-stone-800` — that class was making
-                        text near-black on dark backgrounds on hover. ConsoleButton's built-in
-                        dark:hover:text-white is correct and sufficient. */}
                     <ConsoleButton className="px-3.5 py-2">
                       <ShoppingBag className="h-3.5 w-3.5 text-orange-500 shrink-0" />
                       Marketplace
@@ -1565,6 +1576,8 @@ export function Navbar({ user, marketing }: NavbarProps) {
                   </ConsoleButton>
                 );
               })}
+
+
             </nav>
 
             {/* Right side */}
@@ -2081,8 +2094,6 @@ function MobileDrawer({
 
             {/* scrollable body */}
             <div className="flex-1 overflow-y-auto overscroll-contain scrollbar-none">
-
-              {/* USER / AUTH */}
               <div className="px-4 pt-5 pb-4">
                 {user ? (
                   <div className="bg-stone-50 dark:bg-[#111] rounded-2xl border border-stone-100 dark:border-white/5 overflow-hidden">

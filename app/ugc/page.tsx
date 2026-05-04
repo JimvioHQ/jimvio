@@ -56,7 +56,7 @@
 //           STICKY TOP NAV
 //       â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
 //       <div className="sticky top-0 z-30 border-b bg-surface/85 backdrop-blur-[20px] border-border shadow-none">
-//         <div className="max-w-7xl mx-auto px-6 py-3 flex flex-col md:flex-row items-center gap-4">
+//         <div className="max-w-8xl mx-auto px-6 py-3 flex flex-col md:flex-row items-center gap-4">
 //           {/* Search */}
 //           <div className="relative w-full max-w-sm group flex-shrink-0">
 //             <Search
@@ -107,7 +107,7 @@
 //         </div>
 //       </div>
 
-//       <div className="max-w-7xl mx-auto px-6 pt-10 space-y-14">
+//       <div className="max-w-8xl mx-auto px-6 pt-10 space-y-14">
 //         {!loading && featuredCampaign && (
 //           <section>
 //             <div className="flex items-center gap-2 mb-6">
@@ -382,7 +382,7 @@ export default function UGCBrowserPage() {
 
       {/* ── Sticky nav ── */}
       <div className="sticky top-0 z-30 border-b border-[var(--color-border)] bg-[var(--color-bg)]/90 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-col sm:flex-row items-center gap-3">
+        <div className="max-w-8xl mx-auto px-4 sm:px-6 py-3 flex flex-col sm:flex-row items-center gap-3">
 
           {/* Search */}
           <div className="relative w-full sm:max-w-xs shrink-0">
@@ -462,7 +462,7 @@ export default function UGCBrowserPage() {
 
         {/* Active filter pills strip */}
         {(filter !== 'all' || platform !== 'all' || search) && (
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-2.5 flex items-center gap-2 overflow-x-auto no-scrollbar">
+          <div className="max-w-8xl mx-auto px-4 sm:px-6 pb-2.5 flex items-center gap-2 overflow-x-auto no-scrollbar">
             <span className="text-[10px] font-semibold text-[var(--color-text-muted)] uppercase tracking-wider shrink-0">
               Filters:
             </span>
@@ -500,7 +500,7 @@ export default function UGCBrowserPage() {
         )}
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-8 sm:pt-10 space-y-12">
+      <div className="max-w-8xl mx-auto px-4 sm:px-6 pt-8 sm:pt-10 space-y-12">
 
         {/* ── Featured ── */}
         {showFeatured && (

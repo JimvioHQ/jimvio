@@ -257,13 +257,7 @@ export default async function HomePage() {
 
   return (
     <HomepageRedesign
-      campaigns={campaigns.map((c: any) => ({
-        id: c.id,
-        title: c.title,
-        campaign_type: c.campaign_type,
-        rate_per_1k_views: c.rate_per_1k_views,
-        slug: c.slug ?? c.id,
-      }))}
+      campaigns={campaigns}
       communities={communitiesList.map((c: any) => ({
         id: c.id,
         name: c.name,

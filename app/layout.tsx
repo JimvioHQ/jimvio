@@ -32,14 +32,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       suppressHydrationWarning
       className={`${dmSans.variable} ${jetbrainsMono.variable}`}
     >
-      {/*
-        suppressHydrationWarning on <body> silences the React warning about
-        the inline <script> that next-themes injects to detect and apply the
-        stored theme before first paint. The script runs fine in the browser —
-        React just warns because it can't execute scripts it renders itself.
-        suppressHydrationWarning tells React to skip the mismatch check on
-        this element only, without hiding real bugs elsewhere in the tree.
-      */}
       <body
         suppressHydrationWarning
         className="antialiased min-h-screen bg-[var(--color-bg)] text-[var(--color-text-primary)] transition-colors duration-200"
