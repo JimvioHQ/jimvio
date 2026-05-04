@@ -242,7 +242,7 @@ export function HomepageHero({
         "shadow-[0_4px_14px_rgba(249,115,22,0.35)]"
       )}
     >
-      Start earning →
+      Start earning free →
     </StartEarnDialog>
   );
 

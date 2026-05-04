@@ -723,8 +723,10 @@ export function Hero() {
                         </motion.div>
 
                         <motion.p variants={fadeUp} className="text-base sm:text-lg leading-relaxed mb-9 max-w-[440px] mx-auto lg:mx-0" style={{ color: "var(--color-text-muted)" }}>
-                            Jimvio connects vendors, affiliates and communities globally.
-                            List products, earn commissions, build your network — all in one place.
+                            {/* Jimvio connects vendors, affiliates and communities globally.
+                            List products, earn commissions, build your network — all in one place. */}
+                            Sell products. Promote offers. Create content. Build your community.
+                            Grow your audience — all in one place.
                         </motion.p>
 
                         <motion.div variants={fadeUp} className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start mb-10">

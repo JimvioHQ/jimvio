@@ -145,88 +145,6 @@ function ProductCard({ p, index }: { p: typeof HERO_PRODUCTS[0]; index: number }
 }
 
 
-/* ═══════════════════════════════════════════════
-   CORE VALUE PILLARS
-═══════════════════════════════════════════════ */
-// function CorePillars() {
-//     const pillars = [
-//         {
-//             icon: ShoppingBag, title: "Marketplace", tagline: "Buy & Sell Globally",
-//             desc: "Thousands of verified products from trusted vendors. Shop or list your own — reach customers across 50+ countries.",
-//             href: "/marketplace", cta: "Explore products",
-//             accent: "#fd5000", bg: "rgba(253,80,0,0.06)", border: "rgba(253,80,0,0.15)",
-//             features: ["Verified vendors", "Secure checkout", "Global shipping"],
-//         },
-//         {
-//             icon: DollarSign, title: "Affiliate Program", tagline: "Earn While You Sleep",
-//             desc: "Promote any product and earn up to 30% commission on every sale. No inventory, no hassle — just share and earn.",
-//             href: "/affiliate", cta: "Start earning",
-//             accent: "#fd5000", bg: "rgba(253,80,0,0.05)", border: "rgba(253,80,0,0.12)",
-//             features: ["Up to 30% commission", "Real-time tracking", "Instant withdrawals"],
-//         },
-//         {
-//             icon: Users, title: "Communities", tagline: "Grow Your Network",
-//             desc: "Find your niche. Join communities of buyers, sellers, and creators who share your interests and goals.",
-//             href: "/communities", cta: "Find your community",
-//             accent: "#fd5000", bg: "rgba(253,80,0,0.05)", border: "rgba(253,80,0,0.12)",
-//             features: ["Niche communities", "Peer networking", "Group deals"],
-//         },
-//     ];
-
-//     return (
-//         <section className="py-20 sm:py-28" style={{ background: "var(--color-surface)", borderTop: "1px solid var(--color-border)" }}>
-//             <div className="max-w-8xl mx-auto px-4 sm:px-6">
-//                 <motion.div initial="hidden" whileInView="show" viewport={{ once: true, margin: "-80px" }} variants={stagger}>
-//                     <motion.div variants={fadeUp} className="text-center mb-14">
-//                         <p className="text-[11px] font-bold uppercase tracking-widest mb-3" style={{ color: "var(--color-accent)" }}>Built for growth</p>
-//                         <h2 className="font-black tracking-tight mb-4" style={{ fontSize: "clamp(2rem, 4vw, 3rem)", color: "var(--color-text-primary)", letterSpacing: "-0.03em" }}>
-//                             Three ways to succeed on Jimvio
-//                         </h2>
-//                         <p className="text-base max-w-xl mx-auto" style={{ color: "var(--color-text-muted)" }}>
-//                             Whether you're a buyer, seller, or affiliate — the platform is built to maximize your results.
-//                         </p>
-//                     </motion.div>
-
-//                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-//                         {pillars.map((p) => (
-//                             <motion.div key={p.title} variants={fadeUp}>
-//                                 <Link
-//                                     href={p.href}
-//                                     className="group flex flex-col h-full p-7 rounded-3xl transition-all duration-300 hover:-translate-y-1"
-//                                     style={{ background: "var(--color-bg)", border: "1px solid var(--color-border)" }}
-//                                     onMouseEnter={e => (e.currentTarget.style.borderColor = p.border)}
-//                                     onMouseLeave={e => (e.currentTarget.style.borderColor = "var(--color-border)")}
-//                                 >
-//                                     <div
-//                                         className="h-14 w-14 rounded-2xl flex items-center justify-center mb-6 transition-transform group-hover:scale-105"
-//                                         style={{ background: p.bg, border: `1px solid ${p.border}`, color: p.accent }}
-//                                     >
-//                                         <p.icon className="h-6 w-6" />
-//                                     </div>
-//                                     <p className="text-[11px] font-bold uppercase tracking-widest mb-1.5" style={{ color: p.accent }}>{p.tagline}</p>
-//                                     <h3 className="text-xl font-black mb-3" style={{ color: "var(--color-text-primary)", letterSpacing: "-0.02em" }}>{p.title}</h3>
-//                                     <p className="text-sm leading-relaxed mb-6 flex-1" style={{ color: "var(--color-text-muted)" }}>{p.desc}</p>
-//                                     <ul className="space-y-2 mb-7">
-//                                         {p.features.map(f => (
-//                                             <li key={f} className="flex items-center gap-2.5">
-//                                                 <CheckCircle className="h-3.5 w-3.5 shrink-0" style={{ color: p.accent }} />
-//                                                 <span className="text-xs font-medium" style={{ color: "var(--color-text-secondary)" }}>{f}</span>
-//                                             </li>
-//                                         ))}
-//                                     </ul>
-//                                     <div className="flex items-center gap-2 text-sm font-bold transition-all group-hover:gap-3" style={{ color: p.accent }}>
-//                                         {p.cta} <ArrowRight className="h-4 w-4" />
-//                                     </div>
-//                                 </Link>
-//                             </motion.div>
-//                         ))}
-//                     </div>
-//                 </motion.div>
-//             </div>
-//         </section>
-//     );
-// }
-
 function CorePillars() {
     const pillars = [
         {
@@ -246,7 +164,7 @@ function CorePillars() {
             tagline: "Earn While You Sleep",
             desc: "Promote any product and earn up to 30% commission on every sale. No inventory, no hassle — just share and earn.",
             href: "/affiliate",
-            cta: "Start earning",
+            cta: "Start earning free",
             accent: "#fd5000", bg: "rgba(253,80,0,0.06)", border: "rgba(253,80,0,0.15)",
             features: ["Up to 30% commission", "Real-time tracking", "Instant withdrawals"],
             badge: null,
