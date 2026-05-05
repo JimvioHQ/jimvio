@@ -7,7 +7,6 @@ interface UserState {
   isLoading: boolean;
   error: string | null;
 
-  // Actions
   fetchRoles: () => Promise<void>;
   addRole: (role: DashboardRole) => void;
   setLoading: (isLoading: boolean) => void;
@@ -22,10 +21,17 @@ export const useUserStore = create<UserState>((set, get) => ({
     set({ isLoading: true, error: null });
     const supabase = createClient();
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user }, error } = await supabase.auth.getUser();
+      console.log("[UserStore] fetchRoles auth result:", { user, error });
       if (!user) {
         set({ activeRoles: ['buyer'], isLoading: false });
         return;
+      } else {
+        if (error) {
+          console.error("[UserStore] fetchRoles auth error:", error);
+          set({ error: error.message, isLoading: false });
+          return;
+        }
       }
 
       const { data: rolesData, error: rError } = await supabase.rpc('get_user_roles', { lookup_user_id: user.id });

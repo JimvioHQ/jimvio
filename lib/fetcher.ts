@@ -80,7 +80,7 @@ export const fetcher = async <T = any>(
     );
 
     try {
-        const baseUrl = process.env.NEXT_PUBLIC_API_URL;
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? "/api";
         const accessToken = getCookie("Authorization_token");
 
         let csrfToken = "";

@@ -11,7 +11,7 @@ import {
     Layers, Search, Heart, ExternalLink,
     Clapperboard,
 } from "lucide-react";
-import { Hero } from "./hero-globe";
+import { Hero } from "./hero";
 import { SharedCampaignCard, SharedCampaignRow } from "../ugc/campaign-card-shared";
 const fadeUp = {
     hidden: { opacity: 0, y: 24 },

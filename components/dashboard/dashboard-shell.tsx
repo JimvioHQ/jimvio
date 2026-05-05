@@ -4,7 +4,7 @@ import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Globe, MessageSquare, UserRound, Menu, Settings, Wallet, Search, Bell } from "lucide-react";
+import { LayoutDashboard, UserRound, Menu, Wallet, Search, Bell } from "lucide-react";
 import { Sidebar, type DashboardRole } from "@/components/dashboard/sidebar";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
@@ -111,7 +111,6 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
             <div className="flex items-center gap-1.5 sm:gap-2">
               {/* Theme Toggle */}
               <ThemeToggle />
-
               {/* Currency */}
               <div className="hidden sm:block">
                 <CurrencySelector
