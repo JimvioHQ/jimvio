@@ -44,6 +44,7 @@ import {
   Store,
   Handshake,
   ArrowRight,
+  FileText,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -1122,6 +1123,8 @@ function MobileDrawer({
                     ))}
                   </ExpandSection>
                   <NavRow href="/communities" icon={Users} label="Communities" active={pathname.startsWith("/communities")} />
+                  <NavRow href="/ugc" icon={FileText} label="UGC" active={pathname.startsWith("/ugc")} />
+                  <NavRow href={"/affiliates"} icon={TrendingUp} label="Affiliates" active={pathname.startsWith("/affiliates")} />
                   <NavRow href="/help" icon={CircleHelp} label="Help Center" active={pathname.startsWith("/help")} />
                 </div>
               </div>
