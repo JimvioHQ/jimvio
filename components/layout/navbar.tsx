@@ -336,7 +336,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
             style={{ height: topBarH, opacity: topBarOpacity }}
             className="hidden md:block dark:bg-black/20 border-b border-border"
           >
-            <div className="max-w-8xl mx-auto md:flex items-center justify-between px-0 shrink-0 ">
+            <div className="max-w-8xl mx-auto md:flex items-center justify-between px-8 shrink-0 ">
               <div className="flex items-center justify-between gap-6 ">
                 <div className="flex items-center gap-1.5 text-[10px] font-bold text-stone-500 uppercase tracking-tight">
                   <Globe className="h-3 w-3 text-orange-500" />
@@ -355,7 +355,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
           </motion.div>
 
           {/* main bar */}
-          <div className="flex items-center max-w-8xl mx-auto h-14 md:h-[62px] px-0 gap-2 md:gap-4">
+          <div className="flex items-center max-w-8xl mx-auto h-14 md:h-[62px] px-4 sm:px-8 gap-2 md:gap-4">
             {/* Logo */}
             <div className="shrink-0 mr-3 transition-transform active:scale-95">
               <JimvioLogo href="/" size="xl" className="text-[36px] tracking-[0.03em]" />
