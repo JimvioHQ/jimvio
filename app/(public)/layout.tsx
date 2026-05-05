@@ -1,5 +1,5 @@
 ﻿import { Suspense } from "react";
-import { Navbar } from "@/components/layout/navbar-updated";
+import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { ProductChatWidgetLoader } from "@/components/marketplace/product-chat-widget-loader";
 import { AISourcingAssistant } from "@/components/marketplace/ai-sourcing-assistant";
