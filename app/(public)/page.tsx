@@ -222,7 +222,7 @@ import {
   Zap, Shirt, Settings, Sprout, Pill, Car, Home, Package,
 } from "lucide-react";
 import {
-  getCategories, getFeaturedProducts, getTrendingProducts, getTopVendors,
+  getCategories, getFeaturedProducts, getTrendingProducts, getAffiliateLinks,
   getCampaigns, getPlatformStats, getTopCreators, getProducts,
   getPublicCommunities,
 } from "@/services/db";

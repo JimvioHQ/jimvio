@@ -210,7 +210,7 @@ function UGCCampaigns({ campaigns = [] }: { campaigns: SharedCampaignRow[] }) {
                     </motion.div>
 
                     {/* Campaign cards */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                         {demo.map((c) => {
                             const tc = typeColor(c.campaign_type);
                             return (
@@ -468,7 +468,6 @@ function AffiliateSpotlight({ campaigns = [] }: { campaigns: Campaign[] }) {
         { id: "3", title: "Fashion Haul Collection", campaign_type: "Affiliate", rate_per_1k_views: 12, slug: "fashion" },
         { id: "4", title: "Home Decor Essentials", campaign_type: "Affiliate", rate_per_1k_views: 15, slug: "home" },
     ];
-
     return (
         <section
             className="py-20 sm:py-28"
@@ -502,7 +501,6 @@ function AffiliateSpotlight({ campaigns = [] }: { campaigns: Campaign[] }) {
                             ))}
                         </div>
                     </motion.div>
-
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                         {demo.map((c, i) => (
                             <motion.div key={c.id} variants={fadeUp}>

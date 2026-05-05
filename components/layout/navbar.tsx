@@ -37,6 +37,7 @@ import {
   Headphones,
   Laptop,
   Lamp,
+  Bookmark,
   Smartphone,
   Clock,
   Flame,
@@ -45,6 +46,7 @@ import {
   Handshake,
   ArrowRight,
   FileText,
+  BanknoteIcon,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -200,7 +202,7 @@ function ensureCoreNavLinks(links: NavLinkConfig[]): NavLinkConfig[] {
   const norm = (h: string) => h.replace(/\/$/, "") || "/";
 
   if (!out.some((l) => norm(l.href) === "/ugc")) {
-    out.push({ label: "UGC", href: "/ugc" });
+    out.push({ label: "UGC & Clips", href: "/ugc" });
   }
 
   if (!out.some((l) => norm(l.href) === "/marketplace"))
@@ -223,9 +225,9 @@ function iconForHref(href: string): LucideIcon {
   const h = href.replace(/\/$/, "") || "/";
   if (h === "/") return Home;
   if (h.startsWith("/communities")) return Users;
-  if (h.startsWith("/ugc")) return Megaphone;
+  if (h.startsWith("/ugc")) return Bookmark;
   if (h.startsWith("/marketplace")) return ShoppingBag;
-  if (h.startsWith("/affiliates")) return TrendingUp;
+  if (h.startsWith("/affiliates")) return BanknoteIcon;
   if (h.startsWith("/influencers")) return User;
   if (h.startsWith("/vendors")) return Factory;
   if (h.startsWith("/shorts")) return Clapperboard;
@@ -1124,7 +1126,7 @@ function MobileDrawer({
                   </ExpandSection>
                   <NavRow href="/communities" icon={Users} label="Communities" active={pathname.startsWith("/communities")} />
                   <NavRow href="/ugc" icon={FileText} label="UGC" active={pathname.startsWith("/ugc")} />
-                  <NavRow href={"/affiliates"} icon={TrendingUp} label="Affiliates" active={pathname.startsWith("/affiliates")} />
+                  <NavRow href={"/affiliates"} icon={BanknoteIcon} label="Affiliates" active={pathname.startsWith("/affiliates")} />
                   <NavRow href="/help" icon={CircleHelp} label="Help Center" active={pathname.startsWith("/help")} />
                 </div>
               </div>
