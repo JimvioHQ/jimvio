@@ -202,7 +202,7 @@ function ensureCoreNavLinks(links: NavLinkConfig[]): NavLinkConfig[] {
   const norm = (h: string) => h.replace(/\/$/, "") || "/";
 
   if (!out.some((l) => norm(l.href) === "/ugc")) {
-    out.push({ label: "UGC & Clips", href: "/ugc" });
+    out.push({ label: "UGC & Clippings", href: "/ugc" });
   }
 
   if (!out.some((l) => norm(l.href) === "/marketplace"))
@@ -1125,7 +1125,7 @@ function MobileDrawer({
                     ))}
                   </ExpandSection>
                   <NavRow href="/communities" icon={Users} label="Communities" active={pathname.startsWith("/communities")} />
-                  <NavRow href="/ugc" icon={FileText} label="UGC" active={pathname.startsWith("/ugc")} />
+                  <NavRow href="/ugc" icon={FileText} label="UGC & clipping" active={pathname.startsWith("/ugc")} />
                   <NavRow href={"/affiliates"} icon={BanknoteIcon} label="Affiliates" active={pathname.startsWith("/affiliates")} />
                   <NavRow href="/help" icon={CircleHelp} label="Help Center" active={pathname.startsWith("/help")} />
                 </div>
