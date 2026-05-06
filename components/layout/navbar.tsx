@@ -182,9 +182,7 @@ const ConsoleIconBtn = React.forwardRef<
 });
 ConsoleIconBtn.displayName = "ConsoleIconBtn";
 
-/* ─────────────────────────────────────────────────────────
-   Helpers
-   ───────────────────────────────────────────────────────── */
+
 function ensureCoreNavLinks(links: NavLinkConfig[]): NavLinkConfig[] {
   const hide = [
     "/vendors",
@@ -194,16 +192,15 @@ function ensureCoreNavLinks(links: NavLinkConfig[]): NavLinkConfig[] {
     "/shorts",
   ];
 
+  const norm = (h: string) => h.replace(/\/$/, "") || "/";
+
   let out = links.filter((l) => {
-    const h = l.href.replace(/\/$/, "") || "/";
+    const h = norm(l.href);
     return h !== "/clips" && !hide.includes(h);
   });
 
-  const norm = (h: string) => h.replace(/\/$/, "") || "/";
-
-  if (!out.some((l) => norm(l.href) === "/ugc")) {
+  if (!out.some((l) => norm(l.href) === "/ugc"))
     out.push({ label: "UGC & Clipping", href: "/ugc" });
-  }
 
   if (!out.some((l) => norm(l.href) === "/marketplace"))
     out.push({ label: "Marketplace", href: "/marketplace" });
@@ -211,12 +208,23 @@ function ensureCoreNavLinks(links: NavLinkConfig[]): NavLinkConfig[] {
   if (!out.some((l) => norm(l.href) === "/communities"))
     out.push({ label: "Communities", href: "/communities" });
 
+  if (!out.some((l) => norm(l.href) === "/"))
+    out.unshift({ label: "Home", href: "/" });
+
+  // Move Home to index 0
   const hi = out.findIndex((l) => norm(l.href) === "/");
   if (hi > 0) {
-    const home = out[hi];
-    out.splice(hi, 1);
+    const [home] = out.splice(hi, 1);
     out.unshift(home);
   }
+
+  // Move Marketplace to index 1 (right after Home)
+  const mi = out.findIndex((l) => norm(l.href) === "/marketplace");
+  if (mi > 1) {
+    const [marketplace] = out.splice(mi, 1);
+    out.splice(1, 0, marketplace);
+  }
+
   return out;
 }
 
@@ -258,6 +266,10 @@ export function Navbar({ user, marketing }: NavbarProps) {
   const [portalReady, setPortalReady] = useState(false);
   const [searchQ, setSearchQ] = useState("");
   const exploreTimer = useRef<NodeJS.Timeout | null>(null);
+  // FIX: increased close delay from 140ms → 220ms so the mouse has
+  // time to travel from the trigger into the dropdown content without
+  // triggering a close mid-flight.
+  const DROPDOWN_CLOSE_DELAY = 220;
   const marketplaceTimer = useRef<NodeJS.Timeout | null>(null);
 
   const { cartCount, chatCount, refreshCounts } = useCartStore();
@@ -292,12 +304,6 @@ export function Navbar({ user, marketing }: NavbarProps) {
 
   const navLinks = ensureCoreNavLinks(marketing.nav_links ?? []);
 
-  // const marketplaceVariants = [
-  //   { title: "Digital Market", desc: "Software, courses & assets", href: "/marketplace?type=digital", icon: Zap, color: "rgba(14,165,233,0.8)" },
-  //   { title: "Physical Marketplace", desc: "Real-world goods & equipment", href: "/marketplace?type=physical", icon: Package, color: "rgba(245,158,11,0.8)" },
-  //   { title: "All Type Market", desc: "Complete global catalog", href: "/marketplace", icon: ShoppingBag, color: "rgba(249,115,22,0.8)" },
-  // ];
-
   const marketplaceVariants = [
     { title: "Digital Market", desc: "Software, courses & assets", href: "/marketplace?type=digital", icon: Zap, color: "#0ea5e9", badge: "Hot" },
     { title: "Physical Market", desc: "Real-world goods & equipment", href: "/marketplace?type=physical", icon: Package, color: "#f59e0b" },
@@ -321,6 +327,16 @@ export function Navbar({ user, marketing }: NavbarProps) {
     },
     [router, searchQ]
   );
+
+  // Shared hover handlers for the marketplace dropdown
+  const onMarketplaceEnter = () => {
+    if (marketplaceTimer.current) clearTimeout(marketplaceTimer.current);
+    setMarketplaceOpen(true);
+  };
+  const onMarketplaceLeave = () => {
+    marketplaceTimer.current = setTimeout(() => setMarketplaceOpen(false), DROPDOWN_CLOSE_DELAY);
+  };
+
   /* ── render ── */
   return (
     <header className="fixed top-0 inset-x-0 z-[100] pointer-events-none transition-all duration-300">
@@ -366,116 +382,96 @@ export function Navbar({ user, marketing }: NavbarProps) {
 
             {/* Desktop nav */}
             <nav className="hidden min-[1150px]:flex items-center gap-1">
-              {/* Marketplace — FIX #3: removed dark:hover:text-stone-800 */}
-              <div
-                onMouseEnter={() => { if (marketplaceTimer.current) clearTimeout(marketplaceTimer.current); setMarketplaceOpen(true); }}
-                onMouseLeave={() => { marketplaceTimer.current = setTimeout(() => setMarketplaceOpen(false), 140); }}
-                className="relative"
-              >
-                <DropdownMenu open={marketplaceOpen} onOpenChange={setMarketplaceOpen} modal={false}>
-                  {/* <DropdownMenuTrigger asChild>
-                    <ConsoleButton className="px-3.5 py-2">
-                      <ShoppingBag className="h-3.5 w-3.5 text-orange-500 shrink-0" />
-                      Marketplace
-                      <ChevronDown className={cn("h-3 w-3 text-stone-400 transition-transform duration-300", marketplaceOpen && "rotate-180")} />
-                    </ConsoleButton>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent
-                    onMouseEnter={() => { if (marketplaceTimer.current) clearTimeout(marketplaceTimer.current); setMarketplaceOpen(true); }}
-                    onMouseLeave={() => { marketplaceTimer.current = setTimeout(() => setMarketplaceOpen(false), 140); }}
-                    sideOffset={4}
-                    className="w-72 p-1.5 rounded-sm border border-border shadow-none bg-surface"
-                  >
-                    {marketplaceVariants.map((v) => (
-                      <DropdownMenuItem key={v.href} asChild className="p-0 focus:bg-transparent rounded-sm cursor-pointer hover:bg-stone-50 dark:hover:bg-white/5">
-                        <Link href={v.href} className="flex items-center gap-3 p-3 rounded-sm transition-all hover:bg-stone-50 dark:hover:bg-white/5" style={{ outline: "none" }}>
-                          <div className="h-9 w-9 rounded-sm flex items-center justify-center shrink-0 bg-stone-50 dark:bg-stone-900 border border-stone-100 dark:border-stone-800" style={{ color: v.color }}>
-                            <v.icon className="h-4 w-4" />
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-[13px] font-bold text-stone-800 dark:text-white leading-none mb-0.5">{v.title}</p>
-                            <p className="text-[11px] text-stone-400 dark:text-white/40 truncate">{v.desc}</p>
-                          </div>
-                        </Link>
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuContent> */}
 
-                  <DropdownMenuTrigger asChild>
-                    <ConsoleButton className="px-3.5 py-2" onMouseEnter={() => { if (marketplaceTimer.current) clearTimeout(marketplaceTimer.current); setMarketplaceOpen(true); }} onMouseLeave={() => { marketplaceTimer.current = setTimeout(() => setMarketplaceOpen(false), 140); }}>
-                      <ShoppingBag className="h-3.5 w-3.5 text-[#fd5000] shrink-0" />
-                      Marketplace
-                      <ChevronDown className={cn("h-3 w-3 text-stone-400 transition-transform duration-300", marketplaceOpen && "rotate-180")} />
-                    </ConsoleButton>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent
-                    onMouseEnter={() => { if (marketplaceTimer.current) clearTimeout(marketplaceTimer.current); setMarketplaceOpen(true); }}
-                    onMouseLeave={() => { marketplaceTimer.current = setTimeout(() => setMarketplaceOpen(false), 140); }}
-                    sideOffset={6}
-                    align="start"
-                    className="w-80 p-2 rounded-2xl border shadow-xl"
-                    style={{
-                      background: "var(--color-surface, #fff)",
-                      borderColor: "var(--color-border, #e5e5e5)",
-                      boxShadow: "0 20px 60px rgba(0,0,0,0.12), 0 4px 16px rgba(0,0,0,0.06)",
-                    }}
-                  >
-                    {/* Header */}
-                    <div className="px-3 pb-3 pt-1">
-                      <p className="text-[10px] font-bold uppercase tracking-widest"
-                        style={{ color: "var(--color-text-muted, #a3a3a3)" }}>Browse by type</p>
-                    </div>
-                    {marketplaceVariants.map((v) => (
-                      <DropdownMenuItem key={v.href} asChild className="p-0 focus:bg-transparent">
-                        <Link href={v.href}
-                          className="flex items-center gap-3 p-3 rounded-xl transition-all hover:bg-stone-50 dark:hover:bg-white/5 group cursor-pointer"
-                          style={{ outline: "none" }}>
-                          <div className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-105"
-                            style={{ background: `${v.color}15`, border: `1px solid ${v.color}25` }}>
-                            <v.icon className="h-4.5 w-4.5" style={{ color: v.color }} />
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2">
-                              <p className="text-[13px] font-bold leading-none"
-                                style={{ color: "var(--color-text-primary, #171717)" }}>{v.title}</p>
-                              {v.badge && (
-                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full text-white"
-                                  style={{ background: "#fd5000" }}>{v.badge}</span>
-                              )}
-                            </div>
-                            <p className="text-[11px] mt-1 leading-snug" style={{ color: "var(--color-text-muted, #a3a3a3)" }}>{v.desc}</p>
-                          </div>
-                          <ChevronRight className="h-3.5 w-3.5 shrink-0 opacity-0 group-hover:opacity-100 transition-all group-hover:translate-x-0.5"
-                            style={{ color: v.color }} />
-                        </Link>
-                      </DropdownMenuItem>
-                    ))}
-
-                    {/* Footer CTA */}
-                    <div className="mt-1 pt-2" style={{ borderTop: "1px solid var(--color-border, #e5e5e5)" }}>
-                      <Link href="/marketplace"
-                        className="flex items-center justify-between px-3 py-2.5 rounded-xl text-[12px] font-semibold transition-all hover:bg-stone-50 dark:hover:bg-white/5 group"
-                        style={{ color: "var(--color-text-muted, #a3a3a3)" }}>
-                        <span>Browse all categories</span>
-                        <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform text-[#fd5000]" />
-                      </Link>
-                    </div>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-
-              {navLinks.filter((l) => l.href !== "/marketplace").map((item) => {
+              {navLinks.map((item) => {
                 const active = isActive(pathname, item.href);
                 const Icon = iconForHref(item.href);
-                return (
-                  <ConsoleButton key={item.href} href={item.href} active={active} className="px-3.5 py-2 group">
-                    <Icon className={cn("h-3.5 w-3.5 shrink-0", active ? "text-orange-500" : "text-stone-400 group-hover:text-orange-600")} />
-                    <span className={active ? "text-orange-700" : "text-stone-600 group-hover:text-orange-500 dark:text-white"}>{item.label}</span>
-                  </ConsoleButton>
-                );
+                if (item.href === "/marketplace") {
+                  return (
+                    <div
+                      onMouseEnter={onMarketplaceEnter}
+                      onMouseLeave={onMarketplaceLeave}
+                      className="relative"
+                      key={item.href + item.label}
+                    >
+                      <DropdownMenu open={marketplaceOpen} onOpenChange={setMarketplaceOpen} modal={false}>
+                        <DropdownMenuTrigger asChild>
+                          <ConsoleButton
+                            className="px-3.5 py-2"
+                            // Also wire enter/leave on the button itself for robustness
+                            onMouseEnter={onMarketplaceEnter}
+                            onMouseLeave={onMarketplaceLeave}
+                          >
+                            <ShoppingBag className="h-3.5 w-3.5 text-[#fd5000] shrink-0" />
+                            Marketplace
+                            <ChevronDown className={cn("h-3 w-3 text-stone-400 transition-transform duration-300", marketplaceOpen && "rotate-180")} />
+                          </ConsoleButton>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent
+                          sideOffset={2}
+                          align="start"
+                          onMouseEnter={onMarketplaceEnter}
+                          onMouseLeave={onMarketplaceLeave}
+                          className="w-80 p-2 rounded-2xl border shadow-xl"
+                          style={{
+                            background: "var(--color-surface, #fff)",
+                            borderColor: "var(--color-border, #e5e5e5)",
+                            boxShadow: "0 20px 60px rgba(0,0,0,0.12), 0 4px 16px rgba(0,0,0,0.06)",
+                          }}
+                        >
+                          {/* Header */}
+                          <div className="px-3 pb-3 pt-1">
+                            <p className="text-[10px] font-bold uppercase tracking-widest"
+                              style={{ color: "var(--color-text-muted, #a3a3a3)" }}>Browse by type</p>
+                          </div>
+                          {marketplaceVariants.map((v) => (
+                            <DropdownMenuItem key={v.href} asChild className="p-0 focus:bg-transparent">
+                              <Link href={v.href}
+                                className="flex items-center gap-3 p-3 rounded-xl transition-all hover:bg-stone-50 dark:hover:bg-white/5 group cursor-pointer"
+                                style={{ outline: "none" }}>
+                                <div className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-105"
+                                  style={{ background: `${v.color}15`, border: `1px solid ${v.color}25` }}>
+                                  <v.icon className="h-4.5 w-4.5" style={{ color: v.color }} />
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center gap-2">
+                                    <p className="text-[13px] font-bold leading-none"
+                                      style={{ color: "var(--color-text-primary, #171717)" }}>{v.title}</p>
+                                    {v.badge && (
+                                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full text-white"
+                                        style={{ background: "#fd5000" }}>{v.badge}</span>
+                                    )}
+                                  </div>
+                                  <p className="text-[11px] mt-1 leading-snug" style={{ color: "var(--color-text-muted, #a3a3a3)" }}>{v.desc}</p>
+                                </div>
+                                <ChevronRight className="h-3.5 w-3.5 shrink-0 opacity-0 group-hover:opacity-100 transition-all group-hover:translate-x-0.5"
+                                  style={{ color: v.color }} />
+                              </Link>
+                            </DropdownMenuItem>
+                          ))}
+
+                          {/* Footer CTA */}
+                          <div className="mt-1 pt-2" style={{ borderTop: "1px solid var(--color-border, #e5e5e5)" }}>
+                            <Link href="/marketplace"
+                              className="flex items-center justify-between px-3 py-2.5 rounded-xl text-[12px] font-semibold transition-all hover:bg-stone-50 dark:hover:bg-white/5 group"
+                              style={{ color: "var(--color-text-muted, #a3a3a3)" }}>
+                              <span>Browse all categories</span>
+                              <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform text-[#fd5000]" />
+                            </Link>
+                          </div>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  )
+                } else {
+                  return (
+                    <ConsoleButton key={item.href} href={item.href} active={active} className="px-3.5 py-2 group">
+                      <Icon className={cn("h-3.5 w-3.5 shrink-0", active ? "text-orange-500" : "text-stone-400 group-hover:text-orange-600")} />
+                      <span className={active ? "text-orange-700 dark:text-orange-400" : "text-stone-600 group-hover:text-orange-500 dark:text-white"}>{item.label}</span>
+                    </ConsoleButton>
+                  );
+                }
               })}
-
-
             </nav>
 
             {/* Right side */}
@@ -789,13 +785,6 @@ export function Navbar({ user, marketing }: NavbarProps) {
           )}
       </div>
 
-      {/* ══════════════════════════════════════════
-        FIX #1: MOBILE BOTTOM NAV — moved OUT of the header div.
-        Previously it was inside the header's backdrop-blur container which
-        creates a new CSS stacking context, breaking `fixed` positioning for
-        children. Now it's a sibling via portal so `fixed bottom-0` works
-        correctly and anchors to the viewport.
-        ══════════════════════════════════════════ */}
       {portalReady &&
         createPortal(
           <div className="md:hidden fixed bottom-0 inset-x-0 z-[100] h-[68px] pointer-events-none">
