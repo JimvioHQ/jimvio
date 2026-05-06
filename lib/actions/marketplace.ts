@@ -9,18 +9,33 @@ import { getProducts } from "@/services/db";
 import { cookies } from "next/headers";
 import { getDefaultAffiliateCommissionPercent } from "@/lib/platform-settings";
 
+
+export async function checkUserOwnsProduct(productId: string): Promise<boolean> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return false;
+
+  const { data } = await supabase
+    .from("orders")
+    .select("id")
+    .eq("user_id", user.id)
+    .contains("items", [{ product_id: productId }])
+    .in("status", ["paid", "completed", "active"])
+    .maybeSingle();
+  return !!data;
+}
 export async function getSearchSuggestions(query: string) {
   try {
     if (!query || query.length < 1) return { success: true, products: [] };
-    
+
     const { products } = await getProducts({
       search: query,
       limit: 6,
       sort: "trending"
     });
 
-    return { 
-      success: true, 
+    return {
+      success: true,
       products: products.map((p: any) => ({
         id: p.id,
         name: p.name,
@@ -60,7 +75,7 @@ export async function toggleFollowVendor(vendorId: string) {
         .delete()
         .eq("vendor_id", vendorId)
         .eq("user_id", user.id);
-      
+
       if (error) throw error;
       return { success: true, action: "unfollowed" };
     } else {
@@ -71,7 +86,7 @@ export async function toggleFollowVendor(vendorId: string) {
           vendor_id: vendorId,
           user_id: user.id
         });
-      
+
       if (error) throw error;
       return { success: true, action: "followed" };
     }
@@ -117,7 +132,7 @@ export async function submitReview({
       .single();
 
     if (error) throw error;
-    
+
     // Targeted revalidation instead of nuking entire cache
     if (productId) {
       revalidatePath(`/marketplace`);
@@ -222,7 +237,7 @@ export async function addToCart(productId: string, vendorId: string, quantity: n
     if (productResult.error || !product) throw new Error("Product not found");
 
     const productCurrency = (product as { currency?: string | null }).currency?.toUpperCase() || "USD";
-    
+
     // Check if the existing order matches currency, if not create a new one
     let order = orderResult.data;
     if (order && order.currency !== productCurrency) {
@@ -243,7 +258,7 @@ export async function addToCart(productId: string, vendorId: string, quantity: n
         })
         .select()
         .single();
-      
+
       if (createError) throw createError;
       order = newOrder;
     }
@@ -327,7 +342,7 @@ export async function addToCart(productId: string, vendorId: string, quantity: n
           metadata: { ...((existingItem.metadata as any) || {}), video_id: lastVideoId }
         })
         .eq("id", existingItem.id);
-      
+
       if (updateError) throw updateError;
     } else {
       const totalPrice = price * quantity;
@@ -356,7 +371,7 @@ export async function addToCart(productId: string, vendorId: string, quantity: n
           billing_period: (product as any).billing_period || null,
           metadata: { video_id: lastVideoId }
         });
-      
+
       if (insertError) throw insertError;
     }
 
@@ -418,7 +433,7 @@ export async function getCart() {
       const list = (orders || []).filter((order) => {
         // Exclude direct checkout digital items from the normal cart
         if ((order.metadata as any)?.is_direct_checkout === true) return false;
-        
+
         const items = order.order_items as unknown[] | undefined;
         return Array.isArray(items) && items.length > 0;
       });
@@ -481,7 +496,7 @@ export async function updateCartItemQuantity(itemId: string, quantity: number) {
     if (uError) throw uError;
 
     // Order totals (subtotal / total_amount) are updated automatically by trigger.
-    
+
     return { success: true };
   } catch (error: any) {
     console.error("Update cart item error:", error);
@@ -721,15 +736,15 @@ export async function updateOrderStatus(orderId: string, newStatus: string): Pro
 
     // Security: Only buyer can update through this endpoint (unless admin handled elsewhere)
     if (order.buyer_id !== user.id) {
-       return { success: false, error: "Action restricted to order owner" };
+      return { success: false, error: "Action restricted to order owner" };
     }
 
     const currentStatus = order.status;
 
     // 2. Handle 'Completed' transition via specialized logic (Fund Release)
     if (newStatus === "completed") {
-       const res = await finalizeAndCompleteOrder(orderId, user.id, "Buyer confirmed order completion.");
-       return { success: res.success, error: res.error };
+      const res = await finalizeAndCompleteOrder(orderId, user.id, "Buyer confirmed order completion.");
+      return { success: res.success, error: res.error };
     }
 
     // 3. Buyer State Machine Logic
@@ -737,7 +752,7 @@ export async function updateOrderStatus(orderId: string, newStatus: string): Pro
     // shipped -> delivered
     // pending -> cancelled
     // confirmed -> cancelled (depending on store policy, let's allow for now if not processed)
-    
+
     let allowed = false;
     if (currentStatus === "shipped" && newStatus === "delivered") allowed = true;
     if (currentStatus === "pending" && newStatus === "cancelled") allowed = true;
@@ -750,7 +765,7 @@ export async function updateOrderStatus(orderId: string, newStatus: string): Pro
     // 4. Update Status
     const { error: updateErr } = await adminClient
       .from("orders")
-      .update({ 
+      .update({
         status: newStatus,
         updated_at: new Date().toISOString()
       })
@@ -793,7 +808,7 @@ export async function buyDirectCheckout(productId: string, vendorId: string, qua
     if (productError || !product) throw new Error("Product not found");
 
     const productCurrency = product.currency?.toUpperCase() || "USD";
-    
+
     // Create new direct checkout order immediately
     const { data: order, error: createError } = await supabase
       .from("orders")
@@ -808,7 +823,7 @@ export async function buyDirectCheckout(productId: string, vendorId: string, qua
       })
       .select()
       .single();
-    
+
     if (createError) throw createError;
 
     const orderId = order.id;
@@ -873,7 +888,7 @@ export async function buyDirectCheckout(productId: string, vendorId: string, qua
         billing_period: product.billing_period || null,
         metadata: { video_id: lastVideoId }
       });
-    
+
     if (insertError) throw insertError;
 
     return { success: true, orderId: orderId };

@@ -787,7 +787,7 @@ model affiliates {
   affiliate_clicks      affiliate_clicks[]
   affiliate_commissions affiliate_commissions[]
   affiliate_links       affiliate_links[]
-
+  
   @@index([affiliate_code], map: "idx_affiliates_code")
   @@index([user_id], map: "idx_affiliates_user_id")
   @@schema("public")

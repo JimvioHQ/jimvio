@@ -225,6 +225,8 @@ import {
   getCategories, getFeaturedProducts, getTrendingProducts, getAffiliateLinks,
   getCampaigns, getPlatformStats, getTopCreators, getProducts,
   getPublicCommunities,
+  getAffiliateProgramStats,
+  getAffiliateSpotlightProducts,
 } from "@/services/db";
 import { getProfile } from "@/lib/auth/actions";
 import {
@@ -242,6 +244,7 @@ export default async function HomePage() {
     campaigns,
     communitiesList,
     profile,
+    stats, spotlightRes, settings
   ] = await Promise.all([
     getPlatformStats().catch(() => ({
       totalUsers: 0, totalVendors: 0, totalProducts: 0,
@@ -251,8 +254,13 @@ export default async function HomePage() {
     getCampaigns(8).catch(() => []),
     getPublicCommunities(6).catch(() => []),
     getProfile(),
+    getAffiliateProgramStats(),
+    getAffiliateSpotlightProducts(9),
+    getResolvedPlatformSettings(),
   ]);
+  const [] = await Promise.all([
 
+  ]);
   const platformSettings = platformSettingsMaybe ?? PLATFORM_SETTINGS_DEFAULTS;
 
   return (
