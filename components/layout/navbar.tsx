@@ -202,7 +202,7 @@ function ensureCoreNavLinks(links: NavLinkConfig[]): NavLinkConfig[] {
   const norm = (h: string) => h.replace(/\/$/, "") || "/";
 
   if (!out.some((l) => norm(l.href) === "/ugc")) {
-    out.push({ label: "UGC & Clippings", href: "/ugc" });
+    out.push({ label: "UGC & Clipping", href: "/ugc" });
   }
 
   if (!out.some((l) => norm(l.href) === "/marketplace"))
