@@ -7,45 +7,7 @@
     @apply grid grid-cols-2 gap-3 sm:gap-4;
   }
 
-  .home-page-bg {
-    background:
-      radial-gradient(ellipse 140% 100% at 50% -20%,
-        rgba(249, 115, 22, 0.09),
-        transparent 60%),
-      linear-gradient(180deg, var(--color-bg) 0%, var(--color-surface) 100%);
-  }
-
-  .home-hero-shell {
-    box-shadow:
-      0 0 0 1px rgba(67, 51, 96, 0.1),
-      0 12px 28px -8px rgba(26, 20, 40, 0.12),
-      0 32px 64px -28px rgba(26, 20, 40, 0.38),
-      inset 0 1px 1px rgba(255, 255, 255, 0.7);
-  }
-
-  .home-hero-stage {
-    background:
-      radial-gradient(ellipse 100% 85% at 50% -25%,
-        rgba(249, 115, 22, 0.09),
-        transparent 52%),
-      radial-gradient(ellipse 70% 55% at 100% 0%,
-        rgba(249, 115, 22, 0.05),
-        transparent 48%),
-      linear-gradient(180deg, var(--color-surface) 0%, var(--color-bg) 100%);
-    box-shadow: none;
-  }
-
-  .home-hero-stage::after {
-    content: "";
-    pointer-events: none;
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    box-shadow: none;
-    border-bottom: 1px solid rgba(67, 51, 96, 0.07);
-  }
-
-  .home-hero-grid {
+  .home-hero-grids {
     background-image:
       linear-gradient(rgba(67, 51, 96, 0.045) 1px, transparent 1px),
       linear-gradient(90deg, rgba(67, 51, 96, 0.045) 1px, transparent 1px);
@@ -58,56 +20,9 @@
         transparent 78%);
   }
 
-  .home-hero-panel {
-    @apply border border-border bg-surface/95 backdrop-blur-xl;
-    box-shadow: none;
-  }
-
-  /** Hero stats — mobile: 2-col grid + full-width third row; sm+: classic 3-col row */
-  .home-hero-stat-strip {
-    @apply grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-0 sm:pt-0;
-  }
-
-  .home-hero-stat-strip>*+* {
-    @apply sm:border-l sm:border-[#ebe8f2] sm:pl-6;
-  }
-
-  .home-hero-stat-card {
-    @apply rounded-2xl border border-[#ebe8f2] bg-gradient-to-br from-white via-[#fffdfb] to-[#faf8fc] p-3.5 shadow-[0_14px_44px_-28px_rgba(67, 51, 96, 0.2)] ring-1 ring-[#433360]/[0.06] sm:rounded-sm sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none sm:ring-0;
-  }
-
-  .home-hero-stat-card--wide {
-    @apply col-span-2 sm:col-span-1;
-  }
-
   .home-surface {
-    @apply rounded-sm bg-surface/95 backdrop-blur-lg border border-border shadow-none;
-  }
-
-  .home-section-eyebrow {
-    @apply text-[10px] sm:text-[11px] font-black uppercase tracking-[0.35em] text-[#9ca3af];
-  }
-
-  .hero-glass {
-    @apply border border-white/50 bg-white/40 backdrop-blur-2xl;
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.5),
-      0 14px 40px -8px rgba(26, 20, 40, 0.22);
-  }
-
-  .hero-glass-strong {
-    @apply border border-white/50 bg-white/50 backdrop-blur-3xl;
-    box-shadow:
-      inset 0 1px 1px rgba(255, 255, 255, 0.6),
-      0 18px 52px -12px rgba(43, 34, 72, 0.32),
-      0 0 1px rgba(249, 115, 22, 0.15);
-  }
-
-  .hero-glass-dark {
-    @apply border border-white/25 bg-[#0f0a18]/50 backdrop-blur-xl;
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.15),
-      0 12px 36px -8px rgba(0, 0, 0, 0.35);
+    @apply backdrop-blur-md border border-border;
+    background-color: rgb(var(--color-surface) / 0.95);
   }
 }
 

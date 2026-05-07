@@ -1460,7 +1460,7 @@ export function CheckoutExperience({ orders, profile, mode = "cart" }: CheckoutE
    return (
       <>
          <div className="min-h-screen bg-[var(--color-bg)]">
-            <div className="max-w-5xl mx-auto px-4 pt-6 pb-36 lg:pb-10 relative z-10">
+            <div className="max-w-8xl mx-auto px-4 pt-6 pb-36 lg:pb-10 relative z-10">
 
                {/* ── Page header ── */}
                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">

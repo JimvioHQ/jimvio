@@ -266,13 +266,7 @@ export default async function HomePage() {
   return (
     <HomepageRedesign
       campaigns={campaigns}
-      communities={communitiesList.map((c: any) => ({
-        id: c.id,
-        name: c.name,
-        member_count: c.member_count,
-        avatar_url: c.avatar_url,
-        slug: c.slug,
-      }))}
+      communities={communitiesList}
       stats={{
         users: `${(platformStats.totalUsers / 1000).toFixed(0)}K+`,
         earned: "$1M+",

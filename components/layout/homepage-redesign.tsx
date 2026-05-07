@@ -15,6 +15,8 @@ import { Hero } from "./hero";
 import { SharedCampaignCard, SharedCampaignRow } from "../ugc/campaign-card-shared";
 import { formatPlatformCount } from "@/lib/platform-settings-shared";
 import { createClient } from "@/lib/supabase/client";
+import CommunitiesSection from "./communities-section";
+import { SwipeableCardGrid } from "../ui/swipeable-card-grid";
 
 /* ─── Animation variants ─── */
 const fadeUp = {
@@ -33,11 +35,19 @@ interface Campaign {
 }
 
 interface Community {
-    id: string;
-    name: string;
-    member_count?: number;
-    avatar_url?: string;
-    slug?: string;
+    id: string
+    name: string
+    slug: string
+    tagline?: string
+    category?: string
+    member_count?: number
+    post_count?: number
+    is_free?: boolean
+    monthly_price?: number
+    currency?: string
+    cover_image?: string
+    avatar_url?: string
+    created_at?: string
 }
 
 interface HomepageRedesignProps {
@@ -269,14 +279,13 @@ function UGCCampaigns({ campaigns = [] }: { campaigns: SharedCampaignRow[] }) {
                         </div>
                     </motion.div>
 
-                    {/* Campaign cards */}
-                    <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                        {demo.map(c => (
-                            <motion.div key={c.id} variants={fadeUp}>
-                                <SharedCampaignCard c={c as any} />
-                            </motion.div>
-                        ))}
-                    </div>
+                    <SwipeableCardGrid
+                        items={demo}
+                        cols={{ sm: 2, lg: 4 }}
+                        renderCard={(c) => (<motion.div key={c.id} variants={fadeUp}>
+                            <SharedCampaignCard c={c as any} />
+                        </motion.div>)}
+                    />
 
                     {/* Bottom CTA */}
                     <motion.div variants={fadeUp} className="flex justify-center mt-9">
@@ -405,7 +414,7 @@ function CorePillars() {
                                     >
                                         <p.icon className="h-5 w-5" />
                                     </div>
-                                    <p className="text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: p.accent }}>
+                                    <p className="text-[14px] font-semibold uppercase tracking-normal mb-1" style={{ color: p.accent }}>
                                         {p.tagline}
                                     </p>
                                     <h3
@@ -615,10 +624,10 @@ export function AffiliateSpotlight() {
     const heroRate = maxRate > 0 ? Math.round(maxRate) : DEFAULT_COMMISSION;
 
     const statsGrid = [
-        { label: "Active Affiliates",   value: affiliateStats.affiliateCount ? formatPlatformCount(affiliateStats.affiliateCount) : "—" },
-        { label: "Affiliate-ready SKUs", value: affiliateStats.affiliateSkus  ? formatPlatformCount(affiliateStats.affiliateSkus)  : "—" },
-        { label: "Top commission rate",  value: maxRate > 0 ? `${Math.round(maxRate)}%` : `${heroRate}%` },
-        { label: "Live products",        value: affiliateStats.totalProducts  ? formatPlatformCount(affiliateStats.totalProducts)  : "—" },
+        { label: "Active Affiliates", value: affiliateStats.affiliateCount ? formatPlatformCount(affiliateStats.affiliateCount) : "—" },
+        { label: "Affiliate-ready SKUs", value: affiliateStats.affiliateSkus ? formatPlatformCount(affiliateStats.affiliateSkus) : "—" },
+        { label: "Top commission rate", value: maxRate > 0 ? `${Math.round(maxRate)}%` : `${heroRate}%` },
+        { label: "Live products", value: affiliateStats.totalProducts ? formatPlatformCount(affiliateStats.totalProducts) : "—" },
     ];
 
     return (
@@ -677,10 +686,10 @@ export function AffiliateSpotlight() {
                             ))}
                         </div>
                     </motion.div>
-
-                    {/* ── Product cards ── */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                        {cards.map(c => (
+                    <SwipeableCardGrid
+                        items={cards}
+                        cols={{ sm: 2, lg: 4 }}
+                        renderCard={(c) => (
                             <motion.div key={c.id} variants={fadeUp} className="relative">
 
                                 {/* Featured badge */}
@@ -692,7 +701,6 @@ export function AffiliateSpotlight() {
                                         ⭐ Featured
                                     </div>
                                 )}
-
                                 <Link
                                     href={`/marketplace/${c.slug}`}
                                     className="group flex flex-col rounded-2xl h-full overflow-hidden transition-all duration-200 hover:-translate-y-0.5"
@@ -800,8 +808,8 @@ export function AffiliateSpotlight() {
                                     </div>
                                 </Link>
                             </motion.div>
-                        ))}
-                    </div>
+                        )}
+                    />
 
                     {/* ── CTA ── */}
                     <motion.div variants={fadeUp} className="flex justify-center mt-9">
@@ -815,110 +823,6 @@ export function AffiliateSpotlight() {
                             Browse all affiliate products <ArrowRight className="h-4 w-4" />
                         </Link>
                     </motion.div>
-                </motion.div>
-            </div>
-        </section>
-    );
-}
-/* ═══════════════════════════════════════════════
-   COMMUNITIES
-═══════════════════════════════════════════════ */
-function CommunitiesSection({ communities = [] }: { communities: Community[] }) {
-    const demo: Community[] = communities.length > 0
-        ? communities
-        : [
-            { id: "1", name: "African Fashion Creators", member_count: 8420, slug: "african-fashion" },
-            { id: "2", name: "Tech & Gadgets RW", member_count: 12300, slug: "tech-gadgets" },
-            { id: "3", name: "Business & Ecom Hub", member_count: 5670, slug: "business-hub" },
-            { id: "4", name: "Fitness & Wellness", member_count: 3200, slug: "fitness" },
-            { id: "5", name: "Food & Recipes Africa", member_count: 7100, slug: "food" },
-            { id: "6", name: "Freelancers Network", member_count: 4400, slug: "freelancers" },
-        ];
-
-    return (
-        <section className="py-20 sm:py-28" style={{ background: "var(--color-bg)" }}>
-            <div className="max-w-8xl mx-auto px-4 sm:px-6">
-                <motion.div
-                    initial="hidden"
-                    whileInView="show"
-                    viewport={{ once: true, margin: "-80px" }}
-                    variants={stagger}
-                >
-                    <motion.div
-                        variants={fadeUp}
-                        className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-10"
-                    >
-                        <div>
-                            <p
-                                className="text-[11px] font-bold uppercase tracking-widest mb-2"
-                                style={{ color: "var(--color-accent)" }}
-                            >
-                                Find your people
-                            </p>
-                            <h2
-                                className="font-black tracking-tight"
-                                style={{
-                                    fontSize: "clamp(1.75rem, 3vw, 2.5rem)",
-                                    color: "var(--color-text-primary)",
-                                    letterSpacing: "-0.02em",
-                                }}
-                            >
-                                Popular Communities
-                            </h2>
-                        </div>
-                        <Link
-                            href="/communities"
-                            className="inline-flex items-center gap-1.5 text-sm font-medium shrink-0"
-                            style={{ color: "var(--color-accent)" }}
-                        >
-                            See all <ChevronRight className="h-4 w-4" />
-                        </Link>
-                    </motion.div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {demo.map(c => (
-                            <motion.div key={c.id} variants={fadeUp}>
-                                <Link
-                                    href={`/communities/${c.slug ?? c.id}`}
-                                    className="group flex items-center gap-4 p-5 rounded-2xl transition-all duration-200 hover:-translate-y-0.5"
-                                    style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}
-                                    onMouseEnter={e => (e.currentTarget.style.borderColor = "rgba(253,80,0,0.25)")}
-                                    onMouseLeave={e => (e.currentTarget.style.borderColor = "var(--color-border)")}
-                                >
-                                    <div
-                                        className="h-12 w-12 rounded-2xl flex items-center justify-center text-white text-lg font-black shrink-0"
-                                        style={{ background: "var(--color-accent)" }}
-                                    >
-                                        {c.name[0]}
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <p
-                                            className="text-sm font-bold mb-0.5 truncate"
-                                            style={{ color: "var(--color-text-primary)" }}
-                                        >
-                                            {c.name}
-                                        </p>
-                                        <div className="flex items-center gap-1.5">
-                                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                                            <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
-                                                {(c.member_count ?? 0).toLocaleString()} members
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <div
-                                        className="shrink-0 px-3.5 py-1.5 rounded-xl text-xs font-bold"
-                                        style={{
-                                            background: "rgba(253,80,0,0.08)",
-                                            color: "var(--color-accent)",
-                                            border: "1px solid rgba(253,80,0,0.18)",
-                                        }}
-                                    >
-                                        Join
-                                    </div>
-                                </Link>
-                            </motion.div>
-                        ))}
-                    </div>
                 </motion.div>
             </div>
         </section>
@@ -1305,7 +1209,13 @@ export function HomepageRedesign({ campaigns = [], communities = [], stats }: Ho
             <CategoryBrowse />
             <UGCCampaigns campaigns={campaigns} />
             <AffiliateSpotlight />
-            <CommunitiesSection communities={communities} />
+            <CommunitiesSection
+                communities={communities}
+                heading="Top Communities"
+                eyebrow="Discover"
+                seeAllHref="/communities"
+                limit={6}
+            />
             <HowItWorks />
             <TrustSection stats={stats} />
             <VendorBanner />

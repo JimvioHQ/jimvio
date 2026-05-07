@@ -47,6 +47,7 @@ import {
   ArrowRight,
   FileText,
   BanknoteIcon,
+  DollarSign,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -116,13 +117,34 @@ const ConsoleButton = React.forwardRef<
     [key: string]: any;
   }
 >(({ children, href, onClick, className, active = false, orange = false, style, ...props }, ref) => {
+
   const cls = cn(
-    "relative inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-[13px] font-medium tracking-tight transition-all duration-150 active:scale-[0.97] select-none",
+    // base
+    "relative inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-[13px] font-medium tracking-tight transition-all duration-150 active:scale-[0.97] select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-stone-400/60",
     active
-      ? "bg-stone-100 dark:bg-white/8 text-stone-900 dark:text-white font-semibold"
+      ? [
+        // Light: denser fill + inset ring so selection is unmistakable
+        "bg-black/[0.07] text-stone-900 font-semibold shadow-[inset_0_0_0_1px_rgba(0,0,0,0.09)]",
+        // Dark: bump to 11% white + matching inset ring
+        "dark:bg-white/[0.11] dark:text-white dark:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.10)]",
+      ]
       : orange
-        ? "bg-[#fd5000] text-white hover:bg-[#e04700] shadow-sm"
-        : "text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-white/6 hover:text-stone-900 dark:hover:text-white",
+        ? [
+          // Light: tinted shadow ties the shadow to the hue
+          "bg-[#fd5000] text-white hover:bg-[#e04700]",
+          "shadow-[0_1px_3px_rgba(200,60,0,0.25),inset_0_0_0_1px_rgba(200,60,0,0.12)]",
+          "hover:shadow-[0_2px_6px_rgba(200,60,0,0.35)]",
+          // Dark: lighter hover (not darker) so it reads as a lift, not a sink
+          "dark:hover:bg-[#ff6520]",
+          "dark:shadow-[0_1px_4px_rgba(0,0,0,0.45),inset_0_0_0_1px_rgba(255,120,40,0.18)]",
+          "dark:hover:shadow-[0_2px_8px_rgba(0,0,0,0.50)]",
+        ]
+        : [
+          // Light: rgba over stone avoids surface-color conflicts
+          "text-stone-500 hover:bg-black/[0.055] hover:text-stone-900",
+          // Dark: 7% white is the sweet spot on #1a1917
+          "dark:text-stone-400 dark:hover:bg-white/[0.07] dark:hover:text-stone-100",
+        ],
     className
   );
   if (href)
@@ -233,9 +255,9 @@ function iconForHref(href: string): LucideIcon {
   const h = href.replace(/\/$/, "") || "/";
   if (h === "/") return Home;
   if (h.startsWith("/communities")) return Users;
-  if (h.startsWith("/ugc")) return Bookmark;
+  if (h.startsWith("/ugc")) return Clapperboard;
   if (h.startsWith("/marketplace")) return ShoppingBag;
-  if (h.startsWith("/affiliates")) return BanknoteIcon;
+  if (h.startsWith("/affiliates")) return DollarSign;
   if (h.startsWith("/influencers")) return User;
   if (h.startsWith("/vendors")) return Factory;
   if (h.startsWith("/shorts")) return Clapperboard;
@@ -397,12 +419,12 @@ export function Navbar({ user, marketing }: NavbarProps) {
                       <DropdownMenu open={marketplaceOpen} onOpenChange={setMarketplaceOpen} modal={false}>
                         <DropdownMenuTrigger asChild>
                           <ConsoleButton
-                            className="px-3.5 py-2"
+                            className="px-3.5 py-2 text-[13px] dark:text-white font-semibold tracking-[0.01em] "
                             // Also wire enter/leave on the button itself for robustness
                             onMouseEnter={onMarketplaceEnter}
                             onMouseLeave={onMarketplaceLeave}
                           >
-                            <ShoppingBag className="h-3.5 w-3.5 text-[#fd5000] shrink-0" />
+                            <ShoppingBag className="h-3.5 w-3.5 text-[var(--color-accent)] shrink-0" />
                             Marketplace
                             <ChevronDown className={cn("h-3 w-3 text-stone-400 transition-transform duration-300", marketplaceOpen && "rotate-180")} />
                           </ConsoleButton>
@@ -465,8 +487,13 @@ export function Navbar({ user, marketing }: NavbarProps) {
                   )
                 } else {
                   return (
-                    <ConsoleButton key={item.href} href={item.href} active={active} className="px-3.5 py-2 group">
-                      <Icon className={cn("h-3.5 w-3.5 shrink-0", active ? "text-orange-500" : "text-stone-400 group-hover:text-orange-600")} />
+                    <ConsoleButton key={item.href} href={item.href} active={active} className={
+                      cn(active ? "font-semibold text-orange-700 dark:text-orange-400" : "text-stone-600 hover:text-orange-500 dark:text-white",
+                        "px-3.5 py-2",
+                        "px-3.5 text-[13px] font-semibold tracking-[0.01em] py-2 group"
+                      )
+                    }>
+                      <Icon className={cn("h-3.5 w-3.5 shrink-0  text-[var(--color-accent)] group-hover:text-orange-600")} />
                       <span className={active ? "text-orange-700 dark:text-orange-400" : "text-stone-600 group-hover:text-orange-500 dark:text-white"}>{item.label}</span>
                     </ConsoleButton>
                   );
