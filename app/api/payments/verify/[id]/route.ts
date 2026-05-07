@@ -2,8 +2,6 @@
 
 import { NextRequest, NextResponse } from "next/server";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
 interface FlutterwaveTransaction {
     id: number;
     tx_ref: string;

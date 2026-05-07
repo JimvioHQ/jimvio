@@ -11,6 +11,7 @@ const serviceSupabase = createClient(
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     { auth: { autoRefreshToken: false, persistSession: false } }
 );
+
 export async function GET(
     req: NextRequest,
     { params }: { params: Promise<{ orderId: string }> }
@@ -29,32 +30,70 @@ export async function GET(
         }
     );
 
-    const { data: { user } } = await userSupabase.auth.getUser();
+    const {
+        data: { user },
+    } = await userSupabase.auth.getUser();
+
     if (!user) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { data, error } = await serviceSupabase
+    // 1. Fetch order
+    const { data: order, error: orderError } = await serviceSupabase
         .from("orders")
-        .select("id, payment_status, status, paid_at, flutterwave_transaction_id, payment_provider")
+        .select("id, payment_status, status, paid_at")
         .eq("id", orderId)
         .eq("buyer_id", user.id)
         .single();
 
-    if (error || !data) {
+    if (orderError || !order) {
         return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
-    if (data.payment_status === "pending") {
-        const txData = await verifyFlutterwaveTransaction(data.id);
-        console.log({ txData });
+    // 2. Fetch the linked transaction
+    const { data: transaction, error: txError } = await serviceSupabase
+        .from("transactions")
+        .select("id, provider, provider_transaction_id, status")
+        .eq("order_id", orderId)
+        .eq("provider", "flutterwave")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+    if (txError) {
+        console.error("[orders/status] Failed to fetch transaction", {
+            reason: txError.message,
+            orderId,
+        });
+        return NextResponse.json(
+            { error: "Failed to fetch transaction" },
+            { status: 500 }
+        );
+    }
+
+    // 3. If still pending, verify with Flutterwave using the tx_ref
+    if (order.payment_status === "pending" && transaction?.provider_transaction_id) {
+        try {
+            console.log(transaction, order);
+
+            const txData = await verifyFlutterwaveTransaction(
+                transaction.provider_transaction_id
+            );
+            console.log("[orders/status] Flutterwave verification", { txData });
+        } catch (err) {
+            console.error("[orders/status] Flutterwave verification failed", {
+                reason: err instanceof Error ? err.message : String(err),
+                orderId,
+            });
+            // non-fatal — still return what we have
+        }
     }
 
     return NextResponse.json({
-        paymentStatus: data.payment_status,
-        orderStatus: data.status,
-        paidAt: data.paid_at,
-        transactionId: data.flutterwave_transaction_id,
-        provider: data.payment_provider,
+        paymentStatus: order.payment_status,
+        orderStatus: order.status,
+        paidAt: order.paid_at,
+        transactionId: transaction?.provider_transaction_id ?? null,
+        provider: transaction?.provider ?? null,
     });
 }

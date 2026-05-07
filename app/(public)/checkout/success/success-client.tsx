@@ -525,6 +525,7 @@
 //     </div>
 //   );
 // }
+
 "use client";
 
 import Link from "next/link";
@@ -546,6 +547,11 @@ type Order = {
   payment_provider: string | null;
   payment_status?: string | null;
   order_items: { product_name: string; quantity: number; total_price: number }[];
+  transaction?: {
+    provider: string | null;
+    status: string;
+    provider_transaction_id: string;
+  };
 };
 
 type PollStatus = "polling" | "completed" | "failed" | "timeout";
@@ -566,8 +572,8 @@ function resolvePaymentMethod(provider: string | null): string {
 }
 
 function resolveOrderLabel(order: Order): string {
-  const raw = String(order.order_number || order.id).slice(0, 8).toUpperCase();
-  return order.order_number?.startsWith("JV") ? order.order_number : `JV-${raw}`;
+  const raw = String(order.order_number || order.id);
+  return raw;
 }
 
 function resolveFlutterwaveTransactionId(sp: URLSearchParams): string | null {
@@ -614,8 +620,7 @@ export function CheckoutSuccessClient({ order }: { order: Order }) {
 
   const checkStatus = useCallback(async (): Promise<boolean> => {
     const sp = new URLSearchParams(window.location.search);
-    const provider = (order.payment_provider ?? "").toLowerCase();
-
+    const provider = (order?.transaction?.provider || sp.get("provider") || "").toLowerCase();
     if (provider === "flutterwave") {
       const transactionId = resolveFlutterwaveTransactionId(sp);
 
@@ -636,7 +641,7 @@ export function CheckoutSuccessClient({ order }: { order: Order }) {
         if (result?.status === "successful") {
           setPollStatus("completed");
           setLastChecked(new Date());
-          await fetch(`/api/orders/update/processing/${order.id}`, {
+          const orderupdate = await fetch(`/api/orders/update/confirmed/${order.id}`, {
             method: "PATCH",
             headers: {
               "Content-Type": "application/json",
@@ -646,6 +651,11 @@ export function CheckoutSuccessClient({ order }: { order: Order }) {
               transactionId
             }),
           });
+          const dt = await orderupdate.json();
+          console.log("Order update response:", dt);
+          if (dt.status !== "success") {
+            toast.error(dt.message || dt.error || "Payment verified but failed to update order. Contact support.");
+          }
           await refreshCart();
           window.dispatchEvent(new CustomEvent("cart-updated"));
           return true;
@@ -915,7 +925,6 @@ export function CheckoutSuccessClient({ order }: { order: Order }) {
           </div>
         )}
       </div>
-
       <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
         <Button asChild size="lg" className="w-full sm:w-auto">
           <Link href={`/orders/${order.id}`}>Track my order</Link>

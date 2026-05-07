@@ -452,6 +452,7 @@ export async function verifyFlutterwaveTransaction(
 
   function buildEndpoint(): string {
     if (useTxRef) {
+      console.warn("Using tx_ref for verification is less efficient and may be rate limited by Flutterwave. Use transaction ID if possible." + transactionId);
       return `/transactions/verify_by_reference?tx_ref=${encodeURIComponent(String(transactionId))}`;
     }
     return `/transactions/${transactionId}/verify`;
@@ -459,7 +460,6 @@ export async function verifyFlutterwaveTransaction(
 
   async function fetchAndNormalize(): Promise<FlutterwaveVerifyResponse> {
     if (useTxRef) {
-      // List endpoint returns { status, data: [...] }
       const result = await flwFetch<{
         status: string;
         data: FlutterwaveVerifyResponse["data"][];
@@ -474,8 +474,6 @@ export async function verifyFlutterwaveTransaction(
       }
       return { status: "success", data: result.data[0] };
     }
-
-    // Standard verify by numeric ID
     return flwFetch<FlutterwaveVerifyResponse>(buildEndpoint());
   }
 
