@@ -1,22 +1,3 @@
-// /** @type {import('next-sitemap').IConfig} */
-// module.exports = {
-//   siteUrl: process.env.NEXT_PUBLIC_APP_URL || 'https://jimvio.com',
-//   generateRobotsTxt: true,
-//   sitemapSize: 7000,
-//   exclude: ['/dashboard/*', '/admin/*', '/api/*'],
-//   robotsTxtOptions: {
-//     policies: [
-//       {
-//         userAgent: '*',
-//         allow: '/',
-//         disallow: ['/dashboard', '/admin', '/api'],
-//       },
-//     ],
-//     additionalSitemaps: [
-//       'https://jimvio.com/sitemap.xml',
-//     ],
-//   },
-// }
 /** @type {import('next-sitemap').IConfig} */
 
 const SITE_URL = "https://www.jimvio.com";
@@ -24,14 +5,13 @@ const SITE_URL = "https://www.jimvio.com";
 module.exports = {
   siteUrl: SITE_URL,
 
-  // ─── OUTPUT ────────────────────────────────────────────────────────────────
-  generateRobotsTxt: true, // auto-generate robots.txt
-  generateIndexSitemap: true, // create sitemap-index.xml
-  sitemapSize: 5000, // max URLs per child sitemap
-  outDir: "public",
+  // ─── OUTPUT ───────────────────────────────────────────────────────────────
+  generateRobotsTxt: true,
+  generateIndexSitemap: true,
+  sitemapSize: 5000,
+  // outDir removed — next-sitemap defaults to "public" already
 
-  // ─── EXCLUSIONS ────────────────────────────────────────────────────────────
-  // Pages that must NEVER be indexed
+  // ─── EXCLUSIONS ───────────────────────────────────────────────────────────
   exclude: [
     // Auth / account flows
     "/login",
@@ -64,33 +44,20 @@ module.exports = {
     "/admin/*",
     "/api/*",
 
-    // Parameterised / filter URLs  (handled by robots.txt Disallow too)
-    "/marketplace?*",
-    "/search?*",
-    "/*?sort=*",
-    "/*?page=*",
-    "/*?cat=*",
-    "/*?filter=*",
-    "/*?q=*",
-    "/*?ref=*",
-    "/*?utm_*",
-
-    // Utility / legal (add back if you DO want these indexed)
+    // Utility / legal
     "/404",
     "/500",
     "/terms",
     "/privacy",
     "/cookie-policy",
 
-    // Prevent self-reference recursion  ← FIX #2
+    // Prevent self-reference recursion
     "/sitemap.xml",
     "/sitemap-index.xml",
   ],
 
-  // ─── ROBOTS.TXT ────────────────────────────────────────────────────────────
+  // ─── ROBOTS.TXT ───────────────────────────────────────────────────────────
   robotsTxtOptions: {
-    // FIX #3: canonical domain only in Host directive
-    // FIX #5: block all parameterised URLs
     policies: [
       {
         userAgent: "*",
@@ -112,36 +79,27 @@ module.exports = {
           "/admin/",
           "/api/",
 
-          // FIX #5 – block all query-param URLs
-          "/*?", // any URL with ANY query string
-          "/*?sort=",
-          "/*?page=",
-          "/*?cat=",
-          "/*?filter=",
-          "/*?q=",
-          "/*?ref=",
-          "/*?utm_source=",
-          "/*?utm_medium=",
-          "/*?utm_campaign=",
+          // Block ALL query-string URLs (single pattern covers all cases)
+          "/*?*",
         ],
       },
     ],
-
-    additionalSitemaps: [`${SITE_URL}/sitemap.xml`],
+    // FIX: removed self-referencing additionalSitemaps — causes a loop
+    // The sitemap-index.xml is already auto-generated and registered by next-sitemap
   },
 
-  // ─── TRANSFORM (add lastmod / priority / changefreq per URL) ───────────────
+  // ─── TRANSFORM ────────────────────────────────────────────────────────────
   transform: async (config, url) => {
-    // Strip any accidental localhost references  ← FIX #1
+    // Strip any accidental localhost references
     if (
       url.includes("localhost") ||
       url.includes("127.0.0.1") ||
       url.includes("0.0.0.0")
     ) {
-      return null; // omit from sitemap
+      return null;
     }
 
-    // Prevent self-referencing sitemap inside sitemap  ← FIX #2
+    // Prevent self-referencing sitemap inside sitemap
     if (url.includes("/sitemap.xml") || url.includes("/sitemap-index.xml")) {
       return null;
     }
@@ -157,7 +115,6 @@ module.exports = {
 
     const priority = priorities[url.replace(SITE_URL, "")] ?? 0.7;
 
-    // Change frequency rules
     const isProduct = url.includes("/products/") || url.includes("/listings/");
     const isProfile = url.includes("/creators/") || url.includes("/users/");
     const changefreq = isProduct
@@ -177,13 +134,16 @@ module.exports = {
     };
   },
 
-  // ─── ADDITIONAL PATHS ──────────────────────────────────────────────────────
-  // FIX #7 – make sure core pages always appear in the sitemap
-  additionalPaths: async (config) => [
-    await config.transform(config, `${SITE_URL}/`),
-    await config.transform(config, `${SITE_URL}/marketplace`),
-    await config.transform(config, `${SITE_URL}/communities`),
-    await config.transform(config, `${SITE_URL}/earn`),
-    await config.transform(config, `${SITE_URL}/campaigns`),
-  ],
+  // ─── ADDITIONAL PATHS ─────────────────────────────────────────────────────
+  // FIX: filter out null values to prevent crashes when transform returns null
+  additionalPaths: async (config) => {
+    const paths = await Promise.all([
+      config.transform(config, `${SITE_URL}/`),
+      config.transform(config, `${SITE_URL}/marketplace`),
+      config.transform(config, `${SITE_URL}/communities`),
+      config.transform(config, `${SITE_URL}/earn`),
+      config.transform(config, `${SITE_URL}/campaigns`),
+    ]);
+    return paths.filter(Boolean);
+  },
 };

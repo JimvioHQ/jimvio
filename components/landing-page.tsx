@@ -1024,9 +1024,9 @@ type ListVariant = "dash" | "check" | "cross";
 // FIX: was "10k" in STATS and "10,000+" in IMPACT_STATS — normalized to one source of truth.
 const PLATFORM_STATS = [
     { value: "10,000+", label: "Active Creators" },
-    { value: "$1M+",    label: "Paid to Creators" },
-    { value: "50+",     label: "Countries Served" },
-    { value: "99.9%",   label: "Platform Uptime" },
+    { value: "$1M+", label: "Paid to Creators" },
+    { value: "50+", label: "Countries Served" },
+    { value: "99.9%", label: "Platform Uptime" },
 ];
 
 // § About (PDF p.3) — core platform features table
@@ -1172,10 +1172,10 @@ const VALUES = [
 // ADDED: was entirely missing from component
 
 const AFFILIATE_COMMISSION_ROWS: TableRow4[] = [
-    { col1: "Digital Products",       col2: "Up to 50%",              col3: "Set by seller",             col4: "Shown on product page" },
-    { col1: "Physical Products",      col2: "5% – 30%",               col3: "Varies by seller/margin",   col4: "" },
-    { col1: "SaaS / Subscriptions",   col2: "Up to 40% recurring",    col3: "Earned on each renewal",    col4: "" },
-    { col1: "Exclusive Campaigns",    col2: "Fixed rate / milestone", col3: "Defined per campaign brief", col4: "" },
+    { col1: "Digital Products", col2: "Up to 50%", col3: "Set by seller", col4: "Shown on product page" },
+    { col1: "Physical Products", col2: "5% – 30%", col3: "Varies by seller/margin", col4: "" },
+    { col1: "SaaS / Subscriptions", col2: "Up to 40% recurring", col3: "Earned on each renewal", col4: "" },
+    { col1: "Exclusive Campaigns", col2: "Fixed rate / milestone", col3: "Defined per campaign brief", col4: "" },
 ];
 
 const AFFILIATE_OBLIGATIONS = [
@@ -1191,20 +1191,20 @@ const AFFILIATE_OBLIGATIONS = [
 // ADDED: was entirely missing from component
 
 const SELLER_FEES_ROWS: TableRow[] = [
-    { col1: "Platform Transaction Fee", col2: "5% – 10% of sale price",  col3: "Deducted from seller earnings" },
-    { col1: "Payment Processing",       col2: "2.9% + $0.30",            col3: "Standard payment processor fee" },
-    { col1: "Affiliate Commission",     col2: "Set by seller",           col3: "Paid to affiliates from seller proceeds" },
-    { col1: "Payout Processing",        col2: "Free above $50 threshold", col3: "Small fee for same-day payouts" },
+    { col1: "Platform Transaction Fee", col2: "5% – 10% of sale price", col3: "Deducted from seller earnings" },
+    { col1: "Payment Processing", col2: "2.9% + $0.30", col3: "Standard payment processor fee" },
+    { col1: "Affiliate Commission", col2: "Set by seller", col3: "Paid to affiliates from seller proceeds" },
+    { col1: "Payout Processing", col2: "Free above $50 threshold", col3: "Small fee for same-day payouts" },
 ];
 
 // ─── Campaign Payment Models (PDF p.13) ───────────────────────────────────────
 // ADDED: was entirely missing from component
 
 const CAMPAIGN_PAYMENT_ROWS: TableRow4[] = [
-    { col1: "UGC — Per Submission",   col2: "Fixed rate per approved content",    col3: "Within 14 days of approval", col4: "" },
-    { col1: "UGC — Performance",      col2: "Bonus per view/engagement milestone", col3: "Monthly, based on analytics", col4: "" },
-    { col1: "Clipping — Per View",    col2: "Earnings per 1,000 verified views",  col3: "Monthly payout",              col4: "" },
-    { col1: "Clipping — Fixed",       col2: "One-time payment per clip published", col3: "Within 14 days of verification", col4: "" },
+    { col1: "UGC — Per Submission", col2: "Fixed rate per approved content", col3: "Within 14 days of approval", col4: "" },
+    { col1: "UGC — Performance", col2: "Bonus per view/engagement milestone", col3: "Monthly, based on analytics", col4: "" },
+    { col1: "Clipping — Per View", col2: "Earnings per 1,000 verified views", col3: "Monthly payout", col4: "" },
+    { col1: "Clipping — Fixed", col2: "One-time payment per clip published", col3: "Within 14 days of verification", col4: "" },
 ];
 
 const CAMPAIGN_CREATOR_OBLIGATIONS = [
@@ -1230,24 +1230,24 @@ const COMMUNITY_ENCOURAGED = [
 ];
 
 const COMMUNITY_PROHIBITED_ROWS: TableRow[] = [
-    { col1: "Hate Speech",           col2: "Content attacking individuals based on race, ethnicity, religion, gender, sexual orientation, or disability.", col3: "Suspension / Ban" },
-    { col1: "Fake Earnings",         col2: "Fabricated earnings screenshots, manipulated dashboards, or misleading income claims.", col3: "Suspension / Ban" },
-    { col1: "Impersonation",         col2: "Pretending to be another creator, brand, celebrity, or Jimvio employee.", col3: "Strike / Suspension" },
-    { col1: "Illegal Products",      col2: "Promoting, listing, or linking to products or services illegal in any jurisdiction.", col3: "Suspension / Ban" },
-    { col1: "Harmful Spam",          col2: "Mass-sending promotional messages, unsolicited DMs, or low-quality content to inflate metrics.", col3: "Warning / Strike" },
-    { col1: "Misinformation",        col2: "Spreading false claims about products, earnings potential, or platform capabilities.", col3: "Warning / Strike" },
+    { col1: "Hate Speech", col2: "Content attacking individuals based on race, ethnicity, religion, gender, sexual orientation, or disability.", col3: "Suspension / Ban" },
+    { col1: "Fake Earnings", col2: "Fabricated earnings screenshots, manipulated dashboards, or misleading income claims.", col3: "Suspension / Ban" },
+    { col1: "Impersonation", col2: "Pretending to be another creator, brand, celebrity, or Jimvio employee.", col3: "Strike / Suspension" },
+    { col1: "Illegal Products", col2: "Promoting, listing, or linking to products or services illegal in any jurisdiction.", col3: "Suspension / Ban" },
+    { col1: "Harmful Spam", col2: "Mass-sending promotional messages, unsolicited DMs, or low-quality content to inflate metrics.", col3: "Warning / Strike" },
+    { col1: "Misinformation", col2: "Spreading false claims about products, earnings potential, or platform capabilities.", col3: "Warning / Strike" },
     { col1: "Harassment & Bullying", col2: "Targeting, threatening, or persistently harassing other users in any form.", col3: "Suspension / Ban" },
-    { col1: "Adult Content",         col2: "Sharing sexual, graphic, or age-restricted content on the platform.", col3: "Permanent Ban" },
-    { col1: "Privacy Violations",    col2: "Sharing personal information of others without consent (doxxing).", col3: "Permanent Ban" },
-    { col1: "Fake Reviews",          col2: "Posting fake product reviews or coordinating review manipulation campaigns.", col3: "Strike / Suspension" },
+    { col1: "Adult Content", col2: "Sharing sexual, graphic, or age-restricted content on the platform.", col3: "Permanent Ban" },
+    { col1: "Privacy Violations", col2: "Sharing personal information of others without consent (doxxing).", col3: "Permanent Ban" },
+    { col1: "Fake Reviews", col2: "Posting fake product reviews or coordinating review manipulation campaigns.", col3: "Strike / Suspension" },
 ];
 
 // ADDED: enforcement levels table (PDF p.15-16)
 const ENFORCEMENT_ROWS: TableRow[] = [
-    { col1: "Warning",       col2: "Notification + content removal",      col3: "First minor violation" },
-    { col1: "Strike",        col2: "Temporary restriction on posting",    col3: "Repeat minor violations" },
-    { col1: "Suspension",    col2: "Account locked for 7–30 days",        col3: "Serious violations" },
-    { col1: "Permanent Ban", col2: "Account permanently terminated",      col3: "Severe or repeated violations" },
+    { col1: "Warning", col2: "Notification + content removal", col3: "First minor violation" },
+    { col1: "Strike", col2: "Temporary restriction on posting", col3: "Repeat minor violations" },
+    { col1: "Suspension", col2: "Account locked for 7–30 days", col3: "Serious violations" },
+    { col1: "Permanent Ban", col2: "Account permanently terminated", col3: "Severe or repeated violations" },
 ];
 
 // ─── Prohibited Products (PDF p.17-18) ───────────────────────────────────────
@@ -1296,10 +1296,10 @@ const PROHIBITED_PRODUCTS = {
 // ADDED: was entirely missing from component
 
 const REFUND_ROWS: TableRow4[] = [
-    { col1: "Digital Products",   col2: "72 hours",    col3: "If file is defective or not as described", col4: "" },
-    { col1: "Physical Products",  col2: "30 days",     col3: "If damaged, incorrect, or not delivered",  col4: "" },
-    { col1: "Subscriptions",      col2: "24 hours",    col3: "After first billing only — no refund on renewals", col4: "" },
-    { col1: "Campaign Earnings",  col2: "Non-refundable", col3: "Once content is approved and paid",     col4: "" },
+    { col1: "Digital Products", col2: "72 hours", col3: "If file is defective or not as described", col4: "" },
+    { col1: "Physical Products", col2: "30 days", col3: "If damaged, incorrect, or not delivered", col4: "" },
+    { col1: "Subscriptions", col2: "24 hours", col3: "After first billing only — no refund on renewals", col4: "" },
+    { col1: "Campaign Earnings", col2: "Non-refundable", col3: "Once content is approved and paid", col4: "" },
 ];
 
 const PAYOUT_POLICY_ITEMS = [
@@ -1317,28 +1317,28 @@ const PAYOUT_POLICY_ITEMS = [
 
 const DATA_COLLECTION_ROWS: TableRow[] = [
     // FIX: added missing "Cookie & Tracking" row from PDF p.4
-    { col1: "Account Data",        col2: "Name, email, username, password",            col3: "Authentication" },
-    { col1: "Profile Data",        col2: "Bio, photo, country, social handles",        col3: "Public creator profile" },
-    { col1: "Financial Data",      col2: "Payout details, transaction history",        col3: "Payments & payouts" },
-    { col1: "Usage Data",          col2: "Pages visited, clicks, session duration",    col3: "Analytics & improvement" },
-    { col1: "Content Data",        col2: "Posts, campaign submissions, listings",      col3: "Platform functionality" },
-    { col1: "Support Data",        col2: "Tickets, messages, feedback",                col3: "Customer support" },
-    { col1: "Cookie & Tracking",   col2: "Session cookies, analytics cookies, preference data", col3: "UX optimization" },
+    { col1: "Account Data", col2: "Name, email, username, password", col3: "Authentication" },
+    { col1: "Profile Data", col2: "Bio, photo, country, social handles", col3: "Public creator profile" },
+    { col1: "Financial Data", col2: "Payout details, transaction history", col3: "Payments & payouts" },
+    { col1: "Usage Data", col2: "Pages visited, clicks, session duration", col3: "Analytics & improvement" },
+    { col1: "Content Data", col2: "Posts, campaign submissions, listings", col3: "Platform functionality" },
+    { col1: "Support Data", col2: "Tickets, messages, feedback", col3: "Customer support" },
+    { col1: "Cookie & Tracking", col2: "Session cookies, analytics cookies, preference data", col3: "UX optimization" },
 ];
 
 const DATA_SHARING_ROWS: TableRow[] = [
-    { col1: "Payment Processors",  col2: "Execute transactions and payouts",   col3: "Financial data only" },
-    { col1: "Analytics Providers", col2: "Understand platform usage",          col3: "Anonymized usage data" },
-    { col1: "Cloud Infrastructure",col2: "Host platform data securely",        col3: "Encrypted storage" },
-    { col1: "Legal Authorities",   col2: "Comply with lawful requests",        col3: "As required by law" },
+    { col1: "Payment Processors", col2: "Execute transactions and payouts", col3: "Financial data only" },
+    { col1: "Analytics Providers", col2: "Understand platform usage", col3: "Anonymized usage data" },
+    { col1: "Cloud Infrastructure", col2: "Host platform data securely", col3: "Encrypted storage" },
+    { col1: "Legal Authorities", col2: "Comply with lawful requests", col3: "As required by law" },
 ];
 
 const PRIVACY_RIGHTS: RightCard[] = [
-    { title: "Right to Access",           description: "Request a complete copy of all personal data we hold about you." },
-    { title: "Right to Rectification",    description: "Correct any inaccurate or incomplete information in your profile." },
-    { title: "Right to Erasure",          description: "Request full deletion of your account and all associated data." },
-    { title: "Right to Portability",      description: "Export your data in a machine-readable format (JSON/CSV) anytime." },
-    { title: "Right to Object",           description: "Opt out of marketing or non-essential data processing instantly." },
+    { title: "Right to Access", description: "Request a complete copy of all personal data we hold about you." },
+    { title: "Right to Rectification", description: "Correct any inaccurate or incomplete information in your profile." },
+    { title: "Right to Erasure", description: "Request full deletion of your account and all associated data." },
+    { title: "Right to Portability", description: "Export your data in a machine-readable format (JSON/CSV) anytime." },
+    { title: "Right to Object", description: "Opt out of marketing or non-essential data processing instantly." },
     // FIX: was "Right to Restrict" — PDF says "Right to Restrict Processing"
     { title: "Right to Restrict Processing", description: "Limit how we use your data during disputes or active verification." },
     // ADDED: "Right to Withdraw Consent" — present in PDF p.5, missing from component
@@ -1552,7 +1552,7 @@ function DataTable4({ headers, rows }: { headers: string[]; rows: TableRow4[] })
 }
 
 const VARIANT_STYLES: Record<ListVariant, { char: string; className: string }> = {
-    dash:  { char: "—", className: "text-[var(--color-accent)]" },
+    dash: { char: "—", className: "text-[var(--color-accent)]" },
     check: { char: "✓", className: "text-[var(--color-success)]" },
     cross: { char: "✗", className: "text-[var(--color-danger)]" },
 };
@@ -2030,11 +2030,10 @@ function CookiesPage() {
                                         {c.name}
                                     </span>
                                     <span
-                                        className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full tracking-[0.04em] ${
-                                            c.required
+                                        className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full tracking-[0.04em] ${c.required
                                                 ? "bg-[rgba(253,80,0,0.12)] text-[#fd6a20]"
                                                 : "bg-[rgba(0,0,0,0.05)] text-[var(--color-text-muted)]"
-                                        }`}
+                                            }`}
                                     >
                                         {c.required ? "Required" : "Optional"}
                                     </span>
@@ -2264,7 +2263,6 @@ export {
     PrivacyPage,
     TermsPage,
     CookiesPage,
-    // New pages added from PDF
     RefundPayoutPage,
     CommunityPage,
     ProhibitedProductsPage,

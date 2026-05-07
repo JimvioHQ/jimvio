@@ -288,9 +288,6 @@ export function Navbar({ user, marketing }: NavbarProps) {
   const [portalReady, setPortalReady] = useState(false);
   const [searchQ, setSearchQ] = useState("");
   const exploreTimer = useRef<NodeJS.Timeout | null>(null);
-  // FIX: increased close delay from 140ms → 220ms so the mouse has
-  // time to travel from the trigger into the dropdown content without
-  // triggering a close mid-flight.
   const DROPDOWN_CLOSE_DELAY = 220;
   const marketplaceTimer = useRef<NodeJS.Timeout | null>(null);
 
@@ -349,8 +346,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
     },
     [router, searchQ]
   );
-
-  // Shared hover handlers for the marketplace dropdown
+  
   const onMarketplaceEnter = () => {
     if (marketplaceTimer.current) clearTimeout(marketplaceTimer.current);
     setMarketplaceOpen(true);
@@ -359,7 +355,6 @@ export function Navbar({ user, marketing }: NavbarProps) {
     marketplaceTimer.current = setTimeout(() => setMarketplaceOpen(false), DROPDOWN_CLOSE_DELAY);
   };
 
-  /* ── render ── */
   return (
     <header className="fixed top-0 inset-x-0 z-[100] pointer-events-none transition-all duration-300">
       <div

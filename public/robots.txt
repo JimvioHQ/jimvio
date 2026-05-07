@@ -15,16 +15,7 @@ Disallow: /dashboard/
 Disallow: /settings/
 Disallow: /admin/
 Disallow: /api/
-Disallow: /*?
-Disallow: /*?sort=
-Disallow: /*?page=
-Disallow: /*?cat=
-Disallow: /*?filter=
-Disallow: /*?q=
-Disallow: /*?ref=
-Disallow: /*?utm_source=
-Disallow: /*?utm_medium=
-Disallow: /*?utm_campaign=
+Disallow: /*?*
 
 # Host
 Host: https://www.jimvio.com

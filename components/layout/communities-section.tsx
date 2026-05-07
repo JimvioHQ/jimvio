@@ -289,16 +289,19 @@
 // export default CommunitiesSection;
 
 
-
 "use client";
-
 
 import React from "react";
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
 import { motion } from "framer-motion";
 import { SwipeableCardGrid } from "@/components/ui/swipeable-card-grid";
 import { CommunityCard, type CommunityRow } from "@/components/cards";
+import {
+    GridPattern,
+    CornerBlob,
+    EdgeGlow,
+    Eyebrow,
+} from "@/components/ui/decorator";
 
 interface CommunitiesSectionProps {
     communities?: CommunityRow[];
@@ -314,7 +317,15 @@ interface CommunitiesSectionProps {
 
 const fadeUp = {
     hidden: { opacity: 0, y: 14 },
-    show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] } },
+    show: {
+        opacity: 1,
+        y: 0,
+        transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] },
+    },
+};
+
+const stagger = {
+    show: { transition: { staggerChildren: 0.08 } },
 };
 
 const DEMO: CommunityRow[] = [
@@ -340,74 +351,36 @@ export function CommunitiesSection({
     const data = (communities.length > 0 ? communities : DEMO).slice(0, limit);
 
     return (
-        <section className="py-20 sm:py-28" style={{ background: "var(--color-bg)" }}>
+        <section
+            className="py-20 sm:py-28"
+            style={{
+                /* surface — sits between AffiliateSpotlight (bg) and HowItWorks (bg) */
+                background: "var(--color-surface)",
+                borderTop: "1px solid var(--color-border)",
+                position: "relative",
+                overflow: "hidden",
+            }}
+        >
+            {/* ── decorators ── */}
+            <GridPattern id="communities-grid" color={accent} opacity={0.025} />
+            <EdgeGlow position="bottom-right" color={accent} size={280} opacity={0.04} offset={-70} />
+            <CornerBlob color={accent} size={200} opacity={0.05} position="top-left" />
 
-            {/*<div className="max-w-7xl mx-auto px-4 sm:px-6">
+            <div className="max-w-8xl mx-auto px-4 sm:px-6" style={{ position: "relative" }}>
                 <motion.div
                     initial="hidden"
                     whileInView="show"
                     viewport={{ once: true, margin: "-80px" }}
-                    variants={fadeUp}
-                    className="flex items-end justify-between gap-4 mb-8 sm:mb-10"
+                    variants={stagger}
                 >
-                    <div>
-                        <p
-                            className="text-[11px] font-semibold uppercase tracking-[0.1em] mb-2"
-                            style={{ color: accent }}
-                        >
-                            {eyebrow}
-                        </p>
-                        <h2
-                            className="font-bold tracking-tight text-[var(--color-text-primary)]"
-                            style={{ fontSize: "clamp(1.65rem, 3vw, 2.25rem)", letterSpacing: "-0.025em", lineHeight: 1.1 }}
-                        >
-                            {heading}
-                        </h2>
-                    </div>
-                    <Link
-                        href={seeAllHref}
-                        className="hidden sm:inline-flex items-center gap-1 text-sm font-semibold shrink-0 hover:gap-2 transition-all duration-150"
-                        style={{ color: accent }}
-                    >
-                        {seeAllLabel} <ChevronRight className="h-4 w-4" />
-                    </Link>
-                </motion.div>
-                <SwipeableCardGrid<CommunityRow>
-                    items={data}
-                    renderCard={(c, i) => (
-                        <CommunityCard
-                            c={c}
-                            rank={showRanks ? i + 1 : undefined}
-                            showQuickActions={showQuickActions}
-                            accent={accent}
-                        />
-                    )}
-                    seeAllHref={seeAllHref}
-                    seeAllLabel={seeAllLabel}
-                    cols={{ sm: 2, lg: 3 }}
-                    mobileSlideWidth="clamp(260px, 74vw, 300px)"
-                    accent={accent}
-                />
-                
-            </div>*/}
-            <div className="max-w-8xl mx-auto px-4 sm:px-6">
-                <motion.div
-                    initial="hidden"
-                    whileInView="show"
-                    viewport={{ once: true, margin: "-80px" }}
-                // variants={stagger}
-                >
+                    {/* ── header row ── */}
                     <motion.div
                         variants={fadeUp}
                         className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-10"
                     >
                         <div>
-                            <p
-                                className="text-[11px] font-bold uppercase tracking-widest mb-2"
-                                style={{ color: "var(--color-accent)" }}
-                            >
-                                Find your people
-                            </p>
+                            {/* ✅ uses the eyebrow prop — was hardcoded "Find your people" before */}
+                            <Eyebrow label={eyebrow} color={accent} lineW={16} />
                             <h2
                                 className="font-black tracking-tight"
                                 style={{
@@ -416,33 +389,55 @@ export function CommunitiesSection({
                                     letterSpacing: "-0.02em",
                                 }}
                             >
-                                Popular Communities
+                                {/* ✅ uses the heading prop — was hardcoded "Popular Communities" before */}
+                                {heading}
                             </h2>
                         </div>
+
                         <Link
-                            href="/communities"
+                            href={seeAllHref}
                             className="inline-flex items-center gap-1.5 text-sm font-medium shrink-0"
-                            style={{ color: "var(--color-accent)" }}
+                            style={{ color: accent }}
                         >
-                            See all <ChevronRight className="h-4 w-4" />
+                            {/* ✅ uses seeAllLabel prop */}
+                            {seeAllLabel}
+                            {/* SVG chevron — no Lucide import needed */}
+                            <svg
+                                aria-hidden="true"
+                                width="16"
+                                height="16"
+                                viewBox="0 0 16 16"
+                                fill="none"
+                            >
+                                <path
+                                    d="M6 4L10 8L6 12"
+                                    stroke="currentColor"
+                                    strokeWidth="1.5"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                />
+                            </svg>
                         </Link>
                     </motion.div>
-                    <SwipeableCardGrid<CommunityRow>
-                        items={data}
-                        renderCard={(c, i) => (
-                            <CommunityCard
-                                c={c}
-                                rank={showRanks ? i + 1 : undefined}
-                                showQuickActions={showQuickActions}
-                                accent={accent}
-                            />
-                        )}
-                        seeAllHref={seeAllHref}
-                        // seeAllLabel={seeAllLabel}
-                        cols={{ sm: 2, lg: 3 }}
-                        mobileSlideWidth="clamp(260px, 74vw, 300px)"
-                        accent={accent}
-                    />
+
+                    {/* ── grid ── */}
+                    <motion.div variants={fadeUp}>
+                        <SwipeableCardGrid<CommunityRow>
+                            items={data}
+                            renderCard={(c, i) => (
+                                <CommunityCard
+                                    c={c}
+                                    rank={showRanks ? i + 1 : undefined}
+                                    showQuickActions={showQuickActions}
+                                    accent={accent}
+                                />
+                            )}
+                            seeAllHref={seeAllHref}
+                            cols={{ sm: 2, lg: 4 }}
+                            mobileSlideWidth="clamp(260px, 74vw, 300px)"
+                            accent={accent}
+                        />
+                    </motion.div>
                 </motion.div>
             </div>
         </section>
@@ -450,5 +445,3 @@ export function CommunitiesSection({
 }
 
 export default CommunitiesSection;
-
-

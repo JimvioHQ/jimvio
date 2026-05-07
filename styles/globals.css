@@ -153,7 +153,28 @@
     border-color: #f97316 !important;
   }
 
+  #main-content::-webkit-scrollbar {
+    width: 6px;
+  }
 
+  #main-content::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  #main-content::-webkit-scrollbar-thumb {
+    background: hsl(0 0% 75%);
+    border-radius: 999px;
+  }
+
+  #main-content::-webkit-scrollbar-thumb:hover {
+    background: hsl(0 0% 55%);
+  }
+
+
+  #main-content {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(0 0% 75%) transparent;
+  }
 
   html,
   body {

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, Shield, CheckCircle, Globe } from "lucide-react";
 import { useTheme } from "next-themes";
+import { HeroBlobBackground } from "../ui/HeroBlobBackground";
 
 const fadeUp = {
     hidden: { opacity: 0, y: 24 },
@@ -414,7 +415,7 @@ export function Hero() {
         <section className="relative overflow-hidden pt-16 pb-24 sm:pt-24 sm:pb-32" style={{ background: "var(--color-bg)" }}>
             <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[800px] h-[400px] pointer-events-none"
                 style={{ background: "radial-gradient(ellipse at center, rgba(253,80,0,0.06) 0%, transparent 65%)" }} />
-
+            <HeroBlobBackground />
             <div className="max-w-8xl mx-auto px-4 sm:px-6">
                 <div className="grid grid-cols-1 lg:grid-cols-[1fr_540px] gap-12 xl:gap-20 items-center">
 
