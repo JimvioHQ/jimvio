@@ -18,7 +18,6 @@ export default function PublicOrdersPage() {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<(typeof TABS)[number]>("All");
-
   useEffect(() => {
     const supabase = createClient();
 

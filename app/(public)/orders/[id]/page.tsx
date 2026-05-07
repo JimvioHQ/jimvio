@@ -646,6 +646,7 @@ import { OrderStatusBadge } from "@/components/orders/OrderStatusBadge";
 import { TrackingCard } from "@/components/orders/TrackingCard";
 import { toast } from "sonner";
 import type { RealtimeChannel } from "@supabase/supabase-js";
+import { useCurrency } from "@/context/CurrencyContext";
 
 // ─── Error types ──────────────────────────────────────────────────────────────
 
@@ -950,6 +951,7 @@ function StatusStepper({ status }: { status: string }) {
 }
 
 function OrderItem({ item, currency }: { item: any; currency: string }) {
+  const {formatMoney}=useCurrency();
   return (
     <li className="group flex gap-4 items-center py-3">
       <div className="relative h-16 w-16 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)] overflow-hidden flex items-center justify-center shrink-0 transition-transform group-hover:scale-105">
@@ -966,7 +968,7 @@ function OrderItem({ item, currency }: { item: any; currency: string }) {
         <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
           Qty {item.quantity}
           {Number(item.unit_price) > 0 && (
-            <> · {formatCurrency(Number(item.unit_price), currency)} each</>
+            <> · {formatMoney(Number(item.unit_price), currency)} each</>
           )}
         </p>
         {item.product_type === "digital" && item.digital_download_url && (
@@ -983,7 +985,7 @@ function OrderItem({ item, currency }: { item: any; currency: string }) {
       <p className="text-sm font-bold text-[var(--color-text-primary)] shrink-0">
         {Number(item.total_price) === 0
           ? <span className="text-emerald-600 font-bold">Free</span>
-          : formatCurrency(Number(item.total_price), currency)
+          : formatMoney(Number(item.total_price), currency)
         }
       </p>
     </li>
@@ -1090,8 +1092,7 @@ export default function PublicOrderDetailPage() {
   const [retryCount, setRetryCount] = useState(0);
 
   const channelRef = useRef<RealtimeChannel | null>(null);
-
-  // ─── Derived flags ───────────────────────────────────────────────────────
+  const { formatMoney } = useCurrency();
 
   const isFreeOrder = Number(order?.total_amount ?? 0) === 0;
   const isDigitalOrder = order?.order_items?.every(
@@ -1117,14 +1118,10 @@ export default function PublicOrderDetailPage() {
           setLoading(false);
           return;
         }
-
         if (!user) {
           router.replace("/login?next=/orders/" + id);
           return;
         }
-
-        // NOTE: product_subtype and is_digital removed — not in order_items schema.
-        // Use product_type === "digital" for digital detection instead.
         const { data, error } = await supabase
           .from("orders")
           .select(`
@@ -1144,7 +1141,6 @@ export default function PublicOrderDetailPage() {
         if (error) {
           const classified = classifyError(error);
 
-          // Log full raw error always in dev, summarised in prod
           if (process.env.NODE_ENV === "development") {
             console.group(`[OrderDetail] Supabase error — ${classified.kind}`);
             console.error("Raw error:", error);
@@ -1165,7 +1161,6 @@ export default function PublicOrderDetailPage() {
           setLoading(false);
           return;
         }
-
         setOrder(data);
       } catch (err: any) {
         const message = err?.message ?? "Unexpected error";
@@ -1387,7 +1382,7 @@ export default function PublicOrderDetailPage() {
                   <span>
                     {isFreeOrder
                       ? <span className="text-emerald-600 font-semibold">Free</span>
-                      : formatCurrency(Number(order.subtotal ?? order.total_amount), currency)
+                      : formatMoney(Number(order.subtotal ?? order.total_amount), currency)
                     }
                   </span>
                 </div>
@@ -1402,7 +1397,7 @@ export default function PublicOrderDetailPage() {
                   <span className={isFreeOrder ? "text-emerald-600" : "text-[var(--color-accent)]"}>
                     {isFreeOrder
                       ? "Free"
-                      : formatCurrency(Number(order.total_amount), currency)
+                      : formatMoney(Number(order.total_amount), currency)
                     }
                   </span>
                 </div>
