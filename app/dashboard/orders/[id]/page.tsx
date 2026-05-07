@@ -928,7 +928,7 @@ export default function PublicOrderDetailPage() {
 
         {/* Breadcrumb */}
         <nav className="flex items-center gap-1.5 text-sm text-[var(--color-text-muted)] mb-7">
-          <Link href="/orders" className="hover:text-[var(--color-accent)] transition-colors font-medium">
+          <Link href="/dashboard/orders" className="hover:text-[var(--color-accent)] transition-colors font-medium">
             Orders
           </Link>
           <ChevronRight className="h-3.5 w-3.5" />

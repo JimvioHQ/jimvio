@@ -290,7 +290,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
   const exploreTimer = useRef<NodeJS.Timeout | null>(null);
   const DROPDOWN_CLOSE_DELAY = 220;
   const marketplaceTimer = useRef<NodeJS.Timeout | null>(null);
-
+  const IsMobile = window.innerWidth < 1150;
   const { cartCount, chatCount, refreshCounts } = useCartStore();
   const { openAssistant } = useAIStore();
   const pathname = usePathname();
@@ -346,7 +346,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
     },
     [router, searchQ]
   );
-  
+
   const onMarketplaceEnter = () => {
     if (marketplaceTimer.current) clearTimeout(marketplaceTimer.current);
     setMarketplaceOpen(true);
@@ -394,7 +394,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
           <div className="flex items-center max-w-8xl mx-auto h-14 md:h-[62px] px-4 sm:px-8 gap-2 md:gap-4">
             {/* Logo */}
             <div className="shrink-0 mr-3 transition-transform active:scale-95">
-              <JimvioLogo href="/" size="xl" className="text-[36px] tracking-[0.03em]" />
+              <JimvioLogo href="/" size={IsMobile ? "md" : "xl"} className="text-[36px] tracking-[0.03em]" />
             </div>
 
             {/* Desktop nav */}
