@@ -290,7 +290,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
   const exploreTimer = useRef<NodeJS.Timeout | null>(null);
   const DROPDOWN_CLOSE_DELAY = 220;
   const marketplaceTimer = useRef<NodeJS.Timeout | null>(null);
-  const IsMobile = window.innerWidth < 1150;
+  const IsMobile = (typeof window !== "undefined") && window.innerWidth < 1150;
   const { cartCount, chatCount, refreshCounts } = useCartStore();
   const { openAssistant } = useAIStore();
   const pathname = usePathname();
@@ -332,7 +332,8 @@ export function Navbar({ user, marketing }: NavbarProps) {
   const mobileBottomLinks = [
     { label: "Home", href: "/", icon: Home },
     { label: "Market", href: "/marketplace", icon: ShoppingBag },
-    { label: "Cart", href: "/cart", icon: ShoppingCart },
+    { label: "Communities", href: "/communities", icon: Users },
+    { label: "UGC & Clipping", href: "/ugc", icon: Clapperboard },
   ];
 
   const runSearch = useCallback(
