@@ -7,7 +7,6 @@ import {
     Banknote,
 } from "lucide-react";
 import type {
-    NavLink,
     FeatureItem,
     StepItem,
     WhyItem,
@@ -16,7 +15,7 @@ import type {
     CookieCard,
 } from "@/types";
 
-export const NAV_LINKS: NavLink[] = [
+export const NAV_LINKS: { id: string; label: string }[] = [
     { id: "about", label: "About" },
     { id: "privacy", label: "Privacy Policy" },
     { id: "terms", label: "Terms of Service" },
