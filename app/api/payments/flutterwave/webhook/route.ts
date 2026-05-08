@@ -522,7 +522,7 @@ function validateFlutterwaveWebhook(
 export async function GET(req: NextRequest) {
   const adminKey = req.headers.get("x-admin-key");
   if (adminKey !== process.env.ADMIN_SECRET_KEY) {
-    // Return 404 instead of 403 to avoid leaking that the route exists
+    
     return NextResponse.json({ error: "Not Found" }, { status: 404 });
   }
   return NextResponse.json({
