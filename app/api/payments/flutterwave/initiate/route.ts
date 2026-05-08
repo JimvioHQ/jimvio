@@ -1,3 +1,4 @@
+
 // import { NextRequest, NextResponse } from "next/server";
 // import { createClient } from "@supabase/supabase-js";
 // import { z } from "zod";
@@ -26,24 +27,21 @@
 
 // const RequestSchema = z.object({
 //   orderId: z.string().uuid("orderId must be a valid UUID"),
-//   orderIds: z.array(z.string().uuid()).optional(),
 //   channel: z.enum(CHANNEL_VALUES).optional().default("sms"),
 // });
 
-// // ─── Supabase client (singleton) ─────────────────────────────────────────────
+// // ─── Supabase client (lazy) ───────────────────────────────────────────────────
 
 // function getSupabase() {
 //   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 //   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-//   if (!url || !key) {
-//     throw new Error("Supabase env vars are not configured");
-//   }
+//   if (!url || !key) throw new Error("Supabase env vars are not configured");
 //   return createClient(url, key, {
 //     auth: { autoRefreshToken: false, persistSession: false },
 //   });
 // }
 
-// // ─── Profile helper ──────────────────────────────────────────────────────────
+// // ─── Profile helper ───────────────────────────────────────────────────────────
 
 // type ProfileRow = {
 //   full_name: string | null;
@@ -56,11 +54,13 @@
 //   return Array.isArray(raw) ? (raw[0] ?? null) : raw;
 // }
 
-// // ─── Currency helper ─────────────────────────────────────────────────────────
+// // ─── Currency helper ──────────────────────────────────────────────────────────
 
-// function normaliseToRwf(amount: number, currency: string): { amount: number; currency: "RWF" } {
+// function normaliseToRwf(
+//   amount: number,
+//   currency: string
+// ): { amount: number; currency: "RWF" } {
 //   if (currency === "RWF") return { amount, currency: "RWF" };
-
 //   const converted = usdToRwfAmount(amount);
 //   console.info("[flutterwave/initiate] Currency conversion", {
 //     from: `${amount} ${currency}`,
@@ -69,7 +69,7 @@
 //   return { amount: converted, currency: "RWF" };
 // }
 
-// // ─── Route handler ───────────────────────────────────────────────────────────
+// // ─── Route handler ────────────────────────────────────────────────────────────
 
 // export async function POST(req: NextRequest) {
 //   // 1. Parse + validate body
@@ -78,10 +78,7 @@
 //     const raw = await req.json();
 //     const parsed = RequestSchema.safeParse(raw);
 //     if (!parsed.success) {
-//       return apiError(400, {
-//         code: "VALIDATION_ERROR",
-//         details: parsed.error.issues,
-//       });
+//       return apiError(400, { code: "VALIDATION_ERROR", details: parsed.error.issues });
 //     }
 //     body = parsed.data;
 //   } catch {
@@ -91,7 +88,7 @@
 //     });
 //   }
 
-//   const { orderId, orderIds, channel } = body;
+//   const { orderId, channel } = body;
 
 //   try {
 //     const supabase = getSupabase();
@@ -115,7 +112,7 @@
 //       return apiError(404, { code: "ORDER_NOT_FOUND" });
 //     }
 
-//     // 3. Guard: already paid
+//     // 3. Guard: never re-initiate a terminal order
 //     const TERMINAL_STATUSES = new Set(["paid", "completed", "refunded"]);
 //     if (TERMINAL_STATUSES.has(order.payment_status)) {
 //       return apiError(400, {
@@ -124,14 +121,17 @@
 //       });
 //     }
 
-//     // 4. Guard: buyer email
+//     // 4. Guard: buyer must have an email for Flutterwave
 //     const profile = extractProfile(order.profiles as ProfileRow | ProfileRow[] | null);
 //     if (!profile?.email) {
 //       return apiError(400, { code: "BUYER_EMAIL_MISSING" });
 //     }
 
-//     // 5. Build payment-link params
-//     const txRef = `TXID-${Date.now()}`;
+//     // 5. Build a collision-safe tx ref.
+//     //    Date.now() + random UUID suffix avoids millisecond collisions
+//     //    under concurrent requests.
+//     const txRef = `TXID-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
+
 //     const origin =
 //       req.headers.get("origin") ??
 //       process.env.NEXT_PUBLIC_APP_URL ??
@@ -146,6 +146,7 @@
 //       (order.currency ?? "USD").toUpperCase()
 //     );
 
+//     // 6. Create Flutterwave hosted payment link
 //     let paymentLink: string;
 //     try {
 //       paymentLink = await createFlutterwavePaymentLink({
@@ -166,26 +167,15 @@
 //       return apiError(502, { code: "PAYMENT_LINK_FAILED", reason });
 //     }
 
-//     const idsToUpdate = orderIds?.length ? orderIds : [orderId];
-//     // const { error: updateError } = await supabase
-//     //   .from("orders")
-//     //   .update({
-//     //     flutterwave_tx_ref: txRef,
-//     //     payment_provider: "flutterwave",
-//     //     updated_at: new Date().toISOString(),
-//     //   })
-//     //   .in("id", idsToUpdate);
-
-
-//     // if (updateError) {
-//     //   // Log but do NOT fail the request — the payment link is already created
-//     //   console.warn("[flutterwave/initiate] DB update failed (non-fatal)", {
-//     //     error: updateError.message,
-//     //     idsToUpdate,
-//     //   });
-
-//     //   return apiError(400, { code: "INTERNAL_ERROR", reason: updateError.message });
-//     // }
+//     // 7. Persist a pending transaction row.
+//     //
+//     //    Design notes:
+//     //    - provider_transaction_id = txRef is the bridge the webhook uses
+//     //      to resolve the order (Option B — no extra columns needed on orders).
+//     //    - webhook_event_id is intentionally omitted here; the webhook fills
+//     //      it in once Flutterwave confirms payment.
+//     //    - The unique constraint (provider, provider_transaction_id) is safe
+//     //      because every initiation produces a fresh txRef.
 //     const { error: txError } = await supabase.from("transactions").insert({
 //       user_id: order.buyer_id,
 //       order_id: orderId,
@@ -208,6 +198,7 @@
 //       });
 //       return apiError(500, { code: "INTERNAL_ERROR", reason });
 //     }
+
 //     return NextResponse.json({ redirectUrl: paymentLink, txRef });
 //   } catch (err) {
 //     const reason = err instanceof Error ? err.message : String(err);
@@ -215,7 +206,9 @@
 //     return apiError(500, { code: "INTERNAL_ERROR", reason });
 //   }
 // }
+
 // app/api/payments/flutterwave/initiate/route.ts
+
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
@@ -247,7 +240,7 @@ const RequestSchema = z.object({
   channel: z.enum(CHANNEL_VALUES).optional().default("sms"),
 });
 
-// ─── Supabase client (lazy) ───────────────────────────────────────────────────
+// ─── Supabase (lazy) ──────────────────────────────────────────────────────────
 
 function getSupabase() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -344,15 +337,43 @@ export async function POST(req: NextRequest) {
       return apiError(400, { code: "BUYER_EMAIL_MISSING" });
     }
 
-    // 5. Build a collision-safe tx ref.
-    //    Date.now() + random UUID suffix avoids millisecond collisions
-    //    under concurrent requests.
-    const txRef = `TXID-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
+    // 5. Idempotency — check if a pending transaction already exists for this order.
+    //    If it does, reuse its txRef and regenerate the payment link instead of
+    //    creating a duplicate row. This handles:
+    //      - Double-clicks on the pay button
+    //      - Frontend retries
+    //      - Race conditions under concurrent requests
+    const { data: existingTx } = await supabase
+      .from("transactions")
+      .select("id, provider_transaction_id")
+      .eq("order_id", orderId)
+      .eq("provider", "flutterwave")
+      .eq("status", "pending")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
+    // Reuse existing txRef or generate a collision-safe new one.
+    // Date.now() + UUID suffix prevents millisecond collisions under load.
+    const txRef: string =
+      existingTx?.provider_transaction_id ??
+      `TXID-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
+
+    const isReused = !!existingTx;
+
+    if (isReused) {
+      console.info("[flutterwave/initiate] Reusing existing pending transaction", {
+        orderId,
+        txRef,
+        transactionId: existingTx.id,
+      });
+    }
+
+    // 6. Build redirect URL
     const origin =
       req.headers.get("origin") ??
       process.env.NEXT_PUBLIC_APP_URL ??
-      "https://jimvio.com";
+      "https://www.jimvio.com";
 
     const redirectUrl =
       `${origin}/checkout/success` +
@@ -363,7 +384,7 @@ export async function POST(req: NextRequest) {
       (order.currency ?? "USD").toUpperCase()
     );
 
-    // 6. Create Flutterwave hosted payment link
+    // 7. Create Flutterwave hosted payment link
     let paymentLink: string;
     try {
       paymentLink = await createFlutterwavePaymentLink({
@@ -384,36 +405,43 @@ export async function POST(req: NextRequest) {
       return apiError(502, { code: "PAYMENT_LINK_FAILED", reason });
     }
 
-    // 7. Persist a pending transaction row.
-    //
-    //    Design notes:
-    //    - provider_transaction_id = txRef is the bridge the webhook uses
-    //      to resolve the order (Option B — no extra columns needed on orders).
-    //    - webhook_event_id is intentionally omitted here; the webhook fills
-    //      it in once Flutterwave confirms payment.
-    //    - The unique constraint (provider, provider_transaction_id) is safe
-    //      because every initiation produces a fresh txRef.
-    const { error: txError } = await supabase.from("transactions").insert({
-      user_id: order.buyer_id,
-      order_id: orderId,
-      type: "payment",
-      direction: "credit",
-      amount,
-      currency,
-      status: "pending",
-      provider: "flutterwave",
-      provider_transaction_id: txRef,
-      description: `Order ${order.order_number}`,
-    });
-
-    if (txError) {
-      const reason = txError.message;
-      console.error("[flutterwave/initiate] Failed to create transaction record", {
-        reason,
-        orderId,
-        txRef,
+    // 8. Only insert a new transaction row when none exists.
+    //    Skipping the insert when isReused = true prevents:
+    //      - 23505 duplicate key violations
+    //      - Orphaned pending rows from retries
+    if (!isReused) {
+      const { error: txError } = await supabase.from("transactions").insert({
+        user_id: order.buyer_id,
+        order_id: orderId,
+        type: "payment",
+        direction: "credit",
+        amount,
+        currency,
+        status: "pending",
+        provider: "flutterwave",
+        provider_transaction_id: txRef,
+        description: `Order ${order.order_number}`,
+        // webhook_event_id intentionally omitted — webhook fills this on confirmation
       });
-      return apiError(500, { code: "INTERNAL_ERROR", reason });
+
+      if (txError) {
+        // 23505 = unique_violation — a concurrent request inserted the same txRef.
+        // Safe to continue — the webhook will resolve via whichever row was committed.
+        if (txError.code === "23505") {
+          console.warn(
+            "[flutterwave/initiate] Concurrent insert race — transaction already exists, continuing",
+            { orderId, txRef }
+          );
+        } else {
+          const reason = txError.message;
+          console.error("[flutterwave/initiate] Failed to create transaction record", {
+            reason,
+            orderId,
+            txRef,
+          });
+          return apiError(500, { code: "INTERNAL_ERROR", reason });
+        }
+      }
     }
 
     return NextResponse.json({ redirectUrl: paymentLink, txRef });

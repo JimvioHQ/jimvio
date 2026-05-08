@@ -539,17 +539,45 @@ export function validateFlutterwaveWebhook(
   }
 
   // Flutterwave "Secret Hash" method — direct string comparison
-  // This is the standard method per FLW docs for hosted checkout webhooks
-  const isValid = crypto.timingSafeEqual(
-    Buffer.from(signature),
-    Buffer.from(secret)
-  );
+  // per FLW docs for hosted checkout webhooks.
+  //
+  // FIX: crypto.timingSafeEqual() throws a RangeError when the two buffers
+  // have different byte lengths — it does NOT return false.
+  // This was crashing the webhook silently, causing Flutterwave to receive
+  // a 500 instead of a 401, and retry indefinitely.
+  //
+  // Solution: length-check first, then compare.
+  // We still use timingSafeEqual (not ===) to prevent timing attacks.
+  try {
+    const sigBuf    = Buffer.from(signature, "utf8");
+    const secretBuf = Buffer.from(secret,    "utf8");
 
-  if (!isValid) {
-    console.warn("[Flutterwave] Webhook signature mismatch");
+    // Different lengths → definitely not equal.
+    // Return false directly — comparing buffers of different lengths
+    // with timingSafeEqual would throw.
+    if (sigBuf.length !== secretBuf.length) {
+      console.warn("[Flutterwave] Webhook signature length mismatch", {
+        signatureLength: sigBuf.length,
+        secretLength:    secretBuf.length,
+      });
+      return false;
+    }
+
+    const isValid = crypto.timingSafeEqual(sigBuf, secretBuf);
+
+    if (!isValid) {
+      console.warn("[Flutterwave] Webhook signature mismatch");
+    }
+
+    return isValid;
+  } catch (err) {
+    // Catch any unexpected errors from timingSafeEqual so the webhook
+    // never crashes — always return false instead of throwing.
+    console.error("[Flutterwave] Webhook signature comparison error", {
+      reason: err instanceof Error ? err.message : String(err),
+    });
+    return false;
   }
-
-  return isValid;
 }
 
 /* ── Refund (optional) ───────────────────────────────────────────── */
