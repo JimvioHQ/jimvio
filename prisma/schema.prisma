@@ -1,4 +1,3 @@
-
 generator client {
   provider        = "prisma-client"
   output          = "../lib/generated/prisma"
@@ -6,8 +5,8 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  schemas   = ["public"]
+  provider = "postgresql"
+  schemas  = ["public"]
 }
 
 // ─────────────────────────────────────────────
@@ -206,21 +205,21 @@ enum verification_status {
 /// Central user profile — mirrors auth.users via shared UUID primary key.
 /// All app logic should reference this table rather than auth.users directly.
 model profiles {
-  id                 String  @id @db.Uuid // same UUID as auth.users.id
-  email              String  @unique
-  username           String? @unique
+  id                 String    @id @db.Uuid // same UUID as auth.users.id
+  email              String    @unique
+  username           String?   @unique
   full_name          String?
   avatar_url         String?
   bio                String?
   website            String?
   phone              String?
-  country            String? @default("RW")
+  country            String?   @default("RW")
   city               String?
-  timezone           String? @default("Africa/Kigali")
-  language           String? @default("en")
-  is_verified        Boolean? @default(false)
-  is_active          Boolean? @default(true)
-  two_factor_enabled Boolean? @default(false)
+  timezone           String?   @default("Africa/Kigali")
+  language           String?   @default("en")
+  is_verified        Boolean?  @default(false)
+  is_active          Boolean?  @default(true)
+  two_factor_enabled Boolean?  @default(false)
   created_at         DateTime? @default(now()) @db.Timestamptz(6)
   updated_at         DateTime? @default(now()) @db.Timestamptz(6)
 
@@ -251,24 +250,25 @@ model profiles {
   reviews                                                                         reviews[]
   short_video_comments                                                            short_video_comments[]
   short_videos                                                                    short_videos[]
-  task_completions_task_completions_reviewed_byToprofiles                         task_completions[] @relation("task_completions_reviewed_byToprofiles")
-  task_completions_task_completions_user_idToprofiles                             task_completions[] @relation("task_completions_user_idToprofiles")
+  task_completions_task_completions_reviewed_byToprofiles                         task_completions[]              @relation("task_completions_reviewed_byToprofiles")
+  task_completions_task_completions_user_idToprofiles                             task_completions[]              @relation("task_completions_user_idToprofiles")
   transactions                                                                    transactions[]
   ugc_campaign_escrow                                                             ugc_campaign_escrow[]
-  ugc_reports_ugc_reports_reporter_idToprofiles                                   ugc_reports[] @relation("ugc_reports_reporter_idToprofiles")
-  ugc_reports_ugc_reports_reviewed_byToprofiles                                   ugc_reports[] @relation("ugc_reports_reviewed_byToprofiles")
+  ugc_reports_ugc_reports_reporter_idToprofiles                                   ugc_reports[]                   @relation("ugc_reports_reporter_idToprofiles")
+  ugc_reports_ugc_reports_reviewed_byToprofiles                                   ugc_reports[]                   @relation("ugc_reports_reviewed_byToprofiles")
   ugc_submissions                                                                 ugc_submissions[]
   user_roles                                                                      user_roles[]
   vendor_followers                                                                vendor_followers[]
   vendors                                                                         vendors[]
   wallets                                                                         wallets?
   wishlists                                                                       wishlists[]
+  digital_access                                                                  digital_access[]
+  shortVideoClicks                                                                short_video_clicks[]
+  conversationMessages                                                            conversation_messages[]
 
   @@index([email], map: "idx_profiles_email")
   @@index([username], map: "idx_profiles_username")
   @@schema("public")
-  shortVideoClicks short_video_clicks[]
-  conversationMessages conversation_messages[]
 }
 
 model user_roles {
@@ -377,58 +377,58 @@ model product_categories {
 }
 
 model products {
-  id                        String         @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  vendor_id                 String         @db.Uuid
-  category_id               String?        @db.Uuid
+  id                        String          @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  vendor_id                 String          @db.Uuid
+  category_id               String?         @db.Uuid
   name                      String
-  slug                      String         @unique
+  slug                      String          @unique
   short_description         String?
   description               String?
-  product_type              product_type?  @default(physical)
+  product_type              product_type?   @default(physical)
   status                    product_status? @default(draft)
-  price                     Decimal        @default(0) @db.Decimal(14, 2)
-  compare_at_price          Decimal?       @db.Decimal(14, 2)
-  cost_price                Decimal?       @db.Decimal(14, 2)
-  currency                  String?        @default("RWF")
-  sku                       String?        @unique
+  price                     Decimal         @default(0) @db.Decimal(14, 2)
+  compare_at_price          Decimal?        @db.Decimal(14, 2)
+  cost_price                Decimal?        @db.Decimal(14, 2)
+  currency                  String?         @default("RWF")
+  sku                       String?         @unique
   barcode                   String?
-  weight                    Decimal?       @db.Decimal(10, 3)
+  weight                    Decimal?        @db.Decimal(10, 3)
   dimensions                Json?
-  images                    Json?          @default("[]")
-  videos                    Json?          @default("[]")
+  images                    Json?           @default("[]")
+  videos                    Json?           @default("[]")
   tags                      String[]
   meta_title                String?
   meta_description          String?
-  is_digital                Boolean?       @default(false)
+  is_digital                Boolean?        @default(false)
   digital_file_url          String?
   digital_file_size         BigInt?
-  requires_shipping         Boolean?       @default(true)
-  track_inventory           Boolean?       @default(true)
-  inventory_quantity        Int?           @default(0)
-  low_stock_threshold       Int?           @default(5)
-  allow_backorder           Boolean?       @default(false)
-  affiliate_enabled         Boolean?       @default(true)
-  affiliate_commission_rate Decimal?       @db.Decimal(5, 2)
-  influencer_enabled        Boolean?       @default(true)
-  is_featured               Boolean?       @default(false)
-  is_active                 Boolean?       @default(true)
-  view_count                Int?           @default(0)
-  sale_count                Int?           @default(0)
-  rating                    Decimal?       @default(0) @db.Decimal(3, 2)
-  review_count              Int?           @default(0)
-  wishlist_count            Int?           @default(0)
-  published_at              DateTime?      @db.Timestamptz(6)
-  created_at                DateTime?      @default(now()) @db.Timestamptz(6)
-  updated_at                DateTime?      @default(now()) @db.Timestamptz(6)
+  requires_shipping         Boolean?        @default(true)
+  track_inventory           Boolean?        @default(true)
+  inventory_quantity        Int?            @default(0)
+  low_stock_threshold       Int?            @default(5)
+  allow_backorder           Boolean?        @default(false)
+  affiliate_enabled         Boolean?        @default(true)
+  affiliate_commission_rate Decimal?        @db.Decimal(5, 2)
+  influencer_enabled        Boolean?        @default(true)
+  is_featured               Boolean?        @default(false)
+  is_active                 Boolean?        @default(true)
+  view_count                Int?            @default(0)
+  sale_count                Int?            @default(0)
+  rating                    Decimal?        @default(0) @db.Decimal(3, 2)
+  review_count              Int?            @default(0)
+  wishlist_count            Int?            @default(0)
+  published_at              DateTime?       @db.Timestamptz(6)
+  created_at                DateTime?       @default(now()) @db.Timestamptz(6)
+  updated_at                DateTime?       @default(now()) @db.Timestamptz(6)
   shopify_product_id        String?
   shopify_variant_id        BigInt?
   shopify_handle            String?
-  shopify_synced_at         DateTime?      @db.Timestamptz(6)
-  source                    String?        @default("vendor")
-  source_metadata           Json           @default("{}")
-  price_usd                 Decimal        @default(0) @db.Decimal(10, 2)
+  shopify_synced_at         DateTime?       @db.Timestamptz(6)
+  source                    String?         @default("vendor")
+  source_metadata           Json            @default("{}")
+  price_usd                 Decimal         @default(0) @db.Decimal(10, 2)
   button_text               String?
-  pricing_type              String?        @default("one_time")
+  pricing_type              String?         @default("one_time")
   billing_period            String?
 
   product_categories    product_categories?     @relation(fields: [category_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -442,6 +442,7 @@ model products {
   short_video_clicks    short_video_clicks[]
   short_videos          short_videos[]
   wishlists             wishlists[]
+  digitalAccesses       digital_access[]
 
   @@unique([shopify_product_id, vendor_id], map: "idx_products_shopify_id", where: raw("(shopify_product_id IS NOT NULL)"))
   @@index([is_active], map: "idx_products_active", where: raw("(is_active = true)"))
@@ -458,19 +459,19 @@ model products {
 }
 
 model product_variants {
-  id                 String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  product_id         String    @db.Uuid
+  id                 String        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  product_id         String        @db.Uuid
   name               String
-  sku                String?   @unique
-  price              Decimal   @db.Decimal(14, 2)
-  compare_at_price   Decimal?  @db.Decimal(14, 2)
-  inventory_quantity Int?      @default(0)
+  sku                String?       @unique
+  price              Decimal       @db.Decimal(14, 2)
+  compare_at_price   Decimal?      @db.Decimal(14, 2)
+  inventory_quantity Int?          @default(0)
   image_url          String?
-  options            Json?     @default("{}")
-  is_active          Boolean?  @default(true)
-  created_at         DateTime? @default(now()) @db.Timestamptz(6)
+  options            Json?         @default("{}")
+  is_active          Boolean?      @default(true)
+  created_at         DateTime?     @default(now()) @db.Timestamptz(6)
   order_items        order_items[]
-  products           products  @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  products           products      @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@schema("public")
 }
@@ -592,6 +593,7 @@ model orders {
   exchange_rate_logs    exchange_rate_logs[]
   transactions          transactions[]
   webhook_events        webhook_events[]
+  digitalAccesses       digital_access[]
 
   @@index([buyer_id], map: "idx_orders_buyer_id")
   @@index([vendor_id], map: "idx_orders_vendor_id")
@@ -630,12 +632,13 @@ model order_items {
   pricing_type                String?   @default("one_time")
   billing_period              String?
 
-  orders           orders            @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  products         products?         @relation(fields: [product_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  product_variants product_variants? @relation(fields: [variant_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  vendors          vendors?          @relation(fields: [vendor_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  orders                orders                  @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  products              products?               @relation(fields: [product_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  product_variants      product_variants?       @relation(fields: [variant_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  vendors               vendors?                @relation(fields: [vendor_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   affiliate_commissions affiliate_commissions[]
-  reviews          reviews[]
+  reviews               reviews[]
+  digitalAccesses       digital_access[]
 
   @@index([order_id], map: "idx_order_items_order_id")
   @@index([pricing_type], map: "idx_order_items_pricing_type")
@@ -723,23 +726,23 @@ model webhook_events {
 }
 
 model payouts {
-  id                 String        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  user_id            String        @db.Uuid
+  id                 String         @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_id            String         @db.Uuid
   type               String
-  amount             Decimal       @db.Decimal(14, 2)
-  fee                Decimal?      @default(0) @db.Decimal(14, 2)
-  net_amount         Decimal?      @db.Decimal(14, 2)
-  currency           String?       @default("RWF")
+  amount             Decimal        @db.Decimal(14, 2)
+  fee                Decimal?       @default(0) @db.Decimal(14, 2)
+  net_amount         Decimal?       @db.Decimal(14, 2)
+  currency           String?        @default("RWF")
   status             payout_status? @default(pending)
-  payout_method      String?       @default("mtn")
+  payout_method      String?        @default("mtn")
   payout_account     String?
   provider_reference String?
   notes              String?
-  processed_at       DateTime?     @db.Timestamptz(6)
-  created_at         DateTime?     @default(now()) @db.Timestamptz(6)
-  updated_at         DateTime?     @default(now()) @db.Timestamptz(6)
-  release_date       DateTime?     @db.Timestamptz(6)
-  profiles           profiles      @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  processed_at       DateTime?      @db.Timestamptz(6)
+  created_at         DateTime?      @default(now()) @db.Timestamptz(6)
+  updated_at         DateTime?      @default(now()) @db.Timestamptz(6)
+  release_date       DateTime?      @db.Timestamptz(6)
+  profiles           profiles       @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   ugc_payouts        ugc_payouts[]
 
   @@schema("public")
@@ -762,54 +765,54 @@ model wallets {
 // ── Affiliates ────────────────────────────────
 
 model affiliates {
-  id                    String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  user_id               String    @unique @db.Uuid
-  affiliate_code        String    @unique @default(dbgenerated("('AFF-'::text || upper(\"substring\"((gen_random_uuid())::text, 1, 8)))"))
-  bio                   String?
-  website               String?
-  social_links          Json?     @default("{}")
-  niche                 String[]
-  tier                  String?   @default("bronze")
-  total_clicks          BigInt?   @default(0)
-  total_conversions     BigInt?   @default(0)
-  total_earnings        Decimal?  @default(0) @db.Decimal(14, 2)
-  available_balance     Decimal?  @default(0) @db.Decimal(14, 2)
-  pending_earnings      Decimal?  @default(0) @db.Decimal(14, 2)
-  paid_earnings         Decimal?  @default(0) @db.Decimal(14, 2)
-  conversion_rate       Decimal?  @default(0) @db.Decimal(5, 2)
-  is_active             Boolean?  @default(true)
-  created_at            DateTime? @default(now()) @db.Timestamptz(6)
-  updated_at            DateTime? @default(now()) @db.Timestamptz(6)
-  payout_method         String?   @default("bank")
-  payout_account        String?
+  id                String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_id           String    @unique @db.Uuid
+  affiliate_code    String    @unique @default(dbgenerated("('AFF-'::text || upper(\"substring\"((gen_random_uuid())::text, 1, 8)))"))
+  bio               String?
+  website           String?
+  social_links      Json?     @default("{}")
+  niche             String[]
+  tier              String?   @default("bronze")
+  total_clicks      BigInt?   @default(0)
+  total_conversions BigInt?   @default(0)
+  total_earnings    Decimal?  @default(0) @db.Decimal(14, 2)
+  available_balance Decimal?  @default(0) @db.Decimal(14, 2)
+  pending_earnings  Decimal?  @default(0) @db.Decimal(14, 2)
+  paid_earnings     Decimal?  @default(0) @db.Decimal(14, 2)
+  conversion_rate   Decimal?  @default(0) @db.Decimal(5, 2)
+  is_active         Boolean?  @default(true)
+  created_at        DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime? @default(now()) @db.Timestamptz(6)
+  payout_method     String?   @default("bank")
+  payout_account    String?
 
   profiles              profiles                @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   affiliate_clicks      affiliate_clicks[]
   affiliate_commissions affiliate_commissions[]
   affiliate_links       affiliate_links[]
-  
+
   @@index([affiliate_code], map: "idx_affiliates_code")
   @@index([user_id], map: "idx_affiliates_user_id")
   @@schema("public")
 }
 
 model affiliate_links {
-  id                    String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  affiliate_id          String    @db.Uuid
-  product_id            String?   @db.Uuid
-  vendor_id             String?   @db.Uuid
-  link_code             String    @unique @default(dbgenerated("('LNK-'::text || upper(\"substring\"((gen_random_uuid())::text, 1, 10)))"))
-  custom_slug           String?   @unique
-  destination_url       String
-  full_url              String?
-  commission_rate       Decimal?  @db.Decimal(5, 2)
-  total_clicks          BigInt?   @default(0)
-  unique_clicks         BigInt?   @default(0)
-  total_conversions     BigInt?   @default(0)
-  total_earnings        Decimal?  @default(0) @db.Decimal(14, 2)
-  is_active             Boolean?  @default(true)
-  expires_at            DateTime? @db.Timestamptz(6)
-  created_at            DateTime? @default(now()) @db.Timestamptz(6)
+  id                String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  affiliate_id      String    @db.Uuid
+  product_id        String?   @db.Uuid
+  vendor_id         String?   @db.Uuid
+  link_code         String    @unique @default(dbgenerated("('LNK-'::text || upper(\"substring\"((gen_random_uuid())::text, 1, 10)))"))
+  custom_slug       String?   @unique
+  destination_url   String
+  full_url          String?
+  commission_rate   Decimal?  @db.Decimal(5, 2)
+  total_clicks      BigInt?   @default(0)
+  unique_clicks     BigInt?   @default(0)
+  total_conversions BigInt?   @default(0)
+  total_earnings    Decimal?  @default(0) @db.Decimal(14, 2)
+  is_active         Boolean?  @default(true)
+  expires_at        DateTime? @db.Timestamptz(6)
+  created_at        DateTime? @default(now()) @db.Timestamptz(6)
 
   affiliates            affiliates              @relation(fields: [affiliate_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   products              products?               @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
@@ -874,27 +877,27 @@ model affiliate_commissions {
 // ── Influencers & UGC ─────────────────────────
 
 model influencers {
-  id                        String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  user_id                   String    @unique @db.Uuid
-  display_name              String
-  niche                     String[]
-  bio                       String?
-  profile_image             String?
-  cover_image               String?
-  social_platforms          Json?     @default("{}")
-  total_followers           BigInt?   @default(0)
-  engagement_rate           Decimal?  @default(0) @db.Decimal(5, 2)
-  total_campaigns           Int?      @default(0)
-  total_earnings            Decimal?  @default(0) @db.Decimal(14, 2)
-  available_balance         Decimal?  @default(0) @db.Decimal(14, 2)
-  rating                    Decimal?  @default(0) @db.Decimal(3, 2)
-  is_verified               Boolean?  @default(false)
-  is_featured               Boolean?  @default(false)
-  is_active                 Boolean?  @default(true)
-  created_at                DateTime? @default(now()) @db.Timestamptz(6)
-  updated_at                DateTime? @default(now()) @db.Timestamptz(6)
-  guidelines_accepted_at    DateTime? @db.Timestamptz(6)
-  pending_balance           Decimal?  @default(0) @db.Decimal
+  id                     String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_id                String    @unique @db.Uuid
+  display_name           String
+  niche                  String[]
+  bio                    String?
+  profile_image          String?
+  cover_image            String?
+  social_platforms       Json?     @default("{}")
+  total_followers        BigInt?   @default(0)
+  engagement_rate        Decimal?  @default(0) @db.Decimal(5, 2)
+  total_campaigns        Int?      @default(0)
+  total_earnings         Decimal?  @default(0) @db.Decimal(14, 2)
+  available_balance      Decimal?  @default(0) @db.Decimal(14, 2)
+  rating                 Decimal?  @default(0) @db.Decimal(3, 2)
+  is_verified            Boolean?  @default(false)
+  is_featured            Boolean?  @default(false)
+  is_active              Boolean?  @default(true)
+  created_at             DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at             DateTime? @default(now()) @db.Timestamptz(6)
+  guidelines_accepted_at DateTime? @db.Timestamptz(6)
+  pending_balance        Decimal?  @default(0) @db.Decimal
 
   profiles                  profiles                    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   short_video_earnings      short_video_earnings[]
@@ -908,36 +911,36 @@ model influencers {
 }
 
 model ugc_campaigns {
-  id                        String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  brand_id                  String              @db.Uuid
-  title                     String
-  description               String?
-  campaign_type             ugc_campaign_type   @default(clipping)
-  status                    ugc_campaign_status @default(draft)
-  rate_per_1k_views         Decimal             @default(3.00) @db.Decimal
-  total_budget              Decimal             @default(0) @db.Decimal
-  spent_budget              Decimal             @default(0) @db.Decimal
-  max_payout_per_sub        Decimal?            @default(400) @db.Decimal
-  allowed_platforms         String[]            @default(["tiktok", "instagram", "youtube", "x"])
-  requires_face             Boolean?            @default(false)
-  submission_count          Int?                @default(0)
-  approved_count            Int?                @default(0)
-  total_views_tracked       BigInt?             @default(0)
-  starts_at                 DateTime?           @db.Timestamptz(6)
-  ends_at                   DateTime?           @db.Timestamptz(6)
-  created_at                DateTime?           @default(now()) @db.Timestamptz(6)
-  updated_at                DateTime?           @default(now()) @db.Timestamptz(6)
-  min_duration              Int?
-  max_duration              Int?
-  required_hashtags         Json?               @default("[]")
-  required_mentions         Json?               @default("[]")
-  required_keywords         Json?               @default("[]")
-  music_track_url           String?
-  music_artist_name         String?
-  promotion_target          String?
-  promotion_target_url      String?
-  payment_model             ugc_payment_model?  @default(per_views)
-  fixed_rate                Decimal?            @default(0) @db.Decimal
+  id                   String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  brand_id             String              @db.Uuid
+  title                String
+  description          String?
+  campaign_type        ugc_campaign_type   @default(clipping)
+  status               ugc_campaign_status @default(draft)
+  rate_per_1k_views    Decimal             @default(3.00) @db.Decimal
+  total_budget         Decimal             @default(0) @db.Decimal
+  spent_budget         Decimal             @default(0) @db.Decimal
+  max_payout_per_sub   Decimal?            @default(400) @db.Decimal
+  allowed_platforms    String[]            @default(["tiktok", "instagram", "youtube", "x"])
+  requires_face        Boolean?            @default(false)
+  submission_count     Int?                @default(0)
+  approved_count       Int?                @default(0)
+  total_views_tracked  BigInt?             @default(0)
+  starts_at            DateTime?           @db.Timestamptz(6)
+  ends_at              DateTime?           @db.Timestamptz(6)
+  created_at           DateTime?           @default(now()) @db.Timestamptz(6)
+  updated_at           DateTime?           @default(now()) @db.Timestamptz(6)
+  min_duration         Int?
+  max_duration         Int?
+  required_hashtags    Json?               @default("[]")
+  required_mentions    Json?               @default("[]")
+  required_keywords    Json?               @default("[]")
+  music_track_url      String?
+  music_artist_name    String?
+  promotion_target     String?
+  promotion_target_url String?
+  payment_model        ugc_payment_model?  @default(per_views)
+  fixed_rate           Decimal?            @default(0) @db.Decimal
 
   vendors                   vendors                     @relation(fields: [brand_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   ugc_campaign_escrow       ugc_campaign_escrow?
@@ -1001,27 +1004,27 @@ model ugc_campaign_participants {
 }
 
 model ugc_submissions {
-  id                   String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  campaign_id          String                @db.Uuid
-  influencer_id        String                @db.Uuid
-  post_url             String
-  platform             ugc_platform
-  caption              String?
-  status               ugc_submission_status @default(pending)
-  rejection_reason     String?
-  reviewed_by          String?               @db.Uuid
-  reviewed_at          DateTime?             @db.Timestamptz(6)
-  total_views_earned   BigInt?               @default(0)
-  total_earnings       Decimal?              @default(0) @db.Decimal
-  last_synced_at       DateTime?             @db.Timestamptz(6)
-  created_at           DateTime?             @default(now()) @db.Timestamptz(6)
-  updated_at           DateTime?             @default(now()) @db.Timestamptz(6)
-  is_suspicious        Boolean?              @default(false)
-  fraud_score          Decimal?              @default(0.00) @db.Decimal(5, 2)
+  id                 String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  campaign_id        String                @db.Uuid
+  influencer_id      String                @db.Uuid
+  post_url           String
+  platform           ugc_platform
+  caption            String?
+  status             ugc_submission_status @default(pending)
+  rejection_reason   String?
+  reviewed_by        String?               @db.Uuid
+  reviewed_at        DateTime?             @db.Timestamptz(6)
+  total_views_earned BigInt?               @default(0)
+  total_earnings     Decimal?              @default(0) @db.Decimal
+  last_synced_at     DateTime?             @db.Timestamptz(6)
+  created_at         DateTime?             @default(now()) @db.Timestamptz(6)
+  updated_at         DateTime?             @default(now()) @db.Timestamptz(6)
+  is_suspicious      Boolean?              @default(false)
+  fraud_score        Decimal?              @default(0.00) @db.Decimal(5, 2)
 
-  ugc_campaigns        ugc_campaigns         @relation(fields: [campaign_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  influencers          influencers           @relation(fields: [influencer_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  profiles             profiles?             @relation(fields: [reviewed_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  ugc_campaigns        ugc_campaigns          @relation(fields: [campaign_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  influencers          influencers            @relation(fields: [influencer_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  profiles             profiles?              @relation(fields: [reviewed_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
   ugc_payouts          ugc_payouts[]
   ugc_reports          ugc_reports[]
   ugc_submission_media ugc_submission_media[]
@@ -1073,18 +1076,18 @@ model ugc_view_snapshots {
 }
 
 model ugc_payouts {
-  id              String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  submission_id   String            @db.Uuid
-  influencer_id   String            @db.Uuid
-  amount          Decimal           @default(0.00) @db.Decimal(12, 2)
-  status          ugc_payout_status @default(pending)
-  paid_at         DateTime?         @db.Timestamptz(6)
-  payout_id       String?           @db.Uuid
-  created_at      DateTime?         @default(now()) @db.Timestamptz(6)
+  id            String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  submission_id String            @db.Uuid
+  influencer_id String            @db.Uuid
+  amount        Decimal           @default(0.00) @db.Decimal(12, 2)
+  status        ugc_payout_status @default(pending)
+  paid_at       DateTime?         @db.Timestamptz(6)
+  payout_id     String?           @db.Uuid
+  created_at    DateTime?         @default(now()) @db.Timestamptz(6)
 
-  influencers     influencers       @relation(fields: [influencer_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  payouts         payouts?          @relation(fields: [payout_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  ugc_submissions ugc_submissions   @relation(fields: [submission_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  influencers     influencers     @relation(fields: [influencer_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  payouts         payouts?        @relation(fields: [payout_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  ugc_submissions ugc_submissions @relation(fields: [submission_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([created_at(sort: Desc)], map: "idx_ugc_payouts_created_at")
   @@index([influencer_id], map: "idx_ugc_payouts_inf_id")
@@ -1094,15 +1097,15 @@ model ugc_payouts {
 }
 
 model ugc_reports {
-  id                                         String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  reporter_id                                String           @db.Uuid
-  submission_id                              String?          @db.Uuid
-  reason                                     String
-  details                                    String?
-  status                                     String?          @default("pending")
-  reviewed_by                                String?          @db.Uuid
-  reviewed_at                                DateTime?        @db.Timestamptz(6)
-  created_at                                 DateTime?        @default(now()) @db.Timestamptz(6)
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  reporter_id   String    @db.Uuid
+  submission_id String?   @db.Uuid
+  reason        String
+  details       String?
+  status        String?   @default("pending")
+  reviewed_by   String?   @db.Uuid
+  reviewed_at   DateTime? @db.Timestamptz(6)
+  created_at    DateTime? @default(now()) @db.Timestamptz(6)
 
   profiles_ugc_reports_reporter_idToprofiles profiles         @relation("ugc_reports_reporter_idToprofiles", fields: [reporter_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   profiles_ugc_reports_reviewed_byToprofiles profiles?        @relation("ugc_reports_reviewed_byToprofiles", fields: [reviewed_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -1116,26 +1119,26 @@ model ugc_reports {
 // ── Short Videos ──────────────────────────────
 
 model short_videos {
-  id                   String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  creator_id           String    @db.Uuid
-  user_id              String    @db.Uuid
-  title                String
-  description          String?
-  video_url            String
-  thumbnail_url        String?
-  duration_sec         Int?      @default(0)
-  product_id           String?   @db.Uuid
-  community_id         String?   @db.Uuid
-  status               String    @default("processing")
-  view_count           BigInt    @default(0)
-  like_count           BigInt    @default(0)
-  click_count          BigInt    @default(0)
-  total_earnings       Decimal   @default(0) @db.Decimal(14, 4)
-  created_at           DateTime  @default(now()) @db.Timestamptz(6)
-  updated_at           DateTime  @default(now()) @db.Timestamptz(6)
-  video_type           String?   @default("product") @db.VarChar(50)
-  external_link        String?
-  comment_count        Int?      @default(0)
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  creator_id     String   @db.Uuid
+  user_id        String   @db.Uuid
+  title          String
+  description    String?
+  video_url      String
+  thumbnail_url  String?
+  duration_sec   Int?     @default(0)
+  product_id     String?  @db.Uuid
+  community_id   String?  @db.Uuid
+  status         String   @default("processing")
+  view_count     BigInt   @default(0)
+  like_count     BigInt   @default(0)
+  click_count    BigInt   @default(0)
+  total_earnings Decimal  @default(0) @db.Decimal(14, 4)
+  created_at     DateTime @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime @default(now()) @db.Timestamptz(6)
+  video_type     String?  @default("product") @db.VarChar(50)
+  external_link  String?
+  comment_count  Int?     @default(0)
 
   influencers          influencers            @relation(fields: [creator_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   users                profiles               @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "short_videos_user_id_profiles_fkey")
@@ -1156,14 +1159,14 @@ model short_videos {
 }
 
 model short_video_clicks {
-  id           String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  video_id     String       @db.Uuid
-  user_id      String?      @db.Uuid
-  product_id   String?      @db.Uuid
-  converted    Boolean      @default(false)
-  order_id     String?      @db.Uuid
-  created_at   DateTime     @default(now()) @db.Timestamptz(6)
-  community_id String?      @db.Uuid
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  video_id     String   @db.Uuid
+  user_id      String?  @db.Uuid
+  product_id   String?  @db.Uuid
+  converted    Boolean  @default(false)
+  order_id     String?  @db.Uuid
+  created_at   DateTime @default(now()) @db.Timestamptz(6)
+  community_id String?  @db.Uuid
 
   communities  communities? @relation(fields: [community_id], references: [id], onUpdate: NoAction)
   products     products?    @relation(fields: [product_id], references: [id], onUpdate: NoAction)
@@ -1176,11 +1179,11 @@ model short_video_clicks {
 }
 
 model short_video_comments {
-  id           String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  video_id     String       @db.Uuid
-  user_id      String       @db.Uuid
-  body         String
-  created_at   DateTime     @default(now()) @db.Timestamptz(6)
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  video_id   String   @db.Uuid
+  user_id    String   @db.Uuid
+  body       String
+  created_at DateTime @default(now()) @db.Timestamptz(6)
 
   profiles     profiles     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   short_videos short_videos @relation(fields: [video_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
@@ -1189,10 +1192,10 @@ model short_video_comments {
 }
 
 model short_video_likes {
-  id           String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  video_id     String       @db.Uuid
-  user_id      String       @db.Uuid
-  created_at   DateTime     @default(now()) @db.Timestamptz(6)
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  video_id   String   @db.Uuid
+  user_id    String   @db.Uuid
+  created_at DateTime @default(now()) @db.Timestamptz(6)
 
   short_videos short_videos @relation(fields: [video_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
@@ -1202,13 +1205,13 @@ model short_video_likes {
 }
 
 model short_video_views {
-  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  video_id       String       @db.Uuid
-  viewer_id      String?      @db.Uuid
-  watch_time_sec Int          @default(0)
-  created_at     DateTime     @default(now()) @db.Timestamptz(6)
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  video_id       String   @db.Uuid
+  viewer_id      String?  @db.Uuid
+  watch_time_sec Int      @default(0)
+  created_at     DateTime @default(now()) @db.Timestamptz(6)
 
-  short_videos   short_videos @relation(fields: [video_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  short_videos short_videos @relation(fields: [video_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@unique([video_id, viewer_id])
   @@index([video_id], map: "idx_svviews_video")
@@ -1217,14 +1220,14 @@ model short_video_views {
 }
 
 model short_video_earnings {
-  id           String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  video_id     String      @db.Uuid
-  creator_id   String      @db.Uuid
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  video_id     String   @db.Uuid
+  creator_id   String   @db.Uuid
   event_type   String
-  amount       Decimal     @default(0) @db.Decimal(14, 4)
-  currency     String      @default("RWF")
-  reference_id String?     @db.Uuid
-  created_at   DateTime    @default(now()) @db.Timestamptz(6)
+  amount       Decimal  @default(0) @db.Decimal(14, 4)
+  currency     String   @default("RWF")
+  reference_id String?  @db.Uuid
+  created_at   DateTime @default(now()) @db.Timestamptz(6)
 
   influencers  influencers  @relation(fields: [creator_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   short_videos short_videos @relation(fields: [video_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
@@ -1369,19 +1372,19 @@ model community_memberships {
 }
 
 model community_payments {
-  id                    String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  community_id          String                @db.Uuid
-  membership_id         String                @db.Uuid
-  user_id               String                @db.Uuid
-  amount                Decimal               @db.Decimal
-  currency              String?               @default("USD")
-  plan_type             String
-  payment_provider      String?
-  payment_reference     String?               @unique
-  platform_commission   Decimal?              @default(0) @db.Decimal
-  creator_earnings      Decimal?              @default(0) @db.Decimal
-  status                String?               @default("pending")
-  created_at            DateTime?             @default(now()) @db.Timestamptz(6)
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  community_id        String    @db.Uuid
+  membership_id       String    @db.Uuid
+  user_id             String    @db.Uuid
+  amount              Decimal   @db.Decimal
+  currency            String?   @default("USD")
+  plan_type           String
+  payment_provider    String?
+  payment_reference   String?   @unique
+  platform_commission Decimal?  @default(0) @db.Decimal
+  creator_earnings    Decimal?  @default(0) @db.Decimal
+  status              String?   @default("pending")
+  created_at          DateTime? @default(now()) @db.Timestamptz(6)
 
   communities           communities           @relation(fields: [community_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   community_memberships community_memberships @relation(fields: [membership_id], references: [id], onUpdate: NoAction)
@@ -1393,26 +1396,26 @@ model community_payments {
 }
 
 model community_posts {
-  id                      String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  room_id                 String    @db.Uuid
-  space_id                String    @db.Uuid
-  community_id            String    @db.Uuid
-  author_id               String    @db.Uuid
-  title                   String?
-  body                    String
-  post_type               String?   @default("discussion")
-  images                  Json?     @default("[]")
-  attachments             Json?     @default("[]")
-  video_url               String?
-  like_count              Int?      @default(0)
-  comment_count           Int?      @default(0)
-  view_count              Int?      @default(0)
-  is_pinned               Boolean?  @default(false)
-  is_exclusive            Boolean?  @default(false)
-  is_published            Boolean?  @default(true)
-  published_at            DateTime? @default(now()) @db.Timestamptz(6)
-  created_at              DateTime? @default(now()) @db.Timestamptz(6)
-  updated_at              DateTime? @default(now()) @db.Timestamptz(6)
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  room_id       String    @db.Uuid
+  space_id      String    @db.Uuid
+  community_id  String    @db.Uuid
+  author_id     String    @db.Uuid
+  title         String?
+  body          String
+  post_type     String?   @default("discussion")
+  images        Json?     @default("[]")
+  attachments   Json?     @default("[]")
+  video_url     String?
+  like_count    Int?      @default(0)
+  comment_count Int?      @default(0)
+  view_count    Int?      @default(0)
+  is_pinned     Boolean?  @default(false)
+  is_exclusive  Boolean?  @default(false)
+  is_published  Boolean?  @default(true)
+  published_at  DateTime? @default(now()) @db.Timestamptz(6)
+  created_at    DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at    DateTime? @default(now()) @db.Timestamptz(6)
 
   profiles                profiles                  @relation(fields: [author_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   communities             communities               @relation(fields: [community_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
@@ -1429,14 +1432,14 @@ model community_posts {
 }
 
 model community_post_comments {
-  id                            String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  post_id                       String                    @db.Uuid
-  author_id                     String                    @db.Uuid
-  parent_id                     String?                   @db.Uuid
-  body                          String
-  like_count                    Int?                      @default(0)
-  is_published                  Boolean?                  @default(true)
-  created_at                    DateTime?                 @default(now()) @db.Timestamptz(6)
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  post_id      String    @db.Uuid
+  author_id    String    @db.Uuid
+  parent_id    String?   @db.Uuid
+  body         String
+  like_count   Int?      @default(0)
+  is_published Boolean?  @default(true)
+  created_at   DateTime? @default(now()) @db.Timestamptz(6)
 
   profiles                      profiles                  @relation(fields: [author_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   community_post_comments       community_post_comments?  @relation("community_post_commentsTocommunity_post_comments", fields: [parent_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
@@ -1474,21 +1477,21 @@ model community_saved_posts {
 }
 
 model community_messages {
-  id                       String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  room_id                  String               @db.Uuid
-  community_id             String               @db.Uuid
-  sender_id                String               @db.Uuid
-  body                     String?              @default("")
-  message_type             String?              @default("text")
-  thread_id                String?              @db.Uuid
-  reply_count              Int?                 @default(0)
-  attachments              Json?                @default("[]")
-  reactions                Json?                @default("{}")
-  is_pinned                Boolean?             @default(false)
-  is_edited                Boolean?             @default(false)
-  edited_at                DateTime?            @db.Timestamptz(6)
-  is_deleted               Boolean?             @default(false)
-  created_at               DateTime?            @default(now()) @db.Timestamptz(6)
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  room_id      String    @db.Uuid
+  community_id String    @db.Uuid
+  sender_id    String    @db.Uuid
+  body         String?   @default("")
+  message_type String?   @default("text")
+  thread_id    String?   @db.Uuid
+  reply_count  Int?      @default(0)
+  attachments  Json?     @default("[]")
+  reactions    Json?     @default("{}")
+  is_pinned    Boolean?  @default(false)
+  is_edited    Boolean?  @default(false)
+  edited_at    DateTime? @db.Timestamptz(6)
+  is_deleted   Boolean?  @default(false)
+  created_at   DateTime? @default(now()) @db.Timestamptz(6)
 
   communities              communities          @relation(fields: [community_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   rooms                    rooms                @relation(fields: [room_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
@@ -1504,12 +1507,12 @@ model community_messages {
 }
 
 model community_inbox_conversations {
-  id                                                         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  community_id                                               String    @db.Uuid
-  user_low                                                   String    @db.Uuid
-  user_high                                                  String    @db.Uuid
-  created_at                                                 DateTime? @default(now()) @db.Timestamptz(6)
-  updated_at                                                 DateTime? @default(now()) @db.Timestamptz(6)
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  community_id String    @db.Uuid
+  user_low     String    @db.Uuid
+  user_high    String    @db.Uuid
+  created_at   DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime? @default(now()) @db.Timestamptz(6)
 
   communities                                                communities                @relation(fields: [community_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   profiles_community_inbox_conversations_user_highToprofiles profiles                   @relation("community_inbox_conversations_user_highToprofiles", fields: [user_high], references: [id], onDelete: Cascade, onUpdate: NoAction)
@@ -1522,15 +1525,15 @@ model community_inbox_conversations {
 }
 
 model community_inbox_messages {
-  id                            String                        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  conversation_id               String                        @db.Uuid
-  sender_id                     String                        @db.Uuid
-  body                          String                        @default("")
-  is_deleted                    Boolean?                      @default(false)
-  created_at                    DateTime?                     @default(now()) @db.Timestamptz(6)
-  attachments                   Json?                         @default("[]")
-  message_type                  String?                       @default("text")
-  reactions                     Json?                         @default("{}")
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  conversation_id String    @db.Uuid
+  sender_id       String    @db.Uuid
+  body            String    @default("")
+  is_deleted      Boolean?  @default(false)
+  created_at      DateTime? @default(now()) @db.Timestamptz(6)
+  attachments     Json?     @default("[]")
+  message_type    String?   @default("text")
+  reactions       Json?     @default("{}")
 
   community_inbox_conversations community_inbox_conversations @relation(fields: [conversation_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   profiles                      profiles                      @relation(fields: [sender_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
@@ -1540,21 +1543,21 @@ model community_inbox_messages {
 }
 
 model community_courses {
-  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  room_id       String    @db.Uuid
-  community_id  String    @db.Uuid
-  creator_id    String    @db.Uuid
-  title         String
-  description   String?
-  thumbnail_url String?
-  total_modules Int?      @default(0)
-  total_lessons Int?      @default(0)
-  total_duration Int?     @default(0)
-  difficulty    String?   @default("beginner")
-  is_published  Boolean?  @default(false)
-  published_at  DateTime? @db.Timestamptz(6)
-  created_at    DateTime? @default(now()) @db.Timestamptz(6)
-  updated_at    DateTime? @default(now()) @db.Timestamptz(6)
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  room_id        String    @db.Uuid
+  community_id   String    @db.Uuid
+  creator_id     String    @db.Uuid
+  title          String
+  description    String?
+  thumbnail_url  String?
+  total_modules  Int?      @default(0)
+  total_lessons  Int?      @default(0)
+  total_duration Int?      @default(0)
+  difficulty     String?   @default("beginner")
+  is_published   Boolean?  @default(false)
+  published_at   DateTime? @db.Timestamptz(6)
+  created_at     DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime? @default(now()) @db.Timestamptz(6)
 
   communities     communities       @relation(fields: [community_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   profiles        profiles          @relation(fields: [creator_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
@@ -1568,13 +1571,13 @@ model community_courses {
 }
 
 model course_modules {
-  id            String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  course_id     String            @db.Uuid
-  title         String
-  description   String?
-  sort_order    Int?              @default(0)
-  is_free       Boolean?          @default(false)
-  created_at    DateTime?         @default(now()) @db.Timestamptz(6)
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  course_id   String    @db.Uuid
+  title       String
+  description String?
+  sort_order  Int?      @default(0)
+  is_free     Boolean?  @default(false)
+  created_at  DateTime? @default(now()) @db.Timestamptz(6)
 
   community_courses community_courses @relation(fields: [course_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   course_lessons    course_lessons[]
@@ -1607,14 +1610,14 @@ model course_lessons {
 }
 
 model lesson_progress {
-  id            String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id       String            @db.Uuid
-  lesson_id     String            @db.Uuid
-  course_id     String            @db.Uuid
-  is_completed  Boolean?          @default(false)
-  completed_at  DateTime?         @db.Timestamptz(6)
-  watch_time    Int?              @default(0)
-  created_at    DateTime?         @default(now()) @db.Timestamptz(6)
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id      String    @db.Uuid
+  lesson_id    String    @db.Uuid
+  course_id    String    @db.Uuid
+  is_completed Boolean?  @default(false)
+  completed_at DateTime? @db.Timestamptz(6)
+  watch_time   Int?      @default(0)
+  created_at   DateTime? @default(now()) @db.Timestamptz(6)
 
   community_courses community_courses @relation(fields: [course_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   course_lessons    course_lessons    @relation(fields: [lesson_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
@@ -1653,16 +1656,16 @@ model community_tasks {
 }
 
 model task_completions {
-  id                                              String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  task_id                                         String          @db.Uuid
-  user_id                                         String          @db.Uuid
-  proof_text                                      String?
-  proof_url                                       String?
-  status                                          String?         @default("submitted")
-  points_earned                                   Int?            @default(0)
-  reviewed_by                                     String?         @db.Uuid
-  reviewed_at                                     DateTime?       @db.Timestamptz(6)
-  created_at                                      DateTime?       @default(now()) @db.Timestamptz(6)
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  task_id       String    @db.Uuid
+  user_id       String    @db.Uuid
+  proof_text    String?
+  proof_url     String?
+  status        String?   @default("submitted")
+  points_earned Int?      @default(0)
+  reviewed_by   String?   @db.Uuid
+  reviewed_at   DateTime? @db.Timestamptz(6)
+  created_at    DateTime? @default(now()) @db.Timestamptz(6)
 
   profiles_task_completions_reviewed_byToprofiles profiles?       @relation("task_completions_reviewed_byToprofiles", fields: [reviewed_by], references: [id], onUpdate: NoAction)
   community_tasks                                 community_tasks @relation(fields: [task_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
@@ -1675,18 +1678,18 @@ model task_completions {
 }
 
 model member_points {
-  id             String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id        String      @db.Uuid
-  community_id   String      @db.Uuid
-  total_points   Int?        @default(0)
-  level          Int?        @default(1)
-  streak_days    Int?        @default(0)
-  last_active_at DateTime?   @default(now()) @db.Timestamptz(6)
-  created_at     DateTime?   @default(now()) @db.Timestamptz(6)
-  updated_at     DateTime?   @default(now()) @db.Timestamptz(6)
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id        String    @db.Uuid
+  community_id   String    @db.Uuid
+  total_points   Int?      @default(0)
+  level          Int?      @default(1)
+  streak_days    Int?      @default(0)
+  last_active_at DateTime? @default(now()) @db.Timestamptz(6)
+  created_at     DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime? @default(now()) @db.Timestamptz(6)
 
-  communities    communities @relation(fields: [community_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  profiles       profiles    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  communities communities @relation(fields: [community_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  profiles    profiles    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@unique([user_id, community_id])
   @@index([community_id], map: "idx_points_community")
@@ -1697,11 +1700,11 @@ model member_points {
 // ── Messaging ─────────────────────────────────
 
 model conversations {
-  id                    String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  buyer_id              String                  @db.Uuid
-  vendor_id             String                  @db.Uuid
-  created_at            DateTime                @default(now()) @db.Timestamptz(6)
-  updated_at            DateTime                @default(now()) @db.Timestamptz(6)
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  buyer_id   String   @db.Uuid
+  vendor_id  String   @db.Uuid
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  updated_at DateTime @default(now()) @db.Timestamptz(6)
 
   profiles              profiles                @relation(fields: [buyer_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   vendors               vendors                 @relation(fields: [vendor_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
@@ -1714,14 +1717,14 @@ model conversations {
 }
 
 model conversation_messages {
-  id                          String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  conversation_id             String                  @db.Uuid
-  sender_id                   String                  @db.Uuid
-  body                        String?                 @default("")
-  created_at                  DateTime                @default(now()) @db.Timestamptz(6)
-  message_type                String                  @default("text")
-  reply_to_id                 String?                 @db.Uuid
-  metadata                    Json                    @default("{}")
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  conversation_id String   @db.Uuid
+  sender_id       String   @db.Uuid
+  body            String?  @default("")
+  created_at      DateTime @default(now()) @db.Timestamptz(6)
+  message_type    String   @default("text")
+  reply_to_id     String?  @db.Uuid
+  metadata        Json     @default("{}")
 
   conversations               conversations           @relation(fields: [conversation_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   conversation_messages       conversation_messages?  @relation("conversation_messagesToconversation_messages", fields: [reply_to_id], references: [id], onUpdate: NoAction)
@@ -1773,18 +1776,18 @@ model blog_posts {
 }
 
 model buying_requests {
-  id                 String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  buyer_id           String               @db.Uuid
-  product_name       String
-  category           String?
-  quantity_needed    Decimal              @default(1) @db.Decimal
-  budget_min         Decimal?             @db.Decimal
-  budget_max         Decimal?             @db.Decimal
-  delivery_country   String?
-  description        String?
-  status             String               @default("open")
-  created_at         DateTime             @default(now()) @db.Timestamptz(6)
-  updated_at         DateTime             @default(now()) @db.Timestamptz(6)
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  buyer_id         String   @db.Uuid
+  product_name     String
+  category         String?
+  quantity_needed  Decimal  @default(1) @db.Decimal
+  budget_min       Decimal? @db.Decimal
+  budget_max       Decimal? @db.Decimal
+  delivery_country String?
+  description      String?
+  status           String   @default("open")
+  created_at       DateTime @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime @default(now()) @db.Timestamptz(6)
 
   profiles           profiles             @relation(fields: [buyer_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   buying_lead_offers buying_lead_offers[]
@@ -1795,16 +1798,16 @@ model buying_requests {
 }
 
 model buying_lead_offers {
-  id                String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  buying_request_id String          @db.Uuid
-  vendor_id         String          @db.Uuid
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  buying_request_id String   @db.Uuid
+  vendor_id         String   @db.Uuid
   message           String?
-  offered_price     Decimal?        @db.Decimal
-  status            String          @default("pending")
-  created_at        DateTime        @default(now()) @db.Timestamptz(6)
+  offered_price     Decimal? @db.Decimal
+  status            String   @default("pending")
+  created_at        DateTime @default(now()) @db.Timestamptz(6)
 
-  buying_requests   buying_requests @relation(fields: [buying_request_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  vendors           vendors         @relation(fields: [vendor_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  buying_requests buying_requests @relation(fields: [buying_request_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  vendors         vendors         @relation(fields: [vendor_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([buying_request_id], map: "idx_buying_lead_offers_request")
   @@schema("public")
@@ -1816,5 +1819,30 @@ model platform_settings {
   updated_at DateTime @default(now()) @db.Timestamptz(6)
 
   @@index([updated_at(sort: Desc)])
+  @@schema("public")
+}
+
+model digital_access {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id       String    @db.Uuid
+  product_id    String    @db.Uuid
+  order_item_id String?   @db.Uuid
+  order_id      String?   @db.Uuid
+  access_url    String?
+  subtype       String?
+  granted_at    DateTime  @default(now()) @db.Timestamptz(6)
+  expires_at    DateTime? @db.Timestamptz(6)
+  revoked_at    DateTime? @db.Timestamptz(6)
+  revoke_reason String?
+
+  profiles    profiles     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  products    products     @relation(fields: [product_id], references: [id], onDelete: Cascade)
+  order_items order_items? @relation(fields: [order_item_id], references: [id], onDelete: SetNull)
+  orders      orders?      @relation(fields: [order_id], references: [id], onDelete: SetNull)
+
+  @@unique([user_id, product_id])
+  @@index([user_id])
+  @@index([product_id])
+  @@index([order_id])
   @@schema("public")
 }

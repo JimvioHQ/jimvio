@@ -902,7 +902,7 @@ export function CheckoutExperience({ orders, profile, mode = "cart" }: CheckoutE
    // ─── Checkout submission ─────────────────────────────────────────────────────
 
    async function handleComplete() {
-      // Guard: orders must be present (defensive — UI should never reach step 3 without them)
+
       const primaryOrderId = orders[0]?.id;
       if (!primaryOrderId) {
          toast.error("No orders found. Please restart checkout.");

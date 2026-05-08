@@ -1828,3 +1828,39 @@ INSERT INTO public.platform_settings (key, value) VALUES
   ('fees', jsonb_build_object('min_payout_rwf', 50, 'default_affiliate_commission_percent', 5, 'shopify_default_platform_commission_percent', 8, 'platform_fee_percent', 5, 'platform_fee_fixed_rwf', 0)),
   ('supplier_sources', jsonb_build_object('vendor', jsonb_build_object('enabled', true, 'platform_commission_percent', 5), 'shopify', jsonb_build_object('enabled', true, 'platform_commission_percent', 8), 'cj', jsonb_build_object('enabled', true, 'platform_commission_percent', 8)))
 ON CONFLICT (key) DO NOTHING;
+
+-- migration: create_digital_access_table.sql
+
+create table public.digital_access (
+  id             uuid primary key default gen_random_uuid(),
+  user_id        uuid not null references public.profiles(id) on delete cascade,
+  product_id     uuid not null references public.products(id) on delete cascade,
+  order_item_id  uuid references public.order_items(id) on delete set null,
+  order_id       uuid references public.orders(id) on delete set null,
+  access_url     text,
+  subtype        text,                    -- "software" | "course" | "ebook" | null
+  granted_at     timestamptz not null default now(),
+  expires_at     timestamptz,             -- null = lifetime, set for subscriptions
+  revoked_at     timestamptz,             -- set on refund/cancellation
+  revoke_reason  text,                    -- "refunded" | "subscription_expired" | "manual"
+
+  unique(user_id, product_id)
+);
+
+-- Indexes
+create index idx_digital_access_user_id    on public.digital_access(user_id);
+create index idx_digital_access_product_id on public.digital_access(product_id);
+create index idx_digital_access_order_id   on public.digital_access(order_id);
+create index idx_digital_access_active     on public.digital_access(user_id)
+  where revoked_at is null;
+
+-- RLS
+alter table public.digital_access enable row level security;
+
+create policy "Users can read own digital access"
+  on public.digital_access for select
+  using (auth.uid() = user_id);
+
+create policy "Service role can manage digital access"
+  on public.digital_access for all
+  using (auth.role() = 'service_role');

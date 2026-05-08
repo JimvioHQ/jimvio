@@ -1,75 +1,4 @@
-﻿// import React from "react";
-// import Link from "next/link";
-// import { notFound, redirect } from "next/navigation";
-// import { createClient } from "@/lib/supabase/server";
-// import { CheckoutSuccessClient } from "./success-client";
-
-// export const dynamic = "force-dynamic";
-
-// export default async function CheckoutSuccessPage({
-//   searchParams,
-// }: {
-//   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
-// }) {
-//   const sp = await searchParams;
-//   const pick = (v: any): string | undefined => {
-//     if (Array.isArray(v)) return v[0];
-//     return typeof v === "string" ? v : undefined;
-//   };
-//   const status = pick(sp.status)?.toLowerCase();
-//   const cancelled = pick(sp.cancelled)?.toLowerCase() === "true" || pick(sp.cancel)?.toLowerCase() === "true";
-
-//   const rawRef = pick(sp.OrderMerchantReference)?.trim();
-//   const orderId =
-//     pick(sp.orderId)?.trim() ||
-//     pick(sp.order_id)?.trim() ||
-//     pick(sp.order)?.trim() ||
-//     rawRef?.split(":")[0];
-
-//   if (status === "failed" || status === "cancelled" || cancelled) {
-//     return redirect(`/checkout?error=Payment failed or was cancelled.&orderId=${orderId}`);
-//   }
-//   else if (status === "") {
-//     return redirect(`/checkout?error=Payment failed or was cancelled.`);
-//   }
-
-//   if (!orderId) {
-//     console.warn("[CheckoutSuccess] No orderId found in searchParams", sp);
-//     notFound();
-//   }
-
-//   const supabase = await createClient();
-//   const { data: order, error } = await supabase
-//     .from("orders").select(
-//       `
-//       id,
-//       order_number,
-//       total_amount,
-//       currency,
-//       payment_provider,
-//       order_items ( product_name, quantity, total_price )
-//     `
-//     )
-//     .eq("id", orderId)
-//     .single();
-
-//   if (error || !order) notFound();
-
-//   return (
-//     <div className="min-h-screen bg-[var(--color-bg)] pt-28 pb-20">
-//       <div className="max-w-[560px] mx-auto px-4">
-//         <pre>
-//           <code>
-//             {JSON.stringify(order, null, 2)}
-//           </code>
-//         </pre>
-//         <CheckoutSuccessClient order={order as never} />
-//       </div>
-//     </div>
-//   );
-// }
-
-import { notFound, redirect } from "next/navigation";
+﻿import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { CheckoutSuccessClient } from "./success-client";
 
@@ -89,7 +18,13 @@ interface Order {
   total_amount: number;
   currency: string;
   payment_provider: string;
+  payment_status: string | null;
   order_items: OrderItem[];
+  transaction?: {
+    provider: string | null;
+    status: string;
+    provider_transaction_id: string;
+  };
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -190,7 +125,8 @@ export default async function CheckoutSuccessPage({
     redirect(buildErrorRedirect("Payment failed or was cancelled.", orderId));
   }
 
-  if (status === "") {
+  // ── Fix: was `status === ""` which pickParam never returns ────────────────
+  if (!status) {
     redirect(buildErrorRedirect("We couldn't confirm your payment status. Please try again."));
   }
 
@@ -233,7 +169,6 @@ export default async function CheckoutSuccessPage({
       );
     }
 
-    // Generic DB error
     return (
       <ErrorState
         title="Something went wrong"
@@ -243,7 +178,7 @@ export default async function CheckoutSuccessPage({
     );
   }
 
-  // ── No order data (shouldn't happen if no error, but be safe) ─────────────
+  // ── No order data ─────────────────────────────────────────────────────────
   if (!order) {
     console.warn("[CheckoutSuccess] No order data for orderId:", orderId);
     return (

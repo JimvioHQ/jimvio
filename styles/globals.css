@@ -28,8 +28,7 @@
 
 @layer base {
   :root {
-    /* Whop-inspired Premium Palette */
-    --color-bg: #f5f5f5;
+    --color-bg: #ffffff;
     --color-surface: #ffffff;
     --color-surface-secondary: #f9f9f9;
     --color-border: #e8e8e8;

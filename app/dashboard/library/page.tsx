@@ -1,564 +1,867 @@
-// "use client";
-
-// import React, { useEffect, useState } from "react";
-// import Link from "next/link";
-// import { Download, Package, Search, ExternalLink, Video, FileText, Zap, Loader2 } from "lucide-react";
-// import { GlassCard, GlassPill, GlassAmbientGlow } from "@/components/ui/glass";
-// import { Button } from "@/components/ui/button";
-// import { createClient } from "@/lib/supabase/client";
-// import { cn } from "@/lib/utils";
-
-// interface LibraryItem {
-//   id: string;
-//   product_name: string;
-//   product_image: string | null;
-//   product_type: string | null;
-//   digital_download_url: string | null;
-//   access_granted_at: string | null;
-//   created_at: string;
-//   orders: { payment_status: string; buyer_id: string } | null;
-// }
-
-// function fileTypeBadge(url: string | null) {
-//   if (!url) return "Digital File";
-//   const ext = url.split(".").pop()?.toUpperCase() ?? "";
-//   if (["PDF"].includes(ext)) return "PDF Document";
-//   if (["ZIP", "RAR"].includes(ext)) return "Archive Package";
-//   if (["MP4", "MOV", "AVI"].includes(ext)) return "Video File";
-//   if (["MP3", "WAV"].includes(ext)) return "Audio File";
-//   if (["PNG", "JPG", "JPEG", "WEBP"].includes(ext)) return "Image File";
-//   if (["DOCX", "DOC"].includes(ext)) return "Word Document";
-//   if (["XLSX", "XLS"].includes(ext)) return "Spreadsheet";
-//   return "Digital Asset";
-// }
-
-// export default function DigitalLibraryPage() {
-//   const [items, setItems] = useState<LibraryItem[]>([]);
-//   const [loading, setLoading] = useState(true);
-//   const [search, setSearch] = useState("");
-
-//   useEffect(() => {
-//     async function load() {
-//       const supabase = createClient();
-//       const { data: { user } } = await supabase.auth.getUser();
-//       if (!user) return;
-
-//       // Fetch digital order items from paid orders
-//       // order_items.product_type = 'digital' (from migration 053)
-//       // Falls back to any order with access_granted_at for backward compat
-//       const { data } = await supabase
-//         .from("order_items")
-//         .select(`
-//           id, product_name, product_image, product_type,
-//           digital_download_url, access_granted_at, created_at,
-//           orders!inner ( payment_status, buyer_id )
-//         `)
-//         .eq("orders.buyer_id", user.id)
-//         .eq("orders.payment_status", "completed")
-//         .in("product_type", ["digital", "software", "courses", "ai-tools", "templates", "ebooks", "music-audio", "graphics-design", "photography"])
-//         .order("created_at", { ascending: false });
-
-//       // Fallback: also fetch items where access_granted_at is set (legacy records)
-//       const { data: legacyData } = await supabase
-//         .from("order_items")
-//         .select(`
-//           id, product_name, product_image, product_type,
-//           digital_download_url, access_granted_at, created_at,
-//           orders!inner ( payment_status, buyer_id )
-//         `)
-//         .eq("orders.buyer_id", user.id)
-//         .eq("orders.payment_status", "completed")
-//         .not("access_granted_at", "is", null)
-//         .is("product_type", null);
-
-//       // Merge and deduplicate by id
-//       const combined = [...(data ?? []), ...(legacyData ?? [])];
-//       const unique = combined.filter((item, index, self) =>
-//         index === self.findIndex((t) => t.id === item.id)
-//       );
-
-//       setItems(unique as unknown as LibraryItem[]);
-//       setLoading(false);
-//     }
-//     load();
-//   }, []);
-
-//   const filtered = items.filter(i =>
-//     i.product_name?.toLowerCase().includes(search.toLowerCase())
-//   );
-
-//   if (loading && items.length === 0) {
-//     return (
-//        <div className="min-h-screen flex flex-col items-center justify-center space-y-12 animate-in fade-in duration-700" style={{ background: "var(--color-bg)" }}>
-//          <div className="relative">
-//            <div className="absolute inset-0 bg-orange-400/20 blur-3xl rounded-sm scale-150 animate-pulse" />
-//            <div className="relative w-24 h-24 rounded-sm bg-surface dark:bg-surface border border-border shadow-none flex items-center justify-center overflow-hidden">
-//              <div className="absolute inset-0 border-2 border-t-orange-500 border-r-transparent border-b-transparent border-l-transparent rounded-sm animate-spin m-2" />
-//              <Video className="h-10 w-10 text-stone-900 dark:text-white" />
-//            </div>
-//          </div>
-//          <div className="text-center space-y-3">
-//             <h2 className="text-[14px] font-black text-stone-900 dark:text-white uppercase tracking-[0.4em] pl-[0.4em]">Digital Library</h2>
-//             <p className="text-[10px] font-bold text-stone-400 dark:text-text-muted uppercase tracking-widest pl-[0.1em]">Syncing Purchased Assets</p>
-//          </div>
-//        </div>
-//     );
-//   }
-
-//   return (
-//     <div className="min-h-screen pb-24 relative overflow-hidden" style={{ background: "var(--color-bg)" }}>
-//       <GlassAmbientGlow color="orange" position="top-right" />
-//       <GlassAmbientGlow color="indigo" position="bottom-left" />
-
-//       <div className="max-w-[1400px] mx-auto space-y-10 px-4 sm:px-6 pt-8 sm:pt-12 relative z-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
-
-//         {/* Header Section */}
-//         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 sm:gap-8">
-//            <div className="space-y-2">
-//               <h1 className="text-3xl sm:text-4xl font-black text-stone-900 dark:text-white tracking-tighter flex items-center gap-4">
-//                  <div className="p-2.5 rounded-sm bg-surface dark:bg-surface border border-border shadow-none shrink-0">
-//                     <Zap className="h-7 w-7 sm:h-8 sm:w-8 text-orange-500" />
-//                  </div>
-//                  Digital Library
-//               </h1>
-//               <p className="text-[10px] sm:text-[11px] font-bold text-stone-400 dark:text-text-muted uppercase tracking-[0.3em] pl-14 sm:pl-16">
-//                  {items.length} purchased {items.length === 1 ? "asset" : "assets"} · Instant access
-//               </p>
-//            </div>
-
-//            <div className="relative w-full md:w-80">
-//               <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-300 dark:text-stone-600 pointer-events-none" />
-//               <input
-//                  placeholder="Search your library..."
-//                  value={search}
-//                  onChange={(e) => setSearch(e.target.value)}
-//                  className="w-full h-12 sm:h-14 pl-12 pr-6 rounded-sm bg-surface dark:bg-surface border border-border text-[13px] font-bold text-stone-900 dark:text-white placeholder:text-stone-300 dark:placeholder:text-stone-600 shadow-none focus:outline-none focus:bg-surface-secondary dark:focus:bg-zinc-800 transition-all"
-//               />
-//            </div>
-//         </div>
-
-//         {filtered.length === 0 ? (
-//            <GlassCard className="p-16 sm:p-24 text-center rounded-sm sm:rounded-sm border-border bg-surface dark:bg-surface/20">
-//               <div className="w-20 h-20 sm:w-24 sm:h-24 bg-surface dark:bg-surface rounded-sm sm:rounded-sm flex items-center justify-center mx-auto mb-6 sm:mb-8 border border-border shadow-none">
-//                  <Zap className="h-8 w-8 sm:h-10 sm:w-10 text-stone-300 dark:text-stone-600" />
-//               </div>
-//               <h2 className="text-2xl sm:text-3xl font-black text-stone-900 dark:text-white tracking-tighter uppercase">Library is Empty</h2>
-//               <p className="text-[10px] sm:text-[11px] font-bold text-stone-400 dark:text-text-muted uppercase tracking-widest mt-4 max-w-sm mx-auto leading-relaxed">
-//                  Digital purchases like templates, courses, and software will appear here instantly after payment.
-//               </p>
-//               <Button asChild className="h-14 sm:h-16 px-10 sm:px-12 rounded-sm sm:rounded-sm bg-stone-900 dark:bg-white dark:bg-surface text-white dark:text-stone-900 dark:text-white font-black text-[10px] sm:text-[11px] uppercase tracking-widest shadow-none mt-8 sm:mt-10 hover:bg-black dark:hover:bg-stone-100 transition-all border-none">
-//                  <Link href="/marketplace">Explore Marketplace</Link>
-//               </Button>
-//            </GlassCard>
-//         ) : (
-//            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 sm:gap-8">
-//               {filtered.map((item) => {
-//                 const fileLabel = fileTypeBadge(item.digital_download_url);
-//                 const grantedDate = item.access_granted_at
-//                   ? new Date(item.access_granted_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
-//                   : new Date(item.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-
-//                 return (
-//                   <GlassCard key={item.id} className="overflow-hidden p-0 rounded-sm sm:rounded-sm border-border bg-surface dark:bg-surface/60 hover:shadow-none hover:bg-surface-secondary dark:hover:bg-zinc-800 transition-all duration-500 group">
-//                     {/* Thumbnail */}
-//                     <div className="aspect-[4/3] relative bg-stone-100 dark:bg-surface-secondary overflow-hidden">
-//                       {item.product_image ? (
-//                         <img src={item.product_image} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000" />
-//                       ) : (
-//                         <div className="w-full h-full flex flex-col items-center justify-center gap-3 bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-950/30 dark:to-purple-950/30">
-//                           <Zap className="h-10 w-10 text-indigo-300 dark:text-indigo-700" />
-//                           <span className="text-[9px] font-black uppercase tracking-widest text-indigo-300 dark:text-indigo-700">Digital Asset</span>
-//                         </div>
-//                       )}
-
-//                       {/* Hover overlay */}
-//                       <div className="absolute inset-0 bg-stone-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3 backdrop-blur-[2px]">
-//                          {item.digital_download_url ? (
-//                            <a href={item.digital_download_url} target="_blank" rel="noopener noreferrer" download>
-//                              <Button size="icon" className="rounded-sm h-12 w-12 sm:h-14 sm:w-14 bg-surface dark:bg-surface text-stone-900 dark:text-white hover:bg-surface-secondary dark:hover:bg-zinc-800 border-0 shadow-none hover:scale-110 transition-all">
-//                                <Download className="h-5 w-5 sm:h-6 sm:w-6" />
-//                              </Button>
-//                            </a>
-//                          ) : (
-//                            <Button size="icon" disabled className="rounded-sm h-12 w-12 sm:h-14 sm:w-14 opacity-50 bg-surface dark:bg-surface border-0">
-//                              <Loader2 className="h-5 w-5 sm:h-6 sm:w-6 animate-spin" />
-//                            </Button>
-//                          )}
-//                          <a href={item.digital_download_url ?? "#"} target="_blank" rel="noopener noreferrer">
-//                            <Button size="icon" className="rounded-sm h-12 w-12 sm:h-14 sm:w-14 bg-surface dark:bg-surface text-stone-900 dark:text-white hover:bg-surface-secondary dark:hover:bg-zinc-800 border-0 shadow-none hover:scale-110 transition-all">
-//                              <ExternalLink className="h-5 w-5 sm:h-6 sm:w-6" />
-//                            </Button>
-//                          </a>
-//                       </div>
-
-//                       {/* Type badge */}
-//                       <div className="absolute top-3 right-3 sm:top-4 sm:right-4 bg-surface/90 dark:bg-surface/90 backdrop-blur-xl px-3 py-1.5 sm:px-4 rounded-sm text-[7px] sm:text-[8px] font-black uppercase tracking-[0.2em] text-stone-900 dark:text-white shadow-none border border-border">
-//                           âš¡ Digital
-//                       </div>
-
-//                       {/* Access granted indicator */}
-//                       {item.digital_download_url && (
-//                         <div className="absolute bottom-3 left-3 sm:bottom-4 sm:left-4 bg-emerald-500/90 backdrop-blur-md px-2.5 py-1 rounded-sm text-[7px] sm:text-[8px] font-black uppercase tracking-widest text-white">
-//                           ✓" Access Granted
-//                         </div>
-//                       )}
-//                       {!item.digital_download_url && (
-//                         <div className="absolute bottom-3 left-3 sm:bottom-4 sm:left-4 bg-amber-500/90 backdrop-blur-md px-2.5 py-1 rounded-sm text-[7px] sm:text-[8px] font-black uppercase tracking-widest text-white">
-//                           â³ Processing
-//                         </div>
-//                       )}
-//                     </div>
-
-//                     {/* Info */}
-//                     <div className="p-5 sm:p-8">
-//                       <h4 className="font-black text-base sm:text-xl text-stone-900 dark:text-white truncate tracking-tighter mb-3 sm:mb-4 group-hover:text-orange-600 transition-colors">{item.product_name}</h4>
-//                       <div className="flex items-center justify-between mb-4 sm:mb-5">
-//                         <div className="flex items-center gap-2 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-stone-400 dark:text-text-muted bg-surface-secondary dark:bg-surface-secondary px-2.5 py-1.5 rounded-sm">
-//                            <FileText className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> {fileLabel}
-//                         </div>
-//                         <span className="text-[9px] sm:text-[10px] font-bold text-stone-300 dark:text-stone-600 uppercase tracking-widest">{grantedDate}</span>
-//                       </div>
-
-//                       {/* Download button */}
-//                       {item.digital_download_url ? (
-//                         <a href={item.digital_download_url} target="_blank" rel="noopener noreferrer" download className="block">
-//                           <Button className="w-full justify-center gap-2 sm:gap-3 rounded-sm sm:rounded-sm text-[10px] sm:text-[11px] font-black uppercase tracking-widest h-12 sm:h-14 bg-stone-900 dark:bg-white dark:bg-surface text-white dark:text-stone-900 dark:text-white shadow-none hover:bg-black dark:hover:bg-stone-100 active:scale-95 transition-all border-none">
-//                              <Download className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Download File
-//                           </Button>
-//                         </a>
-//                       ) : (
-//                         <Button disabled className="w-full justify-center gap-2 sm:gap-3 rounded-sm sm:rounded-sm text-[10px] sm:text-[11px] font-black uppercase tracking-widest h-12 sm:h-14 bg-stone-200 dark:bg-surface-secondary text-stone-400 dark:text-text-muted border-none opacity-70">
-//                            <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" /> Preparing...
-//                         </Button>
-//                       )}
-//                     </div>
-//                   </GlassCard>
-//                 );
-//               })}
-//            </div>
-//         )}
-//       </div>
-//     </div>
-//   );
-// }
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
   Download, Search, ExternalLink, FileText, Zap, Loader2,
   BookOpen, Package, LayoutTemplate, Music, ImageIcon, Archive,
-  Copy, BarChart2, CheckCircle2, Clock,
+  Copy, BarChart2, CheckCircle2, Clock, AlertTriangle, Sparkles,
+  Library, ChevronRight, Grid3X3, RefreshCw,
+  ChevronsUpDown, ChevronUp, ChevronDown, Table2,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-interface LibraryItem {
+interface DigitalAccessRow {
   id: string;
-  product_id: string | null;
-  product_name: string;
-  product_image: string | null;
-  product_type: string | null;
-  product_subtype: string | null;
-  digital_download_url: string | null;
-  access_granted_at: string | null;
-  created_at: string;
-  orders: { payment_status: string; buyer_id: string } | null;
+  access_url: string | null;
+  subtype: string | null;
+  granted_at: string;
+  expires_at: string | null;
+  products: {
+    id: string;
+    name: string;
+    images: string[] | null;
+    button_text: string | null;
+    pricing_type: string | null;
+    billing_period: string | null;
+  } | null;
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-function Icon({
-  icon,
-  className,
-}: {
-  icon: React.ReactElement<{ className?: string }>;
-  className: string;
-}) {
-  return React.cloneElement(icon, { className });
-}
-function getSubtypeConfig(subtype: string | null, url: string | null): {
-  label: string;
-  icon: React.ReactElement<{ className?: string }>;
-  color: string;
-  action: "open" | "download" | "continue";
-  actionLabel: string;
-  actionIcon: React.ReactElement<{ className?: string }>;
-} {
+// ─── Subtype config ───────────────────────────────────────────────────────────
+
+function getSubtypeConfig(subtype: string | null, url: string | null) {
   switch (subtype) {
     case "course":
       return {
-        label: "Online course",
-        icon: <BookOpen className="h-3 w-3" />,
-        color: "#0ea5e9",
-        action: "continue",
-        actionLabel: "Continue",
-        actionIcon: <BookOpen className="h-3.5 w-3.5" />,
+        label: "Course", icon: BookOpen,
+        gradient: "from-sky-500 to-blue-600",
+        accent: "#0ea5e9",
+        action: "continue" as const,
+        actionLabel: "Continue learning",
+        ActionIcon: BookOpen,
       };
     case "software":
+      return {
+        label: "Software", icon: Zap,
+        gradient: "from-violet-500 to-purple-600",
+        accent: "#8b5cf6",
+        action: "open" as const,
+        actionLabel: "Launch app",
+        ActionIcon: ExternalLink,
+      };
     case "ai-tools":
       return {
-        label: subtype === "ai-tools" ? "AI tool" : "Software",
-        icon: <Zap className="h-3 w-3" />,
-        color: "#8b5cf6",
-        action: "open",
-        actionLabel: "Open",
-        actionIcon: <ExternalLink className="h-3.5 w-3.5" />,
+        label: "AI Tool", icon: Sparkles,
+        gradient: "from-fuchsia-500 to-pink-600",
+        accent: "#d946ef",
+        action: "open" as const,
+        actionLabel: "Open tool",
+        ActionIcon: ExternalLink,
       };
     case "templates":
       return {
-        label: "Template",
-        icon: <LayoutTemplate className="h-3 w-3" />,
-        color: "#f59e0b",
-        action: "download",
+        label: "Template", icon: LayoutTemplate,
+        gradient: "from-amber-400 to-orange-500",
+        accent: "#f59e0b",
+        action: "download" as const,
         actionLabel: "Download",
-        actionIcon: <Download className="h-3.5 w-3.5" />,
+        ActionIcon: Download,
       };
     case "ebooks":
       return {
-        label: "Ebook",
-        icon: <FileText className="h-3 w-3" />,
-        color: "#10b981",
-        action: "download",
-        actionLabel: "Download",
-        actionIcon: <Download className="h-3.5 w-3.5" />,
+        label: "Ebook", icon: FileText,
+        gradient: "from-emerald-500 to-teal-600",
+        accent: "#10b981",
+        action: "download" as const,
+        actionLabel: "Read now",
+        ActionIcon: Download,
       };
     case "music-audio":
       return {
-        label: "Audio",
-        icon: <Music className="h-3 w-3" />,
-        color: "#ec4899",
-        action: "download",
+        label: "Audio", icon: Music,
+        gradient: "from-pink-500 to-rose-600",
+        accent: "#ec4899",
+        action: "download" as const,
         actionLabel: "Download",
-        actionIcon: <Download className="h-3.5 w-3.5" />,
+        ActionIcon: Download,
       };
     case "graphics-design":
+      return {
+        label: "Graphics", icon: ImageIcon,
+        gradient: "from-orange-400 to-red-500",
+        accent: "#f97316",
+        action: "download" as const,
+        actionLabel: "Download",
+        ActionIcon: Download,
+      };
     case "photography":
       return {
-        label: subtype === "photography" ? "Photography" : "Graphics",
-        icon: <ImageIcon className="h-3 w-3" />,
-        color: "#f97316",
-        action: "download",
+        label: "Photography", icon: ImageIcon,
+        gradient: "from-rose-400 to-pink-600",
+        accent: "#fb7185",
+        action: "download" as const,
         actionLabel: "Download",
-        actionIcon: <Download className="h-3.5 w-3.5" />,
+        ActionIcon: Download,
       };
     default: {
       const ext = url?.split(".").pop()?.toLowerCase();
-      if (ext === "pdf")
-        return {
-          label: "PDF document",
-          icon: <FileText className="h-3 w-3" />,
-          color: "#ef4444",
-          action: "download",
-          actionLabel: "Download",
-          actionIcon: <Download className="h-3.5 w-3.5" />,
-        };
-      if (["zip", "rar"].includes(ext ?? ""))
-        return {
-          label: "Archive",
-          icon: <Archive className="h-3 w-3" />,
-          color: "#6b7280",
-          action: "download",
-          actionLabel: "Download",
-          actionIcon: <Download className="h-3.5 w-3.5" />,
-        };
+      if (ext === "pdf") return {
+        label: "PDF", icon: FileText,
+        gradient: "from-red-500 to-rose-600",
+        accent: "#ef4444",
+        action: "download" as const,
+        actionLabel: "Download",
+        ActionIcon: Download,
+      };
+      if (["zip", "rar"].includes(ext ?? "")) return {
+        label: "Archive", icon: Archive,
+        gradient: "from-slate-400 to-gray-600",
+        accent: "#6b7280",
+        action: "download" as const,
+        actionLabel: "Download",
+        ActionIcon: Download,
+      };
       return {
-        label: "Digital asset",
-        icon: <Package className="h-3 w-3" />,
-        color: "#6b7280",
-        action: "open",
+        label: "Digital asset", icon: Package,
+        gradient: "from-slate-400 to-gray-500",
+        accent: "#6b7280",
+        action: "open" as const,
         actionLabel: "Access",
-        actionIcon: <ExternalLink className="h-3.5 w-3.5" />,
+        ActionIcon: ExternalLink,
       };
     }
   }
 }
 
 const FILTER_TABS = [
-  { id: "all", label: "All" },
-  { id: "software", label: "Software" },
-  { id: "ai-tools", label: "AI tools" },
-  { id: "course", label: "Courses" },
-  { id: "ebooks", label: "Ebooks" },
-  { id: "templates", label: "Templates" },
+  { id: "all", label: "All assets", icon: Grid3X3 },
+  { id: "software", label: "Software", icon: Zap },
+  { id: "ai-tools", label: "AI Tools", icon: Sparkles },
+  { id: "course", label: "Courses", icon: BookOpen },
+  { id: "ebooks", label: "Ebooks", icon: FileText },
+  { id: "templates", label: "Templates", icon: LayoutTemplate },
 ] as const;
 
-// ─── Card ─────────────────────────────────────────────────────────────────────
+// ─── Skeleton ─────────────────────────────────────────────────────────────────
 
-function LibraryCard({
-  item,
-  highlight,
-}: {
-  item: LibraryItem;
-  highlight: boolean;
-}) {
-  const config = getSubtypeConfig(item.product_subtype, item.digital_download_url);
-  const hasAccess = !!item.digital_download_url;
+function CardSkeleton() {
+  return (
+    <div
+      className="rounded-2xl overflow-hidden border"
+      style={{
+        backgroundColor: "var(--color-surface)",
+        borderColor: "var(--color-border)",
+        borderRadius: "var(--radius-lg)",
+        boxShadow: "var(--shadow-sm)",
+      }}
+    >
+      <div
+        className="aspect-video animate-pulse"
+        style={{ backgroundColor: "var(--color-surface-secondary)" }}
+      />
+      <div className="p-4 space-y-3">
+        <div
+          className="h-4 w-3/4 rounded-lg animate-pulse"
+          style={{ backgroundColor: "var(--color-surface-secondary)" }}
+        />
+        <div
+          className="h-3 w-1/2 rounded-lg animate-pulse"
+          style={{ backgroundColor: "var(--color-surface-secondary)" }}
+        />
+        <div
+          className="h-9 w-full rounded-xl animate-pulse mt-4"
+          style={{ backgroundColor: "var(--color-surface-secondary)" }}
+        />
+      </div>
+    </div>
+  );
+}
 
-  const dateLabel = new Date(
-    item.access_granted_at ?? item.created_at
-  ).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
+// ─── Grid Card ────────────────────────────────────────────────────────────────
+
+function GridCard({ row, highlight, index }: { row: DigitalAccessRow; highlight: boolean; index: number }) {
+  const product = row.products;
+  const config = getSubtypeConfig(row.subtype, row.access_url);
+  const SubtypeIcon = config.icon;
+  const ActionIcon = config.ActionIcon;
+
+  const isExpired = row.expires_at ? new Date(row.expires_at) < new Date() : false;
+  const image = product?.images?.[0] ?? null;
+  const name = product?.name ?? "Unknown product";
+
+  const dateLabel = new Date(row.granted_at).toLocaleDateString("en-US", {
+    month: "short", day: "numeric", year: "numeric",
   });
+  const expiryLabel = row.expires_at
+    ? new Date(row.expires_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+    : null;
+
+  const daysUntilExpiry = row.expires_at
+    ? Math.ceil((new Date(row.expires_at).getTime() - Date.now()) / 86400000)
+    : null;
 
   function handleCopy() {
-    if (!item.digital_download_url) return;
-    navigator.clipboard.writeText(item.digital_download_url);
-    toast.success("Link copied");
+    if (!row.access_url) return;
+    navigator.clipboard.writeText(row.access_url);
+    toast.success("Link copied to clipboard");
   }
 
   function handleAction() {
-    if (!item.digital_download_url) return;
+    if (!row.access_url) return;
     if (config.action === "download") {
       const a = document.createElement("a");
-      a.href = item.digital_download_url;
+      a.href = row.access_url;
       a.download = "";
       a.target = "_blank";
       a.click();
     } else {
-      window.open(item.digital_download_url, "_blank");
+      window.open(row.access_url, "_blank");
     }
   }
 
   return (
     <div
       className={cn(
-        "rounded-2xl overflow-hidden border transition-all duration-200",
-        "bg-[var(--color-surface)] hover:bg-[var(--color-surface-secondary)]",
-        highlight
-          ? "border-emerald-300 dark:border-emerald-700 ring-2 ring-emerald-200 dark:ring-emerald-900"
-          : "border-[var(--color-border)]"
+        "product-card group relative overflow-hidden transition-all duration-300",
+        "hover:-translate-y-0.5",
+        highlight && "ring-2",
+        isExpired && "opacity-60 grayscale"
       )}
+      style={{
+        animationDelay: `${index * 60}ms`,
+        ...(highlight && {
+          borderColor: "var(--color-success)",
+          boxShadow: `var(--shadow-glow), 0 0 0 2px rgba(48,164,108,0.2)`,
+        }),
+      }}
     >
       {/* Thumbnail */}
-      <div className="aspect-video relative bg-[var(--color-surface-secondary)] flex items-center justify-center overflow-hidden">
-        {item.product_image ? (
-          <img
-            src={item.product_image}
-            alt={item.product_name}
-            className="w-full h-full object-cover"
-          />
+      <div
+        className="aspect-video relative overflow-hidden"
+        style={{ backgroundColor: "var(--color-surface-secondary)" }}
+      >
+        {image ? (
+          <>
+            <img
+              src={image}
+              alt={name}
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+          </>
         ) : (
           <div
-            className="h-12 w-12 rounded-2xl flex items-center justify-center"
-            style={{ background: `${config.color}18`, color: config.color }}
+            className={cn("w-full h-full flex items-center justify-center bg-gradient-to-br", config.gradient)}
+            style={{ opacity: 0.12 }}
           >
-            {React.cloneElement(config.icon, { className: "h-6 w-6" })}
+            <SubtypeIcon className="h-10 w-10" style={{ color: config.accent, opacity: 1 }} />
           </div>
         )}
 
-        {/* Subtype badge */}
-        <div
-          className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold"
-          style={{
-            background: `${config.color}18`,
-            color: config.color,
-            border: `1px solid ${config.color}30`,
-          }}
-        >
-          {React.cloneElement(config.icon, { className: "h-3 w-3" })}
-          {config.label}
-        </div>
+        {/* Top badges row */}
+        <div className="absolute top-3 left-3 right-3 flex items-start justify-between gap-2">
+          {/* Subtype pill */}
+          <div
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold backdrop-blur-md"
+            style={{
+              background: `${config.accent}22`,
+              color: config.accent,
+              border: `1px solid ${config.accent}40`,
+            }}
+          >
+            <SubtypeIcon className="h-3 w-3" />
+            {config.label}
+          </div>
 
-        {/* Status badge */}
-        <div className="absolute top-3 right-3">
-          {hasAccess ? (
-            <div className="flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-semibold bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+          {/* Status pill */}
+          {isExpired ? (
+            <div
+              className="flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-bold backdrop-blur-md"
+              style={{
+                background: "rgba(229,72,77,0.15)",
+                color: "var(--color-danger)",
+                border: "1px solid rgba(229,72,77,0.3)",
+              }}
+            >
+              <AlertTriangle className="h-3 w-3" />
+              Expired
+            </div>
+          ) : daysUntilExpiry !== null && daysUntilExpiry <= 7 ? (
+            <div
+              className="flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-bold backdrop-blur-md"
+              style={{
+                background: "rgba(240,180,41,0.15)",
+                color: "var(--color-warning)",
+                border: "1px solid rgba(240,180,41,0.3)",
+              }}
+            >
+              <Clock className="h-3 w-3" />
+              {daysUntilExpiry}d left
+            </div>
+          ) : !isExpired && row.access_url ? (
+            <div
+              className="flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-bold backdrop-blur-md"
+              style={{
+                background: "rgba(48,164,108,0.15)",
+                color: "var(--color-success)",
+                border: "1px solid rgba(48,164,108,0.3)",
+              }}
+            >
               <CheckCircle2 className="h-3 w-3" />
               Active
             </div>
-          ) : (
-            <div className="flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-semibold bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
-              <Clock className="h-3 w-3" />
-              Processing
-            </div>
-          )}
+          ) : null}
         </div>
+
+        {/* Hover overlay with quick actions */}
+        {!isExpired && row.access_url && (
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-3">
+            {config.action === "continue" ? (
+              <Link
+                href={`/dashboard/my-courses/${product?.id}`}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl text-[12px] font-bold text-white bg-white/20 hover:bg-white/30 border border-white/30 transition-colors backdrop-blur-sm"
+              >
+                <ActionIcon className="h-3.5 w-3.5" />
+                {config.actionLabel}
+              </Link>
+            ) : (
+              <button
+                onClick={handleAction}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl text-[12px] font-bold text-white bg-white/20 hover:bg-white/30 border border-white/30 transition-colors backdrop-blur-sm"
+              >
+                <ActionIcon className="h-3.5 w-3.5" />
+                {config.actionLabel}
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Body */}
       <div className="p-4">
+        {/* Accent line using global gradient */}
+        <div className={cn("h-0.5 w-8 rounded-full mb-3 bg-gradient-to-r", config.gradient)} />
+
         <p
-          className="text-[14px] font-semibold text-[var(--color-text-primary)] truncate mb-1"
-          title={item.product_name}
+          className="text-[14px] font-semibold truncate leading-snug"
+          style={{ color: "var(--color-text-primary)" }}
+          title={name}
         >
-          {item.product_name}
-        </p>
-        <p className="text-[12px] text-[var(--color-text-muted)] mb-4">
-          {config.action === "continue" ? "Enrolled" : "Claimed"} {dateLabel}
+          {name}
         </p>
 
-        {/* Actions */}
-        {hasAccess ? (
-          <div className="flex gap-2">
-            {config.action === "continue" ? (
-              <Link
-                href={`/dashboard/my-courses/${item.product_id}`}
-                className={cn(
-                  "flex-1 h-9 inline-flex items-center justify-center gap-1.5",
-                  "rounded-xl text-[12px] font-semibold transition-opacity",
-                  "bg-[var(--color-text-primary)] hover:opacity-90 text-[var(--color-bg)]"
-                )}
-              >
-                {config.actionIcon}
-                {config.actionLabel}
-              </Link>
-            ) : (
-              <Button
-                onClick={handleAction}
-                className={cn(
-                  "flex-1 h-9 text-[12px] font-semibold rounded-xl border-none gap-1.5",
-                  "bg-[var(--color-text-primary)] hover:opacity-90 text-[var(--color-bg)] transition-opacity"
-                )}
-              >
-                {config.actionIcon}
-                {config.actionLabel}
-              </Button>
-            )}
+        <p className="text-[11px] mt-1" style={{ color: "var(--color-text-muted)" }}>
+          {config.action === "continue" ? "Enrolled" : "Claimed"} · {dateLabel}
+        </p>
 
-            {/* Secondary icon button */}
-            {config.action === "continue" ? (
+        {expiryLabel && !isExpired && (
+          <p
+            className="text-[11px] mt-1 flex items-center gap-1"
+            style={{ color: "var(--color-warning)" }}
+          >
+            <Clock className="h-3 w-3" />
+            Renews {expiryLabel}
+          </p>
+        )}
+
+        {/* Action row */}
+        <div className="mt-4 flex gap-2">
+          {isExpired ? (
+            <button
+              disabled
+              className="flex-1 h-9 rounded-xl text-[12px] font-semibold opacity-40 cursor-not-allowed flex items-center justify-center gap-1.5"
+              style={{
+                backgroundColor: "var(--color-surface-secondary)",
+                color: "var(--color-text-muted)",
+              }}
+            >
+              <AlertTriangle className="h-3.5 w-3.5" /> Expired
+            </button>
+          ) : !row.access_url ? (
+            <button
+              disabled
+              className="flex-1 h-9 rounded-xl text-[12px] font-semibold opacity-50 cursor-not-allowed flex items-center justify-center gap-1.5"
+              style={{
+                backgroundColor: "var(--color-surface-secondary)",
+                color: "var(--color-text-muted)",
+              }}
+            >
+              <Loader2 className="h-3.5 w-3.5 animate-spin" /> Preparing…
+            </button>
+          ) : config.action === "continue" ? (
+            <Link
+              href={`/dashboard/my-courses/${product?.id}`}
+              className={cn(
+                "flex-1 h-9 rounded-xl text-[12px] font-bold flex items-center justify-center gap-1.5 text-white transition-opacity hover:opacity-90 bg-gradient-to-r",
+                config.gradient
+              )}
+            >
+              <ActionIcon className="h-3.5 w-3.5" />
+              {config.actionLabel}
+            </Link>
+          ) : (
+            <button
+              onClick={handleAction}
+              className={cn(
+                "flex-1 h-9 rounded-xl text-[12px] font-bold flex items-center justify-center gap-1.5 text-white transition-opacity hover:opacity-90 bg-gradient-to-r",
+                config.gradient
+              )}
+            >
+              <ActionIcon className="h-3.5 w-3.5" />
+              {config.actionLabel}
+            </button>
+          )}
+
+          {/* Secondary action */}
+          {row.access_url && !isExpired && (
+            config.action === "continue" ? (
               <Link
-                href={`/dashboard/my-courses/${item.product_id}?tab=progress`}
-                className={cn(
-                  "h-9 w-9 rounded-xl flex items-center justify-center shrink-0",
-                  "border border-[var(--color-border)] text-[var(--color-text-secondary)]",
-                  "hover:border-[var(--color-border-strong)] hover:text-[var(--color-text-primary)] transition-colors"
-                )}
+                href={`/dashboard/my-courses/${product?.id}?tab=progress`}
                 title="View progress"
+                className="h-9 w-9 rounded-xl flex items-center justify-center shrink-0 border transition-colors hover-lift"
+                style={{
+                  borderColor: "var(--color-border)",
+                  color: "var(--color-text-muted)",
+                }}
               >
                 <BarChart2 className="h-4 w-4" />
               </Link>
             ) : (
               <button
                 onClick={handleCopy}
-                className={cn(
-                  "h-9 w-9 rounded-xl flex items-center justify-center shrink-0",
-                  "border border-[var(--color-border)] text-[var(--color-text-secondary)]",
-                  "hover:border-[var(--color-border-strong)] hover:text-[var(--color-text-primary)] transition-colors"
-                )}
                 title="Copy link"
+                className="h-9 w-9 rounded-xl flex items-center justify-center shrink-0 border transition-colors"
+                style={{
+                  borderColor: "var(--color-border)",
+                  color: "var(--color-text-muted)",
+                }}
               >
                 <Copy className="h-4 w-4" />
               </button>
-            )}
-          </div>
-        ) : (
-          <Button
-            disabled
-            className="w-full h-9 text-[12px] font-semibold rounded-xl border-none gap-1.5 opacity-50 cursor-not-allowed bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)]"
-          >
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            Preparing access…
-          </Button>
-        )}
+            )
+          )}
+        </div>
       </div>
+    </div>
+  );
+}
+
+// ─── Table View ───────────────────────────────────────────────────────────────
+
+type SortKey = "name" | "subtype" | "granted_at" | "expires_at" | "status";
+type SortDir = "asc" | "desc";
+
+function TableView({ rows, highlightId }: { rows: DigitalAccessRow[]; highlightId: string | null }) {
+  const [sortKey, setSortKey] = useState<SortKey>("granted_at");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
+
+  function toggleSort(key: SortKey) {
+    if (sortKey === key) {
+      setSortDir(d => d === "asc" ? "desc" : "asc");
+    } else {
+      setSortKey(key);
+      setSortDir("asc");
+    }
+  }
+
+  const sorted = [...rows].sort((a, b) => {
+    let av: string | number = "";
+    let bv: string | number = "";
+    const aExpired = a.expires_at ? new Date(a.expires_at) < new Date() : false;
+    const bExpired = b.expires_at ? new Date(b.expires_at) < new Date() : false;
+
+    switch (sortKey) {
+      case "name":
+        av = a.products?.name?.toLowerCase() ?? "";
+        bv = b.products?.name?.toLowerCase() ?? "";
+        break;
+      case "subtype":
+        av = a.subtype ?? "";
+        bv = b.subtype ?? "";
+        break;
+      case "granted_at":
+        av = new Date(a.granted_at).getTime();
+        bv = new Date(b.granted_at).getTime();
+        break;
+      case "expires_at":
+        av = a.expires_at ? new Date(a.expires_at).getTime() : Infinity;
+        bv = b.expires_at ? new Date(b.expires_at).getTime() : Infinity;
+        break;
+      case "status":
+        av = aExpired ? 1 : 0;
+        bv = bExpired ? 1 : 0;
+        break;
+    }
+    if (av < bv) return sortDir === "asc" ? -1 : 1;
+    if (av > bv) return sortDir === "asc" ? 1 : -1;
+    return 0;
+  });
+
+  const COLS: { key: SortKey; label: string; className?: string }[] = [
+    { key: "name", label: "Product", className: "w-full" },
+    { key: "subtype", label: "Type", className: "w-32 hidden sm:table-cell" },
+    { key: "granted_at", label: "Claimed", className: "w-36 hidden md:table-cell" },
+    { key: "expires_at", label: "Expires", className: "w-36 hidden lg:table-cell" },
+    { key: "status", label: "Status", className: "w-28" },
+  ];
+
+  function SortIcon({ col }: { col: SortKey }) {
+    if (sortKey !== col) return <ChevronsUpDown className="h-3 w-3 opacity-30" />;
+    return sortDir === "asc"
+      ? <ChevronUp className="h-3 w-3" style={{ color: "var(--color-accent)" }} />
+      : <ChevronDown className="h-3 w-3" style={{ color: "var(--color-accent)" }} />;
+  }
+
+  return (
+    <div
+      className="rounded-2xl border overflow-hidden"
+      style={{
+        borderColor: "var(--color-border)",
+        boxShadow: "var(--shadow-sm)",
+      }}
+    >
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse text-[13px]">
+          {/* ── Head ── */}
+          <thead>
+            <tr style={{ borderBottom: "1px solid var(--color-border)", backgroundColor: "var(--color-surface-secondary)" }}>
+              {/* Thumbnail spacer */}
+              <th className="w-12 pl-4 py-3" />
+              {COLS.map(col => (
+                <th
+                  key={col.key}
+                  className={cn("py-3 pr-4 text-left font-semibold select-none", col.className)}
+                  style={{ color: "var(--color-text-muted)" }}
+                >
+                  <button
+                    onClick={() => toggleSort(col.key)}
+                    className="inline-flex items-center gap-1.5 hover:opacity-80 transition-opacity"
+                  >
+                    {col.label}
+                    <SortIcon col={col.key} />
+                  </button>
+                </th>
+              ))}
+              {/* Actions col */}
+              <th className="w-36 py-3 pr-4 text-right font-semibold" style={{ color: "var(--color-text-muted)" }}>
+                Actions
+              </th>
+            </tr>
+          </thead>
+
+          {/* ── Body ── */}
+          <tbody>
+            {sorted.map((row, i) => (
+              <TableRow
+                key={row.id}
+                row={row}
+                highlight={highlightId === row.id || highlightId === row.products?.id}
+                isLast={i === sorted.length - 1}
+              />
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Footer count */}
+      <div
+        className="px-4 py-2.5 flex items-center justify-between border-t"
+        style={{
+          borderColor: "var(--color-border)",
+          backgroundColor: "var(--color-surface-secondary)",
+        }}
+      >
+        <p className="text-[11px] font-medium" style={{ color: "var(--color-text-muted)" }}>
+          {sorted.length} item{sorted.length !== 1 ? "s" : ""}
+        </p>
+        <p className="text-[11px]" style={{ color: "var(--color-text-muted)" }}>
+          Click a column header to sort
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function TableRow({ row, highlight, isLast }: { row: DigitalAccessRow; highlight: boolean; isLast: boolean }) {
+  const product = row.products;
+  const config = getSubtypeConfig(row.subtype, row.access_url);
+  const SubtypeIcon = config.icon;
+  const ActionIcon = config.ActionIcon;
+  const isExpired = row.expires_at ? new Date(row.expires_at) < new Date() : false;
+  const image = product?.images?.[0] ?? null;
+  const name = product?.name ?? "Unknown product";
+
+  const daysUntilExpiry = row.expires_at
+    ? Math.ceil((new Date(row.expires_at).getTime() - Date.now()) / 86400000)
+    : null;
+
+  const grantedLabel = new Date(row.granted_at).toLocaleDateString("en-US", {
+    month: "short", day: "numeric", year: "numeric",
+  });
+  const expiryLabel = row.expires_at
+    ? new Date(row.expires_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+    : "—";
+
+  function handleCopy() {
+    if (!row.access_url) return;
+    navigator.clipboard.writeText(row.access_url);
+    toast.success("Link copied");
+  }
+
+  function handleAction() {
+    if (!row.access_url) return;
+    if (config.action === "download") {
+      const a = document.createElement("a");
+      a.href = row.access_url;
+      a.download = "";
+      a.target = "_blank";
+      a.click();
+    } else {
+      window.open(row.access_url, "_blank");
+    }
+  }
+
+  return (
+    <tr
+      className={cn("group transition-colors", isExpired && "opacity-55")}
+      style={{
+        borderBottom: isLast ? "none" : "1px solid var(--color-border)",
+        backgroundColor: highlight
+          ? "rgba(48,164,108,0.05)"
+          : "var(--color-surface)",
+      }}
+      onMouseEnter={e => {
+        if (!highlight) (e.currentTarget as HTMLElement).style.backgroundColor = "var(--color-surface-secondary)";
+      }}
+      onMouseLeave={e => {
+        (e.currentTarget as HTMLElement).style.backgroundColor = highlight
+          ? "rgba(48,164,108,0.05)"
+          : "var(--color-surface)";
+      }}
+    >
+      {/* Thumbnail */}
+      <td className="pl-4 py-3 w-12">
+        <div
+          className="h-10 w-10 rounded-xl overflow-hidden shrink-0"
+          style={{ backgroundColor: "var(--color-surface-secondary)" }}
+        >
+          {image ? (
+            <img src={image} alt={name} className="h-full w-full object-cover" />
+          ) : (
+            <div
+              className={cn("h-full w-full flex items-center justify-center bg-gradient-to-br", config.gradient)}
+              style={{ opacity: 0.18 }}
+            >
+              <SubtypeIcon className="h-5 w-5" style={{ color: config.accent, opacity: 1 }} />
+            </div>
+          )}
+        </div>
+      </td>
+
+      {/* Name */}
+      <td className="py-3 pr-4 w-full">
+        <div className="flex items-center gap-2 min-w-0">
+          {highlight && (
+            <span
+              className="shrink-0 h-1.5 w-1.5 rounded-full"
+              style={{ backgroundColor: "var(--color-success)" }}
+            />
+          )}
+          <span
+            className="font-semibold truncate max-w-[240px]"
+            style={{ color: "var(--color-text-primary)" }}
+            title={name}
+          >
+            {name}
+          </span>
+        </div>
+      </td>
+
+      {/* Type */}
+      <td className="py-3 pr-4 w-32 hidden sm:table-cell">
+        <span
+          className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full whitespace-nowrap"
+          style={{ background: `${config.accent}14`, color: config.accent }}
+        >
+          <SubtypeIcon className="h-3 w-3 shrink-0" />
+          {config.label}
+        </span>
+      </td>
+
+      {/* Claimed */}
+      <td className="py-3 pr-4 w-36 hidden md:table-cell">
+        <span className="text-[12px]" style={{ color: "var(--color-text-secondary)" }}>
+          {grantedLabel}
+        </span>
+      </td>
+
+      {/* Expires */}
+      <td className="py-3 pr-4 w-36 hidden lg:table-cell">
+        {row.expires_at ? (
+          <span
+            className="text-[12px] inline-flex items-center gap-1"
+            style={{
+              color: isExpired
+                ? "var(--color-danger)"
+                : daysUntilExpiry !== null && daysUntilExpiry <= 7
+                  ? "var(--color-warning)"
+                  : "var(--color-text-secondary)",
+            }}
+          >
+            {(isExpired || (daysUntilExpiry !== null && daysUntilExpiry <= 7)) && (
+              <Clock className="h-3 w-3 shrink-0" />
+            )}
+            {expiryLabel}
+          </span>
+        ) : (
+          <span className="text-[12px]" style={{ color: "var(--color-text-muted)" }}>Lifetime</span>
+        )}
+      </td>
+
+      {/* Status */}
+      <td className="py-3 pr-4 w-28">
+        {isExpired ? (
+          <span
+            className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full"
+            style={{
+              background: "rgba(229,72,77,0.1)",
+              color: "var(--color-danger)",
+              border: "1px solid rgba(229,72,77,0.2)",
+            }}
+          >
+            <AlertTriangle className="h-3 w-3" /> Expired
+          </span>
+        ) : !row.access_url ? (
+          <span
+            className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full"
+            style={{
+              background: "rgba(240,180,41,0.1)",
+              color: "var(--color-warning)",
+              border: "1px solid rgba(240,180,41,0.2)",
+            }}
+          >
+            <Loader2 className="h-3 w-3 animate-spin" /> Preparing
+          </span>
+        ) : (
+          <span
+            className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full"
+            style={{
+              background: "rgba(48,164,108,0.1)",
+              color: "var(--color-success)",
+              border: "1px solid rgba(48,164,108,0.2)",
+            }}
+          >
+            <CheckCircle2 className="h-3 w-3" /> Active
+          </span>
+        )}
+      </td>
+
+      {/* Actions */}
+      <td className="py-3 pr-4 w-36">
+        <div className="flex items-center justify-end gap-1.5">
+          {!isExpired && row.access_url ? (
+            <>
+              {config.action === "continue" ? (
+                <>
+                  <Link
+                    href={`/dashboard/my-courses/${product?.id}`}
+                    className={cn(
+                      "inline-flex items-center gap-1.5 h-8 px-3 rounded-xl text-[12px] font-bold text-white bg-gradient-to-r transition-opacity hover:opacity-85",
+                      config.gradient
+                    )}
+                  >
+                    <ActionIcon className="h-3.5 w-3.5 shrink-0" />
+                    <span className="hidden lg:inline">{config.actionLabel}</span>
+                  </Link>
+                  <Link
+                    href={`/dashboard/my-courses/${product?.id}?tab=progress`}
+                    title="View progress"
+                    className="h-8 w-8 rounded-xl flex items-center justify-center border transition-colors"
+                    style={{ borderColor: "var(--color-border)", color: "var(--color-text-muted)" }}
+                  >
+                    <BarChart2 className="h-3.5 w-3.5" />
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={handleAction}
+                    className={cn(
+                      "inline-flex items-center gap-1.5 h-8 px-3 rounded-xl text-[12px] font-bold text-white bg-gradient-to-r transition-opacity hover:opacity-85",
+                      config.gradient
+                    )}
+                  >
+                    <ActionIcon className="h-3.5 w-3.5 shrink-0" />
+                    <span className="hidden lg:inline">{config.actionLabel}</span>
+                  </button>
+                  <button
+                    onClick={handleCopy}
+                    title="Copy link"
+                    className="h-8 w-8 rounded-xl flex items-center justify-center border transition-colors"
+                    style={{ borderColor: "var(--color-border)", color: "var(--color-text-muted)" }}
+                  >
+                    <Copy className="h-3.5 w-3.5" />
+                  </button>
+                </>
+              )}
+            </>
+          ) : (
+            <span className="text-[11px] opacity-40" style={{ color: "var(--color-text-muted)" }}>—</span>
+          )}
+        </div>
+      </td>
+    </tr>
+  );
+}
+
+// ─── Stats bar ────────────────────────────────────────────────────────────────
+
+function StatsBar({ items }: { items: DigitalAccessRow[] }) {
+  const total = items.length;
+  const active = items.filter(r => r.access_url && (!r.expires_at || new Date(r.expires_at) > new Date())).length;
+  const expiringSoon = items.filter(r => {
+    if (!r.expires_at) return false;
+    const days = Math.ceil((new Date(r.expires_at).getTime() - Date.now()) / 86400000);
+    return days > 0 && days <= 7;
+  }).length;
+
+  const stats = [
+    { label: "Total assets", value: total, color: "var(--color-text-primary)" },
+    { label: "Active", value: active, color: "var(--color-success)" },
+    ...(expiringSoon > 0 ? [{ label: "Expiring soon", value: expiringSoon, color: "var(--color-warning)" }] : []),
+  ];
+
+  return (
+    <div className="flex items-center gap-6">
+      {stats.map((s, i) => (
+        <React.Fragment key={s.label}>
+          {i > 0 && (
+            <div
+              className="h-4 w-px"
+              style={{ backgroundColor: "var(--color-border)" }}
+            />
+          )}
+          <div>
+            <p
+              className="text-xl font-black tabular-nums"
+              style={{ color: s.color }}
+            >
+              {s.value}
+            </p>
+            <p
+              className="text-[11px] font-medium"
+              style={{ color: "var(--color-text-muted)" }}
+            >
+              {s.label}
+            </p>
+          </div>
+        </React.Fragment>
+      ))}
     </div>
   );
 }
@@ -569,75 +872,98 @@ export default function DigitalLibraryPage() {
   const searchParams = useSearchParams();
   const highlightId = searchParams.get("highlight") ?? searchParams.get("new") ?? null;
 
-  const [items, setItems] = useState<LibraryItem[]>([]);
+  const [items, setItems] = useState<DigitalAccessRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState<string>("all");
+  const [viewMode, setViewMode] = useState<"grid" | "table">("grid");
+  const searchRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    async function load() {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+  async function load(isRefresh = false) {
+    if (isRefresh) setRefreshing(true);
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setLoading(false); return; }
 
-      const { data } = await supabase
-        .from("order_items")
-        .select(`
-          id, product_id, product_name, product_image, product_type,
-          product_subtype, digital_download_url, access_granted_at, created_at,
-          orders!inner ( payment_status, buyer_id )
-        `)
-        .eq("orders.buyer_id", user.id)
-        .eq("orders.payment_status", "completed")
-        .in("product_type", [
-          "digital", "software", "courses", "ai-tools",
-          "templates", "ebooks", "music-audio", "graphics-design", "photography",
-        ])
-        .order("created_at", { ascending: false });
+    const now = new Date().toISOString();
 
-      const { data: legacyData } = await supabase
-        .from("order_items")
-        .select(`
-          id, product_id, product_name, product_image, product_type,
-          product_subtype, digital_download_url, access_granted_at, created_at,
-          orders!inner ( payment_status, buyer_id )
-        `)
-        .eq("orders.buyer_id", user.id)
-        .eq("orders.payment_status", "completed")
-        .not("access_granted_at", "is", null)
-        .is("product_type", null);
+    const { data, error } = await supabase
+      .from("digital_access")
+      .select(`
+        id, access_url, subtype, granted_at, expires_at,
+        products ( id, name, images, button_text, pricing_type, billing_period )
+      `)
+      .eq("user_id", user.id)
+      .is("revoked_at", null)
+      .or(`expires_at.is.null,expires_at.gt.${now}`)
+      .order("granted_at", { ascending: false });
 
-      const combined = [...(data ?? []), ...(legacyData ?? [])];
-      const unique = combined.filter(
-        (item, i, self) => i === self.findIndex((t) => t.id === item.id)
-      );
-
-      setItems(unique as unknown as LibraryItem[]);
-      setLoading(false);
+    if (error) {
+      console.error("[DigitalLibrary]", error);
+    } else {
+      const resolved = (data ?? []).map((row) => ({
+        ...row,
+        products: Array.isArray(row.products) ? (row.products[0] ?? null) : row.products,
+      })) as DigitalAccessRow[];
+      setItems(resolved);
     }
-    load();
+
+    setLoading(false);
+    setRefreshing(false);
+  }
+
+  useEffect(() => { load(); }, []);
+
+  // Keyboard shortcut: CMD+K focuses search
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        searchRef.current?.focus();
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  const filtered = items.filter((item) => {
-    const matchesSearch =
-      item.product_name?.toLowerCase().includes(search.toLowerCase());
-    const matchesFilter =
-      activeFilter === "all" ||
-      item.product_subtype === activeFilter ||
-      item.product_type === activeFilter;
+  const filtered = items.filter((row) => {
+    const name = row.products?.name ?? "";
+    const matchesSearch = name.toLowerCase().includes(search.toLowerCase());
+    const matchesFilter = activeFilter === "all" || row.subtype === activeFilter;
     return matchesSearch && matchesFilter;
   });
 
-  // ─── Loading ───────────────────────────────────────────────────────────────
+  // Count per filter for badges
+  const countBySubtype = items.reduce<Record<string, number>>((acc, row) => {
+    const key = row.subtype ?? "other";
+    acc[key] = (acc[key] ?? 0) + 1;
+    return acc;
+  }, {});
+
+  // ─── Loading skeleton ──────────────────────────────────────────────────────
 
   if (loading) {
     return (
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <div className="text-center space-y-3">
-          <Loader2 className="h-7 w-7 animate-spin text-[var(--color-text-muted)] mx-auto" />
-          <p className="text-[13px] text-[var(--color-text-muted)]">
-            Loading your library…
-          </p>
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-7">
+        <div className="flex items-center justify-between">
+          <div className="space-y-2">
+            <div
+              className="h-7 w-44 rounded-xl animate-pulse"
+              style={{ backgroundColor: "var(--color-surface-secondary)" }}
+            />
+            <div
+              className="h-4 w-28 rounded-lg animate-pulse"
+              style={{ backgroundColor: "var(--color-surface-secondary)" }}
+            />
+          </div>
+          <div
+            className="h-10 w-64 rounded-xl animate-pulse"
+            style={{ backgroundColor: "var(--color-surface-secondary)" }}
+          />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+          {Array.from({ length: 8 }).map((_, i) => <CardSkeleton key={i} />)}
         </div>
       </div>
     );
@@ -646,98 +972,250 @@ export default function DigitalLibraryPage() {
   // ─── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-7">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-6 animate-fade-in">
 
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-[var(--color-text-primary)] tracking-tight">
-            Digital library
-          </h1>
-          <p className="text-[13px] text-[var(--color-text-muted)] mt-0.5">
-            {items.length} {items.length === 1 ? "asset" : "assets"} · instant access
-          </p>
+      {/* ── Header ── */}
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-5">
+        <div className="flex items-start gap-4">
+          {/* Icon — uses gradient-brand from global.css */}
+          <div
+            className="h-12 w-12 rounded-2xl gradient-brand flex items-center justify-center shrink-0"
+            style={{ boxShadow: "var(--shadow-md)" }}
+          >
+            <Library className="h-6 w-6 text-white" />
+          </div>
+          <div>
+            <h1
+              className="text-2xl font-black tracking-tight leading-none"
+              style={{ color: "var(--color-text-primary)" }}
+            >
+              Digital Library
+            </h1>
+            <p
+              className="text-[13px] mt-1.5"
+              style={{ color: "var(--color-text-muted)" }}
+            >
+              All your purchased digital products in one place
+            </p>
+            {items.length > 0 && (
+              <div className="mt-3">
+                <StatsBar items={items} />
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Search */}
-        <div className="relative w-full sm:w-72">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--color-text-muted)] pointer-events-none" />
-          <input
-            placeholder="Search your library…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className={cn(
-              "w-full h-10 pl-9 pr-4 rounded-xl text-[13px]",
-              "bg-[var(--color-surface-secondary)] border border-[var(--color-border)]",
-              "text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)]",
-              "focus:outline-none focus:border-[var(--color-border-strong)] transition-colors"
-            )}
-          />
+        {/* Right controls */}
+        <div className="flex items-center gap-2 shrink-0">
+          {/* Refresh */}
+          <button
+            onClick={() => load(true)}
+            disabled={refreshing}
+            title="Refresh library"
+            className="h-10 w-10 rounded-xl flex items-center justify-center border transition-colors"
+            style={{
+              borderColor: "var(--color-border)",
+              color: "var(--color-text-muted)",
+            }}
+          >
+            <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
+          </button>
+
+          {/* View toggle */}
+          <div
+            className="flex items-center gap-1 p-1 rounded-xl border"
+            style={{
+              borderColor: "var(--color-border)",
+              backgroundColor: "var(--color-surface-secondary)",
+            }}
+          >
+            {([
+              { mode: "grid", Icon: Grid3X3, title: "Grid view" },
+              { mode: "table", Icon: Table2, title: "Table view" },
+            ] as const).map(({ mode, Icon, title }) => (
+              <button
+                key={mode}
+                onClick={() => setViewMode(mode)}
+                title={title}
+                className="h-8 w-8 rounded-lg flex items-center justify-center transition-all"
+                style={{
+                  backgroundColor: viewMode === mode ? "var(--color-surface)" : "transparent",
+                  color: viewMode === mode ? "var(--color-text-primary)" : "var(--color-text-muted)",
+                  boxShadow: viewMode === mode ? "var(--shadow-sm)" : undefined,
+                }}
+              >
+                <Icon className="h-4 w-4" />
+              </button>
+            ))}
+          </div>
+
+          {/* Search — uses glass-input from global.css */}
+          <div className="relative">
+            <Search
+              className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none"
+              style={{ color: "var(--color-text-muted)" }}
+            />
+            <input
+              ref={searchRef}
+              placeholder="Search library…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="glass-input h-10 pl-9 pr-10 text-[13px] w-52 focus:w-64 transition-all"
+            />
+            <kbd
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-medium px-1.5 py-0.5 rounded-md pointer-events-none border"
+              style={{
+                color: "var(--color-text-muted)",
+                backgroundColor: "var(--color-surface)",
+                borderColor: "var(--color-border)",
+              }}
+            >
+              ⌘K
+            </kbd>
+          </div>
         </div>
       </div>
 
-      {/* Filter tabs */}
+      {/* ── Filter tabs ── */}
       {items.length > 0 && (
         <div className="flex gap-2 flex-wrap">
-          {FILTER_TABS.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveFilter(tab.id)}
-              className={cn(
-                "h-8 px-4 rounded-full text-[12px] font-semibold transition-colors",
-                activeFilter === tab.id
-                  ? "bg-[var(--color-text-primary)] text-[var(--color-bg)]"
-                  : "border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-[var(--color-border-strong)] hover:text-[var(--color-text-primary)]"
-              )}
-            >
-              {tab.label}
-            </button>
-          ))}
+          {FILTER_TABS.map((tab) => {
+            const count = tab.id === "all" ? items.length : (countBySubtype[tab.id] ?? 0);
+            if (tab.id !== "all" && count === 0) return null;
+            const TabIcon = tab.icon;
+            const isActive = activeFilter === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveFilter(tab.id)}
+                className="h-8 pl-3 pr-3 rounded-full text-[12px] font-semibold transition-all flex items-center gap-1.5 border"
+                style={{
+                  backgroundColor: isActive ? "var(--color-text-primary)" : "transparent",
+                  color: isActive ? "var(--color-bg)" : "var(--color-text-secondary)",
+                  borderColor: isActive ? "var(--color-text-primary)" : "var(--color-border)",
+                  boxShadow: isActive ? "var(--shadow-sm)" : undefined,
+                }}
+              >
+                <TabIcon className="h-3 w-3" />
+                {tab.label}
+                <span
+                  className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+                  style={{
+                    backgroundColor: isActive ? "rgba(255,255,255,0.2)" : "var(--color-surface-secondary)",
+                    color: isActive ? "inherit" : "var(--color-text-muted)",
+                  }}
+                >
+                  {count}
+                </span>
+              </button>
+            );
+          })}
         </div>
       )}
 
-      {/* Empty state */}
-      {filtered.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-20 rounded-2xl border border-dashed border-[var(--color-border)] text-center">
-          <div
-            className="h-14 w-14 rounded-2xl flex items-center justify-center mb-4"
-            style={{ background: "var(--color-surface-secondary)" }}
-          >
-            <Package className="h-6 w-6 text-[var(--color-text-muted)]" />
-          </div>
-          <p className="text-[15px] font-semibold text-[var(--color-text-primary)] mb-1">
-            {search || activeFilter !== "all" ? "No results found" : "Your library is empty"}
-          </p>
-          <p className="text-[13px] text-[var(--color-text-muted)] max-w-xs leading-relaxed mb-6">
-            {search || activeFilter !== "all"
-              ? "Try a different search or filter."
-              : "Digital purchases like software, courses, and ebooks appear here instantly after claiming."}
-          </p>
-          {!search && activeFilter === "all" && (
-            <Button
-              asChild
-              className="h-9 px-5 rounded-xl text-[13px] font-semibold bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white border-none"
-            >
-              <Link href="/marketplace">Browse marketplace</Link>
-            </Button>
+      {/* ── Results label ── */}
+      {(search || activeFilter !== "all") && filtered.length > 0 && (
+        <p className="text-[12px]" style={{ color: "var(--color-text-muted)" }}>
+          Showing{" "}
+          <span className="font-semibold" style={{ color: "var(--color-text-primary)" }}>
+            {filtered.length}
+          </span>{" "}
+          result{filtered.length !== 1 ? "s" : ""}
+          {search && (
+            <>
+              {" "}for{" "}
+              <span className="font-semibold" style={{ color: "var(--color-text-primary)" }}>
+                "{search}"
+              </span>
+            </>
           )}
+        </p>
+      )}
+
+      {/* ── Empty state ── */}
+      {items.length === 0 && (
+        <div
+          className="flex flex-col items-center justify-center py-24 rounded-2xl border border-dashed"
+          style={{ borderColor: "var(--color-border)" }}
+        >
+          <div
+            className="h-16 w-16 rounded-2xl flex items-center justify-center mb-5 border"
+            style={{
+              background: "var(--color-accent-light)",
+              borderColor: "var(--color-accent-subtle)",
+            }}
+          >
+            <Library className="h-7 w-7" style={{ color: "var(--color-accent)" }} />
+          </div>
+          <p
+            className="text-[16px] font-bold mb-2"
+            style={{ color: "var(--color-text-primary)" }}
+          >
+            Your library is empty
+          </p>
+          <p
+            className="text-[13px] max-w-xs text-center leading-relaxed mb-7"
+            style={{ color: "var(--color-text-muted)" }}
+          >
+            Software, courses, ebooks and other digital products you purchase appear here with instant access.
+          </p>
+          <Link
+            href="/marketplace"
+            className="btn-premium gradient-brand text-white inline-flex items-center gap-2"
+            style={{ boxShadow: "var(--shadow-md)" }}
+          >
+            <Sparkles className="h-4 w-4" />
+            Browse marketplace
+          </Link>
         </div>
       )}
 
-      {/* Grid */}
-      {filtered.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-          {filtered.map((item) => (
-            <LibraryCard
-              key={item.id}
-              item={item}
-              highlight={
-                highlightId === item.id ||
-                highlightId === item.product_id
-              }
+      {/* ── No search results ── */}
+      {items.length > 0 && filtered.length === 0 && (
+        <div
+          className="flex flex-col items-center justify-center py-16 rounded-2xl border border-dashed"
+          style={{ borderColor: "var(--color-border)" }}
+        >
+          <Search
+            className="h-8 w-8 mb-4"
+            style={{ color: "var(--color-text-muted)" }}
+          />
+          <p
+            className="text-[15px] font-semibold mb-1"
+            style={{ color: "var(--color-text-primary)" }}
+          >
+            No results found
+          </p>
+          <p className="text-[13px]" style={{ color: "var(--color-text-muted)" }}>
+            Try a different search term or filter
+          </p>
+          <button
+            onClick={() => { setSearch(""); setActiveFilter("all"); }}
+            className="mt-4 text-[12px] font-semibold hover:underline"
+            style={{ color: "var(--color-accent)" }}
+          >
+            Clear filters
+          </button>
+        </div>
+      )}
+
+      {/* ── Grid view ── */}
+      {filtered.length > 0 && viewMode === "grid" && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 stagger-children">
+          {filtered.map((row, i) => (
+            <GridCard
+              key={row.id}
+              row={row}
+              highlight={highlightId === row.id || highlightId === row.products?.id}
+              index={i}
             />
           ))}
         </div>
+      )}
+
+      {/* ── Table view ── */}
+      {filtered.length > 0 && viewMode === "table" && (
+        <TableView rows={filtered} highlightId={highlightId} />
       )}
     </div>
   );

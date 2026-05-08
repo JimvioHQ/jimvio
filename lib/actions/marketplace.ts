@@ -8,6 +8,7 @@ import { normalizeProductSource } from "@/lib/sources/product-source";
 import { getProducts } from "@/services/db";
 import { cookies } from "next/headers";
 import { getDefaultAffiliateCommissionPercent } from "@/lib/platform-settings";
+import { grantDigitalAccess } from "./digital-access";
 
 
 export async function checkUserOwnsProduct(productId: string): Promise<boolean> {
@@ -790,108 +791,250 @@ export async function updateOrderStatus(orderId: string, newStatus: string): Pro
   }
 }
 
-export async function buyDirectCheckout(productId: string, vendorId: string, quantity: number = 1) {
+// export async function buyDirectCheckout(productId: string, vendorId: string, quantity: number = 1) {
+//   try {
+//     const supabase = await createClient();
+//     const { data: { user } } = await supabase.auth.getUser();
+
+//     if (!user) {
+//       return { success: false, error: "Authentication required" };
+//     }
+
+//     const { data: product, error: productError } = await supabase
+//       .from("products")
+//       .select("id, name, price, images, shopify_variant_id, shopify_product_id,currency, source, source_metadata, affiliate_enabled, affiliate_commission_rate, product_type, pricing_type, billing_period")
+//       .eq("id", productId)
+//       .single();
+
+//     if (productError || !product) throw new Error("Product not found");
+
+//     const productCurrency = product.currency?.toUpperCase() || "USD";
+
+//     // Create new direct checkout order immediately
+//     const { data: order, error: createError } = await supabase
+//       .from("orders")
+//       .insert({
+//         buyer_id: user.id,
+//         vendor_id: vendorId,
+//         status: "pending",
+//         total_amount: product.price * quantity,
+//         subtotal: product.price * quantity,
+//         currency: productCurrency,
+//         metadata: { is_direct_checkout: true }
+//       })
+//       .select()
+//       .single();
+
+//     if (createError) throw createError;
+
+//     const orderId = order.id;
+
+//     // Handle affiliate tracking
+//     const cookieStore = await cookies();
+//     const lastVideoId = cookieStore.get("jimvio_last_video_id")?.value;
+//     const refCode = cookieStore.get("jimvio_ref")?.value;
+//     let affiliateId = null;
+//     let commissionRate = (product as any).affiliate_commission_rate ?? (await getDefaultAffiliateCommissionPercent());
+
+//     if (lastVideoId && !(order.metadata as any)?.video_id) {
+//       await supabase
+//         .from("orders")
+//         .update({
+//           metadata: { ...((order.metadata as any) || {}), video_id: lastVideoId }
+//         })
+//         .eq("id", orderId);
+//     }
+
+//     if (refCode && (product as any).affiliate_enabled) {
+//       if (refCode.startsWith("LNK-")) {
+//         const { data: link } = await supabase
+//           .from("affiliate_links").select("affiliate_id, commission_rate").eq("link_code", refCode).maybeSingle();
+//         if (link) {
+//           affiliateId = link.affiliate_id;
+//           commissionRate = link.commission_rate || commissionRate;
+//         }
+//       } else {
+//         const { data: aff } = await supabase
+//           .from("affiliates").select("id").eq("affiliate_code", refCode).maybeSingle();
+//         if (aff) affiliateId = aff.id;
+//       }
+//     }
+
+//     const price = Number(product.price);
+//     const lineSource = normalizeProductSource((product as { source?: string | null }).source);
+//     const lineMeta = (product as { source_metadata?: Record<string, unknown> | null }).source_metadata ?? {};
+//     const totalPrice = price * quantity;
+//     const initialCommAmount = affiliateId ? (totalPrice * (commissionRate || 10)) / 100 : 0;
+
+//     const { error: insertError } = await supabase
+//       .from("order_items")
+//       .insert({
+//         order_id: orderId,
+//         product_id: productId,
+//         vendor_id: vendorId,
+//         product_type: product.product_type || "digital",
+//         product_name: product.name,
+//         product_image: product.images?.[0] || null,
+//         quantity: quantity,
+//         unit_price: price,
+//         total_price: totalPrice,
+//         affiliate_id: affiliateId,
+//         affiliate_commission_rate: commissionRate,
+//         affiliate_commission_amount: initialCommAmount,
+//         shopify_variant_id: product.shopify_variant_id ?? null,
+//         shopify_product_id: product.shopify_product_id ?? null,
+//         product_source: lineSource,
+//         source_metadata: lineMeta,
+//         pricing_type: product.pricing_type || "one_time",
+//         billing_period: product.billing_period || null,
+//         metadata: { video_id: lastVideoId }
+//       });
+
+//     if (insertError) throw insertError;
+
+//     return { success: true, orderId: orderId };
+//   } catch (error: any) {
+//     console.error("Direct checkout error:", error);
+//     return { success: false, error: error.message };
+//   }
+// }
+
+export async function buyDirectCheckout(
+  productId: string,
+  vendorId: string,
+  quantity: number = 1
+) {
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      return { success: false, error: "Authentication required" };
-    }
+    if (!user) return { success: false, error: "Authentication required" };
 
     const { data: product, error: productError } = await supabase
       .from("products")
-      .select("id, name, price, images, shopify_variant_id, shopify_product_id, currency, source, source_metadata, affiliate_enabled, affiliate_commission_rate, product_type, pricing_type, billing_period")
+      .select(`
+        id, name, price, images,
+        shopify_variant_id, shopify_product_id,
+        currency, source, source_metadata,
+        affiliate_enabled, affiliate_commission_rate,
+        product_type, pricing_type, billing_period,
+        digital_file_url
+      `)
       .eq("id", productId)
       .single();
 
     if (productError || !product) throw new Error("Product not found");
 
+    const price = Number(product.price);
+    const totalAmount = price * quantity;
+    const isFree = price === 0;
     const productCurrency = product.currency?.toUpperCase() || "USD";
 
-    // Create new direct checkout order immediately
+    // ── Affiliate resolution ───────────────────────────────────────────────
+    const cookieStore = await cookies();
+    const lastVideoId = cookieStore.get("jimvio_last_video_id")?.value ?? null;
+    const refCode = cookieStore.get("jimvio_ref")?.value ?? null;
+
+    let affiliateId: string | null = null;
+    let commissionRate: number = isFree
+      ? 0
+      : (product.affiliate_commission_rate ??
+        await getDefaultAffiliateCommissionPercent());
+
+    if (refCode && product.affiliate_enabled && !isFree) {
+      if (refCode.startsWith("LNK-")) {
+        const { data: link } = await supabase
+          .from("affiliate_links")
+          .select("affiliate_id, commission_rate")
+          .eq("link_code", refCode)
+          .maybeSingle();
+        if (link) {
+          affiliateId = link.affiliate_id;
+          commissionRate = link.commission_rate ?? commissionRate;
+        }
+      } else {
+        const { data: aff } = await supabase
+          .from("affiliates")
+          .select("id")
+          .eq("affiliate_code", refCode)
+          .maybeSingle();
+        if (aff) affiliateId = aff.id;
+      }
+    }
+
+    // ── Create order ───────────────────────────────────────────────────────
     const { data: order, error: createError } = await supabase
       .from("orders")
       .insert({
         buyer_id: user.id,
         vendor_id: vendorId,
-        status: "pending",
-        total_amount: product.price * quantity,
-        subtotal: product.price * quantity,
+        status: isFree ? "confirmed" : "pending",
+        payment_status: isFree ? "paid" : "pending",
+        paid_at: isFree ? new Date().toISOString() : null,
+        total_amount: totalAmount,
+        subtotal: totalAmount,
         currency: productCurrency,
-        metadata: { is_direct_checkout: true }
+        metadata: {
+          is_direct_checkout: true,
+          ...(lastVideoId ? { video_id: lastVideoId } : {}),
+        },
       })
       .select()
       .single();
 
     if (createError) throw createError;
 
-    const orderId = order.id;
+    // ── Create order item ──────────────────────────────────────────────────
+    const lineSource = normalizeProductSource(product.source ?? null);
+    const lineMeta = (product.source_metadata as Record<string, unknown>) ?? {};
+    const commissionAmount = affiliateId ? (totalAmount * commissionRate) / 100 : 0;
 
-    // Handle affiliate tracking
-    const cookieStore = await cookies();
-    const lastVideoId = cookieStore.get("jimvio_last_video_id")?.value;
-    const refCode = cookieStore.get("jimvio_ref")?.value;
-    let affiliateId = null;
-    let commissionRate = (product as any).affiliate_commission_rate ?? (await getDefaultAffiliateCommissionPercent());
-
-    if (lastVideoId && !(order.metadata as any)?.video_id) {
-      await supabase
-        .from("orders")
-        .update({
-          metadata: { ...((order.metadata as any) || {}), video_id: lastVideoId }
-        })
-        .eq("id", orderId);
-    }
-
-    if (refCode && (product as any).affiliate_enabled) {
-      if (refCode.startsWith("LNK-")) {
-        const { data: link } = await supabase
-          .from("affiliate_links").select("affiliate_id, commission_rate").eq("link_code", refCode).maybeSingle();
-        if (link) {
-          affiliateId = link.affiliate_id;
-          commissionRate = link.commission_rate || commissionRate;
-        }
-      } else {
-        const { data: aff } = await supabase
-          .from("affiliates").select("id").eq("affiliate_code", refCode).maybeSingle();
-        if (aff) affiliateId = aff.id;
-      }
-    }
-
-    const price = Number(product.price);
-    const lineSource = normalizeProductSource((product as { source?: string | null }).source);
-    const lineMeta = (product as { source_metadata?: Record<string, unknown> | null }).source_metadata ?? {};
-    const totalPrice = price * quantity;
-    const initialCommAmount = affiliateId ? (totalPrice * (commissionRate || 10)) / 100 : 0;
-
-    const { error: insertError } = await supabase
+    const { data: insertedItem, error: insertError } = await supabase
       .from("order_items")
       .insert({
-        order_id: orderId,
+        order_id: order.id,
         product_id: productId,
         vendor_id: vendorId,
-        product_type: product.product_type || "digital",
+        product_type: product.product_type ?? "digital",
         product_name: product.name,
-        product_image: product.images?.[0] || null,
-        quantity: quantity,
+        product_image: (product.images as string[])?.[0] ?? null,
+        quantity,
         unit_price: price,
-        total_price: totalPrice,
+        total_price: totalAmount,
         affiliate_id: affiliateId,
         affiliate_commission_rate: commissionRate,
-        affiliate_commission_amount: initialCommAmount,
+        affiliate_commission_amount: commissionAmount,
         shopify_variant_id: product.shopify_variant_id ?? null,
         shopify_product_id: product.shopify_product_id ?? null,
         product_source: lineSource,
         source_metadata: lineMeta,
-        pricing_type: product.pricing_type || "one_time",
-        billing_period: product.billing_period || null,
-        metadata: { video_id: lastVideoId }
-      });
+        pricing_type: product.pricing_type ?? "one_time",
+        billing_period: product.billing_period ?? null,
+        digital_download_url: product.digital_file_url ?? null,
+        access_granted_at: isFree ? new Date().toISOString() : null,
+        metadata: { ...(lastVideoId ? { video_id: lastVideoId } : {}) },
+      })
+      .select()
+      .single();
 
     if (insertError) throw insertError;
+    const isDigital = product.product_type === "digital";
 
-    return { success: true, orderId: orderId };
+    if (isFree && isDigital && insertedItem) {
+      const subtype =
+        (product.source_metadata as any)?.product_subtype ?? null;
+
+      await grantDigitalAccess({
+        userId: user.id,
+        productId,
+        orderItemId: insertedItem.id,
+        orderId: order.id,
+        accessUrl: product.digital_file_url ?? null,
+        subtype,
+        pricingType: product.pricing_type ?? "one_time",
+        billingPeriod: product.billing_period ?? null,
+      });
+    }
+    return { success: true, orderId: order.id };
   } catch (error: any) {
     console.error("Direct checkout error:", error);
     return { success: false, error: error.message };

@@ -671,8 +671,6 @@ function classifyError(error: any): OrderError {
   // RLS / auth errors
   if (code === "42501" || message.toLowerCase().includes("permission denied"))
     return { kind: "unauthorized" };
-
-  // Unknown column / relation (bad select string)
   if (
     code === "42703" ||                              // undefined column
     code === "42P01" ||                              // undefined table
@@ -951,7 +949,7 @@ function StatusStepper({ status }: { status: string }) {
 }
 
 function OrderItem({ item, currency }: { item: any; currency: string }) {
-  const {formatMoney}=useCurrency();
+  const { formatMoney } = useCurrency();
   return (
     <li className="group flex gap-4 items-center py-3">
       <div className="relative h-16 w-16 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)] overflow-hidden flex items-center justify-center shrink-0 transition-transform group-hover:scale-105">

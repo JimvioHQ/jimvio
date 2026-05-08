@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { getDB, getAdminDB } from "./base";
+import { log } from "console";
 
 /** getAdminProducts */
 export async function getAdminProducts(query?: string, limit = 50) {
@@ -109,21 +110,21 @@ export async function getProducts(query: ProductQuery = {}) {
 
   if (catalog === "shopify") q = q.eq("source", "shopify");
   if (vendorId) q = q.eq("vendor_id", vendorId);
-  if (featured)  q = q.eq("is_featured", true);
+  if (featured) q = q.eq("is_featured", true);
   if (affiliate) q = q.eq("affiliate_enabled", true);
-  if (type)      q = q.eq("product_type", type);
-  if (category)  q = q.eq("product_categories.slug", category);
-  if (search)    q = q.ilike("name", `%${search}%`);
+  if (type) q = q.eq("product_type", type);
+  if (category) q = q.eq("product_categories.slug", category);
+  if (search) q = q.ilike("name", `%${search}%`);
   if (minPrice != null) q = q.gte("price", minPrice);
   if (maxPrice != null) q = q.lte("price", maxPrice);
 
   switch (sort) {
-    case "newest":    q = q.order("created_at", { ascending: false }); break;
-    case "price_asc": q = q.order("price",      { ascending: true  }); break;
-    case "price_desc":q = q.order("price",      { ascending: false }); break;
-    case "rating":    q = q.order("rating",     { ascending: false }); break;
-    case "sales":     q = q.order("sale_count", { ascending: false }); break;
-    default:          q = q.order("view_count", { ascending: false });
+    case "newest": q = q.order("created_at", { ascending: false }); break;
+    case "price_asc": q = q.order("price", { ascending: true }); break;
+    case "price_desc": q = q.order("price", { ascending: false }); break;
+    case "rating": q = q.order("rating", { ascending: false }); break;
+    case "sales": q = q.order("sale_count", { ascending: false }); break;
+    default: q = q.order("view_count", { ascending: false });
   }
 
   const { data, count } = await q.range(offset, offset + limit - 1);
@@ -153,7 +154,7 @@ export async function countActiveListedProducts() {
 
 export async function getProductBySlug(slug: string) {
   const db = await getDB();
-  const { data } = await db
+  const { data, error } = await db
     .from("products")
     .select(`
       *,
@@ -165,6 +166,10 @@ export async function getProductBySlug(slug: string) {
     .eq("slug", slug)
     .eq("status", "active")
     .single();
+  if (error) {
+    console.error(`[getProductBySlug] Error fetching product with slug "${slug}":`, error);
+    return null;
+  }
   return data;
 }
 
