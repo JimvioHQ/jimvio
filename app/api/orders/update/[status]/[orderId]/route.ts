@@ -124,7 +124,7 @@ export async function PATCH(
         .update(updatePayload)
         .eq("id", orderId)
         .eq("buyer_id", user.id)
-        .select("id, status, payment_status, paid_at, cancelled_at")
+        .select("id, status, order_number, payment_status, paid_at, cancelled_at")
         .single();
 
     if (updateError || !updatedOrder) {
@@ -134,7 +134,8 @@ export async function PATCH(
 
     // 8. Return updated order state
     return NextResponse.json({
-        orderId: updatedOrder.id,
+        status: "success",
+        orderId: updatedOrder.order_number || updatedOrder.id,
         orderStatus: updatedOrder.status,
         paymentStatus: updatedOrder.payment_status,
         paidAt: updatedOrder.paid_at ?? null,

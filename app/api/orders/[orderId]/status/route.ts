@@ -130,6 +130,8 @@ async function finalizePayment(
         vendorId: string | null;
         totalAmount: number;
         currency: string;
+        paidAt: string;
+        metadata?: Record<string, unknown>;
     }
 ): Promise<{
     paymentStatus: string;
@@ -138,7 +140,7 @@ async function finalizePayment(
     walletCredited: boolean;
     netAmount?: number;
 }> {
-    const { orderId, transactionId, vendorId, totalAmount, currency } = params;
+    const { orderId, transactionId, vendorId, totalAmount, currency, paidAt, metadata } = params;
     const now = new Date().toISOString();
 
     // Update order → paid + confirmed (guard: only if still pending)
@@ -160,16 +162,16 @@ async function finalizePayment(
         });
     }
 
-    // Update transaction → completed (guard: only if still pending)
     const { error: txUpdateError } = await supabase
         .from("transactions")
         .update({
             status: "completed",
             updated_at: now,
+            metadata,
         })
-        .eq("id", transactionId)
+        .or(`id.eq.${transactionId},provider_transaction_id.eq.${transactionId}`)
         .eq("status", "pending");
-
+        
     if (txUpdateError) {
         console.error("[orders/status] Transaction update failed", {
             reason: txUpdateError.message,
@@ -275,7 +277,7 @@ export async function GET(
         });
     }
 
-    // 5. Pending + has a transaction → verify with Flutterwave
+
     if (order.payment_status === "pending" && transaction?.provider_transaction_id) {
         try {
             const txData = await verifyFlutterwaveTransaction(
@@ -288,6 +290,7 @@ export async function GET(
                 txRef: transaction.provider_transaction_id,
             });
 
+
             // ── Successful payment ────────────────────────────────────────────────
             if (txData?.status === "successful") {
                 const result = await finalizePayment(serviceSupabase, {
@@ -296,6 +299,13 @@ export async function GET(
                     vendorId: order.vendor_id ?? null,
                     totalAmount: Number(order.total_amount),
                     currency: order.currency ?? "RWF",
+                    paidAt: txData.created_at,
+                    metadata: {
+                        transaction_id: transaction.id,
+                        customer: txData.customer,
+                        tx_ref: txData.tx_ref,
+                        status: txData.status
+                    },
                 });
 
                 return NextResponse.json({

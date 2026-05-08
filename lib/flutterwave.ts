@@ -434,36 +434,133 @@ export async function createFlutterwavePaymentLink(
 }
 
 
+// export async function verifyFlutterwaveTransaction(
+//   transactionId: string | number,
+//   options: {
+//     retryOnNotFound?: boolean;
+//     maxRetries?: number;
+//     initialDelayMs?: number;
+//     useTxRef?: boolean;
+//   } = {}
+// ): Promise<VerifiedTransaction> {
+//   const {
+//     retryOnNotFound = true,
+//     maxRetries = 3,
+//     initialDelayMs = 5000,
+//     useTxRef = false,
+//   } = options;
+
+//   function buildEndpoint(): string {
+//     if (useTxRef) {
+//       console.warn("Using tx_ref for verification is less efficient and may be rate limited by Flutterwave. Use transaction ID if possible." + transactionId);
+//       return `/transactions/verify_by_reference?tx_ref=${encodeURIComponent(String(transactionId))}`;
+//     }
+//     return `/transactions/${transactionId}/verify`;
+//   }
+
+//   async function fetchAndNormalize(): Promise<FlutterwaveVerifyResponse> {
+//     if (useTxRef) {
+//       const result = await flwFetch<{
+//         status: string;
+//         data: FlutterwaveVerifyResponse["data"][];
+//       }>(buildEndpoint());
+
+//       if (result.status !== "success" || !result.data?.length) {
+//         throw new FlutterwaveError(
+//           "No transaction was found for this id",
+//           400,
+//           result
+//         );
+//       }
+//       return { status: "success", data: result.data[0] };
+//     }
+//     return flwFetch<FlutterwaveVerifyResponse>(buildEndpoint());
+//   }
+
+//   let lastError: unknown;
+
+//   for (let attempt = 0; attempt <= maxRetries; attempt++) {
+//     try {
+//       const result = await fetchAndNormalize();
+
+//       if (result.status !== "success") {
+//         throw new FlutterwaveError(
+//           "Verification returned non-success status",
+//           200,
+//           result
+//         );
+//       }
+
+//       if (attempt > 0) {
+//         console.log(
+//           `[Flutterwave] Transaction ${transactionId} verified on attempt ${attempt + 1}`
+//         );
+//       }
+
+//       return result.data;
+//     } catch (err) {
+//       lastError = err;
+
+//       const isNotFound = err instanceof FlutterwaveError && err.isNotFound;
+
+//       if (!retryOnNotFound || !isNotFound || attempt === maxRetries) {
+//         break;
+//       }
+
+//       // Exponential backoff: 5s → 10s → 20s
+//       const delay = initialDelayMs * Math.pow(2, attempt);
+//       console.warn(
+//         `[Flutterwave] Transaction ${transactionId} not found (attempt ${attempt + 1}/${maxRetries + 1}), retrying in ${delay / 1000}s...`
+//       );
+//       await sleep(delay);
+//     }
+//   }
+
+//   throw lastError;
+// }
+
+
 export async function verifyFlutterwaveTransaction(
   transactionId: string | number,
   options: {
     retryOnNotFound?: boolean;
-    maxRetries?: number;
-    initialDelayMs?: number;
-    useTxRef?: boolean;
+    maxRetries?:      number;
+    initialDelayMs?:  number;
+    useTxRef?:        boolean;
+    signal?:          AbortSignal;        // ← ADD THIS
   } = {}
 ): Promise<VerifiedTransaction> {
   const {
     retryOnNotFound = true,
-    maxRetries = 3,
-    initialDelayMs = 5000,
-    useTxRef = false,
+    maxRetries      = 3,
+    initialDelayMs  = 5000,
+    useTxRef        = false,
+    signal,                               // ← DESTRUCTURE
   } = options;
 
   function buildEndpoint(): string {
     if (useTxRef) {
-      console.warn("Using tx_ref for verification is less efficient and may be rate limited by Flutterwave. Use transaction ID if possible." + transactionId);
+      console.warn(
+        "[Flutterwave] Using tx_ref for verification — use transaction ID if possible.",
+        transactionId
+      );
       return `/transactions/verify_by_reference?tx_ref=${encodeURIComponent(String(transactionId))}`;
     }
     return `/transactions/${transactionId}/verify`;
   }
 
   async function fetchAndNormalize(): Promise<FlutterwaveVerifyResponse> {
+    if (signal?.aborted) {
+      const err = new Error("Verification aborted");
+      err.name  = "AbortError";
+      throw err;
+    }
+
     if (useTxRef) {
       const result = await flwFetch<{
         status: string;
-        data: FlutterwaveVerifyResponse["data"][];
-      }>(buildEndpoint());
+        data:   FlutterwaveVerifyResponse["data"][];
+      }>(buildEndpoint(), { signal });        // ← PASS signal
 
       if (result.status !== "success" || !result.data?.length) {
         throw new FlutterwaveError(
@@ -474,12 +571,23 @@ export async function verifyFlutterwaveTransaction(
       }
       return { status: "success", data: result.data[0] };
     }
-    return flwFetch<FlutterwaveVerifyResponse>(buildEndpoint());
+
+    return flwFetch<FlutterwaveVerifyResponse>(
+      buildEndpoint(),
+      { signal }                            // ← PASS signal
+    );
   }
 
   let lastError: unknown;
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    // ✅ Check abort at start of each retry loop too
+    if (signal?.aborted) {
+      const err = new Error("Verification aborted");
+      err.name  = "AbortError";
+      throw err;
+    }
+
     try {
       const result = await fetchAndNormalize();
 
@@ -501,6 +609,10 @@ export async function verifyFlutterwaveTransaction(
     } catch (err) {
       lastError = err;
 
+      if (err instanceof Error && err.name === "AbortError") {
+        throw err;
+      }
+
       const isNotFound = err instanceof FlutterwaveError && err.isNotFound;
 
       if (!retryOnNotFound || !isNotFound || attempt === maxRetries) {
@@ -510,13 +622,37 @@ export async function verifyFlutterwaveTransaction(
       // Exponential backoff: 5s → 10s → 20s
       const delay = initialDelayMs * Math.pow(2, attempt);
       console.warn(
-        `[Flutterwave] Transaction ${transactionId} not found (attempt ${attempt + 1}/${maxRetries + 1}), retrying in ${delay / 1000}s...`
+        `[Flutterwave] Transaction ${transactionId} not found ` +
+        `(attempt ${attempt + 1}/${maxRetries + 1}), retrying in ${delay / 1000}s...`
       );
-      await sleep(delay);
+      
+      await abortableSleep(delay, signal);
     }
   }
 
   throw lastError;
+}
+
+// ─── Abortable sleep ──────────────────────────────────────────────────────────
+// Regular sleep() ignores abort signal — this one resolves early when aborted
+
+function abortableSleep(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      const err = new Error("Aborted");
+      err.name  = "AbortError";
+      return reject(err);
+    }
+
+    const timer = setTimeout(resolve, ms);
+
+    signal?.addEventListener("abort", () => {
+      clearTimeout(timer);
+      const err = new Error("Aborted");
+      err.name  = "AbortError";
+      reject(err);
+    }, { once: true });
+  });
 }
 
 /* ── Webhook validation ──────────────────────────────────────────── */

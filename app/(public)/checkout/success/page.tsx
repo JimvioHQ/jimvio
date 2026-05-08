@@ -257,7 +257,7 @@ export default async function CheckoutSuccessPage({
 
   // ── Happy path ────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-[var(--color-bg)] pt-28 pb-20">
+    <div className="min-h-screen bg-[var(--color-bg)] pt-20 pb-20">
       <div className="max-w-[560px] mx-auto px-4">
         <CheckoutSuccessClient order={order as Order} />
       </div>

@@ -11,6 +11,7 @@ interface FlutterwaveTransaction {
     currency: string;
     status: string;
     payment_type: string;
+    auth_model: string;
     created_at: string;
     customer: {
         id: number;
@@ -122,7 +123,7 @@ export async function GET(
         }
 
         const tx = result.data;
-        
+
         const payload: VerifySuccessPayload = {
             status: tx.status.toLowerCase(),
             data: {
@@ -133,7 +134,7 @@ export async function GET(
                 charged_amount: tx.charged_amount,
                 currency: tx.currency,
                 status: tx.status,
-                payment_type: tx.payment_type,
+                payment_type: tx.auth_model || tx.payment_type,
                 customer: tx.customer,
                 created_at: tx.created_at,
                 ...(tx.meta && { meta: tx.meta }),

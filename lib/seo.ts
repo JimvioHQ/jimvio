@@ -86,11 +86,9 @@
 //   };
 // }
 // lib/seo.ts
+
 import { Metadata } from 'next';
 
-// ── Single source of truth ────────────────────────────────────────────────────
-// Always resolves to www.jimvio.com in production.
-// The non-www redirect lives in next.config.ts.
 const siteUrl =
   process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') || 'https://www.jimvio.com';
 
@@ -135,7 +133,7 @@ export function constructMetadata({
       default: 'Jimvio – Global Creator-Commerce Ecosystem',
       template: `%s | ${SITE.name}`,
     },
-
+    applicationName: SITE.name,
     description,
     metadataBase: new URL(siteUrl),
     alternates: {
