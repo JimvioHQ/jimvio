@@ -1048,9 +1048,8 @@ export function DigitalProductDetail({
             </div>
           </div>
         </div>
-        <pre>
-          <code>{JSON.stringify(product, null, 2)}</code>
-        </pre>
+    
+          
       </div>
     </div>
   );
