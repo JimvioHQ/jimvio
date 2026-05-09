@@ -4,7 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
     getVendorById,
-    getVendorOrders,
+    getAdminVendorOrders,
     getVendorProducts,
     getVendorReviews,
 } from "@/services/db";
@@ -25,7 +25,7 @@ export default async function AdminVendorProfilePage({
     const { id } = await params;
     const [vendor, orders, products, reviews] = await Promise.all([
         getVendorById(id).catch(() => null),
-        getVendorOrders(id),
+        getAdminVendorOrders(id),
         getVendorProducts(id),
         getVendorReviews(id),
     ]);

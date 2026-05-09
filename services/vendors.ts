@@ -357,8 +357,8 @@ export async function getAdminVendorById(id: string) {
   return data;
 }
 
-// Vendor's recent orders
-export async function getVendorOrders(vendorId: string, limit = 10) {
+// Vendor's recent orders (Admin context)
+export async function getAdminVendorOrders(vendorId: string, limit = 10) {
   const admin = getAdminDB();
   const { data, error } = await admin
     .from("orders")

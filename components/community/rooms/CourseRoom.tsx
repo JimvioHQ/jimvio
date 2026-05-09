@@ -1049,6 +1049,9 @@ export function DashboardCourseStudio({ roomId, communityId, onClose }: { roomId
      membership: { role: "owner" as any, plan_type: "free", status: "active", space_access: [], expires_at: null },
      spacesWithRooms: [],
      points: null,
+     liveSessions: [],
+     unreadNotifications: 0,
+     openMissionsCount: 0,
   };
 
   return (
