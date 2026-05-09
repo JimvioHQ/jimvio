@@ -25,8 +25,15 @@ export async function dispatchNonShopifyFulfillmentIntegrations(
     items: OrderItemRow[];
   }
 ): Promise<void> {
+  console.log("Dispatching fulfillment integrations for order", { orderId: params.orderId });
+
   const cjLines = params.items.filter((i) => normalizeProductSource(i.product_source) === "cj");
-  if (cjLines.length === 0) return;
+  console.log("CJ lines", { count: cjLines.length, items: cjLines.map(item => item.id) });
+  
+  if (cjLines.length === 0) {
+    console.log("No CJ lines found, skipping fulfillment");
+    return;
+  }
 
   await submitCjOrderForLines(
     db,

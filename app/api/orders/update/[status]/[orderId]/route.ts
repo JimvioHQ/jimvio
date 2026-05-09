@@ -74,9 +74,8 @@ export async function PATCH(
     // 3. Fetch + verify order ownership
     const { data: existingOrder, error: fetchError } = await serviceSupabase
         .from("orders")
-        .select("id, status, payment_status, buyer_id")
+        .select("id, status, payment_status, buyer_id, vendors(user_id)")
         .eq("id", orderId)
-        .eq("buyer_id", user.id)
         .single();
 
     if (fetchError) {
@@ -91,6 +90,16 @@ export async function PATCH(
         return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
+    const isBuyer = existingOrder.buyer_id === user.id;
+    const vendorUserId = Array.isArray(existingOrder.vendors) 
+        ? existingOrder.vendors[0]?.user_id 
+        : (existingOrder.vendors as any)?.user_id;
+    const isVendor = vendorUserId === user.id;
+
+    if (!isBuyer && !isVendor) {
+        return NextResponse.json({ error: "Order not found or unauthorized" }, { status: 404 });
+    }
+
     // 4. Terminal status guard — never update a finished order
     const TERMINAL_STATUSES = ["delivered", "cancelled", "refunded", "completed"] as const;
     if (TERMINAL_STATUSES.includes(existingOrder.status as (typeof TERMINAL_STATUSES)[number])) {
@@ -102,10 +111,12 @@ export async function PATCH(
 
     // 5. Vendor-only status guard
     if (VENDOR_ONLY_STATUSES.includes(status as (typeof VENDOR_ONLY_STATUSES)[number])) {
-        return NextResponse.json(
-            { error: `Status '${status}' can only be set by the vendor. Buyers may set: pending, confirmed, cancelled, refunded` },
-            { status: 403 }
-        );
+        if (!isVendor) {
+            return NextResponse.json(
+                { error: `Status '${status}' can only be set by the vendor. Buyers may set: pending, confirmed, cancelled, refunded` },
+                { status: 403 }
+            );
+        }
     }
 
     // 6. Build update payload — order table only, nothing else
@@ -123,7 +134,6 @@ export async function PATCH(
         .from("orders")
         .update(updatePayload)
         .eq("id", orderId)
-        .eq("buyer_id", user.id)
         .select("id, status, order_number, payment_status, paid_at, cancelled_at")
         .single();
 

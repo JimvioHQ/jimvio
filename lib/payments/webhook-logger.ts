@@ -1,29 +1,3 @@
-/**
- * lib/payments/webhook-logger.ts
- *
- * Centralized webhook event logger.
- * - Stores every incoming webhook in `webhook_events` for audit / replay.
- * - Implements idempotency: returns `isDuplicate: true` if the same
- *   idempotency key has already been processed successfully.
- *
- * Table DDL (run once in Supabase SQL editor):
- *
- *   create table if not exists webhook_events (
- *     id              uuid primary key default gen_random_uuid(),
- *     provider        text not null,
- *     idempotency_key text not null,
- *     payload         jsonb,
- *     status          text not null default 'received',   -- received | processed | failed
- *     error           text,
- *     order_id        uuid references orders(id),
- *     created_at      timestamptz not null default now(),
- *     updated_at      timestamptz not null default now(),
- *     unique (idempotency_key)
- *   );
- *   create index if not exists webhook_events_provider_idx on webhook_events(provider);
- *   create index if not exists webhook_events_order_id_idx  on webhook_events(order_id);
- */
-
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export type WebhookEventStatus = "received" | "processed" | "failed";
@@ -52,34 +26,43 @@ export async function logWebhookEvent(
   db: SupabaseClient,
   opts: LogWebhookOptions
 ): Promise<LogWebhookResult> {
-  // Check for existing row first (avoids unique-violation noise in logs)
-  const { data: existing } = await db
+  // Use upsert with ignoreDuplicates to guarantee atomicity and prevent race conditions
+  const { data: upserted, error: upsertError } = await db
     .from("webhook_events")
+    .upsert(
+      {
+        provider: opts.provider,
+        idempotency_key: opts.idempotencyKey,
+        payload: opts.payload as object,
+        status: "received" as WebhookEventStatus,
+        order_id: opts.orderId ?? null,
+      },
+      { onConflict: "idempotency_key", ignoreDuplicates: true }
+    )
     .select("id, status")
-    .eq("idempotency_key", opts.idempotencyKey)
     .maybeSingle();
 
-  if (existing) {
-    if (existing.status === "processed") {
-      return { isDuplicate: true, eventId: existing.id };
-    }
-    // Already inserted but not yet processed (e.g. previous crash) — reuse row
-    return { isDuplicate: false, eventId: existing.id };
+  if (upsertError) {
+    throw new Error(`Failed to log webhook event: ${upsertError.message}`);
   }
 
-  const { data: inserted } = await db
-    .from("webhook_events")
-    .insert({
-      provider: opts.provider,
-      idempotency_key: opts.idempotencyKey,
-      payload: opts.payload as object,
-      status: "received" as WebhookEventStatus,
-      order_id: opts.orderId ?? null,
-    })
-    .select("id")
-    .single();
+  // If upserted is null, ignoreDuplicates skipped insertion because the row already exists
+  if (!upserted) {
+    const { data: existing } = await db
+      .from("webhook_events")
+      .select("id, status")
+      .eq("idempotency_key", opts.idempotencyKey)
+      .single();
 
-  return { isDuplicate: false, eventId: inserted?.id ?? null };
+    if (existing) {
+      return {
+        isDuplicate: existing.status === "processed",
+        eventId: existing.id,
+      };
+    }
+  }
+
+  return { isDuplicate: false, eventId: upserted?.id ?? null };
 }
 
 /** Mark webhook row as successfully processed */

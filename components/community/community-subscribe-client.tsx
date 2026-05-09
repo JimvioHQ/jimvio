@@ -98,7 +98,6 @@ export function CommunitySubscribeClient({
   >((initialProvider as any) || "flutterwave");
 
   const [submitting, setSubmitting] = useState(false);
-  const [payCurrency, setPayCurrency] = useState("usdttrc20");
   const [afripayNetwork, setAfripayNetwork] = useState<"MTN" | "BK" | "MPESA">("MTN");
   const [afripayPhone, setAfripayPhone] = useState(profilePhone || "");
   const [flutterwaveMethod, setFlutterwaveMethod] = useState<"card" | "momo">("card");
@@ -369,12 +368,9 @@ export function CommunitySubscribeClient({
                     <PaymentMethodSelector
                       selected={payment}
                       onSelect={(m) => setPayment(m)}
-                      payCurrency={payCurrency}
-                      onCurrencyChange={setPayCurrency}
                       orderCurrency={currency}
                       orderTotal={amount}
-                      flutterwaveMethod={flutterwaveMethod}
-                      onFlutterwaveMethodChange={setFlutterwaveMethod}
+                      showSummary={false}
                     />
                   </div>
                 )}

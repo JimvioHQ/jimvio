@@ -1,8 +1,124 @@
+// import { notFound, redirect } from "next/navigation";
+// import { createClient } from "@/lib/supabase/server";
+// import { WorkspaceShell } from "@/components/community/workspace-shell";
+// import { isMembershipActive } from "@/services/communityService";
+// import type { WorkspaceSpaceRow } from "@/components/community/workspace-context";
+
+// export default async function CommunityWorkspaceLayout({
+//   children,
+//   params,
+// }: {
+//   children: React.ReactNode;
+//   params: Promise<{ slug: string }>;
+// }) {
+//   const { slug } = await params;
+//   const supabase = await createClient();
+//   const {
+//     data: { user },
+//   } = await supabase.auth.getUser();
+
+//   if (!user) {
+//     redirect(`/login?next=${encodeURIComponent(`/communities/${slug}/workspace`)}`);
+//   }
+
+//   const { data: community } = await supabase
+//     .from("communities")
+//     .select("id, name, slug, avatar_url, member_count, owner_id")
+//     .eq("slug", slug)
+//     .eq("is_active", true)
+//     .maybeSingle();
+
+//   if (!community) notFound();
+
+//   const { data: membership } = await supabase
+//     .from("community_memberships")
+//     .select("role, plan_type, status, space_access, expires_at")
+//     .eq("community_id", community.id)
+//     .eq("user_id", user.id)
+//     .maybeSingle();
+
+//   if (!membership || !isMembershipActive(membership)) {
+//     redirect(`/communities/${slug}`);
+//   }
+
+//   const { data: profile } = await supabase
+//     .from("profiles")
+//     .select("full_name, avatar_url, username")
+//     .eq("id", user.id)
+//     .maybeSingle();
+
+//   const { data: pointsRow } = await supabase
+//     .from("member_points")
+//     .select("total_points, level")
+//     .eq("community_id", community.id)
+//     .eq("user_id", user.id)
+//     .maybeSingle();
+
+//   const { data: spaces } = await supabase
+//     .from("spaces")
+//     .select("id, name, slug, icon, access_type, sort_order")
+//     .eq("community_id", community.id)
+//     .eq("is_active", true)
+//     .order("sort_order");
+
+//   const { data: rooms } = await supabase
+//     .from("rooms")
+//     .select("id, name, slug, room_type, space_id, is_locked, access_type, sort_order")
+//     .eq("community_id", community.id)
+//     .eq("is_active", true)
+//     .order("sort_order");
+
+//   const roomsBySpace = new Map<string, NonNullable<typeof rooms>>();
+//   for (const r of rooms ?? []) {
+//     const list = roomsBySpace.get(r.space_id) ?? [];
+//     list.push(r);
+//     roomsBySpace.set(r.space_id, list);
+//   }
+
+//   const spacesWithRooms: WorkspaceSpaceRow[] = (spaces ?? []).map((s) => ({
+//     id: s.id,
+//     name: s.name,
+//     slug: s.slug,
+//     icon: s.icon,
+//     access_type: s.access_type ?? "free",
+//     sort_order: s.sort_order,
+//     rooms: (roomsBySpace.get(s.id) ?? []).map((r) => ({
+//       id: r.id,
+//       name: r.name,
+//       slug: r.slug,
+//       room_type: r.room_type,
+//       space_id: r.space_id,
+//       is_locked: r.is_locked ?? false,
+//       access_type: r.access_type ?? "inherit",
+//       sort_order: r.sort_order,
+//     })),
+//   }));
+
+//   return (
+//     <WorkspaceShell
+//       slug={slug}
+//       community={community}
+//       membership={membership}
+//       userId={user.id}
+//       profile={profile}
+//       points={pointsRow}
+//       spacesWithRooms={spacesWithRooms}
+//     >
+//       {children}
+//     </WorkspaceShell>
+//   );
+// }
+
+// app/communities/[slug]/workspace/layout.tsx
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { WorkspaceShell } from "@/components/community/workspace-shell";
 import { isMembershipActive } from "@/services/communityService";
-import type { WorkspaceSpaceRow } from "@/components/community/workspace-context";
+import type {
+  WorkspaceSpaceRow,
+  LiveSessionLite,
+  PointsSnapshot,
+} from "@/components/community/workspace-context";
 
 export default async function CommunityWorkspaceLayout({
   children,
@@ -13,10 +129,11 @@ export default async function CommunityWorkspaceLayout({
 }) {
   const { slug } = await params;
   const supabase = await createClient();
+
+  // ── Auth + community fetch (must be sequential) ─────────────────
   const {
     data: { user },
   } = await supabase.auth.getUser();
-
   if (!user) {
     redirect(`/login?next=${encodeURIComponent(`/communities/${slug}/workspace`)}`);
   }
@@ -27,55 +144,73 @@ export default async function CommunityWorkspaceLayout({
     .eq("slug", slug)
     .eq("is_active", true)
     .maybeSingle();
-
   if (!community) notFound();
 
+  // ── Membership check (must complete before parallel fetches) ────
   const { data: membership } = await supabase
     .from("community_memberships")
     .select("role, plan_type, status, space_access, expires_at")
     .eq("community_id", community.id)
     .eq("user_id", user.id)
     .maybeSingle();
-
   if (!membership || !isMembershipActive(membership)) {
     redirect(`/communities/${slug}`);
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("full_name, avatar_url, username")
-    .eq("id", user.id)
-    .maybeSingle();
+  // ── Everything else parallel ────────────────────────────────────
+  const [
+    profileRes,
+    pointsRes,
+    spacesRes,
+    roomsRes,
+    notificationsRes,
+    missionsRes,
+    // liveSessionsRes,  // Uncomment when live_rooms table exists
+  ] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("full_name, avatar_url, username")
+      .eq("id", user.id)
+      .maybeSingle(),
+    supabase
+      .from("member_points")
+      .select("total_points, level, streak_days")
+      .eq("community_id", community.id)
+      .eq("user_id", user.id)
+      .maybeSingle(),
+    supabase
+      .from("spaces")
+      .select("id, name, slug, icon, access_type, sort_order")
+      .eq("community_id", community.id)
+      .eq("is_active", true)
+      .order("sort_order"),
+    supabase
+      .from("rooms")
+      .select("id, name, slug, room_type, space_id, is_locked, access_type, sort_order")
+      .eq("community_id", community.id)
+      .eq("is_active", true)
+      .order("sort_order"),
+    supabase
+      .from("notifications")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .eq("is_read", false),
+    supabase
+      .from("ugc_campaigns")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "active"),
+    // Future: fetch live_rooms when table exists
+  ]);
 
-  const { data: pointsRow } = await supabase
-    .from("member_points")
-    .select("total_points, level")
-    .eq("community_id", community.id)
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  const { data: spaces } = await supabase
-    .from("spaces")
-    .select("id, name, slug, icon, access_type, sort_order")
-    .eq("community_id", community.id)
-    .eq("is_active", true)
-    .order("sort_order");
-
-  const { data: rooms } = await supabase
-    .from("rooms")
-    .select("id, name, slug, room_type, space_id, is_locked, access_type, sort_order")
-    .eq("community_id", community.id)
-    .eq("is_active", true)
-    .order("sort_order");
-
-  const roomsBySpace = new Map<string, NonNullable<typeof rooms>>();
-  for (const r of rooms ?? []) {
+  // ── Rooms by space ──────────────────────────────────────────────
+  const roomsBySpace = new Map<string, NonNullable<typeof roomsRes.data>>();
+  for (const r of roomsRes.data ?? []) {
     const list = roomsBySpace.get(r.space_id) ?? [];
     list.push(r);
     roomsBySpace.set(r.space_id, list);
   }
 
-  const spacesWithRooms: WorkspaceSpaceRow[] = (spaces ?? []).map((s) => ({
+  const spacesWithRooms: WorkspaceSpaceRow[] = (spacesRes.data ?? []).map((s) => ({
     id: s.id,
     name: s.name,
     slug: s.slug,
@@ -94,15 +229,37 @@ export default async function CommunityWorkspaceLayout({
     })),
   }));
 
+  // ── Compute XP progression for the points pill ──────────────────
+  // Adjust thresholds to match your gamification spec (§09 in PDF).
+  // 0, 500, 2000, 8000, 25000, 100000 from the blueprint.
+  const LEVEL_THRESHOLDS = [0, 500, 2000, 8000, 25000, 100000];
+  const points: PointsSnapshot | null = pointsRes.data
+    ? {
+      total_points: pointsRes.data.total_points ?? 0,
+      level: pointsRes.data.level ?? 1,
+      level_start_xp: LEVEL_THRESHOLDS[(pointsRes.data.level ?? 1) - 1] ?? 0,
+      next_level_xp:
+        LEVEL_THRESHOLDS[pointsRes.data.level ?? 1] ??
+        (LEVEL_THRESHOLDS[LEVEL_THRESHOLDS.length - 1] + 100000),
+      streak_days: pointsRes.data.streak_days ?? 0,
+    }
+    : null;
+
+  // ── Live sessions stub — replace when live_rooms exists ─────────
+  const liveSessions: LiveSessionLite[] = [];
+
   return (
     <WorkspaceShell
       slug={slug}
       community={community}
       membership={membership}
       userId={user.id}
-      profile={profile}
-      points={pointsRow}
+      profile={profileRes.data}
+      points={points}
       spacesWithRooms={spacesWithRooms}
+      liveSessions={liveSessions}
+      unreadNotifications={notificationsRes.count ?? 0}
+      openMissionsCount={missionsRes.count ?? 0}
     >
       {children}
     </WorkspaceShell>

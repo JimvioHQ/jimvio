@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { createFlutterwavePaymentLink } from "@/lib/flutterwave";
 import { usdToRwfAmount } from "@/lib/money";
+import { generateTxRef } from "@/lib/payments/tx-ref";
 
 export const dynamic = "force-dynamic";
 
@@ -147,7 +148,7 @@ export async function POST(req: NextRequest) {
 
     const txRef: string =
       existingTx?.provider_transaction_id ??
-      `TXID-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
+      generateTxRef("FLW");
 
     const isReused = !!existingTx;
 

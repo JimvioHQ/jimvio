@@ -1,27 +1,87 @@
 import { cache } from "react";
 import { getDB, getAdminDB } from "./base";
-import { log } from "console";
 
 /** getAdminProducts */
-export async function getAdminProducts(query?: string, limit = 50) {
-  const admin = getAdminDB();
-  let q = admin.from("products").select(`
-    id, name, slug, price, status, product_type, created_at,
-    vendors ( business_name, business_slug )
-  `, { count: "exact" });
+// services/db.ts
+export async function getAdminProducts(q?: string, limit = 100) {
+  const supabase = await getAdminDB();
 
-  if (query) {
-    q = q.ilike("name", `%${query}%`);
+  let query = supabase
+    .from("products")
+    .select(`
+      id,
+      name,
+      slug,
+      price,
+      compare_at_price,
+      status,
+      product_type,
+      is_featured,
+      is_active,
+      affiliate_enabled,
+      affiliate_commission_rate,
+      images,
+      vendors (
+        id,
+        business_name,
+        business_logo,
+        profiles (
+          avatar_url
+        )
+      )
+    `, { count: "exact" })
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (q?.trim()) {
+    query = query.or(`name.ilike.%${q}%,slug.ilike.%${q}%`);
   }
 
-  const { data, count } = await q.order("created_at", { ascending: false }).limit(limit);
+  const { data, count, error } = await query;
+  if (error) throw error;
 
-  const products = data?.map((p: any) => ({
-    ...p,
-    vendor_name: p.vendors?.business_name
-  })) ?? [];
+  const products = (data ?? []).map((row: any) => ({
+    id: row.id,
+    name: row.name,
+    slug: row.slug,
+    price: row.price,
+    compare_at_price: row.compare_at_price,
+    status: row.status,
+    product_type: row.product_type,
+    is_featured: row.is_featured,
+    is_active: row.is_active,
+    affiliate_enabled: row.affiliate_enabled,
+    affiliate_commission_rate: row.affiliate_commission_rate,
+    // ✅ Normalise the Json? field into string[] here, once, at the data layer
+    images: normaliseImages(row.images),
+    vendor_name: row.vendors?.business_name ?? null,
+    // ✅ Prefer owner avatar, fall back to business logo
+    vendor_avatar_url:
+      row.vendors?.profiles?.avatar_url ??
+      row.vendors?.business_logo ??
+      null,
+  }));
 
-  return { products, total: count ?? 0 };
+  return { products, total: count ?? products.length };
+}
+
+// Shared normaliser — keeps component code clean
+function normaliseImages(raw: unknown): string[] {
+  if (!raw) return [];
+  if (Array.isArray(raw)) {
+    return raw.filter((x): x is string => typeof x === "string" && x.startsWith("http"));
+  }
+  if (typeof raw === "string") {
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        return parsed.filter((x): x is string => typeof x === "string" && x.startsWith("http"));
+      }
+    } catch {
+      if (raw.startsWith("http")) return [raw];
+    }
+  }
+  return [];
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -165,7 +225,7 @@ export async function getProductBySlug(slug: string) {
     `)
     .eq("slug", slug)
     .eq("status", "active")
-    .single();
+    .maybeSingle();
   if (error) {
     console.error(`[getProductBySlug] Error fetching product with slug "${slug}":`, error);
     return null;

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { generateTxRef } from "@/lib/payments/tx-ref";
 
 const FLW_API_URL = "https://api.flutterwave.com/v3/payments";
 
@@ -65,7 +66,7 @@ export async function POST(req: Request) {
                 "Content-Type": "application/json",
             },
             body: JSON.stringify({
-                tx_ref: `tx-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+                tx_ref: generateTxRef("CARD"),
                 payment_options: "card,banktransfer,mobilemoney",
                 amount,
                 currency: "RWF",

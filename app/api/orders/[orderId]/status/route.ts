@@ -15,6 +15,7 @@ import { createClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { verifyFlutterwaveTransaction } from "@/lib/flutterwave";
+import { finalizeOrderPayment } from "@/lib/payments/finalize-order-payment";
 
 // ─── Supabase (lazy) ──────────────────────────────────────────────────────────
 
@@ -24,185 +25,6 @@ function getServiceSupabase() {
         process.env.SUPABASE_SERVICE_ROLE_KEY!,
         { auth: { autoRefreshToken: false, persistSession: false } }
     );
-}
-
-// ─── Wallet credit helper ─────────────────────────────────────────────────────
-//
-// Fetches the vendor's wallet and increments available_balance by the net amount
-// (total minus platform commission). Uses a read-then-write pattern with
-// .eq("user_id", vendorUserId) so we never accidentally credit the wrong wallet.
-//
-// Returns { credited: true, netAmount } on success, { credited: false } if the
-// vendor has no wallet row yet (wallet creation is a separate concern).
-
-async function creditVendorWallet(
-    supabase: ReturnType<typeof getServiceSupabase>,
-    params: {
-        vendorId: string;
-        totalAmount: number;
-        currency: string;
-        orderId: string;
-    }
-): Promise<{ credited: boolean; netAmount?: number; vendorUserId?: string }> {
-    const { vendorId, totalAmount, currency, orderId } = params;
-
-    // 1. Fetch vendor to get user_id and commission_rate
-    const { data: vendor, error: vendorError } = await supabase
-        .from("vendors")
-        .select("user_id, commission_rate")
-        .eq("id", vendorId)
-        .single();
-
-    if (vendorError || !vendor) {
-        console.error("[wallet/credit] Vendor not found", { vendorId, orderId });
-        return { credited: false };
-    }
-
-    // 2. Calculate net amount after platform commission
-    //    commission_rate is stored as a percentage e.g. 8 = 8%
-    const commissionRate = Number(vendor.commission_rate ?? 0);
-    const netAmount = totalAmount * (1 - commissionRate / 100);
-
-    // 3. Fetch vendor's wallet
-    const { data: wallet, error: walletError } = await supabase
-        .from("wallets")
-        .select("id, available_balance, total_earned")
-        .eq("user_id", vendor.user_id)
-        .single();
-
-    if (walletError || !wallet) {
-        console.error("[wallet/credit] Vendor wallet not found", {
-            vendorUserId: vendor.user_id,
-            orderId,
-        });
-        return { credited: false };
-    }
-
-    // 4. Increment available_balance and total_earned
-    //    Using explicit arithmetic against current DB values avoids
-    //    race conditions from concurrent payments.
-    const newAvailableBalance = Number(wallet.available_balance ?? 0) + netAmount;
-    const newTotalEarned = Number(wallet.total_earned ?? 0) + netAmount;
-
-    const { error: updateError } = await supabase
-        .from("wallets")
-        .update({
-            available_balance: newAvailableBalance,
-            total_earned: newTotalEarned,
-            updated_at: new Date().toISOString(),
-        })
-        .eq("id", wallet.id);
-
-    if (updateError) {
-        console.error("[wallet/credit] Wallet update failed", {
-            reason: updateError.message,
-            vendorUserId: vendor.user_id,
-            orderId,
-        });
-        return { credited: false };
-    }
-
-    console.info("[wallet/credit] ✓ Vendor wallet credited", {
-        vendorId,
-        vendorUserId: vendor.user_id,
-        totalAmount,
-        commissionRate,
-        netAmount,
-        currency,
-        orderId,
-    });
-
-    return { credited: true, netAmount, vendorUserId: vendor.user_id };
-}
-
-// ─── Finalize helper ──────────────────────────────────────────────────────────
-//
-// Updates order + transaction status, then credits the vendor wallet.
-// Both order and transaction updates use a status guard (.eq("...status", "pending"))
-// so this is safe to call even if the webhook already ran — the updates no-op
-// on already-finalized rows, and we check wallet credit separately.
-
-async function finalizePayment(
-    supabase: ReturnType<typeof getServiceSupabase>,
-    params: {
-        orderId: string;
-        transactionId: string;
-        vendorId: string | null;
-        totalAmount: number;
-        currency: string;
-        paidAt: string;
-        metadata?: Record<string, unknown>;
-    }
-): Promise<{
-    paymentStatus: string;
-    orderStatus: string;
-    paidAt: string;
-    walletCredited: boolean;
-    netAmount?: number;
-}> {
-    const { orderId, transactionId, vendorId, totalAmount, currency, paidAt, metadata } = params;
-    const now = new Date().toISOString();
-
-    // Update order → paid + confirmed (guard: only if still pending)
-    const { error: orderUpdateError } = await supabase
-        .from("orders")
-        .update({
-            payment_status: "paid",
-            status: "confirmed",
-            paid_at: now,
-            updated_at: now,
-        })
-        .eq("id", orderId)
-        .eq("payment_status", "pending");
-
-    if (orderUpdateError) {
-        console.error("[orders/status] Order update failed", {
-            reason: orderUpdateError.message,
-            orderId,
-        });
-    }
-
-    const { error: txUpdateError } = await supabase
-        .from("transactions")
-        .update({
-            status: "completed",
-            updated_at: now,
-            metadata,
-        })
-        .or(`id.eq.${transactionId},provider_transaction_id.eq.${transactionId}`)
-        .eq("status", "pending");
-        
-    if (txUpdateError) {
-        console.error("[orders/status] Transaction update failed", {
-            reason: txUpdateError.message,
-            orderId,
-        });
-    }
-
-    // Credit vendor wallet — only if the order has a vendor
-    let walletCredited = false;
-    let netAmount: number | undefined;
-
-    if (vendorId) {
-        const result = await creditVendorWallet(supabase, {
-            vendorId,
-            totalAmount,
-            currency,
-            orderId,
-        });
-        walletCredited = result.credited;
-        netAmount = result.netAmount;
-    } else {
-        console.warn("[orders/status] No vendor on order — wallet credit skipped", { orderId });
-    }
-
-    return {
-        paymentStatus: "paid",
-        orderStatus: "confirmed",
-        paidAt: now,
-        walletCredited,
-        netAmount,
-    };
 }
 
 // ─── Route Handler ────────────────────────────────────────────────────────────
@@ -293,30 +115,30 @@ export async function GET(
 
             // ── Successful payment ────────────────────────────────────────────────
             if (txData?.status === "successful") {
-                const result = await finalizePayment(serviceSupabase, {
-                    orderId,
-                    transactionId: transaction.id,
-                    vendorId: order.vendor_id ?? null,
-                    totalAmount: Number(order.total_amount),
-                    currency: order.currency ?? "RWF",
-                    paidAt: txData.created_at,
-                    metadata: {
-                        transaction_id: transaction.id,
-                        customer: txData.customer,
-                        tx_ref: txData.tx_ref,
-                        status: txData.status
-                    },
+                await finalizeOrderPayment(serviceSupabase, orderId, {
+                    providerTransactionId: String(transaction.provider_transaction_id),
+                    providerReference: txData.tx_ref,
+                    paidAtIso: txData.created_at || new Date().toISOString(),
+                    notifyUserId: order.buyer_id,
+                    amountForMessage: Number(order.total_amount),
+                    paymentProvider: "flutterwave",
                 });
 
+                // Refetch order to get updated status
+                const { data: updatedOrder } = await serviceSupabase
+                    .from("orders")
+                    .select("status, payment_status, paid_at")
+                    .eq("id", orderId)
+                    .single();
+
                 return NextResponse.json({
-                    paymentStatus: result.paymentStatus,
-                    orderStatus: result.orderStatus,
-                    paidAt: result.paidAt,
+                    paymentStatus: updatedOrder?.payment_status || "paid",
+                    orderStatus: updatedOrder?.status || "confirmed",
+                    paidAt: updatedOrder?.paid_at || txData.created_at,
                     transactionId: transaction.provider_transaction_id,
                     provider: transaction.provider,
                     verified: true,
-                    walletCredited: result.walletCredited,
-                    netAmount: result.netAmount,
+                    walletCredited: true,
                 });
             }
 

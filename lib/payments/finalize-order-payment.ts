@@ -3,6 +3,7 @@ import { createShopifyOrder, attachShopifyOrdersToJimvioOrder } from "@/services
 import { getShopifyPlatformCommissionFallback } from "@/lib/platform-settings";
 import { creditVendorWalletsForNativeOrder } from "@/lib/payments/credit-vendors-for-native-order";
 import { dispatchNonShopifyFulfillmentIntegrations, isShopifyFulfillmentLine } from "@/lib/order-fulfillment/after-payment";
+import { grantDigitalAccess as executeDigitalAccessGrant } from "@/lib/actions/digital-access";
 
 /**
  * Grants instant digital access after payment:
@@ -36,11 +37,11 @@ async function grantDigitalAccess(
 
     const { data: products } = await db
       .from("products")
-      .select("id, product_type, digital_file_url")
+      .select("id, product_type, digital_file_url, pricing_type, billing_period")
       .in("id", productIds);
 
     const productMap = new Map(
-      (products ?? []).map((p: { id: string; product_type: string; digital_file_url: string | null }) =>
+      (products ?? []).map((p: any) =>
         [p.id, p] as const
       )
     );
@@ -58,18 +59,35 @@ async function grantDigitalAccess(
       // Skip if already granted
       if (item.digital_download_url) continue;
 
-      // Grant access: populate download URL + timestamp
-      const { error: grantErr } = await db
-        .from("order_items")
-        .update({
-          product_type: "digital",
-          digital_download_url: fileUrl,
-          access_granted_at: now,
-        })
-        .eq("id", item.id);
+      if (buyerUserId) {
+         try {
+           await executeDigitalAccessGrant({
+             userId: buyerUserId,
+             productId: product.id,
+             orderItemId: item.id,
+             orderId: orderId,
+             accessUrl: fileUrl,
+             subtype: null,
+             pricingType: product.pricing_type ?? 'one_time',
+             billingPeriod: product.billing_period ?? null
+           });
+         } catch (e) {
+           console.warn(`[DigitalAccess] Failed to grant via digital_access table for ${item.id}:`, e);
+         }
+      } else {
+         // Legacy fallback if no buyer user ID
+         const { error: grantErr } = await db
+           .from("order_items")
+           .update({
+             product_type: "digital",
+             digital_download_url: fileUrl,
+             access_granted_at: now,
+           })
+           .eq("id", item.id);
 
-      if (grantErr) {
-        console.warn(`[DigitalAccess] Failed to grant for order_item ${item.id}:`, grantErr.message);
+         if (grantErr) {
+           console.warn(`[DigitalAccess] Failed to grant for order_item ${item.id}:`, grantErr.message);
+         }
       }
     }
 
@@ -124,6 +142,54 @@ export async function finalizeOrderPayment(
   orderId: string,
   ctx: FinalizePaymentContext
 ): Promise<{ type: "regular" | "shopify" | "skipped" }> {
+
+  // 0. Atomic Lock: Prevent concurrent executions (webhook vs frontend polling)
+  if (ctx.providerTransactionId) {
+    const now = new Date();
+    
+    // Attempt to claim the transaction
+    const { data: claimedTx, error: claimError } = await db
+      .from("transactions")
+      .update({ status: "successful", updated_at: now.toISOString() })
+      .eq("provider_transaction_id", ctx.providerTransactionId)
+      .eq("status", "pending")
+      .select("id")
+      .maybeSingle();
+      
+    if (claimError) {
+      console.error(`[finalizeOrderPayment] Error locking tx ${ctx.providerTransactionId}:`, claimError);
+    }
+    
+    if (!claimedTx && !claimError) {
+      // Transaction is already 'successful' or 'failed'.
+      // This means another thread processed it, OR a previous run crashed.
+      // Let's check when it was last updated to allow crash recovery.
+      const { data: existingTx } = await db
+        .from("transactions")
+        .select("updated_at, status")
+        .eq("provider_transaction_id", ctx.providerTransactionId)
+        .maybeSingle();
+        
+      if (existingTx && existingTx.status === "successful") {
+        const updatedAt = new Date(existingTx.updated_at).getTime();
+        const ageMs = now.getTime() - updatedAt;
+        
+        // If it was updated less than 3 minutes ago, assume the other thread is still running.
+        if (ageMs < 3 * 60 * 1000) {
+          console.log(`[finalizeOrderPayment] Tx ${ctx.providerTransactionId} locked by another thread ${Math.round(ageMs/1000)}s ago. Skipping.`);
+          return { type: "skipped" };
+        } else {
+          console.log(`[finalizeOrderPayment] Tx ${ctx.providerTransactionId} lock is stale (${Math.round(ageMs/1000)}s old). Allowing retry to recover from potential crash.`);
+          // We update the timestamp to re-acquire the lock
+          await db
+            .from("transactions")
+            .update({ updated_at: now.toISOString() })
+            .eq("provider_transaction_id", ctx.providerTransactionId);
+        }
+      }
+    }
+  }
+
   const { data: order, error: orderError } = await db
     .from("orders")
     .select(
@@ -137,8 +203,6 @@ export async function finalizeOrderPayment(
         quantity,
         unit_price,
         total_price,
-        shopify_variant_id,
-        shopify_product_id,
         product_source,
         source_metadata,
         affiliate_id,
@@ -160,7 +224,12 @@ export async function finalizeOrderPayment(
   }
 
   const isPaid = order.payment_status === "completed";
-  const orderItems = (order.order_items ?? []) as Array<{
+  const rawOrderItems = order.order_items ?? [];
+  const orderItems = rawOrderItems.map((item: any) => ({
+    ...item,
+    shopify_variant_id: item.source_metadata?.shopify_variant_id ?? null,
+    shopify_product_id: item.source_metadata?.shopify_product_id ?? null,
+  })) as Array<{
     id: string;
     vendor_id: string;
     shopify_variant_id: number | null;

@@ -520,7 +520,7 @@ import {
   ArrowLeft, Package, CreditCard, Lock, Loader2,
   CheckCircle2, Clock, Truck, MapPin, ChevronRight,
   ShieldCheck, Copy, ExternalLink, AlertCircle, Check,
-  Settings2, Home, BadgeCheck, MessageSquare, FileText,
+  Settings2, Home, BadgeCheck, MessageSquare, FileText, Download,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/utils";
@@ -689,6 +689,21 @@ function PaymentBanner({ paying, onPay }: { paying: boolean; onPay: () => void }
 // ─── Order item row ───────────────────────────────────────────────────────────
 
 function OrderItemRow({ item, currency }: { item: any; currency: string }) {
+  const isDigital = item.product_type === "digital";
+  const hasUrl = Boolean(item.digital_download_url);
+  
+  let linkAction = { label: "Access link", icon: <ExternalLink className="h-3 w-3" />, isDownload: false };
+  if (hasUrl) {
+    try {
+      const parsed = new URL(item.digital_download_url);
+      const ext = parsed.pathname.split('.').pop()?.toLowerCase();
+      const downloadExts = ['pdf', 'zip', 'rar', 'exe', 'dmg', 'mp4', 'mp3', 'png', 'jpg', 'jpeg', 'txt', 'csv', 'epub', 'mobi'];
+      if (ext && downloadExts.includes(ext)) {
+        linkAction = { label: "Download file", icon: <Download className="h-3 w-3" />, isDownload: true };
+      }
+    } catch { }
+  }
+
   return (
     <li className="group flex gap-4 items-center py-3.5">
       <div className="h-14 w-14 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)] overflow-hidden flex items-center justify-center shrink-0 transition-transform duration-200 group-hover:scale-105">
@@ -702,6 +717,17 @@ function OrderItemRow({ item, currency }: { item: any; currency: string }) {
         <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
           Qty {item.quantity} · {formatCurrency(Number(item.unit_price), currency)} each
         </p>
+        {isDigital && hasUrl && (
+          <Link
+            href={item.digital_download_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            download={linkAction.isDownload}
+            className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-sky-600 dark:text-sky-400 hover:underline mt-1.5"
+          >
+            {linkAction.icon} {linkAction.label}
+          </Link>
+        )}
       </div>
       <p className="text-sm font-bold text-[var(--color-text-primary)] shrink-0">
         {formatCurrency(Number(item.total_price), currency)}
@@ -833,7 +859,7 @@ export default function PublicOrderDetailPage() {
         .from("orders")
         .select(`
           *,
-          order_items ( id, product_name, product_image, quantity, unit_price, total_price, vendor_id ),
+          order_items ( id, product_name, product_image, quantity, unit_price, total_price, vendor_id, product_type, digital_download_url ),
           profiles!orders_buyer_id_fkey ( full_name, email )
         `)
         .eq("id", id)

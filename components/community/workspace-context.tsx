@@ -1,4 +1,5 @@
-﻿"use client";
+﻿// components/community/workspace-context.tsx
+"use client";
 
 import React, { createContext, useContext } from "react";
 import type { MembershipLite } from "@/lib/community-workspace-access";
@@ -24,6 +25,28 @@ export type WorkspaceSpaceRow = {
   rooms: WorkspaceRoomRow[];
 };
 
+// ── New: live now sessions surfaced in sidebar ─────────────────────
+export type LiveSessionLite = {
+  id: string;
+  title: string;
+  host_id: string;
+  host_name: string | null;
+  host_avatar: string | null;
+  viewer_count: number;
+  room_id: string | null;
+  space_id: string | null;
+  started_at: string;
+};
+
+// ── New: gamification snapshot ─────────────────────────────────────
+export type PointsSnapshot = {
+  total_points: number;
+  level: number;
+  level_start_xp: number;
+  next_level_xp: number;
+  streak_days: number;
+};
+
 export type WorkspaceContextValue = {
   slug: string;
   communityId: string;
@@ -35,7 +58,10 @@ export type WorkspaceContextValue = {
   profile: { full_name: string | null; avatar_url: string | null; username: string | null } | null;
   membership: MembershipLite | null;
   spacesWithRooms: WorkspaceSpaceRow[];
-  points: { total_points: number; level: number } | null;
+  points: PointsSnapshot | null;
+  liveSessions: LiveSessionLite[];
+  unreadNotifications: number;
+  openMissionsCount: number;
 };
 
 const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);
@@ -55,4 +81,3 @@ export function useWorkspace() {
   if (!v) throw new Error("useWorkspace must be used inside WorkspaceProvider");
   return v;
 }
-

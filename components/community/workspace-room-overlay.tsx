@@ -1,10 +1,22 @@
-﻿"use client";
+"use client";
 
 import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { ArrowLeft, Sparkles } from "lucide-react";
+import { ArrowLeft, Sparkles, MessageCircle, BookOpen, Folder, CheckSquare, Hash, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+
+function spaceIconFromName(name: string | null): LucideIcon {
+  if (!name) return Hash;
+  const map: Record<string, LucideIcon> = {
+    chat: MessageCircle, message: MessageCircle,
+    book: BookOpen, course: BookOpen, learn: BookOpen,
+    folder: Folder, resources: Folder,
+    tasks: CheckSquare, todo: CheckSquare,
+    sparkles: Sparkles, ai: Sparkles,
+  };
+  return map[name.toLowerCase()] ?? Hash;
+}
 
 function roomTypeLabel(roomType: string) {
   switch (roomType) {
@@ -26,7 +38,7 @@ function roomTypeLabel(roomType: string) {
 export function WorkspaceRoomOverlay({
   communityName,
   spaceName,
-  spaceIcon,
+  spaceIconName,
   roomName,
   roomType,
   onClose,
@@ -34,7 +46,7 @@ export function WorkspaceRoomOverlay({
 }: {
   communityName: string;
   spaceName: string;
-  spaceIcon: string | null;
+  spaceIconName: string | null;
   roomName: string;
   roomType: string;
   onClose: () => void;
@@ -87,7 +99,10 @@ export function WorkspaceRoomOverlay({
             <span className="text-[9px] font-black uppercase tracking-[0.2em] text-[var(--color-text-muted)] opacity-70 leading-none">{communityName}</span>
           </div>
           <div className="flex items-center gap-2 sm:gap-3">
-             {spaceIcon && <span className="text-base sm:text-lg leading-none w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center bg-[var(--color-surface-secondary)] rounded-sm border border-[var(--color-border)] shadow-none">{spaceIcon}</span>}
+             {spaceIconName && (() => {
+               const SpaceIcon = spaceIconFromName(spaceIconName);
+               return <span className="text-base sm:text-lg leading-none w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center bg-[var(--color-surface-secondary)] rounded-sm border border-[var(--color-border)] shadow-none"><SpaceIcon className="h-4 w-4 sm:h-5 sm:w-5" /></span>;
+             })()}
              <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap leading-tight">
                    <span className="text-[11px] font-bold text-[var(--color-text-muted)] tracking-tight">{spaceName}</span>
