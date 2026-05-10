@@ -14,7 +14,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
-import { verifyFlutterwaveTransaction } from "@/lib/flutterwave";
+import { verifyFlutterwaveTransaction, } from "@/lib/payments/Transaction-verify"
 import { finalizeOrderPayment } from "@/lib/payments/finalize-order-payment";
 
 // ─── Supabase (lazy) ──────────────────────────────────────────────────────────
@@ -75,7 +75,7 @@ export async function GET(
         .eq("order_id", orderId)
         .eq("provider", "flutterwave")
         .order("created_at", { ascending: false })
-        .limit(1)
+        // .limit(1)
         .maybeSingle();
 
     if (txError) {
@@ -95,16 +95,17 @@ export async function GET(
             transactionId: transaction?.provider_transaction_id ?? null,
             provider: transaction?.provider ?? null,
             verified: true,
-            walletCredited: true, // already credited when first finalized
+            walletCredited: true,
         });
     }
 
 
     if (order.payment_status === "pending" && transaction?.provider_transaction_id) {
         try {
-            const txData = await verifyFlutterwaveTransaction(
+            const tx = await verifyFlutterwaveTransaction(
                 transaction.provider_transaction_id
             );
+            const txData = tx.data;
 
             console.info("[orders/status] Flutterwave verification result", {
                 orderId,
@@ -124,7 +125,6 @@ export async function GET(
                     paymentProvider: "flutterwave",
                 });
 
-                // Refetch order to get updated status
                 const { data: updatedOrder } = await serviceSupabase
                     .from("orders")
                     .select("status, payment_status, paid_at")
@@ -184,7 +184,6 @@ export async function GET(
         }
     }
 
-    // 6. Return current state — still pending or no transaction yet
     return NextResponse.json({
         paymentStatus: order.payment_status,
         orderStatus: order.status,

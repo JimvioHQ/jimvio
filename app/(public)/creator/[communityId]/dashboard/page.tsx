@@ -117,7 +117,7 @@ export default async function CreatorDashboardPage({ params }: { params: Promise
       <header className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="h-14 w-14 rounded-2xl overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface-secondary)]">
-            {community.avatar_url ? (
+{community.avatar_url && community.avatar_url.trim() ? (
               <Image src={community.avatar_url} alt="" width={56} height={56} className="object-cover h-full w-full" unoptimized />
             ) : (
               <div className="h-full w-full flex items-center justify-center text-lg font-black text-[var(--color-accent)]">{community.name[0]}</div>
@@ -200,7 +200,7 @@ export default async function CreatorDashboardPage({ params }: { params: Promise
               return (
                 <li key={m.user_id} className="flex items-center gap-3">
                   <div className="h-9 w-9 rounded-full overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface-secondary)]">
-                    {prof?.avatar_url ? (
+{prof?.avatar_url && prof?.avatar_url.trim() ? (
                       <Image src={prof.avatar_url} alt="" width={36} height={36} className="object-cover h-full w-full" unoptimized />
                     ) : (
                       <div className="h-full w-full flex items-center justify-center text-xs font-black text-[var(--color-accent)]">

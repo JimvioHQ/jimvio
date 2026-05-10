@@ -84,7 +84,7 @@ export function WorkspaceMembersClient({ slug, members }: { slug: string; member
               <div key={m.user_id} className="rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-none flex flex-col gap-3">
                 <div className="flex items-start gap-3">
                   <div className="h-12 w-12 rounded-sm overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface-secondary)] shrink-0">
-                    {m.profile?.avatar_url ? (
+                    {m.profile?.avatar_url && m.profile?.avatar_url.trim() ? (
                       <Image src={m.profile.avatar_url} alt="" width={48} height={48} className="object-cover h-full w-full" unoptimized />
                     ) : (
                       <div className="h-full w-full flex items-center justify-center font-black text-[var(--color-accent)]">

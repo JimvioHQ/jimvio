@@ -587,7 +587,7 @@ function VendorOption({
     >
       <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
         {/* Avatar */}
-        {v.avatar_url ? (
+        {v.avatar_url && v.avatar_url.trim() ? (
           <img src={v.avatar_url} alt={v.business_name}
             style={{ width: 32, height: 32, borderRadius: 8, objectFit: "cover", border: "0.5px solid var(--color-border)", flexShrink: 0 }} />
         ) : (

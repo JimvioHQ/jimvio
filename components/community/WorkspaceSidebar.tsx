@@ -831,7 +831,7 @@ function UserPointsCard({
           className="h-8 w-8 shrink-0 overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface)]"
           style={{ borderRadius: "var(--radius-full)" }}
         >
-          {profile?.avatar_url ? (
+          {profile?.avatar_url && profile?.avatar_url.trim() ? (
             <Image src={profile.avatar_url} alt="" width={32} height={32} className="h-full w-full object-cover" unoptimized />
           ) : (
             <div className="flex h-full w-full items-center justify-center text-[12px] font-semibold text-[var(--color-accent)]">

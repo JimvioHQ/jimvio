@@ -1376,7 +1376,7 @@ export function ChatRoom({ roomId, roomName, communityId, slug, hideHeader }: {
         <div className="fixed inset-0 z-[30000] flex flex-col items-center justify-center bg-black/90 text-white">
           <div className="flex flex-col items-center gap-6 max-w-sm w-full p-8 rounded-sm bg-[#233138] border border-white/10 shadow-none">
             <div className="wa-avatar" style={{ width: 100, height: 100, fontSize: 30, background: WA.accent, color: 'white' }}>
-              {incomingCall.sender?.avatar_url ? <img src={incomingCall.sender.avatar_url} className="w-full h-full object-cover" alt="" /> : <span>{incomingCall.sender?.full_name?.[0] || 'I'}</span>}
+              {incomingCall.sender?.avatar_url && incomingCall.sender?.avatar_url.trim() ? <img src={incomingCall.sender.avatar_url} className="w-full h-full object-cover" alt="" /> : <span>{incomingCall.sender?.full_name?.[0] || 'I'}</span>}
             </div>
             <div className="text-center">
               <h3 className="text-xl font-bold">{incomingCall.sender?.full_name || incomingCall.sender?.username || 'Someone'}</h3>

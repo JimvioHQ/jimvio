@@ -243,7 +243,7 @@ export function CurrencyConverterWidget({
 
   // Conversion effect
   useEffect(() => {
-    if (!rates) return setToAmount("");
+    if (!rates || Object.keys(rates).length === 0) return setToAmount("");
 
     const amount = parseFloat(debouncedAmount);
 
@@ -252,11 +252,15 @@ export function CurrencyConverterWidget({
       return;
     }
 
-    const result = convertCurrency(
-      amount,
-      rates[fromCurrency],
-      rates[toCurrency]
-    );
+    const fromRate = rates[fromCurrency];
+    const toRate = rates[toCurrency];
+
+    if (!fromRate || !toRate) {
+      setToAmount("");
+      return;
+    }
+
+    const result = convertCurrency(amount, fromRate, toRate);
 
     setToAmount(
       Number.isFinite(result) ? result.toFixed(2) : ""

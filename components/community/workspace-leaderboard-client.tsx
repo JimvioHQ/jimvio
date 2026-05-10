@@ -117,7 +117,7 @@ export function WorkspaceLeaderboardClient({
                   <td className="py-2 px-3">
                     <div className="flex items-center gap-2">
                       <div className="h-8 w-8 rounded-sm overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface-secondary)]">
-                        {r.profile?.avatar_url ? (
+                        {r.profile?.avatar_url && r.profile?.avatar_url.trim() ? (
                           <Image src={r.profile.avatar_url} alt="" width={32} height={32} className="object-cover h-full w-full" unoptimized />
                         ) : (
                           <div className="h-full w-full flex items-center justify-center text-[10px] font-black text-[var(--color-accent)]">
@@ -167,7 +167,7 @@ function Podium({
         )}
       >
         <div className="h-14 w-14 rounded-sm overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface-secondary)]">
-          {row.profile?.avatar_url ? (
+          {row.profile?.avatar_url && row.profile?.avatar_url.trim() ? (
             <Image src={row.profile.avatar_url} alt="" width={56} height={56} className="object-cover h-full w-full" unoptimized />
           ) : (
             <div className="h-full w-full flex items-center justify-center text-lg font-black text-[var(--color-accent)]">

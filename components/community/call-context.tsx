@@ -216,7 +216,7 @@ export function CallProvider({ children }: CallProviderProps) {
         <div className="fixed inset-0 z-[100000] flex flex-col items-center justify-center bg-black/90 text-white animate-in fade-in zoom-in duration-300">
            <div className="flex flex-col items-center gap-6 max-w-sm w-full p-8 rounded-sm bg-[#233138] border border-white/10 shadow-none">
               <div className="w-24 h-24 rounded-sm bg-[#00a884] flex items-center justify-center text-3xl font-bold overflow-hidden shadow-none">
-                {incomingCall.sender?.avatar_url ? <img src={incomingCall.sender.avatar_url} className="w-full h-full object-cover" alt=""/> : <span>{incomingCall.sender?.full_name?.[0] || 'I'}</span>}
+                {incomingCall.sender?.avatar_url && incomingCall.sender?.avatar_url.trim() ? <img src={incomingCall.sender.avatar_url} className="w-full h-full object-cover" alt=""/> : <span>{incomingCall.sender?.full_name?.[0] || 'I'}</span>}
               </div>
               <div className="text-center">
                 <h3 className="text-xl font-bold">{incomingCall.sender?.full_name || incomingCall.sender?.username || 'Someone'}</h3>
@@ -249,7 +249,7 @@ export function CallProvider({ children }: CallProviderProps) {
         <div className="fixed inset-0 z-[99999] bg-[#0b141a] flex flex-col items-center justify-center animate-in fade-in slide-in-from-bottom-8 duration-500">
            <div className="absolute top-12 flex flex-col items-center gap-2">
              <div className="w-16 h-16 rounded-sm bg-[#233138] flex items-center justify-center shadow-none overflow-hidden border border-white/5">
-                {incomingCall?.sender?.avatar_url ? <img src={incomingCall.sender.avatar_url} className="w-full h-full object-cover" alt=""/> : <Phone className="h-8 w-8 text-[#8696a0]" />}
+                {incomingCall?.sender?.avatar_url && incomingCall?.sender?.avatar_url.trim() ? <img src={incomingCall.sender.avatar_url} className="w-full h-full object-cover" alt=""/> : <Phone className="h-8 w-8 text-[#8696a0]" />}
              </div>
              <h2 className="text-2xl font-bold text-white mt-4">{incomingCall?.sender?.full_name || 'Calling...'}</h2>
              <p className="text-[#8696a0]">{remoteStream ? 'Connected' : 'Secure Signal...'}</p>

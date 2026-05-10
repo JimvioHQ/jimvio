@@ -4,6 +4,16 @@ const TTL_MS = 900_000; // 15 minutes
 
 let cache: { rates: Record<string, number>; fetchedAt: number } | null = null;
 
+const FALLBACK_RATES: Record<string, number> = {
+  USD: 1,
+  RWF: 1300,
+  KES: 130,
+  UGX: 4000,
+  TZS: 2500,
+  NGN: 1500,
+  GHS: 13,
+};
+
 function normalizeRates(raw: Record<string, number>): Record<string, number> {
   const out: Record<string, number> = { USD: 1 };
   for (const [k, v] of Object.entries(raw)) {
@@ -37,7 +47,8 @@ export async function getRates(): Promise<Record<string, number>> {
     return rates;
   } catch {
     if (cache) return cache.rates;
-    return {};
+    console.warn("[currency/rates] Exchange rate API unavailable, using fallback rates");
+    return { ...FALLBACK_RATES };
   }
 }
 

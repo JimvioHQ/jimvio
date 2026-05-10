@@ -1,122 +1,39 @@
 // "use client";
 
-// import React from "react";
+// import React, { useTransition } from "react";
 // import Link from "next/link";
 // import Image from "next/image";
 // import { usePathname } from "next/navigation";
 // import {
-//   LayoutDashboard, Globe, ShoppingCart, FileText, Heart, Store, Package,
+//   LayoutDashboard, Loader2, ShoppingCart, FileText, Heart, Store, Package,
 //   Truck, Layers, Link2, Megaphone, DollarSign, Wallet, Video, BarChart3,
-//   MessageSquare, Bell, User, Settings, ChevronLeft, ChevronRight, X, Zap,
-//   Users, CirclePlus, LayoutGrid, ArrowUpRight, LogOut, Eye, EyeOff,
+//   MessageSquare, Bell, Settings, ChevronLeft, ChevronRight, X, Zap,
+//   Users, CirclePlus, LayoutGrid, ArrowUpRight, Eye, EyeOff, LogOut,
+//   FolderSymlink,
 // } from "lucide-react";
 // import { cn } from "@/lib/utils";
 // import { motion, AnimatePresence } from "framer-motion";
 // import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-// import { SignOutButton } from "@/components/auth/sign-out-button";
-// import { CurrencySelector, useCurrency } from "@/context/CurrencyContext";
+// import { useCurrency } from "@/context/CurrencyContext";
 // import { getUserBalance } from "@/lib/actions/wallet";
+
+// import { signOut } from "@/lib/auth/actions";
+// import { isNextRedirectError } from "@/lib/auth/redirect-error";
 
 // export type DashboardRole = "buyer" | "vendor" | "affiliate" | "influencer" | "admin";
 
-// type NavItem = {
+// interface NavItem {
 //   label: string;
 //   href: string;
 //   icon: React.ReactNode;
 //   requiredRole?: DashboardRole;
-// };
-// type NavSection = {
+// }
+
+// interface NavSection {
 //   title: string;
-//   accentRgb?: string; // rgb for the section dot color
+//   /** hex color for the section accent dot */
+//   accentColor?: string;
 //   items: NavItem[];
-// };
-
-// const sidebarSections: NavSection[] = [
-//   {
-//     title: "",
-//     items: [
-//       { label: "Dashboard", href: "/dashboard", icon: <LayoutDashboard className="h-[14px] w-[14px]" /> },
-//     ],
-//   },
-//   {
-//     title: "Buyer",
-//     accentRgb: "56,189,248",
-//     items: [
-//       { label: "All Items", href: "/marketplace", icon: <LayoutGrid className="h-[14px] w-[14px]" /> },
-//       { label: "Digital Assets", href: "/marketplace/digital", icon: <Zap className="h-[14px] w-[14px]" /> },
-//       { label: "Physical Goods", href: "/marketplace/physical", icon: <Package className="h-[14px] w-[14px]" /> },
-//       { label: "My Orders", href: "/dashboard/orders", icon: <ShoppingCart className="h-[14px] w-[14px]" /> },
-//       { label: "Digital Library", href: "/dashboard/library", icon: <Video className="h-[14px] w-[14px]" /> },
-//     ],
-//   },
-//   {
-//     title: "Community",
-//     accentRgb: "52,211,153",
-//     items: [
-//       { label: "Browse", href: "/communities", icon: <Users className="h-[14px] w-[14px]" /> },
-//       { label: "Create", href: "/communities/create", icon: <CirclePlus className="h-[14px] w-[14px]" /> },
-//       { label: "My Spaces", href: "/creator", icon: <LayoutGrid className="h-[14px] w-[14px]" /> },
-//       { label: "Analytics", href: "/dashboard/community/analytics", icon: <BarChart3 className="h-[14px] w-[14px]" /> },
-//     ],
-//   },
-//   {
-//     title: "Mission Owner",
-//     accentRgb: "251,146,60",
-//     items: [
-//       { label: "Mission Hub", href: "/dashboard/vendor/campaigns", icon: <LayoutDashboard className="h-[14px] w-[14px]" /> },
-//       { label: "Submissions", href: "/dashboard/vendor/submissions", icon: <Video className="h-[14px] w-[14px]" /> },
-//       { label: "Launch", href: "/dashboard/vendor/campaigns/new", icon: <CirclePlus className="h-[14px] w-[14px]" /> },
-//       { label: "Analytics", href: "/dashboard/vendor/campaigns/analytics", icon: <BarChart3 className="h-[14px] w-[14px]" /> },
-//     ],
-//   },
-//   {
-//     title: "Vendor Hub",
-//     accentRgb: "251,191,36",
-//     items: [
-//       { label: "My Store", href: "/dashboard/vendor/store", icon: <Store className="h-[14px] w-[14px]" />, requiredRole: "vendor" },
-//       { label: "Products", href: "/dashboard/products", icon: <Package className="h-[14px] w-[14px]" />, requiredRole: "vendor" },
-//       { label: "Orders", href: "/dashboard/vendor/orders", icon: <Truck className="h-[14px] w-[14px]" />, requiredRole: "vendor" },
-//       { label: "Inventory", href: "/dashboard/inventory", icon: <Layers className="h-[14px] w-[14px]" />, requiredRole: "vendor" },
-//       { label: "Payouts", href: "/dashboard/payments", icon: <Wallet className="h-[14px] w-[14px]" />, requiredRole: "vendor" },
-//     ],
-//   },
-//   {
-//     title: "Creator Hub",
-//     accentRgb: "129,140,248",
-//     items: [
-//       { label: "Explore Missions", href: "/ugc", icon: <Zap className="h-[14px] w-[14px]" /> },
-//       { label: "Submissions", href: "/dashboard/submissions", icon: <FileText className="h-[14px] w-[14px]" />, requiredRole: "influencer" },
-//       { label: "Studio", href: "/dashboard/influencer", icon: <LayoutDashboard className="h-[14px] w-[14px]" />, requiredRole: "influencer" },
-//       { label: "My Clips", href: "/dashboard/influencer/videos", icon: <Video className="h-[14px] w-[14px]" />, requiredRole: "influencer" },
-//       { label: "Analytics", href: "/dashboard/influencer/analytics", icon: <BarChart3 className="h-[14px] w-[14px]" />, requiredRole: "influencer" },
-//       { label: "Earnings", href: "/dashboard/earnings", icon: <DollarSign className="h-[14px] w-[14px]" />, requiredRole: "influencer" },
-//     ],
-//   },
-//   {
-//     title: "Affiliate",
-//     accentRgb: "251,113,133",
-//     items: [
-//       { label: "My Links", href: "/dashboard/links", icon: <Link2 className="h-[14px] w-[14px]" />, requiredRole: "affiliate" },
-//       { label: "Products", href: "/dashboard/affiliate/products", icon: <Megaphone className="h-[14px] w-[14px]" />, requiredRole: "affiliate" },
-//       { label: "Earnings", href: "/dashboard/earnings", icon: <DollarSign className="h-[14px] w-[14px]" />, requiredRole: "affiliate" },
-//       { label: "Analytics", href: "/dashboard/affiliate/analytics", icon: <BarChart3 className="h-[14px] w-[14px]" />, requiredRole: "affiliate" },
-//       { label: "Payouts", href: "/dashboard/withdrawals", icon: <Wallet className="h-[14px] w-[14px]" />, requiredRole: "affiliate" },
-//     ],
-//   },
-//   {
-//     title: "General",
-//     accentRgb: "148,163,184",
-//     items: [
-//       { label: "Messages", href: "/dashboard/messages", icon: <MessageSquare className="h-[14px] w-[14px]" /> },
-//       { label: "Notifications", href: "/dashboard/notifications", icon: <Bell className="h-[14px] w-[14px]" /> },
-//       // { label: "Profile", href: "/dashboard/settings", icon: <User className="h-[14px] w-[14px]" /> },
-//       { label: "Settings", href: "/dashboard/settings", icon: <Settings className="h-[14px] w-[14px]" /> },
-//     ],
-//   },
-// ];
-
-// function getActivateHref(role: DashboardRole) {
-//   return role === "influencer" ? "/dashboard/activate/creator" : `/dashboard/activate/${role}`;
 // }
 
 // interface SidebarProps {
@@ -128,238 +45,344 @@
 //   onMobileClose?: () => void;
 // }
 
-// export function Sidebar({ user, activeRoles, collapsed, onCollapsedChange, mobileOpen, onMobileClose }: SidebarProps) {
+// function icon(Icon: React.ElementType) {
+//   return <Icon className="h-[14px] w-[14px]" />;
+// }
+
+// const SECTIONS: NavSection[] = [
+//   {
+//     title: "",
+//     items: [
+//       { label: "Dashboard", href: "/dashboard", icon: icon(LayoutDashboard) },
+//     ],
+//   },
+//   {
+//     title: "Buyer",
+//     accentColor: "#38bdf8",
+//     items: [
+//       { label: "All items", href: "/marketplace", icon: icon(LayoutGrid) },
+//       { label: "Digital assets", href: "/marketplace/digital", icon: icon(Zap) },
+//       { label: "Physical goods", href: "/marketplace/physical", icon: icon(Package) },
+//       { label: "My orders", href: "/dashboard/orders", icon: icon(ShoppingCart) },
+//       { label: "Digital library", href: "/dashboard/library", icon: icon(Video) },
+//     ],
+//   },
+//   {
+//     title: "Community",
+//     accentColor: "#34d399",
+//     items: [
+//       { label: "Browse", href: "/communities", icon: icon(Users) },
+//       { label: "Create", href: "/communities/create", icon: icon(CirclePlus) },
+//       { label: "My spaces", href: "/creator", icon: icon(LayoutGrid) },
+//       { label: "Analytics", href: "/dashboard/community/analytics", icon: icon(BarChart3) },
+//     ],
+//   },
+//   {
+//     title: "Mission owner",
+//     accentColor: "#fb923c",
+//     items: [
+//       { label: "Mission hub", href: "/dashboard/vendor/campaigns", icon: icon(LayoutDashboard) },
+//       { label: "Submissions", href: "/dashboard/vendor/submissions", icon: icon(Video) },
+//       { label: "Launch", href: "/dashboard/vendor/campaigns/new", icon: icon(CirclePlus) },
+//       { label: "Analytics", href: "/dashboard/vendor/campaigns/analytics", icon: icon(BarChart3) },
+//     ],
+//   },
+//   {
+//     title: "Vendor hub",
+//     accentColor: "#fbbf24",
+//     items: [
+//       { label: "My store", href: "/dashboard/vendor/store", icon: icon(Store), requiredRole: "vendor" },
+//       { label: "Products", href: "/dashboard/products", icon: icon(Package), requiredRole: "vendor" },
+//       { label: "Orders", href: "/dashboard/vendor/orders", icon: icon(Truck), requiredRole: "vendor" },
+//       { label: "Inventory", href: "/dashboard/inventory", icon: icon(Layers), requiredRole: "vendor" },
+//       { label: "Payouts", href: "/dashboard/payments", icon: icon(Wallet), requiredRole: "vendor" },
+//     ],
+//   },
+//   {
+//     title: "Creator hub",
+//     accentColor: "#818cf8",
+//     items: [
+//       { label: "Explore missions", href: "/ugc", icon: icon(Zap) },
+//       { label: "Submissions", href: "/dashboard/submissions", icon: icon(FileText), requiredRole: "influencer" },
+//       { label: "Studio", href: "/dashboard/influencer", icon: icon(LayoutDashboard), requiredRole: "influencer" },
+//       { label: "My clips", href: "/dashboard/influencer/videos", icon: icon(Video), requiredRole: "influencer" },
+//       { label: "Analytics", href: "/dashboard/influencer/analytics", icon: icon(BarChart3), requiredRole: "influencer" },
+//       { label: "Earnings", href: "/dashboard/earnings", icon: icon(DollarSign), requiredRole: "influencer" },
+//     ],
+//   },
+//   {
+//     title: "Affiliate",
+//     accentColor: "#fb7185",
+//     items: [
+//       { label: "My links", href: "/dashboard/links", icon: icon(FolderSymlink), requiredRole: "affiliate" },
+//       { label: "Products", href: "/dashboard/affiliate/products", icon: icon(Megaphone), requiredRole: "affiliate" },
+//       { label: "Earnings", href: "/dashboard/earnings", icon: icon(DollarSign), requiredRole: "affiliate" },
+//       { label: "Analytics", href: "/dashboard/affiliate/analytics", icon: icon(BarChart3), requiredRole: "affiliate" },
+//       { label: "Payouts", href: "/dashboard/withdrawals", icon: icon(Wallet), requiredRole: "affiliate" },
+//     ],
+//   },
+//   {
+//     title: "General",
+//     accentColor: "#94a3b8",
+//     items: [
+//       { label: "Messages", href: "/dashboard/messages", icon: icon(MessageSquare) },
+//       { label: "Notifications", href: "/dashboard/notifications", icon: icon(Bell) },
+//       { label: "Settings", href: "/dashboard/settings", icon: icon(Settings) },
+//     ],
+//   },
+// ];
+
+// // ─── Helpers ──────────────────────────────────────────────────────────────────
+
+// function activateHref(role: DashboardRole): string {
+//   return role === "influencer"
+//     ? "/dashboard/activate/creator"
+//     : `/dashboard/activate/${role}`;
+// }
+
+// export function Sidebar({
+//   user,
+//   activeRoles,
+//   collapsed,
+//   onCollapsedChange,
+//   mobileOpen,
+//   onMobileClose,
+// }: SidebarProps) {
 //   const pathname = usePathname();
 //   const { formatMoney } = useCurrency();
 //   const [balance, setBalance] = React.useState({ available: 0, pending: 0 });
 //   const [balanceHidden, setBalanceHidden] = React.useState(true);
 
 //   React.useEffect(() => {
-//     async function fetch() {
+//     async function load() {
 //       const res = await getUserBalance();
 //       if (res.success) setBalance({ available: res.available, pending: res.pending });
 //     }
-//     fetch();
-//     const t = setInterval(fetch, 120_000);
+//     load();
+//     const t = setInterval(load, 120_000);
 //     return () => clearInterval(t);
 //   }, []);
 
-//   const hasRole = (r: DashboardRole) => activeRoles.includes("admin") || activeRoles.includes(r);
-//   const resolveHref = (item: NavItem) => {
+//   const hasRole = (r: DashboardRole) =>
+//     activeRoles.includes("admin") || activeRoles.includes(r);
+
+//   function resolveHref(item: NavItem): string {
 //     if (!item.requiredRole || item.requiredRole === "buyer") return item.href;
-//     return hasRole(item.requiredRole) ? item.href : getActivateHref(item.requiredRole);
-//   };
-//   const needsActivation = (item: NavItem) =>
-//     !!item.requiredRole && item.requiredRole !== "buyer" && !hasRole(item.requiredRole);
+//     return hasRole(item.requiredRole) ? item.href : activateHref(item.requiredRole);
+//   }
+
+//   function isLocked(item: NavItem): boolean {
+//     return !!item.requiredRole && item.requiredRole !== "buyer" && !hasRole(item.requiredRole);
+//   }
+
+//   function isActive(href: string): boolean {
+//     if (href === "/dashboard") return pathname === "/dashboard";
+//     return pathname === href || pathname.startsWith(`${href}/`);
+//   }
 
 //   const initials = (user.full_name?.[0] || user.email?.[0] || "U").toUpperCase();
 
-//   const content = (
-//     <div className="relative flex flex-col h-full z-10">
+//   // ── Sidebar content ──────────────────────────────────────────────────────────
 
-//       {/* Logo bar — Shopify Admin Style */}
-//       <div className="flex items-center justify-between shrink-0 px-4 py-5 bg-[var(--color-surface)] border-b border-border">
-//         <Link href="/" onClick={onMobileClose} className="flex items-center gap-0 min-w-0 group">
-//           {!collapsed ? (
-//             <>
-//               <Image
-//                 src="/jimvio-logo.png"
-//                 alt="Jimvio"
-//                 width={32}
-//                 height={32}
-//                 className="h-7 w-auto mix-blend-multiply dark:mix-blend-normal"
-//                 priority
-//               />
-//               <span className="text-[22px] font-black tracking-[0.05em] select-none truncate">
-//                 <span className="text-stone-950 dark:text-white">Jimvio</span>
-//               </span>
-//             </>
-//           ) : (
-//             <div className="w-8 h-8 rounded-sm bg-orange-500 flex items-center justify-center text-white font-black text-xs">J</div>
-//           )}
-//         </Link>
+//   const SidebarContent = (
+//     <div className="flex flex-col h-full">
 
-//         <div className="flex items-center gap-1.5">
+//       {/* Logo bar */}
+//       <div className={cn(
+//         "flex items-center shrink-0 border-b border-[var(--color-border)]",
+//         collapsed ? "justify-center px-3 py-4" : "justify-between px-4 py-3.5"
+//       )}>
+//         {collapsed ? (
 //           <button
-//             type="button"
-//             onClick={() => onCollapsedChange(!collapsed)}
-//             className="hidden lg:flex items-center justify-center transition-all hover:scale-105 active:scale-95 rounded-sm bg-surface-secondary dark:bg-surface-secondary border border-border text-stone-400 dark:text-text-muted"
-//             style={{
-//               width: 28, height: 28,
-//             }}
-//             aria-label={collapsed ? "Expand" : "Collapse"}
+//             onClick={() => onCollapsedChange(false)}
+//             aria-label="Expand sidebar"
+//             className="w-8 h-8 rounded-lg bg-orange-500 flex items-center justify-center text-white font-semibold text-sm"
 //           >
-//             {collapsed ? <ChevronRight style={{ width: 12, height: 12 }} /> : <ChevronLeft style={{ width: 12, height: 12 }} />}
+//             J
 //           </button>
-//           {onMobileClose && (
+//         ) : (
+//           <Link href="/" onClick={onMobileClose} className="flex items-center gap-1 min-w-0">
+//             <Image
+//               src="/jimvio-logo.png"
+//               alt="Jimvio"
+//               width={28}
+//               height={28}
+//               className="h-7 w-auto mix-blend-multiply dark:mix-blend-normal flex-shrink-0"
+//               priority
+//             />
+//             <span className="text-[19px] font-semibold tracking-tight text-[var(--color-text-primary)] select-none truncate">
+//               Jim<span className="text-orange-600">vio</span>
+//             </span>
+//           </Link>
+//         )}
+
+//         {!collapsed && (
+//           <div className="flex items-center gap-1.5 flex-shrink-0">
 //             <button
 //               type="button"
-//               onClick={onMobileClose}
-//               className="lg:hidden flex items-center justify-center transition-all active:scale-95 rounded-sm bg-surface-secondary dark:bg-surface-secondary border border-border text-stone-400  hover:text-stone-800 dark:text-text-secondary dark:hover:text-stone-200"
-//               style={{ width: 30, height: 30 }}
-//               aria-label="Close"
+//               onClick={() => onCollapsedChange(true)}
+//               aria-label="Collapse sidebar"
+//               className={cn(
+//                 "hidden lg:flex items-center justify-center w-6 h-6 rounded-md",
+//                 "border border-[var(--color-border)] text-[var(--color-text-muted)]",
+//                 "hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]",
+//                 "transition-colors"
+//               )}
 //             >
-//               <X style={{ width: 13, height: 13 }} />
+//               <ChevronLeft className="h-3 w-3" />
 //             </button>
-//           )}
-//         </div>
+//             {onMobileClose && (
+//               <button
+//                 type="button"
+//                 onClick={onMobileClose}
+//                 aria-label="Close sidebar"
+//                 className={cn(
+//                   "lg:hidden flex items-center justify-center w-6 h-6 rounded-md",
+//                   "border border-[var(--color-border)] text-[var(--color-text-muted)]",
+//                   "hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]",
+//                   "transition-colors"
+//                 )}
+//               >
+//                 <X className="h-3 w-3" />
+//               </button>
+//             )}
+//           </div>
+//         )}
 //       </div>
 
-//       {/* ── Wallet Card ── */}
-//       {!collapsed && (
-//         <motion.div
-//           initial={{ y: 20, opacity: 0 }}
-//           animate={{ y: 0, opacity: 1 }}
-//           transition={{ delay: 0.15 }}
-//           className="px-4 pt-4 pb-2"
-//         >
-//           <div className="relative overflow-hidden rounded-sm bg-[var(--color-bg-dark)] border border-stone-800 p-4 group">
-//             <div className="relative z-10">
-//               <div className="flex items-center justify-between mb-3">
-//                 <div className="flex items-center gap-2">
-//                   <div className="w-5 h-5 rounded-sm bg-orange-500/10 flex items-center justify-center text-orange-400 border border-orange-500/20">
-//                     <Wallet className="w-3 h-3" />
-//                   </div>
-//                   <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Available Balance</span>
-//                 </div>
-//                 <button
-//                   onClick={() => setBalanceHidden(!balanceHidden)}
-//                   className="text-stone-500 hover:text-white transition-colors"
-//                 >
-//                   {balanceHidden ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-//                 </button>
-//               </div>
-
-//               <Link href="/dashboard/wallet" onClick={onMobileClose}>
-//                 <div className="text-xl font-bold text-[var(--color-text-primary)] tabular-nums tracking-tight">
-//                   {balanceHidden ? "••••••" : formatMoney(balance.available, "USD")}
-//                 </div>
-//                 <div className="flex items-center justify-between mt-2">
-//                   <span className="text-[10px] font-medium text-stone-500">
-//                     {balanceHidden ? "•••" : formatMoney(balance.pending, "USD")} pending
-//                   </span>
-//                   <ArrowUpRight className="w-3 h-3 text-stone-500 group-hover:text-orange-400 transition-colors" />
-//                 </div>
-//               </Link>
-//             </div>
-//           </div>
-//         </motion.div>
-//       )}
-
-//       {/* Collapsed wallet icon */}
-//       {collapsed && (
-//         <div className="px-2 pt-3 pb-1 shrink-0 flex justify-center">
+//       {/* Wallet */}
+//       {collapsed ? (
+//         <div className="px-2 pt-3 pb-1 flex justify-center flex-shrink-0">
 //           <Link
 //             href="/dashboard/wallet"
-//             title="My Wallet"
-//             className="flex items-center justify-center transition-all hover:scale-110 active:scale-95 bg-orange-500/10 dark:bg-orange-500/20 border border-orange-500/20 text-orange-600 dark:text-orange-500 rounded-sm h-9 w-9"
+//             title="My wallet"
+//             className={cn(
+//               "flex items-center justify-center w-9 h-9 rounded-xl",
+//               "bg-orange-500/10 border border-orange-500/20 text-orange-500",
+//               "hover:bg-orange-500/20 transition-colors"
+//             )}
 //           >
-//             <Wallet style={{ width: 14, height: 14 }} />
+//             <Wallet className="h-4 w-4" />
+//           </Link>
+//         </div>
+//       ) : (
+//         <div className="px-3 pt-3 pb-1 flex-shrink-0">
+//           <Link
+//             href="/dashboard/wallet"
+//             onClick={onMobileClose}
+//             className={cn(
+//               "block p-3 rounded-lg group",
+//               "bg-[var(--color-surface-secondary)] border border-[var(--color-border)]",
+//               "hover:border-[var(--color-border-strong)] transition-colors"
+//             )}
+//           >
+//             <div className="flex items-center justify-between mb-2">
+//               <div className="flex items-center gap-1.5 text-[11px] font-semibold text-[var(--color-text-muted)] uppercase tracking-widest">
+//                 <Wallet className="h-3 w-3 text-orange-500" />
+//                 Balance
+//               </div>
+//               <div className="flex items-center gap-1">
+//                 <button
+//                   type="button"
+//                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); setBalanceHidden((v) => !v); }}
+//                   aria-label={balanceHidden ? "Show balance" : "Hide balance"}
+//                   className="text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors"
+//                 >
+//                   {balanceHidden ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+//                 </button>
+//               </div>
+//             </div>
+//             <p className="text-[17px] font-semibold text-[var(--color-text-primary)] tabular-nums leading-none mb-1">
+//               {balanceHidden ? "••••••" : formatMoney(balance.available, "USD")}
+//             </p>
+//             <div className="flex items-center justify-between">
+//               <span className="text-[11px] text-[var(--color-text-muted)]">
+//                 {balanceHidden ? "•••" : formatMoney(balance.pending, "USD")} pending
+//               </span>
+//               <ArrowUpRight className="h-3 w-3 text-[var(--color-text-muted)] group-hover:text-orange-500 transition-colors" />
+//             </div>
 //           </Link>
 //         </div>
 //       )}
 
-//       {/* ── Nav ── */}
-//       <nav className="flex-1 overflow-y-auto overflow-x-hidden py-2" style={{ scrollbarWidth: "none" }}>
+//       {/* Nav */}
+//       <nav
+//         className="flex-1 overflow-y-auto py-2"
+//         style={{ scrollbarWidth: "none" }}
+//         aria-label="Dashboard navigation"
+//       >
 //         <div className={collapsed ? "px-2" : "px-2.5"}>
-//           {sidebarSections.map((section) => (
-//             <div key={section.title || "main"} className="mb-1">
+//           {SECTIONS.map((section) => (
+//             <div key={section.title || "__main"} className="mb-1">
+
+//               {/* Section heading */}
 //               {section.title && !collapsed && (
-//                 <div className="flex items-center gap-2 px-2 pt-3 pb-1">
-//                   {section.accentRgb && (<span className="block shrink-0 rounded-sm" style={{ width: 5, height: 5, background: `rgb(${section.accentRgb})` }} />)}
-//                   <span
-//                     style={{
-//                       fontSize: 9, fontWeight: 800, letterSpacing: "0.14em",
-//                       textTransform: "uppercase",
-//                     }}
-//                     className="text-stone-400 dark:text-text-muted"
-//                   >
+//                 <div className="flex items-center gap-2 px-2 pt-3 pb-1.5">
+//                   {section.accentColor && (
+//                     <span
+//                       className="block w-[5px] h-[5px] rounded-full flex-shrink-0"
+//                       style={{ background: section.accentColor }}
+//                     />
+//                   )}
+//                   <span className="text-[10px] font-semibold text-[var(--color-text-muted)] uppercase tracking-widest">
 //                     {section.title}
 //                   </span>
 //                 </div>
 //               )}
 
-//               <ul className="space-y-0.5">
-//                 {section.items.map((item, idx) => {
+//               <ul className="space-y-px">
+//                 {section.items.map((item) => {
 //                   const href = resolveHref(item);
-//                   const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href));
-//                   const locked = needsActivation(item);
+//                   const active = isActive(item.href);
+//                   const locked = isLocked(item);
 
 //                   return (
-//                     <motion.li
-//                       key={`${section.title}-${item.label}`}
-//                       initial={{ x: -5, opacity: 0 }}
-//                       animate={{ x: 0, opacity: 1 }}
-//                       transition={{ delay: 0.1 + idx * 0.03 }}
-//                     >
+//                     <li key={`${section.title}-${item.label}`}>
 //                       <Link
 //                         href={href}
 //                         onClick={onMobileClose}
 //                         title={collapsed ? item.label : undefined}
+//                         aria-current={active ? "page" : undefined}
 //                         className={cn(
-//                           "flex items-center group relative transition-all duration-150",
-//                           isActive
-//                             ? "bg-[var(--color-surface-secondary)] border border-border shadow-sm"
-//                             : "hover:bg-[var(--color-surface-secondary)]/50 border border-transparent"
+//                           "relative flex items-center rounded-sm border transition-all duration-150",
+//                           collapsed ? "justify-center p-2" : "gap-2.5 px-2.5 py-2",
+//                           active
+//                             ? "bg-[var(--color-surface-secondary)] border-[var(--color-border)] text-[var(--color-text-primary)]"
+//                             : "border-transparent text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]",
+//                           locked && "opacity-40"
 //                         )}
-//                         style={{
-//                           gap: collapsed ? 0 : 10,
-//                           padding: collapsed ? "8px" : "8px 12px",
-//                           borderRadius: 0,
-//                           justifyContent: collapsed ? "center" : "flex-start",
-//                           opacity: locked ? 0.4 : 1,
-//                         }}
 //                       >
-//                         {/* Hover layer */}
-//                         <motion.div
-//                           className="absolute inset-0 bg-stone-900/5 dark:bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity"
-//                           initial={false}
-//                           whileHover={{ scale: 1.05 }}
-//                         />
-
-//                         {/* Active left bar */}
-//                         {isActive && (
-//                           <span
-//                             className="pointer-events-none absolute left-0 inset-y-0 w-0.5 bg-orange-500"
-//                           />
+//                         {/* Active left accent */}
+//                         {active && (
+//                           <span className="absolute left-0 inset-y-[10%] w-[3px] rounded-r-full bg-orange-500" />
 //                         )}
 
 //                         {/* Icon */}
-//                         <motion.span
-//                           whileHover={{ scale: 1.1 }}
-//                           className={cn(
-//                             "flex items-center justify-center flex-shrink-0 transition-all z-10",
-//                             isActive
-//                               ? "text-orange-600"
-//                               : "text-neutral-400 group-hover:text-neutral-600 dark:text-text-muted dark:group-hover:text-zinc-300"
-//                           )}
-//                           style={{
-//                             width: 24,
-//                             height: 24,
-//                           }}
-//                         >
+//                         <span className={cn(
+//                           "flex-shrink-0 transition-colors",
+//                           active ? "text-orange-500 font-black" : "text-[var(--color-text-muted)]"
+//                         )}>
 //                           {item.icon}
-//                         </motion.span>
+//                         </span>
 
+//                         {/* Label */}
 //                         {!collapsed && (
 //                           <>
-//                             <span
-//                               className={cn(
-//                                 "flex-1 truncate group-hover:translate-x-0.5 transition-transform z-10 text-[13px] tracking-tight",
-//                                 isActive ? "font-bold text-[var(--color-text-primary)]" : "font-semibold text-[var(--color-text-secondary)]"
-//                               )}
-//                             >
+//                             <span className={cn(
+//                               "flex-1 truncate text-[13px] leading-none",
+//                               active ? "font-semibold" : "font-medium"
+//                             )}>
 //                               {item.label}
 //                             </span>
 //                             {locked && (
-//                               <span className="text-[9px] font-bold tracking-widest uppercase text-stone-400/40 dark:text-text-muted/40 flex-shrink-0">
+//                               <span className="text-[9px] font-semibold text-[var(--color-text-muted)] uppercase tracking-widest flex-shrink-0">
 //                                 Unlock
 //                               </span>
 //                             )}
 //                           </>
 //                         )}
 //                       </Link>
-//                     </motion.li>
+//                     </li>
 //                   );
 //                 })}
 //               </ul>
@@ -367,14 +390,7 @@
 //           ))}
 //         </div>
 //       </nav>
-
-//       {/* Removed Redundant Sections */}
 //     </div>
-//   );
-
-//   /* ── Solid shell styles (border-only) ── */
-//   const solidShell = (
-//     <div className="pointer-events-none absolute inset-y-0 right-0 w-px bg-border" />
 //   );
 
 //   return (
@@ -382,73 +398,720 @@
 //       {/* Desktop */}
 //       <motion.aside
 //         initial={false}
-//         animate={{ width: collapsed ? "4.5rem" : "15.5rem" }}
+//         animate={{ width: collapsed ? "4rem" : "15rem" }}
 //         transition={{ type: "spring", stiffness: 300, damping: 30 }}
-//         className="hidden lg:block sticky top-0 h-screen relative z-40 overflow-hidden bg-surface"
+//         className="hidden lg:flex flex-col sticky top-0 h-screen z-40 overflow-hidden bg-[var(--color-surface)] border-r border-[var(--color-border)]"
 //       >
-//         {solidShell}
-//         {content}
+//         {SidebarContent}
 //       </motion.aside>
 
 //       {/* Mobile */}
-//       {mobileOpen && (
-//         <>
-//           <div
-//             className="fixed inset-0 z-40 lg:hidden animate-in fade-in duration-200 bg-black/50"
-//             onClick={onMobileClose}
-//             aria-hidden
-//           />
-//           <aside
-//             className="fixed inset-y-0 left-0 z-50 lg:hidden w-[min(15.5rem,88vw)] animate-in slide-in-from-left duration-250 bg-surface border-r border-border shadow-none"
-//           >
-//             {content}
-//           </aside>
-//         </>
-//       )}
+//       <AnimatePresence>
+//         {mobileOpen && (
+//           <>
+//             <motion.div
+//               key="backdrop"
+//               initial={{ opacity: 0 }}
+//               animate={{ opacity: 1 }}
+//               exit={{ opacity: 0 }}
+//               transition={{ duration: 0.2 }}
+//               className="fixed inset-0 z-40 lg:hidden bg-black/50"
+//               onClick={onMobileClose}
+//               aria-hidden="true"
+//             />
+//             <motion.aside
+//               key="drawer"
+//               initial={{ x: "-100%" }}
+//               animate={{ x: 0 }}
+//               exit={{ x: "-100%" }}
+//               transition={{ type: "spring", stiffness: 300, damping: 30 }}
+//               className="fixed inset-y-0 left-0 z-50 lg:hidden flex flex-col w-[min(15rem,88vw)] bg-[var(--color-surface)] border-r border-[var(--color-border)]"
+//             >
+//               {SidebarContent}
+//             </motion.aside>
+//           </>
+//         )}
+//       </AnimatePresence>
 //     </>
 //   );
 // }
 
+// "use client";
+
+// import React from "react";
+// import Link from "next/link";
+// import Image from "next/image";
+// import { usePathname } from "next/navigation";
+// import {
+//   LayoutDashboard,
+//   TrendingUp,
+//   Link2,
+//   Megaphone,
+//   Target,
+//   Wallet,
+//   Package,
+//   Truck,
+//   Heart,
+//   BookOpen,
+//   Globe,
+//   Users,
+//   MessageSquare,
+//   Bell,
+//   FileText,
+//   Video,
+//   BarChart3,
+//   Zap,
+//   Store,
+//   DollarSign,
+//   UserCircle,
+//   Settings,
+//   Shield,
+//   HelpCircle,
+//   ChevronLeft,
+//   ChevronRight,
+//   ChevronDown,
+//   Eye,
+//   EyeOff,
+//   ArrowUpRight,
+//   X,
+//   CirclePlus,
+//   LayoutGrid,
+//   FolderSymlink,
+//   LogOut,
+// } from "lucide-react";
+// import { cn } from "@/lib/utils";
+// import { motion, AnimatePresence } from "framer-motion";
+// import { useCurrency } from "@/context/CurrencyContext";
+// import { getUserBalance } from "@/lib/actions/wallet";
+// import { signOut } from "@/lib/auth/actions";
+
+// // ─── Types ────────────────────────────────────────────────────────────────────
+
+// export type DashboardRole =
+//   | "buyer"
+//   | "vendor"
+//   | "affiliate"
+//   | "influencer"
+//   | "admin";
+
+// interface NavItem {
+//   label: string;
+//   href: string;
+//   icon: React.ElementType;
+//   badge?: string;
+//   requiredRole?: DashboardRole;
+// }
+
+// interface NavSection {
+//   key: string;
+//   title: string;
+//   items: NavItem[];
+// }
+
+// interface SidebarProps {
+//   user: {
+//     email: string;
+//     full_name?: string | null;
+//     avatar_url?: string | null;
+//   };
+//   activeRoles: DashboardRole[];
+//   collapsed: boolean;
+//   onCollapsedChange: (v: boolean) => void;
+//   mobileOpen?: boolean;
+//   onMobileClose?: () => void;
+// }
+
+// // ─── Nav config ───────────────────────────────────────────────────────────────
+
+// const SECTIONS: NavSection[] = [
+//   {
+//     key: "earn",
+//     title: "Earn",
+//     items: [
+//       { label: "Earnings", href: "/dashboard/earnings", icon: TrendingUp },
+//       { label: "Affiliate links", href: "/dashboard/links", icon: Link2, requiredRole: "affiliate" },
+//       { label: "Campaigns", href: "/dashboard/vendor/campaigns", icon: Megaphone, badge: "New" },
+//       { label: "Creator missions", href: "/ugc", icon: Target },
+//       { label: "Withdrawals", href: "/dashboard/withdrawals", icon: Wallet },
+//     ],
+//   },
+//   {
+//     key: "marketplace",
+//     title: "Marketplace",
+//     items: [
+//       { label: "Browse products", href: "/marketplace", icon: Package },
+//       { label: "Orders", href: "/dashboard/orders", icon: Truck },
+//       { label: "Wishlist", href: "/dashboard/wishlist", icon: Heart },
+//       { label: "Digital library", href: "/dashboard/library", icon: BookOpen },
+//     ],
+//   },
+//   {
+//     key: "communities",
+//     title: "Communities",
+//     items: [
+//       { label: "Explore", href: "/communities", icon: Globe },
+//       { label: "My communities", href: "/dashboard/communities", icon: Users },
+//       { label: "Messages", href: "/dashboard/messages", icon: MessageSquare, badge: "3" },
+//       { label: "Notifications", href: "/dashboard/notifications", icon: Bell, badge: "8" },
+//     ],
+//   },
+//   {
+//     key: "creator",
+//     title: "Creator hub",
+//     items: [
+//       { label: "Studio", href: "/dashboard/influencer", icon: LayoutDashboard, requiredRole: "influencer" },
+//       { label: "My clips", href: "/dashboard/influencer/videos", icon: Video, requiredRole: "influencer" },
+//       { label: "Submissions", href: "/dashboard/submissions", icon: FileText, requiredRole: "influencer" },
+//       { label: "Analytics", href: "/dashboard/influencer/analytics", icon: BarChart3, requiredRole: "influencer" },
+//       { label: "Explore missions", href: "/ugc", icon: Zap },
+//     ],
+//   },
+//   {
+//     key: "seller",
+//     title: "Seller hub",
+//     items: [
+//       { label: "My store", href: "/dashboard/vendor/store", icon: Store, requiredRole: "vendor" },
+//       { label: "Products", href: "/dashboard/products", icon: Package, requiredRole: "vendor" },
+//       { label: "Orders", href: "/dashboard/vendor/orders", icon: Truck, requiredRole: "vendor" },
+//       { label: "Revenue", href: "/dashboard/payments", icon: DollarSign, requiredRole: "vendor" },
+//       { label: "Customers", href: "/dashboard/customers", icon: Users, requiredRole: "vendor" },
+//     ],
+//   },
+//   {
+//     key: "affiliate",
+//     title: "Affiliate",
+//     items: [
+//       { label: "My links", href: "/dashboard/links", icon: FolderSymlink, requiredRole: "affiliate" },
+//       { label: "Products", href: "/dashboard/affiliate/products", icon: Megaphone, requiredRole: "affiliate" },
+//       { label: "Earnings", href: "/dashboard/earnings", icon: DollarSign, requiredRole: "affiliate" },
+//       { label: "Analytics", href: "/dashboard/affiliate/analytics", icon: BarChart3, requiredRole: "affiliate" },
+//     ],
+//   },
+//   {
+//     key: "account",
+//     title: "Account",
+//     items: [
+//       { label: "Settings", href: "/dashboard/settings", icon: Settings },
+//       { label: "Security", href: "/dashboard/security", icon: Shield },
+//       { label: "Help center", href: "/support", icon: HelpCircle },
+//     ],
+//   },
+// ];
+
+// // ─── Small helpers ────────────────────────────────────────────────────────────
+
+// function activateHref(role: DashboardRole): string {
+//   return role === "influencer"
+//     ? "/dashboard/activate/creator"
+//     : `/dashboard/activate/${role}`;
+// }
+
+// function BadgePill({ label }: { label: string }) {
+//   const isNumeric = /^\d+$/.test(label);
+//   return (
+//     <span
+//       className={cn(
+//         "ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded-full leading-none",
+//         isNumeric
+//           ? "bg-stone-100 text-stone-500 dark:bg-stone-800 dark:text-stone-400"
+//           : "bg-orange-100 text-orange-600 dark:bg-orange-900/40 dark:text-orange-400"
+//       )}
+//     >
+//       {label}
+//     </span>
+//   );
+// }
+
+// // ─── Sidebar inner content ────────────────────────────────────────────────────
+
+// function SidebarContent({
+//   user,
+//   activeRoles,
+//   collapsed,
+//   onCollapsedChange,
+//   onMobileClose,
+// }: Omit<SidebarProps, "mobileOpen">) {
+//   const pathname = usePathname();
+//   const { formatMoney } = useCurrency();
+//   const [balance, setBalance] = React.useState({ available: 0, pending: 0 });
+//   const [balanceHidden, setBalanceHidden] = React.useState(true);
+//   const [openSections, setOpenSections] = React.useState<Set<string>>(
+//     new Set(["earn", "marketplace", "communities"])
+//   );
+
+//   // Load wallet balance
+//   React.useEffect(() => {
+//     async function load() {
+//       const res = await getUserBalance();
+//       if (res.success)
+//         setBalance({ available: res.available, pending: res.pending });
+//     }
+//     load();
+//     const t = setInterval(load, 120_000);
+//     return () => clearInterval(t);
+//   }, []);
+
+//   function toggleSection(key: string) {
+//     setOpenSections((prev) => {
+//       const next = new Set(prev);
+//       next.has(key) ? next.delete(key) : next.add(key);
+//       return next;
+//     });
+//   }
+
+//   function hasRole(r: DashboardRole) {
+//     return activeRoles.includes("admin") || activeRoles.includes(r);
+//   }
+
+//   function resolveHref(item: NavItem): string {
+//     if (!item.requiredRole || item.requiredRole === "buyer") return item.href;
+//     return hasRole(item.requiredRole) ? item.href : activateHref(item.requiredRole);
+//   }
+
+//   function isLocked(item: NavItem): boolean {
+//     return (
+//       !!item.requiredRole &&
+//       item.requiredRole !== "buyer" &&
+//       !hasRole(item.requiredRole)
+//     );
+//   }
+
+//   function isActive(href: string): boolean {
+//     if (href === "/dashboard") return pathname === "/dashboard";
+//     return pathname === href || pathname.startsWith(`${href}/`);
+//   }
+
+//   const initials = (
+//     user.full_name?.[0] ||
+//     user.email?.[0] ||
+//     "U"
+//   ).toUpperCase();
+
+//   // ── Collapsed icon-only rail ───────────────────────────────────────────────
+//   if (collapsed) {
+//     const flatItems: NavItem[] = [
+//       { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+//       ...SECTIONS.flatMap((s) => s.items),
+//     ];
+
+//     // Dedupe by href and show a curated collapsed set
+//     const collapsedItems: NavItem[] = [
+//       { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+//       { label: "Earnings", href: "/dashboard/earnings", icon: TrendingUp },
+//       { label: "Affiliate links", href: "/dashboard/links", icon: Link2 },
+//       { label: "Campaigns", href: "/dashboard/vendor/campaigns", icon: Megaphone, badge: "New" },
+//       { label: "Browse products", href: "/marketplace", icon: Package },
+//       { label: "Messages", href: "/dashboard/messages", icon: MessageSquare, badge: "3" },
+//       { label: "Settings", href: "/dashboard/settings", icon: Settings },
+//     ];
+
+//     return (
+//       <div className="flex flex-col h-full">
+//         {/* Logo */}
+//         <div className="flex justify-center items-center h-14 border-b border-stone-100 dark:border-stone-800">
+//           <button
+//             onClick={() => onCollapsedChange(false)}
+//             aria-label="Expand sidebar"
+//             className="w-8 h-8 rounded-lg bg-orange-500 flex items-center justify-center text-white font-semibold text-sm hover:bg-orange-600 transition-colors"
+//           >
+//             J
+//           </button>
+//         </div>
+
+//         {/* Wallet icon */}
+//         <div className="flex justify-center py-3 border-b border-stone-100 dark:border-stone-800">
+//           <Link
+//             href="/dashboard/wallet"
+//             title="My wallet"
+//             className="w-9 h-9 rounded-xl bg-orange-50 border border-orange-200 dark:bg-orange-900/20 dark:border-orange-800 flex items-center justify-center text-orange-500 hover:bg-orange-100 transition-colors"
+//           >
+//             <Wallet className="h-4 w-4" />
+//           </Link>
+//         </div>
+
+//         {/* Nav icons */}
+//         <nav className="flex-1 flex flex-col items-center gap-1 py-3 overflow-y-auto" style={{ scrollbarWidth: "none" }}>
+//           {collapsedItems.map((item) => {
+//             const active = isActive(item.href);
+//             const Icon = item.icon;
+//             return (
+//               <Link
+//                 key={item.href}
+//                 href={resolveHref(item)}
+//                 title={item.label}
+//                 className={cn(
+//                   "relative w-9 h-9 rounded-lg flex items-center justify-center transition-colors",
+//                   active
+//                     ? "bg-orange-50 dark:bg-orange-900/20 text-orange-500"
+//                     : "text-stone-400 dark:text-stone-500 hover:bg-stone-100 dark:hover:bg-stone-800 hover:text-stone-700 dark:hover:text-stone-300"
+//                 )}
+//               >
+//                 <Icon className="h-4 w-4" />
+//                 {item.badge && (
+//                   <span className={cn(
+//                     "absolute top-0.5 right-0.5 flex items-center justify-center rounded-full font-bold border-2 border-white dark:border-stone-900",
+//                     /^\d+$/.test(item.badge)
+//                       ? "w-4 h-4 text-[8px] bg-orange-500 text-white"
+//                       : "w-2 h-2 bg-orange-500"
+//                   )}>
+//                     {/^\d+$/.test(item.badge) ? item.badge : ""}
+//                   </span>
+//                 )}
+//               </Link>
+//             );
+//           })}
+//         </nav>
+
+//         {/* Expand button */}
+//         <div className="flex justify-center py-3 border-t border-stone-100 dark:border-stone-800">
+//           <button
+//             onClick={() => onCollapsedChange(false)}
+//             aria-label="Expand sidebar"
+//             className="w-7 h-7 rounded-md border border-stone-200 dark:border-stone-700 flex items-center justify-center text-stone-400 hover:text-stone-700 dark:hover:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors"
+//           >
+//             <ChevronRight className="h-3 w-3" />
+//           </button>
+//         </div>
+//       </div>
+//     );
+//   }
+
+//   // ── Expanded sidebar ───────────────────────────────────────────────────────
+//   return (
+//     <div className="flex flex-col bg-bg h-full">
+
+//       {/* Logo bar */}
+//       <div className="flex items-center justify-between px-4 h-14 border-b border-stone-100 dark:border-stone-800 flex-shrink-0">
+//         <Link href="/" onClick={onMobileClose} className="flex items-center gap-2 min-w-0">
+//           <div className="w-7 h-7 rounded-lg bg-orange-500 flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
+//             J
+//           </div>
+//           <span className="text-[17px] font-semibold tracking-tight text-stone-900 dark:text-white truncate">
+//             Jim<span className="text-orange-500">vio</span>
+//           </span>
+//         </Link>
+//         <div className="flex items-center gap-1 flex-shrink-0">
+//           <button
+//             type="button"
+//             onClick={() => onCollapsedChange(true)}
+//             aria-label="Collapse sidebar"
+//             className="hidden lg:flex w-6 h-6 rounded-md border border-stone-200 dark:border-stone-700 items-center justify-center text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800 hover:text-stone-700 dark:hover:text-stone-300 transition-colors"
+//           >
+//             <ChevronLeft className="h-3 w-3" />
+//           </button>
+//           {onMobileClose && (
+//             <button
+//               type="button"
+//               onClick={onMobileClose}
+//               aria-label="Close sidebar"
+//               className="lg:hidden w-6 h-6 rounded-md border border-stone-200 dark:border-stone-700 flex items-center justify-center text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
+//             >
+//               <X className="h-3 w-3" />
+//             </button>
+//           )}
+//         </div>
+//       </div>
+
+//       {/* Wallet widget */}
+//       <div className="px-3 pt-3 pb-2 flex-shrink-0">
+//         <Link
+//           href="/dashboard/wallet"
+//           onClick={onMobileClose}
+//           className="block p-3 rounded-md bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-700 hover:border-stone-300 dark:hover:border-stone-600 transition-colors group"
+//         >
+//           <div className="flex items-center justify-between mb-2">
+//             <div className="flex items-center gap-1.5 text-[10px] font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-widest">
+//               <Wallet className="h-3 w-3 text-orange-500" />
+//               Balance
+//             </div>
+//             <button
+//               type="button"
+//               onClick={(e) => {
+//                 e.preventDefault();
+//                 e.stopPropagation();
+//                 setBalanceHidden((v) => !v);
+//               }}
+//               aria-label={balanceHidden ? "Show balance" : "Hide balance"}
+//               className="text-stone-400 hover:text-stone-600 dark:hover:text-stone-300 transition-colors"
+//             >
+//               {balanceHidden
+//                 ? <EyeOff className="h-3 w-3" />
+//                 : <Eye className="h-3 w-3" />}
+//             </button>
+//           </div>
+//           <p className="text-[17px] font-semibold text-stone-900 dark:text-white tabular-nums leading-none mb-1.5">
+//             {balanceHidden ? "••••••" : formatMoney(balance.available, "USD")}
+//           </p>
+//           <div className="flex items-center justify-between">
+//             <span className="text-[11px] text-stone-400 dark:text-stone-500">
+//               {balanceHidden ? "•••" : formatMoney(balance.pending, "USD")} pending
+//             </span>
+//             <ArrowUpRight className="h-3 w-3 text-stone-400 group-hover:text-orange-500 transition-colors" />
+//           </div>
+//         </Link>
+//       </div>
+
+//       {/* Navigation */}
+//       <nav
+//         className="flex-1 overflow-y-auto px-2.5 py-1"
+//         style={{ scrollbarWidth: "none" }}
+//         aria-label="Dashboard navigation"
+//       >
+//         {/* Dashboard (standalone) */}
+
+//         <Link
+//           href="/dashboard"
+//           onClick={onMobileClose}
+//           className={cn(
+//             "relative flex items-center gap-2.5 px-2.5 py-2 rounded-sm mb-1 transition-colors text-[13px] font-medium",
+//             isActive("/dashboard")
+//               ? "bg-orange-50 font-semibold dark:bg-stone-800 text-orange-500"
+//               : "text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800 hover:text-stone-900 dark:hover:text-white"
+//           )}
+//         >
+//           {isActive("/dashboard") && (
+//             <span className="absolute left-0 inset-y-[20%] w-[3px] rounded-r-full bg-orange-500" />
+//           )}
+//           <LayoutDashboard className={cn("h-3.5 w-3.5 flex-shrink-0", isActive("/dashboard") ? "text-orange-500" : "text-stone-400")} />
+//           Dashboard
+//         </Link>
+//         <div className="border-stone-100 dark:border-stone-800 border-b mb-1" />
+
+//         {SECTIONS.map((section) => {
+//           const isOpen = openSections.has(section.key);
+//           return (
+//             <>
+//               <div key={section.key} className="mb-0.5">
+//                 {/* Section header */}
+//                 <button
+//                   type="button"
+//                   onClick={() => toggleSection(section.key)}
+//                   className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-[12px] font-semibold uppercase  text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-300 transition-colors"
+//                 >
+//                   <span
+//                     className="w-[5px] h-[5px] rounded-full flex-shrink-0" />
+//                   <span className="flex-1 text-left -ml-2">{section.title}</span>
+//                   {isOpen
+//                     ? <ChevronDown className="h-3 w-3" />
+//                     : <ChevronRight className="h-3 w-3" />}
+//                 </button>
+
+//                 {/* Section items */}
+//                 <AnimatePresence initial={false}>
+//                   {isOpen && (
+//                     <motion.div
+//                       key="items"
+//                       initial={{ height: 0, opacity: 0 }}
+//                       animate={{ height: "auto", opacity: 1 }}
+//                       exit={{ height: 0, opacity: 0 }}
+//                       transition={{ duration: 0.18, ease: "easeInOut" }}
+//                       className="overflow-hidden"
+//                     >
+//                       <ul className="space-y-px mt-0.5">
+//                         {section.items.map((item) => {
+//                           const href = resolveHref(item);
+//                           const active = isActive(item.href);
+//                           const locked = isLocked(item);
+//                           const Icon = item.icon;
+//                           return (
+//                             <li key={`${section.key}-${item.label}`}>
+//                               <Link
+//                                 href={href}
+//                                 onClick={onMobileClose}
+//                                 aria-current={active ? "page" : undefined}
+//                                 className={cn(
+//                                   "relative flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-colors text-[13px]",
+//                                   active
+//                                     ? "bg-stone-100 dark:bg-stone-800 text-orange-500 font-semibold"
+//                                     : "text-stone-600 dark:text-stone-400 font-medium hover:bg-stone-100 dark:hover:bg-stone-800 hover:text-stone-900 dark:hover:text-white",
+//                                   locked && "opacity-40"
+//                                 )}
+//                               >
+//                                 {active && (
+//                                   <span className="absolute left-0 inset-y-[20%] w-[3px] rounded-r-full bg-orange-500" />
+//                                 )}
+//                                 <Icon
+//                                   className={cn(
+//                                     "h-3.5 w-3.5 flex-shrink-0",
+//                                     active ? "text-orange-500" : "text-stone-400 dark:text-stone-500"
+//                                   )} />
+//                                 <span className="flex-1 truncate">{item.label}</span>
+//                                 {item.badge && !locked && (
+//                                   <BadgePill label={item.badge} />
+//                                 )}
+//                                 {locked && (
+//                                   <span className="text-[9px] font-semibold text-stone-400 uppercase tracking-wider">
+//                                     Unlock
+//                                   </span>
+//                                 )}
+//                               </Link>
+//                             </li>
+//                           );
+//                         })}
+//                       </ul>
+//                     </motion.div>
+//                   )}
+//                 </AnimatePresence>
+//               </div>
+//               {
+//                 isOpen && (
+//                   <div className="border-stone-100 dark:border-stone-800 border-b mb-1" />
+//                 )
+//               }
+//             </>
+//           );
+//         })}
+//       </nav>
+
+//       {/* Streak footer */}
+//       <div className="px-3 pb-3 pt-2 border-t border-stone-100 dark:border-stone-800 flex-shrink-0">
+//         <div className="flex items-center gap-2.5 bg-orange-50 dark:bg-orange-900/20
+//          border border-orange-200 dark:border-orange-800/40 rounded-xl px-3 py-2.5">
+//           <span className="text-lg leading-none">🔥</span>
+//           <div className="min-w-0">
+//             <p className="text-[11px] font-semibold text-orange-600 dark:text-orange-400 leading-tight">
+//               4 day streak 🔥
+//             </p>
+//             <p className="text-[10px] text-orange-400 dark:text-orange-500 leading-tight mt-0.5 truncate">
+//               Keep it up! You're doing great.
+//             </p>
+//           </div>
+//           <ChevronRight className="h-3.5 w-3.5 text-orange-400 ml-auto flex-shrink-0" />
+//         </div>
+//       </div>
+//     </div>
+//   );
+// }
+
+// // ─── Main export ──────────────────────────────────────────────────────────────
+
+// export function Sidebar({
+//   user,
+//   activeRoles,
+//   collapsed,
+//   onCollapsedChange,
+//   mobileOpen,
+//   onMobileClose,
+// }: SidebarProps) {
+//   const sharedProps = { user, activeRoles, collapsed, onCollapsedChange, onMobileClose };
+
+//   return (
+//     <>
+//       {/* Desktop sidebar */}
+//       <motion.aside
+//         initial={false}
+//         animate={{ width: collapsed ? "3.5rem" : "14rem" }}
+//         transition={{ type: "spring", stiffness: 300, damping: 30 }}
+//         className="hidden lg:flex flex-col sticky top-0 h-screen z-40 overflow-hidden bg-white dark:bg-stone-950 border-r border-stone-100 dark:border-stone-800"
+//       >
+//         <SidebarContent {...sharedProps} />
+//       </motion.aside>
+
+//       {/* Mobile drawer */}
+//       <AnimatePresence>
+//         {mobileOpen && (
+//           <>
+//             <motion.div
+//               key="backdrop"
+//               initial={{ opacity: 0 }}
+//               animate={{ opacity: 1 }}
+//               exit={{ opacity: 0 }}
+//               transition={{ duration: 0.2 }}
+//               className="fixed inset-0 z-40 lg:hidden bg-black/50 backdrop-blur-sm"
+//               onClick={onMobileClose}
+//               aria-hidden="true"
+//             />
+//             <motion.aside
+//               key="drawer"
+//               initial={{ x: "-100%" }}
+//               animate={{ x: 0 }}
+//               exit={{ x: "-100%" }}
+//               transition={{ type: "spring", stiffness: 300, damping: 30 }}
+//               className="fixed inset-y-0 left-0 z-50 lg:hidden flex flex-col w-[min(14rem,88vw)] bg-white dark:bg-stone-950 border-r border-stone-100 dark:border-stone-800"
+//             >
+//               <SidebarContent {...sharedProps} collapsed={false} />
+//             </motion.aside>
+//           </>
+//         )}
+//       </AnimatePresence>
+//     </>
+//   );
+// }
+
+
+
 "use client";
 
-import React, { useTransition } from "react";
+import React from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
-  LayoutDashboard, Loader2, ShoppingCart, FileText, Heart, Store, Package,
-  Truck, Layers, Link2, Megaphone, DollarSign, Wallet, Video, BarChart3,
-  MessageSquare, Bell, Settings, ChevronLeft, ChevronRight, X, Zap,
-  Users, CirclePlus, LayoutGrid, ArrowUpRight, Eye, EyeOff, LogOut,
+  LayoutDashboard,
+  TrendingUp,
+  Link2,
+  Megaphone,
+  Target,
+  Wallet,
+  Package,
+  Truck,
+  Heart,
+  BookOpen,
+  Globe,
+  Users,
+  MessageSquare,
+  Bell,
+  FileText,
+  Video,
+  BarChart3,
+  Zap,
+  Store,
+  DollarSign,
+  Settings,
+  Shield,
+  HelpCircle,
+  ChevronLeft,
+  ChevronRight,
+  ChevronDown,
+  Eye,
+  EyeOff,
+  ArrowUpRight,
+  X,
   FolderSymlink,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useCurrency } from "@/context/CurrencyContext";
 import { getUserBalance } from "@/lib/actions/wallet";
 
-import { signOut } from "@/lib/auth/actions";
-import { isNextRedirectError } from "@/lib/auth/redirect-error";
+// ─── Types ────────────────────────────────────────────────────────────────────
 
-export type DashboardRole = "buyer" | "vendor" | "affiliate" | "influencer" | "admin";
+export type DashboardRole =
+  | "buyer"
+  | "vendor"
+  | "affiliate"
+  | "influencer"
+  | "admin";
 
 interface NavItem {
   label: string;
   href: string;
-  icon: React.ReactNode;
+  icon: React.ElementType;
+  badge?: string;
   requiredRole?: DashboardRole;
 }
 
 interface NavSection {
+  key: string;
   title: string;
-  /** hex color for the section accent dot */
-  accentColor?: string;
   items: NavItem[];
 }
 
 interface SidebarProps {
-  user: { email: string; full_name?: string | null; avatar_url?: string | null };
+  user: {
+    email: string;
+    full_name?: string | null;
+    avatar_url?: string | null;
+  };
   activeRoles: DashboardRole[];
   collapsed: boolean;
   onCollapsedChange: (v: boolean) => void;
@@ -456,89 +1119,79 @@ interface SidebarProps {
   onMobileClose?: () => void;
 }
 
-function icon(Icon: React.ElementType) {
-  return <Icon className="h-[14px] w-[14px]" />;
-}
+// ─── Nav config ───────────────────────────────────────────────────────────────
 
 const SECTIONS: NavSection[] = [
   {
-    title: "",
+    key: "earn",
+    title: "Earn",
     items: [
-      { label: "Dashboard", href: "/dashboard", icon: icon(LayoutDashboard) },
+      { label: "Earnings", href: "/dashboard/earnings", icon: TrendingUp },
+      { label: "Affiliate links", href: "/dashboard/links", icon: Link2, requiredRole: "affiliate" },
+      { label: "Campaigns", href: "/dashboard/vendor/campaigns", icon: Megaphone, badge: "New" },
+      { label: "Creator missions", href: "/ugc", icon: Target },
+      { label: "Withdrawals", href: "/dashboard/withdrawals", icon: Wallet },
     ],
   },
   {
-    title: "Buyer",
-    accentColor: "#38bdf8",
+    key: "marketplace",
+    title: "Marketplace",
     items: [
-      { label: "All items", href: "/marketplace", icon: icon(LayoutGrid) },
-      { label: "Digital assets", href: "/marketplace/digital", icon: icon(Zap) },
-      { label: "Physical goods", href: "/marketplace/physical", icon: icon(Package) },
-      { label: "My orders", href: "/dashboard/orders", icon: icon(ShoppingCart) },
-      { label: "Digital library", href: "/dashboard/library", icon: icon(Video) },
+      { label: "Browse products", href: "/marketplace", icon: Package },
+      { label: "Orders", href: "/dashboard/orders", icon: Truck },
+      { label: "Wishlist", href: "/dashboard/wishlist", icon: Heart },
+      { label: "Digital library", href: "/dashboard/library", icon: BookOpen },
     ],
   },
   {
-    title: "Community",
-    accentColor: "#34d399",
+    key: "communities",
+    title: "Communities",
     items: [
-      { label: "Browse", href: "/communities", icon: icon(Users) },
-      { label: "Create", href: "/communities/create", icon: icon(CirclePlus) },
-      { label: "My spaces", href: "/creator", icon: icon(LayoutGrid) },
-      { label: "Analytics", href: "/dashboard/community/analytics", icon: icon(BarChart3) },
+      { label: "Explore", href: "/communities", icon: Globe },
+      { label: "My communities", href: "/dashboard/communities", icon: Users },
+      { label: "Messages", href: "/dashboard/messages", icon: MessageSquare, badge: "3" },
+      { label: "Notifications", href: "/dashboard/notifications", icon: Bell, badge: "8" },
     ],
   },
   {
-    title: "Mission owner",
-    accentColor: "#fb923c",
-    items: [
-      { label: "Mission hub", href: "/dashboard/vendor/campaigns", icon: icon(LayoutDashboard) },
-      { label: "Submissions", href: "/dashboard/vendor/submissions", icon: icon(Video) },
-      { label: "Launch", href: "/dashboard/vendor/campaigns/new", icon: icon(CirclePlus) },
-      { label: "Analytics", href: "/dashboard/vendor/campaigns/analytics", icon: icon(BarChart3) },
-    ],
-  },
-  {
-    title: "Vendor hub",
-    accentColor: "#fbbf24",
-    items: [
-      { label: "My store", href: "/dashboard/vendor/store", icon: icon(Store), requiredRole: "vendor" },
-      { label: "Products", href: "/dashboard/products", icon: icon(Package), requiredRole: "vendor" },
-      { label: "Orders", href: "/dashboard/vendor/orders", icon: icon(Truck), requiredRole: "vendor" },
-      { label: "Inventory", href: "/dashboard/inventory", icon: icon(Layers), requiredRole: "vendor" },
-      { label: "Payouts", href: "/dashboard/payments", icon: icon(Wallet), requiredRole: "vendor" },
-    ],
-  },
-  {
+    key: "creator",
     title: "Creator hub",
-    accentColor: "#818cf8",
     items: [
-      { label: "Explore missions", href: "/ugc", icon: icon(Zap) },
-      { label: "Submissions", href: "/dashboard/submissions", icon: icon(FileText), requiredRole: "influencer" },
-      { label: "Studio", href: "/dashboard/influencer", icon: icon(LayoutDashboard), requiredRole: "influencer" },
-      { label: "My clips", href: "/dashboard/influencer/videos", icon: icon(Video), requiredRole: "influencer" },
-      { label: "Analytics", href: "/dashboard/influencer/analytics", icon: icon(BarChart3), requiredRole: "influencer" },
-      { label: "Earnings", href: "/dashboard/earnings", icon: icon(DollarSign), requiredRole: "influencer" },
+      { label: "Studio", href: "/dashboard/influencer", icon: LayoutDashboard, requiredRole: "influencer" },
+      { label: "My clips", href: "/dashboard/influencer/videos", icon: Video, requiredRole: "influencer" },
+      { label: "Submissions", href: "/dashboard/submissions", icon: FileText, requiredRole: "influencer" },
+      { label: "Analytics", href: "/dashboard/influencer/analytics", icon: BarChart3, requiredRole: "influencer" },
+      { label: "Explore missions", href: "/ugc", icon: Zap },
     ],
   },
   {
+    key: "seller",
+    title: "Seller hub",
+    items: [
+      { label: "My store", href: "/dashboard/vendor/store", icon: Store, requiredRole: "vendor" },
+      { label: "Products", href: "/dashboard/products", icon: Package, requiredRole: "vendor" },
+      { label: "Orders", href: "/dashboard/vendor/orders", icon: Truck, requiredRole: "vendor" },
+      { label: "Revenue", href: "/dashboard/payments", icon: DollarSign, requiredRole: "vendor" },
+      { label: "Customers", href: "/dashboard/customers", icon: Users, requiredRole: "vendor" },
+    ],
+  },
+  {
+    key: "affiliate",
     title: "Affiliate",
-    accentColor: "#fb7185",
     items: [
-      { label: "My links", href: "/dashboard/links", icon: icon(FolderSymlink), requiredRole: "affiliate" },
-      { label: "Products", href: "/dashboard/affiliate/products", icon: icon(Megaphone), requiredRole: "affiliate" },
-      { label: "Earnings", href: "/dashboard/earnings", icon: icon(DollarSign), requiredRole: "affiliate" },
-      { label: "Analytics", href: "/dashboard/affiliate/analytics", icon: icon(BarChart3), requiredRole: "affiliate" },
-      { label: "Payouts", href: "/dashboard/withdrawals", icon: icon(Wallet), requiredRole: "affiliate" },
+      { label: "My links", href: "/dashboard/links", icon: FolderSymlink, requiredRole: "affiliate" },
+      { label: "Products", href: "/dashboard/affiliate/products", icon: Megaphone, requiredRole: "affiliate" },
+      { label: "Earnings", href: "/dashboard/earnings", icon: DollarSign, requiredRole: "affiliate" },
+      { label: "Analytics", href: "/dashboard/affiliate/analytics", icon: BarChart3, requiredRole: "affiliate" },
     ],
   },
   {
-    title: "General",
-    accentColor: "#94a3b8",
+    key: "account",
+    title: "Account",
     items: [
-      { label: "Messages", href: "/dashboard/messages", icon: icon(MessageSquare) },
-      { label: "Notifications", href: "/dashboard/notifications", icon: icon(Bell) },
-      { label: "Settings", href: "/dashboard/settings", icon: icon(Settings) },
+      { label: "Settings", href: "/dashboard/settings", icon: Settings },
+      { label: "Security", href: "/dashboard/security", icon: Shield },
+      { label: "Help center", href: "/support", icon: HelpCircle },
     ],
   },
 ];
@@ -551,6 +1204,523 @@ function activateHref(role: DashboardRole): string {
     : `/dashboard/activate/${role}`;
 }
 
+function BadgePill({ label }: { label: string }) {
+  const isNumeric = /^\d+$/.test(label);
+  return (
+    <span
+      className="ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded-full leading-none"
+      style={
+        isNumeric
+          ? {
+            backgroundColor: "var(--color-surface-secondary)",
+            color: "var(--color-text-muted)",
+          }
+          : {
+            backgroundColor: "var(--color-accent-subtle)",
+            color: "var(--color-accent)",
+          }
+      }
+    >
+      {label}
+    </span>
+  );
+}
+
+// ─── Sidebar inner content ────────────────────────────────────────────────────
+
+function SidebarContent({
+  user,
+  activeRoles,
+  collapsed,
+  onCollapsedChange,
+  onMobileClose,
+}: Omit<SidebarProps, "mobileOpen">) {
+  const pathname = usePathname();
+  const { formatMoney } = useCurrency();
+  const [balance, setBalance] = React.useState({ available: 0, pending: 0 });
+  const [balanceHidden, setBalanceHidden] = React.useState(true);
+  const [openSections, setOpenSections] = React.useState<Set<string>>(
+    new Set(["earn", "marketplace", "communities"])
+  );
+
+  React.useEffect(() => {
+    async function load() {
+      const res = await getUserBalance();
+      if (res.success)
+        setBalance({ available: res.available, pending: res.pending });
+    }
+    load();
+    const t = setInterval(load, 120_000);
+    return () => clearInterval(t);
+  }, []);
+
+  function toggleSection(key: string) {
+    setOpenSections((prev) => {
+      const next = new Set(prev);
+      next.has(key) ? next.delete(key) : next.add(key);
+      return next;
+    });
+  }
+
+  function hasRole(r: DashboardRole) {
+    return activeRoles.includes("admin") || activeRoles.includes(r);
+  }
+
+  function resolveHref(item: NavItem): string {
+    if (!item.requiredRole || item.requiredRole === "buyer") return item.href;
+    return hasRole(item.requiredRole) ? item.href : activateHref(item.requiredRole);
+  }
+
+  function isLocked(item: NavItem): boolean {
+    return (
+      !!item.requiredRole &&
+      item.requiredRole !== "buyer" &&
+      !hasRole(item.requiredRole)
+    );
+  }
+
+  function isActive(href: string): boolean {
+    if (href === "/dashboard") return pathname === "/dashboard";
+    return pathname === href || pathname.startsWith(`${href}/`);
+  }
+
+  // ── Collapsed icon-only rail ───────────────────────────────────────────────
+  if (collapsed) {
+    const collapsedItems: NavItem[] = [
+      { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+      { label: "Earnings", href: "/dashboard/earnings", icon: TrendingUp },
+      { label: "Affiliate links", href: "/dashboard/links", icon: Link2 },
+      { label: "Campaigns", href: "/dashboard/vendor/campaigns", icon: Megaphone, badge: "New" },
+      { label: "Browse products", href: "/marketplace", icon: Package },
+      { label: "Messages", href: "/dashboard/messages", icon: MessageSquare, badge: "3" },
+      { label: "Settings", href: "/dashboard/settings", icon: Settings },
+    ];
+
+    return (
+      <div className="flex flex-col h-full">
+        {/* Logo */}
+        <div
+          className="flex justify-center items-center h-14 flex-shrink-0"
+          style={{ borderBottom: "1px solid var(--color-border)" }}
+        >
+          <button
+            onClick={() => onCollapsedChange(false)}
+            aria-label="Expand sidebar"
+            className="w-8 h-8 flex items-center justify-center text-white font-semibold text-sm"
+            style={{
+              borderRadius: "var(--radius-sm)",
+              backgroundColor: "var(--color-accent)",
+            }}
+          >
+            J
+          </button>
+        </div>
+
+        {/* Wallet icon */}
+        <div
+          className="flex justify-center py-3 flex-shrink-0"
+          style={{ borderBottom: "1px solid var(--color-border)" }}
+        >
+          <Link
+            href="/dashboard/wallet"
+            title="My wallet"
+            className="w-9 h-9 flex items-center justify-center"
+            style={{
+              borderRadius: "var(--radius-md)",
+              backgroundColor: "var(--color-accent-light)",
+              border: "1px solid var(--color-accent-subtle)",
+              color: "var(--color-accent)",
+            }}
+          >
+            <Wallet className="h-4 w-4" />
+          </Link>
+        </div>
+
+        {/* Nav icons */}
+        <nav
+          className="flex-1 flex flex-col items-center gap-1 py-3 overflow-y-auto no-scrollbar"
+        >
+          {collapsedItems.map((item) => {
+            const active = isActive(item.href);
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.href}
+                href={resolveHref(item)}
+                title={item.label}
+                className="relative w-9 h-9 flex items-center justify-center"
+                style={{
+                  borderRadius: "var(--radius-sm)",
+                  backgroundColor: active ? "var(--color-accent-light)" : "transparent",
+                  color: active ? "var(--color-accent)" : "var(--color-text-muted)",
+                }}
+              >
+                <Icon className="h-4 w-4" />
+                {item.badge && (
+                  <span
+                    className="absolute top-0.5 right-0.5 flex items-center justify-center rounded-full font-bold"
+                    style={{
+                      width: /^\d+$/.test(item.badge) ? "1rem" : "0.5rem",
+                      height: /^\d+$/.test(item.badge) ? "1rem" : "0.5rem",
+                      fontSize: "8px",
+                      backgroundColor: "var(--color-accent)",
+                      color: "white",
+                      border: "2px solid var(--color-bg)",
+                    }}
+                  >
+                    {/^\d+$/.test(item.badge) ? item.badge : ""}
+                  </span>
+                )}
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* Expand button */}
+        <div
+          className="flex justify-center py-3 flex-shrink-0"
+          style={{ borderTop: "1px solid var(--color-border)" }}
+        >
+          <button
+            onClick={() => onCollapsedChange(false)}
+            aria-label="Expand sidebar"
+            className="w-7 h-7 flex items-center justify-center"
+            style={{
+              borderRadius: "var(--radius-sm)",
+              border: "1px solid var(--color-border-strong)",
+              color: "var(--color-text-muted)",
+            }}
+          >
+            <ChevronRight className="h-3 w-3" />
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Expanded sidebar ───────────────────────────────────────────────────────
+  return (
+    <div
+      className="flex flex-col h-full"
+      style={{ backgroundColor: "var(--color-bg)" }}
+    >
+      {/* Logo bar */}
+      <div
+        className="flex items-center justify-between px-4 h-14 flex-shrink-0"
+        style={{ borderBottom: "1px solid var(--color-border)" }}
+      >
+        <Link
+          href="/"
+          onClick={onMobileClose}
+          className="flex items-center gap-2 min-w-0"
+        >
+          <div
+            className="w-7 h-7 flex items-center justify-center text-white font-semibold text-sm flex-shrink-0"
+            style={{
+              borderRadius: "var(--radius-sm)",
+              backgroundColor: "var(--color-accent)",
+            }}
+          >
+            J
+          </div>
+          <span
+            className="text-[17px] font-semibold tracking-tight truncate"
+            style={{ color: "var(--color-text-primary)" }}
+          >
+            Jim
+            <span style={{ color: "var(--color-accent)" }}>vio</span>
+          </span>
+        </Link>
+
+        <div className="flex items-center gap-1 flex-shrink-0">
+          <button
+            type="button"
+            onClick={() => onCollapsedChange(true)}
+            aria-label="Collapse sidebar"
+            className="hidden lg:flex w-6 h-6 items-center justify-center"
+            style={{
+              borderRadius: "var(--radius-sm)",
+              border: "1px solid var(--color-border-strong)",
+              color: "var(--color-text-muted)",
+            }}
+          >
+            <ChevronLeft className="h-3 w-3" />
+          </button>
+          {onMobileClose && (
+            <button
+              type="button"
+              onClick={onMobileClose}
+              aria-label="Close sidebar"
+              className="lg:hidden w-6 h-6 flex items-center justify-center"
+              style={{
+                borderRadius: "var(--radius-sm)",
+                border: "1px solid var(--color-border-strong)",
+                color: "var(--color-text-muted)",
+              }}
+            >
+              <X className="h-3 w-3" />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Wallet widget */}
+      <div className="px-3 pt-3 pb-2 flex-shrink-0">
+        <Link
+          href="/dashboard/wallet"
+          onClick={onMobileClose}
+          className="block group"
+          style={{
+            padding: "0.75rem",
+            borderRadius: "var(--radius-md)",
+            backgroundColor: "var(--color-surface)",
+            border: "1px solid var(--color-border)",
+            boxShadow: "var(--shadow-sm)",
+          }}
+        >
+          {/* Widget header */}
+          <div className="flex items-center justify-between mb-2">
+            <div
+              className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-widest"
+              style={{ color: "var(--color-text-muted)" }}
+            >
+              <Wallet
+                className="h-3 w-3"
+                style={{ color: "var(--color-accent)" }}
+              />
+              Balance
+            </div>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setBalanceHidden((v) => !v);
+              }}
+              aria-label={balanceHidden ? "Show balance" : "Hide balance"}
+              style={{ color: "var(--color-text-muted)" }}
+            >
+              {balanceHidden
+                ? <EyeOff className="h-3 w-3" />
+                : <Eye className="h-3 w-3" />}
+            </button>
+          </div>
+
+          {/* Amount */}
+          <p
+            className="text-[17px] font-semibold tabular-nums leading-none mb-1.5"
+            style={{ color: "var(--color-text-primary)" }}
+          >
+            {balanceHidden ? "••••••" : formatMoney(balance.available, "USD")}
+          </p>
+
+          {/* Pending row */}
+          <div className="flex items-center justify-between">
+            <span
+              className="text-[11px]"
+              style={{ color: "var(--color-text-muted)" }}
+            >
+              {balanceHidden ? "•••" : formatMoney(balance.pending, "USD")} pending
+            </span>
+            <ArrowUpRight
+              className="h-3 w-3"
+              style={{ color: "var(--color-text-muted)" }}
+            />
+          </div>
+        </Link>
+      </div>
+
+      {/* Navigation */}
+      <nav
+        className="flex-1 overflow-y-auto px-2.5 py-1 no-scrollbar"
+        aria-label="Dashboard navigation"
+      >
+        {/* Dashboard standalone link */}
+        <Link
+          href="/dashboard"
+          onClick={onMobileClose}
+          className="relative flex items-center gap-2.5 px-2.5 py-2 mb-1 text-[13px] font-medium"
+          style={{
+            borderRadius: "var(--radius-sm)",
+            backgroundColor: isActive("/dashboard")
+              ? "var(--color-accent-light)"
+              : "transparent",
+            color: isActive("/dashboard")
+              ? "var(--color-accent)"
+              : "var(--color-text-secondary)",
+            fontWeight: isActive("/dashboard") ? 600 : 500,
+          }}
+        >
+          {isActive("/dashboard") && (
+            <span
+              className="absolute left-0 inset-y-[20%] w-[3px] rounded-r-full"
+              style={{ backgroundColor: "var(--color-accent)" }}
+            />
+          )}
+          <LayoutDashboard
+            className="h-3.5 w-3.5 flex-shrink-0"
+            style={{
+              color: isActive("/dashboard")
+                ? "var(--color-accent)"
+                : "var(--color-text-muted)",
+            }}
+          />
+          Dashboard
+        </Link>
+
+        <div
+          className="mb-1"
+          style={{ borderBottom: "1px solid var(--color-border)" }}
+        />
+
+        {/* Sections */}
+        {SECTIONS.map((section) => {
+          const isOpen = openSections.has(section.key);
+          return (
+            <React.Fragment key={section.key}>
+              <div className="mb-0.5">
+                {/* Section header */}
+                <button
+                  type="button"
+                  onClick={() => toggleSection(section.key)}
+                  className="w-full flex items-center gap-2 px-2 py-1.5 text-[11px] font-semibold uppercase tracking-wider"
+                  style={{
+                    borderRadius: "var(--radius-sm)",
+                    color: "var(--color-text-muted)",
+                  }}
+                >
+                  <span className="flex-1 text-left">{section.title}</span>
+                  {isOpen
+                    ? <ChevronDown className="h-3 w-3" />
+                    : <ChevronRight className="h-3 w-3" />}
+                </button>
+
+                {/* Section items */}
+                <AnimatePresence initial={false}>
+                  {isOpen && (
+                    <motion.div
+                      key="items"
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.18, ease: "easeInOut" }}
+                      className="overflow-hidden"
+                    >
+                      <ul className="space-y-px mt-0.5">
+                        {section.items.map((item) => {
+                          const href = resolveHref(item);
+                          const active = isActive(item.href);
+                          const locked = isLocked(item);
+                          const Icon = item.icon;
+                          return (
+                            <li key={`${section.key}-${item.label}`}>
+                              <Link
+                                href={href}
+                                onClick={onMobileClose}
+                                aria-current={active ? "page" : undefined}
+                                className={cn(
+                                  "relative flex items-center gap-2.5 px-2.5 py-2 text-[13px]",
+                                  locked && "opacity-40"
+                                )}
+                                style={{
+                                  borderRadius: "var(--radius-sm)",
+                                  backgroundColor: active
+                                    ? "var(--color-surface-secondary)"
+                                    : "transparent",
+                                  color: active
+                                    ? "var(--color-accent)"
+                                    : "var(--color-text-secondary)",
+                                  fontWeight: active ? 600 : 500,
+                                }}
+                              >
+                                {active && (
+                                  <span
+                                    className="absolute left-0 inset-y-[20%] w-[3px] rounded-r-full"
+                                    style={{ backgroundColor: "var(--color-accent)" }}
+                                  />
+                                )}
+                                <Icon
+                                  className="h-3.5 w-3.5 flex-shrink-0"
+                                  style={{
+                                    color: active
+                                      ? "var(--color-accent)"
+                                      : "var(--color-text-muted)",
+                                  }}
+                                />
+                                <span className="flex-1 truncate">{item.label}</span>
+                                {item.badge && !locked && (
+                                  <BadgePill label={item.badge} />
+                                )}
+                                {locked && (
+                                  <span
+                                    className="text-[9px] font-semibold uppercase tracking-wider"
+                                    style={{ color: "var(--color-text-muted)" }}
+                                  >
+                                    Unlock
+                                  </span>
+                                )}
+                              </Link>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {isOpen && (
+                <div
+                  className="mb-1"
+                  style={{ borderBottom: "1px solid var(--color-border)" }}
+                />
+              )}
+            </React.Fragment>
+          );
+        })}
+      </nav>
+
+      {/* Streak footer */}
+      <div
+        className="px-3 pb-3 pt-2 flex-shrink-0"
+        style={{ borderTop: "1px solid var(--color-border)" }}
+      >
+        <div
+          className="flex items-center gap-2.5 px-3 py-2.5"
+          style={{
+            borderRadius: "var(--radius-lg)",
+            backgroundColor: "var(--color-accent-light)",
+            border: "1px solid var(--color-accent-subtle)",
+            boxShadow: "var(--shadow-sm)",
+          }}
+        >
+          <span className="text-lg leading-none">🔥</span>
+          <div className="min-w-0">
+            <p
+              className="text-[11px] font-semibold leading-tight"
+              style={{ color: "var(--color-accent)" }}
+            >
+              4 day streak 🔥
+            </p>
+            <p
+              className="text-[10px] leading-tight mt-0.5 truncate"
+              style={{ color: "var(--color-text-muted)" }}
+            >
+              Keep it up! You&apos;re doing great.
+            </p>
+          </div>
+          <ChevronRight
+            className="h-3.5 w-3.5 ml-auto flex-shrink-0"
+            style={{ color: "var(--color-accent)" }}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main export ──────────────────────────────────────────────────────────────
+
 export function Sidebar({
   user,
   activeRoles,
@@ -559,264 +1729,25 @@ export function Sidebar({
   mobileOpen,
   onMobileClose,
 }: SidebarProps) {
-  const pathname = usePathname();
-  const { formatMoney } = useCurrency();
-  const [balance, setBalance] = React.useState({ available: 0, pending: 0 });
-  const [balanceHidden, setBalanceHidden] = React.useState(true);
-
-  React.useEffect(() => {
-    async function load() {
-      const res = await getUserBalance();
-      if (res.success) setBalance({ available: res.available, pending: res.pending });
-    }
-    load();
-    const t = setInterval(load, 120_000);
-    return () => clearInterval(t);
-  }, []);
-
-  const hasRole = (r: DashboardRole) =>
-    activeRoles.includes("admin") || activeRoles.includes(r);
-
-  function resolveHref(item: NavItem): string {
-    if (!item.requiredRole || item.requiredRole === "buyer") return item.href;
-    return hasRole(item.requiredRole) ? item.href : activateHref(item.requiredRole);
-  }
-
-  function isLocked(item: NavItem): boolean {
-    return !!item.requiredRole && item.requiredRole !== "buyer" && !hasRole(item.requiredRole);
-  }
-
-  function isActive(href: string): boolean {
-    if (href === "/dashboard") return pathname === "/dashboard";
-    return pathname === href || pathname.startsWith(`${href}/`);
-  }
-
-  const initials = (user.full_name?.[0] || user.email?.[0] || "U").toUpperCase();
-
-  // ── Sidebar content ──────────────────────────────────────────────────────────
-
-  const SidebarContent = (
-    <div className="flex flex-col h-full">
-
-      {/* Logo bar */}
-      <div className={cn(
-        "flex items-center shrink-0 border-b border-[var(--color-border)]",
-        collapsed ? "justify-center px-3 py-4" : "justify-between px-4 py-3.5"
-      )}>
-        {collapsed ? (
-          <button
-            onClick={() => onCollapsedChange(false)}
-            aria-label="Expand sidebar"
-            className="w-8 h-8 rounded-lg bg-orange-500 flex items-center justify-center text-white font-semibold text-sm"
-          >
-            J
-          </button>
-        ) : (
-          <Link href="/" onClick={onMobileClose} className="flex items-center gap-1 min-w-0">
-            <Image
-              src="/jimvio-logo.png"
-              alt="Jimvio"
-              width={28}
-              height={28}
-              className="h-7 w-auto mix-blend-multiply dark:mix-blend-normal flex-shrink-0"
-              priority
-            />
-            <span className="text-[19px] font-semibold tracking-tight text-[var(--color-text-primary)] select-none truncate">
-              Jim<span className="text-orange-600">vio</span>
-            </span>
-          </Link>
-        )}
-
-        {!collapsed && (
-          <div className="flex items-center gap-1.5 flex-shrink-0">
-            <button
-              type="button"
-              onClick={() => onCollapsedChange(true)}
-              aria-label="Collapse sidebar"
-              className={cn(
-                "hidden lg:flex items-center justify-center w-6 h-6 rounded-md",
-                "border border-[var(--color-border)] text-[var(--color-text-muted)]",
-                "hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]",
-                "transition-colors"
-              )}
-            >
-              <ChevronLeft className="h-3 w-3" />
-            </button>
-            {onMobileClose && (
-              <button
-                type="button"
-                onClick={onMobileClose}
-                aria-label="Close sidebar"
-                className={cn(
-                  "lg:hidden flex items-center justify-center w-6 h-6 rounded-md",
-                  "border border-[var(--color-border)] text-[var(--color-text-muted)]",
-                  "hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]",
-                  "transition-colors"
-                )}
-              >
-                <X className="h-3 w-3" />
-              </button>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Wallet */}
-      {collapsed ? (
-        <div className="px-2 pt-3 pb-1 flex justify-center flex-shrink-0">
-          <Link
-            href="/dashboard/wallet"
-            title="My wallet"
-            className={cn(
-              "flex items-center justify-center w-9 h-9 rounded-xl",
-              "bg-orange-500/10 border border-orange-500/20 text-orange-500",
-              "hover:bg-orange-500/20 transition-colors"
-            )}
-          >
-            <Wallet className="h-4 w-4" />
-          </Link>
-        </div>
-      ) : (
-        <div className="px-3 pt-3 pb-1 flex-shrink-0">
-          <Link
-            href="/dashboard/wallet"
-            onClick={onMobileClose}
-            className={cn(
-              "block p-3 rounded-lg group",
-              "bg-[var(--color-surface-secondary)] border border-[var(--color-border)]",
-              "hover:border-[var(--color-border-strong)] transition-colors"
-            )}
-          >
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-1.5 text-[11px] font-semibold text-[var(--color-text-muted)] uppercase tracking-widest">
-                <Wallet className="h-3 w-3 text-orange-500" />
-                Balance
-              </div>
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); setBalanceHidden((v) => !v); }}
-                  aria-label={balanceHidden ? "Show balance" : "Hide balance"}
-                  className="text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors"
-                >
-                  {balanceHidden ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-                </button>
-              </div>
-            </div>
-            <p className="text-[17px] font-semibold text-[var(--color-text-primary)] tabular-nums leading-none mb-1">
-              {balanceHidden ? "••••••" : formatMoney(balance.available, "USD")}
-            </p>
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] text-[var(--color-text-muted)]">
-                {balanceHidden ? "•••" : formatMoney(balance.pending, "USD")} pending
-              </span>
-              <ArrowUpRight className="h-3 w-3 text-[var(--color-text-muted)] group-hover:text-orange-500 transition-colors" />
-            </div>
-          </Link>
-        </div>
-      )}
-
-      {/* Nav */}
-      <nav
-        className="flex-1 overflow-y-auto py-2"
-        style={{ scrollbarWidth: "none" }}
-        aria-label="Dashboard navigation"
-      >
-        <div className={collapsed ? "px-2" : "px-2.5"}>
-          {SECTIONS.map((section) => (
-            <div key={section.title || "__main"} className="mb-1">
-
-              {/* Section heading */}
-              {section.title && !collapsed && (
-                <div className="flex items-center gap-2 px-2 pt-3 pb-1.5">
-                  {section.accentColor && (
-                    <span
-                      className="block w-[5px] h-[5px] rounded-full flex-shrink-0"
-                      style={{ background: section.accentColor }}
-                    />
-                  )}
-                  <span className="text-[10px] font-semibold text-[var(--color-text-muted)] uppercase tracking-widest">
-                    {section.title}
-                  </span>
-                </div>
-              )}
-
-              <ul className="space-y-px">
-                {section.items.map((item) => {
-                  const href = resolveHref(item);
-                  const active = isActive(item.href);
-                  const locked = isLocked(item);
-
-                  return (
-                    <li key={`${section.title}-${item.label}`}>
-                      <Link
-                        href={href}
-                        onClick={onMobileClose}
-                        title={collapsed ? item.label : undefined}
-                        aria-current={active ? "page" : undefined}
-                        className={cn(
-                          "relative flex items-center rounded-sm border transition-all duration-150",
-                          collapsed ? "justify-center p-2" : "gap-2.5 px-2.5 py-2",
-                          active
-                            ? "bg-[var(--color-surface-secondary)] border-[var(--color-border)] text-[var(--color-text-primary)]"
-                            : "border-transparent text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]",
-                          locked && "opacity-40"
-                        )}
-                      >
-                        {/* Active left accent */}
-                        {active && (
-                          <span className="absolute left-0 inset-y-[10%] w-[3px] rounded-r-full bg-orange-500" />
-                        )}
-
-                        {/* Icon */}
-                        <span className={cn(
-                          "flex-shrink-0 transition-colors",
-                          active ? "text-orange-500 font-black" : "text-[var(--color-text-muted)]"
-                        )}>
-                          {item.icon}
-                        </span>
-
-                        {/* Label */}
-                        {!collapsed && (
-                          <>
-                            <span className={cn(
-                              "flex-1 truncate text-[13px] leading-none",
-                              active ? "font-semibold" : "font-medium"
-                            )}>
-                              {item.label}
-                            </span>
-                            {locked && (
-                              <span className="text-[9px] font-semibold text-[var(--color-text-muted)] uppercase tracking-widest flex-shrink-0">
-                                Unlock
-                              </span>
-                            )}
-                          </>
-                        )}
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          ))}
-        </div>
-      </nav>
-    </div>
-  );
+  const sharedProps = { user, activeRoles, collapsed, onCollapsedChange, onMobileClose };
 
   return (
     <>
-      {/* Desktop */}
+      {/* Desktop sidebar */}
       <motion.aside
         initial={false}
-        animate={{ width: collapsed ? "4rem" : "15rem" }}
+        animate={{ width: collapsed ? "3.5rem" : "14rem" }}
         transition={{ type: "spring", stiffness: 300, damping: 30 }}
-        className="hidden lg:flex flex-col sticky top-0 h-screen z-40 overflow-hidden bg-[var(--color-surface)] border-r border-[var(--color-border)]"
+        className="hidden lg:flex flex-col sticky top-0 h-screen z-40 overflow-hidden"
+        style={{
+          backgroundColor: "var(--color-bg)",
+          borderRight: "1px solid var(--color-border)",
+        }}
       >
-        {SidebarContent}
+        <SidebarContent {...sharedProps} />
       </motion.aside>
 
-      {/* Mobile */}
+      {/* Mobile drawer */}
       <AnimatePresence>
         {mobileOpen && (
           <>
@@ -826,7 +1757,8 @@ export function Sidebar({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="fixed inset-0 z-40 lg:hidden bg-black/50"
+              className="fixed inset-0 z-40 lg:hidden"
+              style={{ backgroundColor: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)" }}
               onClick={onMobileClose}
               aria-hidden="true"
             />
@@ -836,9 +1768,13 @@ export function Sidebar({
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
               transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              className="fixed inset-y-0 left-0 z-50 lg:hidden flex flex-col w-[min(15rem,88vw)] bg-[var(--color-surface)] border-r border-[var(--color-border)]"
+              className="fixed inset-y-0 left-0 z-50 lg:hidden flex flex-col w-[min(14rem,88vw)]"
+              style={{
+                backgroundColor: "var(--color-bg)",
+                borderRight: "1px solid var(--color-border)",
+              }}
             >
-              {SidebarContent}
+              <SidebarContent {...sharedProps} collapsed={false} />
             </motion.aside>
           </>
         )}
@@ -846,4 +1782,3 @@ export function Sidebar({
     </>
   );
 }
-

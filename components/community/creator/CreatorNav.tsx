@@ -43,7 +43,7 @@ export function CreatorNav({
     <nav className="w-full lg:w-56 shrink-0 space-y-4">
       <div className="rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] p-4 flex items-center gap-3">
         <div className="h-11 w-11 rounded-sm overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface-secondary)]">
-          {avatarUrl ? (
+          {avatarUrl && avatarUrl.trim() ? (
             <Image src={avatarUrl} alt="" width={44} height={44} className="object-cover h-full w-full" unoptimized />
           ) : (
             <div className="h-full w-full flex items-center justify-center text-sm font-black text-[var(--color-accent)]">{name[0] ?? "?"}</div>

@@ -88,7 +88,7 @@ export function ChatRoomMembersAside({
               }}
             >
               <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-sm border border-[var(--color-border)] bg-[var(--color-surface-secondary)]">
-                {m.profile?.avatar_url ? (
+{m.profile?.avatar_url && m.profile?.avatar_url.trim() ? (
                   <Image src={m.profile.avatar_url} alt="" width={36} height={36} className="h-full w-full object-cover" unoptimized />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center text-xs font-black text-[var(--color-accent)]">

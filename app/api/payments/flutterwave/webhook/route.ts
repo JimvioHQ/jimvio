@@ -191,63 +191,7 @@ async function resolveByTxRef(
   return { orderId: data.order_id, transactionId: data.id };
 }
 
-async function creditVendorWallet(
-  supabase: SupabaseClient,
-  params: {
-    vendorId: string;
-    totalAmount: number;
-    currency: string;
-    orderId: string;
-  }
-): Promise<{ credited: boolean; netAmount?: number }> {
-  const { vendorId, totalAmount, currency, orderId } = params;
-
-  const { data: vendor, error: vendorError } = await supabase
-    .from("vendors")
-    .select("user_id, commission_rate")
-    .eq("id", vendorId)
-    .single();
-
-  if (vendorError || !vendor) {
-    console.error("[wallet/credit] Vendor not found", { vendorId, orderId });
-    return { credited: false };
-  }
-
-  const commissionRate = Number(vendor.commission_rate ?? 0);
-  const netAmount = totalAmount * (1 - commissionRate / 100);
-
-  const { data: wallet, error: walletError } = await supabase
-    .from("wallets")
-    .select("id")
-    .eq("user_id", vendor.user_id)
-    .single();
-
-  if (walletError || !wallet) {
-    console.error("[wallet/credit] Wallet not found", {
-      vendorUserId: vendor.user_id,
-      orderId,
-    });
-    return { credited: false };
-  }
-
-  const { error: rpcError } = await supabase.rpc("increment_wallet_balance", {
-    p_wallet_id: wallet.id,
-    p_amount: netAmount,
-  });
-
-  if (rpcError) {
-    console.error("[wallet/credit] RPC failed", { reason: rpcError.message, orderId });
-    return { credited: false };
-  }
-
-  console.info("[wallet/credit] ✓ Vendor wallet credited", {
-    vendorId,
-    netAmount,
-    currency,
-    orderId,
-  });
-  return { credited: true, netAmount };
-}
+// creditVendorWallet removed: now handled by PostgreSQL trigger (on_order_completed_credit_wallets)
 
 async function logWebhookIdempotent(
   supabase: SupabaseClient,
@@ -265,11 +209,11 @@ async function logWebhookIdempotent(
       payload: params.payload,
       orderId: params.orderId,
     });
-    
+
     // If eventId is null, it means the insert failed (e.g. DB error)
     if (!result.eventId && !result.isDuplicate) {
-       console.error("[webhook] logWebhookEvent failed to insert row");
-       return { eventId: null, isDuplicate: false, rpcFailed: true };
+      console.error("[webhook] logWebhookEvent failed to insert row");
+      return { eventId: null, isDuplicate: false, rpcFailed: true };
     }
 
     return {
@@ -546,34 +490,9 @@ export async function POST(req: NextRequest) {
         },
       }),
     ]);
-    if (order.vendor_id) {
-      const { credited, netAmount } = await creditVendorWallet(supabase, {
-        vendorId: order.vendor_id,
-        totalAmount: Number(order.total_amount),
-        currency: order.currency ?? "RWF",
-        orderId,
-      });
-
-      if (!credited) {
-        console.error(
-          "[Flutterwave webhook] ⚠️ CRITICAL: Vendor wallet credit failed — manual intervention required",
-          { orderId, vendorId: order.vendor_id, amount: order.total_amount }
-        );
-        await supabase.from("failed_wallet_credits").insert({
-          order_id: orderId,
-          vendor_id: order.vendor_id,
-          amount: order.total_amount,
-          currency: order.currency,
-          reason: "creditVendorWallet returned credited: false",
-          created_at: new Date().toISOString(),
-        });
-      } else {
-        console.info("[Flutterwave webhook] ✓ Vendor wallet credited", {
-          orderId,
-          netAmount,
-        });
-      }
-    }
+    // Note: Vendor, Platform, and Affiliate wallet credits are now entirely handled
+    // by the PostgreSQL trigger `on_order_completed_credit_wallets` running on the `orders` table.
+    // We no longer call creditVendorWallet() manually here to prevent double-crediting.
 
     console.log("[Flutterwave webhook] ✓ Order finalized", { orderId, transactionId });
     if (eventId) await markWebhookProcessed(supabase, eventId, orderId);

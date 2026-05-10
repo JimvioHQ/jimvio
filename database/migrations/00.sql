@@ -1864,3 +1864,726 @@ create policy "Users can read own digital access"
 create policy "Service role can manage digital access"
   on public.digital_access for all
   using (auth.role() = 'service_role');
+
+ CREATE TABLE IF NOT EXISTS public.failed_wallet_credits (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  order_id uuid REFERENCES public.orders(id) ON DELETE SET NULL,
+  vendor_id uuid REFERENCES public.vendors(id) ON DELETE CASCADE,
+  amount numeric NOT NULL,
+  currency text NOT NULL DEFAULT 'RWF',
+  reason text,
+  resolved boolean DEFAULT false,
+  created_at timestamptz DEFAULT NOW(),
+
+ )
+
+ CREATE OR REPLACE FUNCTION public.increment_wallet_balance(p_wallet_id uuid, p_amount numeric)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
+  UPDATE public.wallets 
+  SET available_balance = available_balance + p_amount,
+      total_earned = total_earned + p_amount,
+      updated_at = NOW()
+  WHERE id = p_wallet_id;
+END;
+$$;
+
+-- ============================================================
+-- JIMVIO — FOLLOW-UP MIGRATION (idempotent, safe to re-run)
+-- Fixes RLS gaps, missing FKs, missing indexes, realtime,
+-- payment_status standardization, and order_status_history access.
+-- ============================================================
+
+BEGIN;
+
+-- ============================================================
+-- 1. RECREATE failed_wallet_credits CLEANLY
+--    Original had syntax error (trailing comma + dangling paren).
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS public.failed_wallet_credits (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  order_id    UUID REFERENCES public.orders(id) ON DELETE SET NULL,
+  vendor_id   UUID REFERENCES public.vendors(id) ON DELETE CASCADE,
+  amount      NUMERIC NOT NULL,
+  currency    TEXT NOT NULL DEFAULT 'RWF',
+  reason      TEXT,
+  resolved    BOOLEAN DEFAULT FALSE,
+  resolved_at TIMESTAMPTZ,
+  created_at  TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.failed_wallet_credits
+  ADD COLUMN IF NOT EXISTS resolved_at TIMESTAMPTZ;
+
+CREATE INDEX IF NOT EXISTS idx_failed_wallet_credits_unresolved
+  ON public.failed_wallet_credits(created_at DESC)
+  WHERE resolved = FALSE;
+
+CREATE INDEX IF NOT EXISTS idx_failed_wallet_credits_vendor
+  ON public.failed_wallet_credits(vendor_id);
+
+-- ============================================================
+-- 2. ENABLE RLS ON PREVIOUSLY-UNPROTECTED TABLES
+-- ============================================================
+
+ALTER TABLE public.order_status_history   ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.shopify_credentials    ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.failed_wallet_credits  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.webhook_events         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.exchange_rate_logs     ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.product_views          ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.short_videos           ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.short_video_views      ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.short_video_likes      ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.short_video_comments   ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.short_video_clicks     ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.short_video_earnings   ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.spaces                 ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.rooms                  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.community_payments     ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.community_post_comments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.community_post_likes    ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.community_saved_posts   ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.community_courses       ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.course_modules          ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.course_lessons          ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.lesson_progress         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.community_tasks         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.member_points           ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ugc_campaign_media         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ugc_campaign_participants  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ugc_submission_media       ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ugc_view_snapshots         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ugc_payouts                ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ugc_reports                ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ugc_campaign_escrow        ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_roles              ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.order_status_history    ENABLE ROW LEVEL SECURITY;
+
+-- ============================================================
+-- 3. POLICIES — order_status_history
+-- ============================================================
+
+DROP POLICY IF EXISTS "buyers_view_own_order_history"   ON public.order_status_history;
+DROP POLICY IF EXISTS "vendors_view_their_order_history" ON public.order_status_history;
+
+CREATE POLICY "buyers_view_own_order_history"
+  ON public.order_status_history FOR SELECT
+  USING (
+    order_id IN (SELECT id FROM public.orders WHERE buyer_id = auth.uid())
+  );
+
+CREATE POLICY "vendors_view_their_order_history"
+  ON public.order_status_history FOR SELECT
+  USING (
+    order_id IN (
+      SELECT o.id FROM public.orders o
+      WHERE o.vendor_id IN (SELECT id FROM public.vendors WHERE user_id = auth.uid())
+    )
+  );
+
+-- ============================================================
+-- 4. POLICIES — shopify_credentials (CRITICAL — contains tokens)
+-- ============================================================
+
+DROP POLICY IF EXISTS "vendors_view_own_shopify_creds"  ON public.shopify_credentials;
+DROP POLICY IF EXISTS "vendors_manage_own_shopify_creds" ON public.shopify_credentials;
+DROP POLICY IF EXISTS "service_role_manages_shopify_creds" ON public.shopify_credentials;
+
+CREATE POLICY "vendors_view_own_shopify_creds"
+  ON public.shopify_credentials FOR SELECT
+  USING (vendor_id IN (SELECT id FROM public.vendors WHERE user_id = auth.uid()));
+
+CREATE POLICY "vendors_manage_own_shopify_creds"
+  ON public.shopify_credentials FOR ALL
+  USING (vendor_id IN (SELECT id FROM public.vendors WHERE user_id = auth.uid()))
+  WITH CHECK (vendor_id IN (SELECT id FROM public.vendors WHERE user_id = auth.uid()));
+
+-- ============================================================
+-- 5. POLICIES — failed_wallet_credits (vendor read-only)
+-- ============================================================
+
+DROP POLICY IF EXISTS "vendors_view_own_failed_credits" ON public.failed_wallet_credits;
+
+CREATE POLICY "vendors_view_own_failed_credits"
+  ON public.failed_wallet_credits FOR SELECT
+  USING (vendor_id IN (SELECT id FROM public.vendors WHERE user_id = auth.uid()));
+
+-- ============================================================
+-- 6. POLICIES — webhook_events (no client access; service role only)
+--    With RLS enabled and no policies, anon/auth get nothing,
+--    but service_role bypasses RLS anyway. Explicit deny isn't
+--    needed; just leaving with zero policies is correct.
+-- ============================================================
+
+-- (intentionally no policies)
+
+-- ============================================================
+-- 7. POLICIES — exchange_rate_logs (read-only public)
+-- ============================================================
+
+DROP POLICY IF EXISTS "exchange_rates_public_read" ON public.exchange_rate_logs;
+
+CREATE POLICY "exchange_rates_public_read"
+  ON public.exchange_rate_logs FOR SELECT
+  USING (true);
+
+-- ============================================================
+-- 8. POLICIES — product_views (vendor analytics)
+-- ============================================================
+
+DROP POLICY IF EXISTS "anyone_can_log_product_view" ON public.product_views;
+DROP POLICY IF EXISTS "vendors_view_own_product_views" ON public.product_views;
+
+CREATE POLICY "anyone_can_log_product_view"
+  ON public.product_views FOR INSERT
+  WITH CHECK (true);
+
+CREATE POLICY "vendors_view_own_product_views"
+  ON public.product_views FOR SELECT
+  USING (
+    product_id IN (
+      SELECT p.id FROM public.products p
+      WHERE p.vendor_id IN (SELECT id FROM public.vendors WHERE user_id = auth.uid())
+    )
+  );
+
+-- ============================================================
+-- 9. POLICIES — short_videos and engagement tables
+-- ============================================================
+
+DROP POLICY IF EXISTS "active_short_videos_public" ON public.short_videos;
+DROP POLICY IF EXISTS "creators_manage_own_videos" ON public.short_videos;
+
+CREATE POLICY "active_short_videos_public"
+  ON public.short_videos FOR SELECT
+  USING (status = 'active' OR user_id = auth.uid());
+
+CREATE POLICY "creators_manage_own_videos"
+  ON public.short_videos FOR ALL
+  USING (user_id = auth.uid())
+  WITH CHECK (user_id = auth.uid());
+
+DROP POLICY IF EXISTS "anyone_logs_view"     ON public.short_video_views;
+DROP POLICY IF EXISTS "creators_read_views"  ON public.short_video_views;
+
+CREATE POLICY "anyone_logs_view"
+  ON public.short_video_views FOR INSERT
+  WITH CHECK (true);
+
+CREATE POLICY "creators_read_views"
+  ON public.short_video_views FOR SELECT
+  USING (
+    video_id IN (SELECT id FROM public.short_videos WHERE user_id = auth.uid())
+    OR viewer_id = auth.uid()
+  );
+
+DROP POLICY IF EXISTS "users_manage_own_likes" ON public.short_video_likes;
+DROP POLICY IF EXISTS "likes_public_read"      ON public.short_video_likes;
+
+CREATE POLICY "likes_public_read"
+  ON public.short_video_likes FOR SELECT USING (true);
+
+CREATE POLICY "users_manage_own_likes"
+  ON public.short_video_likes FOR ALL
+  USING (user_id = auth.uid())
+  WITH CHECK (user_id = auth.uid());
+
+DROP POLICY IF EXISTS "comments_public_read"      ON public.short_video_comments;
+DROP POLICY IF EXISTS "users_manage_own_comments" ON public.short_video_comments;
+
+CREATE POLICY "comments_public_read"
+  ON public.short_video_comments FOR SELECT USING (true);
+
+CREATE POLICY "users_manage_own_comments"
+  ON public.short_video_comments FOR ALL
+  USING (user_id = auth.uid())
+  WITH CHECK (user_id = auth.uid());
+
+DROP POLICY IF EXISTS "anyone_logs_clicks"     ON public.short_video_clicks;
+DROP POLICY IF EXISTS "creators_read_clicks"   ON public.short_video_clicks;
+
+CREATE POLICY "anyone_logs_clicks"
+  ON public.short_video_clicks FOR INSERT
+  WITH CHECK (true);
+
+CREATE POLICY "creators_read_clicks"
+  ON public.short_video_clicks FOR SELECT
+  USING (
+    video_id IN (SELECT id FROM public.short_videos WHERE user_id = auth.uid())
+  );
+
+DROP POLICY IF EXISTS "creators_view_own_earnings" ON public.short_video_earnings;
+
+CREATE POLICY "creators_view_own_earnings"
+  ON public.short_video_earnings FOR SELECT
+  USING (
+    creator_id IN (SELECT id FROM public.influencers WHERE user_id = auth.uid())
+  );
+
+-- ============================================================
+-- 10. POLICIES — community structure (spaces, rooms, etc.)
+-- ============================================================
+
+DROP POLICY IF EXISTS "spaces_visible_to_members" ON public.spaces;
+DROP POLICY IF EXISTS "owners_manage_spaces"      ON public.spaces;
+
+CREATE POLICY "spaces_visible_to_members"
+  ON public.spaces FOR SELECT
+  USING (
+    is_active = true AND (
+      community_id IN (SELECT id FROM public.communities WHERE NOT is_private OR owner_id = auth.uid())
+      OR community_id IN (SELECT community_id FROM public.community_memberships WHERE user_id = auth.uid() AND status = 'active')
+    )
+  );
+
+CREATE POLICY "owners_manage_spaces"
+  ON public.spaces FOR ALL
+  USING (community_id IN (SELECT id FROM public.communities WHERE owner_id = auth.uid()))
+  WITH CHECK (community_id IN (SELECT id FROM public.communities WHERE owner_id = auth.uid()));
+
+DROP POLICY IF EXISTS "rooms_visible_to_members" ON public.rooms;
+DROP POLICY IF EXISTS "owners_manage_rooms"      ON public.rooms;
+
+CREATE POLICY "rooms_visible_to_members"
+  ON public.rooms FOR SELECT
+  USING (
+    is_active = true AND (
+      community_id IN (SELECT id FROM public.communities WHERE NOT is_private OR owner_id = auth.uid())
+      OR community_id IN (SELECT community_id FROM public.community_memberships WHERE user_id = auth.uid() AND status = 'active')
+    )
+  );
+
+CREATE POLICY "owners_manage_rooms"
+  ON public.rooms FOR ALL
+  USING (community_id IN (SELECT id FROM public.communities WHERE owner_id = auth.uid()))
+  WITH CHECK (community_id IN (SELECT id FROM public.communities WHERE owner_id = auth.uid()));
+
+DROP POLICY IF EXISTS "users_view_own_payments"      ON public.community_payments;
+DROP POLICY IF EXISTS "owners_view_community_payments" ON public.community_payments;
+
+CREATE POLICY "users_view_own_payments"
+  ON public.community_payments FOR SELECT
+  USING (user_id = auth.uid());
+
+CREATE POLICY "owners_view_community_payments"
+  ON public.community_payments FOR SELECT
+  USING (community_id IN (SELECT id FROM public.communities WHERE owner_id = auth.uid()));
+
+DROP POLICY IF EXISTS "post_comments_visible_to_members" ON public.community_post_comments;
+DROP POLICY IF EXISTS "members_create_comments"          ON public.community_post_comments;
+DROP POLICY IF EXISTS "authors_manage_own_comments"      ON public.community_post_comments;
+
+CREATE POLICY "post_comments_visible_to_members"
+  ON public.community_post_comments FOR SELECT
+  USING (
+    post_id IN (
+      SELECT id FROM public.community_posts
+      WHERE community_id IN (SELECT community_id FROM public.community_memberships WHERE user_id = auth.uid() AND status = 'active')
+        OR community_id IN (SELECT id FROM public.communities WHERE owner_id = auth.uid())
+    )
+  );
+
+CREATE POLICY "members_create_comments"
+  ON public.community_post_comments FOR INSERT
+  WITH CHECK (
+    author_id = auth.uid()
+    AND post_id IN (
+      SELECT id FROM public.community_posts
+      WHERE community_id IN (SELECT community_id FROM public.community_memberships WHERE user_id = auth.uid() AND status = 'active')
+    )
+  );
+
+CREATE POLICY "authors_manage_own_comments"
+  ON public.community_post_comments FOR UPDATE
+  USING (author_id = auth.uid())
+  WITH CHECK (author_id = auth.uid());
+
+DROP POLICY IF EXISTS "post_likes_public_read" ON public.community_post_likes;
+DROP POLICY IF EXISTS "users_manage_own_likes" ON public.community_post_likes;
+
+CREATE POLICY "post_likes_public_read"
+  ON public.community_post_likes FOR SELECT USING (true);
+
+CREATE POLICY "users_manage_own_likes"
+  ON public.community_post_likes FOR ALL
+  USING (user_id = auth.uid())
+  WITH CHECK (user_id = auth.uid());
+
+DROP POLICY IF EXISTS "users_manage_own_saved_posts" ON public.community_saved_posts;
+
+CREATE POLICY "users_manage_own_saved_posts"
+  ON public.community_saved_posts FOR ALL
+  USING (user_id = auth.uid())
+  WITH CHECK (user_id = auth.uid());
+
+DROP POLICY IF EXISTS "courses_visible_to_members" ON public.community_courses;
+DROP POLICY IF EXISTS "creators_manage_courses"    ON public.community_courses;
+
+CREATE POLICY "courses_visible_to_members"
+  ON public.community_courses FOR SELECT
+  USING (
+    is_published = true AND (
+      community_id IN (SELECT id FROM public.communities WHERE NOT is_private OR owner_id = auth.uid())
+      OR community_id IN (SELECT community_id FROM public.community_memberships WHERE user_id = auth.uid() AND status = 'active')
+    )
+  );
+
+CREATE POLICY "creators_manage_courses"
+  ON public.community_courses FOR ALL
+  USING (creator_id = auth.uid() OR community_id IN (SELECT id FROM public.communities WHERE owner_id = auth.uid()))
+  WITH CHECK (creator_id = auth.uid() OR community_id IN (SELECT id FROM public.communities WHERE owner_id = auth.uid()));
+
+DROP POLICY IF EXISTS "modules_follow_course_access" ON public.course_modules;
+
+CREATE POLICY "modules_follow_course_access"
+  ON public.course_modules FOR SELECT
+  USING (
+    course_id IN (SELECT id FROM public.community_courses WHERE is_published = true)
+    OR course_id IN (SELECT id FROM public.community_courses WHERE creator_id = auth.uid())
+  );
+
+DROP POLICY IF EXISTS "lessons_follow_course_access" ON public.course_lessons;
+
+CREATE POLICY "lessons_follow_course_access"
+  ON public.course_lessons FOR SELECT
+  USING (
+    course_id IN (SELECT id FROM public.community_courses WHERE is_published = true)
+    OR course_id IN (SELECT id FROM public.community_courses WHERE creator_id = auth.uid())
+  );
+
+DROP POLICY IF EXISTS "users_manage_own_progress" ON public.lesson_progress;
+
+CREATE POLICY "users_manage_own_progress"
+  ON public.lesson_progress FOR ALL
+  USING (user_id = auth.uid())
+  WITH CHECK (user_id = auth.uid());
+
+DROP POLICY IF EXISTS "tasks_visible_to_members" ON public.community_tasks;
+DROP POLICY IF EXISTS "creators_manage_tasks"    ON public.community_tasks;
+
+CREATE POLICY "tasks_visible_to_members"
+  ON public.community_tasks FOR SELECT
+  USING (
+    is_active = true AND
+    community_id IN (SELECT community_id FROM public.community_memberships WHERE user_id = auth.uid() AND status = 'active')
+  );
+
+CREATE POLICY "creators_manage_tasks"
+  ON public.community_tasks FOR ALL
+  USING (creator_id = auth.uid() OR community_id IN (SELECT id FROM public.communities WHERE owner_id = auth.uid()))
+  WITH CHECK (creator_id = auth.uid() OR community_id IN (SELECT id FROM public.communities WHERE owner_id = auth.uid()));
+
+DROP POLICY IF EXISTS "users_view_own_points"     ON public.member_points;
+DROP POLICY IF EXISTS "users_update_own_points"   ON public.member_points;
+DROP POLICY IF EXISTS "leaderboard_public_read"   ON public.member_points;
+
+CREATE POLICY "leaderboard_public_read"
+  ON public.member_points FOR SELECT
+  USING (
+    community_id IN (SELECT community_id FROM public.community_memberships WHERE user_id = auth.uid() AND status = 'active')
+    OR user_id = auth.uid()
+  );
+
+-- ============================================================
+-- 11. POLICIES — UGC submission media + participants + payouts
+-- ============================================================
+
+DROP POLICY IF EXISTS "ugc_campaign_media_public_read" ON public.ugc_campaign_media;
+
+CREATE POLICY "ugc_campaign_media_public_read"
+  ON public.ugc_campaign_media FOR SELECT
+  USING (
+    campaign_id IN (SELECT id FROM public.ugc_campaigns WHERE status = 'active')
+    OR campaign_id IN (
+      SELECT id FROM public.ugc_campaigns
+      WHERE brand_id IN (SELECT id FROM public.vendors WHERE user_id = auth.uid())
+    )
+  );
+
+DROP POLICY IF EXISTS "participants_view_own"           ON public.ugc_campaign_participants;
+DROP POLICY IF EXISTS "brands_view_campaign_participants" ON public.ugc_campaign_participants;
+
+CREATE POLICY "participants_view_own"
+  ON public.ugc_campaign_participants FOR SELECT
+  USING (influencer_id IN (SELECT id FROM public.influencers WHERE user_id = auth.uid()));
+
+CREATE POLICY "brands_view_campaign_participants"
+  ON public.ugc_campaign_participants FOR SELECT
+  USING (campaign_id IN (
+    SELECT id FROM public.ugc_campaigns
+    WHERE brand_id IN (SELECT id FROM public.vendors WHERE user_id = auth.uid())
+  ));
+
+DROP POLICY IF EXISTS "submission_media_visible_to_owners" ON public.ugc_submission_media;
+
+CREATE POLICY "submission_media_visible_to_owners"
+  ON public.ugc_submission_media FOR SELECT
+  USING (
+    submission_id IN (
+      SELECT id FROM public.ugc_submissions
+      WHERE influencer_id IN (SELECT id FROM public.influencers WHERE user_id = auth.uid())
+    )
+    OR submission_id IN (
+      SELECT s.id FROM public.ugc_submissions s
+      JOIN public.ugc_campaigns c ON c.id = s.campaign_id
+      WHERE c.brand_id IN (SELECT id FROM public.vendors WHERE user_id = auth.uid())
+    )
+  );
+
+DROP POLICY IF EXISTS "snapshots_visible_to_owners" ON public.ugc_view_snapshots;
+
+CREATE POLICY "snapshots_visible_to_owners"
+  ON public.ugc_view_snapshots FOR SELECT
+  USING (
+    submission_id IN (
+      SELECT id FROM public.ugc_submissions
+      WHERE influencer_id IN (SELECT id FROM public.influencers WHERE user_id = auth.uid())
+    )
+    OR submission_id IN (
+      SELECT s.id FROM public.ugc_submissions s
+      JOIN public.ugc_campaigns c ON c.id = s.campaign_id
+      WHERE c.brand_id IN (SELECT id FROM public.vendors WHERE user_id = auth.uid())
+    )
+  );
+
+DROP POLICY IF EXISTS "ugc_payouts_visible_to_influencer" ON public.ugc_payouts;
+
+CREATE POLICY "ugc_payouts_visible_to_influencer"
+  ON public.ugc_payouts FOR SELECT
+  USING (influencer_id IN (SELECT id FROM public.influencers WHERE user_id = auth.uid()));
+
+DROP POLICY IF EXISTS "users_create_reports"        ON public.ugc_reports;
+DROP POLICY IF EXISTS "reporters_view_own_reports"  ON public.ugc_reports;
+
+CREATE POLICY "users_create_reports"
+  ON public.ugc_reports FOR INSERT
+  WITH CHECK (reporter_id = auth.uid());
+
+CREATE POLICY "reporters_view_own_reports"
+  ON public.ugc_reports FOR SELECT
+  USING (reporter_id = auth.uid());
+
+DROP POLICY IF EXISTS "brands_manage_escrow" ON public.ugc_campaign_escrow;
+
+CREATE POLICY "brands_manage_escrow"
+  ON public.ugc_campaign_escrow FOR ALL
+  USING (
+    campaign_id IN (
+      SELECT id FROM public.ugc_campaigns
+      WHERE brand_id IN (SELECT id FROM public.vendors WHERE user_id = auth.uid())
+    )
+  )
+  WITH CHECK (
+    campaign_id IN (
+      SELECT id FROM public.ugc_campaigns
+      WHERE brand_id IN (SELECT id FROM public.vendors WHERE user_id = auth.uid())
+    )
+  );
+
+-- ============================================================
+-- 12. ADD MISSING FOREIGN KEYS
+--     Skipped if FK already exists.
+-- ============================================================
+
+DO $$
+BEGIN
+  -- order_status_history.user_id → profiles
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.table_constraints
+    WHERE constraint_name = 'order_status_history_user_id_fkey'
+      AND table_schema = 'public'
+  ) THEN
+    ALTER TABLE public.order_status_history
+      ADD CONSTRAINT order_status_history_user_id_fkey
+      FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE SET NULL;
+  END IF;
+
+  -- short_video_views.viewer_id → profiles
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.table_constraints
+    WHERE constraint_name = 'short_video_views_viewer_id_fkey'
+      AND table_schema = 'public'
+  ) THEN
+    ALTER TABLE public.short_video_views
+      ADD CONSTRAINT short_video_views_viewer_id_fkey
+      FOREIGN KEY (viewer_id) REFERENCES public.profiles(id) ON DELETE SET NULL;
+  END IF;
+
+  -- short_video_likes.user_id → profiles
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.table_constraints
+    WHERE constraint_name = 'short_video_likes_user_id_fkey'
+      AND table_schema = 'public'
+  ) THEN
+    ALTER TABLE public.short_video_likes
+      ADD CONSTRAINT short_video_likes_user_id_fkey
+      FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+  END IF;
+
+  -- short_video_clicks.user_id → profiles
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.table_constraints
+    WHERE constraint_name = 'short_video_clicks_user_id_fkey'
+      AND table_schema = 'public'
+  ) THEN
+    ALTER TABLE public.short_video_clicks
+      ADD CONSTRAINT short_video_clicks_user_id_fkey
+      FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE SET NULL;
+  END IF;
+
+  -- short_video_clicks.community_id → communities
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.table_constraints
+    WHERE constraint_name = 'short_video_clicks_community_id_fkey'
+      AND table_schema = 'public'
+  ) THEN
+    ALTER TABLE public.short_video_clicks
+      ADD CONSTRAINT short_video_clicks_community_id_fkey
+      FOREIGN KEY (community_id) REFERENCES public.communities(id) ON DELETE SET NULL;
+  END IF;
+
+  -- short_video_clicks.order_id → orders
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.table_constraints
+    WHERE constraint_name = 'short_video_clicks_order_id_fkey'
+      AND table_schema = 'public'
+  ) THEN
+    ALTER TABLE public.short_video_clicks
+      ADD CONSTRAINT short_video_clicks_order_id_fkey
+      FOREIGN KEY (order_id) REFERENCES public.orders(id) ON DELETE SET NULL;
+  END IF;
+
+  -- short_videos.community_id → communities
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.table_constraints
+    WHERE constraint_name = 'short_videos_community_id_fkey'
+      AND table_schema = 'public'
+  ) THEN
+    ALTER TABLE public.short_videos
+      ADD CONSTRAINT short_videos_community_id_fkey
+      FOREIGN KEY (community_id) REFERENCES public.communities(id) ON DELETE SET NULL;
+  END IF;
+END $$;
+
+-- ============================================================
+-- 13. ADD MISSING INDEXES
+-- ============================================================
+
+CREATE INDEX IF NOT EXISTS idx_order_items_vendor_id
+  ON public.order_items(vendor_id);
+
+CREATE INDEX IF NOT EXISTS idx_transactions_order_id
+  ON public.transactions(order_id);
+
+CREATE INDEX IF NOT EXISTS idx_transactions_status
+  ON public.transactions(status);
+
+CREATE INDEX IF NOT EXISTS idx_reviews_order_item_id
+  ON public.reviews(order_item_id);
+
+CREATE INDEX IF NOT EXISTS idx_reviews_product_id
+  ON public.reviews(product_id);
+
+CREATE INDEX IF NOT EXISTS idx_reviews_vendor_id
+  ON public.reviews(vendor_id);
+
+CREATE INDEX IF NOT EXISTS idx_order_status_history_created_at
+  ON public.order_status_history(order_id, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_orders_buyer_status
+  ON public.orders(buyer_id, status);
+
+CREATE INDEX IF NOT EXISTS idx_orders_vendor_status
+  ON public.orders(vendor_id, status);
+
+-- ============================================================
+-- 14. STANDARDIZE payment_status — migrate 'completed' to 'paid'
+--     For orders. Transactions keep 'completed' for general use.
+-- ============================================================
+
+UPDATE public.orders
+SET payment_status = 'paid'
+WHERE payment_status = 'completed';
+
+-- ============================================================
+-- 15. ADD TABLES TO REALTIME PUBLICATION (Supabase realtime)
+--     Wrapped in DO block so it doesn't fail if publication
+--     doesn't exist or table is already added.
+-- ============================================================
+
+DO $$
+DECLARE
+  t TEXT;
+  tables TEXT[] := ARRAY[
+    'orders',
+    'order_items',
+    'order_status_history',
+    'transactions',
+    'community_messages',
+    'community_inbox_messages',
+    'conversation_messages',
+    'notifications',
+    'community_posts',
+    'community_post_likes',
+    'community_post_comments',
+    'short_videos',
+    'short_video_likes',
+    'short_video_comments'
+  ];
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime') THEN
+    FOREACH t IN ARRAY tables LOOP
+      BEGIN
+        EXECUTE format('ALTER PUBLICATION supabase_realtime ADD TABLE public.%I', t);
+      EXCEPTION
+        WHEN duplicate_object THEN NULL;  -- already in publication
+        WHEN undefined_table THEN
+          RAISE NOTICE 'Table public.% does not exist, skipping realtime', t;
+      END;
+    END LOOP;
+  END IF;
+END $$;
+
+-- ============================================================
+-- 16. CLEAN UP DUPLICATE community_memberships POLICIES
+--     Original migration had three overlapping policies.
+-- ============================================================
+
+DROP POLICY IF EXISTS "Users can manage own membership"      ON public.community_memberships;
+DROP POLICY IF EXISTS "memberships_select_own_or_staff"      ON public.community_memberships;
+DROP POLICY IF EXISTS "memberships_update_own_or_staff"      ON public.community_memberships;
+DROP POLICY IF EXISTS "memberships_delete_own_or_owner"      ON public.community_memberships;
+DROP POLICY IF EXISTS "memberships_insert_self_or_invited"   ON public.community_memberships;
+
+CREATE POLICY "memberships_select_own_or_owner"
+  ON public.community_memberships FOR SELECT
+  USING (
+    user_id = auth.uid()
+    OR community_id IN (SELECT id FROM public.communities WHERE owner_id = auth.uid())
+  );
+
+CREATE POLICY "memberships_insert_self"
+  ON public.community_memberships FOR INSERT
+  WITH CHECK (user_id = auth.uid());
+
+CREATE POLICY "memberships_update_own_or_owner"
+  ON public.community_memberships FOR UPDATE
+  USING (
+    user_id = auth.uid()
+    OR community_id IN (SELECT id FROM public.communities WHERE owner_id = auth.uid())
+  )
+  WITH CHECK (
+    user_id = auth.uid()
+    OR community_id IN (SELECT id FROM public.communities WHERE owner_id = auth.uid())
+  );
+
+CREATE POLICY "memberships_delete_own_or_owner"
+  ON public.community_memberships FOR DELETE
+  USING (
+    user_id = auth.uid()
+    OR community_id IN (SELECT id FROM public.communities WHERE owner_id = auth.uid())
+  );
+
+COMMIT;

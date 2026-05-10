@@ -30,6 +30,7 @@ interface UserProfile {
 
 import { useUserStore } from "@/lib/store/use-user-store";
 import { BottomNav } from "./Bottom-navbar";
+import { DashboardHeader } from "./dashboard-header";
 
 function DashboardShellContent({ children }: { children: React.ReactNode }) {
   const { activeRoles, fetchRoles } = useUserStore();
@@ -74,7 +75,7 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
       />
 
       <div className="flex-1 flex flex-col min-w-0 min-h-0">
-        <header className="sticky top-0 z-40 shrink-0 bg-surface border-b border-border">
+        <header className="sticky sr-only top-0 z-40 shrink-0 bg-surface border-b border-border">
           <div className="flex items-center justify-between gap-4 px-4 sm:px-6 h-14 w-full">
 
             {/* Mobile: Hamburger */}
@@ -132,7 +133,7 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
                 <DropdownMenuTrigger asChild>
                   <button className="flex items-center gap-2 p-1 rounded-full transition-all hover:shadow-none active:scale-95 bg-surface border border-border hover:bg-background">
                     <div className="w-7 h-7 rounded-full bg-background flex items-center justify-center text-[10px] font-bold text-[var(--color-text-secondary)] border border-border overflow-hidden">
-                      {user.avatar_url ? <img src={user.avatar_url} className="w-full h-full object-cover" /> : initials}
+                      {user.avatar_url && user.avatar_url.trim() ? <img src={user.avatar_url} className="w-full h-full object-cover" /> : initials}
                     </div>
                   </button>
                 </DropdownMenuTrigger>
@@ -166,7 +167,7 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
             </div>
           </div>
         </header>
-
+        <DashboardHeader />
         <main className="flex-1 overflow-y-auto overflow-x-hidden relative bg-background">
           <div className="px-0 py-3 sm:px-6 sm:py-8 lg:p-10 max-w-[1400px] mx-auto">
             {children}

@@ -719,7 +719,7 @@ function MemberStack({ members, totalCount }: { members: ProfileRef[]; totalCoun
           className="relative h-8 w-8 overflow-hidden rounded-full border-2 border-[var(--color-bg)] bg-[var(--color-surface)]"
           style={{ zIndex: visible.length - i }}
         >
-          {m.avatar_url ? (
+          {m.avatar_url && m.avatar_url.trim() ? (
             <Image src={m.avatar_url} alt="" fill sizes="32px" className="object-cover" unoptimized />
           ) : (
             <div className="flex h-full w-full items-center justify-center text-[10px] font-medium text-[var(--color-text-muted)]">
@@ -925,7 +925,7 @@ export function CommunityDetailView({
           <div className="relative z-10 -mt-12 flex flex-col gap-4 sm:-mt-14 sm:flex-row sm:items-end sm:gap-6">
             {/* Avatar */}
             <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg border-4 border-[var(--color-bg)] bg-[var(--color-surface)] shadow-sm sm:h-24 sm:w-24">
-              {community.avatar_url ? (
+              {community.avatar_url && community.avatar_url.trim() ? (
                 <Image src={community.avatar_url} alt="" fill sizes="96px" className="object-cover" unoptimized />
               ) : (
                 <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[var(--color-accent)]/10 to-[var(--color-accent)]/5">
@@ -977,7 +977,7 @@ export function CommunityDetailView({
                 className="group flex items-center gap-2 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
               >
                 <div className="relative h-5 w-5 overflow-hidden rounded-full bg-[var(--color-surface)]">
-                  {community.owner.avatar_url ? (
+                  {community.owner.avatar_url && community.owner.avatar_url.trim() ? (
                     <Image src={community.owner.avatar_url} alt="" fill sizes="20px" className="object-cover" unoptimized />
                   ) : (
                     <div className="flex h-full w-full items-center justify-center text-[9px] font-medium text-[var(--color-text-muted)]">

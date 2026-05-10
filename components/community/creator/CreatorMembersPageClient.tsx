@@ -164,7 +164,7 @@ export function CreatorMembersPageClient({
                 <td className="py-3 px-3">
                   <div className="flex items-center gap-2">
                     <div className="h-9 w-9 rounded-sm overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface-secondary)]">
-                      {r.profiles?.avatar_url ? (
+                      {r.profiles?.avatar_url && r.profiles?.avatar_url.trim() ? (
                         <Image src={r.profiles.avatar_url} alt="" width={36} height={36} className="object-cover h-full w-full" unoptimized />
                       ) : (
                         <div className="h-full w-full flex items-center justify-center text-[10px] font-black text-[var(--color-accent)]">

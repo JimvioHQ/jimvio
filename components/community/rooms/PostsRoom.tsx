@@ -99,7 +99,7 @@ function Avatar({ profile, size = 36 }: { profile?: Profile | null; size?: numbe
       className={cn("rounded-sm overflow-hidden shrink-0 border border-[var(--color-border)]", color)}
       style={{ width: size, height: size }}
     >
-      {profile?.avatar_url ? (
+      {profile?.avatar_url && profile?.avatar_url.trim() ? (
         <Image
           src={profile.avatar_url}
           alt=""

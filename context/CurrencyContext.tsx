@@ -66,7 +66,17 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
           setRates(data.rates);
         }
       } catch {
-        if (!cancelled) setRates({});
+        console.warn("[CurrencyContext] Failed to fetch rates, using fallback");
+        const fallbackRates = {
+          USD: 1,
+          RWF: 1300,
+          KES: 130,
+          UGX: 4000,
+          TZS: 2500,
+          NGN: 1500,
+          GHS: 13,
+        };
+        if (!cancelled) setRates(fallbackRates);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -87,7 +97,7 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
 
   const formatPrice = useCallback(
     (amountUSD: number) => {
-      if (loading || Object.keys(rates).length === 0) return "...";
+      if (loading) return "...";
       return formatConvertedPrice(amountUSD, userCurrency, rates);
     },
     [loading, rates, userCurrency]

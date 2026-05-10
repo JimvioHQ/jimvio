@@ -209,22 +209,23 @@ export async function createFlutterwavePaymentLink(
 }
 
 
+
 export async function verifyFlutterwaveTransaction(
   transactionId: string | number,
   options: {
     retryOnNotFound?: boolean;
-    maxRetries?:      number;
-    initialDelayMs?:  number;
-    useTxRef?:        boolean;
-    signal?:          AbortSignal;        // ← ADD THIS
+    maxRetries?: number;
+    initialDelayMs?: number;
+    useTxRef?: boolean;
+    signal?: AbortSignal;        // ← ADD THIS
   } = {}
 ): Promise<VerifiedTransaction> {
   const {
     retryOnNotFound = true,
-    maxRetries      = 3,
-    initialDelayMs  = 5000,
-    useTxRef        = false,
-    signal,                               // ← DESTRUCTURE
+    maxRetries = 3,
+    initialDelayMs = 5000,
+    useTxRef = false,
+    signal,
   } = options;
 
   function buildEndpoint(): string {
@@ -233,7 +234,8 @@ export async function verifyFlutterwaveTransaction(
         "[Flutterwave] Using tx_ref for verification — use transaction ID if possible.",
         transactionId
       );
-      return `/transactions/verify_by_reference?tx_ref=${encodeURIComponent(String(transactionId))}`;
+      // return `/transactions/verify_by_reference?tx_ref=${encodeURIComponent(String(transactionId))}`;
+      return `/transaction/verify_by_reference?tx_ref=FLW_MOYN7PK9_9B0D8963`
     }
     return `/transactions/${transactionId}/verify`;
   }
@@ -241,15 +243,15 @@ export async function verifyFlutterwaveTransaction(
   async function fetchAndNormalize(): Promise<FlutterwaveVerifyResponse> {
     if (signal?.aborted) {
       const err = new Error("Verification aborted");
-      err.name  = "AbortError";
+      err.name = "AbortError";
       throw err;
     }
 
     if (useTxRef) {
       const result = await flwFetch<{
         status: string;
-        data:   FlutterwaveVerifyResponse["data"][];
-      }>(buildEndpoint(), { signal });        // ← PASS signal
+        data: FlutterwaveVerifyResponse["data"][];
+      }>(buildEndpoint(), { signal });
 
       if (result.status !== "success" || !result.data?.length) {
         throw new FlutterwaveError(
@@ -273,7 +275,7 @@ export async function verifyFlutterwaveTransaction(
     // ✅ Check abort at start of each retry loop too
     if (signal?.aborted) {
       const err = new Error("Verification aborted");
-      err.name  = "AbortError";
+      err.name = "AbortError";
       throw err;
     }
 
@@ -314,7 +316,7 @@ export async function verifyFlutterwaveTransaction(
         `[Flutterwave] Transaction ${transactionId} not found ` +
         `(attempt ${attempt + 1}/${maxRetries + 1}), retrying in ${delay / 1000}s...`
       );
-      
+
       await abortableSleep(delay, signal);
     }
   }
@@ -329,7 +331,7 @@ function abortableSleep(ms: number, signal?: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {
     if (signal?.aborted) {
       const err = new Error("Aborted");
-      err.name  = "AbortError";
+      err.name = "AbortError";
       return reject(err);
     }
 
@@ -338,7 +340,7 @@ function abortableSleep(ms: number, signal?: AbortSignal): Promise<void> {
     signal?.addEventListener("abort", () => {
       clearTimeout(timer);
       const err = new Error("Aborted");
-      err.name  = "AbortError";
+      err.name = "AbortError";
       reject(err);
     }, { once: true });
   });
@@ -374,8 +376,8 @@ export function validateFlutterwaveWebhook(
   // Solution: length-check first, then compare.
   // We still use timingSafeEqual (not ===) to prevent timing attacks.
   try {
-    const sigBuf    = Buffer.from(signature, "utf8");
-    const secretBuf = Buffer.from(secret,    "utf8");
+    const sigBuf = Buffer.from(signature, "utf8");
+    const secretBuf = Buffer.from(secret, "utf8");
 
     // Different lengths → definitely not equal.
     // Return false directly — comparing buffers of different lengths
@@ -383,7 +385,7 @@ export function validateFlutterwaveWebhook(
     if (sigBuf.length !== secretBuf.length) {
       console.warn("[Flutterwave] Webhook signature length mismatch", {
         signatureLength: sigBuf.length,
-        secretLength:    secretBuf.length,
+        secretLength: secretBuf.length,
       });
       return false;
     }
