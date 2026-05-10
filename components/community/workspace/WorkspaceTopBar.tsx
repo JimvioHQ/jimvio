@@ -30,7 +30,7 @@ export function WorkspaceTopBar({ community, section, view, isAdmin, onViewToggl
       <div className="max-w-[1400px] mx-auto px-4 lg:px-6 h-14 flex items-center gap-3">
         {/* Community avatar + name */}
         <Link
-          href={`/communities/${community.slug}`}
+          href={`/c/${community.slug}`}
           className="flex items-center gap-2.5 min-w-0 hover:opacity-80 transition-opacity"
         >
           {community.avatar_url ? (

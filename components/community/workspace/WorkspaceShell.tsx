@@ -66,7 +66,7 @@ export function WorkspaceShell({
             else params.delete("view");
         }
         const qs = params.toString();
-        router.replace(`/communities/${community.slug}/workspace${qs ? `?${qs}` : ""}`, { scroll: false });
+        router.replace(`/c/${community.slug}/workspace${qs ? `?${qs}` : ""}`, { scroll: false });
     };
 
     const handleSectionChange = (s: WorkspaceSection) => {

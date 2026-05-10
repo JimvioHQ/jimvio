@@ -383,8 +383,8 @@ export function SharedCommunityCard({ c, rank, showQuickActions = true }: Commun
     e.stopPropagation();
     const url =
       typeof window !== "undefined"
-        ? `${window.location.origin}/communities/${c.slug}`
-        : `/communities/${c.slug}`;
+        ? `${window.location.origin}/c/${c.slug}`
+        : `/c/${c.slug}`;
     if (typeof navigator !== "undefined" && navigator.share) {
       navigator.share({ title: c.name, url });
     } else if (typeof navigator !== "undefined") {
@@ -550,7 +550,7 @@ export function SharedCommunityCard({ c, rank, showQuickActions = true }: Commun
 
           {/* CTA */}
           <Link
-            href={`/communities/${c.slug}`}
+            href={`/c/${c.slug}`}
             className={cn(
               "group/cta relative flex items-center justify-center gap-2",
               "w-full h-10 rounded-xl",

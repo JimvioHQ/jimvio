@@ -45,7 +45,7 @@ export function WorkspaceRightRail({ community }: Props) {
             </span>
           </div>
           <Link
-            href={`/communities/${community.slug}/workspace?section=members`}
+            href={`/c/${community.slug}/workspace?section=members`}
             className="text-[11px] text-[#fd5000] font-medium hover:underline flex items-center gap-0.5"
           >
             See all
