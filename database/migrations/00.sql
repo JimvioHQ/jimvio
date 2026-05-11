@@ -2587,3 +2587,304 @@ CREATE POLICY "memberships_delete_own_or_owner"
   );
 
 COMMIT;
+
+-- ============================================================
+-- JIMVIO — MIGRATION 060
+-- Products schema consolidation + cross-cutting fixes
+--
+-- Combines:
+--   - Expanded product_type enum (Option A)
+--   - Promoted source_metadata toggles to real columns
+--   - Dimensions documented as JSONB shape
+--   - payment_status standardized on 'paid'
+--   - Slug uniqueness per vendor
+--   - pricing_type / billing_period consistency check
+--   - is_digital / requires_shipping consistency check
+--   - Vendor UPDATE policy on order_items
+--   - published_at auto-set trigger
+--   - Active-products partial index
+--
+-- Idempotent where Postgres allows. Wrapped in transaction
+-- EXCEPT for ALTER TYPE ADD VALUE, which Postgres requires
+-- to run outside a transaction block (handled first).
+-- ============================================================
+
+-- ============================================================
+-- PART 1 — Enum changes (must run outside transaction)
+-- Run this block first, then run PART 2 separately if your
+-- migration runner wraps everything in BEGIN/COMMIT.
+-- Supabase's migration runner handles this correctly per-file.
+-- ============================================================
+
+ALTER TYPE product_type ADD VALUE IF NOT EXISTS 'coaching';
+ALTER TYPE product_type ADD VALUE IF NOT EXISTS 'community';
+ALTER TYPE product_type ADD VALUE IF NOT EXISTS 'bundle';
+
+-- ============================================================
+-- PART 2 — Everything else (transactional)
+-- ============================================================
+
+BEGIN;
+
+-- ------------------------------------------------------------
+-- 1. Add new columns to products
+-- ------------------------------------------------------------
+
+ALTER TABLE public.products
+  ADD COLUMN IF NOT EXISTS show_author        BOOLEAN DEFAULT TRUE,
+  ADD COLUMN IF NOT EXISTS show_reviews       BOOLEAN DEFAULT TRUE,
+  ADD COLUMN IF NOT EXISTS enable_discussions BOOLEAN DEFAULT FALSE;
+
+-- Document the JSONB shape for dimensions (no type change needed)
+COMMENT ON COLUMN public.products.dimensions IS
+  'JSONB shape: {length: number, width: number, height: number, unit: "cm"|"in"}';
+
+-- ------------------------------------------------------------
+-- 2. Backfill new columns from source_metadata
+--    Default TRUE/TRUE/FALSE matches what the form previously
+--    fell back to, so unset rows behave identically.
+-- ------------------------------------------------------------
+
+UPDATE public.products
+SET
+  show_author = COALESCE(
+    (source_metadata->>'show_author')::boolean,
+    show_author,
+    TRUE
+  ),
+  show_reviews = COALESCE(
+    (source_metadata->>'show_reviews')::boolean,
+    show_reviews,
+    TRUE
+  ),
+  enable_discussions = COALESCE(
+    (source_metadata->>'enable_discussions')::boolean,
+    enable_discussions,
+    FALSE
+  )
+WHERE source_metadata ? 'show_author'
+   OR source_metadata ? 'show_reviews'
+   OR source_metadata ? 'enable_discussions';
+
+-- ------------------------------------------------------------
+-- 3. Migrate product_subtype from source_metadata to product_type
+--    Only for rows whose subtype maps to a valid enum value.
+--    Existing 'digital' rows with a subtype get promoted.
+-- ------------------------------------------------------------
+
+UPDATE public.products
+SET product_type = (source_metadata->>'product_subtype')::product_type
+WHERE source_metadata->>'product_subtype' IS NOT NULL
+  AND source_metadata->>'product_subtype' IN (
+    'course', 'software', 'template', 'ebook',
+    'coaching', 'community', 'bundle', 'subscription'
+  )
+  AND product_type = 'digital';   -- only re-classify generic digital rows
+
+-- Strip the now-redundant key from source_metadata so we
+-- don't have two sources of truth on existing rows.
+UPDATE public.products
+SET source_metadata = source_metadata - 'product_subtype'
+                                      - 'show_author'
+                                      - 'show_reviews'
+                                      - 'enable_discussions'
+WHERE source_metadata ?| ARRAY[
+  'product_subtype', 'show_author', 'show_reviews', 'enable_discussions'
+];
+
+-- ------------------------------------------------------------
+-- 4. Standardize payment_status on 'paid'
+--    Migrate any remaining 'completed' rows on orders.
+--    (Transactions table keeps 'completed' for general use.)
+-- ------------------------------------------------------------
+
+UPDATE public.orders
+SET payment_status = 'paid'
+WHERE payment_status = 'completed';
+
+-- Note: We can't DROP enum values in Postgres without recreating
+-- the enum. Application code should now only WRITE 'paid'. The
+-- 'completed' value remains valid but unused for orders.
+
+-- ------------------------------------------------------------
+-- 5. Slug uniqueness — per-vendor instead of global
+-- ------------------------------------------------------------
+
+-- Drop the global UNIQUE constraint if it exists
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'products_slug_key'
+      AND conrelid = 'public.products'::regclass
+  ) THEN
+    ALTER TABLE public.products DROP CONSTRAINT products_slug_key;
+  END IF;
+END $$;
+
+-- Add per-vendor unique constraint
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'products_vendor_slug_unique'
+      AND conrelid = 'public.products'::regclass
+  ) THEN
+    ALTER TABLE public.products
+      ADD CONSTRAINT products_vendor_slug_unique UNIQUE (vendor_id, slug);
+  END IF;
+END $$;
+
+-- ------------------------------------------------------------
+-- 6. Consistency constraints
+--    Wrap in DO blocks so re-runs don't fail.
+-- ------------------------------------------------------------
+
+-- pricing_type ↔ billing_period
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'products_billing_period_consistency'
+      AND conrelid = 'public.products'::regclass
+  ) THEN
+    -- Clean any inconsistent rows before adding the constraint
+    UPDATE public.products
+    SET billing_period = NULL
+    WHERE pricing_type = 'one_time' AND billing_period IS NOT NULL;
+
+    UPDATE public.products
+    SET billing_period = 'monthly'
+    WHERE pricing_type = 'recurring' AND billing_period IS NULL;
+
+    ALTER TABLE public.products
+      ADD CONSTRAINT products_billing_period_consistency CHECK (
+        (pricing_type = 'recurring' AND billing_period IS NOT NULL)
+        OR
+        (pricing_type = 'one_time' AND billing_period IS NULL)
+      );
+  END IF;
+END $$;
+
+-- Same constraint on order_items (which has the same columns)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'order_items_billing_period_consistency'
+      AND conrelid = 'public.order_items'::regclass
+  ) THEN
+    UPDATE public.order_items
+    SET billing_period = NULL
+    WHERE pricing_type = 'one_time' AND billing_period IS NOT NULL;
+
+    UPDATE public.order_items
+    SET billing_period = 'monthly'
+    WHERE pricing_type = 'recurring' AND billing_period IS NULL;
+
+    ALTER TABLE public.order_items
+      ADD CONSTRAINT order_items_billing_period_consistency CHECK (
+        (pricing_type = 'recurring' AND billing_period IS NOT NULL)
+        OR
+        (pricing_type = 'one_time' AND billing_period IS NULL)
+      );
+  END IF;
+END $$;
+
+-- is_digital ↔ requires_shipping
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'products_digital_shipping_consistency'
+      AND conrelid = 'public.products'::regclass
+  ) THEN
+    -- Clean inconsistent rows: digital products should not require shipping
+    UPDATE public.products
+    SET requires_shipping = FALSE
+    WHERE is_digital = TRUE AND requires_shipping = TRUE;
+
+    ALTER TABLE public.products
+      ADD CONSTRAINT products_digital_shipping_consistency CHECK (
+        (is_digital = TRUE AND requires_shipping = FALSE)
+        OR
+        (is_digital = FALSE)
+      );
+  END IF;
+END $$;
+
+-- ------------------------------------------------------------
+-- 7. Vendor UPDATE policy on order_items
+--    Needed for vendors to mark fulfillment, add tracking,
+--    set digital_download_url, etc.
+-- ------------------------------------------------------------
+
+DROP POLICY IF EXISTS "Vendors can update order items for their products"
+  ON public.order_items;
+
+CREATE POLICY "Vendors can update order items for their products"
+  ON public.order_items FOR UPDATE
+  USING (vendor_id IN (SELECT id FROM public.vendors WHERE user_id = auth.uid()))
+  WITH CHECK (vendor_id IN (SELECT id FROM public.vendors WHERE user_id = auth.uid()));
+
+-- ------------------------------------------------------------
+-- 8. Auto-set published_at when status transitions to 'active'
+-- ------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION public.set_product_published_at()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN
+  -- On UPDATE: status transitioning into 'active' for the first time
+  IF TG_OP = 'UPDATE' THEN
+    IF NEW.status = 'active'
+       AND OLD.status IS DISTINCT FROM 'active'
+       AND NEW.published_at IS NULL THEN
+      NEW.published_at = NOW();
+    END IF;
+  END IF;
+
+  -- On INSERT: row created already 'active'
+  IF TG_OP = 'INSERT' THEN
+    IF NEW.status = 'active' AND NEW.published_at IS NULL THEN
+      NEW.published_at = NOW();
+    END IF;
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS tr_products_published_at ON public.products;
+
+CREATE TRIGGER tr_products_published_at
+  BEFORE INSERT OR UPDATE ON public.products
+  FOR EACH ROW EXECUTE FUNCTION public.set_product_published_at();
+
+-- Backfill: any active product without published_at
+UPDATE public.products
+SET published_at = COALESCE(created_at, NOW())
+WHERE status = 'active' AND published_at IS NULL;
+
+-- ------------------------------------------------------------
+-- 9. Partial index for the most common buyer-facing query
+--    "Active products in category, sorted by sales"
+-- ------------------------------------------------------------
+
+CREATE INDEX IF NOT EXISTS idx_products_active_category
+  ON public.products(category_id, sale_count DESC)
+  WHERE status = 'active' AND is_active = TRUE;
+
+-- Also helpful: active products by vendor (for store pages)
+CREATE INDEX IF NOT EXISTS idx_products_active_vendor
+  ON public.products(vendor_id, created_at DESC)
+  WHERE status = 'active' AND is_active = TRUE;
+
+-- ------------------------------------------------------------
+-- 10. Indexes on new columns (light — only if you'll query them)
+-- ------------------------------------------------------------
+
+CREATE INDEX IF NOT EXISTS idx_products_enable_discussions
+  ON public.products(enable_discussions)
+  WHERE enable_discussions = TRUE;
+
+COMMIT;

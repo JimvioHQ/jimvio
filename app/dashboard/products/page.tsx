@@ -150,7 +150,7 @@ export default function ProductsPage() {
         </div>
         <Link
           href="/dashboard/activate/vendor"
-          className="block w-full h-11 rounded-2xl text-sm font-semibold flex items-center justify-center transition-all"
+          className="w-full h-11 rounded-2xl text-sm font-semiboldflex items-center justify-center transition-all"
           style={{ background: "var(--color-accent)", color: "#fff" }}
           onMouseEnter={e => (e.currentTarget.style.background = "var(--color-accent-hover)")}
           onMouseLeave={e => (e.currentTarget.style.background = "var(--color-accent)")}
@@ -215,7 +215,7 @@ export default function ProductsPage() {
           <div className="relative flex-1 w-full">
             <Input
               value={search}
-              icon={<Search className="w-3.5 h-3.5"  />}
+              icon={<Search className="w-3.5 h-3.5" />}
               onChange={e => setSearch(e.target.value)}
               placeholder="Search products…"
               className={cn(

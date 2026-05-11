@@ -46,7 +46,7 @@
 
 // const BUTTON_TEXTS = ["Buy Now", "Get Access", "Order Now", "Purchase", "Download", "Subscribe", "Join now"];
 
-// /* ── ENHANCED: Product subtypes with rich metadata ── */
+// /* ── Product subtypes with rich metadata ── */
 // const PRODUCT_SUBTYPES = [
 //     {
 //         id: "course",
@@ -225,7 +225,6 @@
 //     );
 // }
 
-
 // function Select({ className, children, style, ...props }: React.SelectHTMLAttributes<HTMLSelectElement>) {
 //     return (
 //         <div className="relative">
@@ -402,7 +401,6 @@
 //                             <span className="text-[10px]">Cover image</span>
 //                         </div>
 //                     )}
-//                     {/* subtype badge on image */}
 //                     {subtype && (
 //                         <div
 //                             className="absolute top-2 left-2 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide"
@@ -415,7 +413,6 @@
 //                             {subtype.previewBadge}
 //                         </div>
 //                     )}
-//                     {/* status badge */}
 //                     {form.status === "draft" && (
 //                         <div
 //                             className="absolute top-2 right-2 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide"
@@ -431,7 +428,6 @@
 //                     )}
 //                 </div>
 
-//                 {/* social proof */}
 //                 <div className="flex items-center gap-1.5 mb-2">
 //                     <div className="flex">
 //                         {["#fecaca", "#fed7aa", "#e9d5ff"].map((c, i) => (
@@ -455,7 +451,7 @@
 
 //                 <p className="text-xl font-bold mb-2" style={{ color: "var(--color-text-primary)" }}>
 //                     {isFree ? "Free" : `$${price.toFixed(2)}`}
-//                     {!isFree && form.pricing_type === "recurring" && (
+//                     {!isFree && form.pricing_type === "recurring" && form.product_type === "digital" && (
 //                         <span className="text-xs font-normal" style={{ color: "var(--color-text-muted)" }}> / {form.billing_period}</span>
 //                     )}
 //                 </p>
@@ -502,204 +498,7 @@
 //     );
 // }
 
-// /* ── ENHANCED: Right sidebar with actionable subtype panel ── */
-// // function RightSidebar({
-// //     form,
-// //     handleChange,
-// //     isEdit = false,
-// // }: {
-// //     form: FormState;
-// //     handleChange: (f: string, v: unknown) => void;
-// //     isEdit?: boolean;
-// // }) {
-// //     const advItems = [
-// //         { label: "Drip content", Icon: Clock },
-// //         { label: "Access rules", Icon: Lock },
-// //         { label: "Localisation", Icon: Globe },
-// //         { label: "SEO settings", Icon: Search },
-// //     ];
-
-// //     const selectedSubtype = PRODUCT_SUBTYPES.find(s => s.id === form.product_subtype);
-
-// //     function handleSubtypeChange(subtypeId: string) {
-// //         const subtype = PRODUCT_SUBTYPES.find(s => s.id === subtypeId);
-// //         handleChange("product_subtype", subtypeId);
-// //         // Auto-suggest button text if user hasn't customised it or it matches another subtype's default
-// //         if (subtype?.suggestedButtonText) {
-// //             const currentIsDefault = PRODUCT_SUBTYPES.some(s => s.suggestedButtonText === form.button_text);
-// //             if (!form.button_text || currentIsDefault) {
-// //                 handleChange("button_text", subtype.suggestedButtonText);
-// //             }
-// //         }
-// //     }
-
-// //     return (
-// //         <div className="space-y-3 sticky top-[72px]">
-
-// //             {/* status (edit only) */}
-// //             {isEdit && (
-// //                 <Card>
-// //                     <CardHeader>
-// //                         <p className="text-xs font-semibold" style={{ color: "var(--color-text-primary)" }}>Status</p>
-// //                     </CardHeader>
-// //                     <div className="p-3 space-y-1.5">
-// //                         {(["active", "draft", "archived"] as const).map(s => {
-// //                             const sel = form.status === s;
-// //                             const colors: Record<string, { bg: string; border: string; text: string; dot: string }> = {
-// //                                 active: { bg: "var(--color-success-light)", border: "var(--color-success)", text: "var(--color-success)", dot: "var(--color-success)" },
-// //                                 draft: { bg: "var(--color-warning-light, #fef3c7)", border: "var(--color-warning, #f59e0b)", text: "var(--color-warning, #b45309)", dot: "var(--color-warning, #f59e0b)" },
-// //                                 archived: { bg: "var(--color-surface-secondary)", border: "var(--color-border)", text: "var(--color-text-muted)", dot: "var(--color-border-strong)" },
-// //                             };
-// //                             const c = colors[s];
-// //                             return (
-// //                                 <button
-// //                                     key={s}
-// //                                     onClick={() => handleChange("status", s)}
-// //                                     className="w-full flex items-center gap-2.5 px-3 py-2 text-left transition-all"
-// //                                     style={{
-// //                                         borderRadius: "var(--radius-sm)",
-// //                                         border: `1px solid ${sel ? c.border : "var(--color-border)"}`,
-// //                                         background: sel ? c.bg : "transparent",
-// //                                     }}
-// //                                 >
-// //                                     <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: sel ? c.dot : "var(--color-border-strong)" }} />
-// //                                     <span className="text-xs font-medium capitalize flex-1" style={{ color: sel ? c.text : "var(--color-text-muted)" }}>{s}</span>
-// //                                     {sel && <Check size={11} style={{ color: c.text }} />}
-// //                                 </button>
-// //                             );
-// //                         })}
-// //                     </div>
-// //                 </Card>
-// //             )}
-
-// //             {/* product subtype — enhanced */}
-// //             <Card>
-// //                 <CardHeader >
-// //                     <data className="flex flex-col gap-2">
-// //                         <p className="text-xs font-semibold" style={{ color: "var(--color-text-primary)" }}>Product subtype</p>
-// //                         <span className="text-[10px] hidden" style={{ color: "var(--color-text-muted)" }}>Affects tips & defaults</span>
-// //                     </data>
-// //                 </CardHeader>
-// //                 <div className="p-1.5">
-// //                     {PRODUCT_SUBTYPES.map(type => {
-// //                         const sel = form.product_subtype === type.id;
-// //                         return (
-// //                             <button
-// //                                 key={type.id}
-// //                                 onClick={() => handleSubtypeChange(type.id)}
-// //                                 className="w-full flex items-center gap-2.5 px-2.5 py-2 text-left transition-colors"
-// //                                 style={{
-// //                                     borderRadius: "var(--radius-sm)",
-// //                                     background: sel ? "var(--color-accent-light)" : "transparent",
-// //                                     color: sel ? "var(--color-accent)" : "var(--color-text-muted)",
-// //                                 }}
-// //                                 onMouseEnter={e => { if (!sel) e.currentTarget.style.background = "var(--color-surface-secondary)"; }}
-// //                                 onMouseLeave={e => { if (!sel) e.currentTarget.style.background = "transparent"; }}
-// //                             >
-// //                                 <div
-// //                                     className="w-6 h-6 flex items-center justify-center flex-shrink-0"
-// //                                     style={{
-// //                                         borderRadius: "var(--radius-sm)",
-// //                                         border: "1px solid",
-// //                                         borderColor: sel ? "var(--color-accent-subtle)" : "var(--color-border)",
-// //                                         background: sel ? "var(--color-accent-subtle)" : "var(--color-surface-secondary)",
-// //                                         color: sel ? "var(--color-accent)" : "var(--color-text-muted)",
-// //                                     }}
-// //                                 >
-// //                                     <type.Icon size={12} />
-// //                                 </div>
-// //                                 <div className="flex-1 min-w-0">
-// //                                     <span className="text-xs font-medium block">{type.label}</span>
-// //                                     <span className="text-[10px] block truncate" style={{ opacity: 0.7 }}>{type.hint}</span>
-// //                                 </div>
-// //                                 {sel && <Check size={12} />}
-// //                             </button>
-// //                         );
-// //                     })}
-// //                 </div>
-
-// //                 {/* contextual tips for selected subtype */}
-// //                 {selectedSubtype && (
-// //                     <div
-// //                         className="mx-2 mb-2 p-3"
-// //                         style={{
-// //                             borderRadius: "var(--radius-sm)",
-// //                             border: "1px solid var(--color-accent-subtle)",
-// //                             background: "var(--color-accent-light)",
-// //                         }}
-// //                     >
-// //                         <div className="flex items-center gap-1.5 mb-2">
-// //                             <Lightbulb size={11} style={{ color: "var(--color-accent)" }} />
-// //                             <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--color-accent)" }}>
-// //                                 {selectedSubtype.label} tips
-// //                             </span>
-// //                         </div>
-// //                         <ul className="space-y-1.5">
-// //                             {selectedSubtype.tips.map((tip, i) => (
-// //                                 <li key={i} className="flex items-start gap-1.5">
-// //                                     <span className="text-[10px] font-bold mt-0.5 flex-shrink-0" style={{ color: "var(--color-accent)" }}>·</span>
-// //                                     <span className="text-[10px] leading-relaxed" style={{ color: "var(--color-accent)", opacity: 0.85 }}>{tip}</span>
-// //                                 </li>
-// //                             ))}
-// //                         </ul>
-// //                         {selectedSubtype.recommendedFields.length > 0 && (
-// //                             <div className="mt-2.5 pt-2.5" style={{ borderTop: "1px solid var(--color-accent-subtle)" }}>
-// //                                 <span className="text-[10px] font-semibold block mb-1" style={{ color: "var(--color-accent)", opacity: 0.7 }}>Recommended toggles</span>
-// //                                 <div className="flex flex-wrap gap-1">
-// //                                     {selectedSubtype.recommendedFields.map(f => (
-// //                                         <span
-// //                                             key={f}
-// //                                             className="text-[9px] font-medium px-1.5 py-0.5"
-// //                                             style={{
-// //                                                 borderRadius: "var(--radius-full)",
-// //                                                 background: "var(--color-accent-subtle)",
-// //                                                 color: "var(--color-accent)",
-// //                                             }}
-// //                                         >
-// //                                             {f}
-// //                                         </span>
-// //                                     ))}
-// //                                 </div>
-// //                             </div>
-// //                         )}
-// //                     </div>
-// //                 )}
-// //             </Card>
-
-// //             {/* sales page toggles */}
-// //             <Card>
-// //                 <CardHeader>
-// //                     <p className="text-xs font-semibold" style={{ color: "var(--color-text-primary)" }}>Sales page</p>
-// //                 </CardHeader>
-// //                 <div className="px-4 py-1">
-// //                     <ToggleRow title="Show author bio" checked={form.show_author} onChange={v => handleChange("show_author", v)} />
-// //                     <ToggleRow title="Show reviews" checked={form.show_reviews} onChange={v => handleChange("show_reviews", v)} />
-// //                     <ToggleRow title="Discussions" checked={form.enable_discussions} onChange={v => handleChange("enable_discussions", v)} />
-// //                 </div>
-// //             </Card>
-
-// //             {/* advanced */}
-// //             <Card>
-// //                 <CardHeader>
-// //                     <p className="text-xs font-semibold" style={{ color: "var(--color-text-primary)" }}>Advanced</p>
-// //                 </CardHeader>
-// //                 {advItems.map(item => (
-// //                     <button
-// //                         key={item.label}
-// //                         className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs transition-colors border-b last:border-b-0"
-// //                         style={{ color: "var(--color-text-secondary)", borderColor: "var(--color-border)" }}
-// //                         onMouseEnter={e => (e.currentTarget.style.background = "var(--color-surface-secondary)")}
-// //                         onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
-// //                     >
-// //                         <item.Icon size={13} style={{ color: "var(--color-text-muted)" }} />
-// //                         <span>{item.label}</span>
-// //                         <ChevronRight size={14} className="ml-auto" style={{ color: "var(--color-border-strong)" }} />
-// //                     </button>
-// //                 ))}
-// //             </Card>
-// //         </div>
-// //     );
-// // }
+// /* ── Right sidebar ── */
 // function RightSidebar({
 //     form,
 //     handleChange,
@@ -757,8 +556,8 @@
 //                 </Card>
 //             )}
 
-//             {/* contextual tips — auto-shown when category maps to a subtype */}
-//             {selectedSubtype && (
+//             {/* contextual tips — only shown for digital products with a matched subtype */}
+//             {form.product_type === "digital" && selectedSubtype && (
 //                 <Card>
 //                     <CardHeader>
 //                         <div className="flex items-center gap-1.5">
@@ -847,6 +646,7 @@
 //         </div>
 //     );
 // }
+
 // /* ── STEP 1: Details ── */
 // function StepDetails({
 //     form, handleChange, categories, handleImageUpload, removeImage,
@@ -1048,7 +848,7 @@
 //     );
 // }
 
-// /* ── STEP 2: Pricing (unchanged) ── */
+// /* ── STEP 2: Pricing ── */
 // function StepPricing({ form, handleChange }: { form: FormState; handleChange: (f: string, v: unknown) => void }) {
 //     const isFree = parseFloat(form.price) === 0;
 //     return (
@@ -1102,6 +902,7 @@
 //                             </div>
 //                         </div>
 
+//                         {/* ✅ Recurring billing only shown for digital products */}
 //                         {form.product_type === "digital" && (
 //                             <div className="space-y-3">
 //                                 <Label>Billing type</Label>
@@ -1148,6 +949,22 @@
 //                                         </div>
 //                                     </div>
 //                                 )}
+//                             </div>
+//                         )}
+
+//                         {/* Physical product: show one-time only note */}
+//                         {form.product_type === "physical" && (
+//                             <div
+//                                 className="flex items-center gap-2 px-3 py-2.5 text-xs"
+//                                 style={{
+//                                     borderRadius: "var(--radius-sm)",
+//                                     border: "1px solid var(--color-border)",
+//                                     background: "var(--color-surface-secondary)",
+//                                     color: "var(--color-text-muted)",
+//                                 }}
+//                             >
+//                                 <ShoppingBag size={13} />
+//                                 Physical products are always charged as a one-time payment.
 //                             </div>
 //                         )}
 //                     </div>
@@ -1340,12 +1157,13 @@
 //     form: FormState; isPending: boolean; handleSubmit: () => void; isEdit: boolean;
 // }) {
 //     const price = parseFloat(form.price) || 0;
+//     const isDigital = form.product_type === "digital";
 //     const checks = [
 //         { label: "Product name added", done: !!form.name.trim() },
 //         { label: "Headline written", done: !!form.short_description.trim() },
 //         { label: "Category selected", done: !!form.category_id },
 //         { label: "Pricing configured", done: true },
-//         { label: "Fulfilment set up", done: form.product_type === "physical" || !!form.digital_file_url },
+//         { label: "Fulfilment set up", done: !isDigital || !!form.digital_file_url },
 //     ];
 //     const allDone = checks.every(c => c.done);
 //     return (
@@ -1392,9 +1210,16 @@
 //                     {[
 //                         { k: "Name", v: form.name || "—" },
 //                         { k: "Status", v: isEdit ? form.status : "Active on publish" },
+//                         { k: "Type", v: form.product_type },
 //                         { k: "Price", v: price === 0 ? "Free" : `$${price.toFixed(2)} ${form.currency}` },
-//                         { k: "Billing", v: price === 0 ? "—" : form.pricing_type === "recurring" ? `Recurring · ${form.billing_period}` : "One-time" },
-//                         { k: "Fulfilment", v: form.product_type === "digital" ? "Digital" : "Physical" },
+//                         {
+//                             k: "Billing",
+//                             v: price === 0 ? "—"
+//                                 : !isDigital ? "One-time (physical)"
+//                                     : form.pricing_type === "recurring" ? `Recurring · ${form.billing_period}`
+//                                         : "One-time",
+//                         },
+//                         { k: "Fulfilment", v: isDigital ? "Digital delivery" : "Physical shipping" },
 //                     ].map(row => (
 //                         <div key={row.k} className="flex items-center justify-between px-4 py-3 border-b last:border-b-0" style={{ borderColor: "var(--color-border)" }}>
 //                             <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>{row.k}</span>
@@ -1452,7 +1277,8 @@
 
 //     const [form, setForm] = useState<FormState>({
 //         name: "", slug: "", short_description: "", description: "",
-//         product_type: "digital", product_subtype: "course",
+//         product_type: "digital",
+//         product_subtype: "course",           // default only valid for digital
 //         price: "29.99", currency: "USD", category_id: "",
 //         is_digital: true,
 //         pricing_type: "recurring", billing_period: "monthly",
@@ -1481,7 +1307,6 @@
 //                 .order("sort_order");
 //             setCategories(cats ?? []);
 
-//             // if editing, load product
 //             if (isEdit && productId) {
 //                 const { data: product, error: pErr } = await supabase
 //                     .from("products")
@@ -1490,18 +1315,27 @@
 //                     .single();
 //                 if (pErr || !product) { setError("Product not found."); setLoading(false); return; }
 
+//                 // ✅ Fix 6: derive is_digital from product_type on load — single source of truth
+//                 const loadedType: "physical" | "digital" = product.product_type ?? "digital";
+//                 const loadedIsDigital = loadedType === "digital";
+//                 const loadedSubtype = product.product_subtype
+//                     ?? product.source_metadata?.product_subtype
+//                     ?? (loadedIsDigital ? "course" : "");
+
 //                 setForm({
 //                     name: product.name ?? "",
 //                     slug: product.slug ?? "",
 //                     short_description: product.short_description ?? "",
 //                     description: product.description ?? "",
-//                     product_type: product.product_type ?? "digital",
-//                     product_subtype: product.product_subtype ?? "course",
+//                     product_type: loadedType,
+//                     product_subtype: loadedSubtype,
 //                     price: String(product.price ?? "0"),
 //                     currency: product.currency ?? "USD",
 //                     category_id: product.category_id ?? "",
-//                     is_digital: product.is_digital ?? true,
-//                     pricing_type: product.pricing_type ?? "one_time",
+//                     is_digital: loadedIsDigital,                          // ✅ derived, not raw
+//                     pricing_type: loadedIsDigital
+//                         ? (product.pricing_type ?? "one_time")
+//                         : "one_time",                                      // ✅ physical always one_time
 //                     billing_period: product.billing_period ?? "monthly",
 //                     digital_file_url: product.digital_file_url ?? "",
 //                     track_inventory: product.track_inventory ?? false,
@@ -1514,9 +1348,9 @@
 //                     weight: String(product.weight ?? ""),
 //                     dimensions: product.dimensions ?? "",
 //                     images: Array.isArray(product.images) ? product.images : [],
-//                     show_author: product.show_author ?? true,
-//                     show_reviews: product.show_reviews ?? true,
-//                     enable_discussions: product.enable_discussions ?? false,
+//                     show_author: product.show_author ?? product.source_metadata?.show_author ?? true,
+//                     show_reviews: product.show_reviews ?? product.source_metadata?.show_reviews ?? true,
+//                     enable_discussions: product.enable_discussions ?? product.source_metadata?.enable_discussions ?? false,
 //                     status: product.status ?? "active",
 //                 });
 //             }
@@ -1525,42 +1359,28 @@
 //         load();
 //     }, [router, isEdit, productId]);
 
-//     // function handleChange(field: string, value: unknown) {
-//     //     setForm(prev => {
-//     //         const updated = { ...prev, [field]: value };
-//     //         if (field === "name" && !isEdit) updated.slug = slugify(value as string);
-//     //         if (field === "product_type") {
-//     //             const isDigital = value === "digital";
-//     //             updated.is_digital = isDigital;
-//     //             if (!isDigital) updated.pricing_type = "one_time";
-//     //             const currentCat = categories.find(c => c.id === updated.category_id);
-//     //             if (currentCat) {
-//     //                 const ct = currentCat.category_type;
-//     //                 if (isDigital && ct === "physical") updated.category_id = "";
-//     //                 if (!isDigital && ct === "digital") updated.category_id = "";
-//     //             }
-//     //         }
-//     //         return updated;
-//     //     });
-//     // }
 //     function handleChange(field: string, value: unknown) {
 //         setForm(prev => {
 //             const updated = { ...prev, [field]: value };
 
 //             if (field === "name" && !isEdit) updated.slug = slugify(value as string);
 
-//             // Auto-derive product_subtype from category slug
+//             // ✅ Fix 2: Auto-derive subtype from category slug, guarded to digital only
 //             if (field === "category_id") {
 //                 const cat = categories.find(c => c.id === value);
-//                 if (cat?.slug) {
+//                 if (cat?.slug && updated.product_type === "digital") {
 //                     const matched = PRODUCT_SUBTYPES.find(s => s.id === cat.slug);
 //                     if (matched) {
 //                         updated.product_subtype = matched.id;
-//                         // Auto-suggest button text if not customised
-//                         const currentIsDefault = PRODUCT_SUBTYPES.some(s => s.suggestedButtonText === prev.button_text);
+//                         const currentIsDefault = PRODUCT_SUBTYPES.some(
+//                             s => s.suggestedButtonText === prev.button_text
+//                         );
 //                         if (!prev.button_text || currentIsDefault) {
 //                             updated.button_text = matched.suggestedButtonText;
 //                         }
+//                     } else {
+//                         // No subtype matched — clear it so sidebar tips disappear
+//                         updated.product_subtype = "";
 //                     }
 //                 }
 //             }
@@ -1568,7 +1388,17 @@
 //             if (field === "product_type") {
 //                 const isDigital = value === "digital";
 //                 updated.is_digital = isDigital;
-//                 if (!isDigital) updated.pricing_type = "one_time";
+
+//                 // ✅ Fix 1: reset subtype when switching types
+//                 updated.product_subtype = isDigital ? "course" : "";
+
+//                 // ✅ Fix 3: physical products are always one_time; clear billing_period
+//                 if (!isDigital) {
+//                     updated.pricing_type = "one_time";
+//                     updated.billing_period = "";
+//                 }
+
+//                 // Clear category if it doesn't match the new type
 //                 const currentCat = categories.find(c => c.id === updated.category_id);
 //                 if (currentCat) {
 //                     const ct = currentCat.category_type;
@@ -1580,6 +1410,7 @@
 //             return updated;
 //         });
 //     }
+
 //     function handleImageUpload(url: string) {
 //         setForm(prev => ({ ...prev, images: [...prev.images, url] }));
 //     }
@@ -1596,37 +1427,47 @@
 //         startTransition(async () => {
 //             const supabase = createClient();
 
+//             // ✅ Fix 4 & 5: single source of truth — derive isDigital from product_type
+//             const isDigital = form.product_type === "digital";
+
+//             // ✅ Fix 3: billing_period is null for physical OR one_time
+//             const billingPeriod =
+//                 isDigital && form.pricing_type === "recurring" ? form.billing_period : null;
+
 //             const payload = {
 //                 name: form.name,
 //                 slug: form.slug || slugify(form.name),
 //                 short_description: form.short_description || null,
 //                 description: form.description || null,
 //                 product_type: form.product_type,
-
 //                 status: form.status,
 //                 price,
 //                 currency: form.currency,
-//                 pricing_type: form.pricing_type,
-//                 billing_period: form.pricing_type === "recurring" ? form.billing_period : null,
+//                 pricing_type: isDigital ? form.pricing_type : "one_time",  // ✅ enforce on save
+//                 billing_period: billingPeriod,                               // ✅ fixed
 //                 category_id: form.category_id || null,
-//                 is_digital: form.is_digital,
-//                 digital_file_url: form.is_digital ? (form.digital_file_url || null) : null,
-//                 track_inventory: !form.is_digital && form.track_inventory,
-//                 inventory_quantity: form.is_digital ? 0 : parseInt(form.inventory_quantity || "0"),
-//                 weight: !form.is_digital ? (parseFloat(form.weight) || null) : null,
-//                 dimensions: !form.is_digital ? (form.dimensions || null) : null,
+//                 is_digital: isDigital,                                       // ✅ derived
+//                 digital_file_url: isDigital ? (form.digital_file_url || null) : null,
+//                 track_inventory: !isDigital && form.track_inventory,
+//                 inventory_quantity: isDigital ? 0 : parseInt(form.inventory_quantity || "0"),
+//                 weight: !isDigital ? (parseFloat(form.weight) || null) : null,
+//                 dimensions: !isDigital ? (form.dimensions || null) : null,
 //                 affiliate_enabled: form.affiliate_enabled,
-//                 affiliate_commission_rate: form.affiliate_enabled ? parseFloat(form.affiliate_commission_rate || "10") : null,
+//                 affiliate_commission_rate: form.affiliate_enabled
+//                     ? parseFloat(form.affiliate_commission_rate || "10")
+//                     : null,
 //                 is_featured: form.is_featured,
 //                 button_text: form.button_text || null,
-//                 tags: form.tags ? form.tags.split(",").map(t => t.trim()).filter(Boolean) : null,
+//                 tags: form.tags
+//                     ? form.tags.split(",").map(t => t.trim()).filter(Boolean)
+//                     : null,
 //                 images: form.images,
 //                 source_metadata: {
 //                     show_reviews: form.show_reviews,
 //                     show_author: form.show_author,
 //                     enable_discussions: form.enable_discussions,
-//                     product_subtype: form.product_subtype || null,
-//                 }
+//                     product_subtype: form.product_subtype || null,   // ✅ Fix 5: "" → null
+//                 },
 //             };
 
 //             let insertErr: any = null;
@@ -1869,8 +1710,6 @@
 //                                 <Button
 //                                     onClick={handleSubmit}
 //                                     disabled={isPending}
-//                                 // className="flex items-center gap-1.5 h-8 px-3  text-xs font-semibold text-white transition-all disabled:opacity-60"
-//                                 // style={{ borderRadius: "var(--radius-full)", background: "var(--color-accent)" }}
 //                                 >
 //                                     {isPending ? <Loader2 size={12} className="animate-spin" /> : <Zap size={12} />}
 //                                     {isPending ? "…" : (isEdit ? "Save" : "Publish")}
@@ -1889,6 +1728,7 @@
 //         </div>
 //     );
 // }
+
 
 "use client";
 export const dynamic = "force-dynamic";
@@ -1938,7 +1778,12 @@ const BILLING_PERIODS = [
 
 const BUTTON_TEXTS = ["Buy Now", "Get Access", "Order Now", "Purchase", "Download", "Subscribe", "Join now"];
 
-/* ── Product subtypes with rich metadata ── */
+/* ── Product subtypes ──
+   `id` now matches the actual product_type enum value in the database
+   (note: 'template' singular, matching the schema).
+   These are NOT a separate concept anymore — they're the granular
+   product_type that gets saved directly when the user picks "Digital".
+*/
 const PRODUCT_SUBTYPES = [
     {
         id: "course",
@@ -1953,7 +1798,6 @@ const PRODUCT_SUBTYPES = [
         recommendedFields: ["Show author bio", "Show reviews", "Discussions"],
         suggestedButtonText: "Enroll Now",
         previewBadge: "Online Course",
-        extraFields: ["curriculum", "total_hours", "skill_level", "certificate"],
     },
     {
         id: "coaching",
@@ -1968,7 +1812,6 @@ const PRODUCT_SUBTYPES = [
         recommendedFields: ["Show author bio"],
         suggestedButtonText: "Book a Session",
         previewBadge: "Coaching Program",
-        extraFields: ["sessions_count", "session_duration", "format"],
     },
     {
         id: "ebook",
@@ -1983,7 +1826,6 @@ const PRODUCT_SUBTYPES = [
         recommendedFields: ["Show reviews"],
         suggestedButtonText: "Download Now",
         previewBadge: "E-book",
-        extraFields: ["page_count", "file_format", "language"],
     },
     {
         id: "software",
@@ -1998,10 +1840,9 @@ const PRODUCT_SUBTYPES = [
         recommendedFields: ["Discussions"],
         suggestedButtonText: "Get Access",
         previewBadge: "Software",
-        extraFields: ["platform", "version", "license_type"],
     },
     {
-        id: "templates",
+        id: "template",                       // ✅ singular, matches enum
         label: "Templates",
         Icon: LayoutTemplate,
         hint: "Ready-to-use files",
@@ -2013,7 +1854,6 @@ const PRODUCT_SUBTYPES = [
         recommendedFields: ["Show reviews"],
         suggestedButtonText: "Get Templates",
         previewBadge: "Template Pack",
-        extraFields: ["file_formats", "tools_required", "template_count"],
     },
     {
         id: "community",
@@ -2028,7 +1868,6 @@ const PRODUCT_SUBTYPES = [
         recommendedFields: ["Show author bio", "Discussions"],
         suggestedButtonText: "Join Community",
         previewBadge: "Community",
-        extraFields: ["platform", "member_count", "access_level"],
     },
     {
         id: "bundle",
@@ -2043,11 +1882,19 @@ const PRODUCT_SUBTYPES = [
         recommendedFields: ["Show reviews", "Show author bio"],
         suggestedButtonText: "Get the Bundle",
         previewBadge: "Bundle",
-        extraFields: ["items_included", "total_value"],
     },
 ];
 
+// Valid product_type enum values that count as "digital" for UI purposes.
+const DIGITAL_ENUM_VALUES = new Set([
+    "digital", "course", "software", "template", "ebook",
+    "coaching", "community", "bundle", "subscription",
+]);
+
 /* ── form state ── */
+// `product_type` here is the UI bucket (physical/digital).
+// `product_subtype` is the granular pick within "digital".
+// On save, we collapse them into a single `product_type` enum value.
 interface FormState {
     name: string;
     slug: string;
@@ -2075,7 +1922,7 @@ interface FormState {
     show_author: boolean;
     show_reviews: boolean;
     enable_discussions: boolean;
-    status: "active" | "draft" | "archived";
+    status: "active" | "draft" | "paused" | "archived";
 }
 
 /* ── reusable primitives ── */
@@ -2253,42 +2100,212 @@ function TagInput({ value, onChange }: { value: string; onChange: (v: string) =>
 }
 
 /* ── live preview ── */
+// function LivePreview({ form }: { form: FormState }) {
+//     const price = parseFloat(form.price) || 0;
+//     const isFree = price === 0;
+//     const tags = form.tags ? form.tags.split(",").slice(0, 4).map(t => t.trim()).filter(Boolean) : [];
+//     const subtype = PRODUCT_SUBTYPES.find(s => s.id === form.product_subtype);
+
+//     return (
+//         <Card className="sticky top-[72px] bg-[--color-surface] overflow-hidden">
+//             <CardHeader>
+//                 <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--color-text-muted)" }}>Preview</span>
+//                 <span
+//                     className="text-[10px] font-medium px-2 py-0.5"
+//                     style={{
+//                         borderRadius: "var(--radius-full)",
+//                         background: "var(--color-surface-secondary)",
+//                         border: "1px solid var(--color-border)",
+//                         color: "var(--color-text-muted)",
+//                     }}
+//                 >
+//                     Buyer view
+//                 </span>
+//             </CardHeader>
+//             <div className="p-4">
+//                 {/* cover */}
+//                 <div
+//                     className="w-full aspect-video flex items-center justify-center mb-3 relative overflow-hidden"
+//                     style={{
+//                         borderRadius: "var(--radius-md)",
+//                         border: "1px solid var(--color-border)",
+//                         background: "var(--color-surface-secondary)",
+//                     }}
+//                 >
+//                     {form.images[0] ? (
+//                         <CloudinaryImage src={form.images[0]} alt="cover" fill className="object-cover" />
+//                     ) : (
+//                         <div className="flex flex-col items-center gap-1" style={{ color: "var(--color-border-strong)" }}>
+//                             <ImageIcon size={24} />
+//                             <span className="text-[10px]">Cover image</span>
+//                         </div>
+//                     )}
+//                     {subtype && (
+//                         <div
+//                             className="absolute top-2 left-2 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide"
+//                             style={{
+//                                 borderRadius: "var(--radius-full)",
+//                                 background: "var(--color-accent)",
+//                                 color: "#fff",
+//                             }}
+//                         >
+//                             {subtype.previewBadge}
+//                         </div>
+//                     )}
+//                     {form.status === "draft" && (
+//                         <div
+//                             className="absolute top-2 right-2 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide"
+//                             style={{
+//                                 borderRadius: "var(--radius-full)",
+//                                 background: "var(--color-warning-light, #fef3c7)",
+//                                 border: "1px solid var(--color-warning, #f59e0b)",
+//                                 color: "var(--color-warning, #b45309)",
+//                             }}
+//                         >
+//                             Draft
+//                         </div>
+//                     )}
+//                 </div>
+
+//                 <div className="flex items-center gap-1.5 mb-2">
+//                     <div className="flex">
+//                         {["#fecaca", "#fed7aa", "#e9d5ff"].map((c, i) => (
+//                             <div key={i} className="w-4 h-4 rounded-full border-2 -mr-1" style={{ background: c, borderColor: "var(--color-surface)" }} />
+//                         ))}
+//                     </div>
+//                     <span className="text-[11px]" style={{ color: "var(--color-text-muted)" }}>2.8k+ students</span>
+//                     <span className="text-[11px] ml-auto" style={{ color: "var(--color-text-muted)" }}>★ 4.9</span>
+//                 </div>
+
+//                 <p
+//                     className="text-sm font-bold leading-snug mb-1"
+//                     style={{ color: form.name ? "var(--color-text-primary)" : "var(--color-border-strong)", fontStyle: form.name ? "normal" : "italic", fontWeight: form.name ? 700 : 400 }}
+//                 >
+//                     {form.name || "Your product name"}
+//                 </p>
+
+//                 {form.short_description && (
+//                     <p className="text-[11px] mb-2 leading-relaxed" style={{ color: "var(--color-text-muted)" }}>{form.short_description}</p>
+//                 )}
+
+//                 <p className="text-xl font-bold mb-2" style={{ color: "var(--color-text-primary)" }}>
+//                     {isFree ? "Free" : `$${price.toFixed(2)}`}
+//                     {!isFree && form.pricing_type === "recurring" && form.product_type === "digital" && (
+//                         <span className="text-xs font-normal" style={{ color: "var(--color-text-muted)" }}> / {form.billing_period}</span>
+//                     )}
+//                 </p>
+
+//                 <button
+//                     className="w-full py-2 text-xs font-semibold text-white cursor-default"
+//                     style={{ borderRadius: "var(--radius-sm)", background: "var(--color-accent)" }}
+//                 >
+//                     {form.button_text || subtype?.suggestedButtonText || "Buy Now"}
+//                 </button>
+
+//                 {tags.length > 0 && (
+//                     <div className="flex flex-wrap gap-1 mt-3">
+//                         {tags.map((t, i) => (
+//                             <span
+//                                 key={i}
+//                                 className="text-[10px] px-2 py-0.5"
+//                                 style={{
+//                                     borderRadius: "var(--radius-full)",
+//                                     background: "var(--color-accent-light)",
+//                                     border: "1px solid var(--color-accent-subtle)",
+//                                     color: "var(--color-accent)",
+//                                 }}
+//                             >
+//                                 {t}
+//                             </span>
+//                         ))}
+//                     </div>
+//                 )}
+
+//                 {form.name && (
+//                     <>
+//                         <div className="my-3" style={{ borderTop: "1px solid var(--color-border)" }} />
+//                         <div className="flex justify-between text-xs">
+//                             <span style={{ color: "var(--color-text-muted)" }}>Type</span>
+//                             <span className="font-medium capitalize" style={{ color: "var(--color-text-secondary)" }}>
+//                                 {subtype?.label || form.product_type}
+//                             </span>
+//                         </div>
+//                     </>
+//                 )}
+//             </div>
+//         </Card>
+//     );
+// }
 function LivePreview({ form }: { form: FormState }) {
     const price = parseFloat(form.price) || 0;
     const isFree = price === 0;
     const tags = form.tags ? form.tags.split(",").slice(0, 4).map(t => t.trim()).filter(Boolean) : [];
     const subtype = PRODUCT_SUBTYPES.find(s => s.id === form.product_subtype);
 
+    // Centralized fallback tokens — every var() in this component falls back here
+    const t = {
+        surface: "var(--color-surface, #ffffff)",
+        surfaceSecondary: "var(--color-surface-secondary, #f5f5f5)",
+        border: "var(--color-border, #e5e5e5)",
+        borderStrong: "var(--color-border-strong, #d4d4d4)",
+        textPrimary: "var(--color-text-primary, #0a0a0a)",
+        textSecondary: "var(--color-text-secondary, #525252)",
+        textMuted: "var(--color-text-muted, #737373)",
+        accent: "var(--color-accent, #fd5000)",
+        accentLight: "var(--color-accent-light, rgba(253,80,0,0.08))",
+        accentSubtle: "var(--color-accent-subtle, rgba(253,80,0,0.2))",
+        radiusSm: "var(--radius-sm, 6px)",
+        radiusMd: "var(--radius-md, 10px)",
+        radiusLg: "var(--radius-lg, 14px)",
+        radiusFull: "var(--radius-full, 999px)",
+        shadowSm: "var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.04))",
+    };
+
     return (
-        <Card className="sticky top-[72px] bg-[--color-surface] overflow-hidden">
-            <CardHeader>
-                <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--color-text-muted)" }}>Preview</span>
+        <div
+            className="sticky top-[72px] overflow-hidden"
+            style={{
+                borderRadius: t.radiusLg,
+                border: `1px solid ${t.border}`,
+                background: t.surface,
+                boxShadow: t.shadowSm,
+            }}
+        >
+            {/* header */}
+            <div
+                className="flex items-center justify-between px-4 py-3"
+                style={{ borderBottom: `1px solid ${t.border}` }}
+            >
+                <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: t.textMuted }}>
+                    Preview
+                </span>
                 <span
                     className="text-[10px] font-medium px-2 py-0.5"
                     style={{
-                        borderRadius: "var(--radius-full)",
-                        background: "var(--color-surface-secondary)",
-                        border: "1px solid var(--color-border)",
-                        color: "var(--color-text-muted)",
+                        borderRadius: t.radiusFull,
+                        background: t.surfaceSecondary,
+                        border: `1px solid ${t.border}`,
+                        color: t.textMuted,
                     }}
                 >
                     Buyer view
                 </span>
-            </CardHeader>
+            </div>
+
             <div className="p-4">
                 {/* cover */}
                 <div
                     className="w-full aspect-video flex items-center justify-center mb-3 relative overflow-hidden"
                     style={{
-                        borderRadius: "var(--radius-md)",
-                        border: "1px solid var(--color-border)",
-                        background: "var(--color-surface-secondary)",
+                        borderRadius: t.radiusMd,
+                        border: `1px solid ${t.border}`,
+                        background: t.surfaceSecondary,
                     }}
                 >
                     {form.images[0] ? (
                         <CloudinaryImage src={form.images[0]} alt="cover" fill className="object-cover" />
                     ) : (
-                        <div className="flex flex-col items-center gap-1" style={{ color: "var(--color-border-strong)" }}>
+                        <div className="flex flex-col items-center gap-1" style={{ color: t.borderStrong }}>
                             <ImageIcon size={24} />
                             <span className="text-[10px]">Cover image</span>
                         </div>
@@ -2297,8 +2314,8 @@ function LivePreview({ form }: { form: FormState }) {
                         <div
                             className="absolute top-2 left-2 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide"
                             style={{
-                                borderRadius: "var(--radius-full)",
-                                background: "var(--color-accent)",
+                                borderRadius: t.radiusFull,
+                                background: t.accent,
                                 color: "#fff",
                             }}
                         >
@@ -2309,10 +2326,10 @@ function LivePreview({ form }: { form: FormState }) {
                         <div
                             className="absolute top-2 right-2 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide"
                             style={{
-                                borderRadius: "var(--radius-full)",
-                                background: "var(--color-warning-light, #fef3c7)",
-                                border: "1px solid var(--color-warning, #f59e0b)",
-                                color: "var(--color-warning, #b45309)",
+                                borderRadius: t.radiusFull,
+                                background: "#fef3c7",
+                                border: "1px solid #f59e0b",
+                                color: "#b45309",
                             }}
                         >
                             Draft
@@ -2323,52 +2340,64 @@ function LivePreview({ form }: { form: FormState }) {
                 <div className="flex items-center gap-1.5 mb-2">
                     <div className="flex">
                         {["#fecaca", "#fed7aa", "#e9d5ff"].map((c, i) => (
-                            <div key={i} className="w-4 h-4 rounded-full border-2 -mr-1" style={{ background: c, borderColor: "var(--color-surface)" }} />
+                            <div
+                                key={i}
+                                className="w-4 h-4 rounded-full border-2 -mr-1"
+                                style={{ background: c, borderColor: t.surface }}
+                            />
                         ))}
                     </div>
-                    <span className="text-[11px]" style={{ color: "var(--color-text-muted)" }}>2.8k+ students</span>
-                    <span className="text-[11px] ml-auto" style={{ color: "var(--color-text-muted)" }}>★ 4.9</span>
+                    <span className="text-[11px]" style={{ color: t.textMuted }}>2.8k+ students</span>
+                    <span className="text-[11px] ml-auto" style={{ color: t.textMuted }}>★ 4.9</span>
                 </div>
 
                 <p
-                    className="text-sm font-bold leading-snug mb-1"
-                    style={{ color: form.name ? "var(--color-text-primary)" : "var(--color-border-strong)", fontStyle: form.name ? "normal" : "italic", fontWeight: form.name ? 700 : 400 }}
+                    className="text-sm leading-snug mb-1"
+                    style={{
+                        color: form.name ? t.textPrimary : t.borderStrong,
+                        fontStyle: form.name ? "normal" : "italic",
+                        fontWeight: form.name ? 700 : 400,
+                    }}
                 >
                     {form.name || "Your product name"}
                 </p>
 
                 {form.short_description && (
-                    <p className="text-[11px] mb-2 leading-relaxed" style={{ color: "var(--color-text-muted)" }}>{form.short_description}</p>
+                    <p className="text-[11px] mb-2 leading-relaxed" style={{ color: t.textMuted }}>
+                        {form.short_description}
+                    </p>
                 )}
 
-                <p className="text-xl font-bold mb-2" style={{ color: "var(--color-text-primary)" }}>
+                <p className="text-xl font-bold mb-2" style={{ color: t.textPrimary }}>
                     {isFree ? "Free" : `$${price.toFixed(2)}`}
                     {!isFree && form.pricing_type === "recurring" && form.product_type === "digital" && (
-                        <span className="text-xs font-normal" style={{ color: "var(--color-text-muted)" }}> / {form.billing_period}</span>
+                        <span className="text-xs font-normal" style={{ color: t.textMuted }}>
+                            {" "}/ {form.billing_period}
+                        </span>
                     )}
                 </p>
 
                 <button
                     className="w-full py-2 text-xs font-semibold text-white cursor-default"
-                    style={{ borderRadius: "var(--radius-sm)", background: "var(--color-accent)" }}
+                    style={{ borderRadius: t.radiusSm, background: t.accent }}
                 >
                     {form.button_text || subtype?.suggestedButtonText || "Buy Now"}
                 </button>
 
                 {tags.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-3">
-                        {tags.map((t, i) => (
+                        {tags.map((tag, i) => (
                             <span
                                 key={i}
                                 className="text-[10px] px-2 py-0.5"
                                 style={{
-                                    borderRadius: "var(--radius-full)",
-                                    background: "var(--color-accent-light)",
-                                    border: "1px solid var(--color-accent-subtle)",
-                                    color: "var(--color-accent)",
+                                    borderRadius: t.radiusFull,
+                                    background: t.accentLight,
+                                    border: `1px solid ${t.accentSubtle}`,
+                                    color: t.accent,
                                 }}
                             >
-                                {t}
+                                {tag}
                             </span>
                         ))}
                     </div>
@@ -2376,20 +2405,19 @@ function LivePreview({ form }: { form: FormState }) {
 
                 {form.name && (
                     <>
-                        <div className="my-3" style={{ borderTop: "1px solid var(--color-border)" }} />
+                        <div className="my-3" style={{ borderTop: `1px solid ${t.border}` }} />
                         <div className="flex justify-between text-xs">
-                            <span style={{ color: "var(--color-text-muted)" }}>Type</span>
-                            <span className="font-medium capitalize" style={{ color: "var(--color-text-secondary)" }}>
+                            <span style={{ color: t.textMuted }}>Type</span>
+                            <span className="font-medium capitalize" style={{ color: t.textSecondary }}>
                                 {subtype?.label || form.product_type}
                             </span>
                         </div>
                     </>
                 )}
             </div>
-        </Card>
+        </div>
     );
 }
-
 /* ── Right sidebar ── */
 function RightSidebar({
     form,
@@ -2412,18 +2440,19 @@ function RightSidebar({
     return (
         <div className="space-y-3 sticky top-[72px]">
 
-            {/* status (edit only) */}
+            {/* status (edit only) — now includes 'paused' to match schema enum */}
             {isEdit && (
                 <Card>
                     <CardHeader>
                         <p className="text-xs font-semibold" style={{ color: "var(--color-text-primary)" }}>Status</p>
                     </CardHeader>
                     <div className="p-3 space-y-1.5">
-                        {(["active", "draft", "archived"] as const).map(s => {
+                        {(["active", "draft", "paused", "archived"] as const).map(s => {
                             const sel = form.status === s;
                             const colors: Record<string, { bg: string; border: string; text: string; dot: string }> = {
                                 active: { bg: "var(--color-success-light)", border: "var(--color-success)", text: "var(--color-success)", dot: "var(--color-success)" },
                                 draft: { bg: "var(--color-warning-light, #fef3c7)", border: "var(--color-warning, #f59e0b)", text: "var(--color-warning, #b45309)", dot: "var(--color-warning, #f59e0b)" },
+                                paused: { bg: "var(--color-surface-secondary)", border: "var(--color-border-strong)", text: "var(--color-text-secondary)", dot: "var(--color-text-muted)" },
                                 archived: { bg: "var(--color-surface-secondary)", border: "var(--color-border)", text: "var(--color-text-muted)", dot: "var(--color-border-strong)" },
                             };
                             const c = colors[s];
@@ -2504,7 +2533,7 @@ function RightSidebar({
                 </Card>
             )}
 
-            {/* sales page toggles */}
+            {/* sales page toggles — now real columns, not source_metadata */}
             <Card>
                 <CardHeader>
                     <p className="text-xs font-semibold" style={{ color: "var(--color-text-primary)" }}>Sales page</p>
@@ -2794,7 +2823,7 @@ function StepPricing({ form, handleChange }: { form: FormState; handleChange: (f
                             </div>
                         </div>
 
-                        {/* ✅ Recurring billing only shown for digital products */}
+                        {/* Recurring billing only shown for digital products */}
                         {form.product_type === "digital" && (
                             <div className="space-y-3">
                                 <Label>Billing type</Label>
@@ -3043,6 +3072,112 @@ function StepSettings({ form, handleChange }: { form: FormState; handleChange: (
 }
 
 /* ── STEP 4: Publish / Save ── */
+// function StepPublish({
+//     form, isPending, handleSubmit, isEdit,
+// }: {
+//     form: FormState; isPending: boolean; handleSubmit: () => void; isEdit: boolean;
+// }) {
+//     const price = parseFloat(form.price) || 0;
+//     const isDigital = form.product_type === "digital";
+//     const checks = [
+//         { label: "Product name added", done: !!form.name.trim() },
+//         { label: "Headline written", done: !!form.short_description.trim() },
+//         { label: "Category selected", done: !!form.category_id },
+//         { label: "Pricing configured", done: true },
+//         { label: "Fulfilment set up", done: !isDigital || !!form.digital_file_url },
+//     ];
+//     const allDone = checks.every(c => c.done);
+//     return (
+//         <div className="space-y-6">
+//             <div>
+//                 <SectionTitle label={isEdit ? "Save checklist" : "Pre-launch checklist"} />
+//                 <div className="space-y-2">
+//                     {checks.map(item => (
+//                         <div
+//                             key={item.label}
+//                             className="flex items-center gap-3 px-4 py-3 text-sm"
+//                             style={{
+//                                 borderRadius: "var(--radius-md)",
+//                                 border: `1px solid ${item.done ? "var(--color-success)" : "var(--color-border)"}`,
+//                                 background: item.done ? "var(--color-success-light)" : "var(--color-surface-secondary)",
+//                                 color: item.done ? "var(--color-success)" : "var(--color-text-muted)",
+//                             }}
+//                         >
+//                             {item.done ? <Check size={15} /> : <Circle size={15} />}
+//                             <span className="flex-1">{item.label}</span>
+//                             {!item.done && (
+//                                 <span
+//                                     className="text-[10px] font-semibold px-2 py-0.5"
+//                                     style={{
+//                                         borderRadius: "var(--radius-full)",
+//                                         background: "var(--color-accent-light)",
+//                                         border: "1px solid var(--color-accent-subtle)",
+//                                         color: "var(--color-accent)",
+//                                     }}
+//                                 >
+//                                     Required
+//                                 </span>
+//                             )}
+//                         </div>
+//                     ))}
+//                 </div>
+//             </div>
+
+//             <Divider />
+
+//             <div>
+//                 <SectionTitle label="Summary" />
+//                 <div className="overflow-hidden" style={{ borderRadius: "var(--radius-md)", border: "1px solid var(--color-border)" }}>
+//                     {[
+//                         { k: "Name", v: form.name || "—" },
+//                         { k: "Status", v: isEdit ? form.status : "Active on publish" },
+//                         { k: "Type", v: form.product_type },
+//                         { k: "Price", v: price === 0 ? "Free" : `$${price.toFixed(2)} ${form.currency}` },
+//                         {
+//                             k: "Billing",
+//                             v: price === 0 ? "—"
+//                                 : !isDigital ? "One-time (physical)"
+//                                     : form.pricing_type === "recurring" ? `Recurring · ${form.billing_period}`
+//                                         : "One-time",
+//                         },
+//                         { k: "Fulfilment", v: isDigital ? "Digital delivery" : "Physical shipping" },
+//                     ].map(row => (
+//                         <div key={row.k} className="flex items-center justify-between px-4 py-3 border-b last:border-b-0" style={{ borderColor: "var(--color-border)" }}>
+//                             <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>{row.k}</span>
+//                             <span className="text-xs font-semibold capitalize" style={{ color: "var(--color-text-primary)" }}>{row.v}</span>
+//                         </div>
+//                     ))}
+//                 </div>
+//             </div>
+
+//             <button
+//                 onClick={handleSubmit}
+//                 disabled={isPending || !allDone}
+//                 className="w-full h-12 text-sm font-semibold flex items-center justify-center gap-2 text-white transition-all active:scale-[0.98]"
+//                 style={{
+//                     borderRadius: "var(--radius-lg)",
+//                     background: isPending || !allDone ? "var(--color-border-strong)" : "var(--color-accent)",
+//                     cursor: isPending || !allDone ? "not-allowed" : "pointer",
+//                     boxShadow: !isPending && allDone ? "var(--shadow-glow)" : "none",
+//                 }}
+//             >
+//                 {isPending ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} />}
+//                 {isPending
+//                     ? (isEdit ? "Saving…" : "Publishing…")
+//                     : allDone
+//                         ? (isEdit ? "Save changes" : "Publish product")
+//                         : "Complete checklist to continue"}
+//             </button>
+//             <p className="text-[11px] text-center" style={{ color: "var(--color-text-muted)" }}>
+//                 {allDone
+//                     ? (isEdit ? "Changes will go live immediately" : "Your product will go live immediately after publishing")
+//                     : "Complete all required fields above"}
+//             </p>
+//         </div>
+//     );
+// }
+
+/* ── STEP 4: Publish / Save ── */
 function StepPublish({
     form, isPending, handleSubmit, isEdit,
 }: {
@@ -3050,40 +3185,147 @@ function StepPublish({
 }) {
     const price = parseFloat(form.price) || 0;
     const isDigital = form.product_type === "digital";
+
     const checks = [
-        { label: "Product name added", done: !!form.name.trim() },
-        { label: "Headline written", done: !!form.short_description.trim() },
-        { label: "Category selected", done: !!form.category_id },
-        { label: "Pricing configured", done: true },
-        { label: "Fulfilment set up", done: !isDigital || !!form.digital_file_url },
+        { label: "Product name", hint: "What buyers will see first", done: !!form.name.trim() },
+        { label: "Headline", hint: "One-line value proposition", done: !!form.short_description.trim() },
+        { label: "Category", hint: "Helps buyers discover you", done: !!form.category_id },
+        { label: "Pricing", hint: price === 0 ? "Free to access" : `$${price.toFixed(2)} ${form.currency}`, done: true },
+        {
+            label: "Fulfilment",
+            hint: isDigital ? (form.digital_file_url ? "Digital file attached" : "Upload a file to deliver") : "Physical shipping",
+            done: !isDigital || !!form.digital_file_url,
+        },
     ];
-    const allDone = checks.every(c => c.done);
+
+    const completed = checks.filter(c => c.done).length;
+    const total = checks.length;
+    const allDone = completed === total;
+    const progressPct = (completed / total) * 100;
+
+    // Defensive token fallbacks
+    const t = {
+        surface: "var(--color-surface, #ffffff)",
+        surfaceSecondary: "var(--color-surface-secondary, #f5f5f5)",
+        border: "var(--color-border, #e5e5e5)",
+        borderStrong: "var(--color-border-strong, #d4d4d4)",
+        textPrimary: "var(--color-text-primary, #0a0a0a)",
+        textSecondary: "var(--color-text-secondary, #525252)",
+        textMuted: "var(--color-text-muted, #737373)",
+        accent: "var(--color-accent, #fd5000)",
+        accentLight: "var(--color-accent-light, rgba(253,80,0,0.08))",
+        success: "var(--color-success, #10b981)",
+        successLight: "var(--color-success-light, rgba(16,185,129,0.08))",
+        radiusSm: "var(--radius-sm, 6px)",
+        radiusMd: "var(--radius-md, 10px)",
+        radiusLg: "var(--radius-lg, 14px)",
+        radiusFull: "var(--radius-full, 999px)",
+        shadowGlow: "var(--shadow-glow, 0 0 0 3px rgba(253,80,0,0.15))",
+    };
+
     return (
         <div className="space-y-6">
+            {/* CHECKLIST */}
             <div>
-                <SectionTitle label={isEdit ? "Save checklist" : "Pre-launch checklist"} />
-                <div className="space-y-2">
-                    {checks.map(item => (
+                {/* Header with progress */}
+                <div className="flex items-end justify-between mb-4">
+                    <div>
+                        <h3 className="text-sm font-semibold mb-1" style={{ color: t.textPrimary }}>
+                            {isEdit ? "Save checklist" : "Pre-launch checklist"}
+                        </h3>
+                        <p className="text-xs" style={{ color: t.textMuted }}>
+                            {allDone
+                                ? "All set — you're ready to publish"
+                                : `${completed} of ${total} complete`}
+                        </p>
+                    </div>
+                    <div
+                        className="text-[11px] font-mono font-bold tabular-nums"
+                        style={{ color: allDone ? t.success : t.textMuted }}
+                    >
+                        {Math.round(progressPct)}%
+                    </div>
+                </div>
+
+                {/* Progress bar */}
+                <div
+                    className="h-1 overflow-hidden mb-5"
+                    style={{
+                        borderRadius: t.radiusFull,
+                        background: t.surfaceSecondary,
+                    }}
+                >
+                    <div
+                        className="h-full transition-all duration-500 ease-out"
+                        style={{
+                            width: `${progressPct}%`,
+                            background: allDone ? t.success : t.accent,
+                            borderRadius: t.radiusFull,
+                        }}
+                    />
+                </div>
+
+                {/* Items */}
+                {/* Items */}
+                <div className="space-y-1.5">
+                    {checks.map((item, i) => (
                         <div
                             key={item.label}
-                            className="flex items-center gap-3 px-4 py-3 text-sm"
+                            className="flex items-center gap-3 px-3.5 py-2.5 transition-all"
                             style={{
-                                borderRadius: "var(--radius-md)",
-                                border: `1px solid ${item.done ? "var(--color-success)" : "var(--color-border)"}`,
-                                background: item.done ? "var(--color-success-light)" : "var(--color-surface-secondary)",
-                                color: item.done ? "var(--color-success)" : "var(--color-text-muted)",
+                                borderRadius: t.radiusMd,
+                                border: `1px solid ${item.done ? t.accent : t.border}`,
+                                background: item.done ? t.accentLight : "transparent",
                             }}
                         >
-                            {item.done ? <Check size={15} /> : <Circle size={15} />}
-                            <span className="flex-1">{item.label}</span>
-                            {!item.done && (
+                            {/* Numbered/check circle */}
+                            <div
+                                className="w-6 h-6 flex items-center justify-center flex-shrink-0 transition-all"
+                                style={{
+                                    borderRadius: t.radiusFull,
+                                    background: item.done ? t.accent : "transparent",
+                                    border: `1.5px solid ${item.done ? t.accent : t.borderStrong}`,
+                                    color: item.done ? "#fff" : t.textMuted,
+                                }}
+                            >
+                                {item.done ? (
+                                    <Check size={12} strokeWidth={3} />
+                                ) : (
+                                    <span className="text-[10px] font-bold">{i + 1}</span>
+                                )}
+                            </div>
+
+                            {/* Label + hint */}
+                            <div className="flex-1 min-w-0">
+                                <p
+                                    className="text-[13px] font-medium leading-tight"
+                                    style={{ color: item.done ? t.textPrimary : t.textSecondary }}
+                                >
+                                    {item.label}
+                                </p>
+                                <p
+                                    className="text-[10.5px] mt-0.5 truncate"
+                                    style={{ color: t.textMuted }}
+                                >
+                                    {item.hint}
+                                </p>
+                            </div>
+
+                            {/* Status */}
+                            {item.done ? (
                                 <span
-                                    className="text-[10px] font-semibold px-2 py-0.5"
+                                    className="text-[10px] font-semibold uppercase tracking-wide flex-shrink-0"
+                                    style={{ color: t.accent }}
+                                >
+                                    Done
+                                </span>
+                            ) : (
+                                <span
+                                    className="text-[9.5px] font-semibold uppercase tracking-wide px-2 py-0.5 flex-shrink-0"
                                     style={{
-                                        borderRadius: "var(--radius-full)",
-                                        background: "var(--color-accent-light)",
-                                        border: "1px solid var(--color-accent-subtle)",
-                                        color: "var(--color-accent)",
+                                        borderRadius: t.radiusFull,
+                                        background: t.surfaceSecondary,
+                                        color: t.textMuted,
                                     }}
                                 >
                                     Required
@@ -3094,11 +3336,12 @@ function StepPublish({
                 </div>
             </div>
 
-            <Divider />
+            <div style={{ borderTop: `1px solid ${t.border}` }} />
 
+            {/* SUMMARY */}
             <div>
-                <SectionTitle label="Summary" />
-                <div className="overflow-hidden" style={{ borderRadius: "var(--radius-md)", border: "1px solid var(--color-border)" }}>
+                <h3 className="text-sm font-semibold mb-4" style={{ color: t.textPrimary }}>Summary</h3>
+                <div className="overflow-hidden" style={{ borderRadius: t.radiusMd, border: `1px solid ${t.border}` }}>
                     {[
                         { k: "Name", v: form.name || "—" },
                         { k: "Status", v: isEdit ? form.status : "Active on publish" },
@@ -3113,23 +3356,30 @@ function StepPublish({
                         },
                         { k: "Fulfilment", v: isDigital ? "Digital delivery" : "Physical shipping" },
                     ].map(row => (
-                        <div key={row.k} className="flex items-center justify-between px-4 py-3 border-b last:border-b-0" style={{ borderColor: "var(--color-border)" }}>
-                            <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>{row.k}</span>
-                            <span className="text-xs font-semibold capitalize" style={{ color: "var(--color-text-primary)" }}>{row.v}</span>
+                        <div
+                            key={row.k}
+                            className="flex items-center justify-between px-4 py-2.5 border-b last:border-b-0"
+                            style={{ borderColor: t.border }}
+                        >
+                            <span className="text-xs" style={{ color: t.textMuted }}>{row.k}</span>
+                            <span className="text-xs font-semibold capitalize" style={{ color: t.textPrimary }}>
+                                {row.v}
+                            </span>
                         </div>
                     ))}
                 </div>
             </div>
 
+            {/* SUBMIT */}
             <button
                 onClick={handleSubmit}
                 disabled={isPending || !allDone}
                 className="w-full h-12 text-sm font-semibold flex items-center justify-center gap-2 text-white transition-all active:scale-[0.98]"
                 style={{
-                    borderRadius: "var(--radius-lg)",
-                    background: isPending || !allDone ? "var(--color-border-strong)" : "var(--color-accent)",
+                    borderRadius: t.radiusLg,
+                    background: isPending || !allDone ? t.borderStrong : t.accent,
                     cursor: isPending || !allDone ? "not-allowed" : "pointer",
-                    boxShadow: !isPending && allDone ? "var(--shadow-glow)" : "none",
+                    boxShadow: !isPending && allDone ? t.shadowGlow : "none",
                 }}
             >
                 {isPending ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} />}
@@ -3137,17 +3387,17 @@ function StepPublish({
                     ? (isEdit ? "Saving…" : "Publishing…")
                     : allDone
                         ? (isEdit ? "Save changes" : "Publish product")
-                        : "Complete checklist to continue"}
+                        : `Complete ${total - completed} more to continue`}
             </button>
-            <p className="text-[11px] text-center" style={{ color: "var(--color-text-muted)" }}>
+
+            <p className="text-[11px] text-center" style={{ color: t.textMuted }}>
                 {allDone
                     ? (isEdit ? "Changes will go live immediately" : "Your product will go live immediately after publishing")
-                    : "Complete all required fields above"}
+                    : "Complete all required items above"}
             </p>
         </div>
     );
 }
-
 /* ── SHARED PAGE SHELL ── */
 export function ProductFormShell({
     title,
@@ -3170,7 +3420,7 @@ export function ProductFormShell({
     const [form, setForm] = useState<FormState>({
         name: "", slug: "", short_description: "", description: "",
         product_type: "digital",
-        product_subtype: "course",           // default only valid for digital
+        product_subtype: "course",
         price: "29.99", currency: "USD", category_id: "",
         is_digital: true,
         pricing_type: "recurring", billing_period: "monthly",
@@ -3207,28 +3457,35 @@ export function ProductFormShell({
                     .single();
                 if (pErr || !product) { setError("Product not found."); setLoading(false); return; }
 
-                // ✅ Fix 6: derive is_digital from product_type on load — single source of truth
-                const loadedType: "physical" | "digital" = product.product_type ?? "digital";
-                const loadedIsDigital = loadedType === "digital";
-                const loadedSubtype = product.product_subtype
-                    ?? product.source_metadata?.product_subtype
-                    ?? (loadedIsDigital ? "course" : "");
+                // ✅ Map the granular product_type enum back to (bucket, subtype) for the UI.
+                // Schema now stores 'course', 'coaching', etc. directly in product_type.
+                const savedType: string = product.product_type ?? "digital";
+                const isDigitalBucket = DIGITAL_ENUM_VALUES.has(savedType);
+
+                // The UI subtype is the saved product_type itself (when it's a granular digital type).
+                // For generic 'digital' or 'subscription', leave subtype blank.
+                const uiSubtype =
+                    savedType !== "physical" &&
+                        savedType !== "digital" &&
+                        savedType !== "subscription"
+                        ? savedType
+                        : "";
 
                 setForm({
                     name: product.name ?? "",
                     slug: product.slug ?? "",
                     short_description: product.short_description ?? "",
                     description: product.description ?? "",
-                    product_type: loadedType,
-                    product_subtype: loadedSubtype,
+                    product_type: isDigitalBucket ? "digital" : "physical",
+                    product_subtype: uiSubtype,
                     price: String(product.price ?? "0"),
                     currency: product.currency ?? "USD",
                     category_id: product.category_id ?? "",
-                    is_digital: loadedIsDigital,                          // ✅ derived, not raw
-                    pricing_type: loadedIsDigital
+                    is_digital: isDigitalBucket,
+                    pricing_type: isDigitalBucket
                         ? (product.pricing_type ?? "one_time")
-                        : "one_time",                                      // ✅ physical always one_time
-                    billing_period: product.billing_period ?? "monthly",
+                        : "one_time",
+                    billing_period: product.billing_period ?? (isDigitalBucket && product.pricing_type === "recurring" ? "monthly" : ""),
                     digital_file_url: product.digital_file_url ?? "",
                     track_inventory: product.track_inventory ?? false,
                     inventory_quantity: String(product.inventory_quantity ?? "0"),
@@ -3238,11 +3495,14 @@ export function ProductFormShell({
                     button_text: product.button_text ?? "Buy Now",
                     tags: Array.isArray(product.tags) ? product.tags.join(", ") : (product.tags ?? ""),
                     weight: String(product.weight ?? ""),
-                    dimensions: product.dimensions ?? "",
+                    dimensions: typeof product.dimensions === "string"
+                        ? product.dimensions
+                        : (product.dimensions ? JSON.stringify(product.dimensions) : ""),
                     images: Array.isArray(product.images) ? product.images : [],
-                    show_author: product.show_author ?? product.source_metadata?.show_author ?? true,
-                    show_reviews: product.show_reviews ?? product.source_metadata?.show_reviews ?? true,
-                    enable_discussions: product.enable_discussions ?? product.source_metadata?.enable_discussions ?? false,
+                    // ✅ Now real columns, no more source_metadata fallback
+                    show_author: product.show_author ?? true,
+                    show_reviews: product.show_reviews ?? true,
+                    enable_discussions: product.enable_discussions ?? false,
                     status: product.status ?? "active",
                 });
             }
@@ -3257,7 +3517,7 @@ export function ProductFormShell({
 
             if (field === "name" && !isEdit) updated.slug = slugify(value as string);
 
-            // ✅ Fix 2: Auto-derive subtype from category slug, guarded to digital only
+            // Auto-derive subtype from category slug, guarded to digital only
             if (field === "category_id") {
                 const cat = categories.find(c => c.id === value);
                 if (cat?.slug && updated.product_type === "digital") {
@@ -3271,7 +3531,6 @@ export function ProductFormShell({
                             updated.button_text = matched.suggestedButtonText;
                         }
                     } else {
-                        // No subtype matched — clear it so sidebar tips disappear
                         updated.product_subtype = "";
                     }
                 }
@@ -3280,17 +3539,13 @@ export function ProductFormShell({
             if (field === "product_type") {
                 const isDigital = value === "digital";
                 updated.is_digital = isDigital;
-
-                // ✅ Fix 1: reset subtype when switching types
                 updated.product_subtype = isDigital ? "course" : "";
 
-                // ✅ Fix 3: physical products are always one_time; clear billing_period
                 if (!isDigital) {
                     updated.pricing_type = "one_time";
                     updated.billing_period = "";
                 }
 
-                // Clear category if it doesn't match the new type
                 const currentCat = categories.find(c => c.id === updated.category_id);
                 if (currentCat) {
                     const ct = currentCat.category_type;
@@ -3319,26 +3574,35 @@ export function ProductFormShell({
         startTransition(async () => {
             const supabase = createClient();
 
-            // ✅ Fix 4 & 5: single source of truth — derive isDigital from product_type
             const isDigital = form.product_type === "digital";
 
-            // ✅ Fix 3: billing_period is null for physical OR one_time
+            // ✅ Collapse (bucket, subtype) → single product_type enum value.
+            // If the user picked Digital + a subtype, save that subtype directly.
+            // Otherwise save the generic 'physical' or 'digital'.
+            const resolvedProductType: string = isDigital
+                ? (form.product_subtype && PRODUCT_SUBTYPES.some(s => s.id === form.product_subtype)
+                    ? form.product_subtype
+                    : "digital")
+                : "physical";
+
             const billingPeriod =
                 isDigital && form.pricing_type === "recurring" ? form.billing_period : null;
 
-            const payload = {
+            const payload: any = {
                 name: form.name,
                 slug: form.slug || slugify(form.name),
                 short_description: form.short_description || null,
                 description: form.description || null,
-                product_type: form.product_type,
+                product_type: resolvedProductType,                // ✅ single source of truth, uses full enum
                 status: form.status,
+                is_active: true,                                   // ✅ explicit — RLS depends on it
                 price,
                 currency: form.currency,
-                pricing_type: isDigital ? form.pricing_type : "one_time",  // ✅ enforce on save
-                billing_period: billingPeriod,                               // ✅ fixed
+                pricing_type: isDigital ? form.pricing_type : "one_time",
+                billing_period: billingPeriod,
                 category_id: form.category_id || null,
-                is_digital: isDigital,                                       // ✅ derived
+                is_digital: isDigital,
+                requires_shipping: !isDigital,                     // ✅ matches new consistency check
                 digital_file_url: isDigital ? (form.digital_file_url || null) : null,
                 track_inventory: !isDigital && form.track_inventory,
                 inventory_quantity: isDigital ? 0 : parseInt(form.inventory_quantity || "0"),
@@ -3354,12 +3618,14 @@ export function ProductFormShell({
                     ? form.tags.split(",").map(t => t.trim()).filter(Boolean)
                     : null,
                 images: form.images,
-                source_metadata: {
-                    show_reviews: form.show_reviews,
-                    show_author: form.show_author,
-                    enable_discussions: form.enable_discussions,
-                    product_subtype: form.product_subtype || null,   // ✅ Fix 5: "" → null
-                },
+                // ✅ Real columns now — no more source_metadata duplication
+                show_author: form.show_author,
+                show_reviews: form.show_reviews,
+                enable_discussions: form.enable_discussions,
+                // Keep source_metadata clean — only used for source-specific data (Shopify/CJ),
+                // not for fields that have real columns
+                source_metadata: {},
+                // published_at is set by the trigger automatically when status transitions to 'active'
             };
 
             let insertErr: any = null;
@@ -3368,8 +3634,14 @@ export function ProductFormShell({
                 const { error } = await supabase.from("products").update(payload).eq("id", productId);
                 insertErr = error;
             } else {
+                // ✅ Slug is now UNIQUE(vendor_id, slug) — scope the collision check to this vendor
                 const slug = payload.slug;
-                const { data: existing } = await supabase.from("products").select("id").eq("slug", slug).single();
+                const { data: existing } = await supabase
+                    .from("products")
+                    .select("id")
+                    .eq("slug", slug)
+                    .eq("vendor_id", vendor.id)
+                    .maybeSingle();
                 if (existing) payload.slug = `${slug}-${Date.now()}`;
                 const { error } = await supabase.from("products").insert({ ...payload, vendor_id: vendor.id });
                 insertErr = error;
