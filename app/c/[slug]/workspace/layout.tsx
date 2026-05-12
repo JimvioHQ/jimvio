@@ -7,14 +7,11 @@ import type { WorkspaceSection } from "@/types/workspace";
 export default async function CommunityWorkspaceLayout({
   children,
   params,
-  searchParams,
 }: {
   children: React.ReactNode;
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ section?: string; view?: string }>;
 }) {
   const { slug } = await params;
-  const { section = "feed", view = "member" } = await searchParams;
   const supabase = await createClient();
 
   // ─ Fetch community ─
@@ -134,8 +131,8 @@ export default async function CommunityWorkspaceLayout({
       role={membership.role}
       isAdmin={isAdmin}
       isOwner={isOwner}
-      initialSection={section as WorkspaceSection}
-      initialView={view === "admin" && isAdmin ? "admin" : "member"}
+      initialSection="feed" // Default section
+      initialView="member"
       profile={profileRes.data}
       points={points}
       spacesWithRooms={spacesWithRooms}

@@ -1,6 +1,7 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
-
+import type { ChatAttachmentPayload } from "@/lib/community-chat-upload";
+import { Attachment } from "@/types";
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
@@ -178,3 +179,49 @@ export const getInputValidationClasses = (
     className
   );
 };
+
+
+
+// ─── Helpers ───────────────────────────────────────────────────────────────────
+
+export function parseAttachments(raw: unknown): Attachment[] {
+  if (!raw || !Array.isArray(raw)) return [];
+  return raw.filter(
+    (x): x is Attachment =>
+      typeof x === "object" &&
+      x !== null &&
+      "url" in x &&
+      typeof (x as { url: unknown }).url === "string"
+  );
+}
+
+export function deriveMessageType(
+  atts: ChatAttachmentPayload[],
+  body: string
+): string {
+  if (atts.length === 0) return "text";
+  const allImg = atts.every((a) => a.mime.startsWith("image/"));
+  const allAudio = atts.every((a) => a.mime.startsWith("audio/"));
+  if (body.trim()) return "text";
+  if (allImg) return "image";
+  if (allAudio) return "audio";
+  return "file";
+}
+
+export function formatDuration(sec: number): string {
+  const m = Math.floor(sec / 60).toString().padStart(2, "0");
+  const s = Math.floor(sec % 60).toString().padStart(2, "0");
+  return `${m}:${s}`;
+}
+
+export function pickMime(): string {
+  if (typeof MediaRecorder === "undefined") return "";
+  for (const c of [
+    "audio/webm;codecs=opus",
+    "audio/webm",
+    "audio/mp4",
+    "audio/mp4;codecs=opus",
+  ])
+    if (MediaRecorder.isTypeSupported(c)) return c;
+  return "";
+}

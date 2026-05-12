@@ -187,22 +187,25 @@ export function WorkspaceShell({
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
 
-  const ctx: WorkspaceContextValue = {
-    slug,
-    communityId: community.id,
-    communityName: community.name,
-    ownerId: community.owner_id,
-    memberCount: community.member_count ?? 0,
-    avatarUrl: community.avatar_url,
-    userId,
-    profile,
-    membership,
-    spacesWithRooms,
-    points,
-    liveSessions,
-    unreadNotifications,
-    openMissionsCount,
-  };
+   const ctx: WorkspaceContextValue = {
+     slug,
+     communityId: community.id,
+     communityName: community.name,
+     ownerId: community.owner_id,
+     memberCount: community.member_count ?? 0,
+     avatarUrl: community.avatar_url,
+     userId,
+     currentUserId: userId,
+     view: pathname.includes('/workspace/chats') || pathname === `/c/${community.slug}/workspace` ? 'member' : 'member', // Simplified for now
+     isAdmin: membership?.role === 'admin' || membership?.role === 'moderator' || community.owner_id === userId,
+     profile,
+     membership,
+     spacesWithRooms,
+     points,
+     liveSessions,
+     unreadNotifications,
+     openMissionsCount,
+   };
 
   const base = `/communities/${slug}/workspace`;
 

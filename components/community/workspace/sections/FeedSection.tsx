@@ -16,7 +16,7 @@ interface Post {
 }
 
 export function FeedSection() {
-  const { communityId, communityName, currentUserId, view, isAdmin } = useWorkspace();
+  const { communityId, communityName, view, isAdmin } = useWorkspace();
   const supabase = createClient();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);

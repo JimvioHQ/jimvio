@@ -99,23 +99,26 @@ export function WorkspaceShell({
   // Chats view = either ?section=chats on root, or any /workspace/chats* route
   const isChatsView = pathname?.startsWith(`/c/${community.slug}/workspace/chats`) ?? false;
 
-  // Build workspace context value
-  const workspaceContext = {
-    slug: community.slug,
-    communityId: community.id,
-    communityName: community.name,
-    ownerId: community.owner_id,
-    memberCount: community.member_count,
-    avatarUrl: community.avatar_url,
-    userId: currentUserId,
-    profile,
-    membership,
-    spacesWithRooms,
-    points,
-    liveSessions,
-    unreadNotifications,
-    openMissionsCount,
-  };
+   // Build workspace context value
+   const workspaceContext = {
+     slug: community.slug,
+     communityId: community.id,
+     communityName: community.name,
+     ownerId: community.owner_id,
+     memberCount: community.member_count,
+     avatarUrl: community.avatar_url,
+     userId: currentUserId,
+     currentUserId,
+     view,
+     isAdmin,
+     profile,
+     membership,
+     spacesWithRooms,
+     points,
+     liveSessions,
+     unreadNotifications,
+     openMissionsCount,
+   };
 
   const updateUrl = (next: { section?: WorkspaceSection; view?: WorkspaceView }) => {
     const params = new URLSearchParams(searchParams.toString());

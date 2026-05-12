@@ -1037,22 +1037,25 @@ export function CourseRoom({
 }
 
 export function DashboardCourseStudio({ roomId, communityId, onClose }: { roomId: string, communityId: string, onClose: () => void }) {
-  const mockWorkspace = {
-     slug: "",
-     communityId,
-     communityName: "Dashboard",
-     ownerId: "dashboard-owner",
-     memberCount: 0,
-     avatarUrl: null,
-     userId: "dashboard-owner",
-     profile: null,
-     membership: { role: "owner" as any, plan_type: "free", status: "active", space_access: [], expires_at: null },
-     spacesWithRooms: [],
-     points: null,
-     liveSessions: [],
-     unreadNotifications: 0,
-     openMissionsCount: 0,
-  };
+   const mockWorkspace = {
+      slug: "",
+      communityId,
+      communityName: "Dashboard",
+      ownerId: "dashboard-owner",
+      memberCount: 0,
+      avatarUrl: null,
+      userId: "dashboard-owner",
+      currentUserId: "dashboard-owner",
+      view: "member" as const,
+      isAdmin: true,
+      profile: null,
+      membership: { role: "owner" as any, plan_type: "free", status: "active", space_access: [], expires_at: null },
+      spacesWithRooms: [],
+      points: null,
+      liveSessions: [],
+      unreadNotifications: 0,
+      openMissionsCount: 0,
+   };
 
   return (
     <div className="fixed inset-0 z-[100000] bg-[var(--color-bg)] flex flex-col pt-[72px] lg:pt-0">
