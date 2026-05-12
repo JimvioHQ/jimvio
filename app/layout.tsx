@@ -81,9 +81,9 @@ import "../styles/globals.css";
 import { constructMetadata } from "@/lib/seo";
 import { JimvioJsonLd } from "@/components/seo/JimvioJsonLd";
 import { DM_Sans, JetBrains_Mono } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next"
 import { ReferralTracker } from "@/components/affiliate/referral-tracker";
 export const metadata = constructMetadata();
-
 const dmSans = DM_Sans({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],

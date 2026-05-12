@@ -14,12 +14,14 @@ export type WorkspaceView = "member" | "admin";
 
 export type WorkspaceSection =
   | "feed"
+  | "chats"
   | "spaces"
   | "live"
   | "missions"
   | "courses"
   | "events"
   | "members"
+  | "leaderboard"
   | "resources";
 
 export interface WorkspaceSectionConfig {

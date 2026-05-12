@@ -1,0 +1,47 @@
+import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
+
+export const dynamic = "force-dynamic";
+
+export async function GET(req: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const supabase = await createClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { data: community } = await supabase
+    .from("communities")
+    .select("id")
+    .eq("slug", slug)
+    .eq("is_active", true)
+    .maybeSingle();
+
+  if (!community) return NextResponse.json({ error: "Community not found" }, { status: 404 });
+
+  const { data: rows } = await supabase
+    .from("member_points")
+    .select("user_id, total_points, level, last_active_at, created_at")
+    .eq("community_id", community.id)
+    .order("total_points", { ascending: false })
+    .limit(500);
+
+  const ids = (rows ?? []).map((r) => r.user_id);
+  let profiles: { id: string; full_name: string | null; avatar_url: string | null; username: string | null }[] = [];
+  if (ids.length > 0) {
+    const { data: p } = await supabase.from("profiles").select("id, full_name, avatar_url, username").in("id", ids);
+    profiles = p ?? [];
+  }
+  const map = new Map(profiles.map((p) => [p.id, p]));
+
+  const leaderboardRows = (rows ?? []).map((r) => ({
+    user_id: r.user_id,
+    total_points: r.total_points ?? 0,
+    level: r.level ?? 1,
+    last_active_at: r.last_active_at,
+    created_at: r.created_at,
+    profile: map.get(r.user_id) ?? null,
+  }));
+
+  return NextResponse.json({ rows: leaderboardRows });
+}

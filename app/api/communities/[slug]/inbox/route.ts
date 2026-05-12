@@ -3,38 +3,58 @@ import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
-/** Get or create a 1:1 inbox thread with another active member. */
-export async function POST(req: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { data: community } = await supabase
     .from("communities")
     .select("id")
     .eq("slug", slug)
-    .single();
+    .eq("is_active", true)
+    .maybeSingle();
 
   if (!community) return NextResponse.json({ error: "Community not found" }, { status: 404 });
 
-  const body = (await req.json()) as { peerUserId?: string };
-  if (!body.peerUserId || typeof body.peerUserId !== "string") {
-    return NextResponse.json({ error: "peerUserId required" }, { status: 400 });
-  }
+  // Check active membership
+  const { data: membership } = await supabase
+    .from("community_memberships")
+    .select("user_id")
+    .eq("community_id", community.id)
+    .eq("user_id", user.id)
+    .eq("status", "active")
+    .maybeSingle();
 
-  const { data, error } = await supabase.rpc("get_or_create_community_inbox_conversation", {
-    p_community_id: community.id,
-    p_peer_id: body.peerUserId,
+  if (!membership) return NextResponse.json({ error: "Not a member" }, { status: 403 });
+
+  // Fetch inbox conversations with peer profiles
+  const { data } = await supabase
+    .from("community_inbox_conversations")
+    .select(`
+      id, user_low, user_high, updated_at, last_message_preview,
+      user_low_profile:profiles!community_inbox_conversations_user_low_fkey(full_name, avatar_url, username),
+      user_high_profile:profiles!community_inbox_conversations_user_high_fkey(full_name, avatar_url, username)
+    `)
+    .eq("community_id", community.id)
+    .or(`user_low.eq.${user.id},user_high.eq.${user.id}`)
+    .order("updated_at", { ascending: false })
+    .limit(50);
+
+  const conversations = (data ?? []).map((conv: any) => {
+    const isLow = conv.user_low === user.id;
+    const peer = isLow ? conv.user_high_profile : conv.user_low_profile;
+    return {
+      id: conv.id,
+      peerId: isLow ? conv.user_high : conv.user_low,
+      peerName: peer?.full_name || peer?.username || "Member",
+      peerAvatar: peer?.avatar_url || null,
+      lastMessage: conv.last_message_preview || "",
+      updatedAt: conv.updated_at,
+    };
   });
 
-  if (error) {
-    const msg = error.message || "Failed";
-    const status = msg.includes("not authenticated") ? 401 : msg.includes("forbidden") || msg.includes("peer") ? 403 : 400;
-    return NextResponse.json({ error: msg }, { status });
-  }
-
-  return NextResponse.json({ conversationId: data as string });
+  return NextResponse.json({ conversations });
 }

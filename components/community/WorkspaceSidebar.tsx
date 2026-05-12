@@ -425,7 +425,7 @@ export function WorkspaceSidebar({
   const isAdmin = membership?.role === "owner" || membership?.role === "admin";
   const showSettings = isOwner || isAdmin;
 
-  const base = `/communities/${slug}/workspace`;
+  const base = `/c/${slug}/workspace`;
 
   function handleRoomClick(space: WorkspaceSpaceRow, room: WorkspaceRoomRow) {
     const ok = canAccessRoomNav(

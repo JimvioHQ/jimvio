@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Target, Plus, Flame, Clock, Users, ChevronRight } from "lucide-react";
-import type { WorkspaceCommunity, WorkspaceView } from "@/types/workspace";
+import type { WorkspaceCommunity, WorkspaceRole, WorkspaceView } from "@/types/workspace";
 
 interface Mission {
   id: string;
@@ -22,11 +22,14 @@ interface Mission {
 
 interface Props {
   community: WorkspaceCommunity;
+  currentUserId: string;
+  role: WorkspaceRole;
   view: WorkspaceView;
   isAdmin: boolean;
+  isOwner: boolean;
 }
 
-export function MissionsSection({ community, view, isAdmin }: Props) {
+export function MissionsSection({ community, currentUserId, role, view, isAdmin, isOwner }: Props) {
   const supabase = createClient();
   const [missions, setMissions] = useState<Mission[]>([]);
   const [loading, setLoading] = useState(true);

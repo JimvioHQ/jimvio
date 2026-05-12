@@ -21,11 +21,12 @@ interface Member {
 
 interface Props {
   community: WorkspaceCommunity;
+  currentUserId: string;
   view: WorkspaceView;
   isAdmin: boolean;
 }
 
-export function MembersSection({ community, view, isAdmin }: Props) {
+export function MembersSection({ community, currentUserId, view, isAdmin }: Props) {
   const supabase = createClient();
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
