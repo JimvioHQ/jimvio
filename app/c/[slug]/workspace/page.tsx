@@ -38,7 +38,7 @@ export default async function CommunityWorkspacePage({
 
   const { data: membership } = await supabase
     .from("community_memberships")
-    .select("role, status")
+    .select("role, status, plan_type, space_access")
     .eq("community_id", community.id)
     .eq("user_id", user.id)
     .maybeSingle();

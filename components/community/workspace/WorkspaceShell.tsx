@@ -1,13 +1,12 @@
-// components/workspace/WorkspaceShell.tsx
+
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import Image from "next/image";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import Link from "next/link";
 import {
   Home, Layers, Radio, Target, GraduationCap, Calendar, Users, BookOpen,
-  Plus, Sparkles, ChevronDown, ChevronRight, Bell, Settings, Flame,
+  Plus, ChevronDown, ChevronRight, Bell, Settings, Flame,
   MessageCircle, FileText, Folder, CheckSquare, LayoutList, Hash, Trophy,
   type LucideIcon,
 } from "lucide-react";
@@ -43,6 +42,32 @@ interface Props {
   openMissionsCount?: number;
   membership?: MembershipLite | null;
   liveSessions?: LiveSessionLite[];
+  children?: React.ReactNode;
+}
+
+const SECTION_LIST: WorkspaceSection[] = [
+  "feed", "chats", "spaces", "live", "missions", "courses", "events", "members", "leaderboard", "resources",
+];
+
+const SECTION_LABELS: Record<WorkspaceSection, string> = {
+  feed: "Feed", chats: "Chats", spaces: "Spaces", live: "Live", missions: "Missions",
+  courses: "Courses", events: "Events", members: "Members", leaderboard: "Leaderboard", resources: "Resources",
+};
+
+const SECTION_ICONS: Record<WorkspaceSection, LucideIcon> = {
+  feed: Home, chats: MessageCircle, spaces: Layers, live: Radio, missions: Target,
+  courses: GraduationCap, events: Calendar, members: Users, leaderboard: Trophy, resources: BookOpen,
+};
+
+function roomTypeIcon(roomType: string): LucideIcon {
+  switch (roomType) {
+    case "chat": return MessageCircle;
+    case "course": return BookOpen;
+    case "posts": return FileText;
+    case "resources": return Folder;
+    case "tasks": return CheckSquare;
+    default: return LayoutList;
+  }
 }
 
 /* ─── Main Shell ─────────────────────────────────────────────────── */
@@ -53,9 +78,25 @@ export function WorkspaceShell({
   profile = null, points = null, spacesWithRooms = [],
   unreadNotifications = 0, openMissionsCount = 0,
   membership = null, liveSessions = [],
+  children,
 }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const isRoot = pathname === `/c/${community.slug}/workspace`;
+
+  const [section, setSection] = useState<WorkspaceSection>(
+    SECTION_LIST.includes(initialSection as WorkspaceSection) ? initialSection as WorkspaceSection : "feed"
+  );
+  const [view, setView] = useState<WorkspaceView>(initialView);
+  const [expandedSpaces, setExpandedSpaces] = useState<Record<string, boolean>>(() => {
+    const init: Record<string, boolean> = {};
+    spacesWithRooms.forEach((s) => { init[s.id] = true; });
+    return init;
+  });
+
+  // Chats view = either ?section=chats on root, or any /workspace/chats* route
+  const isChatsView = pathname?.startsWith(`/c/${community.slug}/workspace/chats`) ?? false;
 
   // Build workspace context value
   const workspaceContext = {
@@ -74,16 +115,6 @@ export function WorkspaceShell({
     unreadNotifications,
     openMissionsCount,
   };
-
-  const [section, setSection] = useState<WorkspaceSection>(
-    SECTION_LIST.includes(initialSection as WorkspaceSection) ? initialSection as WorkspaceSection : "feed"
-  );
-  const [view, setView] = useState<WorkspaceView>(initialView);
-  const [expandedSpaces, setExpandedSpaces] = useState<Record<string, boolean>>(() => {
-    const init: Record<string, boolean> = {};
-    spacesWithRooms.forEach((s) => { init[s.id] = true; });
-    return init;
-  });
 
   const updateUrl = (next: { section?: WorkspaceSection; view?: WorkspaceView }) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -127,7 +158,6 @@ export function WorkspaceShell({
     <WorkspaceProvider value={workspaceContext}>
       <CallProvider>
         <div className="min-h-screen bg-bg font-[family-name:var(--font-dm-sans)]">
-          {/* ── Top Bar ──────────────────────────────────────────────── */}
           <TopBar
             community={community}
             section={section}
@@ -138,39 +168,47 @@ export function WorkspaceShell({
             profile={profile}
           />
 
-          <div className="max-w-[1400px] mx-auto">
-            <div className="lg:grid lg:grid-cols-[268px_1fr_320px] lg:gap-6 px-4 lg:px-6 py-4 lg:py-6 pb-24 lg:pb-6">
+          <div className={cn("mx-auto", isChatsView ? "max-w-none" : "max-w-[1400px]")}>
+            <div
+              className={cn(
+                "py-4 lg:py-6 pb-24 lg:pb-6",
+                isChatsView
+                  ? "px-0 lg:px-0"
+                  : "px-4 lg:px-6 lg:grid lg:grid-cols-[268px_1fr_320px] lg:gap-6"
+              )}
+            >
 
-              {/* ── Left Sidebar: Spaces + Rooms tree ─────────────────── */}
-              <aside className="hidden lg:block flex-shrink-0">
-                <Sidebar
-                  community={community}
-                  section={section}
-                  view={view}
-                  isAdmin={isAdmin}
-                  onSectionChange={handleSectionChange}
-                  profile={profile}
-                  points={points}
-                  spacesWithRooms={spacesWithRooms}
-                  expandedSpaces={expandedSpaces}
-                  onToggleSpace={(id) => setExpandedSpaces((prev) => ({ ...prev, [id]: !prev[id] }))}
-                  onNavigateRoom={(spaceId, roomId) => {
-                    router.push(`/c/${community.slug}/workspace?space=${spaceId}&room=${roomId}`);
-                  }}
-                  openMissionsCount={openMissionsCount}
-                  unreadNotifications={unreadNotifications}
-                />
-              </aside>
+              {!isChatsView && (
+                <aside className="hidden lg:block flex-shrink-0">
+                  <Sidebar
+                    community={community}
+                    section={section}
+                    view={view}
+                    isAdmin={isAdmin}
+                    onSectionChange={handleSectionChange}
+                    profile={profile}
+                    points={points}
+                    spacesWithRooms={spacesWithRooms}
+                    expandedSpaces={expandedSpaces}
+                    onToggleSpace={(id) => setExpandedSpaces((prev) => ({ ...prev, [id]: !prev[id] }))}
+                    onNavigateRoom={(spaceId, roomId) => {
+                      router.push(`/c/${community.slug}/workspace/room?space=${spaceId}&room=${roomId}`);
+                    }}
+                    openMissionsCount={openMissionsCount}
+                    unreadNotifications={unreadNotifications}
+                  />
+                </aside>
+              )}
 
-              {/* ── Main Content ─────────────────────────────────────── */}
               <main className="min-w-0">
-                {sectionMap[section]}
+                {isRoot ? sectionMap[section] : children}
               </main>
 
-              {/* ── Right Rail ───────────────────────────────────────── */}
-              <aside className="hidden lg:block flex-shrink-0">
-                <RightRail community={community} />
-              </aside>
+              {!isChatsView && (
+                <aside className="hidden lg:block flex-shrink-0">
+                  <RightRail community={community} />
+                </aside>
+              )}
             </div>
           </div>
 
@@ -208,7 +246,7 @@ function TopBar({
       <div className="max-w-[1400px] mx-auto px-4 lg:px-6 h-14 flex items-center gap-3">
         {/* Left: community link */}
         <Link
-          href={`/c/${community.slug}`}
+          href={`/c/${community.slug}/workspace`}
           className="flex items-center gap-2 min-w-0 flex-shrink-0"
         >
           {community.avatar_url ? (
@@ -390,10 +428,12 @@ function Sidebar({
                             <button
                               type="button"
                               onClick={() => onNavigateRoom(space.id, room.id)}
-                              className="w-full flex items-center gap-1.5 px-2 py-1 rounded-md text-[12px] text-text-secondary hover:bg-surface-secondary hover:text-text-primary transition-colors"
+                              className="w-full flex items-center gap-1 px-2 py-1 
+                              rounded-md text-[12px] text-text-secondary hover:bg-surface-secondary
+                               hover:text-text-primary transition-colors"
                             >
                               <RoomIcon className="w-3.5 h-3.5 shrink-0" />
-                              <span className="flex-1 truncate">{room.name}</span>
+                              <span className="truncate ml-2">{room.name}</span>
                               {room.is_locked && (
                                 <span className="w-2 h-2 rounded-full bg-text-muted/40" title="Locked" />
                               )}
@@ -494,7 +534,7 @@ function ChatsSection({ community, currentUserId, spacesWithRooms }: { community
   const hasContent = chatRooms.length > 0 || conversations.length > 0;
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-5 max-w-3xl mx-auto px-4 lg:px-6">
       <div className="flex items-center justify-between">
         <h2 className="text-[18px] font-bold text-text-primary">Chats</h2>
         <span className="text-[12px] text-text-muted">{chatRooms.length + conversations.length} total</span>
@@ -677,9 +717,9 @@ function LeaderboardSection({ community, currentUserId }: { community: Workspace
           {/* Top 3 podium */}
           {top3.length > 0 && (
             <div className="flex justify-center items-end gap-3 py-4">
-              {top3[1] && <PodiumCard row={top3[1]} place={2} />}
-              {top3[0] && <PodiumCard row={top3[0]} place={1} large />}
-              {top3[2] && <PodiumCard row={top3[2]} place={3} />}
+              {top3[1] && <PodiumCard row={top3[1]} place={2} currentUserId={currentUserId} />}
+              {top3[0] && <PodiumCard row={top3[0]} place={1} large currentUserId={currentUserId} />}
+              {top3[2] && <PodiumCard row={top3[2]} place={3} currentUserId={currentUserId} />}
             </div>
           )}
 
@@ -735,7 +775,7 @@ function LeaderboardSection({ community, currentUserId }: { community: Workspace
   );
 }
 
-function PodiumCard({ row, place, large }: { row: any; place: number; large?: boolean }) {
+function PodiumCard({ row, place, large, currentUserId }: { row: any; place: number; large?: boolean; currentUserId: string }) {
   const h = large ? "h-32" : "h-24";
   return (
     <div className={cn("flex flex-col items-center text-center", large ? "order-2" : place === 1 ? "order-1" : "order-3")}>
@@ -743,7 +783,7 @@ function PodiumCard({ row, place, large }: { row: any; place: number; large?: bo
         className={cn(
           "rounded-xl border border-border bg-surface p-3 flex flex-col items-center",
           h,
-          row.user_id === row.currentUserId && "ring-2 ring-[#fd5000]"
+          row.user_id === currentUserId && "ring-2 ring-[#fd5000]"
         )}
       >
         <div className={cn("rounded-full overflow-hidden ring-1 ring-border bg-surface-secondary", large ? "w-12 h-12" : "w-10 h-10")}>
@@ -868,7 +908,7 @@ function RightRail({ community }: { community: WorkspaceCommunity }) {
           <span className="text-[11px] font-bold uppercase tracking-wider text-text-primary">Top this week</span>
           <Link href={`/c/${community.slug}/workspace?section=members`} className="text-[11px] text-[#fd5000] font-medium hover:underline">
             See all →
-          </link>
+          </Link>
         </div>
         <p className="text-[11px] text-text-muted text-center py-3">Leaderboard updates every Monday</p>
       </div>
@@ -937,18 +977,4 @@ function MobileBottomNav({
       </div>
     </nav>
   );
-}
-
-/* ═════════════════════════════════════════════════════════════════════ */
-
-export default function MobileBottomNavExport({
-  section, onSectionChange, unreadNotifications, openMissionsCount, profile,
-}: {
-  section: WorkspaceSection;
-  onSectionChange: (s: WorkspaceSection) => void;
-  unreadNotifications: number;
-  openMissionsCount: number;
-  profile: { full_name: string | null; avatar_url: string | null; username: string | null } | null;
-}) {
-  return <MobileBottomNav section={section} onSectionChange={onSectionChange} unreadNotifications={unreadNotifications} openMissionsCount={openMissionsCount} profile={profile} />;
 }

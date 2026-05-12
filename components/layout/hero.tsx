@@ -1614,7 +1614,6 @@ export function Hero() {
                 <div className="grid grid-cols-1 lg:grid-cols-[1fr_540px] gap-12 xl:gap-20 items-center">
 
                     <motion.div initial="hidden" animate="show" variants={stagger} className="text-center lg:text-left">
-
                         {/* ── Active-now pill — always visible ── */}
                         <motion.div variants={fadeUp} className="flex justify-center lg:justify-start mb-7">
                             {/* Mobile: cycles through all four stats, tapping goes to live-activities */}
@@ -1708,7 +1707,7 @@ export function Hero() {
                     <motion.div
                         initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.25, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-                        className="w-full overflow-hidden"
+                        className="w-full hidden sm:block overflow-hidden"
                     >
                         <GlobeCanvas />
                     </motion.div>

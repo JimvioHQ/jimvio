@@ -11,7 +11,6 @@ import { useWorkspace } from "@/components/community/workspace-context";
 export function CommunityChats() {
   const { spacesWithRooms, communityId, slug } = useWorkspace();
   
-  // Find the first chat room to display as default
   const firstChatRoom = spacesWithRooms
     .flatMap(s => s.rooms)
     .find(r => r.room_type === "chat");
