@@ -3730,7 +3730,7 @@ export function ChatRoom({
           role="log"
           aria-live="polite"
           aria-label="Messages"
-          className="flex-1 overflow-y-auto px-[5%] py-3 pb-5 bg-[#efeae2] flex flex-col scrollbar-thin scrollbar-thumb-[#c1c9cd]"
+          className="flex-1 min-h-0 overflow-y-auto px-[5%] py-3 pb-5 bg-[#efeae2] flex flex-col scrollbar-thin scrollbar-thumb-[#c1c9cd]"
         >
           {loading ? (
             <ChatSkeleton />

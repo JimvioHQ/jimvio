@@ -3,6 +3,7 @@
 
 import React, { createContext, useContext } from "react";
 import type { MembershipLite } from "@/lib/community-workspace-access";
+import type { WorkspaceCommunity } from "@/types/workspace";
 
 export type WorkspaceRoomRow = {
   id: string;

@@ -4,7 +4,7 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Image as ImageIcon, Video, BarChart3, Smile, Send, MessageCircle, Heart, Repeat2, Share2, MoreHorizontal } from "lucide-react";
-import type { WorkspaceCommunity, WorkspaceView } from "@/types/workspace";
+import { useWorkspace } from "@/components/community/workspace-context";
 
 interface Post {
   id: string;
@@ -15,14 +15,8 @@ interface Post {
   comments_count: number;
 }
 
-interface Props {
-  community: WorkspaceCommunity;
-  currentUserId: string;
-  view: WorkspaceView;
-  isAdmin: boolean;
-}
-
-export function FeedSection({ community, currentUserId, view, isAdmin }: Props) {
+export function FeedSection() {
+  const { communityId, communityName, currentUserId, view, isAdmin } = useWorkspace();
   const supabase = createClient();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
@@ -37,7 +31,7 @@ export function FeedSection({ community, currentUserId, view, isAdmin }: Props) 
           id, content, created_at, reactions_count, comments_count,
           author:profiles!community_posts_author_id_fkey(id, full_name, avatar_url, username)
         `)
-        .eq("community_id", community.id)
+        .eq("community_id", communityId)
         .eq("is_published", true)
         .order("created_at", { ascending: false })
         .limit(20);
@@ -48,7 +42,9 @@ export function FeedSection({ community, currentUserId, view, isAdmin }: Props) 
     }
     load();
     return () => { cancelled = true; };
-  }, [community.id, supabase]);
+  }, [communityId, supabase]);
+
+  const adminView = view === "admin" && isAdmin;
 
   return (
     <div className="flex flex-col gap-4">
@@ -57,7 +53,7 @@ export function FeedSection({ community, currentUserId, view, isAdmin }: Props) 
         <textarea
           value={composer}
           onChange={(e) => setComposer(e.target.value)}
-          placeholder={`Share something with ${community.name}...`}
+          placeholder={`Share something with ${communityName}...`}
           rows={3}
           className="w-full bg-transparent text-[14px] text-text-primary placeholder:text-text-muted resize-none focus:outline-none"
         />
@@ -95,7 +91,7 @@ export function FeedSection({ community, currentUserId, view, isAdmin }: Props) 
       </div>
 
       {/* Admin notice */}
-      {view === "admin" && isAdmin && (
+      {adminView && (
         <div className="text-[11px] font-semibold text-[#fd5000] bg-[#fd5000]/10 border border-[#fd5000]/20 rounded-lg px-3 py-2">
           Admin view: you can pin, hide, or delete any post.
         </div>
@@ -107,7 +103,7 @@ export function FeedSection({ community, currentUserId, view, isAdmin }: Props) 
       ) : posts.length === 0 ? (
         <FeedEmpty />
       ) : (
-        posts.map((p) => <PostCard key={p.id} post={p} isAdmin={isAdmin && view === "admin"} />)
+        posts.map((p) => <PostCard key={p.id} post={p} isAdmin={adminView} />)
       )}
     </div>
   );

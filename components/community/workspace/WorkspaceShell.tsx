@@ -4,6 +4,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/client";
 import {
   Home, Layers, Radio, Target, GraduationCap, Calendar, Users, BookOpen,
   Plus, ChevronDown, ChevronRight, Bell, Settings, Flame,
@@ -142,12 +143,12 @@ export function WorkspaceShell({
   const sectionProps = { community, currentUserId, role, view, isAdmin, isOwner };
 
   const sectionMap: Record<WorkspaceSection, React.ReactNode> = {
-    feed: <FeedSection {...sectionProps} />,
+    feed: <FeedSection />,
     chats: <ChatsSection community={community} currentUserId={currentUserId} spacesWithRooms={spacesWithRooms} />,
     missions: <MissionsSection {...sectionProps} />,
     members: <MembersSection {...sectionProps} />,
     leaderboard: <LeaderboardSection {...sectionProps} />,
-    spaces: <SpacesSection />,
+    spaces: <SpacesSection community={community} spacesWithRooms={spacesWithRooms} isAdmin={isAdmin} isOwner={isOwner} />,
     live: <LiveSection />,
     courses: <CoursesSection />,
     events: <EventsSection />,
@@ -515,21 +516,77 @@ function ChatsSection({ community, currentUserId, spacesWithRooms }: { community
   );
 
   useEffect(() => {
-    async function load() {
+    let cancelled = false;
+
+    async function loadConversations() {
       try {
-        const res = await fetch(`/api/communities/${community.slug}/inbox`);
-        if (res.ok) {
-          const data = await res.json();
-          setConversations(data.conversations || []);
+        // Fetch inbox conversations (direct messages)
+        const { data: convData } = await createClient()
+          .from("community_inbox_conversations")
+          .select(`
+            id, 
+            user_high,
+            user_low,
+            updated_at,
+            community_inbox_messages(
+              body,
+              created_at
+            )
+          `)
+          .eq("community_id", community.id)
+          .or(`user_high.eq.${currentUserId},user_low.eq.${currentUserId}`)
+          .order("updated_at", { ascending: false })
+          .limit(50);
+
+        if (!cancelled && convData) {
+          // Get the peer user IDs
+          const peerIds = convData.map((conv) =>
+            conv.user_high === currentUserId ? conv.user_low : conv.user_high
+          );
+
+          // Fetch peer profiles
+          const { data: profilesData } = await createClient()
+            .from("profiles")
+            .select("id, full_name, avatar_url, username")
+            .in("id", peerIds);
+
+          const profileMap = new Map(
+            (profilesData ?? []).map((p) => [p.id, p])
+          );
+
+          // Build conversations with profile info
+          const builtConversations = convData.map((conv) => {
+            const peerId = conv.user_high === currentUserId ? conv.user_low : conv.user_high;
+            const peerProfile = profileMap.get(peerId);
+            const lastMsg = (conv.community_inbox_messages ?? [])[0];
+
+            return {
+              id: conv.id,
+              peerId,
+              peerName: peerProfile?.full_name || peerProfile?.username || "User",
+              peerAvatar: peerProfile?.avatar_url,
+              lastMessage: lastMsg?.body || "No messages yet",
+              lastMessageTime: lastMsg?.created_at || conv.updated_at,
+            };
+          });
+
+          setConversations(builtConversations);
         }
       } catch (e) {
-        console.error(e);
+        console.error("Error loading conversations:", e);
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     }
-    load();
-  }, [community.slug]);
+
+    loadConversations();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [community.id, currentUserId]);
 
   const hasContent = chatRooms.length > 0 || conversations.length > 0;
 
@@ -540,7 +597,7 @@ function ChatsSection({ community, currentUserId, spacesWithRooms }: { community
         <span className="text-[12px] text-text-muted">{chatRooms.length + conversations.length} total</span>
       </div>
 
-      {loading ? (
+      {loading && conversations.length === 0 ? (
         <div className="space-y-3">
           {[0, 1, 2].map((i) => (
             <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-surface border border-border animate-pulse">

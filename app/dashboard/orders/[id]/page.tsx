@@ -651,9 +651,6 @@ export default function OrderDetailPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.replace(`/login?next=${encodeURIComponent(`/dashboard/orders/${id}`)}`); return; }
       await fetchOrder(user.id);
-
-      // Remove any existing channel before subscribing (guards against
-      // React 18 Strict Mode double-invoke and hot-reload re-runs)
       if (channelRef.current) {
         await supabase.removeChannel(channelRef.current);
         channelRef.current = null;
