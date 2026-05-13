@@ -1,39 +1,313 @@
+// "use client";
+
+// import React, { useEffect, useState } from "react";
+// import { createPortal } from "react-dom";
+// import {
+//   ArrowLeft,
+//   Sparkles,
+//   MessageCircle,
+//   BookOpen,
+//   Folder,
+//   CheckSquare,
+//   Hash,
+//   Radio,
+//   FileText,
+//   LayoutGrid,
+//   type LucideIcon,
+// } from "lucide-react";
+// import { cn } from "@/lib/utils";
+
+// // ─── Icon map ───────────────────────────────────────────────────────────────
+
+// function spaceIconFromName(name: string | null): LucideIcon {
+//   if (!name) return Hash;
+//   const map: Record<string, LucideIcon> = {
+//     chat: MessageCircle,
+//     message: MessageCircle,
+//     book: BookOpen,
+//     course: BookOpen,
+//     learn: BookOpen,
+//     folder: Folder,
+//     resources: Folder,
+//     tasks: CheckSquare,
+//     todo: CheckSquare,
+//     sparkles: Sparkles,
+//     ai: Sparkles,
+//   };
+//   return map[name.toLowerCase()] ?? Hash;
+// }
+
+// // ─── Room type config ────────────────────────────────────────────────────────
+
+// type RoomTypeMeta = {
+//   label: string;
+//   icon: LucideIcon;
+//   accent: string; // tailwind bg class for the dot/pip
+// };
+
+// function getRoomTypeMeta(roomType: string): RoomTypeMeta {
+//   switch (roomType) {
+//     case "chat":
+//       return { label: "Live chat", icon: Radio, accent: "bg-emerald-400" };
+//     case "posts":
+//       return { label: "Discussions", icon: FileText, accent: "bg-sky-400" };
+//     case "course":
+//       return { label: "Course", icon: BookOpen, accent: "bg-violet-400" };
+//     case "tasks":
+//       return { label: "Tasks", icon: CheckSquare, accent: "bg-amber-400" };
+//     case "resources":
+//       return { label: "Resources", icon: LayoutGrid, accent: "bg-rose-400" };
+//     default:
+//       return { label: roomType, icon: Hash, accent: "bg-zinc-400" };
+//   }
+// }
+
+// // ─── Component ───────────────────────────────────────────────────────────────
+
+// export function WorkspaceRoomOverlay({
+//   communityName,
+//   spaceName,
+//   spaceIconName,
+//   roomName,
+//   roomType,
+//   onClose,
+//   children,
+// }: {
+//   communityName: string;
+//   spaceName: string;
+//   spaceIconName: string | null;
+//   roomName: string;
+//   roomType: string;
+//   onClose: () => void;
+//   children: React.ReactNode;
+// }) {
+//   const [mounted, setMounted] = useState(false);
+//   const [visible, setVisible] = useState(false);
+
+//   useEffect(() => {
+//     setMounted(true);
+//     // Defer so the CSS transition has a starting state to animate from
+//     const raf = requestAnimationFrame(() => setVisible(true));
+//     return () => cancelAnimationFrame(raf);
+//   }, []);
+
+//   // Close on Escape
+//   useEffect(() => {
+//     const handler = (e: KeyboardEvent) => {
+//       if (e.key === "Escape") onClose();
+//     };
+//     window.addEventListener("keydown", handler);
+//     return () => window.removeEventListener("keydown", handler);
+//   }, [onClose]);
+
+//   // Lock body scroll
+//   useEffect(() => {
+//     const prev = document.body.style.overflow;
+//     document.body.style.overflow = "hidden";
+//     return () => {
+//       document.body.style.overflow = prev;
+//     };
+//   }, []);
+
+//   const SpaceIcon = spaceIconFromName(spaceIconName);
+//   const { label: roomTypeLabel, icon: RoomTypeIcon, accent } = getRoomTypeMeta(roomType);
+
+//   const node = (
+//     <div
+//       className={cn(
+//         // Layout
+//         "fixed inset-0 z-[10001] flex flex-col",
+//         // Background
+//         "bg-[var(--color-bg)]",
+//         // Transition
+//         "transition-[opacity,transform] duration-300 ease-out will-change-[opacity,transform]",
+//         visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"
+//       )}
+//       role="dialog"
+//       aria-modal="true"
+//       aria-labelledby="workspace-room-overlay-title"
+//     >
+//       {/* Subtle ambient gradient — not neon, just warmth */}
+//       <div
+//         aria-hidden
+//         className="pointer-events-none absolute inset-0"
+//         style={{
+//           background:
+//             "radial-gradient(ellipse 80% 40% at 60% -10%, color-mix(in srgb, var(--color-accent) 6%, transparent), transparent)",
+//         }}
+//       />
+
+//       {/* ── Header ──────────────────────────────────────────────────── */}
+//       <header className="relative z-10 shrink-0 flex items-center gap-3 px-4 py-3 sm:px-6 sm:py-3.5 border-b border-[var(--color-border)]/60 bg-[var(--color-surface)]/90 backdrop-blur-sm">
+
+//         {/* Back button — clean, no heavy border */}
+//         <button
+//           type="button"
+//           onClick={onClose}
+//           aria-label="Back to workspace"
+//           className={cn(
+//             "group relative flex items-center justify-center",
+//             "h-8 w-8 rounded-md shrink-0",
+//             "text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]",
+//             "hover:bg-[var(--color-surface-secondary)]",
+//             "transition-all duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/50"
+//           )}
+//         >
+//           <ArrowLeft className="h-4 w-4 transition-transform duration-150 group-hover:-translate-x-0.5" />
+//         </button>
+
+//         {/* Divider */}
+//         <div aria-hidden className="h-5 w-px bg-[var(--color-border)]/50 shrink-0" />
+
+//         {/* Breadcrumb + room title */}
+//         <div className="min-w-0 flex-1 flex flex-col gap-0.5">
+//           {/* Community / Space trail */}
+//           <div className="flex items-center gap-1.5 overflow-hidden">
+//             <span className="text-[10px] font-semibold tracking-widest uppercase text-[var(--color-text-muted)]/60 truncate select-none leading-none">
+//               {communityName}
+//             </span>
+//             <span aria-hidden className="text-[var(--color-text-muted)]/30 text-[10px] leading-none shrink-0">›</span>
+//             <span className="text-[10px] font-semibold tracking-widest uppercase text-[var(--color-text-muted)]/60 truncate select-none leading-none">
+//               {spaceName}
+//             </span>
+//           </div>
+
+//           {/* Room name row */}
+//           <div className="flex items-center gap-2">
+//             {/* Space icon pill */}
+//             <span
+//               aria-hidden
+//               className="shrink-0 flex items-center justify-center h-5 w-5 rounded bg-[var(--color-surface-secondary)] border border-[var(--color-border)]/60"
+//             >
+//               <SpaceIcon className="h-3 w-3 text-[var(--color-text-muted)]" />
+//             </span>
+
+//             <h1
+//               id="workspace-room-overlay-title"
+//               className="text-sm sm:text-[15px] font-bold tracking-tight text-[var(--color-text-primary)] truncate leading-snug"
+//             >
+//               {roomName}
+//             </h1>
+//           </div>
+//         </div>
+
+//         {/* Room type badge — right side, desktop only */}
+//         <div
+//           aria-label={`Room type: ${roomTypeLabel}`}
+//           className={cn(
+//             "hidden md:inline-flex items-center gap-2 shrink-0",
+//             "px-3 py-1.5 rounded-md",
+//             "bg-[var(--color-surface-secondary)] border border-[var(--color-border)]/60",
+//             "text-[var(--color-text-muted)] text-[10px] font-semibold tracking-widest uppercase select-none",
+//             "transition-colors duration-150 hover:border-[var(--color-border)]"
+//           )}
+//         >
+//           {/* Colored status dot */}
+//           <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", accent)} />
+//           <RoomTypeIcon className="h-3 w-3 shrink-0" />
+//           {roomTypeLabel}
+//         </div>
+
+//         {/* Mobile: just the dot + icon */}
+//         <div
+//           aria-label={`Room type: ${roomTypeLabel}`}
+//           className={cn(
+//             "md:hidden flex items-center gap-1.5 shrink-0",
+//             "px-2.5 py-1.5 rounded-md",
+//             "bg-[var(--color-surface-secondary)] border border-[var(--color-border)]/60"
+//           )}
+//         >
+//           <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", accent)} />
+//           <RoomTypeIcon className="h-3.5 w-3.5 text-[var(--color-text-muted)]" />
+//         </div>
+//       </header>
+
+//       {/* ── Main ────────────────────────────────────────────────────── */}
+//       <main className="relative z-10 flex flex-1 min-h-0 flex-col overflow-hidden">
+//         {children}
+//       </main>
+
+//       {/* Bottom edge — very subtle, just to finish the surface */}
+//       <div
+//         aria-hidden
+//         className="h-px w-full shrink-0"
+//         style={{
+//           background:
+//             "linear-gradient(to right, transparent, var(--color-border), transparent)",
+//           opacity: 0.2,
+//         }}
+//       />
+//     </div>
+//   );
+
+//   if (!mounted) return node;
+//   return createPortal(node, document.body);
+// }
+
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
-import { ArrowLeft, Sparkles, MessageCircle, BookOpen, Folder, CheckSquare, Hash, type LucideIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import {
+  ArrowLeft,
+  Sparkles,
+  MessageCircle,
+  BookOpen,
+  Folder,
+  CheckSquare,
+  Hash,
+  Radio,
+  FileText,
+  LayoutGrid,
+  type LucideIcon,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
+
+// ─── Icon map ───────────────────────────────────────────────────────────────
 
 function spaceIconFromName(name: string | null): LucideIcon {
   if (!name) return Hash;
   const map: Record<string, LucideIcon> = {
-    chat: MessageCircle, message: MessageCircle,
-    book: BookOpen, course: BookOpen, learn: BookOpen,
-    folder: Folder, resources: Folder,
-    tasks: CheckSquare, todo: CheckSquare,
-    sparkles: Sparkles, ai: Sparkles,
+    chat: MessageCircle,
+    message: MessageCircle,
+    book: BookOpen,
+    course: BookOpen,
+    learn: BookOpen,
+    folder: Folder,
+    resources: Folder,
+    tasks: CheckSquare,
+    todo: CheckSquare,
+    sparkles: Sparkles,
+    ai: Sparkles,
   };
   return map[name.toLowerCase()] ?? Hash;
 }
 
-function roomTypeLabel(roomType: string) {
+// ─── Room type config ────────────────────────────────────────────────────────
+
+type RoomTypeMeta = {
+  label: string;
+  icon: LucideIcon;
+  accent: string;
+};
+
+function getRoomTypeMeta(roomType: string): RoomTypeMeta {
   switch (roomType) {
     case "chat":
-      return "Live chat";
+      return { label: "Live chat", icon: Radio, accent: "bg-emerald-400" };
     case "posts":
-      return "Posts & discussions";
+      return { label: "Discussions", icon: FileText, accent: "bg-sky-400" };
     case "course":
-      return "Course";
+      return { label: "Course", icon: BookOpen, accent: "bg-violet-400" };
     case "tasks":
-      return "Tasks";
+      return { label: "Tasks", icon: CheckSquare, accent: "bg-amber-400" };
     case "resources":
-      return "Resources";
+      return { label: "Resources", icon: LayoutGrid, accent: "bg-rose-400" };
     default:
-      return roomType;
+      return { label: roomType, icon: Hash, accent: "bg-zinc-400" };
   }
 }
+
+// ─── Component ───────────────────────────────────────────────────────────────
 
 export function WorkspaceRoomOverlay({
   communityName,
@@ -52,92 +326,126 @@ export function WorkspaceRoomOverlay({
   onClose: () => void;
   children: React.ReactNode;
 }) {
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const [visible, setVisible] = useState(false);
 
+  // Mount-in animation
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
-
-  useEffect(() => {
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prev;
-    };
+    const raf = requestAnimationFrame(() => setVisible(true));
+    return () => cancelAnimationFrame(raf);
   }, []);
 
-  const node = (
+  // Close on Escape
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [onClose]);
+
+  const SpaceIcon = spaceIconFromName(spaceIconName);
+  const { label: roomTypeLabel, icon: RoomTypeIcon, accent } = getRoomTypeMeta(roomType);
+
+  return (
     <div
-      className="fixed inset-0 z-[10001] flex flex-col bg-[var(--color-bg)] animate-in fade-in slide-in-from-bottom-4 duration-300"
+      className={cn(
+        // Fills the relative parent (the <main> column) instead of the whole screen
+        "absolute inset-0 z-30 flex flex-col rounded-2xl overflow-hidden",
+        "bg-[var(--color-bg)]",
+        "transition-[opacity,transform] duration-300 ease-out will-change-[opacity,transform]",
+        visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"
+      )}
       role="dialog"
       aria-modal="true"
       aria-labelledby="workspace-room-overlay-title"
     >
-      {/* Premium Background Elements */}
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_140%_100%_at_50%_-20%,rgba(34,197,94,0.08),transparent_50%)]" />
-      <div className="pointer-events-none absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[var(--color-border)] to-transparent opacity-50" />
+      {/* Subtle ambient gradient */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(ellipse 80% 40% at 60% -10%, color-mix(in srgb, var(--color-accent) 6%, transparent), transparent)",
+        }}
+      />
 
-      <header className="relative z-10 shrink-0 border-b border-[var(--color-border)] bg-[var(--color-surface)]/80 px-3 py-1.5 sm:px-6 sm:py-2.5 flex items-center gap-3 sm:gap-4 shadow-[0_4px_24px_rgba(0,0,0,0.02)]">
-        <Button
+      {/* ── Header ──────────────────────────────────────────────────── */}
+      <header className="relative z-10 shrink-0 flex items-center gap-3 px-4 py-3 sm:px-6 sm:py-3.5 border-b border-[var(--color-border)]/60 bg-[var(--color-surface)]/90 backdrop-blur-sm">
+        <button
           type="button"
-          variant="outline"
-          size="icon"
-          className="h-9 w-9 sm:h-10 sm:w-10 shrink-0 rounded-sm border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-primary)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-accent)] hover:border-[var(--color-accent)]/30 hover:scale-105 active:scale-95 transition-all duration-200"
           onClick={onClose}
           aria-label="Back to workspace"
+          className={cn(
+            "group relative flex items-center justify-center",
+            "h-8 w-8 rounded-md shrink-0",
+            "text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]",
+            "hover:bg-[var(--color-surface-secondary)]",
+            "transition-all duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/50"
+          )}
         >
-          <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5" />
-        </Button>
+          <ArrowLeft className="h-4 w-4 transition-transform duration-150 group-hover:-translate-x-0.5" />
+        </button>
 
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2 mb-0">
-            <span className="text-[9px] font-black uppercase tracking-[0.2em] text-[var(--color-text-muted)] opacity-70 leading-none">{communityName}</span>
+        <div aria-hidden className="h-5 w-px bg-[var(--color-border)]/50 shrink-0" />
+
+        <div className="min-w-0 flex-1 flex flex-col gap-0.5">
+          <div className="flex items-center gap-1.5 overflow-hidden">
+            <span className="text-[10px] font-semibold tracking-widest uppercase text-[var(--color-text-muted)]/60 truncate leading-none">
+              {communityName}
+            </span>
+            <span aria-hidden className="text-[var(--color-text-muted)]/30 text-[10px] leading-none shrink-0">›</span>
+            <span className="text-[10px] font-semibold tracking-widest uppercase text-[var(--color-text-muted)]/60 truncate leading-none">
+              {spaceName}
+            </span>
           </div>
-          <div className="flex items-center gap-2 sm:gap-3">
-             {spaceIconName && (() => {
-               const SpaceIcon = spaceIconFromName(spaceIconName);
-               return <span className="text-base sm:text-lg leading-none w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center bg-[var(--color-surface-secondary)] rounded-sm border border-[var(--color-border)] shadow-none"><SpaceIcon className="h-4 w-4 sm:h-5 sm:w-5" /></span>;
-             })()}
-             <div className="min-w-0">
-                <div className="flex items-center gap-2 flex-wrap leading-tight">
-                   <span className="text-[11px] font-bold text-[var(--color-text-muted)] tracking-tight">{spaceName}</span>
-                   <span className="text-[var(--color-border)] opacity-60 text-xs">/</span>
-                   <h1 id="workspace-room-overlay-title" className="text-sm sm:text-base font-black tracking-tight text-[var(--color-text-primary)] truncate">
-                     {roomName}
-                   </h1>
-                </div>
-             </div>
+
+          <div className="flex items-center gap-2">
+            <span
+              aria-hidden
+              className="shrink-0 flex items-center justify-center h-5 w-5 rounded bg-[var(--color-surface-secondary)] border border-[var(--color-border)]/60"
+            >
+              <SpaceIcon className="h-3 w-3 text-[var(--color-text-muted)]" />
+            </span>
+            <h1
+              id="workspace-room-overlay-title"
+              className="text-sm sm:text-[15px] font-bold tracking-tight text-[var(--color-text-primary)] truncate leading-snug"
+            >
+              {roomName}
+            </h1>
           </div>
         </div>
 
-        <div className="hidden md:flex items-center gap-3 shrink-0">
-          <span
-            className={cn(
-              "inline-flex items-center gap-2 text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-sm shadow-none transition-all duration-300",
-              "bg-[var(--color-surface-secondary)] text-[var(--color-text-primary)] border border-[var(--color-border)] group hover:border-[var(--color-accent)]/40"
-            )}
-          >
-            <Sparkles className="h-3 w-3 text-[var(--color-accent)] animate-pulse" />
-            {roomTypeLabel(roomType)}
-          </span>
+        <div
+          aria-label={`Room type: ${roomTypeLabel}`}
+          className={cn(
+            "hidden md:inline-flex items-center gap-2 shrink-0",
+            "px-3 py-1.5 rounded-md",
+            "bg-[var(--color-surface-secondary)] border border-[var(--color-border)]/60",
+            "text-[var(--color-text-muted)] text-[10px] font-semibold tracking-widest uppercase"
+          )}
+        >
+          <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", accent)} />
+          <RoomTypeIcon className="h-3 w-3 shrink-0" />
+          {roomTypeLabel}
+        </div>
+
+        <div
+          aria-label={`Room type: ${roomTypeLabel}`}
+          className={cn(
+            "md:hidden flex items-center gap-1.5 shrink-0",
+            "px-2.5 py-1.5 rounded-md",
+            "bg-[var(--color-surface-secondary)] border border-[var(--color-border)]/60"
+          )}
+        >
+          <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", accent)} />
+          <RoomTypeIcon className="h-3.5 w-3.5 text-[var(--color-text-muted)]" />
         </div>
       </header>
 
-      <main className="relative z-10 flex flex-1 min-h-0 flex-col overflow-hidden bg-[var(--color-bg)]/50 ">
+      {/* ── Main ────────────────────────────────────────────────────── */}
+      <main className="relative z-10 flex flex-1 min-h-0 flex-col overflow-auto">
         {children}
       </main>
-
-      {/* Decorative footer-like edge */}
-      <div className="h-px w-full bg-gradient-to-r from-transparent via-[var(--color-border)] to-transparent opacity-20 shrink-0" />
     </div>
   );
-
-  if (!mounted) return node;
-  return createPortal(node, document.body);
 }
-

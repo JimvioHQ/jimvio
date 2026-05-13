@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { WorkspaceShell } from "@/components/community/workspace/WorkspaceShell";
 import type { WorkspaceSpaceRow, PointsSnapshot } from "@/components/community/workspace-context";
-import type { WorkspaceSection } from "@/types/workspace";
+
 
 export default async function CommunityWorkspaceLayout({
   children,
@@ -114,31 +114,31 @@ export default async function CommunityWorkspaceLayout({
   const LEVEL_THRESHOLDS = [0, 500, 2000, 8000, 25000, 100000];
   const points: PointsSnapshot | null = pointsRes.data
     ? {
-        total_points: pointsRes.data.total_points ?? 0,
-        level: pointsRes.data.level ?? 1,
-        level_start_xp: LEVEL_THRESHOLDS[(pointsRes.data.level ?? 1) - 1] ?? 0,
-        next_level_xp:
-          LEVEL_THRESHOLDS[pointsRes.data.level ?? 1] ??
-          (LEVEL_THRESHOLDS[LEVEL_THRESHOLDS.length - 1] + 100000),
-        streak_days: pointsRes.data.streak_days ?? 0,
-      }
+      total_points: pointsRes.data.total_points ?? 0,
+      level: pointsRes.data.level ?? 1,
+      level_start_xp: LEVEL_THRESHOLDS[(pointsRes.data.level ?? 1) - 1] ?? 0,
+      next_level_xp:
+        LEVEL_THRESHOLDS[pointsRes.data.level ?? 1] ??
+        (LEVEL_THRESHOLDS[LEVEL_THRESHOLDS.length - 1] + 100000),
+      streak_days: pointsRes.data.streak_days ?? 0,
+    }
     : null;
 
   return (
     <WorkspaceShell
-      community={community}
+      community={community as any}
       currentUserId={user.id}
-      role={membership.role}
+      role={membership.role as any}
       isAdmin={isAdmin}
       isOwner={isOwner}
-      initialSection="feed" // Default section
+      initialSection="feed"
       initialView="member"
       profile={profileRes.data}
       points={points}
       spacesWithRooms={spacesWithRooms}
       unreadNotifications={notificationsRes.count ?? 0}
       openMissionsCount={missionsRes.count ?? 0}
-      membership={membership}
+      membership={membership as any}
     >
       {children}
     </WorkspaceShell>

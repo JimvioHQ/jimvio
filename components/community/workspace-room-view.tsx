@@ -177,11 +177,12 @@ import { Loader2, Lock, ArrowRight } from "lucide-react";
 import { useWorkspace } from "@/components/community/workspace-context";
 import { WorkspaceRoomOverlay } from "@/components/community/workspace-room-overlay";
 import { PostsRoom } from "@/components/community/rooms/PostsRoom";
-import { ChatRoom } from "@/components/community/rooms/ChatRoom";
+// import { ChatRoom } from "@/components/community/rooms/ChatRoom";
 import { CourseRoom } from "@/components/community/rooms/CourseRoom";
 import { TasksRoom } from "@/components/community/rooms/TasksRoom";
 import { ResourcesRoom } from "@/components/community/rooms/ResourcesRoom";
 import { canAccessRoomNav } from "@/lib/community-workspace-access";
+import { ChatRoom } from "./chat/ChatRoom";
 
 export function WorkspaceRoomView() {
   const router = useRouter();

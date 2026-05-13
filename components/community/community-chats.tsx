@@ -1,8 +1,7 @@
 ﻿"use client";
 
-import React from "react";
-import { ChatRoom } from "@/components/community/rooms/ChatRoom";
 import { useWorkspace } from "@/components/community/workspace-context";
+import { ChatRoom } from "./chat/ChatRoom";
 
 /**
  * A wrapper component that provides the first chat room context 
@@ -10,7 +9,7 @@ import { useWorkspace } from "@/components/community/workspace-context";
  */
 export function CommunityChats() {
   const { spacesWithRooms, communityId, slug } = useWorkspace();
-  
+
   const firstChatRoom = spacesWithRooms
     .flatMap(s => s.rooms)
     .find(r => r.room_type === "chat");
@@ -22,15 +21,14 @@ export function CommunityChats() {
       </div>
     );
   }
-
   return (
-    <ChatRoom 
+    <ChatRoom
       roomId={firstChatRoom.id}
       roomName={firstChatRoom.name}
       communityId={communityId}
       slug={slug}
       hideHeader={true}
     />
-  );
+  )
 }
 
