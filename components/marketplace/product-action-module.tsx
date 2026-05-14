@@ -30,9 +30,9 @@ interface ProductActionModuleProps {
     price: number;
     images: string[] | null;
     vendor_id: string;
-    currency?: string;
-    pricing_type?: string;
-    button_text?: string;
+    currency?: string | null;
+    pricing_type?: string | null;
+    button_text?: string | null;
     is_digital?: boolean;
   };
   vendor: {
@@ -70,6 +70,11 @@ export function ProductActionModule({
   const router = useRouter();
   const { incrementCartCount } = useCartStore();
 
+  // Helper: redirect to login while preserving where the user was
+  function redirectToLogin() {
+    router.push(`/login?next=${encodeURIComponent(currentPath)}`);
+  }
+
   useEffect(() => {
     let cancelled = false;
 
@@ -80,13 +85,18 @@ export function ProductActionModule({
         : Promise.resolve(false),
     ];
 
-    Promise.all(checks).then(([ids, owns]) => {
-      if (!cancelled) {
+    Promise.all(checks)
+      .then(([ids, owns]) => {
+        if (cancelled) return;
         setInWishlist(ids.includes(product.id));
         setAlreadyOwned(owns);
         setOwnershipChecked(true);
-      }
-    });
+      })
+      .catch(() => {
+        if (cancelled) return;
+        // Fail open — assume not owned, let the action handler surface real errors
+        setOwnershipChecked(true);
+      });
 
     return () => { cancelled = true; };
   }, [product.id, isFreeDigital]);
@@ -99,6 +109,7 @@ export function ProductActionModule({
 
     try {
       if (isDigital) {
+        // Digital purchases are always quantity 1 — can't "buy 3 copies"
         const result = await buyDirectCheckout(product.id, product.vendor_id, 1);
 
         if (result.success && result.orderId) {
@@ -107,12 +118,11 @@ export function ProductActionModule({
             : `/checkout?order_id=${result.orderId}`;
           router.push(link);
         } else if (result.error === "Authentication required") {
-          window.location.href = `/login?next=${encodeURIComponent(window.location.pathname)}`;
+          redirectToLogin();
         } else {
           toast.error(result.error ?? "Failed to process checkout");
           setLoading(false);
         }
-
       } else {
         // Physical product (free or paid) — add to cart
         const result = await addToCart(product.id, product.vendor_id, quantity);
@@ -123,7 +133,7 @@ export function ProductActionModule({
           if (isFree) toast.success("Free item added to cart!");
           setTimeout(() => setAdded(false), 2500);
         } else if (result.error === "Authentication required") {
-          window.location.href = `/login?next=${encodeURIComponent(window.location.pathname)}`;
+          redirectToLogin();
         } else {
           toast.error(result.error ?? "Failed to add to cart");
         }
@@ -140,11 +150,11 @@ export function ProductActionModule({
     setWishlistLoading(true);
     try {
       const res = await toggleWishlist(product.id);
-      if (res.success) {
-        setInWishlist(res.inWishlist!);
+      if (res.success && typeof res.inWishlist === "boolean") {
+        setInWishlist(res.inWishlist);
         toast.success(res.inWishlist ? "Saved to wishlist" : "Removed from wishlist");
       } else if (res.error === "Authentication required") {
-        window.location.href = `/login?next=${encodeURIComponent(window.location.pathname)}`;
+        redirectToLogin();
       } else {
         toast.error(res.error ?? "Could not update wishlist");
       }
@@ -182,7 +192,7 @@ export function ProductActionModule({
         : isDigital
           ? "bg-sky-500 hover:bg-sky-600 text-white"
           : "bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white",
-    className
+    className,
   );
 
   // ─── Render ─────────────────────────────────────────────────────────────────
@@ -207,7 +217,7 @@ export function ProductActionModule({
             className={cn(
               "flex-1 inline-flex items-center justify-center gap-2",
               "font-semibold text-[13px] rounded-xl h-11 transition-colors",
-              "bg-emerald-500 hover:bg-emerald-600 text-white"
+              "bg-emerald-500 hover:bg-emerald-600 text-white",
             )}
           >
             <FolderOpen className="h-4 w-4" />
@@ -219,7 +229,6 @@ export function ProductActionModule({
             disabled={loading || added || (isFreeDigital && !ownershipChecked)}
             className={primaryButtonClass}
           >
-            {/* Show spinner while ownership check is in flight */}
             {isFreeDigital && !ownershipChecked ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
@@ -230,10 +239,17 @@ export function ProductActionModule({
         )}
       </div>
 
-      {/* Free hint */}
-      {isFree && !alreadyOwned && ownershipChecked && (
+      {/* Free hint — physical free items */}
+      {isFree && !isDigital && (
         <p className="text-[11px] text-center text-emerald-600 dark:text-emerald-400 font-medium">
           No payment required — yours for free
+        </p>
+      )}
+
+      {/* Free hint — digital, not yet owned */}
+      {isFreeDigital && ownershipChecked && !alreadyOwned && (
+        <p className="text-[11px] text-center text-emerald-600 dark:text-emerald-400 font-medium">
+          Free instant access — claim your copy
         </p>
       )}
 
@@ -251,7 +267,7 @@ export function ProductActionModule({
           className={cn(
             "h-9 text-[12px] font-semibold rounded-xl",
             "border border-[var(--color-border)] text-[var(--color-text-secondary)]",
-            "hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] transition-colors"
+            "hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] transition-colors",
           )}
           vendor={vendor ?? undefined}
           product={{ ...product, images: product.images }}
@@ -270,7 +286,7 @@ export function ProductActionModule({
             "h-9 text-[12px] font-semibold rounded-xl border transition-colors",
             inWishlist
               ? "border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/10 text-rose-500 hover:bg-rose-100 dark:hover:bg-rose-500/20"
-              : "border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-[var(--color-border-strong)]"
+              : "border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-[var(--color-border-strong)]",
           )}
         >
           {wishlistLoading ? (

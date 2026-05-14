@@ -10,10 +10,6 @@ import {
 } from "@/services/db";
 import { VendorActions } from "@/components/admin/vendors/vendor-action";
 import { VendorOrdersTable, VendorProductsTable, VendorReviewsList } from "@/components/admin/vendor-products-table";
-// import { VendorActions } from "@/components/admin/vendor-actions";
-// import { VendorProductsTable } from "@/components/admin/vendor-products-table";
-// import { VendorOrdersTable } from "@/components/admin/vendor-orders-table";
-// import { VendorReviewsList } from "@/components/admin/vendor-reviews-list";
 
 export const dynamic = "force-dynamic";
 

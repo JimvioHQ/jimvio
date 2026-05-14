@@ -32,7 +32,7 @@ export async function getBuyerDashboardStats(userId: string) {
   }
 
   orders.forEach(o => {
-    const d = new Date(o.created_at);
+    const d = new Date(o.created_at ?? "");
     const month = d.toLocaleString("default", { month: "short" });
     if (timeline[month]) {
       timeline[month].spent += Number(o.total_amount);
@@ -74,10 +74,10 @@ export async function getCommunityDashboardStats(userId: string) {
   let moderatorCount = 0;
   if (communityIds.length > 0) {
     const { count } = await db
-      .from("community_members")
+      .from("community_memberships")
       .select("id", { count: "exact", head: true })
       .in("community_id", communityIds)
-      .eq("role", "moderator");
+      .eq('role', "moderator");
     moderatorCount = count ?? 0;
   }
 
@@ -96,18 +96,18 @@ export async function getCommunityDashboardStats(userId: string) {
   if (communityIds.length > 0) {
     const since = new Date(Date.now() - 7 * 86400000).toISOString();
     const [membersRes, engagementRes] = await Promise.all([
-      db.from("community_members").select("created_at").in("community_id", communityIds).gte("created_at", since),
+      db.from("community_memberships").select("created_at").in("community_id", communityIds).gte("created_at", since),
       db.from("community_posts").select("created_at").in("community_id", communityIds).gte("created_at", since),
     ]);
 
     (membersRes.data ?? []).forEach(m => {
-      const d = m.created_at.slice(0, 10);
+      const d = m.created_at?.slice(0, 10);
       const point = chartData.find(p => p.date === d);
       if (point) point.members += 1;
     });
 
     (engagementRes.data ?? []).forEach(p => {
-      const d = p.created_at.slice(0, 10);
+      const d = p.created_at?.slice(0, 10);
       const point = chartData.find(p => p.date === d);
       if (point) point.engagement += 10; // Weighted engagement
     });

@@ -70,7 +70,7 @@ export default function ProductsPage() {
       setVendor(userVendors?.[0] || null);
 
       if (userVendors && userVendors.length > 0) {
-        const vendorIds = userVendors.map(v => v.id);
+        const vendorIds = (userVendors as { id: string }[]).map(v => v.id);
         const { data: prods } = await supabase
           .from("products")
           .select("id, name, slug, price, currency, status, product_type, images, inventory_quantity, sale_count, is_digital, created_at, vendor_id")

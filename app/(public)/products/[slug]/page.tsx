@@ -27,10 +27,12 @@ export async function generateMetadata({ params }: PageProps) {
     });
   }
 
+  const images = Array.isArray(product.images) ? (product.images as string[]) : undefined;
+
   return constructMetadata({
     title: product.name,
     description: product.description || `Buy ${product.name} on Jimvio. Premium B2B quality and global reach.`,
-    image: product.images?.[0] || "/jimvio-og.png",
+    image: images?.[0] || "/jimvio-og.png",
     path: `/products/${slug}`,
     type: "product",
   });
@@ -41,6 +43,7 @@ export default async function ProductBySlugPage({ params }: PageProps) {
   const product = await getProductBySlug(slug);
   if (!product) notFound();
 
+  const images = Array.isArray(product.images) ? (product.images as string[]) : undefined;
   const rawV = product.vendors as unknown;
   const vendor = (Array.isArray(rawV) ? rawV[0] : rawV) as {
     id: string;
@@ -49,7 +52,7 @@ export default async function ProductBySlugPage({ params }: PageProps) {
     rating?: number;
     follower_count?: number;
   } | null;
-  const mainImage = product.images?.[0] || null;
+  const mainImage = images?.[0] || null;
 
   return (
     <div className="min-h-screen relative overflow-hidden" style={{ background: "var(--color-bg)" }}>
@@ -58,7 +61,7 @@ export default async function ProductBySlugPage({ params }: PageProps) {
         product={{
           name: product.name,
           description: product.description || undefined,
-          images: product.images || undefined,
+          images: images || undefined,
           price: Number(product.price),
           currency: product.currency || "USD",
           vendorName: vendor?.business_name,

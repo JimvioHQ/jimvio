@@ -1,4 +1,6 @@
+import { Vendor, VendorWithRelations } from "@/types/db";
 import { getDB, getAdminDB } from "./base";
+import { Profile } from "@/types";
 
 
 export interface AdminVendor {
@@ -183,15 +185,45 @@ export async function getVendorByUserId(userId: string) {
   return data;
 }
 
+
 export async function getVendorById(vendorId: string) {
   const db = await getDB();
   const { data } = await db
     .from("vendors")
-    .select("*")
+    .select(`
+      *,
+      profiles (
+        id,
+        email,
+        full_name,
+        avatar_url,
+        username,
+        phone,
+        country,
+        city,
+        timezone,
+        language,
+        is_verified,
+        is_active,
+        two_factor_enabled,
+        bio,
+        website,
+        created_at
+      ),
+      shopify_credentials (
+        shop_domain,
+        api_version,
+        platform_commission_rate,
+        is_active,
+        connected_at,
+        last_synced_at
+      )
+    `)
     .eq("id", vendorId)
     .single();
   return data;
 }
+
 
 export async function getVendorDashboardStats(vendorId: string) {
   const db = await getDB();

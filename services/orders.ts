@@ -97,7 +97,7 @@ export async function getRevenueChartData(vendorId?: string) {
 
   const byMonth: Record<string, number> = {};
   items?.forEach(item => {
-    const d = new Date(item.created_at);
+    const d = new Date(item.created_at ?? "");
     const key = `${d.getFullYear()}-${d.getMonth() + 1}`;
     byMonth[key] = (byMonth[key] ?? 0) + Number(item.total_price);
   });

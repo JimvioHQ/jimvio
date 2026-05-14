@@ -1,10 +1,5 @@
 import { getDB } from "./base";
 
-// ─────────────────────────────────────────────────────────────
-// UNIFIED CREATOR ANALYTICS
-// Aggregates data across: viral_clips, ugc_posts, affiliate_commissions,
-// affiliates, clip_view_logs for a single influencer/creator
-// ─────────────────────────────────────────────────────────────
 
 export interface CreatorDashboardStats {
   totalViews: number;
@@ -47,26 +42,34 @@ export async function getCreatorDashboardStats(userId: string): Promise<CreatorD
   const db = await getDB();
 
   const [infRes, affRes] = await Promise.all([
-    db.from("influencers").select("id, total_clicks, total_conversions").eq("user_id", userId).maybeSingle(),
-    db.from("affiliates").select("id, total_earnings, available_balance, pending_earnings, paid_earnings, conversion_rate").eq("user_id", userId).maybeSingle(),
+    db
+      .from("influencers")
+      .select("id")                               // FIX: removed total_clicks/total_conversions — those columns don't exist on influencers
+      .eq("user_id", userId)
+      .maybeSingle(),
+    db
+      .from("affiliates")
+      .select("id, total_earnings, available_balance, pending_earnings, paid_earnings, conversion_rate, total_clicks, total_conversions") // FIX: total_clicks/total_conversions live on affiliates
+      .eq("user_id", userId)
+      .maybeSingle(),
   ]);
 
   const influencer = infRes.data;
   const affiliate = affRes.data;
 
-  let submissions: Array<{ view_count: number; total_earnings: number; status: string }> = [];
+  let submissions: Array<{ total_views_earned: number | null; total_earnings: number | null; status: string }> = [];
   if (influencer) {
     const { data } = await db
       .from("ugc_submissions")
-      .select("view_count, total_earnings, status")
+      .select("total_views_earned, total_earnings, status") // FIX: view_count → total_views_earned (schema column name)
       .eq("influencer_id", influencer.id);
     submissions = data ?? [];
   }
 
-  const totalViews = submissions.reduce((s, c) => s + (Number(c.view_count) || 0), 0);
+  const totalViews = submissions.reduce((s, c) => s + (Number(c.total_views_earned) || 0), 0); // FIX: view_count → total_views_earned
   const totalUgCEarnings = submissions.reduce((s, c) => s + (Number(c.total_earnings) || 0), 0);
-  const approvedSubmissions = submissions.filter(s => s.status === 'approved').length;
-  const pendingSubmissions = submissions.filter(s => s.status === 'pending' || s.status === 'in_review').length;
+  const approvedSubmissions = submissions.filter(s => s.status === "approved").length;
+  const pendingSubmissions = submissions.filter(s => s.status === "pending" || s.status === "in_review").length;
 
   return {
     totalViews,
@@ -78,8 +81,8 @@ export async function getCreatorDashboardStats(userId: string): Promise<CreatorD
     totalEarned: Number(affiliate?.total_earnings ?? 0) + totalUgCEarnings,
     paidEarnings: Number(affiliate?.paid_earnings ?? 0),
     totalUgCEarnings,
-    totalClicks: Number(influencer?.total_clicks ?? 0),
-    totalConversions: Number(influencer?.total_conversions ?? 0),
+    totalClicks: Number(affiliate?.total_clicks ?? 0),         // FIX: read from affiliate, not influencer
+    totalConversions: Number(affiliate?.total_conversions ?? 0), // FIX: read from affiliate, not influencer
     conversionRate: Number(affiliate?.conversion_rate ?? 0),
   };
 }
@@ -90,24 +93,29 @@ export async function getCreatorDashboardStats(userId: string): Promise<CreatorD
 export async function getTopPerformingClips(userId: string, limit = 5): Promise<TopClip[]> {
   const db = await getDB();
 
-  const infRes = await db.from("influencers").select("id").eq("user_id", userId).maybeSingle();
+  const infRes = await db
+    .from("influencers")
+    .select("id")
+    .eq("user_id", userId)
+    .maybeSingle();
+
   if (!infRes.data) return [];
 
   const { data: submissions } = await db
     .from("ugc_submissions")
-    .select("id, platform, post_url, view_count, total_earnings, status, ugc_campaigns(title)")
+    .select("id, platform, post_url, total_views_earned, total_earnings, status, ugc_campaigns(title)") // FIX: view_count → total_views_earned
     .eq("influencer_id", infRes.data.id)
-    .order("view_count", { ascending: false })
+    .order("total_views_earned", { ascending: false }) // FIX: view_count → total_views_earned
     .limit(limit);
 
   return (submissions ?? []).map((c: any) => ({
     id: c.id,
-    title: c.ugc_campaigns?.title || "Unknown Campaign",
-    platform: c.platform || "unknown",
+    title: c.ugc_campaigns?.title ?? "Unknown Campaign",
+    platform: c.platform ?? "unknown",
     post_url: c.post_url,
-    total_views: Number(c.view_count) || 0,
+    total_views: Number(c.total_views_earned) || 0, // FIX: view_count → total_views_earned
     earnings: Number(c.total_earnings) || 0,
-    status: c.status || "review",
+    status: c.status ?? "review",
   }));
 }
 
@@ -116,9 +124,14 @@ export async function getTopPerformingClips(userId: string, limit = 5): Promise<
 // ─────────────────────────────────────────────────────────────
 export async function getEarningsTimeline(userId: string, days = 30): Promise<EarningsByDay[]> {
   const db = await getDB();
-  const since = new Date(Date.now() - days * 86400_000).toISOString();
+  const since = new Date(Date.now() - days * 86_400_000).toISOString();
 
-  const affRes = await db.from("affiliates").select("id").eq("user_id", userId).maybeSingle();
+  const affRes = await db
+    .from("affiliates")
+    .select("id")
+    .eq("user_id", userId)
+    .maybeSingle();
+
   if (!affRes.data) return [];
 
   const { data: commissions } = await db
@@ -130,17 +143,23 @@ export async function getEarningsTimeline(userId: string, days = 30): Promise<Ea
 
   // Group by date
   const byDate: Record<string, { earnings: number; conversions: number; views: number }> = {};
+
   for (const c of commissions ?? []) {
-    const date = c.created_at.slice(0, 10);
+    // FIX: Supabase returns TIMESTAMPTZ as an ISO string — .slice(0, 10) is sufficient and safe.
+    // Wrapping in new Date().toISOString() adds an unnecessary parse/re-serialize round-trip
+    // and can silently shift dates across timezone boundaries. Slice directly instead.
+    const date = (c.created_at as string).slice(0, 10);
+    if (!date) continue;
+
     if (!byDate[date]) byDate[date] = { earnings: 0, conversions: 0, views: 0 };
     byDate[date].earnings += Number(c.commission_amount ?? 0);
     byDate[date].conversions += 1;
   }
 
-  // Fill in missing days
+  // Fill in missing days so the chart always has a full range
   const result: EarningsByDay[] = [];
   for (let i = days - 1; i >= 0; i--) {
-    const d = new Date(Date.now() - i * 86400_000);
+    const d = new Date(Date.now() - i * 86_400_000);
     const date = d.toISOString().slice(0, 10);
     result.push({
       date,
@@ -149,6 +168,7 @@ export async function getEarningsTimeline(userId: string, days = 30): Promise<Ea
       views: byDate[date]?.views ?? 0,
     });
   }
+
   return result;
 }
 
@@ -158,7 +178,12 @@ export async function getEarningsTimeline(userId: string, days = 30): Promise<Ea
 export async function getCreatorAffiliateLinkStats(userId: string) {
   const db = await getDB();
 
-  const affRes = await db.from("affiliates").select("id").eq("user_id", userId).maybeSingle();
+  const affRes = await db
+    .from("affiliates")
+    .select("id")
+    .eq("user_id", userId)
+    .maybeSingle();
+
   if (!affRes.data) return [];
 
   const { data } = await db
@@ -181,7 +206,12 @@ export async function getCreatorAffiliateLinkStats(userId: string) {
 export async function getRecentCommissions(userId: string, limit = 10) {
   const db = await getDB();
 
-  const affRes = await db.from("affiliates").select("id").eq("user_id", userId).maybeSingle();
+  const affRes = await db
+    .from("affiliates")
+    .select("id")
+    .eq("user_id", userId)
+    .maybeSingle();
+
   if (!affRes.data) return [];
 
   const { data } = await db
@@ -195,27 +225,4 @@ export async function getRecentCommissions(userId: string, limit = 10) {
     .limit(limit);
 
   return data ?? [];
-}
-
-// ─────────────────────────────────────────────────────────────
-// CLIP-LEVEL ANALYTICS
-// ─────────────────────────────────────────────────────────────
-export async function getClipAnalytics(clipId: string, userId: string) {
-  const db = await getDB();
-
-  // Verify ownership
-  const infRes = await db.from("influencers").select("id").eq("user_id", userId).maybeSingle();
-  if (!infRes.data) return null;
-
-  const { data: clip } = await db
-    .from("viral_clips")
-    .select(`
-      id, title, description, thumbnail_url, video_url, created_at,
-      total_views, total_likes, total_comments, total_shares, total_conversions
-    `)
-    .eq("id", clipId)
-    .eq("influencer_id", infRes.data.id)
-    .maybeSingle();
-
-  return clip;
 }

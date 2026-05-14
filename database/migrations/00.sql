@@ -2888,3 +2888,25 @@ CREATE INDEX IF NOT EXISTS idx_products_enable_discussions
   WHERE enable_discussions = TRUE;
 
 COMMIT;
+
+
+CREATE OR REPLACE FUNCTION public.increment_link_clicks(p_link_id UUID)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  UPDATE public.affiliate_links
+  SET total_clicks = total_clicks + 1
+  WHERE id = p_link_id;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.increment_affiliate_clicks(p_affiliate_id UUID)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  UPDATE public.affiliates
+  SET total_clicks = total_clicks + 1
+  WHERE id = p_affiliate_id;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.increment_link_clicks(UUID) TO service_role;
+GRANT EXECUTE ON FUNCTION public.increment_affiliate_clicks(UUID) TO service_role;

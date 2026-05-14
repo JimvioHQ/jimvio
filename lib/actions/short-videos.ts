@@ -225,9 +225,9 @@ export async function getVideoEarnings() {
 
   if (!rows) return { data: null };
 
-  const viewEarnings  = rows.filter(r => r.event_type === "view").reduce((s, r) => s + Number(r.amount), 0);
+  const viewEarnings = rows.filter(r => r.event_type === "view").reduce((s, r) => s + Number(r.amount), 0);
   const clickEarnings = rows.filter(r => r.event_type === "click").reduce((s, r) => s + Number(r.amount), 0);
-  const saleEarnings  = rows.filter(r => r.event_type === "sale").reduce((s, r) => s + Number(r.amount), 0);
+  const saleEarnings = rows.filter(r => r.event_type === "sale").reduce((s, r) => s + Number(r.amount), 0);
   const total = viewEarnings + clickEarnings + saleEarnings;
 
   // Get total from videos
@@ -276,8 +276,8 @@ export async function recordVideoView(videoId: string, watchTimeSec: number) {
     return { error: insertError.message };
   }
 
-  // Increment counter on the video row
-  const { error: rpcError } = await supabase.rpc("increment_video_view_count", { vid: videoId });
+  const { error: rpcError } = await supabase.rpc("increment_video_view_count" as any, { vid: videoId });
+
   if (rpcError) {
     console.error("[DATABASE ERROR] increment_video_view_count failed:", rpcError);
   }
@@ -303,8 +303,7 @@ export async function recordVideoView(videoId: string, watchTimeSec: number) {
       .update({ total_earnings: supabase.rpc as any })  // updated via separate RPC below
       .eq("id", videoId);
 
-    // Simple increment on total_earnings
-    await supabase.rpc("add_video_earnings", { vid: videoId, amt: earningRwf });
+    await supabase.rpc("add_video_earnings" as any, { vid: videoId, amt: earningRwf });
   }
 
   return { success: true };
@@ -326,7 +325,8 @@ export async function recordVideoClick(videoId: string, productId?: string, comm
   });
 
   // Increment click counter
-  const { error: rpcError } = await supabase.rpc("increment_video_click_count", { vid: videoId });
+  const { error: rpcError } = await supabase.rpc("increment_video_click_count" as any, { vid: videoId });
+
   if (rpcError) {
     console.error("[DATABASE ERROR] increment_video_click_count failed:", rpcError);
   }
@@ -346,7 +346,10 @@ export async function recordVideoClick(videoId: string, productId?: string, comm
       amount: RATE_PER_CLICK_RWF,
       currency: "RWF",
     });
-    await supabase.rpc("add_video_earnings", { vid: videoId, amt: RATE_PER_CLICK_RWF });
+    await supabase
+      .from("short_videos")
+      .update({ total_earnings: supabase.rpc as any })
+      .eq("id", videoId);
   }
 
   return { success: true };
@@ -408,11 +411,11 @@ export async function toggleShortVideoLike(videoId: string) {
         .delete()
         .eq("video_id", videoId)
         .eq("user_id", user.id);
-      
+
       if (error) throw error;
-      const { error: rpcError } = await supabase.rpc("decrement_video_like_count", { vid: videoId });
+      const { error: rpcError } = await supabase.rpc("decrement_video_like_count" as any, { vid: videoId });
       if (rpcError) {
-         console.error("[DATABASE ERROR] decrement_video_like_count failed:", rpcError);
+        console.error("[DATABASE ERROR] decrement_video_like_count failed:", rpcError);
       }
       return { success: true, action: "unliked" };
     } else {
@@ -422,11 +425,12 @@ export async function toggleShortVideoLike(videoId: string) {
           video_id: videoId,
           user_id: user.id
         });
-      
+
       if (error) throw error;
-      const { error: rpcError } = await supabase.rpc("increment_video_like_count", { vid: videoId });
+      const { error: rpcError } = await supabase.rpc("increment_video_like_count" as any, { vid: videoId });
+
       if (rpcError) {
-         console.error("[DATABASE ERROR] increment_video_like_count failed:", rpcError);
+        console.error("[DATABASE ERROR] increment_video_like_count failed:", rpcError);
       }
       return { success: true, action: "liked" };
     }

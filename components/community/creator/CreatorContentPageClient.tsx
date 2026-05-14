@@ -27,13 +27,42 @@ type TaskCompletionRow = {
   created_at: string | null;
   profiles: { full_name: string | null; username: string | null; avatar_url: string | null } | null;
 };
+type CommunityTask = {
+  id: string;
+  title: string;
+  task_type: string;
+  difficulty: string;
+  points: number;
+  is_active: boolean;
+  created_at: string | null;
+  room_id: string | null;
+};
+
+type CommunityPost = {
+  id: string;
+  title: string | null;
+  body: string | null;
+  like_count: number | null;
+  is_pinned: boolean;
+  created_at: string | null;
+  room_id: string | null;
+  rooms: { name?: string } | null;
+};
+
+type CommunityCourse = {
+  id: string;
+  title: string;
+  is_published: boolean;
+  room_id: string | null;
+  rooms: { name?: string } | null;
+};
 
 export function CreatorContentPageClient({ communityId }: { communityId: string }) {
   const [tab, setTab] = useState<(typeof TABS)[number]>("Posts");
   const [loading, setLoading] = useState(true);
-  const [posts, setPosts] = useState<any[]>([]);
-  const [courses, setCourses] = useState<any[]>([]);
-  const [tasks, setTasks] = useState<any[]>([]);
+  const [posts, setPosts] = useState<CommunityPost[]>([]);
+  const [courses, setCourses] = useState<CommunityCourse[]>([]);
+  const [tasks, setTasks] = useState<CommunityTask[]>([]);
   const [taskCompletionsByTaskId, setTaskCompletionsByTaskId] = useState<Record<string, TaskCompletionRow[]>>({});
   const [taskModal, setTaskModal] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -61,7 +90,7 @@ export function CreatorContentPageClient({ communityId }: { communityId: string 
     setCourses(c ?? []);
     setTasks(tk ?? []);
 
-    const taskIds = (tk ?? []).map((t) => t.id);
+    const taskIds = (tk ?? []).map((t: CommunityTask) => t.id);
     const byTask: Record<string, TaskCompletionRow[]> = {};
     if (taskIds.length) {
       const { data: comp, error: compErr } = await supabase
@@ -71,7 +100,7 @@ export function CreatorContentPageClient({ communityId }: { communityId: string 
         .order("created_at", { ascending: false });
       if (compErr) console.error("task_completions load:", compErr.message);
 
-      const userIds = [...new Set((comp ?? []).map((r) => r.user_id))];
+      const userIds = [...new Set((comp ?? []).map((r: TaskCompletionRow) => r.user_id))];
       const profileMap = new Map<string, NonNullable<TaskCompletionRow["profiles"]>>();
       if (userIds.length) {
         const { data: profs } = await supabase.from("profiles").select("id, full_name, username, avatar_url").in("id", userIds);
@@ -369,7 +398,7 @@ function RoomSelect({
       .from("rooms")
       .select("id, name, room_type")
       .eq("community_id", communityId)
-      .then(({ data }) => {
+      .then(({ data }: { data: { id: string; name: string; room_type: string }[] | null }) => {
         const list = (data ?? []).filter((r) => !filterTasks || r.room_type === "tasks");
         setRooms(list);
         if (list.length && !value) onChange(list[0].id);

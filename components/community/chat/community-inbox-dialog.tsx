@@ -104,7 +104,8 @@ export function CommunityInboxDialog({
           table: "community_inbox_messages",
           filter: `conversation_id=eq.${conversationId}`,
         },
-        async (payload) => {
+        // both realtime payload callbacks
+        async (payload: { new: Record<string, unknown>; old: Record<string, unknown> }) => {
           const row = payload.new as Record<string, unknown>;
           const senderId = String(row.sender_id);
           const { data: prof } = await supabase.from("profiles").select("full_name, avatar_url, username").eq("id", senderId).maybeSingle();

@@ -11,7 +11,7 @@ interface PageProps {
 
 export default async function InfluencerByUserPage({ params }: PageProps) {
   const { userId } = await params;
-  const db = await getDB();
+  const db = (await getDB()) as any;
 
   const { data: influencer } = await db
     .from("influencers")
@@ -72,7 +72,7 @@ export default async function InfluencerByUserPage({ params }: PageProps) {
           <p className="text-center text-[var(--color-text-secondary)] py-16">No published videos yet.</p>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-            {list.map((c) => (
+            {list.map((c:any) => (
               <Link
                 key={c.id}
                 href={`/clippings`}

@@ -39,6 +39,13 @@ export async function GET(req: NextRequest) {
     const sort = searchParams.get("sort") || "trending";
     const offset = (page - 1) * limit;
 
+    const validProductTypes = [
+      "template", "community", "course", "physical", "digital",
+      "subscription", "software", "ebook", "coaching", "bundle"
+    ] as const;
+    const isValidType = type && validProductTypes.includes(type as any);
+
+
     let query = supabase
       .from("products")
       .select(`
@@ -52,7 +59,7 @@ export async function GET(req: NextRequest) {
       .eq("is_active", true);
 
     if (category) query = query.eq("product_categories.slug", category);
-    if (type) query = query.eq("product_type", type);
+    if (isValidType) query = query.eq("product_type", type as typeof validProductTypes[number]);
     if (source) query = query.eq("source", source);
     if (search) query = query.textSearch("name", search);
 

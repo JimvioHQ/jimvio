@@ -9,6 +9,7 @@ import { getProducts } from "@/services/db";
 import { cookies } from "next/headers";
 import { getDefaultAffiliateCommissionPercent } from "@/lib/platform-settings";
 import { grantDigitalAccess } from "./digital-access";
+import { Json } from "@/types/supabase";
 
 
 export async function checkUserOwnsProduct(productId: string): Promise<boolean> {
@@ -17,14 +18,18 @@ export async function checkUserOwnsProduct(productId: string): Promise<boolean> 
   if (!user) return false;
 
   const { data } = await supabase
-    .from("orders")
-    .select("id")
-    .eq("user_id", user.id)
-    .contains("items", [{ product_id: productId }])
-    .in("status", ["paid", "completed", "active"])
+    .from("order_items")
+    .select("id, orders!inner(buyer_id, status, payment_status)")
+    .eq("product_id", productId)
+    .eq("orders.buyer_id", user.id)
+    .eq("orders.payment_status", "paid")
+    .not("orders.status", "in", "(cancelled,refunded)")
+    .limit(1)
     .maybeSingle();
+
   return !!data;
 }
+
 export async function getSearchSuggestions(query: string) {
   try {
     if (!query || query.length < 1) return { success: true, products: [] };
@@ -209,20 +214,35 @@ export async function getNavbarCounts() {
   }
 }
 
-export async function addToCart(productId: string, vendorId: string, quantity: number = 1) {
+export async function addToCart(
+  productId: string,
+  vendorId: string,
+  quantity: number = 1,
+) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      return { success: false, error: "Authentication required" };
+    // ── Input validation ────────────────────────────────────────────────
+    const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRe.test(productId) || !uuidRe.test(vendorId)) {
+      return { success: false, error: "Invalid product or vendor ID" };
+    }
+    if (!Number.isInteger(quantity) || quantity < 1 || quantity > 999) {
+      return { success: false, error: "Quantity must be between 1 and 999" };
     }
 
-    // 1+2. Fetch product details AND existing pending order IN PARALLEL
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, error: "Authentication required" };
+
+    // ── Fetch product + existing pending order in parallel ──────────────
     const [productResult, orderResult] = await Promise.all([
       supabase
         .from("products")
-        .select("id, name, price, images, shopify_variant_id, shopify_product_id, currency, source, source_metadata, affiliate_enabled, affiliate_commission_rate, product_type, pricing_type, billing_period")
+        .select(
+          `id, name, price, images, shopify_variant_id, shopify_product_id,
+           currency, source, source_metadata, affiliate_enabled,
+           affiliate_commission_rate, product_type, pricing_type, billing_period,
+           status, is_active, track_inventory, inventory_quantity, allow_backorder`,
+        )
         .eq("id", productId)
         .single(),
       supabase
@@ -231,22 +251,43 @@ export async function addToCart(productId: string, vendorId: string, quantity: n
         .eq("buyer_id", user.id)
         .eq("vendor_id", vendorId)
         .eq("status", "pending")
+        // FIX: don't reuse direct-checkout orders for cart adds
+        .not("metadata->>is_direct_checkout", "eq", "true")
         .maybeSingle(),
     ]);
 
     const product = productResult.data;
-    if (productResult.error || !product) throw new Error("Product not found");
-
-    const productCurrency = (product as { currency?: string | null }).currency?.toUpperCase() || "USD";
-
-    // Check if the existing order matches currency, if not create a new one
-    let order = orderResult.data;
-    if (order && order.currency !== productCurrency) {
-      order = null; // Need a new order for this currency
+    if (productResult.error || !product) {
+      return { success: false, error: "Product not found" };
     }
 
+    // FIX: validate product is actually buyable
+    if (product.status !== "active" || !product.is_active) {
+      return { success: false, error: "Product is unavailable" };
+    }
+
+    // FIX: respect inventory rules from schema
+    if (
+      product.track_inventory &&
+      !product.allow_backorder &&
+      (product.inventory_quantity ?? 0) < quantity
+    ) {
+      return { success: false, error: "Insufficient stock" };
+    }
+
+    // FIX: default to RWF (schema default), not USD
+    const productCurrency = product.currency?.toUpperCase() || "RWF";
+
+    // FIX: enforce the order_items_billing_period_consistency CHECK constraint
+    const pricingType = product.pricing_type === "recurring" ? "recurring" : "one_time";
+    const billingPeriod =
+      pricingType === "recurring" ? product.billing_period ?? "monthly" : null;
+
+    // ── Resolve or create a pending order in the right currency ─────────
+    let order = orderResult.data;
+    if (order && order.currency !== productCurrency) order = null;
+
     if (!order) {
-      // Create new pending order
       const { data: newOrder, error: createError } = await supabase
         .from("orders")
         .insert({
@@ -263,60 +304,60 @@ export async function addToCart(productId: string, vendorId: string, quantity: n
       if (createError) throw createError;
       order = newOrder;
     }
-
     if (!order) throw new Error("Could not retrieve or create order");
     const orderId = order.id;
 
-    // 3. Handle referral/affiliate tracking
+    // ── Affiliate / referral resolution ─────────────────────────────────
     const cookieStore = await cookies();
-    const lastVideoId = cookieStore.get("jimvio_last_video_id")?.value;
-    const refCode = cookieStore.get("jimvio_ref")?.value;
-    let affiliateId = null;
-    let commissionRate = (product as any).affiliate_commission_rate ?? (await getDefaultAffiliateCommissionPercent());
-    let commissionAmount = 0;
+    const lastVideoId = cookieStore.get("jimvio_last_video_id")?.value ?? null;
+    const refCode = cookieStore.get("jimvio_ref")?.value ?? null;
 
-    // Attach video_id to order metadata if present
+    let affiliateId: string | null = null;
+    // FIX: use ?? so a legitimate 0% rate isn't overwritten by the default
+    let commissionRate: number =
+      product.affiliate_commission_rate ??
+      (await getDefaultAffiliateCommissionPercent());
+
+    // Attach video_id to order metadata once
     if (lastVideoId && !(order.metadata as any)?.video_id) {
       await supabase
         .from("orders")
         .update({
-          metadata: { ...((order.metadata as any) || {}), video_id: lastVideoId }
+          metadata: { ...((order.metadata as any) || {}), video_id: lastVideoId },
         })
         .eq("id", orderId);
     }
 
-    if (refCode && (product as any).affiliate_enabled) {
-      // 1. Try resolving as specific link_code (LNK-)
+    if (refCode && product.affiliate_enabled) {
       if (refCode.startsWith("LNK-")) {
         const { data: link } = await supabase
           .from("affiliate_links")
           .select("affiliate_id, commission_rate")
           .eq("link_code", refCode)
           .maybeSingle();
-
         if (link) {
           affiliateId = link.affiliate_id;
-          commissionRate = link.commission_rate || commissionRate;
+          commissionRate = link.commission_rate ?? commissionRate;
         }
       } else {
-        // 2. Try resolving as general affiliate_code (AFF-)
         const { data: aff } = await supabase
           .from("affiliates")
           .select("id")
           .eq("affiliate_code", refCode)
           .maybeSingle();
-
-        if (aff) {
-          affiliateId = aff.id;
-        }
+        if (aff) affiliateId = aff.id;
       }
     }
 
     const price = Number(product.price);
-    const lineSource = normalizeProductSource((product as { source?: string | null }).source);
-    const lineMeta = (product as { source_metadata?: Record<string, unknown> | null }).source_metadata ?? {};
+    const lineSource = normalizeProductSource(product.source ?? null);
+    const lineMeta =
+      (product.source_metadata as Record<string, unknown> | null) ?? {};
 
-    // 4. Add or update order item
+    // FIX: don't write undefined into JSONB
+    const videoMeta = lastVideoId ? { video_id: lastVideoId } : {};
+
+    // ── Insert or update the order item ─────────────────────────────────
     const { data: existingItem } = await supabase
       .from("order_items")
       .select("id, quantity, metadata")
@@ -326,8 +367,18 @@ export async function addToCart(productId: string, vendorId: string, quantity: n
 
     if (existingItem) {
       const newQty = existingItem.quantity + quantity;
+
+      // Re-check inventory against combined quantity
+      if (
+        product.track_inventory &&
+        !product.allow_backorder &&
+        (product.inventory_quantity ?? 0) < newQty
+      ) {
+        return { success: false, error: "Insufficient stock" };
+      }
+
       const newTotal = price * newQty;
-      const newCommAmount = affiliateId ? (newTotal * (commissionRate || 10)) / 100 : 0;
+      const newCommAmount = affiliateId ? (newTotal * commissionRate) / 100 : 0;
 
       const { error: updateError } = await supabase
         .from("order_items")
@@ -339,46 +390,44 @@ export async function addToCart(productId: string, vendorId: string, quantity: n
           affiliate_commission_rate: commissionRate,
           affiliate_commission_amount: newCommAmount,
           product_source: lineSource,
-          source_metadata: lineMeta,
-          metadata: { ...((existingItem.metadata as any) || {}), video_id: lastVideoId }
+          source_metadata: lineMeta as Json,
+          metadata: { ...((existingItem.metadata as any) || {}), ...videoMeta },
         })
         .eq("id", existingItem.id);
 
       if (updateError) throw updateError;
     } else {
       const totalPrice = price * quantity;
-      const initialCommAmount = affiliateId ? (totalPrice * (commissionRate || 10)) / 100 : 0;
+      const initialCommAmount = affiliateId
+        ? (totalPrice * commissionRate) / 100
+        : 0;
 
-      const { error: insertError } = await supabase
-        .from("order_items")
-        .insert({
-          order_id: orderId,
-          product_id: productId,
-          vendor_id: vendorId,
-          product_type: (product as any).product_type || "physical",
-          product_name: product.name,
-          product_image: product.images?.[0] || null,
-          quantity: quantity,
-          unit_price: price,
-          total_price: totalPrice,
-          affiliate_id: affiliateId,
-          affiliate_commission_rate: commissionRate,
-          affiliate_commission_amount: initialCommAmount,
-          shopify_variant_id: product.shopify_variant_id ?? null,
-          shopify_product_id: product.shopify_product_id ?? null,
-          product_source: lineSource,
-          source_metadata: lineMeta,
-          pricing_type: (product as any).pricing_type || "one_time",
-          billing_period: (product as any).billing_period || null,
-          metadata: { video_id: lastVideoId }
-        });
+      const { error: insertError } = await supabase.from("order_items").insert({
+        order_id: orderId,
+        product_id: productId,
+        vendor_id: vendorId,
+        product_type: product.product_type ?? "physical",
+        product_name: product.name,
+        product_image: (product.images as string[])?.[0] ?? null,
+        quantity,
+        unit_price: price,
+        total_price: totalPrice,
+        affiliate_id: affiliateId,
+        affiliate_commission_rate: commissionRate,
+        affiliate_commission_amount: initialCommAmount,
+        shopify_variant_id: product.shopify_variant_id ?? null,
+        shopify_product_id: product.shopify_product_id ?? null,
+        product_source: lineSource,
+        source_metadata: lineMeta as Json,
+        pricing_type: pricingType,     // FIX: normalized
+        billing_period: billingPeriod, // FIX: normalized — satisfies CHECK constraint
+        metadata: videoMeta,           // FIX: no `{ video_id: undefined }`
+      });
 
       if (insertError) throw insertError;
     }
 
-    // 4. Update order totals (subtotal / total_amount) are now updated automatically by 
-    // the 'tr_update_order_totals' PostgreSQL trigger. No manual update needed.
-
+    // Order totals updated automatically by tr_update_order_totals trigger.
     return { success: true };
   } catch (error: any) {
     console.error("Add to cart error:", error);
@@ -633,11 +682,15 @@ export async function getCartProductIds(): Promise<string[]> {
 
     const { data } = await supabase
       .from("order_items")
-      .select("product_id, orders!inner(buyer_id, status)")
+      .select("product_id, orders!inner(buyer_id, status, metadata)")
       .eq("orders.buyer_id", user.id)
-      .eq("orders.status", "pending");
+      .eq("orders.status", "pending")
+      // Exclude direct-checkout orders so "in cart" checks stay accurate
+      .not("orders.metadata->>is_direct_checkout", "eq", "true");
 
-    return (data ?? []).map((r) => r.product_id);
+    return (data ?? [])
+      .map((r) => r.product_id)
+      .filter((id): id is string => id !== null);
   } catch {
     return [];
   }
@@ -791,113 +844,6 @@ export async function updateOrderStatus(orderId: string, newStatus: string): Pro
   }
 }
 
-// export async function buyDirectCheckout(productId: string, vendorId: string, quantity: number = 1) {
-//   try {
-//     const supabase = await createClient();
-//     const { data: { user } } = await supabase.auth.getUser();
-
-//     if (!user) {
-//       return { success: false, error: "Authentication required" };
-//     }
-
-//     const { data: product, error: productError } = await supabase
-//       .from("products")
-//       .select("id, name, price, images, shopify_variant_id, shopify_product_id,currency, source, source_metadata, affiliate_enabled, affiliate_commission_rate, product_type, pricing_type, billing_period")
-//       .eq("id", productId)
-//       .single();
-
-//     if (productError || !product) throw new Error("Product not found");
-
-//     const productCurrency = product.currency?.toUpperCase() || "USD";
-
-//     // Create new direct checkout order immediately
-//     const { data: order, error: createError } = await supabase
-//       .from("orders")
-//       .insert({
-//         buyer_id: user.id,
-//         vendor_id: vendorId,
-//         status: "pending",
-//         total_amount: product.price * quantity,
-//         subtotal: product.price * quantity,
-//         currency: productCurrency,
-//         metadata: { is_direct_checkout: true }
-//       })
-//       .select()
-//       .single();
-
-//     if (createError) throw createError;
-
-//     const orderId = order.id;
-
-//     // Handle affiliate tracking
-//     const cookieStore = await cookies();
-//     const lastVideoId = cookieStore.get("jimvio_last_video_id")?.value;
-//     const refCode = cookieStore.get("jimvio_ref")?.value;
-//     let affiliateId = null;
-//     let commissionRate = (product as any).affiliate_commission_rate ?? (await getDefaultAffiliateCommissionPercent());
-
-//     if (lastVideoId && !(order.metadata as any)?.video_id) {
-//       await supabase
-//         .from("orders")
-//         .update({
-//           metadata: { ...((order.metadata as any) || {}), video_id: lastVideoId }
-//         })
-//         .eq("id", orderId);
-//     }
-
-//     if (refCode && (product as any).affiliate_enabled) {
-//       if (refCode.startsWith("LNK-")) {
-//         const { data: link } = await supabase
-//           .from("affiliate_links").select("affiliate_id, commission_rate").eq("link_code", refCode).maybeSingle();
-//         if (link) {
-//           affiliateId = link.affiliate_id;
-//           commissionRate = link.commission_rate || commissionRate;
-//         }
-//       } else {
-//         const { data: aff } = await supabase
-//           .from("affiliates").select("id").eq("affiliate_code", refCode).maybeSingle();
-//         if (aff) affiliateId = aff.id;
-//       }
-//     }
-
-//     const price = Number(product.price);
-//     const lineSource = normalizeProductSource((product as { source?: string | null }).source);
-//     const lineMeta = (product as { source_metadata?: Record<string, unknown> | null }).source_metadata ?? {};
-//     const totalPrice = price * quantity;
-//     const initialCommAmount = affiliateId ? (totalPrice * (commissionRate || 10)) / 100 : 0;
-
-//     const { error: insertError } = await supabase
-//       .from("order_items")
-//       .insert({
-//         order_id: orderId,
-//         product_id: productId,
-//         vendor_id: vendorId,
-//         product_type: product.product_type || "digital",
-//         product_name: product.name,
-//         product_image: product.images?.[0] || null,
-//         quantity: quantity,
-//         unit_price: price,
-//         total_price: totalPrice,
-//         affiliate_id: affiliateId,
-//         affiliate_commission_rate: commissionRate,
-//         affiliate_commission_amount: initialCommAmount,
-//         shopify_variant_id: product.shopify_variant_id ?? null,
-//         shopify_product_id: product.shopify_product_id ?? null,
-//         product_source: lineSource,
-//         source_metadata: lineMeta,
-//         pricing_type: product.pricing_type || "one_time",
-//         billing_period: product.billing_period || null,
-//         metadata: { video_id: lastVideoId }
-//       });
-
-//     if (insertError) throw insertError;
-
-//     return { success: true, orderId: orderId };
-//   } catch (error: any) {
-//     console.error("Direct checkout error:", error);
-//     return { success: false, error: error.message };
-//   }
-// }
 
 export async function buyDirectCheckout(
   productId: string,
@@ -1006,7 +952,7 @@ export async function buyDirectCheckout(
         shopify_variant_id: product.shopify_variant_id ?? null,
         shopify_product_id: product.shopify_product_id ?? null,
         product_source: lineSource,
-        source_metadata: lineMeta,
+        source_metadata: lineMeta as Json,
         pricing_type: product.pricing_type ?? "one_time",
         billing_period: product.billing_period ?? null,
         digital_download_url: product.digital_file_url ?? null,

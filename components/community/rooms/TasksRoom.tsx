@@ -88,7 +88,7 @@ export function TasksRoom({
       );
       if (cancelled || !data) return;
       const map: Record<string, Completion> = {};
-      data.forEach((r) => {
+      data.forEach((r: { task_id: string; status: string }) => {
         map[r.task_id] = { task_id: r.task_id, status: r.status };
       });
       setCompletions(map);
@@ -242,7 +242,7 @@ export function TasksRoom({
             <li key={row.user_id} className="flex items-center gap-2">
               <span className="text-xs font-black w-5 text-[var(--color-text-muted)]">{i + 1}</span>
               <div className="h-8 w-8 rounded-sm overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface-secondary)]">
-{row.profiles?.avatar_url && row.profiles?.avatar_url.trim() ? (
+                {row.profiles?.avatar_url && row.profiles?.avatar_url.trim() ? (
                   <Image src={row.profiles.avatar_url} alt="" width={32} height={32} className="object-cover h-full w-full" unoptimized />
                 ) : (
                   <div className="h-full w-full flex items-center justify-center text-[10px] font-black text-[var(--color-accent)]">

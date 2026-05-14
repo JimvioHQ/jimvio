@@ -14,10 +14,9 @@ export async function recordReferralVisit(code: string, pathname?: string) {
 
   const supabase = await createClient();
   const cookieStore = await cookies();
-  
-  // 1. Identify what kind of code it is
-  let affiliateId = null;
-  let linkId = null;
+
+  let affiliateId: string | null = null;
+  let linkId: string | null = null;
 
   if (code.startsWith("LNK-")) {
     const { data: link, error: linkErr } = await supabase
@@ -25,7 +24,7 @@ export async function recordReferralVisit(code: string, pathname?: string) {
       .select("id, affiliate_id")
       .eq("link_code", code)
       .maybeSingle();
-    
+
     if (linkErr) console.error("[recordReferralVisit] Link error:", linkErr);
 
     if (link) {
@@ -34,7 +33,6 @@ export async function recordReferralVisit(code: string, pathname?: string) {
       console.log(`[recordReferralVisit] Resolved as LNK, linkId: ${linkId}`);
     }
   } else {
-    // Treat as affiliate_code (AFF- or other)
     const { data: aff, error: affErr } = await supabase
       .from("affiliates")
       .select("id")
@@ -42,29 +40,38 @@ export async function recordReferralVisit(code: string, pathname?: string) {
       .maybeSingle();
 
     if (affErr) console.error("[recordReferralVisit] Affiliate error:", affErr);
-    
+
     if (aff) {
       affiliateId = aff.id;
       console.log(`[recordReferralVisit] Resolved as AFF, affiliateId: ${affiliateId}`);
-      
-      // If we're on a product page, try to find a specific link for this product and affiliate
-      if (pathname === "/marketplace/" || pathname?.startsWith("/marketplace/")) {
+
+      if (pathname?.startsWith("/marketplace/")) {
         const slug = pathname.split("/").filter(Boolean).pop();
         if (slug && slug !== "marketplace") {
           console.log(`[recordReferralVisit] Searching for product link, slug: ${slug}`);
-          const { data: productLink, error: plErr } = await supabase
-            .from("affiliate_links")
-            .select("id, products!inner(slug)")
-            .eq("affiliate_id", aff.id)
-            .eq("products.slug", slug)
-            .order("created_at", { ascending: false })
-            .limit(1)
+
+          const { data: product } = await supabase
+            .from("products")
+            .select("id")
+            .eq("slug", slug)
             .maybeSingle();
-          
-          if (plErr) console.error("[recordReferralVisit] ProductLink error:", plErr);
-          if (productLink) {
-            linkId = (productLink as any).id;
-            console.log(`[recordReferralVisit] Found most recent product linkId: ${linkId}`);
+
+          if (product) {
+            const { data: productLink, error: plErr } = await supabase
+              .from("affiliate_links")
+              .select("id")
+              .eq("affiliate_id", aff.id)
+              .eq("product_id", product.id) // FIX: filter by product_id directly — correct FK column
+              .eq("is_active", true)
+              .order("created_at", { ascending: false })
+              .limit(1)
+              .maybeSingle();
+
+            if (plErr) console.error("[recordReferralVisit] ProductLink error:", plErr);
+            if (productLink) {
+              linkId = productLink.id;
+              console.log(`[recordReferralVisit] Found product linkId: ${linkId}`);
+            }
           }
         }
       }
@@ -76,21 +83,55 @@ export async function recordReferralVisit(code: string, pathname?: string) {
     return { success: false };
   }
 
-  // 2. Increment click count if it's a specific link
   if (linkId) {
-    const { error: rpcErr } = await supabase.rpc("increment_affiliate_click", { link_id: linkId });
-    if (rpcErr) {
-      console.error("[recordReferralVisit] RPC error:", rpcErr);
-      // If RPC fails (e.g. doesn't exist), fallback to manual update
-      await supabase.from("affiliate_links").update({ 
-        total_clicks: 1, // This is wrong for incrementing but better than nothing for a test
-      }).eq("id", linkId);
+    const { error: clickErr } = await supabase
+      .from("affiliate_links")
+      .update({
+        total_clicks: supabase.rpc("increment_affiliate_click" as any, {
+          link_id: linkId,
+        }) as any,
+      })
+      .eq("id", linkId);
+
+    if (clickErr) {
+      console.error("[recordReferralVisit] RPC error, falling back to manual increment:", clickErr);
+
+      // Increment on the link
+      const { data: currentLink } = await supabase
+        .from("affiliate_links")
+        .select("total_clicks, unique_clicks, affiliate_id")
+        .eq("id", linkId)
+        .single();
+
+      if (currentLink) {
+        await supabase
+          .from("affiliate_links")
+          .update({
+            total_clicks: (currentLink.total_clicks ?? 0) + 1,
+            unique_clicks: (currentLink.unique_clicks ?? 0) + 1,
+          })
+          .eq("id", linkId);
+
+        // Also increment on the parent affiliate row
+        const { data: currentAff } = await supabase
+          .from("affiliates")
+          .select("total_clicks")
+          .eq("id", currentLink.affiliate_id)
+          .single();
+
+        if (currentAff) {
+          await supabase
+            .from("affiliates")
+            .update({ total_clicks: (currentAff.total_clicks ?? 0) + 1 })
+            .eq("id", currentLink.affiliate_id);
+        }
+      }
     } else {
-      console.log("[recordReferralVisit] Click incremented via RPC");
+      console.log("[recordReferralVisit] Click incremented");
     }
   }
 
-  // 3. Set the cookie (expires in 30 days)
+  // Set cookie (expires in 30 days)
   cookieStore.set("jimvio_ref", code, {
     maxAge: 30 * 24 * 60 * 60,
     path: "/",

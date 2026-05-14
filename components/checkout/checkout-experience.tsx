@@ -31,7 +31,7 @@ export type CartItem = {
 
 export type CartOrder = {
    id: string;
-   vendor_id: string;
+   vendor_id: string | null;
    total_amount: number;
    currency: string | null;
    order_items: CartItem[];

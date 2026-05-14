@@ -5,10 +5,10 @@ import { Json } from "@/types/supabase";
 
 export const dynamic = "force-dynamic";
 
-type Params = { params: Promise<{ community: string }> };
+type Params = { params: Promise<{ communityId: string }> };
 
 export async function GET(_req: NextRequest, { params }: Params) {
-  const { community: communityId } = await params;
+  const { communityId } = await params;
 
   const supabase = await createClient();
   const {
@@ -39,6 +39,8 @@ export async function GET(_req: NextRequest, { params }: Params) {
     .order("created_at", { ascending: false })
     .limit(50);
 
+  console.log({ data });
+
   if (error) {
     console.error("Error fetching posts:", error);
     return NextResponse.json({ error: error.message }, { status: 400 })
@@ -48,7 +50,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
 
 
 export async function POST(req: NextRequest, { params }: Params) {
-  const { community: communityId } = await params;
+  const { communityId } = await params;
 
   const supabase = await createClient();
   const {

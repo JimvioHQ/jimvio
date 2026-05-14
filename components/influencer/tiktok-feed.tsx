@@ -739,9 +739,13 @@ export function TikTokFeed({ clips, className, initialIndex = 0, onClose }: TikT
         loading={loadingComments}
         onAddComment={async (body) => {
           if (!clip?.id) return;
-          const res = await addContentComment(clip.id, clip.itemType || "clipping", body);
+          const itemType: "post" | "short" = clip.itemType === "short" ? "short" : "post";
+          const res = await addContentComment(clip.id, itemType, body);
           if (res.success && res.comment) {
-            setComments((prev) => [res.comment!, ...prev]);
+            setComments((prev) => [{
+              ...res.comment!,
+              created_at: res.comment!.created_at ?? new Date().toISOString(),
+            }, ...prev] as ContentComment[]);
             setLocalCommentCount((prev) => ({ ...prev, [clip.id]: (prev[clip.id] ?? 0) + 1 }));
           } else if (res.error === "Authentication required") {
             window.location.href = `/login?next=${window.location.pathname}`;

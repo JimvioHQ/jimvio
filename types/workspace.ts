@@ -14,7 +14,7 @@ export type WorkspaceView = "member" | "admin";
 
 export type WorkspaceSection =
   | "feed"
-  | "chats"
+  | "messages"
   | "spaces"
   | "live"
   | "missions"
@@ -28,13 +28,13 @@ export interface WorkspaceSectionConfig {
   key: WorkspaceSection;
   label: string;
   iconName:
-    | "Home"
-    | "Layers"
-    | "Radio"
-    | "Target"
-    | "GraduationCap"
-    | "Calendar"
-    | "Users"
-    | "BookOpen";
+  | "Home"
+  | "Layers"
+  | "Radio"
+  | "Target"
+  | "GraduationCap"
+  | "Calendar"
+  | "Users"
+  | "BookOpen";
   ready: boolean; // true = real content, false = stub
 }

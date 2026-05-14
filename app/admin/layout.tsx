@@ -25,6 +25,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { GetUserRolesArgs, UserRole } from "@/types/db";
+import { Table } from "schema-dts";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -46,7 +48,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       setUser(profile ?? { email: authUser.email ?? "", full_name: authUser.user_metadata?.full_name, avatar_url: authUser.user_metadata?.avatar_url });
 
       const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", authUser.id);
-      const hasAdmin = roles?.some((r) => r.role === "admin") ?? false;
+      const hasAdmin = roles?.some((r: UserRole) => r.role === "admin") ?? false;
       setIsAdmin(hasAdmin);
       if (!hasAdmin) {
         router.replace("/dashboard");

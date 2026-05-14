@@ -164,7 +164,7 @@ export function ProductChatWidget(props: ProductChatWidgetProps) {
       .select("id, body, sender_id, created_at, message_type, reply_to_id, metadata")
       .eq("conversation_id", conversationId)
       .order("created_at", { ascending: true })
-      .then(({ data }) => setMessages((data ?? []) as MessageRow[]));
+      .then(({ data }: any) => setMessages((data ?? []) as MessageRow[]));
 
     const channel = supabase
       .channel(`product-chat:${conversationId}`)
@@ -176,8 +176,8 @@ export function ProductChatWidget(props: ProductChatWidgetProps) {
           table: "conversation_messages",
           filter: `conversation_id=eq.${conversationId}`,
         },
-        (payload) => {
-          const newMsg = payload.new as MessageRow;
+        (payload: { new: MessageRow }) => {
+          const newMsg = payload.new;
           setMessages((prev) => [...prev, newMsg]);
           if (newMsg.sender_id !== userId && !chatOpen) {
             setUnreadCount((c) => c + 1);
@@ -376,7 +376,7 @@ export function ProductChatWidget(props: ProductChatWidgetProps) {
               <ChatInput
                 conversationId={conversationId}
                 userId={userId}
-                onSent={() => {}}
+                onSent={() => { }}
                 replyTo={replyTo ? { id: replyTo.id } : null}
                 onCancelReply={() => setReplyTo(null)}
                 isVendor={false}

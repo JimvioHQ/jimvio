@@ -124,7 +124,7 @@ export function CourseRoom({
         .eq("user_id", user.id);
       if (cancelled || !data) return;
       const map: Record<string, boolean> = {};
-      data.forEach((r) => { map[r.lesson_id] = !!r.is_completed; });
+      data.forEach((r: { lesson_id: string; is_completed: boolean }) => { map[r.lesson_id] = !!r.is_completed; });
       setProgress(map);
     }
     loadProgress();
@@ -981,14 +981,14 @@ export function CourseRoom({
         >
           <div className="flex flex-col flex-1 min-w-0 min-h-0">{lessonPlayer}</div>
           {!dashboardMode && (
-             <ChatRoomMembersAside
-               communityId={communityId}
-               userId={userId ?? ""}
-               threadOpen={false}
-               mobilePeopleOpen={peopleOpen}
-               onMobilePeopleOpenChange={setPeopleOpen}
-               desktopBreakpoint="xl"
-             />
+            <ChatRoomMembersAside
+              communityId={communityId}
+              userId={userId ?? ""}
+              threadOpen={false}
+              mobilePeopleOpen={peopleOpen}
+              onMobilePeopleOpenChange={setPeopleOpen}
+              desktopBreakpoint="xl"
+            />
           )}
         </div>
       </div>
@@ -1037,47 +1037,47 @@ export function CourseRoom({
 }
 
 export function DashboardCourseStudio({ roomId, communityId, onClose }: { roomId: string, communityId: string, onClose: () => void }) {
-   const mockWorkspace = {
-      slug: "",
-      communityId,
-      communityName: "Dashboard",
-      ownerId: "dashboard-owner",
-      memberCount: 0,
-      avatarUrl: null,
-      userId: "dashboard-owner",
-      currentUserId: "dashboard-owner",
-      view: "member" as const,
-      isAdmin: true,
-      profile: null,
-      membership: { role: "owner" as any, plan_type: "free", status: "active", space_access: [], expires_at: null },
-      spacesWithRooms: [],
-      points: null,
-      liveSessions: [],
-      unreadNotifications: 0,
-      openMissionsCount: 0,
-   };
+  const mockWorkspace = {
+    slug: "",
+    communityId,
+    communityName: "Dashboard",
+    ownerId: "dashboard-owner",
+    memberCount: 0,
+    avatarUrl: null,
+    userId: "dashboard-owner",
+    currentUserId: "dashboard-owner",
+    view: "member" as const,
+    isAdmin: true,
+    profile: null,
+    membership: { role: "owner" as any, plan_type: "free", status: "active", space_access: [], expires_at: null },
+    spacesWithRooms: [],
+    points: null,
+    liveSessions: [],
+    unreadNotifications: 0,
+    openMissionsCount: 0,
+  };
 
   return (
     <div className="fixed inset-0 z-[100000] bg-[var(--color-bg)] flex flex-col pt-[72px] lg:pt-0">
-       <div className="h-16 lg:h-14 border-b border-[var(--color-border)] flex items-center px-4 md:px-8 justify-between bg-[var(--color-surface)] shadow-[0_4px_24px_rgba(0,0,0,0.02)] shrink-0 z-10 relative">
-          <div className="flex items-center gap-3">
-             <div className="h-8 w-8 rounded-sm bg-[var(--color-accent)] flex items-center justify-center text-white shadow-none shadow-[var(--color-accent)]/20">
-                <Sparkles size={16} />
-             </div>
-             <div>
-                <h2 className="font-black text-[var(--color-text-primary)] text-[13px] md:text-sm uppercase tracking-tight leading-none mb-0.5">Course Manager</h2>
-                <p className="text-[10px] uppercase font-bold text-[var(--color-accent)] tracking-widest leading-none">Draft & Publish Mode</p>
-             </div>
+      <div className="h-16 lg:h-14 border-b border-[var(--color-border)] flex items-center px-4 md:px-8 justify-between bg-[var(--color-surface)] shadow-[0_4px_24px_rgba(0,0,0,0.02)] shrink-0 z-10 relative">
+        <div className="flex items-center gap-3">
+          <div className="h-8 w-8 rounded-sm bg-[var(--color-accent)] flex items-center justify-center text-white shadow-none shadow-[var(--color-accent)]/20">
+            <Sparkles size={16} />
           </div>
-          <Button onClick={onClose} variant="outline" className="rounded-sm border-[var(--color-border)] hover:bg-[var(--color-danger)]/10 hover:text-[var(--color-danger)] hover:border-[var(--color-danger)]/30 font-black text-[10px] md:text-[11px] uppercase tracking-widest gap-2 transition-all">
-             <X size={14} /> Close Editor
-          </Button>
-       </div>
-       <div className="flex-1 overflow-hidden relative">
-          <WorkspaceProvider value={mockWorkspace}>
-             <CourseRoom roomId={roomId} roomName="Manage Course" communityId={communityId} slug="" dashboardMode={true} />
-          </WorkspaceProvider>
-       </div>
+          <div>
+            <h2 className="font-black text-[var(--color-text-primary)] text-[13px] md:text-sm uppercase tracking-tight leading-none mb-0.5">Course Manager</h2>
+            <p className="text-[10px] uppercase font-bold text-[var(--color-accent)] tracking-widest leading-none">Draft & Publish Mode</p>
+          </div>
+        </div>
+        <Button onClick={onClose} variant="outline" className="rounded-sm border-[var(--color-border)] hover:bg-[var(--color-danger)]/10 hover:text-[var(--color-danger)] hover:border-[var(--color-danger)]/30 font-black text-[10px] md:text-[11px] uppercase tracking-widest gap-2 transition-all">
+          <X size={14} /> Close Editor
+        </Button>
+      </div>
+      <div className="flex-1 overflow-hidden relative">
+        <WorkspaceProvider value={mockWorkspace}>
+          <CourseRoom roomId={roomId} roomName="Manage Course" communityId={communityId} slug="" dashboardMode={true} />
+        </WorkspaceProvider>
+      </div>
     </div>
   )
 }

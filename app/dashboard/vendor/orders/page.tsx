@@ -437,7 +437,7 @@ export default function VendorOrdersPage() {
       if (!userVendors?.length) { setLoading(false); return; }
 
       setVendorId(userVendors[0].id);
-      const vendorIds = userVendors.map((v) => v.id);
+      const vendorIds = (userVendors as { id: string }[]).map(v => v.id);
 
       const { data } = await supabase
         .from("order_items")
@@ -484,7 +484,7 @@ export default function VendorOrdersPage() {
       if (orderIds.length > 0) {
         channel = supabase
           .channel("vendor-orders-realtime")
-          .on("postgres_changes", { event: "UPDATE", schema: "public", table: "orders" }, (payload) => {
+          .on("postgres_changes", { event: "UPDATE", schema: "public", table: "orders" }, (payload: any) => {
             const updated = payload.new as { id: string; status: string; payment_status: string };
             if (!orderIds.includes(updated.id)) return;
             setOrders((prev) =>

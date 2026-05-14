@@ -51,12 +51,7 @@ export async function PATCH(
       return NextResponse.json({ error: "Only sender or moderators can delete messages" }, { status: 403 });
     }
 
-    const { data, error } = await supabase
-      .from("community_messages")
-      .update({ is_deleted: true, body: "", deleted_by: isStaff && !isAuthor ? user.id : null })
-      .eq("id", messageId)
-      .select("*, profiles!community_messages_sender_id_fkey(full_name, avatar_url, username)")
-      .single();
+    const { error, data } = await supabase.from("community_messages").delete().eq("id", messageId);
 
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });
     return NextResponse.json({ message: data });

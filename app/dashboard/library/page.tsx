@@ -1163,9 +1163,10 @@ export default function DigitalLibraryPage() {
     } else {
       setLoadError(false);
       // Fetch lesson_progress and user_reviews separately
-      const accessIds = (data ?? []).map(r => r.id);
-      const productIds = (data ?? []).map(r => (Array.isArray(r.products) ? r.products[0]?.id : (r.products as any)?.id)).filter(Boolean);
-
+      const accessIds = (data ?? [] as any[]).map((r: any) => r.id);
+      const productIds = (data ?? [] as any[]).map((r: any) =>
+        Array.isArray(r.products) ? r.products[0]?.id : r.products?.id
+      ).filter(Boolean);
       // lesson_progress aggregates
       let progressMap: Record<string, { completed_lessons: number; total_lessons: number; percent: number }> = {};
       if (productIds.length > 0) {

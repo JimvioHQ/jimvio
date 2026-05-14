@@ -18,7 +18,7 @@ export default async function CheckoutPage(props: { searchParams: Promise<{ orde
     redirect(`/login?next=/checkout${orderId ? `?order_id=${orderId}` : ''}`);
   }
 
-  let finalOrders = [];
+  let finalOrders: any[] = [];
 
   if (orderId) {
     const { data: order, error } = await supabase

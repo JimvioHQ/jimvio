@@ -71,16 +71,16 @@ const POST_TYPES = ["all", "discussion", "announcement", "question", "resource",
 type PostTypeFilter = (typeof POST_TYPES)[number];
 
 const TYPE_COLORS: Record<string, string> = {
-  discussion:   "bg-blue-500/10 text-blue-500 border-blue-500/20",
+  discussion: "bg-blue-500/10 text-blue-500 border-blue-500/20",
   announcement: "bg-amber-500/10 text-amber-500 border-amber-500/20",
-  question:     "bg-violet-500/10 text-violet-500 border-violet-500/20",
-  resource:     "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
-  poll:         "bg-rose-500/10 text-rose-500 border-rose-500/20",
+  question: "bg-violet-500/10 text-violet-500 border-violet-500/20",
+  resource: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
+  poll: "bg-rose-500/10 text-rose-500 border-rose-500/20",
 };
 
 const SORT_OPTIONS = [
-  { value: "newest",   label: "Newest",   icon: Clock },
-  { value: "top",      label: "Top",      icon: TrendingUp },
+  { value: "newest", label: "Newest", icon: Clock },
+  { value: "top", label: "Top", icon: TrendingUp },
   { value: "trending", label: "Trending", icon: Flame },
 ] as const;
 type SortOption = (typeof SORT_OPTIONS)[number]["value"];
@@ -368,7 +368,7 @@ export function PostsRoom({
       if (!user) return;
       const { data } = await supabase.from("community_saved_posts").select("post_id").eq("user_id", user.id);
       if (cancelled || !data) return;
-      setSavedIds(new Set(data.map((r) => r.post_id)));
+      setSavedIds(new Set(data.map((r: { post_id: string }) => r.post_id)));
     }
     loadSaved();
     return () => { cancelled = true; };
@@ -611,9 +611,9 @@ export function PostsRoom({
                 {pendingImages.map((img, i) => (
                   <div key={i} className="relative h-20 w-20 shrink-0 rounded-sm overflow-hidden border border-[var(--color-border)]">
                     {!img.url ? (
-                       <div className="h-full w-full flex items-center justify-center bg-[var(--color-surface-secondary)]">
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                       </div>
+                      <div className="h-full w-full flex items-center justify-center bg-[var(--color-surface-secondary)]">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      </div>
                     ) : (
                       <>
                         <Image src={img.url} alt="" fill className="object-cover" unoptimized />
@@ -720,9 +720,9 @@ function PostDetailPanel({
     )}>
       <div className="flex items-center justify-between gap-2 border-b border-[var(--color-border)] px-4 py-3 bg-[var(--color-surface)] shrink-0">
         <div className="flex items-center gap-2">
-           <button onClick={onClose} className="lg:hidden p-1 mr-1 hover:bg-black/5 rounded-sm transition-colors text-[var(--color-accent)]">
-              <ChevronLeft className="h-6 w-6" />
-           </button>
+          <button onClick={onClose} className="lg:hidden p-1 mr-1 hover:bg-black/5 rounded-sm transition-colors text-[var(--color-accent)]">
+            <ChevronLeft className="h-6 w-6" />
+          </button>
           <span
             className={cn(
               "text-[10px] font-black uppercase px-2 py-0.5 rounded-sm border",
@@ -739,12 +739,12 @@ function PostDetailPanel({
       </div>
 
       {!post ? (
-         <div className="flex-1 flex items-center justify-center p-6 text-sm text-[var(--color-text-muted)] bg-[var(--color-surface-secondary)]/40">
-           <div className="text-center space-y-2">
-             <MessageCircle className="h-8 w-8 mx-auto opacity-30" />
-             <p className="text-xs">Select a post to read and comment</p>
-           </div>
-         </div>
+        <div className="flex-1 flex items-center justify-center p-6 text-sm text-[var(--color-text-muted)] bg-[var(--color-surface-secondary)]/40">
+          <div className="text-center space-y-2">
+            <MessageCircle className="h-8 w-8 mx-auto opacity-30" />
+            <p className="text-xs">Select a post to read and comment</p>
+          </div>
+        </div>
       ) : (
         <>
           <div className="flex-1 overflow-y-auto bg-[var(--color-surface-secondary)]/5">
@@ -787,8 +787,8 @@ function PostDetailPanel({
                   <span>{post.like_count ?? 0}</span>
                 </button>
                 <div className="flex items-center gap-1.5 text-xs text-[var(--color-text-muted)] font-black">
-                   <MessageCircle className="h-3.5 w-3.5" />
-                   <span>{post.comment_count ?? 0} Comments</span>
+                  <MessageCircle className="h-3.5 w-3.5" />
+                  <span>{post.comment_count ?? 0} Comments</span>
                 </div>
               </div>
             </div>
@@ -798,7 +798,7 @@ function PostDetailPanel({
                 Discussion · {comments.length}
                 {loading && <Loader2 className="h-3 w-3 animate-spin" />}
               </h4>
-              
+
               <div className="space-y-6">
                 {topComments.map((c) => (
                   <div key={c.id} className="space-y-4">

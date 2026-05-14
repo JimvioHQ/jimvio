@@ -1245,7 +1245,7 @@ export default function BuyerOrdersPage() {
          return;
       }
       setFetchError(false);
-      setOrders((data ?? []).map(o => ({ ...o, order_items: o.order_items ?? [] })));
+      setOrders((data ?? []).map((o: any) => ({ ...o, order_items: o.order_items ?? [] })));
       setLoading(false);
    }, []);
 

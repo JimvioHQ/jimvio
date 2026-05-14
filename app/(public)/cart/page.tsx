@@ -18,7 +18,7 @@ export default async function CartPage() {
     >
       {/* ── Page header ── */}
       <div className="border-b border-[var(--color-border)] bg-[var(--color-surface)]">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
 
           {/* Breadcrumb */}
           <nav
@@ -81,7 +81,7 @@ export default async function CartPage() {
       </div>
 
       {/* ── Cart body ── */}
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-8">
         <CartClient initialOrders={orders} />
       </div>
     </div>

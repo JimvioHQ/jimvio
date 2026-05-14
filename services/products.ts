@@ -1,6 +1,19 @@
 import { cache } from "react";
 import { getDB, getAdminDB } from "./base";
 
+import type { Tables } from "@/types/supabase";
+import type { QueryData } from "@supabase/supabase-js";
+import { Product } from "@/types/database.types";
+
+export type ProductWithRelations = Tables<"products"> & {
+  vendors: Tables<"vendors"> | null;
+  product_categories: Tables<"product_categories"> | null;
+  product_variants: Tables<"product_variants">[];
+  reviews: (Tables<"reviews"> & {
+    profiles: Pick<Tables<"profiles">, "full_name" | "avatar_url"> | null;
+  })[];
+};
+
 /** getAdminProducts */
 // services/db.ts
 export async function getAdminProducts(q?: string, limit = 100) {
@@ -172,7 +185,7 @@ export async function getProducts(query: ProductQuery = {}) {
   if (vendorId) q = q.eq("vendor_id", vendorId);
   if (featured) q = q.eq("is_featured", true);
   if (affiliate) q = q.eq("affiliate_enabled", true);
-  if (type) q = q.eq("product_type", type);
+  if (type) q = q.eq("product_type", type as Product['product_type']);
   if (category) q = q.eq("product_categories.slug", category);
   if (search) q = q.ilike("name", `%${search}%`);
   if (minPrice != null) q = q.gte("price", minPrice);
@@ -212,7 +225,11 @@ export async function countActiveListedProducts() {
   return count ?? 0;
 }
 
-export async function getProductBySlug(slug: string) {
+
+
+export async function getProductBySlug(
+  slug: string,
+): Promise<ProductWithRelations | null> {
   const db = await getDB();
   const { data, error } = await db
     .from("products")
@@ -226,11 +243,12 @@ export async function getProductBySlug(slug: string) {
     .eq("slug", slug)
     .eq("status", "active")
     .maybeSingle();
+
   if (error) {
     console.error(`[getProductBySlug] Error fetching product with slug "${slug}":`, error);
     return null;
   }
-  return data;
+  return data as ProductWithRelations | null;
 }
 
 export async function getFeaturedProducts(limit = 4) {

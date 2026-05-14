@@ -4,6 +4,11 @@ import { canAccessRoom } from "@/services/accessControl";
 
 export const dynamic = "force-dynamic";
 
+import type { Database } from "@/types/supabase";
+
+type PostUpdate = Database["public"]["Tables"]["community_posts"]["Update"];
+
+
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ postId: string }> }
@@ -86,11 +91,11 @@ export async function PATCH(
     "is_exclusive",
     "is_published",
   ];
-  const update: Record<string, unknown> = {};
-  for (const k of allowed) {
-    if (k in patch) update[k] = patch[k];
-  }
 
+  const update: PostUpdate = {};
+  for (const k of allowed) {
+    if (k in patch) (update as Record<string, unknown>)[k] = patch[k];
+  }
   const { data, error } = await supabase.from("community_posts").update(update).eq("id", postId).select().single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
@@ -137,12 +142,7 @@ export async function DELETE(
 
   const { error } = await supabase
     .from("community_posts")
-    .update({
-      is_deleted: true,
-      deleted_by: isStaff && !isAuthor ? user.id : null,
-      body: "",
-      title: "[deleted]",
-    })
+    .delete()
     .eq("id", postId);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });

@@ -32,6 +32,7 @@ export default async function CreatorDashboardPage({ params }: { params: Promise
 
   const byDay = new Map<string, number>();
   for (const p of payments ?? []) {
+    if (!p.created_at) continue;
     const d = new Date(p.created_at).toISOString().slice(0, 10);
     byDay.set(d, (byDay.get(d) ?? 0) + Number(p.creator_earnings ?? 0));
   }

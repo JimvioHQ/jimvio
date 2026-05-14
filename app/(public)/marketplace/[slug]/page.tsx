@@ -74,8 +74,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
   const product = await getProductBySlug(slug);
   if (!product) notFound();
 
-  // FIX: DigitalProductDetail no longer accepts relatedProducts or cartSet.
-  // PhysicalProductDetail may still need them — kept in the fetch for that path.
+
   const [relatedProducts, cartProductIds, followedVendorIds] = await Promise.all([
     getTrendingProducts(4),
     getCartProductIds().catch(() => [] as string[]),

@@ -67,7 +67,7 @@ export default function AffiliateLinksPage() {
       .eq("is_active", true)
       .eq("affiliate_enabled", true)
       .limit(50);
-    q.then(({ data }) => setProducts((data ?? []) as ProductRow[]));
+    q.then(({ data }: { data: ProductRow[] | null }) => setProducts(data ?? []));
   }, [affiliate]);
 
   if (loading) {

@@ -15,7 +15,11 @@ export async function GET(
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { data: post } = await supabase.from("community_posts").select("room_id").eq("id", postId).maybeSingle();
+  const { data: post } = await supabase
+    .from("community_posts")
+    .select("room_id")
+    .eq("id", postId)
+    .maybeSingle();
   if (!post) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const hasAccess = await canAccessRoom(user.id, post.room_id);
@@ -45,7 +49,7 @@ export async function POST(
 
   const { data: post } = await supabase
     .from("community_posts")
-    .select("room_id, comment_count")
+    .select("room_id")
     .eq("id", postId)
     .maybeSingle();
 
@@ -71,10 +75,7 @@ export async function POST(
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
-  await supabase
-    .from("community_posts")
-    .update({ comment_count: (post.comment_count ?? 0) + 1 })
-    .eq("id", postId);
+  await supabase.rpc("increment_post_comment_count" as any, { p_post_id: postId });
 
   return NextResponse.json({ comment: data });
 }

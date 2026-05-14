@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createPayment } from "@/services/nowpayments";
+import type { Database } from "@/types/supabase";
+import { TransactionInsert } from "@/types/db";
+import { stat } from "fs";
+
+type OrderUpdate = Database["public"]["Tables"]["orders"]["Update"];
 
 export async function POST(req: NextRequest) {
   try {
@@ -68,13 +73,27 @@ export async function POST(req: NextRequest) {
     });
 
     // Store NowPayments payment_id on orders and set payment_status to processing
+    // 1. Update order status only (no nowpayments_payment_id on orders)
     await supabase
       .from("orders")
-      .update({
-        nowpayments_payment_id: payment.payment_id,
-        payment_status: "processing",
-      })
+      .update({ payment_status: "processing" } satisfies OrderUpdate)
       .in("id", orderIds);
+
+    const txRows = orderIds.map((orderId) => ({
+      user_id: user.id,
+      order_id: orderId,
+      reference: `nowpayments-${payment.payment_id}-${orderId}`,
+      type: "payment",
+      direction: "credit" as const,
+      amount: amountUsd / orderIds.length,
+      currency: "USD",
+      status: "processing" as const,
+      provider: "nowpayments",
+      provider_transaction_id: String(payment.payment_id),
+      description: `NowPayments crypto payment`,
+    }))  as TransactionInsert[];
+
+    await supabase.from("transactions").insert(txRows);
 
     return NextResponse.json({
       paymentId: payment.payment_id,

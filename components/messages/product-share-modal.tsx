@@ -58,7 +58,7 @@ export function ProductShareModal({
     if (vendorId) query = query.eq("vendor_id", vendorId);
     const { data } = await query;
     setLoading(false);
-    setResults((data ?? []).map((r) => ({ ...r, images: r.images as string[] })));
+    setResults((data ?? []).map((r: { id: string; name: string; slug: string; price: number; images?: string[] }) => ({ ...r, images: r.images as string[] })));
   }
 
   function selectProduct(p: { id: string; name: string; slug: string; price: number; images?: string[] }) {

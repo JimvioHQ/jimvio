@@ -33,4 +33,4 @@ export interface CookieCard {
     duration: string;
 }
 
-export * from './chat'
+export * from './chat';

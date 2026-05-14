@@ -11,21 +11,9 @@ import {
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { Product, Vendor } from "@/types/db";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
 
-export interface SharedProduct {
-    id: string;
-    name: string;
-    slug: string;
-    price: number;
-    currency: string;
-    compare_at_price?: number;
-    sale_count?: number;
-    review_count?: number;
-    affiliate_enabled?: boolean;
-    affiliate_commission_rate?: number;
-}
 
 export interface SharedVendor {
     id: string;
@@ -121,7 +109,7 @@ export function SocialProofBar({
 }
 
 
-export function AffiliateBanner({ product }: { product: SharedProduct }) {
+export function AffiliateBanner({ product }: { product: Product }) {
     if (!product.affiliate_enabled) return null;
 
     const rate = product.affiliate_commission_rate ?? 10;
@@ -371,7 +359,7 @@ export function VendorCard({
     followedVendorIds,
     followButton,
 }: {
-    vendor: SharedVendor;
+    vendor: Vendor;
     followedVendorIds: string[];
     followButton?: React.ReactNode;
 }) {

@@ -23,7 +23,7 @@ export async function GET(
   // 2. Increment click count (async)
   // We use the admin client if needed, or just standard if RLS allows.
   // For simplicity, we'll use a RPC or just update.
-  await supabase.rpc("increment_affiliate_click", { link_id: link.id });
+  await supabase.rpc("increment_affiliate_clicks" as any, { link_id: link.id });
 
   // 3. Set affiliate cookie (expires in 30 days)
   const response = NextResponse.redirect(new URL(link.destination_url, request.url));
