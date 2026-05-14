@@ -16,6 +16,7 @@ import {
     Rss,
     SlidersHorizontal,
     CheckCircle2,
+    ArrowUpRight,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -372,9 +373,9 @@ export default function FeedPage() {
 
                         {/* ── Feed ────────────────────────────────────────────────── */}
                         <FeedSection
-                            // communityFilter={activeCommunity === "all" ? null : activeCommunity}
-                            // search={debouncedSearch}
-                            // sort={sort}
+                        // communityFilter={activeCommunity === "all" ? null : activeCommunity}
+                        // search={debouncedSearch}
+                        // sort={sort}
                         />
                     </div>
 
@@ -434,29 +435,30 @@ export default function FeedPage() {
                         </SidebarCard>
 
                         {/* Trending posts */}
-                        <SidebarCard
-                            icon={<TrendingUp className="w-3.5 h-3.5 text-[#fd5000]" />}
-                            title="Trending"
-                        >
+                        <SidebarCard icon={<ArrowUpRight className="w-3.5 h-3.5 text-[#fd5000]" />} title="Trending" badge="Today">
                             {loadingTrending ? (
-                                <div className="space-y-4 mt-2">
+                                <div className="space-y-px py-1">
                                     {[0, 1, 2].map((i) => (
-                                        <div key={i} className="flex gap-2.5 animate-pulse">
-                                            <div className="w-5 h-5 rounded-md bg-surface-secondary shrink-0" />
-                                            <div className="flex-1 space-y-1.5">
-                                                <div className="h-2.5 w-full rounded-full bg-surface-secondary" />
-                                                <div className="h-2.5 w-4/5 rounded-full bg-surface-secondary" />
-                                                <div className="h-2 w-2/5 rounded-full bg-surface-secondary" />
+                                        <div
+                                            key={i}
+                                            className="flex animate-pulse gap-2.5 px-3.5 py-2"
+                                            style={{ animationDelay: `${i * 150}ms` }}
+                                        >
+                                            <div className="mt-px h-[17px] w-[17px] shrink-0 rounded-[5px] bg-surface-secondary" />
+                                            <div className="flex-1 space-y-[5px]">
+                                                <div className="h-[9px] w-full rounded-[3px] bg-surface-secondary" />
+                                                <div className="h-[9px] w-4/5 rounded-[3px] bg-surface-secondary" />
+                                                <div className="h-[7px] w-2/5 rounded-[3px] bg-surface-secondary" />
                                             </div>
                                         </div>
                                     ))}
                                 </div>
                             ) : trending.length === 0 ? (
-                                <p className="text-[12px] text-text-muted text-center py-5">
+                                <p className="py-6 text-center text-[12px] text-text-muted">
                                     No trending posts yet.
                                 </p>
                             ) : (
-                                <div className="space-y-3 mt-2">
+                                <div className="py-1.5">
                                     {trending.map((post, i) => (
                                         <TrendingItem key={post.id} post={post} rank={i + 1} />
                                     ))}
@@ -472,38 +474,60 @@ export default function FeedPage() {
 
 // ─── SidebarCard ──────────────────────────────────────────────────────────────
 
+// ── SidebarCard ───────────────────────────────────────────────────────────────
 function SidebarCard({
     icon,
     title,
     badge,
     children,
 }: {
-    icon: React.ReactNode;
+    icon?: React.ReactNode;
     title: string;
     badge?: string;
     children: React.ReactNode;
 }) {
     return (
-        <div className="bg-surface border border-border rounded-2xl p-3.5 shadow-sm">
-            <div className="flex items-center gap-2 mb-2">
-                <div className="w-5 h-5 rounded-md bg-[#fd5000]/10 flex items-center justify-center shrink-0">
-                    {icon}
-                </div>
-                <h2 className="text-[12px] font-bold text-text-primary tracking-tight flex-1">
+        <div className="overflow-hidden rounded-[14px] border border-border/60 bg-surface">
+            <div className="flex items-center gap-2 px-3.5 pt-3 pb-2.5">
+                {icon && (
+                    <div className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-[7px] bg-[#fd5000]/10">
+                        {icon}
+                    </div>
+                )}
+                <h2 className="flex-1 text-[12px] font-bold tracking-tight text-text-primary">
                     {title}
                 </h2>
                 {badge && (
-                    <span className="text-[10px] text-text-muted font-bold bg-surface-secondary px-1.5 py-0.5 rounded-md border border-border">
+                    <span className="rounded-[5px] border border-border/60 bg-surface-secondary px-[7px] py-[2px] text-[10px] font-semibold text-text-muted">
                         {badge}
                     </span>
                 )}
             </div>
+
+            <div className="mx-3.5 h-px bg-border/60" />
+
             {children}
         </div>
     );
 }
 
-// ─── FilterPill ───────────────────────────────────────────────────────────────
+// ── Icon (swap out TrendingUp for this crisp arrow-trend SVG) ─────────────────
+const TrendingIcon = () => (
+    <svg
+        width="12"
+        height="12"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="#fd5000"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+    >
+        <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
+        <polyline points="17 6 23 6 23 12" />
+    </svg>
+);
 
 function FilterPill({
     icon,
@@ -539,47 +563,92 @@ const rankStyles = [
     { color: "#b0b0b0", bg: "#b0b0b0" },
 ];
 
+// ── rank colour helper ────────────────────────────────────────────────────────
+function getRankColor(rank: number): string {
+    if (rank === 1) return "#fd5000";
+    if (rank === 2) return "#c94000";
+    if (rank === 3) return "#903000";
+    if (rank === 4) return "#2e2e31";
+    return "#232325";
+}
+
+// ── stat pill ─────────────────────────────────────────────────────────────────
+function StatBadge({ icon, value }: { icon: React.ReactNode; value: number }) {
+    return (
+        <span className="flex items-center gap-[3px] text-[11px] font-medium text-text-muted">
+            {icon}
+            {value.toLocaleString()}
+        </span>
+    );
+}
+
+// ── trending item ─────────────────────────────────────────────────────────────
 function TrendingItem({ post, rank }: { post: TrendingPost; rank: number }) {
-    const preview = post.body.length > 75 ? post.body.slice(0, 75) + "…" : post.body;
-    const style = rankStyles[rank - 1] ?? rankStyles[4];
+    const isHot = rank <= 3;
 
     return (
-        <div className="flex gap-2.5 group cursor-pointer rounded-xl p-2 -mx-1 hover:bg-surface-secondary transition-colors duration-150">
-            {/* Rank badge */}
+        <div className="group relative flex cursor-pointer items-start gap-[11px] px-3 py-[9px] transition-colors duration-100 hover:bg-surface-secondary">
+            {/* separator — skip on last child via CSS */}
+            <span
+                aria-hidden="true"
+                className="pointer-events-none absolute bottom-0 left-3 right-3.5 h-px bg-border/60 group-last:hidden"
+            />
+
+            {/* rank badge */}
             <div
-                className="w-5 h-5 rounded-md flex items-center justify-center shrink-0 mt-0.5 text-[10px] font-black text-white"
-                style={{ background: style.bg, opacity: rank > 3 ? 0.55 : 1 }}
+                className="mt-px flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-[5px] text-[10px] font-black tracking-tight text-white"
+                style={{ background: getRankColor(rank) }}
+                aria-label={`Rank ${rank}`}
             >
                 {rank}
             </div>
 
-            <div className="flex-1 min-w-0">
-                <p className="text-[12px] text-text-primary font-medium leading-snug group-hover:text-[#fd5000] transition-colors duration-100">
-                    {preview}
+            {/* body */}
+            <div className="min-w-0 flex-1">
+                <p className="line-clamp-2 text-[12.5px] font-medium leading-[1.45] text-text-primary transition-colors duration-100 group-hover:text-[#fd5000]">
+                    {post.body}
                 </p>
-                <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-                    <StatBadge icon="♥" value={post.like_count ?? 0} />
-                    <span className="text-text-muted/40 text-[10px]">·</span>
-                    <StatBadge icon="💬" value={post.comment_count ?? 0} />
+
+                <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                    <StatBadge
+                        icon={
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                            </svg>
+                        }
+                        value={post.like_count ?? 0}
+                    />
+
+                    <span aria-hidden="true" className="h-[2px] w-[2px] rounded-full bg-text-muted/30" />
+
+                    <StatBadge
+                        icon={
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                            </svg>
+                        }
+                        value={post.comment_count ?? 0}
+                    />
+
                     {post.community_name && (
                         <>
-                            <span className="text-text-muted/40 text-[10px]">·</span>
-                            <span className="text-[10px] text-[#fd5000] font-semibold truncate max-w-[80px]">
+                            <span aria-hidden="true" className="h-[2px] w-[2px] rounded-full bg-text-muted/30" />
+                            <span className="max-w-[90px] truncate text-[10.5px] font-bold tracking-tight text-[#fd5000] opacity-80 transition-opacity group-hover:opacity-100">
                                 {post.community_name}
                             </span>
                         </>
                     )}
                 </div>
             </div>
-        </div>
-    );
-}
 
-function StatBadge({ icon, value }: { icon: string; value: number }) {
-    return (
-        <span className="inline-flex items-center gap-1 text-[10px] text-text-muted font-semibold">
-            <span>{icon}</span>
-            <span>{value.toLocaleString()}</span>
-        </span>
+            {/* live indicator for top 3 */}
+            {isHot && (
+                <span
+                    aria-hidden="true"
+                    className="mt-[7px] h-[5px] w-[5px] shrink-0 rounded-full bg-[#fd5000]"
+                    style={{ opacity: rank === 3 ? 0.35 : 0.7 }}
+                />
+            )}
+        </div>
     );
 }
