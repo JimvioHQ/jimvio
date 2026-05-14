@@ -17,7 +17,7 @@ export async function uploadCommunityChatFile(
   _roomId: string,
   file: File
 ): Promise<ChatAttachmentPayload> {
-  // 1. Get a signed upload signature from the server
+  
   const sigRes = await fetch("/api/uploads/signature", {
     method:  "POST",
     headers: { "Content-Type": "application/json" },

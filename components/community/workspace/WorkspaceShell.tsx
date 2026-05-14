@@ -134,7 +134,7 @@ export function WorkspaceShell({
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();
-  const isRoot = pathname === `/c/${community.slug}/workspace`;
+  const isRoot = pathname === `/c/community/${community.slug}`;
 
   const resolve = (s: string): SectionKey =>
     s === "chats" ? "messages" : (SECTION_LIST as readonly string[]).includes(s) ? s as SectionKey : "feed";
@@ -160,7 +160,7 @@ export function WorkspaceShell({
     if (next.section) p.set("section", next.section);
     if (next.view) { if (next.view === "admin") p.set("view", "admin"); else p.delete("view"); }
     const qs = p.toString();
-    router.replace(`/c/${community.slug}/workspace${qs ? `?${qs}` : ""}`, { scroll: false });
+    router.replace(`/c/community/${community.slug}${qs ? `?${qs}` : ""}`, { scroll: false });
   };
 
   const changeSection = (s: SectionKey) => { setSection(s); updateUrl({ section: s }); };
@@ -172,9 +172,9 @@ export function WorkspaceShell({
 
   const sectionProps = { community, currentUserId, role, view, isAdmin, isOwner };
 
+  // sectionMap no longer includes "messages" — MessagesSection has its own dedicated render path
   const sectionMap: Record<string, React.ReactNode> = {
     feed: <FeedSection />,
-    messages: <MessagesSection community={community} currentUserId={currentUserId} spacesWithRooms={spacesWithRooms} profile={profile} />,
     missions: <MissionsSection {...sectionProps} />,
     members: <MembersSection {...sectionProps} />,
     leaderboard: <LeaderboardSection community={community} currentUserId={currentUserId} />,
@@ -188,14 +188,14 @@ export function WorkspaceShell({
   const openRoom = (spaceId: string, roomId: string) => {
     const p = new URLSearchParams(searchParams.toString());
     p.set("space", spaceId); p.set("room", roomId);
-    router.replace(`/c/${community.slug}/workspace?${p.toString()}`, { scroll: false });
+    router.replace(`/c/community/${community.slug}?${p.toString()}`, { scroll: false });
   };
 
   const closeRoom = () => {
     const p = new URLSearchParams(searchParams.toString());
     p.delete("space"); p.delete("room");
     const qs = p.toString();
-    router.replace(`/c/${community.slug}/workspace${qs ? `?${qs}` : ""}`, { scroll: false });
+    router.replace(`/c/community/${community.slug}${qs ? `?${qs}` : ""}`, { scroll: false });
   };
 
   const activeSpaceId = searchParams.get("space");
@@ -203,35 +203,44 @@ export function WorkspaceShell({
   const activeSpace = activeSpaceId ? spacesWithRooms.find((s) => s.id === activeSpaceId) : null;
   const activeRoom = activeSpace && activeRoomId ? activeSpace.rooms.find((r) => r.id === activeRoomId) : null;
 
+  // ── Layout flags — single source of truth ──
+  const roomOverlayOpen = !!(activeSpace && activeRoom);
+  const showSidebar = !isMessages && !roomOverlayOpen;
+  const showRightRail = isRoot && !isMessages && !roomOverlayOpen && section === "feed";
+
   return (
     <WorkspaceProvider value={ctx}>
       <CallProvider>
         <div className="min-h-screen bg-bg font-[family-name:var(--font-dm-sans)]">
-          {/* Top bar */}
-          <TopBar
-            community={community} section={section} view={view} isAdmin={isAdmin}
-            onViewToggle={toggleView} unreadNotifications={unreadNotifications} profile={profile}
-          />
-
           <div className={cn("mx-auto", isMessages ? "max-w-none" : "max-w-[1400px]")}>
-            <div className={cn(
-              "py-4 lg:py-6 pb-24 lg:pb-6",
-              isMessages
-                ? "px-0"
-                : "px-4 lg:px-6 lg:grid lg:grid-cols-[240px_1fr_300px] lg:gap-5"
-            )}>
+            <div
+              suppressHydrationWarning
+              className={cn(
+                "py-4 lg:py-6 pb-24 lg:pb-6",
+                isMessages || roomOverlayOpen
+                  ? "px-0"
+                  : showRightRail
+                    ? "px-4 lg:px-6 lg:grid lg:grid-cols-[240px_1fr_260px] lg:gap-5"
+                    : "px-4 lg:px-6 lg:grid lg:grid-cols-[240px_1fr] lg:gap-5"
+              )}
+            >
 
-              {/* ── Left sidebar ── */}
-              {!isMessages && (
+              {/* ── Left sidebar — hidden in messages view and when room overlay is open ── */}
+              {showSidebar && (
                 <aside className="hidden lg:flex flex-col gap-0 flex-shrink-0">
                   <Sidebar
-                    community={community} section={section} view={view} isAdmin={isAdmin}
-                    onSectionChange={changeSection} profile={profile} points={points}
-                    spacesWithRooms={spacesWithRooms} expandedSpaces={expandedSpaces}
+                    community={community}
+                    section={section}
+                    view={view}
+                    isAdmin={isAdmin}
+                    onSectionChange={changeSection}
+                    profile={profile}
+                    points={points}
+                    spacesWithRooms={spacesWithRooms}
+                    expandedSpaces={expandedSpaces}
                     onToggleSpace={(id) => setExpandedSpaces((p) => ({ ...p, [id]: !p[id] }))}
-                    onNavigateRoom={openRoom} openMissionsCount={openMissionsCount}
-                    unreadNotifications={unreadNotifications}
-                    onOpenBookmarks={() => setBookmarksOpen(true)}
+                    onNavigateRoom={openRoom}
+                    openMissionsCount={openMissionsCount}
                   />
                 </aside>
               )}
@@ -239,40 +248,59 @@ export function WorkspaceShell({
               {/* ── Main content ── */}
               {isMessages ? (
                 <div className="relative min-w-0">
-                  <MessagesSection community={community} currentUserId={currentUserId} spacesWithRooms={spacesWithRooms} profile={profile} />
+                  <MessagesSection
+                    community={community}
+                    currentUserId={currentUserId}
+                    spacesWithRooms={spacesWithRooms}
+                    profile={profile}
+                  />
                 </div>
               ) : (
-                <main className="relative min-w-0 min-h-[60vh]">
+                <main className={cn("relative min-w-0 min-h-[90vh]", roomOverlayOpen && "overflow-hidden")}>
                   <div className="min-w-0">
                     {isRoot ? sectionMap[section] : children}
                   </div>
-
-                  {activeSpace && activeRoom && (
+                  {roomOverlayOpen && (
                     <WorkspaceRoomOverlay
                       communityName={community.name}
-                      spaceName={activeSpace.name}
+                      spaceName={activeSpace!.name}
                       spaceIconName={(activeSpace as any).icon ?? null}
-                      roomName={activeRoom.name}
-                      roomType={activeRoom.room_type}
+                      roomName={activeRoom!.name}
+                      roomType={activeRoom!.room_type}
                       onClose={closeRoom}
                     >
-                      <RoomContent community={community} space={activeSpace} room={activeRoom} currentUserId={currentUserId} />
+                      <RoomContent
+                        community={community}
+                        space={activeSpace!}
+                        room={activeRoom!}
+                        currentUserId={currentUserId}
+                      />
                     </WorkspaceRoomOverlay>
                   )}
                 </main>
               )}
 
-              {/* ── Right rail ── */}
-              {!isMessages && (
-                <aside className="hidden lg:block flex-shrink-0">
-                  <RightRail community={community} points={points} liveSessions={liveSessions} spacesWithRooms={spacesWithRooms} openMissionsCount={openMissionsCount} />
-                </aside>
+              {/* ── Right rail — feed page only ── */}
+              {showRightRail && (
+                <RightRail
+                  community={community}
+                  points={points}
+                  liveSessions={liveSessions}
+                  spacesWithRooms={spacesWithRooms}
+                  openMissionsCount={openMissionsCount}
+                />
               )}
+
             </div>
           </div>
-          <MobileBottomNav section={section} onSectionChange={changeSection} unreadNotifications={unreadNotifications} openMissionsCount={openMissionsCount} />
 
-          {/* Bookmarks panel (slide-out) */}
+          <MobileBottomNav
+            section={section}
+            onSectionChange={changeSection}
+            unreadNotifications={unreadNotifications}
+            openMissionsCount={openMissionsCount}
+          />
+
           {bookmarksOpen && (
             <BookmarksPanel
               communityId={community.id}
@@ -291,71 +319,13 @@ export function WorkspaceShell({
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   TOP BAR
-   ══════════════════════════════════════════════════════════════════ */
-
-function TopBar({ community, section, view, isAdmin, onViewToggle, unreadNotifications, profile }: {
-  community: WorkspaceCommunity; section: SectionKey; view: WorkspaceView;
-  isAdmin: boolean; onViewToggle: () => void; unreadNotifications: number;
-  profile: { full_name: string | null; avatar_url: string | null; username: string | null } | null;
-}) {
-  return (
-    <header className="sticky top-0 z-20 bg-bg/95 backdrop-blur-md border-b border-border">
-      <div className="max-w-[1400px] mx-auto px-4 lg:px-6 h-14 flex items-center gap-3">
-        <div className="flex items-center gap-3 flex-1 min-w-0">
-          <Link href={`/c/${community.slug}/workspace`} className="flex items-center gap-2 flex-shrink-0">
-            {community.avatar_url ? (
-              <img src={community.avatar_url} alt={community.name} className="w-7 h-7 rounded-lg object-cover ring-1 ring-border" />
-            ) : (
-              <div className="w-7 h-7 rounded-lg bg-[#fd5000] text-white font-bold text-xs flex items-center justify-center">{community.name[0]?.toUpperCase()}</div>
-            )}
-            <span className="text-[13px] font-semibold text-text-primary truncate hidden sm:block max-w-[140px]">{community.name}</span>
-          </Link>
-          <ChevronRight className="text-text-muted w-3.5 h-3.5 flex-shrink-0" />
-          <span className="text-[13px] font-semibold text-text-primary">{SECTION_LABELS[section]}</span>
-        </div>
-
-        <div className="flex items-center gap-1.5 flex-shrink-0">
-          {isAdmin && (
-            <button type="button" onClick={onViewToggle}
-              className={cn("px-2.5 py-1.5 text-[11px] font-semibold rounded-lg transition-all",
-                view === "admin" ? "bg-[#fd5000]/10 text-[#fd5000]" : "bg-surface-secondary text-text-muted hover:text-text-primary")}>
-              {view === "admin" ? "Admin" : "Member"}
-            </button>
-          )}
-          <button type="button" aria-label="Settings"
-            className="w-8 h-8 rounded-lg text-text-muted hover:bg-surface-secondary hover:text-[#fd5000] transition-colors flex items-center justify-center">
-            <Settings className="w-4 h-4" />
-          </button>
-          <button type="button" aria-label="Notifications"
-            className="w-8 h-8 rounded-lg text-text-muted hover:bg-surface-secondary hover:text-[#fd5000] transition-colors flex items-center justify-center relative">
-            <Bell className="w-4 h-4" />
-            {unreadNotifications > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 h-4 min-w-[16px] flex items-center justify-center rounded-full px-1 text-[9px] font-bold text-white bg-[#fd5000]">
-                {unreadNotifications > 9 ? "9+" : unreadNotifications}
-              </span>
-            )}
-          </button>
-          <Link href={`/u/${profile?.username ?? ""}`}
-            className="w-8 h-8 rounded-full overflow-hidden ring-1 ring-border hover:ring-[#fd5000]/40 transition-all flex-shrink-0">
-            {profile?.avatar_url
-              ? <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
-              : <div className="w-full h-full bg-[#fd5000]/10 text-[#fd5000] flex items-center justify-center text-[11px] font-bold">{(profile?.full_name?.[0] ?? "U").toUpperCase()}</div>}
-          </Link>
-        </div>
-      </div>
-    </header>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════════════
    LEFT SIDEBAR
    ══════════════════════════════════════════════════════════════════ */
 
 function Sidebar({
   community, section, view, isAdmin, onSectionChange, profile, points,
   spacesWithRooms, expandedSpaces, onToggleSpace, onNavigateRoom,
-  openMissionsCount, unreadNotifications, onOpenBookmarks,
+  openMissionsCount,
 }: {
   community: WorkspaceCommunity; section: SectionKey; view: WorkspaceView; isAdmin: boolean;
   onSectionChange: (s: SectionKey) => void;
@@ -363,75 +333,92 @@ function Sidebar({
   points: PointsSnapshot | null; spacesWithRooms: WorkspaceSpaceRow[];
   expandedSpaces: Record<string, boolean>; onToggleSpace: (id: string) => void;
   onNavigateRoom: (spaceId: string, roomId: string) => void;
-  openMissionsCount: number; unreadNotifications: number;
-  onOpenBookmarks: () => void;
+  openMissionsCount: number;
 }) {
   const mainNav: { key: SectionKey; badge?: number }[] = [
     { key: "feed" },
-    { key: "messages", badge: unreadNotifications },
-    { key: "live" },
     { key: "missions", badge: openMissionsCount },
     { key: "courses" },
-    { key: "events" },
     { key: "members" },
     { key: "leaderboard" },
   ];
 
-  const isPremium = false; // wire to membership
+  const isPremium = false; // wire to community_memberships.plan_type !== 'free'
 
   return (
     <div className="sticky top-[3.75rem] flex flex-col h-[calc(100vh-3.75rem)] overflow-y-auto pb-4">
 
+      {/* Community header */}
+      <div className="flex items-center gap-2.5 px-3 py-3 flex-shrink-0">
+        {community.avatar_url ? (
+          <img
+            src={community.avatar_url}
+            alt={community.name}
+            className="w-9 h-9 rounded-lg object-cover ring-1 ring-border flex-shrink-0"
+          />
+        ) : (
+          <div className="w-9 h-9 rounded-lg bg-[#fd5000] text-white font-bold text-sm flex items-center justify-center flex-shrink-0">
+            {community.name[0]?.toUpperCase()}
+          </div>
+        )}
+        <div className="min-w-0 flex-1">
+          <p className="text-[13px] font-bold text-text-primary truncate">{community.name}</p>
+          <p className="text-[10px] text-text-muted">
+            {community.member_count?.toLocaleString() ?? 0} members
+          </p>
+        </div>
+      </div>
+
+      <div className="h-px bg-border mx-2 flex-shrink-0" />
+
       {/* Main nav */}
-      <nav className="flex-shrink-0 space-y-0.5 py-3">
+      <nav className="flex-shrink-0 space-y-0.5 py-3 px-2">
         {mainNav.map(({ key, badge }) => {
           const Icon = SECTION_ICONS[key];
           const active = section === key;
           return (
-            <button key={key} type="button" onClick={() => onSectionChange(key)}
+            <button
+              key={key}
+              type="button"
+              onClick={() => onSectionChange(key)}
               className={cn(
                 "w-full flex items-center gap-3 px-3 py-2 rounded-xl text-[13px] font-medium transition-all",
-                active ? "bg-[#fd5000] text-white shadow-sm shadow-[#fd5000]/25"
-                  : "text-text-secondary hover:bg-surface-secondary hover:text-text-primary"
-              )}>
+                active
+                  ? "bg-[#fd5000] text-white shadow-sm shadow-[#fd5000]/25"
+                  : "text-text-secondary hover:bg-surface-secondary hover:text-text-primary",
+              )}
+            >
               <Icon className="w-4 h-4 flex-shrink-0" />
               <span className="flex-1 text-left">{SECTION_LABELS[key]}</span>
               {badge !== undefined && badge > 0 && (
-                <span className={cn("h-5 min-w-[20px] flex items-center justify-center rounded-full px-1.5 text-[10px] font-bold",
-                  active ? "bg-white/25 text-white" : "bg-[#fd5000] text-white")}>
+                <span
+                  className={cn(
+                    "h-5 min-w-[20px] flex items-center justify-center rounded-full px-1.5 text-[10px] font-bold",
+                    active ? "bg-white/25 text-white" : "bg-[#fd5000] text-white",
+                  )}
+                >
                   {badge > 99 ? "99+" : badge}
                 </span>
               )}
             </button>
           );
         })}
-
-        {/* Bookmarks — opens the slide-out panel */}
-        <button
-          type="button"
-          onClick={onOpenBookmarks}
-          className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-[13px] font-medium text-text-secondary hover:bg-surface-secondary hover:text-text-primary transition-all"
-        >
-          <Bookmark className="w-4 h-4 flex-shrink-0" />
-          <span className="flex-1 text-left">Bookmarks</span>
-        </button>
-
-        <Link href={`/u/${profile?.username ?? ""}`}
-          className="flex items-center gap-3 px-3 py-2 rounded-xl text-[13px] font-medium text-text-secondary hover:bg-surface-secondary hover:text-text-primary transition-all">
-          <User className="w-4 h-4 flex-shrink-0" />
-          <span className="flex-1">My Profile</span>
-        </Link>
       </nav>
 
       <div className="h-px bg-border mx-2 flex-shrink-0" />
 
-      {/* My Spaces */}
+      {/* Spaces */}
       <div className="flex-shrink-0 py-3">
         <div className="flex items-center justify-between px-3 mb-2">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted">My Spaces</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted">
+            Spaces
+          </p>
           {isAdmin && view === "admin" && (
-            <button type="button"
-              className="w-5 h-5 flex items-center justify-center rounded-md hover:bg-surface-secondary text-text-muted hover:text-[#fd5000] transition-colors">
+            <button
+              type="button"
+              aria-label="Create space"
+              className="w-5 h-5 flex items-center justify-center rounded-md hover:bg-surface-secondary text-text-muted hover:text-[#fd5000] transition-colors"
+            >
               <Plus className="w-3 h-3" />
             </button>
           )}
@@ -440,20 +427,27 @@ function Sidebar({
         {spacesWithRooms.length === 0 ? (
           <p className="px-3 text-[11px] text-text-muted">No spaces yet</p>
         ) : (
-          <div className="space-y-0.5">
+          <div className="space-y-0.5 px-2">
             {spacesWithRooms.map((space) => {
               const isOpen = expandedSpaces[space.id] !== false;
               return (
                 <div key={space.id}>
-                  <button type="button" onClick={() => onToggleSpace(space.id)}
-                    className="w-full flex items-center gap-2 px-3 py-1.5 rounded-xl text-left hover:bg-surface-secondary transition-colors group">
+                  <button
+                    type="button"
+                    onClick={() => onToggleSpace(space.id)}
+                    className="w-full flex items-center gap-2 px-3 py-1.5 rounded-xl text-left hover:bg-surface-secondary transition-colors group"
+                  >
                     <div className="w-6 h-6 rounded-lg bg-[#fd5000]/10 flex items-center justify-center flex-shrink-0">
                       <Hash className="w-3 h-3 text-[#fd5000]" />
                     </div>
-                    <span className="flex-1 truncate text-[12px] font-medium text-text-primary">{space.name}</span>
-                    {isOpen
-                      ? <ChevronDown className="w-3 h-3 text-text-muted" />
-                      : <ChevronRight className="w-3 h-3 text-text-muted" />}
+                    <span className="flex-1 truncate text-[12px] font-medium text-text-primary">
+                      {space.name}
+                    </span>
+                    {isOpen ? (
+                      <ChevronDown className="w-3 h-3 text-text-muted" />
+                    ) : (
+                      <ChevronRight className="w-3 h-3 text-text-muted" />
+                    )}
                   </button>
 
                   {isOpen && space.rooms.length > 0 && (
@@ -462,8 +456,11 @@ function Sidebar({
                         const RoomIcon = roomTypeIcon(room.room_type);
                         return (
                           <li key={room.id}>
-                            <button type="button" onClick={() => onNavigateRoom(space.id, room.id)}
-                              className="w-full flex items-center gap-1.5 px-2 py-1 rounded-lg text-[12px] text-text-secondary hover:bg-surface-secondary hover:text-text-primary transition-colors">
+                            <button
+                              type="button"
+                              onClick={() => onNavigateRoom(space.id, room.id)}
+                              className="w-full flex items-center gap-1.5 px-2 py-1 rounded-lg text-[12px] text-text-secondary hover:bg-surface-secondary hover:text-text-primary transition-colors"
+                            >
                               <RoomIcon className="w-3.5 h-3.5 shrink-0 opacity-60" />
                               <span className="truncate">{room.name}</span>
                             </button>
@@ -478,11 +475,15 @@ function Sidebar({
           </div>
         )}
 
-        <button type="button"
-          className="w-full flex items-center gap-2.5 px-3 py-1.5 mt-1 rounded-xl text-[12px] font-medium text-text-muted hover:text-[#fd5000] hover:bg-[#fd5000]/5 transition-all">
-          <Plus className="w-3.5 h-3.5" />
-          Create Space
-        </button>
+        {isAdmin && view === "admin" && (
+          <button
+            type="button"
+            className="w-full flex items-center gap-2.5 px-3 py-1.5 mt-1 mx-2 rounded-xl text-[12px] font-medium text-text-muted hover:text-[#fd5000] hover:bg-[#fd5000]/5 transition-all"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            Create Space
+          </button>
+        )}
       </div>
 
       <div className="h-px bg-border mx-2 flex-shrink-0" />
@@ -497,17 +498,14 @@ function Sidebar({
           <p className="text-[11px] text-white/80 mb-2.5 leading-snug">
             Unlock exclusive tools, higher earnings and more.
           </p>
-          <button type="button"
-            className="w-full py-1.5 rounded-lg bg-white text-[#fd5000] text-[12px] font-bold hover:bg-white/90 transition-colors">
+          <button
+            type="button"
+            className="w-full py-1.5 rounded-lg bg-white text-[#fd5000] text-[12px] font-bold hover:bg-white/90 transition-colors"
+          >
             Upgrade Now
           </button>
         </div>
       )}
-
-      {/* User profile card at bottom */}
-      <div className="mt-auto pt-3 flex-shrink-0">
-        <UserProfileCard profile={profile} points={points} />
-      </div>
     </div>
   );
 }
@@ -572,7 +570,6 @@ function BookmarksPanel({
 
   async function removeBookmark(savedId: string) {
     const supabase = createClient();
-    // Optimistic — restore on failure
     const prev = items;
     setItems((p) => p.filter((b) => b.id !== savedId));
     const { error } = await supabase
@@ -898,6 +895,10 @@ function MessagesSection({ community, currentUserId, spacesWithRooms, profile }:
   const [searchRes, setSearchRes] = useState<any[]>([]);
   const bottomRef = useRef<HTMLDivElement>(null);
 
+  // Keep supabase client stable for the lifetime of this component so the
+  // realtime channel cleanup always references the same instance.
+  const supabaseRef = useRef(createClient());
+
   const chatRooms = spacesWithRooms.flatMap((s) =>
     s.rooms.filter((r) => r.room_type === "chat").map((r) => ({ id: r.id, name: r.name, spaceName: s.name, spaceId: s.id }))
   );
@@ -907,7 +908,7 @@ function MessagesSection({ community, currentUserId, spacesWithRooms, profile }:
     async function load() {
       setLoadingConvs(true);
       try {
-        const { data } = await createClient()
+        const { data } = await supabaseRef.current
           .from("community_inbox_conversations")
           .select(`id,user_high,user_low,updated_at,community_inbox_messages(body,created_at,sender_id)`)
           .eq("community_id", community.id)
@@ -916,7 +917,7 @@ function MessagesSection({ community, currentUserId, spacesWithRooms, profile }:
 
         if (dead || !data) return;
         const peerIds = data.map((c: any) => c.user_high === currentUserId ? c.user_low : c.user_high);
-        const { data: profs } = await createClient().from("profiles").select("id,full_name,avatar_url,username").in("id", peerIds);
+        const { data: profs } = await supabaseRef.current.from("profiles").select("id,full_name,avatar_url,username").in("id", peerIds);
         const pm = new Map((profs ?? []).map((p: any) => [p.id, p]));
 
         setConvs(data.map((c: any) => {
@@ -942,10 +943,11 @@ function MessagesSection({ community, currentUserId, spacesWithRooms, profile }:
   useEffect(() => {
     if (!activeConvId) return;
     let dead = false;
+
     async function load() {
       setLoadingMsgs(true);
       try {
-        const { data } = await createClient()
+        const { data } = await supabaseRef.current
           .from("community_inbox_messages")
           .select("id,body,sender_id,created_at")
           .eq("conversation_id", activeConvId!)
@@ -956,30 +958,40 @@ function MessagesSection({ community, currentUserId, spacesWithRooms, profile }:
     }
     load();
 
-    const supabase = createClient();
-    const ch = supabase.channel(`conv:${activeConvId}`)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "community_inbox_messages", filter: `conversation_id=eq.${activeConvId}` },
-        (p: any) => setMessages((prev) => [...prev, p.new as MsgItem]))
+    // Realtime subscription — uses the stable ref so cleanup targets the same client
+    const ch = supabaseRef.current
+      .channel(`conv:${activeConvId}`)
+      .on("postgres_changes", {
+        event: "INSERT", schema: "public",
+        table: "community_inbox_messages",
+        filter: `conversation_id=eq.${activeConvId}`,
+      }, (p: any) => setMessages((prev) => [...prev, p.new as MsgItem]))
       .subscribe();
-    return () => { dead = true; supabase.removeChannel(ch); };
+
+    return () => {
+      dead = true;
+      supabaseRef.current.removeChannel(ch);
+    };
   }, [activeConvId]);
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
 
   useEffect(() => {
     if (!searchQ.trim()) { setSearchRes([]); return; }
+    let dead = false;
     const t = setTimeout(async () => {
-      const { data } = await createClient()
+      const { data } = await supabaseRef.current
         .from("community_memberships")
         .select("user_id,profiles!inner(id,full_name,avatar_url,username)")
         .eq("community_id", community.id).eq("status", "active").neq("user_id", currentUserId).limit(8);
+      if (dead) return;
       const q = searchQ.toLowerCase();
       setSearchRes((data ?? []).filter((m: any) => {
         const p = m.profiles as any;
         return (p?.full_name || p?.username || "").toLowerCase().includes(q);
       }).map((m: any) => m.profiles));
     }, 300);
-    return () => clearTimeout(t);
+    return () => { dead = true; clearTimeout(t); };
   }, [searchQ, community.id, currentUserId]);
 
   const openConv = useCallback((conv: ConvItem) => {
@@ -990,35 +1002,50 @@ function MessagesSection({ community, currentUserId, spacesWithRooms, profile }:
   const startDM = useCallback(async (peer: any) => {
     setSearchQ(""); setSearchRes([]);
     try {
-      const { data: convId } = await createClient().rpc("get_or_create_community_inbox_conversation",
+      const { data: convId } = await supabaseRef.current.rpc("get_or_create_community_inbox_conversation",
         { p_community_id: community.id, p_peer_id: peer.id });
       if (convId) {
-        const existing = convs.find((c) => c.id === convId);
-        const conv: ConvItem = existing ?? {
-          id: convId, peerId: peer.id, peerName: peer.full_name || peer.username || "Member",
-          peerAvatar: peer.avatar_url ?? null, lastMessage: "No messages yet", lastMessageTime: new Date().toISOString(),
-        };
-        if (!existing) setConvs((p) => [conv, ...p]);
-        openConv(conv);
+        setConvs((prev) => {
+          const existing = prev.find((c) => c.id === convId);
+          if (existing) {
+            openConv(existing);
+            return prev;
+          }
+          const next: ConvItem = {
+            id: convId, peerId: peer.id,
+            peerName: peer.full_name || peer.username || "Member",
+            peerAvatar: peer.avatar_url ?? null,
+            lastMessage: "No messages yet",
+            lastMessageTime: new Date().toISOString(),
+          };
+          openConv(next);
+          return [next, ...prev];
+        });
       }
     } catch (e) { console.error(e); }
-  }, [community.id, convs, openConv]);
+  }, [community.id, openConv]);
 
   const sendMsg = useCallback(async () => {
     const text = draft.trim();
     if (!text || !activeConvId || sending) return;
-    setSending(true); setDraft("");
+    setSending(true);
+    setDraft("");
     try {
-      await createClient().from("community_inbox_messages").insert({
+      await supabaseRef.current.from("community_inbox_messages").insert({
         conversation_id: activeConvId, sender_id: currentUserId, body: text, message_type: "text",
       });
-    } catch (e) { console.error(e); setDraft(text); }
-    finally { setSending(false); }
+    } catch (e) {
+      console.error(e);
+      // Only restore if the user hasn't typed anything new since we cleared
+      setDraft((current) => current === "" ? text : current);
+    } finally {
+      setSending(false);
+    }
   }, [draft, activeConvId, sending, currentUserId]);
 
   return (
     <div className="flex h-[calc(100vh-3.5rem)] overflow-hidden">
-      {/* Left: list */}
+      {/* Left: conversation list */}
       <div className={cn("flex-shrink-0 flex flex-col border-r border-border bg-surface w-full lg:w-[300px]", activeConvId ? "hidden lg:flex" : "flex")}>
         <div className="flex items-center justify-between px-4 py-3.5 border-b border-border flex-shrink-0">
           <h2 className="text-[15px] font-bold text-text-primary">Messages</h2>
@@ -1111,7 +1138,7 @@ function MessagesSection({ community, currentUserId, spacesWithRooms, profile }:
         </div>
       </div>
 
-      {/* Right: thread */}
+      {/* Right: message thread */}
       <div className={cn("flex-1 flex flex-col min-w-0 bg-bg", !activeConvId ? "hidden lg:flex" : "flex")}>
         {!activeConvId ? (
           <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center px-8">
@@ -1311,55 +1338,6 @@ function PodiumCard({ row, place, large, currentUserId }: { row: any; place: num
         <p className="text-[10px] font-bold text-[#fd5000]">{row.total_points?.toLocaleString()} pts</p>
       </div>
       <div className={cn("mt-2 font-bold text-text-muted", large ? "text-lg" : "text-base")}>#{place}</div>
-    </div>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════════════
-   USER PROFILE CARD
-   ══════════════════════════════════════════════════════════════════ */
-
-function UserProfileCard({ profile, points }: {
-  profile: { full_name: string | null; avatar_url: string | null; username: string | null } | null;
-  points: PointsSnapshot | null;
-}) {
-  const pts = points?.total_points ?? 0;
-  const lvl = points?.level ?? 1;
-  const streak = points?.streak_days ?? 0;
-  const span = (points?.next_level_xp ?? 100) - (points?.level_start_xp ?? 0);
-  const earned = pts - (points?.level_start_xp ?? 0);
-  const pct = span > 0 ? Math.min(100, Math.max(0, (earned / span) * 100)) : 0;
-  const remaining = Math.max(0, (points?.next_level_xp ?? 100) - pts);
-  const close = pct >= 80;
-  const name = profile?.full_name || profile?.username || "Member";
-
-  return (
-    <div className="p-3 rounded-xl bg-surface border border-border hover:border-border-hover transition-colors">
-      <div className="flex items-center gap-2.5 mb-2.5">
-        <Avatar name={name} avatar={profile?.avatar_url} size="sm" />
-        <div className="min-w-0 flex-1">
-          <p className="text-[12px] font-semibold text-text-primary truncate">{name}</p>
-          <p className="text-[10px] text-text-muted">Level {lvl} · {pts.toLocaleString()} XP</p>
-        </div>
-        {streak > 0 && (
-          <div className="flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-bold text-[#f0b429] bg-[#fffbea] dark:bg-[#2a1f00] rounded-full">
-            <Flame className="w-3 h-3" />{streak}
-          </div>
-        )}
-        <button type="button" className="w-5 h-5 flex items-center justify-center rounded-md hover:bg-surface-secondary text-text-muted transition-colors ml-auto">
-          <MoreHorizontal className="w-3.5 h-3.5" />
-        </button>
-      </div>
-      <div>
-        <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-border">
-          <div className={cn("absolute inset-y-0 left-0 rounded-full transition-all duration-500", close && "animate-pulse")}
-            style={{ width: `${pct}%`, background: close ? "linear-gradient(90deg,#fd5000,#f0b429)" : "#fd5000" }} />
-        </div>
-        <p className="mt-1 text-[10px] text-text-muted">
-          {close ? <span className="font-semibold text-[#fd5000]">{remaining.toLocaleString()} XP to level {lvl + 1}!</span>
-            : <>{remaining.toLocaleString()} XP to level {lvl + 1}</>}
-        </p>
-      </div>
     </div>
   );
 }
