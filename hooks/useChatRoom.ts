@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { AuthChangeEvent, Session, User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { uploadCommunityChatFile } from "@/lib/community-chat-upload";
 import type { ChatAttachmentPayload } from "@/lib/community-chat-upload";
@@ -9,7 +10,6 @@ import { useWorkspace } from "@/components/community/workspace-context";
 import { useRouter } from "next/navigation";
 import {
     deriveMessageType,
-    formatDuration,
     parseAttachments,
     pickMime,
 } from "@/lib/utils";
@@ -24,6 +24,30 @@ import type {
     SidebarMember,
 } from "@/types";
 import { MAX_ATTACH, MAX_FILE_BYTES } from "../types";
+
+// ─── Local row types ───────────────────────────────────────────────────────────
+
+type InboxConvRow = {
+    id: string;
+    user_low: string;
+    user_high: string;
+    community_id: string;
+    updated_at: string;
+    user_low_profile: {
+        full_name: string | null;
+        avatar_url: string | null;
+        username: string | null;
+    } | null;
+    user_high_profile: {
+        full_name: string | null;
+        avatar_url: string | null;
+        username: string | null;
+    } | null;
+};
+
+type RealtimePayload = {
+    new: Record<string, unknown>;
+};
 
 // ─── Hook ──────────────────────────────────────────────────────────────────────
 
@@ -46,12 +70,12 @@ export function useChatRoom({
     const [userId, setUserId] = useState<string | null>(null);
 
     useEffect(() => {
-        supabase.auth.getUser().then(({ data: { user } }) =>
+        supabase.auth.getUser().then(({ data: { user } }: { data: { user: User | null } }) =>
             setUserId(user?.id ?? null)
         );
         const {
             data: { subscription },
-        } = supabase.auth.onAuthStateChange((_event, session) => {
+        } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
             setUserId(session?.user?.id ?? null);
         });
         return () => subscription.unsubscribe();
@@ -96,9 +120,7 @@ export function useChatRoom({
 
     // ── Conversation / inbox ────────────────────────────────────────────────────
     const [activeConvId, setActiveConvId] = useState<string | null>(null);
-    const [activeConvPeer, setActiveConvPeer] = useState<ActiveConvPeer | null>(
-        null
-    );
+    const [activeConvPeer, setActiveConvPeer] = useState<ActiveConvPeer | null>(null);
 
     // ── Thread ──────────────────────────────────────────────────────────────────
     const [threadRoot, setThreadRoot] = useState<Msg | null>(null);
@@ -134,9 +156,7 @@ export function useChatRoom({
 
     // ── Sidebar ─────────────────────────────────────────────────────────────────
     const [sidebarMembers, setSidebarMembers] = useState<SidebarMember[]>([]);
-    const [inboxConversations, setInboxConversations] = useState<
-        InboxConversation[]
-    >([]);
+    const [inboxConversations, setInboxConversations] = useState<InboxConversation[]>([]);
     const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
     const [sidebarFilter, setSidebarFilter] = useState<SidebarFilter>("all");
     const [forceShowList, setForceShowList] = useState(false);
@@ -164,7 +184,7 @@ export function useChatRoom({
                 const k = localStorage.key(i);
                 if (k?.startsWith("workspace-unread:"))
                     uc[k.replace("workspace-unread:", "")] = parseInt(
-                        localStorage.getItem(k) || "0",
+                        localStorage.getItem(k) ?? "0",
                         10
                     );
             }
@@ -178,7 +198,7 @@ export function useChatRoom({
     // Clear unread on open
     useEffect(() => {
         if (!roomId && !activeConvId) return;
-        const key = `workspace-unread:${activeConvId || roomId}`;
+        const key = `workspace-unread:${activeConvId ?? roomId}`;
         if (localStorage.getItem(key)) {
             localStorage.removeItem(key);
             window.dispatchEvent(new Event("storage"));
@@ -194,8 +214,8 @@ export function useChatRoom({
                     fetch(`/api/communities/${slug}/members`, { signal: controller.signal }),
                     fetch(`/api/communities/${slug}/inbox`, { signal: controller.signal }),
                 ]);
-                if (mr.ok) setSidebarMembers((await mr.json()).members || []);
-                if (cr.ok) setInboxConversations((await cr.json()).conversations || []);
+                if (mr.ok) setSidebarMembers((await mr.json()).members ?? []);
+                if (cr.ok) setInboxConversations((await cr.json()).conversations ?? []);
             } catch (e: unknown) {
                 if (e instanceof Error && e.name !== "AbortError") console.error(e);
             }
@@ -205,11 +225,7 @@ export function useChatRoom({
             .channel("inbox_updates")
             .on(
                 "postgres_changes",
-                {
-                    event: "*",
-                    schema: "public",
-                    table: "community_inbox_conversations",
-                },
+                { event: "*", schema: "public", table: "community_inbox_conversations" },
                 fetchSidebar
             )
             .subscribe();
@@ -223,6 +239,7 @@ export function useChatRoom({
     useEffect(() => {
         if (!userId || !communityId) return;
         const controller = new AbortController();
+
         const fetchInboxes = async () => {
             const { data } = await supabase
                 .from("community_inbox_conversations")
@@ -233,20 +250,23 @@ export function useChatRoom({
                 .or(`user_low.eq.${userId},user_high.eq.${userId}`)
                 .order("updated_at", { ascending: false })
                 .abortSignal(controller.signal);
-            if (data)
+
+            if (data) {
                 setInboxConversations(
-                    data.map((conv) => {
+                    (data as InboxConvRow[]).map((conv: InboxConvRow) => {
                         const isLow = conv.user_low === userId;
                         const peer = isLow ? conv.user_high_profile : conv.user_low_profile;
-                        return {
-                            id: conv.id,
-                            peerId: isLow ? conv.user_high : conv.user_low,
-                            peerName: peer?.full_name || peer?.username || "Member",
-                            peerAvatar: peer?.avatar_url,
-                        };
+                 return {
+                     id: conv.id,
+                     peerId: isLow ? conv.user_high : conv.user_low,
+                     peerName: peer?.full_name ?? peer?.username ?? "Member",
+                     peerAvatar: peer?.avatar_url ?? null,
+                 };
                     })
                 );
+            }
         };
+
         fetchInboxes();
         const ch = supabase
             .channel(`inbox_list_${communityId}`)
@@ -311,7 +331,7 @@ export function useChatRoom({
                 .select("full_name, avatar_url, username")
                 .eq("id", id)
                 .maybeSingle();
-            return data;
+            return data as Profile | null;
         }
 
         if (activeConvId) {
@@ -325,19 +345,16 @@ export function useChatRoom({
                         table: "community_inbox_messages",
                         filter: `conversation_id=eq.${activeConvId}`,
                     },
-                    async (raw: { new: Record<string, unknown> }) => {
+                    async (raw: RealtimePayload) => {
                         const p = raw.new;
                         if (p.message_type === "call_start" && p.sender_id !== userId) {
                             setIncomingCall({
                                 type: p.body === "video" ? "video" : "audio",
                                 sender: p.profiles as Profile,
-                                roomId: p.room_id as string,
-                                convId: p.conversation_id as string,
-                            });
-                        } else if (
-                            p.message_type === "call_signal" &&
-                            p.sender_id !== userId
-                        ) {
+                                roomId: String(p.room_id ?? ""),
+                                convId: String(p.conversation_id ?? ""),
+                            } as IncomingCall);
+                        } else if (p.message_type === "call_signal" && p.sender_id !== userId) {
                             // Signal handled externally via call context
                         } else {
                             const prof = await enrich(String(p.sender_id));
@@ -348,8 +365,8 @@ export function useChatRoom({
                                 created_at: String(p.created_at),
                                 message_type: String(p.message_type ?? "text"),
                                 thread_id: null,
-                                reactions: p.reactions ?? {},
-                                attachments: p.attachments ?? [],
+                                reactions: (p.reactions as Record<string, unknown>) ?? {},
+                                attachments: (p.attachments as ChatAttachmentPayload[]) ?? [],
                                 profiles: prof,
                             });
                         }
@@ -361,18 +378,14 @@ export function useChatRoom({
                 .channel(`inbox_unread_${communityId}`)
                 .on(
                     "postgres_changes",
-                    {
-                        event: "INSERT",
-                        schema: "public",
-                        table: "community_inbox_messages",
-                    },
-                    (p: { new: Record<string, unknown> }) => {
+                    { event: "INSERT", schema: "public", table: "community_inbox_messages" },
+                    (p: RealtimePayload) => {
                         const r = p.new;
                         if (r.sender_id !== userId && r.conversation_id !== activeConvId) {
-                            const k = `workspace-unread:${r.conversation_id}`;
+                            const k = `workspace-unread:${String(r.conversation_id)}`;
                             localStorage.setItem(
                                 k,
-                                String(parseInt(localStorage.getItem(k) || "0", 10) + 1)
+                                String(parseInt(localStorage.getItem(k) ?? "0", 10) + 1)
                             );
                             window.dispatchEvent(new Event("storage"));
                         }
@@ -395,17 +408,17 @@ export function useChatRoom({
                         table: "community_messages",
                         filter: `room_id=eq.${roomId}`,
                     },
-                    async (raw: { new: Record<string, unknown> }) => {
+                    async (raw: RealtimePayload) => {
                         const row = raw.new;
                         if (row.message_type === "call_start" && row.sender_id !== userId) {
                             setIncomingCall({
                                 type: row.body === "video" ? "video" : "audio",
                                 sender: await enrich(String(row.sender_id)),
                                 roomId: String(row.room_id),
-                            });
+                            } as IncomingCall);
                             return;
                         }
-                        const tid = row.thread_id as string | null;
+                        const tid = (row.thread_id as string | null) ?? null;
                         if (tid) {
                             if (threadOpenRef.current && threadRootRef.current?.id === tid)
                                 await loadThread(tid);
@@ -419,15 +432,15 @@ export function useChatRoom({
                             created_at: String(row.created_at),
                             message_type: String(row.message_type ?? "text"),
                             thread_id: null,
-                            reactions: row.reactions,
-                            attachments: row.attachments,
+                            reactions: (row.reactions as Record<string, unknown>) ?? {},
+                            attachments: (row.attachments as ChatAttachmentPayload[]) ?? [],
                             profiles: prof,
                             reply_count: (row.reply_count as number) ?? 0,
-                            is_edited: row.is_edited as boolean,
-                            edited_at: row.edited_at as string,
-                            reply_to_id: row.reply_to_id as string,
-                            reply_to_body: row.reply_to_body as string,
-                            reply_to_sender: row.reply_to_sender as string,
+                            is_edited: (row.is_edited as boolean) ?? false,
+                            edited_at: (row.edited_at as string) ?? null,
+                            reply_to_id: (row.reply_to_id as string) ?? null,
+                            reply_to_body: (row.reply_to_body as string) ?? null,
+                            reply_to_sender: (row.reply_to_sender as string) ?? null,
                         });
                     }
                 )
@@ -439,7 +452,7 @@ export function useChatRoom({
                         table: "community_messages",
                         filter: `room_id=eq.${roomId}`,
                     },
-                    (raw: { new: Record<string, unknown> }) => {
+                    (raw: RealtimePayload) => {
                         const row = raw.new;
                         if (row.is_deleted) {
                             removeMessage(String(row.id));
@@ -447,10 +460,10 @@ export function useChatRoom({
                         }
                         patchMessage(String(row.id), {
                             body: String(row.body ?? ""),
-                            reactions: row.reactions,
-                            is_edited: row.is_edited as boolean,
-                            edited_at: row.edited_at as string,
-                            reply_count: row.reply_count as number,
+                            reactions: (row.reactions as Record<string, unknown>) ?? {},
+                            is_edited: (row.is_edited as boolean) ?? false,
+                            edited_at: (row.edited_at as string) ?? null,
+                            reply_count: (row.reply_count as number) ?? 0,
                         });
                     }
                 )
@@ -466,13 +479,13 @@ export function useChatRoom({
                         table: "community_messages",
                         filter: `community_id=eq.${communityId}`,
                     },
-                    (p: { new: Record<string, unknown> }) => {
+                    (p: RealtimePayload) => {
                         const r = p.new;
                         if (r.sender_id !== userId && r.room_id !== roomId) {
-                            const k = `workspace-unread:${r.room_id}`;
+                            const k = `workspace-unread:${String(r.room_id)}`;
                             localStorage.setItem(
                                 k,
-                                String(parseInt(localStorage.getItem(k) || "0", 10) + 1)
+                                String(parseInt(localStorage.getItem(k) ?? "0", 10) + 1)
                             );
                             window.dispatchEvent(new Event("storage"));
                         }
@@ -522,7 +535,7 @@ export function useChatRoom({
                     else
                         setPendingThread((p) => (p.length >= MAX_ATTACH ? p : [...p, up]));
                 }
-            } catch (e) {
+            } catch (e: unknown) {
                 console.error(e);
             } finally {
                 setUploading(false);
@@ -552,19 +565,15 @@ export function useChatRoom({
                         attachments: queue,
                         message_type: deriveMessageType(queue, t),
                         reply_to_id: !isThread && replyingTo ? replyingTo.id : null,
-                        reply_to_body:
-                            !isThread && replyingTo ? replyingTo.body?.slice(0, 200) : null,
-                        reply_to_sender:
-                            !isThread && replyingTo
-                                ? replyingTo.profiles?.full_name ||
-                                replyingTo.profiles?.username ||
-                                "Member"
-                                : null,
+                        reply_to_body: !isThread && replyingTo ? replyingTo.body?.slice(0, 200) : null,
+                        reply_to_sender: !isThread && replyingTo
+                            ? (replyingTo.profiles?.full_name ?? replyingTo.profiles?.username ?? "Member")
+                            : null,
                     }),
                 });
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.error);
-                const msg = (data.message || data.row) as Msg;
+                const msg = (data.message ?? data.row) as Msg;
                 if (msg.thread_id) {
                     setThreadReplies((p) =>
                         p.some((m) => m.id === msg.id)
@@ -587,7 +596,7 @@ export function useChatRoom({
                         bottomRef.current?.scrollIntoView({ behavior: "smooth" })
                     );
                 }
-            } catch (e) {
+            } catch (e: unknown) {
                 console.error(e);
             } finally {
                 setSending(false);
@@ -663,7 +672,7 @@ export function useChatRoom({
             };
             mr.start();
             setVoiceRecording(true);
-        } catch (e) {
+        } catch (e: unknown) {
             console.error("Microphone access denied.", e);
         }
     }, [voiceRecording, sending, uploading]);
@@ -757,7 +766,7 @@ export function useChatRoom({
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.error);
                 patchMessage(messageId, { reactions: data.reactions });
-            } catch (e) {
+            } catch (e: unknown) {
                 console.error(e);
             }
         },
@@ -786,7 +795,7 @@ export function useChatRoom({
             });
             if (!res.ok) throw new Error((await res.json()).error);
             removeMessage(messageId);
-        } catch (e) {
+        } catch (e: unknown) {
             console.error(e);
         }
     }, [confirmDelete, roomId, activeConvId, slug, removeMessage]);
@@ -814,7 +823,7 @@ export function useChatRoom({
             if (!res.ok) throw new Error(data.error);
             patchMessage(editingMsg.id, data.message as Msg);
             setEditingMsg(null);
-        } catch (e) {
+        } catch (e: unknown) {
             console.error(e);
         } finally {
             setEditSaving(false);
@@ -830,8 +839,7 @@ export function useChatRoom({
     // ── Derived ──────────────────────────────────────────────────────────────────
     const filteredMessages = useMemo(() => {
         let list = messages.filter(
-            (m) =>
-                m.message_type !== "call_signal" && m.message_type !== "call_start"
+            (m) => m.message_type !== "call_signal" && m.message_type !== "call_start"
         );
         if (chatFilter === "media")
             list = list.filter(
@@ -843,9 +851,9 @@ export function useChatRoom({
         if (!q) return list;
         return list.filter(
             (m) =>
-                (m.body || "").toLowerCase().includes(q) ||
-                (m.profiles?.full_name || "").toLowerCase().includes(q) ||
-                (m.profiles?.username || "").toLowerCase().includes(q)
+                (m.body ?? "").toLowerCase().includes(q) ||
+                (m.profiles?.full_name ?? "").toLowerCase().includes(q) ||
+                (m.profiles?.username ?? "").toLowerCase().includes(q)
         );
     }, [messages, searchQuery, chatFilter]);
 
@@ -853,8 +861,7 @@ export function useChatRoom({
     const openDmWith = useCallback(
         async (member: SidebarMember) => {
             if (member.user_id === userId) return;
-            const name =
-                member.profile?.full_name || member.profile?.username || "Member";
+            const name = member.profile?.full_name ?? member.profile?.username ?? "Member";
             const av = member.profile?.avatar_url ?? null;
             try {
                 const res = await fetch(`/api/communities/${slug}/inbox`, {
@@ -869,7 +876,7 @@ export function useChatRoom({
                     setForceShowList(false);
                     setSidebarFilter("all");
                 }
-            } catch (e) {
+            } catch (e: unknown) {
                 console.error(e);
             }
         },
@@ -877,39 +884,34 @@ export function useChatRoom({
     );
 
     const navigateToRoom = useCallback(
-        (spaceId: string, roomId: string) => {
+        (spaceId: string, rId: string) => {
             setActiveConvId(null);
             setActiveConvPeer(null);
             setForceShowList(false);
-            router.push(`/c/${slug}/workspace?space=${spaceId}&room=${roomId}`);
+            router.push(`/c/${slug}/workspace?space=${spaceId}&room=${rId}`);
         },
         [router, slug]
     );
 
     return {
-        // Auth
         userId,
-        // Messages
         messages,
         filteredMessages,
         loading,
         upsertMessage,
         patchMessage,
         removeMessage,
-        // Thread
         threadRoot,
         threadReplies,
         threadOpen,
         setThreadOpen,
         threadBottomRef,
         openThread,
-        // Conversation
         activeConvId,
         setActiveConvId,
         activeConvPeer,
         setActiveConvPeer,
         isChatting,
-        // Sidebar
         allChatRooms,
         sidebarMembers,
         inboxConversations,
@@ -920,7 +922,6 @@ export function useChatRoom({
         setForceShowList,
         openDmWith,
         navigateToRoom,
-        // Input
         text,
         setText,
         threadReplyText,
@@ -935,7 +936,6 @@ export function useChatRoom({
         sending,
         handleFiles,
         sendMessage,
-        // Voice
         voiceRecording,
         voiceSeconds,
         voiceBlob,
@@ -944,28 +944,23 @@ export function useChatRoom({
         startVoiceRecording,
         stopVoiceRecording,
         sendVoiceBlob,
-        // Scroll
         bottomRef,
         scrollRef,
         atBottom,
         setAtBottom,
         scrollToBottom,
         onScrollMain,
-        // Reactions
         toggleReaction,
-        // Delete
         confirmDelete,
         setConfirmDelete,
         deleteMessage,
         confirmDeleteAction,
-        // Edit
         editingMsg,
         setEditingMsg,
         editBody,
         setEditBody,
         editSaving,
         saveEdit,
-        // Search / filter
         searchQuery,
         setSearchQuery,
         searchOpen,
