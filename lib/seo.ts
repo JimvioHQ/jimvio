@@ -90,7 +90,7 @@
 import { Metadata } from 'next';
 
 const siteUrl =
-  process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') || 'https://www.jimvio.com';
+  process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') || 'https://jimvio.com';
 
 export const SITE = {
   name: 'Jimvio',

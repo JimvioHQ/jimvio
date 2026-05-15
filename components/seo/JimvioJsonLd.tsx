@@ -1,9 +1,7 @@
-﻿import { Organization, WebSite, WithContext } from "schema-dts";
+﻿import { Organization, WebSite, WithContext, SearchAction, PropertyValueSpecification } from "schema-dts";
+const siteUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") || "https://jimvio.com";
 
-const siteUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") || "https://www.jimvio.com";
-
-const organization: WithContext<Organization> = {
-  "@context": "https://schema.org",
+const organization: Organization = {
   "@type": "Organization",
   name: "Jimvio",
   url: siteUrl,
@@ -31,8 +29,7 @@ const organization: WithContext<Organization> = {
   ],
 };
 
-const website: WithContext<WebSite> = {
-  "@context": "https://schema.org",
+const website: WebSite = {
   "@type": "WebSite",
   name: "Jimvio",
   url: siteUrl,
@@ -42,22 +39,21 @@ const website: WithContext<WebSite> = {
       "@type": "EntryPoint",
       urlTemplate: `${siteUrl}/search?q={search_term_string}`,
     },
-    // @ts-expect-error — schema-dts doesn't type query-input but Google requires it
-    "query-input": "required name=search_term_string",
-  },
+    "valueRequired": true,
+    "valueName": "search_term_string"
+  } as any 
+};
+
+const unifiedSchema: WithContext<any> = {
+  "@context": "https://schema.org",
+  "@graph": [organization, website]
 };
 
 export function JimvioJsonLd() {
   return (
-    <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(organization) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(website) }}
-      />
-    </>
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(unifiedSchema) }}
+    />
   );
 }

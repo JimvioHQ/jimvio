@@ -10,7 +10,10 @@ import { JimvioJsonLd } from "@/components/seo/JimvioJsonLd";
 import { DM_Sans, JetBrains_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next"
 import { ReferralTracker } from "@/components/affiliate/referral-tracker";
-export const metadata = constructMetadata();
+import { SpeedInsights } from "@vercel/speed-insights/next"
+
+export const metadata: Metadata = constructMetadata();
+
 const dmSans = DM_Sans({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
@@ -33,13 +36,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       suppressHydrationWarning
       className={`${dmSans.variable} ${jetbrainsMono.variable}`}
     >
-      <head>
-        <JimvioJsonLd />
-      </head>
       <body
         suppressHydrationWarning
         className="antialiased min-h-screen bg-[var(--color-bg)] text-[var(--color-text-primary)] transition-colors duration-200"
       >
+        <JimvioJsonLd />
         <ThemeProvider>
           <NextTopLoader
             color="#fd5000"
@@ -67,6 +68,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           />
         </ThemeProvider>
         <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );

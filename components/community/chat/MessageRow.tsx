@@ -1,11 +1,25 @@
 import { parseAttachments, cn } from "@/lib/utils";
 import { Msg, QUICK_REACTIONS } from "@/types";
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@radix-ui/react-dropdown-menu";
-import { FileIcon, CheckCheck, Reply, MoreHorizontal, Copy, Pencil, Trash2 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@radix-ui/react-dropdown-menu";
+import {
+  FileIcon,
+  CheckCheck,
+  Reply,
+  MoreHorizontal,
+  Copy,
+  Pencil,
+  Trash2,
+} from "lucide-react";
 import { ReplyQuote } from "./ReplyQuote";
 import { WaAudioPlayer } from "./WaAudioPlayer";
 import Image from "next/image";
-import { format, isSameDay } from "date-fns";
+import { format } from "date-fns";
+
 interface MessageRowProps {
   m: Msg;
   compact?: boolean;
@@ -41,8 +55,11 @@ export function MessageRow({
   const isAudio =
     m.message_type === "audio" ||
     attachments.some((a) => a.mime?.startsWith("audio/"));
-  const audioUrl = attachments.find((a) => a.mime?.startsWith("audio/"))?.url || "";
-  const nonAudioAtts = attachments.filter((a) => !a.mime?.startsWith("audio/"));
+  const audioUrl =
+    attachments.find((a) => a.mime?.startsWith("audio/"))?.url || "";
+  const nonAudioAtts = attachments.filter(
+    (a) => !a.mime?.startsWith("audio/")
+  );
   const hasReplyQuote = !!m.reply_to_id && !!m.reply_to_body;
 
   function userReacted(emoji: string) {
@@ -59,10 +76,20 @@ export function MessageRow({
         compact && "pl-3"
       )}
     >
-      <div className={cn("flex gap-2 max-w-[min(100%,26rem)]", isOwn && "flex-row-reverse")}>
-        {/* Avatar */}
+      <div
+        className={cn(
+          "flex gap-2 max-w-[min(100%,26rem)]",
+          isOwn && "flex-row-reverse"
+        )}
+      >
+        {/* ── Avatar ──────────────────────────────────────────────── */}
         {!isOwn && !compact && (
-          <div className="h-8 w-8 rounded-full overflow-hidden shrink-0 mt-1 border border-[#d1d7db] bg-[#f0f2f5]">
+          <div
+            className={cn(
+              "h-8 w-8 rounded-full overflow-hidden shrink-0 mt-1",
+              "border border-[var(--color-border)] bg-[var(--color-surface-secondary)]"
+            )}
+          >
             {p?.avatar_url ? (
               <Image
                 src={p.avatar_url}
@@ -73,7 +100,7 @@ export function MessageRow({
                 unoptimized
               />
             ) : (
-              <div className="h-full w-full flex items-center justify-center text-xs font-bold text-[#00a884]">
+              <div className="h-full w-full flex items-center justify-center text-xs font-bold text-[var(--color-accent)]">
                 {(p?.full_name || p?.username || "?")[0]}
               </div>
             )}
@@ -81,18 +108,20 @@ export function MessageRow({
         )}
 
         <div className={cn("min-w-0 flex-1", isOwn && "flex flex-col items-end")}>
-          {/* Bubble */}
+          {/* ── Bubble ────────────────────────────────────────────── */}
           <div
             className={cn(
               "relative px-2.5 pt-1.5 pb-2 shadow-sm",
               isOwn
-                ? "bg-[#d9fdd3] rounded-t-lg rounded-bl-lg rounded-br-sm"
-                : "bg-white rounded-t-lg rounded-br-lg rounded-bl-sm"
+                ? // Own: accent-light gives the green-tinted bubble (warm in light, deep in dark)
+                  "bg-[var(--color-accent-light)] rounded-t-lg rounded-bl-lg rounded-br-sm"
+                : // Other: plain surface
+                  "bg-[var(--color-surface)] rounded-t-lg rounded-br-lg rounded-bl-sm"
             )}
           >
-            {/* Sender name (group) */}
+            {/* Sender name (group only) */}
             {!isOwn && !isDM && (
-              <p className="text-[11px] font-semibold mb-0.5 text-[#00a884]">
+              <p className="text-[11px] font-semibold mb-0.5 text-[var(--color-accent)]">
                 {p?.full_name || p?.username || "Member"}
               </p>
             )}
@@ -112,12 +141,17 @@ export function MessageRow({
             ) : (
               <>
                 {m.body?.trim() && (
-                  <p className="text-sm whitespace-pre-wrap break-words pr-12 text-[#111b21]">
+                  <p className="text-sm whitespace-pre-wrap break-words pr-12 text-[var(--color-text-primary)]">
                     {m.body}
                   </p>
                 )}
                 {nonAudioAtts.length > 0 && (
-                  <div className={cn("mt-1.5 flex flex-col gap-2", isOwn && "items-end")}>
+                  <div
+                    className={cn(
+                      "mt-1.5 flex flex-col gap-2",
+                      isOwn && "items-end"
+                    )}
+                  >
                     {nonAudioAtts.map((a) =>
                       a.mime?.startsWith("image/") ||
                       /\.(png|jpe?g|gif|webp|avif)(\?|$)/i.test(a.url) ? (
@@ -143,7 +177,11 @@ export function MessageRow({
                           href={a.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-sm bg-white text-[#00a884]"
+                          className={cn(
+                            "inline-flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-sm",
+                            "bg-[var(--color-surface)] text-[var(--color-accent)]",
+                            "border border-[var(--color-border)]"
+                          )}
                         >
                           <FileIcon className="h-4 w-4 shrink-0" />
                           <span className="truncate">{a.name || "File"}</span>
@@ -155,19 +193,30 @@ export function MessageRow({
               </>
             )}
 
-            {/* Timestamp + ticks */}
+            {/* Timestamp + read ticks */}
             <div className="absolute bottom-1 right-1.5 flex items-center gap-1 pointer-events-none">
-              {m.is_edited && <span className="text-[9px] text-[#667781]">edited</span>}
-              <span className="text-[10px] text-[#667781]">
+              {m.is_edited && (
+                <span className="text-[9px] text-[var(--color-text-muted)]">
+                  edited
+                </span>
+              )}
+              <span className="text-[10px] text-[var(--color-text-muted)]">
                 {format(new Date(m.created_at), "HH:mm")}
               </span>
-              {isOwn && <CheckCheck className="h-3.5 w-3.5 text-[#53bdeb]" />}
+              {isOwn && (
+                <CheckCheck className="h-3.5 w-3.5 text-[var(--color-accent)]" />
+              )}
             </div>
           </div>
 
-          {/* Reactions */}
+          {/* ── Reactions ─────────────────────────────────────────── */}
           {Object.values(reactions).some((ids) => ids.length > 0) && (
-            <div className={cn("mt-0.5 flex flex-wrap items-center gap-1", isOwn && "justify-end")}>
+            <div
+              className={cn(
+                "mt-0.5 flex flex-wrap items-center gap-1",
+                isOwn && "justify-end"
+              )}
+            >
               {Object.entries(reactions).map(([emoji, ids]) =>
                 ids.length ? (
                   <button
@@ -175,10 +224,11 @@ export function MessageRow({
                     type="button"
                     onClick={() => onToggleReaction(m.id, emoji)}
                     className={cn(
-                      "text-[11px] px-2 py-0.5 rounded-sm transition-colors border text-[#111b21]",
+                      "text-[11px] px-2 py-0.5 rounded-sm transition-colors border",
+                      "text-[var(--color-text-primary)]",
                       userReacted(emoji)
-                        ? "bg-[#00a884]/20 border-[#00a884]"
-                        : "bg-white border-transparent"
+                        ? "bg-[var(--color-accent-subtle)] border-[var(--color-accent)]"
+                        : "bg-[var(--color-surface)] border-transparent hover:border-[var(--color-border)]"
                     )}
                   >
                     {emoji} {ids.length}
@@ -188,7 +238,7 @@ export function MessageRow({
             </div>
           )}
 
-          {/* Hover actions */}
+          {/* ── Hover actions ─────────────────────────────────────── */}
           <div
             className={cn(
               "mt-0.5 flex flex-wrap items-center gap-0.5",
@@ -201,7 +251,10 @@ export function MessageRow({
                 key={emoji}
                 type="button"
                 aria-label={`React with ${emoji}`}
-                className="text-base leading-none h-7 w-7 rounded-sm flex items-center justify-center hover:opacity-80"
+                className={cn(
+                  "text-base leading-none h-7 w-7 rounded-sm flex items-center justify-center",
+                  "hover:bg-[var(--color-border)] transition-colors"
+                )}
                 onClick={() => onToggleReaction(m.id, emoji)}
               >
                 {emoji}
@@ -210,7 +263,11 @@ export function MessageRow({
 
             <button
               type="button"
-              className="inline-flex items-center gap-1 rounded-sm px-2 py-1 text-xs font-medium hover:bg-black/5 transition-colors text-[#667781]"
+              className={cn(
+                "inline-flex items-center gap-1 rounded-sm px-2 py-1 text-xs font-medium",
+                "hover:bg-[var(--color-border)] transition-colors",
+                "text-[var(--color-text-muted)]"
+              )}
               onClick={() => onReply(m)}
             >
               <Reply className="h-3.5 w-3.5" />
@@ -220,7 +277,11 @@ export function MessageRow({
             {isRoot && !isDM && (
               <button
                 type="button"
-                className="inline-flex items-center gap-1 rounded-sm px-2 py-1 text-xs font-medium hover:bg-black/5 transition-colors text-[#667781]"
+                className={cn(
+                  "inline-flex items-center gap-1 rounded-sm px-2 py-1 text-xs font-medium",
+                  "hover:bg-[var(--color-border)] transition-colors",
+                  "text-[var(--color-text-muted)]"
+                )}
                 onClick={onOpenThread}
               >
                 {replyCount > 0 ? `${replyCount} in thread` : "Thread"}
@@ -232,7 +293,11 @@ export function MessageRow({
                 <button
                   type="button"
                   aria-label="More options"
-                  className="h-7 w-7 inline-flex items-center justify-center rounded-sm hover:bg-black/5 transition-colors text-[#667781]"
+                  className={cn(
+                    "h-7 w-7 inline-flex items-center justify-center rounded-sm",
+                    "hover:bg-[var(--color-border)] transition-colors",
+                    "text-[var(--color-text-muted)]"
+                  )}
                 >
                   <MoreHorizontal className="h-4 w-4" />
                 </button>
@@ -244,18 +309,23 @@ export function MessageRow({
                 <DropdownMenuItem
                   className="cursor-pointer"
                   onClick={() =>
-                    void navigator.clipboard.writeText((m.body || "").trim() || "(attachment)")
+                    void navigator.clipboard.writeText(
+                      (m.body || "").trim() || "(attachment)"
+                    )
                   }
                 >
                   <Copy className="mr-2 h-4 w-4" /> Copy text
                 </DropdownMenuItem>
                 {isOwn && (
                   <>
-                    <DropdownMenuItem className="cursor-pointer" onClick={() => onEdit(m)}>
+                    <DropdownMenuItem
+                      className="cursor-pointer"
+                      onClick={() => onEdit(m)}
+                    >
                       <Pencil className="mr-2 h-4 w-4" /> Edit
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      className="cursor-pointer font-semibold text-red-500"
+                      className="cursor-pointer font-semibold text-[var(--color-danger)]"
                       onClick={() => onDelete(m.id)}
                     >
                       <Trash2 className="mr-2 h-4 w-4" /> Delete

@@ -28,7 +28,13 @@ interface ChatRoomProps {
   hideHeader?: boolean;
 }
 
-export function ChatRoom({ roomId, roomName, communityId, slug, hideHeader }: ChatRoomProps) {
+export function ChatRoom({
+  roomId,
+  roomName,
+  communityId,
+  slug,
+  hideHeader,
+}: ChatRoomProps) {
   const hook = useChatRoom({ roomId, roomName, communityId, slug });
   const {
     callType,
@@ -41,7 +47,7 @@ export function ChatRoom({ roomId, roomName, communityId, slug, hideHeader }: Ch
     iceQueueRef,
   } = useCall();
 
-  // ── WebRTC ─────────────────────────────────────────────────────────────────
+  // ── WebRTC ──────────────────────────────────────────────────────────────────
   async function sendCallSignal(
     type: "audio" | "video" | "call_signal",
     body?: unknown
@@ -54,7 +60,8 @@ export function ChatRoom({ roomId, roomName, communityId, slug, hideHeader }: Ch
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         body: typeof body === "object" ? JSON.stringify(body) : body || type,
-        message_type: type === "call_signal" ? "call_signal" : "call_start",
+        message_type:
+          type === "call_signal" ? "call_signal" : "call_start",
       }),
     });
   }
@@ -64,12 +71,15 @@ export function ChatRoom({ roomId, roomName, communityId, slug, hideHeader }: Ch
       audio: true,
       video: type === "video",
     });
-    const pc = new RTCPeerConnection({ iceServers: [{ urls: "stun:stun.l.google.com:19302" }] });
+    const pc = new RTCPeerConnection({
+      iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+    });
     pcRef.current = pc;
     stream.getTracks().forEach((t) => pc.addTrack(t, stream));
     pc.ontrack = (ev) => { void ev.streams[0]; };
     pc.onicecandidate = (ev) => {
-      if (ev.candidate) sendCallSignal("call_signal", { ice: ev.candidate });
+      if (ev.candidate)
+        sendCallSignal("call_signal", { ice: ev.candidate });
     };
     if (isInitiator) {
       const offer = await pc.createOffer();
@@ -106,9 +116,9 @@ export function ChatRoom({ roomId, roomName, communityId, slug, hideHeader }: Ch
   }, [hook.filteredMessages]);
 
   return (
-    // ❶ Outer wrapper: fill whatever height the parent gives, no min-h-screen
     <div className="flex h-full w-full overflow-hidden font-sans">
-      {/* Confirm delete dialog */}
+
+      {/* ── Confirm delete ──────────────────────────────────────────── */}
       <ConfirmDialog
         open={!!hook.confirmDelete}
         title="Delete message"
@@ -117,11 +127,16 @@ export function ChatRoom({ roomId, roomName, communityId, slug, hideHeader }: Ch
         onCancel={() => hook.setConfirmDelete(null)}
       />
 
-      {/* Edit dialog */}
-      <Dialog open={!!hook.editingMsg} onOpenChange={(o) => !o && hook.setEditingMsg(null)}>
+      {/* ── Edit dialog ─────────────────────────────────────────────── */}
+      <Dialog
+        open={!!hook.editingMsg}
+        onOpenChange={(o) => !o && hook.setEditingMsg(null)}
+      >
         <DialogContent className="z-[10051] max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-base font-semibold">Edit message</DialogTitle>
+            <DialogTitle className="text-base font-semibold text-[var(--color-text-primary)]">
+              Edit message
+            </DialogTitle>
           </DialogHeader>
           <Textarea
             value={hook.editBody}
@@ -130,21 +145,32 @@ export function ChatRoom({ roomId, roomName, communityId, slug, hideHeader }: Ch
             className="mt-2 rounded-sm"
           />
           <div className="mt-4 flex justify-end gap-2">
-            <Button variant="outline" className="rounded-sm" onClick={() => hook.setEditingMsg(null)}>
+            <Button
+              variant="outline"
+              className="rounded-sm"
+              onClick={() => hook.setEditingMsg(null)}
+            >
               Cancel
             </Button>
             <Button
-              className="rounded-sm font-semibold text-white bg-[#00a884] hover:bg-[#009070]"
+              className={cn(
+                "rounded-sm font-semibold text-white",
+                "bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)]"
+              )}
               disabled={hook.editSaving || !hook.editBody.trim()}
               onClick={() => void hook.saveEdit()}
             >
-              {hook.editSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
+              {hook.editSaving ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                "Save"
+              )}
             </Button>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Emoji picker */}
+      {/* ── Emoji picker ────────────────────────────────────────────── */}
       <ChatEmojiPickerDialog
         open={hook.emojiOpen}
         onOpenChange={hook.setEmojiOpen}
@@ -155,7 +181,7 @@ export function ChatRoom({ roomId, roomName, communityId, slug, hideHeader }: Ch
         }
       />
 
-      {/* Active call overlay */}
+      {/* ── Active call overlay ─────────────────────────────────────── */}
       {callType && (
         <CallOverlay
           callType={callType}
@@ -167,7 +193,7 @@ export function ChatRoom({ roomId, roomName, communityId, slug, hideHeader }: Ch
         />
       )}
 
-      {/* Sidebar */}
+      {/* ── Sidebar ─────────────────────────────────────────────────── */}
       <ChatSidebar
         roomId={roomId}
         activeConvId={hook.activeConvId}
@@ -182,20 +208,24 @@ export function ChatRoom({ roomId, roomName, communityId, slug, hideHeader }: Ch
         onSelectRoom={hook.navigateToRoom}
         onSelectConv={(conv) => {
           hook.setActiveConvId(conv.id);
-          hook.setActiveConvPeer({ name: conv.peerName, avatar: conv.peerAvatar });
+          hook.setActiveConvPeer({
+            name: conv.peerName,
+            avatar: conv.peerAvatar,
+          });
           hook.setForceShowList(false);
         }}
         onOpenDm={hook.openDmWith}
       />
 
-      {/* ❷ Main panel: fixed column, never grows beyond viewport */}
+      {/* ── Main chat column ────────────────────────────────────────── */}
       <div
         className={cn(
-          "flex flex-col min-w-0 flex-1 h-full overflow-hidden bg-[#efeae2]",
+          "flex flex-col min-w-0 flex-1 h-full overflow-hidden",
+          "bg-[var(--color-bg)]",
           hook.isChatting ? "flex" : "hidden md:flex"
         )}
       >
-        {/* Header — shrinks to its natural height */}
+        {/* Header */}
         <ChatHeader
           roomName={roomName}
           activeConvId={hook.activeConvId}
@@ -207,14 +237,17 @@ export function ChatRoom({ roomId, roomName, communityId, slug, hideHeader }: Ch
           chatFilter={hook.chatFilter}
           onToggleSearch={() => hook.setSearchOpen((s) => !s)}
           onSearchChange={hook.setSearchQuery}
-          onCancelSearch={() => { hook.setSearchOpen(false); hook.setSearchQuery(""); }}
+          onCancelSearch={() => {
+            hook.setSearchOpen(false);
+            hook.setSearchQuery("");
+          }}
           onSetChatFilter={hook.setChatFilter}
           onStartAudioCall={() => void startNativeCall("audio")}
           onStartVideoCall={() => void startNativeCall("video")}
           onBack={() => hook.setForceShowList(true)}
         />
 
-        {/* ❸ Messages: flex-1 + min-h-0 so it fills remaining space and scrolls internally */}
+        {/* ── Messages area ─────────────────────────────────────────── */}
         <div
           ref={hook.scrollRef}
           onScroll={hook.onScrollMain}
@@ -222,10 +255,12 @@ export function ChatRoom({ roomId, roomName, communityId, slug, hideHeader }: Ch
           aria-live="polite"
           aria-label="Messages"
           className={cn(
-            "flex-1 min-h-0 overflow-y-auto",
-            "bg-[#efeae2] px-[5%] py-3 pb-5",
-            "flex flex-col",
-            "scrollbar-thin scrollbar-thumb-[#c1c9cd]",
+            "flex-1 min-h-0 overflow-y-auto flex flex-col",
+            // Wallpaper: use --color-bg so dark mode uses #0a0a0a instead of the
+            // hardcoded WhatsApp beige (#efeae2). Override in globals.css if you
+            // want a dedicated chat-bg token (e.g. --color-chat-bg).
+            "bg-[var(--color-bg)] px-[5%] py-3 pb-5",
+            "scrollbar-thin scrollbar-thumb-[var(--color-border-strong)]",
             hook.loading && "overflow-hidden"
           )}
         >
@@ -233,27 +268,40 @@ export function ChatRoom({ roomId, roomName, communityId, slug, hideHeader }: Ch
             <ChatSkeleton />
           ) : hook.messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center flex-1 px-4 py-16 text-center">
-              <p className="text-sm font-semibold text-[#111b21]">Start the conversation</p>
-              <p className="mt-2 max-w-sm text-xs leading-relaxed text-[#667781]">
+              <p className="text-sm font-semibold text-[var(--color-text-primary)]">
+                Start the conversation
+              </p>
+              <p className="mt-2 max-w-sm text-xs leading-relaxed text-[var(--color-text-muted)]">
                 Type a message below.
               </p>
             </div>
           ) : hook.filteredMessages.length === 0 ? (
-            <p className="py-12 text-center text-sm text-[#667781]">
+            <p className="py-12 text-center text-sm text-[var(--color-text-muted)]">
               No messages match your search.
             </p>
           ) : (
             grouped.map((g) => (
               <div key={g.day.toISOString()}>
+                {/* Date pill */}
                 <div className="flex justify-center my-2 mb-4">
-                  <span className="bg-white text-[#3b4a54] px-3 py-[5px] rounded-md text-[12px] font-medium shadow-sm">
+                  <span
+                    className={cn(
+                      "px-3 py-[5px] rounded-md text-[12px] font-medium shadow-sm",
+                      "bg-[var(--color-surface)] text-[var(--color-text-secondary)]",
+                      "border border-[var(--color-border)]"
+                    )}
+                  >
                     {format(g.day, "MMM d, yyyy")}
                   </span>
                 </div>
+
                 <div className="space-y-0.5">
                   {g.items.map((m) =>
                     m.message_type === "system" ? (
-                      <p key={m.id} className="py-1 text-center text-xs text-[#667781]">
+                      <p
+                        key={m.id}
+                        className="py-1 text-center text-xs text-[var(--color-text-muted)]"
+                      >
                         {m.body}
                       </p>
                     ) : (
@@ -266,7 +314,10 @@ export function ChatRoom({ roomId, roomName, communityId, slug, hideHeader }: Ch
                         onOpenThread={() => hook.openThread(m)}
                         onToggleReaction={hook.toggleReaction}
                         onDelete={hook.deleteMessage}
-                        onEdit={(msg) => { hook.setEditingMsg(msg); hook.setEditBody(msg.body); }}
+                        onEdit={(msg) => {
+                          hook.setEditingMsg(msg);
+                          hook.setEditBody(msg.body);
+                        }}
                         onReply={(msg) => hook.setReplyingTo(msg)}
                       />
                     )
@@ -276,13 +327,19 @@ export function ChatRoom({ roomId, roomName, communityId, slug, hideHeader }: Ch
             ))
           )}
 
+          {/* Scroll-to-bottom FAB */}
           {!hook.atBottom && !hook.loading && hook.messages.length > 0 && (
             <div className="pointer-events-none sticky bottom-2 z-10 flex justify-center">
               <button
                 type="button"
                 aria-label="Scroll to latest message"
                 onClick={() => hook.scrollToBottom()}
-                className="pointer-events-auto h-10 w-10 flex items-center justify-center rounded-full shadow-sm bg-[#f0f2f5] text-[#00a884] border border-[#d1d7db]"
+                className={cn(
+                  "pointer-events-auto h-10 w-10 flex items-center justify-center rounded-full shadow-sm",
+                  "bg-[var(--color-surface)] text-[var(--color-accent)]",
+                  "border border-[var(--color-border)]",
+                  "hover:scale-105 transition-all"
+                )}
               >
                 <ChevronDown className="h-5 w-5" />
               </button>
@@ -291,7 +348,7 @@ export function ChatRoom({ roomId, roomName, communityId, slug, hideHeader }: Ch
           <div ref={hook.bottomRef} />
         </div>
 
-        {/* Input zone — shrinks to its natural height, never scrolls */}
+        {/* Input zone */}
         <ChatInputZone
           text={hook.text}
           setText={hook.setText}
@@ -308,14 +365,17 @@ export function ChatRoom({ roomId, roomName, communityId, slug, hideHeader }: Ch
           onStartVoice={hook.startVoiceRecording}
           onStopVoice={hook.stopVoiceRecording}
           onSendVoice={hook.sendVoiceBlob}
-          onDiscardVoice={() => { hook.setVoiceBlob(null); hook.setVoiceMime(""); }}
+          onDiscardVoice={() => {
+            hook.setVoiceBlob(null);
+            hook.setVoiceMime("");
+          }}
           onOpenEmojiPicker={() => hook.setEmojiOpen(true)}
           onAttachImage={(files) => hook.handleFiles(files, "main")}
           onAttachFile={(files) => hook.handleFiles(files, "main")}
         />
       </div>
 
-      {/* Thread panel */}
+      {/* ── Thread panel ────────────────────────────────────────────── */}
       {hook.threadOpen && hook.threadRoot && (
         <ThreadPanel
           threadRoot={hook.threadRoot}
@@ -332,14 +392,17 @@ export function ChatRoom({ roomId, roomName, communityId, slug, hideHeader }: Ch
           onSendReply={() => void hook.sendMessage(hook.threadRoot!.id)}
           onToggleReaction={hook.toggleReaction}
           onDelete={hook.deleteMessage}
-          onEdit={(msg) => { hook.setEditingMsg(msg); hook.setEditBody(msg.body); }}
+          onEdit={(msg) => {
+            hook.setEditingMsg(msg);
+            hook.setEditBody(msg.body);
+          }}
           onReply={(msg) => hook.setReplyingTo(msg)}
           onOpenEmojiPicker={() => hook.setEmojiOpen(true)}
           onAttachFile={(files) => hook.handleFiles(files, "thread")}
         />
       )}
 
-      {/* Incoming call modal */}
+      {/* ── Incoming call modal ─────────────────────────────────────── */}
       {incomingCall && (
         <IncomingCallModal
           incomingCall={incomingCall}

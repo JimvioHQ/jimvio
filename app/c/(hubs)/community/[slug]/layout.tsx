@@ -1,8 +1,9 @@
 
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { WorkspaceShell } from "@/components/community/workspace/WorkspaceShell";
+// import { WorkspaceShell } from "@/components/community/workspace/WorkspaceShell";
 import type { WorkspaceSpaceRow, PointsSnapshot } from "@/components/community/workspace-context";
+import { WorkspaceLayout } from "@/components/community/workspace/WorkspaceShell";
 
 export default async function CommunityWorkspaceLayout({
   children,
@@ -117,22 +118,19 @@ export default async function CommunityWorkspaceLayout({
     : null;
 
   return (
-    <WorkspaceShell
-      community={community as any}        // TODO: tighten types
+    <WorkspaceLayout
+      community={community as any}
       currentUserId={user.id}
-      role={membership.role as any}        // TODO: tighten types
+      role={membership.role as any}
       isAdmin={isAdmin}
       isOwner={isOwner}
-      initialSection="feed"
       initialView="member"
       profile={profileRes.data}
       points={points}
       spacesWithRooms={spacesWithRooms}
-      unreadNotifications={notificationsRes.count ?? 0}
-      openMissionsCount={0}                 // re-wire with real query
-      membership={membership as any}        // TODO: tighten types
+      membership={membership as any}
     >
       {children}
-    </WorkspaceShell>
+    </WorkspaceLayout>
   );
 }

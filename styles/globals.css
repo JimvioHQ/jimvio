@@ -83,15 +83,6 @@
     --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
     --glass-blur: 24px;
 
-    --wa-bg: #efeae2;
-    --wa-own-bubble: #d9fdd3;
-    --wa-other-bubble: #ffffff;
-    --wa-accent: #00a884;
-    --wa-text: #111b21;
-    --wa-text-secondary: #667781;
-    --wa-border: #d1d7db;
-    --wa-header: #f0f2f5;
-    --wa-tick-read: #53bdeb;
   }
 
   .dark {
@@ -125,14 +116,6 @@
     --glass-border: rgba(255, 255, 255, 0.06);
     --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
     --glass-blur: 24px;
-    
-    --wa-bg: #0b141a;
-    --wa-own-bubble: #025c4c;
-    --wa-other-bubble: #202c33;
-    --wa-text: #e9edef;
-    --wa-text-secondary: #8696a0;
-    --wa-border: #2a3942;
-    --wa-header: #202c33;
   }
 
   /* Two-row navbar (link strip + bar) from lg — keep in sync with components/layout/navbar.tsx */

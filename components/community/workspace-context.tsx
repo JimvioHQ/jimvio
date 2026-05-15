@@ -63,9 +63,6 @@ export type WorkspaceContextValue = {
   membership: MembershipLite | null;
   spacesWithRooms: WorkspaceSpaceRow[];
   points: PointsSnapshot | null;
-  liveSessions: LiveSessionLite[];
-  unreadNotifications: number;
-  openMissionsCount: number;
 };
 
 const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);
