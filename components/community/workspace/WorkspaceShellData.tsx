@@ -1,10 +1,10 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { WorkspaceShell } from "./WorkspaceShell";
 import type { WorkspaceCommunity, WorkspaceRole, WorkspaceSection } from "@/types/workspace";
 import type { WorkspaceSpaceRow, PointsSnapshot } from "@/components/community/workspace-context";
 import type { MembershipLite } from "@/lib/community-workspace-access";
+import { WorkspaceLayout } from "./WorkspaceShell";
 
 interface WorkspaceShellDataProps {
   community: WorkspaceCommunity;
@@ -40,22 +40,19 @@ export function WorkspaceShellData({
   const { section = "feed", view = "member" } = params;
 
   return (
-    <WorkspaceShell
+    <WorkspaceLayout
       community={community}
       currentUserId={currentUserId}
       role={role}
       isAdmin={isAdmin}
       isOwner={isOwner}
-      initialSection={section as WorkspaceSection}
       initialView={view === "admin" && isAdmin ? "admin" : "member"}
       profile={profile}
       points={points}
       spacesWithRooms={spacesWithRooms}
-      unreadNotifications={unreadNotifications}
-      openMissionsCount={openMissionsCount}
       membership={membership}
     >
       {children}
-    </WorkspaceShell>
+    </WorkspaceLayout>
   );
 }

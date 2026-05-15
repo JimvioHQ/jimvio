@@ -202,9 +202,6 @@ export function WorkspaceShell({
      membership,
      spacesWithRooms,
      points,
-     liveSessions,
-     unreadNotifications,
-     openMissionsCount,
    };
 
   const base = `/communities/${slug}/workspace`;
