@@ -264,7 +264,7 @@ export function SharedCommunityCard({ c, rank, showQuickActions = true }: Commun
 
           {/* CTA */}
           <Link
-            href={`/c/${c.slug}/workspace`}
+            href={`/c/community/${c.slug}/subscribe`}
             className={cn(
               "group/cta relative flex items-center justify-center gap-2",
               "w-full h-10 rounded-xl",
