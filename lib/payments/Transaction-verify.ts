@@ -20,6 +20,7 @@ export interface FlutterwaveTransaction {
     payment_type: string;
     auth_model: string;
     created_at: string;
+    processor_response: string
     customer: FlutterwaveCustomer;
     meta?: Record<string, unknown>;
 }
@@ -43,6 +44,7 @@ export interface VerifySuccessPayload {
         payment_type: string;
         customer: FlutterwaveCustomer;
         created_at: string;
+        processor_response: string;
         meta?: Record<string, unknown>;
     };
 }
@@ -121,7 +123,6 @@ export async function verifyFlutterwaveTransaction(
 
     const url = buildVerifyUrl(id);
     const result = await fetchFlutterwaveVerification(url);
-
     if (result.status !== "success" || !result.data) {
         throw new FlutterwaveAPIError(result.message || "Verification failed", 422);
     }
@@ -141,6 +142,7 @@ export async function verifyFlutterwaveTransaction(
             payment_type: tx.auth_model || tx.payment_type,
             customer: tx.customer,
             created_at: tx.created_at,
+            processor_response: tx.processor_response,
             ...(tx.meta && { meta: tx.meta }),
         },
     };

@@ -3,9 +3,20 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { MessageCircle, Zap, TrendingUp, Trash2, CheckCircle2 } from "lucide-react";
+import {
+  MessageCircle,
+  Zap,
+  Check,
+  X,
+  ArrowRight,
+  Repeat,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
-import { addToCart, checkProductInCart, removeProductFromCart } from "@/lib/actions/marketplace";
+import {
+  addToCart,
+  checkProductInCart,
+  removeProductFromCart,
+} from "@/lib/actions/marketplace";
 import { ProductQuickPopup } from "@/components/influencer/product-quick-popup";
 import { LocalizedPrice } from "@/components/currency/localized-price";
 import { toast } from "sonner";
@@ -22,21 +33,32 @@ export function ProductCardDigital({
   const [loading, setLoading] = useState(false);
   const [inCart, setInCart] = useState(initialInCart ?? false);
   const [imageError, setImageError] = useState(false);
-  const { incrementCartCount, setCartCount } = useCartStore();
   const [quickViewOpen, setQuickViewOpen] = useState(false);
+
+  const { incrementCartCount, setCartCount } = useCartStore();
 
   const images = p.images ?? [];
   const imgSrc = images[0] ?? null;
   const price = Number(p.price ?? 0);
   const compareAt = Number(p.compare_at_price ?? 0);
+  const onSale = compareAt > price && compareAt > 0;
+  const discount = onSale
+    ? Math.round(((compareAt - price) / compareAt) * 100)
+    : 0;
+  const isRecurring = p.pricing_type === "recurring";
+
+  // Deterministic gradient seed for missing images
+  const seed = (p.name?.charCodeAt(0) ?? 65) % 360;
 
   useEffect(() => {
     if (initialInCart !== undefined) return;
     let cancelled = false;
     checkProductInCart(p.id).then((res) => {
-      if (!cancelled) { setInCart(res.inCart); }
+      if (!cancelled) setInCart(res.inCart);
     });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [p.id, initialInCart]);
 
   const handleCartToggle = async (e: React.MouseEvent) => {
@@ -49,21 +71,31 @@ export function ProductCardDigital({
         if (result.success) {
           setInCart(false);
           setCartCount(Math.max(0, useCartStore.getState().cartCount - 1));
-          toast.success(`"${p.name}" removed from library`);
-        } else { toast.error(result.error || "Failed to remove"); }
+          toast.success(`Removed · ${p.name}`);
+        } else {
+          toast.error(result.error || "Couldn't remove");
+        }
       } else {
         const vendorId = p.vendors?.id;
-        if (!vendorId) { toast.error("Cannot find vendor."); return; }
+        if (!vendorId) {
+          toast.error("Cannot find vendor.");
+          return;
+        }
         const result = await addToCart(p.id, vendorId);
         if (result.success) {
           setInCart(true);
           incrementCartCount(1);
           onAddToCart?.();
-          toast.success(`"${p.name}" added to library`);
-        } else { toast.error(result.error || "Failed to add to library"); }
+          toast.success(`Added · ${p.name}`);
+        } else {
+          toast.error(result.error || "Couldn't add");
+        }
       }
-    } catch { toast.error("Something went wrong"); }
-    finally { setLoading(false); }
+    } catch {
+      toast.error("Something went wrong");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleChat = (e: React.MouseEvent) => {
@@ -79,8 +111,17 @@ export function ProductCardDigital({
             business_logo: p.vendors.business_logo ?? null,
             business_slug: p.vendors.business_slug ?? null,
           },
-          product: { id: p.id, name: p.name, slug: p.slug, price: Number(p.price ?? 0), images: p.images ?? null },
-          currentPath: typeof window !== "undefined" ? window.location.pathname : "/marketplace/digital",
+          product: {
+            id: p.id,
+            name: p.name,
+            slug: p.slug,
+            price: Number(p.price ?? 0),
+            images: p.images ?? null,
+          },
+          currentPath:
+            typeof window !== "undefined"
+              ? window.location.pathname
+              : "/marketplace/digital",
         },
       })
     );
@@ -88,121 +129,203 @@ export function ProductCardDigital({
 
   return (
     <>
-      <div
+      <article
         className={cn(
-          "group relative flex flex-col h-full overflow-hidden transition-all duration-500",
-          "rounded-sm bg-white dark:bg-zinc-900/50 border border-stone-200 dark:border-white/5",
+          "group relative flex flex-col h-full",
+          "bg-[var(--color-surface)]",
+          "rounded-2xl overflow-hidden",
+          "transition-[transform,box-shadow] duration-300 ease-out",
+          "hover:-translate-y-0.5",
           inCart
-            ? "ring-2 ring-sky-500/40 shadow-[0_0_40px_rgba(14,165,233,0.15)]"
-            : "hover:border-sky-500/40 hover:shadow-[0_20px_40px_rgba(14,165,233,0.1)] hover:-translate-y-1.5"
+            ? "ring-1 ring-orange-500/30 shadow-[0_8px_24px_-12px_rgba(249,115,22,0.35)]"
+            : "ring-1 ring-[var(--color-border)] hover:shadow-[0_12px_32px_-16px_rgba(0,0,0,0.18)]"
         )}
       >
-        <div className="relative overflow-hidden flex-shrink-0">
-          <Link
-            href={`${detailBasePath}/${p.slug}`}
-            className={cn(
-              "relative block w-full overflow-hidden bg-stone-900/50",
-              compact ? "aspect-[1.2/1]" : "aspect-[4/3]",
-            )}
-          >
-            {imgSrc && !imageError ? (
-              <Image
-                src={imgSrc}
-                alt={p.name}
-                fill
-                sizes="(max-width: 640px) 50vw, 33vw"
-                className="object-cover group-hover:scale-105 transition-transform duration-700 ease-out opacity-90 group-hover:opacity-100"
-                onError={() => setImageError(true)}
-              />
-            ) : (
-              <div className="absolute inset-0 flex items-center justify-center bg-sky-950/20">
-                <span className="text-6xl font-black uppercase text-sky-500/20 group-hover:scale-110 transition-transform duration-500">
-                  {p.name.charAt(0)}
-                </span>
-              </div>
-            )}
-
-            <div className="absolute inset-0 bg-gradient-to-t from-white dark:from-zinc-950 via-transparent to-transparent opacity-60 dark:opacity-80" />
-          </Link>
-
-          {/* Hover Actions - Moved out of Link to avoid <a> nesting */}
-          <div className={cn(
-            "absolute left-3 right-3 z-30 flex gap-2 pointer-events-none group-hover:pointer-events-auto",
-            "transition-all duration-500 ease-out",
-            "bottom-3 translate-y-8 opacity-0 group-hover:translate-y-0 group-hover:opacity-100"
-          )}>
-            <button
-              onClick={handleChat}
-              className="flex-1 flex items-center justify-center gap-1.5 h-9 rounded-sm font-semibold bg-white/10 border border-white/10 text-white hover:bg-white/20 transition-all text-[11px]"
+        {/* ── Cover ─────────────────────────────────────────────── */}
+        <Link
+          href={`${detailBasePath}/${p.slug}`}
+          aria-label={p.name}
+          className={cn(
+            "relative block w-full overflow-hidden",
+            "bg-[var(--color-surface-secondary)]",
+            compact ? "aspect-[1.2/1]" : "aspect-[4/3]"
+          )}
+        >
+          {imgSrc && !imageError ? (
+            <Image
+              src={imgSrc}
+              alt={p.name}
+              fill
+              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+              className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]"
+              onError={() => setImageError(true)}
+            />
+          ) : (
+            <div
+              className="absolute inset-0 flex items-center justify-center"
+              style={{
+                background: `linear-gradient(135deg, hsl(${seed} 60% 96%), hsl(${(seed + 30) % 360} 50% 92%))`,
+              }}
+              aria-hidden
             >
-              <MessageCircle className="h-3.5 w-3.5" /> Ask
-            </button>
-            {/* Logic change: If recurring or if specific bypass needed, use Link instead of toggle */}
-            {p.pricing_type === "recurring" ? (
-               <Link 
-                href={`${detailBasePath}/${p.slug}`}
-                className="flex-[2] flex items-center justify-center gap-1.5 h-9 rounded-sm font-bold bg-sky-500 hover:bg-sky-400 border border-sky-400/50 text-white transition-all shadow-none text-[11px]"
+              <span
+                className="text-7xl font-light tracking-tighter select-none"
+                style={{ color: `hsl(${seed} 30% 55%)` }}
               >
-                <Zap className="h-3.5 w-3.5" /> {p.button_text || "View Plans"}
-              </Link>
-            ) : (
-              <button
-                onClick={handleCartToggle}
-                disabled={loading}
-                className={cn(
-                  "flex-[2] flex items-center justify-center gap-1.5 h-9 rounded-sm font-bold text-white transition-all shadow-none text-[11px]",
-                  inCart
-                    ? "bg-emerald-500/80 hover:bg-red-500 border border-emerald-400/50"
-                    : "bg-sky-500 hover:bg-sky-400 border border-sky-400/50"
-                )}
-              >
-                {loading ? (
-                  <span className="h-4 w-4 border-2 border-white/40 border-t-white rounded-sm animate-spin" />
-                ) : inCart ? (
-                  <><CheckCircle2 className="h-3.5 w-3.5 group-hover:hidden" /> <span className="group-hover:hidden">{p.button_text ? "Added" : "Claimed"}</span>
-                    <Trash2 className="h-3.5 w-3.5 hidden group-hover:block" /> <span className="hidden group-hover:block">Remove</span></>
-                ) : (
-                  <><Zap className="h-3.5 w-3.5" /> {p.button_text || "Get Access"}</>
-                )}
-              </button>
+                {p.name.charAt(0)}
+              </span>
+            </div>
+          )}
+
+          {/* Subtle bottom fade for legibility of overlay chips */}
+          <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+
+          {/* Top-left chips */}
+          <div className="absolute top-3 left-3 flex items-center gap-1.5">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--color-surface)]/95 backdrop-blur-sm text-[10px] font-medium tracking-wide text-[var(--color-text-primary)]">
+              <Zap className="h-3 w-3 text-orange-500" />
+              Digital
+            </span>
+            {isRecurring && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--color-surface)]/95 backdrop-blur-sm text-[10px] font-medium tracking-wide text-[var(--color-text-muted)]">
+                <Repeat className="h-3 w-3" />
+                {p.billing_period}
+              </span>
             )}
           </div>
-        </div>
 
+          {/* Top-right state */}
+          {inCart && !isRecurring && (
+            <span className="absolute top-3 right-3 h-6 w-6 rounded-full bg-orange-500 text-white flex items-center justify-center shadow-sm">
+              <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
+            </span>
+          )}
 
-        <div className="flex flex-col flex-1 px-4 py-3 pb-4">
-          <Link href={`${detailBasePath}/${p.slug}`} className="min-w-0 mb-2">
-            <h3 className="font-bold text-stone-800 dark:text-white leading-snug group-hover:text-sky-500 transition-colors text-[14px] line-clamp-2">
+          {onSale && (
+            <span className="absolute bottom-3 left-3 px-2 py-0.5 rounded-full bg-[var(--color-surface)]/95 backdrop-blur-sm text-[10px] font-medium tracking-wide text-rose-600">
+              −{discount}%
+            </span>
+          )}
+        </Link>
+
+        {/* ── Info ──────────────────────────────────────────────── */}
+        <div className="flex flex-col flex-1 p-3.5 sm:p-4 gap-2.5">
+          {/* Vendor */}
+          {p.vendors?.business_name && (
+            <p className="text-[10.5px] font-medium uppercase tracking-[0.08em] text-[var(--color-text-muted)] truncate">
+              {p.vendors.business_name}
+            </p>
+          )}
+
+          {/* Name */}
+          <Link href={`${detailBasePath}/${p.slug}`} className="min-w-0 block">
+            <h3 className="text-[14px] font-medium leading-snug text-[var(--color-text-primary)] line-clamp-2 transition-colors group-hover:text-orange-600">
               {p.name}
             </h3>
           </Link>
 
-          <div className="mt-auto flex items-center justify-between">
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-sm bg-sky-50 dark:bg-sky-500/10 border border-sky-100 dark:border-sky-500/20">
-              <Zap className="h-3 w-3 text-sky-500" />
-              <div className="h-4 w-[1px] bg-sky-200 dark:bg-sky-500/20" />
-              <LocalizedPrice 
-                amount={price} 
-                currency={p.currency} 
-                period={p.pricing_type === "recurring" ? p.billing_period : null}
-                className="font-black text-sky-600 dark:text-sky-400 text-[16px]" 
+          {/* Price */}
+          <div className="flex items-baseline gap-2 mt-auto pt-1">
+            <LocalizedPrice
+              amount={price}
+              currency={p.currency}
+              period={isRecurring ? p.billing_period : null}
+              className="text-[17px] font-semibold tabular-nums tracking-tight text-[var(--color-text-primary)]"
+            />
+            {onSale && (
+              <LocalizedPrice
+                amount={compareAt}
+                currency={p.currency}
+                className="text-[12px] tabular-nums text-[var(--color-text-muted)] line-through decoration-[1px]"
               />
-            </div>
+            )}
+          </div>
 
+          {/* Actions */}
+          <div className="grid grid-cols-[1fr_auto] gap-1.5 pt-1">
+            {isRecurring ? (
+              <Link
+                href={`${detailBasePath}/${p.slug}`}
+                aria-label="View plans"
+                className={cn(
+                  "flex items-center justify-center gap-1.5",
+                  "h-9 px-3 rounded-xl text-[12px] font-medium",
+                  "bg-[var(--color-text-primary)] text-[var(--color-surface)]",
+                  "hover:bg-orange-600 active:scale-[0.98]",
+                  "transition-all duration-200"
+                )}
+              >
+                <span>{p.button_text || "View plans"}</span>
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            ) : (
+              <button
+                type="button"
+                onClick={handleCartToggle}
+                disabled={loading}
+                aria-label={inCart ? "Remove from library" : "Get access"}
+                className={cn(
+                  "group/btn relative flex items-center justify-center gap-1.5",
+                  "h-9 px-3 rounded-xl text-[12px] font-medium",
+                  "transition-all duration-200",
+                  "disabled:opacity-60",
+                  inCart
+                    ? "bg-[var(--color-surface-secondary)] text-[var(--color-text-primary)] hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/30"
+                    : "bg-[var(--color-text-primary)] text-[var(--color-surface)] hover:bg-orange-600 active:scale-[0.98]"
+                )}
+              >
+                {loading ? (
+                  <span className="h-3.5 w-3.5 border-[1.5px] border-current border-t-transparent rounded-full animate-spin" />
+                ) : inCart ? (
+                  <>
+                    <Check className="h-3.5 w-3.5 group-hover/btn:hidden" />
+                    <X className="h-3.5 w-3.5 hidden group-hover/btn:block" />
+                    <span className="group-hover/btn:hidden">In library</span>
+                    <span className="hidden group-hover/btn:inline">Remove</span>
+                  </>
+                ) : (
+                  <>
+                    <Zap className="h-3.5 w-3.5" />
+                    <span>{p.button_text || "Get access"}</span>
+                  </>
+                )}
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={handleChat}
+              aria-label="Chat with seller"
+              className="flex items-center justify-center h-9 w-9 rounded-xl bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors"
+            >
+              <MessageCircle className="h-4 w-4" />
+            </button>
           </div>
         </div>
-      </div>
+      </article>
 
       <ProductQuickPopup
         product={{
-          name: p.name, slug: p.slug, price: p.price, currency: p.currency,
-          images: p.images ?? null, rating: p.rating ?? null, inventory_quantity: undefined,
+          name: p.name,
+          slug: p.slug,
+          price: p.price,
+          currency: p.currency,
+          images: p.images ?? null,
+          rating: p.rating ?? null,
+          inventory_quantity: undefined,
         }}
-        vendor={p.vendors ? { id: p.vendors.id, business_name: p.vendors.business_name ?? "", business_slug: p.vendors.business_slug } : null}
+        vendor={
+          p.vendors
+            ? {
+              id: p.vendors.id,
+              business_name: p.vendors.business_name ?? "",
+              business_slug: p.vendors.business_slug,
+            }
+            : null
+        }
         open={quickViewOpen}
         onClose={() => setQuickViewOpen(false)}
       />
     </>
   );
 }
-

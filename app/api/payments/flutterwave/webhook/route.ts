@@ -49,7 +49,7 @@ function validateFlutterwaveWebhook(
     }
   }
 
-  // Legacy v3: plain string compare via verif-hash header
+  
   const verifHash = headers.get("verif-hash");
   if (verifHash) {
     return verifHash === secret;
@@ -59,17 +59,6 @@ function validateFlutterwaveWebhook(
   return false;
 }
 
-// ─── Payload normaliser ───────────────────────────────────────────────────────
-
-/**
- * Flutterwave v3 wraps the transaction inside the top-level "event" key:
- *   { event: { id, txRef, status, amount, currency, ... } }
- *
- * Flutterwave v4 uses:
- *   { type: "charge.completed", data: { id, tx_ref, status, amount, currency, ... } }
- *
- * We normalise both into one shape so the rest of the handler is version-agnostic.
- */
 interface NormalisedPayload {
   eventName: string;
   txRef: string | null;
@@ -237,7 +226,6 @@ export async function POST(req: NextRequest) {
   // 1. Read raw body FIRST — stream is consumed after first read
   const rawBody = await req.text();
 
-  // 2. Diagnostic log — FIX #1: consistent env var name
   console.info("[Flutterwave webhook] Incoming request", {
     bodyLength: rawBody.length,
     hasSignatureV4: !!req.headers.get("flutterwave-signature"),
@@ -291,7 +279,7 @@ export async function POST(req: NextRequest) {
     );
 
     if (rpcFailed) {
-      // FIX #4: Can't guarantee idempotency — return 500 so Flutterwave retries
+
       console.error("[Flutterwave webhook] Idempotency RPC failed on failure path");
       return NextResponse.json({ error: "Internal error" }, { status: 500 });
     }
@@ -490,9 +478,6 @@ export async function POST(req: NextRequest) {
         },
       }),
     ]);
-    // Note: Vendor, Platform, and Affiliate wallet credits are now entirely handled
-    // by the PostgreSQL trigger `on_order_completed_credit_wallets` running on the `orders` table.
-    // We no longer call creditVendorWallet() manually here to prevent double-crediting.
 
     console.log("[Flutterwave webhook] ✓ Order finalized", { orderId, transactionId });
     if (eventId) await markWebhookProcessed(supabase, eventId, orderId);
@@ -500,9 +485,6 @@ export async function POST(req: NextRequest) {
     const msg = e instanceof Error ? e.message : String(e);
     console.error("[Flutterwave webhook] ✗ Finalize failed", { msg, orderId });
     if (eventId) await markWebhookFailed(supabase, eventId, msg);
-
-    // FIX #10: Return 500 so Flutterwave retries — idempotency check will
-    // prevent double-processing on the next attempt
     return NextResponse.json({ error: "Processing failed" }, { status: 500 });
   }
 

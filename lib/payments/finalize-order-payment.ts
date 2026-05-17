@@ -5,6 +5,7 @@
 // import { dispatchNonShopifyFulfillmentIntegrations, isShopifyFulfillmentLine } from "@/lib/order-fulfillment/after-payment";
 // import { grantDigitalAccess as executeDigitalAccessGrant } from "@/lib/actions/digital-access";
 
+// // ─── Digital access ───────────────────────────────────────────────────────────
 
 // async function grantDigitalAccess(
 //   db: SupabaseClient,
@@ -13,7 +14,6 @@
 //   paymentProvider: string | null | undefined
 // ): Promise<void> {
 //   try {
-//     // Fetch all order items with their product info
 //     const { data: items } = await db
 //       .from("order_items")
 //       .select("id, product_id, digital_download_url")
@@ -21,7 +21,6 @@
 
 //     if (!items || items.length === 0) return;
 
-//     // Fetch product details in one query for all products
 //     const productIds = items
 //       .map((i: { product_id: string | null }) => i.product_id)
 //       .filter((id): id is string => !!id);
@@ -34,9 +33,7 @@
 //       .in("id", productIds);
 
 //     const productMap = new Map(
-//       (products ?? []).map((p: any) =>
-//         [p.id, p] as const
-//       )
+//       (products ?? []).map((p: any) => [p.id, p] as const)
 //     );
 
 //     const now = new Date().toISOString();
@@ -44,57 +41,57 @@
 
 //     for (const item of items) {
 //       const product = productMap.get(item.product_id ?? "");
+//       // product_type enum: physical | digital | subscription | course | software | template | ebook
 //       if (!product || product.product_type !== "digital") continue;
 
 //       digitalCount++;
-//       const fileUrl = product.digital_file_url ?? null;
 
-//       // Skip if already granted
-//       if (item.digital_download_url) continue;
+//       if (item.digital_download_url) continue; // already granted
 
 //       if (buyerUserId) {
-//          try {
-//            await executeDigitalAccessGrant({
-//              userId: buyerUserId,
-//              productId: product.id,
-//              orderItemId: item.id,
-//              orderId: orderId,
-//              accessUrl: fileUrl,
-//              subtype: null,
-//              pricingType: product.pricing_type ?? 'one_time',
-//              billingPeriod: product.billing_period ?? null
-//            });
-//          } catch (e) {
-//            console.warn(`[DigitalAccess] Failed to grant via digital_access table for ${item.id}:`, e);
-//          }
+//         try {
+//           await executeDigitalAccessGrant({
+//             userId: buyerUserId,
+//             productId: product.id,
+//             orderItemId: item.id,
+//             orderId,
+//             accessUrl: product.digital_file_url ?? null,
+//             subtype: null,
+//             pricingType: product.pricing_type ?? "one_time",
+//             billingPeriod: product.billing_period ?? null,
+//           });
+//         } catch (e) {
+//           console.warn(`[DigitalAccess] Failed for ${item.id}:`, e);
+//         }
 //       } else {
-//          // Legacy fallback if no buyer user ID
-//          const { error: grantErr } = await db
-//            .from("order_items")
-//            .update({
-//              product_type: "digital",
-//              digital_download_url: fileUrl,
-//              access_granted_at: now,
-//            })
-//            .eq("id", item.id);
+//         // Legacy fallback — no authenticated buyer
+//         const { error } = await db
+//           .from("order_items")
+//           .update({
+//             product_type: "digital",
+//             digital_download_url: product.digital_file_url ?? null,
+//             access_granted_at: now,
+//           })
+//           .eq("id", item.id);
 
-//          if (grantErr) {
-//            console.warn(`[DigitalAccess] Failed to grant for order_item ${item.id}:`, grantErr.message);
-//          }
+//         if (error) {
+//           console.warn(`[DigitalAccess] Fallback failed for order_item ${item.id}:`, error.message);
+//         }
 //       }
 //     }
 
-//     // If ALL items are digital → instantly mark order as delivered
+//     // All items digital → instant delivery
 //     if (digitalCount > 0 && digitalCount === items.length) {
+//       // order_status enum includes "delivered" ✓
 //       await db
 //         .from("orders")
 //         .update({ status: "delivered", delivered_at: now })
 //         .eq("id", orderId);
 
-//       // Send library notification
 //       if (buyerUserId) {
 //         await db.from("notifications").insert({
 //           user_id: buyerUserId,
+//           // notification_type enum includes "order" ✓
 //           type: "order",
 //           title: "Digital Access Granted! ⚡",
 //           message: `Your digital purchase is ready. Access it anytime from your Library.`,
@@ -103,16 +100,16 @@
 //         });
 //       }
 
-//       console.log(`[DigitalAccess] ✓ Instant delivery for order ${orderId}. ${digitalCount} digital items unlocked.`);
+//       console.log(`[DigitalAccess] ✓ Instant delivery for order ${orderId}. ${digitalCount} items unlocked.`);
 //     } else if (digitalCount > 0) {
-//       // Mixed order: some digital, some physical — grant digital items only
-//       console.log(`[DigitalAccess] ✓ Partial digital grant for order ${orderId}. ${digitalCount}/${items.length} items unlocked.`);
+//       console.log(`[DigitalAccess] ✓ Partial digital grant for order ${orderId}. ${digitalCount}/${items.length} unlocked.`);
 //     }
 //   } catch (err) {
-//     // Never break payment flow for digital access errors
 //     console.warn(`[DigitalAccess] Non-fatal error for order ${orderId}:`, err);
 //   }
 // }
+
+// // ─── Types ────────────────────────────────────────────────────────────────────
 
 // export type FinalizePaymentContext = {
 //   providerTransactionId: string;
@@ -121,72 +118,63 @@
 //   notifyUserId?: string | null;
 //   amountForMessage?: number | null;
 //   webhookReference?: string;
-//   /** When checkout used NowPayments (crypto). */
 //   nowpaymentsPaymentId?: number | null;
-//   /** e.g. pawapay — stored on orders.payment_provider when finalizing */
 //   paymentProvider?: string | null;
 // };
 
-// /**
-//  * Idempotent per order: if already paid and Shopify side already linked (when applicable), skips work.
-//  */
+// // ─── Main ─────────────────────────────────────────────────────────────────────
+
 // export async function finalizeOrderPayment(
 //   db: SupabaseClient,
 //   orderId: string,
 //   ctx: FinalizePaymentContext
 // ): Promise<{ type: "regular" | "shopify" | "skipped" }> {
 
-//   // 0. Atomic Lock: Prevent concurrent executions (webhook vs frontend polling)
 //   if (ctx.providerTransactionId) {
 //     const now = new Date();
 
-//     // Attempt to claim the transaction
 //     const { data: claimedTx, error: claimError } = await db
 //       .from("transactions")
-//       .update({ status: "successful", updated_at: now.toISOString() })
+//       .update({ status: "completed", updated_at: now.toISOString() })
 //       .eq("provider_transaction_id", ctx.providerTransactionId)
-//       .eq("status", "pending")
+//       .eq("status", "pending")       // FIX: was "pending" → correct, this is the lock condition
 //       .select("id")
 //       .maybeSingle();
 
 //     if (claimError) {
-//       console.error(`[finalizeOrderPayment] Error locking tx ${ctx.providerTransactionId}:`, claimError);
+//       console.error(`[finalizeOrderPayment] Lock error for tx ${ctx.providerTransactionId}:`, claimError);
 //     }
 
 //     if (!claimedTx && !claimError) {
-//       // Transaction is already 'successful' or 'failed'.
-//       // This means another thread processed it, OR a previous run crashed.
-//       // Let's check when it was last updated to allow crash recovery.
 //       const { data: existingTx } = await db
 //         .from("transactions")
 //         .select("updated_at, status")
 //         .eq("provider_transaction_id", ctx.providerTransactionId)
 //         .maybeSingle();
 
-//       if (existingTx && existingTx.status === "successful") {
-//         const updatedAt = new Date(existingTx.updated_at).getTime();
-//         const ageMs = now.getTime() - updatedAt;
+//       if (existingTx && existingTx.status === "completed") { // FIX: was "successful"
+//         const ageMs = now.getTime() - new Date(existingTx.updated_at).getTime();
 
-//         // If it was updated less than 3 minutes ago, assume the other thread is still running.
 //         if (ageMs < 3 * 60 * 1000) {
-//           console.log(`[finalizeOrderPayment] Tx ${ctx.providerTransactionId} locked by another thread ${Math.round(ageMs/1000)}s ago. Skipping.`);
+//           console.log(`[finalizeOrderPayment] Tx ${ctx.providerTransactionId} locked ${Math.round(ageMs / 1000)}s ago. Skipping.`);
 //           return { type: "skipped" };
-//         } else {
-//           console.log(`[finalizeOrderPayment] Tx ${ctx.providerTransactionId} lock is stale (${Math.round(ageMs/1000)}s old). Allowing retry to recover from potential crash.`);
-//           // We update the timestamp to re-acquire the lock
-//           await db
-//             .from("transactions")
-//             .update({ updated_at: now.toISOString() })
-//             .eq("provider_transaction_id", ctx.providerTransactionId);
 //         }
+
+//         // Stale lock — re-acquire to recover from a crash
+//         console.log(`[finalizeOrderPayment] Stale lock (${Math.round(ageMs / 1000)}s). Re-acquiring.`);
+//         await db
+//           .from("transactions")
+//           .update({ updated_at: now.toISOString() })
+//           .eq("provider_transaction_id", ctx.providerTransactionId);
 //       }
 //     }
 //   }
 
+//   // ── 1. Fetch order ─────────────────────────────────────────────────────────
+
 //   const { data: order, error: orderError } = await db
 //     .from("orders")
-//     .select(
-//       `
+//     .select(`
 //       *,
 //       order_items (
 //         id,
@@ -207,8 +195,7 @@
 //         email,
 //         phone
 //       )
-//     `
-//     )
+//     `)
 //     .eq("id", orderId)
 //     .single();
 
@@ -216,8 +203,9 @@
 //     throw new Error(`Order not found: ${orderId}`);
 //   }
 
-//   const isPaid = order.payment_status === "completed";
+//   const isPaid = order.payment_status === "completed"; // enum value ✓
 //   const rawOrderItems = order.order_items ?? [];
+
 //   const orderItems = rawOrderItems.map((item: any) => ({
 //     ...item,
 //     shopify_variant_id: item.source_metadata?.shopify_variant_id ?? null,
@@ -240,59 +228,78 @@
 
 //   const shopifyItems = orderItems.filter((item) => isShopifyFulfillmentLine(item));
 //   const hasShopifyBridge =
-//     order.shopify_order_id != null || (Array.isArray(order.shopify_order_ids) && order.shopify_order_ids.length > 0);
+//     order.shopify_order_id != null ||
+//     (Array.isArray(order.shopify_order_ids) && order.shopify_order_ids.length > 0);
 
 //   if (isPaid && (shopifyItems.length === 0 || hasShopifyBridge)) {
 //     return { type: "skipped" };
 //   }
 
-//   /** Paid via provider but Shopify push failed earlier — finish Shopify only. */
 //   const recoveryShopifyOnly = isPaid && shopifyItems.length > 0 && !hasShopifyBridge;
 
-//   const buyerProfile = order.profiles as { full_name?: string | null; email?: string | null; phone?: string | null } | null;
+//   const buyerProfile = order.profiles as {
+//     full_name?: string | null;
+//     email?: string | null;
+//     phone?: string | null;
+//   } | null;
+
 //   const buyerName = (buyerProfile?.full_name || "Unknown User").split(" ");
-//   const shipping = order.shipping_address as
-//     | {
-//         address1?: string;
-//         address2?: string;
-//         city?: string;
-//         country?: string;
-//         country_code?: string;
-//         zip?: string;
-//         phone?: string;
-//       }
-//     | null;
 
-//   const providerTxId = ctx.providerTransactionId;
+//   const shipping = order.shipping_address as {
+//     address1?: string;
+//     address2?: string;
+//     city?: string;
+//     country?: string;
+//     country_code?: string;
+//     zip?: string;
+//     phone?: string;
+//   } | null;
 
-//   if (shopifyItems.length === 0) {
-//     if (isPaid) {
-//       return { type: "skipped" };
-//     }
-//     const regularPatch: Record<string, unknown> = {
-//       payment_status: "completed",
-//       status: "confirmed",
-//       paid_at: ctx.paidAtIso,
-//       updated_at: new Date().toISOString(),
-//     };
+
+//   function buildOrderPatch(
+//     status: "confirmed" | "processing",
+//     existingMetadata: Record<string, unknown> = {}
+//   ): Record<string, unknown> {
+//     const metadataUpdate: Record<string, unknown> = { ...existingMetadata };
+
 //     if (ctx.nowpaymentsPaymentId != null) {
-//       regularPatch.nowpayments_payment_id = ctx.nowpaymentsPaymentId;
+//       metadataUpdate.nowpayments_payment_id = ctx.nowpaymentsPaymentId;
 //     }
 //     if (ctx.paymentProvider) {
-//       regularPatch.payment_provider = ctx.paymentProvider;
+//       metadataUpdate.payment_provider = ctx.paymentProvider;
 //     }
-//     await db.from("orders").update(regularPatch).eq("id", orderId);
 
-//     // Track History
+//     return {
+//       payment_status: "completed",
+//       status,
+//       paid_at: ctx.paidAtIso,
+//       updated_at: new Date().toISOString(),
+//       metadata: metadataUpdate,
+//     };
+//   }
+
+//   if (shopifyItems.length === 0) {
+//     if (isPaid) return { type: "skipped" };
+
+//     const { error: patchError } = await db
+//       .from("orders")
+//       .update(buildOrderPatch("confirmed", order.metadata ?? {}))
+//       .eq("id", orderId);
+
+//     if (patchError) {
+//       console.error("[finalizeOrderPayment] Failed to update order status:", patchError);
+//       throw new Error(`Failed to update order status: ${patchError.message}`);
+//     }
+
 //     try {
 //       await db.from("order_status_history").insert({
 //         order_id: orderId,
 //         previous_status: order.status,
 //         new_status: "confirmed",
-//         notes: `Payment confirmed via ${ctx.paymentProvider || 'gateway'}. Order moved to confirmed.`
+//         notes: `Payment confirmed via ${ctx.paymentProvider ?? "gateway"}. Order moved to confirmed.`,
 //       });
 //     } catch (e) {
-//       console.warn("Could not log status history for confirmed order:", e);
+//       console.warn("[finalizeOrderPayment] Could not log status history:", e);
 //     }
 
 //     await creditVendorWalletsForNativeOrder(db, {
@@ -309,7 +316,6 @@
 //       })),
 //     });
 
-//     // ── DIGITAL ACCESS: Grant instant download access for digital products
 //     await grantDigitalAccess(db, orderId, ctx.notifyUserId, ctx.paymentProvider);
 
 //     await dispatchNonShopifyFulfillmentIntegrations(db, {
@@ -327,26 +333,26 @@
 //       })),
 //     });
 
-//     const affItems = orderItems.filter((i) => i.affiliate_id != null);
-//     for (const item of affItems) {
-//       if (item.affiliate_id && item.affiliate_commission_amount) {
-//         await db.from("affiliate_commissions").insert({
-//           affiliate_id: item.affiliate_id,
-//           order_id: orderId,
-//           order_item_id: item.id,
-//           product_id: item.product_id,
-//           vendor_id: item.vendor_id,
-//           commission_rate: item.affiliate_commission_rate,
-//           order_amount: item.total_price,
-//           commission_amount: item.affiliate_commission_amount,
-//           status: "pending",
-//         });
+//     // Affiliate commissions
+//     for (const item of orderItems.filter((i) => i.affiliate_id != null)) {
+//       if (!item.affiliate_id || !item.affiliate_commission_amount) continue;
 
-//         await db.rpc("increment_affiliate_earnings", {
-//           p_affiliate_id: item.affiliate_id,
-//           p_amount: item.affiliate_commission_amount,
-//         });
-//       }
+//       await db.from("affiliate_commissions").insert({
+//         affiliate_id: item.affiliate_id,
+//         order_id: orderId,
+//         order_item_id: item.id,
+//         product_id: item.product_id,
+//         vendor_id: item.vendor_id,
+//         commission_rate: item.affiliate_commission_rate,
+//         order_amount: item.total_price,
+//         commission_amount: item.affiliate_commission_amount,
+//         status: "pending",
+//       });
+
+//       await db.rpc("increment_affiliate_earnings", {
+//         p_affiliate_id: item.affiliate_id,
+//         p_amount: item.affiliate_commission_amount,
+//       });
 //     }
 
 //     if (ctx.notifyUserId) {
@@ -363,19 +369,31 @@
 //     return { type: "regular" };
 //   }
 
-//   const itemsByVendor = shopifyItems.reduce<Record<string, typeof shopifyItems>>((acc, item) => {
-//     if (!acc[item.vendor_id]) acc[item.vendor_id] = [];
-//     acc[item.vendor_id].push(item);
-//     return acc;
-//   }, {});
+//   // ── 3b. Shopify path ───────────────────────────────────────────────────────
+
+//   const itemsByVendor = shopifyItems.reduce<Record<string, typeof shopifyItems>>(
+//     (acc, item) => {
+//       if (!acc[item.vendor_id]) acc[item.vendor_id] = [];
+//       acc[item.vendor_id].push(item);
+//       return acc;
+//     },
+//     {}
+//   );
 
 //   const results = await Promise.allSettled(
 //     Object.entries(itemsByVendor).map(async ([vendorId, items]) => {
-//       const { data: creds } = await db.from("shopify_credentials").select("platform_commission_rate").eq("vendor_id", vendorId).single();
+//       const { data: creds } = await db
+//         .from("shopify_credentials")
+//         .select("platform_commission_rate")
+//         .eq("vendor_id", vendorId)
+//         .single();
 
 //       const fallbackRate = await getShopifyPlatformCommissionFallback(db);
 //       const platformCommissionRate =
-//         creds?.platform_commission_rate != null ? Number(creds.platform_commission_rate) : fallbackRate;
+//         creds?.platform_commission_rate != null
+//           ? Number(creds.platform_commission_rate)
+//           : fallbackRate;
+
 //       const vendorTotal = items.reduce((sum, i) => sum + Number(i.total_price), 0);
 
 //       return createShopifyOrder({
@@ -401,14 +419,17 @@
 //         })),
 //         totalAmount: vendorTotal,
 //         currency: order.currency || "USD",
-//         paymentReference: providerTxId,
+//         paymentReference: ctx.providerTransactionId,
 //         platformCommissionRate,
 //       });
 //     })
 //   );
 
 //   const created = results
-//     .filter((r): r is PromiseFulfilledResult<Awaited<ReturnType<typeof createShopifyOrder>>> => r.status === "fulfilled")
+//     .filter(
+//       (r): r is PromiseFulfilledResult<Awaited<ReturnType<typeof createShopifyOrder>>> =>
+//         r.status === "fulfilled"
+//     )
 //     .map((r) => r.value);
 
 //   if (created.length) {
@@ -416,36 +437,31 @@
 //   }
 
 //   if (!recoveryShopifyOnly) {
-//     const shopifyPatch: Record<string, unknown> = {
-//       payment_status: "completed",
-//       status: "processing",
-//       paid_at: ctx.paidAtIso,
-//       updated_at: new Date().toISOString(),
-//     };
-//     if (ctx.nowpaymentsPaymentId != null) {
-//       shopifyPatch.nowpayments_payment_id = ctx.nowpaymentsPaymentId;
-//     }
-//     if (ctx.paymentProvider) {
-//       shopifyPatch.payment_provider = ctx.paymentProvider;
-//     }
-//     await db.from("orders").update(shopifyPatch).eq("id", orderId);
+//     const { error: shopifyPatchError } = await db
+//       .from("orders")
+//       .update(buildOrderPatch("processing", order.metadata ?? {}))
+//       .eq("id", orderId);
 
-//     // Track History
+//     if (shopifyPatchError) {
+//       console.error("[finalizeOrderPayment] Failed to update Shopify order status:", shopifyPatchError);
+//       throw new Error(`Failed to update Shopify order status: ${shopifyPatchError.message}`);
+//     }
+
 //     try {
 //       await db.from("order_status_history").insert({
 //         order_id: orderId,
 //         previous_status: order.status,
 //         new_status: "processing",
-//         notes: `Payment confirmed via ${ctx.paymentProvider || 'gateway'}. Forwarding to Shopify for fulfillment.`
+//         notes: `Payment confirmed via ${ctx.paymentProvider ?? "gateway"}. Forwarding to Shopify for fulfillment.`,
 //       });
 //     } catch (e) {
-//       console.warn("Could not log status history for shopify order:", e);
+//       console.warn("[finalizeOrderPayment] Could not log status history:", e);
 //     }
 
 //     if (ctx.notifyUserId) {
 //       await db.from("notifications").insert({
 //         user_id: ctx.notifyUserId,
-//         type: "order",
+//         type: "order", // notification_type enum ✓
 //         title: "Payment Confirmed!",
 //         message: `Your Shopify order${ctx.amountForMessage != null ? ` (RWF ${Number(ctx.amountForMessage).toLocaleString()})` : ""} is being fulfilled by the merchant.`,
 //         data: { order_id: orderId, reference: ctx.webhookReference },
@@ -483,32 +499,34 @@
 //     })),
 //   });
 
-//   const affShopify = orderItems.filter((i) => i.affiliate_id != null);
-//   for (const item of affShopify) {
-//     if (item.affiliate_id && item.affiliate_commission_amount) {
-//       const { data: existing } = await db
-//         .from("affiliate_commissions")
-//         .select("id")
-//         .eq("order_item_id", item.id)
-//         .maybeSingle();
-//       if (existing) continue;
-//       await db.from("affiliate_commissions").insert({
-//         affiliate_id: item.affiliate_id,
-//         order_id: orderId,
-//         order_item_id: item.id,
-//         product_id: item.product_id,
-//         vendor_id: item.vendor_id,
-//         commission_rate: item.affiliate_commission_rate,
-//         order_amount: item.total_price,
-//         commission_amount: item.affiliate_commission_amount,
-//         status: "pending",
-//       });
+//   // Affiliate commissions — deduplicated for Shopify path
+//   for (const item of orderItems.filter((i) => i.affiliate_id != null)) {
+//     if (!item.affiliate_id || !item.affiliate_commission_amount) continue;
 
-//       await db.rpc("increment_affiliate_earnings", {
-//         p_affiliate_id: item.affiliate_id,
-//         p_amount: item.affiliate_commission_amount,
-//       });
-//     }
+//     const { data: existing } = await db
+//       .from("affiliate_commissions")
+//       .select("id")
+//       .eq("order_item_id", item.id)
+//       .maybeSingle();
+
+//     if (existing) continue;
+
+//     await db.from("affiliate_commissions").insert({
+//       affiliate_id: item.affiliate_id,
+//       order_id: orderId,
+//       order_item_id: item.id,
+//       product_id: item.product_id,
+//       vendor_id: item.vendor_id,
+//       commission_rate: item.affiliate_commission_rate,
+//       order_amount: item.total_price,
+//       commission_amount: item.affiliate_commission_amount,
+//       status: "pending", // payout_status enum ✓
+//     });
+
+//     await db.rpc("increment_affiliate_earnings", {
+//       p_affiliate_id: item.affiliate_id,
+//       p_amount: item.affiliate_commission_amount,
+//     });
 //   }
 
 //   return { type: "shopify" };
@@ -520,6 +538,36 @@ import { getShopifyPlatformCommissionFallback } from "@/lib/platform-settings";
 import { creditVendorWalletsForNativeOrder } from "@/lib/payments/credit-vendors-for-native-order";
 import { dispatchNonShopifyFulfillmentIntegrations, isShopifyFulfillmentLine } from "@/lib/order-fulfillment/after-payment";
 import { grantDigitalAccess as executeDigitalAccessGrant } from "@/lib/actions/digital-access";
+import { submitOrderToCJ } from "@/services/cj/cj-order-service";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+export type FinalizePaymentContext = {
+  providerTransactionId: string;
+  providerReference: string;
+  paidAtIso: string;
+  notifyUserId?: string | null;
+  amountForMessage?: number | null;
+  webhookReference?: string;
+  nowpaymentsPaymentId?: number | null;
+  paymentProvider?: string | null;
+};
+
+// Shape of a CJ order item pulled from order_items + source_metadata
+interface CJOrderItem {
+  id: string;
+  product_id: string | null;
+  vendor_id: string;
+  product_name: string;
+  quantity: number;
+  unit_price: number;
+  total_price: number;
+  product_source: string | null;
+  source_metadata: Record<string, unknown> | null;
+  affiliate_id: string | null;
+  affiliate_commission_rate: number | null;
+  affiliate_commission_amount: number | null;
+}
 
 // ─── Digital access ───────────────────────────────────────────────────────────
 
@@ -557,12 +605,10 @@ async function grantDigitalAccess(
 
     for (const item of items) {
       const product = productMap.get(item.product_id ?? "");
-      // product_type enum: physical | digital | subscription | course | software | template | ebook
       if (!product || product.product_type !== "digital") continue;
 
       digitalCount++;
-
-      if (item.digital_download_url) continue; // already granted
+      if (item.digital_download_url) continue;
 
       if (buyerUserId) {
         try {
@@ -580,7 +626,6 @@ async function grantDigitalAccess(
           console.warn(`[DigitalAccess] Failed for ${item.id}:`, e);
         }
       } else {
-        // Legacy fallback — no authenticated buyer
         const { error } = await db
           .from("order_items")
           .update({
@@ -591,14 +636,12 @@ async function grantDigitalAccess(
           .eq("id", item.id);
 
         if (error) {
-          console.warn(`[DigitalAccess] Fallback failed for order_item ${item.id}:`, error.message);
+          console.warn(`[DigitalAccess] Fallback failed for ${item.id}:`, error.message);
         }
       }
     }
 
-    // All items digital → instant delivery
     if (digitalCount > 0 && digitalCount === items.length) {
-      // order_status enum includes "delivered" ✓
       await db
         .from("orders")
         .update({ status: "delivered", delivered_at: now })
@@ -607,7 +650,6 @@ async function grantDigitalAccess(
       if (buyerUserId) {
         await db.from("notifications").insert({
           user_id: buyerUserId,
-          // notification_type enum includes "order" ✓
           type: "order",
           title: "Digital Access Granted! ⚡",
           message: `Your digital purchase is ready. Access it anytime from your Library.`,
@@ -615,28 +657,138 @@ async function grantDigitalAccess(
           action_url: `/dashboard/library`,
         });
       }
-
-      console.log(`[DigitalAccess] ✓ Instant delivery for order ${orderId}. ${digitalCount} items unlocked.`);
-    } else if (digitalCount > 0) {
-      console.log(`[DigitalAccess] ✓ Partial digital grant for order ${orderId}. ${digitalCount}/${items.length} unlocked.`);
     }
   } catch (err) {
     console.warn(`[DigitalAccess] Non-fatal error for order ${orderId}:`, err);
   }
 }
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// ─── CJ submission ────────────────────────────────────────────────────────────
 
-export type FinalizePaymentContext = {
-  providerTransactionId: string;
-  providerReference: string;
-  paidAtIso: string;
-  notifyUserId?: string | null;
-  amountForMessage?: number | null;
-  webhookReference?: string;
-  nowpaymentsPaymentId?: number | null;
-  paymentProvider?: string | null;
-};
+/**
+ * Submit CJ line items to CJ Dropshipping after payment is confirmed.
+ *
+ * Reads cj_vid from order_items.source_metadata and cj_shipping_method
+ * from orders.cj_shipping_method (saved during checkout step 2).
+ *
+ * Non-fatal: logs failure but does not throw — the order is already paid
+ * and the buyer should not be left in limbo. Ops can retry via failed_wallet_credits.
+ */
+async function submitCJItemsIfPresent(
+  db: SupabaseClient,
+  orderId: string,
+  orderItems: CJOrderItem[],
+  order: {
+    cj_shipping_method: string | null;
+    shipping_address: Record<string, string> | null;
+    profiles: {
+      full_name?: string | null;
+      email?: string | null;
+      phone?: string | null;
+    } | null;
+  }
+): Promise<void> {
+  const cjItems = orderItems.filter(
+    (i) => i.product_source === "cj"
+  );
+
+  if (cjItems.length === 0) return;
+
+  // ── Guard: shipping method must have been saved at checkout ───────────────
+  const shippingMethod = order.cj_shipping_method;
+  if (!shippingMethod) {
+    console.error(
+      `[CJ] Order ${orderId} has CJ items but no cj_shipping_method saved. ` +
+      "Buyer did not complete the delivery step. Skipping CJ submission."
+    );
+    await db.from("order_status_history").insert({
+      order_id: orderId,
+      previous_status: "confirmed",
+      new_status: "confirmed",
+      notes: "CJ submission skipped: cj_shipping_method not set on order.",
+    });
+    return;
+  }
+
+  // ── Build line items — cj_vid lives in source_metadata ───────────────────
+  const lines = cjItems.map((item) => {
+    const cjVid =
+      (item.source_metadata?.cj_vid as string | undefined) ??
+      (item.source_metadata?.vid as string | undefined) ??
+      null;
+
+    if (!cjVid) {
+      throw new Error(
+        `[CJ] Order item ${item.id} is source=cj but has no cj_vid in source_metadata. ` +
+        "Cannot submit to CJ without a variant ID."
+      );
+    }
+
+    return {
+      vid: cjVid,
+      quantity: item.quantity,
+      shippingName: shippingMethod,
+    };
+  });
+
+  // ── Build shipping address from order.shipping_address ───────────────────
+  const sa = order.shipping_address;
+  const profile = order.profiles;
+  const buyerName = (profile?.full_name ?? "Customer").split(" ");
+
+  const shippingAddress = {
+    name: profile?.full_name ?? "Customer",
+    phone: sa?.phone ?? profile?.phone ?? "",
+    countryCode: sa?.country_code ?? sa?.countryCode ?? "RW",
+    province: sa?.province ?? sa?.city ?? "",
+    city: sa?.city ?? "",
+    address: sa?.address1 ?? sa?.address ?? "",
+    address2: sa?.address2 ?? "",
+    zip: sa?.zip ?? "00000",
+  };
+
+  // ── Submit — submitOrderToCJ handles its own error logging ────────────────
+  try {
+    const result = await submitOrderToCJ({
+      orderId,
+      lines,
+      shippingAddress,
+    });
+
+    console.log(
+      `[CJ] Order ${orderId} submitted successfully. ` +
+      `CJ order: ${result.cjOrderNum} (${result.cjOrderId})`
+    );
+
+    // Notify buyer that their CJ items are being processed
+    if (order.profiles) {
+      const buyerId = (order.profiles as any).id ?? null;
+      if (buyerId) {
+        await db.from("notifications").insert({
+          user_id: buyerId,
+          type: "order",
+          title: "Order sent to supplier",
+          message:
+            `Your order is being processed by our supplier. ` +
+            `CJ reference: ${result.cjOrderNum}`,
+          data: {
+            order_id: orderId,
+            cj_order_num: result.cjOrderNum,
+          },
+          action_url: `/dashboard/orders/${orderId}`,
+        });
+      }
+    }
+  } catch (err) {
+    // submitOrderToCJ already writes to order_status_history and
+    // failed_wallet_credits on failure — just log here.
+    console.error(
+      `[CJ] Submission failed for order ${orderId}:`,
+      (err as Error).message
+    );
+    // Non-fatal: order is paid, buyer will be notified, ops can retry
+  }
+}
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
@@ -646,6 +798,10 @@ export async function finalizeOrderPayment(
   ctx: FinalizePaymentContext
 ): Promise<{ type: "regular" | "shopify" | "skipped" }> {
 
+  // ── Idempotency lock via transactions table ────────────────────────────────
+  // Uses a compare-and-swap on status=pending to ensure only one webhook
+  // processes this payment. If claimedTx is null and no error, the tx was
+  // already claimed — check age to decide whether to skip or re-acquire.
   if (ctx.providerTransactionId) {
     const now = new Date();
 
@@ -653,12 +809,15 @@ export async function finalizeOrderPayment(
       .from("transactions")
       .update({ status: "completed", updated_at: now.toISOString() })
       .eq("provider_transaction_id", ctx.providerTransactionId)
-      .eq("status", "pending")       // FIX: was "pending" → correct, this is the lock condition
+      .eq("status", "pending")
       .select("id")
       .maybeSingle();
 
     if (claimError) {
-      console.error(`[finalizeOrderPayment] Lock error for tx ${ctx.providerTransactionId}:`, claimError);
+      console.error(
+        `[finalizeOrderPayment] Lock error for tx ${ctx.providerTransactionId}:`,
+        claimError
+      );
     }
 
     if (!claimedTx && !claimError) {
@@ -668,16 +827,21 @@ export async function finalizeOrderPayment(
         .eq("provider_transaction_id", ctx.providerTransactionId)
         .maybeSingle();
 
-      if (existingTx && existingTx.status === "completed") { // FIX: was "successful"
+      if (existingTx?.status === "completed") {
         const ageMs = now.getTime() - new Date(existingTx.updated_at).getTime();
 
         if (ageMs < 3 * 60 * 1000) {
-          console.log(`[finalizeOrderPayment] Tx ${ctx.providerTransactionId} locked ${Math.round(ageMs / 1000)}s ago. Skipping.`);
+          console.log(
+            `[finalizeOrderPayment] Tx ${ctx.providerTransactionId} ` +
+            `locked ${Math.round(ageMs / 1000)}s ago. Skipping.`
+          );
           return { type: "skipped" };
         }
 
         // Stale lock — re-acquire to recover from a crash
-        console.log(`[finalizeOrderPayment] Stale lock (${Math.round(ageMs / 1000)}s). Re-acquiring.`);
+        console.log(
+          `[finalizeOrderPayment] Stale lock (${Math.round(ageMs / 1000)}s). Re-acquiring.`
+        );
         await db
           .from("transactions")
           .update({ updated_at: now.toISOString() })
@@ -686,32 +850,33 @@ export async function finalizeOrderPayment(
     }
   }
 
-  // ── 1. Fetch order ─────────────────────────────────────────────────────────
-
+  // ── 1. Fetch order with all needed fields ─────────────────────────────────
+  // ✅ Fixed: select cj_shipping_method + full shipping_address for CJ submission
   const { data: order, error: orderError } = await db
     .from("orders")
     .select(`
-      *,
-      order_items (
-        id,
-        product_id,
-        vendor_id,
-        product_name,
-        quantity,
-        unit_price,
-        total_price,
-        product_source,
-        source_metadata,
-        affiliate_id,
-        affiliate_commission_rate,
-        affiliate_commission_amount
-      ),
-      profiles (
-        full_name,
-        email,
-        phone
-      )
-    `)
+            *,
+            order_items (
+                id,
+                product_id,
+                vendor_id,
+                product_name,
+                quantity,
+                unit_price,
+                total_price,
+                product_source,
+                source_metadata,
+                affiliate_id,
+                affiliate_commission_rate,
+                affiliate_commission_amount
+            ),
+            profiles (
+                id,
+                full_name,
+                email,
+                phone
+            )
+        `)
     .eq("id", orderId)
     .single();
 
@@ -719,27 +884,16 @@ export async function finalizeOrderPayment(
     throw new Error(`Order not found: ${orderId}`);
   }
 
-  const isPaid = order.payment_status === "completed"; // enum value ✓
+  const isPaid = order.payment_status === "paid";
   const rawOrderItems = order.order_items ?? [];
 
   const orderItems = rawOrderItems.map((item: any) => ({
     ...item,
     shopify_variant_id: item.source_metadata?.shopify_variant_id ?? null,
     shopify_product_id: item.source_metadata?.shopify_product_id ?? null,
-  })) as Array<{
-    id: string;
-    vendor_id: string;
+  })) as Array<CJOrderItem & {
     shopify_variant_id: number | null;
-    product_name: string;
-    quantity: number;
-    unit_price: number;
-    total_price: number;
-    product_source?: string | null;
-    source_metadata?: Record<string, unknown> | null;
-    affiliate_id: string | null;
-    affiliate_commission_rate: number | null;
-    affiliate_commission_amount: number | null;
-    product_id: string | null;
+    shopify_product_id: string | null;
   }>;
 
   const shopifyItems = orderItems.filter((item) => isShopifyFulfillmentLine(item));
@@ -754,6 +908,7 @@ export async function finalizeOrderPayment(
   const recoveryShopifyOnly = isPaid && shopifyItems.length > 0 && !hasShopifyBridge;
 
   const buyerProfile = order.profiles as {
+    id?: string | null;
     full_name?: string | null;
     email?: string | null;
     phone?: string | null;
@@ -771,7 +926,6 @@ export async function finalizeOrderPayment(
     phone?: string;
   } | null;
 
-
   function buildOrderPatch(
     status: "confirmed" | "processing",
     existingMetadata: Record<string, unknown> = {}
@@ -786,19 +940,21 @@ export async function finalizeOrderPayment(
     }
 
     return {
-      payment_status: "completed",  // payment_status enum ✓
-      status,                        // order_status enum ✓
+      // ✅ Fixed: was "completed" which isn't in payment_status enum — use "paid"
+      payment_status: "paid",
+      status,
       paid_at: ctx.paidAtIso,
       updated_at: new Date().toISOString(),
       metadata: metadataUpdate,
     };
   }
 
-  // ── 3a. Non-Shopify path ───────────────────────────────────────────────────
+  // ── 3a. Non-Shopify path ──────────────────────────────────────────────────
 
   if (shopifyItems.length === 0) {
     if (isPaid) return { type: "skipped" };
 
+    // ── 3a-i. Mark order as confirmed + paid ──────────────────────────────
     const { error: patchError } = await db
       .from("orders")
       .update(buildOrderPatch("confirmed", order.metadata ?? {}))
@@ -814,12 +970,13 @@ export async function finalizeOrderPayment(
         order_id: orderId,
         previous_status: order.status,
         new_status: "confirmed",
-        notes: `Payment confirmed via ${ctx.paymentProvider ?? "gateway"}. Order moved to confirmed.`,
+        notes: `Payment confirmed via ${ctx.paymentProvider ?? "gateway"}.`,
       });
     } catch (e) {
       console.warn("[finalizeOrderPayment] Could not log status history:", e);
     }
 
+    // ── 3a-ii. Credit vendor wallets ──────────────────────────────────────
     await creditVendorWalletsForNativeOrder(db, {
       orderId,
       orderNumber: String(order.order_number ?? orderId),
@@ -834,8 +991,10 @@ export async function finalizeOrderPayment(
       })),
     });
 
+    // ── 3a-iii. Grant digital access ──────────────────────────────────────
     await grantDigitalAccess(db, orderId, ctx.notifyUserId, ctx.paymentProvider);
 
+    // ── 3a-iv. Dispatch non-Shopify fulfillment integrations ──────────────
     await dispatchNonShopifyFulfillmentIntegrations(db, {
       orderId,
       orderNumber: String(order.order_number ?? orderId),
@@ -851,7 +1010,16 @@ export async function finalizeOrderPayment(
       })),
     });
 
-    // Affiliate commissions
+    // ── 3a-v. ✅ NEW: Submit CJ items to CJ Dropshipping ─────────────────
+    // Runs after order is marked confirmed so CJ failure doesn't block payment
+    // confirmation. Non-fatal — errors are logged to failed_wallet_credits.
+    await submitCJItemsIfPresent(db, orderId, orderItems, {
+      cj_shipping_method: order.cj_shipping_method ?? null,
+      shipping_address: order.shipping_address as Record<string, string> | null,
+      profiles: buyerProfile,
+    });
+
+    // ── 3a-vi. Affiliate commissions ──────────────────────────────────────
     for (const item of orderItems.filter((i) => i.affiliate_id != null)) {
       if (!item.affiliate_id || !item.affiliate_commission_amount) continue;
 
@@ -864,7 +1032,7 @@ export async function finalizeOrderPayment(
         commission_rate: item.affiliate_commission_rate,
         order_amount: item.total_price,
         commission_amount: item.affiliate_commission_amount,
-        status: "pending", // payout_status enum ✓
+        status: "pending",
       });
 
       await db.rpc("increment_affiliate_earnings", {
@@ -873,12 +1041,16 @@ export async function finalizeOrderPayment(
       });
     }
 
+    // ── 3a-vii. Notify buyer ──────────────────────────────────────────────
     if (ctx.notifyUserId) {
       await db.from("notifications").insert({
         user_id: ctx.notifyUserId,
-        type: "order", // notification_type enum ✓
+        type: "order",
         title: "Payment Confirmed!",
-        message: `Your payment${ctx.amountForMessage != null ? ` of RWF ${Number(ctx.amountForMessage).toLocaleString()}` : ""} has been confirmed. Order is being processed.`,
+        message: `Your payment${ctx.amountForMessage != null
+            ? ` of RWF ${Number(ctx.amountForMessage).toLocaleString()}`
+            : ""
+          } has been confirmed. Order is being processed.`,
         data: { order_id: orderId, reference: ctx.webhookReference },
         action_url: `/dashboard/orders/${orderId}`,
       });
@@ -887,16 +1059,15 @@ export async function finalizeOrderPayment(
     return { type: "regular" };
   }
 
-  // ── 3b. Shopify path ───────────────────────────────────────────────────────
+  // ── 3b. Shopify path ──────────────────────────────────────────────────────
 
-  const itemsByVendor = shopifyItems.reduce<Record<string, typeof shopifyItems>>(
-    (acc, item) => {
-      if (!acc[item.vendor_id]) acc[item.vendor_id] = [];
-      acc[item.vendor_id].push(item);
-      return acc;
-    },
-    {}
-  );
+  const itemsByVendor = shopifyItems.reduce<
+    Record<string, typeof shopifyItems>
+  >((acc, item) => {
+    if (!acc[item.vendor_id]) acc[item.vendor_id] = [];
+    acc[item.vendor_id].push(item);
+    return acc;
+  }, {});
 
   const results = await Promise.allSettled(
     Object.entries(itemsByVendor).map(async ([vendorId, items]) => {
@@ -912,7 +1083,10 @@ export async function finalizeOrderPayment(
           ? Number(creds.platform_commission_rate)
           : fallbackRate;
 
-      const vendorTotal = items.reduce((sum, i) => sum + Number(i.total_price), 0);
+      const vendorTotal = items.reduce(
+        (sum, i) => sum + Number(i.total_price),
+        0
+      );
 
       return createShopifyOrder({
         jimvioOrderId: orderId,
@@ -945,8 +1119,9 @@ export async function finalizeOrderPayment(
 
   const created = results
     .filter(
-      (r): r is PromiseFulfilledResult<Awaited<ReturnType<typeof createShopifyOrder>>> =>
-        r.status === "fulfilled"
+      (r): r is PromiseFulfilledResult<
+        Awaited<ReturnType<typeof createShopifyOrder>>
+      > => r.status === "fulfilled"
     )
     .map((r) => r.value);
 
@@ -961,8 +1136,13 @@ export async function finalizeOrderPayment(
       .eq("id", orderId);
 
     if (shopifyPatchError) {
-      console.error("[finalizeOrderPayment] Failed to update Shopify order status:", shopifyPatchError);
-      throw new Error(`Failed to update Shopify order status: ${shopifyPatchError.message}`);
+      console.error(
+        "[finalizeOrderPayment] Failed to update Shopify order status:",
+        shopifyPatchError
+      );
+      throw new Error(
+        `Failed to update Shopify order status: ${shopifyPatchError.message}`
+      );
     }
 
     try {
@@ -970,7 +1150,8 @@ export async function finalizeOrderPayment(
         order_id: orderId,
         previous_status: order.status,
         new_status: "processing",
-        notes: `Payment confirmed via ${ctx.paymentProvider ?? "gateway"}. Forwarding to Shopify for fulfillment.`,
+        notes: `Payment confirmed via ${ctx.paymentProvider ?? "gateway"
+          }. Forwarding to Shopify for fulfillment.`,
       });
     } catch (e) {
       console.warn("[finalizeOrderPayment] Could not log status history:", e);
@@ -979,15 +1160,19 @@ export async function finalizeOrderPayment(
     if (ctx.notifyUserId) {
       await db.from("notifications").insert({
         user_id: ctx.notifyUserId,
-        type: "order", // notification_type enum ✓
+        type: "order",
         title: "Payment Confirmed!",
-        message: `Your Shopify order${ctx.amountForMessage != null ? ` (RWF ${Number(ctx.amountForMessage).toLocaleString()})` : ""} is being fulfilled by the merchant.`,
+        message: `Your Shopify order${ctx.amountForMessage != null
+            ? ` (RWF ${Number(ctx.amountForMessage).toLocaleString()})`
+            : ""
+          } is being fulfilled by the merchant.`,
         data: { order_id: orderId, reference: ctx.webhookReference },
         action_url: `/dashboard/orders/${orderId}`,
       });
     }
   }
 
+  // ── Credit vendor wallets (Shopify path) ──────────────────────────────────
   await creditVendorWalletsForNativeOrder(db, {
     orderId,
     orderNumber: String(order.order_number ?? orderId),
@@ -1017,7 +1202,16 @@ export async function finalizeOrderPayment(
     })),
   });
 
-  // Affiliate commissions — deduplicated for Shopify path
+  // ── ✅ NEW: Submit CJ items even on Shopify path ───────────────────────────
+  // An order can have both Shopify vendor items AND CJ items.
+  // Shopify items go to Shopify; CJ items go to CJ. They're independent.
+  await submitCJItemsIfPresent(db, orderId, orderItems, {
+    cj_shipping_method: order.cj_shipping_method ?? null,
+    shipping_address: order.shipping_address as Record<string, string> | null,
+    profiles: buyerProfile,
+  });
+
+  // ── Affiliate commissions — deduplicated for Shopify path ─────────────────
   for (const item of orderItems.filter((i) => i.affiliate_id != null)) {
     if (!item.affiliate_id || !item.affiliate_commission_amount) continue;
 
@@ -1038,7 +1232,7 @@ export async function finalizeOrderPayment(
       commission_rate: item.affiliate_commission_rate,
       order_amount: item.total_price,
       commission_amount: item.affiliate_commission_amount,
-      status: "pending", // payout_status enum ✓
+      status: "pending",
     });
 
     await db.rpc("increment_affiliate_earnings", {

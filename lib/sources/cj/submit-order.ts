@@ -37,7 +37,7 @@ export async function submitCjOrderForLines(
     .select("shipping_address, buyer_id")
     .eq("id", orderId)
     .single();
-
+    
   if (orderErr || !orderData) {
     console.error(`[CJ] Could not fetch order ${orderId} for shipping details`, orderErr);
     return { ok: false, error: "Failed to load order shipping data" };

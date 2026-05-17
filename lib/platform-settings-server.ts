@@ -28,10 +28,6 @@ export async function getDefaultAffiliateCommissionPercent(): Promise<number> {
     : PLATFORM_SETTINGS_DEFAULTS.fees.default_affiliate_commission_percent;
 }
 
-/**
- * Shopify platform % when shopify_credentials row has no rate.
- * Uses platform_settings.fees then env SHOPIFY_DEFAULT_PLATFORM_COMMISSION_RATE.
- */
 export async function getShopifyPlatformCommissionFallback(db: SupabaseClient): Promise<number> {
   const { data } = await db.from("platform_settings").select("value").eq("key", "fees").maybeSingle();
   const raw = data?.value as Record<string, unknown> | null;

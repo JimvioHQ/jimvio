@@ -229,3 +229,57 @@ export function pickMime(): string {
     if (MediaRecorder.isTypeSupported(c)) return c;
   return "";
 }
+export type ImageInput =
+  | string[]
+  | { url?: string; src?: string }[]
+  | string
+  | null
+  | undefined;
+
+export function normalizeImages(input: ImageInput): string[] {
+  if (!input) return [];
+
+  // Already an array — coerce each element to a usable URL
+  if (Array.isArray(input)) {
+    return input
+      .map((item) => {
+        if (typeof item === "string") return item;
+        if (item && typeof item === "object") {
+          return item.url ?? item.src ?? "";
+        }
+        return "";
+      })
+      .filter((u): u is string => typeof u === "string" && u.length > 0);
+  }
+
+  if (typeof input === "string") {
+    const trimmed = input.trim();
+    if (!trimmed) return [];
+    if (trimmed.startsWith("[") || trimmed.startsWith("{") || trimmed.startsWith('"')) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        return normalizeImages(parsed);
+      } catch {
+      }
+    }
+
+    return [trimmed];
+  }
+
+  return [];
+}
+
+export function isRenderableImageSrc(s: unknown): s is string {
+  if (typeof s !== "string") return false;
+  const t = s.trim();
+  if (!t) return false;
+  if (t === "[object Object]" || t === "null" || t === "undefined") return false;
+  if (t.startsWith("/")) return true;
+  if (t.startsWith("data:") || t.startsWith("blob:")) return true;
+  try {
+    const u = new URL(t);
+    return u.protocol === "http:" || u.protocol === "https:";
+  } catch {
+    return false;
+  }
+}

@@ -1,9 +1,11 @@
+
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { createFlutterwavePaymentLink } from "@/lib/flutterwave";
 import { usdToRwfAmount } from "@/lib/money";
 import { generateTxRef } from "@/lib/payments/tx-ref";
+import { verifyFlutterwaveTransaction } from "@/lib/payments/Transaction-verify";
 
 export const dynamic = "force-dynamic";
 
@@ -28,9 +30,21 @@ const CHANNEL_VALUES = ["sms", "whatsapp", "sms,whatsapp"] as const;
 const RequestSchema = z.object({
   orderId: z.string().uuid("orderId must be a valid UUID"),
   channel: z.enum(CHANNEL_VALUES).optional().default("sms"),
+  returnUrl: z.string().url().optional(),
 });
 
-// ─── Supabase (lazy) ──────────────────────────────────────────────────────────
+// ─── Constants ───────────────────────────────────────────────────────────────
+
+const TERMINAL_STATUSES = new Set(["paid", "completed", "refunded"]);
+const PENDING_TX_REUSE_WINDOW_MS = 60 * 60 * 1000; // 1 hour
+
+const ALLOWED_RETURN_HOSTS = new Set([
+  "jimvio.com",
+  "www.jimvio.com",
+  "localhost",
+]);
+
+// ─── Supabase ────────────────────────────────────────────────────────────────
 
 function getSupabase() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -41,7 +55,7 @@ function getSupabase() {
   });
 }
 
-// ─── Profile helper ───────────────────────────────────────────────────────────
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 type ProfileRow = {
   full_name: string | null;
@@ -49,27 +63,106 @@ type ProfileRow = {
   phone: string | null;
 };
 
-function extractProfile(raw: ProfileRow | ProfileRow[] | null): ProfileRow | null {
+function extractProfile(
+  raw: ProfileRow | ProfileRow[] | null
+): ProfileRow | null {
   if (!raw) return null;
   return Array.isArray(raw) ? (raw[0] ?? null) : raw;
 }
 
-// ─── Currency helper ──────────────────────────────────────────────────────────
-
 function normaliseToRwf(
   amount: number,
   currency: string
-): { amount: number; currency: "RWF" } {
-  if (currency === "RWF") return { amount, currency: "RWF" };
+): { amount: number; currency: "RWF"; fxRate: number | null } {
+  if (currency === "RWF") return { amount, currency: "RWF", fxRate: null };
   const converted = usdToRwfAmount(amount);
-  console.info("[flutterwave/initiate] Currency conversion", {
-    from: `${amount} ${currency}`,
-    to: `${converted} RWF`,
-  });
-  return { amount: converted, currency: "RWF" };
+  const fxRate = amount > 0 ? converted / amount : null;
+  return { amount: converted, currency: "RWF", fxRate };
+}
+
+function safeReturnUrl(
+  requested: string | undefined,
+  origin: string,
+  orderId: string,
+  txRef: string
+): string {
+  const fallback =
+    `${origin}/checkout/success` +
+    `?order=${orderId}&provider=flutterwave&tx_ref=${txRef}`;
+
+  if (!requested) return fallback;
+
+  try {
+    const parsed = new URL(requested);
+    if (!ALLOWED_RETURN_HOSTS.has(parsed.hostname)) return fallback;
+    parsed.searchParams.set("order", orderId);
+    parsed.searchParams.set("provider", "flutterwave");
+    parsed.searchParams.set("tx_ref", txRef);
+    return parsed.toString();
+  } catch {
+    return fallback;
+  }
+}
+
+async function buildAndReturnPaymentLink({
+  supabase,
+  req,
+  returnUrl,
+  orderId,
+  txRef,
+  amount,
+  currency,
+  profile,
+  order,
+  channel,
+}: {
+  supabase: ReturnType<typeof getSupabase>;
+  req: NextRequest;
+  returnUrl: string | undefined;
+  orderId: string;
+  txRef: string;
+  amount: number;
+  currency: "RWF";
+  profile: ProfileRow;
+  order: { order_number: string | null };
+  channel: string;
+}) {
+  const origin =
+    req.headers.get("origin") ??
+    process.env.NEXT_PUBLIC_APP_URL ??
+    "https://www.jimvio.com";
+
+  const redirectUrl = safeReturnUrl(returnUrl, origin, orderId, txRef);
+
+  let paymentLink: string;
+  try {
+    paymentLink = await createFlutterwavePaymentLink({
+      txRef,
+      amount,
+      currency,
+      redirectUrl,
+      customerEmail: profile.email!,
+      customerName: profile.full_name ?? "Customer",
+      customerPhone: profile.phone ?? "",
+      orderDescription: `Order ${order.order_number ?? orderId.slice(0, 8)}`,
+      paymentOptions: "card,applepay,googlepay,mobilemoneyrwanda",
+      channel: "sms",
+    });
+  } catch (linkErr) {
+    const reason = linkErr instanceof Error ? linkErr.message : String(linkErr);
+    await supabase
+      .from("transactions")
+      .update({ status: "failed" })
+      .eq("provider_transaction_id", txRef)
+      .eq("provider", "flutterwave");
+    return { error: apiError(502, { code: "PAYMENT_LINK_FAILED", reason }) };
+  }
+
+  return { paymentLink, redirectUrl: paymentLink, txRef };
 }
 
 // ─── Route handler ────────────────────────────────────────────────────────────
+
 export async function POST(req: NextRequest) {
   let body: z.infer<typeof RequestSchema>;
   try {
@@ -86,23 +179,15 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  const { orderId, channel } = body;
+  const { orderId, channel, returnUrl } = body;
 
   try {
     const supabase = getSupabase();
 
-    // 1. Fetch order + buyer profile
+    // ── 1. Fetch order + buyer profile ────────────────────────────────────
     const { data: order, error: fetchError } = await supabase
       .from("orders")
-      .select(
-        `id,
-         order_number,
-         buyer_id,
-         total_amount,
-         currency,
-         payment_status,
-         profiles (full_name, email, phone)`
-      )
+      .select(`id, order_number, buyer_id, total_amount, currency, payment_status, profiles (full_name, email, phone)`)
       .eq("id", orderId)
       .single();
 
@@ -110,144 +195,113 @@ export async function POST(req: NextRequest) {
       return apiError(404, { code: "ORDER_NOT_FOUND" });
     }
 
-    // 2. Guard: never re-initiate a terminal order
-    const TERMINAL_STATUSES = new Set(["paid", "completed", "refunded"]);
     if (TERMINAL_STATUSES.has(order.payment_status)) {
-      return apiError(400, {
-        code: "ORDER_ALREADY_PAID",
-        currentStatus: order.payment_status,
-      });
+      return apiError(400, { code: "ORDER_ALREADY_PAID", currentStatus: order.payment_status });
     }
 
-    // 3. Guard: buyer must have an email
     const profile = extractProfile(order.profiles as ProfileRow | ProfileRow[] | null);
     if (!profile?.email) {
       return apiError(400, { code: "BUYER_EMAIL_MISSING" });
     }
 
-    // 4. Normalize currency BEFORE anything else
-    const { amount, currency } = normaliseToRwf(
-      Number(order.total_amount),
-      (order.currency ?? "USD").toUpperCase()
-    );
-
-    const isConverted = (order.currency ?? "USD").toUpperCase() !== "RWF";
+    // ── 2. Normalize currency ─────────────────────────────────────────────
+    const orderCurrency = (order.currency ?? "USD").toUpperCase();
+    const { amount, currency, fxRate } = normaliseToRwf(Number(order.total_amount), orderCurrency);
+    const isConverted = orderCurrency !== "RWF";
     const amountUsd = isConverted ? Number(order.total_amount) : null;
-    const exchangeRate = isConverted ? amount / Number(order.total_amount) : null;
 
-    // 5. Idempotency — reuse existing pending transaction if any
+    // ── 3. Check for a reusable pending transaction ───────────────────────
+    const cutoff = new Date(Date.now() - PENDING_TX_REUSE_WINDOW_MS).toISOString();
+
     const { data: existingTx } = await supabase
       .from("transactions")
-      .select("id, provider_transaction_id")
+      .select("id, provider_transaction_id, created_at, amount")
       .eq("order_id", orderId)
       .eq("provider", "flutterwave")
       .eq("status", "pending")
+      .gte("created_at", cutoff)
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
 
-    const txRef: string =
-      existingTx?.provider_transaction_id ??
-      generateTxRef("FLW");
+    let txRef: string;
 
-    const isReused = !!existingTx;
+    if (existingTx) {
+      // Verify the transaction status with Flutterwave before reusing it.
+      const verify = await verifyFlutterwaveTransaction(existingTx.provider_transaction_id);
+      const flwStatus = verify.data?.status;
 
-    // ─────────────────────────────────────────────────────────
-    if (!isReused) {
-      const { error: txError } = await supabase
-        .from("transactions")
-        .insert({
-          user_id: order.buyer_id,
-          order_id: orderId,
-          type: "payment",
-          direction: "credit",
-          amount,
-          currency,
-          amount_usd: amountUsd,
-          exchange_rate: exchangeRate,
-          status: "pending",
-          provider: "flutterwave",
-          provider_transaction_id: txRef,
-          description: `Order ${order.order_number}`,
-          metadata: {
-            channel,
-            initiated_at: new Date().toISOString(),
-          },
-        });
+      if (flwStatus === "successful") {
 
-      if (txError) {
-        // 23505 = unique_violation — concurrent request already inserted
-        if (txError.code !== "23505") {
-          console.error("[flutterwave/initiate] Failed to create transaction", {
-            reason: txError.message,
-            orderId,
-            txRef,
-          });
-          // ⛔ Stop here — don't create payment link without a transaction record
-          return apiError(500, { code: "INTERNAL_ERROR", reason: txError.message });
-        }
-        console.warn("[flutterwave/initiate] Concurrent insert race — continuing", {
-          orderId,
-          txRef,
-        });
+        await supabase
+          .from("transactions")
+          .update({ status: "completed" })
+          .eq("id", existingTx.id);
+        return apiError(400, { code: "ORDER_ALREADY_PAID", currentStatus: "paid" });
       }
-    }
 
-    // ─────────────────────────────────────────────────────────
-    // 7. Save txRef to orders so webhook can find it directly
-    // ─────────────────────────────────────────────────────────
-    await supabase
-      .from("orders")
-      .update({
-        flutterwave_tx_ref: txRef,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", orderId);
+      if (flwStatus === "failed" || verify.status === "failed") {
+        await supabase
+          .from("transactions")
+          .update({ status: "failed" })
+          .eq("id", existingTx.id);
 
-    // ─────────────────────────────────────────────────────────
-    // 8. NOW create the payment link — transaction is already saved
-    // ─────────────────────────────────────────────────────────
-    const origin =
-      req.headers.get("origin") ??
-      process.env.NEXT_PUBLIC_APP_URL ??
-      "https://www.jimvio.com";
+        // Fall through to create a new transaction below.
+        txRef = generateTxRef("FLW");
+      } else {
+        // Still genuinely pending — reuse the existing txRef and regenerate
+        // the payment link so the customer can try again.
+        txRef = existingTx.provider_transaction_id;
 
-    const redirectUrl =
-      `${origin}/checkout/success` +
-      `?order=${orderId}&provider=flutterwave&tx_ref=${txRef}`;
-
-    let paymentLink: string;
-    try {
-      paymentLink = await createFlutterwavePaymentLink({
-        txRef,
-        amount,
-        currency,
-        redirectUrl,
-        customerEmail: profile.email,
-        customerName: profile.full_name ?? "Customer",
-        customerPhone: profile.phone ?? "",
-        orderDescription: `Order ${order.order_number ?? orderId.slice(0, 8)}`,
-        paymentOptions: "card,applepay,googlepay,mobilemoneyrwanda",
-        channel,
-      });
-    } catch (linkErr) {
-      const reason = linkErr instanceof Error ? linkErr.message : String(linkErr);
-      console.error("[flutterwave/initiate] Payment link creation failed", {
-        reason,
-        orderId,
-      });
-
-      // 9. Roll back — mark transaction as failed so it's not reused
+        const result = await buildAndReturnPaymentLink({
+          supabase, req, returnUrl, orderId, txRef, amount, currency, profile, order, channel,
+        });
+        if (result.error) return result.error;
+        return NextResponse.json({ redirectUrl: result.redirectUrl, txRef });
+      }
+    } else {
+      // No recent pending TX — mark any stale ones failed and generate fresh.
       await supabase
         .from("transactions")
         .update({ status: "failed" })
-        .eq("provider_transaction_id", txRef)
-        .eq("provider", "flutterwave");
+        .eq("order_id", orderId)
+        .eq("provider", "flutterwave")
+        .eq("status", "pending")
+        .lt("created_at", cutoff);
 
-      return apiError(502, { code: "PAYMENT_LINK_FAILED", reason });
+      txRef = generateTxRef("FLW");
     }
 
-    return NextResponse.json({ redirectUrl: paymentLink, txRef });
+    const { error: txError } = await supabase.from("transactions").insert({
+      user_id: order.buyer_id,
+      order_id: orderId,
+      type: "payment",
+      direction: "credit",
+      amount,
+      currency,
+      amount_usd: amountUsd,
+      exchange_rate: fxRate,
+      status: "pending",
+      provider: "flutterwave",
+      provider_transaction_id: txRef,
+      description: `Order ${order.order_number}`,
+      metadata: {
+        channel,
+        initiated_at: new Date().toISOString(),
+        original_currency: orderCurrency,
+        original_amount: Number(order.total_amount),
+      },
+    });
+
+    if (txError && txError.code !== "23505") {
+      return apiError(500, { code: "INTERNAL_ERROR", reason: txError.message });
+    }
+
+    const result = await buildAndReturnPaymentLink({
+      supabase, req, returnUrl, orderId, txRef, amount, currency, profile, order, channel,
+    });
+    if (result.error) return result.error;
+    return NextResponse.json({ redirectUrl: result.redirectUrl, txRef });
 
   } catch (err) {
     const reason = err instanceof Error ? err.message : String(err);

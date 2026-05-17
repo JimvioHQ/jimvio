@@ -1,12 +1,12 @@
-// // components/admin/products-table.tsx
+
 // "use client";
 
 // import React, { useState } from "react";
+// import Link from "next/link";
 // import { MoveProductDialog } from "@/components/admin/MoveProductDialog";
 // import { formatCurrency } from "@/lib/utils";
-// import Link from "next/link";
 
-// // ─── Icons ───────────────────────────────────────────────────────────────────
+// // ─── Icons ────────────────────────────────────────────────────────────────────
 // function PackageIcon({ size = 14 }: { size?: number }) {
 //     return (
 //         <svg width={size} height={size} viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -55,8 +55,17 @@
 // }
 // function ChevronSortIcon({ dir = "down" }: { dir?: "up" | "down" }) {
 //     return (
-//         <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true" style={{ transform: dir === "up" ? "rotate(180deg)" : undefined }}>
+//         <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"
+//             style={{ transform: dir === "up" ? "rotate(180deg)" : undefined }}>
 //             <path d="M2 4L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+//         </svg>
+//     );
+// }
+// function MoveIcon() {
+//     return (
+//         <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
+//             <path d="M2 6.5H11M8 3.5L11 6.5L8 9.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+//             <path d="M5 3.5L2 6.5L5 9.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
 //         </svg>
 //     );
 // }
@@ -72,24 +81,26 @@
 // function StatusBadge({ status }: { status?: string }) {
 //     const cfg = STATUS_CONFIG[status ?? "draft"] ?? STATUS_CONFIG.draft;
 //     return (
-//         <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 8px", borderRadius: 999, background: cfg.bg, color: cfg.text, fontSize: 11, fontWeight: 600 }}>
+//         <span style={{
+//             display: "inline-flex", alignItems: "center", gap: 5,
+//             padding: "3px 8px", borderRadius: 999,
+//             background: cfg.bg, color: cfg.text,
+//             fontSize: 11, fontWeight: 600,
+//         }}>
 //             <span style={{ width: 6, height: 6, borderRadius: "50%", background: cfg.dot, flexShrink: 0 }} />
 //             {cfg.label}
 //         </span>
 //     );
 // }
 
+// // ─── Product thumbnail ────────────────────────────────────────────────────────
 // function parseImages(raw: unknown): string[] {
 //     if (!raw) return [];
-//     if (Array.isArray(raw)) {
-//         return raw.filter((item): item is string => typeof item === "string" && item.length > 0);
-//     }
+//     if (Array.isArray(raw)) return raw.filter((x): x is string => typeof x === "string" && x.startsWith("http"));
 //     if (typeof raw === "string") {
 //         try {
 //             const parsed = JSON.parse(raw);
-//             if (Array.isArray(parsed)) {
-//                 return parsed.filter((item): item is string => typeof item === "string" && item.length > 0);
-//             }
+//             if (Array.isArray(parsed)) return parsed.filter((x): x is string => typeof x === "string" && x.startsWith("http"));
 //         } catch {
 //             if (raw.startsWith("http")) return [raw];
 //         }
@@ -101,7 +112,6 @@
 //     const [failed, setFailed] = useState(false);
 //     const urls = parseImages(images);
 //     const src = urls[0] ?? null;
-
 //     return (
 //         <div style={{
 //             width: 36, height: 36, borderRadius: 8, flexShrink: 0, overflow: "hidden",
@@ -110,12 +120,8 @@
 //             color: "rgba(253,80,0,0.35)",
 //         }}>
 //             {src && !failed ? (
-//                 <img
-//                     src={src}
-//                     alt={name}
-//                     onError={() => setFailed(true)}
-//                     style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-//                 />
+//                 <img src={src} alt={name} onError={() => setFailed(true)}
+//                     style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
 //             ) : (
 //                 <PackageIcon size={16} />
 //             )}
@@ -123,36 +129,23 @@
 //     );
 // }
 
-// // ─── Vendor avatar with profile image ────────────────────────────────────────
+// // ─── Vendor avatar ────────────────────────────────────────────────────────────
 // function VendorAvatar({ name, avatarUrl }: { name?: string; avatarUrl?: string }) {
 //     const [failed, setFailed] = useState(false);
 //     const initial = name?.charAt(0)?.toUpperCase() ?? "?";
-
 //     if (avatarUrl && !failed) {
 //         return (
-//             <img
-//                 src={avatarUrl}
-//                 alt={name ?? "Vendor"}
-//                 onError={() => setFailed(true)}
-//                 style={{
-//                     width: 22, height: 22, borderRadius: "50%",
-//                     objectFit: "cover", flexShrink: 0,
-//                     border: "0.5px solid var(--color-border)",
-//                     display: "block",
-//                 }}
-//             />
+//             <img src={avatarUrl} alt={name ?? "Vendor"} onError={() => setFailed(true)}
+//                 style={{ width: 22, height: 22, borderRadius: "50%", objectFit: "cover", flexShrink: 0, border: "0.5px solid var(--color-border)", display: "block" }} />
 //         );
 //     }
-
 //     return (
 //         <span style={{
 //             width: 22, height: 22, borderRadius: "50%",
 //             background: "var(--color-surface, #f0f0ee)",
 //             border: "0.5px solid var(--color-border)",
 //             display: "inline-flex", alignItems: "center", justifyContent: "center",
-//             fontSize: 9, fontWeight: 700,
-//             color: "var(--color-text-secondary)",
-//             flexShrink: 0,
+//             fontSize: 9, fontWeight: 700, color: "var(--color-text-secondary)", flexShrink: 0,
 //         }}>
 //             {initial}
 //         </span>
@@ -165,9 +158,7 @@
 // }) {
 //     const [hovered, setHovered] = useState(false);
 //     return (
-//         <Link
-//             href={href}
-//             title={title}
+//         <Link href={href} title={title}
 //             target={external ? "_blank" : undefined}
 //             rel={external ? "noopener noreferrer" : undefined}
 //             onMouseEnter={() => setHovered(true)}
@@ -177,8 +168,7 @@
 //                 display: "inline-flex", alignItems: "center", justifyContent: "center",
 //                 border: `0.5px solid ${hovered ? "var(--color-accent, #fd5000)" : "var(--color-border)"}`,
 //                 color: hovered ? "var(--color-accent, #fd5000)" : "var(--color-text-muted, #888)",
-//                 textDecoration: "none",
-//                 background: "var(--color-surface, #f8f8f7)",
+//                 textDecoration: "none", background: "var(--color-surface, #f8f8f7)",
 //                 transition: "border-color 150ms, color 150ms",
 //             }}
 //         >
@@ -187,8 +177,105 @@
 //     );
 // }
 
+// // ─── Checkbox ────────────────────────────────────────────────────────────────
+// function Checkbox({ checked, indeterminate, onChange }: {
+//     checked: boolean; indeterminate?: boolean; onChange: () => void;
+// }) {
+//     const ref = React.useRef<HTMLInputElement>(null);
+//     React.useEffect(() => {
+//         if (ref.current) ref.current.indeterminate = !!indeterminate;
+//     }, [indeterminate]);
+//     return (
+//         <input
+//             ref={ref}
+//             type="checkbox"
+//             checked={checked}
+//             onChange={onChange}
+//             onClick={(e) => e.stopPropagation()}
+//             style={{
+//                 width: 15, height: 15, cursor: "pointer",
+//                 accentColor: "var(--color-accent, #fd5000)",
+//                 borderRadius: 3, flexShrink: 0,
+//             }}
+//         />
+//     );
+// }
+
+// // ─── Bulk action bar ──────────────────────────────────────────────────────────
+// function BulkActionBar({ selectedIds, onClear, onMoveSuccess }: {
+//     selectedIds: string[];
+//     onClear: () => void;
+//     onMoveSuccess: () => void;
+// }) {
+//     if (selectedIds.length === 0) return null;
+//     return (
+//         <div style={{
+//             display: "flex", alignItems: "center", justifyContent: "space-between",
+//             padding: "10px 16px", gap: 12,
+//             background: "var(--color-accent, #fd5000)",
+//             color: "#fff",
+//             borderRadius: "12px 12px 0 0",
+//         }}>
+//             {/* Count */}
+//             <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 600 }}>
+//                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+//                     <rect x="2" y="2" width="12" height="12" rx="3" stroke="#fff" strokeWidth="1.3" />
+//                     <polyline points="5,8 7,10 11,6" stroke="#fff" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+//                 </svg>
+//                 <span>
+//                     <strong>{selectedIds.length}</strong> product{selectedIds.length !== 1 ? "s" : ""} selected
+//                 </span>
+//             </div>
+
+//             {/* Actions */}
+//             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+//                 {/* Bulk move */}
+//                 <MoveProductDialog
+//                     productIds={selectedIds}
+//                     currentVendorName="Various vendors"
+//                     onSuccess={onMoveSuccess}
+//                     trigger={
+//                         <button
+//                             style={{
+//                                 height: 30, padding: "0 12px", borderRadius: 6,
+//                                 background: "rgba(255,255,255,0.2)",
+//                                 border: "0.5px solid rgba(255,255,255,0.35)",
+//                                 color: "#fff", fontSize: 12, fontWeight: 700,
+//                                 display: "inline-flex", alignItems: "center", gap: 5,
+//                                 cursor: "pointer", transition: "background 150ms",
+//                             }}
+//                             onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.3)")}
+//                             onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.2)")}
+//                         >
+//                             <MoveIcon /> Move all to vendor
+//                         </button>
+//                     }
+//                 />
+
+//                 {/* Clear */}
+//                 <button
+//                     onClick={onClear}
+//                     style={{
+//                         height: 30, padding: "0 10px", borderRadius: 6,
+//                         background: "rgba(255,255,255,0.15)",
+//                         border: "0.5px solid rgba(255,255,255,0.25)",
+//                         color: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer",
+//                         transition: "background 150ms",
+//                     }}
+//                     onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.25)")}
+//                     onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.15)")}
+//                 >
+//                     Clear
+//                 </button>
+//             </div>
+//         </div>
+//     );
+// }
+
 // // ─── Table row ────────────────────────────────────────────────────────────────
-// function TableRow({ p }: { p: any }) {
+// function TableRow({ p, selected, onSelect }: {
+//     p: any; selected: boolean; onSelect: (id: string) => void;
+// }) {
 //     const [hovered, setHovered] = useState(false);
 //     return (
 //         <tr
@@ -196,26 +283,33 @@
 //             onMouseLeave={() => setHovered(false)}
 //             style={{
 //                 borderBottom: "0.5px solid var(--color-border)",
-//                 background: hovered ? "var(--color-surface, #f8f8f7)" : "transparent",
+//                 background: selected
+//                     ? "rgba(253,80,0,0.03)"
+//                     : hovered ? "var(--color-surface, #f8f8f7)" : "transparent",
 //                 transition: "background 150ms",
 //             }}
 //         >
+//             {/* Checkbox */}
+//             <td style={{ padding: "11px 8px 11px 16px", width: 36 }}>
+//                 <Checkbox checked={selected} onChange={() => onSelect(p.id)} />
+//             </td>
+
 //             {/* Product */}
-//             <td style={{ padding: "11px 16px" }}>
+//             <td style={{ padding: "11px 16px 11px 8px" }}>
 //                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
 //                     <ProductThumb images={p.images} name={p.name} />
 //                     <div style={{ minWidth: 0 }}>
 //                         <p style={{ fontWeight: 600, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 180, color: "var(--color-text-primary)", fontSize: 13 }}>
 //                             {p.name}
 //                         </p>
-//                         <p className="font-mono truncate w-24 " style={{ fontSize: 11, color: "var(--color-text-muted, #888)", margin: 0 }}>
+//                         <p className="w-48 truncate" style={{ fontSize: 11, color: "var(--color-text-muted, #888)", margin: 0 }}>
 //                             {p.slug}
 //                         </p>
 //                     </div>
 //                 </div>
 //             </td>
 
-//             {/* Vendor — shows avatar_url if available */}
+//             {/* Vendor */}
 //             <td style={{ padding: "11px 16px", color: "var(--color-text-secondary)", whiteSpace: "nowrap", fontSize: 13 }}>
 //                 {p.vendor_name ? (
 //                     <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
@@ -294,9 +388,10 @@
 // function EmptyState({ query }: { query?: string }) {
 //     return (
 //         <tr>
-//             <td colSpan={8}>
+//             <td colSpan={9}>
 //                 <div style={{ padding: "48px 24px", textAlign: "center" }}>
-//                     <svg width="48" height="48" viewBox="0 0 48 48" fill="none" aria-hidden="true" style={{ margin: "0 auto 12px", display: "block" }}>
+//                     <svg width="48" height="48" viewBox="0 0 48 48" fill="none" aria-hidden="true"
+//                         style={{ margin: "0 auto 12px", display: "block" }}>
 //                         <rect x="4" y="10" width="40" height="30" rx="4" stroke="var(--color-border)" strokeWidth="1.5" fill="var(--color-surface, #f8f8f7)" />
 //                         <path d="M4 18H44" stroke="var(--color-border)" strokeWidth="1.5" />
 //                         <circle cx="24" cy="32" r="6" stroke="var(--color-text-muted, #aaa)" strokeWidth="1.2" fill="none" />
@@ -318,9 +413,7 @@
 // const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
 // function Pagination({ page, pageSize, total, onPageChange, onPageSizeChange }: {
-//     page: number;
-//     pageSize: number;
-//     total: number;
+//     page: number; pageSize: number; total: number;
 //     onPageChange: (p: number) => void;
 //     onPageSizeChange: (s: number) => void;
 // }) {
@@ -328,7 +421,6 @@
 //     const from = total === 0 ? 0 : (page - 1) * pageSize + 1;
 //     const to = Math.min(page * pageSize, total);
 
-//     // Build visible page numbers: always show first, last, current ±1, with ellipsis
 //     function getPages(): (number | "…")[] {
 //         if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i + 1);
 //         const pages: (number | "…")[] = [1];
@@ -355,12 +447,10 @@
 //             padding: "12px 16px",
 //             borderTop: "0.5px solid var(--color-border)",
 //             display: "flex", alignItems: "center",
-//             justifyContent: "space-between", flexWrap: "wrap",
-//             gap: 10,
+//             justifyContent: "space-between", flexWrap: "wrap", gap: 10,
 //             background: "var(--color-surface, #f8f8f7)",
 //         }}>
-
-//             {/* Left: count + page size selector */}
+//             {/* Left */}
 //             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
 //                 <p style={{ fontSize: 12, color: "var(--color-text-muted, #888)", margin: 0, whiteSpace: "nowrap" }}>
 //                     {total === 0 ? "No results" : `${from}–${to} of ${total}`}
@@ -377,9 +467,8 @@
 //                 </div>
 //             </div>
 
-//             {/* Right: page buttons */}
+//             {/* Right */}
 //             <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-//                 {/* Prev */}
 //                 <button
 //                     onClick={() => onPageChange(page - 1)}
 //                     disabled={page === 1}
@@ -390,7 +479,7 @@
 
 //                 {getPages().map((p, i) =>
 //                     p === "…" ? (
-//                         <span key={`ellipsis-${i}`} style={{ width: 32, textAlign: "center", fontSize: 13, color: "var(--color-text-muted, #aaa)" }}>…</span>
+//                         <span key={`ell-${i}`} style={{ width: 32, textAlign: "center", fontSize: 13, color: "var(--color-text-muted, #aaa)" }}>…</span>
 //                     ) : (
 //                         <button
 //                             key={p}
@@ -408,7 +497,6 @@
 //                     )
 //                 )}
 
-//                 {/* Next */}
 //                 <button
 //                     onClick={() => onPageChange(page + 1)}
 //                     disabled={page === totalPages}
@@ -431,11 +519,41 @@
 // }) {
 //     const [page, setPage] = useState(1);
 //     const [pageSize, setPageSize] = useState(25);
+//     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
-//     // Reset to page 1 whenever the dataset changes (filter/sort)
+//     // Reset page on dataset change
 //     React.useEffect(() => { setPage(1); }, [products.length, sort, order]);
+//     // Clear selection when products change (filter / sort applied)
+//     React.useEffect(() => { setSelectedIds(new Set()); }, [products]);
 
 //     const paginated = products.slice((page - 1) * pageSize, page * pageSize);
+//     const pageIds = paginated.map((p) => p.id);
+//     const allSelected = pageIds.length > 0 && pageIds.every((id) => selectedIds.has(id));
+//     const someSelected = pageIds.some((id) => selectedIds.has(id));
+
+//     function toggleOne(id: string) {
+//         setSelectedIds((prev) => {
+//             const next = new Set(prev);
+//             next.has(id) ? next.delete(id) : next.add(id);
+//             return next;
+//         });
+//     }
+
+//     function toggleAll() {
+//         setSelectedIds((prev) => {
+//             const next = new Set(prev);
+//             if (allSelected) {
+//                 pageIds.forEach((id) => next.delete(id));
+//             } else {
+//                 pageIds.forEach((id) => next.add(id));
+//             }
+//             return next;
+//         });
+//     }
+
+//     function clearSelection() { setSelectedIds(new Set()); }
+
+//     const hasBulk = selectedIds.size > 0;
 
 //     const thStyle: React.CSSProperties = {
 //         padding: "10px 16px", textAlign: "left",
@@ -463,49 +581,81 @@
 //     }
 
 //     return (
-//         <div style={{ background: "var(--color-bg, #fff)", border: "0.5px solid var(--color-border)", borderRadius: 12, overflow: "hidden" }}>
-//             <div style={{ overflowX: "auto" }}>
-//                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-//                     <thead>
-//                         <tr style={{ borderBottom: "0.5px solid var(--color-border)", background: "var(--color-surface, #f8f8f7)" }}>
-//                             <th style={thStyle}><SortLink col="name">Product</SortLink></th>
-//                             <th style={thStyle}>Vendor</th>
-//                             <th style={thStyle}><SortLink col="price">Price</SortLink></th>
-//                             <th style={thStyle}><SortLink col="status">Status</SortLink></th>
-//                             <th style={thStyle}>Type</th>
-//                             <th style={thStyle}>Featured</th>
-//                             <th style={thStyle}>Affiliate</th>
-//                             <th style={{ ...thStyle, textAlign: "right" }}>Actions</th>
-//                         </tr>
-//                     </thead>
-//                     <tbody>
-//                         {paginated.length === 0
-//                             ? <EmptyState query={query} />
-//                             : paginated.map((p: any) => <TableRow key={p.id} p={p} />)
-//                         }
-//                     </tbody>
-//                 </table>
-//             </div>
-
-//             <Pagination
-//                 page={page}
-//                 pageSize={pageSize}
-//                 total={products.length}
-//                 onPageChange={setPage}
-//                 onPageSizeChange={setPageSize}
+//         <div>
+//             {/* Bulk action bar — renders above table when rows selected */}
+//             <BulkActionBar
+//                 selectedIds={[...selectedIds]}
+//                 onClear={clearSelection}
+//                 onMoveSuccess={clearSelection}
 //             />
+
+//             <div style={{
+//                 background: "var(--color-bg, #fff)",
+//                 border: "0.5px solid var(--color-border)",
+//                 // Seamlessly connect to bulk bar when active
+//                 borderRadius: hasBulk ? "0 0 12px 12px" : 12,
+//                 overflow: "hidden",
+//                 // Subtle top border accent when bulk bar is showing
+//                 borderTop: hasBulk ? "none" : "0.5px solid var(--color-border)",
+//             }}>
+//                 <div style={{ overflowX: "auto" }}>
+//                     <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+//                         <thead>
+//                             <tr style={{ borderBottom: "0.5px solid var(--color-border)", background: "var(--color-surface, #f8f8f7)" }}>
+//                                 {/* Select-all */}
+//                                 <th style={{ ...thStyle, padding: "10px 8px 10px 16px", width: 36 }}>
+//                                     <Checkbox
+//                                         checked={allSelected}
+//                                         indeterminate={someSelected && !allSelected}
+//                                         onChange={toggleAll}
+//                                     />
+//                                 </th>
+//                                 <th style={{ ...thStyle, paddingLeft: 8 }}><SortLink col="name">Product</SortLink></th>
+//                                 <th style={thStyle}>Vendor</th>
+//                                 <th style={thStyle}><SortLink col="price">Price</SortLink></th>
+//                                 <th style={thStyle}><SortLink col="status">Status</SortLink></th>
+//                                 <th style={thStyle}>Type</th>
+//                                 <th style={thStyle}>Featured</th>
+//                                 <th style={thStyle}>Affiliate</th>
+//                                 <th style={{ ...thStyle, textAlign: "right" }}>Actions</th>
+//                             </tr>
+//                         </thead>
+//                         <tbody>
+//                             {paginated.length === 0
+//                                 ? <EmptyState query={query} />
+//                                 : paginated.map((p) => (
+//                                     <TableRow
+//                                         key={p.id}
+//                                         p={p}
+//                                         selected={selectedIds.has(p.id)}
+//                                         onSelect={toggleOne}
+//                                     />
+//                                 ))
+//                             }
+//                         </tbody>
+//                     </table>
+//                 </div>
+
+//                 <Pagination
+//                     page={page}
+//                     pageSize={pageSize}
+//                     total={products.length}
+//                     onPageChange={setPage}
+//                     onPageSizeChange={(s) => { setPageSize(s); setPage(1); }}
+//                 />
+//             </div>
 //         </div>
 //     );
 // }
 
 // components/admin/products-table.tsx
-
 "use client";
 
 import React, { useState } from "react";
 import Link from "next/link";
 import { MoveProductDialog } from "@/components/admin/MoveProductDialog";
 import { formatCurrency } from "@/lib/utils";
+import { Edit2, SquarePen } from "lucide-react";
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 function PackageIcon({ size = 14 }: { size?: number }) {
@@ -567,6 +717,14 @@ function MoveIcon() {
         <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
             <path d="M2 6.5H11M8 3.5L11 6.5L8 9.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
             <path d="M5 3.5L2 6.5L5 9.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+    );
+}
+function TrashIcon({ size = 13 }: { size?: number }) {
+    return (
+        <svg width={size} height={size} viewBox="0 0 13 13" fill="none" aria-hidden="true">
+            <path d="M2 3.5H11M4.5 3.5V2.5C4.5 2.2 4.7 2 5 2H8C8.3 2 8.5 2.2 8.5 2.5V3.5M5.5 6V9.5M7.5 6V9.5M3 3.5L3.5 10.5C3.5 10.8 3.7 11 4 11H9C9.3 11 9.5 10.8 9.5 10.5L10 3.5"
+                stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
     );
 }
@@ -653,7 +811,7 @@ function VendorAvatar({ name, avatarUrl }: { name?: string; avatarUrl?: string }
     );
 }
 
-// ─── Action button ────────────────────────────────────────────────────────────
+// ─── Action button (link) ─────────────────────────────────────────────────────
 function ActionButton({ href, title, children, external }: {
     href: string; title: string; children: React.ReactNode; external?: boolean;
 }) {
@@ -675,6 +833,30 @@ function ActionButton({ href, title, children, external }: {
         >
             {children}
         </Link>
+    );
+}
+
+// ─── Delete action button ─────────────────────────────────────────────────────
+function DeleteButton({ onClick }: { onClick: () => void }) {
+    const [hovered, setHovered] = useState(false);
+    return (
+        <button
+            onClick={onClick}
+            title="Delete product"
+            onMouseEnter={() => setHovered(true)}
+            onMouseLeave={() => setHovered(false)}
+            style={{
+                width: 30, height: 30, borderRadius: 6,
+                display: "inline-flex", alignItems: "center", justifyContent: "center",
+                border: `0.5px solid ${hovered ? "rgba(239,68,68,0.5)" : "var(--color-border)"}`,
+                color: hovered ? "#ef4444" : "var(--color-text-muted, #888)",
+                background: hovered ? "rgba(239,68,68,0.06)" : "var(--color-surface, #f8f8f7)",
+                cursor: "pointer",
+                transition: "border-color 150ms, color 150ms, background 150ms",
+            }}
+        >
+            <TrashIcon />
+        </button>
     );
 }
 
@@ -702,20 +884,151 @@ function Checkbox({ checked, indeterminate, onChange }: {
     );
 }
 
+// ─── Confirm delete dialog ────────────────────────────────────────────────────
+function ConfirmDeleteDialog({
+    open,
+    count,
+    productName,
+    onConfirm,
+    onCancel,
+    loading,
+}: {
+    open: boolean;
+    count: number;
+    productName?: string;
+    onConfirm: () => void;
+    onCancel: () => void;
+    loading: boolean;
+}) {
+    if (!open) return null;
+    const isBulk = count > 1;
+    const label = isBulk ? `${count} products` : `"${productName}"`;
+
+    return (
+        <div
+            onClick={onCancel}
+            style={{
+                position: "fixed", inset: 0, zIndex: 50,
+                background: "rgba(0,0,0,0.35)", backdropFilter: "blur(2px)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+            }}
+        >
+            <div
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                    background: "var(--color-bg, #fff)",
+                    border: "0.5px solid var(--color-border)",
+                    borderRadius: 14, padding: "28px 28px 22px",
+                    width: 360, maxWidth: "90vw",
+                    boxShadow: "0 8px 32px rgba(0,0,0,0.12)",
+                }}
+            >
+                {/* Icon */}
+                <div style={{
+                    width: 44, height: 44, borderRadius: 12,
+                    background: "rgba(239,68,68,0.08)",
+                    border: "0.5px solid rgba(239,68,68,0.2)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    marginBottom: 16, color: "#ef4444",
+                }}>
+                    <TrashIcon size={20} />
+                </div>
+
+                <p style={{ fontWeight: 700, fontSize: 15, margin: "0 0 6px", color: "var(--color-text-primary)" }}>
+                    Delete {label}?
+                </p>
+                <p style={{ fontSize: 13, color: "var(--color-text-muted, #888)", margin: "0 0 22px", lineHeight: 1.5 }}>
+                    {isBulk
+                        ? `You're about to permanently delete ${count} products. This cannot be undone.`
+                        : `You're about to permanently delete this product. This cannot be undone.`
+                    }
+                </p>
+
+                <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+                    <button
+                        onClick={onCancel}
+                        disabled={loading}
+                        style={{
+                            height: 34, padding: "0 16px", borderRadius: 7,
+                            border: "0.5px solid var(--color-border)",
+                            background: "var(--color-surface, #f8f8f7)",
+                            color: "var(--color-text-secondary)",
+                            fontSize: 13, fontWeight: 600,
+                            cursor: loading ? "not-allowed" : "pointer",
+                            opacity: loading ? 0.6 : 1,
+                        }}
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        onClick={onConfirm}
+                        disabled={loading}
+                        style={{
+                            height: 34, padding: "0 16px", borderRadius: 7,
+                            border: "none",
+                            background: loading ? "rgba(239,68,68,0.5)" : "#ef4444",
+                            color: "#fff",
+                            fontSize: 13, fontWeight: 700,
+                            cursor: loading ? "not-allowed" : "pointer",
+                            display: "inline-flex", alignItems: "center", gap: 6,
+                            transition: "background 150ms",
+                        }}
+                    >
+                        {loading ? (
+                            <>
+                                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"
+                                    style={{ animation: "pt-spin 0.7s linear infinite" }}>
+                                    <circle cx="6" cy="6" r="4.5" stroke="rgba(255,255,255,0.35)" strokeWidth="1.5" />
+                                    <path d="M6 1.5A4.5 4.5 0 0 1 10.5 6" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" />
+                                </svg>
+                                Deleting…
+                            </>
+                        ) : (
+                            <>
+                                <TrashIcon size={12} /> Delete
+                            </>
+                        )}
+                    </button>
+                </div>
+            </div>
+            <style>{`@keyframes pt-spin { to { transform: rotate(360deg); } }`}</style>
+        </div>
+    );
+}
+
 // ─── Bulk action bar ──────────────────────────────────────────────────────────
-function BulkActionBar({ selectedIds, onClear, onMoveSuccess }: {
+function BulkActionBar({ selectedIds, onClear, onMoveSuccess, onDeleteRequest }: {
     selectedIds: string[];
     onClear: () => void;
     onMoveSuccess: () => void;
+    onDeleteRequest: () => void;
 }) {
     if (selectedIds.length === 0) return null;
+
+    const ghostBtn: React.CSSProperties = {
+        height: 30, padding: "0 12px", borderRadius: 6,
+        background: "rgba(255,255,255,0.2)",
+        border: "0.5px solid rgba(255,255,255,0.35)",
+        color: "#fff", fontSize: 12, fontWeight: 700,
+        display: "inline-flex", alignItems: "center", gap: 5,
+        cursor: "pointer", transition: "background 150ms",
+    };
+
+    const dangerBtn: React.CSSProperties = {
+        height: 30, padding: "0 12px", borderRadius: 6,
+        background: "rgba(239,68,68,0.2)",
+        border: "0.5px solid rgba(239,68,68,0.45)",
+        color: "#fff", fontSize: 12, fontWeight: 700,
+        display: "inline-flex", alignItems: "center", gap: 5,
+        cursor: "pointer", transition: "background 150ms",
+    };
+
     return (
         <div style={{
             display: "flex", alignItems: "center", justifyContent: "space-between",
             padding: "10px 16px", gap: 12,
             background: "var(--color-accent, #fd5000)",
-            color: "#fff",
-            borderRadius: "12px 12px 0 0",
+            color: "#fff", borderRadius: "12px 12px 0 0",
         }}>
             {/* Count */}
             <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 600 }}>
@@ -737,14 +1050,7 @@ function BulkActionBar({ selectedIds, onClear, onMoveSuccess }: {
                     onSuccess={onMoveSuccess}
                     trigger={
                         <button
-                            style={{
-                                height: 30, padding: "0 12px", borderRadius: 6,
-                                background: "rgba(255,255,255,0.2)",
-                                border: "0.5px solid rgba(255,255,255,0.35)",
-                                color: "#fff", fontSize: 12, fontWeight: 700,
-                                display: "inline-flex", alignItems: "center", gap: 5,
-                                cursor: "pointer", transition: "background 150ms",
-                            }}
+                            style={ghostBtn}
                             onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.3)")}
                             onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.2)")}
                         >
@@ -752,6 +1058,16 @@ function BulkActionBar({ selectedIds, onClear, onMoveSuccess }: {
                         </button>
                     }
                 />
+
+                {/* Bulk delete */}
+                <button
+                    onClick={onDeleteRequest}
+                    style={dangerBtn}
+                    onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(239,68,68,0.35)")}
+                    onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(239,68,68,0.2)")}
+                >
+                    <TrashIcon size={12} /> Delete all
+                </button>
 
                 {/* Clear */}
                 <button
@@ -774,8 +1090,11 @@ function BulkActionBar({ selectedIds, onClear, onMoveSuccess }: {
 }
 
 // ─── Table row ────────────────────────────────────────────────────────────────
-function TableRow({ p, selected, onSelect }: {
-    p: any; selected: boolean; onSelect: (id: string) => void;
+function TableRow({ p, selected, onSelect, onDeleteRequest }: {
+    p: any;
+    selected: boolean;
+    onSelect: (id: string) => void;
+    onDeleteRequest: (id: string, name: string) => void;
 }) {
     const [hovered, setHovered] = useState(false);
     return (
@@ -876,9 +1195,10 @@ function TableRow({ p, selected, onSelect }: {
                         <ExternalLinkIcon />
                     </ActionButton>
                     <ActionButton href={`/admin/products/${p.id}/edit`} title="Edit product">
-                        <EditIcon />
+                        <SquarePen size={14} />
                     </ActionButton>
                     <MoveProductDialog productId={p.id} currentVendorName={p.vendor_name} />
+                    <DeleteButton onClick={() => onDeleteRequest(p.id, p.name)} />
                 </div>
             </td>
         </tr>
@@ -1022,6 +1342,14 @@ export function ProductsTable({ products, total, sort, order, query }: {
     const [pageSize, setPageSize] = useState(25);
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
+    // Delete dialog state
+    const [deleteDialog, setDeleteDialog] = useState<{
+        open: boolean;
+        ids: string[];
+        productName?: string;
+        loading: boolean;
+    }>({ open: false, ids: [], loading: false });
+
     // Reset page on dataset change
     React.useEffect(() => { setPage(1); }, [products.length, sort, order]);
     // Clear selection when products change (filter / sort applied)
@@ -1054,6 +1382,36 @@ export function ProductsTable({ products, total, sort, order, query }: {
 
     function clearSelection() { setSelectedIds(new Set()); }
 
+    // Open delete dialog — single row
+    function requestDeleteOne(id: string, name: string) {
+        setDeleteDialog({ open: true, ids: [id], productName: name, loading: false });
+    }
+
+    // Open delete dialog — bulk
+    function requestDeleteBulk() {
+        setDeleteDialog({ open: true, ids: [...selectedIds], productName: undefined, loading: false });
+    }
+
+    // Execute delete
+    async function confirmDelete() {
+        setDeleteDialog((d) => ({ ...d, loading: true }));
+        try {
+            await fetch("/api/admin/products/bulk-delete", {
+                method: "DELETE",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ ids: deleteDialog.ids }),
+            });
+            setSelectedIds((prev) => {
+                const next = new Set(prev);
+                deleteDialog.ids.forEach((id) => next.delete(id));
+                return next;
+            });
+        } finally {
+            setDeleteDialog({ open: false, ids: [], loading: false });
+            window.location.reload();
+        }
+    }
+
     const hasBulk = selectedIds.size > 0;
 
     const thStyle: React.CSSProperties = {
@@ -1083,20 +1441,29 @@ export function ProductsTable({ products, total, sort, order, query }: {
 
     return (
         <div>
-            {/* Bulk action bar — renders above table when rows selected */}
+            {/* Confirm delete dialog */}
+            <ConfirmDeleteDialog
+                open={deleteDialog.open}
+                count={deleteDialog.ids.length}
+                productName={deleteDialog.productName}
+                onConfirm={confirmDelete}
+                onCancel={() => setDeleteDialog((d) => ({ ...d, open: false }))}
+                loading={deleteDialog.loading}
+            />
+
+            {/* Bulk action bar */}
             <BulkActionBar
                 selectedIds={[...selectedIds]}
                 onClear={clearSelection}
                 onMoveSuccess={clearSelection}
+                onDeleteRequest={requestDeleteBulk}
             />
 
             <div style={{
                 background: "var(--color-bg, #fff)",
                 border: "0.5px solid var(--color-border)",
-                // Seamlessly connect to bulk bar when active
                 borderRadius: hasBulk ? "0 0 12px 12px" : 12,
                 overflow: "hidden",
-                // Subtle top border accent when bulk bar is showing
                 borderTop: hasBulk ? "none" : "0.5px solid var(--color-border)",
             }}>
                 <div style={{ overflowX: "auto" }}>
@@ -1130,6 +1497,7 @@ export function ProductsTable({ products, total, sort, order, query }: {
                                         p={p}
                                         selected={selectedIds.has(p.id)}
                                         onSelect={toggleOne}
+                                        onDeleteRequest={requestDeleteOne}
                                     />
                                 ))
                             }

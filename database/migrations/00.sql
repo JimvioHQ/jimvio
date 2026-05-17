@@ -2910,3 +2910,253 @@ $$;
 
 GRANT EXECUTE ON FUNCTION public.increment_link_clicks(UUID) TO service_role;
 GRANT EXECUTE ON FUNCTION public.increment_affiliate_clicks(UUID) TO service_role;
+
+-- ------------------------------------------------------------
+
+ALTER TABLE public.orders
+  ADD COLUMN IF NOT EXISTS cj_order_id            TEXT,
+  ADD COLUMN IF NOT EXISTS cj_order_num           TEXT,
+  ADD COLUMN IF NOT EXISTS cj_fulfillment_status  TEXT DEFAULT 'unfulfilled',
+  ADD COLUMN IF NOT EXISTS cj_shipping_method     TEXT,           -- buyer's chosen CJ logistic
+  ADD COLUMN IF NOT EXISTS cj_supplier_cost       DECIMAL(14,2),  -- what we paid CJ in USD
+  ADD COLUMN IF NOT EXISTS cj_dispute_id          TEXT;           -- CJ's dispute/return ref
+
+CREATE INDEX IF NOT EXISTS idx_orders_cj_order_id
+  ON public.orders(cj_order_id)
+  WHERE cj_order_id IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_orders_cj_fulfillment
+  ON public.orders(cj_fulfillment_status)
+  WHERE cj_order_id IS NOT NULL;
+
+
+ALTER TABLE public.products
+  ADD COLUMN IF NOT EXISTS cj_last_synced_at TIMESTAMPTZ;
+
+CREATE INDEX IF NOT EXISTS idx_products_cj_needs_resync
+  ON public.products(cj_last_synced_at NULLS FIRST)
+  WHERE source = 'cj' AND status = 'active';
+
+-- ------------------------------------------------------------
+-- 3. Platform-wide CJ credentials in platform_settings
+--    One account for the whole platform. Edge functions read
+--    these via the service role.
+-- ------------------------------------------------------------
+
+COMMIT;
+
+-- ============================================================
+-- JIMVIO — MIGRATION 061
+-- Minimal additions to support CJ dropshipping products
+-- Uses your existing products + product_variants tables
+-- Safe to run — all IF NOT EXISTS
+-- ============================================================
+
+BEGIN;
+
+-- ============================================================
+-- 1. Enhance product_variants
+--    Your existing columns:
+--      id, product_id, name, sku, price, compare_at_price,
+--      inventory_quantity, image_url, options, is_active, created_at
+--
+--    What CJ needs that's missing:
+--      - cj_vid        → to identify variant on CJ (ordering, shipping)
+--      - cj_pid        → to identify parent product on CJ
+--      - weight        → grams, needed for freightCalculateTip
+--      - length/width/height/volume → mm, needed for shipping
+--      - source        → track which system owns this variant
+--      - source_metadata → any extra raw CJ data
+-- ============================================================
+
+ALTER TABLE public.product_variants
+  ADD COLUMN IF NOT EXISTS cj_vid          TEXT UNIQUE,
+  ADD COLUMN IF NOT EXISTS cj_pid          TEXT,
+  ADD COLUMN IF NOT EXISTS weight          DECIMAL(10,2) DEFAULT 0,  -- grams
+  ADD COLUMN IF NOT EXISTS length          INT DEFAULT 0,            -- mm
+  ADD COLUMN IF NOT EXISTS width           INT DEFAULT 0,            -- mm
+  ADD COLUMN IF NOT EXISTS height          INT DEFAULT 0,            -- mm
+  ADD COLUMN IF NOT EXISTS volume          DECIMAL(15,2) DEFAULT 0,  -- mm³
+  ADD COLUMN IF NOT EXISTS source          TEXT NOT NULL DEFAULT 'vendor'
+    CHECK (source IN ('vendor', 'shopify', 'cj')),
+  ADD COLUMN IF NOT EXISTS source_metadata JSONB NOT NULL DEFAULT '{}';
+
+-- Indexes
+CREATE INDEX IF NOT EXISTS idx_product_variants_cj_vid
+  ON public.product_variants(cj_vid)
+  WHERE cj_vid IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_product_variants_cj_pid
+  ON public.product_variants(cj_pid)
+  WHERE cj_pid IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_product_variants_source
+  ON public.product_variants(source);
+
+-- ============================================================
+-- 2. CJ Sync log table
+--    Track every sync run — useful for debugging and monitoring
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS public.cj_sync_logs (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  started_at    TIMESTAMPTZ DEFAULT NOW(),
+  finished_at   TIMESTAMPTZ,
+  total_fetched INT DEFAULT 0,
+  total_saved   INT DEFAULT 0,
+  total_errors  INT DEFAULT 0,
+  status        TEXT DEFAULT 'running'
+    CHECK (status IN ('running', 'success', 'partial', 'failed')),
+  error_message TEXT
+);
+
+ALTER TABLE public.cj_sync_logs ENABLE ROW LEVEL SECURITY;
+
+CREATE INDEX IF NOT EXISTS idx_cj_sync_logs_started_at
+  ON public.cj_sync_logs(started_at DESC);
+
+-- ============================================================
+-- 3. Seed platform_settings with CJ config
+--    Fill in real values after running this migration
+-- ============================================================
+
+INSERT INTO public.platform_settings (key, value)
+VALUES ('cj_credentials', jsonb_build_object(
+  'access_token',     '',
+  'email',            '',
+  'token_expires_at', null
+))
+ON CONFLICT (key) DO NOTHING;
+
+INSERT INTO public.platform_settings (key, value)
+VALUES ('cj_vendor_id', jsonb_build_object(
+  'vendor_id', ''
+))
+ON CONFLICT (key) DO NOTHING;
+
+COMMIT;
+
+
+create table if not exists webhook_subscriptions (
+  id                  uuid primary key default gen_random_uuid(),
+  vendor_id           uuid not null references vendors(id) on delete cascade,
+  product_id          text not null,          -- CJ pid or "*" for wildcard
+  webhook_url         text not null,
+  events              text[] not null default '{}',
+  secret              text,
+  is_active           boolean not null default true,
+  failure_count       int not null default 0,
+  last_triggered_at   timestamptz,
+  last_failure_at     timestamptz,
+  last_failure_reason text,
+  created_at          timestamptz not null default now(),
+  updated_at          timestamptz not null default now()
+);
+
+-- Prevent duplicates (same vendor + product + URL, active only):
+create unique index webhook_subscriptions_active_unique
+  on webhook_subscriptions (vendor_id, product_id, webhook_url)
+  where is_active = true;
+
+-- Speed up fan-out lookups:
+create index webhook_subscriptions_product_active_idx
+  on webhook_subscriptions (product_id, is_active);
+
+-- Row-Level Security: vendors can only see/modify their own rows.
+alter table webhook_subscriptions enable row level security;
+
+create policy "vendor_owns_subscription" on webhook_subscriptions
+  for all using (vendor_id = auth.uid());
+
+
+  -- ============================================================
+-- JIMVIO — MIGRATION 062
+-- Make orders.total_amount account for shipping/tax/discount
+--
+-- Current state:
+--   - tr_update_order_totals fires on order_items changes only
+--   - It computes total_amount = SUM(order_items.total_price)
+--   - shipping_amount / tax_amount / discount_amount are ignored
+--
+-- This migration:
+--   1. Updates the existing trigger so item changes recompute the
+--      full total = subtotal + shipping + tax − discount
+--   2. Adds a second trigger that fires when shipping/tax/discount
+--      themselves change on the orders row
+-- ============================================================
+
+BEGIN;
+
+-- ------------------------------------------------------------
+-- 1. Replace update_order_totals to include shipping/tax/discount
+-- ------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION public.update_order_totals()
+RETURNS TRIGGER AS $$
+DECLARE
+  v_order_id UUID := COALESCE(NEW.order_id, OLD.order_id);
+  v_subtotal DECIMAL(14,2);
+BEGIN
+  SELECT COALESCE(SUM(total_price), 0)
+    INTO v_subtotal
+    FROM public.order_items
+   WHERE order_id = v_order_id;
+
+  UPDATE public.orders
+     SET subtotal     = v_subtotal,
+         total_amount = v_subtotal
+                      + COALESCE(shipping_amount, 0)
+                      + COALESCE(tax_amount, 0)
+                      - COALESCE(discount_amount, 0),
+         updated_at   = NOW()
+   WHERE id = v_order_id;
+
+  RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger already exists; CREATE OR REPLACE on the function is enough.
+
+-- ------------------------------------------------------------
+-- 2. New trigger: recompute total_amount when shipping/tax/discount
+--    are updated directly on the orders row.
+-- ------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION public.recompute_order_total()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN
+  NEW.total_amount = COALESCE(NEW.subtotal, 0)
+                   + COALESCE(NEW.shipping_amount, 0)
+                   + COALESCE(NEW.tax_amount, 0)
+                   - COALESCE(NEW.discount_amount, 0);
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS tr_orders_recompute_total ON public.orders;
+
+CREATE TRIGGER tr_orders_recompute_total
+  BEFORE UPDATE OF shipping_amount, tax_amount, discount_amount, subtotal
+  ON public.orders
+  FOR EACH ROW
+  WHEN (
+    NEW.shipping_amount IS DISTINCT FROM OLD.shipping_amount
+    OR NEW.tax_amount   IS DISTINCT FROM OLD.tax_amount
+    OR NEW.discount_amount IS DISTINCT FROM OLD.discount_amount
+    OR NEW.subtotal     IS DISTINCT FROM OLD.subtotal
+  )
+  EXECUTE FUNCTION public.recompute_order_total();
+
+UPDATE public.orders
+SET total_amount = COALESCE(subtotal, 0)
+                 + COALESCE(shipping_amount, 0)
+                 + COALESCE(tax_amount, 0)
+                 - COALESCE(discount_amount, 0)
+WHERE total_amount IS DISTINCT FROM (
+   COALESCE(subtotal, 0)
+ + COALESCE(shipping_amount, 0)
+ + COALESCE(tax_amount, 0)
+ - COALESCE(discount_amount, 0)
+);
+
+COMMIT;

@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
@@ -244,7 +245,8 @@ export function CartClient({ initialOrders }: CartClientProps) {
                         <div className="p-4 flex gap-4">
                           {/* Thumbnail */}
                           <div className="relative h-[72px] w-[72px] shrink-0 bg-stone-50 dark:bg-zinc-800 rounded-xl border border-stone-100 dark:border-zinc-700 overflow-hidden">
-                            {item.product_image && !imageErrors[item.id] ? (
+                            {/* FIX: guard against empty string, null, and non-http URLs */}
+                            {item.product_image?.startsWith("http") && !imageErrors[item.id] ? (
                               <Image
                                 src={item.product_image}
                                 alt={item.product_name}

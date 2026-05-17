@@ -358,7 +358,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
   };
 
   return (
-    <header className="fixed top-0 inset-x-0 z-[100] pointer-events-none transition-all duration-300">
+    <header className="fixed top-0 inset-x-0 z-50 pointer-events-none transition-all duration-300">
       <div
         className={cn(
           "pointer-events-auto relative mx-auto transition-all duration-300 flex flex-col",

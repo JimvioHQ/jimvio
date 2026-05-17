@@ -1,31 +1,24 @@
-﻿// import { notFound, redirect } from "next/navigation";
+﻿
+// import { redirect } from "next/navigation";
 // import { createClient } from "@/lib/supabase/server";
 // import { CheckoutSuccessClient } from "./success-client";
+// import type { Tables } from "@/types/supabase";
+// import Link from "next/link";
 
 // export const dynamic = "force-dynamic";
 
 // // ─── Types ────────────────────────────────────────────────────────────────────
+// // Derived from the schema so they can never drift.
+// // `payment_provider` lives on transactions, not orders.
 
-// interface OrderItem {
-//   product_name: string;
-//   quantity: number;
-//   total_price: number;
-// }
-
-// interface Order {
-//   id: string;
-//   order_number: string;
-//   total_amount: number;
-//   currency: string;
-//   payment_provider: string;
-//   payment_status: string | null;
-//   order_items: OrderItem[];
-//   transaction?: {
-//     provider: string | null;
-//     status: string;
-//     provider_transaction_id: string;
-//   };
-// }
+// export type CheckoutSuccessOrder = Tables<"orders"> & {
+//   order_items: Pick<Tables<"order_items">,
+//     "product_name" | "quantity" | "total_price"
+//   >[];
+//   transactions: Pick<Tables<"transactions">,
+//     "id" | "provider" | "status" | "provider_transaction_id" | "amount"
+//   >[];
+// };
 
 // // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -54,15 +47,12 @@
 //   return (
 //     <div className="min-h-screen bg-[var(--color-bg)] pt-28 pb-20 flex items-center justify-center px-4">
 //       <div className="max-w-md w-full text-center space-y-6">
-
-//         {/* Icon */}
 //         <div className="mx-auto w-16 h-16 rounded-full bg-red-50 flex items-center justify-center">
 //           <svg className="w-8 h-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
 //             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
 //           </svg>
 //         </div>
 
-//         {/* Text */}
 //         <div className="space-y-2">
 //           <h1 className="text-2xl font-semibold text-[var(--color-text-primary)] tracking-tight">
 //             {title}
@@ -77,25 +67,22 @@
 //           )}
 //         </div>
 
-//         {/* Actions */}
 //         <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
-//           <a
-//             href="/checkout"
-//             className="inline-flex items-center justify-center px-5 py-2.5 rounded-lg bg-[var(--color-text-primary)]
-//              text-[var(--color-accent)] text-sm font-medium hover:opacity-90 transition-opacity"
+
+//           <Link href="/checkout"
+//             className="inline-flex items-center justify-center px-5 py-2.5 rounded-lg bg-[var(--color-text-primary)] text-[var(--color-accent)] text-sm font-medium hover:opacity-90 transition-opacity"
 //           >
 //             Try again
-//           </a>
-//           <a
-//             href="/marketplace"
+//           </Link>
+
+//           <Link href="/marketplace"
 //             className="inline-flex items-center justify-center px-5 py-2.5 rounded-lg border border-[var(--color-border-primary)] text-[var(--color-text-secondary)] text-sm font-medium hover:bg-[var(--color-background-secondary)] transition-colors"
 //           >
 //             Back to marketplace
-//           </a>
+//           </Link>
 //         </div>
-
-//       </div>
-//     </div>
+//       </div >
+//     </div >
 //   );
 // }
 
@@ -120,12 +107,10 @@
 //     pickParam(sp.order)?.trim() ||
 //     rawRef?.split(":")[0];
 
-//   // ── Payment explicitly failed or cancelled ────────────────────────────────
 //   if (status === "failed" || status === "cancelled" || cancelled) {
 //     redirect(buildErrorRedirect("Payment failed or was cancelled.", orderId));
 //   }
 
-//   // ── Fix: was `status === ""` which pickParam never returns ────────────────
 //   if (!status) {
 //     redirect(buildErrorRedirect("We couldn't confirm your payment status. Please try again."));
 //   }
@@ -141,22 +126,18 @@
 //     );
 //   }
 
-//   // ── Supabase lookup ───────────────────────────────────────────────────────
 //   const supabase = await createClient();
 
 //   const { data: order, error } = await supabase
 //     .from("orders")
-//     .select(
-//       `
+//     .select(`
 //       *,
-//       order_items ( product_name, quantity, total_price ),
-//       transactions ( id, provider, provider_transaction_id, amount, status )
-//     `
-//     )
+//       order_items(product_name, quantity, total_price),
+//       transactions(id, provider, status, provider_transaction_id, amount)
+//     `)
 //     .eq("id", orderId)
 //     .single();
 
-//   // ── DB error ──────────────────────────────────────────────────────────────
 //   if (error) {
 //     console.error("[CheckoutSuccess] Supabase error for orderId:", orderId, error);
 //     if (error.code === "PGRST116") {
@@ -178,7 +159,6 @@
 //     );
 //   }
 
-//   // ── No order data ─────────────────────────────────────────────────────────
 //   if (!order) {
 //     console.warn("[CheckoutSuccess] No order data for orderId:", orderId);
 //     return (
@@ -190,16 +170,14 @@
 //     );
 //   }
 
-//   // ── Happy path ────────────────────────────────────────────────────────────
 //   return (
 //     <div className="min-h-screen bg-[var(--color-bg)] pt-20 pb-20">
 //       <div className="max-w-[560px] mx-auto px-4">
-//         <CheckoutSuccessClient order={order} />
+//         <CheckoutSuccessClient order={order as CheckoutSuccessOrder} />
 //       </div>
 //     </div>
 //   );
 // }
-
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { CheckoutSuccessClient } from "./success-client";
@@ -209,8 +187,6 @@ import Link from "next/link";
 export const dynamic = "force-dynamic";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-// Derived from the schema so they can never drift.
-// `payment_provider` lives on transactions, not orders.
 
 export type CheckoutSuccessOrder = Tables<"orders"> & {
   order_items: Pick<Tables<"order_items">,
@@ -233,6 +209,17 @@ function buildErrorRedirect(message: string, orderId?: string): string {
   if (orderId) params.set("orderId", orderId);
   return `/checkout?${params.toString()}`;
 }
+
+// ─── Flutterwave failure statuses ─────────────────────────────────────────────
+
+const FAILED_STATUSES = new Set([
+  "failed",
+  "cancelled",
+  "cancel",
+  "session_expired",  // FIX: Flutterwave returns this when the payment page times out
+  "declined",
+  "error",
+]);
 
 // ─── Error UI ─────────────────────────────────────────────────────────────────
 
@@ -269,21 +256,19 @@ function ErrorState({
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
-
           <Link href="/checkout"
             className="inline-flex items-center justify-center px-5 py-2.5 rounded-lg bg-[var(--color-text-primary)] text-[var(--color-accent)] text-sm font-medium hover:opacity-90 transition-opacity"
           >
             Try again
           </Link>
-
           <Link href="/marketplace"
             className="inline-flex items-center justify-center px-5 py-2.5 rounded-lg border border-[var(--color-border-primary)] text-[var(--color-text-secondary)] text-sm font-medium hover:bg-[var(--color-background-secondary)] transition-colors"
           >
             Back to marketplace
           </Link>
         </div>
-      </div >
-    </div >
+      </div>
+    </div>
   );
 }
 
@@ -308,8 +293,32 @@ export default async function CheckoutSuccessPage({
     pickParam(sp.order)?.trim() ||
     rawRef?.split(":")[0];
 
-  if (status === "failed" || status === "cancelled" || cancelled) {
-    redirect(buildErrorRedirect("Payment failed or was cancelled.", orderId));
+  // FIX: Treat session_expired, failed, cancelled and any other non-success
+  // status as a failure. Also treat transaction_id=null (string) as a failure
+  // since Flutterwave sends the literal string "null" when no payment was made.
+  const transactionId = pickParam(sp.transaction_id);
+  const hasNullTransactionId =
+    !transactionId || transactionId === "null" || transactionId === "";
+
+  if (status && FAILED_STATUSES.has(status)) {
+    const message =
+      status === "session_expired"
+        ? "Your payment session expired. Please try again."
+        : "Payment failed or was cancelled.";
+    redirect(buildErrorRedirect(message, orderId));
+  }
+
+  if (cancelled) {
+    redirect(buildErrorRedirect("Payment was cancelled.", orderId));
+  }
+
+  // If Flutterwave returned no real transaction_id, the payment was never
+  // completed — redirect to error regardless of the status param.
+  if (hasNullTransactionId && status !== "successful" && status !== "completed") {
+    redirect(buildErrorRedirect(
+      "We couldn't confirm your payment. Please try again or contact support.",
+      orderId,
+    ));
   }
 
   if (!status) {
@@ -317,7 +326,6 @@ export default async function CheckoutSuccessPage({
   }
 
   if (!orderId) {
-    console.warn("[CheckoutSuccess] No orderId in searchParams:", sp);
     return (
       <ErrorState
         title="Order not found"
@@ -340,7 +348,6 @@ export default async function CheckoutSuccessPage({
     .single();
 
   if (error) {
-    console.error("[CheckoutSuccess] Supabase error for orderId:", orderId, error);
     if (error.code === "PGRST116") {
       return (
         <ErrorState
@@ -361,7 +368,6 @@ export default async function CheckoutSuccessPage({
   }
 
   if (!order) {
-    console.warn("[CheckoutSuccess] No order data for orderId:", orderId);
     return (
       <ErrorState
         title="Order unavailable"

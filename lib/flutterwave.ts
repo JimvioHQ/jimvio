@@ -234,8 +234,7 @@ export async function verifyFlutterwaveTransaction(
         "[Flutterwave] Using tx_ref for verification — use transaction ID if possible.",
         transactionId
       );
-      // return `/transactions/verify_by_reference?tx_ref=${encodeURIComponent(String(transactionId))}`;
-      return `/transaction/verify_by_reference?tx_ref=FLW_MOYN7PK9_9B0D8963`
+      return `/transactions/verify_by_reference?tx_ref=${encodeURIComponent(String(transactionId))}`;
     }
     return `/transactions/${transactionId}/verify`;
   }

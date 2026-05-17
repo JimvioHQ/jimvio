@@ -415,9 +415,7 @@ export function DigitalProductDetail({
                   </p>
                 )}
               </div>
-
-              <UrgencyStrip saleCount={saleCount} />
-
+              
               <ProductActionModule
                 product={productProps}
                 vendor={vendorProps}

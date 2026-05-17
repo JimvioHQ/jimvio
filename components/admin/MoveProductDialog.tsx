@@ -488,6 +488,7 @@ import {
 } from "@/components/ui/dialog";
 import { searchAdminVendors, moveProductToVendor } from "@/lib/actions/admin-products";
 import { toast } from "sonner";
+import { ArrowLeftRight } from "lucide-react";
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 function MoveIcon() {
@@ -744,7 +745,7 @@ export function MoveProductDialog({
         (e.currentTarget as HTMLElement).style.color = "var(--color-text-secondary)";
       }}
     >
-      <MoveIcon /> Move
+      <ArrowLeftRight size={14} className="font-bold" />
     </button>
   );
 

@@ -458,7 +458,7 @@ export function PaymentMethodSelector({
               onClick={() => onSelect(m.id)}
               className={cn(
                 "relative w-full text-left transition-all duration-150 active:scale-[0.995]",
-                "rounded-xl overflow-hidden border",
+                "rounded-md overflow-hidden border",
                 active
                   ? "bg-orange-500/[0.03] border-orange-500/40 dark:bg-orange-500/[0.06]"
                   : "bg-[var(--color-surface)] border-[var(--color-border)] hover:border-[var(--color-border-strong)]"

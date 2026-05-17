@@ -1,12 +1,18 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { MessageCircle, ShoppingCart, Package, Trash2, CheckCircle2 } from "lucide-react";
+import { MessageCircle, ShoppingBag, Check, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { addToCart, checkProductInCart, removeProductFromCart } from "@/lib/actions/marketplace";
+import {
+  addToCart,
+  checkProductInCart,
+  removeProductFromCart,
+  getProductVariants,
+} from "@/lib/actions/marketplace";
 import { ProductQuickPopup } from "@/components/influencer/product-quick-popup";
+import { VariantPickerDialog } from "@/components/marketplace/variant-picker-dialog";
 import { LocalizedPrice } from "@/components/currency/localized-price";
 import { toast } from "sonner";
 import { useCartStore } from "@/lib/store/use-cart-store";
@@ -22,51 +28,124 @@ export function ProductCardPhysical({
   const [loading, setLoading] = useState(false);
   const [inCart, setInCart] = useState(initialInCart ?? false);
   const [imageError, setImageError] = useState(false);
-  const { incrementCartCount, setCartCount } = useCartStore();
   const [quickViewOpen, setQuickViewOpen] = useState(false);
+
+  const { incrementCartCount, setCartCount } = useCartStore();
+
+  const [variants, setVariants] = useState<any[] | null>(null);
+  const [variantPickerOpen, setVariantPickerOpen] = useState(false);
+  const [loadingVariantId, setLoadingVariantId] = useState<string | null>(null);
 
   const images = p.images ?? [];
   const imgSrc = images[0] ?? null;
+  const hoverImg = images[1] ?? null;
   const price = Number(p.price ?? 0);
   const compareAt = Number(p.compare_at_price ?? 0);
-  const discount = compareAt > price && compareAt > 0
+  const onSale = compareAt > price && compareAt > 0;
+  const discount = onSale
     ? Math.round(((compareAt - price) / compareAt) * 100)
     : 0;
+
+  // Cap absurdly long CJ titles before display
+  const displayName = useMemo(
+    () => (p.name.length > 80 ? p.name.slice(0, 77).trim() + "…" : p.name),
+    [p.name]
+  );
+
+  // Deterministic gradient seed from name for missing images
+  const seed = (p.name?.charCodeAt(0) ?? 65) % 360;
 
   useEffect(() => {
     if (initialInCart !== undefined) return;
     let cancelled = false;
     checkProductInCart(p.id).then((res) => {
-      if (!cancelled) { setInCart(res.inCart); }
+      if (!cancelled) setInCart(res.inCart);
     });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [p.id, initialInCart]);
+
+  const doAddToCart = async (vendorId: string, variantId: string | null) => {
+    try {
+      if (variantId) setLoadingVariantId(variantId);
+      else setLoading(true);
+
+      const result = await addToCart(p.id, vendorId, 1, variantId);
+      if (result.success) {
+        setInCart(true);
+        incrementCartCount(1);
+        onAddToCart?.();
+        setVariantPickerOpen(false);
+        toast.success(`Added · ${p.name}`);
+      } else {
+        toast.error(result.error || "Couldn't add to cart");
+      }
+    } catch {
+      toast.error("Something went wrong");
+    } finally {
+      setLoading(false);
+      setLoadingVariantId(null);
+    }
+  };
 
   const handleCartToggle = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    try {
-      setLoading(true);
-      if (inCart) {
+
+    if (inCart) {
+      try {
+        setLoading(true);
         const result = await removeProductFromCart(p.id);
         if (result.success) {
           setInCart(false);
           setCartCount(Math.max(0, useCartStore.getState().cartCount - 1));
-          toast.success(`"${p.name}" removed from cart`);
-        } else { toast.error(result.error || "Failed to remove"); }
-      } else {
-        const vendorId = p.vendors?.id;
-        if (!vendorId) { toast.error("Cannot find vendor."); return; }
-        const result = await addToCart(p.id, vendorId);
-        if (result.success) {
-          setInCart(true);
-          incrementCartCount(1);
-          onAddToCart?.();
-          toast.success(`"${p.name}" added to cart`);
-        } else { toast.error(result.error || "Failed to add to cart"); }
+          toast.success(`Removed · ${p.name}`);
+        } else {
+          toast.error(result.error || "Couldn't remove");
+        }
+      } catch {
+        toast.error("Something went wrong");
+      } finally {
+        setLoading(false);
       }
-    } catch { toast.error("Something went wrong"); }
-    finally { setLoading(false); }
+      return;
+    }
+
+    const vendorId = p.vendors?.id;
+    if (!vendorId) {
+      toast.error("Cannot find vendor.");
+      return;
+    }
+
+    if (p.source === "cj") {
+      try {
+        setLoading(true);
+        let list = variants;
+        if (list === null) {
+          const res = await getProductVariants(p.id);
+          list = res.variants ?? [];
+          setVariants(list);
+        }
+
+        if (list.length > 1) {
+          setVariantPickerOpen(true);
+          setLoading(false);
+          return;
+        }
+
+        const variantId = list.length === 1 ? list[0].id : null;
+        await doAddToCart(vendorId, variantId);
+        return;
+      } catch (err) {
+        console.error(err);
+        toast.error("Couldn't load product options");
+        setLoading(false);
+        return;
+      }
+    }
+
+    await doAddToCart(vendorId, null);
   };
 
   const handleChat = (e: React.MouseEvent) => {
@@ -82,8 +161,17 @@ export function ProductCardPhysical({
             business_logo: p.vendors.business_logo ?? null,
             business_slug: p.vendors.business_slug ?? null,
           },
-          product: { id: p.id, name: p.name, slug: p.slug, price: Number(p.price ?? 0), images: p.images ?? null },
-          currentPath: typeof window !== "undefined" ? window.location.pathname : "/marketplace/physical",
+          product: {
+            id: p.id,
+            name: p.name,
+            slug: p.slug,
+            price: Number(p.price ?? 0),
+            images: p.images ?? null,
+          },
+          currentPath:
+            typeof window !== "undefined"
+              ? window.location.pathname
+              : "/marketplace/physical",
         },
       })
     );
@@ -91,111 +179,207 @@ export function ProductCardPhysical({
 
   return (
     <>
-      <div
+      <article
         className={cn(
-          "group relative flex flex-col h-full overflow-hidden",
-          "rounded-sm bg-white dark:bg-[#121212] border border-stone-200 dark:border-white/5 transition-all duration-300",
+          "group relative flex flex-col h-full",
+          "bg-[var(--color-surface)]",
+          "rounded-2xl overflow-hidden",
+          "transition-[transform,box-shadow] duration-300 ease-out",
+          "hover:-translate-y-0.5",
           inCart
-            ? "border-orange-500/40 shadow-[0_4px_20px_rgba(249,115,22,0.15)]"
-            : "hover:border-orange-500/20 hover:shadow-none"
+            ? "ring-1 ring-orange-500/30 shadow-[0_8px_24px_-12px_rgba(249,115,22,0.35)]"
+            : "ring-1 ring-[var(--color-border)] hover:shadow-[0_12px_32px_-16px_rgba(0,0,0,0.18)]"
         )}
       >
+        {/* ── Image ─────────────────────────────────────────────── */}
         <Link
           href={`${detailBasePath}/${p.slug}`}
+          aria-label={p.name}
           className={cn(
-            "relative block w-full overflow-hidden flex-shrink-0 bg-stone-100 dark:bg-stone-900/50",
-            compact ? "aspect-[1/1]" : "aspect-[4/5]",
+            "relative block w-full overflow-hidden",
+            "bg-[var(--color-surface-secondary)]",
+            compact ? "aspect-square" : "aspect-[4/5]"
           )}
         >
           {imgSrc && !imageError ? (
-            <Image
-              src={imgSrc}
-              alt={p.name}
-              fill
-              sizes="(max-width: 640px) 50vw, 33vw"
-              className="object-cover group-hover:scale-110 transition-transform duration-700 ease-[cubic-bezier(0.2,0.8,0.2,1)]"
-              onError={() => setImageError(true)}
-            />
+            <>
+              <Image
+                src={imgSrc}
+                alt={p.name}
+                fill
+                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                className={cn(
+                  "object-cover transition-opacity duration-500",
+                  hoverImg ? "group-hover:opacity-0" : "group-hover:scale-[1.03]"
+                )}
+                onError={() => setImageError(true)}
+              />
+              {hoverImg && (
+                <Image
+                  src={hoverImg}
+                  alt=""
+                  aria-hidden
+                  fill
+                  sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                  className="object-cover opacity-0 transition-opacity duration-500 group-hover:opacity-100"
+                />
+              )}
+            </>
           ) : (
-            <div className="absolute inset-0 flex items-center justify-center bg-orange-100/30 dark:bg-orange-900/10">
-              <span className="text-6xl font-black uppercase text-orange-200 dark:text-orange-950/50 group-hover:scale-110 transition-transform duration-500">
+            <div
+              className="absolute inset-0 flex items-center justify-center"
+              style={{
+                background: `linear-gradient(135deg, hsl(${seed} 60% 96%), hsl(${(seed + 30) % 360} 50% 92%))`,
+              }}
+              aria-hidden
+            >
+              <span
+                className="text-7xl font-light tracking-tighter select-none"
+                style={{ color: `hsl(${seed} 30% 55%)` }}
+              >
                 {p.name.charAt(0)}
               </span>
             </div>
           )}
 
-          {discount > 0 && (
-            <div className="absolute top-2 left-2 z-20">
-              <span className="inline-flex items-center rounded-sm bg-red-500 px-2 py-0.5 text-[10px] font-bold text-white shadow-none">
-                -{discount}%
-              </span>
-            </div>
+          {onSale && (
+            <span className="absolute top-3 left-3 px-2 py-0.5 rounded-full bg-[var(--color-surface)]/95 backdrop-blur-sm text-[10px] font-medium tracking-wide text-rose-600">
+              −{discount}%
+            </span>
           )}
 
-          {/* Product Type Badge Removed as requested */}
-
-
-          {/* Hover Actions */}
-          <div className="absolute inset-0 bg-black/10 dark:bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+          {inCart && (
+            <span className="absolute top-3 right-3 h-6 w-6 rounded-full bg-orange-500 text-white flex items-center justify-center shadow-sm">
+              <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
+            </span>
+          )}
         </Link>
 
-        <div className="flex flex-col flex-1 px-3 py-3">
-          <Link href={`${detailBasePath}/${p.slug}`} className="min-w-0 mb-2">
-            <h3 className="font-semibold text-stone-800 dark:text-stone-200 leading-[1.3] group-hover:text-orange-500 transition-colors text-[13px] line-clamp-2">
-              {p.name}
+        {/* ── Info ──────────────────────────────────────────────── */}
+        <div className="flex flex-col flex-1 p-3.5 sm:p-4 gap-2.5">
+          {/* Vendor */}
+          {p.vendors?.business_name && (
+            <p className="text-[10.5px] font-medium uppercase tracking-[0.08em] text-[var(--color-text-muted)] truncate">
+              {p.vendors.business_name}
+            </p>
+          )}
+
+          {/* Name — fixed two-line height keeps cards aligned regardless of length */}
+          <Link
+            href={`${detailBasePath}/${p.slug}`}
+            className="min-w-0 block"
+            title={p.name}
+          >
+            <h3
+              className={cn(
+                "text-[14px] font-medium leading-snug",
+                "text-[var(--color-text-primary)]",
+                "line-clamp-2 min-h-[2.5em]",
+                "transition-colors group-hover:text-orange-600"
+              )}
+            >
+              {displayName}
             </h3>
           </Link>
 
-          <div className="flex items-center gap-1.5 mb-3 flex-wrap">
-            <LocalizedPrice 
-              amount={price} 
-              currency={p.currency} 
-              className="font-bold text-stone-900 dark:text-white text-[16px] tracking-tight" 
+          {/* Price */}
+          <div className="flex items-baseline gap-2 mt-auto pt-1">
+            <LocalizedPrice
+              amount={price}
+              currency={p.currency}
+              className="text-[17px] font-semibold tabular-nums tracking-tight text-[var(--color-text-primary)]"
             />
-            {discount > 0 && (
-              <LocalizedPrice amount={compareAt} currency={p.currency} className="text-[11px] font-medium text-stone-400 line-through" />
+            {onSale && (
+              <LocalizedPrice
+                amount={compareAt}
+                currency={p.currency}
+                className="text-[12px] tabular-nums text-[var(--color-text-muted)] line-through decoration-1"
+              />
             )}
           </div>
-          
-          <div className="mt-auto grid grid-cols-[1fr,auto] gap-2">
+
+          {/* Actions */}
+          <div className="grid grid-cols-[1fr_auto] gap-1.5 pt-1">
             <button
+              type="button"
               onClick={handleCartToggle}
               disabled={loading}
+              aria-label={inCart ? "Remove from cart" : "Add to cart"}
               className={cn(
-                "flex items-center justify-center gap-1 h-8 rounded-sm font-bold text-white transition-all text-[11px]",
+                "group/btn relative flex items-center justify-center gap-1.5",
+                "h-9 px-3 rounded-xl text-[12px] font-medium",
+                "transition-all duration-200",
+                "disabled:opacity-60",
                 inCart
-                  ? "bg-emerald-500 hover:bg-red-500 shadow-emerald-500/20"
-                  : "bg-orange-500 hover:bg-orange-600 shadow-orange-500/20 shadow-none active:scale-95"
+                  ? "bg-[var(--color-surface-secondary)] text-[var(--color-text-primary)] hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/30"
+                  : "bg-[var(--color-text-primary)] text-[var(--color-surface)] hover:bg-orange-600 active:scale-[0.98]"
               )}
             >
               {loading ? (
-                <span className="h-3.5 w-3.5 border-2 border-white/40 border-t-white rounded-sm animate-spin" />
+                <span className="h-3.5 w-3.5 border-[1.5px] border-current border-t-transparent rounded-full animate-spin" />
               ) : inCart ? (
-                <><CheckCircle2 className="h-3.5 w-3.5" /> Added</>
+                <>
+                  <Check className="h-3.5 w-3.5 group-hover/btn:hidden" />
+                  <X className="h-3.5 w-3.5 hidden group-hover/btn:block" />
+                  <span className="group-hover/btn:hidden">In cart</span>
+                  <span className="hidden group-hover/btn:inline">Remove</span>
+                </>
               ) : (
-                <><ShoppingCart className="h-3.5 w-3.5" /> Add to Cart</>
+                <>
+                  <ShoppingBag className="h-3.5 w-3.5" />
+                  <span>Add</span>
+                </>
               )}
             </button>
+
             <button
+              type="button"
               onClick={handleChat}
-              className="flex items-center justify-center w-8 h-8 rounded-sm bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 hover:bg-stone-200 dark:hover:bg-stone-700 transition-colors"
+              aria-label="Chat with seller"
+              className="flex items-center justify-center h-9 w-9 rounded-xl bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors"
             >
               <MessageCircle className="h-4 w-4" />
             </button>
           </div>
         </div>
-      </div>
+      </article>
 
       <ProductQuickPopup
         product={{
-          name: p.name, slug: p.slug, price: p.price, currency: p.currency,
-          images: p.images ?? null, rating: p.rating ?? null, inventory_quantity: undefined,
+          name: p.name,
+          slug: p.slug,
+          price: p.price,
+          currency: p.currency,
+          images: p.images ?? null,
+          rating: p.rating ?? null,
+          inventory_quantity: undefined,
         }}
-        vendor={p.vendors ? { id: p.vendors.id, business_name: p.vendors.business_name ?? "", business_slug: p.vendors.business_slug } : null}
+        vendor={
+          p.vendors
+            ? {
+                id: p.vendors.id,
+                business_name: p.vendors.business_name ?? "",
+                business_slug: p.vendors.business_slug,
+              }
+            : null
+        }
         open={quickViewOpen}
         onClose={() => setQuickViewOpen(false)}
+      />
+
+      <VariantPickerDialog
+        open={variantPickerOpen}
+        onClose={() => setVariantPickerOpen(false)}
+        onSelect={async (variantId) => {
+          const vendorId = p.vendors?.id;
+          if (vendorId) await doAddToCart(vendorId, variantId);
+        }}
+        variants={variants ?? []}
+        productName={p.name}
+        productImage={imgSrc ?? null}
+        currency={p.currency}
+        loadingVariantId={loadingVariantId}
       />
     </>
   );
 }
-
