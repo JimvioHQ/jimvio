@@ -12,6 +12,7 @@ import {
     getUSDToRWFRate,
 } from "@/lib/actions/cj_product";
 import { subscribeCJProducts } from "@/lib/cj/webhoo-subscription";
+import { syncProductShipping } from "@/lib/cj/sync-shipping";
 
 
 interface CJDetailVariant {
@@ -31,6 +32,7 @@ interface CJDetailVariant {
     variantProperty?: string;
 }
 
+
 interface CJDetailResponse {
     data: {
         pid: string;
@@ -40,7 +42,6 @@ interface CJDetailResponse {
         bigImage: string;
         productImageSet?: string[];
         productProEnSet?: string[];
-        // ✅ Added: option key sets for structured variant parsing
         productKeySet?: string[];
         productKeyEnSet?: string[];
         productWeight: string | number;
@@ -52,11 +53,16 @@ interface CJDetailResponse {
         status: string;
         listedNum: number;
         variants: CJDetailVariant[];
+        isFreeShipping?: boolean;
+        shippingCountryCodes?: string[];
+        packageWeight?: number | string;
+        packageLength?: number;
+        packageWidth?: number;
+        packageHeight?: number;
     };
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
+// Update detailToCJProduct to pass real values instead of hardcoded ones
 function detailToCJProduct(d: CJDetailResponse["data"]): CJProduct {
     return {
         pid: d.pid,
@@ -72,16 +78,20 @@ function detailToCJProduct(d: CJDetailResponse["data"]): CJProduct {
         sellPrice: String(d.sellPrice ?? "0"),
         remark: d.description ?? "",
         addMarkStatus: "",
-        isFreeShipping: false,
+        // ✅ Fix: was hardcoded false — now reads real value from CJ
+        isFreeShipping: d.isFreeShipping ?? false,
         createTime: 0,
         saleStatus: parseInt(d.status ?? "0", 10) || 0,
         listedNum: d.listedNum ?? 0,
-        shippingCountryCodes: [],
+        // ✅ Fix: was hardcoded [] — now reads real value from CJ
+        shippingCountryCodes: d.shippingCountryCodes ?? [],
         sourceFrom: "cj",
         customizationVersion: 0,
         isTestProduct: false,
     };
 }
+
+
 
 function detailVariantToCJVariant(
     v: CJDetailVariant,
@@ -92,11 +102,9 @@ function detailVariantToCJVariant(
         pid: v.pid,
         productSku,
         variantSku: v.variantSku,
-        // ✅ Fix: name fallback chain — variantNameEn/variantName are often null
         variantName: v.variantName ?? "",
         variantNameEn: v.variantNameEn ?? "",
         variantImage: v.variantImage ?? "",
-        // ✅ Fix: variantProperty holds the raw variantKey for option parsing
         variantProperty: v.variantProperty ?? v.variantKey ?? "",
         variantSellPrice: String(v.variantSellPrice ?? "0"),
         variantWeight: String(v.variantWeight ?? "0"),
@@ -268,6 +276,23 @@ export async function POST(req: Request): Promise<Response> {
                 { cj_pid: pid, product_id: productId },
                 { onConflict: "cj_pid" }
             );
+
+        const firstVariant = detail.data.variants?.find((v) => v.vid) ?? detail.data.variants?.[0];
+
+        if (firstVariant?.vid) {
+            try {
+                const { synced } = await syncProductShipping(
+                    supabase,
+                    productId,
+                    pid,
+                    firstVariant.vid,
+                    1,
+                );
+                console.log(`[CJ import] Shipping synced: ${synced} options for ${productId}`);
+            } catch (err) {
+                console.error(`[CJ import] Shipping sync failed for ${productId}:`, err);
+            }
+        }
 
         return Response.json({
             success: true,
