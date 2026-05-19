@@ -1,104 +1,3 @@
-// "use server";
-
-// import { createClient } from "@/lib/supabase/server";
-// import { cookies } from "next/headers";
-// import { redirect } from "next/navigation";
-// import { getDefaultAffiliateCommissionPercent } from "@/lib/platform-settings";
-// import { normalizeProductSource } from "@/lib/sources/product-source";
-
-// export async function createOrder(productId: string, quantity: number = 1) {
-//   const supabase = await createClient();
-//   const {
-//     data: { user },
-//   } = await supabase.auth.getUser();
-
-//   if (!user) {
-//     redirect("/login?next=/marketplace");
-//   }
-
-//   const { data: product } = await supabase.from("products").select("*, vendors(*)").eq("id", productId).maybeSingle();
-
-//   if (!product) throw new Error("Product not found");
-
-//   const cookieStore = await cookies();
-//   const lastVideoId = cookieStore.get("jimvio_last_video_id")?.value;
-//   const refCode = cookieStore.get("jimvio_ref")?.value;
-//   let affiliateId = null;
-//   const defaultAffiliate = await getDefaultAffiliateCommissionPercent();
-//   let commissionRate = product.affiliate_commission_rate ?? defaultAffiliate;
-//   let commissionAmount = 0;
-
-//   if (refCode && product.affiliate_enabled) {
-//     if (refCode.startsWith("LNK-")) {
-//       const { data: link } = await supabase
-//         .from("affiliate_links")
-//         .select("affiliate_id, commission_rate")
-//         .eq("link_code", refCode)
-//         .maybeSingle();
-
-//       if (link) {
-//         affiliateId = link.affiliate_id;
-//         commissionRate = link.commission_rate || commissionRate;
-//       }
-//     } else {
-//       const { data: aff } = await supabase
-//         .from("affiliates")
-//         .select("id")
-//         .eq("affiliate_code", refCode)
-//         .maybeSingle();
-
-//       if (aff) {
-//         affiliateId = aff.id;
-//       }
-//     }
-//   }
-
-//   const basePrice = Number(product.price);
-//   const totalPrice = basePrice * quantity;
-//   if (affiliateId) {
-//     commissionAmount = (totalPrice * commissionRate) / 100;
-//   }
-
-//   const { data: order, error: orderError } = await supabase
-//     .from("orders")
-//     .insert({
-//       buyer_id: user.id,
-//       vendor_id: product.vendor_id,
-//       total_amount: totalPrice,
-//       currency: product.currency ?? "USD",
-//       status: "pending",
-//       payment_status: "pending",
-//       integration_source: product.source === "shopify" ? "shopify" : "manual",
-//       metadata: lastVideoId ? { video_id: lastVideoId } : {},
-//     })
-//     .select()
-//     .single();
-
-//   if (orderError) throw orderError;
-
-//   const src = normalizeProductSource((product as { source?: string | null }).source);
-//   const meta = (product as { source_metadata?: Record<string, unknown> | null }).source_metadata ?? {};
-
-//   await supabase.from("order_items").insert({
-//     order_id: order.id,
-//     product_id: product.id,
-//     vendor_id: product.vendor_id,
-//     product_name: product.name,
-//     quantity,
-//     unit_price: product.price,
-//     total_price: totalPrice,
-//     affiliate_id: affiliateId,
-//     affiliate_commission_rate: commissionRate,
-//     affiliate_commission_amount: commissionAmount,
-//     shopify_variant_id: product.shopify_variant_id ?? null,
-//     shopify_product_id: product.shopify_product_id ?? null,
-//     product_source: src,
-//     source_metadata: meta,
-//     metadata: lastVideoId ? { video_id: lastVideoId } : {},
-//   });
-
-//   return { orderId: order.id };
-// }
 
 "use server";
 
@@ -107,6 +6,8 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getDefaultAffiliateCommissionPercent } from "@/lib/platform-settings";
 import { normalizeProductSource } from "@/lib/sources/product-source";
+import { getAdminDB } from "@/services/db";
+import { revalidatePath } from "next/cache";
 
 export async function createOrder(productId: string, quantity: number = 1) {
   const supabase = await createClient();
@@ -232,4 +133,24 @@ export async function createOrder(productId: string, quantity: number = 1) {
   }
 
   return { orderId: order.id };
+}
+
+export async function resolveFailedCreditAction(formData: FormData) {
+  const id = formData.get("id") as string;
+  if (!id) return;
+
+  const admin = getAdminDB();
+
+  type FailedCreditUpdate = {
+    resolved?: boolean;
+    resolved_at?: string | null;
+  };
+
+  await admin
+    .from("failed_wallet_credits")
+    .update({ resolved: true, resolved_at: new Date().toISOString() } as FailedCreditUpdate)
+    .eq("id", id);
+
+  revalidatePath("/admin/payments/failed-credits");
+  revalidatePath("/admin/payments");
 }

@@ -2,6 +2,7 @@ import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 import type { ChatAttachmentPayload } from "@/lib/community-chat-upload";
 import { Attachment } from "@/types";
+import { RangeKey, RANGES } from "@/components/ui/admin";
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
@@ -282,4 +283,9 @@ export function isRenderableImageSrc(s: unknown): s is string {
   } catch {
     return false;
   }
+}
+
+export function resolveRange(input: string | undefined): RangeKey {
+  if (input && input in RANGES) return input as RangeKey;
+  return "mtd";
 }
