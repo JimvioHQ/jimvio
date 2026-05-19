@@ -461,6 +461,30 @@ $$;
 ALTER FUNCTION "public"."guard_order_financial_fields"() OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."guard_product_delete"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    AS $$
+DECLARE
+  v_order_count integer;
+BEGIN
+  SELECT COUNT(*) INTO v_order_count
+  FROM public.order_items
+  WHERE product_id = OLD.id;
+
+  IF v_order_count > 0 THEN
+    RAISE EXCEPTION
+      'Cannot delete product % — it has % order item(s). Archive it instead.',
+      OLD.id, v_order_count;
+  END IF;
+
+  RETURN OLD;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."guard_product_delete"() OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."guard_wallet_mutations"() RETURNS "trigger"
     LANGUAGE "plpgsql"
     AS $$
@@ -565,6 +589,21 @@ $$;
 ALTER FUNCTION "public"."increment_post_like_count"("p_post_id" "uuid") OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."increment_product_view_count"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    AS $$
+BEGIN
+  UPDATE public.products
+  SET view_count = view_count + 1
+  WHERE id = NEW.product_id;
+  RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."increment_product_view_count"() OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."increment_video_click_count"("vid" "uuid") RETURNS "void"
     LANGUAGE "plpgsql" SECURITY DEFINER
     AS $$
@@ -615,6 +654,77 @@ $$;
 
 
 ALTER FUNCTION "public"."increment_wallet_balance"("p_wallet_id" "uuid", "p_amount" numeric) OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."log_variant_stock_change"() RETURNS "trigger"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    AS $$
+BEGIN
+  IF NEW.inventory_quantity = OLD.inventory_quantity THEN
+    RETURN NEW;
+  END IF;
+
+  INSERT INTO public.variant_stock_history (
+    variant_id,
+    product_id,
+    previous_quantity,
+    new_quantity,
+    change_reason,
+    source,
+    note
+  ) VALUES (
+    NEW.id,
+    NEW.product_id,
+    OLD.inventory_quantity,
+    NEW.inventory_quantity,
+    CASE
+      WHEN NEW.source = 'cj'      THEN 'sync'
+      WHEN NEW.source = 'shopify' THEN 'sync'
+      ELSE 'manual'
+    END,
+    NEW.source,
+    -- ✅ Note the warehouse breakdown context
+    CASE
+      WHEN NEW.inventory_quantity = 0 THEN 'Stock reached zero'
+      WHEN NEW.inventory_quantity > OLD.inventory_quantity THEN 'Stock increased'
+      ELSE 'Stock decreased'
+    END
+  );
+
+  RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."log_variant_stock_change"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."log_variant_stock_on_insert"() RETURNS "trigger"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    AS $$
+BEGIN
+  INSERT INTO public.variant_stock_history (
+    variant_id,
+    product_id,
+    previous_quantity,
+    new_quantity,
+    change_reason,
+    source
+  ) VALUES (
+    NEW.id,
+    NEW.product_id,
+    0,
+    NEW.inventory_quantity,
+    'import',
+    NEW.source
+  );
+
+  RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."log_variant_stock_on_insert"() OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."merge_variant_source_metadata"("p_cj_vid" "text", "p_patch" "jsonb") RETURNS "void"
@@ -790,19 +900,83 @@ ALTER FUNCTION "public"."update_order_totals"() OWNER TO "postgres";
 CREATE OR REPLACE FUNCTION "public"."update_product_rating"() RETURNS "trigger"
     LANGUAGE "plpgsql"
     AS $$
-DECLARE target_product_id UUID;
+DECLARE
+  target_product_id uuid;
+  v_avg   decimal(3,2);
+  v_count bigint;
+  v_breakdown jsonb;
 BEGIN
   target_product_id := COALESCE(NEW.product_id, OLD.product_id);
+
+  SELECT
+    AVG(rating)::decimal(3,2),
+    COUNT(*)
+  INTO v_avg, v_count
+  FROM public.reviews
+  WHERE product_id = target_product_id;
+
+  SELECT jsonb_build_object(
+    '5', COUNT(*) FILTER (WHERE rating = 5),
+    '4', COUNT(*) FILTER (WHERE rating = 4),
+    '3', COUNT(*) FILTER (WHERE rating = 3),
+    '2', COUNT(*) FILTER (WHERE rating = 2),
+    '1', COUNT(*) FILTER (WHERE rating = 1)
+  )
+  INTO v_breakdown
+  FROM public.reviews
+  WHERE product_id = target_product_id;
+
   UPDATE public.products
-  SET rating       = (SELECT AVG(rating)::DECIMAL(3,2) FROM public.reviews WHERE product_id = target_product_id),
-      review_count = (SELECT COUNT(*) FROM public.reviews WHERE product_id = target_product_id)
+  SET
+    rating           = COALESCE(v_avg, 0),
+    review_count     = v_count,
+    rating_breakdown = v_breakdown
   WHERE id = target_product_id;
+
   RETURN COALESCE(NEW, OLD);
 END;
 $$;
 
 
 ALTER FUNCTION "public"."update_product_rating"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."update_product_sale_count"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    AS $$
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    UPDATE public.products
+    SET sale_count = sale_count + NEW.quantity
+    WHERE id = NEW.product_id;
+  ELSIF TG_OP = 'DELETE' THEN
+    UPDATE public.products
+    SET sale_count = GREATEST(sale_count - OLD.quantity, 0)
+    WHERE id = OLD.product_id;
+  END IF;
+  RETURN NULL;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."update_product_sale_count"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."update_product_wishlist_count"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    AS $$
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    UPDATE public.products SET wishlist_count = wishlist_count + 1 WHERE id = NEW.product_id;
+  ELSIF TG_OP = 'DELETE' THEN
+    UPDATE public.products SET wishlist_count = GREATEST(wishlist_count - 1, 0) WHERE id = OLD.product_id;
+  END IF;
+  RETURN NULL;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."update_product_wishlist_count"() OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."update_updated_at_column"() RETURNS "trigger"
@@ -1601,6 +1775,42 @@ CREATE TABLE IF NOT EXISTS "public"."product_categories" (
 ALTER TABLE "public"."product_categories" OWNER TO "postgres";
 
 
+CREATE TABLE IF NOT EXISTS "public"."product_shipping_options" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "product_id" "uuid" NOT NULL,
+    "source" "text" DEFAULT 'vendor'::"text" NOT NULL,
+    "source_method_id" "text",
+    "ship_from_country" "text" DEFAULT 'CN'::"text" NOT NULL,
+    "ship_from_name" "text",
+    "ship_to_country" "text" NOT NULL,
+    "method_name" "text" NOT NULL,
+    "carrier" "text",
+    "has_tracking" boolean DEFAULT true,
+    "min_delivery_days" integer,
+    "max_delivery_days" integer,
+    "estimated_delivery" "text" GENERATED ALWAYS AS (
+CASE
+    WHEN ("min_delivery_days" IS NULL) THEN NULL::"text"
+    WHEN ("min_delivery_days" = "max_delivery_days") THEN (("min_delivery_days")::"text" || ' days'::"text")
+    ELSE (((("min_delivery_days")::"text" || '–'::"text") || ("max_delivery_days")::"text") || ' days'::"text")
+END) STORED,
+    "shipping_fee" numeric(10,2) DEFAULT 0 NOT NULL,
+    "currency" "text" DEFAULT 'USD'::"text" NOT NULL,
+    "is_free_shipping" boolean DEFAULT false,
+    "is_recommended" boolean DEFAULT false,
+    "is_active" boolean DEFAULT true,
+    "remark" "text",
+    "synced_at" timestamp with time zone DEFAULT "now"(),
+    "created_at" timestamp with time zone DEFAULT "now"(),
+    "updated_at" timestamp with time zone DEFAULT "now"(),
+    CONSTRAINT "chk_fee_or_free" CHECK ((("is_free_shipping" = true) OR ("shipping_fee" >= (0)::numeric))),
+    CONSTRAINT "chk_source" CHECK (("source" = ANY (ARRAY['cj'::"text", 'vendor'::"text", 'shopify'::"text"])))
+);
+
+
+ALTER TABLE "public"."product_shipping_options" OWNER TO "postgres";
+
+
 CREATE TABLE IF NOT EXISTS "public"."product_variants" (
     "id" "uuid" DEFAULT "extensions"."uuid_generate_v4"() NOT NULL,
     "product_id" "uuid" NOT NULL,
@@ -1622,6 +1832,7 @@ CREATE TABLE IF NOT EXISTS "public"."product_variants" (
     "volume" numeric(15,2) DEFAULT 0,
     "source" "text" DEFAULT 'vendor'::"text" NOT NULL,
     "source_metadata" "jsonb" DEFAULT '{}'::"jsonb" NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT "now"(),
     CONSTRAINT "product_variants_inventory_non_negative" CHECK (("inventory_quantity" >= 0)),
     CONSTRAINT "product_variants_source_check" CHECK (("source" = ANY (ARRAY['vendor'::"text", 'shopify'::"text", 'cj'::"text"])))
 );
@@ -1705,6 +1916,11 @@ CREATE TABLE IF NOT EXISTS "public"."products" (
     "enable_discussions" boolean DEFAULT false,
     "features" "text"[] DEFAULT '{}'::"text"[],
     "cj_last_synced_at" timestamp with time zone,
+    "is_free_shipping" boolean DEFAULT false,
+    "brand" "text",
+    "material" "text",
+    "rating_breakdown" "jsonb" DEFAULT '{}'::"jsonb",
+    "deleted_at" timestamp with time zone,
     CONSTRAINT "products_billing_period_consistency" CHECK (((("pricing_type" = 'recurring'::"text") AND ("billing_period" IS NOT NULL)) OR (("pricing_type" = 'one_time'::"text") AND ("billing_period" IS NULL)))),
     CONSTRAINT "products_digital_shipping_consistency" CHECK (((("is_digital" = true) AND ("requires_shipping" = false)) OR ("is_digital" = false))),
     CONSTRAINT "products_inventory_non_negative" CHECK (((NOT "track_inventory") OR "allow_backorder" OR ("inventory_quantity" >= 0)))
@@ -2145,6 +2361,26 @@ CREATE TABLE IF NOT EXISTS "public"."user_roles" (
 ALTER TABLE "public"."user_roles" OWNER TO "postgres";
 
 
+CREATE TABLE IF NOT EXISTS "public"."variant_stock_history" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "variant_id" "uuid" NOT NULL,
+    "product_id" "uuid" NOT NULL,
+    "previous_quantity" integer DEFAULT 0 NOT NULL,
+    "new_quantity" integer DEFAULT 0 NOT NULL,
+    "delta" integer GENERATED ALWAYS AS (("new_quantity" - "previous_quantity")) STORED,
+    "change_reason" "text" DEFAULT 'sync'::"text" NOT NULL,
+    "order_id" "uuid",
+    "order_item_id" "uuid",
+    "changed_by" "uuid",
+    "source" "text" DEFAULT 'cj'::"text" NOT NULL,
+    "note" "text",
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL
+);
+
+
+ALTER TABLE "public"."variant_stock_history" OWNER TO "postgres";
+
+
 CREATE TABLE IF NOT EXISTS "public"."vendor_followers" (
     "id" "uuid" DEFAULT "extensions"."uuid_generate_v4"() NOT NULL,
     "vendor_id" "uuid" NOT NULL,
@@ -2188,7 +2424,8 @@ CREATE TABLE IF NOT EXISTS "public"."vendors" (
     "updated_at" timestamp(6) with time zone DEFAULT CURRENT_TIMESTAMP,
     "follower_count" integer DEFAULT 0,
     "business_type" "text",
-    "product_categories" "text"
+    "product_categories" "text",
+    "response_time" "text"
 );
 
 
@@ -2457,6 +2694,11 @@ ALTER TABLE ONLY "public"."product_categories"
 
 
 
+ALTER TABLE ONLY "public"."product_shipping_options"
+    ADD CONSTRAINT "product_shipping_options_pkey" PRIMARY KEY ("id");
+
+
+
 ALTER TABLE ONLY "public"."product_variants"
     ADD CONSTRAINT "product_variants_cj_vid_key" UNIQUE ("cj_vid");
 
@@ -2599,6 +2841,11 @@ ALTER TABLE ONLY "public"."ugc_view_snapshots"
 
 ALTER TABLE ONLY "public"."user_roles"
     ADD CONSTRAINT "user_roles_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."variant_stock_history"
+    ADD CONSTRAINT "variant_stock_history_pkey" PRIMARY KEY ("id");
 
 
 
@@ -2968,6 +3215,26 @@ CREATE INDEX "idx_posts_room" ON "public"."community_posts" USING "btree" ("room
 
 
 
+CREATE INDEX "idx_product_shipping_free" ON "public"."product_shipping_options" USING "btree" ("product_id", "ship_to_country") WHERE (("is_free_shipping" = true) AND ("is_active" = true));
+
+
+
+CREATE INDEX "idx_product_shipping_product" ON "public"."product_shipping_options" USING "btree" ("product_id");
+
+
+
+CREATE INDEX "idx_product_shipping_route" ON "public"."product_shipping_options" USING "btree" ("product_id", "ship_to_country") WHERE ("is_active" = true);
+
+
+
+CREATE INDEX "idx_product_shipping_source" ON "public"."product_shipping_options" USING "btree" ("source");
+
+
+
+CREATE UNIQUE INDEX "idx_product_shipping_unique" ON "public"."product_shipping_options" USING "btree" ("product_id", "ship_to_country", "method_name");
+
+
+
 CREATE INDEX "idx_product_variants_cj_pid" ON "public"."product_variants" USING "btree" ("cj_pid") WHERE ("cj_pid" IS NOT NULL);
 
 
@@ -3004,6 +3271,10 @@ CREATE INDEX "idx_products_category_id" ON "public"."products" USING "btree" ("c
 
 
 
+CREATE INDEX "idx_products_cj_free_shipping" ON "public"."products" USING "btree" ("is_free_shipping") WHERE (("source" = 'cj'::"text") AND ("is_free_shipping" = true));
+
+
+
 CREATE INDEX "idx_products_cj_needs_resync" ON "public"."products" USING "btree" ("cj_last_synced_at" NULLS FIRST) WHERE (("source" = 'cj'::"text") AND ("status" = 'active'::"public"."product_status"));
 
 
@@ -3016,7 +3287,15 @@ CREATE INDEX "idx_products_featured" ON "public"."products" USING "btree" ("is_f
 
 
 
+CREATE INDEX "idx_products_free_shipping" ON "public"."products" USING "btree" ("is_free_shipping") WHERE ("is_free_shipping" = true);
+
+
+
 CREATE INDEX "idx_products_name_trgm" ON "public"."products" USING "gin" ("name" "public"."gin_trgm_ops");
+
+
+
+CREATE INDEX "idx_products_not_deleted" ON "public"."products" USING "btree" ("id") WHERE ("deleted_at" IS NULL);
 
 
 
@@ -3121,6 +3400,22 @@ CREATE INDEX "idx_short_videos_user" ON "public"."short_videos" USING "btree" ("
 
 
 CREATE INDEX "idx_spaces_community" ON "public"."spaces" USING "btree" ("community_id");
+
+
+
+CREATE INDEX "idx_stock_history_delta" ON "public"."variant_stock_history" USING "btree" ("variant_id") WHERE ("delta" <> 0);
+
+
+
+CREATE INDEX "idx_stock_history_product" ON "public"."variant_stock_history" USING "btree" ("product_id", "created_at" DESC);
+
+
+
+CREATE INDEX "idx_stock_history_reason" ON "public"."variant_stock_history" USING "btree" ("change_reason");
+
+
+
+CREATE INDEX "idx_stock_history_variant" ON "public"."variant_stock_history" USING "btree" ("variant_id", "created_at" DESC);
 
 
 
@@ -3452,6 +3747,14 @@ CREATE OR REPLACE TRIGGER "on_vendor_review_change" AFTER INSERT OR DELETE OR UP
 
 
 
+CREATE OR REPLACE TRIGGER "set_product_shipping_updated_at" BEFORE UPDATE ON "public"."product_shipping_options" FOR EACH ROW EXECUTE FUNCTION "public"."set_updated_at"();
+
+
+
+CREATE OR REPLACE TRIGGER "set_product_variants_updated_at" BEFORE UPDATE ON "public"."product_variants" FOR EACH ROW EXECUTE FUNCTION "public"."set_updated_at"();
+
+
+
 CREATE OR REPLACE TRIGGER "tr_community_messages_bump_reply" AFTER INSERT ON "public"."community_messages" FOR EACH ROW EXECUTE FUNCTION "public"."bump_parent_message_reply_count"();
 
 
@@ -3460,11 +3763,23 @@ CREATE OR REPLACE TRIGGER "tr_guard_order_financial" BEFORE UPDATE ON "public"."
 
 
 
+CREATE OR REPLACE TRIGGER "tr_guard_product_delete" BEFORE DELETE ON "public"."products" FOR EACH ROW EXECUTE FUNCTION "public"."guard_product_delete"();
+
+
+
 CREATE OR REPLACE TRIGGER "tr_guard_wallet_mutations" BEFORE DELETE OR UPDATE ON "public"."wallets" FOR EACH ROW EXECUTE FUNCTION "public"."guard_wallet_mutations"();
 
 
 
+CREATE OR REPLACE TRIGGER "tr_order_items_sale_count" AFTER INSERT OR DELETE ON "public"."order_items" FOR EACH ROW EXECUTE FUNCTION "public"."update_product_sale_count"();
+
+
+
 CREATE OR REPLACE TRIGGER "tr_orders_recompute_total" BEFORE UPDATE OF "shipping_amount", "tax_amount", "discount_amount", "subtotal" ON "public"."orders" FOR EACH ROW WHEN ((("new"."shipping_amount" IS DISTINCT FROM "old"."shipping_amount") OR ("new"."tax_amount" IS DISTINCT FROM "old"."tax_amount") OR ("new"."discount_amount" IS DISTINCT FROM "old"."discount_amount") OR ("new"."subtotal" IS DISTINCT FROM "old"."subtotal"))) EXECUTE FUNCTION "public"."recompute_order_total"();
+
+
+
+CREATE OR REPLACE TRIGGER "tr_product_views_increment_count" AFTER INSERT ON "public"."product_views" FOR EACH ROW EXECUTE FUNCTION "public"."increment_product_view_count"();
 
 
 
@@ -3477,6 +3792,18 @@ CREATE OR REPLACE TRIGGER "tr_task_completions_bump_count" AFTER INSERT ON "publ
 
 
 CREATE OR REPLACE TRIGGER "tr_update_order_totals" AFTER INSERT OR DELETE OR UPDATE ON "public"."order_items" FOR EACH ROW EXECUTE FUNCTION "public"."update_order_totals"();
+
+
+
+CREATE OR REPLACE TRIGGER "tr_variant_stock_change" AFTER UPDATE OF "inventory_quantity" ON "public"."product_variants" FOR EACH ROW EXECUTE FUNCTION "public"."log_variant_stock_change"();
+
+
+
+CREATE OR REPLACE TRIGGER "tr_variant_stock_on_insert" AFTER INSERT ON "public"."product_variants" FOR EACH ROW EXECUTE FUNCTION "public"."log_variant_stock_on_insert"();
+
+
+
+CREATE OR REPLACE TRIGGER "tr_wishlists_update_count" AFTER INSERT OR DELETE ON "public"."wishlists" FOR EACH ROW EXECUTE FUNCTION "public"."update_product_wishlist_count"();
 
 
 
@@ -3547,7 +3874,7 @@ ALTER TABLE ONLY "public"."affiliate_commissions"
 
 
 ALTER TABLE ONLY "public"."affiliate_commissions"
-    ADD CONSTRAINT "affiliate_commissions_product_id_fkey" FOREIGN KEY ("product_id") REFERENCES "public"."products"("id");
+    ADD CONSTRAINT "affiliate_commissions_product_id_fkey" FOREIGN KEY ("product_id") REFERENCES "public"."products"("id") ON DELETE SET NULL;
 
 
 
@@ -3877,7 +4204,7 @@ ALTER TABLE ONLY "public"."order_items"
 
 
 ALTER TABLE ONLY "public"."order_items"
-    ADD CONSTRAINT "order_items_product_id_fkey" FOREIGN KEY ("product_id") REFERENCES "public"."products"("id");
+    ADD CONSTRAINT "order_items_product_id_fkey" FOREIGN KEY ("product_id") REFERENCES "public"."products"("id") ON DELETE SET NULL;
 
 
 
@@ -3918,6 +4245,11 @@ ALTER TABLE ONLY "public"."payouts"
 
 ALTER TABLE ONLY "public"."product_categories"
     ADD CONSTRAINT "product_categories_parent_id_fkey" FOREIGN KEY ("parent_id") REFERENCES "public"."product_categories"("id");
+
+
+
+ALTER TABLE ONLY "public"."product_shipping_options"
+    ADD CONSTRAINT "product_shipping_options_product_id_fkey" FOREIGN KEY ("product_id") REFERENCES "public"."products"("id") ON DELETE CASCADE;
 
 
 
@@ -4191,6 +4523,31 @@ ALTER TABLE ONLY "public"."user_roles"
 
 
 
+ALTER TABLE ONLY "public"."variant_stock_history"
+    ADD CONSTRAINT "variant_stock_history_changed_by_fkey" FOREIGN KEY ("changed_by") REFERENCES "public"."profiles"("id") ON DELETE SET NULL;
+
+
+
+ALTER TABLE ONLY "public"."variant_stock_history"
+    ADD CONSTRAINT "variant_stock_history_order_id_fkey" FOREIGN KEY ("order_id") REFERENCES "public"."orders"("id") ON DELETE SET NULL;
+
+
+
+ALTER TABLE ONLY "public"."variant_stock_history"
+    ADD CONSTRAINT "variant_stock_history_order_item_id_fkey" FOREIGN KEY ("order_item_id") REFERENCES "public"."order_items"("id") ON DELETE SET NULL;
+
+
+
+ALTER TABLE ONLY "public"."variant_stock_history"
+    ADD CONSTRAINT "variant_stock_history_product_id_fkey" FOREIGN KEY ("product_id") REFERENCES "public"."products"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."variant_stock_history"
+    ADD CONSTRAINT "variant_stock_history_variant_id_fkey" FOREIGN KEY ("variant_id") REFERENCES "public"."product_variants"("id") ON DELETE CASCADE;
+
+
+
 ALTER TABLE ONLY "public"."vendor_followers"
     ADD CONSTRAINT "vendor_followers_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."profiles"("id") ON DELETE CASCADE;
 
@@ -4231,7 +4588,7 @@ ALTER TABLE ONLY "public"."wishlists"
 
 
 
-CREATE POLICY "Active products are publicly viewable" ON "public"."products" FOR SELECT USING ((("status" = 'active'::"public"."product_status") AND ("is_active" = true)));
+CREATE POLICY "Active products are publicly viewable" ON "public"."products" FOR SELECT USING ((("status" = 'active'::"public"."product_status") AND ("is_active" = true) AND ("deleted_at" IS NULL)));
 
 
 
@@ -5408,6 +5765,13 @@ CREATE POLICY "product_categories_select" ON "public"."product_categories" FOR S
 
 
 
+ALTER TABLE "public"."product_shipping_options" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "product_shipping_public_read" ON "public"."product_shipping_options" FOR SELECT USING (("is_active" = true));
+
+
+
 ALTER TABLE "public"."product_variants" ENABLE ROW LEVEL SECURITY;
 
 
@@ -5466,7 +5830,9 @@ CREATE POLICY "products_insert" ON "public"."products" FOR INSERT WITH CHECK (("
 
 
 
-CREATE POLICY "products_select" ON "public"."products" FOR SELECT USING (true);
+CREATE POLICY "products_select" ON "public"."products" FOR SELECT USING (((("status" = 'active'::"public"."product_status") AND ("is_active" = true) AND ("deleted_at" IS NULL)) OR ("vendor_id" IN ( SELECT "vendors"."id"
+   FROM "public"."vendors"
+  WHERE ("vendors"."user_id" = "auth"."uid"())))));
 
 
 
@@ -5548,6 +5914,10 @@ CREATE POLICY "rooms_visible_to_members" ON "public"."rooms" FOR SELECT USING ((
   WHERE ((NOT "communities"."is_private") OR ("communities"."owner_id" = "auth"."uid"())))) OR ("community_id" IN ( SELECT "community_memberships"."community_id"
    FROM "public"."community_memberships"
   WHERE (("community_memberships"."user_id" = "auth"."uid"()) AND ("community_memberships"."status" = 'active'::"text")))))));
+
+
+
+CREATE POLICY "service_role_manage_shipping" ON "public"."product_shipping_options" USING (("auth"."role"() = 'service_role'::"text"));
 
 
 
@@ -5705,6 +6075,17 @@ CREATE POLICY "spaces_visible_to_members" ON "public"."spaces" FOR SELECT USING 
   WHERE ((NOT "communities"."is_private") OR ("communities"."owner_id" = "auth"."uid"())))) OR ("community_id" IN ( SELECT "community_memberships"."community_id"
    FROM "public"."community_memberships"
   WHERE (("community_memberships"."user_id" = "auth"."uid"()) AND ("community_memberships"."status" = 'active'::"text")))))));
+
+
+
+CREATE POLICY "stock_history_service_write" ON "public"."variant_stock_history" USING (("auth"."role"() = 'service_role'::"text"));
+
+
+
+CREATE POLICY "stock_history_vendor_read" ON "public"."variant_stock_history" FOR SELECT USING (("product_id" IN ( SELECT "p"."id"
+   FROM ("public"."products" "p"
+     JOIN "public"."vendors" "v" ON (("v"."id" = "p"."vendor_id")))
+  WHERE ("v"."user_id" = "auth"."uid"()))));
 
 
 
@@ -5921,6 +6302,9 @@ CREATE POLICY "users_view_own_payments" ON "public"."community_payments" FOR SEL
 
 
 
+ALTER TABLE "public"."variant_stock_history" ENABLE ROW LEVEL SECURITY;
+
+
 ALTER TABLE "public"."vendor_followers" ENABLE ROW LEVEL SECURITY;
 
 
@@ -5952,6 +6336,13 @@ CREATE POLICY "vendors_delete" ON "public"."vendors" FOR DELETE USING (("auth"."
 
 
 CREATE POLICY "vendors_insert" ON "public"."vendors" FOR INSERT WITH CHECK (("auth"."uid"() = "user_id"));
+
+
+
+CREATE POLICY "vendors_manage_own_shipping" ON "public"."product_shipping_options" USING (("product_id" IN ( SELECT "p"."id"
+   FROM ("public"."products" "p"
+     JOIN "public"."vendors" "v" ON (("v"."id" = "p"."vendor_id")))
+  WHERE ("v"."user_id" = "auth"."uid"()))));
 
 
 
@@ -6326,6 +6717,12 @@ GRANT ALL ON TABLE "public"."product_categories" TO "service_role";
 
 
 
+GRANT ALL ON TABLE "public"."product_shipping_options" TO "anon";
+GRANT ALL ON TABLE "public"."product_shipping_options" TO "authenticated";
+GRANT ALL ON TABLE "public"."product_shipping_options" TO "service_role";
+
+
+
 GRANT ALL ON TABLE "public"."product_variants" TO "anon";
 GRANT ALL ON TABLE "public"."product_variants" TO "authenticated";
 GRANT ALL ON TABLE "public"."product_variants" TO "service_role";
@@ -6479,6 +6876,12 @@ GRANT ALL ON TABLE "public"."ugc_view_snapshots" TO "service_role";
 GRANT ALL ON TABLE "public"."user_roles" TO "anon";
 GRANT ALL ON TABLE "public"."user_roles" TO "authenticated";
 GRANT ALL ON TABLE "public"."user_roles" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."variant_stock_history" TO "anon";
+GRANT ALL ON TABLE "public"."variant_stock_history" TO "authenticated";
+GRANT ALL ON TABLE "public"."variant_stock_history" TO "service_role";
 
 
 
