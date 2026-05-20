@@ -36,7 +36,7 @@ const RequestSchema = z.object({
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const TERMINAL_STATUSES = new Set(["paid", "completed", "refunded"]);
-const PENDING_TX_REUSE_WINDOW_MS = 60 * 60 * 1000; // 1 hour
+const PENDING_TX_REUSE_WINDOW_MS = 60 * 60 * 1000;
 
 const ALLOWED_RETURN_HOSTS = new Set([
   "jimvio.com",
@@ -80,29 +80,39 @@ function normaliseToRwf(
   return { amount: converted, currency: "RWF", fxRate };
 }
 
+// function safeReturnUrl(
+//   requested: string | undefined,
+//   origin: string,
+//   orderId: string,
+//   txRef: string
+// ): string {
+//   const fallback =
+//     `${origin}/checkout/success` +
+//     `?order=${orderId}&provider=flutterwave&tx_ref=${txRef}`;
+
+//   if (!requested) return fallback;
+
+//   try {
+//     const parsed = new URL(requested);
+//     if (!ALLOWED_RETURN_HOSTS.has(parsed.hostname)) return fallback;
+//     parsed.searchParams.set("order", orderId);
+//     parsed.searchParams.set("provider", "flutterwave");
+//     parsed.searchParams.set("tx_ref", txRef);
+//     return parsed.toString();
+//   } catch {
+//     return fallback;
+//   }
+// }
+
 function safeReturnUrl(
-  requested: string | undefined,
   origin: string,
   orderId: string,
   txRef: string
 ): string {
-  const fallback =
-    `${origin}/checkout/success` +
-    `?order=${orderId}&provider=flutterwave&tx_ref=${txRef}`;
-
-  if (!requested) return fallback;
-
-  try {
-    const parsed = new URL(requested);
-    if (!ALLOWED_RETURN_HOSTS.has(parsed.hostname)) return fallback;
-    parsed.searchParams.set("order", orderId);
-    parsed.searchParams.set("provider", "flutterwave");
-    parsed.searchParams.set("tx_ref", txRef);
-    return parsed.toString();
-  } catch {
-    return fallback;
-  }
+  const base = `${origin}/api/payments/flutterwave/callback`;
+  return `${base}?order=${orderId}&tx_ref=${txRef}`;
 }
+
 
 async function buildAndReturnPaymentLink({
   supabase,
@@ -132,7 +142,8 @@ async function buildAndReturnPaymentLink({
     process.env.NEXT_PUBLIC_APP_URL ??
     "https://www.jimvio.com";
 
-  const redirectUrl = safeReturnUrl(returnUrl, origin, orderId, txRef);
+  const redirectUrl = safeReturnUrl(origin, orderId, txRef);
+  console.log({ redirectUrl });
 
   let paymentLink: string;
   try {

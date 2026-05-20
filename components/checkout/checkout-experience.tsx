@@ -1638,7 +1638,7 @@ export function CheckoutExperience({ orders, profile, mode = "cart" }: CheckoutE
                   orderIds,
                   amount: total,
                   currency,
-                  returnUrl: `${window.location.origin}/checkout/success?order=${primaryOrderId}`,
+                  // returnUrl: `${window.location.origin}/checkout/success?order=${primaryOrderId}`,
                }),
             });
          } catch {

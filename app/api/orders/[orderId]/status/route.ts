@@ -1,15 +1,3 @@
-// app/api/orders/[orderId]/status/route.ts
-//
-// Responsibility: called by checkout success page after Flutterwave redirects back.
-// Verifies payment with Flutterwave, finalizes order, and credits vendor wallet.
-//
-// Wallet credit chain:
-//   orders.vendor_id → vendors.user_id → wallets.available_balance += net amount
-//
-// Commission deduction:
-//   vendors.commission_rate is the platform's cut (e.g. 8%).
-//   Net to vendor = total_amount * (1 - commission_rate / 100)
-
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
@@ -68,14 +56,13 @@ export async function GET(
         return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
-    // 3. Fetch latest flutterwave transaction for this order
     const { data: transaction, error: txError } = await serviceSupabase
         .from("transactions")
         .select("id, provider, provider_transaction_id, status, amount, currency")
         .eq("order_id", orderId)
         .eq("provider", "flutterwave")
         .order("created_at", { ascending: false })
-        // .limit(1)
+        .limit(1)
         .maybeSingle();
 
     if (txError) {

@@ -8,10 +8,34 @@ import {
     Calendar, Hash, Activity, AlertCircle,
 } from "lucide-react";
 import {
-    StatusPill, ProviderLogo, absoluteTime, relativeTime,
+    StatusPill, ProviderLogo,
 } from "@/components/ui/admin";
+import { verifyFlutterwaveTransaction } from "@/lib/payments/Transaction-verify";
 
 export const dynamic = "force-dynamic";
+
+
+function absoluteTime(iso: string) {
+    return new Date(iso).toLocaleString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        timeZoneName: "short",
+    });
+}
+
+function relativeTime(iso: string) {
+    const diffMs = Date.now() - new Date(iso).getTime();
+    const mins = Math.floor(diffMs / 60_000);
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    return `${Math.floor(hrs / 24)}d ago`;
+}
+// ─────────────────────────────────────────────────────────────────────────────
 
 function Card({
     title, icon: Icon, children,
@@ -78,13 +102,21 @@ export default async function TransactionDetailPage({
 
     if (!tx) notFound();
 
+
+    // Replace the unconditional verify call
+    const verify = tx.provider === "flutterwave" && tx.provider_transaction_id
+        ? await verifyFlutterwaveTransaction(tx.provider_transaction_id).catch(() => null)
+        : null;
+
+    const verifyData = verify?.data ?? null;
+
+
     const buyer = Array.isArray(tx.profiles) ? tx.profiles[0] : tx.profiles;
     const order = Array.isArray(tx.orders) ? tx.orders[0] : tx.orders;
     const vendor = order
         ? (Array.isArray(order.vendors) ? order.vendors[0] : order.vendors)
         : null;
 
-    // Related webhook events via order_id
     const { data: webhooks } = tx.order_id
         ? await admin
             .from("webhook_events")
@@ -94,7 +126,6 @@ export default async function TransactionDetailPage({
             .limit(20)
         : { data: [] };
 
-    // Also try to find webhook by tx's own webhook_event_id
     const { data: txWebhook } = await admin
         .from("transactions")
         .select("webhook_event_id")
@@ -127,13 +158,51 @@ export default async function TransactionDetailPage({
                         {tx.amount_usd && tx.currency !== "USD" && (
                             <p className="text-[12.5px] text-[var(--color-text-muted)] tabular-nums mt-0.5">
                                 ≈ ${Number(tx.amount_usd).toFixed(2)} USD
-                                {tx.exchange_rate && ` · @ ${Number(tx.exchange_rate).toFixed(4)}`}
+                                {tx.exchange_rate && ` · @ ${Number(tx.exchange_rate).toFixed(2)}`}
                             </p>
                         )}
                     </div>
                 </div>
                 <StatusPill status={tx.status} size="md" />
             </div>
+
+            {verifyData && (
+                <Card title="Live verification" icon={Activity}>
+                    <DetailRow
+                        label="Status"
+                        value={<StatusPill status={verifyData.status} />}
+                    />
+                    <DetailRow
+                        label="Amount"
+                        value={`${Number(verifyData.amount).toLocaleString()} ${verifyData.currency}`}
+                    />
+                    {verifyData.tx_ref && (
+                        <DetailRow label="Tx ref" value={verifyData.tx_ref} mono />
+                    )}
+                    {verifyData.flw_ref && (
+                        <DetailRow label="FLW ref" value={verifyData.flw_ref} mono />
+                    )}
+                    {verifyData.payment_type && (
+                        <DetailRow label="Method" value={verifyData.payment_type} />
+                    )}
+                    {verifyData.customer?.email && (
+                        <DetailRow label="Customer" value={verifyData.customer.email} />
+                    )}
+                    {verifyData.created_at && (
+                        <DetailRow label="Settled at" value={absoluteTime(verifyData.created_at)} />
+                    )}
+
+                    {/* Mismatch warning */}
+                    {verifyData.status === "successful" && tx.status !== "completed" && tx.status !== "paid" && (
+                        <div className="mt-3 flex items-start gap-2 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/20 ring-1 ring-amber-500/20">
+                            <AlertCircle className="h-3.5 w-3.5 text-amber-600 shrink-0 mt-0.5" />
+                            <p className="text-[11.5px] text-amber-700 dark:text-amber-300">
+                                Flutterwave reports success but local status is <strong>{tx.status}</strong>. Webhook may have failed.
+                            </p>
+                        </div>
+                    )}
+                </Card>
+            )}
 
             {/* Stuck transaction alert */}
             {tx.status === "pending" &&

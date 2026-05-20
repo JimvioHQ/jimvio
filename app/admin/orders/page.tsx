@@ -1,19 +1,18 @@
 import React from "react";
 import Link from "next/link";
 import { getAdminDB } from "@/services/db";
-import { formatCurrency, cn } from "@/lib/utils";
+import { formatCurrency, cn, relativeTime } from "@/lib/utils";
 import {
   ShoppingBag, Search, TrendingUp, Package, Truck,
   CircleDot, AlertTriangle, Download, Filter as FilterIcon,
 } from "lucide-react";
 import {
-  StatusPill, ProviderLogo, relativeTime,
+  StatusPill, ProviderLogo,
   FilterChip, PageHeader, EmptyState, RowArrow,
 } from "@/components/ui/admin";
 
 export const dynamic = "force-dynamic";
 
-// ─── LOCAL range config (no external import) ──────────────────────────────────
 
 const RANGES = {
   today: { label: "Today", start: () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d as Date | null; } },
@@ -310,7 +309,7 @@ export default async function AdminOrdersPage({
       <div className="rounded-2xl bg-[var(--color-surface)] ring-1 ring-[var(--color-border)] overflow-hidden">
         {list.length === 0 ? (
           <EmptyState
-            icon={ShoppingBag}
+            icon={<ShoppingBag className="h-5 w-5 text-[var(--color-text-muted)]" />}
             title="No orders match"
             message="Try widening the date range or clearing filters."
           />

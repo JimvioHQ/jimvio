@@ -2,7 +2,7 @@ import React from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getAdminDB } from "@/services/db";
-import { cn, formatCurrency } from "@/lib/utils";
+import { absoluteTime, cn, formatCurrency, relativeTime } from "@/lib/utils";
 import {
     ArrowLeft, ShoppingBag, User, Building2, MapPin, Truck,
     Receipt, Clock, Package, AlertCircle, CheckCircle2, XCircle,
@@ -10,12 +10,16 @@ import {
     RefreshCcw, Ban, ArrowRight,
 } from "lucide-react";
 import {
-    StatusPill, ProviderLogo, relativeTime, absoluteTime,
+    StatusPill, ProviderLogo,
 } from "@/components/ui/admin";
+import { verifyFlutterwaveTransaction } from "@/lib/payments/Transaction-verify";
+import { finalizeOrderPayment } from "@/lib/payments/finalize-order-payment";
+import { createClient } from "@/lib/supabase/client";
+import { toast } from "sonner";
 
 export const dynamic = "force-dynamic";
 
-// ─── Atoms ────────────────────────────────────────────────────────────────────
+// ── Server-safe date helpers ──────────────────────────────────────────────────
 
 function Card({
     title, icon: Icon, action, children, className,
@@ -104,7 +108,6 @@ export default async function OrderDetailPage({
     const { id } = await params;
     const admin = getAdminDB();
 
-    // Fetch order with everything
     const { data: order } = await admin
         .from("orders")
         .select(`
@@ -141,7 +144,6 @@ export default async function OrderDetailPage({
     const shipAddr = order.shipping_address as any;
     const billAddr = order.billing_address as any;
 
-    // Related queries in parallel
     const [
         { data: statusHistory },
         { data: transactions },
@@ -168,18 +170,77 @@ export default async function OrderDetailPage({
             .limit(10),
     ]);
 
+    // ── Verify payment before rendering ──────────────────────────────────────────
+    if (
+        (order.payment_status === "pending" && order.status === "pending") || order.payment_status === "processing"
+    ) {
+        const clientSupabase = createClient()
+        const { data: pendingTx } = await clientSupabase
+            .from("transactions")
+            .select("id, provider, provider_transaction_id, status")
+            .eq("order_id", id)
+            .maybeSingle();
+        console.log(pendingTx)
+        if (pendingTx?.provider_transaction_id) {
+            try {
+                const tx = await verifyFlutterwaveTransaction(
+                    pendingTx.provider_transaction_id
+                );
+                const txData = tx?.data;
+                console.log(txData);
+
+
+                if (txData?.status === "successful") {
+                    await finalizeOrderPayment(admin, id, {
+                        providerTransactionId: String(pendingTx.provider_transaction_id),
+                        providerReference: txData.tx_ref,
+                        paidAtIso: txData.created_at || new Date().toISOString(),
+                        notifyUserId: order.buyer_id,
+                        amountForMessage: Number(order.total_amount),
+                        paymentProvider: "flutterwave",
+                    });
+                    const { data: refreshed } = await admin
+                        .from("orders")
+                        .select("*") // same select as above
+                        .eq("id", id)
+                        .single();
+
+                    if (refreshed) Object.assign(order, refreshed);
+
+                } else if (txData?.status === "failed") {
+                    const now = new Date().toISOString();
+                    await admin
+                        .from("orders")
+                        .update({ payment_status: "failed", status: "cancelled", updated_at: now })
+                        .eq("id", id)
+                        .eq("payment_status", "pending");
+
+                    await admin
+                        .from("transactions")
+                        .update({ status: "failed", updated_at: now })
+                        .eq("id", pendingTx.id);
+
+                    Object.assign(order, { payment_status: "failed", status: "cancelled" });
+                }
+            } catch (err) {
+                console.error("[OrderDetailPage] Pre-render verification failed", {
+                    orderId: id,
+                    reason: err instanceof Error ? err.message : String(err),
+                });
+            }
+        }
+    }
+
     const history = (statusHistory ?? []) as any[];
     const txs = (transactions ?? []) as any[];
     const wh = (webhooks ?? []) as any[];
 
-    // Derive flags
     const isCJ = !!order.cj_order_id || items.some((i: any) => i.product_source === "cj");
     const isShopify = !!order.shopify_order_id || items.some((i: any) => i.product_source === "shopify");
     const isPaid = order.payment_status === "paid";
     const isCancelled = order.status === "cancelled";
     const needsRefund = isPaid && isCancelled;
 
-    // Margin (for CJ)
     const cjMargin = order.cj_supplier_cost
         ? Number(order.total_amount) - Number(order.cj_supplier_cost)
         : null;
@@ -189,7 +250,6 @@ export default async function OrderDetailPage({
 
     return (
         <div className="space-y-6">
-            {/* Back link */}
             <Link
                 href="/admin/orders"
                 className="inline-flex items-center gap-1.5 text-[12px] font-medium text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors"
@@ -211,11 +271,11 @@ export default async function OrderDetailPage({
                         <StatusPill status={order.payment_status ?? "unpaid"} size="md" />
                         <StatusPill status={order.status ?? "unfulfilled"} size="md" />
                     </div>
-                    <p className="text-sm text-[var(--color-text-muted)] mt-2" title={absoluteTime(order.created_at)}>
-                        Placed {relativeTime(order.created_at)}
+                    <p className="text-sm text-[var(--color-text-muted)] mt-2" title={absoluteTime(order.created_at ?? "")}>
+                        Placed {relativeTime(order.created_at ?? "")}
                     </p>
                 </div>
-
+                
                 <div className="flex items-center gap-2 flex-wrap">
                     {isCJ && order.cj_order_id && (
                         <Link
@@ -252,7 +312,7 @@ export default async function OrderDetailPage({
                             Awaiting payment
                         </p>
                         <p className="text-[12px] text-amber-600/80 dark:text-amber-400/80 mt-0.5">
-                            Order created {relativeTime(order.created_at)} but payment hasn't completed.
+                            Order created {relativeTime(order.created_at ?? "")} but payment hasn't completed.
                             {txs.length > 0 && ` Last transaction status: ${txs[0].status}.`}
                         </p>
                     </div>
@@ -276,7 +336,7 @@ export default async function OrderDetailPage({
             {/* Main grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
-                {/* Left column — items + totals + history */}
+                {/* Left column */}
                 <div className="lg:col-span-2 space-y-4">
 
                     {/* Line items */}
@@ -314,7 +374,6 @@ export default async function OrderDetailPage({
                                                 </p>
                                             )}
 
-                                            {/* Source badges */}
                                             {item.product_source === "cj" && (
                                                 <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-semibold uppercase tracking-wider bg-blue-50 text-blue-700 ring-1 ring-blue-500/20 shrink-0">
                                                     CJ
@@ -368,13 +427,12 @@ export default async function OrderDetailPage({
                     {/* Totals */}
                     <Card title="Totals" icon={Receipt}>
                         <div className="px-5 py-3">
-                            <MoneyRow label="Subtotal" value={order.subtotal} currency={order.currency ? order.currency : "RWF"} muted />
-                            <MoneyRow label="Shipping" value={order.shipping_amount} currency={order.currency ? order.currency : "RWF"} muted />
-                            <MoneyRow label="Tax" value={order.tax_amount} currency={order.currency ? order.currency : "RWF"} muted />
-                            <MoneyRow label="Discount" value={order.discount_amount ? -Number(order.discount_amount) : null} currency={order.currency ? order.currency : "RWF"} muted />
-                            <MoneyRow label="Total" value={order.total_amount} currency={order.currency ? order.currency : "RWF"} bold />
+                            <MoneyRow label="Subtotal" value={order.subtotal} currency={order.currency ?? "RWF"} muted />
+                            <MoneyRow label="Shipping" value={order.shipping_amount} currency={order.currency ?? "RWF"} muted />
+                            <MoneyRow label="Tax" value={order.tax_amount} currency={order.currency ?? "RWF"} muted />
+                            <MoneyRow label="Discount" value={order.discount_amount ? -Number(order.discount_amount) : null} currency={order.currency ?? "RWF"} muted />
+                            <MoneyRow label="Total" value={order.total_amount} currency={order.currency ?? "RWF"} bold />
 
-                            {/* CJ margin breakdown */}
                             {isCJ && order.cj_supplier_cost && (
                                 <div className="mt-4 pt-3 border-t border-[var(--color-border)] space-y-2">
                                     <p className="text-[10.5px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">
@@ -407,6 +465,12 @@ export default async function OrderDetailPage({
                     {txs.length > 0 && (
                         <Card title={`Transactions (${txs.length})`} icon={CreditCard}>
                             <div className="divide-y divide-[var(--color-border)]/60">
+
+                                {
+                                    txs.length === 0 && (
+                                        <p className="px-5 py-4 text-sm text-muted">No transactions found.</p>
+                                    )
+                                }
                                 {txs.map((tx: any) => (
                                     <Link
                                         key={tx.id}
@@ -488,7 +552,7 @@ export default async function OrderDetailPage({
                     )}
                 </div>
 
-                {/* Right column — buyer, vendor, shipping, fulfillment */}
+                {/* Right column */}
                 <div className="space-y-4">
 
                     {/* Buyer */}
@@ -614,14 +678,14 @@ export default async function OrderDetailPage({
                                     <DetailRow
                                         label="Tracking"
                                         value={
-                                            <a
+                                            <Link
                                                 href={`https://www.17track.net/en/track?nums=${order.tracking_number}`}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
                                                 className="text-orange-500 hover:underline font-mono text-[11px]"
                                             >
                                                 {order.tracking_number}
-                                            </a>
+                                            </Link>
                                         }
                                     />
                                 )}
@@ -633,7 +697,7 @@ export default async function OrderDetailPage({
                     {/* Timeline */}
                     <Card title="Timeline" icon={Clock}>
                         <div className="px-5 py-3 space-y-2">
-                            <DetailRow label="Created" value={<span title={absoluteTime(order.created_at)}>{relativeTime(order.created_at)}</span>} />
+                            <DetailRow label="Created" value={<span title={absoluteTime(order.created_at ?? "")}>{relativeTime(order.created_at ?? "")}</span>} />
                             {order.paid_at && <DetailRow label="Paid" value={<span title={absoluteTime(order.paid_at)}>{relativeTime(order.paid_at)}</span>} />}
                             {order.shipped_at && <DetailRow label="Shipped" value={<span title={absoluteTime(order.shipped_at)}>{relativeTime(order.shipped_at)}</span>} />}
                             {order.delivered_at && <DetailRow label="Delivered" value={<span title={absoluteTime(order.delivered_at)}>{relativeTime(order.delivered_at)}</span>} />}
@@ -642,7 +706,7 @@ export default async function OrderDetailPage({
                         </div>
                     </Card>
 
-                    {/* Order IDs */}
+                    {/* References */}
                     <Card title="References" icon={Receipt}>
                         <div className="px-5 py-3">
                             <DetailRow label="Order ID" value={order.id} mono />
@@ -652,7 +716,7 @@ export default async function OrderDetailPage({
                         </div>
                     </Card>
 
-                    {/* Webhook events compact */}
+                    {/* Webhooks */}
                     {wh.length > 0 && (
                         <Card title={`Webhooks (${wh.length})`} icon={CheckCircle2}>
                             <div className="divide-y divide-[var(--color-border)]/60">

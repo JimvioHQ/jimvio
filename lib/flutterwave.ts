@@ -217,7 +217,7 @@ export async function verifyFlutterwaveTransaction(
     maxRetries?: number;
     initialDelayMs?: number;
     useTxRef?: boolean;
-    signal?: AbortSignal;        // ← ADD THIS
+    signal?: AbortSignal;
   } = {}
 ): Promise<VerifiedTransaction> {
   const {
@@ -252,6 +252,8 @@ export async function verifyFlutterwaveTransaction(
         data: FlutterwaveVerifyResponse["data"][];
       }>(buildEndpoint(), { signal });
 
+      console.log({result});
+      
       if (result.status !== "success" || !result.data?.length) {
         throw new FlutterwaveError(
           "No transaction was found for this id",
@@ -323,8 +325,6 @@ export async function verifyFlutterwaveTransaction(
   throw lastError;
 }
 
-// ─── Abortable sleep ──────────────────────────────────────────────────────────
-// Regular sleep() ignores abort signal — this one resolves early when aborted
 
 function abortableSleep(ms: number, signal?: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {

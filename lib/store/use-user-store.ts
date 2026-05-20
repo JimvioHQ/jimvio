@@ -22,7 +22,6 @@ export const useUserStore = create<UserState>((set, get) => ({
     const supabase = createClient();
     try {
       const { data: { user }, error } = await supabase.auth.getUser();
-      console.log("[UserStore] fetchRoles auth result:", { user, error });
       if (!user) {
         set({ activeRoles: ['buyer'], isLoading: false });
         return;

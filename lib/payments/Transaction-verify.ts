@@ -1,6 +1,4 @@
-// lib/flutterwave.ts
 
-// ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface FlutterwaveCustomer {
     id: number;
@@ -98,22 +96,6 @@ async function fetchFlutterwaveVerification(
     return res.json();
 }
 
-// ─── Core shared function (call this directly on the server) ──────────────────
-
-/**
- * Verifies a Flutterwave transaction by numeric ID or tx_ref string.
- *
- * Use this directly in Server Components, Server Actions, or other
- * API routes instead of fetching your own /api/flutterwave/verify endpoint.
- *
- * @example
- * // Server Component
- * const payload = await verifyFlutterwaveTransaction("TXN_ABC123");
- *
- * @example
- * // Another API route
- * const payload = await verifyFlutterwaveTransaction(transactionId);
- */
 export async function verifyFlutterwaveTransaction(
     id: string
 ): Promise<VerifySuccessPayload> {
@@ -123,6 +105,7 @@ export async function verifyFlutterwaveTransaction(
 
     const url = buildVerifyUrl(id);
     const result = await fetchFlutterwaveVerification(url);
+    
     if (result.status !== "success" || !result.data) {
         throw new FlutterwaveAPIError(result.message || "Verification failed", 422);
     }

@@ -9,6 +9,7 @@ export type ProductWithRelations = Tables<"products"> & {
   vendors: Tables<"vendors"> | null;
   product_categories: Tables<"product_categories"> | null;
   product_variants: Tables<"product_variants">[];
+  product_shipping_options: Tables<"product_shipping_options">[];
   reviews: (Tables<"reviews"> & {
     profiles: Pick<Tables<"profiles">, "full_name" | "avatar_url"> | null;
   })[];
@@ -238,6 +239,24 @@ export async function getProductBySlug(
       vendors ( * ),
       product_categories ( * ),
       product_variants ( * ),
+      product_shipping_options (
+        id,
+        method_name,
+        carrier,
+        estimated_delivery,
+        min_delivery_days,
+        max_delivery_days,
+        shipping_fee,
+        currency,
+        is_free_shipping,
+        has_tracking,
+        is_recommended,
+        ship_from_name,
+        ship_from_country,
+        source,
+        ship_to_country,
+        is_active
+      ),
       reviews ( *, profiles ( full_name, avatar_url ) )
     `)
     .eq("slug", slug)
