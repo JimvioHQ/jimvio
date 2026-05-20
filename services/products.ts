@@ -2,8 +2,11 @@ import { cache } from "react";
 import { getDB, getAdminDB } from "./base";
 
 import type { Tables } from "@/types/supabase";
-import type { QueryData } from "@supabase/supabase-js";
 import { Product } from "@/types/database.types";
+
+// ─────────────────────────────────────────────────────────────
+// TYPES
+// ─────────────────────────────────────────────────────────────
 
 export type ProductWithRelations = Tables<"products"> & {
   vendors: Tables<"vendors"> | null;
@@ -15,72 +18,72 @@ export type ProductWithRelations = Tables<"products"> & {
   })[];
 };
 
-/** getAdminProducts */
-// services/db.ts
-export async function getAdminProducts(q?: string, limit = 100) {
-  const supabase = await getAdminDB();
-
-  let query = supabase
-    .from("products")
-    .select(`
-      id,
-      name,
-      slug,
-      price,
-      compare_at_price,
-      status,
-      product_type,
-      is_featured,
-      is_active,
-      affiliate_enabled,
-      affiliate_commission_rate,
-      images,
-      vendors (
-        id,
-        business_name,
-        business_logo,
-        profiles (
-          avatar_url
-        )
-      )
-    `, { count: "exact" })
-    .order("created_at", { ascending: false })
-    .limit(limit);
-
-  if (q?.trim()) {
-    query = query.or(`name.ilike.%${q}%,slug.ilike.%${q}%`);
-  }
-
-  const { data, count, error } = await query;
-  if (error) throw error;
-
-  const products = (data ?? []).map((row: any) => ({
-    id: row.id,
-    name: row.name,
-    slug: row.slug,
-    price: row.price,
-    compare_at_price: row.compare_at_price,
-    status: row.status,
-    product_type: row.product_type,
-    is_featured: row.is_featured,
-    is_active: row.is_active,
-    affiliate_enabled: row.affiliate_enabled,
-    affiliate_commission_rate: row.affiliate_commission_rate,
-    // ✅ Normalise the Json? field into string[] here, once, at the data layer
-    images: normaliseImages(row.images),
-    vendor_name: row.vendors?.business_name ?? null,
-    // ✅ Prefer owner avatar, fall back to business logo
-    vendor_avatar_url:
-      row.vendors?.profiles?.avatar_url ??
-      row.vendors?.business_logo ??
-      null,
-  }));
-
-  return { products, total: count ?? products.length };
+export interface ProductQuery {
+  limit?: number;
+  offset?: number;
+  category?: string;
+  type?: string;
+  search?: string;
+  sort?: "trending" | "newest" | "price_asc" | "price_desc" | "rating" | "sales";
+  featured?: boolean;
+  affiliate?: boolean;
+  vendorId?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  /** When set to `shopify`, only products synced from Shopify. */
+  catalog?: "shopify";
 }
 
-// Shared normaliser — keeps component code clean
-function normaliseImages(raw: unknown): string[] {
+export interface ProductPageData {
+  product: ProductWithRelations;
+  vendor: Tables<"vendors"> | null;
+  relatedProducts: any[];
+  shippingOptions: any[];
+  isDigital: boolean;
+}
+
+// ─────────────────────────────────────────────────────────────
+// COLUMN SELECTS
+// Centralised here so every query uses the same columns.
+// NEVER expose tax_id, stripe_account_id, payout_account,
+// payout_method, or commission_rate to the buyer.
+// ─────────────────────────────────────────────────────────────
+
+const VENDOR_PUBLIC_COLS = `
+  id, business_name, business_slug, business_logo, business_banner,
+  business_description, business_country,
+  verification_status, rating, total_sales, follower_count,
+  response_time, created_at
+`;
+
+const REVIEW_COLS = `
+  id, rating, title, body, images,
+  is_verified_purchase, is_featured, helpful_count,
+  vendor_reply, vendor_replied_at, created_at,
+  buyer:profiles!reviews_buyer_id_fkey ( id, full_name, avatar_url )
+`;
+
+const VARIANT_COLS = `
+  id, name, sku, price, compare_at_price,
+  inventory_quantity, image_url, options, is_active,
+  weight, length, width, height, volume,
+  source, source_metadata, cj_vid, cj_pid, updated_at
+`;
+
+const SHIPPING_COLS = `
+  id, method_name, carrier, estimated_delivery,
+  min_delivery_days, max_delivery_days,
+  shipping_fee, currency, is_free_shipping, has_tracking, is_recommended,
+  ship_from_name, ship_from_country, ship_to_country,
+  source, is_active
+`;
+
+// ─────────────────────────────────────────────────────────────
+// SHARED UTILITIES
+// ─────────────────────────────────────────────────────────────
+
+/** Normalise the `images` Json? column into string[] once, at the data layer. */
+export function normaliseImages(raw: unknown): string[] {
   if (!raw) return [];
   if (Array.isArray(raw)) {
     return raw.filter((x): x is string => typeof x === "string" && x.startsWith("http"));
@@ -98,9 +101,54 @@ function normaliseImages(raw: unknown): string[] {
   return [];
 }
 
+/** Determine whether a product is digital based on its flags/type. */
+export function deriveIsDigital(product: { is_digital?: boolean | null; product_type?: string | null }): boolean {
+  return product.is_digital === true || (product.product_type ?? "physical") !== "physical";
+}
+
+/**
+ * Filter shipping options by user country.
+ * Precedence: country-specific > global ("*" / "GLOBAL") > all active.
+ */
+export function filterShippingOptions(
+  options: any[],
+  userCountry: string,
+): any[] {
+  const active = options.filter((o) => o.is_active);
+  const countrySpecific = active.filter((o) => o.ship_to_country === userCountry);
+  if (countrySpecific.length > 0) return countrySpecific;
+  const global = active.filter((o) => o.ship_to_country === "*" || o.ship_to_country === "GLOBAL");
+  return global.length > 0 ? global : active;
+}
+
+/**
+ * Resolves the buyer's country once.
+ * Precedence: explicit override > signed-in profile.country > fallback.
+ */
+export async function getUserCountry(
+  override?: string,
+  fallback: string = "RW",
+): Promise<string> {
+  if (override) return override;
+  try {
+    const db = await getDB();
+    const { data: { user } } = await db.auth.getUser();
+    if (!user) return fallback;
+    const { data: profile } = await db
+      .from("profiles")
+      .select("country")
+      .eq("id", user.id)
+      .maybeSingle();
+    return profile?.country ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 // ─────────────────────────────────────────────────────────────
 // CATEGORIES
 // ─────────────────────────────────────────────────────────────
+
 export const getCategories = cache(async () => {
   const db = await getDB();
   const { data } = await db
@@ -111,7 +159,7 @@ export const getCategories = cache(async () => {
   return data ?? [];
 });
 
-/** Categories that actually have active listings (Shopify + Jimvio). Falls back to full list if none. */
+/** Categories that actually have active listings. Falls back to [] if none. */
 export const getMarketplaceCategories = cache(async () => {
   const db = await getDB();
   const { data: productRows } = await db
@@ -120,6 +168,7 @@ export const getMarketplaceCategories = cache(async () => {
     .eq("status", "active")
     .eq("is_active", true)
     .not("category_id", "is", null);
+
   const ids = [
     ...new Set(
       (productRows ?? [])
@@ -127,9 +176,8 @@ export const getMarketplaceCategories = cache(async () => {
         .filter((id): id is string => id != null && id !== ""),
     ),
   ];
-  if (ids.length === 0) {
-    return [];
-  }
+  if (ids.length === 0) return [];
+
   const { data } = await db
     .from("product_categories")
     .select("*")
@@ -141,23 +189,8 @@ export const getMarketplaceCategories = cache(async () => {
 });
 
 // ─────────────────────────────────────────────────────────────
-// PRODUCTS
+// PRODUCT LISTING
 // ─────────────────────────────────────────────────────────────
-export interface ProductQuery {
-  limit?: number;
-  offset?: number;
-  category?: string;
-  type?: string;
-  search?: string;
-  sort?: "trending" | "newest" | "price_asc" | "price_desc" | "rating" | "sales";
-  featured?: boolean;
-  affiliate?: boolean;
-  vendorId?: string;
-  minPrice?: number;
-  maxPrice?: number;
-  /** When set to `shopify`, only products synced from Shopify. */
-  catalog?: "shopify";
-}
 
 export async function getProducts(query: ProductQuery = {}) {
   const db = await getDB();
@@ -177,7 +210,7 @@ export async function getProducts(query: ProductQuery = {}) {
       created_at, source, currency, button_text,
       pricing_type, billing_period,
       vendors ( id, business_name, business_slug, rating, verification_status, business_country ),
-      product_categories${category ? '!inner' : ''} ( id, name, slug )
+      product_categories${category ? "!inner" : ""} ( id, name, slug )
     `, { count: "exact" })
     .eq("status", "active")
     .eq("is_active", true);
@@ -186,7 +219,7 @@ export async function getProducts(query: ProductQuery = {}) {
   if (vendorId) q = q.eq("vendor_id", vendorId);
   if (featured) q = q.eq("is_featured", true);
   if (affiliate) q = q.eq("affiliate_enabled", true);
-  if (type) q = q.eq("product_type", type as Product['product_type']);
+  if (type) q = q.eq("product_type", type as Product["product_type"]);
   if (category) q = q.eq("product_categories.slug", category);
   if (search) q = q.ilike("name", `%${search}%`);
   if (minPrice != null) q = q.gte("price", minPrice);
@@ -203,6 +236,16 @@ export async function getProducts(query: ProductQuery = {}) {
 
   const { data, count } = await q.range(offset, offset + limit - 1);
   return { products: data ?? [], total: count ?? 0 };
+}
+
+export async function getFeaturedProducts(limit = 4) {
+  const { products } = await getProducts({ featured: true, limit, sort: "sales" });
+  return products;
+}
+
+export async function getTrendingProducts(limit = 8) {
+  const { products } = await getProducts({ limit, sort: "trending" });
+  return products;
 }
 
 export async function countActiveShopifyProducts() {
@@ -226,59 +269,115 @@ export async function countActiveListedProducts() {
   return count ?? 0;
 }
 
+// ─────────────────────────────────────────────────────────────
+// SINGLE PRODUCT
+// ─────────────────────────────────────────────────────────────
 
-
-export async function getProductBySlug(
-  slug: string,
-): Promise<ProductWithRelations | null> {
+/**
+ * Fetches a single active product with all relations for the detail page.
+ *
+ * Replaces the old `getProductBySlug` (which used SELECT * and didn't apply
+ * column constants) and consolidates it with `getProductPageData`.
+ * Use `getProductPageData` when you also need related products & shipping.
+ */
+export async function getProductBySlug(slug: string): Promise<ProductWithRelations | null> {
   const db = await getDB();
   const { data, error } = await db
     .from("products")
     .select(`
       *,
-      vendors ( * ),
-      product_categories ( * ),
-      product_variants ( * ),
-      product_shipping_options (
-        id,
-        method_name,
-        carrier,
-        estimated_delivery,
-        min_delivery_days,
-        max_delivery_days,
-        shipping_fee,
-        currency,
-        is_free_shipping,
-        has_tracking,
-        is_recommended,
-        ship_from_name,
-        ship_from_country,
-        source,
-        ship_to_country,
-        is_active
-      ),
-      reviews ( *, profiles ( full_name, avatar_url ) )
+      vendors ( ${VENDOR_PUBLIC_COLS} ),
+      product_categories ( id, name, slug, parent_id ),
+      product_variants ( ${VARIANT_COLS} ),
+      product_shipping_options ( ${SHIPPING_COLS} ),
+      reviews ( ${REVIEW_COLS} )
     `)
     .eq("slug", slug)
     .eq("status", "active")
+    .is("deleted_at", null)
     .maybeSingle();
 
   if (error) {
-    console.error(`[getProductBySlug] Error fetching product with slug "${slug}":`, error);
+    console.error(`[getProductBySlug] "${slug}":`, error);
     return null;
   }
   return data as ProductWithRelations | null;
 }
 
-export async function getFeaturedProducts(limit = 4) {
-  const { products } = await getProducts({ featured: true, limit, sort: "sales" });
-  return products;
+/**
+ * One call returns everything a product detail page needs:
+ * - product with variants, shipping, reviews, category, vendor
+ * - shipping filtered by user country (country → global → all active)
+ * - related products from the same category, falling back to trending
+ * - reviews sorted by helpfulness then recency, capped at `reviewLimit`
+ */
+export async function getProductPageData(
+  slug: string,
+  opts: {
+    userCountry?: string;
+    relatedLimit?: number;
+    reviewLimit?: number;
+  } = {},
+): Promise<ProductPageData | null> {
+  const { userCountry = "RW", relatedLimit = 8, reviewLimit = 50 } = opts;
+
+  // Reuse getProductBySlug — single source of truth for the product query.
+  const product = await getProductBySlug(slug);
+  if (!product) return null;
+
+  // Filter shipping using the shared utility.
+  const shippingOptions = filterShippingOptions(
+    product.product_shipping_options ?? [],
+    userCountry,
+  );
+
+  // Sort reviews: most helpful first, then most recent; cap at reviewLimit.
+  product.reviews = (product.reviews ?? [])
+    .sort((a: any, b: any) => {
+      const byHelpful = (b.helpful_count ?? 0) - (a.helpful_count ?? 0);
+      return byHelpful !== 0
+        ? byHelpful
+        : new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    })
+    .slice(0, reviewLimit);
+
+  // Related products: same category, fallback to trending.
+  let relatedProducts: any[] = [];
+  if ((product as any).category_id) {
+    const db = await getDB();
+    const { data } = await db
+      .from("products")
+      .select(`
+        id, name, slug, price, compare_at_price, currency, images,
+        rating, review_count, sale_count, source, product_type
+      `)
+      .eq("category_id", (product as any).category_id)
+      .eq("status", "active")
+      .eq("is_active", true)
+      .is("deleted_at", null)
+      .neq("id", product.id)
+      .order("sale_count", { ascending: false })
+      .limit(relatedLimit);
+    relatedProducts = data ?? [];
+  }
+
+  if (relatedProducts.length === 0) {
+    const { products: trending } = await getProducts({ limit: relatedLimit, sort: "sales" });
+    relatedProducts = trending.filter((p: any) => p.id !== product.id);
+  }
+
+  return {
+    product,
+    vendor: product.vendors ?? null,
+    relatedProducts,
+    shippingOptions,
+    isDigital: deriveIsDigital(product),
+  };
 }
 
-export async function getTrendingProducts(limit = 8) {
-  const { products } = await getProducts({ limit, sort: "trending" });
-  return products;
-}
+// ─────────────────────────────────────────────────────────────
+// VENDOR-SCOPED QUERIES
+// ─────────────────────────────────────────────────────────────
 
 export async function getVendorProducts(vendorId: string) {
   const db = await getDB();
@@ -305,4 +404,55 @@ export async function getTopVendorProducts(vendorId: string, limit = 4) {
     .order("sale_count", { ascending: false })
     .limit(limit);
   return data ?? [];
+}
+
+// ─────────────────────────────────────────────────────────────
+// ADMIN
+// ─────────────────────────────────────────────────────────────
+
+export async function getAdminProducts(q?: string, limit = 100) {
+  const supabase = await getAdminDB();
+
+  let query = supabase
+    .from("products")
+    .select(`
+      id, name, slug, price, compare_at_price, status, product_type,
+      is_featured, is_active, affiliate_enabled, affiliate_commission_rate, images,
+      vendors (
+        id, business_name, business_logo,
+        profiles ( avatar_url )
+      )
+    `, { count: "exact" })
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (q?.trim()) {
+    query = query.or(`name.ilike.%${q}%,slug.ilike.%${q}%`);
+  }
+
+  const { data, count, error } = await query;
+  if (error) throw error;
+
+  const products = (data ?? []).map((row: any) => ({
+    id: row.id,
+    name: row.name,
+    slug: row.slug,
+    price: row.price,
+    compare_at_price: row.compare_at_price,
+    status: row.status,
+    product_type: row.product_type,
+    is_featured: row.is_featured,
+    is_active: row.is_active,
+    affiliate_enabled: row.affiliate_enabled,
+    affiliate_commission_rate: row.affiliate_commission_rate,
+    images: normaliseImages(row.images),
+    vendor_name: row.vendors?.business_name ?? null,
+    // Prefer owner avatar, fall back to business logo.
+    vendor_avatar_url:
+      row.vendors?.profiles?.avatar_url ??
+      row.vendors?.business_logo ??
+      null,
+  }));
+
+  return { products, total: count ?? products.length };
 }

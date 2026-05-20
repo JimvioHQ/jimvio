@@ -84,18 +84,15 @@ export async function POST(req: NextRequest) {
             },
             body: JSON.stringify(cjPayload),
         });
-        console.log(cjRes);
-        
         if (!cjRes.ok) {
-            throw new Error(`CJ API error: ${cjRes.status} ${cjRes.statusText}`);
+            return NextResponse.json({ success: true, rates: [] });
         }
 
         const cjData = await cjRes.json();
 
         if (cjData.result !== true) {
-            throw new Error(cjData.message ?? "CJ did not return shipping rates");
+            return NextResponse.json({ success: true, rates: [], error: cjData.message });
         }
-
         const rawRates: any[] = cjData.data ?? [];
 
         // ── Convert USD prices to order currency ──────────────────────────────────
