@@ -6,52 +6,95 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Minus, Plus, X, Loader2, Store, ShieldCheck,
-  ChevronRight, ShoppingBag, Trash2,
+  Minus, Plus, Loader2, Store, ShieldCheck,
+  ChevronRight, ShoppingBag,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { updateCartItemQuantity, removeFromCart } from "@/lib/actions/marketplace";
 import { useCurrency } from "@/context/CurrencyContext";
+import { formatAggregatedCartTotalInDisplayCurrency, CartOrderLikeForTotal } from "@/lib/currency/format";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-interface CartItem {
+// ─── Types matching the new cart_items shape from getCart() ─────────────────
+
+interface CartItemProduct {
   id: string;
-  product_id: string | null;
-  product_name: string;
-  product_image: string | null;
-  quantity: number;
-  unit_price: number;
-  total_price: number;
-  order_id: string;
-  variant_name?: string | null;
-  inventory_quantity?: number | null;
-  track_inventory?: boolean | null;
-  product_slug?: string | null;
+  name: string;
+  slug: string | null;
+  images: string[] | null;
+  source: string | null;
+  pricing_type: string | null;
+  billing_period: string | null;
+  product_type: string | null;
 }
 
-interface CartOrder {
+interface CartItemVariant {
   id: string;
-  vendor_id: string | null;
-  status: string | null;
-  total_amount: number;
-  subtotal: number;
-  currency?: string | null;
-  order_items: CartItem[];
-  vendors: {
-    id: string;
-    business_name: string;
-    business_slug: string;
-    verification_status?: string | null;
-  } | null;
+  name: string | null;
+  options: Record<string, string> | null;
+  image_url: string | null;
+}
+
+interface CartItemVendor {
+  id: string;
+  business_name: string;
+  business_slug: string;
+  verification_status?: string | null;
+}
+
+export interface CartItem {
+  id: string;
+  cart_id: string;
+  product_id: string;
+  variant_id: string | null;
+  vendor_id: string;
+  quantity: number;
+  unit_price_at_add: number;
+  currency_at_add: string;
+  product_source: string;
+  source_metadata: Record<string, unknown>;
+  affiliate_link_id: string | null;
+  added_at: string;
+  updated_at: string;
+  // joined relations
+  products: CartItemProduct | null;
+  product_variants: CartItemVariant | null;
+  vendors: CartItemVendor | null;
 }
 
 interface CartClientProps {
-  initialOrders: CartOrder[];
+  initialItems: CartItem[];
 }
 
-function sumOrderItems(items: CartItem[]): number {
-  return items.reduce((s, i) => s + Number(i.total_price), 0);
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+/** Group flat cart items by vendor for display */
+function groupByVendor(items: CartItem[]): Map<string, CartItem[]> {
+  const map = new Map<string, CartItem[]>();
+  for (const item of items) {
+    const key = item.vendor_id;
+    if (!map.has(key)) map.set(key, []);
+    map.get(key)!.push(item);
+  }
+  return map;
+}
+
+function vendorSubtotal(items: CartItem[]): number {
+  return items.reduce((s, i) => s + Number(i.unit_price_at_add) * Number(i.quantity), 0);
+}
+
+/** Convert flat items to the shape formatAggregatedCartTotalInDisplayCurrency expects */
+function itemsToCartOrders(items: CartItem[]): CartOrderLikeForTotal[] {
+  const map = new Map<string, number>();
+  for (const item of items) {
+    const c = (item.currency_at_add || "RWF").toUpperCase();
+    map.set(c, (map.get(c) ?? 0) + Number(item.unit_price_at_add) * Number(item.quantity));
+  }
+  return [...map.entries()].map(([currency, total]) => ({
+    currency,
+    order_items: [{ total_price: total }],
+  }));
 }
 
 // ─── Quantity input ──────────────────────────────────────────────────────────
@@ -72,10 +115,7 @@ function QtyInput({
 
   const commit = () => {
     const n = parseInt(local, 10);
-    if (isNaN(n) || n < 1) {
-      setLocal(value.toString());
-      return;
-    }
+    if (isNaN(n) || n < 1) { setLocal(value.toString()); return; }
     const clamped = max ? Math.min(n, max) : n;
     if (clamped !== value) onChange(clamped);
     else setLocal(value.toString());
@@ -116,52 +156,41 @@ function QtyInput({
 
 // ─── Main component ──────────────────────────────────────────────────────────
 
-export function CartClient({ initialOrders }: CartClientProps) {
+export function CartClient({ initialItems }: CartClientProps) {
   const router = useRouter();
-  const { formatMoney, formatCartTotalsLabel } = useCurrency();
-  const [orders, setOrders] = useState(initialOrders);
+  const { formatMoney, displayCurrency, rates } = useCurrency();
+  const [items, setItems] = useState<CartItem[]>(initialItems ?? []);
   const [loadingItems, setLoadingItems] = useState<string[]>([]);
   const [removingItems, setRemovingItems] = useState<string[]>([]);
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
   const hasMountedRef = useRef(false);
 
   useEffect(() => {
-    if (!hasMountedRef.current) {
-      hasMountedRef.current = true;
-      return;
-    }
-    setOrders(initialOrders);
-  }, [initialOrders]);
+    if (!hasMountedRef.current) { hasMountedRef.current = true; return; }
+    setItems(initialItems ?? []);
+  }, [initialItems]);
 
-  const totalsLabel = useMemo(
-    () => formatCartTotalsLabel(orders),
-    [orders, formatCartTotalsLabel]
-  );
+  const vendorGroups = useMemo(() => groupByVendor(items), [items]);
 
-  const totalUnits = orders.reduce(
-    (a, o) => a + o.order_items.reduce((b, i) => b + i.quantity, 0),
-    0
-  );
+  const totalUnits = items.reduce((s, i) => s + Number(i.quantity), 0);
+
+  const totalsLabel = useMemo(() => {
+    const cartOrders = itemsToCartOrders(items);
+    return formatAggregatedCartTotalInDisplayCurrency(cartOrders, displayCurrency, rates);
+  }, [items, displayCurrency, rates]);
 
   const hasMixedCurrencies = useMemo(
-    () => new Set(orders.map((o) => (o.currency || "USD").toUpperCase())).size > 1,
-    [orders]
+    () => new Set(items.map((i) => (i.currency_at_add || "RWF").toUpperCase())).size > 1,
+    [items]
   );
 
   const handleUpdateQuantity = async (itemId: string, newQty: number) => {
     if (newQty < 1) return;
     setLoadingItems((p) => [...p, itemId]);
 
-    setOrders((prev) =>
-      prev.map((order) => {
-        const items = order.order_items.map((it) =>
-          it.id === itemId
-            ? { ...it, quantity: newQty, total_price: it.unit_price * newQty }
-            : it
-        );
-        const lineSum = sumOrderItems(items);
-        return { ...order, order_items: items, total_amount: lineSum, subtotal: lineSum };
-      })
+    // Optimistic update
+    setItems((prev) =>
+      prev.map((i) => i.id === itemId ? { ...i, quantity: newQty } : i)
     );
 
     try {
@@ -182,38 +211,28 @@ export function CartClient({ initialOrders }: CartClientProps) {
     }
   };
 
-  const handleRemove = async (item: CartItem) => {
-    setRemovingItems((p) => [...p, item.id]);
-
+  const handleRemove = async (itemId: string) => {
+    setRemovingItems((p) => [...p, itemId]);
     try {
-      const res = await removeFromCart(item.id);
+      const res = await removeFromCart(itemId);
       if (res.success) {
         window.dispatchEvent(new CustomEvent("cart-updated"));
-        setOrders((prev) =>
-          prev
-            .map((order) => {
-              const items = order.order_items.filter((i) => i.id !== item.id);
-              const lineSum = sumOrderItems(items);
-              return { ...order, order_items: items, total_amount: lineSum, subtotal: lineSum };
-            })
-            .filter((o) => o.order_items.length > 0)
-        );
-        setRemovingItems((p) => p.filter((id) => id !== item.id));
+        setItems((prev) => prev.filter((i) => i.id !== itemId));
         router.refresh();
       } else {
-        setRemovingItems((p) => p.filter((id) => id !== item.id));
         toast.error(res.error || "Couldn't remove item");
       }
     } catch (err) {
-      setRemovingItems((p) => p.filter((id) => id !== item.id));
       console.error(err);
       toast.error("Something went wrong");
+    } finally {
+      setRemovingItems((p) => p.filter((id) => id !== itemId));
     }
   };
 
-  // ─── Empty state ──────────────────────────────────────────────────────────
+  // ─── Empty state ────────────────────────────────────────────────────────────
 
-  if (orders.length === 0) {
+  if (items.length === 0) {
     return (
       <div className="max-w-md mx-auto py-20 text-center">
         <div className="h-16 w-16 mx-auto mb-5 rounded-full bg-stone-100 dark:bg-zinc-800 flex items-center justify-center">
@@ -235,7 +254,7 @@ export function CartClient({ initialOrders }: CartClientProps) {
     );
   }
 
-  // ─── Cart ─────────────────────────────────────────────────────────────────
+  // ─── Cart ───────────────────────────────────────────────────────────────────
 
   return (
     <div>
@@ -256,16 +275,18 @@ export function CartClient({ initialOrders }: CartClientProps) {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6 items-start">
-        {/* Left column */}
+        {/* Left column — grouped by vendor */}
         <div className="space-y-4">
           <AnimatePresence mode="popLayout" initial={false}>
-            {orders.map((order) => {
-              const orderSubtotal = sumOrderItems(order.order_items);
-              const isVerified = order.vendors?.verification_status === "verified";
+            {[...vendorGroups.entries()].map(([vendorId, vendorItems]) => {
+              const vendor = vendorItems[0]?.vendors;
+              const isVerified = vendor?.verification_status === "verified";
+              const subtotal = vendorSubtotal(vendorItems);
+              const currency = vendorItems[0]?.currency_at_add ?? "RWF";
 
               return (
                 <motion.div
-                  key={order.id}
+                  key={vendorId}
                   layout
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -276,12 +297,12 @@ export function CartClient({ initialOrders }: CartClientProps) {
                   {/* Vendor header */}
                   <div className="flex items-center justify-between px-4 py-2.5 border-b border-stone-200 dark:border-zinc-800 bg-stone-50/50 dark:bg-zinc-900/50">
                     <Link
-                      href={`/vendors/${order.vendors?.business_slug}`}
+                      href={`/vendors/${vendor?.business_slug ?? "#"}`}
                       className="flex items-center gap-2 min-w-0"
                     >
                       <Store className="h-3.5 w-3.5 text-stone-500 dark:text-zinc-400 shrink-0" />
                       <span className="text-sm font-medium text-zinc-800 dark:text-zinc-200 truncate hover:underline">
-                        {order.vendors?.business_name || "Marketplace"}
+                        {vendor?.business_name || "Marketplace"}
                       </span>
                       {isVerified && (
                         <ShieldCheck
@@ -295,14 +316,22 @@ export function CartClient({ initialOrders }: CartClientProps) {
                   {/* Items */}
                   <div className="divide-y divide-stone-100 dark:divide-zinc-800">
                     <AnimatePresence mode="popLayout" initial={false}>
-                      {order.order_items.map((item) => {
+                      {vendorItems.map((item) => {
                         const isLoading = loadingItems.includes(item.id);
                         const isRemoving = removingItems.includes(item.id);
-                        const stockLow =
-                          item.track_inventory &&
-                          item.inventory_quantity != null &&
-                          item.inventory_quantity <= 5 &&
-                          item.inventory_quantity > 0;
+                        const product = item.products;
+                        const variant = item.product_variants;
+                        const image =
+                          variant?.image_url ||
+                          product?.images?.[0] ||
+                          null;
+                        const slug = product?.slug ?? null;
+                        const name = product?.name ?? "Product";
+                        const variantLabel = variant?.name
+                          ?? (variant?.options
+                            ? Object.values(variant.options).join(" / ")
+                            : null);
+                        const lineTotal = Number(item.unit_price_at_add) * Number(item.quantity);
 
                         return (
                           <motion.div
@@ -315,14 +344,13 @@ export function CartClient({ initialOrders }: CartClientProps) {
                             <div className="px-4 py-4 flex gap-3.5">
                               {/* Thumbnail */}
                               <Link
-                                href={item.product_slug ? `/product/${item.product_slug}` : "#"}
+                                href={slug ? `/product/${slug}` : "#"}
                                 className="relative h-20 w-20 sm:h-[88px] sm:w-[88px] shrink-0 bg-stone-50 dark:bg-zinc-800 rounded border border-stone-200 dark:border-zinc-700 overflow-hidden"
                               >
-                                {item.product_image?.startsWith("http") &&
-                                !imageErrors[item.id] ? (
+                                {image && !imageErrors[item.id] ? (
                                   <Image
-                                    src={item.product_image}
-                                    alt={item.product_name}
+                                    src={image}
+                                    alt={name}
                                     fill
                                     sizes="88px"
                                     className="object-cover"
@@ -344,46 +372,35 @@ export function CartClient({ initialOrders }: CartClientProps) {
                               <div className="flex-1 min-w-0">
                                 <div className="flex justify-between items-start gap-3 mb-1">
                                   <Link
-                                    href={item.product_slug ? `/product/${item.product_slug}` : "#"}
+                                    href={slug ? `/product/${slug}` : "#"}
                                     className="text-sm text-zinc-900 dark:text-zinc-100 hover:underline line-clamp-2 leading-snug"
                                   >
-                                    {item.product_name}
+                                    {name}
                                   </Link>
                                   <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100 tabular-nums shrink-0">
-                                    {formatMoney(item.total_price, order.currency ?? "USD")}
+                                    {formatMoney(lineTotal, currency)}
                                   </p>
                                 </div>
 
-                                {item.variant_name && (
+                                {variantLabel && (
                                   <p className="text-xs text-stone-500 dark:text-zinc-400 mb-1">
-                                    {item.variant_name}
+                                    {variantLabel}
                                   </p>
                                 )}
 
                                 <p className="text-xs text-stone-500 dark:text-zinc-400 tabular-nums mb-2.5">
-                                  {formatMoney(item.unit_price, order.currency ?? "USD")} each
+                                  {formatMoney(item.unit_price_at_add, currency)} each
                                 </p>
-
-                                {stockLow && (
-                                  <p className="text-[11px] text-amber-700 dark:text-amber-500 mb-2.5">
-                                    Only {item.inventory_quantity} left in stock
-                                  </p>
-                                )}
 
                                 <div className="flex items-center justify-between gap-3">
                                   <QtyInput
                                     value={item.quantity}
-                                    max={
-                                      item.track_inventory
-                                        ? item.inventory_quantity ?? undefined
-                                        : undefined
-                                    }
                                     loading={isLoading}
                                     onChange={(q) => handleUpdateQuantity(item.id, q)}
                                   />
 
                                   <button
-                                    onClick={() => handleRemove(item)}
+                                    onClick={() => handleRemove(item.id)}
                                     disabled={isRemoving}
                                     className="text-xs text-stone-500 dark:text-zinc-400 hover:text-rose-600 dark:hover:text-rose-500 hover:underline disabled:opacity-50"
                                   >
@@ -407,11 +424,9 @@ export function CartClient({ initialOrders }: CartClientProps) {
 
                   {/* Vendor subtotal */}
                   <div className="px-4 py-2.5 border-t border-stone-200 dark:border-zinc-800 flex justify-between text-sm">
-                    <span className="text-stone-600 dark:text-zinc-400">
-                      Items subtotal
-                    </span>
+                    <span className="text-stone-600 dark:text-zinc-400">Items subtotal</span>
                     <span className="font-medium text-zinc-900 dark:text-zinc-100 tabular-nums">
-                      {formatMoney(orderSubtotal, order.currency ?? "USD")}
+                      {formatMoney(subtotal, currency)}
                     </span>
                   </div>
                 </motion.div>
@@ -449,16 +464,12 @@ export function CartClient({ initialOrders }: CartClientProps) {
 
               <div className="flex justify-between">
                 <span className="text-stone-600 dark:text-zinc-400">Shipping</span>
-                <span className="text-stone-500 dark:text-zinc-500">
-                  Calculated at checkout
-                </span>
+                <span className="text-stone-500 dark:text-zinc-500">Calculated at checkout</span>
               </div>
 
               <div className="flex justify-between">
                 <span className="text-stone-600 dark:text-zinc-400">Tax</span>
-                <span className="text-stone-500 dark:text-zinc-500">
-                  Calculated at checkout
-                </span>
+                <span className="text-stone-500 dark:text-zinc-500">Calculated at checkout</span>
               </div>
 
               {hasMixedCurrencies && (
@@ -469,9 +480,7 @@ export function CartClient({ initialOrders }: CartClientProps) {
             </div>
 
             <div className="px-4 py-3 border-t border-stone-200 dark:border-zinc-800 flex justify-between items-baseline">
-              <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                Total
-              </span>
+              <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Total</span>
               <span className="text-lg font-semibold text-zinc-900 dark:text-white tabular-nums">
                 {totalsLabel}
               </span>
@@ -484,7 +493,6 @@ export function CartClient({ initialOrders }: CartClientProps) {
               >
                 <Link href="/checkout">Proceed to checkout</Link>
               </Button>
-
               <p className="mt-3 text-xs text-stone-500 dark:text-zinc-500 leading-relaxed">
                 Payment is held in escrow until you receive your order.
               </p>
@@ -492,21 +500,9 @@ export function CartClient({ initialOrders }: CartClientProps) {
           </div>
 
           <div className="mt-4 text-xs text-stone-500 dark:text-zinc-500 space-y-1.5">
-            <p>
-              <Link href="/help/returns" className="hover:underline">
-                Return policy
-              </Link>
-            </p>
-            <p>
-              <Link href="/help/shipping" className="hover:underline">
-                Shipping information
-              </Link>
-            </p>
-            <p>
-              <Link href="/support" className="hover:underline">
-                Contact support
-              </Link>
-            </p>
+            <p><Link href="/help/returns" className="hover:underline">Return policy</Link></p>
+            <p><Link href="/help/shipping" className="hover:underline">Shipping information</Link></p>
+            <p><Link href="/support" className="hover:underline">Contact support</Link></p>
           </div>
         </aside>
       </div>

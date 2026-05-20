@@ -442,7 +442,7 @@ export function ProductActionModule({
           incrementCartCount(quantity);
           setAdded(true);
           if (isFree) toast.success("Free item added to cart!");
-          else toast.success(selectedVariantId ? "Variant added to cart!" : "Added to cart!");
+          else toast.success("Added to cart!");
           setTimeout(() => setAdded(false), 2500);
         } else if (result.error === "Authentication required") {
           redirectToLogin();

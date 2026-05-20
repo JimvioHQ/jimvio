@@ -109,11 +109,13 @@ export function groupOrderLineRowsToCartOrders(
  * Sum all open cart orders into one string in `displayCurrency`.
  * If FX is missing for a bucket, falls back to per-bucket formatted amounts joined by " · ".
  */
+// AFTER
 export function formatAggregatedCartTotalInDisplayCurrency(
-  orders: CartOrderLikeForTotal[],
+  orders: CartOrderLikeForTotal[] | null | undefined,
   displayCurrency: CurrencyCode,
   rates: Record<string, number>
 ): string {
+  if (!Array.isArray(orders) || orders.length === 0) return formatCurrency(0, displayCurrency);
   const map = new Map<string, number>();
   for (const o of orders) {
     const c = (o.currency || "USD").toUpperCase();

@@ -28,12 +28,14 @@ function isCurrencyCode(v: string): v is CurrencyCode {
 type CurrencyContextValue = {
   rates: Record<string, number>;
   userCurrency: CurrencyCode;
+  /** Alias for userCurrency — use whichever reads clearer at the call site. */
+  displayCurrency: CurrencyCode;
   loading: boolean;
   setUserCurrency: (code: CurrencyCode) => void;
   formatPrice: (amountUSD: number) => string;
   /** `amount` is in `storedCurrency` (e.g. product row); converts to the user's display currency. */
   formatMoney: (amount: number, storedCurrency?: string | null) => string;
-  /** Cart summary: all orders combined, shown in the user’s display currency. */
+  /** Cart summary: all orders combined, shown in the user's display currency. */
   formatCartTotalsLabel: (orders: CartOrderLikeForTotal[]) => string;
 };
 
@@ -123,6 +125,7 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
     () => ({
       rates,
       userCurrency,
+      displayCurrency: userCurrency,
       loading,
       setUserCurrency,
       formatPrice,
@@ -138,66 +141,44 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
 export function useCurrency(): CurrencyContextValue {
   const ctx = useContext(CurrencyContext);
   if (!ctx) {
-    // Return a stable fallback for SSR/Client initialization to avoid crashes
     return {
       rates: {},
       userCurrency: "RWF",
+      displayCurrency: "RWF",
       loading: true,
       setUserCurrency: () => { },
-      formatPrice: (a) => `...`,
-      formatMoney: (a) => `...`,
-      formatCartTotalsLabel: () => `...`,
+      formatPrice: () => "...",
+      formatMoney: () => "...",
+      formatCartTotalsLabel: () => "...",
     };
   }
   return ctx;
 }
 
-export function CurrencySelector({ className, style }: { className?: string; style?: React.CSSProperties }) {
+export function CurrencySelector({
+  className,
+  style,
+}: {
+  className?: string;
+  style?: React.CSSProperties;
+}) {
   const { userCurrency, setUserCurrency } = useCurrency();
 
   return (
     <>
       <CustomSelect
-        className={
-          cn(
-            "rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text-primary)]",
-            className
-          )
-
-        }
+        className={cn(
+          "rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text-primary)]",
+          className
+        )}
         options={(Object.keys(SUPPORTED_CURRENCIES) as CurrencyCode[]).map((code) => {
           const c = SUPPORTED_CURRENCIES[code];
-          return ({
-            label: `${c.symbol} — ${c.name}`,
-            value: code
-          }
-          );
+          return { label: `${c.symbol} — ${c.name}`, value: code };
         })}
         textSize="xs"
         value={userCurrency}
-        onChange={setUserCurrency} />
+        onChange={setUserCurrency}
+      />
     </>
-    // <select
-    //   style={style}
-    //   value={userCurrency}
-    //   onChange={(e) => {
-    //     const v = e.target.value;
-    //     if (isCurrencyCode(v)) setUserCurrency(v);
-    //   }}
-    // className={
-    //   className ??
-    //   "rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text-primary)]"
-    // }
-    //   aria-label="Display currency"
-    // >
-    // {(Object.keys(SUPPORTED_CURRENCIES) as CurrencyCode[]).map((code) => {
-    //   const c = SUPPORTED_CURRENCIES[code];
-    //   return (
-    //     <option key={code} value={code}>
-    //       {c.symbol} — {c.name}
-    //     </option>
-    //   );
-    // })}
-    // </select>
   );
 }

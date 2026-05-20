@@ -267,6 +267,139 @@ CREATE TYPE "public"."verification_status" AS ENUM (
 ALTER TYPE "public"."verification_status" OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."add_to_cart"("p_product_id" "uuid", "p_variant_id" "uuid" DEFAULT NULL::"uuid", "p_quantity" integer DEFAULT 1, "p_affiliate_link_id" "uuid" DEFAULT NULL::"uuid") RETURNS "jsonb"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$
+DECLARE
+  v_user_id      uuid := auth.uid();
+  v_cart_id      uuid;
+  v_product      RECORD;
+  v_variant      RECORD;
+  v_existing_qty integer;
+  v_unit_price   numeric(14,2);
+  v_currency     text;
+  v_item_id      uuid;
+BEGIN
+  IF v_user_id IS NULL THEN
+    RAISE EXCEPTION 'Not authenticated';
+  END IF;
+
+  IF p_quantity < 1 OR p_quantity > 99 THEN
+    RAISE EXCEPTION 'Invalid quantity';
+  END IF;
+
+  -- Look up product + verify it's purchasable
+  SELECT id, vendor_id, price, currency, source, source_metadata,
+         status, is_active, deleted_at, track_inventory,
+         inventory_quantity, allow_backorder, requires_shipping
+    INTO v_product
+  FROM public.products
+  WHERE id = p_product_id;
+
+  IF NOT FOUND OR v_product.status != 'active'
+     OR NOT v_product.is_active OR v_product.deleted_at IS NOT NULL THEN
+    RAISE EXCEPTION 'Product not available';
+  END IF;
+
+  -- Variant lookup (optional)
+  IF p_variant_id IS NOT NULL THEN
+    SELECT id, price, inventory_quantity, is_active
+      INTO v_variant
+    FROM public.product_variants
+    WHERE id = p_variant_id AND product_id = p_product_id;
+
+    IF NOT FOUND OR NOT v_variant.is_active THEN
+      RAISE EXCEPTION 'Variant not available';
+    END IF;
+
+    v_unit_price := v_variant.price;
+  ELSE
+    v_unit_price := v_product.price;
+  END IF;
+
+  v_currency := v_product.currency;
+
+  -- Get or create cart (atomic)
+  INSERT INTO public.carts (user_id, currency)
+  VALUES (v_user_id, v_currency)
+  ON CONFLICT (user_id) DO UPDATE
+    SET last_activity_at = now()
+  RETURNING id INTO v_cart_id;
+
+  -- Check existing quantity for stock validation
+  SELECT id, quantity INTO v_item_id, v_existing_qty
+  FROM public.cart_items
+  WHERE cart_id = v_cart_id
+    AND product_id = p_product_id
+    AND variant_id IS NOT DISTINCT FROM p_variant_id;
+
+  v_existing_qty := COALESCE(v_existing_qty, 0);
+
+  -- Stock check (variant first, falls back to product)
+  IF v_product.track_inventory AND NOT v_product.allow_backorder THEN
+    IF p_variant_id IS NOT NULL THEN
+      IF v_existing_qty + p_quantity > v_variant.inventory_quantity THEN
+        RAISE EXCEPTION 'Only % in stock', v_variant.inventory_quantity
+          USING ERRCODE = 'check_violation';
+      END IF;
+    ELSE
+      IF v_existing_qty + p_quantity > v_product.inventory_quantity THEN
+        RAISE EXCEPTION 'Only % in stock', v_product.inventory_quantity
+          USING ERRCODE = 'check_violation';
+      END IF;
+    END IF;
+  END IF;
+
+  -- Upsert the line
+  INSERT INTO public.cart_items (
+    cart_id, product_id, variant_id, vendor_id,
+    quantity, unit_price_at_add, currency_at_add,
+    product_source, source_metadata, affiliate_link_id
+  )
+  VALUES (
+    v_cart_id, p_product_id, p_variant_id, v_product.vendor_id,
+    p_quantity, v_unit_price, v_currency,
+    COALESCE(v_product.source, 'vendor'), v_product.source_metadata, p_affiliate_link_id
+  )
+  ON CONFLICT (cart_id, product_id, variant_id) WHERE variant_id IS NOT NULL
+  DO UPDATE SET
+    quantity = cart_items.quantity + EXCLUDED.quantity,
+    updated_at = now()
+  RETURNING id INTO v_item_id;
+
+  -- Handle null-variant conflict separately (partial unique index)
+  IF v_item_id IS NULL THEN
+    INSERT INTO public.cart_items (
+      cart_id, product_id, variant_id, vendor_id,
+      quantity, unit_price_at_add, currency_at_add,
+      product_source, source_metadata, affiliate_link_id
+    )
+    VALUES (
+      v_cart_id, p_product_id, NULL, v_product.vendor_id,
+      p_quantity, v_unit_price, v_currency,
+      COALESCE(v_product.source, 'vendor'), v_product.source_metadata, p_affiliate_link_id
+    )
+    ON CONFLICT (cart_id, product_id) WHERE variant_id IS NULL
+    DO UPDATE SET
+      quantity = cart_items.quantity + EXCLUDED.quantity,
+      updated_at = now()
+    RETURNING id INTO v_item_id;
+  END IF;
+
+  RETURN jsonb_build_object(
+    'cart_id', v_cart_id,
+    'item_id', v_item_id,
+    'unit_price', v_unit_price,
+    'currency', v_currency
+  );
+END;
+$$;
+
+
+ALTER FUNCTION "public"."add_to_cart"("p_product_id" "uuid", "p_variant_id" "uuid", "p_quantity" integer, "p_affiliate_link_id" "uuid") OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."add_video_earnings"("vid" "uuid", "amt" numeric) RETURNS "void"
     LANGUAGE "plpgsql" SECURITY DEFINER
     AS $$
@@ -431,34 +564,42 @@ $$;
 ALTER FUNCTION "public"."get_user_roles"("lookup_user_id" "uuid") OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."guard_order_financial_fields"() RETURNS "trigger"
+CREATE OR REPLACE FUNCTION "public"."guard_membership_plan_change"() RETURNS "trigger"
     LANGUAGE "plpgsql"
     AS $$
 BEGIN
+  -- Owners can change anything
+  IF EXISTS (SELECT 1 FROM public.communities WHERE id = NEW.community_id AND owner_id = auth.uid()) THEN
+    RETURN NEW;
+  END IF;
+  -- Service role bypasses
   IF current_setting('request.jwt.claim.role', true) = 'service_role' THEN
     RETURN NEW;
   END IF;
-
-  IF (
-    NEW.total_amount       IS DISTINCT FROM OLD.total_amount
-    OR NEW.subtotal        IS DISTINCT FROM OLD.subtotal
-    OR NEW.shipping_amount IS DISTINCT FROM OLD.shipping_amount
-    OR NEW.tax_amount      IS DISTINCT FROM OLD.tax_amount
-    OR NEW.discount_amount IS DISTINCT FROM OLD.discount_amount
-    OR NEW.payment_status  IS DISTINCT FROM OLD.payment_status
-    OR NEW.paid_at         IS DISTINCT FROM OLD.paid_at
-    OR NEW.cj_supplier_cost IS DISTINCT FROM OLD.cj_supplier_cost
-    OR NEW.cj_order_id     IS DISTINCT FROM OLD.cj_order_id
-  ) THEN
-    RAISE EXCEPTION 'Financial and payment fields can only be modified by service_role';
+  -- Self-update: cannot escalate plan_type
+  IF NEW.plan_type IS DISTINCT FROM OLD.plan_type THEN
+    RAISE EXCEPTION 'Cannot change plan_type via direct UPDATE — must go through payment flow';
   END IF;
-
+  IF NEW.status IS DISTINCT FROM OLD.status AND NEW.status = 'active' AND OLD.status != 'active' THEN
+    -- Reactivating a cancelled membership requires payment
+    IF NOT EXISTS (
+      SELECT 1 FROM public.community_payments
+      WHERE community_id = NEW.community_id
+        AND user_id = NEW.user_id
+        AND status = 'completed'
+        AND created_at > NOW() - INTERVAL '10 minutes'
+    ) AND NOT EXISTS (
+      SELECT 1 FROM public.communities WHERE id = NEW.community_id AND is_free = TRUE
+    ) THEN
+      RAISE EXCEPTION 'Cannot reactivate paid membership without payment';
+    END IF;
+  END IF;
   RETURN NEW;
 END;
 $$;
 
 
-ALTER FUNCTION "public"."guard_order_financial_fields"() OWNER TO "postgres";
+ALTER FUNCTION "public"."guard_membership_plan_change"() OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."guard_product_delete"() RETURNS "trigger"
@@ -769,6 +910,46 @@ $$;
 
 
 ALTER FUNCTION "public"."notify_conversation_message"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."protect_financial_fields"() RETURNS "trigger"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    AS $$
+BEGIN
+  IF (
+    auth.role() != 'service_role' AND
+    current_setting('role', true) != 'supabase_admin' AND
+    (auth.jwt() ->> 'role') != 'service_role'
+  ) THEN
+    RAISE EXCEPTION 'Financial and payment fields can only be modified by service_role';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."protect_financial_fields"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."recompute_cart_totals"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    AS $$
+DECLARE
+  v_cart_id uuid := COALESCE(NEW.cart_id, OLD.cart_id);
+BEGIN
+  UPDATE public.carts
+  SET
+    item_count       = COALESCE((SELECT SUM(quantity) FROM public.cart_items WHERE cart_id = v_cart_id), 0),
+    subtotal         = COALESCE((SELECT SUM(quantity * unit_price_at_add) FROM public.cart_items WHERE cart_id = v_cart_id), 0),
+    last_activity_at = now(),
+    updated_at       = now()
+  WHERE id = v_cart_id;
+  RETURN NULL;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."recompute_cart_totals"() OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."recompute_order_total"() RETURNS "trigger"
@@ -1170,6 +1351,49 @@ CREATE TABLE IF NOT EXISTS "public"."buying_requests" (
 
 
 ALTER TABLE "public"."buying_requests" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."cart_items" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "cart_id" "uuid" NOT NULL,
+    "product_id" "uuid" NOT NULL,
+    "variant_id" "uuid",
+    "vendor_id" "uuid" NOT NULL,
+    "quantity" integer DEFAULT 1 NOT NULL,
+    "unit_price_at_add" numeric(14,2) NOT NULL,
+    "currency_at_add" "text" NOT NULL,
+    "product_source" "text" DEFAULT 'vendor'::"text" NOT NULL,
+    "source_metadata" "jsonb" DEFAULT '{}'::"jsonb" NOT NULL,
+    "affiliate_link_id" "uuid",
+    "added_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    CONSTRAINT "cart_items_quantity_check" CHECK (("quantity" > 0))
+);
+
+
+ALTER TABLE "public"."cart_items" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."carts" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "user_id" "uuid" NOT NULL,
+    "currency" "text" DEFAULT 'RWF'::"text",
+    "item_count" integer DEFAULT 0 NOT NULL,
+    "subtotal" numeric(14,2) DEFAULT 0 NOT NULL,
+    "last_activity_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "metadata" "jsonb" DEFAULT '{}'::"jsonb" NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    CONSTRAINT "carts_item_count_check" CHECK (("item_count" >= 0)),
+    CONSTRAINT "carts_subtotal_check" CHECK (("subtotal" >= (0)::numeric))
+);
+
+
+ALTER TABLE "public"."carts" OWNER TO "postgres";
+
+
+COMMENT ON TABLE "public"."carts" IS 'Active shopping basket per user. Cleared after successful checkout. Distinct from orders (which are commerce events).';
+
 
 
 CREATE TABLE IF NOT EXISTS "public"."cj_product_map" (
@@ -2529,6 +2753,21 @@ ALTER TABLE ONLY "public"."buying_requests"
 
 
 
+ALTER TABLE ONLY "public"."cart_items"
+    ADD CONSTRAINT "cart_items_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."carts"
+    ADD CONSTRAINT "carts_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."carts"
+    ADD CONSTRAINT "carts_user_id_key" UNIQUE ("user_id");
+
+
+
 ALTER TABLE ONLY "public"."cj_product_map"
     ADD CONSTRAINT "cj_product_map_pkey" PRIMARY KEY ("cj_pid");
 
@@ -2903,6 +3142,14 @@ CREATE UNIQUE INDEX "blog_posts_slug_key" ON "public"."blog_posts" USING "btree"
 
 
 
+CREATE UNIQUE INDEX "cart_items_unique_line_no_variant" ON "public"."cart_items" USING "btree" ("cart_id", "product_id") WHERE ("variant_id" IS NULL);
+
+
+
+CREATE UNIQUE INDEX "cart_items_unique_line_with_variant" ON "public"."cart_items" USING "btree" ("cart_id", "product_id", "variant_id") WHERE ("variant_id" IS NOT NULL);
+
+
+
 CREATE INDEX "cj_product_map_product_id_idx" ON "public"."cj_product_map" USING "btree" ("product_id");
 
 
@@ -2976,6 +3223,22 @@ CREATE INDEX "idx_buying_requests_buyer" ON "public"."buying_requests" USING "bt
 
 
 CREATE INDEX "idx_buying_requests_status" ON "public"."buying_requests" USING "btree" ("status");
+
+
+
+CREATE INDEX "idx_cart_items_cart" ON "public"."cart_items" USING "btree" ("cart_id");
+
+
+
+CREATE INDEX "idx_cart_items_vendor" ON "public"."cart_items" USING "btree" ("vendor_id");
+
+
+
+CREATE INDEX "idx_carts_abandoned" ON "public"."carts" USING "btree" ("last_activity_at") WHERE ("item_count" > 0);
+
+
+
+CREATE INDEX "idx_carts_user" ON "public"."carts" USING "btree" ("user_id");
 
 
 
@@ -3755,11 +4018,19 @@ CREATE OR REPLACE TRIGGER "set_product_variants_updated_at" BEFORE UPDATE ON "pu
 
 
 
+CREATE OR REPLACE TRIGGER "tr_cart_items_recompute" AFTER INSERT OR DELETE OR UPDATE ON "public"."cart_items" FOR EACH ROW EXECUTE FUNCTION "public"."recompute_cart_totals"();
+
+
+
+CREATE OR REPLACE TRIGGER "tr_cart_items_updated_at" BEFORE UPDATE ON "public"."cart_items" FOR EACH ROW EXECUTE FUNCTION "public"."set_updated_at"();
+
+
+
 CREATE OR REPLACE TRIGGER "tr_community_messages_bump_reply" AFTER INSERT ON "public"."community_messages" FOR EACH ROW EXECUTE FUNCTION "public"."bump_parent_message_reply_count"();
 
 
 
-CREATE OR REPLACE TRIGGER "tr_guard_order_financial" BEFORE UPDATE ON "public"."orders" FOR EACH ROW EXECUTE FUNCTION "public"."guard_order_financial_fields"();
+CREATE OR REPLACE TRIGGER "tr_guard_membership_plan" BEFORE UPDATE ON "public"."community_memberships" FOR EACH ROW EXECUTE FUNCTION "public"."guard_membership_plan_change"();
 
 
 
@@ -3915,6 +4186,36 @@ ALTER TABLE ONLY "public"."buying_lead_offers"
 
 ALTER TABLE ONLY "public"."buying_requests"
     ADD CONSTRAINT "buying_requests_buyer_id_fkey" FOREIGN KEY ("buyer_id") REFERENCES "public"."profiles"("id");
+
+
+
+ALTER TABLE ONLY "public"."cart_items"
+    ADD CONSTRAINT "cart_items_affiliate_link_id_fkey" FOREIGN KEY ("affiliate_link_id") REFERENCES "public"."affiliate_links"("id") ON DELETE SET NULL;
+
+
+
+ALTER TABLE ONLY "public"."cart_items"
+    ADD CONSTRAINT "cart_items_cart_id_fkey" FOREIGN KEY ("cart_id") REFERENCES "public"."carts"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."cart_items"
+    ADD CONSTRAINT "cart_items_product_id_fkey" FOREIGN KEY ("product_id") REFERENCES "public"."products"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."cart_items"
+    ADD CONSTRAINT "cart_items_variant_id_fkey" FOREIGN KEY ("variant_id") REFERENCES "public"."product_variants"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."cart_items"
+    ADD CONSTRAINT "cart_items_vendor_id_fkey" FOREIGN KEY ("vendor_id") REFERENCES "public"."vendors"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."carts"
+    ADD CONSTRAINT "carts_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."profiles"("id") ON DELETE CASCADE;
 
 
 
@@ -4588,79 +4889,7 @@ ALTER TABLE ONLY "public"."wishlists"
 
 
 
-CREATE POLICY "Active products are publicly viewable" ON "public"."products" FOR SELECT USING ((("status" = 'active'::"public"."product_status") AND ("is_active" = true) AND ("deleted_at" IS NULL)));
-
-
-
 CREATE POLICY "Active ugc campaigns are publicly viewable" ON "public"."ugc_campaigns" FOR SELECT USING (("status" = 'active'::"public"."ugc_campaign_status"));
-
-
-
-CREATE POLICY "Affiliate links are publicly viewable" ON "public"."affiliate_links" FOR SELECT USING (("is_active" = true));
-
-
-
-CREATE POLICY "Affiliate profiles are publicly viewable" ON "public"."affiliates" FOR SELECT USING (("is_active" = true));
-
-
-
-CREATE POLICY "Affiliates can manage own links" ON "public"."affiliate_links" USING (("affiliate_id" IN ( SELECT "affiliates"."id"
-   FROM "public"."affiliates"
-  WHERE ("affiliates"."user_id" = "auth"."uid"()))));
-
-
-
-CREATE POLICY "Affiliates can manage own profile" ON "public"."affiliates" USING (("auth"."uid"() = "user_id"));
-
-
-
-CREATE POLICY "Affiliates can view own clicks" ON "public"."affiliate_clicks" FOR SELECT USING (("affiliate_id" IN ( SELECT "affiliates"."id"
-   FROM "public"."affiliates"
-  WHERE ("affiliates"."user_id" = "auth"."uid"()))));
-
-
-
-CREATE POLICY "Affiliates can view own commissions" ON "public"."affiliate_commissions" FOR SELECT USING (("affiliate_id" IN ( SELECT "affiliates"."id"
-   FROM "public"."affiliates"
-  WHERE ("affiliates"."user_id" = "auth"."uid"()))));
-
-
-
-CREATE POLICY "Buyers can create orders" ON "public"."orders" FOR INSERT WITH CHECK (("auth"."uid"() = "buyer_id"));
-
-
-
-CREATE POLICY "Buyers can delete own order items" ON "public"."order_items" FOR DELETE USING ((EXISTS ( SELECT 1
-   FROM "public"."orders"
-  WHERE (("orders"."id" = "order_items"."order_id") AND ("orders"."buyer_id" = "auth"."uid"()) AND ("orders"."status" = 'pending'::"public"."order_status")))));
-
-
-
-CREATE POLICY "Buyers can delete own pending orders" ON "public"."orders" FOR DELETE USING ((("auth"."uid"() = "buyer_id") AND ("status" = 'pending'::"public"."order_status")));
-
-
-
-CREATE POLICY "Buyers can insert own order items" ON "public"."order_items" FOR INSERT WITH CHECK (("order_id" IN ( SELECT "orders"."id"
-   FROM "public"."orders"
-  WHERE ("orders"."buyer_id" = "auth"."uid"()))));
-
-
-
-CREATE POLICY "Buyers can manage own conversations" ON "public"."conversations" USING (("auth"."uid"() = "buyer_id")) WITH CHECK (("auth"."uid"() = "buyer_id"));
-
-
-
-CREATE POLICY "Buyers can manage own reviews" ON "public"."reviews" USING (("auth"."uid"() = "buyer_id"));
-
-
-
-CREATE POLICY "Buyers can update own order items" ON "public"."order_items" FOR UPDATE USING (("order_id" IN ( SELECT "orders"."id"
-   FROM "public"."orders"
-  WHERE ("orders"."buyer_id" = "auth"."uid"()))));
-
-
-
-CREATE POLICY "Buyers can update own pending orders" ON "public"."orders" FOR UPDATE USING ((("auth"."uid"() = "buyer_id") AND ("status" = ANY (ARRAY['pending'::"public"."order_status", 'checkout_direct'::"public"."order_status"])) AND ("payment_status" = 'pending'::"public"."payment_status"))) WITH CHECK ((("auth"."uid"() = "buyer_id") AND ("status" = ANY (ARRAY['pending'::"public"."order_status", 'checkout_direct'::"public"."order_status"])) AND ("payment_status" = 'pending'::"public"."payment_status")));
 
 
 
@@ -4670,95 +4899,9 @@ CREATE POLICY "Buyers can view offers on their requests" ON "public"."buying_lea
 
 
 
-CREATE POLICY "Buyers can view own orders" ON "public"."orders" FOR SELECT USING (("auth"."uid"() = "buyer_id"));
-
-
-
-CREATE POLICY "Community posts viewable by members" ON "public"."community_posts" FOR SELECT USING ((("is_published" = true) AND ((NOT ( SELECT "communities"."is_private"
-   FROM "public"."communities"
-  WHERE ("communities"."id" = "community_posts"."community_id"))) OR ("community_id" IN ( SELECT "community_memberships"."community_id"
-   FROM "public"."community_memberships"
-  WHERE (("community_memberships"."user_id" = "auth"."uid"()) AND ("community_memberships"."status" = 'active'::"text")))) OR ("community_id" IN ( SELECT "communities"."id"
-   FROM "public"."communities"
-  WHERE ("communities"."owner_id" = "auth"."uid"()))))));
-
-
-
-CREATE POLICY "Followers are publicly viewable" ON "public"."vendor_followers" FOR SELECT USING (true);
-
-
-
-CREATE POLICY "Influencer profiles are publicly viewable" ON "public"."influencers" FOR SELECT USING (("is_active" = true));
-
-
-
-CREATE POLICY "Influencers can manage own profile" ON "public"."influencers" USING (("auth"."uid"() = "user_id"));
-
-
-
 CREATE POLICY "Influencers can manage own submissions" ON "public"."ugc_submissions" USING (("influencer_id" IN ( SELECT "influencers"."id"
    FROM "public"."influencers"
   WHERE ("influencers"."user_id" = "auth"."uid"()))));
-
-
-
-CREATE POLICY "Members can create posts" ON "public"."community_posts" FOR INSERT WITH CHECK ((("auth"."uid"() = "author_id") AND ("community_id" IN ( SELECT "community_memberships"."community_id"
-   FROM "public"."community_memberships"
-  WHERE (("community_memberships"."user_id" = "auth"."uid"()) AND ("community_memberships"."status" = 'active'::"text"))))));
-
-
-
-CREATE POLICY "Members can send community messages" ON "public"."community_messages" FOR INSERT WITH CHECK ((("auth"."uid"() = "sender_id") AND ("community_id" IN ( SELECT "community_memberships"."community_id"
-   FROM "public"."community_memberships"
-  WHERE (("community_memberships"."user_id" = "auth"."uid"()) AND ("community_memberships"."status" = 'active'::"text"))))));
-
-
-
-CREATE POLICY "Members can view community messages" ON "public"."community_messages" FOR SELECT USING ((("community_id" IN ( SELECT "community_memberships"."community_id"
-   FROM "public"."community_memberships"
-  WHERE (("community_memberships"."user_id" = "auth"."uid"()) AND ("community_memberships"."status" = 'active'::"text")))) OR ("community_id" IN ( SELECT "communities"."id"
-   FROM "public"."communities"
-  WHERE ("communities"."owner_id" = "auth"."uid"())))));
-
-
-
-CREATE POLICY "Owners can manage own communities" ON "public"."communities" USING (("auth"."uid"() = "owner_id"));
-
-
-
-CREATE POLICY "Participants can insert messages" ON "public"."conversation_messages" FOR INSERT WITH CHECK (("conversation_id" IN ( SELECT "conversations"."id"
-   FROM "public"."conversations"
-  WHERE (("conversations"."buyer_id" = "auth"."uid"()) OR ("conversations"."vendor_id" IN ( SELECT "vendors"."id"
-           FROM "public"."vendors"
-          WHERE ("vendors"."user_id" = "auth"."uid"())))))));
-
-
-
-CREATE POLICY "Participants can read messages" ON "public"."conversation_messages" FOR SELECT USING (("conversation_id" IN ( SELECT "conversations"."id"
-   FROM "public"."conversations"
-  WHERE (("conversations"."buyer_id" = "auth"."uid"()) OR ("conversations"."vendor_id" IN ( SELECT "vendors"."id"
-           FROM "public"."vendors"
-          WHERE ("vendors"."user_id" = "auth"."uid"())))))));
-
-
-
-CREATE POLICY "Product categories are readable by everyone" ON "public"."product_categories" FOR SELECT USING (true);
-
-
-
-CREATE POLICY "Product variants are publicly viewable" ON "public"."product_variants" FOR SELECT USING (("is_active" = true));
-
-
-
-CREATE POLICY "Public communities are viewable" ON "public"."communities" FOR SELECT USING (("is_active" = true));
-
-
-
-CREATE POLICY "Public profiles are viewable by everyone" ON "public"."profiles" FOR SELECT USING (true);
-
-
-
-CREATE POLICY "Reviews are publicly viewable" ON "public"."reviews" FOR SELECT USING (true);
 
 
 
@@ -4766,31 +4909,7 @@ CREATE POLICY "Service role can manage digital access" ON "public"."digital_acce
 
 
 
-CREATE POLICY "Users can create vendor profile" ON "public"."vendors" FOR INSERT WITH CHECK (("auth"."uid"() = "user_id"));
-
-
-
-CREATE POLICY "Users can insert own payouts" ON "public"."payouts" FOR INSERT WITH CHECK (("auth"."uid"() = "user_id"));
-
-
-
 CREATE POLICY "Users can manage own buying requests" ON "public"."buying_requests" USING (("auth"."uid"() = "buyer_id")) WITH CHECK (("auth"."uid"() = "buyer_id"));
-
-
-
-CREATE POLICY "Users can manage own follows" ON "public"."vendor_followers" USING (("auth"."uid"() = "user_id"));
-
-
-
-CREATE POLICY "Users can manage own notifications" ON "public"."notifications" USING (("auth"."uid"() = "user_id"));
-
-
-
-CREATE POLICY "Users can manage own roles" ON "public"."user_roles" USING (("auth"."uid"() = "user_id"));
-
-
-
-CREATE POLICY "Users can manage own wishlist" ON "public"."wishlists" USING (("auth"."uid"() = "user_id"));
 
 
 
@@ -4798,43 +4917,49 @@ CREATE POLICY "Users can read own digital access" ON "public"."digital_access" F
 
 
 
-CREATE POLICY "Users can update own profile" ON "public"."profiles" FOR UPDATE USING (("auth"."uid"() = "id"));
+CREATE POLICY "Users delete own cart" ON "public"."carts" FOR DELETE USING (("auth"."uid"() = "user_id"));
 
 
 
-CREATE POLICY "Users can view own order items" ON "public"."order_items" FOR SELECT USING (("order_id" IN ( SELECT "orders"."id"
-   FROM "public"."orders"
-  WHERE ("orders"."buyer_id" = "auth"."uid"()))));
+CREATE POLICY "Users delete own cart items" ON "public"."cart_items" FOR DELETE USING (("cart_id" IN ( SELECT "carts"."id"
+   FROM "public"."carts"
+  WHERE ("carts"."user_id" = "auth"."uid"()))));
 
 
 
-CREATE POLICY "Users can view own payouts" ON "public"."payouts" FOR SELECT USING (("auth"."uid"() = "user_id"));
+CREATE POLICY "Users insert own cart" ON "public"."carts" FOR INSERT WITH CHECK (("auth"."uid"() = "user_id"));
 
 
 
-CREATE POLICY "Users can view own roles" ON "public"."user_roles" FOR SELECT USING (("auth"."uid"() = "user_id"));
+CREATE POLICY "Users insert own cart items" ON "public"."cart_items" FOR INSERT WITH CHECK (("cart_id" IN ( SELECT "carts"."id"
+   FROM "public"."carts"
+  WHERE ("carts"."user_id" = "auth"."uid"()))));
 
 
 
-CREATE POLICY "Users can view own transactions" ON "public"."transactions" FOR SELECT USING (("auth"."uid"() = "user_id"));
+CREATE POLICY "Users select own cart" ON "public"."carts" FOR SELECT USING (("auth"."uid"() = "user_id"));
 
 
 
-CREATE POLICY "Users can view own wallet" ON "public"."wallets" FOR SELECT USING (("auth"."uid"() = "user_id"));
+CREATE POLICY "Users select own cart items" ON "public"."cart_items" FOR SELECT USING (("cart_id" IN ( SELECT "carts"."id"
+   FROM "public"."carts"
+  WHERE ("carts"."user_id" = "auth"."uid"()))));
 
 
 
-CREATE POLICY "Vendors are publicly viewable" ON "public"."vendors" FOR SELECT USING (("is_active" = true));
+CREATE POLICY "Users update own cart" ON "public"."carts" FOR UPDATE USING (("auth"."uid"() = "user_id")) WITH CHECK (("auth"."uid"() = "user_id"));
+
+
+
+CREATE POLICY "Users update own cart items" ON "public"."cart_items" FOR UPDATE USING (("cart_id" IN ( SELECT "carts"."id"
+   FROM "public"."carts"
+  WHERE ("carts"."user_id" = "auth"."uid"())))) WITH CHECK (("cart_id" IN ( SELECT "carts"."id"
+   FROM "public"."carts"
+  WHERE ("carts"."user_id" = "auth"."uid"()))));
 
 
 
 CREATE POLICY "Vendors can insert offers" ON "public"."buying_lead_offers" FOR INSERT WITH CHECK (("vendor_id" IN ( SELECT "vendors"."id"
-   FROM "public"."vendors"
-  WHERE ("vendors"."user_id" = "auth"."uid"()))));
-
-
-
-CREATE POLICY "Vendors can manage own products" ON "public"."products" USING (("vendor_id" IN ( SELECT "vendors"."id"
    FROM "public"."vendors"
   WHERE ("vendors"."user_id" = "auth"."uid"()))));
 
@@ -4846,51 +4971,7 @@ CREATE POLICY "Vendors can manage own ugc campaigns" ON "public"."ugc_campaigns"
 
 
 
-CREATE POLICY "Vendors can manage own variants" ON "public"."product_variants" USING (("product_id" IN ( SELECT "products"."id"
-   FROM "public"."products"
-  WHERE ("products"."vendor_id" IN ( SELECT "vendors"."id"
-           FROM "public"."vendors"
-          WHERE ("vendors"."user_id" = "auth"."uid"()))))));
-
-
-
-CREATE POLICY "Vendors can update order items for their products" ON "public"."order_items" FOR UPDATE USING (("vendor_id" IN ( SELECT "vendors"."id"
-   FROM "public"."vendors"
-  WHERE ("vendors"."user_id" = "auth"."uid"())))) WITH CHECK (("vendor_id" IN ( SELECT "vendors"."id"
-   FROM "public"."vendors"
-  WHERE ("vendors"."user_id" = "auth"."uid"()))));
-
-
-
-CREATE POLICY "Vendors can update own conversations" ON "public"."conversations" FOR UPDATE USING (("vendor_id" IN ( SELECT "vendors"."id"
-   FROM "public"."vendors"
-  WHERE ("vendors"."user_id" = "auth"."uid"()))));
-
-
-
 CREATE POLICY "Vendors can update own offers" ON "public"."buying_lead_offers" FOR UPDATE USING (("vendor_id" IN ( SELECT "vendors"."id"
-   FROM "public"."vendors"
-  WHERE ("vendors"."user_id" = "auth"."uid"()))));
-
-
-
-CREATE POLICY "Vendors can update own profile" ON "public"."vendors" FOR UPDATE USING (("auth"."uid"() = "user_id"));
-
-
-
-CREATE POLICY "Vendors can view conversations with them" ON "public"."conversations" FOR SELECT USING (("vendor_id" IN ( SELECT "vendors"."id"
-   FROM "public"."vendors"
-  WHERE ("vendors"."user_id" = "auth"."uid"()))));
-
-
-
-CREATE POLICY "Vendors can view order items for their products" ON "public"."order_items" FOR SELECT USING (("vendor_id" IN ( SELECT "vendors"."id"
-   FROM "public"."vendors"
-  WHERE ("vendors"."user_id" = "auth"."uid"()))));
-
-
-
-CREATE POLICY "Vendors can view their orders" ON "public"."orders" FOR SELECT USING (("vendor_id" IN ( SELECT "vendors"."id"
    FROM "public"."vendors"
   WHERE ("vendors"."user_id" = "auth"."uid"()))));
 
@@ -4914,10 +4995,6 @@ CREATE POLICY "affiliate_clicks_select" ON "public"."affiliate_clicks" FOR SELEC
 
 
 ALTER TABLE "public"."affiliate_commissions" ENABLE ROW LEVEL SECURITY;
-
-
-CREATE POLICY "affiliate_commissions_insert" ON "public"."affiliate_commissions" FOR INSERT WITH CHECK (true);
-
 
 
 CREATE POLICY "affiliate_commissions_select" ON "public"."affiliate_commissions" FOR SELECT USING (("auth"."uid"() = ( SELECT "affiliates"."user_id"
@@ -5023,10 +5100,6 @@ CREATE POLICY "buyers_view_own_order_history" ON "public"."order_status_history"
 
 
 
-CREATE POLICY "buyers_view_own_orders" ON "public"."orders" FOR SELECT USING (("buyer_id" = "auth"."uid"()));
-
-
-
 ALTER TABLE "public"."buying_lead_offers" ENABLE ROW LEVEL SECURITY;
 
 
@@ -5063,6 +5136,12 @@ CREATE POLICY "buying_requests_select" ON "public"."buying_requests" FOR SELECT 
 
 CREATE POLICY "buying_requests_update" ON "public"."buying_requests" FOR UPDATE USING (("auth"."uid"() = "buyer_id"));
 
+
+
+ALTER TABLE "public"."cart_items" ENABLE ROW LEVEL SECURITY;
+
+
+ALTER TABLE "public"."carts" ENABLE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "public"."cj_product_map" ENABLE ROW LEVEL SECURITY;
@@ -5182,17 +5261,7 @@ CREATE POLICY "community_memberships_delete" ON "public"."community_memberships"
 
 
 
-CREATE POLICY "community_memberships_insert" ON "public"."community_memberships" FOR INSERT WITH CHECK (("auth"."uid"() = "user_id"));
-
-
-
 CREATE POLICY "community_memberships_select" ON "public"."community_memberships" FOR SELECT USING ((("auth"."uid"() = "user_id") OR ("auth"."uid"() = ( SELECT "communities"."owner_id"
-   FROM "public"."communities"
-  WHERE ("communities"."id" = "community_memberships"."community_id")))));
-
-
-
-CREATE POLICY "community_memberships_update" ON "public"."community_memberships" FOR UPDATE USING ((("auth"."uid"() = "user_id") OR ("auth"."uid"() = ( SELECT "communities"."owner_id"
    FROM "public"."communities"
   WHERE ("communities"."id" = "community_memberships"."community_id")))));
 
@@ -5222,10 +5291,6 @@ CREATE POLICY "community_messages_update" ON "public"."community_messages" FOR U
 
 
 ALTER TABLE "public"."community_payments" ENABLE ROW LEVEL SECURITY;
-
-
-CREATE POLICY "community_payments_insert" ON "public"."community_payments" FOR INSERT WITH CHECK (("auth"."uid"() = "user_id"));
-
 
 
 CREATE POLICY "community_payments_select" ON "public"."community_payments" FOR SELECT USING ((("auth"."uid"() = "user_id") OR ("auth"."uid"() = ( SELECT "communities"."owner_id"
@@ -5469,15 +5534,7 @@ ALTER TABLE "public"."digital_access" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."exchange_rate_logs" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "exchange_rate_logs_insert" ON "public"."exchange_rate_logs" FOR INSERT WITH CHECK (true);
-
-
-
 CREATE POLICY "exchange_rate_logs_select" ON "public"."exchange_rate_logs" FOR SELECT USING (true);
-
-
-
-CREATE POLICY "exchange_rates_public_read" ON "public"."exchange_rate_logs" FOR SELECT USING (true);
 
 
 
@@ -5581,11 +5638,7 @@ CREATE POLICY "memberships_select_own_or_owner" ON "public"."community_membershi
 
 CREATE POLICY "memberships_update_own_or_owner" ON "public"."community_memberships" FOR UPDATE USING ((("user_id" = "auth"."uid"()) OR ("community_id" IN ( SELECT "communities"."id"
    FROM "public"."communities"
-  WHERE ("communities"."owner_id" = "auth"."uid"()))))) WITH CHECK ((("community_id" IN ( SELECT "communities"."id"
-   FROM "public"."communities"
-  WHERE ("communities"."owner_id" = "auth"."uid"()))) OR (("user_id" = "auth"."uid"()) AND ("plan_type" = ( SELECT "community_memberships_1"."plan_type"
-   FROM "public"."community_memberships" "community_memberships_1"
-  WHERE ("community_memberships_1"."id" = "community_memberships_1"."id"))))));
+  WHERE ("communities"."owner_id" = "auth"."uid"())))));
 
 
 
@@ -5604,7 +5657,7 @@ CREATE POLICY "notifications_delete" ON "public"."notifications" FOR DELETE USIN
 
 
 
-CREATE POLICY "notifications_insert" ON "public"."notifications" FOR INSERT WITH CHECK (true);
+CREATE POLICY "notifications_insert_service" ON "public"."notifications" FOR INSERT WITH CHECK (("auth"."role"() = 'service_role'::"text"));
 
 
 
@@ -5619,15 +5672,9 @@ CREATE POLICY "notifications_update" ON "public"."notifications" FOR UPDATE USIN
 ALTER TABLE "public"."order_items" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "order_items_delete" ON "public"."order_items" FOR DELETE USING (("auth"."uid"() = ( SELECT "orders"."buyer_id"
-   FROM "public"."orders"
-  WHERE ("orders"."id" = "order_items"."order_id"))));
-
-
-
-CREATE POLICY "order_items_insert" ON "public"."order_items" FOR INSERT WITH CHECK (("auth"."uid"() = ( SELECT "orders"."buyer_id"
-   FROM "public"."orders"
-  WHERE ("orders"."id" = "order_items"."order_id"))));
+CREATE POLICY "order_items_insert_for_direct_checkout" ON "public"."order_items" FOR INSERT WITH CHECK ((EXISTS ( SELECT 1
+   FROM "public"."orders" "o"
+  WHERE (("o"."id" = "order_items"."order_id") AND ("o"."buyer_id" = "auth"."uid"()) AND ("o"."status" = 'checkout_direct'::"public"."order_status") AND ("o"."payment_status" = 'pending'::"public"."payment_status")))));
 
 
 
@@ -5639,19 +5686,13 @@ CREATE POLICY "order_items_select" ON "public"."order_items" FOR SELECT USING ((
 
 
 
-CREATE POLICY "order_items_update" ON "public"."order_items" FOR UPDATE USING ((("auth"."uid"() = ( SELECT "orders"."buyer_id"
-   FROM "public"."orders"
-  WHERE ("orders"."id" = "order_items"."order_id"))) OR ("auth"."uid"() = ( SELECT "vendors"."user_id"
+CREATE POLICY "order_items_update_vendor_only" ON "public"."order_items" FOR UPDATE USING (("auth"."uid"() = ( SELECT "vendors"."user_id"
    FROM "public"."vendors"
-  WHERE ("vendors"."id" = "order_items"."vendor_id")))));
+  WHERE ("vendors"."id" = "order_items"."vendor_id"))));
 
 
 
 ALTER TABLE "public"."order_status_history" ENABLE ROW LEVEL SECURITY;
-
-
-CREATE POLICY "order_status_history_insert" ON "public"."order_status_history" FOR INSERT WITH CHECK (true);
-
 
 
 CREATE POLICY "order_status_history_select" ON "public"."order_status_history" FOR SELECT USING ((("auth"."uid"() = ( SELECT "orders"."buyer_id"
@@ -5667,21 +5708,11 @@ CREATE POLICY "order_status_history_select" ON "public"."order_status_history" F
 ALTER TABLE "public"."orders" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "orders_delete" ON "public"."orders" FOR DELETE USING (("auth"."uid"() = "buyer_id"));
-
-
-
-CREATE POLICY "orders_insert" ON "public"."orders" FOR INSERT WITH CHECK (("auth"."uid"() = "buyer_id"));
+CREATE POLICY "orders_insert_buyer_only_for_direct_checkout" ON "public"."orders" FOR INSERT WITH CHECK ((("auth"."uid"() = "buyer_id") AND ("status" = 'checkout_direct'::"public"."order_status") AND ("payment_status" = 'pending'::"public"."payment_status") AND ("paid_at" IS NULL) AND ("cj_order_id" IS NULL) AND ("cj_supplier_cost" IS NULL) AND ("shipped_at" IS NULL) AND ("delivered_at" IS NULL) AND ("cancelled_at" IS NULL)));
 
 
 
 CREATE POLICY "orders_select" ON "public"."orders" FOR SELECT USING ((("auth"."uid"() = "buyer_id") OR ("auth"."uid"() = ( SELECT "vendors"."user_id"
-   FROM "public"."vendors"
-  WHERE ("vendors"."id" = "orders"."vendor_id")))));
-
-
-
-CREATE POLICY "orders_update" ON "public"."orders" FOR UPDATE USING ((("auth"."uid"() = "buyer_id") OR ("auth"."uid"() = ( SELECT "vendors"."user_id"
    FROM "public"."vendors"
   WHERE ("vendors"."id" = "orders"."vendor_id")))));
 
@@ -5977,10 +6008,6 @@ CREATE POLICY "short_video_comments_select" ON "public"."short_video_comments" F
 ALTER TABLE "public"."short_video_earnings" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "short_video_earnings_insert" ON "public"."short_video_earnings" FOR INSERT WITH CHECK (true);
-
-
-
 CREATE POLICY "short_video_earnings_select" ON "public"."short_video_earnings" FOR SELECT USING (("auth"."uid"() = ( SELECT "influencers"."user_id"
    FROM "public"."influencers"
   WHERE ("influencers"."id" = "short_video_earnings"."creator_id"))));
@@ -6146,10 +6173,6 @@ CREATE POLICY "tasks_visible_to_members" ON "public"."community_tasks" FOR SELEC
 ALTER TABLE "public"."transactions" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "transactions_insert" ON "public"."transactions" FOR INSERT WITH CHECK (("auth"."uid"() = "user_id"));
-
-
-
 CREATE POLICY "transactions_select" ON "public"."transactions" FOR SELECT USING (("auth"."uid"() = "user_id"));
 
 
@@ -6199,10 +6222,6 @@ CREATE POLICY "ugc_campaigns_update" ON "public"."ugc_campaigns" FOR UPDATE USIN
 
 
 ALTER TABLE "public"."ugc_payouts" ENABLE ROW LEVEL SECURITY;
-
-
-CREATE POLICY "ugc_payouts_insert" ON "public"."ugc_payouts" FOR INSERT WITH CHECK (true);
-
 
 
 CREATE POLICY "ugc_payouts_select" ON "public"."ugc_payouts" FOR SELECT USING (("auth"."uid"() = ( SELECT "influencers"."user_id"
@@ -6408,18 +6427,6 @@ CREATE POLICY "wallets_update" ON "public"."wallets" FOR UPDATE USING (("auth"."
 ALTER TABLE "public"."webhook_events" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "webhook_events_insert" ON "public"."webhook_events" FOR INSERT WITH CHECK (true);
-
-
-
-CREATE POLICY "webhook_events_select" ON "public"."webhook_events" FOR SELECT USING (true);
-
-
-
-CREATE POLICY "webhook_events_update" ON "public"."webhook_events" FOR UPDATE USING (true);
-
-
-
 ALTER TABLE "public"."webhook_subscriptions" ENABLE ROW LEVEL SECURITY;
 
 
@@ -6442,6 +6449,10 @@ REVOKE USAGE ON SCHEMA "public" FROM PUBLIC;
 GRANT USAGE ON SCHEMA "public" TO "anon";
 GRANT ALL ON SCHEMA "public" TO "authenticated";
 GRANT USAGE ON SCHEMA "public" TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."add_to_cart"("p_product_id" "uuid", "p_variant_id" "uuid", "p_quantity" integer, "p_affiliate_link_id" "uuid") TO "authenticated";
 
 
 
@@ -6522,6 +6533,18 @@ GRANT ALL ON TABLE "public"."buying_lead_offers" TO "service_role";
 GRANT ALL ON TABLE "public"."buying_requests" TO "anon";
 GRANT ALL ON TABLE "public"."buying_requests" TO "authenticated";
 GRANT ALL ON TABLE "public"."buying_requests" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."cart_items" TO "anon";
+GRANT ALL ON TABLE "public"."cart_items" TO "authenticated";
+GRANT ALL ON TABLE "public"."cart_items" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."carts" TO "anon";
+GRANT ALL ON TABLE "public"."carts" TO "authenticated";
+GRANT ALL ON TABLE "public"."carts" TO "service_role";
 
 
 
