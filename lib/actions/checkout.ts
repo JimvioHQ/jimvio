@@ -5,6 +5,8 @@
 // import { OrderUpdate } from "@/types/db";
 // import { revalidatePath } from "next/cache";
 
+// // ─── Types ────────────────────────────────────────────────────────────────────
+
 // export type ShippingPayload = {
 //   orderIds: string[];
 //   firstName: string;
@@ -21,14 +23,92 @@
 //   shippingCurrency?: string;
 // };
 
+// type OrderStatusValue =
+//   | "pending"
+//   | "confirmed"
+//   | "processing"
+//   | "shipped"
+//   | "delivered"
+//   | "cancelled"
+//   | "refunded"
+//   | "completed"
+//   | "checkout_direct";
+
+// type PaymentStatusValue =
+//   | "pending"
+//   | "processing"
+//   | "completed"
+//   | "failed"
+//   | "refunded"
+//   | "cancelled"
+//   | "paid";
+
+// // ─── Helpers ──────────────────────────────────────────────────────────────────
+
+// /**
+//  * Deletes a specific cart item, correctly handling nullable variant_id.
+//  * .is() only works for NULL / boolean — use .eq() when variant_id is present.
+//  */
+
+// async function deleteCartItem(
+//   admin: ReturnType<typeof getAdminDB>,
+//   cartId: string,
+//   productId: string,
+//   variantId: string | null
+// ) {
+//   const base = admin
+//     .from("cart_items")
+//     .delete()
+//     .eq("cart_id", cartId)
+//     .eq("product_id", productId);
+
+//   const { error } = await (variantId
+//     ? base.eq("variant_id", variantId)
+//     : base.is("variant_id", null));
+
+//   if (error) {
+//     console.error(
+//       `[clearCartForOrder] Failed to delete cart item — product: ${productId}, variant: ${variantId ?? "null"}`,
+//       error
+//     );
+//   }
+// }
+
+// /**
+//  * Appends a row to order_status_history whenever an order transitions state.
+//  * Call this any time payment_status or status changes.
+//  */
+// async function recordOrderStatusChange(
+//   admin: ReturnType<typeof getAdminDB>,
+//   orderId: string,
+//   previousStatus: OrderStatusValue | null,
+//   newStatus: OrderStatusValue,
+//   notes?: string
+// ) {
+//   const { error } = await admin.from("order_status_history").insert({
+//     order_id: orderId,
+//     previous_status: previousStatus,
+//     new_status: newStatus,
+//     notes: notes ?? null,
+//   });
+
+//   if (error) {
+//     console.error("[recordOrderStatusChange] Insert failed:", error);
+//   }
+// }
+
+// // ─── updatePendingOrdersShipping ─────────────────────────────────────────────
+
 // export async function updatePendingOrdersShipping(payload: ShippingPayload) {
 //   const supabase = await createClient();
-//   const { data: { user } } = await supabase.auth.getUser();
+//   const {
+//     data: { user },
+//   } = await supabase.auth.getUser();
 //   if (!user) {
 //     return { success: false as const, error: "Authentication required" };
 //   }
 
-//   // ── Validation ────────────────────────────────────────────────────────
+//   // ── Validation ──────────────────────────────────────────────────────────
 //   if (!Array.isArray(payload.orderIds) || !payload.orderIds.length) {
 //     return { success: false as const, error: "Order IDs required" };
 //   }
@@ -39,7 +119,10 @@
 //     return { success: false as const, error: "Invalid email" };
 //   }
 //   if (!/^[A-Z]{2}$/.test(payload.countryCode)) {
-//     return { success: false as const, error: "Country code must be 2 letters" };
+//     return {
+//       success: false as const,
+//       error: "Country code must be 2 uppercase letters",
+//     };
 //   }
 
 //   const shipping_address = {
@@ -60,7 +143,10 @@
 //     updated_at: new Date().toISOString(),
 //   };
 
-//   if (typeof payload.shippingAmount === "number" && payload.shippingAmount >= 0) {
+//   if (
+//     typeof payload.shippingAmount === "number" &&
+//     payload.shippingAmount >= 0
+//   ) {
 //     update.shipping_amount = payload.shippingAmount;
 //   }
 
@@ -69,7 +155,7 @@
 //     .update(update)
 //     .eq("buyer_id", user.id)
 //     .eq("status", "pending")
-//     .eq("payment_status", "pending")
+//     .in("payment_status", ["pending", "failed"])
 //     .in("id", payload.orderIds);
 
 //   if (error) {
@@ -80,14 +166,16 @@
 //   return { success: true as const };
 // }
 
-
+// // ─── startCheckout ────────────────────────────────────────────────────────────
 
 // export async function startCheckout() {
 //   const supabase = await createClient();
-//   const { data: { user } } = await supabase.auth.getUser();
+//   const {
+//     data: { user },
+//   } = await supabase.auth.getUser();
 //   if (!user) return { error: "Sign in to check out" };
 
-//   // Read cart with full product info via user client (RLS validates ownership)
+//   // Read cart via user client so RLS validates ownership
 //   const { data: cart } = await supabase
 //     .from("carts")
 //     .select("id, currency")
@@ -95,6 +183,54 @@
 //     .maybeSingle();
 //   if (!cart) return { error: "Cart is empty" };
 
+//   const admin = getAdminDB();
+
+//   // ── Idempotency: reuse existing recoverable orders for this cart ─────────
+//   // Orders store { cart_id } in their metadata JSON column.
+//   const { data: existingOrders } = await admin
+//     .from("orders")
+//     .select("id, payment_status")
+//     .eq("buyer_id", user.id)
+//     .eq("status", "pending")
+//     .in("payment_status", ["pending", "failed"] as PaymentStatusValue[])
+//     .eq("metadata->cart_id", cart.id)
+
+//   if (existingOrders && existingOrders.length > 0) {
+//     // Reset any failed orders back to pending so payment can be retried
+//     const failedIds = existingOrders
+//       .filter((o) => o.payment_status === "failed")
+//       .map((o) => o.id);
+
+//     if (failedIds.length > 0) {
+//       const { error: resetError } = await admin
+//         .from("orders")
+//         .update({
+//           payment_status: "pending" as PaymentStatusValue,
+//           updated_at: new Date().toISOString(),
+//         })
+//         .in("id", failedIds);
+
+//       if (resetError) {
+//         console.error("[startCheckout] Failed to reset failed orders:", resetError);
+//         return { error: "Could not reset failed orders. Please try again." };
+//       }
+
+//       // Record the retry in status history
+//       for (const id of failedIds) {
+//         await recordOrderStatusChange(
+//           admin,
+//           id,
+//           "pending",
+//           "pending",
+//           "Payment retry — reset from failed to pending"
+//         );
+//       }
+//     }
+
+//     return { ok: true as const, orderIds: existingOrders.map((o) => o.id) };
+//   }
+
+//   // ── Fetch cart items ─────────────────────────────────────────────────────
 //   const { data: items } = await supabase
 //     .from("cart_items")
 //     .select(`
@@ -110,15 +246,30 @@
 
 //   if (!items || items.length === 0) return { error: "Cart is empty" };
 
-//   // Validate every line is still purchasable
+//   // ── Validate quantity > 0 and price > 0 ─────────────────────────────────
 //   const invalid: string[] = [];
 //   for (const item of items) {
+//     if (!Number.isInteger(item.quantity) || item.quantity <= 0) {
+//       invalid.push(`Invalid quantity for a cart item`);
+//       continue;
+//     }
+
 //     const p = Array.isArray(item.products) ? item.products[0] : item.products;
-//     const v = Array.isArray(item.product_variants) ? item.product_variants[0] : item.product_variants;
+//     const v = Array.isArray(item.product_variants)
+//       ? item.product_variants[0]
+//       : item.product_variants;
+
 //     if (!p || p.status !== "active" || !p.is_active || p.deleted_at) {
 //       invalid.push(`${p?.name ?? "Item"} is no longer available`);
 //       continue;
 //     }
+
+//     const unitPrice = Number(v?.price ?? p.price);
+//     if (!Number.isFinite(unitPrice) || unitPrice < 0) {
+//       invalid.push(`${p.name} has an invalid price`);
+//       continue;
+//     }
+
 //     if (p.track_inventory && !p.allow_backorder) {
 //       const stock = v?.inventory_quantity ?? p.inventory_quantity;
 //       if (item.quantity > stock) {
@@ -128,7 +279,7 @@
 //   }
 //   if (invalid.length > 0) return { error: invalid.join("; ") };
 
-//   // Group by vendor — one order per vendor
+//   // ── Group by vendor — one order per vendor ───────────────────────────────
 //   const byVendor = new Map<string, typeof items>();
 //   for (const item of items) {
 //     const list = byVendor.get(item.vendor_id) ?? [];
@@ -136,15 +287,17 @@
 //     byVendor.set(item.vendor_id, list);
 //   }
 
-//   // Create orders via admin client (bypasses RLS — server action is the source of truth)
-//   const admin = getAdminDB();
+//   // ── Create orders via admin client (bypasses RLS) ────────────────────────
 //   const createdOrderIds: string[] = [];
 
 //   for (const [vendorId, vendorItems] of byVendor) {
 //     let subtotal = 0;
+
 //     const orderItemsToInsert = vendorItems.map((item) => {
 //       const p = Array.isArray(item.products) ? item.products[0] : item.products!;
-//       const v = Array.isArray(item.product_variants) ? item.product_variants[0] : item.product_variants;
+//       const v = Array.isArray(item.product_variants)
+//         ? item.product_variants[0]
+//         : item.product_variants;
 //       const unitPrice = Number(v?.price ?? p.price);
 //       const totalPrice = unitPrice * item.quantity;
 //       subtotal += totalPrice;
@@ -168,10 +321,10 @@
 //       .insert({
 //         buyer_id: user.id,
 //         vendor_id: vendorId,
-//         status: "pending",
-//         payment_status: "pending",
+//         status: "pending" as OrderStatusValue,
+//         payment_status: "pending" as PaymentStatusValue,
 //         subtotal,
-//         total_amount: subtotal, // trigger will recompute with shipping/tax
+//         total_amount: subtotal, // tr_orders_recompute_total trigger recalculates on shipping update
 //         currency: cart.currency,
 //         metadata: { cart_id: cart.id },
 //       })
@@ -179,62 +332,90 @@
 //       .single();
 
 //     if (orderError || !order) {
-//       // Rollback any orders we created in this loop
+//       // Rollback all orders created so far in this loop
 //       if (createdOrderIds.length > 0) {
 //         await admin.from("orders").delete().in("id", createdOrderIds);
 //       }
-//       console.error("Order creation failed:", orderError);
-//       return { error: "Couldn't create order. Try again." };
+//       console.error("[startCheckout] Order creation failed:", orderError);
+//       return { error: "Couldn't create order. Please try again." };
 //     }
 
-//     const itemsWithOrderId = orderItemsToInsert.map((oi) => ({ ...oi, order_id: order.id }));
-//     const { error: itemsError } = await admin.from("order_items").insert(itemsWithOrderId);
+//     const itemsWithOrderId = orderItemsToInsert.map((oi) => ({
+//       ...oi,
+//       order_id: order.id,
+//     }));
+
+//     const { error: itemsError } = await admin
+//       .from("order_items")
+//       .insert(itemsWithOrderId);
 
 //     if (itemsError) {
-//       await admin.from("orders").delete().in("id", [...createdOrderIds, order.id]);
-//       console.error("Order items insert failed:", itemsError);
-//       return { error: "Couldn't create order. Try again." };
+//       await admin
+//         .from("orders")
+//         .delete()
+//         .in("id", [...createdOrderIds, order.id]);
+//       console.error("[startCheckout] Order items insert failed:", itemsError);
+//       return { error: "Couldn't create order. Please try again." };
 //     }
+
+//     // Record initial status
+//     await recordOrderStatusChange(
+//       admin,
+//       order.id,
+//       null,
+//       "pending",
+//       "Order created at checkout"
+//     );
 
 //     createdOrderIds.push(order.id);
 //   }
 
-//   // Don't clear cart yet — wait for successful payment webhook
-//   return { ok: true, orderIds: createdOrderIds };
+//   return { ok: true as const, orderIds: createdOrderIds };
 // }
 
-// // Called by payment webhook after successful payment
+
 // export async function clearCartForOrder(orderId: string) {
 //   const admin = getAdminDB();
-//   const { data: order } = await admin
+
+//   const { data: order, error: orderFetchError } = await admin
 //     .from("orders")
 //     .select("buyer_id, metadata")
 //     .eq("id", orderId)
 //     .single();
 
-//   if (!order) return;
-//   const cartId = (order.metadata as Record<string, unknown>)?.cart_id as string | undefined;
-//   if (!cartId) return;
+//   if (orderFetchError || !order) {
+//     console.error(
+//       `[clearCartForOrder] Could not find order ${orderId}:`,
+//       orderFetchError
+//     );
+//     return;
+//   }
 
-//   // Get the products that were in this order
-//   const { data: orderItems } = await admin
+//   const cartId = (order.metadata as Record<string, unknown>)?.cart_id as
+//     | string
+//     | undefined;
+//   if (!cartId) {
+//     console.warn(`[clearCartForOrder] No cart_id in metadata for order ${orderId}`);
+//     return;
+//   }
+
+//   const { data: orderItems, error: itemsFetchError } = await admin
 //     .from("order_items")
 //     .select("product_id, variant_id")
 //     .eq("order_id", orderId);
 
-//   if (!orderItems) return;
+//   if (itemsFetchError || !orderItems) {
+//     console.error(
+//       `[clearCartForOrder] Could not fetch order items for ${orderId}:`,
+//       itemsFetchError
+//     );
+//     return;
+//   }
 
-//   // Delete matching cart items (the buyer paid for these — remove from basket)
 //   for (const oi of orderItems) {
-//     await admin
-//       .from("cart_items")
-//       .delete()
-//       .eq("cart_id", cartId)
-//       .eq("product_id", oi.product_id ?? "")
-//       .is("variant_id", oi.variant_id ?? "");
+//     await deleteCartItem(admin, cartId, oi.product_id ?? "", oi.variant_id ?? null);
 //   }
 // }
-
 
 "use server";
 
@@ -283,11 +464,6 @@ type PaymentStatusValue =
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-/**
- * Deletes a specific cart item, correctly handling nullable variant_id.
- * .is() only works for NULL / boolean — use .eq() when variant_id is present.
- */
-
 async function deleteCartItem(
   admin: ReturnType<typeof getAdminDB>,
   cartId: string,
@@ -312,10 +488,6 @@ async function deleteCartItem(
   }
 }
 
-/**
- * Appends a row to order_status_history whenever an order transitions state.
- * Call this any time payment_status or status changes.
- */
 async function recordOrderStatusChange(
   admin: ReturnType<typeof getAdminDB>,
   orderId: string,
@@ -339,14 +511,11 @@ async function recordOrderStatusChange(
 
 export async function updatePendingOrdersShipping(payload: ShippingPayload) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
     return { success: false as const, error: "Authentication required" };
   }
 
-  // ── Validation ──────────────────────────────────────────────────────────
   if (!Array.isArray(payload.orderIds) || !payload.orderIds.length) {
     return { success: false as const, error: "Order IDs required" };
   }
@@ -381,10 +550,7 @@ export async function updatePendingOrdersShipping(payload: ShippingPayload) {
     updated_at: new Date().toISOString(),
   };
 
-  if (
-    typeof payload.shippingAmount === "number" &&
-    payload.shippingAmount >= 0
-  ) {
+  if (typeof payload.shippingAmount === "number" && payload.shippingAmount >= 0) {
     update.shipping_amount = payload.shippingAmount;
   }
 
@@ -408,12 +574,9 @@ export async function updatePendingOrdersShipping(payload: ShippingPayload) {
 
 export async function startCheckout() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "Sign in to check out" };
 
-  // Read cart via user client so RLS validates ownership
   const { data: cart } = await supabase
     .from("carts")
     .select("id, currency")
@@ -423,18 +586,20 @@ export async function startCheckout() {
 
   const admin = getAdminDB();
 
-  // ── Idempotency: reuse existing recoverable orders for this cart ─────────
-  // Orders store { cart_id } in their metadata JSON column.
-  const { data: existingOrders } = await admin
+  // ── Idempotency: FIX: Querying JSON column using proper native `.eq` syntax ──
+  const { data: existingOrders, error: fetchExistingError } = await admin
     .from("orders")
     .select("id, payment_status")
     .eq("buyer_id", user.id)
     .eq("status", "pending")
-    .in("payment_status", ["pending", "failed"] as PaymentStatusValue[])
-    .filter("metadata->>cart_id", "eq", cart.id);
+    .in("payment_status", ["pending", "failed"])
+    .eq("metadata->cart_id", cart.id); // Fixed json match syntax
+
+  if (fetchExistingError) {
+    console.error("[startCheckout] Failed to fetch existing orders:", fetchExistingError);
+  }
 
   if (existingOrders && existingOrders.length > 0) {
-    // Reset any failed orders back to pending so payment can be retried
     const failedIds = existingOrders
       .filter((o) => o.payment_status === "failed")
       .map((o) => o.id);
@@ -453,12 +618,11 @@ export async function startCheckout() {
         return { error: "Could not reset failed orders. Please try again." };
       }
 
-      // Record the retry in status history
       for (const id of failedIds) {
         await recordOrderStatusChange(
           admin,
           id,
-          "pending",
+          "pending", // Matches your original flow safe state tracking
           "pending",
           "Payment retry — reset from failed to pending"
         );
@@ -493,9 +657,7 @@ export async function startCheckout() {
     }
 
     const p = Array.isArray(item.products) ? item.products[0] : item.products;
-    const v = Array.isArray(item.product_variants)
-      ? item.product_variants[0]
-      : item.product_variants;
+    const v = Array.isArray(item.product_variants) ? item.product_variants[0] : item.product_variants;
 
     if (!p || p.status !== "active" || !p.is_active || p.deleted_at) {
       invalid.push(`${p?.name ?? "Item"} is no longer available`);
@@ -517,7 +679,7 @@ export async function startCheckout() {
   }
   if (invalid.length > 0) return { error: invalid.join("; ") };
 
-  // ── Group by vendor — one order per vendor ───────────────────────────────
+  // ── Group by vendor ──────────────────────────────────────────────────────
   const byVendor = new Map<string, typeof items>();
   for (const item of items) {
     const list = byVendor.get(item.vendor_id) ?? [];
@@ -525,7 +687,6 @@ export async function startCheckout() {
     byVendor.set(item.vendor_id, list);
   }
 
-  // ── Create orders via admin client (bypasses RLS) ────────────────────────
   const createdOrderIds: string[] = [];
 
   for (const [vendorId, vendorItems] of byVendor) {
@@ -533,9 +694,7 @@ export async function startCheckout() {
 
     const orderItemsToInsert = vendorItems.map((item) => {
       const p = Array.isArray(item.products) ? item.products[0] : item.products!;
-      const v = Array.isArray(item.product_variants)
-        ? item.product_variants[0]
-        : item.product_variants;
+      const v = Array.isArray(item.product_variants) ? item.product_variants[0] : item.product_variants;
       const unitPrice = Number(v?.price ?? p.price);
       const totalPrice = unitPrice * item.quantity;
       subtotal += totalPrice;
@@ -562,7 +721,7 @@ export async function startCheckout() {
         status: "pending" as OrderStatusValue,
         payment_status: "pending" as PaymentStatusValue,
         subtotal,
-        total_amount: subtotal, // tr_orders_recompute_total trigger recalculates on shipping update
+        total_amount: subtotal,
         currency: cart.currency,
         metadata: { cart_id: cart.id },
       })
@@ -570,7 +729,6 @@ export async function startCheckout() {
       .single();
 
     if (orderError || !order) {
-      // Rollback all orders created so far in this loop
       if (createdOrderIds.length > 0) {
         await admin.from("orders").delete().in("id", createdOrderIds);
       }
@@ -596,21 +754,12 @@ export async function startCheckout() {
       return { error: "Couldn't create order. Please try again." };
     }
 
-    // Record initial status
-    await recordOrderStatusChange(
-      admin,
-      order.id,
-      null,
-      "pending",
-      "Order created at checkout"
-    );
-
+    await recordOrderStatusChange(admin, order.id, null, "pending", "Order created at checkout");
     createdOrderIds.push(order.id);
   }
 
   return { ok: true as const, orderIds: createdOrderIds };
 }
-
 
 export async function clearCartForOrder(orderId: string) {
   const admin = getAdminDB();
@@ -622,16 +771,11 @@ export async function clearCartForOrder(orderId: string) {
     .single();
 
   if (orderFetchError || !order) {
-    console.error(
-      `[clearCartForOrder] Could not find order ${orderId}:`,
-      orderFetchError
-    );
+    console.error(`[clearCartForOrder] Could not find order ${orderId}:`, orderFetchError);
     return;
   }
 
-  const cartId = (order.metadata as Record<string, unknown>)?.cart_id as
-    | string
-    | undefined;
+  const cartId = (order.metadata as Record<string, unknown>)?.cart_id as string | undefined;
   if (!cartId) {
     console.warn(`[clearCartForOrder] No cart_id in metadata for order ${orderId}`);
     return;
@@ -643,10 +787,7 @@ export async function clearCartForOrder(orderId: string) {
     .eq("order_id", orderId);
 
   if (itemsFetchError || !orderItems) {
-    console.error(
-      `[clearCartForOrder] Could not fetch order items for ${orderId}:`,
-      itemsFetchError
-    );
+    console.error(`[clearCartForOrder] Could not fetch order items for ${orderId}:`, itemsFetchError);
     return;
   }
 

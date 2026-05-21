@@ -76,6 +76,9 @@ export async function POST(req: NextRequest) {
             weight: totalWeight || 100,
         };
 
+        console.log(cjPayload);
+
+
         const cjRes = await fetch(`${CJ_BASE_URL}/logistic/freightCalculate`, {
             method: "POST",
             headers: {
@@ -94,8 +97,6 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ success: true, rates: [], error: cjData.message });
         }
         const rawRates: any[] = cjData.data ?? [];
-
-        // ── Convert USD prices to order currency ──────────────────────────────────
 
         const fxRate = await getExchangeRate("USD", orderCurrency);
 

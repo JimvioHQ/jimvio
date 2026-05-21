@@ -1,7 +1,3 @@
-// components/checkout/pending-orders-selector.tsx
-// Shown when the buyer has multiple actionable pending orders.
-// They pick one to resume — never combined.
-
 "use client";
 
 import React, { useState } from "react";
@@ -10,6 +6,7 @@ import { formatDistanceToNow } from "date-fns";
 import {
     ShoppingBag, AlertCircle, Clock, CheckCircle2,
     ArrowRight, RefreshCw, Trash2,
+    Loader2,
 } from "lucide-react";
 import type { SanitizedOrder } from "@/lib/payments/sanitize-pending-orders";
 
@@ -71,7 +68,7 @@ export function PendingOrdersSelector({ orders, currency }: Props) {
 
     return (
         <div className="min-h-screen bg-stone-50 dark:bg-zinc-950">
-            <div className="max-w-[560px] mx-auto px-5 pt-12 pb-16">
+            <div className="max-w-[780px] mx-auto px-5 pt-12 pb-16">
 
                 {/* Header */}
                 <div className="mb-8">
@@ -87,7 +84,6 @@ export function PendingOrdersSelector({ orders, currency }: Props) {
                         Choose one to complete. Orders are processed separately — they can't be combined.
                     </p>
                 </div>
-
                 {/* Order cards */}
                 <div className="space-y-3">
                     {orders.map((order) => {
@@ -178,7 +174,7 @@ export function PendingOrdersSelector({ orders, currency }: Props) {
                           disabled:opacity-50 transition-all"
                                             >
                                                 {isLoading ? (
-                                                    <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
                                                 ) : (
                                                     <>
                                                         {order.last_tx_status === "failed" ? "Retry payment" : "Pay now"}
