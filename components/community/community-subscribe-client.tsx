@@ -94,7 +94,7 @@ export function CommunitySubscribeClient({
   );
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
   const [payment, setPayment] = useState<
-    "pesapal" | "nowpayments" | "flutterwave" | "paypal" | "pawapay" | null
+    "pesapal" | "nowpayments" | "flutterwave" | "paypal" | "pawapay" | "binancepay" | null
   >((initialProvider as any) || "flutterwave");
 
   const [submitting, setSubmitting] = useState(false);

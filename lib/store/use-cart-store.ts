@@ -29,10 +29,11 @@ export const useCartStore = create<CartState>((set, get) => ({
   refreshCart: async () => {
     set({ isLoading: true, error: null });
     try {
-      const { orders, total } = await getCart();
-      
+      const { items, total } = await getCart();
+      const orders = items as any[];
+
       // Calculate total item count (quantity)
-      const count = orders.reduce((sum, order) => {
+      const count = orders.reduce((sum: number, order: any) => {
         return sum + (order.order_items?.reduce((s: number, i: any) => s + Number(i.quantity), 0) ?? 0);
       }, 0);
 
@@ -60,8 +61,8 @@ export const useCartStore = create<CartState>((set, get) => ({
     }
   },
 
-  setCartData: (orders, total) => {
-    const count = orders.reduce((sum, order) => {
+    setCartData: (orders, total) => {
+    const count = orders.reduce((sum: number, order: any) => {
       return sum + (order.order_items?.reduce((s: number, i: any) => s + Number(i.quantity), 0) ?? 0);
     }, 0);
 

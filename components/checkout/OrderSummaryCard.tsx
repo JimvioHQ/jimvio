@@ -182,13 +182,13 @@ export function OrderSummaryCard({
                         value={promoCode}
                         onChange={(e) => onPromoChange(e.target.value)}
                         placeholder="Enter promo code (e.g. JIMVIO10)"
-                        className="w-full h-10 pl-9 pr-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-secondary)] text-[12.5px] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)]/80 focus:outline-none focus:border-[var(--color-text-muted)]"
+                        className="w-full h-10 pl-9 pr-3 rounded-sm border border-[var(--color-border)] bg-[var(--color-surface-secondary)] text-[12.5px] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)]/80 focus:outline-none focus:border-[var(--color-text-muted)]"
                     />
                 </div>
                 <button
                     onClick={onPromoApply}
                     disabled={!promoCode.trim() || promoApplying}
-                    className="h-10 px-4 rounded-lg text-[12.5px] font-semibold text-blue-500 hover:bg-blue-50 transition-colors disabled:opacity-40"
+                    className="h-10 px-4 rounded-sm text-[12.5px] font-semibold text-blue-500 hover:bg-blue-50 transition-colors disabled:opacity-40"
                 >
                     {promoApplying ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Apply"}
                 </button>
@@ -234,7 +234,7 @@ export function OrderSummaryCard({
             </div>
 
             {/* Buyer Protection */}
-            <div className="flex items-start gap-2.5 p-3 rounded-xl bg-blue-50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/40">
+            <div className="flex items-start gap-2.5 p-3 rounded-sm bg-blue-50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/40">
                 <Shield className="h-4 w-4 text-blue-500 flex-shrink-0 mt-0.5" />
                 <div className="leading-tight">
                     <p className="text-[12px] font-bold text-blue-900 dark:text-blue-300">
@@ -254,8 +254,9 @@ export function OrderSummaryCard({
                 onClick={onPay}
                 disabled={paySubmitting || payDisabled}
                 className={cn(
-                    "w-full h-12 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-[14px] font-bold transition-all",
+                    "w-full h-12 rounded-sm text-white text-[14px] font-bold transition-all",
                     "flex items-center justify-center gap-2",
+                    "bg-gradient-to-r from-red-600 to-orange-500 hover:from-red-700 hover:to-orange-600",
                     "active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed"
                 )}
             >

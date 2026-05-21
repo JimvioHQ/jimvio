@@ -1,12 +1,12 @@
 import React from "react";
 import Link from "next/link";
 import { getAdminDB } from "@/services/db";
-import { cn } from "@/lib/utils";
+import { cn, relativeTime } from "@/lib/utils";
 import {
   Webhook, CheckCircle2, XCircle, Clock, Search,
 } from "lucide-react";
 import {
-  StatusPill, ProviderLogo, relativeTime, absoluteTime,
+  StatusPill, ProviderLogo,
   PageHeader, EmptyState, FilterChip, RowArrow,
 } from "@/components/ui/admin";
 
@@ -128,7 +128,7 @@ export default async function WebhookEventsPage({
       <div className="rounded-2xl bg-[var(--color-surface)] ring-1 ring-[var(--color-border)] overflow-hidden">
         {list.length === 0 ? (
           <EmptyState
-            icon={Webhook}
+            icon={<Webhook className="w-6 h-6 text-[var(--color-text-muted)]" />}
             title="No webhook events"
             message="Events will appear here as providers call back."
           />

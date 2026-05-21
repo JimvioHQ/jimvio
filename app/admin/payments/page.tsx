@@ -64,24 +64,6 @@ function StatusPill({ status, size = "sm" }: { status: string; size?: "sm" | "md
   );
 }
 
-// function ProviderLogo({ provider }: { provider: string }) {
-//   const palette: Record<string, string> = {
-//     flutterwave: "bg-orange-500/10 text-orange-700 dark:text-orange-400",
-//     pesapal: "bg-indigo-500/10 text-indigo-700 dark:text-indigo-400",
-//     paypal: "bg-blue-500/10 text-blue-700 dark:text-blue-400",
-//     nowpayments: "bg-violet-500/10 text-violet-700 dark:text-violet-400",
-//     pawapay: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
-//     jimvio: "bg-slate-500/10 text-slate-700 dark:text-slate-400",
-//   };
-//   return (
-//     <span className={cn(
-//       "inline-flex items-center justify-center w-7 h-7 rounded-lg text-[10px] font-bold tracking-tight shrink-0",
-//       palette[provider] ?? palette.jimvio
-//     )}>
-//       {provider.slice(0, 2).toUpperCase()}
-//     </span>
-//   );
-// }
 
 function StatCard({
   label, value, sublabel, icon: Icon, tone = "default", href,

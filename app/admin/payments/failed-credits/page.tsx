@@ -1,12 +1,12 @@
 import React from "react";
 import Link from "next/link";
 import { getAdminDB } from "@/services/db";
-import { cn, formatCurrency } from "@/lib/utils";
+import { absoluteTime, cn, formatCurrency, relativeTime } from "@/lib/utils";
 import {
     AlertTriangle, CheckCircle2, Wallet, XCircle,
 } from "lucide-react";
 import {
-    relativeTime, absoluteTime, PageHeader, EmptyState, FilterChip,
+    PageHeader, EmptyState, FilterChip,
 } from "@/components/ui/admin";
 import { resolveFailedCreditAction } from "@/lib/actions/orders";
 // import { resolveFailedCreditAction } from "./actions";
@@ -99,7 +99,7 @@ export default async function FailedCreditsPage({
             <div className="rounded-2xl bg-[var(--color-surface)] ring-1 ring-[var(--color-border)] overflow-hidden">
                 {list.length === 0 ? (
                     <EmptyState
-                        icon={CheckCircle2}
+                        icon={filter === "unresolved" ? <Wallet /> : <XCircle />}
                         title="Nothing to fix"
                         message={filter === "unresolved" ? "All vendor credits have been processed." : "No records match this filter."}
                     />

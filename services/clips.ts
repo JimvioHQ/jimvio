@@ -145,15 +145,15 @@ export async function getTopCreators(limit = 6) {
     .from("ugc_submissions")
     .select("influencer_id, view_count")
     .eq("status", "approved");
-    
+
   if (!clipRows?.length) return [];
 
   const viewsByInfluencer = new Map<string, number>();
-  for (const r of clipRows as { influencer_id: string; view_count?: number | null }[]) {
+  for (const r of clipRows as any) {
     const id = r.influencer_id;
     viewsByInfluencer.set(id, (viewsByInfluencer.get(id) ?? 0) + Number(r.view_count ?? 0));
   }
-  
+
   const rankedIds = [...viewsByInfluencer.entries()]
     .sort((a, b) => b[1] - a[1])
     .map(([id]) => id)
@@ -202,7 +202,7 @@ export async function getShortVideos(limit = 8) {
     .limit(limit);
 
   if (!data) return [];
-  
+
   return data.map((v: any) => {
     const influencer = v.influencers;
     const prod = v.products;

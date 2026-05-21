@@ -532,10 +532,12 @@ export async function getPendingCreators(opts?: {
 // UGC SUBMISSION REVIEW QUERIES
 // ─────────────────────────────────────────────────────────────────────────────
 
+type Platform = "tiktok" | "instagram" | "youtube" | "x";
+
 export async function getPendingUGCSubmissions(opts?: {
   q?: string;
   sort?: string;
-  platform?: string;
+  platform?: Platform | "all";
 }) {
   const admin = getAdminDB();
   let query = admin
@@ -603,6 +605,8 @@ export async function getPendingReports(opts?: {
     .from("ugc_reports")
     .select(`
       id,
+      reporter_id,
+      submission_id,
       reason,
       details,
       status,

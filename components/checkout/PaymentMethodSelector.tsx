@@ -425,7 +425,16 @@ function Mastercard() {
 }
 
 function Discover() {
-  return <span style={{ ...pillBase, background: "#fff", color: "#231F20", border: "1px solid #ddd", minWidth: 52, fontSize: 9, fontWeight: 800 }}>DISCOVER</span>;
+  return (
+    <img
+      src="https://img.logokit.com/discover.com"
+      alt="Discover"
+      style={{ height: 22, width: "auto", objectFit: "contain", borderRadius: 4 }}
+      onError={(e) => {
+        e.currentTarget.src = "https://www.google.com/s2/favicons?domain=discover.com&sz=64";
+      }}
+    />
+  );
 }
 
 function Amex() {
@@ -438,9 +447,14 @@ function Verve() {
 
 function ApplePay() {
   return (
-    <span style={{ ...pillBase, background: "#000", color: "#fff", minWidth: 52 }}>
-      &#63743;&nbsp;Pay
-    </span>
+    <img
+      src="https://img.logokit.com/apple.com"
+      alt="Apple Pay"
+      style={{ height: 22, width: "auto", objectFit: "contain", borderRadius: 4 }}
+      onError={(e) => {
+        e.currentTarget.src = "https://www.google.com/s2/favicons?domain=apple.com&sz=64";
+      }}
+    />
   );
 }
 
@@ -469,7 +483,16 @@ function Airtel() {
 }
 
 function MoMo() {
-  return <span style={{ ...pillBase, background: "#000", color: "#FFCC00" }}>MoMo</span>;
+  return (
+    <img
+      src="https://img.logokit.com/mtn.com"
+      alt="MoMo"
+      style={{ height: 22, width: "auto", objectFit: "contain", borderRadius: 4 }}
+      onError={(e) => {
+        e.currentTarget.src = "https://www.google.com/s2/favicons?domain=mtn.com&sz=64";
+      }}
+    />
+  );
 }
 
 // Crypto coin icons — colored circles matching the screenshot
@@ -501,34 +524,21 @@ function USDTIcon() {
   );
 }
 
-function BNBIcon() {
+
+function PartnerLogo({ domain, label, localSrc }: { domain: string; label: string; localSrc?: string }) {
   return (
-    <span style={{ display: "inline-flex", width: 28, height: 28, borderRadius: "50%", background: "#F3BA2F", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 9, fontWeight: 800, color: "#000" }}>
-      BNB
-    </span>
+    <img
+      src={localSrc ?? `https://img.logokit.com/${domain}`}
+      alt={label}
+      className="h-6 w-auto object-contain rounded-sm"
+      onError={(event) => {
+        const img = event.currentTarget;
+        img.onerror = null;
+        img.src = `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
+      }}
+    />
   );
 }
-
-function PayPalBrand() {
-  return (
-    <span style={{ ...pillBase, minWidth: 58, background: "#fff", border: "0.5px solid #ddd", gap: 1 }}>
-      <span style={{ color: "#003087", fontWeight: 800 }}>Pay</span>
-      <span style={{ color: "#009CDE", fontWeight: 800 }}>Pal</span>
-    </span>
-  );
-}
-
-function BinancePay() {
-  return (
-    <span style={{ ...pillBase, minWidth: 80, background: "#F3BA2F", color: "#000", fontSize: 9, fontWeight: 800, gap: 3 }}>
-      <svg width="10" height="10" viewBox="0 0 32 32" fill="black">
-        <path d="M16 0L19.84 3.84 8.32 15.36 4.48 11.52 16 0zM0 16L3.84 12.16 7.68 16 3.84 19.84 0 16zM16 32L12.16 28.16 23.68 16.64 27.52 20.48 16 32zM32 16L28.16 19.84 24.32 16 28.16 12.16 32 16zM19.84 12.16L23.68 16 19.84 19.84 16 16 19.84 12.16z" />
-      </svg>
-      BINANCE PAY
-    </span>
-  );
-}
-
 
 export type MethodId = "pesapal" | "nowpayments" | "flutterwave" | "paypal" | "pawapay" | "binancepay";
 
@@ -587,7 +597,11 @@ const METHODS: MethodDef[] = [
         </svg>
       </div>
     ),
-    logos: [<BTCIcon key="btc" />, <ETHIcon key="eth" />, <USDTIcon key="usdt" />],
+    logos: [
+      <BTCIcon key="btc" />,
+      <ETHIcon key="eth" />,
+      <USDTIcon key="usdt" />,
+    ],
     feeLabel: "+1%",
   },
   {
@@ -600,12 +614,10 @@ const METHODS: MethodDef[] = [
         background: "#F3BA2F",
         display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
       }}>
-        <svg width="22" height="22" viewBox="0 0 32 32" fill="black">
-          <path d="M16 0L19.84 3.84 8.32 15.36 4.48 11.52 16 0zM0 16L3.84 12.16 7.68 16 3.84 19.84 0 16zM16 32L12.16 28.16 23.68 16.64 27.52 20.48 16 32zM32 16L28.16 19.84 24.32 16 28.16 12.16 32 16zM19.84 12.16L23.68 16 19.84 19.84 16 16 19.84 12.16z" />
-        </svg>
+        <img src="/logos/idF7XAjt3f.png" alt="Binance" style={{ width: 22, height: 22, objectFit: "contain" }} />
       </div>
     ),
-    logos: [<BinancePay key="bp" />],
+    logos: [<PartnerLogo key="bp" domain="binance.com" label="Binance Pay" localSrc="/logos/binance.png" />],
     feeLabel: "Free",
   },
   {
@@ -623,7 +635,7 @@ const METHODS: MethodDef[] = [
         </svg>
       </div>
     ),
-    logos: [<PayPalBrand key="pp" />],
+    logos: [<PartnerLogo key="pp" domain="paypal.com" label="PayPal" localSrc="/logos/paypal.png" />],
     feeLabel: "+2.9%",
   },
 ];
@@ -703,12 +715,16 @@ export function PaymentMethodSelector({
               onClick={() => onSelect(m.id)}
               className={cn(
                 "relative w-full text-left transition-all duration-150 active:scale-[0.995]",
-                "rounded-xl overflow-hidden border",
+                "rounded-sm overflow-hidden border",
                 active
-                  ? "bg-orange-50 border-orange-400 dark:bg-orange-950/20 dark:border-orange-500/60"
+                  ? "bg-orange-50 border-[var(--color-border-tertiary)] dark:bg-orange-950/20 shadow-[0_10px_30px_rgba(253,110,50,0.08)]"
                   : "bg-[var(--color-background-primary)] border-[var(--color-border-tertiary)] hover:border-[var(--color-border-secondary)]"
               )}
             >
+              {/* Top accent for selected state */}
+              {active && (
+                <div className="absolute inset-x-0 top-0 h-1" style={{ background: "linear-gradient(90deg,#ff7a18,#ff4500)" }} />
+              )}
               <div className="flex items-center gap-4 px-4 py-3.5">
 
                 {/* Large icon — colored circle */}
@@ -736,27 +752,44 @@ export function PaymentMethodSelector({
                     {m.description}
                   </p>
 
-                  {/* Payment logos row */}
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    {m.logos}
-                    {fee > 0 && (
-                      <span className="text-[10px] text-[var(--color-text-secondary)] ml-1 bg-[var(--color-background-secondary)] border border-[var(--color-border-tertiary)] px-1.5 py-0.5 rounded">
-                        {m.feeLabel} fee
-                      </span>
-                    )}
-                  </div>
+                  {/* Payment logos row - only for non-crypto methods */}
+                  {m.id !== "nowpayments" && m.id !== "binancepay" && m.id !== "paypal" && (
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {m.logos}
+                      {fee > 0 && (
+                        <span className="text-[10px] text-[var(--color-text-secondary)] ml-1 bg-[var(--color-background-secondary)] border border-[var(--color-border-tertiary)] px-1.5 py-0.5 rounded">
+                          {m.feeLabel} fee
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
 
-                {/* Radio button — right side */}
-                <div className={cn(
-                  "flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-150",
-                  active
-                    ? "border-orange-500"
-                    : "border-[var(--color-border-secondary)]"
-                )}>
-                  {active && (
-                    <div className="w-2.5 h-2.5 rounded-full bg-orange-500" />
+                {/* Right side - logos for crypto, binance pay, and paypal */}
+                {(m.id === "nowpayments" || m.id === "binancepay" || m.id === "paypal") && (
+                  <div className="flex-shrink-0 flex items-center gap-1.5">
+                    {m.logos}
+                  </div>
+                )}
+
+                {/* Right side - fee badge and radio button */}
+                <div className="flex-shrink-0 flex items-center gap-2">
+                  {fee > 0 && (
+                    <span className="text-[10px] text-[var(--color-text-secondary)] bg-[var(--color-background-secondary)] border border-[var(--color-border-tertiary)] px-1.5 py-0.5 rounded whitespace-nowrap">
+                      {m.feeLabel} fee
+                    </span>
                   )}
+                  {/* Radio button — right side */}
+                  <div className={cn(
+                    "flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-150",
+                    active
+                      ? "border-orange-500"
+                      : "border-[var(--color-border-secondary)]"
+                  )}>
+                    {active && (
+                      <div className="w-2.5 h-2.5 rounded-full bg-orange-500" />
+                    )}
+                  </div>
                 </div>
               </div>
             </button>
@@ -765,26 +798,39 @@ export function PaymentMethodSelector({
       </div>
 
       {/* ── Powered by strip ──────────────────────────────────────── */}
-      <div className="flex items-center gap-3 pt-2 pb-1 flex-wrap">
-        <span className="text-[11px] text-[var(--color-text-secondary)] whitespace-nowrap">
+      <div className="flex items-center justify-center gap-4 pt-3 pb-3 flex-wrap">
+        <span className="text-[10px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-widest w-full text-center mb-2">
           Powered by trusted partners
         </span>
-        {/* Partner wordmarks */}
-        {[
-          { label: "nowpayments", color: "#6C4DE6" },
-          { label: "flutterwave", color: "#F5A623" },
-          { label: "PayPal", color: "#003087" },
-          { label: "Payoneer", color: "#FF4800" },
-          { label: "BINANCE PAY", color: "#F3BA2F" },
-        ].map((p) => (
-          <span
-            key={p.label}
-            className="text-[11px] font-bold border border-[var(--color-border-tertiary)] rounded px-2 py-0.5"
-            style={{ color: p.color }}
-          >
-            {p.label}
-          </span>
-        ))}
+        <div className="w-full flex items-center justify-center gap-6 flex-wrap">
+          {[
+            { label: "NowPayments", domain: "nowpayments.io", localSrc: "/logos/NOWPayments_idKVr3HnXR_1.svg" },
+            { label: "Flutterwave", domain: "flutterwave.com", localSrc: "/logos/flutterwave.png" },
+            { label: "PayPal", domain: "paypal.com", localSrc: "/logos/paypal.png" },
+            { label: "Payoneer", domain: "payoneer.com", localSrc: "/logos/Payoneer_Master_Logo_OnWhite_RGB.svg" },
+            { label: "Binance Pay", domain: "binance.com", localSrc: "/logos/binance.png" },
+          ].map((partner) => (
+            <img
+              key={partner.domain}
+              src={partner.localSrc ?? `https://img.logokit.com/${partner.domain}`}
+              alt={partner.label}
+              className={cn(
+                "h-6 w-auto object-contain rounded-sm p-0.5",
+                partner.label === "NowPayments" || partner.label === "Payoneer"
+                  ? "text-slate-900 dark:text-white"
+                  : ""
+              )}
+              onError={(event) => {
+                const img = event.currentTarget;
+                if (partner.localSrc) {
+                  return;
+                }
+                img.onerror = null;
+                img.src = `https://www.google.com/s2/favicons?domain=${partner.domain}&sz=64`;
+              }}
+            />
+          ))}
+        </div>
       </div>
 
       {/* ── Order summary ──────────────────────────────────────────── */}
@@ -823,7 +869,7 @@ export function PaymentMethodSelector({
           onClick={onPay}
           disabled={!selected || loading}
           className={cn(
-            "w-full mt-1 py-3.5 rounded-xl text-[15px] font-bold text-white transition-all duration-150",
+            "w-full mt-1 py-3.5 rounded-sm text-[15px] font-bold text-white transition-all duration-150",
             "flex items-center justify-center gap-2",
             "bg-orange-500 hover:bg-orange-600 active:scale-[0.99]",
             "disabled:opacity-50 disabled:cursor-not-allowed"

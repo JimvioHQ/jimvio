@@ -6,7 +6,7 @@ type Creator = {
     id: string;
     user_id: string;
     display_name: string;
-    niche: string[];
+    niche?: string[] | null;
     bio?: string | null;
     profile_image?: string | null;
     total_followers?: bigint | number | null;
@@ -15,7 +15,7 @@ type Creator = {
     is_active?: boolean | null;
     created_at?: string | Date | null;
     guidelines_accepted_at?: string | Date | null;
-    social_platforms?: Record<string, any> | null;
+    social_platforms?: any;
     profiles?: {
         email: string;
         username?: string | null;
@@ -168,7 +168,7 @@ export function CreatorsTable({ creators }: CreatorsTableProps) {
                                     }}>{n}</span>
                                 ))}
                                 {(c.niche ?? []).length > 2 && (
-                                    <span style={{ fontSize: 10, color: "var(--color-text-muted,#888)" }}>+{c.niche.length - 2}</span>
+                                    <span style={{ fontSize: 10, color: "var(--color-text-muted,#888)" }}>+{(c.niche ?? []).length - 2}</span>
                                 )}
                             </div>
 
