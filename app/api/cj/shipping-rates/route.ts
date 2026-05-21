@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
         }
 
         const body: RateRequest = await req.json();
-        const { destCountryCode, orderCurrency, cartItems } = body;
+        const { destCountryCode, orderCurrency = "RWF", cartItems } = body;
 
         if (!destCountryCode) {
             return NextResponse.json(
@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
             startCountryCode: "CN",
             endCountryCode: destCountryCode,
             products: cartItems.map((item) => ({
-                vid: item.cjVid,
+                vid: item.cjVid ?? item.variantId,
                 quantity: item.quantity,
             })),
             weight: totalWeight || 100,
@@ -97,9 +97,8 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ success: true, rates: [], error: cjData.message });
         }
         const rawRates: any[] = cjData.data ?? [];
-
         const fxRate = await getExchangeRate("USD", orderCurrency);
-
+        
         const rates = rawRates.map((r: any) => ({
             optionId: r.logisticName ?? r.channelName,
             channelId: r.channelCode ?? r.logisticCode,
@@ -111,7 +110,6 @@ export async function POST(req: NextRequest) {
             fxRate,
         }));
 
-        // Sort by priceLocal ascending (cheapest first)
         rates.sort((a, b) => a.priceLocal - b.priceLocal);
 
         return NextResponse.json({ success: true, rates });

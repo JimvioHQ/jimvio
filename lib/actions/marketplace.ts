@@ -850,6 +850,7 @@ export async function buyDirectCheckout(
     const uuidRe =
       /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+    // ── Reads via user client — RLS gates visibility ─────────────────────────
     const [productResult, variantResult] = await Promise.all([
       supabase
         .from("products")
@@ -860,7 +861,7 @@ export async function buyDirectCheckout(
           status, is_active
         `)
         .eq("id", productId)
-        .single(),
+        .maybeSingle(),
 
       variantId && uuidRe.test(variantId)
         ? supabase
@@ -868,12 +869,14 @@ export async function buyDirectCheckout(
           .select("id, cj_vid, cj_pid, price, source_metadata, weight, source")
           .eq("id", variantId)
           .eq("product_id", productId)
-          .single()
+          .maybeSingle()
         : Promise.resolve({ data: null, error: null }),
     ]);
 
     const product = productResult.data;
-    if (productResult.error || !product) throw new Error("Product not found");
+    if (productResult.error || !product) {
+      return { success: false, error: "Product not found" };
+    }
     if (product.status !== "active" || !product.is_active) {
       return { success: false, error: "Product is unavailable" };
     }
@@ -896,7 +899,6 @@ export async function buyDirectCheckout(
         cjVid = productMeta.cj_vid ?? null;
         variantWeight = productMeta.cj_weight ?? null;
       }
-
       if (!cjVid) {
         return {
           success: false,
@@ -919,16 +921,17 @@ export async function buyDirectCheckout(
     const lastVideoId = cookieStore.get("jimvio_last_video_id")?.value ?? null;
     const refCode = cookieStore.get("jimvio_ref")?.value ?? null;
 
+    // ── Affiliate resolution — server-controlled, can't be spoofed by buyer ──
     const affiliatesAllowed = supportsAffiliateCommission(
       productSource,
-      product.affiliate_enabled ?? false
+      product.affiliate_enabled ?? false,
     );
 
     let affiliateId: string | null = null;
     let commissionRate: number =
       !isFree && affiliatesAllowed
-        ? (product.affiliate_commission_rate ??
-          (await getDefaultAffiliateCommissionPercent()))
+        ? product.affiliate_commission_rate ??
+        (await getDefaultAffiliateCommissionPercent())
         : 0;
 
     if (refCode && affiliatesAllowed && !isFree) {
@@ -952,12 +955,24 @@ export async function buyDirectCheckout(
       }
     }
 
-    const { data: order, error: createError } = await supabase
+    const isDigital =
+      productType === "digital" ||
+      productType === "course" ||
+      productType === "ebook" ||
+      productType === "software" ||
+      productType === "template";
+
+    // ── Writes via admin client — bypasses RLS, server-trusted ───────────────
+    const admin = getAdminDB();
+
+    const { data: order, error: createError } = await admin
       .from("orders")
       .insert({
         buyer_id: user.id,
         vendor_id: vendorId,
-        status: isFree ? "confirmed" : "pending",
+        // Free orders skip the "pending" stage and land confirmed+paid.
+        // Paid orders sit at checkout_direct/pending until the payment webhook lands.
+        status: isFree ? "confirmed" : "checkout_direct",
         payment_status: isFree ? "paid" : "pending",
         paid_at: isFree ? new Date().toISOString() : null,
         total_amount: totalAmount,
@@ -975,15 +990,12 @@ export async function buyDirectCheckout(
     if (createError) throw createError;
 
     const lineSource = toOrderItemSource(product.source);
-    const commissionAmount = affiliateId
-      ? (totalAmount * commissionRate) / 100
-      : 0;
-
+    const commissionAmount = affiliateId ? (totalAmount * commissionRate) / 100 : 0;
     const lineMeta: Record<string, unknown> = isCJ
       ? { ...productMeta, cj_pid: cjPid, cj_vid: cjVid, cj_weight: variantWeight }
       : { ...(productMeta as object) };
 
-    const { data: insertedItem, error: insertError } = await supabase
+    const { data: insertedItem, error: insertError } = await admin
       .from("order_items")
       .insert({
         order_id: order.id,
@@ -1003,20 +1015,20 @@ export async function buyDirectCheckout(
         source_metadata: lineMeta as Json,
         pricing_type: product.pricing_type ?? "one_time",
         billing_period: product.billing_period ?? null,
-        digital_download_url: !isCJ ? (product.digital_file_url ?? null) : null,
+        digital_download_url: !isCJ ? product.digital_file_url ?? null : null,
         access_granted_at: isFree && !isCJ ? new Date().toISOString() : null,
         metadata: { ...(lastVideoId ? { video_id: lastVideoId } : {}) },
       })
       .select()
       .single();
 
-    if (insertError) throw insertError;
+    if (insertError) {
+      // Roll back the order — orphan rows are worse than a failed checkout
+      await admin.from("orders").delete().eq("id", order.id);
+      throw insertError;
+    }
 
-    const isDigital =
-      productType === "digital" || productType === "course" ||
-      productType === "ebook" || productType === "software" ||
-      productType === "template";
-
+    // Free digital products: grant access immediately
     if (isFree && isDigital && !isCJ && insertedItem) {
       await grantDigitalAccess({
         userId: user.id,

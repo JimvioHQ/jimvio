@@ -291,10 +291,8 @@ export function DigitalProductDetail({
 
         {/* ── Body grid ── */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
-
           {/* Left column */}
           <div className="lg:col-span-8 space-y-8">
-
             {/* Gallery */}
             <div className="rounded-2xl overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface-secondary)]">
               <ImageGallery

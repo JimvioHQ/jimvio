@@ -32,5 +32,5 @@ export interface CookieCard {
     description: string;
     duration: string;
 }
-
+export * from './checkout';
 export * from './chat';
