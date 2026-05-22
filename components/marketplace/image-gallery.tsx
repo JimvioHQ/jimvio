@@ -302,6 +302,7 @@ interface ImageGalleryProps {
     productName: string;
     isFeatured?: boolean;
     savings?: number | null;
+    thumbnailsPosition?: "bottom" | "left";
     className?: string;
 }
 
@@ -539,9 +540,11 @@ export function ImageGallery({
     productName,
     isFeatured,
     savings,
+    thumbnailsPosition = "bottom",
     className,
 }: ImageGalleryProps) {
     const images = useMemo(() => normalizeImages(imagesInput), [imagesInput]);
+    const isLeftThumbnails = thumbnailsPosition === "left";
 
     const [activeIndex, setActiveIndex] = useState(0);
     const [imageLoaded, setImageLoaded] = useState(false);
@@ -597,11 +600,14 @@ export function ImageGallery({
 
     return (
         <>
-            <div className={cn("flex flex-col gap-3", className)}>
+            <div className={cn(isLeftThumbnails ? "flex flex-col md:flex-row gap-4 items-start" : "flex flex-col gap-3", className)}>
 
                 {/* ── Main image ──────────────────────────────────────────────── */}
                 <div
-                    className="relative overflow-hidden select-none group"
+                    className={cn(
+                        "relative overflow-hidden select-none group",
+                        isLeftThumbnails && "flex-1 min-w-0 md:order-last",
+                    )}
                     style={{
                         aspectRatio: "1 / 1",
                         background: "var(--color-surface)",
@@ -812,7 +818,12 @@ export function ImageGallery({
                 {hasMultiple && (
                     <div
                         ref={stripRef}
-                        className="flex gap-2 overflow-x-auto pb-0.5"
+                        className={cn(
+                            "gap-2 pb-0.5",
+                            isLeftThumbnails
+                                ? "flex flex-col overflow-y-auto max-h-[calc(100vh-220px)] pr-2 border-r border-[var(--color-border)] md:order-first"
+                                : "flex gap-2 overflow-x-auto",
+                        )}
                         style={{ scrollbarWidth: "none" }}
                         role="tablist"
                         aria-label="Product images"

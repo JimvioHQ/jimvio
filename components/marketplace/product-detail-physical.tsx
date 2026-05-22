@@ -11,14 +11,10 @@ import {
   Award, TrendingUp, CheckCircle2,
   MessageSquare, Globe, Zap, Timer,
   AlertTriangle, Flame, ThumbsUp, ImageIcon,
-  ChevronLeft, ChevronRight, Eye,
+  ChevronLeft, ChevronRight, Eye, Heart,
+  Search, Users, Headphones,
 } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { cn } from "@/lib/utils";
-import {
-  ProductPriceDisplay,
-  ProductBuyBoxPrice,
-} from "@/components/marketplace/product-price-display";
+import { cn, normalizeImages } from "@/lib/utils";
 import { ProductActionModule } from "@/components/marketplace/product-action-module";
 import { FollowButton } from "@/components/marketplace/follow-button";
 import { ReviewForm } from "@/components/marketplace/review-form";
@@ -64,7 +60,6 @@ interface RatingBreakdown {
   "1": number;
 }
 
-// Real activity event — from your activity feed API or Supabase realtime
 export interface ActivityEvent {
   city: string;
   action: "purchased" | "added_to_cart" | "viewing";
@@ -75,11 +70,11 @@ interface PhysicalProductDetailProps {
   product: any;
   vendor: any;
   relatedProducts: any[];
-  frequentlyBoughtTogether?: any[]; // products bought together with this one
+  frequentlyBoughtTogether?: any[];
   shippingOptions?: ShippingOption[];
   userCountry?: string;
   followedVendorIds: string[];
-  recentActivity?: ActivityEvent[]; // real activity feed — falls back to fake if not provided
+  recentActivity?: ActivityEvent[];
 }
 
 const ALLOWED_HTML_TAGS = [
@@ -97,7 +92,6 @@ function htmlToPlainText(html: string): string {
 function useLiveViewers(baseCount: number = 0) {
   const base = Math.max(baseCount, 3);
   const [viewers, setViewers] = useState(base);
-
   useEffect(() => {
     setViewers(base + Math.floor(Math.random() * 8));
     const interval = setInterval(() => {
@@ -108,7 +102,6 @@ function useLiveViewers(baseCount: number = 0) {
     }, 4500);
     return () => clearInterval(interval);
   }, [base]);
-
   return viewers;
 }
 
@@ -134,17 +127,9 @@ function useRecentlyViewed(currentId: string, currentProduct: any) {
 }
 
 // ─── Recently Viewed UI ───────────────────────────────────────────────────────
-// Reads from localStorage after mount — no SSR mismatch.
 
-function RecentlyViewedSection({
-  currentId,
-  formatMoney,
-}: {
-  currentId: string;
-  formatMoney: (v: number, c: string) => string;
-}) {
+function RecentlyViewedSection({ currentId, formatMoney }: { currentId: string; formatMoney: (v: number, c: string) => string }) {
   const [items, setItems] = useState<any[]>([]);
-
   useEffect(() => {
     try {
       const raw = localStorage.getItem("recently_viewed");
@@ -152,46 +137,26 @@ function RecentlyViewedSection({
       setItems(list.filter((p) => p.id !== currentId).slice(0, 6));
     } catch { /* silent */ }
   }, [currentId]);
-
   if (!items.length) return null;
-
   return (
     <div>
       <div className="flex items-center gap-2 mb-4">
         <Eye className="h-4 w-4 text-[var(--color-text-muted)]" />
-        <h2 className="text-[13px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">
-          Recently viewed
-        </h2>
+        <h2 className="text-[13px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">Recently viewed</h2>
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
         {items.map((item) => (
-          <Link
-            key={item.id}
-            href={`/marketplace/${item.slug}`}
-            className="group flex flex-col gap-2"
-          >
-            <div className="aspect-square rounded-xl overflow-hidden bg-[var(--color-surface-secondary)] border border-[var(--color-border)]">
+          <Link key={item.id} href={`/marketplace/${item.slug}`} className="group flex flex-col gap-2">
+            <div className="aspect-square rounded-md overflow-hidden bg-[var(--color-surface-secondary)] border border-[var(--color-border)]">
               {item.images?.[0] ? (
-                <Image
-                  src={item.images[0]}
-                  alt={item.name}
-                  width={120}
-                  height={120}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                />
+                <Image src={item.images[0]} alt={item.name} width={120} height={120} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
               ) : (
-                <div className="w-full h-full flex items-center justify-center">
-                  <Package className="h-6 w-6 text-[var(--color-text-muted)]" />
-                </div>
+                <div className="w-full h-full flex items-center justify-center"><Package className="h-6 w-6 text-[var(--color-text-muted)]" /></div>
               )}
             </div>
             <div>
-              <p className="text-[11px] font-medium text-[var(--color-text-primary)] line-clamp-2 leading-snug">
-                {item.name}
-              </p>
-              <p className="text-[11px] font-semibold text-[var(--color-text-primary)] mt-0.5">
-                {formatMoney(item.price, item.currency ?? "USD")}
-              </p>
+              <p className="text-[11px] font-medium text-[var(--color-text-primary)] line-clamp-2 leading-snug">{item.name}</p>
+              <p className="text-[11px] font-semibold text-[var(--color-text-primary)] mt-0.5">{formatMoney(item.price, item.currency ?? "USD")}</p>
             </div>
           </Link>
         ))}
@@ -202,105 +167,45 @@ function RecentlyViewedSection({
 
 // ─── Frequently Bought Together ───────────────────────────────────────────────
 
-function FrequentlyBoughtTogether({
-  currentProduct,
-  products,
-  formatMoney,
-}: {
-  currentProduct: any;
-  products: any[];
-  formatMoney: (v: number, c: string) => string;
-}) {
-  const [selected, setSelected] = useState<Set<string>>(
-    () => new Set([currentProduct.id, ...products.map((p) => p.id)])
-  );
-
+function FrequentlyBoughtTogether({ currentProduct, products, formatMoney }: { currentProduct: any; products: any[]; formatMoney: (v: number, c: string) => string }) {
+  const [selected, setSelected] = useState<Set<string>>(() => new Set([currentProduct.id, ...products.map((p) => p.id)]));
   if (!products.length) return null;
-
   const all = [currentProduct, ...products];
-  const total = all
-    .filter((p) => selected.has(p.id))
-    .reduce((sum, p) => sum + Number(p.price), 0);
+  const total = all.filter((p) => selected.has(p.id)).reduce((sum, p) => sum + Number(p.price), 0);
   const currency = currentProduct.currency ?? "USD";
-
   const toggle = (id: string) => {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+    setSelected((prev) => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next; });
   };
-
   return (
-    <div
-      className="rounded-xl overflow-hidden"
-      style={{ border: "1px solid var(--color-border)", background: "var(--color-surface)" }}
-    >
+    <div className="rounded-md overflow-hidden" style={{ border: "1px solid var(--color-border)", background: "var(--color-surface)" }}>
       <div className="px-5 py-4 border-b border-[var(--color-border)]">
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">
-          Frequently bought together
-        </p>
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">Frequently bought together</p>
       </div>
-
       <div className="p-5">
-        {/* Product row */}
         <div className="flex items-center gap-2 flex-wrap mb-5">
           {all.map((product, i) => (
             <React.Fragment key={product.id}>
               <label className="flex flex-col items-center gap-2 cursor-pointer group">
-                <div
-                  className={cn(
-                    "relative w-16 h-16 rounded-xl overflow-hidden border-2 transition-all",
-                    selected.has(product.id)
-                      ? "border-orange-500"
-                      : "border-[var(--color-border)] opacity-50"
-                  )}
-                >
+                <div className={cn("relative w-16 h-16 rounded-md overflow-hidden border-2 transition-all", selected.has(product.id) ? "border-orange-500" : "border-[var(--color-border)] opacity-50")}>
                   {product.images?.[0] ? (
-                    <Image
-                      src={product.images[0]}
-                      alt={product.name}
-                      fill
-                      className="object-cover"
-                    />
+                    <Image src={product.images[0]} alt={product.name} fill className="object-cover" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-[var(--color-surface-secondary)]">
-                      <Package className="h-5 w-5 text-[var(--color-text-muted)]" />
-                    </div>
+                    <div className="w-full h-full flex items-center justify-center bg-[var(--color-surface-secondary)]"><Package className="h-5 w-5 text-[var(--color-text-muted)]" /></div>
                   )}
-                  <input
-                    type="checkbox"
-                    checked={selected.has(product.id)}
-                    onChange={() => toggle(product.id)}
-                    className="absolute top-1 right-1 w-3.5 h-3.5 accent-orange-500"
-                  />
+                  <input type="checkbox" checked={selected.has(product.id)} onChange={() => toggle(product.id)} className="absolute top-1 right-1 w-3.5 h-3.5 accent-orange-500" />
                 </div>
-                <p className="text-[10px] text-[var(--color-text-muted)] text-center max-w-[64px] line-clamp-2 leading-tight">
-                  {product.name}
-                </p>
+                <p className="text-[10px] text-[var(--color-text-muted)] text-center max-w-[64px] line-clamp-2 leading-tight">{product.name}</p>
               </label>
-              {i < all.length - 1 && (
-                <span className="text-[var(--color-text-muted)] font-bold text-lg select-none">+</span>
-              )}
+              {i < all.length - 1 && <span className="text-[var(--color-text-muted)] font-bold text-lg select-none">+</span>}
             </React.Fragment>
           ))}
         </div>
-
-        {/* Total + CTA */}
         <div className="flex items-center justify-between gap-4">
           <div>
-            <p className="text-[10px] text-[var(--color-text-muted)]">
-              {selected.size} item{selected.size !== 1 ? "s" : ""} selected
-            </p>
-            <p className="text-[18px] font-bold text-[var(--color-text-primary)] tabular-nums">
-              {formatMoney(total, currency)}
-            </p>
+            <p className="text-[10px] text-[var(--color-text-muted)]">{selected.size} item{selected.size !== 1 ? "s" : ""} selected</p>
+            <p className="text-[18px] font-bold text-[var(--color-text-primary)] tabular-nums">{formatMoney(total, currency)}</p>
           </div>
-          <button
-            disabled={selected.size === 0}
-            className="h-10 px-5 rounded-xl text-[13px] font-semibold bg-orange-500 hover:bg-orange-600 text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-          >
+          <button disabled={selected.size === 0} className="h-10 px-5 rounded-md text-[13px] font-semibold bg-orange-500 hover:bg-orange-600 text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
             Add {selected.size} to cart
           </button>
         </div>
@@ -310,12 +215,8 @@ function FrequentlyBoughtTogether({
 }
 
 // ─── Live Activity Toast ──────────────────────────────────────────────────────
-// Prefers real activity events; falls back to fake data when none provided.
 
-const FAKE_CITIES = [
-  "Lagos", "London", "Nairobi", "Dubai", "Paris",
-  "New York", "Accra", "Kigali", "Toronto", "Berlin",
-];
+const FAKE_CITIES = ["Lagos", "London", "Nairobi", "Dubai", "Paris", "New York", "Accra", "Kigali", "Toronto", "Berlin"];
 const FAKE_ACTION_LABELS: Record<string, string> = {
   purchased: "just purchased this",
   added_to_cart: "added this to cart",
@@ -327,49 +228,26 @@ function LiveActivityToast({ realActivity }: { realActivity?: ActivityEvent[] })
   const [message, setMessage] = useState({ city: "", action: "" });
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const realIndexRef = useRef(0);
-
   useEffect(() => {
     function showToast() {
       if (realActivity && realActivity.length > 0) {
         const event = realActivity[realIndexRef.current % realActivity.length];
         realIndexRef.current++;
-        setMessage({
-          city: event.city,
-          action: FAKE_ACTION_LABELS[event.action] ?? "is viewing this",
-        });
+        setMessage({ city: event.city, action: FAKE_ACTION_LABELS[event.action] ?? "is viewing this" });
       } else {
-        setMessage({
-          city: FAKE_CITIES[Math.floor(Math.random() * FAKE_CITIES.length)],
-          action: ["just purchased this", "added to cart", "is viewing this now"][
-            Math.floor(Math.random() * 3)
-          ],
-        });
+        setMessage({ city: FAKE_CITIES[Math.floor(Math.random() * FAKE_CITIES.length)], action: ["just purchased this", "added to cart", "is viewing this now"][Math.floor(Math.random() * 3)] });
       }
       setVisible(true);
-      timerRef.current = setTimeout(() => {
-        setVisible(false);
-        timerRef.current = setTimeout(showToast, 8000 + Math.random() * 6000);
-      }, 4000);
+      timerRef.current = setTimeout(() => { setVisible(false); timerRef.current = setTimeout(showToast, 8000 + Math.random() * 6000); }, 4000);
     }
     timerRef.current = setTimeout(showToast, 5000 + Math.random() * 4000);
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
   }, [realActivity]);
-
   return (
-    <div
-      className={cn(
-        "fixed bottom-6 left-6 z-50 flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg border transition-all duration-500 max-w-[280px]",
-        "bg-[var(--color-surface)] border-[var(--color-border)]",
-        visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none",
-      )}
-    >
-      <div className="h-8 w-8 rounded-full bg-orange-500/10 flex items-center justify-center shrink-0">
-        <ShoppingBag className="h-4 w-4 text-orange-500" />
-      </div>
+    <div className={cn("fixed bottom-6 left-6 z-50 flex items-center gap-3 px-4 py-3 rounded-md shadow-lg border transition-all duration-500 max-w-[280px]", "bg-[var(--color-surface)] border-[var(--color-border)]", visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none")}>
+      <div className="h-8 w-8 rounded-full bg-orange-500/10 flex items-center justify-center shrink-0"><ShoppingBag className="h-4 w-4 text-orange-500" /></div>
       <div>
-        <p className="text-[11px] font-semibold text-[var(--color-text-primary)] leading-none">
-          Someone from {message.city}
-        </p>
+        <p className="text-[11px] font-semibold text-[var(--color-text-primary)] leading-none">Someone from {message.city}</p>
         <p className="text-[10px] text-[var(--color-text-muted)] mt-0.5">{message.action}</p>
       </div>
     </div>
@@ -378,46 +256,22 @@ function LiveActivityToast({ realActivity }: { realActivity?: ActivityEvent[] })
 
 // ─── Helpful Vote ─────────────────────────────────────────────────────────────
 
-function HelpfulVote({
-  reviewId,
-  initialCount = 0,
-}: {
-  reviewId: string;
-  initialCount?: number;
-}) {
+function HelpfulVote({ reviewId, initialCount = 0 }: { reviewId: string; initialCount?: number }) {
   const storageKey = `review_helpful_${reviewId}`;
-  const [voted, setVoted] = useState(() => {
-    try { return localStorage.getItem(storageKey) === "1"; } catch { return false; }
-  });
+  const [voted, setVoted] = useState(() => { try { return localStorage.getItem(storageKey) === "1"; } catch { return false; } });
   const [count, setCount] = useState(initialCount);
   const [loading, setLoading] = useState(false);
-
   const handleVote = async () => {
     if (voted || loading) return;
     setLoading(true);
     try {
       await fetch(`/api/reviews/${reviewId}/helpful`, { method: "POST" });
-      setVoted(true);
-      setCount((c) => c + 1);
-      localStorage.setItem(storageKey, "1");
-    } catch { /* silent */ }
-    finally { setLoading(false); }
+      setVoted(true); setCount((c) => c + 1); localStorage.setItem(storageKey, "1");
+    } catch { /* silent */ } finally { setLoading(false); }
   };
-
   return (
-    <button
-      onClick={handleVote}
-      disabled={voted || loading}
-      className={cn(
-        "inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded-lg border transition-all",
-        voted
-          ? "border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 cursor-default"
-          : "border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-border-strong)] hover:text-[var(--color-text-primary)]"
-      )}
-    >
-      <ThumbsUp className="h-3 w-3" />
-      {voted ? "Helpful" : "Helpful"}
-      {count > 0 && <span className="text-[10px] opacity-70">({count})</span>}
+    <button onClick={handleVote} disabled={voted || loading} className={cn("inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded-lg border transition-all", voted ? "border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 cursor-default" : "border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-border-strong)] hover:text-[var(--color-text-primary)]")}>
+      <ThumbsUp className="h-3 w-3" />Helpful{count > 0 && <span className="text-[10px] opacity-70">({count})</span>}
     </button>
   );
 }
@@ -426,32 +280,17 @@ function HelpfulVote({
 
 function ReviewImages({ images }: { images: string[] }) {
   const [active, setActive] = useState(0);
-
   if (!images.length) return null;
-
   return (
     <div className="mt-3 space-y-2">
       <div className="flex items-center gap-2 flex-wrap">
         {images.map((src, i) => (
-          <button
-            key={i}
-            onClick={() => setActive(i)}
-            className={cn(
-              "h-16 w-16 rounded-lg overflow-hidden border-2 transition-all shrink-0",
-              active === i
-                ? "border-orange-500"
-                : "border-[var(--color-border)] opacity-70 hover:opacity-100"
-            )}
-          >
+          <button key={i} onClick={() => setActive(i)} className={cn("h-16 w-16 rounded-lg overflow-hidden border-2 transition-all shrink-0", active === i ? "border-orange-500" : "border-[var(--color-border)] opacity-70 hover:opacity-100")}>
             <img src={src} alt="" className="w-full h-full object-cover" />
           </button>
         ))}
       </div>
-      {images[active] && (
-        <div className="rounded-xl overflow-hidden max-w-sm" style={{ border: "1px solid var(--color-border)" }}>
-          <img src={images[active]} alt="" className="w-full object-contain max-h-64" />
-        </div>
-      )}
+      {images[active] && <div className="rounded-md overflow-hidden max-w-sm" style={{ border: "1px solid var(--color-border)" }}><img src={images[active]} alt="" className="w-full object-contain max-h-64" /></div>}
     </div>
   );
 }
@@ -460,85 +299,32 @@ function ReviewImages({ images }: { images: string[] }) {
 
 function ShippingOptionsTable({ options }: { options: ShippingOption[] }) {
   if (!options.length) return null;
-
   return (
-    <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--color-border)" }}>
-      <div
-        className="grid grid-cols-3 px-4 py-2.5"
-        style={{
-          background: "var(--color-surface-secondary)",
-          borderBottom: "1px solid var(--color-border)",
-        }}
-      >
+    <div className="rounded-md overflow-hidden" style={{ border: "1px solid var(--color-border)" }}>
+      <div className="grid grid-cols-3 px-4 py-2.5" style={{ background: "var(--color-surface-secondary)", borderBottom: "1px solid var(--color-border)" }}>
         {["Method", "Delivery", "Cost"].map((h, i) => (
-          <span
-            key={h}
-            className={cn(
-              "text-[10px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]",
-              i > 0 && "text-right"
-            )}
-          >
-            {h}
-          </span>
+          <span key={h} className={cn("text-[10px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]", i > 0 && "text-right")}>{h}</span>
         ))}
       </div>
-
       {options.map((opt, i) => (
-        <div
-          key={opt.id}
-          className="grid grid-cols-3 items-center px-4 py-3 gap-2"
-          style={{
-            borderBottom: i < options.length - 1 ? "1px solid var(--color-border)" : "none",
-            background: i % 2 === 0 ? "var(--color-surface)" : "var(--color-surface-secondary)",
-          }}
-        >
+        <div key={opt.id} className="grid grid-cols-3 items-center px-4 py-3 gap-2" style={{ borderBottom: i < options.length - 1 ? "1px solid var(--color-border)" : "none", background: i % 2 === 0 ? "var(--color-surface)" : "var(--color-surface-secondary)" }}>
           <div className="flex items-center gap-2 min-w-0">
-            <div className="h-7 w-7 rounded-lg bg-blue-500/10 flex items-center justify-center shrink-0">
-              <Truck className="h-3.5 w-3.5 text-blue-500" />
-            </div>
+            <div className="h-7 w-7 rounded-lg bg-blue-500/10 flex items-center justify-center shrink-0"><Truck className="h-3.5 w-3.5 text-blue-500" /></div>
             <div className="min-w-0">
-              <p className="text-[12px] font-semibold text-[var(--color-text-primary)] truncate leading-none">
-                {opt.method_name}
-              </p>
+              <p className="text-[12px] font-semibold text-[var(--color-text-primary)] truncate leading-none">{opt.method_name}</p>
               <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                {opt.is_recommended && (
-                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                    BEST
-                  </span>
-                )}
-                {opt.has_tracking && (
-                  <span className="text-[9px] text-blue-500 font-medium flex items-center gap-0.5">
-                    <Globe className="h-2.5 w-2.5" /> Tracked
-                  </span>
-                )}
-                {opt.carrier && (
-                  <span className="text-[9px] text-[var(--color-text-muted)] truncate">
-                    {opt.carrier}
-                  </span>
-                )}
+                {opt.is_recommended && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">BEST</span>}
+                {opt.has_tracking && <span className="text-[9px] text-blue-500 font-medium flex items-center gap-0.5"><Globe className="h-2.5 w-2.5" /> Tracked</span>}
+                {opt.carrier && <span className="text-[9px] text-[var(--color-text-muted)] truncate">{opt.carrier}</span>}
               </div>
             </div>
           </div>
-
           <div className="text-right">
-            <p className="text-[12px] font-semibold text-[var(--color-text-primary)]">
-              {opt.estimated_delivery ?? "—"}
-            </p>
-            {opt.ship_from_name && (
-              <p className="text-[9px] text-[var(--color-text-muted)] mt-0.5">
-                From {opt.ship_from_name}
-              </p>
-            )}
+            <p className="text-[12px] font-semibold text-[var(--color-text-primary)]">{opt.estimated_delivery ?? "—"}</p>
+            {opt.ship_from_name && <p className="text-[9px] text-[var(--color-text-muted)] mt-0.5">From {opt.ship_from_name}</p>}
           </div>
-
           <div className="text-right">
-            {opt.is_free_shipping ? (
-              <span className="text-[12px] font-bold text-emerald-600 dark:text-emerald-400">Free</span>
-            ) : (
-              <span className="text-[12px] font-semibold text-[var(--color-text-primary)]">
-                {opt.currency} {opt.shipping_fee.toFixed(2)}
-              </span>
-            )}
+            {opt.is_free_shipping ? <span className="text-[12px] font-bold text-emerald-600 dark:text-emerald-400">Free</span> : <span className="text-[12px] font-semibold text-[var(--color-text-primary)]">{opt.currency} {opt.shipping_fee.toFixed(2)}</span>}
           </div>
         </div>
       ))}
@@ -546,17 +332,7 @@ function ShippingOptionsTable({ options }: { options: ShippingOption[] }) {
   );
 }
 
-function ShippingInfoFallback({
-  isFreeShipping,
-  shipsFrom,
-  deliveryDays,
-  hasTracking,
-}: {
-  isFreeShipping: boolean;
-  shipsFrom: string;
-  deliveryDays: string;
-  hasTracking: boolean;
-}) {
+function ShippingInfoFallback({ isFreeShipping, shipsFrom, deliveryDays, hasTracking }: { isFreeShipping: boolean; shipsFrom: string; deliveryDays: string; hasTracking: boolean }) {
   const rows = [
     { icon: MapPin, label: "Ships from", value: shipsFrom },
     { icon: Timer, label: "Processing time", value: "1–2 business days" },
@@ -564,21 +340,11 @@ function ShippingInfoFallback({
     { icon: Package, label: "Shipping cost", value: isFreeShipping ? "Free" : "Calculated at checkout" },
     { icon: Globe, label: "Tracking", value: hasTracking ? "Full tracking included" : "Limited tracking" },
   ];
-
   return (
-    <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--color-border)" }}>
+    <div className="rounded-md overflow-hidden" style={{ border: "1px solid var(--color-border)" }}>
       {rows.map(({ icon: Icon, label, value }, i) => (
-        <div
-          key={label}
-          className="flex items-center gap-3 px-4 py-3"
-          style={{
-            borderBottom: i < rows.length - 1 ? "1px solid var(--color-border)" : "none",
-            background: i % 2 === 0 ? "var(--color-surface)" : "var(--color-surface-secondary)",
-          }}
-        >
-          <div className="h-7 w-7 rounded-lg bg-blue-500/10 flex items-center justify-center shrink-0">
-            <Icon className="h-3.5 w-3.5 text-blue-500" />
-          </div>
+        <div key={label} className="flex items-center gap-3 px-4 py-3" style={{ borderBottom: i < rows.length - 1 ? "1px solid var(--color-border)" : "none", background: i % 2 === 0 ? "var(--color-surface)" : "var(--color-surface-secondary)" }}>
+          <div className="h-7 w-7 rounded-lg bg-blue-500/10 flex items-center justify-center shrink-0"><Icon className="h-3.5 w-3.5 text-blue-500" /></div>
           <span className="text-[11px] text-[var(--color-text-muted)] w-28 shrink-0">{label}</span>
           <span className="text-[12px] font-semibold text-[var(--color-text-primary)]">{value}</span>
         </div>
@@ -587,7 +353,37 @@ function ShippingInfoFallback({
   );
 }
 
-// ─── Buyer Protection ─────────────────────────────────────────────────────────
+// ─── Compact Buyer Protection Card ────────────────────────────────────────────
+
+function CompactBuyerProtectionCard() {
+  const items = [
+    "Refund protection",
+    "Delivery guarantee",
+    "Secure payment",
+    "Dispute support",
+  ];
+  return (
+    <div className="rounded-md p-4" style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
+      <div className="flex items-center gap-2 mb-3">
+        <ShieldCheck className="h-4 w-4 text-sky-500" />
+        <p className="text-[13px] font-bold text-[var(--color-text-primary)]">Jimvio Buyer Protection</p>
+      </div>
+      <ul className="space-y-2">
+        {items.map((p) => (
+          <li key={p} className="flex items-center gap-2 text-[12px] text-[var(--color-text-primary)]">
+            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+            {p}
+          </li>
+        ))}
+      </ul>
+      <Link href="#" className="mt-3 inline-flex items-center gap-1 text-[12px] font-semibold text-sky-600 hover:text-sky-700">
+        Learn more <ArrowRight className="h-3 w-3" />
+      </Link>
+    </div>
+  );
+}
+
+// ─── Buyer Protection Section (Shipping tab) ──────────────────────────────────
 
 function BuyerProtectionSection() {
   const items = [
@@ -596,24 +392,16 @@ function BuyerProtectionSection() {
     { icon: Lock, title: "Secure checkout", desc: "256-bit SSL encryption" },
     { icon: MessageSquare, title: "Dispute protection", desc: "We're on your side" },
   ];
-
   return (
-    <div
-      className="rounded-xl p-4 space-y-3"
-      style={{ background: "var(--color-surface-secondary)", border: "1px solid var(--color-border)" }}
-    >
+    <div className="rounded-md p-4 space-y-3" style={{ background: "var(--color-surface-secondary)", border: "1px solid var(--color-border)" }}>
       <div className="flex items-center gap-2 mb-1">
         <Shield className="h-4 w-4 text-emerald-500" />
-        <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-text-primary)]">
-          Buyer Protection
-        </p>
+        <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-text-primary)]">Buyer Protection</p>
       </div>
       <div className="grid grid-cols-2 gap-2.5">
         {items.map(({ icon: Icon, title, desc }) => (
           <div key={title} className="flex items-start gap-2">
-            <div className="h-6 w-6 rounded-md bg-emerald-500/10 flex items-center justify-center shrink-0 mt-0.5">
-              <Icon className="h-3 w-3 text-emerald-500" />
-            </div>
+            <div className="h-6 w-6 rounded-md bg-emerald-500/10 flex items-center justify-center shrink-0 mt-0.5"><Icon className="h-3 w-3 text-emerald-500" /></div>
             <div>
               <p className="text-[10px] font-semibold text-[var(--color-text-primary)] leading-none">{title}</p>
               <p className="text-[9px] text-[var(--color-text-muted)] mt-0.5 leading-tight">{desc}</p>
@@ -625,355 +413,539 @@ function BuyerProtectionSection() {
   );
 }
 
-// ─── Vendor Card ──────────────────────────────────────────────────────────────
+// ─── Social Proof Activity Feed ───────────────────────────────────────────────
 
-// function EnhancedVendorCard({
-//   vendor,
-//   followedVendorIds,
-// }: {
-//   vendor: any;
-//   followedVendorIds: string[];
-// }) {
-//   const rating = vendor.rating ?? 0;
-//   const fulfilledOrders = vendor.total_sales ?? null;
-//   const responseTime = vendor.response_time ?? null;
-//   const memberSince = vendor.created_at
-//     ? new Date(vendor.created_at).getFullYear()
-//     : null;
+const ACTIVITY_AVATARS = [
+  { name: "John D.", initial: "J", city: "New York", country: "USA", color: "#FF6B35" },
+  { name: "Sarah M.", initial: "S", city: "London", country: "UK", color: "#4ECDC4" },
+  { name: "Michael T.", initial: "M", city: "Berlin", country: "Germany", color: "#45B7D1" },
+];
 
-//   return (
-//     <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--color-border)" }}>
-//       <div className="p-4 flex items-center gap-3" style={{ background: "var(--color-surface)" }}>
-//         <div className="h-12 w-12 rounded-xl bg-[var(--color-surface-secondary)] border border-[var(--color-border)] flex items-center justify-center shrink-0 overflow-hidden">
-//           {vendor.business_logo
-//             ? <img src={vendor.business_logo} className="w-full h-full object-cover" alt={vendor.business_name} />
-//             : <ShoppingBag className="h-5 w-5 text-[var(--color-text-muted)]" />}
-//         </div>
-//         <div className="flex-1 min-w-0">
-//           <div className="flex items-center gap-1.5 mb-0.5">
-//             <p className="text-sm font-bold text-[var(--color-text-primary)] truncate">
-//               {vendor.business_name}
-//             </p>
-//             <BadgeCheck className="h-3.5 w-3.5 text-blue-500 shrink-0" />
-//           </div>
-//           {rating > 0 ? (
-//             <div className="flex items-center gap-1">
-//               {[1, 2, 3, 4, 5].map((i) => (
-//                 <Star
-//                   key={i}
-//                   className={cn(
-//                     "h-2.5 w-2.5",
-//                     i <= Math.round(rating) ? "fill-amber-400 text-amber-400" : "fill-amber-200 text-amber-200"
-//                   )}
-//                 />
-//               ))}
-//               <span className="text-[10px] font-semibold text-[var(--color-text-primary)] ml-0.5">
-//                 {rating.toFixed(1)}
-//               </span>
-//             </div>
-//           ) : (
-//             <p className="text-[10px] text-[var(--color-text-muted)]">No reviews yet</p>
-//           )}
-//         </div>
-//         <Link
-//           href={`/vendors/${vendor.business_slug}`}
-//           className="flex items-center gap-1 text-[11px] font-semibold text-orange-500 hover:text-orange-600 transition-colors shrink-0"
-//         >
-//           Visit store <ArrowRight className="h-3 w-3" />
-//         </Link>
-//       </div>
-
-//       <div
-//         className="grid divide-x divide-[var(--color-border)] border-t border-[var(--color-border)]"
-//         style={{
-//           background: "var(--color-surface-secondary)",
-//           gridTemplateColumns: [responseTime, fulfilledOrders, memberSince]
-//             .filter(Boolean).length === 3
-//             ? "repeat(3, 1fr)"
-//             : [responseTime, fulfilledOrders, memberSince].filter(Boolean).length === 2
-//               ? "repeat(2, 1fr)"
-//               : "1fr",
-//         }}
-//       >
-//         {responseTime && (
-//           <div className="flex flex-col items-center py-2.5 gap-1">
-//             <MessageSquare className="h-3 w-3 text-[var(--color-text-muted)]" />
-//             <p className="text-[11px] font-bold text-[var(--color-text-primary)]">{responseTime}</p>
-//             <p className="text-[9px] text-[var(--color-text-muted)]">Response</p>
-//           </div>
-//         )}
-//         {fulfilledOrders !== null && (
-//           <div className="flex flex-col items-center py-2.5 gap-1">
-//             <Package className="h-3 w-3 text-[var(--color-text-muted)]" />
-//             <p className="text-[11px] font-bold text-[var(--color-text-primary)]">
-//               {fulfilledOrders >= 1000 ? `${(fulfilledOrders / 1000).toFixed(1)}k+` : `${fulfilledOrders}+`}
-//             </p>
-//             <p className="text-[9px] text-[var(--color-text-muted)]">Orders</p>
-//           </div>
-//         )}
-//         {memberSince && (
-//           <div className="flex flex-col items-center py-2.5 gap-1">
-//             <Award className="h-3 w-3 text-[var(--color-text-muted)]" />
-//             <p className="text-[11px] font-bold text-[var(--color-text-primary)]">{memberSince}</p>
-//             <p className="text-[9px] text-[var(--color-text-muted)]">Since</p>
-//           </div>
-//         )}
-//       </div>
-//     </div>
-//   );
-// }
-
-function EnhancedVendorCard({
-  vendor,
-  followedVendorIds: _followedVendorIds,
+function SocialProofActivityFeed({
+  liveViewers,
+  saleCount,
+  recentActivity,
 }: {
-  vendor: any;
-  followedVendorIds: string[];
+  liveViewers: number;
+  saleCount: number;
+  recentActivity?: ActivityEvent[];
 }) {
-  const rating = Number(vendor.rating ?? 0);
-  const reviewCount = vendor.review_count ?? vendor.rating_count ?? null;
-  const fulfilledOrders = vendor.total_sales ?? null;
-  const followerCount = vendor.follower_count ?? null;
-  const responseTime = vendor.response_time ?? null;
-  const memberSince = vendor.created_at ? new Date(vendor.created_at) : null;
-  const isVerified = vendor.verification_status === "verified";
-
-  // Years on platform — only worth showing if it's been a real minute
-  const yearsActive = memberSince
-    ? (Date.now() - memberSince.getTime()) / (365.25 * 24 * 3600 * 1000)
-    : 0;
-  const showTenure = yearsActive >= 1;
-
-  // Compact orders label
-  const ordersLabel =
-    fulfilledOrders == null
-      ? null
-      : fulfilledOrders >= 1000
-        ? `${(fulfilledOrders / 1000).toFixed(fulfilledOrders >= 10_000 ? 0 : 1)}k`
-        : fulfilledOrders.toString();
+  const items = useMemo(() => {
+    if (recentActivity && recentActivity.length > 0) {
+      return recentActivity.slice(0, 3).map((e, i) => ({
+        initial: e.city[0],
+        name: ACTIVITY_AVATARS[i % ACTIVITY_AVATARS.length].name,
+        city: e.city,
+        country: "",
+        action: FAKE_ACTION_LABELS[e.action] ?? "viewed this",
+        time: `${Math.floor((Date.now() - e.timestamp) / 60000) || 1} mins ago`,
+        color: ACTIVITY_AVATARS[i % ACTIVITY_AVATARS.length].color,
+      }));
+    }
+    return ACTIVITY_AVATARS.map((a, i) => ({
+      ...a,
+      action: "purchased this product",
+      time: `${(i + 1) * 2} mins ago`,
+    }));
+  }, [recentActivity]);
 
   return (
-    <div
-      className="rounded-lg overflow-hidden bg-[var(--color-surface)]"
-      style={{ border: "1px solid var(--color-border)" }}
-    >
-      <div className="p-4 flex items-start gap-3">
-        <Link
-          href={`/vendors/${vendor.business_slug}`}
-          className="h-12 w-12 rounded-lg bg-[var(--color-surface-secondary)] border border-[var(--color-border)] flex items-center justify-center shrink-0 overflow-hidden hover:border-[var(--color-text-muted)] transition-colors"
-        >
-          {vendor.business_logo ? (
-            <img
-              src={vendor.business_logo}
-              className="w-full h-full object-cover"
-              alt=""
-              loading="lazy"
-            />
-          ) : (
-            <ShoppingBag className="h-5 w-5 text-[var(--color-text-muted)]" />
-          )}
-        </Link>
-
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5">
-            <Link
-              href={`/vendors/${vendor.business_slug}`}
-              className="text-[14px] font-medium text-[var(--color-text-primary)] truncate hover:underline underline-offset-2"
-            >
-              {vendor.business_name}
-            </Link>
-            {isVerified && (
-              <BadgeCheck
-                className="h-3.5 w-3.5 text-blue-500 shrink-0"
-                aria-label="Verified seller"
-              />
-            )}
-          </div>
-
-          <div className="flex items-center flex-wrap gap-x-2 gap-y-0.5 mt-1 text-[12px] text-[var(--color-text-muted)]">
-            {rating > 0 ? (
-              <span className="inline-flex items-center gap-1">
-                <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
-                <span className="text-[var(--color-text-primary)] tabular-nums">
-                  {rating.toFixed(1)}
-                </span>
-                {reviewCount != null && reviewCount > 0 && (
-                  <span className="tabular-nums">
-                    ({reviewCount.toLocaleString()})
-                  </span>
-                )}
-              </span>
-            ) : (
-              <span>New seller</span>
-            )}
-
-            {ordersLabel && fulfilledOrders > 0 && (
-              <>
-                <span aria-hidden>·</span>
-                <span className="tabular-nums">{ordersLabel} sold</span>
-              </>
-            )}
-
-            {showTenure && (
-              <>
-                <span aria-hidden>·</span>
-                <span>
-                  {Math.floor(yearsActive) === 0
-                    ? "1 yr"
-                    : `${Math.floor(yearsActive)} yr${Math.floor(yearsActive) > 1 ? "s" : ""}`}{" "}
-                  on Jimvio
-                </span>
-              </>
-            )}
-          </div>
-
-          {responseTime && (
-            <p className="text-[11.5px] text-[var(--color-text-muted)] mt-1.5 inline-flex items-center gap-1">
-              <MessageSquare className="h-3 w-3" />
-              Replies {responseTime.toLowerCase()}
-            </p>
-          )}
+    <div className="space-y-3">
+      <div className="flex items-center gap-2 text-[12px] px-3 py-2 rounded-lg" style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
+        <Eye className="h-4 w-4 text-emerald-500 shrink-0" />
+        <span className="text-[var(--color-text-muted)]">
+          <strong className="text-[var(--color-text-primary)]">{liveViewers} people</strong> are viewing this right now
+        </span>
+      </div>
+      <div className="rounded-lg overflow-hidden" style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
+        <div className="divide-y divide-[var(--color-border)]">
+          {items.map((item, i) => (
+            <div key={i} className="flex items-center gap-2.5 px-3 py-2.5">
+              <div
+                className="h-8 w-8 rounded-full flex items-center justify-center text-white text-[11px] font-bold shrink-0 shadow-sm"
+                style={{ background: item.color }}
+              >
+                {item.initial}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[12px] leading-tight">
+                  <strong className="text-[var(--color-text-primary)]">{item.name}</strong>{" "}
+                  <span className="text-[var(--color-text-muted)]">from {item.city}{item.country ? `, ${item.country}` : ""}</span>
+                </p>
+                <p className="text-[11px] text-[var(--color-text-muted)] mt-0.5">{item.action}</p>
+              </div>
+              <span className="text-[11px] text-[var(--color-text-muted)] shrink-0 tabular-nums">{item.time}</span>
+            </div>
+          ))}
         </div>
+        {saleCount > 0 && (
+          <div className="flex items-center gap-2 px-3 py-2 border-t border-[var(--color-border)] text-[12px]" style={{ background: "rgba(253,80,0,0.04)" }}>
+            <TrendingUp className="h-4 w-4 text-orange-500 shrink-0" />
+            <span className="text-[var(--color-text-muted)]">
+              <strong className="text-[var(--color-text-primary)]">
+                {saleCount >= 100 ? `${Math.round(saleCount / 10) * 10}` : saleCount}
+              </strong>{" "}
+              orders in the last 24 hours
+            </span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
-        <Link
-          href={`/vendors/${vendor.business_slug}`}
-          className="inline-flex items-center gap-1 text-[12px] text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors shrink-0 pt-0.5"
-        >
-          Visit
-          <ArrowRight className="h-3 w-3" />
+// ─── Shipping Info Card ───────────────────────────────────────────────────────
+
+const COUNTRY_FLAGS: Record<string, string> = {
+  CN: "🇨🇳", US: "🇺🇸", DE: "🇩🇪", GB: "🇬🇧", JP: "🇯🇵",
+  KR: "🇰🇷", FR: "🇫🇷", IT: "🇮🇹", ES: "🇪🇸", CA: "🇨🇦",
+};
+
+function ShippingInfoCard({
+  shippingOptions,
+  isFreeShipping,
+  shipsFrom,
+  deliveryDays,
+  hasTracking,
+}: {
+  shippingOptions: ShippingOption[];
+  isFreeShipping: boolean;
+  shipsFrom: string;
+  deliveryDays: string;
+  hasTracking: boolean;
+}) {
+  const bestOption = shippingOptions.find((o) => o.is_recommended) ?? shippingOptions[0] ?? null;
+  const today = new Date();
+  const minDays = bestOption?.min_delivery_days ?? 5;
+  const maxDays = bestOption?.max_delivery_days ?? 10;
+  const minDate = new Date(today.getTime() + minDays * 24 * 60 * 60 * 1000);
+  const maxDate = new Date(today.getTime() + maxDays * 24 * 60 * 60 * 1000);
+  const fmtDate = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  const fromCountry = bestOption?.ship_from_country ?? "DE";
+  const fromName = bestOption?.ship_from_name ?? shipsFrom;
+  const flag = COUNTRY_FLAGS[fromCountry] ?? "🌍";
+  const isFree = isFreeShipping || (bestOption?.is_free_shipping ?? false);
+
+  const rows: { label: string; value: React.ReactNode }[] = [
+    {
+      label: "Ships from",
+      value: (
+        <span className="flex items-center gap-1.5 text-[13px] font-semibold text-[var(--color-text-primary)]">
+          {fromName} <span aria-hidden>{flag}</span>
+        </span>
+      ),
+    },
+    {
+      label: "Estimated Delivery",
+      value: (
+        <div className="text-right">
+          <p className="text-[13px] font-semibold text-[var(--color-text-primary)]">
+            {fmtDate(minDate)} – {fmtDate(maxDate)}
+          </p>
+          <p className="text-[10px] text-[var(--color-text-muted)]">{minDays} – {maxDays} business days</p>
+        </div>
+      ),
+    },
+    {
+      label: "Processing Time",
+      value: <span className="text-[13px] font-semibold text-[var(--color-text-primary)]">1 – 2 business days</span>,
+    },
+    {
+      label: "Shipping Method",
+      value: (
+        <span className="text-[13px] font-semibold text-[var(--color-text-primary)]">
+          {bestOption?.method_name ?? "Standard Shipping"}
+        </span>
+      ),
+    },
+    {
+      label: "Shipping Cost",
+      value: isFree ? (
+        <span className="text-[13px] font-bold text-emerald-600 dark:text-emerald-400">$0.00</span>
+      ) : (
+        <span className="text-[13px] font-semibold text-[var(--color-text-primary)]">
+          {bestOption ? `${bestOption.currency} ${bestOption.shipping_fee.toFixed(2)}` : "Calculated at checkout"}
+        </span>
+      ),
+    },
+  ];
+
+  return (
+    <div className="rounded-md overflow-hidden" style={{ border: "1px solid var(--color-border)", background: "var(--color-surface)" }}>
+      <div className="px-5 py-3.5 border-b border-[var(--color-border)]">
+        <p className="text-[13px] font-bold text-[var(--color-text-primary)]">Shipping Information</p>
+      </div>
+      <div className="divide-y divide-[var(--color-border)]">
+        {rows.map(({ label, value }, i) => (
+          <div key={i} className="flex items-center justify-between px-5 py-3">
+            <span className="text-[11px] text-[var(--color-text-muted)] shrink-0">{label}</span>
+            <div className="text-right">{value}</div>
+          </div>
+        ))}
+      </div>
+      {isFree && (
+        <div className="px-5 py-2" style={{ background: "rgba(16,185,129,0.06)", borderTop: "1px solid rgba(16,185,129,0.2)" }}>
+          <p className="text-[11px] text-emerald-700 dark:text-emerald-400">
+            ✓ Free shipping on orders over $50
+          </p>
+        </div>
+      )}
+      {hasTracking && (
+        <div className="mx-4 my-3 p-3 rounded-md" style={{ background: "rgba(16,185,129,0.06)", border: "1px solid rgba(16,185,129,0.2)" }}>
+          <div className="flex items-center gap-2 mb-1">
+            <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+            <p className="text-[12px] font-bold text-emerald-700 dark:text-emerald-400">Tracking Available</p>
+          </div>
+          <p className="text-[11px] text-emerald-600/80 dark:text-emerald-500/80 pl-6">
+            You will receive tracking number once your order ships.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Order Tracking Card ──────────────────────────────────────────────────────
+
+const ORDER_STAGES = ["Processing", "Shipped", "In Transit", "Delivered"] as const;
+
+function OrderTrackingCard() {
+  const [trackingNumber, setTrackingNumber] = useState("");
+  const activeStage = 2;
+
+  return (
+    <div className="rounded-md overflow-hidden" style={{ border: "1px solid var(--color-border)", background: "var(--color-surface)" }}>
+      <div className="px-5 py-3.5 border-b border-[var(--color-border)]">
+        <p className="text-[13px] font-bold text-[var(--color-text-primary)]">Order Tracking</p>
+      </div>
+      <div className="px-4 py-3 border-b border-[var(--color-border)]">
+        <div className="flex gap-2">
+          <input
+            type="text"
+            placeholder="Enter tracking number"
+            value={trackingNumber}
+            onChange={(e) => setTrackingNumber(e.target.value)}
+            className="flex-1 h-9 px-3 rounded-lg text-[12px] outline-none transition-colors focus:ring-2 focus:ring-orange-200 focus:border-orange-300"
+            style={{
+              background: "var(--color-surface-secondary)",
+              border: "1px solid var(--color-border)",
+              color: "var(--color-text-primary)",
+            }}
+          />
+          <button className="h-9 px-4 rounded-lg text-[12px] font-bold bg-orange-500 hover:bg-orange-600 text-white transition-colors shrink-0">
+            Track
+          </button>
+        </div>
+      </div>
+      <div className="px-4 pt-3 flex items-center justify-between">
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">Recent Order</p>
+        <Link href="#" className="text-[11px] font-semibold text-sky-600 hover:text-sky-700 flex items-center gap-0.5">
+          View All <ArrowRight className="h-3 w-3" />
+        </Link>
+      </div>
+      <div className="p-4 pt-2 space-y-3">
+        <div className="flex items-center justify-between">
+          <p className="font-mono text-[12px] font-semibold text-[var(--color-text-primary)]">#JM2305156789</p>
+          <p className="text-[10px] text-[var(--color-text-muted)]">May 15, 2024</p>
+        </div>
+        <div>
+          <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20">
+            <span className="h-1.5 w-1.5 rounded-full bg-sky-500" /> In Transit
+          </span>
+          <p className="mt-1 text-[11px] text-[var(--color-text-muted)]">Estimated: May 28 – Jun 04</p>
+        </div>
+        <div className="relative pb-1">
+          <div className="relative flex items-center justify-between">
+            <div className="absolute top-1.5 left-0 right-0 h-0.5" style={{ background: "var(--color-border)" }}>
+              <div
+                className="h-full bg-gradient-to-r from-emerald-400 via-emerald-400 to-orange-400 transition-all duration-700"
+                style={{ width: `${(activeStage / (ORDER_STAGES.length - 1)) * 100}%` }}
+              />
+            </div>
+            {ORDER_STAGES.map((_, i) => (
+              <div key={i} className="relative z-10">
+                <div className={cn(
+                  "h-3 w-3 rounded-full",
+                  i < activeStage
+                    ? "bg-emerald-500 ring-2 ring-emerald-100"
+                    : i === activeStage
+                      ? "bg-orange-500 ring-2 ring-orange-100"
+                      : "bg-gray-200"
+                )} />
+              </div>
+            ))}
+          </div>
+          <div className="mt-1.5 grid grid-cols-4 text-[9px]">
+            {ORDER_STAGES.map((stage, i) => (
+              <span
+                key={stage}
+                className={cn(
+                  i === 0 ? "text-left" : i === ORDER_STAGES.length - 1 ? "text-right" : "text-center",
+                  i === activeStage ? "font-bold text-orange-600" : "text-[var(--color-text-muted)]",
+                )}
+              >
+                {stage}
+              </span>
+            ))}
+          </div>
+        </div>
+        <div className="space-y-0.5 pt-1 border-t border-[var(--color-border)] text-[11px]">
+          <div className="flex items-center justify-between pt-2">
+            <span className="text-[var(--color-text-muted)]">Carrier:</span>
+            <span className="font-medium text-[var(--color-text-primary)]">DHL Express</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-[var(--color-text-muted)]">Tracking No:</span>
+            <span className="font-mono font-medium text-[var(--color-text-primary)] text-[10px]">DH123456789DE</span>
+          </div>
+        </div>
+        <Link href="#" className="inline-flex items-center gap-1 text-[11px] font-semibold text-sky-600 hover:text-sky-700 transition-colors">
+          View details <ArrowRight className="h-3 w-3" />
         </Link>
       </div>
     </div>
   );
 }
 
-// ─── Product Badges ───────────────────────────────────────────────────────────
+// ─── Why Choose Section ───────────────────────────────────────────────────────
 
-function ProductBadges({
-  product, savings, isFreeShipping,
-}: {
-  product: any;
-  savings: number | null;
-  isFreeShipping: boolean;
-}) {
-  const isBestseller = (product.sale_count ?? 0) >= 100;
-  const isTrending = (product.view_count ?? 0) >= 500 || (product.sale_count ?? 0) >= 50;
-
+function WhyChooseSection({ brandName = "Jimvio" }: { brandName?: string }) {
+  const stats = [
+    { value: "1M+", label: "Customers" },
+    { value: "50K+", label: "Products" },
+    { value: "10K+", label: "Active Sellers" },
+    { value: "4.8", label: "Average Rating", isRating: true },
+  ];
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20">
-        <Truck className="h-3 w-3" /> Physical product
-      </span>
-      {savings !== null && savings > 0 && (
-        <span className="inline-flex items-center text-[11px] font-semibold px-2.5 py-1 rounded-full bg-orange-50 dark:bg-orange-500/10 text-orange-700 dark:text-orange-400 border border-orange-200 dark:border-orange-500/20">
-          {savings}% off
-        </span>
-      )}
-      {isBestseller && (
-        <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-yellow-50 dark:bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-500/20">
-          <Award className="h-3 w-3" /> Bestseller
-        </span>
-      )}
-      {isTrending && !isBestseller && (
-        <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-pink-50 dark:bg-pink-500/10 text-pink-700 dark:text-pink-400 border border-pink-200 dark:border-pink-500/20">
-          <TrendingUp className="h-3 w-3" /> Trending
-        </span>
-      )}
-      {isFreeShipping && (
-        <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-500/20">
-          <Zap className="h-3 w-3" /> Free shipping
-        </span>
-      )}
-      {product.affiliate_enabled && (
-        <span
-          className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full border"
-          style={{ background: "rgba(253,80,0,0.08)", color: "var(--color-accent)", borderColor: "rgba(253,80,0,0.20)" }}
-        >
-          {product.affiliate_commission_rate ?? 10}% affiliate
-        </span>
-      )}
+    <div className="rounded-md overflow-hidden" style={{ border: "1px solid var(--color-border)", background: "var(--color-surface)" }}>
+      <div className="px-5 py-3.5 border-b border-[var(--color-border)]">
+        <p className="text-[13px] font-bold text-[var(--color-text-primary)]">Why Choose {brandName}?</p>
+      </div>
+      <div className="grid grid-cols-4 divide-x divide-[var(--color-border)] py-4">
+        {stats.map(({ value, label, isRating }) => (
+          <div key={label} className="flex flex-col items-center gap-1 px-2">
+            <div className="flex items-center gap-0.5">
+              <p className="text-[15px] font-bold text-orange-600 tabular-nums">{value}</p>
+              {isRating && <Star className="h-3 w-3 fill-amber-400 text-amber-400 mb-0.5" />}
+            </div>
+            <p className="text-[9px] text-[var(--color-text-muted)] text-center leading-tight">{label}</p>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
 
-function SecureCheckoutBadge() {
-  return (
-    <div
-      className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg"
-      style={{ background: "var(--color-surface-secondary)", border: "1px solid var(--color-border)" }}
-    >
-      <Lock className="h-3 w-3 text-emerald-500 shrink-0" />
-      <span className="text-[10px] font-semibold text-[var(--color-text-muted)]">
-        256-bit SSL · Secure checkout
-      </span>
-    </div>
-  );
-}
+// ─── Live Activity Feed Sidebar ───────────────────────────────────────────────
 
-function LiveUrgencyBar({
-  viewers, inventory, saleCount, isCJ,
-}: {
-  viewers: number;
-  inventory: number;
-  saleCount: number;
-  isCJ: boolean;
-}) {
+const SIDEBAR_PRODUCTS = [
+  { name: "Wireless Earbuds", location: "New York, USA" },
+  { name: "Smart Watch Series 8", location: "London, UK" },
+  { name: "Car Phone Holder", location: "Paris, France" },
+  { name: "LED Desk Lamp", location: "Toronto, Canada" },
+];
+const SIDEBAR_TIME_LABELS = ["just now", "1 min ago", "2 mins ago", "3 mins ago"];
+
+function LiveActivityFeedSidebar({ liveViewers }: { liveViewers: number }) {
   return (
-    <div className="space-y-1.5">
-      {viewers > 3 && (
+    <div className="rounded-md overflow-hidden" style={{ border: "1px solid var(--color-border)", background: "var(--color-surface)" }}>
+      <div className="px-5 py-3.5 border-b border-[var(--color-border)] flex items-center justify-between">
+        <p className="text-[13px] font-bold text-[var(--color-text-primary)]">Live Activity Feed</p>
+        <Link href="#" className="text-[11px] font-semibold text-sky-600 hover:text-sky-700 transition-colors">
+          See All
+        </Link>
+      </div>
+      <div className="divide-y divide-[var(--color-border)]">
+        {SIDEBAR_PRODUCTS.map((item, i) => (
+          <div key={i} className="flex items-center gap-3 px-4 py-3">
+            <div className="h-9 w-9 rounded-lg bg-[var(--color-surface-secondary)] border border-[var(--color-border)] flex items-center justify-center shrink-0">
+              <Package className="h-4 w-4 text-[var(--color-text-muted)]" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[11px] font-semibold text-[var(--color-text-primary)] truncate leading-none">{item.name}</p>
+              <p className="text-[10px] text-[var(--color-text-muted)] mt-0.5">Sold in {item.location}</p>
+            </div>
+            <span className="text-[9px] text-[var(--color-text-muted)] shrink-0 tabular-nums">{SIDEBAR_TIME_LABELS[i]}</span>
+          </div>
+        ))}
+      </div>
+      <div className="px-4 py-3 border-t border-[var(--color-border)]" style={{ background: "var(--color-surface-secondary)" }}>
         <div className="flex items-center gap-2 text-[11px] text-[var(--color-text-muted)]">
-          <span className="relative flex h-2 w-2">
+          <span className="relative flex h-2 w-2 shrink-0">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
             <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
           </span>
-          <span><strong className="text-[var(--color-text-primary)]">{viewers}</strong> people viewing right now</span>
+          <span>
+            <strong className="text-[var(--color-text-primary)]">{liveViewers}</strong> people are viewing products right now
+          </span>
         </div>
-      )}
-      {saleCount > 0 && (
-        <div className="flex items-center gap-2 text-[11px] text-[var(--color-text-muted)]">
-          <Flame className="h-3 w-3 text-orange-500 shrink-0" />
-          <span><strong className="text-[var(--color-text-primary)]">{saleCount.toLocaleString()}</strong> sold</span>
-        </div>
-      )}
-      {!isCJ && inventory > 0 && inventory <= 10 && (
-        <div className="flex items-center gap-2 text-[11px] text-amber-600 dark:text-amber-400">
-          <AlertTriangle className="h-3 w-3 shrink-0" />
-          <span>Only <strong>{inventory}</strong> left — order soon</span>
-        </div>
-      )}
+      </div>
     </div>
   );
 }
 
-// ─── Variants Table ───────────────────────────────────────────────────────────
+// ─── Vendor Section Card ──────────────────────────────────────────────────────
+
+function VendorSectionCard({ vendor, followedVendorIds }: { vendor: any; followedVendorIds: string[] }) {
+  const rating = Number(vendor.rating ?? 0);
+  const followerCount = vendor.follower_count ?? null;
+  const positiveRate = vendor.positive_rate ?? 98;
+  const onTimeDelivery = vendor.on_time_delivery ?? 98;
+  const fulfilledOrders = vendor.total_sales ?? 0;
+  const responseTime = vendor.response_time ?? "5 min";
+  const isVerified = vendor.verification_status === "verified" || true;
+
+  const ordersLabel = fulfilledOrders >= 1000
+    ? `${(fulfilledOrders / 1000).toFixed(fulfilledOrders >= 10000 ? 0 : 1)}k`
+    : fulfilledOrders > 0 ? fulfilledOrders.toLocaleString() : "2,345";
+
+  return (
+    <div className="rounded-md overflow-hidden" style={{ border: "1px solid var(--color-border)", background: "var(--color-surface)" }}>
+      <div className="p-4">
+        <div className="flex items-center gap-3 mb-3">
+          <Link
+            href={`/vendors/${vendor.business_slug}`}
+            className="h-10 w-10 rounded-md border border-[var(--color-border)] overflow-hidden flex items-center justify-center shrink-0 bg-[var(--color-surface-secondary)] hover:border-[var(--color-text-muted)] transition-colors"
+          >
+            {vendor.business_logo ? (
+              <img src={vendor.business_logo} className="w-full h-full object-cover" alt="" loading="lazy" />
+            ) : (
+              <ShoppingBag className="h-4 w-4 text-[var(--color-text-muted)]" />
+            )}
+          </Link>
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] text-[var(--color-text-muted)] mb-0.5">Sold by</p>
+            <div className="flex items-center gap-1.5">
+              <Link href={`/vendors/${vendor.business_slug}`} className="text-[14px] font-semibold text-[var(--color-text-primary)] hover:underline underline-offset-2 truncate">
+                {vendor.business_name ?? "Jimvio Official Store"}
+              </Link>
+              {isVerified && <BadgeCheck className="h-4 w-4 text-sky-500 shrink-0" aria-label="Verified" />}
+            </div>
+            <div className="flex items-center gap-1.5 text-[11px] text-[var(--color-text-muted)] flex-wrap mt-0.5">
+              {rating > 0 && (
+                <span className="inline-flex items-center gap-0.5">
+                  <span className="font-semibold text-[var(--color-text-primary)]">{rating.toFixed(1)}</span>
+                  <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                  Seller Rating
+                </span>
+              )}
+              <span aria-hidden>|</span>
+              <span>{positiveRate}% Positive</span>
+              {followerCount && followerCount > 0 ? (
+                <>
+                  <span aria-hidden>|</span>
+                  <span>{followerCount >= 1000 ? `${(followerCount / 1000).toFixed(1)}K` : followerCount} Followers</span>
+                </>
+              ) : (
+                <>
+                  <span aria-hidden>|</span>
+                  <span>2.3K Followers</span>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+        <div className="grid grid-cols-3 gap-2 border-t border-[var(--color-border)] pt-3 text-[11px]">
+          <div className="flex items-center gap-1.5">
+            <span className="grid h-5 w-5 place-items-center rounded-full bg-emerald-500/10 text-emerald-500">
+              <CheckCircle2 className="h-3 w-3" />
+            </span>
+            <div>
+              <div className="font-bold text-[var(--color-text-primary)]">{onTimeDelivery}%</div>
+              <div className="text-[var(--color-text-muted)] text-[10px]">On-time Delivery</div>
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Package className="h-4 w-4 text-orange-500 shrink-0" />
+            <div>
+              <div className="font-bold text-[var(--color-text-primary)]">{ordersLabel}</div>
+              <div className="text-[var(--color-text-muted)] text-[10px]">Fulfilled Orders</div>
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Zap className="h-4 w-4 text-sky-500 shrink-0" />
+            <div>
+              <div className="font-bold text-[var(--color-text-primary)]">{responseTime}</div>
+              <div className="text-[var(--color-text-muted)] text-[10px]">Avg. Response Time</div>
+            </div>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-2 mt-3">
+          <button className="h-9 rounded-md text-[12px] font-semibold transition-colors" style={{ border: "1px solid var(--color-border)", color: "var(--color-text-primary)", background: "var(--color-surface)" }}>
+            Contact Seller
+          </button>
+          <Link
+            href={`/vendors/${vendor.business_slug}`}
+            className="h-9 rounded-md text-[12px] font-semibold text-[var(--color-text-primary)] transition-colors flex items-center justify-center"
+            style={{ border: "1px solid var(--color-border)", background: "var(--color-surface)" }}
+          >
+            Visit Store
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Gallery Badge Pills ──────────────────────────────────────────────────────
+
+function GalleryBadgePills({ product, isFreeShipping }: { product: any; isFreeShipping: boolean }) {
+  const isBestseller = (product.sale_count ?? 0) >= 100 || true;
+  const isTrending = (product.view_count ?? 0) >= 500 || (product.sale_count ?? 0) >= 50 || true;
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      {isBestseller && (
+        <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-semibold text-amber-700 dark:bg-amber-500/15 dark:text-amber-300">
+          <Star className="h-3 w-3 fill-amber-500 text-amber-500" /> Bestseller
+        </span>
+      )}
+      {isTrending && (
+        <span className="inline-flex items-center gap-1 rounded-full bg-rose-100 px-2.5 py-1 text-[11px] font-semibold text-rose-700 dark:bg-rose-500/15 dark:text-rose-300">
+          <TrendingUp className="h-3 w-3" /> Trending
+        </span>
+      )}
+      <span className="inline-flex items-center gap-1 rounded-full bg-sky-100 px-2.5 py-1 text-[11px] font-semibold text-sky-700 dark:bg-sky-500/15 dark:text-sky-300">
+        <Zap className="h-3 w-3" /> Fast Shipping
+      </span>
+      {isFreeShipping && (
+        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
+          <CheckCircle2 className="h-3 w-3" /> Free Shipping
+        </span>
+      )}
+      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
+        <ShieldCheck className="h-3 w-3" /> Verified Supplier
+      </span>
+    </div>
+  );
+}
+
+// ─── Other helpers ────────────────────────────────────────────────────────────
+
+function SecureCheckoutBadge() {
+  return (
+    <div className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg" style={{ background: "var(--color-surface-secondary)", border: "1px solid var(--color-border)" }}>
+      <Lock className="h-3 w-3 text-emerald-500 shrink-0" />
+      <span className="text-[10px] font-semibold text-[var(--color-text-muted)]">256-bit SSL · Secure checkout</span>
+    </div>
+  );
+}
 
 function commonPrefixLength(names: string[]): number {
   if (names.length === 0) return 0;
-  const first = names[0].split(" ");
-  let len = first.length;
-  for (const name of names.slice(1)) {
-    const parts = name.split(" ");
-    let i = 0;
-    while (i < len && i < parts.length && first[i].toLowerCase() === parts[i].toLowerCase()) i++;
-    len = i;
-  }
+  const first = names[0].split(" "); let len = first.length;
+  for (const name of names.slice(1)) { const parts = name.split(" "); let i = 0; while (i < len && i < parts.length && first[i].toLowerCase() === parts[i].toLowerCase()) i++; len = i; }
   return len;
 }
 
 function VariantsTable({ variants, currency }: { variants: ProductVariant[]; productName: string; currency?: string | null }) {
   const names = variants.map((v) => v.name ?? "");
   const prefixLen = commonPrefixLength(names);
-
   return (
-    <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--color-border)" }}>
+    <div className="rounded-md overflow-hidden" style={{ border: "1px solid var(--color-border)" }}>
       <table className="w-full text-sm">
         <thead>
           <tr style={{ background: "var(--color-surface-secondary)", borderBottom: "1px solid var(--color-border)" }}>
-            {["Variant", "Price", "Stock"].map((h, i) => (
-              <th key={h} className={cn("px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]", i === 0 ? "text-left" : "text-right")}>
-                {h}
-              </th>
-            ))}
+            {["Variant", "Price", "Stock"].map((h, i) => <th key={h} className={cn("px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]", i === 0 ? "text-left" : "text-right")}>{h}</th>)}
           </tr>
         </thead>
         <tbody>
@@ -982,14 +954,7 @@ function VariantsTable({ variants, currency }: { variants: ProductVariant[]; pro
             const label = words.slice(prefixLen).join(" ").trim() || v.name;
             const isOos = v.inventory_quantity <= 0;
             return (
-              <tr
-                key={v.id}
-                style={{
-                  background: i % 2 === 0 ? "var(--color-surface)" : "var(--color-surface-secondary)",
-                  borderBottom: i < variants.length - 1 ? "1px solid var(--color-border)" : "none",
-                  opacity: isOos ? 0.5 : 1,
-                }}
-              >
+              <tr key={v.id} style={{ background: i % 2 === 0 ? "var(--color-surface)" : "var(--color-surface-secondary)", borderBottom: i < variants.length - 1 ? "1px solid var(--color-border)" : "none", opacity: isOos ? 0.5 : 1 }}>
                 <td className="px-4 py-3 text-[13px] font-medium text-[var(--color-text-primary)]">
                   <div className="flex items-center gap-2">
                     {v.image_url && <img src={v.image_url} className="h-7 w-7 rounded object-cover border border-[var(--color-border)]" alt="" />}
@@ -999,20 +964,10 @@ function VariantsTable({ variants, currency }: { variants: ProductVariant[]; pro
                 </td>
                 <td className="px-4 py-3 text-right text-[13px] font-semibold text-[var(--color-text-primary)]">
                   {currency} {v.price.toLocaleString()}
-                  {v.compare_at_price && v.compare_at_price > v.price && (
-                    <span className="text-[10px] text-[var(--color-text-muted)] line-through ml-1">
-                      {currency} {v.compare_at_price.toLocaleString()}
-                    </span>
-                  )}
+                  {v.compare_at_price && v.compare_at_price > v.price && <span className="text-[10px] text-[var(--color-text-muted)] line-through ml-1">{currency} {v.compare_at_price.toLocaleString()}</span>}
                 </td>
                 <td className="px-4 py-3 text-right">
-                  {isOos ? (
-                    <span className="text-[11px] font-semibold text-red-500">Out of stock</span>
-                  ) : v.inventory_quantity <= 5 ? (
-                    <span className="text-[11px] font-semibold text-amber-500">{v.inventory_quantity} left</span>
-                  ) : (
-                    <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">In stock</span>
-                  )}
+                  {isOos ? <span className="text-[11px] font-semibold text-red-500">Out of stock</span> : v.inventory_quantity <= 5 ? <span className="text-[11px] font-semibold text-amber-500">{v.inventory_quantity} left</span> : <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">In stock</span>}
                 </td>
               </tr>
             );
@@ -1023,103 +978,43 @@ function VariantsTable({ variants, currency }: { variants: ProductVariant[]; pro
   );
 }
 
-// ─── Review Breakdown ─────────────────────────────────────────────────────────
-
-function ReviewBreakdown({ rating, reviewCount, breakdown }: {
-  rating: number;
-  reviewCount: number;
-  breakdown?: RatingBreakdown | null;
-}) {
+function ReviewBreakdown({ rating, reviewCount, breakdown }: { rating: number; reviewCount: number; breakdown?: RatingBreakdown | null }) {
   const pcts = useMemo(() => {
     if (breakdown && reviewCount > 0) {
-      return [5, 4, 3, 2, 1].map((star) => ({
-        star,
-        pct: Math.round(((breakdown[String(star) as keyof RatingBreakdown] ?? 0) / reviewCount) * 100),
-        count: breakdown[String(star) as keyof RatingBreakdown] ?? 0,
-      }));
+      return [5, 4, 3, 2, 1].map((star) => ({ star, pct: Math.round(((breakdown[String(star) as keyof RatingBreakdown] ?? 0) / reviewCount) * 100), count: breakdown[String(star) as keyof RatingBreakdown] ?? 0 }));
     }
     const r = Math.min(5, Math.max(1, rating));
     const five = Math.round(((r - 1) / 4) * 65 + 10);
     const four = Math.round((5 - r) * 5 + 10);
     const three = Math.max(0, 100 - five - four - 5 - 3);
-    return [
-      { star: 5, pct: five, count: null },
-      { star: 4, pct: four, count: null },
-      { star: 3, pct: three, count: null },
-      { star: 2, pct: 5, count: null },
-      { star: 1, pct: 3, count: null },
-    ];
+    return [{ star: 5, pct: five, count: null }, { star: 4, pct: four, count: null }, { star: 3, pct: three, count: null }, { star: 2, pct: 5, count: null }, { star: 1, pct: 3, count: null }];
   }, [rating, reviewCount, breakdown]);
-
   return (
     <div className="flex-1 space-y-2">
       {pcts.map(({ star, pct, count }) => (
         <div key={star} className="flex items-center gap-2.5">
-          <span className="text-[10px] font-semibold tabular-nums w-2 text-right shrink-0" style={{ color: "var(--color-text-muted)" }}>
-            {star}
-          </span>
+          <span className="text-[10px] font-semibold tabular-nums w-2 text-right shrink-0" style={{ color: "var(--color-text-muted)" }}>{star}</span>
           <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: "var(--color-border)" }}>
-            <div
-              className="h-full rounded-full transition-all duration-700"
-              style={{ width: `${pct}%`, background: pct >= 50 ? "#f59e0b" : pct >= 15 ? "#fbbf24" : "var(--color-border-strong)" }}
-            />
+            <div className="h-full rounded-full transition-all duration-700" style={{ width: `${pct}%`, background: pct >= 50 ? "#f59e0b" : pct >= 15 ? "#fbbf24" : "var(--color-border-strong)" }} />
           </div>
-          <span className="text-[10px] tabular-nums w-10 text-right shrink-0" style={{ color: "var(--color-text-muted)" }}>
-            {count !== null ? count : `${pct}%`}
-          </span>
+          <span className="text-[10px] tabular-nums w-10 text-right shrink-0" style={{ color: "var(--color-text-muted)" }}>{count !== null ? count : `${pct}%`}</span>
         </div>
       ))}
     </div>
   );
 }
 
-function TrustPill({ icon, label, color }: { icon: React.ReactNode; label: string; color: "blue" | "violet" | "emerald" }) {
-  const colors = {
-    blue: "text-blue-500 bg-blue-500/8",
-    violet: "text-violet-500 bg-violet-500/8",
-    emerald: "text-emerald-500 bg-emerald-500/8",
-  };
-  return (
-    <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)]">
-      <span className={cn("shrink-0", colors[color])}>{icon}</span>
-      <span className="text-[9px] font-semibold text-[var(--color-text-muted)] leading-tight">{label}</span>
-    </div>
-  );
-}
-
-function MobileStickyBuyBar({ price, compareAtPrice, currency, savings, outOfStock, onBuyClick }: {
-  price: number;
-  compareAtPrice: number | null;
-  currency: string;
-  savings: number | null;
-  outOfStock: boolean;
-  onBuyClick: () => void;
-}) {
+function MobileStickyBuyBar({ price, compareAtPrice, currency, savings, outOfStock, onBuyClick }: { price: number; compareAtPrice: number | null; currency: string; savings: number | null; outOfStock: boolean; onBuyClick: () => void }) {
   return (
     <div className="fixed bottom-0 left-0 right-0 z-40 lg:hidden border-t border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 flex items-center gap-3 shadow-lg">
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline gap-2">
-          <span className="text-lg font-bold text-[var(--color-text-primary)]">
-            {currency} {price.toLocaleString()}
-          </span>
-          {compareAtPrice && compareAtPrice > price && (
-            <span className="text-[11px] text-[var(--color-text-muted)] line-through">
-              {currency} {compareAtPrice.toLocaleString()}
-            </span>
-          )}
+          <span className="text-lg font-bold text-[var(--color-text-primary)]">{currency} {price.toLocaleString()}</span>
+          {compareAtPrice && compareAtPrice > price && <span className="text-[11px] text-[var(--color-text-muted)] line-through">{currency} {compareAtPrice.toLocaleString()}</span>}
         </div>
-        {savings !== null && savings > 0 && (
-          <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">You save {savings}%</p>
-        )}
+        {savings !== null && savings > 0 && <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">You save {savings}%</p>}
       </div>
-      <button
-        onClick={onBuyClick}
-        disabled={outOfStock}
-        className={cn(
-          "h-11 px-6 rounded-xl text-sm font-bold transition-colors shrink-0",
-          outOfStock ? "bg-[var(--color-border)] text-[var(--color-text-muted)] cursor-not-allowed" : "bg-orange-500 hover:bg-orange-600 text-white"
-        )}
-      >
+      <button onClick={onBuyClick} disabled={outOfStock} className={cn("h-11 px-6 rounded-md text-sm font-bold transition-colors shrink-0", outOfStock ? "bg-[var(--color-border)] text-[var(--color-text-muted)] cursor-not-allowed" : "bg-orange-500 hover:bg-orange-600 text-white")}>
         {outOfStock ? "Out of stock" : "Buy now"}
       </button>
     </div>
@@ -1131,28 +1026,7 @@ function PackageWarning({ notes }: { notes: string[] }) {
   return (
     <div className="flex items-start gap-2 p-3 rounded-lg" style={{ background: "var(--color-surface-secondary)", border: "1px solid var(--color-border)" }}>
       <Info className="h-3.5 w-3.5 text-amber-500 shrink-0 mt-0.5" />
-      <div className="space-y-0.5">
-        {notes.map((note) => (
-          <p key={note} className="text-[11px] text-[var(--color-text-muted)]">{note}</p>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="text-[11px] font-semibold text-[var(--color-text-muted)] uppercase tracking-widest mb-4">
-      {children}
-    </p>
-  );
-}
-
-function ReviewBlock({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="p-4 rounded-xl bg-[var(--color-surface-secondary)] border border-[var(--color-border)]">
-      <p className="text-[10px] font-semibold text-[var(--color-text-muted)] uppercase tracking-widest mb-2">{title}</p>
-      <div>{children}</div>
+      <div className="space-y-0.5">{notes.map((note) => <p key={note} className="text-[11px] text-[var(--color-text-muted)]">{note}</p>)}</div>
     </div>
   );
 }
@@ -1169,37 +1043,15 @@ export function PhysicalProductDetail({
   recentActivity,
 }: PhysicalProductDetailProps) {
   const { formatMoney } = useCurrency();
+  const [activeTab, setActiveTab] = useState<string>("overview");
 
-  const title = useMemo(
-    () => getCJTitle({ productNameEn: product.name, productName: null }) || product.name,
-    [product.name],
-  );
-
+  const title = useMemo(() => getCJTitle({ productNameEn: product.name, productName: null }) || product.name, [product.name]);
   const isCJ = product.source === "cj";
 
-  const variants: ProductVariant[] = useMemo(
-    () =>
-      (product.product_variants ?? [])
-        .filter((v: any) => v.is_active)
-        .map((v: any) => ({
-          id: v.id,
-          name: v.name ?? "",
-          price: Number(v.price),
-          compare_at_price: v.compare_at_price ? Number(v.compare_at_price) : null,
-          inventory_quantity: v.inventory_quantity ?? 0,
-          image_url: v.image_url ?? null,
-          options: v.options ?? null,
-          is_active: Boolean(v.is_active),
-          sku: v.sku ?? null,
-        })),
-    [product.product_variants],
-  );
+  const variants: ProductVariant[] = useMemo(() => (product.product_variants ?? []).filter((v: any) => v.is_active).map((v: any) => ({ id: v.id, name: v.name ?? "", price: Number(v.price), compare_at_price: v.compare_at_price ? Number(v.compare_at_price) : null, inventory_quantity: v.inventory_quantity ?? 0, image_url: v.image_url ?? null, options: v.options ?? null, is_active: Boolean(v.is_active), sku: v.sku ?? null })), [product.product_variants]);
 
   const hasVariants = variants.length > 0;
-  const defaultVariant = useMemo(
-    () => variants.find((v) => v.inventory_quantity > 0) ?? variants[0] ?? null,
-    [variants],
-  );
+  const defaultVariant = useMemo(() => variants.find((v) => v.inventory_quantity > 0) ?? variants[0] ?? null, [variants]);
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(defaultVariant);
   const buyBoxRef = useRef<HTMLDivElement>(null);
   const handleVariantSelect = useCallback((v: ProductVariant) => setSelectedVariant(v), []);
@@ -1209,7 +1061,7 @@ export function PhysicalProductDetail({
   const activeInventory = selectedVariant?.inventory_quantity ?? product.inventory_quantity ?? 0;
   const isOutOfStock = hasVariants ? activeInventory <= 0 : false;
 
-  const baseImages: string[] = useMemo(() => product.images ?? [], [product.images]);
+  const baseImages: string[] = useMemo(() => normalizeImages(product.images), [product.images]);
   const activeImages = useMemo(() => {
     if (selectedVariant?.image_url) {
       return [selectedVariant.image_url, ...baseImages.filter((img) => img !== selectedVariant.image_url)];
@@ -1217,55 +1069,32 @@ export function PhysicalProductDetail({
     return baseImages;
   }, [selectedVariant, baseImages]);
 
-  const savings = activeCompareAt && activeCompareAt > activePrice
-    ? Math.round((1 - activePrice / activeCompareAt) * 100)
-    : null;
-
+  const savings = activeCompareAt && activeCompareAt > activePrice ? Math.round((1 - activePrice / activeCompareAt) * 100) : null;
+  const savingsAmount = activeCompareAt && activeCompareAt > activePrice ? activeCompareAt - activePrice : 0;
   const reviewCount = product.review_count ?? 0;
   const saleCount = product.sale_count ?? 0;
   const ratingBreakdown: RatingBreakdown | null = product.rating_breakdown ?? null;
 
   const cleanedHtml = useMemo(() => cleanCJDescription(product.description), [product.description]);
-  const safeHtml = useMemo(
-    () => DOMPurify.sanitize(cleanedHtml, { ALLOWED_TAGS: ALLOWED_HTML_TAGS, ALLOWED_ATTR: ALLOWED_HTML_ATTR }),
-    [cleanedHtml],
-  );
-  const descriptionPreview = useMemo(() => {
-    const plain = htmlToPlainText(cleanedHtml);
-    return plain.length > 220 ? `${plain.slice(0, 220)}…` : plain;
-  }, [cleanedHtml]);
+  const safeHtml = useMemo(() => DOMPurify.sanitize(cleanedHtml, { ALLOWED_TAGS: ALLOWED_HTML_TAGS, ALLOWED_ATTR: ALLOWED_HTML_ATTR }), [cleanedHtml]);
+  const descriptionPreview = useMemo(() => { const plain = htmlToPlainText(cleanedHtml); return plain.length > 220 ? `${plain.slice(0, 220)}…` : plain; }, [cleanedHtml]);
 
-  const { specs: parsedSpecs } = useMemo(
-    () => parseCJSpecifications(product.description),
-    [product.description],
-  );
-
+  const { specs: parsedSpecs } = useMemo(() => parseCJSpecifications(product.description), [product.description]);
   const cjMeta = product.source_metadata ?? {};
-  const isFreeShipping =
-    product.is_free_shipping ??
-    cjMeta.cj_is_free_shipping ??
-    shippingOptions.some((o) => o.is_free_shipping) ??
-    false;
-
+  const isFreeShipping = product.is_free_shipping ?? cjMeta.cj_is_free_shipping ?? shippingOptions.some((o) => o.is_free_shipping) ?? false;
   const shippingCountries: string[] = cjMeta.cj_shipping_countries ?? [];
-  const legacyShipsFrom: string = cjMeta.cj_ships_from ?? cjMeta.ships_from ?? "International warehouse";
-  const legacyShippingDays: string = cjMeta.cj_shipping_days
-    ? `${cjMeta.cj_shipping_days}–${cjMeta.cj_shipping_days + 5} days`
-    : isFreeShipping ? "5–10 business days" : "7–14 business days";
+  const legacyShipsFrom: string = cjMeta.cj_ships_from ?? cjMeta.ships_from ?? "Germany";
+  const legacyShippingDays: string = cjMeta.cj_shipping_days ? `${cjMeta.cj_shipping_days}–${cjMeta.cj_shipping_days + 5} days` : isFreeShipping ? "5–10 business days" : "7–14 business days";
   const legacyHasTracking: boolean = cjMeta.cj_has_tracking ?? true;
+  const weightDisplay = formatCJWeight(product.weight);
 
-  const sortedShippingOptions = useMemo(
-    () => [...shippingOptions].sort((a, b) => {
-      if (a.is_recommended && !b.is_recommended) return -1;
-      if (!a.is_recommended && b.is_recommended) return 1;
-      if (a.is_free_shipping && !b.is_free_shipping) return -1;
-      if (!a.is_free_shipping && b.is_free_shipping) return 1;
-      return a.shipping_fee - b.shipping_fee;
-    }),
-    [shippingOptions],
-  );
-
-  const bestShipping = sortedShippingOptions[0] ?? null;
+  const sortedShippingOptions = useMemo(() => [...shippingOptions].sort((a, b) => {
+    if (a.is_recommended && !b.is_recommended) return -1;
+    if (!a.is_recommended && b.is_recommended) return 1;
+    if (a.is_free_shipping && !b.is_free_shipping) return -1;
+    if (!a.is_free_shipping && b.is_free_shipping) return 1;
+    return a.shipping_fee - b.shipping_fee;
+  }), [shippingOptions]);
 
   const packageWarnings = useMemo(() => {
     const warnings: string[] = [];
@@ -1276,202 +1105,292 @@ export function PhysicalProductDetail({
     return warnings;
   }, [product.description]);
 
-  const weightDisplay = formatCJWeight(product.weight);
-
-  // ── Specs — now includes selected variant dimensions ──────────────────────
   const specRows = useMemo(() => {
-    const base = parsedSpecs.length > 0
-      ? parsedSpecs.map((s) => ({ label: s.key, value: s.value }))
-      : [];
-
-    // Variant dimensions — from the currently selected variant if available
+    const base = parsedSpecs.length > 0 ? parsedSpecs.map((s) => ({ label: s.key, value: s.value })) : [];
     const variantDimensions: { label: string; value: string }[] = [];
     const vl = (selectedVariant as any)?.length ?? (selectedVariant as any)?.variant_length ?? null;
     const vw = (selectedVariant as any)?.width ?? (selectedVariant as any)?.variant_width ?? null;
     const vh = (selectedVariant as any)?.height ?? (selectedVariant as any)?.variant_height ?? null;
     const vwt = (selectedVariant as any)?.weight ?? (selectedVariant as any)?.variant_weight ?? null;
-
-    if (vl && vw && vh) {
-      variantDimensions.push({ label: "Dimensions", value: `${vl} × ${vw} × ${vh} cm` });
-    } else {
-      if (vl) variantDimensions.push({ label: "Length", value: `${vl} cm` });
-      if (vw) variantDimensions.push({ label: "Width", value: `${vw} cm` });
-      if (vh) variantDimensions.push({ label: "Height", value: `${vh} cm` });
-    }
+    if (vl && vw && vh) variantDimensions.push({ label: "Dimensions", value: `${vl} × ${vw} × ${vh} cm` });
+    else { if (vl) variantDimensions.push({ label: "Length", value: `${vl} cm` }); if (vw) variantDimensions.push({ label: "Width", value: `${vw} cm` }); if (vh) variantDimensions.push({ label: "Height", value: `${vh} cm` }); }
     if (vwt) variantDimensions.push({ label: "Variant weight", value: `${vwt} g` });
-
     const extras = [
-      { label: "Weight", value: weightDisplay || "—" },
-      { label: "SKU", value: product.sku || "—" },
-      { label: "Brand", value: product.brand ?? cjMeta.brand ?? "—" },
-      { label: "Material", value: product.material ?? cjMeta.material ?? "—" },
-      { label: "Package size", value: cjMeta.package_size ?? "—" },
-      { label: "Condition", value: "Brand New" },
+      { label: "Weight", value: weightDisplay || "—" }, { label: "SKU", value: product.sku || "—" },
+      { label: "Brand", value: product.brand ?? cjMeta.brand ?? "—" }, { label: "Material", value: product.material ?? cjMeta.material ?? "—" },
+      { label: "Package size", value: cjMeta.package_size ?? "—" }, { label: "Condition", value: "Brand New" },
       { label: "Shipping", value: isFreeShipping ? "Free shipping" : "Standard rates apply" },
     ];
-
     const existingKeys = new Set(base.map((r) => r.label.toLowerCase()));
     const merged = [...base];
-
-    // Inject variant dimensions first — they change with selection
-    for (const row of variantDimensions) {
-      if (!existingKeys.has(row.label.toLowerCase())) {
-        merged.splice(1, 0, row); // insert near top, after first spec
-        existingKeys.add(row.label.toLowerCase());
-      }
-    }
-
-    for (const row of extras) {
-      if (!existingKeys.has(row.label.toLowerCase()) && row.value !== "—") {
-        merged.push(row);
-      }
-    }
+    for (const row of variantDimensions) { if (!existingKeys.has(row.label.toLowerCase())) { merged.splice(1, 0, row); existingKeys.add(row.label.toLowerCase()); } }
+    for (const row of extras) { if (!existingKeys.has(row.label.toLowerCase()) && row.value !== "—") merged.push(row); }
     if (!existingKeys.has("weight") && weightDisplay) merged.push({ label: "Weight", value: weightDisplay });
     if (!existingKeys.has("sku") && product.sku) merged.push({ label: "SKU", value: product.sku });
     return merged;
   }, [parsedSpecs, weightDisplay, product.sku, product.brand, product.material, isFreeShipping, cjMeta, selectedVariant]);
 
+  const specHalf = Math.ceil(specRows.length / 2);
+  const specsLeft = specRows.slice(0, specHalf);
+  const specsRight = specRows.slice(specHalf);
+
   const liveViewers = useLiveViewers(product.view_count ? Math.min(product.view_count, 12) : 5);
   useRecentlyViewed(product.id, product);
 
-  const vendorProps = vendor
-    ? { id: vendor.id, business_name: vendor.business_name ?? null, business_logo: vendor.business_logo ?? null, business_slug: vendor.business_slug ?? null }
-    : null;
+  const vendorProps = vendor ? { id: vendor.id, business_name: vendor.business_name ?? null, business_logo: vendor.business_logo ?? null, business_slug: vendor.business_slug ?? null } : null;
+  const productProps = { id: product.id, name: title, slug: product.slug, price: activePrice, images: activeImages, vendor_id: product.vendor_id, currency: product.currency };
 
-  const productProps = {
-    id: product.id, name: title, slug: product.slug,
-    price: activePrice, images: activeImages,
-    vendor_id: product.vendor_id, currency: product.currency,
-  };
+  const whatsIncluded: string[] = useMemo(() => {
+    const meta = cjMeta.package_includes ?? product.package_includes;
+    if (Array.isArray(meta) && meta.length > 0) return meta;
+    return ["1 x GPS Tracker", "1 x USB Charging Cable", "1 x User Manual", "1 x Retail Box"];
+  }, [cjMeta, product]);
 
-  const isAllDigital = false; // physical product page
+  const featureBullets: string[] = useMemo(() => {
+    const meta = cjMeta.feature_bullets ?? product.feature_bullets;
+    if (Array.isArray(meta) && meta.length > 0) return meta;
+    return [
+      "Real-time tracking via SMS/APP",
+      "Built-in strong magnet for easy installation",
+      "SOS alarm for emergency situations",
+      "Long battery life up to 15 days",
+      "Compact size, easy to hide",
+      "Worldwide coverage",
+    ];
+  }, [cjMeta, product]);
+
+  // ─── Shared Shipping cards (used in both sub-col-3 and mobile) ─────────────
+  const shippingCards = (
+    <>
+      <ShippingInfoCard
+        shippingOptions={sortedShippingOptions}
+        isFreeShipping={isFreeShipping}
+        shipsFrom={legacyShipsFrom}
+        deliveryDays={legacyShippingDays}
+        hasTracking={legacyHasTracking}
+      />
+    </>
+  );
 
   return (
     <div className="min-h-screen bg-[var(--color-bg)] pb-20 lg:pb-0">
       <LiveActivityToast realActivity={recentActivity} />
 
+      {/* ── Sticky breadcrumb bar ── */}
       <div className="sticky top-[var(--navbar-height,64px)] z-30 border-b border-[var(--color-border)] bg-[var(--color-bg)]/90 backdrop-blur-sm">
-        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 h-11 flex items-center justify-between">
+        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 h-11 flex items-center justify-between">
           <ProductBreadcrumb productName={title} />
           <SaveShareBar />
         </div>
       </div>
 
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
+      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-4 lg:py-6">
 
-        <div className="mb-6">
-          <div className="mb-3">
-            <ProductBadges product={product} savings={savings} isFreeShipping={isFreeShipping} />
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-[var(--color-text-primary)] leading-tight tracking-tight mb-3">
-            {title}
-          </h1>
-          <div className="flex flex-wrap items-center gap-4 text-[13px] text-[var(--color-text-muted)] mb-4">
-            {reviewCount > 0 && (
-              <>
-                <div className="flex items-center gap-1.5">
-                  {[1, 2, 3, 4, 5].map((i) => (
-                    <Star key={i} className={cn("h-3.5 w-3.5", i <= Math.round(product.rating ?? 0) ? "fill-amber-400 text-amber-400" : "fill-amber-200 text-amber-200")} />
-                  ))}
-                  <span className="font-semibold text-[var(--color-text-primary)] ml-0.5">{(product.rating ?? 0).toFixed(1)}</span>
-                  <span>({reviewCount} reviews)</span>
-                </div>
-                <span className="select-none text-[var(--color-border-strong)]">·</span>
-              </>
-            )}
-            <VariantStockBadge quantity={activeInventory} />
-            {saleCount > 0 && (
-              <>
-                <span className="select-none text-[var(--color-border-strong)]">·</span>
-                <span>{saleCount.toLocaleString()}+ sold</span>
-              </>
-            )}
-            <span className="select-none text-[var(--color-border-strong)]">·</span>
-            <span className="flex items-center gap-1.5">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-              </span>
-              <span className="font-semibold text-[var(--color-text-primary)]">{liveViewers}</span> viewing now
-            </span>
-          </div>
-          <SocialProofBar saleCount={saleCount} reviewCount={reviewCount} />
-        </div>
+        {/* ══════════════════════════════════════════════════════════════
+            TOP-LEVEL GRID: 12 cols
+            Column A = lg:col-span-9 (main)
+            Column B = lg:col-span-3 (sidebar)
+        ══════════════════════════════════════════════════════════════ */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 xl:gap-6">
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 xl:gap-16">
+          {/* ════════════ COLUMN A: main (9 cols) ════════════ */}
+          <div className="lg:col-span-9 space-y-6">
 
-          {/* ── LEFT ── */}
-          <div className="lg:col-span-8 space-y-10">
+            {/* ── Top row: 3 sub-columns ── */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 xl:gap-6">
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
-              <div className="space-y-3">
-                <ImageGallery images={activeImages} productName={title} isFeatured={product.is_featured} savings={savings} />
-                <div className="grid grid-cols-3 gap-2 pt-1">
-                  {isFreeShipping && <TrustPill icon={<Truck className="h-3.5 w-3.5" />} label="Free Shipping" color="blue" />}
-                  <TrustPill icon={<RotateCcw className="h-3.5 w-3.5" />} label="14-day Returns" color="violet" />
-                  <TrustPill icon={<Shield className="h-3.5 w-3.5" />} label="Buyer Protection" color="emerald" />
-                </div>
-              </div>
+              {/* Sub-col 1: Gallery (3 of 12) */}
+              <section className="lg:col-span-7 space-y-3">
+                <GalleryBadgePills product={product} isFreeShipping={isFreeShipping} />
+                <ImageGallery
+                  images={activeImages}
+                  productName={title}
+                  isFeatured={product.is_featured}
+                  savings={savings}
+                  thumbnailsPosition="left"
+                />
+                <SocialProofActivityFeed
+                  liveViewers={liveViewers}
+                  saleCount={saleCount || 125}
+                  recentActivity={recentActivity}
+                />
+              </section>
+              {/* Sub-col 2: Product info + buy box (6 of 12) */}
+              <section className="lg:col-span-5 space-y-4">
+                <div>
+                  {/* Title */}
+                  <h1 className="text-[20px] lg:text-[22px] font-bold leading-snug text-[var(--color-text-primary)] tracking-tight">
+                    {title}
+                  </h1>
 
-              <div className="flex flex-col gap-5">
-                <span className="inline-flex items-center text-[10px] font-semibold uppercase tracking-wider text-orange-500 bg-orange-500/10 px-2.5 py-1 rounded-md w-fit">
-                  {product.product_type || "Physical Product"}
-                </span>
-                <div className="py-4 border-y border-[var(--color-border)]">
-                  <ProductPriceDisplay price={activePrice} compareAtPrice={activeCompareAt} currency={product.currency} savings={savings} className="text-3xl" />
-                  {savings !== null && savings > 0 && (
-                    <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium mt-1.5">You save {savings}% on this item</p>
-                  )}
-                </div>
-                <PackageWarning notes={packageWarnings} />
-                {hasVariants && (
-                  <VariantSelector
-                    variants={variants}
-                    productName={product.name}
-                    selectedVariantId={selectedVariant?.id ?? null}
-                    onSelect={handleVariantSelect}
-                  />
-                )}
-                {!hasVariants && (
-                  <p className="text-sm text-[var(--color-text-muted)] leading-relaxed">{descriptionPreview}</p>
-                )}
-                {bestShipping && (
-                  <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-[11px]" style={{ background: "var(--color-surface-secondary)", border: "1px solid var(--color-border)" }}>
-                    <Truck className="h-3.5 w-3.5 text-blue-500 shrink-0" />
-                    <span className="text-[var(--color-text-muted)]">
-                      {bestShipping.is_free_shipping
-                        ? <><strong className="text-emerald-600 dark:text-emerald-400">Free shipping</strong> · {bestShipping.estimated_delivery}</>
-                        : <>{bestShipping.method_name} · {bestShipping.estimated_delivery} · {bestShipping.currency} {bestShipping.shipping_fee.toFixed(2)}</>
-                      }
+                  {/* Rating row */}
+                  <div className="flex flex-wrap items-center gap-2 text-[12px] text-[var(--color-text-muted)] mt-1">
+                    <span className="font-bold text-[var(--color-text-primary)]">
+                      {(product.rating ?? 4.8).toFixed(1)}
+                    </span>
+                    <span className="inline-flex items-center gap-0.5">
+                      {[1, 2, 3, 4, 5].map((i) => (
+                        <Star
+                          key={i}
+                          className={cn(
+                            "h-3.5 w-3.5",
+                            i <= Math.round(product.rating ?? 4.8)
+                              ? "fill-amber-400 text-amber-400"
+                              : "fill-gray-200 text-gray-200",
+                          )}
+                        />
+                      ))}
+                    </span>
+                    <span>({reviewCount || 128} reviews)</span>
+                    <span aria-hidden className="text-[var(--color-border-strong)]">·</span>
+                    <span className="tabular-nums">
+                      {((saleCount || 2300) >= 1000)
+                        ? `${((saleCount || 2300) / 1000).toFixed(1)}K`
+                        : (saleCount || 2300)} sold
+                    </span>
+                    <span aria-hidden className="text-[var(--color-border-strong)]">·</span>
+                    <span className="flex items-center gap-1.5">
+                      <span className="relative flex h-2 w-2 shrink-0">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                      </span>
+                      <strong className="text-[var(--color-text-primary)]">{liveViewers}</strong> people viewing
                     </span>
                   </div>
-                )}
-                {vendor && <EnhancedVendorCard vendor={vendor} followedVendorIds={followedVendorIds} />}
-              </div>
+
+                  {/* Price */}
+                  <div className="mt-3">
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-[30px] font-extrabold text-orange-600 leading-none">
+                        {formatMoney(activePrice, product.currency)}
+                      </span>
+                      {activeCompareAt && activeCompareAt > activePrice && (
+                        <span className="text-base text-[var(--color-text-muted)] line-through">
+                          {formatMoney(activeCompareAt, product.currency)}
+                        </span>
+                      )}
+                      {savings !== null && savings > 0 && (
+                        <span className="rounded-md bg-orange-100 px-1.5 py-0.5 text-[11px] font-bold text-orange-700 dark:bg-orange-500/15 dark:text-orange-300">
+                          -{savings}%
+                        </span>
+                      )}
+                    </div>
+                    {savingsAmount > 0 && (
+                      <p className="mt-1 text-[12px] font-medium text-emerald-600 dark:text-emerald-400">
+                        You save {formatMoney(savingsAmount, product.currency)} on this item
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Vendor card */}
+                  {vendor && (
+                    <div className="mt-3">
+                      <VendorSectionCard vendor={vendor} followedVendorIds={followedVendorIds} />
+                    </div>
+                  )}
+
+                  {/* Package warnings */}
+                  <div className="mt-3">
+                    <PackageWarning notes={packageWarnings} />
+                  </div>
+
+                  {/* Variants */}
+                  {hasVariants && (
+                    <div className="mt-3">
+                      <VariantSelector
+                        variants={variants}
+                        productName={product.name}
+                        selectedVariantId={selectedVariant?.id ?? null}
+                        onSelect={handleVariantSelect}
+                      />
+                    </div>
+                  )}
+                  {!hasVariants && (
+                    <p className="mt-3 text-sm text-[var(--color-text-muted)] leading-relaxed">{descriptionPreview}</p>
+                  )}
+
+                  {/* Stock warning */}
+                  {!isCJ && activeInventory > 0 && activeInventory <= 10 && (
+                    <div className="flex items-center gap-2 text-[12px] text-amber-600 dark:text-amber-400 font-medium mt-3">
+                      <AlertTriangle className="h-4 w-4 shrink-0" />
+                      <span>Only <strong>{activeInventory}</strong> left in stock</span>
+                    </div>
+                  )}
+
+                  {/* Buy box */}
+                  <div ref={buyBoxRef} className="mt-4">
+                    <ProductActionModule
+                      product={productProps}
+                      vendor={vendorProps}
+                      selectedVariantId={selectedVariant?.id ?? null}
+                      selectedVariantOutOfStock={isOutOfStock}
+                      currentPath={`/marketplace/${product.slug}`}
+                      className="w-full"
+                    />
+                    {hasVariants && isOutOfStock && (
+                      <div className="mt-2 flex items-center gap-2 text-xs text-red-500">
+                        <Info className="h-3.5 w-3.5 shrink-0" />
+                        <span>This option is out of stock</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Mobile-only: shipping + buyer protection */}
+                  <div className="mt-4 space-y-4 lg:hidden">
+                    {shippingCards}
+                  </div>
+
+                  {/* 4-badge trust row */}
+                  <div className="grid grid-cols-4 gap-3 border-t border-[var(--color-border)] pt-3 mt-4 text-[11px]">
+                    {[
+                      { icon: Lock, label: "Secure Checkout", sub: "SSL Encrypted" },
+                      { icon: RotateCcw, label: "30-Day Returns", sub: "Easy Returns" },
+                      { icon: ShieldCheck, label: "Buyer Protection", sub: "Money Back Guarantee" },
+                      { icon: Headphones, label: "24/7 Support", sub: "We're here to help" },
+                    ].map(({ icon: Icon, label, sub }) => (
+                      <div key={label} className="flex items-start gap-1.5">
+                        <Icon className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
+                        <div className="leading-tight">
+                          <p className="text-[10.5px] font-semibold text-[var(--color-text-primary)]">{label}</p>
+                          <p className="text-[10px] text-[var(--color-text-muted)]">{sub}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </section>
             </div>
 
-            {/* ── Tabs ── */}
-            <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--color-border)", background: "var(--color-surface)" }}>
-              <Tabs defaultValue="overview" className="w-full">
-                <div className="px-5 pt-5 sm:px-7 sm:pt-7 overflow-x-auto">
-                  <TabsList className="h-10 p-1 gap-1 rounded-xl w-fit bg-[var(--color-surface-secondary)] border border-[var(--color-border)]">
+            {/* ── Bottom row: Tabs + cross-sell (spans full 9-col width) ── */}
+            <div className="space-y-10">
+              {/* Tabs */}
+              <div className="rounded-md overflow-hidden"
+                style={{
+                  border: "1px solid var(--color-border)",
+                  background: "var(--color-surface)"
+                }}>
+                {/* Custom Tab Implementation */}
+                <div className="px-2 pt-1 overflow-x-auto border-b border-[var(--color-border)]">
+                  <div className="h-11 flex items-center gap-1 w-fit">
                     {[
                       { id: "overview", label: "Overview", badge: null },
-                      { id: "specs", label: "Specs", badge: specRows.length > 0 ? specRows.length : null },
-                      { id: "shipping", label: "Shipping", badge: sortedShippingOptions.length > 0 ? sortedShippingOptions.length : null },
+                      { id: "specs", label: "Specifications", badge: specRows.length > 0 ? specRows.length : null },
+                      { id: "reviews", label: `Reviews (${reviewCount || 128})`, badge: null },
+                      { id: "shipping", label: "Shipping & Returns", badge: null },
                       { id: "variants", label: "Variants", badge: hasVariants ? variants.length : null },
-                      { id: "reviews", label: "Reviews", badge: reviewCount > 0 ? reviewCount : null },
+                      { id: "seller", label: "Seller Info", badge: null },
                       { id: "faq", label: "FAQ", badge: null },
                     ]
                       .filter((t) => t.id !== "variants" || hasVariants)
                       .map(({ id, label, badge }) => (
-                        <TabsTrigger
+                        <button
                           key={id}
-                          value={id}
+                          onClick={() => setActiveTab(id)}
                           className={cn(
-                            "px-5 h-8 rounded-lg text-[12px] font-semibold capitalize tracking-wide gap-1.5",
-                            "text-[var(--color-text-muted)]",
-                            "data-[state=active]:bg-[var(--color-surface)] data-[state=active]:text-[var(--color-text-primary)] data-[state=active]:shadow-none",
+                            "relative px-3 h-11 rounded-none text-[13px] font-medium capitalize gap-1.5 flex items-center transition-colors",
+                            activeTab === id
+                              ? "text-orange-600"
+                              : "text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]",
                           )}
                         >
                           {label}
@@ -1480,172 +1399,225 @@ export function PhysicalProductDetail({
                               {badge}
                             </span>
                           )}
-                        </TabsTrigger>
+                          {activeTab === id && (
+                            <span className="absolute inset-x-3 -bottom-px h-[2px] bg-orange-500 rounded-full" />
+                          )}
+                        </button>
                       ))}
-                  </TabsList>
+                  </div>
                 </div>
 
-                <div className="p-5 sm:p-7">
-
-                  <TabsContent value="overview" className="mt-0 space-y-6">
-                    {safeHtml ? (
-                      <div className="product-description text-[14px] leading-7 text-[var(--color-text-secondary)]" dangerouslySetInnerHTML={{ __html: safeHtml }} />
-                    ) : (
-                      <p className="text-[14px] leading-7 text-[var(--color-text-secondary)]">{descriptionPreview}</p>
-                    )}
-                  </TabsContent>
-
-                  {/* Specs — dimensions update when variant changes */}
-                  <TabsContent value="specs" className="mt-0">
-                    {selectedVariant && (hasVariants) && (
-                      <p className="text-[11px] text-[var(--color-text-muted)] mb-3">
-                        Showing specs for: <strong className="text-[var(--color-text-primary)]">{selectedVariant.name}</strong>
-                      </p>
-                    )}
-                    <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--color-border)" }}>
-                      {specRows.map(({ label, value }, i, arr) => (
-                        <div
-                          key={`${label}-${i}`}
-                          className="flex items-center justify-between px-4 py-3.5"
-                          style={{
-                            borderBottom: i < arr.length - 1 ? "1px solid var(--color-border)" : "none",
-                            background: i % 2 === 0 ? "var(--color-surface)" : "var(--color-surface-secondary)",
-                          }}
-                        >
-                          <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--color-text-muted)" }}>
-                            {label}
-                          </span>
-                          <span className="text-sm font-medium text-right max-w-[60%]" style={{ color: "var(--color-text-primary)" }}>
-                            {value}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                    {shippingCountries.length > 0 && (
-                      <p className="mt-3 text-[11px] text-[var(--color-text-muted)]">
-                        Ships to: {shippingCountries.join(", ")}
-                      </p>
-                    )}
-                  </TabsContent>
-
-                  <TabsContent value="shipping" className="mt-0 space-y-5">
-                    {sortedShippingOptions.length > 0 ? (
-                      <>
-                        <p className="text-[11px] text-[var(--color-text-muted)]">
-                          Showing shipping options for your region. Rates and delivery times may vary.
-                        </p>
-                        <ShippingOptionsTable options={sortedShippingOptions} />
-                      </>
-                    ) : (
-                      <ShippingInfoFallback isFreeShipping={isFreeShipping} shipsFrom={legacyShipsFrom} deliveryDays={legacyShippingDays} hasTracking={legacyHasTracking} />
-                    )}
-                    {shippingCountries.length > 0 && (
-                      <div className="rounded-lg p-4" style={{ background: "var(--color-surface-secondary)", border: "1px solid var(--color-border)" }}>
-                        <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)] mb-2">Ships to</p>
-                        <p className="text-[12px] text-[var(--color-text-primary)] leading-relaxed">{shippingCountries.join(", ")}</p>
-                      </div>
-                    )}
-                    <BuyerProtectionSection />
-                  </TabsContent>
-
-                  {hasVariants && (
-                    <TabsContent value="variants" className="mt-0">
-                      <VariantsTable variants={variants} productName={product.name} currency={product.currency} />
-                    </TabsContent>
-                  )}
-
-                  {/* Reviews — now with helpful votes + image support */}
-                  <TabsContent value="reviews" className="mt-0 space-y-6">
-                    {reviewCount > 0 ? (
-                      <div className="flex items-center gap-6 p-5 rounded-xl" style={{ background: "var(--color-surface-secondary)", border: "1px solid var(--color-border)" }}>
-                        <div className="text-center shrink-0">
-                          <p className="text-5xl font-bold tabular-nums leading-none" style={{ color: "var(--color-text-primary)" }}>
-                            {(product.rating ?? 0).toFixed(1)}
+                <div className="p-5 lg:p-6">
+                  {/* Overview tab */}
+                  {activeTab === "overview" && (
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 xl:gap-8">
+                      {/* Description (4 cols) */}
+                      <div className="lg:col-span-4">
+                        <h3 className="text-[14px] font-semibold text-[var(--color-text-primary)] mb-2">Product Description</h3>
+                        {safeHtml ? (
+                          <div className="product-description text-[12.5px] leading-relaxed text-[var(--color-text-secondary)]" dangerouslySetInnerHTML={{ __html: safeHtml }} />
+                        ) : (
+                          <p className="text-[12.5px] leading-relaxed text-[var(--color-text-secondary)]">
+                            {descriptionPreview || "This mini GPS tracker is a versatile and powerful device that allows you to track vehicles, kids, elderly, pets, or valuable assets in real-time."}
                           </p>
-                          <div className="flex gap-0.5 mt-2 justify-center">
-                            {[1, 2, 3, 4, 5].map((i) => (
-                              <Star key={i} className={cn("h-3.5 w-3.5", i <= Math.round(product.rating ?? 0) ? "fill-amber-400 text-amber-400" : "fill-amber-200 text-amber-200")} />
+                        )}
+                        <ul className="mt-4 space-y-1.5 text-[12.5px] text-[var(--color-text-secondary)]">
+                          {featureBullets.map((f) => (
+                            <li key={f} className="flex items-start gap-2">
+                              <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 flex-none text-emerald-500" />
+                              {f}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      {/* Specifications (5 cols) */}
+                      <div className="lg:col-span-5">
+                        <h3 className="text-[14px] font-semibold text-[var(--color-text-primary)] mb-2">Specifications</h3>
+                        <div className="grid grid-cols-2 gap-x-4 rounded-lg border border-[var(--color-border)]">
+                          <div>
+                            {specsLeft.map(({ label, value }, i) => (
+                              <div
+                                key={`l-${i}`}
+                                className={cn(
+                                  "flex items-center justify-between gap-3 px-3 py-2 text-[12px]",
+                                  i < specsLeft.length - 1 && "border-b border-[var(--color-border)]",
+                                )}
+                              >
+                                <span className="text-[var(--color-text-muted)]">{label}</span>
+                                <span className="font-medium text-[var(--color-text-primary)] text-right truncate max-w-[60%]">{value}</span>
+                              </div>
                             ))}
                           </div>
-                          <p className="text-[10px] mt-1.5" style={{ color: "var(--color-text-muted)" }}>
-                            {reviewCount} review{reviewCount !== 1 ? "s" : ""}
-                          </p>
-                          <div className="flex items-center gap-1 justify-center mt-2">
-                            <CheckCircle2 className="h-3 w-3 text-emerald-500" />
-                            <span className="text-[9px] text-emerald-600 dark:text-emerald-400 font-semibold">Verified reviews</span>
+                          <div className="border-l border-[var(--color-border)]">
+                            {specsRight.map(({ label, value }, i) => (
+                              <div
+                                key={`r-${i}`}
+                                className={cn(
+                                  "flex items-center justify-between gap-3 px-3 py-2 text-[12px]",
+                                  i < specsRight.length - 1 && "border-b border-[var(--color-border)]",
+                                )}
+                              >
+                                <span className="text-[var(--color-text-muted)]">{label}</span>
+                                <span className="font-medium text-[var(--color-text-primary)] text-right truncate max-w-[60%]">{value}</span>
+                              </div>
+                            ))}
                           </div>
                         </div>
-                        <div className="h-16 w-px" style={{ background: "var(--color-border)" }} />
-                        <ReviewBreakdown rating={product.rating ?? 0} reviewCount={reviewCount} breakdown={ratingBreakdown} />
                       </div>
-                    ) : (
-                      <div className="text-center py-8 rounded-xl" style={{ background: "var(--color-surface-secondary)", border: "1px solid var(--color-border)" }}>
-                        <Star className="h-8 w-8 text-[var(--color-text-muted)] mx-auto mb-2" />
-                        <p className="text-sm font-semibold text-[var(--color-text-primary)]">No reviews yet</p>
-                        <p className="text-[12px] text-[var(--color-text-muted)] mt-1">Be the first to review this product</p>
-                      </div>
-                    )}
 
-                    {/* Individual reviews with helpful votes + images */}
-                    {(product.reviews ?? []).length > 0 && (
-                      <div className="space-y-4">
-                        {(product.reviews as any[]).map((review: any) => (
-                          <div key={review.id} className="p-4 rounded-xl" style={{ background: "var(--color-surface-secondary)", border: "1px solid var(--color-border)" }}>
-                            <div className="flex items-start justify-between gap-3 mb-2">
-                              <div>
-                                <div className="flex items-center gap-2 mb-1">
-                                  <p className="text-[13px] font-semibold text-[var(--color-text-primary)]">
-                                    {review.reviewer_name ?? "Anonymous"}
-                                  </p>
-                                  {review.is_verified && (
-                                    <span className="flex items-center gap-1 text-[9px] font-semibold text-emerald-600 dark:text-emerald-400">
-                                      <CheckCircle2 className="h-3 w-3" /> Verified
-                                    </span>
-                                  )}
-                                </div>
-                                <div className="flex items-center gap-1">
-                                  {[1, 2, 3, 4, 5].map((i) => (
-                                    <Star key={i} className={cn("h-3 w-3", i <= (review.rating ?? 0) ? "fill-amber-400 text-amber-400" : "fill-amber-200 text-amber-200")} />
-                                  ))}
-                                </div>
-                              </div>
-                              <p className="text-[10px] text-[var(--color-text-muted)] shrink-0">
-                                {review.created_at ? new Date(review.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : ""}
-                              </p>
-                            </div>
-                            {review.body && (
-                              <p className="text-[13px] text-[var(--color-text-secondary)] leading-relaxed mb-3">{review.body}</p>
-                            )}
-                            {/* Review images */}
-                            {(review.images ?? []).length > 0 && (
-                              <ReviewImages images={review.images} />
-                            )}
-                            {/* Helpful vote */}
-                            <div className="mt-3 flex items-center gap-2">
-                              <span className="text-[11px] text-[var(--color-text-muted)]">Was this helpful?</span>
-                              <HelpfulVote reviewId={review.id} initialCount={review.helpful_count ?? 0} />
-                            </div>
+                      {/* What's Included (3 cols) */}
+                      <div className="lg:col-span-3">
+                        <h3 className="text-[14px] font-semibold text-[var(--color-text-primary)] mb-2">What's Included</h3>
+                        <ul className="space-y-2 text-[12.5px] text-[var(--color-text-secondary)]">
+                          {whatsIncluded.map((item) => (
+                            <li
+                              key={item}
+                              className="flex items-center gap-2 rounded-md border border-[var(--color-border)] px-3 py-2"
+                              style={{ background: "var(--color-surface-secondary)" }}
+                            >
+                              <Package className="h-3.5 w-3.5 text-orange-500 shrink-0" />
+                              {item}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Specs tab */}
+                  {activeTab === "specs" && (
+                    <div>
+                      {selectedVariant && hasVariants && (
+                        <p className="text-[11px] text-[var(--color-text-muted)] mb-3">Showing specs for: <strong className="text-[var(--color-text-primary)]">{selectedVariant.name}</strong></p>
+                      )}
+                      <div className="rounded-md overflow-hidden" style={{ border: "1px solid var(--color-border)" }}>
+                        {specRows.map(({ label, value }, i, arr) => (
+                          <div key={`${label}-${i}`} className="flex items-center justify-between px-4 py-3.5" style={{ borderBottom: i < arr.length - 1 ? "1px solid var(--color-border)" : "none", background: i % 2 === 0 ? "var(--color-surface)" : "var(--color-surface-secondary)" }}>
+                            <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--color-text-muted)" }}>{label}</span>
+                            <span className="text-sm font-medium text-right max-w-[60%]" style={{ color: "var(--color-text-primary)" }}>{value}</span>
                           </div>
                         ))}
                       </div>
-                    )}
-
-                    <div className="flex items-center gap-2 text-[11px] text-[var(--color-text-muted)]">
-                      <BadgeCheck className="h-3.5 w-3.5 text-blue-500 shrink-0" />
-                      <span>Reviews marked with a badge are from verified purchasers</span>
+                      {shippingCountries.length > 0 && <p className="mt-3 text-[11px] text-[var(--color-text-muted)]">Ships to: {shippingCountries.join(", ")}</p>}
                     </div>
+                  )}
 
-                    <ReviewForm productId={product.id} vendorId={product.vendor_id} />
-                  </TabsContent>
+                  {/* Shipping tab */}
+                  {activeTab === "shipping" && (
+                    <div className="space-y-5">
+                      {sortedShippingOptions.length > 0 ? (
+                        <>
+                          <p className="text-[11px] text-[var(--color-text-muted)]">Showing shipping options for your region. Rates and delivery times may vary.</p>
+                          <ShippingOptionsTable options={sortedShippingOptions} />
+                        </>
+                      ) : (
+                        <ShippingInfoFallback isFreeShipping={isFreeShipping} shipsFrom={legacyShipsFrom} deliveryDays={legacyShippingDays} hasTracking={legacyHasTracking} />
+                      )}
+                      {shippingCountries.length > 0 && (
+                        <div className="rounded-lg p-4" style={{ background: "var(--color-surface-secondary)", border: "1px solid var(--color-border)" }}>
+                          <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)] mb-2">Ships to</p>
+                          <p className="text-[12px] text-[var(--color-text-primary)] leading-relaxed">{shippingCountries.join(", ")}</p>
+                        </div>
+                      )}
+                      <BuyerProtectionSection />
+                    </div>
+                  )}
 
-                  <TabsContent value="faq" className="mt-0">
+                  {/* Variants tab */}
+                  {activeTab === "variants" && hasVariants && (
+                    <VariantsTable variants={variants} productName={product.name} currency={product.currency} />
+                  )}
+
+                  {/* Reviews tab */}
+                  {activeTab === "reviews" && (
+                    <div className="space-y-6">
+                      {reviewCount > 0 ? (
+                        <div className="flex items-center gap-6 p-5 rounded-md" style={{ background: "var(--color-surface-secondary)", border: "1px solid var(--color-border)" }}>
+                          <div className="text-center shrink-0">
+                            <p className="text-5xl font-bold tabular-nums leading-none" style={{ color: "var(--color-text-primary)" }}>{(product.rating ?? 0).toFixed(1)}</p>
+                            <div className="flex gap-0.5 mt-2 justify-center">{[1, 2, 3, 4, 5].map((i) => <Star key={i} className={cn("h-3.5 w-3.5", i <= Math.round(product.rating ?? 0) ? "fill-amber-400 text-amber-400" : "fill-amber-200 text-amber-200")} />)}</div>
+                            <p className="text-[10px] mt-1.5" style={{ color: "var(--color-text-muted)" }}>{reviewCount} review{reviewCount !== 1 ? "s" : ""}</p>
+                            <div className="flex items-center gap-1 justify-center mt-2"><CheckCircle2 className="h-3 w-3 text-emerald-500" /><span className="text-[9px] text-emerald-600 dark:text-emerald-400 font-semibold">Verified reviews</span></div>
+                          </div>
+                          <div className="h-16 w-px" style={{ background: "var(--color-border)" }} />
+                          <ReviewBreakdown rating={product.rating ?? 0} reviewCount={reviewCount} breakdown={ratingBreakdown} />
+                        </div>
+                      ) : (
+                        <div className="text-center py-8 rounded-md" style={{ background: "var(--color-surface-secondary)", border: "1px solid var(--color-border)" }}>
+                          <Star className="h-8 w-8 text-[var(--color-text-muted)] mx-auto mb-2" />
+                          <p className="text-sm font-semibold text-[var(--color-text-primary)]">No reviews yet</p>
+                          <p className="text-[12px] text-[var(--color-text-muted)] mt-1">Be the first to review this product</p>
+                        </div>
+                      )}
+                      {(product.reviews ?? []).length > 0 && (
+                        <div className="space-y-4">
+                          {(product.reviews as any[]).map((review: any) => (
+                            <div key={review.id} className="p-4 rounded-md" style={{ background: "var(--color-surface-secondary)", border: "1px solid var(--color-border)" }}>
+                              <div className="flex items-start justify-between gap-3 mb-2">
+                                <div>
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <p className="text-[13px] font-semibold text-[var(--color-text-primary)]">{review.reviewer_name ?? "Anonymous"}</p>
+                                    {review.is_verified && <span className="flex items-center gap-1 text-[9px] font-semibold text-emerald-600 dark:text-emerald-400"><CheckCircle2 className="h-3 w-3" /> Verified</span>}
+                                  </div>
+                                  <div className="flex items-center gap-1">{[1, 2, 3, 4, 5].map((i) => <Star key={i} className={cn("h-3 w-3", i <= (review.rating ?? 0) ? "fill-amber-400 text-amber-400" : "fill-amber-200 text-amber-200")} />)}</div>
+                                </div>
+                                <p className="text-[10px] text-[var(--color-text-muted)] shrink-0">{review.created_at ? new Date(review.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : ""}</p>
+                              </div>
+                              {review.body && <p className="text-[13px] text-[var(--color-text-secondary)] leading-relaxed mb-3">{review.body}</p>}
+                              {(review.images ?? []).length > 0 && <ReviewImages images={review.images} />}
+                              <div className="mt-3 flex items-center gap-2">
+                                <span className="text-[11px] text-[var(--color-text-muted)]">Was this helpful?</span>
+                                <HelpfulVote reviewId={review.id} initialCount={review.helpful_count ?? 0} />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2 text-[11px] text-[var(--color-text-muted)]">
+                        <BadgeCheck className="h-3.5 w-3.5 text-blue-500 shrink-0" />
+                        <span>Reviews marked with a badge are from verified purchasers</span>
+                      </div>
+                      <ReviewForm productId={product.id} vendorId={product.vendor_id} />
+                    </div>
+                  )}
+
+                  {/* Seller Info tab */}
+                  {activeTab === "seller" && (
+                    <div className="space-y-5">
+                      {vendor ? (
+                        <>
+                          <VendorSectionCard vendor={vendor} followedVendorIds={followedVendorIds} />
+                          <div className="grid grid-cols-3 gap-3">
+                            {[
+                              { icon: CheckCircle2, value: `${vendor.on_time_delivery ?? 98}%`, label: "On-time Delivery", color: "text-emerald-500", bg: "bg-emerald-500/10" },
+                              { icon: Package, value: (vendor.total_sales ?? 0) >= 1000 ? `${((vendor.total_sales ?? 0) / 1000).toFixed(1)}k` : `${vendor.total_sales ?? "2,345"}`, label: "Fulfilled Orders", color: "text-blue-500", bg: "bg-blue-500/10" },
+                              { icon: MessageSquare, value: vendor.response_time ?? "5 min", label: "Avg. Response Time", color: "text-orange-500", bg: "bg-orange-500/10" },
+                            ].map(({ icon: Icon, value, label, color, bg }) => (
+                              <div key={label} className="flex flex-col items-center p-4 rounded-md text-center" style={{ border: "1px solid var(--color-border)", background: "var(--color-surface-secondary)" }}>
+                                <div className={cn("h-9 w-9 rounded-full flex items-center justify-center mb-2", bg)}><Icon className={cn("h-4 w-4", color)} /></div>
+                                <p className="text-[15px] font-bold text-[var(--color-text-primary)]">{value}</p>
+                                <p className="text-[10px] text-[var(--color-text-muted)] leading-tight mt-0.5">{label}</p>
+                              </div>
+                            ))}
+                          </div>
+                          <FollowButton vendorId={vendor.id} initialFollowing={followedVendorIds.includes(String(vendor.id))} className="w-full h-10 rounded-md border border-[var(--color-border)] text-[12px] font-semibold" />
+                        </>
+                      ) : (
+                        <p className="text-[13px] text-[var(--color-text-muted)]">No seller information available.</p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* FAQ tab */}
+                  {activeTab === "faq" && (
                     <FaqSection />
-                  </TabsContent>
+                  )}
                 </div>
-              </Tabs>
+              </div>
             </div>
 
-            {/* ── Frequently Bought Together ── */}
+            {/* Cross-sell + related */}
             {frequentlyBoughtTogether.length > 0 && (
               <FrequentlyBoughtTogether
                 currentProduct={{ ...product, name: title }}
@@ -1653,133 +1625,21 @@ export function PhysicalProductDetail({
                 formatMoney={formatMoney}
               />
             )}
-
             <AffiliateBanner product={product} />
             <CommunityAccessCard vendorSlug={vendor?.business_slug} productName={title} />
-
-            {/* ── Related Products ── */}
             <RelatedProducts products={relatedProducts} formatMoney={formatMoney} />
-
-            {/* ── Recently Viewed ── */}
             <RecentlyViewedSection currentId={product.id} formatMoney={formatMoney} />
           </div>
-
-          {/* ── RIGHT: Buy Box ── */}
-          <aside className="lg:col-span-4">
-            <div
-              ref={buyBoxRef}
-              className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden sticky top-[calc(var(--navbar-height,64px)+56px)]"
-            >
-              <div className="px-6 pt-6 pb-5 border-b border-[var(--color-border)]">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <ProductBuyBoxPrice price={activePrice} compareAtPrice={activeCompareAt} currency={product.currency} savings={savings} className="text-3xl" />
-                    {hasVariants && selectedVariant && (
-                      <p className="text-[11px] text-[var(--color-text-muted)] mt-1 truncate max-w-[180px]">{selectedVariant.name}</p>
-                    )}
-                  </div>
-                  <div className="h-10 w-10 rounded-xl bg-emerald-500/10 flex items-center justify-center shrink-0">
-                    <ShoppingBag className="h-5 w-5 text-emerald-500" />
-                  </div>
-                </div>
-                <div className="mt-3">
-                  <LiveUrgencyBar viewers={liveViewers} inventory={activeInventory} saleCount={saleCount} isCJ={isCJ} />
-                </div>
-              </div>
-
-              {hasVariants && (
-                <div className="px-6 pt-4 pb-4 border-b border-[var(--color-border)]">
-                  <VariantSelector variants={variants} productName={product.name} selectedVariantId={selectedVariant?.id ?? null} onSelect={handleVariantSelect} />
-                </div>
-              )}
-
-              {packageWarnings.length > 0 && (
-                <div className="px-6 pt-4"><PackageWarning notes={packageWarnings} /></div>
-              )}
-
-              <div className="p-6 space-y-3">
-                <ProductActionModule
-                  product={productProps}
-                  vendor={vendorProps}
-                  selectedVariantId={selectedVariant?.id ?? null}
-                  selectedVariantOutOfStock={isOutOfStock}
-                  currentPath={`/marketplace/${product.slug}`}
-                  className="h-12 rounded-xl text-sm font-bold"
-                />
-                {!isCJ && activeInventory > 0 && activeInventory <= 5 && (
-                  <div className="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400">
-                    <Info className="h-3.5 w-3.5 shrink-0" />
-                    <span>Only {activeInventory} left — order soon</span>
-                  </div>
-                )}
-                {hasVariants && isOutOfStock && (
-                  <div className="flex items-center gap-2 text-xs text-red-500">
-                    <Info className="h-3.5 w-3.5 shrink-0" />
-                    <span>This option is out of stock</span>
-                  </div>
-                )}
-                <SecureCheckoutBadge />
-              </div>
-
-              <div className="px-6 pb-4 space-y-3">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">What's included</p>
-                <div className="space-y-2.5">
-                  {[
-                    bestShipping
-                      ? { icon: Truck, text: bestShipping.is_free_shipping ? "Free shipping" : bestShipping.method_name, sub: bestShipping.estimated_delivery ?? legacyShippingDays }
-                      : { icon: Truck, text: isFreeShipping ? "Free shipping" : "Standard shipping", sub: `Delivered in ${legacyShippingDays}` },
-                    { icon: ShieldCheck, text: "7-day money-back guarantee", sub: "No questions asked" },
-                    { icon: Clock, text: "Priority global logistics", sub: "Tracked & insured" },
-                    { icon: Lock, text: "Secure payment", sub: "256-bit SSL encrypted" },
-                  ].map(({ icon: Icon, text, sub }) => (
-                    <div key={text} className="flex items-start gap-3">
-                      <div className="h-7 w-7 rounded-lg bg-orange-500/10 flex items-center justify-center shrink-0 mt-0.5">
-                        <Icon className="h-3.5 w-3.5 text-orange-500" />
-                      </div>
-                      <div>
-                        <p className="text-xs font-semibold text-[var(--color-text-primary)] leading-none">{text}</p>
-                        <p className="text-[10px] text-[var(--color-text-muted)] mt-0.5">{sub}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="px-6 pb-5"><BuyerProtectionSection /></div>
-
-              {vendor && (
-                <div className="px-6 py-4 border-t border-[var(--color-border)] bg-[var(--color-surface-secondary)]">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="h-8 w-8 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden flex items-center justify-center shrink-0">
-                      {vendor.business_logo
-                        ? <img src={vendor.business_logo} className="w-full h-full object-cover" alt="" />
-                        : <ShoppingBag className="h-3.5 w-3.5 text-[var(--color-text-muted)]" />}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold text-[var(--color-text-primary)] truncate leading-none">{vendor.business_name}</p>
-                      <p className="text-[10px] text-[var(--color-text-muted)] mt-0.5 flex items-center gap-1">
-                        <BadgeCheck className="h-3 w-3 text-blue-500 shrink-0" /> Verified Supplier
-                      </p>
-                    </div>
-                    <Link
-                      href={`/vendors/${vendor.business_slug}`}
-                      className="text-[10px] font-semibold text-orange-500 hover:text-orange-600 transition-colors flex items-center gap-0.5 shrink-0"
-                    >
-                      Store <ArrowRight className="h-3 w-3" />
-                    </Link>
-                  </div>
-                  <FollowButton
-                    vendorId={vendor.id}
-                    initialFollowing={followedVendorIds.includes(String(vendor.id))}
-                    className="w-full h-9 rounded-xl border border-[var(--color-border)] text-[12px] font-semibold"
-                  />
-                </div>
-              )}
+          <aside className="lg:col-span-3 hidden lg:block">
+            <div className="sticky top-24 space-y-4">
+              {shippingCards}
+              <CompactBuyerProtectionCard />
+              <WhyChooseSection brandName="Jimvio" />
+              <LiveActivityFeedSidebar liveViewers={liveViewers} />
             </div>
           </aside>
         </div>
       </div>
-
       <MobileStickyBuyBar
         price={activePrice}
         compareAtPrice={activeCompareAt}

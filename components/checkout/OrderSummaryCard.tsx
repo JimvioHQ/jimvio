@@ -9,19 +9,20 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { CartOrder, CartItem } from "@/types";
+import { FieldInput } from "../ui/field-input";
 
 interface OrderSummaryCardProps {
     orders: CartOrder[];
     items: CartItem[];
     subtotal: number;
     discount: number;
-    shipping: number | null; 
+    shipping: number | null;
     total: number;
     currency: string;
     formatMoney: (v: number, c: string) => string;
 
     isAllDigital: boolean;
-    features?: string[]; 
+    features?: string[];
 
     promoCode: string;
     onPromoChange: (v: string) => void;
@@ -100,7 +101,7 @@ export function OrderSummaryCard({
                             {heroItem.product_name}
                         </p>
                         <p className="text-[11px] text-[var(--color-text-muted)] mt-0.5">
-                            Qty: {heroItem.quantity}
+                            Qty: {heroItem.quantity} <span className="mx-1">·</span> {heroItem.product_type}
                         </p>
                     </div>
                     <p className="text-[13px] font-semibold text-[var(--color-text-primary)] flex-shrink-0">
@@ -173,16 +174,16 @@ export function OrderSummaryCard({
                     })}
                 </div>
             )}
-
+            <pre>{JSON.stringify(orders, null, 2)}</pre>
             {/* Promo code */}
             <div className="flex items-center gap-2">
                 <div className="relative flex-1">
                     <Tag className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--color-text-muted)] pointer-events-none" />
-                    <input
+                    <FieldInput
                         value={promoCode}
                         onChange={(e) => onPromoChange(e.target.value)}
                         placeholder="Enter promo code (e.g. JIMVIO10)"
-                        className="w-full h-10 pl-9 pr-3 rounded-sm border border-[var(--color-border)] bg-[var(--color-surface-secondary)] text-[12.5px] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)]/80 focus:outline-none focus:border-[var(--color-text-muted)]"
+                        className="pl-9 pr-3 h-10 w-full placeholder:text-[var(--color-text-muted)]/80"
                     />
                 </div>
                 <button

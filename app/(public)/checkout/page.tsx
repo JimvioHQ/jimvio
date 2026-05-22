@@ -223,7 +223,7 @@ export default async function CheckoutPage(props: {
 
   return (
     <div className="min-h-screen bg-[var(--color-bg)]">
-      <div className="max-w-7xl mx-auto px-0 sm:px-4 md:px-6">
+      <div className="max-w-8xl mx-auto px-0 sm:px-4 md:px-6">
         <CheckoutExperience
           orders={finalOrders as never}
           profile={profile}

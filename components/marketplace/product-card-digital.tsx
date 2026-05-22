@@ -10,6 +10,7 @@ import {
   X,
   ArrowRight,
   Repeat,
+  Minus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -202,20 +203,14 @@ export function ProductCardDigital({
           )}
 
           {onSale && (
-            <span className="absolute bottom-3 left-3 px-2 py-0.5 rounded-full bg-[var(--color-surface)]/95 backdrop-blur-sm text-[10px] font-medium tracking-wide text-rose-600">
-              −{discount}%
+            <span className="absolute flex items-center gap-1 bottom-3 left-3 px-2 py-0.5 rounded-full bg-[var(--color-surface)]/95 backdrop-blur-sm text-[10px] font-medium tracking-wide text-rose-600">
+              <Minus size={12} />{discount}%
             </span>
           )}
         </Link>
 
         {/* ── Info ──────────────────────────────────────────────── */}
         <div className="flex flex-col flex-1 p-3.5 sm:p-4 gap-2.5">
-          {/* Vendor */}
-          {p.vendors?.business_name && (
-            <p className="text-[10.5px] font-medium uppercase tracking-[0.08em] text-[var(--color-text-muted)] truncate">
-              {p.vendors.business_name}
-            </p>
-          )}
 
           {/* Name */}
           <Link href={`${detailBasePath}/${p.slug}`} className="min-w-0 block">

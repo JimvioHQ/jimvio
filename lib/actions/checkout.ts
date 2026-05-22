@@ -173,10 +173,11 @@ export async function startCheckout() {
     .eq("buyer_id", user.id)
     .eq("status", "pending")
     .in("payment_status", ["pending", "failed"])
-    .eq("metadata->cart_id", cart.id);
+    .filter("metadata->>cart_id", "eq", cart.id);
 
   if (fetchExistingError) {
     console.error("[startCheckout] Failed to fetch existing orders:", fetchExistingError);
+    return { error: "Could not validate existing checkout orders. Please try again." };
   }
 
   if (existingOrders && existingOrders.length > 0) {

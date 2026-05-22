@@ -352,15 +352,8 @@ export function CheckoutExperience({
 
    return (
       <div className="min-h-screen bg-[var(--color-bg)] flex flex-col">
-         <CheckoutTopBar
-            country={countryInfo.name}
-            countryCode={countryCode}
-            currency={currency}
-            flagEmoji={countryInfo.flag}
-         />
-
          <div className="flex-1 pb-20">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-10">
+            <div className="w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-10">
 
                <Link
                   href="/cart"

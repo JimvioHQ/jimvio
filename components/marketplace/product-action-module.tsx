@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import {
   ShoppingCart, Loader2, CheckCircle2, Heart, MessageSquare,
   Zap, Gift, FolderOpen, AlertCircle,
+  ShoppingBag,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -184,22 +185,33 @@ export function ProductActionModule({
     ? false
     : selectedVariantId === null;
 
-  function PrimaryIcon() {
-    if (loading) return <Loader2 className="mr-2 h-4 w-4 animate-spin" />;
-    if (added) return <CheckCircle2 className="mr-2 h-4 w-4" />;
-    if (isOutOfStock) return <AlertCircle className="mr-2 h-4 w-4" />;
-    if (isFree) return <Gift className="mr-2 h-4 w-4" />;
-    if (isDigital) return <Zap className="mr-2 h-4 w-4" />;
-    return <ShoppingCart className="mr-2 h-4 w-4" />;
-  }
+  const primaryIcon = isFreeDigital && !ownershipChecked ? (
+    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+  ) : loading ? (
+    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+  ) : added ? (
+    <CheckCircle2 className="mr-2 h-4 w-4" />
+  ) : isOutOfStock ? (
+    <AlertCircle className="mr-2 h-4 w-4" />
+  ) : isFree ? (
+    <Gift className="mr-2 h-4 w-4" />
+  ) : isDigital ? (
+    <Zap className="mr-2 h-4 w-4" />
+  ) : (
+    <ShoppingCart className="mr-2 h-4 w-4" />
+  );
 
-  function primaryLabel() {
-    if (loading) return isDigital ? "Processing…" : "Adding…";
-    if (added) return "Added!";
-    if (isOutOfStock) return "Out of stock";
-    if (noVariantSelected) return "Select options";
-    return btnText;
-  }
+  const primaryButtonText = isFreeDigital && !ownershipChecked
+    ? "Checking…"
+    : loading
+      ? isDigital ? "Processing…" : "Adding…"
+      : added
+        ? "Added!"
+        : isOutOfStock
+          ? "Out of stock"
+          : noVariantSelected
+            ? "Select options"
+            : btnText;
 
   const primaryButtonClass = cn(
     "flex-1 font-semibold text-[13px] transition-all duration-300 rounded-xl border-none",
@@ -249,24 +261,36 @@ export function ProductActionModule({
             Access your copy
           </Link>
         ) : (
-          <Button
-            onClick={handleAddToCart}
-            disabled={
-              loading ||
-              added ||
-              isOutOfStock ||
-              noVariantSelected ||
-              (isFreeDigital && !ownershipChecked)
-            }
-            className={primaryButtonClass}
-          >
-            {isFreeDigital && !ownershipChecked ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <PrimaryIcon />
-            )}
-            {isFreeDigital && !ownershipChecked ? "Checking…" : primaryLabel()}
-          </Button>
+          <div className="flex gapx-x-3">
+            <Button
+              onClick={handleAddToCart}
+              disabled={
+                loading ||
+                added ||
+                isOutOfStock ||
+                noVariantSelected ||
+                (isFreeDigital && !ownershipChecked)
+              }
+              className={primaryButtonClass}
+            >
+              {primaryIcon}
+              {primaryButtonText}
+            </Button>
+
+            <Button
+              disabled={
+                loading ||
+                added ||
+                isOutOfStock ||
+                noVariantSelected ||
+                (isFreeDigital && !ownershipChecked)
+              }
+              className={cn("bg-surface", primaryButtonClass)}
+            >
+              <ShoppingBag size={15} />
+              {"Buy Now"}
+            </Button>
+          </div>
         )}
       </div>
 

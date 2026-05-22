@@ -717,14 +717,10 @@ export function PaymentMethodSelector({
                 "relative w-full text-left transition-all duration-150 active:scale-[0.995]",
                 "rounded-sm overflow-hidden border",
                 active
-                  ? "bg-orange-50 border-[var(--color-border-tertiary)] dark:bg-orange-950/20 shadow-[0_10px_30px_rgba(253,110,50,0.08)]"
-                  : "bg-[var(--color-background-primary)] border-[var(--color-border-tertiary)] hover:border-[var(--color-border-secondary)]"
+                  ? "bg-orange-50 border-accent-400 ring-1 ring-accent-400 dark:bg-orange-950/20 shadow-[0_10px_30px_rgba(253,110,50,0.08)]"
+                  : "bg-[var(--color-background-primary)] border-[var(--color-border)]"
               )}
             >
-              {/* Top accent for selected state */}
-              {active && (
-                <div className="absolute inset-x-0 top-0 h-1" style={{ background: "linear-gradient(90deg,#ff7a18,#ff4500)" }} />
-              )}
               <div className="flex items-center gap-4 px-4 py-3.5">
 
                 {/* Large icon — colored circle */}

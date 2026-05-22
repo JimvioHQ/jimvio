@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { MessageCircle, ShoppingBag, Check, X } from "lucide-react";
+import { MessageCircle, ShoppingBag, Check, X, Minus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   addToCart,
@@ -243,8 +243,8 @@ export function ProductCardPhysical({
           )}
 
           {onSale && (
-            <span className="absolute top-3 left-3 px-2 py-0.5 rounded-full bg-[var(--color-surface)]/95 backdrop-blur-sm text-[10px] font-medium tracking-wide text-rose-600">
-              −{discount}%
+            <span className="absolute flex items-center gap-2 top-3 left-3 px-2 py-0.5 rounded-full bg-[var(--color-surface)]/95 backdrop-blur-sm text-[10px] font-medium tracking-wide text-rose-600">
+              <Minus size={12} />{discount}%
             </span>
           )}
 
@@ -257,13 +257,6 @@ export function ProductCardPhysical({
 
         {/* ── Info ──────────────────────────────────────────────── */}
         <div className="flex flex-col flex-1 p-3.5 sm:p-4 gap-2.5">
-          {/* Vendor */}
-          {p.vendors?.business_name && (
-            <p className="text-[10.5px] font-medium uppercase tracking-[0.08em] text-[var(--color-text-muted)] truncate">
-              {p.vendors.business_name}
-            </p>
-          )}
-
           {/* Name — fixed two-line height keeps cards aligned regardless of length */}
           <Link
             href={`${detailBasePath}/${p.slug}`}
@@ -357,10 +350,10 @@ export function ProductCardPhysical({
         vendor={
           p.vendors
             ? {
-                id: p.vendors.id,
-                business_name: p.vendors.business_name ?? "",
-                business_slug: p.vendors.business_slug,
-              }
+              id: p.vendors.id,
+              business_name: p.vendors.business_name ?? "",
+              business_slug: p.vendors.business_slug,
+            }
             : null
         }
         open={quickViewOpen}
