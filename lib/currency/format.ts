@@ -40,10 +40,6 @@ export function formatConvertedPrice(
   return formatCurrency(local, displayCurrency);
 }
 
-/**
- * Convert a stored amount from `fromCurrency` to `toCurrency` using USD as bridge.
- * `rates[X]` = units of X per 1 USD (exchangerate-api shape).
- */
 export function convertAmountToDisplayCurrency(
   amount: number,
   fromCurrency: string,
@@ -141,4 +137,32 @@ export function formatAggregatedCartTotalInDisplayCurrency(
     total += conv;
   }
   return formatCurrency(roundForDisplay(total, displayCurrency), displayCurrency);
+}
+
+
+export function formatMoneyV2(
+  amount: number,
+  from: string,
+  to: CurrencyCode,
+  rates: Record<string, number>
+): string {
+  if (!Number.isFinite(amount)) return formatCurrency(0, to);
+
+  const fromCode = (from || "USD").toUpperCase();
+
+  // Same currency — skip conversion entirely
+  if (fromCode === to) {
+    return formatCurrency(amount, to);
+  }
+
+  // No rates yet — show in source currency rather than a wrong number
+  if (Object.keys(rates).length === 0) {
+    return formatCurrency(amount, isSupportedCurrencyCode(fromCode) ? fromCode : to);
+  }
+
+  const converted = convertAmountToDisplayCurrency(amount, fromCode, to, rates);
+  if (converted === null) {
+    return formatCurrency(amount, isSupportedCurrencyCode(fromCode) ? fromCode : to);
+  }
+  return formatCurrency(converted, to);
 }

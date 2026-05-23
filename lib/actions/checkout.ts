@@ -88,7 +88,6 @@ async function recordOrderStatusChange(
   }
 }
 
-// ─── updatePendingOrdersShipping ─────────────────────────────────────────────
 
 export async function updatePendingOrdersShipping(payload: ShippingPayload) {
   const supabase = await createClient();
@@ -106,10 +105,12 @@ export async function updatePendingOrdersShipping(payload: ShippingPayload) {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.email)) {
     return { success: false as const, error: "Invalid email" };
   }
-  if (!/^[A-Z]{2}$/.test(payload.countryCode)) {
+
+  const normalisedCountryCode = payload.countryCode?.trim().toUpperCase();
+  if (!/^[A-Z]{2}$/.test(normalisedCountryCode)) {
     return {
       success: false as const,
-      error: "Country code must be 2 uppercase letters",
+      error: "Country code must be a valid 2-letter code",
     };
   }
 
@@ -122,8 +123,8 @@ export async function updatePendingOrdersShipping(payload: ShippingPayload) {
     address2: (payload.address2 ?? "").slice(0, 200),
     city: payload.city.slice(0, 100),
     country: payload.country.slice(0, 100),
-    country_code: payload.countryCode,
-    zip: payload.zip.slice(0, 20),
+    country_code: normalisedCountryCode,
+    zip: (payload.zip ?? "").slice(0, 20),
   };
 
   const update: OrderUpdate = {
@@ -135,16 +136,24 @@ export async function updatePendingOrdersShipping(payload: ShippingPayload) {
     update.shipping_amount = payload.shippingAmount;
   }
 
-  const { error } = await supabase
+  const { error, data } = await supabase
     .from("orders")
     .update(update)
     .eq("buyer_id", user.id)
     .eq("status", "pending")
     .in("payment_status", ["pending", "failed"])
-    .in("id", payload.orderIds);
+    .in("id", payload.orderIds)
+    .select("id");
 
   if (error) {
     return { success: false as const, error: error.message };
+  }
+
+  if (!data?.length) {
+    return {
+      success: false as const,
+      error: "No eligible orders found to update. They may have already been paid or belong to a different account.",
+    };
   }
 
   revalidatePath("/checkout");

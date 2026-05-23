@@ -92,18 +92,17 @@ export async function POST(req: NextRequest) {
         }
 
         const cjData = await cjRes.json();
-
         if (cjData.result !== true) {
             return NextResponse.json({ success: true, rates: [], error: cjData.message });
         }
         const rawRates: any[] = cjData.data ?? [];
         const fxRate = await getExchangeRate("USD", orderCurrency);
-        
+
         const rates = rawRates.map((r: any) => ({
             optionId: r.logisticName ?? r.channelName,
             channelId: r.channelCode ?? r.logisticCode,
             name: r.logisticName ?? r.channelName,
-            arrivalDays: String(r.agingMax ?? r.days ?? "7-14"),
+            arrivalDays: String(r.agingMax ?? r.days ?? r.logisticAging ?? "7-14"),
             priceUSD: Number(r.logisticPrice ?? r.price ?? 0),
             priceLocal: Number(((r.logisticPrice ?? r.price ?? 0) * fxRate).toFixed(2)),
             localCurrency: orderCurrency.toUpperCase(),

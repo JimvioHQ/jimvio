@@ -12,6 +12,7 @@ import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Product, Vendor } from "@/types/db";
+import { CurrencyCode } from "@/lib/currency/config";
 
 
 
@@ -424,7 +425,7 @@ export function RelatedProducts({
     formatMoney,
 }: {
     products: any[];
-    formatMoney: (price: number, currency: string) => string;
+    formatMoney: (price: number, currency: CurrencyCode) => string;
 }) {
     if (!products.length) return null;
     return (

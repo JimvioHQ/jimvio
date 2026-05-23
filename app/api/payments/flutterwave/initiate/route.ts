@@ -1,11 +1,10 @@
-
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { createFlutterwavePaymentLink } from "@/lib/flutterwave";
 import { usdToRwfAmount } from "@/lib/money";
 import { generateTxRef } from "@/lib/payments/tx-ref";
-import { verifyFlutterwaveTransaction } from "@/lib/payments/Transaction-verify";
+import { verifyFlutterwaveTransaction, FlutterwaveAPIError } from "@/lib/payments/Transaction-verify";
 
 export const dynamic = "force-dynamic";
 
@@ -80,30 +79,6 @@ function normaliseToRwf(
   return { amount: converted, currency: "RWF", fxRate };
 }
 
-// function safeReturnUrl(
-//   requested: string | undefined,
-//   origin: string,
-//   orderId: string,
-//   txRef: string
-// ): string {
-//   const fallback =
-//     `${origin}/checkout/success` +
-//     `?order=${orderId}&provider=flutterwave&tx_ref=${txRef}`;
-
-//   if (!requested) return fallback;
-
-//   try {
-//     const parsed = new URL(requested);
-//     if (!ALLOWED_RETURN_HOSTS.has(parsed.hostname)) return fallback;
-//     parsed.searchParams.set("order", orderId);
-//     parsed.searchParams.set("provider", "flutterwave");
-//     parsed.searchParams.set("tx_ref", txRef);
-//     return parsed.toString();
-//   } catch {
-//     return fallback;
-//   }
-// }
-
 function safeReturnUrl(
   origin: string,
   orderId: string,
@@ -112,7 +87,6 @@ function safeReturnUrl(
   const base = `${origin}/api/payments/flutterwave/callback`;
   return `${base}?order=${orderId}&tx_ref=${txRef}`;
 }
-
 
 async function buildAndReturnPaymentLink({
   supabase,
@@ -143,7 +117,6 @@ async function buildAndReturnPaymentLink({
     "https://www.jimvio.com";
 
   const redirectUrl = safeReturnUrl(origin, orderId, txRef);
-  console.log({ redirectUrl });
 
   let paymentLink: string;
   try {
@@ -238,12 +211,23 @@ export async function POST(req: NextRequest) {
     let txRef: string;
 
     if (existingTx) {
-      // Verify the transaction status with Flutterwave before reusing it.
-      const verify = await verifyFlutterwaveTransaction(existingTx.provider_transaction_id);
-      const flwStatus = verify.data?.status;
+      // Verify the existing transaction with Flutterwave.
+      // "Not found" means the tx_ref was never submitted (e.g. link was never
+      // opened) — treat it the same as failed and issue a fresh ref.
+      let flwStatus: string;
+
+      try {
+        const verify = await verifyFlutterwaveTransaction(existingTx.provider_transaction_id);
+        flwStatus = verify.data?.status?.toLowerCase() ?? "unknown";
+      } catch (err) {
+        if (err instanceof FlutterwaveAPIError && err.isNotFound) {
+          flwStatus = "not_found";
+        } else {
+          throw err; // unexpected — let the outer catch log it
+        }
+      }
 
       if (flwStatus === "successful") {
-
         await supabase
           .from("transactions")
           .update({ status: "completed" })
@@ -251,17 +235,16 @@ export async function POST(req: NextRequest) {
         return apiError(400, { code: "ORDER_ALREADY_PAID", currentStatus: "paid" });
       }
 
-      if (flwStatus === "failed" || verify.status === "failed") {
+      if (flwStatus === "failed" || flwStatus === "not_found") {
+        // Mark the stale record failed and fall through to create a new one
         await supabase
           .from("transactions")
           .update({ status: "failed" })
           .eq("id", existingTx.id);
 
-        // Fall through to create a new transaction below.
         txRef = generateTxRef("FLW");
       } else {
-        // Still genuinely pending — reuse the existing txRef and regenerate
-        // the payment link so the customer can try again.
+        // Still pending on Flutterwave's side — reuse the existing tx_ref
         txRef = existingTx.provider_transaction_id;
 
         const result = await buildAndReturnPaymentLink({
@@ -271,7 +254,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ redirectUrl: result.redirectUrl, txRef });
       }
     } else {
-      // No recent pending TX — mark any stale ones failed and generate fresh.
+      // Expire any pending transactions outside the reuse window
       await supabase
         .from("transactions")
         .update({ status: "failed" })
@@ -283,6 +266,7 @@ export async function POST(req: NextRequest) {
       txRef = generateTxRef("FLW");
     }
 
+    // ── 4. Insert new transaction record ──────────────────────────────────
     const { error: txError } = await supabase.from("transactions").insert({
       user_id: order.buyer_id,
       order_id: orderId,
@@ -308,6 +292,7 @@ export async function POST(req: NextRequest) {
       return apiError(500, { code: "INTERNAL_ERROR", reason: txError.message });
     }
 
+    // ── 5. Build and return payment link ──────────────────────────────────
     const result = await buildAndReturnPaymentLink({
       supabase, req, returnUrl, orderId, txRef, amount, currency, profile, order, channel,
     });

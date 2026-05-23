@@ -1,8 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { getOrRefreshAccessToken } from "@/lib/cj/auth";
 
 const CJ_BASE = "https://developers.cjdropshipping.com/api2.0/v1";
+
+// Expected, user-facing errors — logged at debug level, not as errors
+class UserError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = "UserError";
+    }
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -17,6 +26,9 @@ interface CJShippingOption {
     name: string;
     arrivalDays: string;
     priceUSD: number;
+    priceLocal: number;
+    localCurrency: string;
+    fxRate: number;
 }
 
 interface CJRateRow {
@@ -28,29 +40,6 @@ interface CJRateRow {
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-async function getCJToken(): Promise<string> {
-    const supabase = createServiceRoleClient();
-    const { data, error } = await supabase
-        .from("platform_settings")
-        .select("value")
-        .eq("key", "cj_credentials")
-        .single();
-
-    if (error) throw new Error(`CJ credentials lookup failed: ${error.message}`);
-
-    const value = data?.value as any;
-    const token = value?.access_token as string | undefined;
-    const expiresAt = value?.token_expires_at as string | undefined;
-
-    if (!token) throw new Error("CJ credentials not configured");
-
-    if (expiresAt && new Date(expiresAt).getTime() < Date.now()) {
-        console.warn("[CJ] access_token expired at", expiresAt);
-    }
-
-    return token;
-}
 
 function toPriceUSD(v: unknown): number {
     if (typeof v === "number" && Number.isFinite(v)) return v;
@@ -66,11 +55,29 @@ function formatAging(aging: string | undefined): string | null {
     return aging.replace(/\s+/g, "").replace(/–|—/g, "-");
 }
 
+async function getExchangeRate(
+    fromCurrency: string,
+    toCurrency: string
+): Promise<number> {
+    if (fromCurrency.toUpperCase() === toCurrency.toUpperCase()) return 1;
+    try {
+        const res = await fetch(
+            `https://api.exchangerate-api.com/v4/latest/${fromCurrency.toUpperCase()}`
+        );
+        if (!res.ok) throw new Error("Exchange rate fetch failed");
+        const data = await res.json();
+        return data.rates?.[toCurrency.toUpperCase()] ?? 1;
+    } catch {
+        return 1;
+    }
+}
+
 // ─── Operation A: fetch shipping rates ────────────────────────────────────────
 
 async function fetchRates(
     destCountryCode: string,
-    cartItems: CartItemInput[]
+    cartItems: CartItemInput[],
+    orderCurrency = "USD"
 ): Promise<{ rates: CJShippingOption[]; skipped: string[] }> {
     const supabase = createServiceRoleClient();
 
@@ -118,7 +125,7 @@ async function fetchRates(
         throw new Error("No valid CJ variants found for shipping calculation");
     }
 
-    const token = await getCJToken();
+    const token = await getOrRefreshAccessToken();
 
     const res = await fetch(`${CJ_BASE}/logistic/freightCalculate`, {
         method: "POST",
@@ -142,43 +149,43 @@ async function fetchRates(
     }
 
     const raw: CJRateRow[] = Array.isArray(json?.data) ? json.data : [];
-
     if (process.env.NODE_ENV !== "production") {
         console.log(
             "[CJ raw rates]",
-            JSON.stringify(
-                raw.map((r) => ({
-                    name: r.logisticName,
-                    aging: r.logisticAging,
-                    price: r.logisticPrice,
-                })),
-                null,
-                2
-            )
+            raw.map((r) => ({
+                name: r.logisticName,
+                aging: r.logisticAging,
+                price: r.logisticPrice,
+            }))
         );
     }
 
-    const rates: CJShippingOption[] = raw.map((r, idx) => ({
-        optionId: `${r.logisticCode ?? r.logisticAbbreviation ?? r.logisticName ?? "opt"}-${idx}`,
-        channelId: r.logisticCode ?? r.logisticAbbreviation ?? r.logisticName ?? "",
-        name: r.logisticName ?? "Standard Shipping",
-        arrivalDays: formatAging(r.logisticAging) ?? "",
-        priceUSD: toPriceUSD(r.logisticPrice),
-    }));
+    const fxRate = await getExchangeRate("USD", orderCurrency);
+
+    const rates: CJShippingOption[] = raw.map((r, idx) => {
+        const priceUSD = toPriceUSD(r.logisticPrice);
+        return {
+            optionId: `${r.logisticCode ?? r.logisticAbbreviation ?? r.logisticName ?? "opt"}-${idx}`,
+            channelId: r.logisticCode ?? r.logisticAbbreviation ?? r.logisticName ?? "",
+            name: r.logisticName ?? "Standard Shipping",
+            arrivalDays: formatAging(r.logisticAging) ?? "",
+            priceUSD,
+            priceLocal: Number((priceUSD * fxRate).toFixed(2)),
+            localCurrency: orderCurrency.toUpperCase(),
+            fxRate,
+        };
+    });
 
     rates.sort((a, b) => a.priceUSD - b.priceUSD);
 
     return { rates, skipped };
 }
 
-// ─── Operation B: save shipping selection ─────────────────────────────────────
-// SECURITY: re-fetch rates server-side and use the trusted USD price, not the
-// price sent in the request body. Buyer-supplied prices are never trusted.
-
 async function saveSelection(
     orderIds: string[],
     shippingOption: { optionId?: string; channelId?: string; name: string },
-    buyerId: string
+    buyerId: string,
+    fallbackCountryCode?: string
 ): Promise<{ priceUSD: number; name: string }> {
     const supabase = createServiceRoleClient();
 
@@ -190,16 +197,16 @@ async function saveSelection(
         .in("id", orderIds);
 
     if (error) throw new Error(`Order verification failed: ${error.message}`);
-    if (!orders?.length) throw new Error("No matching orders found");
+    if (!orders?.length) throw new UserError("No matching orders found");
 
     const unauthorized = orders.filter((o) => o.buyer_id !== buyerId);
     if (unauthorized.length) {
-        throw new Error("Unauthorized: orders do not belong to this user");
+        throw new UserError("Unauthorized: orders do not belong to this user");
     }
 
     const alreadyPaid = orders.filter((o) => o.payment_status === "paid");
     if (alreadyPaid.length) {
-        throw new Error("Cannot change shipping on a paid order");
+        throw new UserError("Cannot change shipping on a paid order");
     }
 
     // Re-derive cart from the orders so the buyer can't tamper with variants/qty
@@ -209,17 +216,20 @@ async function saveSelection(
             .map((it: any) => ({ variantId: it.variant_id, quantity: it.quantity }))
     );
 
-    if (!cartItems.length) throw new Error("No CJ items found on these orders");
+    if (!cartItems.length) throw new UserError("No CJ items found on these orders");
 
-    // Use destination from the first order's saved address
     const destCountryCode =
-        (orders[0] as any)?.shipping_address?.country_code ?? null;
+        (orders[0] as any)?.shipping_address?.country_code ??
+        fallbackCountryCode ??
+        null;
     if (!destCountryCode) {
-        throw new Error("Shipping address not saved — cannot verify rates");
+        throw new UserError(
+            "Cannot verify shipping rates: no country code on the order or in the request"
+        );
     }
 
-    // Re-quote — this is the trusted price
-    const { rates } = await fetchRates(destCountryCode, cartItems);
+    // Re-quote — this is the trusted price (no currency conversion needed here)
+    const { rates } = await fetchRates(destCountryCode, cartItems, "USD");
     const trusted = rates.find(
         (r) =>
             r.optionId === shippingOption.optionId ||
@@ -254,7 +264,10 @@ async function saveSelection(
 export async function POST(req: NextRequest) {
     try {
         const supabase = await createClient();
-        const { data: { user } } = await supabase.auth.getUser();
+        const {
+            data: { user },
+        } = await supabase.auth.getUser();
+
         if (!user) {
             return NextResponse.json(
                 { success: false, error: "Unauthorized" },
@@ -270,10 +283,9 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // Save operation
+        // ── Save operation ───────────────────────────────────────────────────
         if (body.orderIds && body.shippingOption) {
-            const { orderIds, shippingOption } = body;
-
+            const { orderIds, shippingOption, destCountryCode } = body;
             if (!Array.isArray(orderIds) || !orderIds.length) {
                 return NextResponse.json(
                     { success: false, error: "orderIds must be a non-empty array" },
@@ -287,15 +299,27 @@ export async function POST(req: NextRequest) {
                 );
             }
 
-            const result = await saveSelection(orderIds, shippingOption, user.id);
+            const result = await saveSelection(
+                orderIds,
+                shippingOption,
+                user.id,
+                typeof destCountryCode === "string" ? destCountryCode : undefined
+            );
             return NextResponse.json({ success: true, ...result });
         }
 
-        // Fetch operation
+        // ── Fetch operation ──────────────────────────────────────────────────
         if (body.destCountryCode && body.cartItems) {
-            const { destCountryCode, cartItems } = body;
+            const {
+                destCountryCode,
+                cartItems,
+                orderCurrency = "USD",
+            } = body;
 
-            if (typeof destCountryCode !== "string" || destCountryCode.length !== 2) {
+            if (
+                typeof destCountryCode !== "string" ||
+                destCountryCode.length !== 2
+            ) {
                 return NextResponse.json(
                     {
                         success: false,
@@ -311,7 +335,11 @@ export async function POST(req: NextRequest) {
                 );
             }
 
-            const { rates, skipped } = await fetchRates(destCountryCode, cartItems);
+            const { rates, skipped } = await fetchRates(
+                destCountryCode,
+                cartItems,
+                orderCurrency
+            );
             return NextResponse.json({ success: true, rates, skipped });
         }
 
@@ -320,6 +348,12 @@ export async function POST(req: NextRequest) {
             { status: 400 }
         );
     } catch (err: any) {
+        if (err instanceof UserError) {
+            return NextResponse.json(
+                { success: false, error: err.message },
+                { status: 400 }
+            );
+        }
         console.error("[/api/cj/set-shipping]", err);
         return NextResponse.json(
             { success: false, error: err.message ?? "Internal server error" },

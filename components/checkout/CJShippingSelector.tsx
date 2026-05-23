@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { CJShippingOption } from "@/types";
+import { CurrencyCode } from "@/lib/currency/config";
 
 interface CJShippingSelectorProps {
   options: CJShippingOption[];
@@ -15,7 +16,7 @@ interface CJShippingSelectorProps {
   onSelect: (opt: CJShippingOption) => void;
   loading: boolean;
   error: string;
-  formatMoney: (v: number, c: string) => string;
+  formatMoney: (v: number, c: CurrencyCode) => string;
   /** Optional retry callback when error is set */
   onRetry?: () => void;
 }
@@ -113,8 +114,7 @@ export function CJShippingSelector({
     }
     return sortDir === "asc" ? cmp : -cmp;
   });
-
-  // Find the fastest and cheapest for badging
+  
   const cheapestPrice = Math.min(...options.map((o) => o.priceUSD));
   const fastestDays = Math.min(
     ...options.map((o) =>
@@ -132,11 +132,9 @@ export function CJShippingSelector({
   };
 
   return (
-    <div className="rounded-xl border border-[var(--color-border)] overflow-hidden bg-[var(--color-surface)]">
-
-      {/* Table header */}
+    <div className="rounded-md border border-[var(--color-border)] overflow-hidden bg-[var(--color-surface)]">
       <div className="grid grid-cols-[1fr_120px_80px_110px_44px] gap-2 px-4 py-2.5 bg-[var(--color-surface-secondary)] border-b border-[var(--color-border)] text-[10px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">
-        <SortHeader 
+        <SortHeader
           label="Shipping method"
           active={sortKey === "name"}
           dir={sortDir}

@@ -91,21 +91,17 @@ const COUNTRY_NAMES: Record<string, { name: string; flag: string }> = {
 export function CheckoutExperience({
    orders, profile, preferredMethod, mode = "cart",
 }: CheckoutExperienceProps) {
-   const { formatMoney, userCurrency, rates } = useCurrency();
+   const { formatMoney, rates } = useCurrency();
 
    const isCJOrder = hasCJItems(orders);
    const isCommunity = mode === "community";
    const allItems = useMemo(() => orders.flatMap((o) => o.order_items), [orders]);
    const isAllDigital = allItems.every((i) => i.product_type === "digital");
 
-   const currency = userCurrency;
+   const currency = orders[0]?.currency ?? "USD";
    const countryCode = orders[0]?.shipping_address?.country_code ?? "RW";
    const countryInfo = COUNTRY_NAMES[countryCode] ?? { name: countryCode, flag: "🌐" };
 
-   // ── Stage management ──────────────────────────────────────────────────────
-   // Digital products skip straight to payment.
-   // Physical products start at shipping, then payment.
-   // CJ products add a delivery stage between shipping and payment.
    const [stage, setStage] = useState<Stage>(
       isAllDigital || isCommunity ? "payment" : "shipping"
    );
@@ -119,7 +115,6 @@ export function CheckoutExperience({
       return defaultPayment(currency);
    });
 
-   // ── Shipping form ─────────────────────────────────────────────────────────
    const existingAddr = orders[0]?.shipping_address;
    const nameParts = (profile?.full_name ?? "").split(" ");
    const [shipping, setShipping] = useState<ShippingFormValues>({
@@ -297,12 +292,11 @@ export function CheckoutExperience({
          });
          if (!save.success) throw new Error(save.error ?? "Couldn't save shipping");
 
-         // CJ method save
          if (isCJOrder && cjSelected) {
             const cjRes = await fetch("/api/cj/set-shipping", {
                method: "POST",
                headers: { "Content-Type": "application/json" },
-               body: JSON.stringify({ orderIds, shippingOption: cjSelected }),
+               body: JSON.stringify({ orderIds, shippingOption: cjSelected,destCountryCode: shipping.countryCode}),
             });
             const cjJson = await cjRes.json();
             if (!cjJson.success) throw new Error(cjJson.error ?? "Failed to save delivery");
@@ -420,6 +414,7 @@ export function CheckoutExperience({
                            <p className="text-[13px] text-[var(--color-text-muted)] mb-5">
                               Shipping to <strong>{shipping.country}</strong>
                            </p>
+                           
                            <CJShippingSelector
                               options={cjOptions}
                               selected={cjSelected}

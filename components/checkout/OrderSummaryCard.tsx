@@ -10,6 +10,7 @@ import {
 import { cn } from "@/lib/utils";
 import type { CartOrder, CartItem } from "@/types";
 import { FieldInput } from "../ui/field-input";
+import { CurrencyCode } from "@/lib/currency/config";
 
 interface OrderSummaryCardProps {
     orders: CartOrder[];
@@ -34,7 +35,6 @@ interface OrderSummaryCardProps {
     paySubmitting: boolean;
     payDisabled: boolean;
 
-    /** Avatars to show as social proof. URLs or null for fallback. */
     socialProofAvatars?: (string | null)[];
 }
 
@@ -174,7 +174,6 @@ export function OrderSummaryCard({
                     })}
                 </div>
             )}
-            <pre>{JSON.stringify(orders, null, 2)}</pre>
             {/* Promo code */}
             <div className="flex items-center gap-2">
                 <div className="relative flex-1">

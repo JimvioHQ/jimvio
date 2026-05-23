@@ -13,7 +13,7 @@ import { SUPPORTED_CURRENCIES, type CurrencyCode } from "@/lib/currency/config";
 import {
   formatAggregatedCartTotalInDisplayCurrency,
   formatConvertedPrice,
-  formatMoneyWithRates,
+  formatMoneyV2,
   type CartOrderLikeForTotal,
 } from "@/lib/currency/format";
 import CustomSelect from "@/components/ui/select-2";
@@ -33,8 +33,17 @@ type CurrencyContextValue = {
   loading: boolean;
   setUserCurrency: (code: CurrencyCode) => void;
   formatPrice: (amountUSD: number) => string;
-  /** `amount` is in `storedCurrency` (e.g. product row); converts to the user's display currency. */
-  formatMoney: (amount: number, storedCurrency?: string | null) => string;
+  /**
+   * Format `amount` (in `from` currency) for display.
+   * - `from` accepts any string — unrecognized codes fall back gracefully.
+   * - `to` accepts any string — defaults to the user's preferred currency.
+   *   Pass it explicitly to force a currency (e.g. "USD" on checkout).
+   */
+  formatMoney: (
+    amount: number,
+    from: string | null | undefined,
+    to?: string | null
+  ) => string;
   /** Cart summary: all orders combined, shown in the user's display currency. */
   formatCartTotalsLabel: (orders: CartOrderLikeForTotal[]) => string;
 };
@@ -106,9 +115,13 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
   );
 
   const formatMoney = useCallback(
-    (amount: number, storedCurrency?: string | null) => {
+    (amount: number, from: string | null | undefined, to?: string | null) => {
       if (loading) return "...";
-      return formatMoneyWithRates(amount, storedCurrency, userCurrency, rates);
+      const fromCode = (from ?? "USD").toUpperCase();
+      const toCode = to ? to.toUpperCase() : userCurrency;
+      // formatMoneyV2 expects a CurrencyCode for `to`; coerce unknowns to userCurrency
+      const safeTo: CurrencyCode = isCurrencyCode(toCode) ? toCode : userCurrency;
+      return formatMoneyV2(amount, fromCode, safeTo, rates);
     },
     [loading, rates, userCurrency]
   );
@@ -162,23 +175,27 @@ export function CurrencySelector({
   className?: string;
   style?: React.CSSProperties;
 }) {
-  const { userCurrency, setUserCurrency } = useCurrency();
+  const { userCurrency, setUserCurrency, loading } = useCurrency();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+  const displayValue = mounted ? userCurrency : "RWF";
 
   return (
-    <>
-      <CustomSelect
-        className={cn(
-          "rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text-primary)]",
-          className
-        )}
-        options={(Object.keys(SUPPORTED_CURRENCIES) as CurrencyCode[]).map((code) => {
-          const c = SUPPORTED_CURRENCIES[code];
-          return { label: `${c.symbol} — ${c.name}`, value: code };
-        })}
-        textSize="xs"
-        value={userCurrency}
-        onChange={setUserCurrency}
-      />
-    </>
+    <CustomSelect
+      className={cn(
+        "rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text-primary)]",
+        className
+      )}
+      options={(Object.keys(SUPPORTED_CURRENCIES) as CurrencyCode[]).map((code) => {
+        const c = SUPPORTED_CURRENCIES[code];
+        return { label: `${c.symbol} — ${c.name}`, value: code };
+      })}
+      textSize="xs"
+      value={displayValue}
+      onChange={setUserCurrency}
+    />
   );
 }

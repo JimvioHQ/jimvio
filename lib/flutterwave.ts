@@ -60,7 +60,6 @@ async function flwFetch<T>(
   });
 
   const data = await res.json().catch(() => ({})) as Record<string, unknown>;
-
   if (!res.ok) {
     // Retry on rate limit or 5xx
     if (retries > 0 && (res.status === 429 || res.status >= 500)) {
@@ -162,7 +161,12 @@ export async function createFlutterwavePaymentLink(
 ): Promise<string> {
   const currency = params.currency.toUpperCase();
   const minAmount = currency === "RWF" ? 100 : 1;
-  const amount = Math.max(minAmount, Number(params.amount));
+  const raw = Number(params.amount);
+
+  if (!Number.isFinite(raw) || raw <= 0) {
+    throw new FlutterwaveError("Invalid payment amount", 400);
+  }
+  const amount = Math.max(minAmount, raw);
   const phone = formatPhone(params.customerPhone);
   const appUrl = process.env.NEXT_PUBLIC_APP_URL;
 
@@ -245,15 +249,12 @@ export async function verifyFlutterwaveTransaction(
       err.name = "AbortError";
       throw err;
     }
-
     if (useTxRef) {
       const result = await flwFetch<{
         status: string;
         data: FlutterwaveVerifyResponse["data"][];
       }>(buildEndpoint(), { signal });
 
-      console.log({result});
-      
       if (result.status !== "success" || !result.data?.length) {
         throw new FlutterwaveError(
           "No transaction was found for this id",
@@ -261,7 +262,11 @@ export async function verifyFlutterwaveTransaction(
           result
         );
       }
-      return { status: "success", data: result.data[0] };
+      const sorted = result.data.sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+      const best = sorted.find((t) => t.status === "successful") ?? sorted[0];
+      return { status: "success", data: best };
     }
 
     return flwFetch<FlutterwaveVerifyResponse>(
