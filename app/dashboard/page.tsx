@@ -440,7 +440,7 @@ export default function DashboardPage() {
         label: CHART_LABELS_MAP[bucket],
         data,
         color: CHART_COLORS[bucket],
-        amount: formatMoney(total),
+        amount: formatMoney(total, "USD"),
       };
     });
     const realTotal = realDatasets.reduce(
@@ -519,7 +519,7 @@ export default function DashboardPage() {
     ];
 
     // Activity items
-    const activity = (notifsRes.data ?? []).map((n: any) => 
+    const activity = (notifsRes.data ?? []).map((n: any) =>
       notifToActivity(n as NotifRow)
     );
 

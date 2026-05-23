@@ -136,7 +136,7 @@ export default function InfluencerDashboardPage() {
             {/* ── METRIC CARDS ── */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                {[
-                  { label: "Total Earnings", value: formatMoney(stats.totalEarnings), icon: DollarSign, color: "text-emerald-600", bg: "bg-emerald-500/10" },
+                  { label: "Total Earnings", value: formatMoney(stats.totalEarnings, "USD"), icon: DollarSign, color: "text-emerald-600", bg: "bg-emerald-500/10" },
                   { label: "Content Reach", value: formatCompactNumber(stats.totalViews), icon: Eye, color: "text-blue-600", bg: "bg-blue-500/10" },
                   { label: "Market Influence", value: stats.totalClicks, icon: MousePointer, color: "text-orange-600", bg: "bg-orange-500/10" },
                   { label: "Active Missions", value: stats.activeCampaigns, icon: Target, color: "text-orange-600", bg: "bg-orange-500/10" },
@@ -187,7 +187,7 @@ export default function InfluencerDashboardPage() {
                                     </p>
                                  </div>
                                  <div className="text-right shrink-0 pr-1 sm:pr-0">
-                                    <p className="text-[13px] sm:text-[15px] font-bold text-stone-900 dark:text-white tabular-nums">{formatMoney(sub.total_earnings || 0)}</p>
+                                    <p className="text-[13px] sm:text-[15px] font-bold text-stone-900 dark:text-white tabular-nums">{formatMoney(sub.total_earnings || 0, sub.currency)}</p>
                                     <p className="text-[8px] sm:text-[9px] font-semibold text-stone-400 uppercase tracking-widest leading-none">Earned</p>
                                  </div>
                                  <Link href={sub.post_url} target="_blank" className="sm:ml-3 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white dark:bg-surface border border-stone-100 dark:border-border flex items-center justify-center text-stone-400 hover:bg-stone-900 hover:text-white transition-all shadow-sm shrink-0">
