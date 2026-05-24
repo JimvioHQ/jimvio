@@ -3382,7 +3382,7 @@ function StepPublish({
                     ? (isEdit ? "Changes will go live immediately" : "Your product will go live immediately after publishing")
                     : "Complete all required items above"}
             </p>
-        </div>
+</div>
     );
 }
 /* ── SHARED PAGE SHELL ── */
