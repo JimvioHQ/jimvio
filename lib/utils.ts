@@ -310,3 +310,19 @@ export function relativeTime(iso: string | null): string {
   if (d < 30) return `${d}d ago`;
   return new Date(iso).toLocaleDateString();
 }
+
+export async function downloadFile(id: string) {
+  const res = await fetch(`/api/files/${id}?download=1`);
+
+  const blob = await res.blob();
+  const url = window.URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = id;
+  document.body.appendChild(a);
+  a.click();
+
+  a.remove();
+  window.URL.revokeObjectURL(url);
+}

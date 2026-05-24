@@ -1,3 +1,4 @@
+
 // 'use server'
 
 // import { createClient } from '@/lib/supabase/server'
@@ -54,7 +55,7 @@
 // export async function initiate2FASetup(): Promise<TwoFASetupData> {
 //   const { user, supabase } = await getAuthenticatedUser()
 
-//   const { secret, uri } = generateTOTPSecret(user.email!, 'YourAppName')
+//   const { secret, uri } = generateTOTPSecret(user.email!, 'Jimvio')
 //   const backupCodes = generateBackupCodes(8)
 
 //   const qrCodeDataUrl = await QRCode.toDataURL(uri, {
@@ -63,7 +64,17 @@
 //     color: { dark: '#000000', light: '#ffffff' },
 //   })
 
-//   // Store as pending — not active until the user verifies with a valid token
+//   // Store as pending — not active until the user verifies with a valid token.
+//   // We DON'T touch `secret` / `backup_codes` here. If the user already had 2FA
+//   // active, those stay intact during the new setup attempt. If they didn't,
+//   // a fresh row is created with the pending fields only.
+//   //
+//   // NOTE: requires `secret` and `backup_codes` to be NULLable. Run:
+//   //   ALTER TABLE public.user_2fa_secrets
+//   //     ALTER COLUMN secret       DROP NOT NULL,
+//   //     ALTER COLUMN backup_codes DROP NOT NULL;
+//   //
+//   // If you can't change the schema, see the fallback INSERT block below.
 //   const { error } = await supabase
 //     .from('user_2fa_secrets')
 //     .upsert(
@@ -73,11 +84,37 @@
 //         pending_backup_codes: backupCodes,
 //         pending_expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
 //         updated_at: new Date().toISOString(),
-//       } as any,
+//       },
 //       { onConflict: 'user_id' }
 //     )
 
-//   if (error) throw new Error(`Failed to initiate 2FA setup: ${error.message}`)
+//   if (error) {
+//     // Fallback: schema still has NOT NULL on `secret`. Insert empty placeholders
+//     // so the row exists with the pending data. The verify step will overwrite
+//     // these with the real values.
+//     if (error.message.includes('not-null constraint')) {
+//       const { error: fallbackError } = await supabase
+//         .from('user_2fa_secrets')
+//         .upsert(
+//           {
+//             user_id: user.id,
+//             secret: '',
+//             backup_codes: [],
+//             pending_secret: secret,
+//             pending_backup_codes: backupCodes,
+//             pending_expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+//             updated_at: new Date().toISOString(),
+//           },
+//           { onConflict: 'user_id' }
+//         )
+
+//       if (fallbackError) {
+//         throw new Error(`Failed to initiate 2FA setup: ${fallbackError.message}`)
+//       }
+//     } else {
+//       throw new Error(`Failed to initiate 2FA setup: ${error.message}`)
+//     }
+//   }
 
 //   return { secret, qrCodeDataUrl, backupCodes }
 // }
@@ -86,9 +123,7 @@
 // // 2FA — Verify setup and activate
 // // ─────────────────────────────────────────────
 
-// export async function verify2FASetup(
-//   token: string
-// ): Promise<ActionResult> {
+// export async function verify2FASetup(token: string): Promise<ActionResult> {
 //   const { user, supabase } = await getAuthenticatedUser()
 
 //   const { data, error: fetchError } = await supabase
@@ -101,7 +136,7 @@
 //     return { success: false, error: '2FA setup expired. Please start again.' }
 //   }
 
-//   if (new Date(data.pending_expires_at!) < new Date()) {
+//   if (data.pending_expires_at && new Date(data.pending_expires_at) < new Date()) {
 //     // Clean up expired pending data
 //     await supabase
 //       .from('user_2fa_secrets')
@@ -120,34 +155,47 @@
 //     return { success: false, error: 'Invalid verification code. Please try again.' }
 //   }
 
-//   // Promote pending → active
-//   const [secretResult, profileResult] = await Promise.all([
-//     supabase.from('user_2fa_secrets').upsert(
-//       {
-//         user_id: user.id,
-//         secret: data.pending_secret,
-//         backup_codes: data.pending_backup_codes,
-//         pending_secret: null,
-//         pending_backup_codes: null,
-//         pending_expires_at: null,
-//         updated_at: new Date().toISOString(),
-//       },
-//       { onConflict: 'user_id' }
-//     ),
-//     supabase
-//       .from('profiles')
-//       .update({
-//         two_factor_enabled: true,
-//         updated_at: new Date().toISOString(),
-//       })
-//       .eq('id', user.id),
-//   ])
+//   // Promote pending → active (single UPDATE; row already exists from initiate step)
+//   const { error: updateError } = await supabase
+//     .from('user_2fa_secrets')
+//     .update({
+//       secret: data.pending_secret,
+//       backup_codes: data.pending_backup_codes,
+//       pending_secret: null,
+//       pending_backup_codes: null,
+//       pending_expires_at: null,
+//       updated_at: new Date().toISOString(),
+//     })
+//     .eq('user_id', user.id)
 
-//   if (secretResult.error) {
-//     return { success: false, error: `Failed to activate 2FA: ${secretResult.error.message}` }
+//   if (updateError) {
+//     return {
+//       success: false,
+//       error: `Failed to activate 2FA: ${updateError.message}`,
+//     }
 //   }
-//   if (profileResult.error) {
-//     return { success: false, error: `Failed to update profile: ${profileResult.error.message}` }
+
+//   const { error: profileError } = await supabase
+//     .from('profiles')
+//     .update({
+//       two_factor_enabled: true,
+//       updated_at: new Date().toISOString(),
+//     })
+//     .eq('id', user.id)
+
+//   if (profileError) {
+//     await supabase
+//       .from('user_2fa_secrets')
+//       .update({
+//         secret: null,
+//         backup_codes: null,
+//       })
+//       .eq('user_id', user.id)
+
+//     return {
+//       success: false,
+//       error: `Failed to update profile: ${profileError.message}`,
+//     }
 //   }
 
 //   return { success: true }
@@ -174,22 +222,25 @@
 //     return { success: false, error: 'Invalid verification code.' }
 //   }
 
-//   const [deleteResult, profileResult] = await Promise.all([
-//     supabase.from('user_2fa_secrets').delete().eq('user_id', user.id),
-//     supabase
-//       .from('profiles')
-//       .update({
-//         two_factor_enabled: false,
-//         updated_at: new Date().toISOString(),
-//       })
-//       .eq('id', user.id),
-//   ])
+//   const { error: deleteError } = await supabase
+//     .from('user_2fa_secrets')
+//     .delete()
+//     .eq('user_id', user.id)
 
-//   if (deleteResult.error) {
-//     return { success: false, error: `Failed to disable 2FA: ${deleteResult.error.message}` }
+//   if (deleteError) {
+//     return { success: false, error: `Failed to disable 2FA: ${deleteError.message}` }
 //   }
-//   if (profileResult.error) {
-//     return { success: false, error: `Failed to update profile: ${profileResult.error.message}` }
+
+//   const { error: profileError } = await supabase
+//     .from('profiles')
+//     .update({
+//       two_factor_enabled: false,
+//       updated_at: new Date().toISOString(),
+//     })
+//     .eq('id', user.id)
+
+//   if (profileError) {
+//     return { success: false, error: `Failed to update profile: ${profileError.message}` }
 //   }
 
 //   return { success: true }
@@ -209,7 +260,7 @@
 //     .from('user_2fa_secrets')
 //     .select('secret, backup_codes')
 //     .eq('user_id', user.id)
-//     .single()
+//     .maybeSingle()
 
 //   if (!data?.secret) return { enabled: false }
 
@@ -234,7 +285,6 @@
 //     return { success: false, error: '2FA is not enabled.' }
 //   }
 
-//   // Try backup codes first
 //   const codes = (data.backup_codes ?? []) as string[]
 //   const normalized = token.toUpperCase().replace(/[^A-Z0-9]/g, '')
 //   const codeIndex = codes.findIndex(
@@ -242,15 +292,28 @@
 //   )
 
 //   if (codeIndex !== -1) {
-//     // Consume the used backup code
-//     codes.splice(codeIndex, 1)
-//     await supabase
+//     // Consume the used backup code atomically.
+//     // We update with the new list AND a filter that the old list still matches —
+//     // if another concurrent call already consumed it, our UPDATE affects 0 rows.
+//     const remaining = [...codes]
+//     remaining.splice(codeIndex, 1)
+
+//     const { error: consumeError, count } = await supabase
 //       .from('user_2fa_secrets')
-//       .update({
-//         backup_codes: codes,
-//         updated_at: new Date().toISOString(),
-//       })
+//       .update(
+//         {
+//           backup_codes: remaining,
+//           updated_at: new Date().toISOString(),
+//         },
+//         { count: 'exact' }
+//       )
 //       .eq('user_id', user.id)
+//       .eq('backup_codes', codes as unknown as string)
+
+//     if (consumeError || !count) {
+//       // Another request already used this code, or no row matched.
+//       return { success: false, error: 'Invalid verification code.' }
+//     }
 
 //     return { success: true }
 //   }
@@ -305,8 +368,11 @@
 
 // // ─────────────────────────────────────────────
 // // Sessions
-// // Sessions are stored in platform_settings scoped per-user
-// // using key pattern: `sessions:<user_id>`
+// // ⚠️  NOTE: storing per-user sessions in `platform_settings` (a global-config
+// // table) is conceptually wrong and bypasses RLS via the admin client. A proper
+// // implementation uses Supabase Auth's built-in sessions API or a dedicated
+// // `user_sessions` table with RLS. Leaving the existing structure here so the
+// // settings page keeps working, but plan to migrate.
 // // ─────────────────────────────────────────────
 
 // function sessionKey(userId: string) {
@@ -315,14 +381,13 @@
 
 // export async function getSessions(): Promise<Session[]> {
 //   const { user } = await getAuthenticatedUser()
-//   // Use admin client since platform_settings has no per-user write policies
 //   const supabase = createAdminClient()
 
 //   const { data } = await supabase
 //     .from('platform_settings')
 //     .select('value')
 //     .eq('key', sessionKey(user.id))
-//     .single()
+//     .maybeSingle()
 
 //   if (!data?.value) {
 //     return [
@@ -340,9 +405,7 @@
 //   return (data.value as { sessions: Session[] }).sessions
 // }
 
-// export async function revokeSession(
-//   sessionId: string
-// ): Promise<ActionResult> {
+// export async function revokeSession(sessionId: string): Promise<ActionResult> {
 //   const { user } = await getAuthenticatedUser()
 //   const supabase = createAdminClient()
 
@@ -350,7 +413,7 @@
 //     .from('platform_settings')
 //     .select('value')
 //     .eq('key', sessionKey(user.id))
-//     .single()
+//     .maybeSingle()
 
 //   if (!data?.value) {
 //     return { success: false, error: 'Session not found.' }
@@ -360,20 +423,20 @@
 //   const session = sessions.find((s) => s.id === sessionId)
 
 //   if (!session) return { success: false, error: 'Session not found.' }
-//   if (session.current) return { success: false, error: 'Cannot revoke current session.' }
+//   if (session.current) {
+//     return { success: false, error: 'Cannot revoke current session.' }
+//   }
 
 //   const updated = sessions.filter((s) => s.id !== sessionId)
 
-//   const { error } = await supabase
-//     .from('platform_settings')
-//     .upsert(
-//       {
-//         key: sessionKey(user.id),
-//         value: { sessions: updated },
-//         updated_at: new Date().toISOString(),
-//       },
-//       { onConflict: 'key' }
-//     )
+//   const { error } = await supabase.from('platform_settings').upsert(
+//     {
+//       key: sessionKey(user.id),
+//       value: { sessions: updated },
+//       updated_at: new Date().toISOString(),
+//     },
+//     { onConflict: 'key' }
+//   )
 
 //   if (error) return { success: false, error: error.message }
 
@@ -390,7 +453,7 @@
 //     .from('platform_settings')
 //     .select('value')
 //     .eq('key', sessionKey(user.id))
-//     .single()
+//     .maybeSingle()
 
 //   if (!data?.value) return { success: true, data: { revokedCount: 0 } }
 
@@ -398,16 +461,14 @@
 //   const current = sessions.find((s) => s.current)
 //   const revokedCount = sessions.length - (current ? 1 : 0)
 
-//   const { error } = await supabase
-//     .from('platform_settings')
-//     .upsert(
-//       {
-//         key: sessionKey(user.id),
-//         value: { sessions: current ? [current] : [] },
-//         updated_at: new Date().toISOString(),
-//       },
-//       { onConflict: 'key' }
-//     )
+//   const { error } = await supabase.from('platform_settings').upsert(
+//     {
+//       key: sessionKey(user.id),
+//       value: { sessions: current ? [current] : [] },
+//       updated_at: new Date().toISOString(),
+//     },
+//     { onConflict: 'key' }
+//   )
 
 //   if (error) return { success: false, error: error.message }
 
@@ -416,12 +477,9 @@
 
 // // ─────────────────────────────────────────────
 // // Platform settings — admin only
-// // Uses admin client because platform_settings has no
-// // authenticated write policies (by design — global settings)
 // // ─────────────────────────────────────────────
 
 // export async function getPlatformSettings(): Promise<Record<string, unknown>> {
-//   // Reading is fine with the regular client (SELECT policy is public)
 //   const supabase = await createClient()
 
 //   const { data, error } = await supabase
@@ -443,37 +501,40 @@
 //   key: string,
 //   value: Json | undefined
 // ): Promise<ActionResult> {
-//   // Verify the caller is authenticated before using admin client
 //   const { user } = await getAuthenticatedUser()
 
-//   // Optional: restrict to known admin emails
 //   const adminEmails = (process.env.ADMIN_EMAILS ?? '')
 //     .split(',')
 //     .map((e) => e.trim())
 //     .filter(Boolean)
 
-//   if (adminEmails.length > 0 && !adminEmails.includes(user.email ?? '')) {
+//   if (adminEmails.length === 0) {
+//     return {
+//       success: false,
+//       error: 'Server misconfiguration: ADMIN_EMAILS not set.',
+//     }
+//   }
+
+//   if (!adminEmails.includes(user.email ?? '')) {
 //     return { success: false, error: 'Unauthorized.' }
 //   }
 
-//   // Use admin client since platform_settings has no authenticated write policies
 //   const supabase = createAdminClient()
 
-//   const { error } = await supabase
-//     .from('platform_settings')
-//     .upsert(
-//       {
-//         key,
-//         value,
-//         updated_at: new Date().toISOString(),
-//       },
-//       { onConflict: 'key' }
-//     )
+//   const { error } = await supabase.from('platform_settings').upsert(
+//     {
+//       key,
+//       value,
+//       updated_at: new Date().toISOString(),
+//     },
+//     { onConflict: 'key' }
+//   )
 
 //   if (error) return { success: false, error: error.message }
 
 //   return { success: true }
 // }
+
 
 'use server'
 
@@ -497,8 +558,17 @@ export type Session = {
 }
 
 export type TwoFASetupData = {
+  /** The base32 secret to scan or type manually */
   secret: string
+  /** The account label shown in the authenticator app (usually the email) */
+  account: string
+  /** The service / issuer name shown in the authenticator app */
+  issuer: string
+  /** Full otpauth:// URI — encoded as a QR code below */
+  otpauthUri: string
+  /** PNG data URL of the QR code for the otpauth URI */
   qrCodeDataUrl: string
+  /** One-time backup codes shown during setup */
   backupCodes: string[]
 }
 
@@ -507,20 +577,19 @@ export type ActionResult<T = void> =
   | { success: false; error: string }
 
 // ─────────────────────────────────────────────
-// Auth helper — returns the current user or throws
+// Config
+// ─────────────────────────────────────────────
+
+const ISSUER = process.env.NEXT_PUBLIC_APP_NAME ?? 'Jimvio'
+
+// ─────────────────────────────────────────────
+// Auth helper
 // ─────────────────────────────────────────────
 
 async function getAuthenticatedUser() {
   const supabase = await createClient()
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser()
-
-  if (error || !user) {
-    throw new Error('Not authenticated')
-  }
-
+  const { data: { user }, error } = await supabase.auth.getUser()
+  if (error || !user) throw new Error('Not authenticated')
   return { user, supabase }
 }
 
@@ -531,26 +600,21 @@ async function getAuthenticatedUser() {
 export async function initiate2FASetup(): Promise<TwoFASetupData> {
   const { user, supabase } = await getAuthenticatedUser()
 
-  const { secret, uri } = generateTOTPSecret(user.email!, 'Jimvio')
+  if (!user.email) {
+    throw new Error('Account email required for 2FA setup')
+  }
+
+  const { secret, uri } = generateTOTPSecret(user.email, ISSUER)
   const backupCodes = generateBackupCodes(8)
 
   const qrCodeDataUrl = await QRCode.toDataURL(uri, {
-    width: 200,
-    margin: 2,
+    width: 220,
+    margin: 1,
+    errorCorrectionLevel: 'M',
     color: { dark: '#000000', light: '#ffffff' },
   })
 
-  // Store as pending — not active until the user verifies with a valid token.
-  // We DON'T touch `secret` / `backup_codes` here. If the user already had 2FA
-  // active, those stay intact during the new setup attempt. If they didn't,
-  // a fresh row is created with the pending fields only.
-  //
-  // NOTE: requires `secret` and `backup_codes` to be NULLable. Run:
-  //   ALTER TABLE public.user_2fa_secrets
-  //     ALTER COLUMN secret       DROP NOT NULL,
-  //     ALTER COLUMN backup_codes DROP NOT NULL;
-  //
-  // If you can't change the schema, see the fallback INSERT block below.
+  // Store as pending — not active until the user verifies with a valid token
   const { error } = await supabase
     .from('user_2fa_secrets')
     .upsert(
@@ -565,9 +629,7 @@ export async function initiate2FASetup(): Promise<TwoFASetupData> {
     )
 
   if (error) {
-    // Fallback: schema still has NOT NULL on `secret`. Insert empty placeholders
-    // so the row exists with the pending data. The verify step will overwrite
-    // these with the real values.
+    // Fallback if `secret` column is still NOT NULL
     if (error.message.includes('not-null constraint')) {
       const { error: fallbackError } = await supabase
         .from('user_2fa_secrets')
@@ -583,20 +645,24 @@ export async function initiate2FASetup(): Promise<TwoFASetupData> {
           },
           { onConflict: 'user_id' }
         )
-
-      if (fallbackError) {
-        throw new Error(`Failed to initiate 2FA setup: ${fallbackError.message}`)
-      }
+      if (fallbackError) throw new Error(`Failed to initiate 2FA setup: ${fallbackError.message}`)
     } else {
       throw new Error(`Failed to initiate 2FA setup: ${error.message}`)
     }
   }
 
-  return { secret, qrCodeDataUrl, backupCodes }
+  return {
+    secret,
+    account: user.email,
+    issuer: ISSUER,
+    otpauthUri: uri,
+    qrCodeDataUrl,
+    backupCodes,
+  }
 }
 
 // ─────────────────────────────────────────────
-// 2FA — Verify setup and activate
+// 2FA — Verify setup
 // ─────────────────────────────────────────────
 
 export async function verify2FASetup(token: string): Promise<ActionResult> {
@@ -613,7 +679,6 @@ export async function verify2FASetup(token: string): Promise<ActionResult> {
   }
 
   if (data.pending_expires_at && new Date(data.pending_expires_at) < new Date()) {
-    // Clean up expired pending data
     await supabase
       .from('user_2fa_secrets')
       .update({
@@ -623,7 +688,6 @@ export async function verify2FASetup(token: string): Promise<ActionResult> {
         updated_at: new Date().toISOString(),
       })
       .eq('user_id', user.id)
-
     return { success: false, error: '2FA setup expired. Please start again.' }
   }
 
@@ -631,7 +695,6 @@ export async function verify2FASetup(token: string): Promise<ActionResult> {
     return { success: false, error: 'Invalid verification code. Please try again.' }
   }
 
-  // Promote pending → active (single UPDATE; row already exists from initiate step)
   const { error: updateError } = await supabase
     .from('user_2fa_secrets')
     .update({
@@ -644,34 +707,19 @@ export async function verify2FASetup(token: string): Promise<ActionResult> {
     })
     .eq('user_id', user.id)
 
-  if (updateError) {
-    return {
-      success: false,
-      error: `Failed to activate 2FA: ${updateError.message}`,
-    }
-  }
+  if (updateError) return { success: false, error: `Failed to activate 2FA: ${updateError.message}` }
 
   const { error: profileError } = await supabase
     .from('profiles')
-    .update({
-      two_factor_enabled: true,
-      updated_at: new Date().toISOString(),
-    })
+    .update({ two_factor_enabled: true, updated_at: new Date().toISOString() })
     .eq('id', user.id)
 
   if (profileError) {
     await supabase
       .from('user_2fa_secrets')
-      .update({
-        secret: null,
-        backup_codes: null,
-      })
+      .update({ secret: null, backup_codes: null })
       .eq('user_id', user.id)
-
-    return {
-      success: false,
-      error: `Failed to update profile: ${profileError.message}`,
-    }
+    return { success: false, error: `Failed to update profile: ${profileError.message}` }
   }
 
   return { success: true }
@@ -688,42 +736,30 @@ export async function disable2FA(token: string): Promise<ActionResult> {
     .from('user_2fa_secrets')
     .select('secret')
     .eq('user_id', user.id)
-    .single()
+    .maybeSingle()
 
-  if (!data?.secret) {
-    return { success: false, error: '2FA is not enabled.' }
-  }
-
-  if (!verifyTOTP(data.secret, token)) {
-    return { success: false, error: 'Invalid verification code.' }
-  }
+  if (!data?.secret) return { success: false, error: '2FA is not enabled.' }
+  if (!verifyTOTP(data.secret, token)) return { success: false, error: 'Invalid verification code.' }
 
   const { error: deleteError } = await supabase
     .from('user_2fa_secrets')
     .delete()
     .eq('user_id', user.id)
 
-  if (deleteError) {
-    return { success: false, error: `Failed to disable 2FA: ${deleteError.message}` }
-  }
+  if (deleteError) return { success: false, error: `Failed to disable 2FA: ${deleteError.message}` }
 
   const { error: profileError } = await supabase
     .from('profiles')
-    .update({
-      two_factor_enabled: false,
-      updated_at: new Date().toISOString(),
-    })
+    .update({ two_factor_enabled: false, updated_at: new Date().toISOString() })
     .eq('id', user.id)
 
-  if (profileError) {
-    return { success: false, error: `Failed to update profile: ${profileError.message}` }
-  }
+  if (profileError) return { success: false, error: `Failed to update profile: ${profileError.message}` }
 
   return { success: true }
 }
 
 // ─────────────────────────────────────────────
-// 2FA — Check status (for settings page)
+// 2FA — Status
 // ─────────────────────────────────────────────
 
 export async function check2FAStatus(): Promise<{
@@ -739,7 +775,6 @@ export async function check2FAStatus(): Promise<{
     .maybeSingle()
 
   if (!data?.secret) return { enabled: false }
-
   const codes = (data.backup_codes ?? []) as string[]
   return { enabled: true, backupCodesRemaining: codes.length }
 }
@@ -755,50 +790,36 @@ export async function verify2FALogin(token: string): Promise<ActionResult> {
     .from('user_2fa_secrets')
     .select('secret, backup_codes')
     .eq('user_id', user.id)
-    .single()
+    .maybeSingle()
 
-  if (!data?.secret) {
-    return { success: false, error: '2FA is not enabled.' }
-  }
+  if (!data?.secret) return { success: false, error: '2FA is not enabled.' }
 
   const codes = (data.backup_codes ?? []) as string[]
   const normalized = token.toUpperCase().replace(/[^A-Z0-9]/g, '')
   const codeIndex = codes.findIndex(
-    (c) => c.replace(/-/g, '').toUpperCase() === normalized
+    c => c.replace(/-/g, '').toUpperCase() === normalized
   )
 
   if (codeIndex !== -1) {
-    // Consume the used backup code atomically.
-    // We update with the new list AND a filter that the old list still matches —
-    // if another concurrent call already consumed it, our UPDATE affects 0 rows.
     const remaining = [...codes]
     remaining.splice(codeIndex, 1)
 
-    const { error: consumeError, count } = await supabase
+    const { error, count } = await supabase
       .from('user_2fa_secrets')
       .update(
-        {
-          backup_codes: remaining,
-          updated_at: new Date().toISOString(),
-        },
+        { backup_codes: remaining, updated_at: new Date().toISOString() },
         { count: 'exact' }
       )
       .eq('user_id', user.id)
       .eq('backup_codes', codes as unknown as string)
 
-    if (consumeError || !count) {
-      // Another request already used this code, or no row matched.
-      return { success: false, error: 'Invalid verification code.' }
-    }
-
+    if (error || !count) return { success: false, error: 'Invalid verification code.' }
     return { success: true }
   }
 
-  // Fall back to TOTP
   if (!verifyTOTP(data.secret, token)) {
     return { success: false, error: 'Invalid verification code.' }
   }
-
   return { success: true }
 }
 
@@ -815,45 +836,27 @@ export async function regenerateBackupCodes(
     .from('user_2fa_secrets')
     .select('secret')
     .eq('user_id', user.id)
-    .single()
+    .maybeSingle()
 
-  if (!data?.secret) {
-    return { success: false, error: '2FA is not enabled.' }
-  }
-
-  if (!verifyTOTP(data.secret, token)) {
-    return { success: false, error: 'Invalid verification code.' }
-  }
+  if (!data?.secret) return { success: false, error: '2FA is not enabled.' }
+  if (!verifyTOTP(data.secret, token)) return { success: false, error: 'Invalid verification code.' }
 
   const newBackupCodes = generateBackupCodes(8)
 
   const { error } = await supabase
     .from('user_2fa_secrets')
-    .update({
-      backup_codes: newBackupCodes,
-      updated_at: new Date().toISOString(),
-    })
+    .update({ backup_codes: newBackupCodes, updated_at: new Date().toISOString() })
     .eq('user_id', user.id)
 
-  if (error) {
-    return { success: false, error: `Failed to regenerate codes: ${error.message}` }
-  }
-
+  if (error) return { success: false, error: `Failed to regenerate codes: ${error.message}` }
   return { success: true, data: { backupCodes: newBackupCodes } }
 }
 
 // ─────────────────────────────────────────────
 // Sessions
-// ⚠️  NOTE: storing per-user sessions in `platform_settings` (a global-config
-// table) is conceptually wrong and bypasses RLS via the admin client. A proper
-// implementation uses Supabase Auth's built-in sessions API or a dedicated
-// `user_sessions` table with RLS. Leaving the existing structure here so the
-// settings page keeps working, but plan to migrate.
 // ─────────────────────────────────────────────
 
-function sessionKey(userId: string) {
-  return `sessions:${userId}`
-}
+function sessionKey(userId: string) { return `sessions:${userId}` }
 
 export async function getSessions(): Promise<Session[]> {
   const { user } = await getAuthenticatedUser()
@@ -866,18 +869,11 @@ export async function getSessions(): Promise<Session[]> {
     .maybeSingle()
 
   if (!data?.value) {
-    return [
-      {
-        id: '1',
-        device: 'Current Browser',
-        ip: '127.0.0.1',
-        lastActivity: 'Just now',
-        location: 'Unknown',
-        current: true,
-      },
-    ]
+    return [{
+      id: '1', device: 'Current Browser', ip: '127.0.0.1',
+      lastActivity: 'Just now', location: 'Unknown', current: true,
+    }]
   }
-
   return (data.value as { sessions: Session[] }).sessions
 }
 
@@ -891,37 +887,28 @@ export async function revokeSession(sessionId: string): Promise<ActionResult> {
     .eq('key', sessionKey(user.id))
     .maybeSingle()
 
-  if (!data?.value) {
-    return { success: false, error: 'Session not found.' }
-  }
+  if (!data?.value) return { success: false, error: 'Session not found.' }
 
   const sessions: Session[] = (data.value as { sessions: Session[] }).sessions
-  const session = sessions.find((s) => s.id === sessionId)
+  const session = sessions.find(s => s.id === sessionId)
 
   if (!session) return { success: false, error: 'Session not found.' }
-  if (session.current) {
-    return { success: false, error: 'Cannot revoke current session.' }
-  }
-
-  const updated = sessions.filter((s) => s.id !== sessionId)
+  if (session.current) return { success: false, error: 'Cannot revoke current session.' }
 
   const { error } = await supabase.from('platform_settings').upsert(
     {
       key: sessionKey(user.id),
-      value: { sessions: updated },
+      value: { sessions: sessions.filter(s => s.id !== sessionId) },
       updated_at: new Date().toISOString(),
     },
     { onConflict: 'key' }
   )
 
   if (error) return { success: false, error: error.message }
-
   return { success: true }
 }
 
-export async function revokeAllOtherSessions(): Promise<
-  ActionResult<{ revokedCount: number }>
-> {
+export async function revokeAllOtherSessions(): Promise<ActionResult<{ revokedCount: number }>> {
   const { user } = await getAuthenticatedUser()
   const supabase = createAdminClient()
 
@@ -934,7 +921,7 @@ export async function revokeAllOtherSessions(): Promise<
   if (!data?.value) return { success: true, data: { revokedCount: 0 } }
 
   const sessions: Session[] = (data.value as { sessions: Session[] }).sessions
-  const current = sessions.find((s) => s.current)
+  const current = sessions.find(s => s.current)
   const revokedCount = sessions.length - (current ? 1 : 0)
 
   const { error } = await supabase.from('platform_settings').upsert(
@@ -947,28 +934,19 @@ export async function revokeAllOtherSessions(): Promise<
   )
 
   if (error) return { success: false, error: error.message }
-
   return { success: true, data: { revokedCount } }
 }
 
 // ─────────────────────────────────────────────
-// Platform settings — admin only
+// Platform settings
 // ─────────────────────────────────────────────
 
 export async function getPlatformSettings(): Promise<Record<string, unknown>> {
   const supabase = await createClient()
-
-  const { data, error } = await supabase
-    .from('platform_settings')
-    .select('key, value')
-
+  const { data, error } = await supabase.from('platform_settings').select('key, value')
   if (error || !data) return {}
-
   return data.reduce(
-    (acc, row) => {
-      acc[row.key] = row.value
-      return acc
-    },
+    (acc, row) => { acc[row.key] = row.value; return acc },
     {} as Record<string, unknown>
   )
 }
@@ -980,33 +958,56 @@ export async function updatePlatformSetting(
   const { user } = await getAuthenticatedUser()
 
   const adminEmails = (process.env.ADMIN_EMAILS ?? '')
-    .split(',')
-    .map((e) => e.trim())
-    .filter(Boolean)
+    .split(',').map(e => e.trim()).filter(Boolean)
 
   if (adminEmails.length === 0) {
-    return {
-      success: false,
-      error: 'Server misconfiguration: ADMIN_EMAILS not set.',
-    }
+    return { success: false, error: 'Server misconfiguration: ADMIN_EMAILS not set.' }
   }
-
   if (!adminEmails.includes(user.email ?? '')) {
     return { success: false, error: 'Unauthorized.' }
   }
 
   const supabase = createAdminClient()
-
   const { error } = await supabase.from('platform_settings').upsert(
-    {
-      key,
-      value,
-      updated_at: new Date().toISOString(),
-    },
+    { key, value, updated_at: new Date().toISOString() },
     { onConflict: 'key' }
   )
 
   if (error) return { success: false, error: error.message }
-
   return { success: true }
+}
+
+/**
+ * Save multiple settings at once. Used by tabbed forms.
+ * Returns per-key success so partial failures are visible.
+ */
+export async function updatePlatformSettings(
+  entries: Record<string, Json>
+): Promise<ActionResult<{ saved: string[]; failed: { key: string; error: string }[] }>> {
+  const { user } = await getAuthenticatedUser()
+
+  const adminEmails = (process.env.ADMIN_EMAILS ?? '')
+    .split(',').map(e => e.trim()).filter(Boolean)
+
+  if (adminEmails.length === 0) {
+    return { success: false, error: 'Server misconfiguration: ADMIN_EMAILS not set.' }
+  }
+  if (!adminEmails.includes(user.email ?? '')) {
+    return { success: false, error: 'Unauthorized.' }
+  }
+
+  const supabase = createAdminClient()
+  const saved: string[] = []
+  const failed: { key: string; error: string }[] = []
+
+  for (const [key, value] of Object.entries(entries)) {
+    const { error } = await supabase.from('platform_settings').upsert(
+      { key, value, updated_at: new Date().toISOString() },
+      { onConflict: 'key' }
+    )
+    if (error) failed.push({ key, error: error.message })
+    else saved.push(key)
+  }
+
+  return { success: true, data: { saved, failed } }
 }
