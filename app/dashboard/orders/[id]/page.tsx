@@ -1147,7 +1147,8 @@ export default function OrderDetailPage() {
                   </p>
                 </div>
               )}
-
+  );
+}
               <div className="flex items-center gap-2.5 p-3 rounded-xl bg-[var(--color-surface-secondary)] border border-[var(--color-border)]">
                 <ShieldCheck className="h-4 w-4 text-emerald-500 shrink-0" />
                 <p className="text-[11px] text-[var(--color-text-muted)]">
