@@ -211,9 +211,6 @@ export async function POST(req: NextRequest) {
     let txRef: string;
 
     if (existingTx) {
-      // Verify the existing transaction with Flutterwave.
-      // "Not found" means the tx_ref was never submitted (e.g. link was never
-      // opened) — treat it the same as failed and issue a fresh ref.
       let flwStatus: string;
 
       try {
@@ -266,7 +263,6 @@ export async function POST(req: NextRequest) {
       txRef = generateTxRef("FLW");
     }
 
-    // ── 4. Insert new transaction record ──────────────────────────────────
     const { error: txError } = await supabase.from("transactions").insert({
       user_id: order.buyer_id,
       order_id: orderId,

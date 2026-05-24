@@ -12,16 +12,12 @@
       linear-gradient(rgba(67, 51, 96, 0.045) 1px, transparent 1px),
       linear-gradient(90deg, rgba(67, 51, 96, 0.045) 1px, transparent 1px);
     background-size: 32px 32px;
-    -webkit-mask-image: radial-gradient(
-      circle at center,
-      rgba(0, 0, 0, 0.55) 0%,
-      transparent 78%
-    );
-    mask-image: radial-gradient(
-      circle at center,
-      rgba(0, 0, 0, 0.55) 0%,
-      transparent 78%
-    );
+    -webkit-mask-image: radial-gradient(circle at center,
+        rgba(0, 0, 0, 0.55) 0%,
+        transparent 78%);
+    mask-image: radial-gradient(circle at center,
+        rgba(0, 0, 0, 0.55) 0%,
+        transparent 78%);
   }
 
   .home-surface {
@@ -42,7 +38,7 @@
     --color-accent-hover: #e04700;
     --color-accent-light: #fff3ee;
     --color-accent-subtle: #ffe8de;
-
+    --card: oklch(1 0 0);
     --color-text-primary: #11181c;
     --color-text-secondary: #3c4248;
     --color-text-muted: #889096;
@@ -100,7 +96,7 @@
     --color-text-muted: #6a6a6a;
     --color-bg-dark: #050505;
     --color-bg-darker: #000000;
-
+    --card: oklch(0.145 0 0);
     --color-accent: #fd5000;
     --color-accent-hover: #ff6a1a;
     --color-accent-light: #200d00;
@@ -254,6 +250,7 @@
 }
 
 @layer components {
+
   /* Whop-style premium card */
   .premium-card {
     background-color: var(--color-surface);
@@ -405,12 +402,15 @@
     font-weight: 600;
     color: var(--color-text-primary);
   }
+
   .product-description p {
     margin-bottom: 0.75rem;
   }
-  .product-description br + br {
+
+  .product-description br+br {
     display: none;
   }
+
   /* Safe area for mobile bottom nav (notch/home indicator) */
   .safe-area-pb {
     padding-bottom: env(safe-area-inset-bottom, 0px);
@@ -524,6 +524,7 @@
   }
 
   @keyframes pulse-glow {
+
     0%,
     100% {
       box-shadow: 0 0 20px rgba(249, 115, 22, 0.2);
@@ -555,6 +556,7 @@
   }
 
   @keyframes float {
+
     0%,
     100% {
       transform: translateY(0px);
@@ -576,6 +578,7 @@
   }
 
   @keyframes float-slow {
+
     0%,
     100% {
       transform: translateY(0px);
@@ -587,6 +590,7 @@
   }
 
   @keyframes glow-pulse {
+
     0%,
     100% {
       box-shadow:
@@ -643,6 +647,7 @@
   }
 
   @keyframes gradient-shift {
+
     0%,
     100% {
       background-position: 0% 50%;
@@ -654,6 +659,7 @@
   }
 
   @keyframes blob {
+
     0%,
     100% {
       transform: translate(0, 0) scale(1);
@@ -752,39 +758,39 @@
   }
 
   /* Stagger children animations */
-  .stagger-children > * {
+  .stagger-children>* {
     animation: fadeInUp 0.6s cubic-bezier(0.23, 1, 0.32, 1) forwards;
   }
 
-  .stagger-children > *:nth-child(1) {
+  .stagger-children>*:nth-child(1) {
     animation-delay: 0ms;
   }
 
-  .stagger-children > *:nth-child(2) {
+  .stagger-children>*:nth-child(2) {
     animation-delay: 100ms;
   }
 
-  .stagger-children > *:nth-child(3) {
+  .stagger-children>*:nth-child(3) {
     animation-delay: 200ms;
   }
 
-  .stagger-children > *:nth-child(4) {
+  .stagger-children>*:nth-child(4) {
     animation-delay: 300ms;
   }
 
-  .stagger-children > *:nth-child(5) {
+  .stagger-children>*:nth-child(5) {
     animation-delay: 400ms;
   }
 
-  .stagger-children > *:nth-child(6) {
+  .stagger-children>*:nth-child(6) {
     animation-delay: 500ms;
   }
 
-  .stagger-children > *:nth-child(7) {
+  .stagger-children>*:nth-child(7) {
     animation-delay: 600ms;
   }
 
-  .stagger-children > *:nth-child(8) {
+  .stagger-children>*:nth-child(8) {
     animation-delay: 700ms;
   }
 }

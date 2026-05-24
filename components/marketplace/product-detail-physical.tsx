@@ -1185,12 +1185,6 @@ export function PhysicalProductDetail({
       </div>
 
       <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-4 lg:py-6">
-
-        {/* ══════════════════════════════════════════════════════════════
-            TOP-LEVEL GRID: 12 cols
-            Column A = lg:col-span-9 (main)
-            Column B = lg:col-span-3 (sidebar)
-        ══════════════════════════════════════════════════════════════ */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 xl:gap-6">
 
           {/* ════════════ COLUMN A: main (9 cols) ════════════ */}
@@ -1299,7 +1293,6 @@ export function PhysicalProductDetail({
                     <div className="mt-3">
                       <VariantSelector
                         variants={variants}
-                        productName={product.name}
                         selectedVariantId={selectedVariant?.id ?? null}
                         onSelect={handleVariantSelect}
                       />

@@ -6,7 +6,7 @@ import Image from "next/image";
 import { Heart, Star, Zap, ShoppingCart } from "lucide-react";
 import { cn, calculateDiscount } from "@/lib/utils";
 import { LocalizedPrice } from "@/components/currency/localized-price";
-import type { Product } from "@/types/database.types";
+import { Product } from "@/types/db";
 
 interface ProductCardProps {
   product: Partial<Product> & {

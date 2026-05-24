@@ -161,32 +161,6 @@ function ProviderHealthCard({
   );
 }
 
-// ─── Range picker ─────────────────────────────────────────────────────────────
-
-// function RangePicker({ current }: { current: RangeKey }) {
-//   const items: RangeKey[] = ["today", "7d", "30d", "mtd", "qtd", "ytd"];
-//   return (
-//     <div className="inline-flex items-center rounded-lg ring-1 ring-[var(--color-border)] bg-[var(--color-surface)] p-0.5">
-//       {items.map((k) => (
-//         <Link
-//           key={k}
-//           href={`?range=${k}`}
-//           scroll={false}
-//           className={cn(
-//             "h-8 px-3 rounded-md text-[11.5px] font-medium transition-colors",
-//             current === k
-//               ? "bg-[var(--color-text-primary)] text-[var(--color-surface)]"
-//               : "text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"
-//           )}
-//         >
-//           {RANGES[k].label}
-//         </Link>
-//       ))}
-//     </div>
-//   );
-// }
-
-// ─── Tabs ─────────────────────────────────────────────────────────────────────
 
 type TabKey = "transactions" | "orders" | "payouts" | "health";
 
@@ -199,7 +173,7 @@ function Tabs({ range, current }: { range: RangeKey; current: TabKey }) {
   ];
 
   return (
-    <div className="flex items-center gap-1 border-b border-[var(--color-border)] overflow-x-auto">
+    <div className="flex items-center gap-1 border-b border-[var(--color-border)] overflow-x-auto whitespace-nowrap no-scrollbar">
       {items.map(({ key, label, icon: Icon }) => {
         const active = current === key;
         return (
@@ -328,17 +302,25 @@ export default async function AdminPaymentsPage({
   const payoutsPending = (pendingPayoutsTotal ?? []).reduce((s, p) => s + Number(p.amount as number ?? 0), 0);
   const commissionsTotal = (commissionData ?? []).reduce((s, c) => s + Number(c.commission_amount as number ?? 0), 0);
 
-  const providers = ["flutterwave", "pesapal", "paypal", "nowpayments", "pawapay"];
-  const providerHealth = providers.map((p) => {
+  const providers = ["flutterwave", "pesapal", "paypal", "nowpayments", "pawapay", "afripay", "binance"] as const;
+const providerHealth = providers
+  .map((p) => {
     const rows = (providerStats ?? []).filter((r: any) => r.provider === p);
-    return {
-      provider: p,
-      total: rows.length,
-      completed: rows.filter((r: any) => r.status === "completed").length,
-      failed: rows.filter((r: any) => r.status === "failed").length,
-    };
+    const total = rows.length;
+    const completed = rows.filter((r: any) => r.status === "completed").length;
+    const failed = rows.filter((r: any) => r.status === "failed").length;
+    const successRate = total > 0 ? completed / total : 0;
+    return { provider: p, total, completed, failed, successRate };
+  })
+  .sort((a, b) => {
+    if (a.total !== b.total && (a.total === 0 || b.total === 0)) {
+      return b.total - a.total;
+    }
+    if (b.successRate !== a.successRate) {
+      return b.successRate - a.successRate;
+    }
+    return b.total - a.total;
   });
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -355,7 +337,7 @@ export default async function AdminPaymentsPage({
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-        <RangePicker current={range} base="/admin/payments" />
+          <RangePicker current={range} base="/admin/payments" />
           <button className="h-[38px] px-4 rounded-xl text-[12px] font-medium bg-[var(--color-surface)] ring-[0.5px] ring-[var(--color-border)] hover:bg-[var(--color-surface-secondary)] transition-all duration-150 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] whitespace-nowrap">
             Export
           </button>

@@ -17,6 +17,7 @@ import { useCurrency } from "@/context/CurrencyContext";
 
 
 import type { CartItem, CartOrder, CJShippingOption, PaymentApiResponse } from "@/types";
+import { Button } from "../ui/button";
 function defaultPayment(currency: string | null): MethodId {
    const c = (currency || "USD").toUpperCase();
    if (c === "RWF" || c === "USD") return "flutterwave";
@@ -67,16 +68,24 @@ function getCJVid(item: CartItem): string | null {
 function getCJWeight(item: CartItem): number | null {
    return item.variant_weight ?? item.source_metadata?.cj_weight ?? null;
 }
-// ... import helpers from existing file: extractRedirectUrl, extractErrorMessage,
-//     hasCJItems, getCJCartItems, defaultPayment, PAYMENT_ENDPOINTS, etc.
 
 type Stage = "shipping" | "delivery" | "payment";
+
+type CheckoutSyncChanges = {
+   itemsAdded: number;
+   itemsRemoved: number;
+   itemsUpdated: number;
+   priceChanged: boolean;
+   shippingReset: boolean;
+};
 
 interface CheckoutExperienceProps {
    orders: CartOrder[];
    profile: { full_name: string | null; email: string | null; phone: string | null } | null;
    preferredMethod?: string | null;
    mode?: "cart" | "community";
+   cartWasUpdated?: boolean;
+   changes?: CheckoutSyncChanges;
 }
 
 const COUNTRY_NAMES: Record<string, { name: string; flag: string }> = {
@@ -296,7 +305,7 @@ export function CheckoutExperience({
             const cjRes = await fetch("/api/cj/set-shipping", {
                method: "POST",
                headers: { "Content-Type": "application/json" },
-               body: JSON.stringify({ orderIds, shippingOption: cjSelected,destCountryCode: shipping.countryCode}),
+               body: JSON.stringify({ orderIds, shippingOption: cjSelected, destCountryCode: shipping.countryCode }),
             });
             const cjJson = await cjRes.json();
             if (!cjJson.success) throw new Error(cjJson.error ?? "Failed to save delivery");
@@ -396,13 +405,13 @@ export function CheckoutExperience({
                               onChange={(p) => setShipping((s) => ({ ...s, ...p }))}
                               hideAddress={isAllDigital || isCommunity}
                            />
-                           <button
+                           <Button
                               onClick={advanceFromShipping}
                               disabled={cjLoading}
-                              className="mt-6 w-full h-11 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-[13px] font-bold transition-colors disabled:opacity-60"
+                              className="mt-6 w-full h-11 rounded-sm bg-orange-500 hover:bg-orange-600 text-white text-[13px] font-bold transition-colors disabled:opacity-60"
                            >
                               {cjLoading ? "Loading shipping rates…" : "Continue to delivery"}
-                           </button>
+                           </Button>
                         </div>
                      )}
 
@@ -414,7 +423,7 @@ export function CheckoutExperience({
                            <p className="text-[13px] text-[var(--color-text-muted)] mb-5">
                               Shipping to <strong>{shipping.country}</strong>
                            </p>
-                           
+
                            <CJShippingSelector
                               options={cjOptions}
                               selected={cjSelected}
@@ -423,13 +432,13 @@ export function CheckoutExperience({
                               error={cjError}
                               formatMoney={formatMoney}
                            />
-                           <button
+                           <Button
                               onClick={() => setStage("payment")}
                               disabled={!cjSelected}
-                              className="mt-6 w-full h-11 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-[13px] font-bold transition-colors disabled:opacity-60"
+                              className="mt-6 w-full h-11 rounded-sm bg-orange-500 hover:bg-orange-600 text-white text-[13px] font-bold transition-colors disabled:opacity-60"
                            >
                               Continue to payment
-                           </button>
+                           </Button>
                         </div>
                      )}
 
