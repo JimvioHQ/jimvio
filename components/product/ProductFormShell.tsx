@@ -3057,7 +3057,6 @@ return (
             </div>
         </div>
     );
-}
 
 /* ── STEP 4: Publish / Save ── */
 // function StepPublish({
