@@ -8,12 +8,12 @@ export const getDownloadUrl = (
     .replace(/\s+/g, "_")
     .replace(/[^a-zA-Z0-9_-]/g, "");
 
-if (url.includes("/raw/upload/")) {
-  return url.replace(
-    "/raw/upload/",
-    `/raw/upload/fl_attachment:${safeName}/`
-  );
-}
+  if (url.includes("/raw/upload/")) {
+    return url.replace(
+      "/raw/upload/",
+      `/raw/upload/fl_attachment:${safeName}/`
+    );
+  }
 
   return url.replace(
     "/upload/",
@@ -26,20 +26,5 @@ export const triggerDownload = async (
   filename?: string
 ) => {
   const downloadUrl = getDownloadUrl(url, filename);
-
-  const response = await fetch(downloadUrl);
-  const blob = await response.blob();
-
-  const blobUrl = window.URL.createObjectURL(blob);
-
-  const a = document.createElement("a");
-  a.href = blobUrl;
-  a.download = filename || "download";
-
-  document.body.appendChild(a);
-  a.click();
-
-  a.remove();
-
-  window.URL.revokeObjectURL(blobUrl);
+  window.location.href = downloadUrl;
 };
