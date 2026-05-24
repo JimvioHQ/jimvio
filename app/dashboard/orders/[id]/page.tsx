@@ -299,7 +299,6 @@ const accessUrl = rawAccessUrl
         </p>
         {isDigital && accessUrl && !accessRevoked && (
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5">
-            <a
 <button
   onClick={() =>
     triggerDownload(
@@ -311,7 +310,6 @@ const accessUrl = rawAccessUrl
 >
   {linkAction.icon} {linkAction.label}
 </button>
-            </a>
             {accessExpiresAt && (
               <span className="inline-flex items-center gap-1 text-[10px] text-[var(--color-text-muted)]">
                 <Calendar className="h-2.5 w-2.5" />
