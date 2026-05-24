@@ -299,17 +299,13 @@ const accessUrl = rawAccessUrl
         </p>
         {isDigital && accessUrl && !accessRevoked && (
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5">
-<button
-  onClick={() =>
-    triggerDownload(
-      rawAccessUrl,
-      item?.product_name || "download"
-    )
-  }
+<a 
+  href={`/api/download?url=${encodeURIComponent(rawAccessUrl || "")}&filename=${encodeURIComponent(item?.product_name || "download")}`}
+  download
   className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-sky-600 dark:text-sky-400 hover:underline"
 >
   {linkAction.icon} {linkAction.label}
-</button>
+</a>
             {accessExpiresAt && (
               <span className="inline-flex items-center gap-1 text-[10px] text-[var(--color-text-muted)]">
                 <Calendar className="h-2.5 w-2.5" />
