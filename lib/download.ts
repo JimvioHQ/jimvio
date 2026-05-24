@@ -6,16 +6,9 @@ export const getDownloadUrl = (
 
   const cleanUrl = url.split("?")[0];
 
-  if (!filename) {
-    return cleanUrl.replace(
-      "/upload/",
-      "/upload/fl_attachment/"
-    );
-  }
-
-  const safeName = filename
-    .replace(/\s+/g, "-")
-    .replace(/[^a-zA-Z0-9-_]/g, "");
+  const safeName = (filename || "download")
+    .replace(/\s+/g, "_")
+    .replace(/[^a-zA-Z0-9_-]/g, "");
 
   return cleanUrl.replace(
     "/upload/",
