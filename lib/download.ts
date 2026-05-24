@@ -25,6 +25,5 @@ export const triggerDownload = async (
   url: string,
   filename?: string
 ) => {
-  const downloadUrl = getDownloadUrl(url, filename);
-  window.location.href = downloadUrl;
+window.location.href = url;
 };
