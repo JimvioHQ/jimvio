@@ -1,6 +1,4 @@
 
-
-
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
@@ -1877,6 +1875,23 @@ CREATE TABLE IF NOT EXISTS "public"."order_items" (
 ALTER TABLE "public"."order_items" OWNER TO "postgres";
 
 
+CREATE TABLE IF NOT EXISTS "public"."order_payment_status_history" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "order_id" "uuid" NOT NULL,
+    "previous_status" "public"."payment_status",
+    "new_status" "public"."payment_status" NOT NULL,
+    "provider" "text",
+    "provider_transaction_id" "text",
+    "triggered_by" "text",
+    "notes" "text",
+    "metadata" "jsonb",
+    "created_at" timestamp with time zone DEFAULT "now"()
+);
+
+
+ALTER TABLE "public"."order_payment_status_history" OWNER TO "postgres";
+
+
 CREATE TABLE IF NOT EXISTS "public"."order_status_history" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
     "order_id" "uuid" NOT NULL,
@@ -2057,6 +2072,8 @@ CREATE TABLE IF NOT EXISTS "public"."product_variants" (
     "source" "text" DEFAULT 'vendor'::"text" NOT NULL,
     "source_metadata" "jsonb" DEFAULT '{}'::"jsonb" NOT NULL,
     "updated_at" timestamp with time zone DEFAULT "now"(),
+    "affiliate_price" numeric DEFAULT 0,
+    "affiliate_commission_rate" numeric DEFAULT 0,
     CONSTRAINT "product_variants_inventory_non_negative" CHECK (("inventory_quantity" >= 0)),
     CONSTRAINT "product_variants_source_check" CHECK (("source" = ANY (ARRAY['vendor'::"text", 'shopify'::"text", 'cj'::"text"])))
 );
@@ -2145,6 +2162,7 @@ CREATE TABLE IF NOT EXISTS "public"."products" (
     "material" "text",
     "rating_breakdown" "jsonb" DEFAULT '{}'::"jsonb",
     "deleted_at" timestamp with time zone,
+    "affiliate_price" numeric DEFAULT 0,
     CONSTRAINT "products_billing_period_consistency" CHECK (((("pricing_type" = 'recurring'::"text") AND ("billing_period" IS NOT NULL)) OR (("pricing_type" = 'one_time'::"text") AND ("billing_period" IS NULL)))),
     CONSTRAINT "products_digital_shipping_consistency" CHECK (((("is_digital" = true) AND ("requires_shipping" = false)) OR ("is_digital" = false))),
     CONSTRAINT "products_inventory_non_negative" CHECK (((NOT "track_inventory") OR "allow_backorder" OR ("inventory_quantity" >= 0)))
@@ -2573,6 +2591,21 @@ CREATE TABLE IF NOT EXISTS "public"."ugc_view_snapshots" (
 ALTER TABLE "public"."ugc_view_snapshots" OWNER TO "postgres";
 
 
+CREATE TABLE IF NOT EXISTS "public"."user_2fa_secrets" (
+    "user_id" "uuid" NOT NULL,
+    "secret" "text" NOT NULL,
+    "backup_codes" "jsonb" DEFAULT '[]'::"jsonb" NOT NULL,
+    "pending_secret" "text",
+    "pending_backup_codes" "jsonb",
+    "pending_expires_at" timestamp with time zone,
+    "created_at" timestamp with time zone DEFAULT "now"(),
+    "updated_at" timestamp with time zone DEFAULT "now"()
+);
+
+
+ALTER TABLE "public"."user_2fa_secrets" OWNER TO "postgres";
+
+
 CREATE TABLE IF NOT EXISTS "public"."user_roles" (
     "id" "uuid" DEFAULT "extensions"."uuid_generate_v4"() NOT NULL,
     "user_id" "uuid" NOT NULL,
@@ -2903,6 +2936,11 @@ ALTER TABLE ONLY "public"."order_items"
 
 
 
+ALTER TABLE ONLY "public"."order_payment_status_history"
+    ADD CONSTRAINT "order_payment_status_history_pkey" PRIMARY KEY ("id");
+
+
+
 ALTER TABLE ONLY "public"."order_status_history"
     ADD CONSTRAINT "order_status_history_pkey" PRIMARY KEY ("id");
 
@@ -3075,6 +3113,11 @@ ALTER TABLE ONLY "public"."ugc_submissions"
 
 ALTER TABLE ONLY "public"."ugc_view_snapshots"
     ADD CONSTRAINT "ugc_view_snapshots_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."user_2fa_secrets"
+    ADD CONSTRAINT "user_2fa_secrets_pkey" PRIMARY KEY ("user_id");
 
 
 
@@ -3394,6 +3437,22 @@ CREATE INDEX "idx_order_items_vendor_id" ON "public"."order_items" USING "btree"
 
 
 
+CREATE INDEX "idx_order_payment_status_history_new_status" ON "public"."order_payment_status_history" USING "btree" ("new_status");
+
+
+
+CREATE INDEX "idx_order_payment_status_history_order_id" ON "public"."order_payment_status_history" USING "btree" ("order_id", "created_at" DESC);
+
+
+
+CREATE INDEX "idx_order_payment_status_history_provider" ON "public"."order_payment_status_history" USING "btree" ("provider") WHERE ("provider" IS NOT NULL);
+
+
+
+CREATE INDEX "idx_order_payment_status_history_provider_tx" ON "public"."order_payment_status_history" USING "btree" ("provider", "provider_transaction_id") WHERE ("provider_transaction_id" IS NOT NULL);
+
+
+
 CREATE INDEX "idx_order_status_history_created_at" ON "public"."order_status_history" USING "btree" ("order_id", "created_at" DESC);
 
 
@@ -3423,6 +3482,10 @@ CREATE INDEX "idx_orders_created_at" ON "public"."orders" USING "btree" ("create
 
 
 CREATE INDEX "idx_orders_integration_source" ON "public"."orders" USING "btree" ("integration_source");
+
+
+
+CREATE UNIQUE INDEX "idx_orders_no_duplicate_pending_checkout" ON "public"."orders" USING "btree" ("buyer_id", "vendor_id", COALESCE(("metadata" ->> 'cart_id'::"text"), 'null'::"text")) WHERE (("status" = 'pending'::"public"."order_status") AND ("payment_status" = ANY (ARRAY['pending'::"public"."payment_status", 'failed'::"public"."payment_status"])));
 
 
 
@@ -4519,6 +4582,11 @@ ALTER TABLE ONLY "public"."order_items"
 
 
 
+ALTER TABLE ONLY "public"."order_payment_status_history"
+    ADD CONSTRAINT "order_payment_status_history_order_id_fkey" FOREIGN KEY ("order_id") REFERENCES "public"."orders"("id") ON DELETE CASCADE;
+
+
+
 ALTER TABLE ONLY "public"."order_status_history"
     ADD CONSTRAINT "order_status_history_order_id_fkey" FOREIGN KEY ("order_id") REFERENCES "public"."orders"("id") ON DELETE CASCADE;
 
@@ -4819,6 +4887,11 @@ ALTER TABLE ONLY "public"."ugc_view_snapshots"
 
 
 
+ALTER TABLE ONLY "public"."user_2fa_secrets"
+    ADD CONSTRAINT "user_2fa_secrets_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."profiles"("id") ON DELETE CASCADE;
+
+
+
 ALTER TABLE ONLY "public"."user_roles"
     ADD CONSTRAINT "user_roles_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."profiles"("id") ON DELETE CASCADE;
 
@@ -5091,6 +5164,12 @@ CREATE POLICY "brands_view_campaign_participants" ON "public"."ugc_campaign_part
   WHERE ("ugc_campaigns"."brand_id" IN ( SELECT "vendors"."id"
            FROM "public"."vendors"
           WHERE ("vendors"."user_id" = "auth"."uid"()))))));
+
+
+
+CREATE POLICY "buyers_select_own_payment_history" ON "public"."order_payment_status_history" FOR SELECT USING (("order_id" IN ( SELECT "orders"."id"
+   FROM "public"."orders"
+  WHERE ("orders"."buyer_id" = "auth"."uid"()))));
 
 
 
@@ -5692,6 +5771,9 @@ CREATE POLICY "order_items_update_vendor_only" ON "public"."order_items" FOR UPD
 
 
 
+ALTER TABLE "public"."order_payment_status_history" ENABLE ROW LEVEL SECURITY;
+
+
 ALTER TABLE "public"."order_status_history" ENABLE ROW LEVEL SECURITY;
 
 
@@ -5945,6 +6027,14 @@ CREATE POLICY "rooms_visible_to_members" ON "public"."rooms" FOR SELECT USING ((
   WHERE ((NOT "communities"."is_private") OR ("communities"."owner_id" = "auth"."uid"())))) OR ("community_id" IN ( SELECT "community_memberships"."community_id"
    FROM "public"."community_memberships"
   WHERE (("community_memberships"."user_id" = "auth"."uid"()) AND ("community_memberships"."status" = 'active'::"text")))))));
+
+
+
+CREATE POLICY "service_role_insert_order_status_history" ON "public"."order_status_history" FOR INSERT TO "service_role" WITH CHECK (true);
+
+
+
+CREATE POLICY "service_role_insert_payment_history" ON "public"."order_payment_status_history" FOR INSERT TO "service_role" WITH CHECK (true);
 
 
 
@@ -6274,6 +6364,9 @@ CREATE POLICY "ugc_submissions_update" ON "public"."ugc_submissions" FOR UPDATE 
 ALTER TABLE "public"."ugc_view_snapshots" ENABLE ROW LEVEL SECURITY;
 
 
+ALTER TABLE "public"."user_2fa_secrets" ENABLE ROW LEVEL SECURITY;
+
+
 ALTER TABLE "public"."user_roles" ENABLE ROW LEVEL SECURITY;
 
 
@@ -6294,6 +6387,10 @@ CREATE POLICY "user_roles_update" ON "public"."user_roles" FOR UPDATE USING (("a
 
 
 CREATE POLICY "users_create_reports" ON "public"."ugc_reports" FOR INSERT WITH CHECK (("reporter_id" = "auth"."uid"()));
+
+
+
+CREATE POLICY "users_manage_own_2fa" ON "public"."user_2fa_secrets" USING (("auth"."uid"() = "user_id")) WITH CHECK (("auth"."uid"() = "user_id"));
 
 
 
@@ -6374,6 +6471,14 @@ CREATE POLICY "vendors_manage_own_shopify_creds" ON "public"."shopify_credential
 
 
 CREATE POLICY "vendors_select" ON "public"."vendors" FOR SELECT USING (true);
+
+
+
+CREATE POLICY "vendors_select_own_payment_history" ON "public"."order_payment_status_history" FOR SELECT USING (("order_id" IN ( SELECT "orders"."id"
+   FROM "public"."orders"
+  WHERE ("orders"."vendor_id" IN ( SELECT "vendors"."id"
+           FROM "public"."vendors"
+          WHERE ("vendors"."user_id" = "auth"."uid"()))))));
 
 
 
@@ -6704,6 +6809,12 @@ GRANT ALL ON TABLE "public"."order_items" TO "service_role";
 
 
 
+GRANT ALL ON TABLE "public"."order_payment_status_history" TO "anon";
+GRANT ALL ON TABLE "public"."order_payment_status_history" TO "authenticated";
+GRANT ALL ON TABLE "public"."order_payment_status_history" TO "service_role";
+
+
+
 GRANT ALL ON TABLE "public"."order_status_history" TO "anon";
 GRANT ALL ON TABLE "public"."order_status_history" TO "authenticated";
 GRANT ALL ON TABLE "public"."order_status_history" TO "service_role";
@@ -6893,6 +7004,12 @@ GRANT ALL ON TABLE "public"."ugc_submissions" TO "service_role";
 GRANT ALL ON TABLE "public"."ugc_view_snapshots" TO "anon";
 GRANT ALL ON TABLE "public"."ugc_view_snapshots" TO "authenticated";
 GRANT ALL ON TABLE "public"."ugc_view_snapshots" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."user_2fa_secrets" TO "anon";
+GRANT ALL ON TABLE "public"."user_2fa_secrets" TO "authenticated";
+GRANT ALL ON TABLE "public"."user_2fa_secrets" TO "service_role";
 
 
 
