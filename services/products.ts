@@ -2,7 +2,7 @@ import { cache } from "react";
 import { getDB, getAdminDB } from "./base";
 
 import type { Tables } from "@/types/supabase";
-import { Product } from "@/types/database.types";
+import type { Product, ProductStatus } from "@/types/db";
 
 // ─────────────────────────────────────────────────────────────
 // TYPES
@@ -219,7 +219,7 @@ export async function getProducts(query: ProductQuery = {}) {
   if (vendorId) q = q.eq("vendor_id", vendorId);
   if (featured) q = q.eq("is_featured", true);
   if (affiliate) q = q.eq("affiliate_enabled", true);
-  if (type) q = q.eq("product_type", type as Product["product_type"]);
+  if (type) q = q.eq("product_type", type as any);
   if (category) q = q.eq("product_categories.slug", category);
   if (search) q = q.ilike("name", `%${search}%`);
   if (minPrice != null) q = q.gte("price", minPrice);
@@ -410,49 +410,194 @@ export async function getTopVendorProducts(vendorId: string, limit = 4) {
 // ADMIN
 // ─────────────────────────────────────────────────────────────
 
-export async function getAdminProducts(q?: string, limit = 100) {
-  const supabase = await getAdminDB();
+// export async function getAdminProducts(
+//   q?: string,
+//   limit = 100,
+//   status?: ProductStatus | "all",
+//   featured?: string,
+//   sort = "created_at",
+//   order: "asc" | "desc" = "desc",
+// ) {
+//   const supabase = await getAdminDB();
 
-  let query = supabase
-    .from("products")
-    .select(`
-      id, name, slug, price, compare_at_price, status, product_type,
-      is_featured, is_active, affiliate_enabled, affiliate_commission_rate, images,
-      vendors (
-        id, business_name, business_logo,
-        profiles ( avatar_url )
-      )
-    `, { count: "exact" })
-    .order("created_at", { ascending: false })
-    .limit(limit);
+//   let query = supabase
+//     .from("products")
+//     .select(`
+//       id, name, slug, price, compare_at_price, status, product_type,
+//       is_featured, is_active, affiliate_enabled, affiliate_commission_rate, images,
+//       vendors (
+//         id, business_name, business_logo,
+//         profiles ( avatar_url )
+//       )
+//     `, { count: "exact" })
+//     .limit(limit);
 
-  if (q?.trim()) {
-    query = query.or(`name.ilike.%${q}%,slug.ilike.%${q}%`);
+//   // Validate status against enum values to prevent PostgreSQL errors
+//   const validStatuses: ProductStatus[] = ["draft", "active", "paused", "archived"];
+//   if (status && status !== "all" && validStatuses.includes(status as ProductStatus)) {
+//     query = query.eq("status", status as ProductStatus);
+//   }
+
+//   if (featured === "1") {
+//     query = query.eq("is_featured", true);
+//   }
+
+//   const allowedSortColumns = ["created_at", "name", "price", "status", "product_type"];
+//   const sortColumn = allowedSortColumns.includes(sort) ? sort : "created_at";
+//   query = query.order(sortColumn, { ascending: order === "asc" });
+
+//   if (q?.trim()) {
+//     // Escape PostgreSQL ILIKE wildcard characters (%, _) and backslash
+//     const escapedQ = q.replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
+//     query = query.or(`name.ilike.%${escapedQ}%,slug.ilike.%${escapedQ}%`);
+//   }
+
+//   const { data, count, error } = await query;
+//   if (error) throw error;
+
+//   const products = (data ?? []).map((row: any) => ({
+//     id: row.id,
+//     name: row.name,
+//     slug: row.slug,
+//     price: row.price,
+//     compare_at_price: row.compare_at_price,
+//     status: row.status,
+//     product_type: row.product_type,
+//     is_featured: row.is_featured,
+//     is_active: row.is_active,
+//     affiliate_enabled: row.affiliate_enabled,
+//     affiliate_commission_rate: row.affiliate_commission_rate,
+//     images: normaliseImages(row.images),
+//     vendor_name: row.vendors?.business_name ?? null,
+//     // Prefer owner avatar, fall back to business logo.
+//     vendor_avatar_url:
+//       row.vendors?.profiles?.avatar_url ??
+//       row.vendors?.business_logo ??
+//       null,
+//   }));
+
+//   return { products, total: count ?? products.length };
+// }
+
+
+interface GetAdminProductsParams {
+  q?: string;
+  status?: ProductStatus | "all";
+  featured?: string;
+  sort?: string;
+  order?: "asc" | "desc";
+  page?: number;
+  pageSize?: number;
+  includeDeleted?: boolean;
+}
+
+const ALLOWED_SORT_COLUMNS = new Set([
+  "created_at", "updated_at", "name", "price", "status", "sale_count", "view_count",
+]);
+
+export async function getAdminProducts(params: GetAdminProductsParams) {
+  try {
+    const {
+      q,
+      status,
+      featured,
+      sort = "created_at",
+      order = "desc",
+      page = 1,
+      pageSize = 25,
+      includeDeleted = false,
+    } = params;
+
+    const supabase = await getAdminDB();
+
+    const safeSort = ALLOWED_SORT_COLUMNS.has(sort) ? sort : "created_at";
+    const safeOrder = order === "asc" ? "asc" : "desc";
+    const from = (page - 1) * pageSize;
+    const to = from + pageSize - 1;
+
+    let query = supabase
+      .from("products")
+      .select(
+        `
+      id, name, slug, status, price, compare_at_price, currency,
+      product_type, is_featured, is_active, source,
+      affiliate_enabled, affiliate_commission_rate,
+      images, sale_count, view_count, inventory_quantity, low_stock_threshold,
+      created_at, deleted_at,
+      vendors!inner ( id, business_name, business_logo, business_slug )
+      `,
+        { count: "exact" }
+      );
+
+    if (!includeDeleted) {
+      query = query.is("deleted_at", null);
+    }
+
+    if (q && q.trim()) {
+      const term = q.trim();
+      query = query.or(`name.ilike.%${term}%,slug.ilike.%${term}%,sku.ilike.%${term}%`);
+    }
+
+    if (status && status !== "all") {
+      const VALID_STATUSES: ProductStatus[] = ["draft", "active", "paused", "archived"];
+      if (VALID_STATUSES.includes(status as ProductStatus)) {
+        query = query.eq("status", status as ProductStatus);
+      } else {
+        console.warn("[getAdminProducts] ignoring invalid status filter:", status);
+      }
+    }
+
+    if (featured === "1") {
+      query = query.eq("is_featured", true);
+    }
+
+    query = query.order(safeSort, { ascending: safeOrder === "asc" });
+    query = query.range(from, to);
+
+    const { data, error, count } = await query;
+
+    if (error) {
+      // Supabase sometimes returns non-Error objects; stringify for clarity.
+      let serialized: string;
+      try {
+        serialized = JSON.stringify(error);
+      } catch {
+        serialized = String(error);
+      }
+      console.error("[getAdminProducts] supabase error:", serialized, { params });
+      return { products: [], total: 0, totalActive: 0, totalFeatured: 0 };
+    }
+
+    const [{ count: totalActive }, { count: totalFeatured }] = await Promise.all([
+      supabase
+        .from("products")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "active")
+        .is("deleted_at", null),
+      supabase
+        .from("products")
+        .select("id", { count: "exact", head: true })
+        .eq("is_featured", true)
+        .is("deleted_at", null),
+    ]);
+
+    const products = (data ?? []).map((p: any) => ({
+      ...p,
+      vendor_id: p.vendors?.id,
+      vendor_name: p.vendors?.business_name ?? null,
+      vendor_avatar_url: p.vendors?.business_logo ?? null,
+      vendor_slug: p.vendors?.business_slug ?? null,
+    }));
+
+    return {
+      products,
+      total: count ?? 0,
+      totalActive: totalActive ?? 0,
+      totalFeatured: totalFeatured ?? 0,
+    };
+  } catch (err) {
+    // Catch unexpected exceptions and log with context.
+    console.error("[getAdminProducts] unexpected error:", err instanceof Error ? err.message : JSON.stringify(err), { params });
+    return { products: [], total: 0, totalActive: 0, totalFeatured: 0 };
   }
-
-  const { data, count, error } = await query;
-  if (error) throw error;
-
-  const products = (data ?? []).map((row: any) => ({
-    id: row.id,
-    name: row.name,
-    slug: row.slug,
-    price: row.price,
-    compare_at_price: row.compare_at_price,
-    status: row.status,
-    product_type: row.product_type,
-    is_featured: row.is_featured,
-    is_active: row.is_active,
-    affiliate_enabled: row.affiliate_enabled,
-    affiliate_commission_rate: row.affiliate_commission_rate,
-    images: normaliseImages(row.images),
-    vendor_name: row.vendors?.business_name ?? null,
-    // Prefer owner avatar, fall back to business logo.
-    vendor_avatar_url:
-      row.vendors?.profiles?.avatar_url ??
-      row.vendors?.business_logo ??
-      null,
-  }));
-
-  return { products, total: count ?? products.length };
 }

@@ -151,7 +151,6 @@ export async function POST(req: Request): Promise<Response> {
             token
         );
 
-        // ✅ Fix: correct "not found" check — previous check was logically impossible
         if (!detail.data?.pid) {
             return Response.json(
                 { success: false, error: "Product not found on CJ" },
@@ -170,8 +169,6 @@ export async function POST(req: Request): Promise<Response> {
             );
         }
 
-        // ✅ Added: extract option keys for structured variant option parsing
-        // productKeyEnSet e.g. ["Color", "Size"] — defines the variant dimensions
         const optionKeys: string[] =
             detail.data.productKeyEnSet ??
             detail.data.productKeySet ??
@@ -179,13 +176,11 @@ export async function POST(req: Request): Promise<Response> {
 
         const cjProduct = detailToCJProduct(detail.data);
 
-        // ── Step 3: Upsert product ────────────────────────────────────────
         const { success, productId, error } = await upsertCJProduct(
             supabase,
             cjProduct,
             vendorId,
             exchangeRate,
-            // ✅ Added: pass optionKeys and raw variants for product-level options
             optionKeys,
             detail.data.variants.map((v) => ({ variantKey: v.variantKey }))
         );
@@ -209,10 +204,8 @@ export async function POST(req: Request): Promise<Response> {
                         cjVariant,
                         productId,
                         exchangeRate,
-                        // ✅ Added: pass optionKeys for structured options parsing
                         optionKeys
                     ),
-                    // ✅ Fix: name fallback — variantNameEn/variantName are often null
                     name:
                         v.variantNameEn ||
                         v.variantName ||

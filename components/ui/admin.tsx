@@ -1,12 +1,12 @@
-
 "use client";
 
 import React from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { ArrowUpRight } from "lucide-react";
-import { useState } from "react";
-
+import { ArrowUpRight, Search } from "lucide-react";
+import { useState, useRef } from "react";
+import { Input } from "@/components/ui/input";
+import CustomSelect, { SelectOption } from "@/components/ui/select-2";
 export function StatusPill({
     status, size = "sm",
 }: { status: string; size?: "sm" | "md" }) {
@@ -91,6 +91,11 @@ const PROVIDERS: Record<string, {
         label: "M-Pesa",
         color: "bg-green-500/15 text-green-700 dark:text-green-400",
     },
+    binance: {
+        domain: "binance.com",
+        label: "Binance Pay",
+        color: "bg-yellow-500/15 text-yellow-700 dark:text-yellow-400",
+    },
 };
 
 const SIZE = {
@@ -105,8 +110,6 @@ function getLogoUrls(domain: string) {
         `https://www.google.com/s2/favicons?domain=${domain}&sz=64`,
     ];
 }
-
-// ─── Component ────────────────────────────────────────────────────────────────
 
 export function ProviderLogo({
     provider,
@@ -129,31 +132,43 @@ export function ProviderLogo({
     const urls = config?.domain ? getLogoUrls(config.domain) : [];
     const [urlIndex, setUrlIndex] = useState(0);
     const [failed, setFailed] = useState(false);
+    const [loaded, setLoaded] = useState(false);
 
     const currentUrl = urls[urlIndex];
 
     return (
         <span className="inline-flex items-center gap-2 shrink-0">
             <span className={cn(
-                "inline-flex items-center justify-center rounded-lg overflow-hidden shrink-0",
+                "relative inline-flex items-center justify-center rounded-lg overflow-hidden shrink-0",
                 s.wrapper,
                 (failed || !currentUrl) ? fallbackColor : "bg-white ring-1 ring-black/8 dark:ring-white/10",
             )}>
                 {!failed && currentUrl ? (
-                    <img
-                        src={currentUrl}
-                        alt={label}
-                        width={s.img}
-                        height={s.img}
-                        className="w-full h-full object-contain p-0.5 rounded-[50%] select-none"
-                        onError={() => {
-                            if (urlIndex + 1 < urls.length) {
-                                setUrlIndex(urlIndex + 1);
-                            } else {
-                                setFailed(true);
-                            }
-                        }}
-                    />
+                    <>
+                        {!loaded && (
+                            <span className="absolute inset-0 rounded-lg animate-pulse bg-[var(--color-surface-secondary)]" />
+                        )}
+                        <img
+                            key={urlIndex}
+                            src={currentUrl}
+                            alt={label}
+                            width={s.img}
+                            height={s.img}
+                            className={cn(
+                                "w-full h-full object-contain p-0.5 rounded-[50%] select-none transition-opacity duration-200",
+                                loaded ? "opacity-100" : "opacity-0",
+                            )}
+                            onLoad={() => setLoaded(true)}
+                            onError={() => {
+                                setLoaded(false);
+                                if (urlIndex + 1 < urls.length) {
+                                    setUrlIndex(urlIndex + 1);
+                                } else {
+                                    setFailed(true);
+                                }
+                            }}
+                        />
+                    </>
                 ) : (
                     <span className={cn("font-bold leading-none", s.text)}>
                         {key.slice(0, 2).toUpperCase() || "?"}
@@ -196,7 +211,7 @@ export function RangePicker({ current, base }: { current: RangeKey; base: string
                     className={cn(
                         "h-[30px] px-3 flex items-center rounded-[9px] text-[12px] font-medium transition-all duration-150 whitespace-nowrap select-none",
                         current === k
-                            ? "bg-[var(--color-text-primary)] text-[var(--color-surface)] shadow-sm"
+                            ? "bg-[var(--color-text-primary)] text-xs font-semibold text-[var(--color-surface)] shadow-sm"
                             : "text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface)]",
                     )}
                 >
@@ -324,6 +339,7 @@ export function EmptyState({
         </div>
     );
 }
+
 // ─── Row Link Arrow ───────────────────────────────────────────────────────────
 
 export function RowArrow({ href }: { href: string }) {
@@ -334,5 +350,143 @@ export function RowArrow({ href }: { href: string }) {
         >
             <ArrowUpRight className="h-3.5 w-3.5" />
         </Link>
+    );
+}
+
+
+export function Th({ children, align = "left" }: { children: React.ReactNode; align?: "left" | "right" }) {
+    return (
+        <th className={cn(
+            "font-medium text-[10.5px] uppercase tracking-[0.08em] text-[var(--color-text-muted)] px-3 py-3",
+            align === "right" ? "text-right" : "text-left",
+        )}>{children}</th>
+    );
+}
+
+
+
+// ─── types ────────────────────────────────────────────────────────────────────
+
+export interface FilterSelectGroup<T extends string = string> {
+    key: string;
+    label: string;
+    options: SelectOption<T>[];
+    value: T;
+    onChange: (value: T) => void;
+    placeholder?: string;
+    searchable?: boolean;
+    /** Min width of the select trigger, e.g. "140px". Defaults to "140px". */
+    minWidth?: string;
+}
+
+export interface OrderFilterToolbarProps {
+    search: string;
+    onSearchChange: (value: string) => void;
+    onSearchSubmit: () => void;
+    filterGroups: FilterSelectGroup[];
+    /** Show a Reset button when any filter differs from its default value. */
+    defaultValues?: Record<string, string>;
+    onReset?: () => void;
+    className?: string;
+    searchPlaceholder?: string;
+}
+
+// ─── component ────────────────────────────────────────────────────────────────
+
+export function OrderFilterToolbar({
+    search,
+    onSearchChange,
+    onSearchSubmit,
+    filterGroups,
+    defaultValues = {},
+    onReset,
+    className,
+    searchPlaceholder = "Order number or ID…",
+}: OrderFilterToolbarProps) {
+    const searchRef = useRef<HTMLInputElement>(null);
+
+    const isDirty = filterGroups.some(
+        (g) => defaultValues[g.key] !== undefined && g.value !== defaultValues[g.key]
+    );
+
+    return (
+        <div className={cn("flex items-end gap-2 flex-wrap", className)}>
+
+            {/* ── Search ── */}
+            <div className="flex flex-col gap-1">
+                <span className="text-[10.5px] font-medium uppercase tracking-wider text-[var(--color-text-muted)]">
+                    Search
+                </span>
+                <div className="relative">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--color-text-muted)] pointer-events-none" />
+                    <Input
+                        ref={searchRef}
+                        type="text"
+                        value={search}
+                        onChange={(e) => onSearchChange(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && onSearchSubmit()}
+                        placeholder={searchPlaceholder}
+                        className={cn(
+                            "h-11 pl-8 pr-3 w-[220px] rounded-sm text-sm",
+                            "bg-[var(--color-surface)] border border-[var(--color-border)]",
+                            "text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)]",
+                            "focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
+                        )}
+                    />
+                </div>
+            </div>
+
+            {/* ── Divider ── */}
+            <div className="h-11 w-px bg-[var(--color-border)] self-end mb-0" />
+
+            {/* ── Filter selects ── */}
+            {filterGroups.map((group) => (
+                <div key={group.key} className="flex flex-col gap-1">
+                    <span className="text-[10.5px] font-medium uppercase tracking-wider text-[var(--color-text-muted)]">
+                        {group.label}
+                    </span>
+                    <div style={{ minWidth: group.minWidth ?? "140px" }}>
+                        <CustomSelect
+                            options={group.options}
+                            value={group.value}
+                            onChange={group.onChange}
+                            placeholder={group.placeholder ?? `All`}
+                            searchable={group.searchable ?? false}
+                            textSize="sm"
+                        />
+                    </div>
+                </div>
+            ))}
+
+            {/* ── Actions ── */}
+            <div className="flex items-center gap-2 self-end">
+                <button
+                    type="button"
+                    onClick={onSearchSubmit}
+                    className={cn(
+                        "h-11 px-4 rounded-sm text-sm font-medium transition-all",
+                        "bg-[var(--color-text-primary)] text-[var(--color-surface)]",
+                        "hover:opacity-85 active:opacity-70 active:scale-[0.98]"
+                    )}
+                >
+                    Search
+                </button>
+
+                {isDirty && onReset && (
+                    <button
+                        type="button"
+                        onClick={onReset}
+                        className={cn(
+                            "h-11 px-3 rounded-sm text-sm transition-all",
+                            "border border-[var(--color-border)] text-[var(--color-text-muted)]",
+                            "hover:text-[var(--color-text-primary)] hover:border-[var(--color-border-strong)]"
+                        )}
+                    >
+                        Reset
+                    </button>
+                )}
+            </div>
+
+        </div>
     );
 }

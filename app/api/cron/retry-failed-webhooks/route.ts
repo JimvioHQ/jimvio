@@ -1,23 +1,3 @@
-/**
- * app/api/cron/retry-failed-webhooks/route.ts
- *
- * Cron job: retry orders stuck in 'pending' payment state
- * where a webhook_event exists in 'failed' status.
- *
- * Schedule (vercel.json):
- *   { "path": "/api/cron/retry-failed-webhooks", "schedule": "0 * * * *" }
- *   → runs every hour
- *
- * This is a safety net — not a replacement for reliable webhook delivery.
- * It re-runs finalizeOrderPayment on orders that are:
- *   - payment_status != 'completed'
- *   - paid_at IS NULL
- *   - have a failed webhook_event in the last 24h
- *   - were created more than 5 minutes ago (grace period)
- *
- * Protected by CRON_SECRET header check.
- */
-
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { ensureNativeVendorCreditsApplied } from "@/lib/payments/credit-vendors-for-native-order";
