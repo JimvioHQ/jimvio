@@ -14,5 +14,13 @@ export async function GET(request: NextRequest) {
     ? url.replace("/raw/upload/", `/raw/upload/fl_attachment:${safeName}/`)
     : url.replace("/upload/", `/upload/fl_attachment:${safeName}/`);
 
-  return NextResponse.redirect(downloadUrl);
+  const response = await fetch(downloadUrl);
+  const blob = await response.arrayBuffer();
+
+  return new NextResponse(blob, {
+    headers: {
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `attachment; filename="${safeName}.pdf"`,
+    },
+  });
 }
