@@ -3036,12 +3036,9 @@ function StepSettings({ form, handleChange }: { form: FormState; handleChange: (
                                     className="px-4 h-8 text-xs font-medium transition-all"
                                 />
                             )}
-                        </div>
-<div>
+return (
+                        <div>
   <Label hint="Or paste a direct URL">Manual file URL</Label>
-  ...
-</div>
-            <div>
                 <SectionTitle label="Visibility" />
                 <div
                     className="flex items-center justify-between p-4"
