@@ -3037,16 +3037,7 @@ function StepSettings({ form, handleChange }: { form: FormState; handleChange: (
                                 />
                             )}
                         </div>
-                        <div>
-                            <Label hint="Or paste a direct URL">Manual file URL</Label>
-                            <div className="relative">
-                                <LinkIcon size={13} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "var(--color-text-muted)" }} />
-                                <Input placeholder="https://your-cdn.com/file.zip" value={form.digital_file_url} onChange={e => handleChange("digital_file_url", e.target.value)} className="pl-8 font-mono text-xs" />
-                            </div>
-                        </div>
-                    </div>
-                )}
-            </div>
+
 
             <Divider />
 
