@@ -8,11 +8,12 @@ export const getDownloadUrl = (
     .replace(/\s+/g, "_")
     .replace(/[^a-zA-Z0-9_-]/g, "");
 
-  if (url.includes("/raw/upload/")) {
-    return `${url}${
-      url.includes("?") ? "&" : "?"
-    }fl_attachment=${safeName}`;
-  }
+if (url.includes("/raw/upload/")) {
+  return url.replace(
+    "/raw/upload/",
+    `/raw/upload/fl_attachment:${safeName}/`
+  );
+}
 
   return url.replace(
     "/upload/",
