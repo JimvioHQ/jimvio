@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { v2 as cloudinary } from "cloudinary";
 
 cloudinary.config({
@@ -8,11 +8,11 @@ cloudinary.config({
 });
 
 export async function GET(
-    req: Request,
-    { params }: { params: { id: string } }
+    req: NextRequest,
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const publicId = params.id;
+        const publicId = (await params).id;
 
         if (!publicId) {
             return NextResponse.json(
