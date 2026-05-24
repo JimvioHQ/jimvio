@@ -17,7 +17,7 @@ import { createClient } from "@/lib/supabase/client";
 import { OrderStatusBadge } from "@/components/orders/OrderStatusBadge";
 import { TrackingCard } from "@/components/orders/TrackingCard";
 import { toast } from "sonner";
-
+import { getDownloadUrl } from "@/lib/download";
 /* ── Constants ──────────────────────────────────────────────────────────── */
 
 const PROVIDER_LABELS: Record<string, string> = {
@@ -251,7 +251,15 @@ function OrderItemRow({ item, currency, accessByProductId }: {
 }) {
   const isDigital = item.product_type === "digital";
   const access = item.product_id ? accessByProductId.get(item.product_id) : null;
-  const accessUrl = access?.access_url || item.digital_download_url;
+  const rawAccessUrl =
+  access?.access_url || item.digital_download_url;
+
+const accessUrl = rawAccessUrl
+  ? getDownloadUrl(
+      rawAccessUrl,
+      item?.product_name || "download"
+    )
+  : null;
   const accessRevoked = !!access?.revoked_at;
   const accessExpiresAt = access?.expires_at;
 
