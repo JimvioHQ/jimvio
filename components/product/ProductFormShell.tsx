@@ -3038,7 +3038,7 @@ function StepSettings({ form, handleChange }: { form: FormState; handleChange: (
                             )}
                         </div>
 
-
+</div>
             <Divider />
 
             <div>
