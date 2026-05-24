@@ -3384,7 +3384,6 @@ function StepPublish({
             </p>
         </div>
     );
-}
 /* ── SHARED PAGE SHELL ── */
 export function ProductFormShell({
     title,
