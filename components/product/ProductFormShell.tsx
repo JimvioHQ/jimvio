@@ -3037,10 +3037,10 @@ function StepSettings({ form, handleChange }: { form: FormState; handleChange: (
                                 />
                             )}
                         </div>
-}}
-        </div>
-            <Divider />
-
+<div>
+  <Label hint="Or paste a direct URL">Manual file URL</Label>
+  ...
+</div>
             <div>
                 <SectionTitle label="Visibility" />
                 <div
