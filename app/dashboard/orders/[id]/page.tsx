@@ -302,7 +302,7 @@ const accessUrl = rawAccessUrl
 <button
   onClick={() =>
     triggerDownload(
-      accessUrl,
+      rawAccessUrl,
       item?.product_name || "download"
     )
   }
