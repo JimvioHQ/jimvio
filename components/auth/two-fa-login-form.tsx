@@ -1,288 +1,276 @@
-// "use client";
+"use client"
 
-// import { useState, useTransition } from "react";
-// import { verify2FAAndLogin } from "@/lib/auth/actions";
-// import { Button } from "@/components/ui/button";
-// import { Input } from "@/components/ui/input";
-// import { ShieldCheck } from "lucide-react";
+import { useRef, useState, useTransition } from "react"
+import { ShieldCheck, KeyRound, XCircle, Loader2, LockKeyhole } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { OtpInput, type OtpInputHandle } from "@/components/ui/otp-input"
+import { verify2FAAndLogin } from "@/lib/auth/actions"
+import { rethrowIfNextRedirect } from "@/lib/auth/redirect-error"
 
-// export function TwoFALoginForm({
-//     next,
-// }: {
-//     next: string;
-// }) {
-//     const [error, setError] = useState<string | null>(
-//         null
-//     );
 
-//     const [pending, startTransition] =
-//         useTransition();
+type Mode = "totp" | "backup"
 
-//     function handleSubmit(
-//         e: React.FormEvent<HTMLFormElement>
-//     ) {
-//         e.preventDefault();
+export function TwoFALoginForm({ next }: { next: string }) {
+    const [mode, setMode] = useState<Mode>("totp")
+    const [token, setToken] = useState("")
+    const [error, setError] = useState<string | null>(null)
+    const [pending, startTransition] = useTransition()
+    const otpRef = useRef<OtpInputHandle>(null)
+    const backupRef = useRef<HTMLInputElement>(null)
+    const lastSubmittedRef = useRef("")
 
-//         setError(null);
+    const isTotp = /^\d{6}$/.test(token)
+    const isBackupCode = /^[A-Z0-9-]{8,}$/i.test(token)
+    const isValid = mode === "totp" ? isTotp : isBackupCode
 
-//         const fd = new FormData(e.currentTarget);
+    function submitToken(value: string) {
+        if (lastSubmittedRef.current === value || pending) return
+        lastSubmittedRef.current = value
+        setError(null)
 
-//         fd.set("next", next);
-
-//         startTransition(async () => {
-//             try {
-//                 const result =
-//                     await verify2FAAndLogin(fd);
-
-//                 if (result?.error) {
-//                     setError(result.error);
-//                 }
-//             } catch (err) {
-//                 console.error("2FA verify error:", err);
-
-//                 setError(
-//                     err instanceof Error
-//                         ? err.message
-//                         : "Verification failed"
-//                 );
-//             }
-//         });
-//     }
-
-//     return (
-//         <div className="w-full max-w-sm space-y-6">
-//             <div className="space-y-2 text-center">
-//                 <ShieldCheck className="mx-auto h-10 w-10 text-orange-500" />
-
-//                 <h1 className="text-2xl font-black tracking-tight">
-//                     Two-factor authentication
-//                 </h1>
-
-//                 <p className="text-sm text-zinc-500">
-//                     Enter the 6-digit code from your
-//                     authenticator app, or a backup code.
-//                 </p>
-//             </div>
-//             <form
-//                 onSubmit={handleSubmit}
-//                 className="space-y-4"
-//             >
-//                 {error && (
-//                     <div
-//                         role="alert"
-//                         className="rounded-sm bg-red-50 p-3 text-center text-sm font-semibold text-red-600"
-//                     >
-//                         {error}
-//                     </div>
-//                 )}
-
-//                 <Input
-//                     name="token"
-//                     placeholder="000000"
-//                     maxLength={10}
-//                     autoFocus
-//                     autoComplete="one-time-code"
-//                     inputMode="numeric"
-//                     className="h-12 text-center text-xl tracking-widest"
-//                     disabled={pending}
-//                 />
-
-//                 <Button
-//                     type="submit"
-//                     className="h-12 w-full rounded-sm bg-zinc-900 font-bold text-white"
-//                     disabled={pending}
-//                 >
-//                     {pending
-//                         ? "Verifying…"
-//                         : "Verify"}
-//                 </Button>
-//             </form>
-
-//             <p className="text-center text-xs text-zinc-500">
-//                 Lost access to your authenticator?{" "}
-//                 <span className="font-semibold">
-//                     Use a backup code above.
-//                 </span>
-//             </p>
-//         </div>
-//     );
-// }
-"use client";
-
-import {
-    useEffect,
-    useState,
-    useTransition,
-} from "react";
-
-import { verify2FAAndLogin } from "@/lib/auth/actions";
-
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-
-import { ShieldCheck } from "lucide-react";
-
-export function TwoFALoginForm({
-    next,
-}: {
-    next: string;
-}) {
-    const [token, setToken] = useState("");
-    const [error, setError] = useState<string | null>(
-        null
-    );
-
-    const [pending, startTransition] =
-        useTransition();
-
-    // Validation
-    const normalized = token.trim();
-
-    const isTotp = /^\d{6}$/.test(normalized);
-
-    const isBackupCode =
-        /^[A-Z0-9-]{8,}$/i.test(normalized);
-
-    const isValid = isTotp || isBackupCode;
-
-    async function submitToken(value: string) {
-        setError(null);
-
-        const fd = new FormData();
-
-        fd.set("token", value);
-        fd.set("next", next);
+        const fd = new FormData()
+        fd.set("token", value)
+        fd.set("next", next)
 
         startTransition(async () => {
             try {
-                const result =
-                    await verify2FAAndLogin(fd);
-
+                const result = await verify2FAAndLogin(fd)
                 if (result?.error) {
-                    setError(result.error);
+                    setError(result.error)
+                    lastSubmittedRef.current = ""
+                    requestAnimationFrame(() => {
+                        if (mode === "totp") otpRef.current?.clear()
+                        else {
+                            backupRef.current?.focus()
+                            backupRef.current?.select()
+                        }
+                    })
                 }
             } catch (err) {
-                console.error(
-                    "2FA verify error:",
-                    err
-                );
-
-                setError(
-                    err instanceof Error
-                        ? err.message
-                        : "Verification failed"
-                );
+                rethrowIfNextRedirect(err)
+                console.error("2FA verify error:", err)
+                setError(err instanceof Error ? err.message : "Verification failed")
+                lastSubmittedRef.current = ""
+                requestAnimationFrame(() => {
+                    if (mode === "totp") otpRef.current?.clear()
+                    else {
+                        backupRef.current?.focus()
+                        backupRef.current?.select()
+                    }
+                })
             }
-        });
+        })
     }
 
-    // Auto verify when 6-digit TOTP is complete
-    useEffect(() => {
-        if (
-            isTotp &&
-            normalized.length === 6 &&
-            !pending
-        ) {
-            submitToken(normalized);
+    function handleOtpChange(otp: string) {
+        setToken(otp)
+        if (error) setError(null)
+    }
+
+    function handleOtpComplete(otp: string) {
+        if (lastSubmittedRef.current !== otp) {
+            submitToken(otp)
         }
-    }, [normalized]);
+    }
 
-    function handleSubmit(
-        e: React.FormEvent<HTMLFormElement>
-    ) {
-        e.preventDefault();
+    function handleBackupChange(e: React.ChangeEvent<HTMLInputElement>) {
+        const value = e.target.value
+            .toUpperCase()
+            .replace(/[^A-Z0-9-]/g, "")
+            .slice(0, 16)
+        setToken(value)
+        if (error) setError(null)
+    }
 
+    function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+        e.preventDefault()
         if (!isValid || pending) {
             setError(
-                "Enter a valid 6-digit code or backup code."
-            );
-
-            return;
+                mode === "totp"
+                    ? "Enter the 6-digit code from your authenticator"
+                    : "Enter your backup code",
+            )
+            return
         }
-
-        submitToken(normalized);
+        submitToken(token)
     }
 
-    function handleChange(
-        e: React.ChangeEvent<HTMLInputElement>
-    ) {
-        let value = e.target.value;
-
-        // Allow backup codes
-        if (/[a-zA-Z-]/.test(value)) {
-            value = value
-                .toUpperCase()
-                .replace(/[^A-Z0-9-]/g, "");
-        } else {
-            // Numeric only for TOTP
-            value = value.replace(/\D/g, "");
-        }
-
-        setToken(value);
-
-        if (error) {
-            setError(null);
-        }
+    function switchMode(nextMode: Mode) {
+        setMode(nextMode)
+        setToken("")
+        setError(null)
+        lastSubmittedRef.current = ""
+        requestAnimationFrame(() => {
+            if (nextMode === "totp") otpRef.current?.focus()
+            else backupRef.current?.focus()
+        })
     }
 
     return (
-        <div className="w-full max-w-sm space-y-6">
-            <div className="space-y-2 text-center">
-                <ShieldCheck className="mx-auto h-10 w-10 text-orange-500" />
-
-                <h1 className="text-2xl font-black tracking-tight">
-                    Two-factor authentication
+        <div className="w-full max-w-md">
+            <header className="mb-8">
+                <div
+                    className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.12em]"
+                    style={{ color: "var(--color-accent)" }}
+                >
+                    <LockKeyhole className="size-3" />
+                    <span>Security check</span>
+                </div>
+                <h1
+                    className="mt-2 text-[26px] font-bold leading-tight"
+                    style={{
+                        color: "var(--color-text-primary)",
+                        letterSpacing: "-0.025em",
+                    }}
+                >
+                    {mode === "totp"
+                        ? "Enter your verification code"
+                        : "Enter a backup code"}
                 </h1>
-
-                <p className="text-sm text-zinc-500">
-                    Enter the 6-digit code from your
-                    authenticator app, or a backup code.
+                <p
+                    className="mt-2 text-[13px] leading-relaxed"
+                    style={{ color: "var(--color-text-muted)" }}
+                >
+                    {mode === "totp"
+                        ? "Open your authenticator app and enter the 6-digit code for this account."
+                        : "Use one of the backup codes you saved when you turned on two-factor authentication."}
                 </p>
-            </div>
+            </header>
 
-            <form
-                onSubmit={handleSubmit}
-                className="space-y-4"
-            >
+            <form onSubmit={handleSubmit} className="space-y-6">
                 {error && (
                     <div
                         role="alert"
-                        className="rounded-sm bg-red-50 p-3 text-center text-sm font-semibold text-red-600"
+                        className="flex items-start gap-2 px-3.5 py-2.5 text-[12.5px]"
+                        style={{
+                            color: "var(--color-danger)",
+                            borderRadius: "var(--radius-sm)",
+                            borderLeft: "3px solid var(--color-danger)",
+                            background: "color-mix(in srgb, var(--color-danger) 7%, transparent)",
+                        }}
                     >
-                        {error}
+                        <XCircle className="size-4 mt-0.5 shrink-0" />
+                        <span className="font-medium">{error}</span>
                     </div>
                 )}
 
-                <Input
-                    name="token"
-                    value={token}
-                    onChange={handleChange}
-                    placeholder="000000"
-                    maxLength={20}
-                    autoFocus
-                    autoComplete="one-time-code"
-                    inputMode="numeric"
-                    className="h-12 text-center text-xl tracking-widest"
-                    disabled={pending}
-                />
+                <div className="space-y-2.5">
+                    <label
+                        className="text-[10px] font-bold uppercase tracking-[0.1em]"
+                        style={{ color: "var(--color-text-muted)" }}
+                    >
+                        {mode === "totp" ? "Authenticator code" : "Backup code"}
+                    </label>
+
+                    {mode === "totp" ? (
+                        <div className="relative">
+                            <OtpInput
+                                ref={otpRef}
+                                value={token}
+                                onChange={handleOtpChange}
+                                onComplete={handleOtpComplete}
+                                invalid={!!error}
+                                disabled={pending}
+                                autoFocus
+                            />
+                            {pending && (
+                                <div
+                                    className="absolute right-0 top-1/2 -translate-y-1/2 -mr-8"
+                                    aria-label="Verifying"
+                                >
+                                    <Loader2
+                                        className="size-4 animate-spin"
+                                        style={{ color: "var(--color-text-muted)" }}
+                                    />
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        <div className="relative">
+                            <Input
+                                ref={backupRef}
+                                value={token}
+                                onChange={handleBackupChange}
+                                placeholder="XXXX-XXXX"
+                                disabled={pending}
+                                autoFocus
+                                autoComplete="one-time-code"
+                                aria-label="Backup code"
+                                aria-invalid={!!error}
+                                className="font-mono text-center tracking-[0.2em] uppercase"
+                                style={{
+                                    height: 52,
+                                    fontSize: 18,
+                                    fontWeight: 600,
+                                    borderRadius: "var(--radius-sm)",
+                                    background: "var(--color-surface)",
+                                    color: "var(--color-text-primary)",
+                                    borderColor: error ? "var(--color-danger)" : undefined,
+                                }}
+                            />
+                            {pending && (
+                                <Loader2
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 size-4 animate-spin"
+                                    style={{ color: "var(--color-text-muted)" }}
+                                />
+                            )}
+                        </div>
+                    )}
+                </div>
 
                 <Button
                     type="submit"
-                    className="h-12 w-full rounded-sm bg-zinc-900 font-bold text-white"
                     disabled={pending || !isValid}
+                    className="w-full font-semibold transition-opacity disabled:opacity-50"
+                    style={{
+                        height: 48,
+                        background: "var(--color-text-primary)",
+                        color: "var(--color-surface)",
+                        borderRadius: "var(--radius-sm)",
+                        fontSize: 14,
+                        letterSpacing: "-0.005em",
+                    }}
                 >
                     {pending
                         ? "Verifying…"
-                        : "Verify"}
+                        : !token
+                            ? mode === "totp"
+                                ? "Enter your code"
+                                : "Enter your backup code"
+                            : !isValid
+                                ? mode === "totp"
+                                    ? "Enter 6 digits"
+                                    : "Enter at least 8 characters"
+                                : "Continue"}
                 </Button>
             </form>
 
-            <p className="text-center text-xs text-zinc-500">
-                Lost access to your authenticator?{" "}
-                <span className="font-semibold">
-                    Use a backup code above.
-                </span>
-            </p>
+            <div
+                className="mt-6 pt-5 flex items-center justify-between gap-3"
+                style={{ borderTop: "1px solid var(--color-border)" }}
+            >
+                <button
+                    type="button"
+                    onClick={() => switchMode(mode === "totp" ? "backup" : "totp")}
+                    disabled={pending}
+                    className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold transition-opacity hover:opacity-70 disabled:opacity-40 disabled:cursor-not-allowed"
+                    style={{ color: "var(--color-text-secondary)" }}
+                >
+                    <KeyRound className="size-3.5" />
+                    {mode === "totp"
+                        ? "Use a backup code instead"
+                        : "Use your authenticator app"}
+                </button>
+
+                <a
+                    href="/support/2fa-recovery"
+                    className="text-[12.5px] font-medium transition-opacity hover:opacity-70"
+                    style={{ color: "var(--color-text-muted)" }}
+                >
+                    Need help?
+                </a>
+            </div>
         </div>
-    );
+    )
 }
