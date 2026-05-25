@@ -34,7 +34,7 @@ export function TwoFAEnabled({
           onRegenerateCodes(r.data.backupCodes)
           reset()
         } else {
-          setErr(r.error ?? "Failed")
+          setErr("Failed")
         }
       }
     } catch (e) {
