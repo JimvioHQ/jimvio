@@ -1,780 +1,471 @@
-// "use server";
-
-// import { createClient } from "@/lib/supabase/server";
-// import { createClient as createAdminClient } from "@supabase/supabase-js";
-// import { redirect } from "next/navigation";
-// import { resolvePostLoginPath } from "@/lib/auth/post-login-redirect";
-// import { getPublicAppUrl } from "@/lib/app-url";
-
-// /** Admin (service role) client — bypasses RLS for server-side operations */
-// function getAdminClient() {
-//   return createAdminClient(
-//     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-//     process.env.SUPABASE_SERVICE_ROLE_KEY!,
-//     { auth: { autoRefreshToken: false, persistSession: false } }
-//   );
-// }
-
-// /** Ensure profile + role + wallet exist for a user */
-// async function ensureUserProfile(userId: string, email: string, fullName?: string) {
-//   const admin = getAdminClient();
-//   try {
-//     // Upsert profile
-//     await admin.from("profiles").upsert({
-//       id: userId,
-//       email,
-//       full_name: fullName || email.split("@")[0],
-//     }, { onConflict: "id", ignoreDuplicates: true });
-
-//     // Upsert buyer role
-//     await admin.from("user_roles").upsert({
-//       user_id: userId,
-//       role: "buyer",
-//     }, { onConflict: "user_id,role", ignoreDuplicates: true });
-
-//     // Upsert wallet
-//     await admin.from("wallets").upsert({
-//       user_id: userId,
-//     }, { onConflict: "user_id", ignoreDuplicates: true });
-//   } catch (err) {
-//     // Non-fatal — trigger may handle this separately
-//     console.error("ensureUserProfile error:", err);
-//   }
-// }
-
-// export async function signUp(formData: FormData) {
-//   try {
-//     const supabase = await createClient();
-//     const email = (formData.get("email") as string)?.trim();
-//     const password = formData.get("password") as string;
-//     const fullName = (formData.get("full_name") as string)?.trim();
-
-//     if (!email || !password) {
-//       return { error: "Email and password are required." };
-//     }
-
-//     const next = (formData.get("next") as string)?.trim() || undefined;
-//     let callbackUrl = `${getPublicAppUrl()}/auth/callback`;
-//     if (next) {
-//       callbackUrl += `?next=${encodeURIComponent(next)}`;
-//     }
-
-//     const { data, error } = await supabase.auth.signUp({
-//       email,
-//       password,
-//       options: {
-//         data: { full_name: fullName },
-//         emailRedirectTo: callbackUrl,
-//       },
-//     });
-
-//     if (error) return { error: error.message };
-
-//     // Manually ensure profile exists (in case the DB trigger hasn't run yet or failed)
-//     if (data.user) {
-//       await ensureUserProfile(data.user.id, email, fullName);
-//     }
-
-//     return { success: "Account created! Check your email to confirm your account." };
-//   } catch (err) {
-//     console.error("signUp error:", err);
-//     return { error: "Registration failed. Please check your connection and try again." };
-//   }
-// }
 
 
-// export async function signIn(formData: FormData) {
-//   let userId: string | undefined;
-//   let email: string | undefined;
+"use server"
 
-//   try {
-//     const supabase = await createClient();
-//     email = (formData.get("email") as string)?.trim();
-//     const password = formData.get("password") as string;
+import { cookies } from "next/headers"
+import { redirect } from "next/navigation"
+import { createClient } from "@/lib/supabase/server"
+import { createAdminClient } from "@/lib/supabase/admin"
+import { resolvePostLoginPath } from "@/lib/auth/post-login-redirect"
+import { getPublicAppUrl } from "@/lib/app-url"
+import { verifyTOTP } from "@/lib/totp"
 
-//     if (!email || !password) return { error: "Email and password are required." };
+const TWO_FA_COOKIE = "2fa_pending_user"
+const TWO_FA_COOKIE_MAX_AGE = 60 * 5 // 5 minutes
+const FAILED_2FA_KEY_PREFIX = "2fa_fail:"
+const MAX_2FA_ATTEMPTS = 5
 
-//     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-//     if (error) return { error: error.message };
-
-//     userId = data.user?.id;
-//     if (userId && email) await ensureUserProfile(userId, email);
-
-//   } catch (err) {
-//     console.error("signIn error:", err);
-//     return { error: "Sign in failed. Please try again." };
-//   }
-
-//   if (!userId) redirect("/dashboard");
-
-//   // ── NEW: check if 2FA is enabled for this user ──
-//   try {
-//     const supabase = await createClient();
-//     const { data: profile } = await supabase
-//       .from("profiles")
-//       .select("two_factor_enabled")
-//       .eq("id", userId)
-//       .single();
-
-//     if (profile?.two_factor_enabled) {
-//       // Store the pending userId so the 2FA page knows who to verify
-//       // Use a short-lived cookie (httpOnly, 5 min)
-//       const { cookies } = await import("next/headers");
-//       const cookieStore = await cookies();
-//       cookieStore.set("2fa_pending_user", userId, {
-//         httpOnly: true,
-//         secure: process.env.NODE_ENV === "production",
-//         maxAge: 60 * 5, // 5 minutes
-//         path: "/",
-//         sameSite: "lax",
-//       });
-
-//       const next = (formData.get("next") as string)?.trim() || "/dashboard";
-//       redirect(`/login/2fa?next=${encodeURIComponent(next)}`);
-//     }
-//   } catch (err) {
-//     console.error("2FA check error:", err);
-//   }
-
-//   const next = (formData.get("next") as string)?.trim() || undefined;
-//   const path = await resolvePostLoginPath(userId, next);
-//   redirect(path);
-// }
-
-
-// export async function verify2FAAndLogin(formData: FormData) {
-//   const { cookies } = await import("next/headers");
-//   const cookieStore = await cookies();
-
-//   const pendingUserId = cookieStore.get("2fa_pending_user")?.value;
-//   if (!pendingUserId) redirect("/login?error=Session+expired.+Please+sign+in+again.");
-
-//   const token = (formData.get("token") as string)?.trim();
-//   if (!token) return { error: "Please enter your verification code." };
-
-//   // Use the security action we already wrote
-//   const { verify2FALogin } = await import("@/lib/actions/security");
-
-//   // verify2FALogin uses auth.getUser() internally — but at this point
-//   // the user IS signed in via Supabase (password check passed).
-//   // We just need to validate the TOTP before allowing access.
-//   const supabase = await createClient();
-//   const { data: secretData } = await (await import("@/lib/supabase/admin"))
-//     .createAdminClient()
-//     .from("user_2fa_secrets")
-//     .select("secret, backup_codes")
-//     .eq("user_id", pendingUserId)
-//     .single();
-
-//   if (!secretData?.secret) {
-//     cookieStore.delete("2fa_pending_user");
-//     redirect("/dashboard"); // 2FA row missing — let them through
-//   }
-
-//   const { verifyTOTP, generateBackupCodes } = await import("@/lib/totp");
-
-//   // Check backup codes
-//   const codes = (secretData.backup_codes ?? []) as string[];
-//   const normalized = token.toUpperCase().replace(/[^A-Z0-9]/g, "");
-//   const idx = codes.findIndex((c) => c.replace(/-/g, "").toUpperCase() === normalized);
-
-//   if (idx !== -1) {
-//     codes.splice(idx, 1);
-//     await (await import("@/lib/supabase/admin"))
-//       .createAdminClient()
-//       .from("user_2fa_secrets")
-//       .update({ backup_codes: codes, updated_at: new Date().toISOString() })
-//       .eq("user_id", pendingUserId);
-
-//     cookieStore.delete("2fa_pending_user");
-//     const next = (formData.get("next") as string)?.trim() || "/dashboard";
-//     redirect(next);
-//   }
-
-//   // Check TOTP
-//   if (!verifyTOTP(secretData.secret, token)) {
-//     return { error: "Invalid code. Please try again." };
-//   }
-
-//   cookieStore.delete("2fa_pending_user");
-//   const next = (formData.get("next") as string)?.trim() || "/dashboard";
-//   redirect(next);
-// }
-
-// export async function signInWithGoogle(nextOrFormData?: string | FormData): Promise<void> {
-//   const nextPath = typeof nextOrFormData === 'string' ? nextOrFormData : undefined;
-//   let redirectUrl: string | undefined;
-//   try {
-//     const supabase = await createClient();
-//     let callbackUrl = `${getPublicAppUrl()}/auth/callback`;
-//     if (nextPath) {
-//       callbackUrl += `?next=${encodeURIComponent(nextPath)}`;
-//     }
-
-//     const { data, error } = await supabase.auth.signInWithOAuth({
-//       provider: "google",
-//       options: {
-//         redirectTo: callbackUrl,
-//       },
-//     });
-//     if (error) {
-//       redirect(`/login?error=${encodeURIComponent(error.message)}`);
-//       return;
-//     }
-//     redirectUrl = data.url;
-//   } catch (err) {
-//     console.error("signInWithGoogle error:", err);
-//     redirect("/login?error=Google+sign-in+failed");
-//     return;
-//   }
-//   if (redirectUrl) redirect(redirectUrl);
-// }
-
-// export async function signOut() {
-//   try {
-//     const supabase = await createClient();
-//     await supabase.auth.signOut();
-//   } catch (err) {
-//     console.error("signOut error:", err);
-//   }
-//   redirect("/");
-// }
-
-// export async function resetPassword(formData: FormData) {
-//   try {
-//     const supabase = await createClient();
-//     const email = (formData.get("email") as string)?.trim();
-//     if (!email) return { error: "Email is required." };
-
-//     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-//       redirectTo: `${getPublicAppUrl()}/reset-password`,
-//     });
-//     if (error) return { error: error.message };
-//     return { success: "Password reset link sent to your email." };
-//   } catch (err) {
-//     console.error("resetPassword error:", err);
-//     return { error: "Failed to send reset email. Please try again." };
-//   }
-// }
-
-// export async function updatePassword(formData: FormData) {
-//   const supabase = await createClient();
-//   const password = formData.get("password") as string;
-//   if (!password) return { error: "Password is required." };
-//   try {
-//     const { error } = await supabase.auth.updateUser({ password });
-//     if (error) return { error: error.message };
-//   } catch (err) {
-//     console.error("updatePassword error:", err);
-//     return { error: "Failed to update password. Please try again." };
-//   }
-//   const {
-//     data: { user },
-//   } = await supabase.auth.getUser();
-//   redirect(user ? await resolvePostLoginPath(user.id, "/dashboard") : "/dashboard");
-// }
-
-// export async function getUser() {
-//   try {
-//     const supabase = await createClient();
-//     const { data: { user } } = await supabase.auth.getUser();
-//     return user;
-//   } catch {
-//     return null;
-//   }
-// }
-
-// export async function getProfile() {
-//   try {
-//     const supabase = await createClient();
-//     const { data: { user } } = await supabase.auth.getUser();
-//     if (!user) return null;
-
-//     const { data: profile } = await supabase
-//       .from("profiles")
-//       .select("*, user_roles(*), wallets(*)")
-//       .eq("id", user.id)
-//       .single();
-
-//     return profile;
-//   } catch {
-//     return null;
-//   }
-// }
-
-"use server";
-
-import { createClient } from "@/lib/supabase/server";
-import { createClient as createAdminClient } from "@supabase/supabase-js";
-import { redirect } from "next/navigation";
-import { resolvePostLoginPath } from "@/lib/auth/post-login-redirect";
-import { getPublicAppUrl } from "@/lib/app-url";
-
-/** Admin (service role) client — bypasses RLS for server-side operations */
-function getAdminClient() {
-  return createAdminClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    }
-  );
-}
-
-/** Ensure profile + role + wallet exist for a user */
 async function ensureUserProfile(
   userId: string,
   email: string,
   fullName?: string
 ) {
-  const admin = getAdminClient();
-
+  const admin = createAdminClient()
   try {
-    // Upsert profile
-    await admin.from("profiles").upsert(
-      {
-        id: userId,
-        email,
-        full_name: fullName || email.split("@")[0],
-      },
-      {
-        onConflict: "id",
-        ignoreDuplicates: true,
-      }
-    );
-
-    // Upsert buyer role
-    await admin.from("user_roles").upsert(
-      {
-        user_id: userId,
-        role: "buyer",
-      },
-      {
-        onConflict: "user_id,role",
-        ignoreDuplicates: true,
-      }
-    );
-
-    // Upsert wallet
-    await admin.from("wallets").upsert(
-      {
-        user_id: userId,
-      },
-      {
-        onConflict: "user_id",
-        ignoreDuplicates: true,
-      }
-    );
+    await Promise.all([
+      admin.from("profiles").upsert(
+        { id: userId, email, full_name: fullName || email.split("@")[0] },
+        { onConflict: "id", ignoreDuplicates: true }
+      ),
+      admin.from("user_roles").upsert(
+        { user_id: userId, role: "buyer" },
+        { onConflict: "user_id,role", ignoreDuplicates: true }
+      ),
+      admin.from("wallets").upsert(
+        { user_id: userId },
+        { onConflict: "user_id", ignoreDuplicates: true }
+      ),
+    ])
   } catch (err) {
-    console.error("ensureUserProfile error:", err);
+    console.error("[auth] ensureUserProfile error:", err)
   }
 }
 
+
+async function resolveLandingPath(userId: string, next?: string|null): Promise<string> {
+  return resolvePostLoginPath(userId, next)
+}
+
+function isSafeInternalPath(path: string): boolean {
+  return (
+    typeof path === "string" &&
+    path.startsWith("/") &&
+    !path.startsWith("//") &&
+    !path.startsWith("/\\")
+  )
+}
+
+/**
+ * Track failed 2FA attempts in-memory per user. Replace with Redis in
+ * production if you have multiple instances.
+ */
+const failedAttempts = new Map<string, { count: number; lockedUntil?: number }>()
+
+function recordFailedAttempt(userId: string): { locked: boolean; remaining: number } {
+  const now = Date.now()
+  const entry = failedAttempts.get(userId) ?? { count: 0 }
+
+  if (entry.lockedUntil && entry.lockedUntil > now) {
+    return { locked: true, remaining: 0 }
+  }
+
+  entry.count += 1
+  if (entry.count >= MAX_2FA_ATTEMPTS) {
+    entry.lockedUntil = now + 15 * 60 * 1000 // 15 min lockout
+    failedAttempts.set(userId, entry)
+    return { locked: true, remaining: 0 }
+  }
+
+  failedAttempts.set(userId, entry)
+  return { locked: false, remaining: MAX_2FA_ATTEMPTS - entry.count }
+}
+
+function clearFailedAttempts(userId: string) {
+  failedAttempts.delete(userId)
+}
+
+function checkLocked(userId: string): { locked: boolean; secondsRemaining: number } {
+  const entry = failedAttempts.get(userId)
+  if (!entry?.lockedUntil) return { locked: false, secondsRemaining: 0 }
+  const ms = entry.lockedUntil - Date.now()
+  if (ms <= 0) {
+    failedAttempts.delete(userId)
+    return { locked: false, secondsRemaining: 0 }
+  }
+  return { locked: true, secondsRemaining: Math.ceil(ms / 1000) }
+}
+
+// ─────────────────────────────────────────────
+// Sign up
+// ─────────────────────────────────────────────
+
 export async function signUp(formData: FormData) {
   try {
-    const supabase = await createClient();
+    const supabase = await createClient()
 
-    const email = (formData.get("email") as string)?.trim();
-    const password = formData.get("password") as string;
-    const fullName = (formData.get("full_name") as string)?.trim();
+    const email = (formData.get("email") as string)?.trim()
+    const password = formData.get("password") as string
+    const fullName = (formData.get("full_name") as string)?.trim()
 
     if (!email || !password) {
-      return { error: "Email and password are required." };
+      return { error: "Email and password are required." }
+    }
+    if (password.length < 8) {
+      return { error: "Password must be at least 8 characters." }
     }
 
-    const next = (formData.get("next") as string)?.trim() || undefined;
-
-    let callbackUrl = `${getPublicAppUrl()}/auth/callback`;
-
-    if (next) {
-      callbackUrl += `?next=${encodeURIComponent(next)}`;
+    const next = (formData.get("next") as string)?.trim()
+    let callbackUrl = `${getPublicAppUrl()}/auth/callback`
+    if (next && isSafeInternalPath(next)) {
+      callbackUrl += `?next=${encodeURIComponent(next)}`
     }
 
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: {
-          full_name: fullName,
-        },
+        data: { full_name: fullName },
         emailRedirectTo: callbackUrl,
       },
-    });
+    })
 
-    if (error) {
-      return { error: error.message };
-    }
+    if (error) return { error: error.message }
 
     if (data.user) {
-      await ensureUserProfile(data.user.id, email, fullName);
+      await ensureUserProfile(data.user.id, email, fullName)
     }
 
-    return {
-      success:
-        "Account created! Check your email to confirm your account.",
-    };
+    return { success: "Account created! Check your email to confirm." }
   } catch (err) {
-    console.error("signUp error:", err);
-
-    return {
-      error:
-        "Registration failed. Please check your connection and try again.",
-    };
+    console.error("[auth] signUp error:", err)
+    return { error: "Registration failed. Please try again." }
   }
 }
 
+// ─────────────────────────────────────────────
+// Sign in (password)
+// ─────────────────────────────────────────────
+
 export async function signIn(formData: FormData) {
-  let userId: string | undefined;
-  let email: string | undefined;
+  let userId: string | undefined
 
   try {
-    const supabase = await createClient();
-
-    email = (formData.get("email") as string)?.trim();
-    const password = formData.get("password") as string;
+    const supabase = await createClient()
+    const email = (formData.get("email") as string)?.trim()
+    const password = formData.get("password") as string
 
     if (!email || !password) {
-      return { error: "Email and password are required." };
+      return { error: "Email and password are required." }
     }
 
     const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+      email, password,
+    })
+    if (error) return { error: error.message }
 
-    if (error) {
-      return { error: error.message };
-    }
-
-    userId = data.user?.id;
-
+    userId = data.user?.id
     if (userId && email) {
-      await ensureUserProfile(userId, email);
+      await ensureUserProfile(userId, email)
     }
   } catch (err) {
-    console.error("signIn error:", err);
-
-    return {
-      error: "Sign in failed. Please try again.",
-    };
+    console.error("[auth] signIn error:", err)
+    return { error: "Sign in failed. Please try again." }
   }
 
-  if (!userId) {
-    redirect("/dashboard");
-  }
+  if (!userId) redirect("/dashboard")
 
-  // Check if 2FA is enabled
-  const supabase = await createClient();
-
+  // ── 2FA gate ──
+  const supabase = await createClient()
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("two_factor_enabled")
     .eq("id", userId)
-    .single();
+    .maybeSingle()
 
   if (profileError) {
-    console.error("2FA profile lookup error:", profileError);
+    console.error("[auth] 2FA profile lookup error:", profileError)
   }
 
-  if (profile?.two_factor_enabled) {
-    const { cookies } = await import("next/headers");
-    const cookieStore = await cookies();
+  const next = (formData.get("next") as string | null)?.trim() || null;
 
-    cookieStore.set("2fa_pending_user", userId, {
+
+  if (profile?.two_factor_enabled) {
+    const cookieStore = await cookies()
+    cookieStore.set(TWO_FA_COOKIE, userId, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       path: "/",
-      maxAge: 60 * 5,
-    });
+      maxAge: TWO_FA_COOKIE_MAX_AGE,
+    })
 
-    const next =
-      (formData.get("next") as string)?.trim() || "/dashboard";
-
-    redirect(`/login/2fa?next=${encodeURIComponent(next)}`);
+    const safe = next && isSafeInternalPath(next) ? next : "/dashboard"
+    redirect(`/login/2fa?next=${encodeURIComponent(safe)}`)
   }
 
-  const next = (formData.get("next") as string)?.trim() || undefined;
-
-  const path = await resolvePostLoginPath(userId, next);
-
-  redirect(path);
+  const path = await resolveLandingPath(userId, next);
+  redirect(path)
 }
 
-export async function verify2FAAndLogin(formData: FormData) {
-  const { cookies } = await import("next/headers");
-  const cookieStore = await cookies();
+// ─────────────────────────────────────────────
+// Verify 2FA at login
+// ─────────────────────────────────────────────
 
-  const pendingUserId =
-    cookieStore.get("2fa_pending_user")?.value;
+export async function verify2FAAndLogin(formData: FormData) {
+  const cookieStore = await cookies()
+  const pendingUserId = cookieStore.get(TWO_FA_COOKIE)?.value
 
   if (!pendingUserId) {
-    redirect(
-      "/login?error=Session+expired.+Please+sign+in+again."
-    );
+    redirect("/login?error=Session+expired.+Please+sign+in+again.")
   }
 
-  const token = (formData.get("token") as string)?.trim();
-
-  if (!token) {
+  // ── Lockout check ──
+  const lock = checkLocked(pendingUserId)
+  if (lock.locked) {
     return {
-      error: "Please enter your verification code.",
-    };
+      error: `Too many failed attempts. Try again in ${Math.ceil(lock.secondsRemaining / 60)} minute(s).`,
+    }
   }
 
-  const supabase = await createClient();
+  const token = (formData.get("token") as string)?.trim()
+  if (!token) return { error: "Please enter your verification code." }
 
-  const admin = (
-    await import("@/lib/supabase/admin")
-  ).createAdminClient();
+  // ── Verify the Supabase session belongs to the pending user ──
+  // Prevents cookie-swap attacks where one session is in place but the
+  // 2FA cookie points to a different user.
+  const supabase = await createClient()
+  const { data: { user: sessionUser } } = await supabase.auth.getUser()
 
+  if (!sessionUser || sessionUser.id !== pendingUserId) {
+    cookieStore.delete(TWO_FA_COOKIE)
+    redirect("/login?error=Session+mismatch.+Please+sign+in+again.")
+  }
+
+  // ── Fetch secret ──
+  const admin = createAdminClient()
   const { data: secretData, error } = await admin
     .from("user_2fa_secrets")
     .select("secret, backup_codes")
     .eq("user_id", pendingUserId)
-    .single();
+    .maybeSingle()
 
   if (error) {
-    console.error("2FA secret lookup error:", error);
-
-    return {
-      error: "Failed to verify 2FA.",
-    };
+    console.error("[auth] 2FA secret lookup error:", error)
+    return { error: "Failed to verify 2FA." }
   }
 
+  console.log({ secretData });
+
+
+  // ── Data inconsistency: profile says 2FA on, but no secret ──
   if (!secretData?.secret) {
-    cookieStore.delete("2fa_pending_user");
-
-    redirect("/dashboard");
+    cookieStore.delete(TWO_FA_COOKIE)
+    const next = (formData.get("next") as string)?.trim() || undefined
+    const path = await resolveLandingPath(pendingUserId, next)
+    redirect(path)
   }
 
-  const { verifyTOTP } = await import("@/lib/totp");
+  const next = (formData.get("next") as string)?.trim() || undefined
+  const codes = (secretData.backup_codes ?? []) as string[]
+  const normalized = token.toUpperCase().replace(/[^A-Z0-9]/g, "")
 
-  // Backup codes
-  const codes = (secretData.backup_codes ?? []) as string[];
+  // ── Try backup code (atomic consume) ──
+  const codeIdx = codes.findIndex(
+    c => c.replace(/-/g, "").toUpperCase() === normalized
+  )
 
-  const normalized = token
-    .toUpperCase()
-    .replace(/[^A-Z0-9]/g, "");
+  if (codeIdx !== -1) {
+    const remaining = [...codes]
+    remaining.splice(codeIdx, 1)
 
-  const idx = codes.findIndex(
-    (c) =>
-      c.replace(/-/g, "").toUpperCase() === normalized
-  );
-
-  if (idx !== -1) {
-    codes.splice(idx, 1);
-
-    await admin
+    // Optimistic-concurrency: update succeeds only if `backup_codes` still
+    // matches the original array. Prevents double-spend on parallel submits.
+    const { error: consumeErr, count } = await admin
       .from("user_2fa_secrets")
-      .update({
-        backup_codes: codes,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("user_id", pendingUserId);
+      .update(
+        { backup_codes: remaining, updated_at: new Date().toISOString() },
+        { count: "exact" }
+      )
+      .eq("user_id", pendingUserId)
+      .eq("backup_codes", codes as unknown as string)
 
-    cookieStore.delete("2fa_pending_user");
+    if (consumeErr || !count) {
+      recordFailedAttempt(pendingUserId)
+      return { error: "Invalid verification code." }
+    }
 
-    const next =
-      (formData.get("next") as string)?.trim() ||
-      "/dashboard";
-
-    redirect(next);
+    clearFailedAttempts(pendingUserId)
+    cookieStore.delete(TWO_FA_COOKIE)
+    const path = await resolveLandingPath(pendingUserId, next)
+    redirect(path)
   }
 
-  // TOTP verification
-  const valid = verifyTOTP(secretData.secret, token);
-
-  if (!valid) {
+  // ── TOTP fallback ──
+  if (!verifyTOTP(secretData.secret, token)) {
+    const { locked, remaining } = recordFailedAttempt(pendingUserId)
+    if (locked) {
+      return { error: "Too many failed attempts. Try again in 15 minutes." }
+    }
     return {
-      error: "Invalid code. Please try again.",
-    };
+      error: `Invalid code. ${remaining} attempt(s) remaining.`,
+    }
   }
 
-  cookieStore.delete("2fa_pending_user");
-
-  const next =
-    (formData.get("next") as string)?.trim() ||
-    "/dashboard";
-
-  redirect(next);
+  clearFailedAttempts(pendingUserId)
+  cookieStore.delete(TWO_FA_COOKIE)
+  const path = await resolveLandingPath(pendingUserId, next)
+  redirect(path)
 }
+
+// ─────────────────────────────────────────────
+// Google OAuth
+// ─────────────────────────────────────────────
 
 export async function signInWithGoogle(
   nextOrFormData?: string | FormData
 ): Promise<void> {
-  let redirectUrl: string | undefined;
+  let redirectUrl: string | undefined
 
   try {
-    const supabase = await createClient();
-
+    const supabase = await createClient()
     const nextPath =
-      typeof nextOrFormData === "string"
-        ? nextOrFormData
-        : undefined;
+      typeof nextOrFormData === "string" ? nextOrFormData : undefined
 
-    let callbackUrl = `${getPublicAppUrl()}/auth/callback`;
-
-    if (nextPath) {
-      callbackUrl += `?next=${encodeURIComponent(nextPath)}`;
+    let callbackUrl = `${getPublicAppUrl()}/auth/callback`
+    if (nextPath && isSafeInternalPath(nextPath)) {
+      callbackUrl += `?next=${encodeURIComponent(nextPath)}`
     }
 
-    const { data, error } =
-      await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: callbackUrl,
-        },
-      });
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: callbackUrl },
+    })
 
     if (error) {
-      redirectUrl = `/login?error=${encodeURIComponent(
-        error.message
-      )}`;
-
-      return;
+      redirectUrl = `/login?error=${encodeURIComponent(error.message)}`
+      return
     }
-
-    redirectUrl = data.url;
+    redirectUrl = data.url
   } catch (err) {
-    console.error("signInWithGoogle error:", err);
-
-    redirectUrl = "/login?error=Google+sign-in+failed";
+    console.error("[auth] signInWithGoogle error:", err)
+    redirectUrl = "/login?error=Google+sign-in+failed"
   }
 
-  if (redirectUrl) {
-    redirect(redirectUrl);
-  }
+  if (redirectUrl) redirect(redirectUrl)
 }
+
+// ─────────────────────────────────────────────
+// Sign out
+// ─────────────────────────────────────────────
 
 export async function signOut() {
   try {
-    const supabase = await createClient();
+    const supabase = await createClient()
+    await supabase.auth.signOut()
 
-    await supabase.auth.signOut();
+    // Clear any lingering 2FA pending cookie
+    const cookieStore = await cookies()
+    cookieStore.delete(TWO_FA_COOKIE)
   } catch (err) {
-    console.error("signOut error:", err);
+    console.error("[auth] signOut error:", err)
   }
-
-  redirect("/");
+  redirect("/")
 }
+
+// ─────────────────────────────────────────────
+// Password reset (email link)
+// ─────────────────────────────────────────────
 
 export async function resetPassword(formData: FormData) {
   try {
-    const supabase = await createClient();
+    const supabase = await createClient()
+    const email = (formData.get("email") as string)?.trim()
+    if (!email) return { error: "Email is required." }
 
-    const email = (formData.get("email") as string)?.trim();
+    // Send the user to /auth/callback so Supabase can verify the recovery
+    // token, then callback routes them to /reset-password
+    const redirectTo =
+      `${getPublicAppUrl()}/auth/callback?next=${encodeURIComponent("/reset-password")}`
 
-    if (!email) {
-      return {
-        error: "Email is required.",
-      };
-    }
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo,
+    })
 
-    const { error } =
-      await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${getPublicAppUrl()}/reset-password`,
-      });
-
-    if (error) {
-      return {
-        error: error.message,
-      };
-    }
-
-    return {
-      success:
-        "Password reset link sent to your email.",
-    };
+    if (error) return { error: error.message }
+    return { success: "Password reset link sent. Check your email." }
   } catch (err) {
-    console.error("resetPassword error:", err);
-
-    return {
-      error:
-        "Failed to send reset email. Please try again.",
-    };
+    console.error("[auth] resetPassword error:", err)
+    return { error: "Failed to send reset email. Please try again." }
   }
 }
 
+// ─────────────────────────────────────────────
+// Update password (from settings)
+// Requires current password to prevent stolen-session abuse
+// ─────────────────────────────────────────────
+
 export async function updatePassword(formData: FormData) {
-  const supabase = await createClient();
+  const supabase = await createClient()
+  const currentPassword = formData.get("current_password") as string | null
+  const password = formData.get("password") as string
 
-  const password = formData.get("password") as string;
+  if (!password) return { error: "New password is required." }
+  if (password.length < 8) return { error: "Password must be at least 8 characters." }
 
-  if (!password) {
-    return {
-      error: "Password is required.",
-    };
+  // ── Verify current password (skip for first-time set after OAuth signup) ──
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: "Not authenticated." }
+
+  if (currentPassword && user.email) {
+    const { error: verifyErr } = await supabase.auth.signInWithPassword({
+      email: user.email,
+      password: currentPassword,
+    })
+    if (verifyErr) {
+      return { error: "Current password is incorrect." }
+    }
   }
 
   try {
-    const { error } =
-      await supabase.auth.updateUser({
-        password,
-      });
-
-    if (error) {
-      return {
-        error: error.message,
-      };
-    }
+    const { error } = await supabase.auth.updateUser({ password })
+    if (error) return { error: error.message }
   } catch (err) {
-    console.error("updatePassword error:", err);
-
-    return {
-      error:
-        "Failed to update password. Please try again.",
-    };
+    console.error("[auth] updatePassword error:", err)
+    return { error: "Failed to update password. Please try again." }
   }
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  const path = user
-    ? await resolvePostLoginPath(user.id, "/dashboard")
-    : "/dashboard";
-
-  redirect(path);
+  const path = await resolveLandingPath(user.id, "/dashboard")
+  redirect(path)
 }
+
+// ─────────────────────────────────────────────
+// User getters
+// ─────────────────────────────────────────────
 
 export async function getUser() {
   try {
-    const supabase = await createClient();
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    return user;
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    return user
   } catch {
-    return null;
+    return null
   }
 }
 
 export async function getProfile() {
   try {
-    const supabase = await createClient();
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return null;
-    }
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return null
 
     const { data: profile } = await supabase
       .from("profiles")
       .select("*, user_roles(*), wallets(*)")
       .eq("id", user.id)
-      .single();
+      .single()
 
-    return profile;
+    return profile
   } catch {
-    return null;
+    return null
   }
 }
