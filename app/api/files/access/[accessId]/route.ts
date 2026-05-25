@@ -41,8 +41,7 @@ export async function GET(
             { status: 401 }
         );
     }
-
-    // 2. FETCH ACCESS RECORD (strict ownership)
+    
     const { data: access, error } = await supabase
         .from("digital_access")
         .select("id, access_url, subtype, expires_at, revoked_at, user_id")

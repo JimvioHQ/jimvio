@@ -3,6 +3,7 @@
 import { useState } from "react"
 import {
     Lock, Smartphone, Eye, EyeOff, ShieldCheck,
+    BrickWall,
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import {
@@ -140,8 +141,8 @@ export function SecurityForm({
                 {/* ─── Two-factor authentication ─── */}
                 <section>
                     <SectionHeader
-                        icon={<Smartphone className="size-4" />}
-                        title="Two-factor authentication"
+                        icon={<BrickWall className="size-4" />}
+                        title="Authenticator App"
                         description="Add an extra layer of security to your account by requiring a code from your phone"
                     />
 

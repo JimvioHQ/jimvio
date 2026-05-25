@@ -91,7 +91,7 @@ export function OrderFilterBar({
     ].filter(Boolean).length;
     
     const selectClass = cn(
-        "h-9 pl-3 pr-8 rounded-md border border-[var(--color-border)] bg-[var(--color-surface)]",
+        "h-9 pl-3 pr-8 rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)]",
         "text-[13px] text-[var(--color-text-primary)] cursor-pointer transition-colors",
         "hover:border-[var(--color-border-strong)]",
         "focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500",
@@ -156,7 +156,7 @@ export function OrderFilterBar({
                     }}
                     placeholder="Search orders"
                     className={cn(
-                        "w-full h-9 pl-9 pr-16 rounded-md border bg-[var(--color-surface)]",
+                        "w-full h-9 pl-9 pr-16 rounded-sm border bg-[var(--color-surface)]",
                         "text-[13px] text-[var(--color-text-primary)]",
                         "placeholder:text-[var(--color-text-muted)]",
                         "transition-colors focus:outline-none",

@@ -1,17 +1,4 @@
-/**
- * services/media/cloudinary.ts
- * ─────────────────────────────────────────────────────
- * Central Cloudinary service for the whole Jimvio platform.
- *
- * ▸ Server-side  → uses `cloudinary-server.ts`
- * ▸ Client-side  → calls /api/uploads/signature to get a signed upload URL, then
- *                   posts directly to Cloudinary (no file goes through your server)
- *
- * Env vars required:
- *   NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME   (public – used in browser)
- */
 
-// ─── Folder type ─────────────────────────────────────────────────────────────
 export type CloudinaryFolder =
   | "jimvio/products"
   | "jimvio/avatars"
@@ -82,12 +69,12 @@ function getCloudName(): string {
 
 export class CloudinaryService {
 
-  // ── Client-side direct upload (uses pre-signed params) ─────────────────
   async uploadDirect(
     file: File | Blob,
     signatureParams: CloudinarySignature,
     resourceType: "image" | "video" | "raw" = "image",
-    onProgress?: (pct: number) => void
+    onProgress?: (pct: number) => void,
+    accessType: "public" | "private" | "authenticated" = "public",
   ): Promise<{ success: boolean; data?: CloudinaryUploadResult; error?: string }> {
     const formData = new FormData();
     formData.append("file",      file);
@@ -95,6 +82,10 @@ export class CloudinaryService {
     formData.append("timestamp", signatureParams.timestamp);
     formData.append("signature", signatureParams.signature);
     formData.append("folder",    signatureParams.folder);
+
+    // ← was missing; without this, private uploads are treated as public
+    const cloudinaryType = accessType === "public" ? "upload" : accessType;
+    formData.append("type", cloudinaryType);
 
     const endpoint = `https://api.cloudinary.com/v1_1/${signatureParams.cloudName}/${resourceType}/upload`;
 
@@ -126,9 +117,6 @@ export class CloudinaryService {
     });
   }
 
-  // ── URL helpers ─────────────────────────────────────────────────────────
-
-  /** Build an optimized image URL from a public_id or an existing Cloudinary URL */
   getOptimizedUrl(
     publicIdOrUrl: string,
     options: {
@@ -151,29 +139,29 @@ export class CloudinaryService {
     const t = parts.length > 0 ? parts.join(",") + "/" : "";
     const cloud = getCloudName();
 
-    // Already a full Cloudinary URL? inject transformations
     if (publicIdOrUrl.includes("res.cloudinary.com")) {
-      return publicIdOrUrl.replace("/image/upload/", `/image/upload/${t}`);
+      // ← handle both image and video URLs
+      return publicIdOrUrl
+        .replace("/image/upload/", `/image/upload/${t}`)
+        .replace("/video/upload/", `/video/upload/${t}`);
     }
-
     return `https://res.cloudinary.com/${cloud}/image/upload/${t}${publicIdOrUrl}`;
   }
 
-  /** Video thumbnail from public_id */
   getVideoThumbnailUrl(publicId: string, second = 0): string {
     const cloud = getCloudName();
     return `https://res.cloudinary.com/${cloud}/video/upload/so_${second},w_400,h_225,c_fill,f_jpg/${publicId}.jpg`;
   }
 
-  /** Detect if a URL is a Cloudinary URL */
+  getVideoUrl(publicId: string): string {
+    const cloud = getCloudName();
+    return `https://res.cloudinary.com/${cloud}/video/upload/${publicId}`;
+  }
+
   isCloudinaryUrl(url?: string | null): boolean {
     return Boolean(url?.includes("res.cloudinary.com"));
   }
 
-  /**
-   * Smart image src: if the URL is already Cloudinary, optimize it.
-   * If it's a Supabase / external URL, return it as-is.
-   */
   smartSrc(
     url?: string | null,
     opts: Parameters<CloudinaryService["getOptimizedUrl"]>[1] = {}

@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { RefreshCw, X, XCircle, ChevronRight, Loader2, RotateCcw } from "lucide-react"
+import { RefreshCw, X, XCircle, ChevronRight, RotateCcw } from "lucide-react"
 import { disable2FA, regenerateBackupCodes } from "@/lib/actions/security"
 import { BrandBtn } from "@/components/admin/form-primitive"
 

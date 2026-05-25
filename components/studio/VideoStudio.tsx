@@ -97,9 +97,9 @@ function VideoCard({
     ?? (video.products?.images?.[0] ?? null);
 
   const statusColor =
-    video.status === "active"     ? "bg-emerald-100 text-emerald-700" :
-    video.status === "processing" ? "bg-amber-100 text-amber-700" :
-    "bg-zinc-100 text-zinc-500";
+    video.status === "active" ? "bg-emerald-100 text-emerald-700" :
+      video.status === "processing" ? "bg-amber-100 text-amber-700" :
+        "bg-zinc-100 text-zinc-500";
 
   return (
     <div className="bg-white dark:bg-surface rounded-sm border border-zinc-100 dark:border-border shadow-none overflow-hidden group hover:shadow-none hover:border-zinc-200 dark:border-border dark:hover:border-zinc-700 transition-all">
@@ -162,8 +162,8 @@ function VideoCard({
               title={video.status === "active" ? "Pause" : "Activate"}
             >
               {toggling ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> :
-               video.status === "active" ? <PauseCircle className="h-3.5 w-3.5 text-zinc-500" /> :
-               <PlayCircle className="h-3.5 w-3.5 text-emerald-500" />}
+                video.status === "active" ? <PauseCircle className="h-3.5 w-3.5 text-zinc-500" /> :
+                  <PlayCircle className="h-3.5 w-3.5 text-emerald-500" />}
             </button>
             <button
               onClick={() => { setDeleting(true); onDelete(video.id); }}
@@ -172,7 +172,7 @@ function VideoCard({
               title="Delete"
             >
               {deleting ? <Loader2 className="h-3.5 w-3.5 animate-spin text-red-500" /> :
-               <Trash2 className="h-3.5 w-3.5 text-red-500" />}
+                <Trash2 className="h-3.5 w-3.5 text-red-500" />}
             </button>
           </div>
         </div>
@@ -219,13 +219,14 @@ function UploadTab({ onSuccess }: { onSuccess: () => void }) {
     try {
       // Upload video
       const videoUpload = await upload(videoFile, "video");
-      if (!videoUpload?.url) throw new Error("Video upload failed");
+      if ("error" in videoUpload) throw new Error(videoUpload.error ?? "Video upload failed");
 
-      // Upload thumbnail if provided
       let thumbUrl: string | undefined;
       if (thumbFile) {
         const thumbUpload = await upload(thumbFile, "image");
-        thumbUrl = thumbUpload?.url;
+        if (!("error" in thumbUpload)) {
+          thumbUrl = thumbUpload.url;
+        }
       }
 
       const res = await createShortVideo({
@@ -410,9 +411,9 @@ function UploadTab({ onSuccess }: { onSuccess: () => void }) {
             <div className="flex flex-wrap gap-2 mt-3">
               {form.product_id && products.find(p => p.id === form.product_id)?.images?.[0] && (
                 <div className="relative h-16 w-16 rounded-sm overflow-hidden border border-[var(--color-accent)]/30 ring-4 ring-orange-50 dark:ring-orange-950/30 animate-in zoom-in duration-300">
-                  <img 
-                    src={products.find(p => p.id === form.product_id).images[0]} 
-                    className="h-full w-full object-cover" 
+                  <img
+                    src={products.find(p => p.id === form.product_id).images[0]}
+                    className="h-full w-full object-cover"
                     alt="Selected product"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent flex items-end justify-center pb-1">
@@ -723,10 +724,10 @@ export function VideoStudio({ defaultTab = "videos" }: { defaultTab?: Tab }) {
   };
 
   const TABS: { id: Tab; label: string; icon: React.ReactNode; count?: number }[] = [
-    { id: "videos",    label: "My Videos",  icon: <Video className="h-4 w-4" />,    count: videos.length },
-    { id: "upload",    label: "Upload",     icon: <Upload className="h-4 w-4" /> },
-    { id: "analytics", label: "Analytics",  icon: <BarChart3 className="h-4 w-4" /> },
-    { id: "earnings",  label: "Earnings",   icon: <DollarSign className="h-4 w-4" /> },
+    { id: "videos", label: "My Videos", icon: <Video className="h-4 w-4" />, count: videos.length },
+    { id: "upload", label: "Upload", icon: <Upload className="h-4 w-4" /> },
+    { id: "analytics", label: "Analytics", icon: <BarChart3 className="h-4 w-4" /> },
+    { id: "earnings", label: "Earnings", icon: <DollarSign className="h-4 w-4" /> },
   ];
 
   return (
@@ -751,10 +752,10 @@ export function VideoStudio({ defaultTab = "videos" }: { defaultTab?: Tab }) {
       {/* Summary stats strip */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { label: "Videos",    value: videos.length.toString(), icon: <Film className="h-4 w-4" />,         color: "from-orange-500 to-amber-500" },
-          { label: "Views",     value: fmtNum(videos.reduce((s, v) => s + v.view_count, 0)), icon: <Eye className="h-4 w-4" />,     color: "from-blue-500 to-cyan-500" },
-          { label: "Engaged",   value: fmtNum(videos.reduce((s, v) => s + v.like_count + v.comment_count, 0)), icon: <Zap className="h-4 w-4" />, color: "from-pink-500 to-rose-500" },
-          { label: "Earned",    value: `${Math.round(videos.reduce((s, v) => s + Number(v.total_earnings), 0)).toLocaleString()} RWF`, icon: <DollarSign className="h-4 w-4" />, color: "from-emerald-500 to-teal-500" },
+          { label: "Videos", value: videos.length.toString(), icon: <Film className="h-4 w-4" />, color: "from-orange-500 to-amber-500" },
+          { label: "Views", value: fmtNum(videos.reduce((s, v) => s + v.view_count, 0)), icon: <Eye className="h-4 w-4" />, color: "from-blue-500 to-cyan-500" },
+          { label: "Engaged", value: fmtNum(videos.reduce((s, v) => s + v.like_count + v.comment_count, 0)), icon: <Zap className="h-4 w-4" />, color: "from-pink-500 to-rose-500" },
+          { label: "Earned", value: `${Math.round(videos.reduce((s, v) => s + Number(v.total_earnings), 0)).toLocaleString()} RWF`, icon: <DollarSign className="h-4 w-4" />, color: "from-emerald-500 to-teal-500" },
         ].map(s => (
           <div key={s.label} className="rounded-sm border border-zinc-100 dark:border-border bg-white dark:bg-surface p-4 shadow-none flex items-center gap-3">
             <div className={cn("h-9 w-9 rounded-sm text-white flex items-center justify-center shrink-0 bg-gradient-to-br", s.color)}>
