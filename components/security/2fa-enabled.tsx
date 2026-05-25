@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { RefreshCw, X, XCircle, ChevronRight } from "lucide-react"
+import { RefreshCw, X, XCircle, ChevronRight, Loader2, RotateCcw } from "lucide-react"
 import { disable2FA, regenerateBackupCodes } from "@/lib/actions/security"
 import { BrandBtn } from "@/components/admin/form-primitive"
 
@@ -161,7 +161,7 @@ export function TwoFAEnabled({
               className="group inline-flex items-center gap-1.5 text-[12.5px] font-semibold transition-colors"
               style={{ color: "var(--color-text-secondary)" }}
             >
-              <RefreshCw className="size-3.5" />
+              <RotateCcw className="size-3.5" />
               Regenerate backup codes
               <ChevronRight className="size-3.5 opacity-0 -translate-x-1 transition-all group-hover:opacity-100 group-hover:translate-x-0" />
             </button>
@@ -386,10 +386,10 @@ function OtpSlots({
               fontWeight: 600,
               borderRadius: "var(--radius-sm)",
               border: `1px solid ${invalid
-                  ? "var(--color-danger)"
-                  : filled
-                    ? "var(--color-text-primary)"
-                    : "var(--color-border)"
+                ? "var(--color-danger)"
+                : filled
+                  ? "var(--color-text-primary)"
+                  : "var(--color-border)"
                 }`,
               background: "var(--color-surface)",
               color: "var(--color-text-primary)",

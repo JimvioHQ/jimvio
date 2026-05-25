@@ -17,7 +17,7 @@ export default async function SecurityPage() {
 
     const initialTwoFa = status.status === "fulfilled" ? status.value : { enabled: false }
     const initialSessions = sessions.status === "fulfilled" ? sessions.value : []
-
+    
     return (
         <Suspense fallback={<Loader />}>
             <SecurityForm initialTwoFa={initialTwoFa} initialSessions={initialSessions} />
