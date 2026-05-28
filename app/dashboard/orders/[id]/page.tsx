@@ -255,14 +255,14 @@ function OrderItemRow({ item, currency, accessByProductId }: {
   const isDigital = item.product_type === "digital";
   const access = item.product_id ? accessByProductId.get(item.product_id) : null;
   const rawAccessUrl =
-  access?.access_url || item.digital_download_url;
+    access?.access_url || item.digital_download_url;
 
-const accessUrl = rawAccessUrl
-  ? getDownloadUrl(
+  const accessUrl = rawAccessUrl
+    ? getDownloadUrl(
       rawAccessUrl,
       item?.product_name || "download"
     )
-  : null;
+    : null;
   const accessRevoked = !!access?.revoked_at;
   const accessExpiresAt = access?.expires_at;
 
@@ -299,13 +299,13 @@ const accessUrl = rawAccessUrl
         </p>
         {isDigital && accessUrl && !accessRevoked && (
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5">
-<a 
-  href={`/api/download?url=${encodeURIComponent(rawAccessUrl || "")}&filename=${encodeURIComponent(item?.product_name || "download")}`}
-  download
-  className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-sky-600 dark:text-sky-400 hover:underline"
->
-  {linkAction.icon} {linkAction.label}
-</a>
+            <a
+              href={`/api/download?url=${encodeURIComponent(rawAccessUrl || "")}&filename=${encodeURIComponent(item?.product_name || "download")}`}
+              download
+              className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-sky-600 dark:text-sky-400 hover:underline"
+            >
+              {linkAction.icon} {linkAction.label}
+            </a>
             {accessExpiresAt && (
               <span className="inline-flex items-center gap-1 text-[10px] text-[var(--color-text-muted)]">
                 <Calendar className="h-2.5 w-2.5" />
@@ -734,7 +734,7 @@ export default function OrderDetailPage() {
     if (!order) return;
     setCancelling(true);
     try {
-      const res = await fetch(`/api/orders/${order.id}/cancel`, { method: "POST" });
+      const res = await fetch(`/api/orders/update/cancelled/${order.id}`, { method: "PATCH" });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to cancel order");
       toast.success("Order cancelled.");
@@ -1148,7 +1148,7 @@ export default function OrderDetailPage() {
                   </p>
                 </div>
               )}
-  );
+              );
               <div className="flex items-center gap-2.5 p-3 rounded-xl bg-[var(--color-surface-secondary)] border border-[var(--color-border)]">
                 <ShieldCheck className="h-4 w-4 text-emerald-500 shrink-0" />
                 <p className="text-[11px] text-[var(--color-text-muted)]">

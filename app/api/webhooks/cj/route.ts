@@ -220,8 +220,8 @@ async function syncVariantByVid(
 
     if (params.variantSellPrice !== null && params.variantSellPrice !== undefined) {
         // ✅ Tier-based pricing — keeps price, affiliate_price, and commission in sync
-        const { price, affiliate_price, affiliate_commission_rate } =
-            calculateCJPricing(params.variantSellPrice, exchangeRate);
+        const { price, affiliate_price, affiliate_commission_rate } = await
+            calculateCJPricing(params.variantSellPrice);
 
         updates.price = price;
         updates.affiliate_price = affiliate_price;
@@ -460,7 +460,6 @@ export async function POST(req: Request): Promise<Response> {
                 supabase,
                 product,
                 VENDOR_ID,
-                exchangeRate
             );
 
             if (!success) {

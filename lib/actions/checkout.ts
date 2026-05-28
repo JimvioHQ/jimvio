@@ -140,7 +140,6 @@ type CartItem = {
     allow_backorder: boolean;
     is_digital: boolean;
     requires_shipping: boolean;
-    // ✅ Added fields needed for order_items insert
     images: string[] | null;
     pricing_type: string | null;
     billing_period: string | null;
@@ -151,7 +150,6 @@ type CartItem = {
     price: number;
     inventory_quantity: number;
     is_active: boolean;
-    // ✅ Added: variant-specific image fallback
     image_url: string | null;
   } | null;
 };
@@ -213,7 +211,6 @@ async function createVendorOrder(
     const totalPrice = unitPrice * item.quantity;
     subtotal += totalPrice;
 
-    // ✅ Pick best image: variant image > first product image > null
     const productImage =
       v?.image_url ??
       (Array.isArray(p.images) && p.images.length > 0 ? p.images[0] : null);
@@ -223,7 +220,7 @@ async function createVendorOrder(
       variant_id: item.variant_id,
       vendor_id: vendorId,
       product_name: p.name,
-      product_image: productImage,                    // ✅ Added
+      product_image: productImage,
       variant_name: v?.name ?? null,
       quantity: item.quantity,
       unit_price: unitPrice,
@@ -236,8 +233,12 @@ async function createVendorOrder(
     };
   });
 
-  // ✅ Validate currency before insert — null currency is a NOT NULL violation
+
   const safeCurrency = (currency || "RWF").toUpperCase();
+  console.log({ orderItemsPayload });
+  if (safeCurrency === "rwf") {
+    return Promise.reject(new Error(`Unsupported currency: ${safeCurrency}`));
+  }
 
   const { data: order, error: orderError } = await admin
     .from("orders")
@@ -468,6 +469,7 @@ export async function startCheckout(): Promise<Result<{ orderIds: string[] }>> {
 
   const admin = getAdminDB();
 
+
   // ── Resume existing pending/failed orders for this cart ───────────────────
   const { data: existingOrders, error: existingError } = await admin
     .from("orders")
@@ -517,8 +519,6 @@ export async function startCheckout(): Promise<Result<{ orderIds: string[] }>> {
     return ok({ orderIds: existingOrders.map((o) => o.id) });
   }
 
-  // ── Fetch cart items ───────────────────────────────────────────────────────
-  // ✅ Added: images, pricing_type, billing_period (products) and image_url (variants)
   const { data: rawItems, error: itemsError } = await supabase
     .from("cart_items")
     .select(`
@@ -563,6 +563,8 @@ export async function startCheckout(): Promise<Result<{ orderIds: string[] }>> {
   }
 
   const createdOrderIds: string[] = [];
+  console.log({ cart });
+
 
   for (const [vendorId, vendorItems] of byVendor) {
     try {

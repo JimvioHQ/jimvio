@@ -9,7 +9,6 @@ import {
     type CJVariant,
     upsertCJProduct,
     mapCJVariantToJimvio,
-    getUSDToRWFRate,
 } from "@/lib/actions/cj_product";
 import { subscribeCJProducts } from "@/lib/cj/webhoo-subscription";
 import { syncProductShipping } from "@/lib/cj/sync-shipping";
@@ -64,6 +63,7 @@ interface CJDetailResponse {
 
 // Update detailToCJProduct to pass real values instead of hardcoded ones
 function detailToCJProduct(d: CJDetailResponse["data"]): CJProduct {
+
     return {
         pid: d.pid,
         productName: d.productName ?? "",
@@ -139,10 +139,9 @@ export async function POST(req: Request): Promise<Response> {
 
     try {
         const supabase = getServiceClient();
-        const [token, vendorId, exchangeRate] = await Promise.all([
+        const [token, vendorId] = await Promise.all([
             getCJToken(supabase),
             getCJVendorId(supabase),
-            getUSDToRWFRate(),
         ]);
 
         // ── Step 1: Fetch full product detail from CJ ─────────────────────
@@ -158,13 +157,10 @@ export async function POST(req: Request): Promise<Response> {
             );
         }
 
-        // ── Step 2: Guard — only import actively on-sale products ─────────
-        if (detail.data.status !== "3") {
+        const saleStatus = parseInt(String(detail.data.status ?? "0"), 10);
+        if (saleStatus !== 3) {
             return Response.json(
-                {
-                    success: false,
-                    error: `Product is not on sale (CJ status: ${detail.data.status})`,
-                },
+                { success: false, error: `Product is not on sale (CJ status: ${detail.data.status})` },
                 { status: 422 }
             );
         }
@@ -180,7 +176,6 @@ export async function POST(req: Request): Promise<Response> {
             supabase,
             cjProduct,
             vendorId,
-            exchangeRate,
             optionKeys,
             detail.data.variants.map((v) => ({ variantKey: v.variantKey }))
         );
@@ -194,40 +189,28 @@ export async function POST(req: Request): Promise<Response> {
 
         // ── Step 4: Upsert variants ───────────────────────────────────────
         if (detail.data.variants?.length > 0) {
-            const variantRows = detail.data.variants.map((v) => {
-                const cjVariant = detailVariantToCJVariant(
-                    v,
-                    detail.data.productSku
-                );
-                return {
-                    ...mapCJVariantToJimvio(
-                        cjVariant,
-                        productId,
-                        exchangeRate,
-                        optionKeys
-                    ),
-                    name:
-                        v.variantNameEn ||
-                        v.variantName ||
-                        v.variantKey ||
-                        v.variantSku,
-                };
-            });
+            const variantRows = await Promise.all(
+                detail.data.variants.map(async (v) => {
+                    const cjVariant = detailVariantToCJVariant(v, detail.data.productSku);
+                    return {
+                        ...(await mapCJVariantToJimvio(cjVariant, productId, optionKeys)),
+                        name:
+                            v.variantNameEn ||
+                            v.variantName ||
+                            v.variantKey ||
+                            v.variantSku,
+                    };
+                })
+            );
 
-            // ✅ Fix: delete stale variants BEFORE inserting new ones
-            // Prevents the duplicate window that existed when insert came first
+            const incomingVids = detail.data.variants.map(v => v.vid);
             await supabase
                 .from("product_variants")
                 .delete()
                 .eq("product_id", productId)
-                .not(
-                    "cj_vid",
-                    "in",
-                    `(${detail.data.variants.map((v) => v.vid).join(",")})`
-                );
+                .not("cj_vid", "in", incomingVids);
 
-            // ✅ Fix: upsert with onConflict on cj_vid instead of plain insert
-            // Prevents unique constraint errors on re-import of same product
+
             const { error: upsertErr } = await supabase
                 .from("product_variants")
                 .upsert(variantRows, {

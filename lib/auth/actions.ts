@@ -8,8 +8,8 @@ import { createClient } from "@/lib/supabase/server"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { resolvePostLoginPath } from "@/lib/auth/post-login-redirect"
 import { getPublicAppUrl } from "@/lib/app-url"
-import { verifyTOTP } from "@/lib/totp"
-
+import { generateQRCodeFromSecret, generateTOTPCode, verifyTOTP } from "@/lib/totp"
+import qrcode from 'qrcode-terminal'
 const TWO_FA_COOKIE = "2fa_pending_user"
 const TWO_FA_COOKIE_MAX_AGE = 60 * 5 // 5 minutes
 const FAILED_2FA_KEY_PREFIX = "2fa_fail:"
@@ -42,7 +42,7 @@ async function ensureUserProfile(
 }
 
 
-async function resolveLandingPath(userId: string, next?: string|null): Promise<string> {
+async function resolveLandingPath(userId: string, next?: string | null): Promise<string> {
   return resolvePostLoginPath(userId, next)
 }
 
@@ -186,10 +186,19 @@ export async function signIn(formData: FormData) {
     console.error("[auth] 2FA profile lookup error:", profileError)
   }
 
+
   const next = (formData.get("next") as string | null)?.trim() || null;
 
+  const { data: secretData, error: secretError } = await supabase.from("user_2fa_secrets")
+    .select("secret,backup_codes")
+    .eq("user_id", userId)
+    .maybeSingle()
 
-  if (profile?.two_factor_enabled) {
+  if (secretError) {
+    console.error("[auth] 2FA secret lookup error:", secretError)
+  }
+
+  if (profile?.two_factor_enabled || secretData?.secret) {
     const cookieStore = await cookies()
     cookieStore.set(TWO_FA_COOKIE, userId, {
       httpOnly: true,
@@ -254,10 +263,11 @@ export async function verify2FAAndLogin(formData: FormData) {
     return { error: "Failed to verify 2FA." }
   }
 
-  console.log({ secretData });
+  const result = await generateQRCodeFromSecret(secretData?.secret || "", sessionUser.email ?? "", "jimvio");
 
-
-  // ── Data inconsistency: profile says 2FA on, but no secret ──
+  qrcode.generate(result.otpauth, {
+    small: true,
+  })
   if (!secretData?.secret) {
     cookieStore.delete(TWO_FA_COOKIE)
     const next = (formData.get("next") as string)?.trim() || undefined
