@@ -3,38 +3,50 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { createBinancePayOrder } from "@/lib/binance-pay";
 import { getAdminDB } from "@/services/db";
-import {
-  createTransaction,
-} from "@/lib/actions/create-transaction";
+import { createTransaction } from "@/lib/actions/create-transaction";
 import { formatTransactionValidationError } from "@/lib/payments/transaction-types";
 import { recordBothStatusChanges } from "@/lib/payments/record-status-change";
+
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+const PENDING_TX_REUSE_WINDOW_MS = 60 * 60 * 1000; // 1 hour
+const RATE_CURRENCY = "USD";
+const SETTLE_CURRENCY = "USDT";
+
+// ─── CORS ─────────────────────────────────────────────────────────────────────
+
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin": "https://www.jimvio.com",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  "Access-Control-Allow-Credentials": "true",
 };
-export async function OPTIONS() {
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+export async function OPTIONS(): Promise<NextResponse> {
   return new NextResponse(null, {
-    status: 200,
+    status: 204,
     headers: corsHeaders,
   });
 }
+
 function errorResponse(
   message: string,
   status: number,
   details?: Record<string, unknown>
-) {
+): NextResponse {
   return NextResponse.json(
     { success: false, error: message, ...(details ?? {}) },
-    {
-      status,
-      headers: corsHeaders,
-    }
+    { status, headers: corsHeaders }
   );
 }
-// ─── Constants ─────────────────────────────────────────────
-const PENDING_TX_REUSE_WINDOW_MS = 60 * 60 * 1000;
-function describeError(err: unknown): { message: string; code?: string; cause?: string } {
+
+function describeError(err: unknown): {
+  message: string;
+  code?: string;
+  cause?: string;
+} {
   if (!(err instanceof Error)) return { message: String(err) };
 
   const cause = (err as Error & { cause?: unknown }).cause;
@@ -48,7 +60,17 @@ function describeError(err: unknown): { message: string; code?: string; cause?: 
       cause: causeCode ? `${cause.message} (${causeCode})` : cause.message,
     };
   }
+
   return { message: err.message, code };
+}
+
+function isUUID(value: unknown): value is string {
+  return (
+    typeof value === "string" &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      value
+    )
+  );
 }
 
 async function getExchangeRate(
@@ -68,7 +90,7 @@ async function getExchangeRate(
     );
   }
 
-  const data = await res.json();
+  const data = (await res.json()) as { rates?: Record<string, number> };
   const rate = data.rates?.[toCurrency.toUpperCase()];
 
   if (!rate || typeof rate !== "number" || rate <= 0) {
@@ -78,23 +100,10 @@ async function getExchangeRate(
   return rate;
 }
 
-function isUUID(value: unknown): value is string {
-  return (
-    typeof value === "string" &&
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)
-  );
-}
-
-// ─── Constants ────────────────────────────────────────────────────────────────
-
-const PENDING_TX_REUSE_WINDOW_MS = 60 * 60 * 1000; // 1 hour
-const RATE_CURRENCY = "USD";
-const SETTLE_CURRENCY = "USDT";
-
 // ─── Route handler ────────────────────────────────────────────────────────────
 
-export async function POST(req: NextRequest) {
-  // ── 1. Parse & validate request body ────────────────────────────────────────
+export async function POST(req: NextRequest): Promise<NextResponse> {
+  // ── 1. Parse & validate request body ──────────────────────────────────────
   let body: unknown;
   try {
     body = await req.json();
@@ -115,7 +124,7 @@ export async function POST(req: NextRequest) {
     return errorResponse("orderId must be a valid UUID", 400);
   }
 
-  // ── 2. Build Supabase client ─────────────────────────────────────────────────
+  // ── 2. Build Supabase client ───────────────────────────────────────────────
   const cookieStore = await cookies();
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -123,12 +132,12 @@ export async function POST(req: NextRequest) {
     {
       cookies: {
         getAll: () => cookieStore.getAll(),
-        setAll: () => { },
+        setAll: () => {},
       },
     }
   );
 
-  // ── 3. Authenticate ──────────────────────────────────────────────────────────
+  // ── 3. Authenticate ────────────────────────────────────────────────────────
   const {
     data: { user },
     error: authError,
@@ -138,7 +147,7 @@ export async function POST(req: NextRequest) {
     return errorResponse("Unauthorized — please sign in", 401);
   }
 
-  // ── 4. Load & validate order ─────────────────────────────────────────────────
+  // ── 4. Load & validate order ───────────────────────────────────────────────
   const { data: order, error: orderError } = await supabase
     .from("orders")
     .select(
@@ -191,16 +200,14 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  // ── 5. Validate env ──────────────────────────────────────────────────────────
+  // ── 5. Validate env ────────────────────────────────────────────────────────
   const appUrl = process.env.NEXT_PUBLIC_APP_URL;
   if (!appUrl) {
     console.error("[binance/create] NEXT_PUBLIC_APP_URL is not set");
     return errorResponse("Server configuration error", 500);
   }
 
-  // ── 6. Check for a reusable pending transaction ──────────────────────────────
-  // Mirror the Flutterwave approach: query the transactions table instead of
-  // reading raw order.metadata, so session reuse is consistent across gateways.
+  // ── 6. Check for a reusable pending transaction ────────────────────────────
   const cutoff = new Date(Date.now() - PENDING_TX_REUSE_WINDOW_MS).toISOString();
 
   const { data: existingTx } = await supabase
@@ -219,20 +226,22 @@ export async function POST(req: NextRequest) {
     const prepayId = txMeta?.prepay_id as string | undefined;
     const expireTime = txMeta?.expire_time as number | undefined;
 
-    // Reuse if the Binance session hasn't expired yet
     if (prepayId && expireTime && expireTime > Date.now()) {
       const checkoutUrl = txMeta?.checkout_url as string | undefined;
       const qrContent = txMeta?.qr_content as string | undefined;
 
       if (checkoutUrl) {
-        return NextResponse.json({
-          success: true,
-          redirectUrl: checkoutUrl,
-          qrContent,
-          prepayId,
-          expiresAt: new Date(expireTime).toISOString(),
-          reused: true,
-        });
+        return NextResponse.json(
+          {
+            success: true,
+            redirectUrl: checkoutUrl,
+            qrContent,
+            prepayId,
+            expiresAt: new Date(expireTime).toISOString(),
+            reused: true,
+          },
+          { headers: corsHeaders }
+        );
       }
     }
 
@@ -252,7 +261,7 @@ export async function POST(req: NextRequest) {
     .eq("status", "pending")
     .lt("created_at", cutoff);
 
-  // ── 7. Currency conversion ───────────────────────────────────────────────────
+  // ── 7. Currency conversion ─────────────────────────────────────────────────
   let payAmount = order.total_amount;
   let payCurrency = order.currency;
   let exchangeRate = 1;
@@ -294,16 +303,16 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // ── 8. Build merchantTradeNo ─────────────────────────────────────────────────
+  // ── 8. Build merchantTradeNo ───────────────────────────────────────────────
   const sanitizedOrderNumber = (order.order_number ?? "")
     .replace(/[^A-Za-z0-9]/g, "")
     .slice(0, 16);
 
   if (!sanitizedOrderNumber) {
-    console.error("[binance/create] order has no usable order_number", {
-      orderId,
-      order_number: order.order_number,
-    });
+    console.error(
+      "[binance/create] order has no usable order_number",
+      { orderId, order_number: order.order_number }
+    );
     return errorResponse(
       "This order is missing required data (order number). Please contact support.",
       422,
@@ -314,7 +323,7 @@ export async function POST(req: NextRequest) {
   const attemptSuffix = Date.now().toString(36).toUpperCase();
   const merchantTradeNo = `${sanitizedOrderNumber}${attemptSuffix}`.slice(0, 32);
 
-  // ── 9. Create Binance Pay order ──────────────────────────────────────────────
+  // ── 9. Create Binance Pay order ────────────────────────────────────────────
   let binanceOrder: Awaited<ReturnType<typeof createBinancePayOrder>>;
   try {
     binanceOrder = await createBinancePayOrder({
@@ -334,7 +343,6 @@ export async function POST(req: NextRequest) {
     });
   } catch (binanceErr) {
     const info = describeError(binanceErr);
-
     console.error("[binance/create] Binance API error", {
       message: info.message,
       code: info.code,
@@ -367,13 +375,17 @@ export async function POST(req: NextRequest) {
   }
 
   if (!binanceOrder?.prepayId || !binanceOrder?.checkoutUrl) {
-    console.error("[binance/create] Binance returned incomplete order", binanceOrder);
+    console.error(
+      "[binance/create] Binance returned incomplete order",
+      binanceOrder
+    );
     return errorResponse(
       "Payment gateway returned an incomplete response. Please try again.",
       502
     );
   }
 
+  // ── 10. Record transaction ─────────────────────────────────────────────────
   const txResult = await createTransaction(getAdminDB(), {
     userId: user.id,
     orderId,
@@ -394,26 +406,34 @@ export async function POST(req: NextRequest) {
     },
   });
 
-
-
   if (!txResult.success) {
     if (txResult.conflict) {
-      console.error("[binance/create] transaction ref conflict", { merchantTradeNo, orderId });
-      return errorResponse(
-        "Payment ref conflict. Please try again.",
-        409,
-        { reason: "conflict" }
-      );
+      console.error("[binance/create] transaction ref conflict", {
+        merchantTradeNo,
+        orderId,
+      });
+      return errorResponse("Payment ref conflict. Please try again.", 409, {
+        reason: "conflict",
+      });
     }
     if (txResult.validation) {
       console.error(
         "[binance/create] createTransaction validation failed",
         formatTransactionValidationError(txResult.issues)
       );
-      return errorResponse("Invalid payment data. Please contact support.", 422);
+      return errorResponse(
+        "Invalid payment data. Please contact support.",
+        422
+      );
     }
-    console.error("[binance/create] failed to insert transaction record", txResult.error);
-    return errorResponse("Failed to record payment attempt. Please try again.", 500);
+    console.error(
+      "[binance/create] failed to insert transaction record",
+      txResult.error
+    );
+    return errorResponse(
+      "Failed to record payment attempt. Please try again.",
+      500
+    );
   }
 
   console.info("[binance/create] transaction record created", {
@@ -422,9 +442,7 @@ export async function POST(req: NextRequest) {
     orderId,
   });
 
-  // ── 11. Persist Binance metadata on the order (best-effort) ─────────────────
-  // The transactions row is the authoritative record; this is a convenience
-  // cache on the order for quick dashboard lookups. Non-fatal if it fails.
+  // ── 11. Persist Binance metadata on the order (best-effort) ───────────────
   const updatedMetadata = {
     ...(order.metadata ?? {}),
     binance_merchant_trade_no: merchantTradeNo,
@@ -441,21 +459,22 @@ export async function POST(req: NextRequest) {
     .from("orders")
     .update({ metadata: updatedMetadata })
     .eq("id", orderId);
+
   if (updateError) {
-    // Non-fatal — webhook reconciles via transactions table, not order.metadata
     console.warn(
       "[binance/create] order metadata update failed (non-fatal, tx row exists)",
       updateError
     );
   }
 
+  // ── 12. Record status changes ──────────────────────────────────────────────
   await recordBothStatusChanges(
     getAdminDB(),
     orderId,
     {
       previousOrderStatus: order.status,
       newOrderStatus: "pending",
-      previousPaymentStatus: txResult.success ? "pending" : order.payment_status,
+      previousPaymentStatus: order.payment_status,
       newPaymentStatus: "processing",
     },
     {
@@ -463,20 +482,19 @@ export async function POST(req: NextRequest) {
       provider: "binance",
     }
   );
-  // ── 12. Success ──────────────────────────────────────────────────────────────
+
+  // ── 13. Success ────────────────────────────────────────────────────────────
   return NextResponse.json(
-  {
-    success: true,
-    redirectUrl: binanceOrder.checkoutUrl,
-    qrContent: binanceOrder.qrContent,
-    prepayId: binanceOrder.prepayId,
-    expiresAt: new Date(binanceOrder.expireTime).toISOString(),
-    payAmount,
-    payCurrency,
-    exchangeRate,
-  },
-  {
-    headers: corsHeaders,
-  }
-);
+    {
+      success: true,
+      redirectUrl: binanceOrder.checkoutUrl,
+      qrContent: binanceOrder.qrContent,
+      prepayId: binanceOrder.prepayId,
+      expiresAt: new Date(binanceOrder.expireTime).toISOString(),
+      payAmount,
+      payCurrency,
+      exchangeRate,
+    },
+    { headers: corsHeaders }
+  );
 }
