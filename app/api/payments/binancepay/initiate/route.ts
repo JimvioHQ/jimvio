@@ -1,5 +1,3 @@
-export const runtime = 'nodejs'
-export const preferredRegion = ['fra1']
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
@@ -19,7 +17,7 @@ export async function OPTIONS() {
   return new NextResponse(null, {
     status: 200,
     headers: corsHeaders,
-  })
+  });
 }
 function errorResponse(
   message: string,
@@ -478,4 +476,5 @@ export async function POST(req: NextRequest) {
   {
     headers: corsHeaders,
   }
-)
+);
+}
