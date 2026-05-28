@@ -57,7 +57,7 @@ const PAYMENT_ENDPOINTS: Record<MethodId, string> = {
    paypal: "/api/payments/paypal/create-order",
    pawapay: "/api/pawapay/checkout",
    nowpayments: "/api/payments/nowpayments/initiate",
-   binancepay: "https://jimvio.onrender.com/api/payments/binancepay/initiate",
+   binancepay: "/api/payments/binancepay/initiate",
 } as const;
 
 // Above the component, alongside hasCJItems / getCJCartItems
