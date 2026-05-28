@@ -1,3 +1,7 @@
+// app/api/payments/binancepay/initiate/route.ts
+// Deployed on Render Europe (payments.jimvio.com)
+// Frontend origin: https://www.jimvio.com
+
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
@@ -7,38 +11,69 @@ import { createTransaction } from "@/lib/actions/create-transaction";
 import { formatTransactionValidationError } from "@/lib/payments/transaction-types";
 import { recordBothStatusChanges } from "@/lib/payments/record-status-change";
 
-// ─── Constants ────────────────────────────────────────────────────────────────
+// ─── Runtime ──────────────────────────────────────────────────────────────────
+// Force Node.js runtime — required on Render for crypto, fetch, and cookie APIs.
+// Do NOT use "edge" here; Supabase SSR and cookies() require Node runtime.
+export const runtime = "nodejs";
 
+// ─── Constants ────────────────────────────────────────────────────────────────
 const PENDING_TX_REUSE_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 const RATE_CURRENCY = "USD";
 const SETTLE_CURRENCY = "USDT";
 
 // ─── CORS ─────────────────────────────────────────────────────────────────────
+// FIX 1: Use the exact frontend origin — NOT "*"
+// Reason: The browser sends credentials (Supabase auth cookies) on cross-origin
+// requests. The CORS spec FORBIDS wildcard origin when credentials are present.
+// A wildcard here causes the browser to silently block the response → "Failed to fetch"
+//
+// FIX 2: Add Access-Control-Allow-Credentials: true
+// Required whenever the frontend fetch uses credentials:'include'
+//
+// FIX 3: Add Vary: Origin
+// Prevents Render's routing layer or any CDN from caching a CORS-less response
+// and serving it to subsequent cross-origin requests.
+const ALLOWED_ORIGIN = "https://www.jimvio.com";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "https://www.jimvio.com",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
-  "Access-Control-Allow-Credentials": "true",
-};
+function buildCorsHeaders(): HeadersInit {
+  return {
+    "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "Access-Control-Allow-Credentials": "true",
+    "Vary": "Origin",
+  };
+}
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
+// ─── OPTIONS handler ──────────────────────────────────────────────────────────
+// FIX 4: Return 204 No Content (the correct preflight response status).
+// Some browsers and proxies treat 200 with a null body suspiciously.
+// 204 is the RFC-correct status for a successful preflight with no body.
+//
+// FIX 5: This handler must be exported from this file — App Router only uses
+// the OPTIONS export from the route file itself, not from middleware or config.
+// Without this explicit export, Next.js App Router returns a 405 for OPTIONS
+// which the browser treats as a failed preflight → "Failed to fetch"
 export async function OPTIONS(): Promise<NextResponse> {
   return new NextResponse(null, {
     status: 204,
-    headers: corsHeaders,
+    headers: buildCorsHeaders(),
   });
 }
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 function errorResponse(
   message: string,
   status: number,
   details?: Record<string, unknown>
 ): NextResponse {
+  // FIX 6: Every error response also carries CORS headers.
+  // If an error fires AFTER the preflight but the response lacks CORS headers,
+  // the browser still blocks it and reports "Failed to fetch" instead of
+  // showing the actual error — making debugging very hard.
   return NextResponse.json(
     { success: false, error: message, ...(details ?? {}) },
-    { status, headers: corsHeaders }
+    { status, headers: buildCorsHeaders() }
   );
 }
 
@@ -48,10 +83,8 @@ function describeError(err: unknown): {
   cause?: string;
 } {
   if (!(err instanceof Error)) return { message: String(err) };
-
   const cause = (err as Error & { cause?: unknown }).cause;
   const code = (err as Error & { code?: string }).code;
-
   if (cause instanceof Error) {
     const causeCode = (cause as Error & { code?: string }).code;
     return {
@@ -60,7 +93,6 @@ function describeError(err: unknown): {
       cause: causeCode ? `${cause.message} (${causeCode})` : cause.message,
     };
   }
-
   return { message: err.message, code };
 }
 
@@ -78,30 +110,24 @@ async function getExchangeRate(
   toCurrency: string
 ): Promise<number> {
   if (fromCurrency.toUpperCase() === toCurrency.toUpperCase()) return 1;
-
   const res = await fetch(
     `https://api.exchangerate-api.com/v4/latest/${fromCurrency.toUpperCase()}`,
     { signal: AbortSignal.timeout(5_000) }
   );
-
   if (!res.ok) {
     throw new Error(
       `Exchange rate service returned ${res.status} for ${fromCurrency}`
     );
   }
-
   const data = (await res.json()) as { rates?: Record<string, number> };
   const rate = data.rates?.[toCurrency.toUpperCase()];
-
   if (!rate || typeof rate !== "number" || rate <= 0) {
     throw new Error(`No valid rate found for ${fromCurrency} → ${toCurrency}`);
   }
-
   return rate;
 }
 
-// ─── Route handler ────────────────────────────────────────────────────────────
-
+// ─── POST handler ─────────────────────────────────────────────────────────────
 export async function POST(req: NextRequest): Promise<NextResponse> {
   // ── 1. Parse & validate request body ──────────────────────────────────────
   let body: unknown;
@@ -208,7 +234,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   }
 
   // ── 6. Check for a reusable pending transaction ────────────────────────────
-  const cutoff = new Date(Date.now() - PENDING_TX_REUSE_WINDOW_MS).toISOString();
+  const cutoff = new Date(
+    Date.now() - PENDING_TX_REUSE_WINDOW_MS
+  ).toISOString();
 
   const { data: existingTx } = await supabase
     .from("transactions")
@@ -240,7 +268,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
             expiresAt: new Date(expireTime).toISOString(),
             reused: true,
           },
-          { headers: corsHeaders }
+          { headers: buildCorsHeaders() }
         );
       }
     }
@@ -309,10 +337,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     .slice(0, 16);
 
   if (!sanitizedOrderNumber) {
-    console.error(
-      "[binance/create] order has no usable order_number",
-      { orderId, order_number: order.order_number }
-    );
+    console.error("[binance/create] order has no usable order_number", {
+      orderId,
+      order_number: order.order_number,
+    });
     return errorResponse(
       "This order is missing required data (order number). Please contact support.",
       422,
@@ -321,7 +349,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   }
 
   const attemptSuffix = Date.now().toString(36).toUpperCase();
-  const merchantTradeNo = `${sanitizedOrderNumber}${attemptSuffix}`.slice(0, 32);
+  const merchantTradeNo = `${sanitizedOrderNumber}${attemptSuffix}`.slice(
+    0,
+    32
+  );
 
   // ── 9. Create Binance Pay order ────────────────────────────────────────────
   let binanceOrder: Awaited<ReturnType<typeof createBinancePayOrder>>;
@@ -339,7 +370,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       merchantTradeNo,
       payAmount,
       payCurrency,
-      binanceOrder,
     });
   } catch (binanceErr) {
     const info = describeError(binanceErr);
@@ -361,7 +391,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     if (isNetwork) {
       return errorResponse(
-        "Could not reach Binance Pay. The payment service is temporarily unreachable from our servers. Please try a different payment method.",
+        "Could not reach Binance Pay. The payment service is temporarily unreachable. Please try a different payment method.",
         502,
         { reason: "network", detail: info.cause ?? info.message }
       );
@@ -495,6 +525,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       payCurrency,
       exchangeRate,
     },
-    { headers: corsHeaders }
+    { headers: buildCorsHeaders() }
   );
 }
