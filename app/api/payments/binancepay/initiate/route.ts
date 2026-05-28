@@ -15,7 +15,12 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type, Authorization",
 };
-
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 200,
+    headers: corsHeaders,
+  })
+}
 function errorResponse(
   message: string,
   status: number,
@@ -87,12 +92,7 @@ const RATE_CURRENCY = "USD";
 const SETTLE_CURRENCY = "USDT";
 
 // ─── Route handler ────────────────────────────────────────────────────────────
-export async function OPTIONS() {
-  return new NextResponse(null, {
-    status: 200,
-    headers: corsHeaders,
-  });
-}
+
 export async function POST(req: NextRequest) {
   // ── 1. Parse & validate request body ────────────────────────────────────────
   let body: unknown;
