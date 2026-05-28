@@ -1,7 +1,3 @@
-// app/api/payments/binancepay/initiate/route.ts
-// Deployed on Render Europe (payments.jimvio.com)
-// Frontend origin: https://www.jimvio.com
-
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
