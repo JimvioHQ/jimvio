@@ -1,5 +1,5 @@
-export const runtime = 'edge'
-export const preferredRegion = 'fra1'
+export const runtime = 'nodejs'
+export const preferredRegion = ['fra1']
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
