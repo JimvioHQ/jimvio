@@ -3,30 +3,84 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { createBinancePayOrder } from "@/lib/binance-pay";
 import { getAdminDB } from "@/services/db";
-import {
-  createTransaction,
-} from "@/lib/actions/create-transaction";
+import { createTransaction } from "@/lib/actions/create-transaction";
 import { formatTransactionValidationError } from "@/lib/payments/transaction-types";
 import { recordBothStatusChanges } from "@/lib/payments/record-status-change";
 
+// ─── Runtime ──────────────────────────────────────────────────────────────────
+// Force Node.js runtime — required on Render for crypto, fetch, and cookie APIs.
+// Do NOT use "edge" here; Supabase SSR and cookies() require Node runtime.
+export const runtime = "nodejs";
 
+// ─── Constants ────────────────────────────────────────────────────────────────
+const PENDING_TX_REUSE_WINDOW_MS = 60 * 60 * 1000; // 1 hour
+const RATE_CURRENCY = "USD";
+const SETTLE_CURRENCY = "USDT";
+
+// ─── CORS ─────────────────────────────────────────────────────────────────────
+// FIX 1: Use the exact frontend origin — NOT "*"
+// Reason: The browser sends credentials (Supabase auth cookies) on cross-origin
+// requests. The CORS spec FORBIDS wildcard origin when credentials are present.
+// A wildcard here causes the browser to silently block the response → "Failed to fetch"
+//
+// FIX 2: Add Access-Control-Allow-Credentials: true
+// Required whenever the frontend fetch uses credentials:'include'
+//
+// FIX 3: Add Vary: Origin
+// Prevents Render's routing layer or any CDN from caching a CORS-less response
+// and serving it to subsequent cross-origin requests.
+const ALLOWED_ORIGIN = "https://www.jimvio.com";
+
+function buildCorsHeaders(): HeadersInit {
+  return {
+    "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "Access-Control-Allow-Credentials": "true",
+    "Vary": "Origin",
+  };
+}
+
+// ─── OPTIONS handler ──────────────────────────────────────────────────────────
+// FIX 4: Return 204 No Content (the correct preflight response status).
+// Some browsers and proxies treat 200 with a null body suspiciously.
+// 204 is the RFC-correct status for a successful preflight with no body.
+//
+// FIX 5: This handler must be exported from this file — App Router only uses
+// the OPTIONS export from the route file itself, not from middleware or config.
+// Without this explicit export, Next.js App Router returns a 405 for OPTIONS
+// which the browser treats as a failed preflight → "Failed to fetch"
+export async function OPTIONS(): Promise<NextResponse> {
+  return new NextResponse(null, {
+    status: 204,
+    headers: buildCorsHeaders(),
+  });
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 function errorResponse(
   message: string,
   status: number,
   details?: Record<string, unknown>
-) {
+): NextResponse {
+  // FIX 6: Every error response also carries CORS headers.
+  // If an error fires AFTER the preflight but the response lacks CORS headers,
+  // the browser still blocks it and reports "Failed to fetch" instead of
+  // showing the actual error — making debugging very hard.
   return NextResponse.json(
     { success: false, error: message, ...(details ?? {}) },
-    { status }
+    { status, headers: buildCorsHeaders() }
   );
 }
 
-function describeError(err: unknown): { message: string; code?: string; cause?: string } {
+function describeError(err: unknown): {
+  message: string;
+  code?: string;
+  cause?: string;
+} {
   if (!(err instanceof Error)) return { message: String(err) };
-
   const cause = (err as Error & { cause?: unknown }).cause;
   const code = (err as Error & { code?: string }).code;
-
   if (cause instanceof Error) {
     const causeCode = (cause as Error & { code?: string }).code;
     return {
@@ -38,50 +92,40 @@ function describeError(err: unknown): { message: string; code?: string; cause?: 
   return { message: err.message, code };
 }
 
+function isUUID(value: unknown): value is string {
+  return (
+    typeof value === "string" &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      value
+    )
+  );
+}
+
 async function getExchangeRate(
   fromCurrency: string,
   toCurrency: string
 ): Promise<number> {
   if (fromCurrency.toUpperCase() === toCurrency.toUpperCase()) return 1;
-
   const res = await fetch(
     `https://api.exchangerate-api.com/v4/latest/${fromCurrency.toUpperCase()}`,
     { signal: AbortSignal.timeout(5_000) }
   );
-
   if (!res.ok) {
     throw new Error(
       `Exchange rate service returned ${res.status} for ${fromCurrency}`
     );
   }
-
-  const data = await res.json();
+  const data = (await res.json()) as { rates?: Record<string, number> };
   const rate = data.rates?.[toCurrency.toUpperCase()];
-
   if (!rate || typeof rate !== "number" || rate <= 0) {
     throw new Error(`No valid rate found for ${fromCurrency} → ${toCurrency}`);
   }
-
   return rate;
 }
 
-function isUUID(value: unknown): value is string {
-  return (
-    typeof value === "string" &&
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)
-  );
-}
-
-// ─── Constants ────────────────────────────────────────────────────────────────
-
-const PENDING_TX_REUSE_WINDOW_MS = 60 * 60 * 1000; // 1 hour
-const RATE_CURRENCY = "USD";
-const SETTLE_CURRENCY = "USDT";
-
-// ─── Route handler ────────────────────────────────────────────────────────────
-
-export async function POST(req: NextRequest) {
-  // ── 1. Parse & validate request body ────────────────────────────────────────
+// ─── POST handler ─────────────────────────────────────────────────────────────
+export async function POST(req: NextRequest): Promise<NextResponse> {
+  // ── 1. Parse & validate request body ──────────────────────────────────────
   let body: unknown;
   try {
     body = await req.json();
@@ -102,7 +146,7 @@ export async function POST(req: NextRequest) {
     return errorResponse("orderId must be a valid UUID", 400);
   }
 
-  // ── 2. Build Supabase client ─────────────────────────────────────────────────
+  // ── 2. Build Supabase client ───────────────────────────────────────────────
   const cookieStore = await cookies();
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -110,12 +154,12 @@ export async function POST(req: NextRequest) {
     {
       cookies: {
         getAll: () => cookieStore.getAll(),
-        setAll: () => { },
+        setAll: () => {},
       },
     }
   );
 
-  // ── 3. Authenticate ──────────────────────────────────────────────────────────
+  // ── 3. Authenticate ────────────────────────────────────────────────────────
   const {
     data: { user },
     error: authError,
@@ -125,7 +169,7 @@ export async function POST(req: NextRequest) {
     return errorResponse("Unauthorized — please sign in", 401);
   }
 
-  // ── 4. Load & validate order ─────────────────────────────────────────────────
+  // ── 4. Load & validate order ───────────────────────────────────────────────
   const { data: order, error: orderError } = await supabase
     .from("orders")
     .select(
@@ -178,17 +222,17 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  // ── 5. Validate env ──────────────────────────────────────────────────────────
+  // ── 5. Validate env ────────────────────────────────────────────────────────
   const appUrl = process.env.NEXT_PUBLIC_APP_URL;
   if (!appUrl) {
     console.error("[binance/create] NEXT_PUBLIC_APP_URL is not set");
     return errorResponse("Server configuration error", 500);
   }
 
-  // ── 6. Check for a reusable pending transaction ──────────────────────────────
-  // Mirror the Flutterwave approach: query the transactions table instead of
-  // reading raw order.metadata, so session reuse is consistent across gateways.
-  const cutoff = new Date(Date.now() - PENDING_TX_REUSE_WINDOW_MS).toISOString();
+  // ── 6. Check for a reusable pending transaction ────────────────────────────
+  const cutoff = new Date(
+    Date.now() - PENDING_TX_REUSE_WINDOW_MS
+  ).toISOString();
 
   const { data: existingTx } = await supabase
     .from("transactions")
@@ -206,20 +250,22 @@ export async function POST(req: NextRequest) {
     const prepayId = txMeta?.prepay_id as string | undefined;
     const expireTime = txMeta?.expire_time as number | undefined;
 
-    // Reuse if the Binance session hasn't expired yet
     if (prepayId && expireTime && expireTime > Date.now()) {
       const checkoutUrl = txMeta?.checkout_url as string | undefined;
       const qrContent = txMeta?.qr_content as string | undefined;
 
       if (checkoutUrl) {
-        return NextResponse.json({
-          success: true,
-          redirectUrl: checkoutUrl,
-          qrContent,
-          prepayId,
-          expiresAt: new Date(expireTime).toISOString(),
-          reused: true,
-        });
+        return NextResponse.json(
+          {
+            success: true,
+            redirectUrl: checkoutUrl,
+            qrContent,
+            prepayId,
+            expiresAt: new Date(expireTime).toISOString(),
+            reused: true,
+          },
+          { headers: buildCorsHeaders() }
+        );
       }
     }
 
@@ -239,7 +285,7 @@ export async function POST(req: NextRequest) {
     .eq("status", "pending")
     .lt("created_at", cutoff);
 
-  // ── 7. Currency conversion ───────────────────────────────────────────────────
+  // ── 7. Currency conversion ─────────────────────────────────────────────────
   let payAmount = order.total_amount;
   let payCurrency = order.currency;
   let exchangeRate = 1;
@@ -281,7 +327,7 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // ── 8. Build merchantTradeNo ─────────────────────────────────────────────────
+  // ── 8. Build merchantTradeNo ───────────────────────────────────────────────
   const sanitizedOrderNumber = (order.order_number ?? "")
     .replace(/[^A-Za-z0-9]/g, "")
     .slice(0, 16);
@@ -299,9 +345,12 @@ export async function POST(req: NextRequest) {
   }
 
   const attemptSuffix = Date.now().toString(36).toUpperCase();
-  const merchantTradeNo = `${sanitizedOrderNumber}${attemptSuffix}`.slice(0, 32);
+  const merchantTradeNo = `${sanitizedOrderNumber}${attemptSuffix}`.slice(
+    0,
+    32
+  );
 
-  // ── 9. Create Binance Pay order ──────────────────────────────────────────────
+  // ── 9. Create Binance Pay order ────────────────────────────────────────────
   let binanceOrder: Awaited<ReturnType<typeof createBinancePayOrder>>;
   try {
     binanceOrder = await createBinancePayOrder({
@@ -317,11 +366,9 @@ export async function POST(req: NextRequest) {
       merchantTradeNo,
       payAmount,
       payCurrency,
-      binanceOrder,
     });
   } catch (binanceErr) {
     const info = describeError(binanceErr);
-
     console.error("[binance/create] Binance API error", {
       message: info.message,
       code: info.code,
@@ -340,7 +387,7 @@ export async function POST(req: NextRequest) {
 
     if (isNetwork) {
       return errorResponse(
-        "Could not reach Binance Pay. The payment service is temporarily unreachable from our servers. Please try a different payment method.",
+        "Could not reach Binance Pay. The payment service is temporarily unreachable. Please try a different payment method.",
         502,
         { reason: "network", detail: info.cause ?? info.message }
       );
@@ -354,13 +401,17 @@ export async function POST(req: NextRequest) {
   }
 
   if (!binanceOrder?.prepayId || !binanceOrder?.checkoutUrl) {
-    console.error("[binance/create] Binance returned incomplete order", binanceOrder);
+    console.error(
+      "[binance/create] Binance returned incomplete order",
+      binanceOrder
+    );
     return errorResponse(
       "Payment gateway returned an incomplete response. Please try again.",
       502
     );
   }
 
+  // ── 10. Record transaction ─────────────────────────────────────────────────
   const txResult = await createTransaction(getAdminDB(), {
     userId: user.id,
     orderId,
@@ -381,26 +432,34 @@ export async function POST(req: NextRequest) {
     },
   });
 
-
-
   if (!txResult.success) {
     if (txResult.conflict) {
-      console.error("[binance/create] transaction ref conflict", { merchantTradeNo, orderId });
-      return errorResponse(
-        "Payment ref conflict. Please try again.",
-        409,
-        { reason: "conflict" }
-      );
+      console.error("[binance/create] transaction ref conflict", {
+        merchantTradeNo,
+        orderId,
+      });
+      return errorResponse("Payment ref conflict. Please try again.", 409, {
+        reason: "conflict",
+      });
     }
     if (txResult.validation) {
       console.error(
         "[binance/create] createTransaction validation failed",
         formatTransactionValidationError(txResult.issues)
       );
-      return errorResponse("Invalid payment data. Please contact support.", 422);
+      return errorResponse(
+        "Invalid payment data. Please contact support.",
+        422
+      );
     }
-    console.error("[binance/create] failed to insert transaction record", txResult.error);
-    return errorResponse("Failed to record payment attempt. Please try again.", 500);
+    console.error(
+      "[binance/create] failed to insert transaction record",
+      txResult.error
+    );
+    return errorResponse(
+      "Failed to record payment attempt. Please try again.",
+      500
+    );
   }
 
   console.info("[binance/create] transaction record created", {
@@ -409,9 +468,7 @@ export async function POST(req: NextRequest) {
     orderId,
   });
 
-  // ── 11. Persist Binance metadata on the order (best-effort) ─────────────────
-  // The transactions row is the authoritative record; this is a convenience
-  // cache on the order for quick dashboard lookups. Non-fatal if it fails.
+  // ── 11. Persist Binance metadata on the order (best-effort) ───────────────
   const updatedMetadata = {
     ...(order.metadata ?? {}),
     binance_merchant_trade_no: merchantTradeNo,
@@ -428,21 +485,22 @@ export async function POST(req: NextRequest) {
     .from("orders")
     .update({ metadata: updatedMetadata })
     .eq("id", orderId);
+
   if (updateError) {
-    // Non-fatal — webhook reconciles via transactions table, not order.metadata
     console.warn(
       "[binance/create] order metadata update failed (non-fatal, tx row exists)",
       updateError
     );
   }
 
+  // ── 12. Record status changes ──────────────────────────────────────────────
   await recordBothStatusChanges(
     getAdminDB(),
     orderId,
     {
       previousOrderStatus: order.status,
       newOrderStatus: "pending",
-      previousPaymentStatus: txResult.success ? "pending" : order.payment_status,
+      previousPaymentStatus: order.payment_status,
       newPaymentStatus: "processing",
     },
     {
@@ -450,15 +508,19 @@ export async function POST(req: NextRequest) {
       provider: "binance",
     }
   );
-  // ── 12. Success ──────────────────────────────────────────────────────────────
-  return NextResponse.json({
-    success: true,
-    redirectUrl: binanceOrder.checkoutUrl,
-    qrContent: binanceOrder.qrContent,
-    prepayId: binanceOrder.prepayId,
-    expiresAt: new Date(binanceOrder.expireTime).toISOString(),
-    payAmount,
-    payCurrency,
-    exchangeRate,
-  });
+
+  // ── 13. Success ────────────────────────────────────────────────────────────
+  return NextResponse.json(
+    {
+      success: true,
+      redirectUrl: binanceOrder.checkoutUrl,
+      qrContent: binanceOrder.qrContent,
+      prepayId: binanceOrder.prepayId,
+      expiresAt: new Date(binanceOrder.expireTime).toISOString(),
+      payAmount,
+      payCurrency,
+      exchangeRate,
+    },
+    { headers: buildCorsHeaders() }
+  );
 }
