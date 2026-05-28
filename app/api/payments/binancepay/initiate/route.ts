@@ -24,14 +24,16 @@ function errorResponse(
   status: number,
   details?: Record<string, unknown>
 ) {
-return NextResponse.json(
-  { success: false, error: message, ...(details ?? {}) },
-  {
-    status,
-    headers: corsHeaders,
-  }
-);
-
+  return NextResponse.json(
+    { success: false, error: message, ...(details ?? {}) },
+    {
+      status,
+      headers: corsHeaders,
+    }
+  );
+}
+// ─── Constants ─────────────────────────────────────────────
+const PENDING_TX_REUSE_WINDOW_MS = 60 * 60 * 1000;
 function describeError(err: unknown): { message: string; code?: string; cause?: string } {
   if (!(err instanceof Error)) return { message: String(err) };
 
