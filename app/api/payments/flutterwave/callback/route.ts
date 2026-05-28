@@ -91,7 +91,6 @@
 //         );
 //     }
 // }
-
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { verifyFlutterwaveTransaction } from "@/lib/flutterwave";
@@ -111,12 +110,17 @@ export async function GET(req: NextRequest) {
     const txRef = searchParams.get("tx_ref");
     const transactionId = searchParams.get("transaction_id");
     const orderId = searchParams.get("order");
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "";
+
+    const appUrl =
+        process.env.NEXT_PUBLIC_APP_URL ||
+        `${req.nextUrl.protocol}//${req.nextUrl.host}`;
+
+    const redirect = (path: string) =>
+        NextResponse.redirect(new URL(path, appUrl));
 
     // ── Cancelled / failed redirect ───────────────────────────────────────────
     if (status === "failed" || status === "cancelled") {
         if (txRef) {
-            // Use provider_transaction_id — the column set by the initiate route
             await supabase
                 .from("transactions")
                 .update({ status: "failed", updated_at: new Date().toISOString() })
@@ -137,14 +141,14 @@ export async function GET(req: NextRequest) {
                 .eq("payment_status", "pending");
         }
 
-        return NextResponse.redirect(
-            `${appUrl}/checkout/cancel?reason=payment_${status}&order=${orderId || ""}`
+        return redirect(
+            `/checkout/cancel?reason=payment_${status}&order=${orderId || ""}`
         );
     }
 
     if (!txRef || !transactionId) {
-        return NextResponse.redirect(
-            `${appUrl}/checkout/cancel?reason=invalid&order=${orderId || ""}`
+        return redirect(
+            `/checkout/cancel?reason=invalid&order=${orderId || ""}`
         );
     }
 
@@ -160,8 +164,8 @@ export async function GET(req: NextRequest) {
                 .eq("provider", "flutterwave")
                 .eq("status", "pending");
 
-            return NextResponse.redirect(
-                `${appUrl}/checkout/cancel?reason=verification_failed&order=${orderId || ""}`
+            return redirect(
+                `/checkout/cancel?reason=verification_failed&order=${orderId || ""}`
             );
         }
 
@@ -175,9 +179,7 @@ export async function GET(req: NextRequest) {
 
         const resolvedOrderId = txRecord?.order_id ?? orderId;
         if (!resolvedOrderId) {
-            return NextResponse.redirect(
-                `${appUrl}/checkout/cancel?reason=order_not_found`
-            );
+            return redirect(`/checkout/cancel?reason=order_not_found`);
         }
 
         // ── Fetch order to check current status ───────────────────────────────
@@ -188,9 +190,7 @@ export async function GET(req: NextRequest) {
             .maybeSingle();
 
         if (order?.payment_status === "paid" || order?.payment_status === "completed") {
-            return NextResponse.redirect(
-                `${appUrl}/checkout/success?order=${resolvedOrderId}`
-            );
+            return redirect(`/checkout/success?order=${resolvedOrderId}`);
         }
 
         await finalizeOrderPayment(supabase, resolvedOrderId, {
@@ -202,7 +202,7 @@ export async function GET(req: NextRequest) {
             paymentProvider: "flutterwave",
             webhookReference: `flw-${transactionId}`,
         });
-        
+
         await supabase
             .from("transactions")
             .update({ status: "completed", updated_at: new Date().toISOString() })
@@ -210,14 +210,12 @@ export async function GET(req: NextRequest) {
             .eq("provider", "flutterwave")
             .eq("status", "pending");
 
-        return NextResponse.redirect(
-            `${appUrl}/checkout/success?order=${resolvedOrderId}`
-        );
+        return redirect(`/checkout/success?order=${resolvedOrderId}`);
 
     } catch (err) {
         console.error("[Flutterwave callback]", err);
-        return NextResponse.redirect(
-            `${appUrl}/checkout/cancel?reason=server_error&order=${orderId || ""}`
+        return redirect(
+            `/checkout/cancel?reason=server_error&order=${orderId || ""}`
         );
     }
 }
