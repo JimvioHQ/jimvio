@@ -10,18 +10,24 @@ import {
 } from "@/lib/actions/create-transaction";
 import { formatTransactionValidationError } from "@/lib/payments/transaction-types";
 import { recordBothStatusChanges } from "@/lib/payments/record-status-change";
-
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+};
 
 function errorResponse(
   message: string,
   status: number,
   details?: Record<string, unknown>
 ) {
-  return NextResponse.json(
-    { success: false, error: message, ...(details ?? {}) },
-    { status }
-  );
-}
+return NextResponse.json(
+  { success: false, error: message, ...(details ?? {}) },
+  {
+    status,
+    headers: corsHeaders,
+  }
+);
 
 function describeError(err: unknown): { message: string; code?: string; cause?: string } {
   if (!(err instanceof Error)) return { message: String(err) };
@@ -81,7 +87,12 @@ const RATE_CURRENCY = "USD";
 const SETTLE_CURRENCY = "USDT";
 
 // ─── Route handler ────────────────────────────────────────────────────────────
-
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 200,
+    headers: corsHeaders,
+  });
+}
 export async function POST(req: NextRequest) {
   // ── 1. Parse & validate request body ────────────────────────────────────────
   let body: unknown;
@@ -453,7 +464,8 @@ export async function POST(req: NextRequest) {
     }
   );
   // ── 12. Success ──────────────────────────────────────────────────────────────
-  return NextResponse.json({
+  return NextResponse.json(
+  {
     success: true,
     redirectUrl: binanceOrder.checkoutUrl,
     qrContent: binanceOrder.qrContent,
@@ -462,5 +474,8 @@ export async function POST(req: NextRequest) {
     payAmount,
     payCurrency,
     exchangeRate,
-  });
-}
+  },
+  {
+    headers: corsHeaders,
+  }
+)
