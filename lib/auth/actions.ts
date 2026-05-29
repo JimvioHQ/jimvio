@@ -8,10 +8,9 @@ import { createClient } from "@/lib/supabase/server"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { resolvePostLoginPath } from "@/lib/auth/post-login-redirect"
 import { getPublicAppUrl } from "@/lib/app-url"
-import { generateQRCodeFromSecret, generateTOTPCode, verifyTOTP } from "@/lib/totp"
-import qrcode from 'qrcode-terminal'
+import { verifyTOTP } from "@/lib/totp"
 const TWO_FA_COOKIE = "2fa_pending_user"
-const TWO_FA_COOKIE_MAX_AGE = 60 * 5 // 5 minutes
+const TWO_FA_COOKIE_MAX_AGE = 60 * 5 
 const FAILED_2FA_KEY_PREFIX = "2fa_fail:"
 const MAX_2FA_ATTEMPTS = 5
 
@@ -263,11 +262,6 @@ export async function verify2FAAndLogin(formData: FormData) {
     return { error: "Failed to verify 2FA." }
   }
 
-  const result = await generateQRCodeFromSecret(secretData?.secret || "", sessionUser.email ?? "", "jimvio");
-
-  qrcode.generate(result.otpauth, {
-    small: true,
-  })
   if (!secretData?.secret) {
     cookieStore.delete(TWO_FA_COOKIE)
     const next = (formData.get("next") as string)?.trim() || undefined

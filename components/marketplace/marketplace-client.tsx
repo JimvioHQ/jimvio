@@ -1,980 +1,21 @@
-// "use client";
-
-// import React, { useState, useMemo, useCallback } from "react";
-// import { useBodyScrollLock, useEscapeClose } from "@/hooks/use-body-scroll-lock";
-// import Link from "next/link";
-// import { motion, AnimatePresence } from "framer-motion";
-// import {
-//   Search,
-//   Package,
-//   Zap,
-//   ShieldCheck,
-//   Sparkles,
-//   TrendingUp,
-//   Clock,
-//   Star,
-//   ShoppingBag,
-//   X,
-//   ChevronRight,
-//   MapPin,
-//   Tag,
-//   Award,
-// } from "lucide-react";
-// import { cn } from "@/lib/utils";
-// import { MarketplaceSearch, marketplaceHref } from "@/components/marketplace/marketplace-search";
-// import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-// import { ProductCardClient } from "@/components/marketplace/product-card-client";
-// import { ProductCardDigital } from "@/components/marketplace/product-card-digital";
-// import { ProductCardPhysical } from "@/components/marketplace/product-card-physical";
-// import { FollowButton } from "@/components/marketplace/follow-button";
-// import { LocalizedPrice } from "@/components/currency/localized-price";
-// import { GlassAmbientGlow } from "@/components/ui/glass";
-
-// import {
-//   Shirt, Home, Sofa, HeartPulse,
-//   Apple, Trophy, Puzzle, BookOpen, Car, Flower2, Gem, Music,
-//   Palette, Plane, PawPrint, Baby, Wrench,
-// } from "lucide-react";
-// import type { LucideIcon } from "lucide-react";
-// /* ─── Types ─── */
-// interface Product {
-//   id: string;
-//   name: string;
-//   slug: string;
-//   price: number;
-//   compare_at_price?: number | null;
-//   images?: string[];
-//   rating?: number;
-//   review_count?: number;
-//   is_featured?: boolean;
-//   is_digital?: boolean;
-//   product_type?: string;
-//   affiliate_enabled?: boolean;
-//   affiliate_commission_rate?: number | null;
-//   vendors?: { id: string; business_name?: string } | null;
-//   product_categories?: { id: string; name: string; slug: string } | null;
-//   source?: string;
-//   currency?: string;
-// }
-
-// interface Category {
-//   id: string;
-//   name: string;
-//   slug: string;
-// }
-
-// interface MarketplaceClientProps {
-//   initialProducts: Product[];
-//   categories: Category[];
-//   total: number;
-//   currentPage: number;
-//   limit: number;
-//   params: {
-//     cat?: string;
-//     type?: string;
-//     catalog?: string;
-//     q?: string;
-//     sort?: string;
-//     affiliate?: string;
-//   };
-//   viralClips?: any[];
-//   topCreators?: any[];
-//   popularStores?: any[];
-//   hasShopifyProducts?: boolean;
-//   cartProductIds?: string[];
-//   followedVendorIds?: string[];
-//   marketplaceStats?: {
-//     activeVendors: number;
-//     activeListings: number;
-//     activeVendorsLabel: string;
-//     activeListingsLabel: string;
-//   };
-//   uiVariant?: "all" | "digital" | "physical";
-// }
-
-// /* ─── Hero Deal Banner ─── */
-// function HeroDealBanner({ params, basePath }: { params: Record<string, string | undefined>, basePath?: string }) {
-//   const type = params.type;
-//   const isAll = !type;
-//   const isDigital = type === "digital";
-//   const isPhysical = type === "physical";
-
-//   return (
-//     <div className="relative overflow-hidden rounded-sm mx-0 mb-6 shadow-none border border-border">
-//       {/* Background with premium dynamic gradient */}
-//       <div
-//         className={cn(
-//           "absolute inset-0 bg-gradient-to-br transition-all duration-700",
-//           isDigital
-//             ? "from-sky-50 dark:from-sky-950/20 via-white dark:via-[#0a0a0a] to-sky-50 dark:to-sky-900/10"
-//             : "from-orange-50 dark:from-orange-950/10 via-surface dark:via-zinc-900 to-orange-50/50 dark:to-orange-900/5"
-//         )}
-//       />
-
-//       {/* Ambient glowing orbs for depth */}
-//       <div className="absolute -top-10 -left-10 w-48 h-48 rounded-sm mix-blend-multiply opacity-50 blur-2xl" style={{ background: "radial-gradient(circle, #fcd34d 0%, transparent 70%)" }} />
-//       <div className="absolute top-10 -right-12 w-56 h-56 rounded-sm mix-blend-multiply opacity-40 blur-2xl" style={{ background: "radial-gradient(circle, #fb923c 0%, transparent 70%)" }} />
-//       <div className="absolute -bottom-16 left-1/4 w-40 h-40 rounded-sm mix-blend-multiply opacity-30 blur-2xl" style={{ background: "radial-gradient(circle, #f97316 0%, transparent 70%)" }} />
-
-//       {/* ── Dynamic Decorative Elements (Real Images) ── */}
-
-//       {/* 1. DIGITAL ITEMS */}
-//       {(isAll || isDigital) && (
-//         <>
-//           <div className={cn(
-//             "absolute z-0 flex items-center justify-center filter drop-shadow-none transition-all duration-[2000ms]",
-//             isDigital ? "top-4 left-4 sm:left-12 rotate-[-5deg] scale-110" : "top-2 -left-8 sm:left-0 rotate-[-12deg] scale-90 sm:scale-100",
-//             "animate-[bounce_6s_infinite]"
-//           )}>
-//             <div className="relative w-48 h-48 sm:w-80 sm:h-80 overflow-visible flex items-center justify-center">
-//               <img src="/digital-cart.png" alt="3D Digital Cart" className="w-full h-full object-contain filter drop-shadow-[0_20px_30px_rgba(0,0,0,0.3)]" />
-//             </div>
-//           </div>
-//         </>
-//       )}
-
-//       {/* 2. DELIVERY CAR (Center) */}
-//       {isAll && (
-//         <div className="absolute z-0 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-20 sm:opacity-30 blur-[2px] pointer-events-none mix-blend-overlay w-[400px] sm:w-[600px] h-[400px] sm:h-[600px] rounded-sm overflow-hidden">
-//           <img src="https://images.unsplash.com/photo-1617469165786-8a07f0f6707f?q=80&w=800&auto=format&fit=crop" alt="Delivery Van" className="w-full h-full object-cover rounded-sm filter contrast-125" />
-//         </div>
-//       )}
-
-//       {/* 3. PHYSICAL ITEMS */}
-//       {(isAll || isPhysical) && (
-//         <>
-//           <div className={cn(
-//             "absolute z-0 flex items-center justify-center filter drop-shadow-none transition-all duration-[2000ms]",
-//             isPhysical ? "bottom-4 left-4 sm:left-12 rotate-[5deg] scale-110" : "bottom-[-20px] -right-8 sm:-right-4 rotate-[15deg] scale-90 sm:scale-110",
-//             "animate-[bounce_5s_infinite_0.5s]"
-//           )}>
-//             <div className="relative w-48 h-48 sm:w-80 sm:h-80 overflow-visible flex items-center justify-center">
-//               <img src="https://png.pngtree.com/png-clipart/20250225/original/pngtree-shopping-cart-filled-with-electronic-gadgets-and-colorful-bags-looks-modern-png-image_20511724.png" alt="3D Shopping Cart" className="w-full h-full object-contain filter drop-shadow-[0_20px_30px_rgba(0,0,0,0.3)] mix-blend-multiply contrast-125" />
-//             </div>
-//           </div>
-//         </>
-//       )}
-
-//       <div className="relative z-10 px-4 py-8 sm:py-10 flex flex-col items-center text-center">
-//         {/* Title */}
-//         <h2 className="text-[26px] sm:text-[32px] font-black text-stone-900 dark:text-white tracking-tight leading-tight mb-1 flex items-center justify-center gap-2">
-//           <Star className="h-7 w-7 text-orange-500 fill-orange-500 animate-[spin_4s_linear_infinite]" />
-//           Top Deals Today!
-//         </h2>
-
-//         {/* Subtitle */}
-//         <p className="text-[14px] sm:text-[16px] text-stone-600 dark:text-text-muted font-medium mb-5">
-//           Best offers waiting for you!
-//         </p>
-
-//         {/* Delivery Badge */}
-//         <div className="inline-flex items-center gap-1.5 px-4 py-2 rounded-sm bg-stone-50 dark:bg-stone-900 border border-border shadow-none mb-6">
-//           <MapPin className="h-4 w-4 text-emerald-500" />
-//           <span className="text-[12px] font-bold text-stone-700 dark:text-stone-300">Worldwide Delivery Available</span>
-//         </div>
-
-//         {/* Action Button */}
-//         <Link
-//           href={marketplaceHref(params, { sort: "trending" }, basePath)}
-//           className="group relative inline-flex items-center justify-center overflow-hidden rounded-sm p-4 px-8 font-black text-white shadow-[0_8px_20px_rgba(249,115,22,0.4)] transition-transform hover:scale-105 active:scale-95"
-//         >
-//           <span className="absolute inset-0 bg-gradient-to-r from-orange-400 via-orange-500 to-amber-500" />
-//           <span className="absolute inset-0 opacity-0 transition-opacity group-hover:opacity-20 flex" style={{ background: "linear-gradient(to right, transparent, white, transparent)" }} />
-//           <span className="relative z-10 text-[15px] tracking-wide">Check Offers</span>
-//         </Link>
-//       </div>
-//     </div>
-//   );
-// }
-
-// /* ─── Product Type Tabs (Segmented Control) ─── */
-// function TypeTabs({ params, basePath }: { params: Record<string, string | undefined>; basePath?: string; }) {
-//   const isDigital = params.type === "digital";
-//   const isPhysical = params.type === "physical";
-//   const isAll = !params.type;
-
-//   const tabs = [
-//     { label: "All Items", type: null as string | null },
-//     { label: "Digital", type: "digital" },
-//     { label: "Physical", type: "physical" },
-//   ].filter(tab => {
-//     if (!params.type) return true;
-//     return tab.type === params.type;
-//   });
-
-//   return (
-//     <div className="flex justify-center w-full">
-//       <div className="flex items-center p-1 rounded-sm w-full md:w-auto overflow-hidden">
-//         {tabs.map((tab) => {
-//           const isActive = tab.type === null ? isAll : params.type === tab.type;
-//           const href = tab.type
-//             ? marketplaceHref(params, { type: tab.type, catalog: null }, basePath)
-//             : marketplaceHref(params, { type: null, catalog: null }, basePath);
-
-//           return (
-//             <Link
-//               key={tab.label}
-//               href={href}
-//               className={cn(
-//                 "relative flex-1 md:flex-none shrink-0 flex items-center justify-center px-3 sm:px-6 py-2 rounded-sm text-[13px] sm:text-[14px] font-bold transition-all whitespace-nowrap z-10",
-//                 isActive
-//                   ? "text-stone-900 dark:text-white"
-//                   : "text-stone-500 hover:text-stone-800 dark:text-text-secondary dark:hover:text-stone-300 hover:bg-surface/50"
-//               )}
-//             >
-//               {isActive && (
-//                 <motion.div
-//                   layoutId="activeTabIndicator"
-//                   className={cn(
-//                     "absolute inset-0 rounded-sm shadow-none border",
-//                     tab.type === "digital" ? "bg-sky-500/10 border-sky-500/20 shadow-sky-500/5" :
-//                       tab.type === "physical" ? "bg-orange-500/10 border-orange-500/20 shadow-orange-500/5" :
-//                         "bg-surface dark:bg-surface-secondary border-border"
-//                   )}
-//                   style={{ zIndex: -1 }}
-//                   transition={{ type: "spring", stiffness: 450, damping: 35 }}
-//                 />
-//               )}
-//               {tab.label}
-//             </Link>
-//           );
-//         })}
-//       </div>
-//     </div>
-//   );
-// }
-
-// /* ─── Category Chip ─── */
-// function CategoryChip({
-//   label,
-//   active,
-//   href,
-//   Icon,
-// }: {
-//   label: string;
-//   active: boolean;
-//   href: string;
-//   Icon?: LucideIcon;
-// }) {
-//   return (
-//     <Link
-//       href={href}
-//       className={cn(
-//         "shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-sm text-[12px] font-semibold transition-all border whitespace-nowrap shadow-none",
-//         active
-//           ? "bg-orange-500 text-white border-orange-400 shadow-[0_4px_12px_rgba(249,115,22,0.30)]"
-//           : "bg-surface dark:bg-surface border-border text-stone-600 dark:text-stone-300 hover:border-orange-300 dark:hover:border-orange-500 hover:text-orange-600 dark:hover:text-orange-500"
-//       )}
-//     >
-//       {Icon && <span className="text-base leading-none">
-//         <Icon className="h-4 w-4 " />
-//       </span>}
-//       {label}
-//     </Link>
-//   );
-// }
-
-// /* ─── Sort Pill ─── */
-// function SortPill({
-//   active,
-//   href,
-//   icon: Icon,
-//   label,
-// }: {
-//   active: boolean;
-//   href: string;
-//   icon?: React.ElementType;
-//   label: string;
-// }) {
-//   return (
-//     <Link
-//       href={href}
-//       className={cn(
-//         "shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-sm text-[12px] font-semibold border transition-all whitespace-nowrap shadow-none",
-//         active
-//           ? "bg-orange-500 text-white border-orange-400 shadow-[0_4px_12px_rgba(249,115,22,0.30)]"
-//           : "bg-surface dark:bg-surface border-border text-stone-500 dark:text-stone-300 hover:border-orange-300 dark:hover:border-orange-500 hover:text-orange-600 dark:hover:text-orange-500"
-//       )}
-//     >
-//       {Icon && <Icon className="h-4 w-4 " />}
-//       {label}
-//     </Link>
-//   );
-// }
-
-// /* ─── Category icon map ─── */
-// const CATEGORY_ICONS: Record<string, LucideIcon> = {
-//   electronics: Zap,
-//   fashion: Shirt,
-//   apparel: ShoppingBag,
-//   home: Home,
-//   furniture: Sofa,
-//   beauty: Sparkles,
-//   health: HeartPulse,
-//   food: Apple,
-//   sports: Trophy,
-//   toys: Puzzle,
-//   books: BookOpen,
-//   automotive: Car,
-//   garden: Flower2,
-//   jewelry: Gem,
-//   music: Music,
-//   art: Palette,
-//   travel: Plane,
-//   pets: PawPrint,
-//   baby: Baby,
-//   tools: Wrench,
-// };
-
-// function getCategoryIcon(slug: string, name: string): LucideIcon | undefined {
-//   const s = `${slug} ${name}`.toLowerCase();
-//   for (const [key, icon] of Object.entries(CATEGORY_ICONS)) {
-//     if (s.includes(key)) return icon;
-//   }
-//   return ShoppingBag;
-// }
-
-// /* ─── Main Component ─── */
-// export function MarketplaceClient({
-//   initialProducts,
-//   categories,
-//   total,
-//   currentPage,
-//   limit,
-//   params,
-//   viralClips = [],
-//   topCreators = [],
-//   popularStores = [],
-//   hasShopifyProducts = false,
-//   cartProductIds = [],
-//   followedVendorIds = [],
-//   marketplaceStats,
-//   basePath = "/marketplace",
-//   uiVariant = "all",
-// }: MarketplaceClientProps & { basePath?: string }) {
-//   const DIGITAL_SLUG_PATTERNS = ["ebook", "course", "software", "template", "digital", "asset"];
-//   const displayCategories = useMemo(() => {
-//     if (params.type === "digital") {
-//       const dCats = categories.filter(c =>
-//         DIGITAL_SLUG_PATTERNS.some(p => `${c.slug} ${c.name}`.toLowerCase().includes(p))
-//       );
-//       if (dCats.length > 0) return dCats;
-//       return [
-//         { id: "template", slug: "template", name: "Templates" },
-//         { id: "ebook", slug: "ebook", name: "E-Books" },
-//         { id: "software", slug: "software", name: "Software" },
-//         { id: "course", slug: "course", name: "Courses" }
-//       ];
-//     }
-//     if (params.type === "physical") {
-//       return categories.filter(c =>
-//         !DIGITAL_SLUG_PATTERNS.some(p => `${c.slug} ${c.name}`.toLowerCase().includes(p))
-//       );
-//     }
-//     return categories;
-//   }, [categories, params.type]);
-
-//   const cartSet = useMemo(() => new Set(cartProductIds), [cartProductIds]);
-//   const followSet = useMemo(() => new Set(followedVendorIds), [followedVendorIds]);
-//   const totalPages = Math.ceil(total / limit);
-
-//   const [modalClip, setModalClip] = useState<(typeof viralClips)[number] | null>(null);
-//   const closeModalClip = useCallback(() => setModalClip(null), []);
-//   useBodyScrollLock(!!modalClip);
-//   useEscapeClose(!!modalClip, closeModalClip);
-
-//   const paramsRecord = params as Record<string, string | undefined>;
-//   const currentSort = params.sort ?? "trending";
-
-//   const mixedFeed = useMemo(
-//     () => initialProducts.map((p) => ({ type: "product" as const, data: p })),
-//     [initialProducts]
-//   );
-
-//   const statLine =
-//     marketplaceStats && (marketplaceStats.activeVendors > 0 || marketplaceStats.activeListings > 0)
-//       ? `${marketplaceStats.activeListingsLabel} listings available`
-//       : null;
-
-//   const renderCat = (cat: { slug: string | null; name: string }) => {
-//     const isActive = (!params.cat && !cat.slug) || params.cat === cat.slug;
-//     const IconItem = cat.slug ? getCategoryIcon(cat.slug, cat.name) : ShoppingBag;
-//     return (
-//       <Link
-//         key={cat.slug || "all"}
-//         href={marketplaceHref(paramsRecord, { cat: cat.slug ?? null }, basePath)}
-//         className={cn(
-//           "flex items-center gap-2.5 py-2 px-3 rounded-sm text-[12px] font-semibold transition-all",
-//           isActive
-//             ? "bg-orange-500/10 text-orange-600 border border-orange-500/20"
-//             : "text-stone-500 dark:text-text-muted hover:bg-surface-secondary dark:hover:bg-zinc-800 hover:text-stone-800 dark:hover:text-white border border-transparent"
-//         )}
-//       >
-//         {IconItem && <span className="text-base leading-none">
-//           <IconItem className="h-4 w-4 " />
-//         </span>}
-//         <span className="flex-1 truncate">{cat.name}</span>
-//         {isActive && (
-//           <span className="w-1.5 h-1.5 rounded-sm bg-orange-500 shadow-[0_0_6px_rgba(249,115,22,0.8)]" />
-//         )}
-//       </Link>
-//     );
-//   };
-
-//   return (
-//     <div className={cn(
-//       "min-h-screen relative transition-colors duration-500",
-//       uiVariant === "digital"
-//         ? "bg-[#fafcfe] dark:bg-[#050505]"
-//         : "bg-white dark:bg-bg"
-//     )}>
-//       {/* ── Sticky Top Bar ── */}
-//       <div className="sticky top-0 z-50 border-b border-border shadow-none bg-surface">
-//         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 pt-3 pb-3">
-//           <div className="flex flex-col md:flex-row items-center justify-between gap-3 md:gap-6">
-
-//             {/* Search bar */}
-//             <div className="w-full md:max-w-[420px] lg:max-w-[500px]">
-//               <MarketplaceSearch currentParams={paramsRecord} className="w-full" basePath={basePath} />
-//             </div>
-
-//             {/* Right side controls */}
-//             <div className="w-full md:w-auto flex flex-col md:flex-row items-center gap-4">
-
-//               {/* Segmented Type tabs */}
-//               <div className="w-full md:w-auto">
-//                 <TypeTabs params={paramsRecord} basePath={basePath} />
-//               </div>
-
-//               {/* Stats Badge (Desktop Only) */}
-//               {statLine && (
-//                 <div className={cn(
-//                   "hidden lg:flex items-center gap-3 pl-5 border-l",
-//                   uiVariant === "digital" ? "border-sky-500/20" : "border-stone-200 dark:border-white/10"
-//                 )}>
-//                   <div className="relative flex h-2.5 w-2.5">
-//                     <span className={cn(
-//                       "animate-ping absolute inline-flex h-full w-full rounded-sm opacity-75",
-//                       uiVariant === "digital" ? "bg-sky-400" : "bg-emerald-400"
-//                     )}></span>
-//                     <span className={cn(
-//                       "relative inline-flex rounded-sm h-2.5 w-2.5",
-//                       uiVariant === "digital" ? "bg-sky-500 shadow-[0_0_8px_rgba(14,165,233,0.8)]" : "bg-emerald-500"
-//                     )}></span>
-//                   </div>
-//                   <div className="flex flex-col">
-//                     <span className={cn(
-//                       "text-[10px] font-black uppercase tracking-widest leading-none",
-//                       uiVariant === "digital" ? "text-sky-400/60" : "text-stone-400 dark:text-stone-600"
-//                     )}>
-//                       {uiVariant === "digital" ? "Network Node" : "Market Status"}
-//                     </span>
-//                     <span className={cn(
-//                       "text-[13px] font-black leading-tight block mt-0.5",
-//                       uiVariant === "digital" ? "text-white" : "text-stone-700 dark:text-stone-300"
-//                     )}>
-//                       {statLine}
-//                     </span>
-//                   </div>
-//                 </div>
-//               )}
-
-//             </div>
-//           </div>
-//         </div>
-//       </div>
-
-//       {/* ── Main Content ── */}
-//       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-5 lg:py-6 flex flex-col lg:flex-row gap-6">
-
-//         {/* ── LEFT SIDEBAR (desktop) ── */}
-//         <aside className="hidden lg:block lg:w-60 shrink-0">
-//           <div className="sticky top-[130px] space-y-5">
-//             {/* Main sidebar shell with variant-aware borders */}
-//             <div className={cn(
-//               "bg-surface dark:bg-surface rounded-sm border border-border shadow-none overflow-hidden",
-//               uiVariant === "digital" && "border-sky-500/20 shadow-[0_0_20px_rgba(14,165,233,0.05)]",
-//               uiVariant === "physical" && "border-orange-500/10 shadow-[0_0_20px_rgba(249,115,22,0.05)]"
-//             )}>
-//               <div className="p-4">
-//                 <div className="mb-4">
-//                   {renderCat({ slug: null, name: "All Browse" })}
-//                 </div>
-
-//                 {uiVariant === "all" ? (
-//                   <div className="space-y-5">
-//                     {(() => {
-//                       const digitals = displayCategories.filter(c => DIGITAL_SLUG_PATTERNS.some(p => `${c.slug} ${c.name}`.toLowerCase().includes(p)));
-//                       if (digitals.length === 0) return null;
-//                       return (
-//                         <div>
-//                           <div className="flex items-center gap-2 mb-2 px-3 py-1 bg-sky-50 dark:bg-sky-500/10 rounded-sm">
-//                             <Zap className="h-3 w-3 text-sky-500" />
-//                             <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-sky-600 dark:text-sky-400">Digital Hub</h3>
-//                           </div>
-//                           <div className="flex flex-col gap-0.5">
-//                             {digitals.map(renderCat)}
-//                           </div>
-//                         </div>
-//                       );
-//                     })()}
-//                     {(() => {
-//                       const physicals = displayCategories.filter(c => !DIGITAL_SLUG_PATTERNS.some(p => `${c.slug} ${c.name}`.toLowerCase().includes(p)));
-//                       if (physicals.length === 0) return null;
-//                       return (
-//                         <div>
-//                           <div className="flex items-center gap-2 mb-2 px-3 py-1 bg-orange-50 dark:bg-orange-500/10 rounded-sm">
-//                             <Package className="h-3 w-3 text-orange-500" />
-//                             <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-600 dark:text-orange-400">Physical Goods</h3>
-//                           </div>
-//                           <div className="flex flex-col gap-0.5">
-//                             {physicals.map(renderCat)}
-//                           </div>
-//                         </div>
-//                       );
-//                     })()}
-//                   </div>
-//                 ) : (
-//                   <>
-//                     <h3 className={cn(
-//                       "text-[10px] font-black uppercase tracking-[0.2em] mb-3 px-3",
-//                       uiVariant === "digital" ? "text-sky-400" : "text-stone-400 dark:text-stone-600"
-//                     )}>
-//                       {uiVariant === "digital" ? "Assets Directory" : "Product Catalog"}
-//                     </h3>
-//                     <div className="flex flex-col gap-0.5">
-//                       {displayCategories.map(renderCat)}
-//                     </div>
-//                   </>
-//                 )}
-//               </div>
-//             </div>
-
-//             {/* Contextual Info Card */}
-//             <div className={cn(
-//               "rounded-sm border p-5 relative overflow-hidden group",
-//               uiVariant === "digital" ? "bg-sky-500/[0.03] border-sky-500/10" : "bg-orange-50 dark:bg-zinc-900 border-orange-200/50 dark:border-white/5"
-//             )}>
-//               <div className="relative z-10">
-//                 <div className={cn(
-//                   "h-8 w-8 rounded-sm flex items-center justify-center mb-3",
-//                   uiVariant === "digital" ? "bg-sky-500/20 text-sky-400" : "bg-orange-500 text-white"
-//                 )}>
-//                   <ShieldCheck className="h-4 w-4" />
-//                 </div>
-//                 <h4 className="text-[13px] font-bold text-stone-900 dark:text-white mb-1">
-//                   {uiVariant === "digital" ? "Verified License" : "Trust & Tracking"}
-//                 </h4>
-//                 <p className="text-[11px] text-stone-500 dark:text-stone-400 leading-relaxed italic">
-//                   {uiVariant === "digital"
-//                     ? "Ownership confirmed on chain. Access your files instantly via your library."
-//                     : "Secure door-to-door delivery. Track your package live from our network."}
-//                 </p>
-//               </div>
-//             </div>
-//           </div>
-//         </aside>
-
-//         {/* ── PRODUCT AREA ── */}
-//         <div className="flex-1 min-w-0 space-y-4">
-
-//           {/* Hero Deal Banner */}
-//           <HeroDealBanner params={paramsRecord} basePath={basePath} />
-
-//           {/* Category chips (mobile + desktop) */}
-//           <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
-//             <CategoryChip
-//               label="All"
-//               active={!params.cat}
-//               href={marketplaceHref(paramsRecord, { cat: null }, basePath)}
-//               Icon={ShoppingBag}
-//             />
-//             {displayCategories.slice(0, 12).map((cat) => (
-//               <CategoryChip
-//                 key={cat.slug}
-//                 label={cat.name}
-//                 active={params.cat === cat.slug}
-//                 href={marketplaceHref(paramsRecord, { cat: cat.slug }, basePath)}
-//                 Icon={getCategoryIcon(cat.slug, cat.name)}
-//               />
-//             ))}
-//           </div>
-
-//           {/* Sort pills */}
-//           <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
-//             <SortPill
-//               active={currentSort === "trending"}
-//               href={marketplaceHref(paramsRecord, { sort: "trending" }, basePath)}
-//               icon={TrendingUp}
-//               label="Trending"
-//             />
-//             <SortPill
-//               active={currentSort === "newest"}
-//               href={marketplaceHref(paramsRecord, { sort: "newest" }, basePath)}
-//               icon={Clock}
-//               label="New"
-//             />
-//             <SortPill
-//               active={currentSort === "best_selling"}
-//               href={marketplaceHref(paramsRecord, { sort: "best_selling" }, basePath)}
-//               icon={Award}
-//               label="Best Selling"
-//             />
-//             <SortPill
-//               active={currentSort === "price_asc"}
-//               href={marketplaceHref(paramsRecord, { sort: "price_asc" }, basePath)}
-//               label="Price ↑"
-//             />
-//             <SortPill
-//               active={currentSort === "price_desc"}
-//               href={marketplaceHref(paramsRecord, { sort: "price_desc" }, basePath)}
-//               label="Price ↗"
-//             />
-//           </div>
-
-//           {/* Active filter chips */}
-//           {(params.q || params.cat || params.affiliate === "1") && (
-//             <div className="flex flex-wrap items-center gap-2">
-//               <span className="text-[10px] font-semibold text-stone-400 uppercase tracking-widest">Filters:</span>
-//               {params.q?.trim() ? (
-//                 <Link
-//                   href={marketplaceHref(paramsRecord, { q: null }, basePath)}
-//                   className="inline-flex items-center gap-1 rounded-sm bg-surface dark:bg-surface border border-border px-3 py-1 text-[11px] font-semibold text-stone-700 dark:text-stone-300 hover:border-orange-300 dark:hover:border-orange-700 hover:text-orange-600 dark:hover:text-orange-400 transition-all shadow-none"
-//                 >
-//                   "{params.q.trim()}" <X className="h-3 w-3 opacity-50" />
-//                 </Link>
-//               ) : null}
-//               {params.cat ? (
-//                 <Link
-//                   href={marketplaceHref(paramsRecord, { cat: null }, basePath)}
-//                   className="inline-flex items-center gap-1 rounded-sm bg-surface dark:bg-surface border border-border px-3 py-1 text-[11px] font-semibold text-stone-700 dark:text-stone-300 hover:border-orange-300 dark:hover:border-orange-700 hover:text-orange-600 dark:hover:text-orange-400 transition-all shadow-none"
-//                 >
-//                   {displayCategories.find((c) => c.slug === params.cat)?.name ?? params.cat}{" "}
-//                   <X className="h-3 w-3 opacity-50" />
-//                 </Link>
-//               ) : null}
-//               {params.affiliate === "1" ? (
-//                 <Link
-//                   href={marketplaceHref(paramsRecord, { affiliate: null }, basePath)}
-//                   className="inline-flex items-center gap-1 rounded-sm bg-surface dark:bg-surface border border-border px-3 py-1 text-[11px] font-semibold text-stone-700 dark:text-stone-300 hover:border-orange-300 dark:hover:border-orange-700 hover:text-orange-600 dark:hover:text-orange-400 transition-all shadow-none"
-//                 >
-//                   Affiliate <X className="h-3 w-3 opacity-50" />
-//                 </Link>
-//               ) : null}
-//               <Link href={basePath} className="text-[11px] font-semibold text-orange-500 hover:text-orange-600 ml-1">
-//                 Clear all
-//               </Link>
-//             </div>
-//           )}
-
-//           {/* Result count + section heading */}
-//           <div className="flex items-center justify-between">
-//             <h2 className="text-[15px] font-bold text-stone-800 dark:text-white">
-//               {params.q?.trim()
-//                 ? `Results for "${params.q.trim()}"`
-//                 : params.type === "digital"
-//                   ? "Digital Products"
-//                   : params.type === "physical"
-//                     ? "Physical Products"
-//                     : params.cat
-//                       ? (displayCategories.find((c) => c.slug === params.cat)?.name ?? "Products")
-//                       : "All Products"}
-//             </h2>
-//             <span className="text-[12px] text-stone-400 dark:text-text-muted tabular-nums">
-//               <span className="font-semibold text-stone-600 dark:text-stone-300">{total}</span>{" "}
-//               result{total === 1 ? "" : "s"}
-//             </span>
-//           </div>
-
-//           {/* Product grid */}
-//           <AnimatePresence mode="wait">
-//             {mixedFeed.length > 0 ? (
-//               <motion.div
-//                 key={JSON.stringify(params)}
-//                 initial={{ opacity: 0 }}
-//                 animate={{ opacity: 1 }}
-//                 exit={{ opacity: 0 }}
-//                 transition={{ duration: 0.25 }}
-//               >
-//                 {uiVariant === "all" ? (
-//                   <div className="space-y-10">
-//                     {(() => {
-//                       const digitals = mixedFeed.filter(m => m.data.product_type === "digital" || m.data.is_digital);
-//                       if (digitals.length === 0) return null;
-//                       return (
-//                         <div>
-//                           <div className="flex items-center gap-2 mb-4 pb-2 border-b border-border/50">
-//                             <Zap className="h-4 w-4 text-sky-500" />
-//                             <h3 className="text-[13px] font-black uppercase tracking-[0.1em] text-sky-500">Digital Assets</h3>
-//                           </div>
-//                           <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-//                             {digitals.map((item, idx) => (
-//                               <motion.div
-//                                 key={`product-${item.data.id}-${idx}`}
-//                                 initial={{ opacity: 0, y: 16 }}
-//                                 animate={{ opacity: 1, y: 0 }}
-//                                 transition={{ delay: Math.min(idx * 0.04, 0.4), duration: 0.32, ease: [0.23, 1, 0.32, 1] }}
-//                               >
-//                                 <ProductCardDigital p={item.data} initialInCart={cartSet.has(item.data.id)} />
-//                               </motion.div>
-//                             ))}
-//                           </div>
-//                         </div>
-//                       );
-//                     })()}
-
-//                     {(() => {
-//                       const physicals = mixedFeed.filter(m => m.data.product_type !== "digital" && !m.data.is_digital);
-//                       if (physicals.length === 0) return null;
-//                       return (
-//                         <div>
-//                           <div className="flex items-center gap-2 mb-4 pb-2 border-b border-border/50">
-//                             <Package className="h-4 w-4 text-orange-500" />
-//                             <h3 className="text-[13px] font-black uppercase tracking-[0.1em] text-orange-500">Physical Goods</h3>
-//                           </div>
-//                           <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-//                             {physicals.map((item, idx) => (
-//                               <motion.div
-//                                 key={`product-${item.data.id}-${idx}`}
-//                                 initial={{ opacity: 0, y: 16 }}
-//                                 animate={{ opacity: 1, y: 0 }}
-//                                 transition={{ delay: Math.min(idx * 0.04, 0.4), duration: 0.32, ease: [0.23, 1, 0.32, 1] }}
-//                               >
-//                                 <ProductCardPhysical p={item.data} detailBasePath="/marketplace" initialInCart={cartSet.has(item.data.id)} />
-
-//                               </motion.div>
-//                             ))}
-//                           </div>
-//                         </div>
-//                       );
-//                     })()}
-//                   </div>
-//                 ) : (
-//                   <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-//                     {mixedFeed.map((item, idx) => (
-//                       <motion.div
-//                         key={`product-${item.data.id}-${idx}`}
-//                         initial={{ opacity: 0, y: 16 }}
-//                         animate={{ opacity: 1, y: 0 }}
-//                         transition={{
-//                           delay: Math.min(idx * 0.04, 0.4),
-//                           duration: 0.32,
-//                           ease: [0.23, 1, 0.32, 1],
-//                         }}
-//                       >
-//                         {uiVariant === "digital" ? (
-//                           <ProductCardDigital p={item.data} detailBasePath="/marketplace" initialInCart={cartSet.has(item.data.id)} />
-//                         ) : uiVariant === "physical" ? (
-//                           <ProductCardPhysical p={item.data} detailBasePath="/marketplace" initialInCart={cartSet.has(item.data.id)} />
-//                         ) : (
-//                           <ProductCardClient p={item.data} detailBasePath="/marketplace" initialInCart={cartSet.has(item.data.id)} />
-//                         )}
-
-//                       </motion.div>
-//                     ))}
-//                   </div>
-//                 )}
-
-//                 {/* Recommended section label */}
-//                 {initialProducts.length >= 8 && (
-//                   <div className="mt-8 flex items-center justify-between">
-//                     <h3 className="text-[15px] font-bold text-stone-800 dark:text-white flex items-center gap-2">
-//                       <Sparkles className="h-4 w-4 text-orange-500" />
-//                       Recommended for you
-//                     </h3>
-//                     <Link
-//                       href="/marketplace"
-//                       className="inline-flex items-center gap-1 text-[12px] font-semibold text-orange-500 hover:text-orange-600"
-//                     >
-//                       {total} Items <ChevronRight className="h-3.5 w-3.5" />
-//                     </Link>
-//                   </div>
-//                 )}
-//               </motion.div>
-//             ) : (
-//               /* Empty state */
-//               <motion.div
-//                 initial={{ opacity: 0, scale: 0.98 }}
-//                 animate={{ opacity: 1, scale: 1 }}
-//                 className="bg-surface dark:bg-surface rounded-sm border border-border shadow-none p-12 sm:p-16 text-center"
-//               >
-//                 <div className="h-16 w-16 rounded-sm flex items-center justify-center mx-auto mb-5"
-//                   style={{ background: "rgba(249,115,22,0.08)", border: "1px solid rgba(249,115,22,0.15)" }}
-//                 >
-//                   <Search className="h-7 w-7 text-orange-400" />
-//                 </div>
-//                 <h3 className="text-[18px] font-bold text-stone-800 dark:text-white mb-2">No products match</h3>
-//                 <p className="text-[13px] text-stone-500 dark:text-text-muted mb-8 max-w-sm mx-auto leading-relaxed">
-//                   Try a different search term, clear your filters, or browse all categories.
-//                 </p>
-//                 <Link href={basePath}>
-//                   <button
-//                     type="button"
-//                     className="inline-flex items-center gap-2 px-6 py-3 rounded-sm text-white text-[13px] font-bold transition-all hover:scale-105 active:scale-95 shadow-[0_4px_16px_rgba(249,115,22,0.35)]"
-//                     style={{ background: "linear-gradient(135deg, #f97316, #ea580c)" }}
-//                   >
-//                     View all products
-//                   </button>
-//                 </Link>
-//               </motion.div>
-//             )}
-//           </AnimatePresence>
-
-//           {/* Pagination */}
-//           {totalPages > 1 && initialProducts.length > 0 && (
-//             <div className="flex items-center justify-center gap-2 mt-8 pb-8">
-//               {currentPage > 1 ? (
-//                 <Link href={marketplaceHref(paramsRecord, { page: String(currentPage - 1) }, basePath)}>
-//                   <button
-//                     type="button"
-//                     className="px-4 py-2 rounded-sm bg-surface dark:bg-surface border border-border text-[12px] font-semibold text-stone-600 dark:text-stone-300 shadow-none hover:border-orange-300 dark:hover:border-orange-700 hover:text-orange-600 dark:hover:text-orange-400 transition-all"
-//                   >
-//                     Previous
-//                   </button>
-//                 </Link>
-//               ) : null}
-//               {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-//                 const pg = Math.max(1, currentPage - 2) + i;
-//                 if (pg > totalPages) return null;
-//                 return (
-//                   <Link key={pg} href={marketplaceHref(paramsRecord, { page: String(pg) }, basePath)}>
-//                     <button
-//                       type="button"
-//                       className={cn(
-//                         "min-w-[40px] h-10 px-3 rounded-sm text-[12px] font-black transition-all border",
-//                         pg === currentPage
-//                           ? "bg-orange-500 border-orange-400 text-white shadow-[0_4px_12px_rgba(249,115,22,0.30)]"
-//                           : "bg-surface dark:bg-surface border-border text-stone-600 dark:text-stone-300 hover:border-orange-300 dark:hover:border-orange-700 hover:text-orange-600 dark:hover:text-orange-400"
-//                       )}
-//                     >
-//                       {pg}
-//                     </button>
-//                   </Link>
-//                 );
-//               })}
-//               {currentPage < totalPages ? (
-//                 <Link href={marketplaceHref(paramsRecord, { page: String(currentPage + 1) }, basePath)}>
-//                   <button
-//                     type="button"
-//                     className="px-4 py-2 rounded-sm bg-surface dark:bg-surface border border-border text-[12px] font-semibold text-stone-600 dark:text-stone-300 shadow-none hover:border-orange-300 dark:hover:border-orange-700 hover:text-orange-600 dark:hover:text-orange-400 transition-all"
-//                   >
-//                     Next
-//                   </button>
-//                 </Link>
-//               ) : null}
-//             </div>
-//           )}
-//         </div>
-//       </div>
-
-//       {/* ── Clip modal ── */}
-//       {modalClip && (
-//         <>
-//           <div
-//             className="fixed inset-0 z-[1000] bg-black/80 animate-in fade-in duration-200"
-//             onClick={closeModalClip}
-//             aria-hidden
-//           />
-//           <div className="fixed inset-0 z-[1001] flex items-center justify-center p-4 pointer-events-none">
-//             <div className="pointer-events-auto w-full max-w-lg flex flex-col bg-white dark:bg-surface rounded-sm overflow-hidden shadow-none border border-border relative">
-//               <button
-//                 type="button"
-//                 onClick={closeModalClip}
-//                 className="absolute top-3 right-3 z-20 w-8 h-8 rounded-sm bg-black/50 flex items-center justify-center text-white hover:bg-black/80 transition-all shadow-none"
-//               >
-//                 <X className="h-4 w-4" />
-//               </button>
-//               <div className="aspect-[9/16] max-h-[50vh] relative bg-stone-900">
-//                 {modalClip.video_url?.includes("youtube.com") || modalClip.video_url?.includes("youtu.be") ? (
-//                   <iframe
-//                     src={String(modalClip.video_url).replace("watch?v=", "embed/") + "?autoplay=1&mute=1&loop=1&controls=0"}
-//                     className="absolute inset-0 w-full h-full pointer-events-none scale-[1.2]"
-//                     allow="autoplay"
-//                     title={modalClip.title ?? "Clip"}
-//                   />
-//                 ) : (
-//                   <div
-//                     className="absolute inset-0 bg-cover bg-center"
-//                     style={{
-//                       backgroundImage: modalClip.thumbnail_url
-//                         ? `url(${modalClip.thumbnail_url})`
-//                         : "linear-gradient(to bottom, #1c1917, #431407)",
-//                     }}
-//                   />
-//                 )}
-//                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
-//                 <div className="absolute bottom-4 left-4 right-12 flex items-center gap-3">
-//                   <Avatar className="h-10 w-10 border-2 border-orange-400">
-//                     <AvatarImage
-//                       src={(modalClip.vendors as { logo_url?: string; business_logo?: string } | undefined)?.logo_url ?? (modalClip.vendors as { business_logo?: string } | undefined)?.business_logo}
-//                     />
-//                     <AvatarFallback className="bg-orange-500 text-white font-bold">
-//                       {modalClip.vendors?.business_name?.[0] ?? "V"}
-//                     </AvatarFallback>
-//                   </Avatar>
-//                   <div className="flex-1 min-w-0">
-//                     <p className="text-white font-bold truncate">{modalClip.vendors?.business_name ?? "Creator"}</p>
-//                     <p className="text-[11px] text-white/60">{(modalClip.total_views ?? 0).toLocaleString()} views</p>
-//                   </div>
-//                   {modalClip.vendors?.id && (
-//                     <FollowButton
-//                       vendorId={modalClip.vendors.id}
-//                       className="rounded-sm h-9 px-4 text-xs font-bold bg-orange-500 border-0 text-white hover:bg-orange-400 shrink-0"
-//                     />
-//                   )}
-//                 </div>
-//               </div>
-//               {modalClip.products && (
-//                 <div className="p-4 border-t border-border flex items-center gap-4 bg-stone-50 dark:bg-stone-900">
-//                   <div className="w-14 h-14 rounded-sm bg-white dark:bg-stone-800 border border-border flex items-center justify-center overflow-hidden shrink-0">
-//                     {Array.isArray(modalClip.products.images) && modalClip.products.images[0] ? (
-//                       <img src={modalClip.products.images[0]} alt="" className="w-full h-full object-cover" />
-//                     ) : (
-//                       <ShoppingBag className="h-6 w-6 text-white/50" />
-//                     )}
-//                   </div>
-//                   <div className="flex-1 min-w-0">
-//                     <p className="text-white font-bold text-sm truncate">{modalClip.products.name}</p>
-//                     <LocalizedPrice
-//                       amount={Number(modalClip.products.price)}
-//                       currency={(modalClip.products as { currency?: string | null }).currency}
-//                       className="text-orange-400 font-bold"
-//                     />
-//                   </div>
-//                   <Link
-//                     href={`/marketplace/${(modalClip.products as { slug?: string }).slug ?? ""}?buy=1`}
-//                     onClick={closeModalClip}
-//                   >
-//                     <button
-//                       type="button"
-//                       className="px-5 py-2.5 rounded-sm text-white text-[12px] font-semibold hover:opacity-90 transition-all shadow-none"
-//                       style={{ background: "linear-gradient(135deg, #f97316, #ea580c)" }}
-//                     >
-//                       Buy Now
-//                     </button>
-//                   </Link>
-//                 </div>
-//               )}
-//             </div>
-//           </div>
-//         </>
-//       )}
-//     </div>
-//   );
-// }
-
 "use client";
 
-import React, { useState, useMemo, useCallback } from "react";
+import React, {
+  useState, useMemo, useCallback, useEffect, useRef,
+} from "react";
 import { useBodyScrollLock, useEscapeClose } from "@/hooks/use-body-scroll-lock";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search, Package, Zap, ShieldCheck, Sparkles, TrendingUp,
   Clock, Star, ShoppingBag, X, ChevronRight, MapPin,
-  Award, SlidersHorizontal, ChevronDown,
+  Award, SlidersHorizontal, ChevronDown, Heart, ShoppingCart,
+  CheckCircle2, AlertCircle, Eye, PercentSquare, Filter,
+  SlidersVertical, Bookmark, Tag, ArrowUpRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner"; // ✅ use global sonner directly
 import { MarketplaceSearch, marketplaceHref } from "@/components/marketplace/marketplace-search";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ProductCardClient } from "@/components/marketplace/product-card-client";
@@ -995,6 +36,7 @@ interface Product {
   rating?: number; review_count?: number; is_featured?: boolean;
   is_digital?: boolean; product_type?: string;
   affiliate_enabled?: boolean; affiliate_commission_rate?: number | null;
+  stock_quantity?: number | null; in_stock?: boolean;
   vendors?: { id: string; business_name?: string } | null;
   product_categories?: { id: string; name: string; slug: string } | null;
   source?: string; currency?: string;
@@ -1003,7 +45,7 @@ interface Category { id: string; name: string; slug: string; }
 interface MarketplaceClientProps {
   initialProducts: Product[]; categories: Category[];
   total: number; currentPage: number; limit: number;
-  params: { cat?: string; type?: string; catalog?: string; q?: string; sort?: string; affiliate?: string; };
+  params: { cat?: string; type?: string; catalog?: string; q?: string; sort?: string; affiliate?: string; minPrice?: string; maxPrice?: string; minRating?: string; };
   viralClips?: any[]; topCreators?: any[]; popularStores?: any[];
   hasShopifyProducts?: boolean; cartProductIds?: string[];
   followedVendorIds?: string[];
@@ -1026,8 +68,455 @@ function getCategoryIcon(slug: string, name: string): LucideIcon {
   }
   return ShoppingBag;
 }
-
 const DIGITAL_SLUG_PATTERNS = ["ebook", "course", "software", "template", "digital", "asset"];
+
+/* ─── Wishlist hook (localStorage) ─── */
+function useWishlist() {
+  const [wishlist, setWishlist] = useState<Set<string>>(() => {
+    if (typeof window === "undefined") return new Set();
+    try { return new Set(JSON.parse(localStorage.getItem("mkt_wishlist") || "[]")); }
+    catch { return new Set(); }
+  });
+  const toggle = useCallback((id: string) => {
+    setWishlist(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      try { localStorage.setItem("mkt_wishlist", JSON.stringify([...next])); } catch { }
+      return next;
+    });
+  }, []);
+  return { wishlist, toggle };
+}
+
+/* ─── Mini-cart count badge ─── */
+function MiniCartBadge({ count, onClick }: { count: number; onClick: () => void }) {
+  if (count === 0) return null;
+  return (
+    <button
+      onClick={onClick}
+      className="relative flex items-center gap-2 px-3 h-9 rounded-xl text-xs font-semibold transition-all"
+      style={{
+        background: "var(--color-surface-secondary)",
+        border: "1px solid var(--color-border)",
+        color: "var(--color-text-primary)",
+      }}
+      aria-label={`Cart, ${count} item${count !== 1 ? "s" : ""}`}
+    >
+      <ShoppingCart className="h-4 w-4" />
+      <span
+        className="absolute -top-1.5 -right-1.5 h-4 min-w-[16px] rounded-full flex items-center justify-center text-[10px] font-bold text-white px-1"
+        style={{ background: "var(--color-accent)" }}
+      >
+        {count}
+      </span>
+    </button>
+  );
+}
+
+/* ─── Skeleton grid ─── */
+function SkeletonGrid({ count = 8 }: { count?: number }) {
+  return (
+    // ✅ FIXED: grid-cols-1 on mobile, 2 on sm+
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      {Array.from({ length: count }).map((_, i) => (
+        <div
+          key={i}
+          className="rounded-2xl overflow-hidden"
+          style={{ border: "1px solid var(--color-border)", background: "var(--color-surface)" }}
+        >
+          <div className="aspect-square animate-pulse" style={{ background: "var(--color-surface-secondary)" }} />
+          <div className="p-3 space-y-2">
+            <div className="h-3 rounded-lg animate-pulse w-3/4" style={{ background: "var(--color-surface-secondary)" }} />
+            <div className="h-3 rounded-lg animate-pulse w-1/2" style={{ background: "var(--color-surface-secondary)" }} />
+            <div className="h-6 rounded-lg animate-pulse w-1/3 mt-1" style={{ background: "var(--color-surface-secondary)" }} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ─── Stock badge ─── */
+function StockBadge({ product }: { product: Product }) {
+  if (product.is_digital) return null;
+  const qty = product.stock_quantity;
+  const inStock = product.in_stock !== false;
+  if (!inStock) {
+    return (
+      <span
+        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold"
+        style={{ background: "rgba(239,68,68,0.1)", color: "#ef4444" }}
+      >
+        Out of stock
+      </span>
+    );
+  }
+  if (qty !== null && qty !== undefined && qty <= 5) {
+    return (
+      <span
+        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold"
+        style={{ background: "rgba(245,158,11,0.1)", color: "#d97706" }}
+      >
+        Only {qty} left
+      </span>
+    );
+  }
+  return null;
+}
+
+/* ─── Affiliate badge ─── */
+function AffiliateBadge({ product }: { product: Product }) {
+  const rate = product.affiliate_commission_rate;
+  // ✅ FIXED: only show when affiliate_enabled AND rate is a real number > 0
+  if (!product.affiliate_enabled || rate == null || Number(rate) <= 0) return null;
+  return (
+    <span
+      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold"
+      style={{ background: "rgba(99,102,241,0.1)", color: "#6366f1" }}
+    >
+      <PercentSquare className="h-2.5 w-2.5" />
+      {rate}% commission
+    </span>
+  );
+}
+
+/* ─── Wishlist button ─── */
+function WishlistButton({
+  productId, inWishlist, onToggle,
+}: { productId: string; inWishlist: boolean; onToggle: () => void }) {
+  return (
+    <button
+      onClick={e => { e.preventDefault(); e.stopPropagation(); onToggle(); }}
+      aria-label={inWishlist ? "Remove from wishlist" : "Add to wishlist"}
+      aria-pressed={inWishlist}
+      className="flex items-center justify-center h-8 w-8 rounded-lg transition-all"
+      style={{
+        background: inWishlist ? "rgba(244,63,94,0.1)" : "var(--color-surface-secondary)",
+        border: "1px solid var(--color-border)",
+        color: inWishlist ? "#f43f5e" : "var(--color-text-muted)",
+      }}
+    >
+      <Heart className={cn("h-3.5 w-3.5 transition-all", inWishlist && "fill-current")} />
+    </button>
+  );
+}
+
+/* ─── Filter drawer (mobile) ─── */
+interface FilterDrawerProps {
+  open: boolean; onClose: () => void;
+  categories: Category[]; params: Record<string, string | undefined>;
+  basePath: string;
+  priceRange: [number, number]; onPriceChange: (v: [number, number]) => void;
+  minRating: number; onRatingChange: (v: number) => void;
+  showAffiliate: boolean; onAffiliateChange: (v: boolean) => void;
+}
+function FilterDrawer({
+  open, onClose, categories, params, basePath,
+  priceRange, onPriceChange, minRating, onRatingChange,
+  showAffiliate, onAffiliateChange,
+}: FilterDrawerProps) {
+  useBodyScrollLock(open);
+  useEscapeClose(open, onClose);
+  const drawerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (open) drawerRef.current?.focus();
+  }, [open]);
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <>
+          <motion.div
+            className="fixed inset-0 z-[900] bg-black/50"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            onClick={onClose}
+            aria-hidden
+          />
+          <motion.div
+            ref={drawerRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Filters"
+            tabIndex={-1}
+            className="fixed bottom-0 left-0 right-0 z-[901] rounded-t-2xl overflow-y-auto max-h-[85vh] focus:outline-none"
+            style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}
+            initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
+            transition={{ type: "spring", stiffness: 380, damping: 38 }}
+          >
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="w-10 h-1 rounded-full" style={{ background: "var(--color-border)" }} />
+            </div>
+
+            <div className="flex items-center justify-between px-5 py-3" style={{ borderBottom: "1px solid var(--color-border)" }}>
+              <h2 className="text-base font-bold" style={{ color: "var(--color-text-primary)" }}>Filters</h2>
+              <button
+                onClick={onClose}
+                className="h-8 w-8 rounded-lg flex items-center justify-center"
+                style={{ background: "var(--color-surface-secondary)", border: "1px solid var(--color-border)" }}
+                aria-label="Close filters"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-6">
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--color-text-muted)" }}>Category</p>
+                <div className="flex flex-wrap gap-2">
+                  <Link
+                    href={marketplaceHref(params, { cat: null }, basePath)}
+                    onClick={onClose}
+                    className="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
+                    style={!params.cat
+                      ? { background: "var(--color-accent)", color: "#fff" }
+                      : { background: "var(--color-surface-secondary)", border: "1px solid var(--color-border)", color: "var(--color-text-muted)" }
+                    }
+                    aria-current={!params.cat ? "true" : undefined}
+                  >
+                    All
+                  </Link>
+                  {categories.map(c => (
+                    <Link
+                      key={c.slug}
+                      href={marketplaceHref(params, { cat: c.slug }, basePath)}
+                      onClick={onClose}
+                      className="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
+                      style={params.cat === c.slug
+                        ? { background: "var(--color-accent)", color: "#fff" }
+                        : { background: "var(--color-surface-secondary)", border: "1px solid var(--color-border)", color: "var(--color-text-muted)" }
+                      }
+                      aria-current={params.cat === c.slug ? "true" : undefined}
+                    >
+                      {c.name}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--color-text-muted)" }}>
+                  Price range
+                </p>
+                <div className="flex items-center gap-3">
+                  <div className="flex-1">
+                    <label className="text-[10px] font-medium mb-1 block" style={{ color: "var(--color-text-muted)" }}>Min</label>
+                    <input
+                      type="number" min={0}
+                      value={priceRange[0]}
+                      onChange={e => onPriceChange([Number(e.target.value), priceRange[1]])}
+                      className="w-full h-9 px-3 rounded-xl text-sm"
+                      style={{ background: "var(--color-surface-secondary)", border: "1px solid var(--color-border)", color: "var(--color-text-primary)" }}
+                      placeholder="0"
+                    />
+                  </div>
+                  <div className="text-sm mt-4" style={{ color: "var(--color-text-muted)" }}>—</div>
+                  <div className="flex-1">
+                    <label className="text-[10px] font-medium mb-1 block" style={{ color: "var(--color-text-muted)" }}>Max</label>
+                    <input
+                      type="number" min={0}
+                      value={priceRange[1]}
+                      onChange={e => onPriceChange([priceRange[0], Number(e.target.value)])}
+                      className="w-full h-9 px-3 rounded-xl text-sm"
+                      style={{ background: "var(--color-surface-secondary)", border: "1px solid var(--color-border)", color: "var(--color-text-primary)" }}
+                      placeholder="Any"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--color-text-muted)" }}>Min rating</p>
+                <div className="flex gap-2">
+                  {[0, 3, 3.5, 4, 4.5].map(r => (
+                    <button
+                      key={r}
+                      onClick={() => onRatingChange(r)}
+                      aria-pressed={minRating === r}
+                      className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
+                      style={minRating === r
+                        ? { background: "var(--color-accent)", color: "#fff" }
+                        : { background: "var(--color-surface-secondary)", border: "1px solid var(--color-border)", color: "var(--color-text-muted)" }
+                      }
+                    >
+                      {r === 0 ? "Any" : <><Star className="h-3 w-3 fill-current" />{r}+</>}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>Affiliate products only</p>
+                  <p className="text-xs mt-0.5" style={{ color: "var(--color-text-muted)" }}>Show products you can earn commission on</p>
+                </div>
+                <button
+                  role="switch"
+                  aria-checked={showAffiliate}
+                  onClick={() => onAffiliateChange(!showAffiliate)}
+                  className="relative h-6 w-11 rounded-full transition-all shrink-0"
+                  style={{ background: showAffiliate ? "var(--color-accent)" : "var(--color-border)" }}
+                >
+                  <span
+                    className="absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform"
+                    style={{ transform: showAffiliate ? "translateX(20px)" : "translateX(2px)" }}
+                  />
+                </button>
+              </div>
+
+              <Link
+                href={marketplaceHref(params, {
+                  minPrice: priceRange[0] > 0 ? String(priceRange[0]) : null,
+                  maxPrice: priceRange[1] > 0 ? String(priceRange[1]) : null,
+                  minRating: minRating > 0 ? String(minRating) : null,
+                  affiliate: showAffiliate ? "1" : null,
+                }, basePath)}
+                onClick={onClose}
+                className="flex items-center justify-center gap-2 w-full py-3 rounded-xl text-sm font-semibold text-white transition-all"
+                style={{ background: "var(--color-accent)", boxShadow: "0 4px 16px rgba(253,80,0,0.25)" }}
+              >
+                Apply filters
+              </Link>
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
+}
+
+/* ─── Desktop filter sidebar panel ─── */
+function DesktopFilterPanel({
+  params, basePath,
+  priceRange, onPriceChange,
+  minRating, onRatingChange,
+  showAffiliate, onAffiliateChange,
+}: {
+  params: Record<string, string | undefined>; basePath: string;
+  priceRange: [number, number]; onPriceChange: (v: [number, number]) => void;
+  minRating: number; onRatingChange: (v: number) => void;
+  showAffiliate: boolean; onAffiliateChange: (v: boolean) => void;
+}) {
+  return (
+    <div
+      className="rounded-xl overflow-hidden"
+      style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}
+    >
+      <div className="px-4 py-3 flex items-center gap-2" style={{ borderBottom: "1px solid var(--color-border)" }}>
+        <SlidersVertical className="h-3.5 w-3.5" style={{ color: "var(--color-text-muted)" }} />
+        <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--color-text-muted)" }}>
+          Filters
+        </p>
+      </div>
+      <div className="p-3 space-y-4">
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--color-text-muted)" }}>Price</p>
+          <div className="flex items-center gap-2">
+            <input
+              type="number" min={0}
+              value={priceRange[0]}
+              onChange={e => onPriceChange([Number(e.target.value), priceRange[1]])}
+              className="flex-1 h-8 px-2 rounded-lg text-xs"
+              style={{ background: "var(--color-surface-secondary)", border: "1px solid var(--color-border)", color: "var(--color-text-primary)", width: 0 }}
+              placeholder="Min"
+              aria-label="Minimum price"
+            />
+            <span className="text-xs shrink-0" style={{ color: "var(--color-text-muted)" }}>–</span>
+            <input
+              type="number" min={0}
+              value={priceRange[1]}
+              onChange={e => onPriceChange([priceRange[0], Number(e.target.value)])}
+              className="flex-1 h-8 px-2 rounded-lg text-xs"
+              style={{ background: "var(--color-surface-secondary)", border: "1px solid var(--color-border)", color: "var(--color-text-primary)", width: 0 }}
+              placeholder="Max"
+              aria-label="Maximum price"
+            />
+          </div>
+          {(priceRange[0] > 0 || priceRange[1] > 0) && (
+            <Link
+              href={marketplaceHref(params, {
+                minPrice: priceRange[0] > 0 ? String(priceRange[0]) : null,
+                maxPrice: priceRange[1] > 0 ? String(priceRange[1]) : null,
+              }, basePath)}
+              className="mt-2 text-xs font-semibold block"
+              style={{ color: "var(--color-accent)" }}
+            >
+              Apply price filter
+            </Link>
+          )}
+        </div>
+
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--color-text-muted)" }}>Rating</p>
+          <div className="flex flex-col gap-1">
+            {[0, 4.5, 4, 3.5, 3].map(r => (
+              <button
+                key={r}
+                onClick={() => onRatingChange(r)}
+                aria-pressed={minRating === r}
+                className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-medium text-left transition-all"
+                style={minRating === r
+                  ? { background: "var(--color-accent-light)", color: "var(--color-accent)", border: "1px solid var(--color-accent-subtle)" }
+                  : { color: "var(--color-text-muted)", border: "1px solid transparent" }
+                }
+              >
+                {r === 0 ? (
+                  "Any rating"
+                ) : (
+                  <>
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <Star key={i} className={cn("h-3 w-3", i < Math.floor(r) ? "text-amber-400 fill-amber-400" : "text-gray-300")} />
+                    ))}
+                    <span>{r}+</span>
+                  </>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <button
+            role="switch"
+            aria-checked={showAffiliate}
+            onClick={() => onAffiliateChange(!showAffiliate)}
+            className="flex items-center justify-between w-full"
+          >
+            <span className="text-xs font-medium" style={{ color: "var(--color-text-primary)" }}>
+              Affiliate only
+            </span>
+            <span
+              className="relative h-5 w-9 rounded-full transition-all shrink-0"
+              style={{ background: showAffiliate ? "var(--color-accent)" : "var(--color-border)" }}
+            >
+              <span
+                className="absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform"
+                style={{ transform: showAffiliate ? "translateX(16px)" : "translateX(2px)" }}
+              />
+            </span>
+          </button>
+          {showAffiliate && (
+            <p className="text-[10px] mt-1 leading-snug" style={{ color: "var(--color-text-muted)" }}>
+              Showing products with affiliate commission
+            </p>
+          )}
+        </div>
+
+        {(priceRange[0] > 0 || priceRange[1] > 0 || minRating > 0 || showAffiliate) && (
+          <Link
+            href={marketplaceHref(params, { minPrice: null, maxPrice: null, minRating: null, affiliate: null }, basePath)}
+            onClick={() => { onPriceChange([0, 0]); onRatingChange(0); onAffiliateChange(false); }}
+            className="text-xs font-semibold"
+            style={{ color: "var(--color-text-muted)" }}
+          >
+            Clear filters
+          </Link>
+        )}
+      </div>
+    </div>
+  );
+}
 
 /* ─── Type Tabs ─── */
 function TypeTabs({ params, basePath }: { params: Record<string, string | undefined>; basePath?: string }) {
@@ -1040,6 +529,8 @@ function TypeTabs({ params, basePath }: { params: Record<string, string | undefi
     <div
       className="flex items-center gap-0.5 p-1 rounded-xl"
       style={{ background: "var(--color-surface-secondary)", border: "1px solid var(--color-border)" }}
+      role="tablist"
+      aria-label="Product type"
     >
       {tabs.map(tab => {
         const isActive = tab.value === null ? !params.type : params.type === tab.value;
@@ -1050,13 +541,14 @@ function TypeTabs({ params, basePath }: { params: Record<string, string | undefi
           <Link
             key={tab.label}
             href={href}
+            role="tab"
+            aria-selected={isActive}
+            aria-current={isActive ? "page" : undefined}
             className="relative px-4 h-8 rounded-lg flex items-center justify-center text-xs font-semibold transition-all duration-150 whitespace-nowrap"
             style={isActive
               ? { background: "var(--color-text-primary)", color: "var(--color-bg)" }
               : { color: "var(--color-text-muted)" }
             }
-            onMouseEnter={e => { if (!isActive) (e.currentTarget.style.color = "var(--color-text-primary)"); }}
-            onMouseLeave={e => { if (!isActive) (e.currentTarget.style.color = "var(--color-text-muted)"); }}
           >
             {tab.label}
           </Link>
@@ -1073,15 +565,14 @@ function CategoryChip({ label, active, href, Icon }: {
   return (
     <Link
       href={href}
+      aria-current={active ? "true" : undefined}
       className="shrink-0 inline-flex items-center gap-1.5 px-3.5 h-9 rounded-xl text-xs font-semibold transition-all whitespace-nowrap"
       style={active
         ? { background: "var(--color-accent)", color: "#fff", border: "1px solid transparent", boxShadow: "0 4px 12px rgba(253,80,0,0.25)" }
         : { background: "var(--color-surface)", color: "var(--color-text-muted)", border: "1px solid var(--color-border)" }
       }
-      onMouseEnter={e => { if (!active) { (e.currentTarget.style.color = "var(--color-accent)"); (e.currentTarget.style.borderColor = "var(--color-accent)") } }}
-      onMouseLeave={e => { if (!active) { (e.currentTarget.style.color = "var(--color-text-muted)"); (e.currentTarget.style.borderColor = "var(--color-border)"); } }}
     >
-      {Icon && <Icon className="h-3.5 w-3.5 shrink-0" />}
+      {Icon && <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />}
       {label}
     </Link>
   );
@@ -1094,15 +585,14 @@ function SortPill({ active, href, icon: Icon, label }: {
   return (
     <Link
       href={href}
+      aria-current={active ? "true" : undefined}
       className="shrink-0 inline-flex items-center gap-1.5 px-3.5 h-9 rounded-xl text-xs font-semibold transition-all whitespace-nowrap"
       style={active
         ? { background: "var(--color-accent)", color: "#fff", border: "1px solid transparent", boxShadow: "0 4px 12px rgba(253,80,0,0.25)" }
         : { background: "var(--color-surface)", color: "var(--color-text-muted)", border: "1px solid var(--color-border)" }
       }
-      onMouseEnter={e => { if (!active) { (e.currentTarget.style.color = "var(--color-accent)"); (e.currentTarget.style.borderColor = "var(--color-accent)"); } }}
-      onMouseLeave={e => { if (!active) { (e.currentTarget.style.color = "var(--color-text-muted)"); (e.currentTarget.style.borderColor = "var(--color-border)"); } }}
     >
-      {Icon && <Icon className="h-3.5 w-3.5 shrink-0" />}
+      {Icon && <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />}
       {label}
     </Link>
   );
@@ -1116,17 +606,16 @@ function SidebarCat({ cat, active, href }: {
   return (
     <Link
       href={href}
+      aria-current={active ? "page" : undefined}
       className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium transition-all"
       style={active
         ? { background: "var(--color-accent-light)", color: "var(--color-accent)", border: "1px solid var(--color-accent-subtle)" }
         : { color: "var(--color-text-muted)", border: "1px solid transparent" }
       }
-      onMouseEnter={e => { if (!active) { (e.currentTarget.style.background = "var(--color-surface-secondary)"); (e.currentTarget.style.color = "var(--color-text-primary)"); } }}
-      onMouseLeave={e => { if (!active) { (e.currentTarget.style.background = "transparent"); (e.currentTarget.style.color = "var(--color-text-muted)"); } }}
     >
-      <Icon className="h-3.5 w-3.5 shrink-0" />
+      <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
       <span className="flex-1 truncate">{cat.name}</span>
-      {active && <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ background: "var(--color-accent)" }} />}
+      {active && <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ background: "var(--color-accent)" }} aria-hidden />}
     </Link>
   );
 }
@@ -1135,102 +624,197 @@ function SidebarCat({ cat, active, href }: {
 function SectionDivider({ icon: Icon, label, color }: { icon: React.ElementType; label: string; color: string }) {
   return (
     <div className="flex items-center gap-2 mb-3">
-      <div className={cn("h-5 w-5 rounded-md flex items-center justify-center", color)}>
+      <div className={cn("h-5 w-5 rounded-md flex items-center justify-center", color)} aria-hidden>
         <Icon className="h-3 w-3" />
       </div>
       <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--color-text-muted)" }}>
         {label}
       </p>
-      <div className="flex-1 h-px" style={{ background: "var(--color-border)" }} />
+      <div className="flex-1 h-px" style={{ background: "var(--color-border)" }} aria-hidden />
     </div>
   );
 }
 
 /* ─── Hero banner ─── */
-function HeroBanner({ params, basePath }: { params: Record<string, string | undefined>; basePath?: string }) {
+function HeroBanner({
+  params, basePath, hasActiveFilter,
+}: { params: Record<string, string | undefined>; basePath?: string; hasActiveFilter: boolean }) {
   const isDigital = params.type === "digital";
-  const isPhysical = params.type === "physical";
+
+  if (hasActiveFilter) {
+    return (
+      <div
+        className="flex items-center gap-3 px-4 py-2.5 rounded-xl"
+        style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}
+      >
+        <Search className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--color-text-muted)" }} aria-hidden />
+        <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+          {params.q?.trim()
+            ? <>Results for <span className="font-semibold" style={{ color: "var(--color-text-primary)" }}>"{params.q.trim()}"</span></>
+            : "Filtered results"
+          }
+        </p>
+        <Link href={basePath ?? "/marketplace"} className="ml-auto text-xs font-semibold" style={{ color: "var(--color-accent)" }}>
+          Clear all
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div
       className="relative overflow-hidden rounded-2xl"
       style={{ border: "1px solid var(--color-border)", background: "var(--color-surface)" }}
     >
-      {/* Subtle gradient background */}
       <div
-        className="absolute inset-0"
+        className="absolute inset-0 pointer-events-none"
+        aria-hidden
         style={{
           background: isDigital
             ? "radial-gradient(ellipse 80% 100% at 100% 50%, rgba(14,165,233,0.08) 0%, transparent 60%)"
             : "radial-gradient(ellipse 80% 100% at 100% 50%, rgba(253,80,0,0.08) 0%, transparent 60%)",
         }}
       />
-
-      <div className="relative z-10 px-6 sm:px-10 py-8 sm:py-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
-        <div className="space-y-3 max-w-md">
-          {/* Eyebrow */}
+      <div className="relative z-10 px-5 sm:px-10 py-6 sm:py-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
+        <div className="space-y-2 sm:space-y-3 max-w-md">
           <div className="flex items-center gap-2">
-            <span
-              className="h-1.5 w-1.5 rounded-full animate-pulse"
-              style={{ background: "var(--color-accent)" }}
-            />
+            <span className="h-1.5 w-1.5 rounded-full" aria-hidden style={{ background: "var(--color-accent)" }} />
             <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--color-text-muted)" }}>
-              {isDigital ? "Digital Marketplace" : isPhysical ? "Physical Store" : "Jimvio Marketplace"}
+              {isDigital ? "Digital Marketplace" : "Jimvio Marketplace"}
             </span>
           </div>
-
-          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight leading-tight" style={{ color: "var(--color-text-primary)" }}>
-            {isDigital
-              ? "Premium digital assets, ready to download"
-              : isPhysical
-                ? "Quality products, delivered to your door"
-                : "Everything you need, in one place"}
+          <h2 className="text-xl sm:text-3xl font-bold tracking-tight leading-tight" style={{ color: "var(--color-text-primary)" }}>
+            {isDigital ? "Premium digital assets" : "Everything you need"}
           </h2>
-
-          <p className="text-sm leading-relaxed" style={{ color: "var(--color-text-muted)" }}>
+          <p className="hidden sm:block text-sm leading-relaxed" style={{ color: "var(--color-text-muted)" }}>
             {isDigital
               ? "Templates, courses, software and more — instant access after purchase."
-              : isPhysical
-                ? "From electronics to fashion — tracked worldwide shipping."
-                : "Shop digital products or physical goods from verified vendors globally."}
+              : "Shop digital products or physical goods from verified vendors globally."}
           </p>
-
-          {/* Trust badges */}
-          <div className="flex flex-wrap items-center gap-3 pt-1">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 pt-0.5">
             {[
               { icon: ShieldCheck, label: "Verified vendors" },
               { icon: MapPin, label: "Worldwide delivery" },
               { icon: Star, label: "Buyer protection" },
             ].map(({ icon: Icon, label }) => (
               <div key={label} className="flex items-center gap-1.5">
-                <Icon className="h-3.5 w-3.5 text-emerald-500" />
+                <Icon className="h-3.5 w-3.5 text-emerald-500" aria-hidden />
                 <span className="text-xs font-medium" style={{ color: "var(--color-text-muted)" }}>{label}</span>
               </div>
             ))}
           </div>
         </div>
-
-        <div className="flex flex-col gap-2 shrink-0">
+        <div className="flex sm:flex-col gap-2 shrink-0 w-full sm:w-auto">
           <Link
             href={marketplaceHref(params, { sort: "trending" }, basePath)}
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-semibold text-white transition-all active:scale-[0.98]"
-            style={{ background: "var(--color-accent)", boxShadow: "0 4px 16px rgba(253,80,0,0.3)" }}
-            onMouseEnter={e => (e.currentTarget.style.background = "var(--color-accent-hover)")}
-            onMouseLeave={e => (e.currentTarget.style.background = "var(--color-accent)")}
+            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all active:scale-[0.98]"
+            style={{ background: "var(--color-accent)", boxShadow: "0 4px 16px rgba(253,80,0,0.25)" }}
           >
-            <TrendingUp className="h-4 w-4" />
-            Trending now
+            <TrendingUp className="h-4 w-4" aria-hidden />
+            Trending
           </Link>
           <Link
             href={marketplaceHref(params, { sort: "newest" }, basePath)}
-            className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-xs font-semibold transition-all"
+            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold transition-all"
             style={{ border: "1px solid var(--color-border)", color: "var(--color-text-muted)", background: "transparent" }}
-            onMouseEnter={e => { (e.currentTarget.style.color = "var(--color-text-primary)"); (e.currentTarget.style.borderColor = "var(--color-border-strong)"); }}
-            onMouseLeave={e => { (e.currentTarget.style.color = "var(--color-text-muted)"); (e.currentTarget.style.borderColor = "var(--color-border)"); }}
           >
             New arrivals
           </Link>
         </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Recently viewed bar ─── */
+function RecentlyViewed({ items }: { items: { id: string; name: string; slug: string; image?: string }[] }) {
+  if (items.length === 0) return null;
+  return (
+    <div>
+      <div className="flex items-center gap-2 mb-2">
+        <Eye className="h-3.5 w-3.5" style={{ color: "var(--color-text-muted)" }} aria-hidden />
+        <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--color-text-muted)" }}>
+          Recently viewed
+        </p>
+      </div>
+      <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+        {items.map(item => (
+          <Link
+            key={item.id}
+            href={`/marketplace/${item.slug}`}
+            className="shrink-0 flex items-center gap-2 px-3 py-2 rounded-xl transition-all"
+            style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", maxWidth: 180 }}
+          >
+            {item.image && (
+              <img src={item.image} alt="" className="h-7 w-7 rounded-lg object-cover shrink-0" />
+            )}
+            <span className="text-xs font-medium truncate" style={{ color: "var(--color-text-primary)" }}>
+              {item.name}
+            </span>
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ─── Empty state ─── */
+function EmptyState({ basePath, categories }: { basePath: string; categories: Category[] }) {
+  const suggestions = categories.slice(0, 4);
+  return (
+    <div
+      className="rounded-2xl py-14 px-6 text-center"
+      style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}
+    >
+      <div
+        className="h-14 w-14 rounded-2xl flex items-center justify-center mx-auto mb-5"
+        style={{ background: "var(--color-surface-secondary)", border: "1px solid var(--color-border)" }}
+        aria-hidden
+      >
+        <Search className="h-6 w-6" style={{ color: "var(--color-text-muted)" }} />
+      </div>
+      <h3 className="text-base font-bold mb-2" style={{ color: "var(--color-text-primary)" }}>No products found</h3>
+      <p className="text-sm max-w-xs mx-auto leading-relaxed mb-6" style={{ color: "var(--color-text-muted)" }}>
+        Try a different search term, adjust your filters, or explore a category below.
+      </p>
+      {suggestions.length > 0 && (
+        <div className="flex flex-wrap justify-center gap-2 mb-6">
+          {suggestions.map(cat => (
+            <Link
+              key={cat.slug}
+              href={`${basePath}?cat=${cat.slug}`}
+              className="inline-flex items-center gap-1.5 px-3.5 h-9 rounded-xl text-xs font-semibold transition-all"
+              style={{ background: "var(--color-surface-secondary)", border: "1px solid var(--color-border)", color: "var(--color-text-primary)" }}
+            >
+              {cat.name}
+              <ArrowUpRight className="h-3 w-3 opacity-50" aria-hidden />
+            </Link>
+          ))}
+        </div>
+      )}
+      <Link
+        href={basePath}
+        className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold text-white transition-all"
+        style={{ background: "var(--color-accent)", boxShadow: "0 4px 16px rgba(253,80,0,0.25)" }}
+      >
+        View all products
+      </Link>
+    </div>
+  );
+}
+
+/* ─── Fade-edge scroll wrapper ─── */
+function FadeScroll({ children, className }: { children: React.ReactNode; className?: string }) {
+  return (
+    <div className={cn("relative", className)}>
+      <div
+        className="flex items-center gap-2 overflow-x-auto no-scrollbar"
+        style={{
+          WebkitMaskImage: "linear-gradient(to right, transparent 0%, black 2%, black 94%, transparent 100%)",
+          maskImage: "linear-gradient(to right, transparent 0%, black 2%, black 94%, transparent 100%)",
+        }}
+      >
+        {children}
       </div>
     </div>
   );
@@ -1242,6 +826,63 @@ export function MarketplaceClient({
   viralClips = [], cartProductIds = [], followedVendorIds = [],
   marketplaceStats, basePath = "/marketplace", uiVariant = "all",
 }: MarketplaceClientProps & { basePath?: string }) {
+  const router = useRouter();
+  const { wishlist, toggle: toggleWishlist } = useWishlist();
+
+  const [priceRange, setPriceRange] = useState<[number, number]>([
+    Number(params.minPrice ?? 0),
+    Number(params.maxPrice ?? 0),
+  ]);
+  const [minRating, setMinRating] = useState(Number(params.minRating ?? 0));
+  const [showAffiliate, setShowAffiliate] = useState(params.affiliate === "1");
+  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
+  const closeFilterDrawer = useCallback(() => setFilterDrawerOpen(false), []);
+
+  const [localCartIds, setLocalCartIds] = useState<Set<string>>(() => new Set(cartProductIds));
+
+  // ✅ Use global sonner toast directly
+  const addToCart = useCallback((product: Product) => {
+    setLocalCartIds(prev => new Set([...prev, product.id]));
+    toast.success(`"${product.name}" added to cart`);
+  }, []);
+
+  const handleWishlist = useCallback((product: Product) => {
+    const wasIn = wishlist.has(product.id);
+    toggleWishlist(product.id);
+    wasIn
+      ? toast.success("Removed from wishlist")
+      : toast.success(`Saved to wishlist`);
+  }, [wishlist, toggleWishlist]);
+
+  const [recentlyViewed, setRecentlyViewed] = useState<{ id: string; name: string; slug: string; image?: string }[]>(() => {
+    if (typeof window === "undefined") return [];
+    try { return JSON.parse(localStorage.getItem("mkt_recent") || "[]"); }
+    catch { return []; }
+  });
+  const trackView = useCallback((product: Product) => {
+    setRecentlyViewed(prev => {
+      const next = [
+        { id: product.id, name: product.name, slug: product.slug, image: product.images?.[0] },
+        ...prev.filter(p => p.id !== product.id),
+      ].slice(0, 6);
+      try { localStorage.setItem("mkt_recent", JSON.stringify(next)); } catch { }
+      return next;
+    });
+  }, []);
+
+  const navigateTo = useCallback((href: string) => {
+    setIsNavigating(true);
+    router.push(href);
+  }, [router]);
+
+  useEffect(() => { setIsNavigating(false); }, [initialProducts]);
+
+  const gridRef = useRef<HTMLDivElement>(null);
+  const handlePageChange = useCallback((href: string) => {
+    navigateTo(href);
+    setTimeout(() => gridRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
+  }, [navigateTo]);
 
   const displayCategories = useMemo(() => {
     if (params.type === "digital") {
@@ -1263,55 +904,69 @@ export function MarketplaceClient({
     return categories;
   }, [categories, params.type]);
 
-  const cartSet = useMemo(() => new Set(cartProductIds), [cartProductIds]);
   const totalPages = Math.ceil(total / limit);
+  const paramsRecord = params as Record<string, string | undefined>;
+  const currentSort = params.sort ?? "trending";
+
+  const mixedFeed = useMemo(
+    () => initialProducts.map(p => ({ type: "product" as const, data: p })),
+    [initialProducts],
+  );
+
+  const hasActiveFilter = !!(params.q || params.cat || params.affiliate === "1" || params.minPrice || params.maxPrice || params.minRating);
+  const activeFilterCount = [params.cat, params.q, params.affiliate === "1" ? "1" : null, params.minPrice, params.maxPrice, params.minRating].filter(Boolean).length;
+
+  const statLine = marketplaceStats && (marketplaceStats.activeVendors > 0 || marketplaceStats.activeListings > 0)
+    ? `${marketplaceStats.activeListingsLabel} listings`
+    : null;
 
   const [modalClip, setModalClip] = useState<(typeof viralClips)[number] | null>(null);
   const closeModalClip = useCallback(() => setModalClip(null), []);
   useBodyScrollLock(!!modalClip);
   useEscapeClose(!!modalClip, closeModalClip);
 
-  const paramsRecord = params as Record<string, string | undefined>;
-  const currentSort = params.sort ?? "trending";
-  const mixedFeed = useMemo(() => initialProducts.map(p => ({ type: "product" as const, data: p })), [initialProducts]);
-  const hasActiveFilter = !!(params.q || params.cat || params.affiliate === "1");
-
-  const statLine = marketplaceStats && (marketplaceStats.activeVendors > 0 || marketplaceStats.activeListings > 0)
-    ? `${marketplaceStats.activeListingsLabel} listings`
-    : null;
+  // ✅ Shared grid class — 1 col on mobile, 2 on sm, 4 on lg
+  const gridCls = "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4";
 
   return (
     <div className="min-h-screen" style={{ background: "var(--color-bg)" }}>
+      {/* ✅ No local ToastContainer — using global Sonner */}
 
-      {/* ── Sticky top bar ── */}
       <div
         className="sticky top-0 z-50 backdrop-blur-sm"
         style={{ background: "var(--color-surface)", borderBottom: "1px solid var(--color-border)" }}
       >
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-3">
           <div className="flex flex-col md:flex-row items-center justify-between gap-3 md:gap-6">
-
-            {/* Search */}
             <div className="w-full md:max-w-[460px]">
               <MarketplaceSearch currentParams={paramsRecord} className="w-full" basePath={basePath} />
             </div>
-
-            {/* Right: tabs + live badge */}
-            <div className="w-full md:w-auto flex items-center gap-4">
+            <div className="w-full md:w-auto flex items-center gap-3">
               <TypeTabs params={paramsRecord} basePath={basePath} />
-
+              <button
+                onClick={() => setFilterDrawerOpen(true)}
+                className="lg:hidden relative flex items-center gap-1.5 px-3 h-9 rounded-xl text-xs font-semibold transition-all"
+                style={{ background: "var(--color-surface-secondary)", border: "1px solid var(--color-border)", color: "var(--color-text-primary)" }}
+                aria-label={`Filters${activeFilterCount > 0 ? `, ${activeFilterCount} active` : ""}`}
+              >
+                <Filter className="h-3.5 w-3.5" aria-hidden />
+                Filters
+                {activeFilterCount > 0 && (
+                  <span
+                    className="absolute -top-1.5 -right-1.5 h-4 min-w-[16px] rounded-full flex items-center justify-center text-[10px] font-bold text-white px-1"
+                    style={{ background: "var(--color-accent)" }}
+                  >
+                    {activeFilterCount}
+                  </span>
+                )}
+              </button>
               {statLine && (
-                <div
-                  className="hidden lg:flex items-center gap-2.5 pl-4"
-                  style={{ borderLeft: "1px solid var(--color-border)" }}
-                >
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <div className="hidden lg:flex items-center gap-2.5 pl-4" style={{ borderLeft: "1px solid var(--color-border)" }}>
+                  <span className="relative flex h-2 w-2" aria-hidden>
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 motion-reduce:animate-none" />
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
                   </span>
-                  <span className="text-xs font-medium" style={{ color: "var(--color-text-muted)" }}>
-                    {statLine}
-                  </span>
+                  <span className="text-xs font-medium" style={{ color: "var(--color-text-muted)" }}>{statLine}</span>
                 </div>
               )}
             </div>
@@ -1319,22 +974,26 @@ export function MarketplaceClient({
         </div>
       </div>
 
-      {/* ── Layout ── */}
+      <FilterDrawer
+        open={filterDrawerOpen}
+        onClose={closeFilterDrawer}
+        categories={displayCategories}
+        params={paramsRecord}
+        basePath={basePath}
+        priceRange={priceRange}
+        onPriceChange={setPriceRange}
+        minRating={minRating}
+        onRatingChange={setMinRating}
+        showAffiliate={showAffiliate}
+        onAffiliateChange={setShowAffiliate}
+      />
+
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-6 flex flex-col lg:flex-row gap-6">
-
-        {/* ── Sidebar ── */}
-        <aside className="hidden lg:block lg:w-56 shrink-0">
+        <aside className="hidden lg:block lg:w-56 shrink-0" aria-label="Filters and categories">
           <div className="sticky top-[73px] space-y-4">
-
-            {/* Categories */}
-            <div
-              className="rounded-xl overflow-hidden"
-              style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}
-            >
+            <div className="rounded-sm overflow-hidden" style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
               <div className="px-4 py-3" style={{ borderBottom: "1px solid var(--color-border)" }}>
-                <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--color-text-muted)" }}>
-                  Categories
-                </p>
+                <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--color-text-muted)" }}>Categories</p>
               </div>
               <div className="p-3 space-y-0.5">
                 <SidebarCat
@@ -1342,7 +1001,6 @@ export function MarketplaceClient({
                   active={!params.cat}
                   href={marketplaceHref(paramsRecord, { cat: null }, basePath)}
                 />
-
                 {uiVariant === "all" ? (
                   <>
                     {(() => {
@@ -1383,15 +1041,19 @@ export function MarketplaceClient({
               </div>
             </div>
 
-            {/* Trust card */}
-            <div
-              className="rounded-xl p-4 space-y-3"
-              style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}
-            >
+            <DesktopFilterPanel
+              params={paramsRecord} basePath={basePath}
+              priceRange={priceRange} onPriceChange={setPriceRange}
+              minRating={minRating} onRatingChange={setMinRating}
+              showAffiliate={showAffiliate} onAffiliateChange={setShowAffiliate}
+            />
+
+            <div className="rounded-xl p-4 space-y-3" style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
               <div className="flex items-center gap-2.5">
                 <div
                   className="h-8 w-8 rounded-lg flex items-center justify-center"
                   style={{ background: "var(--color-accent-light)", border: "1px solid var(--color-accent-subtle)" }}
+                  aria-hidden
                 >
                   <ShieldCheck className="h-4 w-4" style={{ color: "var(--color-accent)" }} />
                 </div>
@@ -1408,14 +1070,11 @@ export function MarketplaceClient({
           </div>
         </aside>
 
-        {/* ── Product area ── */}
-        <div className="flex-1 min-w-0 space-y-5">
+        <main className="flex-1 min-w-0 space-y-5" aria-label="Products">
+          <HeroBanner params={paramsRecord} basePath={basePath} hasActiveFilter={hasActiveFilter} />
+          <RecentlyViewed items={recentlyViewed} />
 
-          {/* Hero */}
-          <HeroBanner params={paramsRecord} basePath={basePath} />
-
-          {/* Category chips */}
-          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
+          <FadeScroll>
             <CategoryChip label="All" active={!params.cat}
               href={marketplaceHref(paramsRecord, { cat: null }, basePath)} Icon={ShoppingBag} />
             {displayCategories.slice(0, 12).map(cat => (
@@ -1423,65 +1082,81 @@ export function MarketplaceClient({
                 href={marketplaceHref(paramsRecord, { cat: cat.slug }, basePath)}
                 Icon={getCategoryIcon(cat.slug, cat.name)} />
             ))}
-          </div>
+          </FadeScroll>
 
-          {/* Sort + result count row */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
+            <FadeScroll>
               <SortPill active={currentSort === "trending"} href={marketplaceHref(paramsRecord, { sort: "trending" }, basePath)} icon={TrendingUp} label="Trending" />
               <SortPill active={currentSort === "newest"} href={marketplaceHref(paramsRecord, { sort: "newest" }, basePath)} icon={Clock} label="New" />
-              <SortPill active={currentSort === "best_selling"} href={marketplaceHref(paramsRecord, { sort: "best_selling" }, basePath)} icon={Award} label="Best Selling" />
+              <SortPill active={currentSort === "best_selling"} href={marketplaceHref(paramsRecord, { sort: "best_selling" }, basePath)} icon={Award} label="Best selling" />
               <SortPill active={currentSort === "price_asc"} href={marketplaceHref(paramsRecord, { sort: "price_asc" }, basePath)} label="Price ↑" />
               <SortPill active={currentSort === "price_desc"} href={marketplaceHref(paramsRecord, { sort: "price_desc" }, basePath)} label="Price ↓" />
-            </div>
-
+            </FadeScroll>
             <p className="text-xs tabular-nums shrink-0" style={{ color: "var(--color-text-muted)" }}>
               <span className="font-semibold" style={{ color: "var(--color-text-primary)" }}>{total.toLocaleString()}</span>
               {" "}result{total !== 1 ? "s" : ""}
             </p>
           </div>
 
-          {/* Active filter chips */}
           {hasActiveFilter && (
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--color-text-muted)" }}>
-                Filters:
-              </span>
+            <div className="flex flex-wrap items-center gap-2" role="region" aria-label="Active filters">
+              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--color-text-muted)" }}>Filters:</span>
               {params.q?.trim() && (
-                <Link
-                  href={marketplaceHref(paramsRecord, { q: null }, basePath)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium transition-all"
+                <Link href={marketplaceHref(paramsRecord, { q: null }, basePath)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium"
                   style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", color: "var(--color-text-primary)" }}
+                  aria-label={`Remove search filter: ${params.q.trim()}`}
                 >
-                  "{params.q.trim()}" <X className="h-3 w-3" style={{ color: "var(--color-text-muted)" }} />
+                  "{params.q.trim()}"
+                  <X className="h-3 w-3" style={{ color: "var(--color-text-muted)" }} aria-hidden />
                 </Link>
               )}
               {params.cat && (
-                <Link
-                  href={marketplaceHref(paramsRecord, { cat: null }, basePath)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium transition-all"
+                <Link href={marketplaceHref(paramsRecord, { cat: null }, basePath)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium"
                   style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", color: "var(--color-text-primary)" }}
+                  aria-label={`Remove category filter`}
                 >
                   {displayCategories.find(c => c.slug === params.cat)?.name ?? params.cat}
-                  <X className="h-3 w-3" style={{ color: "var(--color-text-muted)" }} />
+                  <X className="h-3 w-3" style={{ color: "var(--color-text-muted)" }} aria-hidden />
+                </Link>
+              )}
+              {params.minPrice && (
+                <Link href={marketplaceHref(paramsRecord, { minPrice: null, maxPrice: null }, basePath)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium"
+                  style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", color: "var(--color-text-primary)" }}
+                  aria-label="Remove price filter"
+                >
+                  ${params.minPrice}–{params.maxPrice || "∞"}
+                  <X className="h-3 w-3" style={{ color: "var(--color-text-muted)" }} aria-hidden />
+                </Link>
+              )}
+              {params.minRating && (
+                <Link href={marketplaceHref(paramsRecord, { minRating: null }, basePath)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium"
+                  style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", color: "var(--color-text-primary)" }}
+                  aria-label={`Remove rating filter`}
+                >
+                  <Star className="h-3 w-3 fill-amber-400 text-amber-400" aria-hidden />
+                  {params.minRating}+
+                  <X className="h-3 w-3" style={{ color: "var(--color-text-muted)" }} aria-hidden />
                 </Link>
               )}
               {params.affiliate === "1" && (
-                <Link
-                  href={marketplaceHref(paramsRecord, { affiliate: null }, basePath)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium transition-all"
+                <Link href={marketplaceHref(paramsRecord, { affiliate: null }, basePath)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium"
                   style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", color: "var(--color-text-primary)" }}
+                  aria-label="Remove affiliate filter"
                 >
-                  Affiliate <X className="h-3 w-3" style={{ color: "var(--color-text-muted)" }} />
+                  <PercentSquare className="h-3 w-3" aria-hidden />
+                  Affiliate
+                  <X className="h-3 w-3" style={{ color: "var(--color-text-muted)" }} aria-hidden />
                 </Link>
               )}
-              <Link href={basePath} className="text-xs font-semibold" style={{ color: "var(--color-accent)" }}>
-                Clear all
-              </Link>
+              <Link href={basePath} className="text-xs font-semibold" style={{ color: "var(--color-accent)" }}>Clear all</Link>
             </div>
           )}
 
-          {/* Section heading */}
           <h1 className="text-base font-bold" style={{ color: "var(--color-text-primary)" }}>
             {params.q?.trim()
               ? `Results for "${params.q.trim()}"`
@@ -1492,195 +1167,193 @@ export function MarketplaceClient({
                     : "All Products"}
           </h1>
 
-          {/* Products */}
-          <AnimatePresence mode="wait">
-            {mixedFeed.length > 0 ? (
-              <motion.div
-                key={JSON.stringify(params)}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
-              >
-                {uiVariant === "all" ? (
-                  <div className="space-y-10">
-                    {(() => {
-                      const digitals = mixedFeed.filter(m => m.data.product_type === "digital" || m.data.is_digital);
-                      const physicals = mixedFeed.filter(m => m.data.product_type !== "digital" && !m.data.is_digital);
-                      return (
-                        <>
-                          {digitals.length > 0 && (
-                            <div>
-                              <div className="flex items-center gap-2 mb-4">
-                                <div className="h-5 w-5 rounded-md bg-sky-500/10 flex items-center justify-center">
-                                  <Zap className="h-3 w-3 text-sky-500" />
-                                </div>
-                                <h2 className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>Digital Assets</h2>
-                                <div className="flex-1 h-px" style={{ background: "var(--color-border)" }} />
-                                <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>{digitals.length}</span>
-                              </div>
-                              <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                                {digitals.map((item, idx) => (
-                                  <motion.div key={item.data.id}
-                                    initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: Math.min(idx * 0.04, 0.3), duration: 0.28 }}
-                                  >
-                                    <ProductCardDigital p={item.data} initialInCart={cartSet.has(item.data.id)} />
-                                  </motion.div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {physicals.length > 0 && (
-                            <div>
-                              <div className="flex items-center gap-2 mb-4">
-                                <div className="h-5 w-5 rounded-md bg-orange-500/10 flex items-center justify-center">
-                                  <Package className="h-3 w-3 text-orange-500" />
-                                </div>
-                                <h2 className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>Physical Goods</h2>
-                                <div className="flex-1 h-px" style={{ background: "var(--color-border)" }} />
-                                <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>{physicals.length}</span>
-                              </div>
-                              <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                                {physicals.map((item, idx) => (
-                                  <motion.div key={item.data.id}
-                                    initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: Math.min(idx * 0.04, 0.3), duration: 0.28 }}
-                                  >
-                                    <ProductCardPhysical p={item.data} detailBasePath="/marketplace" initialInCart={cartSet.has(item.data.id)} />
-                                  </motion.div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </>
-                      );
-                    })()}
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                    {mixedFeed.map((item, idx) => (
-                      <motion.div key={item.data.id}
-                        initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: Math.min(idx * 0.04, 0.3), duration: 0.28 }}
-                      >
-                        {uiVariant === "digital" ? <ProductCardDigital p={item.data} detailBasePath="/marketplace" initialInCart={cartSet.has(item.data.id)} />
-                          : uiVariant === "physical" ? <ProductCardPhysical p={item.data} detailBasePath="/marketplace" initialInCart={cartSet.has(item.data.id)} />
-                            : <ProductCardClient p={item.data} detailBasePath="/marketplace" initialInCart={cartSet.has(item.data.id)} />}
-                      </motion.div>
-                    ))}
-                  </div>
-                )}
-              </motion.div>
-            ) : (
-              /* Empty state */
-              <motion.div
-                initial={{ opacity: 0, scale: 0.98 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="rounded-2xl py-20 text-center"
-                style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}
-              >
-                <div
-                  className="h-14 w-14 rounded-2xl flex items-center justify-center mx-auto mb-5"
-                  style={{ background: "var(--color-surface-secondary)", border: "1px solid var(--color-border)" }}
+          <div ref={gridRef}>
+            <AnimatePresence mode="wait">
+              {isNavigating ? (
+                <motion.div key="skeleton" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                  <SkeletonGrid count={8} />
+                </motion.div>
+              ) : mixedFeed.length > 0 ? (
+                <motion.div
+                  key={`${params.sort}-${params.cat}-${params.q}-${params.type}-${currentPage}`}
+                  initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                  transition={{ duration: 0.18 }}
                 >
-                  <Search className="h-6 w-6" style={{ color: "var(--color-text-muted)" }} />
-                </div>
-                <h3 className="text-base font-bold mb-2" style={{ color: "var(--color-text-primary)" }}>
-                  No products found
-                </h3>
-                <p className="text-sm max-w-xs mx-auto leading-relaxed mb-8" style={{ color: "var(--color-text-muted)" }}>
-                  Try a different search term or clear your filters to see all products.
-                </p>
-                <Link
-                  href={basePath}
-                  className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold text-white transition-all"
-                  style={{ background: "var(--color-accent)", boxShadow: "0 4px 16px rgba(253,80,0,0.25)" }}
-                  onMouseEnter={e => (e.currentTarget.style.background = "var(--color-accent-hover)")}
-                  onMouseLeave={e => (e.currentTarget.style.background = "var(--color-accent)")}
-                >
-                  View all products
-                </Link>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                  {uiVariant === "all" ? (
+                    <div className="space-y-10">
+                      {(() => {
+                        const digitals = mixedFeed.filter(m => m.data.product_type === "digital" || m.data.is_digital);
+                        const physicals = mixedFeed.filter(m => m.data.product_type !== "digital" && !m.data.is_digital);
+                        return (
+                          <>
+                            {digitals.length > 0 && (
+                              <div>
+                                <div className="flex items-center gap-2 mb-4">
+                                  <div className="h-5 w-5 rounded-md bg-sky-500/10 flex items-center justify-center" aria-hidden>
+                                    <Zap className="h-3 w-3 text-sky-500" />
+                                  </div>
+                                  <h2 className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>Digital Assets</h2>
+                                  <div className="flex-1 h-px" style={{ background: "var(--color-border)" }} aria-hidden />
+                                  <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>{digitals.length}</span>
+                                </div>
+                                {/* ✅ FIXED: 1 col on mobile */}
+                                <div className={gridCls}>
+                                  {digitals.map((item, idx) => (
+                                    <motion.div key={item.data.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx < 4 ? idx * 0.04 : 0, duration: 0.22 }}>
+                                      <div className="relative group">
+                                        <ProductCardDigital
+                                          p={item.data}
+                                          initialInCart={localCartIds.has(item.data.id)}
+                                          onAddToCart={() => addToCart(item.data)}
+                                          onClick={() => trackView(item.data)}
+                                        />
+                                        <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                                          <WishlistButton productId={item.data.id} inWishlist={wishlist.has(item.data.id)} onToggle={() => handleWishlist(item.data)} />
+                                        </div>
+                                      </div>
+                                    </motion.div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
 
-          {/* Pagination */}
+                            {physicals.length > 0 && (
+                              <div>
+                                <div className="flex items-center gap-2 mb-4">
+                                  <div className="h-5 w-5 rounded-md bg-orange-500/10 flex items-center justify-center" aria-hidden>
+                                    <Package className="h-3 w-3 text-orange-500" />
+                                  </div>
+                                  <h2 className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>Physical Goods</h2>
+                                  <div className="flex-1 h-px" style={{ background: "var(--color-border)" }} aria-hidden />
+                                  <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>{physicals.length}</span>
+                                </div>
+                                {/* ✅ FIXED: 1 col on mobile */}
+                                <div className={gridCls}>
+                                  {physicals.map((item, idx) => (
+                                    <motion.div key={item.data.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx < 4 ? idx * 0.04 : 0, duration: 0.22 }}>
+                                      <div className="relative group">
+                                        <ProductCardPhysical
+                                          p={item.data}
+                                          detailBasePath="/marketplace"
+                                          initialInCart={localCartIds.has(item.data.id)}
+                                          onAddToCart={() => addToCart(item.data)}
+                                          onClick={() => trackView(item.data)}
+                                        />
+                                        <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                                          <WishlistButton productId={item.data.id} inWishlist={wishlist.has(item.data.id)} onToggle={() => handleWishlist(item.data)} />
+                                        </div>
+                                      </div>
+                                    </motion.div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </>
+                        );
+                      })()}
+                    </div>
+                  ) : (
+                    // ✅ FIXED: 1 col on mobile
+                    <div className={gridCls}>
+                      {mixedFeed.map((item, idx) => (
+                        <motion.div key={item.data.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx < 4 ? idx * 0.04 : 0, duration: 0.22 }}>
+                          <div className="relative group">
+                            {uiVariant === "digital"
+                              ? <ProductCardDigital p={item.data} detailBasePath="/marketplace" initialInCart={localCartIds.has(item.data.id)} onAddToCart={() => addToCart(item.data)} onClick={() => trackView(item.data)} />
+                              : uiVariant === "physical"
+                                ? <ProductCardPhysical p={item.data} detailBasePath="/marketplace" initialInCart={localCartIds.has(item.data.id)} onAddToCart={() => addToCart(item.data)} onClick={() => trackView(item.data)} />
+                                : <ProductCardClient p={item.data} detailBasePath="/marketplace" initialInCart={localCartIds.has(item.data.id)} onAddToCart={() => addToCart(item.data)} onClick={() => trackView(item.data)} />
+                            }
+                            <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                              <WishlistButton productId={item.data.id} inWishlist={wishlist.has(item.data.id)} onToggle={() => handleWishlist(item.data)} />
+                            </div>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  )}
+                </motion.div>
+              ) : (
+                <motion.div key="empty" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }}>
+                  <EmptyState basePath={basePath} categories={displayCategories} />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
           {totalPages > 1 && mixedFeed.length > 0 && (
-            <div className="flex items-center justify-center gap-1.5 pt-6 pb-8">
+            <nav aria-label="Pagination" className="flex items-center justify-center gap-1.5 pt-6 pb-8">
               {currentPage > 1 && (
-                <Link href={marketplaceHref(paramsRecord, { page: String(currentPage - 1) }, basePath)}>
-                  <button
-                    className="h-9 px-4 rounded-xl text-xs font-semibold transition-all"
-                    style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", color: "var(--color-text-muted)" }}
-                  >
-                    Previous
-                  </button>
-                </Link>
+                <button
+                  onClick={() => handlePageChange(marketplaceHref(paramsRecord, { page: String(currentPage - 1) }, basePath))}
+                  className="h-9 px-4 rounded-xl text-xs font-semibold transition-all"
+                  style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", color: "var(--color-text-muted)" }}
+                  aria-label="Previous page"
+                >
+                  Previous
+                </button>
               )}
               {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                 const pg = Math.max(1, currentPage - 2) + i;
                 if (pg > totalPages) return null;
                 const isActive = pg === currentPage;
                 return (
-                  <Link key={pg} href={marketplaceHref(paramsRecord, { page: String(pg) }, basePath)}>
-                    <button
-                      className="h-9 min-w-[36px] px-3 rounded-xl text-xs font-semibold transition-all"
-                      style={isActive
-                        ? { background: "var(--color-accent)", color: "#fff", border: "1px solid transparent", boxShadow: "0 4px 12px rgba(253,80,0,0.25)" }
-                        : { background: "var(--color-surface)", border: "1px solid var(--color-border)", color: "var(--color-text-muted)" }
-                      }
-                    >
-                      {pg}
-                    </button>
-                  </Link>
+                  <button
+                    key={pg}
+                    onClick={() => !isActive && handlePageChange(marketplaceHref(paramsRecord, { page: String(pg) }, basePath))}
+                    aria-label={`Page ${pg}`}
+                    aria-current={isActive ? "page" : undefined}
+                    disabled={isActive}
+                    className="h-9 min-w-[36px] px-3 rounded-xl text-xs font-semibold transition-all"
+                    style={isActive
+                      ? { background: "var(--color-accent)", color: "#fff", border: "1px solid transparent", boxShadow: "0 4px 12px rgba(253,80,0,0.25)" }
+                      : { background: "var(--color-surface)", border: "1px solid var(--color-border)", color: "var(--color-text-muted)" }
+                    }
+                  >
+                    {pg}
+                  </button>
                 );
               })}
               {currentPage < totalPages && (
-                <Link href={marketplaceHref(paramsRecord, { page: String(currentPage + 1) }, basePath)}>
-                  <button
-                    className="h-9 px-4 rounded-xl text-xs font-semibold transition-all"
-                    style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", color: "var(--color-text-muted)" }}
-                  >
-                    Next
-                  </button>
-                </Link>
+                <button
+                  onClick={() => handlePageChange(marketplaceHref(paramsRecord, { page: String(currentPage + 1) }, basePath))}
+                  className="h-9 px-4 rounded-xl text-xs font-semibold transition-all"
+                  style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", color: "var(--color-text-muted)" }}
+                  aria-label="Next page"
+                >
+                  Next
+                </button>
               )}
-            </div>
+            </nav>
           )}
-        </div>
+        </main>
       </div>
 
-      {/* ── Clip modal ── */}
       {modalClip && (
         <>
           <div className="fixed inset-0 z-[1000] bg-black/80 animate-in fade-in duration-200" onClick={closeModalClip} aria-hidden />
-          <div className="fixed inset-0 z-[1001] flex items-center justify-center p-4 pointer-events-none">
-            <div
-              className="pointer-events-auto w-full max-w-md flex flex-col rounded-2xl overflow-hidden relative"
-              style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}
-            >
-              <button
-                onClick={closeModalClip}
-                className="absolute top-3 right-3 z-20 w-8 h-8 rounded-xl bg-black/50 flex items-center justify-center text-white hover:bg-black/80 transition-all"
-              >
-                <X className="h-4 w-4" />
+          <div role="dialog" aria-modal="true" aria-label={modalClip.title ?? "Video clip"} className="fixed inset-0 z-[1001] flex items-center justify-center p-4 pointer-events-none">
+            <div className="pointer-events-auto w-full max-w-md flex flex-col rounded-2xl overflow-hidden relative" style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
+              <button onClick={closeModalClip} className="absolute top-3 right-3 z-20 w-8 h-8 rounded-xl bg-black/50 flex items-center justify-center text-white hover:bg-black/80 transition-all focus:outline-none focus:ring-2 focus:ring-white" aria-label="Close video" autoFocus>
+                <X className="h-4 w-4" aria-hidden />
               </button>
               <div className="aspect-[9/16] max-h-[50vh] relative bg-stone-900">
                 {modalClip.video_url?.includes("youtube.com") || modalClip.video_url?.includes("youtu.be") ? (
                   <iframe
-                    src={String(modalClip.video_url).replace("watch?v=", "embed/") + "?autoplay=1&mute=1&loop=1&controls=0"}
-                    className="absolute inset-0 w-full h-full pointer-events-none scale-[1.2]"
-                    allow="autoplay" title={modalClip.title ?? "Clip"}
+                    src={String(modalClip.video_url).replace("watch?v=", "embed/") + "?autoplay=1&mute=1&loop=1&controls=1"}
+                    className="absolute inset-0 w-full h-full scale-[1.2]"
+                    allow="autoplay"
+                    title={modalClip.title ?? "Clip"}
                   />
                 ) : (
                   <div
                     className="absolute inset-0 bg-cover bg-center"
                     style={{ backgroundImage: modalClip.thumbnail_url ? `url(${modalClip.thumbnail_url})` : "linear-gradient(to bottom, #1c1917, #431407)" }}
+                    role="img"
+                    aria-label={modalClip.title ?? "Video thumbnail"}
                   />
                 )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent pointer-events-none" aria-hidden />
                 <div className="absolute bottom-4 left-4 right-12 flex items-center gap-3">
                   <Avatar className="h-10 w-10 border-2 border-white/20">
                     <AvatarImage src={(modalClip.vendors as any)?.logo_url ?? (modalClip.vendors as any)?.business_logo} />
@@ -1693,46 +1366,25 @@ export function MarketplaceClient({
                     <p className="text-[11px] text-white/60">{(modalClip.total_views ?? 0).toLocaleString()} views</p>
                   </div>
                   {modalClip.vendors?.id && (
-                    <FollowButton vendorId={modalClip.vendors.id}
-                      className="rounded-xl h-9 px-4 text-xs font-semibold border-none text-white shrink-0"
-                    // style={{ background: "var(--color-accent)" }}
-                    />
+                    <FollowButton vendorId={modalClip.vendors.id} className="rounded-xl h-9 px-4 text-xs font-semibold border-none text-white shrink-0" />
                   )}
                 </div>
               </div>
               {modalClip.products && (
-                <div
-                  className="p-4 flex items-center gap-4"
-                  style={{ borderTop: "1px solid var(--color-border)", background: "var(--color-surface-secondary)" }}
-                >
-                  <div
-                    className="w-12 h-12 rounded-xl overflow-hidden flex items-center justify-center shrink-0"
-                    style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}
-                  >
+                <div className="p-4 flex items-center gap-4" style={{ borderTop: "1px solid var(--color-border)", background: "var(--color-surface-secondary)" }}>
+                  <div className="w-12 h-12 rounded-xl overflow-hidden flex items-center justify-center shrink-0" style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
                     {Array.isArray(modalClip.products.images) && modalClip.products.images[0]
-                      ? <img src={modalClip.products.images[0]} alt="" className="w-full h-full object-cover" />
-                      : <ShoppingBag className="h-5 w-5" style={{ color: "var(--color-text-muted)" }} />
+                      ? <img src={modalClip.products.images[0]} alt={modalClip.products.name} className="w-full h-full object-cover" />
+                      : <ShoppingBag className="h-5 w-5" style={{ color: "var(--color-text-muted)" }} aria-hidden />
                     }
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold truncate" style={{ color: "var(--color-text-primary)" }}>
-                      {modalClip.products.name}
-                    </p>
-                    <LocalizedPrice
-                      amount={Number(modalClip.products.price)}
-                      currency={(modalClip.products as any).currency}
-                      className="text-sm font-bold"
-                    // style={{ color: "var(--color-accent)" }}
-                    />
+                    <p className="text-sm font-semibold truncate" style={{ color: "var(--color-text-primary)" }}>{modalClip.products.name}</p>
+                    <LocalizedPrice amount={Number(modalClip.products.price)} currency={(modalClip.products as any).currency} className="text-sm font-bold" />
                   </div>
                   <Link href={`/marketplace/${(modalClip.products as any).slug ?? ""}?buy=1`} onClick={closeModalClip}>
-                    <button
-                      className="px-4 py-2 rounded-xl text-white text-xs font-semibold transition-all"
-                      style={{ background: "var(--color-accent)" }}
-                      onMouseEnter={e => (e.currentTarget.style.background = "var(--color-accent-hover)")}
-                      onMouseLeave={e => (e.currentTarget.style.background = "var(--color-accent)")}
-                    >
-                      Buy Now
+                    <button className="px-4 py-2 rounded-xl text-white text-xs font-semibold transition-all" style={{ background: "var(--color-accent)" }}>
+                      Buy now
                     </button>
                   </Link>
                 </div>

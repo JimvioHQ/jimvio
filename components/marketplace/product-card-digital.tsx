@@ -11,6 +11,8 @@ import {
   ArrowRight,
   Repeat,
   Minus,
+  Heart,
+  PercentSquare,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -24,44 +26,68 @@ import { toast } from "sonner";
 import { useCartStore } from "@/lib/store/use-cart-store";
 import type { ProductCardClientProps } from "./product-card-client";
 
+export interface ProductCardDigitalProps extends ProductCardClientProps {
+  onAddToCart?: () => void;
+  onClick?: () => void;
+  inWishlist?: boolean;
+  onWishlistToggle?: () => void;
+}
+
 export function ProductCardDigital({
   p,
   detailBasePath = "/marketplace",
   initialInCart,
   compact = false,
   onAddToCart,
-}: ProductCardClientProps) {
+  onClick,
+  inWishlist = false,
+  onWishlistToggle,
+}: ProductCardDigitalProps) {
   const [loading, setLoading] = useState(false);
   const [inCart, setInCart] = useState(initialInCart ?? false);
   const [imageError, setImageError] = useState(false);
   const [quickViewOpen, setQuickViewOpen] = useState(false);
+  const [wishlistActive, setWishlistActive] = useState(inWishlist);
 
   const { incrementCartCount, setCartCount } = useCartStore();
 
+  /* ── Derived values ── */
   const images = p.images ?? [];
   const imgSrc = images[0] ?? null;
   const price = Number(p.price ?? 0);
   const compareAt = Number(p.compare_at_price ?? 0);
   const onSale = compareAt > price && compareAt > 0;
-  const discount = onSale
-    ? Math.round(((compareAt - price) / compareAt) * 100)
-    : 0;
-  const isRecurring = p.pricing_type === "recurring";
+  const discount = onSale ? Math.round(((compareAt - price) / compareAt) * 100) : 0;
+  const isRecurring = (p as any).pricing_type === "recurring";
 
-  // Deterministic gradient seed for missing images
+  /* ── Affiliate helpers ── */
+  const commissionRate = (p as any).affiliate_commission_rate as number | null | undefined;
+
+  const affiliateEnabled =
+    (p as any).affiliate_enabled === true &&
+    commissionRate != null &&
+    Number(commissionRate) > 0;
+
+  /* Deterministic gradient seed for placeholder art */
   const seed = (p.name?.charCodeAt(0) ?? 65) % 360;
 
+  /* Sync external wishlist state */
+  useEffect(() => { setWishlistActive(inWishlist); }, [inWishlist]);
+
+  /* Sync initialInCart changes */
   useEffect(() => {
-    if (initialInCart !== undefined) return;
+    if (initialInCart !== undefined) {
+      setInCart(initialInCart);
+      return;
+    }
     let cancelled = false;
     checkProductInCart(p.id).then((res) => {
       if (!cancelled) setInCart(res.inCart);
     });
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [p.id, initialInCart]);
 
+  /* ── Cart toggle ── */
   const handleCartToggle = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -78,10 +104,7 @@ export function ProductCardDigital({
         }
       } else {
         const vendorId = p.vendors?.id;
-        if (!vendorId) {
-          toast.error("Cannot find vendor.");
-          return;
-        }
+        if (!vendorId) { toast.error("Cannot find vendor."); return; }
         const result = await addToCart(p.id, vendorId);
         if (result.success) {
           setInCart(true);
@@ -99,6 +122,15 @@ export function ProductCardDigital({
     }
   };
 
+  /* ── Wishlist toggle ── */
+  const handleWishlist = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setWishlistActive(prev => !prev);
+    onWishlistToggle?.();
+  };
+
+  /* ── Chat ── */
   const handleChat = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -109,20 +141,14 @@ export function ProductCardDigital({
           vendor: {
             id: p.vendors.id,
             business_name: p.vendors.business_name ?? null,
-            business_logo: p.vendors.business_logo ?? null,
-            business_slug: p.vendors.business_slug ?? null,
+            business_logo: (p.vendors as any).business_logo ?? null,
+            business_slug: (p.vendors as any).business_slug ?? null,
           },
           product: {
-            id: p.id,
-            name: p.name,
-            slug: p.slug,
-            price: Number(p.price ?? 0),
-            images: p.images ?? null,
+            id: p.id, name: p.name, slug: p.slug,
+            price: Number(p.price ?? 0), images: p.images ?? null,
           },
-          currentPath:
-            typeof window !== "undefined"
-              ? window.location.pathname
-              : "/marketplace/digital",
+          currentPath: typeof window !== "undefined" ? window.location.pathname : "/marketplace/digital",
         },
       })
     );
@@ -131,6 +157,7 @@ export function ProductCardDigital({
   return (
     <>
       <article
+        onClick={onClick}
         className={cn(
           "group relative flex flex-col h-full",
           "bg-[var(--color-surface)]",
@@ -142,7 +169,7 @@ export function ProductCardDigital({
             : "ring-1 ring-[var(--color-border)] hover:shadow-[0_12px_32px_-16px_rgba(0,0,0,0.18)]"
         )}
       >
-        {/* ── Cover ─────────────────────────────────────────────── */}
+        {/* ── Cover ── */}
         <Link
           href={`${detailBasePath}/${p.slug}`}
           aria-label={p.name}
@@ -178,39 +205,80 @@ export function ProductCardDigital({
             </div>
           )}
 
-          {/* Subtle bottom fade for legibility of overlay chips */}
-          <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+          <div
+            className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+            aria-hidden
+          />
 
-          {/* Top-left chips */}
+          {/* Top-left: type + recurring badge */}
           <div className="absolute top-3 left-3 flex items-center gap-1.5">
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--color-surface)]/95 backdrop-blur-sm text-[10px] font-medium tracking-wide text-[var(--color-text-primary)]">
-              <Zap className="h-3 w-3 text-orange-500" />
+              <Zap className="h-3 w-3 text-orange-500" aria-hidden />
               Digital
             </span>
             {isRecurring && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--color-surface)]/95 backdrop-blur-sm text-[10px] font-medium tracking-wide text-[var(--color-text-muted)]">
-                <Repeat className="h-3 w-3" />
-                {p.billing_period}
+                <Repeat className="h-3 w-3" aria-hidden />
+                {(p as any).billing_period}
               </span>
             )}
           </div>
 
-          {/* Top-right state */}
-          {inCart && !isRecurring && (
-            <span className="absolute top-3 right-3 h-6 w-6 rounded-full bg-orange-500 text-white flex items-center justify-center shadow-sm">
-              <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
-            </span>
-          )}
+          {/* Top-right: wishlist + in-cart check */}
+          <div className="absolute top-3 right-3 flex items-center gap-1.5">
+            {onWishlistToggle && (
+              <button
+                type="button"
+                onClick={handleWishlist}
+                aria-label={wishlistActive ? "Remove from wishlist" : "Save to wishlist"}
+                aria-pressed={wishlistActive}
+                className={cn(
+                  "flex items-center justify-center h-6 w-6 rounded-full transition-all",
+                  "opacity-0 group-hover:opacity-100",
+                  wishlistActive && "opacity-100",
+                  wishlistActive
+                    ? "bg-rose-500 text-white shadow-sm"
+                    : "bg-[var(--color-surface)]/90 backdrop-blur-sm text-[var(--color-text-muted)] hover:text-rose-500"
+                )}
+              >
+                <Heart className={cn("h-3 w-3 transition-all", wishlistActive && "fill-current")} aria-hidden />
+              </button>
+            )}
 
+            {inCart && !isRecurring && (
+              <span
+                className="h-6 w-6 rounded-full bg-orange-500 text-white flex items-center justify-center shadow-sm"
+                aria-label="In library"
+              >
+                <Check className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden />
+              </span>
+            )}
+          </div>
+
+          {/* Bottom-left: sale discount */}
           {onSale && (
             <span className="absolute flex items-center gap-1 bottom-3 left-3 px-2 py-0.5 rounded-full bg-[var(--color-surface)]/95 backdrop-blur-sm text-[10px] font-medium tracking-wide text-rose-600">
-              <Minus size={12} />{discount}%
+              <Minus size={12} aria-hidden />
+              {discount}%
             </span>
           )}
         </Link>
 
-        {/* ── Info ──────────────────────────────────────────────── */}
+        {/* ── Info ── */}
         <div className="flex flex-col flex-1 p-3.5 sm:p-4 gap-2.5">
+
+          {/* Affiliate badge — only when commission rate > 0 */}
+          {affiliateEnabled && (
+            <div className="flex items-center gap-1">
+              <span
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold"
+                style={{ background: "rgba(99,102,241,0.1)", color: "#6366f1" }}
+              >
+                <PercentSquare className="h-2.5 w-2.5" aria-hidden />
+                {commissionRate}% commission
+              </span>
+            </div>
+          )}
 
           {/* Name */}
           <Link href={`${detailBasePath}/${p.slug}`} className="min-w-0 block">
@@ -224,7 +292,7 @@ export function ProductCardDigital({
             <LocalizedPrice
               amount={price}
               currency={p.currency}
-              period={isRecurring ? p.billing_period : null}
+              period={isRecurring ? (p as any).billing_period : null}
               className="text-[17px] font-semibold tabular-nums tracking-tight text-[var(--color-text-primary)]"
             />
             {onSale && (
@@ -250,8 +318,8 @@ export function ProductCardDigital({
                   "transition-all duration-200"
                 )}
               >
-                <span>{p.button_text || "View plans"}</span>
-                <ArrowRight className="h-3.5 w-3.5" />
+                <span>{(p as any).button_text || "View plans"}</span>
+                <ArrowRight className="h-3.5 w-3.5" aria-hidden />
               </Link>
             ) : (
               <button
@@ -270,18 +338,21 @@ export function ProductCardDigital({
                 )}
               >
                 {loading ? (
-                  <span className="h-3.5 w-3.5 border-[1.5px] border-current border-t-transparent rounded-full animate-spin" />
+                  <span
+                    className="h-3.5 w-3.5 border-[1.5px] border-current border-t-transparent rounded-full animate-spin"
+                    aria-label="Loading"
+                  />
                 ) : inCart ? (
                   <>
-                    <Check className="h-3.5 w-3.5 group-hover/btn:hidden" />
-                    <X className="h-3.5 w-3.5 hidden group-hover/btn:block" />
+                    <Check className="h-3.5 w-3.5 group-hover/btn:hidden" aria-hidden />
+                    <X className="h-3.5 w-3.5 hidden group-hover/btn:block" aria-hidden />
                     <span className="group-hover/btn:hidden">In library</span>
                     <span className="hidden group-hover/btn:inline">Remove</span>
                   </>
                 ) : (
                   <>
-                    <Zap className="h-3.5 w-3.5" />
-                    <span>{p.button_text || "Get access"}</span>
+                    <Zap className="h-3.5 w-3.5" aria-hidden />
+                    <span>{(p as any).button_text || "Get access"}</span>
                   </>
                 )}
               </button>
@@ -293,7 +364,7 @@ export function ProductCardDigital({
               aria-label="Chat with seller"
               className="flex items-center justify-center h-9 w-9 rounded-xl bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors"
             >
-              <MessageCircle className="h-4 w-4" />
+              <MessageCircle className="h-4 w-4" aria-hidden />
             </button>
           </div>
         </div>
@@ -313,8 +384,8 @@ export function ProductCardDigital({
           p.vendors
             ? {
               id: p.vendors.id,
-              business_name: p.vendors.business_name ?? "",
-              business_slug: p.vendors.business_slug,
+              business_name: (p.vendors as any).business_name ?? "",
+              business_slug: (p.vendors as any).business_slug,
             }
             : null
         }

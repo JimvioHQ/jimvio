@@ -67,6 +67,7 @@ export interface ProductCardClientProps {
   initialInCart?: boolean;
   compact?: boolean;
   onAddToCart?: () => void;
+  onClick?: () => void; // ✅ added
 }
 
 /* ─────────────────────────── component ─────────────────────── */
@@ -78,6 +79,7 @@ export function ProductCardClient({
   initialInCart,
   compact = false,
   onAddToCart,
+  onClick, // ✅ added
 }: ProductCardClientProps) {
   const [loading, setLoading] = useState(false);
   const [inCart, setInCart] = useState(initialInCart ?? false);
@@ -121,7 +123,6 @@ export function ProductCardClient({
     };
   }, [p.id, initialInCart]);
 
-
   const doAddToCart = async (vendorId: string, variantId: string | null) => {
     try {
       if (variantId) setLoadingVariantId(variantId);
@@ -150,7 +151,6 @@ export function ProductCardClient({
   const handleCartToggle = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    alert(p.source)
     if (inCart) {
       try {
         setLoading(true);
@@ -176,7 +176,6 @@ export function ProductCardClient({
       return;
     }
 
-    // CJ products may have multiple variants
     if (p.source === "cj") {
       try {
         setLoading(true);
@@ -186,13 +185,11 @@ export function ProductCardClient({
           list = res.variants ?? [];
           setVariants(list);
         }
-
         if (list.length > 1) {
           setVariantPickerOpen(true);
           setLoading(false);
           return;
         }
-
         const variantId = list.length === 1 ? list[0].id : null;
         await doAddToCart(vendorId, variantId);
         return;
@@ -240,7 +237,6 @@ export function ProductCardClient({
     );
   };
 
-  /* ── initials fallback color from name ── */
   const hue = useMemo(() => {
     let h = 0;
     for (let i = 0; i < p.name.length; i++) h = (h + p.name.charCodeAt(i) * 17) % 360;
@@ -249,9 +245,9 @@ export function ProductCardClient({
 
   return (
     <>
-      {/* ═══════════════ Card Shell ═══════════════ */}
       <div
         ref={cardRef}
+        onClick={onClick} // ✅ added
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
         className={cn(
@@ -277,7 +273,6 @@ export function ProductCardClient({
             compact ? "aspect-[4/3]" : "aspect-[1/1]"
           )}
         >
-          {/* image or monogram */}
           {imgSrc && !imageError ? (
             <Image
               src={imgSrc}
@@ -310,13 +305,11 @@ export function ProductCardClient({
             </div>
           )}
 
-          {/* scrim */}
           <div
             className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent transition-opacity duration-400"
             style={{ opacity: hovered ? 1 : 0 }}
           />
 
-          {/* ── Discount chip — top-left ── */}
           {discount > 0 && (
             <div className="absolute top-3 left-3 z-20">
               <span
@@ -328,7 +321,6 @@ export function ProductCardClient({
             </div>
           )}
 
-          {/* ── Wishlist — top-right ── */}
           {showWishlist && (
             <button
               type="button"
@@ -343,7 +335,6 @@ export function ProductCardClient({
                   : "bg-white/20 border-white/30 text-white hover:bg-white/40"
               )}
             >
-              {/* Heart SVG */}
               <svg
                 viewBox="0 0 24 24"
                 className="h-4 w-4"
@@ -356,7 +347,6 @@ export function ProductCardClient({
             </button>
           )}
 
-          {/* ── Hover bottom action strip ── */}
           <div
             className={cn(
               "absolute left-3 right-3 bottom-3 z-20 flex gap-2",
@@ -364,7 +354,6 @@ export function ProductCardClient({
               hovered ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"
             )}
           >
-            {/* Chat */}
             <button
               type="button"
               onClick={handleChat}
@@ -380,7 +369,6 @@ export function ProductCardClient({
               {!compact && <span>Chat</span>}
             </button>
 
-            {/* Cart CTA */}
             <button
               type="button"
               onClick={handleCartToggle}
@@ -423,7 +411,6 @@ export function ProductCardClient({
             </button>
           </div>
 
-          {/* ── Digital / Physical pill — visible always on image ── */}
           {isDigital && (
             <div className="absolute bottom-3 left-3 z-10 pointer-events-none">
               <span
@@ -442,14 +429,12 @@ export function ProductCardClient({
 
         {/* ─────────── Info area ─────────── */}
         <div className="flex flex-col flex-1 px-3.5 pt-3 pb-3.5 gap-1">
-          {/* Vendor name */}
           {p.vendors?.business_name && (
             <p className="text-[10px] font-medium tracking-wide text-stone-400 dark:text-stone-500 uppercase truncate">
               {p.vendors.business_name}
             </p>
           )}
 
-          {/* Product name */}
           <Link href={`${detailBasePath}/${p.slug}`} className="min-w-0 block">
             <h3
               className={cn(
@@ -462,7 +447,6 @@ export function ProductCardClient({
             </h3>
           </Link>
 
-          {/* Price row */}
           <div className="flex items-baseline gap-2 mt-1.5">
             <LocalizedPrice
               amount={price}
@@ -482,13 +466,11 @@ export function ProductCardClient({
             )}
           </div>
 
-          {/* Divider */}
           <div className="h-px bg-stone-100 dark:bg-white/[0.06] mt-2 mb-1.5" />
 
-          {/* Footer row: affiliate badge + mobile cart */}
           <div className="flex items-center justify-between gap-2">
-            {/* Affiliate */}
-            {p.affiliate_enabled && commissionRate ? (
+            {/* ✅ FIXED: only show when affiliate_enabled AND commissionRate > 0 */}
+            {p.affiliate_enabled && commissionRate != null && Number(commissionRate) > 0 ? (
               <span className="inline-flex items-center gap-1 rounded-full bg-orange-50 dark:bg-orange-500/10 border border-orange-100 dark:border-orange-500/20 text-[#fd5000] px-2.5 py-0.5 text-[9px] font-bold tracking-wide uppercase">
                 <TrendingUp className="h-2.5 w-2.5" />
                 {commissionRate}% commission
@@ -497,7 +479,6 @@ export function ProductCardClient({
               <span />
             )}
 
-            {/* In-cart indicator (desktop) */}
             {inCart && (
               <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
                 <CheckCircle2 className="h-3 w-3" />
@@ -506,7 +487,6 @@ export function ProductCardClient({
             )}
           </div>
 
-          {/* ── Mobile Add to Cart ── */}
           <button
             type="button"
             onClick={handleCartToggle}
