@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search, Package, Zap, ShieldCheck, Sparkles, TrendingUp,
-  Clock, Star, ShoppingBag, X, ChevronRight, MapPin,
+  Clock, Star, ShoppingBag, X, LockKeyhole as Lock, MapPin,
   Award, SlidersHorizontal, ChevronDown, Heart, ShoppingCart,
   CheckCircle2, AlertCircle, Eye, PercentSquare, Filter,
   SlidersVertical, Bookmark, Tag, ArrowUpRight,
@@ -70,13 +70,16 @@ function getCategoryIcon(slug: string, name: string): LucideIcon {
 }
 const DIGITAL_SLUG_PATTERNS = ["ebook", "course", "software", "template", "digital", "asset"];
 
-/* ─── Wishlist hook (localStorage) ─── */
 function useWishlist() {
-  const [wishlist, setWishlist] = useState<Set<string>>(() => {
-    if (typeof window === "undefined") return new Set();
-    try { return new Set(JSON.parse(localStorage.getItem("mkt_wishlist") || "[]")); }
-    catch { return new Set(); }
-  });
+  const [wishlist, setWishlist] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("mkt_wishlist");
+      if (stored) setWishlist(new Set(JSON.parse(stored)));
+    } catch { }
+  }, []);
+
   const toggle = useCallback((id: string) => {
     setWishlist(prev => {
       const next = new Set(prev);
@@ -85,6 +88,7 @@ function useWishlist() {
       return next;
     });
   }, []);
+
   return { wishlist, toggle };
 }
 
@@ -136,49 +140,7 @@ function SkeletonGrid({ count = 8 }: { count?: number }) {
   );
 }
 
-/* ─── Stock badge ─── */
-function StockBadge({ product }: { product: Product }) {
-  if (product.is_digital) return null;
-  const qty = product.stock_quantity;
-  const inStock = product.in_stock !== false;
-  if (!inStock) {
-    return (
-      <span
-        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold"
-        style={{ background: "rgba(239,68,68,0.1)", color: "#ef4444" }}
-      >
-        Out of stock
-      </span>
-    );
-  }
-  if (qty !== null && qty !== undefined && qty <= 5) {
-    return (
-      <span
-        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold"
-        style={{ background: "rgba(245,158,11,0.1)", color: "#d97706" }}
-      >
-        Only {qty} left
-      </span>
-    );
-  }
-  return null;
-}
 
-/* ─── Affiliate badge ─── */
-function AffiliateBadge({ product }: { product: Product }) {
-  const rate = product.affiliate_commission_rate;
-  // ✅ FIXED: only show when affiliate_enabled AND rate is a real number > 0
-  if (!product.affiliate_enabled || rate == null || Number(rate) <= 0) return null;
-  return (
-    <span
-      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold"
-      style={{ background: "rgba(99,102,241,0.1)", color: "#6366f1" }}
-    >
-      <PercentSquare className="h-2.5 w-2.5" />
-      {rate}% commission
-    </span>
-  );
-}
 
 /* ─── Wishlist button ─── */
 function WishlistButton({
@@ -240,7 +202,7 @@ function FilterDrawer({
             aria-modal="true"
             aria-label="Filters"
             tabIndex={-1}
-            className="fixed bottom-0 left-0 right-0 z-[901] rounded-t-2xl overflow-y-auto max-h-[85vh] focus:outline-none"
+            className="fixed bottom-0 left-0 right-0 z-[901] rounded-t-sm overflow-y-auto max-h-[85vh] focus:outline-none"
             style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}
             initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
             transition={{ type: "spring", stiffness: 380, damping: 38 }}
@@ -945,7 +907,7 @@ export function MarketplaceClient({
               <TypeTabs params={paramsRecord} basePath={basePath} />
               <button
                 onClick={() => setFilterDrawerOpen(true)}
-                className="lg:hidden relative flex items-center gap-1.5 px-3 h-9 rounded-xl text-xs font-semibold transition-all"
+                className="lg:hidden relative flex items-center gap-1.5 px-3 h-9 rounded-sm text-xs font-semibold transition-all"
                 style={{ background: "var(--color-surface-secondary)", border: "1px solid var(--color-border)", color: "var(--color-text-primary)" }}
                 aria-label={`Filters${activeFilterCount > 0 ? `, ${activeFilterCount} active` : ""}`}
               >
@@ -1048,14 +1010,14 @@ export function MarketplaceClient({
               showAffiliate={showAffiliate} onAffiliateChange={setShowAffiliate}
             />
 
-            <div className="rounded-xl p-4 space-y-3" style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
+            <div className="rounded-sm p-4 space-y-3" style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
               <div className="flex items-center gap-2.5">
                 <div
                   className="h-8 w-8 rounded-lg flex items-center justify-center"
                   style={{ background: "var(--color-accent-light)", border: "1px solid var(--color-accent-subtle)" }}
                   aria-hidden
                 >
-                  <ShieldCheck className="h-4 w-4" style={{ color: "var(--color-accent)" }} />
+                  <Lock className="h-4 w-4" style={{ color: "var(--color-accent)" }} />
                 </div>
                 <p className="text-xs font-semibold" style={{ color: "var(--color-text-primary)" }}>
                   {uiVariant === "digital" ? "Verified licenses" : "Buyer protection"}

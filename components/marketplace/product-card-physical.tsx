@@ -157,6 +157,8 @@ export function ProductCardPhysical({
         if (list === null) {
           const res = await getProductVariants(p.id);
           list = res.variants ?? [];
+          console.log(res.variants);
+
           setVariants(list);
         }
         if (list.length > 1) {

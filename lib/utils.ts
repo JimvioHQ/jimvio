@@ -326,3 +326,80 @@ export async function downloadFile(id: string) {
   a.remove();
   window.URL.revokeObjectURL(url);
 }
+
+
+export type ProductType = "physical" | "digital";
+export type DeliveryTime = "fast" | "standard" | "economy";
+
+export type FilterableListing = {
+  name: string;
+  price: string;
+  category: string;
+  shippingFrom: string;
+  deliveryTime: DeliveryTime;
+  type: ProductType;
+  rating?: string;
+};
+
+export type AppliedFilters = {
+  search: string;
+  productType: ProductType;
+  category: string;
+  shippingFrom: string[];
+  deliveryTimes: DeliveryTime[];
+  priceRange: [number, number];
+  minRating: number;
+};
+
+export const DEFAULT_FILTERS: AppliedFilters = {
+  search: "",
+  productType: "physical",
+  category: "Trending Now",
+  shippingFrom: [],
+  deliveryTimes: [],
+  priceRange: [0, 5000],
+  minRating: 0,
+};
+
+export function parsePrice(price: string): number {
+  return Number(price.replace(/[^0-9.]/g, ""));
+}
+
+export function filterListings<T extends FilterableListing>(
+  items: T[],
+  filters: AppliedFilters,
+): T[] {
+  const query = filters.search.trim().toLowerCase();
+
+  return items.filter((item) => {
+    if (item.type !== filters.productType) return false;
+    if (query && !item.name.toLowerCase().includes(query)) return false;
+    if (
+      filters.category !== "Trending Now" &&
+      item.category !== filters.category
+    ) {
+      return false;
+    }
+    if (
+      filters.shippingFrom.length > 0 &&
+      !filters.shippingFrom.includes(item.shippingFrom)
+    ) {
+      return false;
+    }
+    if (
+      filters.deliveryTimes.length > 0 &&
+      !filters.deliveryTimes.includes(item.deliveryTime)
+    ) {
+      return false;
+    }
+    const price = parsePrice(item.price);
+    if (price < filters.priceRange[0] || price > filters.priceRange[1]) {
+      return false;
+    }
+    if (filters.minRating > 0) {
+      const rating = item.rating ? Number(item.rating) : 0;
+      if (rating < filters.minRating) return false;
+    }
+    return true;
+  });
+}

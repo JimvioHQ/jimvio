@@ -1059,17 +1059,92 @@ export async function getProductVariants(productId: string) {
     const { data, error } = await supabase
       .from("product_variants")
       .select(`
-        id, name, sku, price, compare_at_price,
-        inventory_quantity, image_url, options, is_active
+        id,
+        name,
+        sku,
+        price,
+        compare_at_price,
+        inventory_quantity,
+        image_url,
+        options,
+        is_active,
+        source,
+        weight,
+        length,
+        width,
+        height,
+        volume,
+        affiliate_price,
+        affiliate_commission_rate,
+        cj_vid,
+        cj_pid
       `)
       .eq("product_id", productId)
       .eq("is_active", true)
       .order("created_at", { ascending: true });
 
     if (error) throw error;
+    console.log(data);
+
     return { success: true, variants: data ?? [] };
   } catch (error: any) {
     console.error("Get variants error:", error);
     return { success: false, error: error.message, variants: [] };
   }
+}
+
+export async function getFlashDeals() {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("products")
+    .select(`
+      id, name, price, compare_at_price, discount_label,
+      images, category, shipping_from, delivery_time, type,
+      affiliate_commission,
+      product_stats(sold_count, claimed_pct)
+    `)
+    .eq("is_flash_deal", true)
+    .eq("status", "active")
+    .order("created_at", { ascending: false })
+    .limit(12);
+
+  return data ?? [];
+}
+
+export async function getTrendingProducts(filters?: {
+  category?: string;
+  type?: string;
+}) {
+  const supabase = await createClient();
+  let query = supabase
+    .from("products")
+    .select(`
+      id, name, price, compare_at_price, discount_label,
+      images, category, shipping_from, delivery_time, type,
+      product_stats(rating, review_count)
+    `)
+    .eq("status", "active")
+    .order("view_count", { ascending: false })
+    .limit(24);
+
+  if (filters?.category && filters.category !== "Trending Now") {
+    query = query.eq("category", filters.category);
+  }
+  if (filters?.type) {
+    query = query.eq("type", filters.type);
+  }
+
+  const { data } = await query;
+  return data ?? [];
+}
+
+export async function getShopCategories() {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("categories")
+    .select("id, name, slug, product_count, image_url, tint_color")
+    .eq("visible", true)
+    .order("sort_order");
+
+  return data ?? [];
 }
