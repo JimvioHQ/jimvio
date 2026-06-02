@@ -564,7 +564,6 @@ export async function MarketplaceData() {
       <FlashDealsSection deals={flashDeals} />
       <ShopByCategorySection categories={categories} />
       <TrendingProductsSection products={trending} />
-      <LiveActivityBarSection activities={activities} viewersNow={stats.viewers_now} />
     </>
   );
 }
