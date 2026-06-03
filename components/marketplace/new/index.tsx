@@ -63,15 +63,40 @@ function fmtCount(n: number | null | undefined): string {
   return String(n);
 }
 
+function isRenderableUrl(s: unknown): s is string {
+  if (typeof s !== "string") return false;
+  const t = s.trim();
+  if (!t || t === "[object Object]" || t === "null") return false;
+  if (t.startsWith("/") || t.startsWith("data:") || t.startsWith("blob:")) return true;
+  try { const u = new URL(t); return u.protocol === "http:" || u.protocol === "https:"; }
+  catch { return false; }
+}
+
 function getImage(images: unknown): string {
   if (!images) return "/placeholder.png";
-  if (Array.isArray(images) && images.length > 0) return String(images[0]);
+  let arr: unknown[] = [];
   if (typeof images === "string") {
-    try {
-      const parsed = JSON.parse(images);
-      if (Array.isArray(parsed) && parsed.length > 0) return String(parsed[0]);
-    } catch {}
-    return images;
+    try { arr = JSON.parse(images); }
+    catch { return isRenderableUrl(images) ? images : "/placeholder.png"; }
+  } else if (Array.isArray(images)) {
+    arr = images;
+  } else {
+    return "/placeholder.png";
+  }
+  const primary = arr.find(
+    (x) => x && typeof x === "object" && (x as Record<string,unknown>).is_primary === true
+  );
+  if (primary) {
+    const u = (primary as Record<string,unknown>).url ?? (primary as Record<string,unknown>).src;
+    if (isRenderableUrl(u)) return u as string;
+  }
+  for (const item of arr) {
+    if (isRenderableUrl(item)) return item;
+    if (item && typeof item === "object") {
+      const o = item as Record<string, unknown>;
+      const u = o.url ?? o.src ?? o.image_url;
+      if (isRenderableUrl(u)) return u as string;
+    }
   }
   return "/placeholder.png";
 }

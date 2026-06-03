@@ -1092,59 +1092,86 @@ export async function getProductVariants(productId: string) {
     return { success: false, error: error.message, variants: [] };
   }
 }
-
 export async function getFlashDeals() {
   const supabase = await createClient();
   const { data } = await supabase
     .from("products")
     .select(`
       id, name, price, compare_at_price, discount_label,
-      images, category, shipping_from, delivery_time, type,
-      affiliate_commission,
-      product_stats(sold_count, claimed_pct)
+      images, category_id, shipping_from, delivery_time, product_type,
+      affiliate_commission_rate, sold_count, claimed_pct,
+      is_free_shipping, rating, review_count,
+      product_categories ( name, slug )
     `)
     .eq("is_flash_deal", true)
     .eq("status", "active")
+    .eq("is_active", true)
+    .is("deleted_at", null)
     .order("created_at", { ascending: false })
     .limit(12);
 
   return data ?? [];
 }
 
+type ProductTypeEnum =
+  | "physical" | "digital" | "subscription" | "course"
+  | "software" | "template" | "ebook" | "coaching"
+  | "community" | "bundle";
+
 export async function getTrendingProducts(filters?: {
   category?: string;
-  type?: string;
+  product_type?: ProductTypeEnum;
 }) {
   const supabase = await createClient();
   let query = supabase
     .from("products")
     .select(`
       id, name, price, compare_at_price, discount_label,
-      images, category, shipping_from, delivery_time, type,
-      product_stats(rating, review_count)
+      images, category_id, shipping_from, delivery_time, product_type,
+      affiliate_commission_rate, sale_count, rating, review_count,
+      is_free_shipping, is_flash_deal,
+      product_categories ( name, slug )
     `)
     .eq("status", "active")
+    .eq("is_active", true)
+    .is("deleted_at", null)
     .order("view_count", { ascending: false })
     .limit(24);
 
-  if (filters?.category && filters.category !== "Trending Now") {
-    query = query.eq("category", filters.category);
-  }
-  if (filters?.type) {
-    query = query.eq("type", filters.type);
+  if (filters?.product_type) {
+    query = query.eq(
+      "product_type",
+      filters.product_type as
+        | "physical" | "digital" | "subscription" | "course"
+        | "software" | "template" | "ebook" | "coaching"
+        | "community" | "bundle",
+    );
   }
 
   const { data } = await query;
+
+  // Filter by category name after fetch since category is a join
+  if (filters?.category && filters.category !== "Trending Now") {
+    return (data ?? []).filter((p) => {
+      const cat = Array.isArray(p.product_categories)
+        ? p.product_categories[0]
+        : p.product_categories;
+      return (cat as { name?: string } | null)?.name === filters.category;
+    });
+  }
+
   return data ?? [];
 }
 
 export async function getShopCategories() {
   const supabase = await createClient();
   const { data } = await supabase
-    .from("categories")
-    .select("id, name, slug, product_count, image_url, tint_color")
+    .from("product_categories")          // ← correct table name
+    .select("id, name, slug, product_count, image_url, tint_color, icon")
+    .eq("is_active", true)
     .eq("visible", true)
-    .order("sort_order");
+    .order("sort_order")
+    .limit(7);
 
   return data ?? [];
 }

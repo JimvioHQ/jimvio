@@ -20,6 +20,19 @@
         transparent 78%);
   }
 
+  .maplibregl-ctrl-attrib {
+    display: none;
+  }
+
+  .maplibregl-ctrl-attrib {
+    display: none !important;
+  }
+
+  .maplibregl-ctrl-bottom-right,
+  .maplibregl-ctrl-bottom-left {
+    display: none !important;
+  }
+
   .home-surface {
     @apply backdrop-blur-md border border-border;
     background-color: rgb(var(--color-surface) / 0.95);

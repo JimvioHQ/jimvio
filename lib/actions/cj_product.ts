@@ -267,42 +267,114 @@ export async function calculateCJPricing(costUsd: number): Promise<{
 
 // ── Category Handler ──────────────────────────────────────────────────────────
 
-export async function findOrCreateCategory(
-    supabase: SupabaseLike,
-    categoryName: string
+// export async function findOrCreateCategory(
+//     supabase: SupabaseLike,
+//     categoryName: string
+// ): Promise<string | null> {
+//     if (!categoryName) return null;
+
+//     const { data: existing } = await supabase
+//         .from("product_categories")
+//         .select("id")
+//         .eq("name", categoryName)
+//         .eq("category_type", "physical")
+//         .maybeSingle();
+
+//     const existingCategory = existing as { id: string } | null;
+//     if (existingCategory?.id) return existingCategory.id;
+
+//     const { data: created, error } = await supabase
+//         .from("product_categories")
+//         .insert({
+//             name: categoryName,
+//             slug: slugify(categoryName),
+//             category_type: "physical",
+//             is_active: true,
+//             sort_order: 0,
+//         })
+//         .select("id")
+//         .single();
+
+//     if (error) {
+//         console.error("[CJ] Failed to create category:", error.message);
+//         return null;
+//     }
+
+//     return (created as { id: string }).id;
+// }
+
+ 
+/** Split a CJ category path into segments regardless of separator used */
+function splitCJCategoryPath(categoryName: string): string[] {
+  return categoryName
+    .split(/\s*[/|>]\s*/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+ 
+/** Get or create a single category row, returns its id */
+async function upsertCategory(
+  supabase: SupabaseLike,
+  name: string,
+  parentId: string | null,
 ): Promise<string | null> {
-    if (!categoryName) return null;
-
-    const { data: existing } = await supabase
-        .from("product_categories")
-        .select("id")
-        .eq("name", categoryName)
-        .eq("category_type", "physical")
-        .maybeSingle();
-
-    const existingCategory = existing as { id: string } | null;
-    if (existingCategory?.id) return existingCategory.id;
-
-    const { data: created, error } = await supabase
-        .from("product_categories")
-        .insert({
-            name: categoryName,
-            slug: slugify(categoryName),
-            category_type: "physical",
-            is_active: true,
-            sort_order: 0,
-        })
-        .select("id")
-        .single();
-
-    if (error) {
-        console.error("[CJ] Failed to create category:", error.message);
-        return null;
-    }
-
-    return (created as { id: string }).id;
+  const slug = slugify(name);
+ 
+  const { data: existing } = await supabase
+    .from("product_categories")
+    .select("id")
+    .eq("slug", slug)
+    .eq("category_type", "physical")
+    .maybeSingle();
+ 
+  if ((existing as { id: string } | null)?.id) {
+    return (existing as { id: string }).id;
+  }
+ 
+  const { data: created, error } = await supabase
+    .from("product_categories")
+    .insert({
+      name,
+      slug,
+      parent_id:     parentId,
+      category_type: "physical",
+      is_active:     true,
+      visible:       parentId === null, // only top-level visible in nav
+      sort_order:    0,
+    })
+    .select("id")
+    .single();
+ 
+  if (error) {
+    console.error("[CJ] Failed to create category:", name, error.message);
+    return null;
+  }
+ 
+  return (created as { id: string }).id;
 }
 
+export async function findOrCreateCategory(
+  supabase: SupabaseLike,
+  categoryName: string,
+): Promise<string | null> {
+  if (!categoryName?.trim()) return null;
+ 
+  const segments = splitCJCategoryPath(categoryName);
+  if (segments.length === 0) return null;
+ 
+  // Walk the path, creating each level if needed
+  let parentId: string | null = null;
+  let leafId: string | null = null;
+ 
+  for (const segment of segments) {
+    const id = await upsertCategory(supabase, segment, parentId);
+    if (!id) return null;
+    parentId = id;
+    leafId   = id;
+  }
+ 
+  return leafId;
+}
 // ── Product Mapper ────────────────────────────────────────────────────────────
 
 export async function mapCJProductToJimvio(

@@ -237,38 +237,38 @@ export type ImageInput =
   | null
   | undefined;
 
-export function normalizeImages(input: ImageInput): string[] {
-  if (!input) return [];
+// export function normalizeImages(input: ImageInput): string[] {
+//   if (!input) return [];
 
-  // Already an array — coerce each element to a usable URL
-  if (Array.isArray(input)) {
-    return input
-      .map((item) => {
-        if (typeof item === "string") return item;
-        if (item && typeof item === "object") {
-          return item.url ?? item.src ?? "";
-        }
-        return "";
-      })
-      .filter((u): u is string => typeof u === "string" && u.length > 0);
-  }
+//   // Already an array — coerce each element to a usable URL
+//   if (Array.isArray(input)) {
+//     return input
+//       .map((item) => {
+//         if (typeof item === "string") return item;
+//         if (item && typeof item === "object") {
+//           return item.url ?? item.src ?? "";
+//         }
+//         return "";
+//       })
+//       .filter((u): u is string => typeof u === "string" && u.length > 0);
+//   }
 
-  if (typeof input === "string") {
-    const trimmed = input.trim();
-    if (!trimmed) return [];
-    if (trimmed.startsWith("[") || trimmed.startsWith("{") || trimmed.startsWith('"')) {
-      try {
-        const parsed = JSON.parse(trimmed);
-        return normalizeImages(parsed);
-      } catch {
-      }
-    }
+//   if (typeof input === "string") {
+//     const trimmed = input.trim();
+//     if (!trimmed) return [];
+//     if (trimmed.startsWith("[") || trimmed.startsWith("{") || trimmed.startsWith('"')) {
+//       try {
+//         const parsed = JSON.parse(trimmed);
+//         return normalizeImages(parsed);
+//       } catch {
+//       }
+//     }
 
-    return [trimmed];
-  }
+//     return [trimmed];
+//   }
 
-  return [];
-}
+//   return [];
+// }
 
 export function isRenderableImageSrc(s: unknown): s is string {
   if (typeof s !== "string") return false;
@@ -402,4 +402,69 @@ export function filterListings<T extends FilterableListing>(
     }
     return true;
   });
+}
+
+
+export function normalizeImages(input: unknown): string[] {
+  if (!input) return [];
+
+  let arr: unknown[] = [];
+
+  if (typeof input === "string") {
+    // Legacy rows where JSONB was accidentally JSON.stringify'd before insert
+    try {
+      const parsed = JSON.parse(input);
+      arr = Array.isArray(parsed) ? parsed : [parsed];
+    } catch {
+      // Plain string URL
+      return isRenderableUrl(input) ? [input] : [];
+    }
+  } else if (Array.isArray(input)) {
+    arr = input;
+  } else {
+    return [];
+  }
+
+  return arr
+    .map((item) => {
+      if (typeof item === "string") return item.trim();
+      if (item && typeof item === "object") {
+        const o = item as Record<string, unknown>;
+        const url = o.url ?? o.src ?? o.image_url ?? o.imageUrl;
+        return typeof url === "string" ? url.trim() : "";
+      }
+      return "";
+    })
+    .filter(isRenderableUrl);
+}
+
+export function isRenderableUrl(s: unknown): s is string {
+  if (typeof s !== "string") return false;
+  const t = s.trim();
+  if (!t) return false;
+  if (t === "[object Object]" || t === "null" || t === "undefined") return false;
+  if (t.startsWith("/")) return true;
+  if (t.startsWith("data:") || t.startsWith("blob:")) return true;
+  try {
+    const u = new URL(t);
+    return u.protocol === "http:" || u.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+/** Returns the best single image URL or a fallback */
+export function getProductImage(images: unknown, fallback = "/placeholder.png"): string {
+  const normalized = normalizeImages(images);
+  // Prefer the image marked is_primary if original was an object array
+  if (Array.isArray(images)) {
+    const primary = (images as Record<string, unknown>[]).find(
+      (item) => item && typeof item === "object" && item.is_primary === true,
+    );
+    if (primary) {
+      const url = primary.url ?? primary.src;
+      if (isRenderableUrl(url)) return url as string;
+    }
+  }
+  return normalized[0] ?? fallback;
 }
