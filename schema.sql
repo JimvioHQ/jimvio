@@ -1,4 +1,6 @@
 
+
+
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
@@ -2007,7 +2009,9 @@ CREATE TABLE IF NOT EXISTS "public"."product_categories" (
     "sort_order" integer DEFAULT 0,
     "product_count" integer DEFAULT 0,
     "created_at" timestamp(6) with time zone DEFAULT CURRENT_TIMESTAMP,
-    "category_type" "text" DEFAULT 'physical'::"text" NOT NULL
+    "category_type" "text" DEFAULT 'physical'::"text" NOT NULL,
+    "tint_color" "text",
+    "visible" boolean DEFAULT true
 );
 
 
@@ -2163,7 +2167,15 @@ CREATE TABLE IF NOT EXISTS "public"."products" (
     "rating_breakdown" "jsonb" DEFAULT '{}'::"jsonb",
     "deleted_at" timestamp with time zone,
     "affiliate_price" numeric DEFAULT 0,
+    "is_flash_deal" boolean DEFAULT false,
+    "discount_label" "text",
+    "shipping_from" "text",
+    "delivery_time" "text",
+    "sold_count" integer DEFAULT 0,
+    "claimed_pct" integer DEFAULT 0,
     CONSTRAINT "products_billing_period_consistency" CHECK (((("pricing_type" = 'recurring'::"text") AND ("billing_period" IS NOT NULL)) OR (("pricing_type" = 'one_time'::"text") AND ("billing_period" IS NULL)))),
+    CONSTRAINT "products_claimed_pct_check" CHECK ((("claimed_pct" >= 0) AND ("claimed_pct" <= 100))),
+    CONSTRAINT "products_delivery_time_check" CHECK (("delivery_time" = ANY (ARRAY['fast'::"text", 'standard'::"text", 'economy'::"text"]))),
     CONSTRAINT "products_digital_shipping_consistency" CHECK (((("is_digital" = true) AND ("requires_shipping" = false)) OR ("is_digital" = false))),
     CONSTRAINT "products_inventory_non_negative" CHECK (((NOT "track_inventory") OR "allow_backorder" OR ("inventory_quantity" >= 0)))
 );
@@ -2593,8 +2605,8 @@ ALTER TABLE "public"."ugc_view_snapshots" OWNER TO "postgres";
 
 CREATE TABLE IF NOT EXISTS "public"."user_2fa_secrets" (
     "user_id" "uuid" NOT NULL,
-    "secret" "text" NOT NULL,
-    "backup_codes" "jsonb" DEFAULT '[]'::"jsonb" NOT NULL,
+    "secret" "text",
+    "backup_codes" "jsonb" DEFAULT '[]'::"jsonb",
     "pending_secret" "text",
     "pending_backup_codes" "jsonb",
     "pending_expires_at" timestamp with time zone,
@@ -3541,6 +3553,10 @@ CREATE INDEX "idx_posts_room" ON "public"."community_posts" USING "btree" ("room
 
 
 
+CREATE INDEX "idx_product_categories_visible" ON "public"."product_categories" USING "btree" ("sort_order") WHERE (("is_active" = true) AND ("visible" = true));
+
+
+
 CREATE INDEX "idx_product_shipping_free" ON "public"."product_shipping_options" USING "btree" ("product_id", "ship_to_country") WHERE (("is_free_shipping" = true) AND ("is_active" = true));
 
 
@@ -3605,11 +3621,19 @@ CREATE INDEX "idx_products_cj_needs_resync" ON "public"."products" USING "btree"
 
 
 
+CREATE INDEX "idx_products_delivery_time" ON "public"."products" USING "btree" ("delivery_time") WHERE (("delivery_time" IS NOT NULL) AND ("status" = 'active'::"public"."product_status"));
+
+
+
 CREATE INDEX "idx_products_enable_discussions" ON "public"."products" USING "btree" ("enable_discussions") WHERE ("enable_discussions" = true);
 
 
 
 CREATE INDEX "idx_products_featured" ON "public"."products" USING "btree" ("is_featured") WHERE ("is_featured" = true);
+
+
+
+CREATE INDEX "idx_products_flash_deal" ON "public"."products" USING "btree" ("is_flash_deal", "status") WHERE ("is_flash_deal" = true);
 
 
 
@@ -3630,6 +3654,10 @@ CREATE INDEX "idx_products_product_type" ON "public"."products" USING "btree" ("
 
 
 CREATE INDEX "idx_products_search" ON "public"."products" USING "gin" ("to_tsvector"('"english"'::"regconfig", (("name" || ' '::"text") || COALESCE("description", ''::"text"))));
+
+
+
+CREATE INDEX "idx_products_shipping_from" ON "public"."products" USING "btree" ("shipping_from") WHERE (("shipping_from" IS NOT NULL) AND ("status" = 'active'::"public"."product_status"));
 
 
 
