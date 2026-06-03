@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Sparkles, ArrowRight, CheckCircle2 } from "lucide-react";
-import { GlobeCanvas } from "@/components/layout/hero";
+import { GlobeCanvas } from "@/components/layout/Globelcanvas";
 
 export default function LiveActivity() {
     return (

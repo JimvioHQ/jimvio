@@ -468,3 +468,79 @@ export function getProductImage(images: unknown, fallback = "/placeholder.png"):
   }
   return normalized[0] ?? fallback;
 }
+
+// ─── Shared types and pure helpers ───────────────────────────────────────────
+// No server imports here — safe to import from both server and client components
+
+export type DbProduct = {
+  id: string;
+  name: string;
+  slug: string;
+  price: number;
+  compare_at_price: number | null;
+  images: unknown;
+  product_type: string;
+  status: string;
+  is_flash_deal: boolean | null;
+  discount_label: string | null;
+  shipping_from: string | null;
+  delivery_time: string | null;
+  affiliate_commission_rate: number | null;
+  view_count: number | null;
+  sale_count: number | null;
+  sold_count: number | null;
+  claimed_pct: number | null;
+  rating: number | null;
+  review_count: number | null;
+  is_free_shipping: boolean | null;
+  category_id: string | null;
+};
+
+export function fmtPrice(amount: number | null | undefined): string {
+  if (!amount) return "$0.00";
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(amount);
+}
+
+export function fmtCount(n: number | null | undefined): string {
+  if (!n) return "0";
+  if (n >= 1000) return `${(n / 1000).toFixed(1)}K`;
+  return String(n);
+}
+
+
+export function getImage(images: unknown): string {
+  if (!images) return "/placeholder.png";
+  let arr: unknown[] = [];
+  if (typeof images === "string") {
+    try { arr = JSON.parse(images); }
+    catch { return isRenderableUrl(images) ? images : "/placeholder.png"; }
+  } else if (Array.isArray(images)) {
+    arr = images;
+  } else {
+    return "/placeholder.png";
+  }
+  const primary = arr.find(
+    (x) => x && typeof x === "object" && (x as Record<string, unknown>).is_primary === true,
+  );
+  if (primary) {
+    const u = (primary as Record<string, unknown>).url ?? (primary as Record<string, unknown>).src;
+    if (isRenderableUrl(u)) return u as string;
+  }
+  for (const item of arr) {
+    if (isRenderableUrl(item)) return item;
+    if (item && typeof item === "object") {
+      const o = item as Record<string, unknown>;
+      const u = o.url ?? o.src ?? o.image_url;
+      if (isRenderableUrl(u)) return u as string;
+    }
+  }
+  return "/placeholder.png";
+}
+
+export function getDiscount(p: DbProduct): string {
+  if (p.discount_label) return p.discount_label;
+  if (p.compare_at_price && p.price && p.compare_at_price > p.price) {
+    return `-${Math.round((1 - p.price / p.compare_at_price) * 100)}%`;
+  }
+  return "";
+}
