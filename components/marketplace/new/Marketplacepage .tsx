@@ -1,18 +1,21 @@
 import { createClient } from "@/lib/supabase/server";
-import { HeroBanner } from "@/components/marketplace/new/HeroBanner";
 import { Sidebar } from "@/components/marketplace/new/Sidebar";
 import { MarketplaceProvider } from "@/components/marketplace/new/marketplace-context";
 import { MarketplacePageClient } from "@/components/marketplace/new/MarketplacePageClient";
 import type { DbProduct } from "@/lib/utils";
+import { fetchHeroProducts } from "@/components/marketplace/new/HeroBanner";
+
+// ─── Constants ────────────────────────────────────────────────────────────────
 
 const PHYSICAL_TYPES = ["physical"] as const;
-const DIGITAL_TYPES  = ["digital", "course", "ebook", "software", "template", "coaching"] as const;
 
-async function fetchInitialData() {
-  const supabase = await createClient();
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+// ─── Initial page data ────────────────────────────────────────────────────────
+
+async function fetchInitialData(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+) {
+  const today  = new Date(); today.setHours(0, 0, 0, 0);
   const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
   const [
@@ -90,9 +93,9 @@ async function fetchInitialData() {
   );
 
   return {
-    flashDeals:   (flashDeals  ?? []) as DbProduct[],
-    trending:     (trending    ?? []) as DbProduct[],
-    categories:   (categories  ?? []) as any[],
+    flashDeals:   (flashDeals ?? []) as DbProduct[],
+    trending:     (trending   ?? []) as DbProduct[],
+    categories:   (categories ?? []) as any[],
     listingCount: listingCount ?? 0,
     stats: {
       viewers_now:     0,
@@ -102,9 +105,16 @@ async function fetchInitialData() {
   };
 }
 
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
 export async function MarketplacePage() {
-  const { flashDeals, trending, categories, listingCount, stats } =
-    await fetchInitialData();
+  const supabase = await createClient();
+
+  const [{ flashDeals, trending, categories, listingCount, stats }, hero] =
+    await Promise.all([
+      fetchInitialData(supabase),
+      fetchHeroProducts(supabase),
+    ]);
 
   return (
     <div className="min-h-screen" style={{ background: "var(--color-bg)" }}>
@@ -112,13 +122,14 @@ export async function MarketplacePage() {
         <main className="mx-auto flex max-w-[1500px] gap-5 px-4 py-5">
           <Sidebar />
           <div className="flex min-w-0 flex-1 flex-col gap-5">
-            <HeroBanner />
             <MarketplacePageClient
               initialListingCount={listingCount}
               initialFlashDeals={flashDeals}
               initialTrending={trending}
               initialCategories={categories}
               initialStats={stats}
+              heroPhysical={hero.physical ?? []}
+              heroDigital={hero.digital ?? []}
             />
           </div>
         </main>

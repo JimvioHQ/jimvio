@@ -1,13 +1,19 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Search, Zap, DollarSign, Star, ShieldCheck, BadgeDollarSign, CircleCheck, Truck, Users, ChevronRight, ArrowRight, Heart, Play } from "lucide-react";
+import { useEffect, useState, useRef } from "react";
+import {
+  Search, Zap, DollarSign, ShieldCheck, BadgeDollarSign,
+  CircleCheck, Truck, Users, ChevronRight, ArrowRight,
+} from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { FlashDealsClient } from "./FlashDealsClient";
 import { TrendingProductsClient } from "./TrendingProductsClient";
 import { FlashDealsCountdown } from "./FlashDealsCountdown";
-import type { DbProduct } from "@/lib/utils";
+import { HeroBannerView } from "./HeroBannerView";
+import type { HeroProduct } from "@/types";
+import { useMarketplace } from "./marketplace-context";
 import { fmtPrice, fmtCount } from "@/lib/utils";
+import type { DbProduct } from "@/lib/utils";
 import { LiveActivityBar } from "./Liveactivitybar ";
 
 type ProductType = "physical" | "digital";
@@ -22,8 +28,8 @@ type DbCategory = {
 };
 
 type Stats = {
-  viewers_now: number;
-  revenue_today: number;
+  viewers_now:     number;
+  revenue_today:   number;
   creators_active: number;
 };
 
@@ -33,9 +39,9 @@ type Props = {
   initialTrending:     DbProduct[];
   initialCategories:   DbCategory[];
   initialStats:        Stats;
+  heroPhysical:        HeroProduct[];
+  heroDigital:         HeroProduct[];
 };
-
-// ─── Trust badges ─────────────────────────────────────────────────────────────
 
 const BADGES = [
   { icon: ShieldCheck,     title: "Secure Payments",    sub: "100% safe & secure"   },
@@ -50,8 +56,13 @@ export function MarketplacePageClient({
   initialTrending,
   initialCategories,
   initialStats,
+  heroPhysical,
+  heroDigital,
 }: Props) {
   const supabase = createClient();
+
+  // ── Marketplace context (sidebar filters) ────────────────────────────────
+  const { filters } = useMarketplace();
 
   const [type,         setType]         = useState<ProductType>("physical");
   const [search,       setSearch]       = useState("");
@@ -62,7 +73,10 @@ export function MarketplacePageClient({
   const [loading,      setLoading]      = useState(false);
   const [listingCount, setListingCount] = useState(initialListingCount);
 
-  // ── Re-fetch when type switches ───────────────────────────────────────────
+  // Use a ref to avoid supabase client recreating on every render
+  const supabaseRef = useRef(supabase);
+
+  // ── Re-fetch when type OR sidebar filters change ──────────────────────────
   useEffect(() => {
     async function load() {
       setLoading(true);
@@ -71,49 +85,69 @@ export function MarketplacePageClient({
         ? (["digital", "course", "ebook", "software", "template", "coaching"] as const)
         : (["physical"] as const);
 
-      const [
-        { data: deals },
-        { data: trend },
-        { count },
-      ] = await Promise.all([
-        supabase
-          .from("products")
-          .select(`
-            id, name, slug, price, compare_at_price, images, product_type,
-            status, is_flash_deal, discount_label, shipping_from,
-            delivery_time, affiliate_commission_rate, sold_count,
-            claimed_pct, rating, review_count, is_free_shipping, category_id
-          `)
-          .eq("is_flash_deal", true)
-          .eq("status", "active")
-          .eq("is_active", true)
-          .is("deleted_at", null)
-          .in("product_type", [...typeFilter])
-          .order("view_count", { ascending: false })
-          .limit(12),
+      // Build shipping_from filter from sidebar
+      const hasShipping  = filters.shippingFrom.length > 0;
+      const hasDelivery  = filters.deliveryTimes.length > 0;
+      const hasPriceMax  = filters.priceRange[1] < 5000;
+      const hasPriceMin  = filters.priceRange[0] > 0;
+      const hasRating    = filters.minRating > 0;
 
-        supabase
-          .from("products")
-          .select(`
-            id, name, slug, price, compare_at_price, images, product_type,
-            status, is_flash_deal, discount_label, shipping_from,
-            delivery_time, affiliate_commission_rate, sale_count,
-            rating, review_count, is_free_shipping, category_id
-          `)
-          .eq("status", "active")
-          .eq("is_active", true)
-          .is("deleted_at", null)
-          .in("product_type", [...typeFilter])
-          .order("view_count", { ascending: false })
-          .limit(48),
+      function applyFilters<T extends ReturnType<typeof supabaseRef.current.from>>(
+        q: any,
+      ): any {
+        if (hasShipping) q = q.in("shipping_from", filters.shippingFrom);
+        if (hasDelivery) q = q.in("delivery_time", filters.deliveryTimes);
+        if (hasPriceMax) q = q.lte("price", filters.priceRange[1]);
+        if (hasPriceMin) q = q.gte("price", filters.priceRange[0]);
+        if (hasRating)   q = q.gte("rating", filters.minRating);
+        return q;
+      }
 
-        supabase
-          .from("products")
-          .select("*", { count: "exact", head: true })
-          .eq("status", "active")
-          .eq("is_active", true)
-          .is("deleted_at", null)
-          .in("product_type", [...typeFilter]),
+      const [{ data: deals }, { data: trend }, { count }] = await Promise.all([
+        applyFilters(
+          supabaseRef.current
+            .from("products")
+            .select(`
+              id, name, slug, price, compare_at_price, images, product_type,
+              status, is_flash_deal, discount_label, shipping_from,
+              delivery_time, affiliate_commission_rate, sold_count,
+              claimed_pct, rating, review_count, is_free_shipping, category_id
+            `)
+            .eq("is_flash_deal", true)
+            .eq("status", "active")
+            .eq("is_active", true)
+            .is("deleted_at", null)
+            .in("product_type", [...typeFilter])
+            .order("view_count", { ascending: false })
+            .limit(12)
+        ),
+
+        applyFilters(
+          supabaseRef.current
+            .from("products")
+            .select(`
+              id, name, slug, price, compare_at_price, images, product_type,
+              status, is_flash_deal, discount_label, shipping_from,
+              delivery_time, affiliate_commission_rate, sale_count,
+              rating, review_count, is_free_shipping, category_id
+            `)
+            .eq("status", "active")
+            .eq("is_active", true)
+            .is("deleted_at", null)
+            .in("product_type", [...typeFilter])
+            .order("view_count", { ascending: false })
+            .limit(48)
+        ),
+
+        applyFilters(
+          supabaseRef.current
+            .from("products")
+            .select("*", { count: "exact", head: true })
+            .eq("status", "active")
+            .eq("is_active", true)
+            .is("deleted_at", null)
+            .in("product_type", [...typeFilter])
+        ),
       ]);
 
       setFlashDeals((deals ?? []) as DbProduct[]);
@@ -123,16 +157,13 @@ export function MarketplacePageClient({
     }
 
     load();
-  }, [type]);
+  // Re-run when type switches OR when sidebar Apply is clicked (filters change)
+  }, [type, filters]);
 
   // ── Client-side search filter ─────────────────────────────────────────────
-  const filteredTrending = search.trim()
-    ? trending.filter((p) => p.name.toLowerCase().includes(search.toLowerCase()))
-    : trending;
-
-  const filteredDeals = search.trim()
-    ? flashDeals.filter((p) => p.name.toLowerCase().includes(search.toLowerCase()))
-    : flashDeals;
+  const q = search.trim().toLowerCase();
+  const filteredTrending = q ? trending.filter((p) => p.name.toLowerCase().includes(q)) : trending;
+  const filteredDeals    = q ? flashDeals.filter((p) => p.name.toLowerCase().includes(q)) : flashDeals;
 
   return (
     <>
@@ -150,7 +181,6 @@ export function MarketplacePageClient({
           }
           className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
         />
-        {/* Physical / Digital toggle */}
         <div className="flex shrink-0 items-center gap-1 rounded-xl border border-border p-1">
           {(["physical", "digital"] as ProductType[]).map((t) => (
             <button
@@ -175,16 +205,20 @@ export function MarketplacePageClient({
         </span>
       </div>
 
-      {/* ── Loading overlay ── */}
+      {/* ── Loading skeleton ── */}
       {loading && (
         <div className="flex flex-col gap-4">
-          <div className="h-64 animate-pulse rounded-3xl" style={{ background: "var(--color-surface)" }} />
+          <div className="h-12 animate-pulse rounded-2xl" style={{ background: "var(--color-surface)" }} />
+          <div className="h-48 animate-pulse rounded-2xl" style={{ background: "var(--color-surface)" }} />
           <div className="h-32 animate-pulse rounded-2xl" style={{ background: "var(--color-surface)" }} />
         </div>
       )}
 
       {!loading && (
         <>
+          {/* ── Hero banner — changes with type ── */}
+          <HeroBannerView physical={heroPhysical} digital={heroDigital} initialType={type} />
+
           {/* ── Trust badges ── */}
           <div
             className="flex flex-wrap items-center gap-3 rounded-2xl p-3"
@@ -287,7 +321,7 @@ export function MarketplacePageClient({
           <section>
             <div className="mb-3 flex flex-wrap items-center gap-3">
               <h2 className="text-lg font-black">
-                Trending {type === "digital" ? "Digital" : ""} Products
+                Trending {type === "digital" ? "Digital " : ""}Products
               </h2>
               <button
                 type="button"
@@ -297,7 +331,21 @@ export function MarketplacePageClient({
                 View all <ArrowRight className="size-3.5" />
               </button>
             </div>
-            <TrendingProductsClient products={filteredTrending} />
+            {filteredTrending.length === 0 ? (
+              <div
+                className="rounded-xl border-dashed px-6 py-12 text-center"
+                style={{ border: "1px dashed var(--color-border)", background: "var(--color-surface-secondary)" }}
+              >
+                <p className="text-sm font-semibold" style={{ color: "var(--color-text-secondary)" }}>
+                  No products match your filters
+                </p>
+                <p className="mt-1 text-xs" style={{ color: "var(--color-text-muted)" }}>
+                  Try adjusting or clearing your filters
+                </p>
+              </div>
+            ) : (
+              <TrendingProductsClient products={filteredTrending} />
+            )}
           </section>
 
           <LiveActivityBar />
