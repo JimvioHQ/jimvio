@@ -1,21 +1,32 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Heart, Star, DollarSign, Play, Flame, Sparkles, TrendingUp, Warehouse, MapPin } from "lucide-react";
 import Link from "next/link";
 import { type DbProduct, getImage, getDiscount, fmtPrice, fmtCount } from "@/lib/utils";
 
-const TABS = [
+const PHYSICAL_TABS = [
   { label: "Trending",        icon: Flame,      filter: (p: DbProduct) => true                              },
   { label: "New Arrivals",    icon: Sparkles,   filter: (p: DbProduct) => true                              },
   { label: "Best Selling",    icon: TrendingUp, filter: (p: DbProduct) => (p.sale_count ?? 0) > 0          },
-  { label: "Free Shipping",   icon: Warehouse,  filter: (p: DbProduct) => p.is_free_shipping === true       },
-  { label: "Digital",         icon: MapPin,     filter: (p: DbProduct) => p.product_type === "digital"      },
+  { label: "Free Warehouse",  icon: Warehouse,  filter: (p: DbProduct) => p.is_free_shipping === true       },
+  { label: "Local Warehouse", icon: MapPin,     filter: (p: DbProduct) => p.shipping_from != null          },
 ];
 
-export function TrendingProductsClient({ products }: { products: DbProduct[] }) {
+const DIGITAL_TABS = [
+  { label: "Trending",        icon: Flame,      filter: (p: DbProduct) => true                              },
+  { label: "New Arrivals",    icon: Sparkles,   filter: (p: DbProduct) => true                              },
+  { label: "Best Selling",    icon: TrendingUp, filter: (p: DbProduct) => (p.sale_count ?? 0) > 0          },
+  { label: "Top Rated",       icon: Star,       filter: (p: DbProduct) => (p.rating ?? 0) >= 4             },
+  { label: "Instant Access",  icon: Warehouse,  filter: (p: DbProduct) => p.product_type !== "physical"    },
+];
+
+export function TrendingProductsClient({ products, type = "physical" }: { products: DbProduct[]; type?: "physical" | "digital" }) {
+  const TABS = type === "digital" ? DIGITAL_TABS : PHYSICAL_TABS;
   const [activeTab,  setActiveTab]  = useState(0);
   const [favorites,  setFavorites]  = useState<Set<string>>(new Set());
+
+  useEffect(() => { setActiveTab(0); }, [type]);
 
   const filtered = products.filter(TABS[activeTab].filter);
 
@@ -105,7 +116,7 @@ function ProductCard({
     >
       {/* Image */}
       <div className="relative">
-        <Link href={`/marketplace/${p.slug}`} className="block">
+        <Link href={`/products/${p.slug}`} className="block">
           <div
             className="relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-lg"
             style={{ background: "var(--color-surface-secondary)" }}

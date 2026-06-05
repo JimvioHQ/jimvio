@@ -3,6 +3,7 @@ import { Sidebar } from "@/components/marketplace/new/Sidebar";
 import { MarketplaceProvider } from "@/components/marketplace/new/marketplace-context";
 import { MarketplacePageClient } from "@/components/marketplace/new/MarketplacePageClient";
 import type { DbProduct } from "@/lib/utils";
+import type { HeroProduct } from "@/types";
 import { fetchHeroProducts } from "@/components/marketplace/new/HeroBanner";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -119,9 +120,9 @@ export async function MarketplacePage() {
   return (
     <div className="min-h-screen" style={{ background: "var(--color-bg)" }}>
       <MarketplaceProvider>
-        <main className="mx-auto flex max-w-[1500px] gap-5 px-4 py-5">
+        <main className="mx-auto flex max-w-[1500px] gap-4 px-4 py-4">
           <Sidebar />
-          <div className="flex min-w-0 flex-1 flex-col gap-5">
+          <div className="flex min-w-0 flex-1 flex-col gap-3">
             <MarketplacePageClient
               initialListingCount={listingCount}
               initialFlashDeals={flashDeals}
