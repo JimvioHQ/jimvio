@@ -99,6 +99,7 @@ export async function handleCJFulfillment(orderId: string): Promise<void> {
   const validItems = cjItems.filter((i) => !!i.source_metadata?.cj_vid);
 
   let shippingName = (order as any).cj_shipping_method as string | null;
+  shippingName = shippingName?.trim() || null;
 
   if (!shippingName) {
     const shippingAddress = order.shipping_address as ShippingAddress | null;
@@ -117,7 +118,7 @@ export async function handleCJFulfillment(orderId: string): Promise<void> {
       // Pick cheapest trackable option, or first available
       const best =
         options.find((o) => o.trackable) ?? options[0];
-      shippingName = best?.logisticName ?? "CJPacket Ordinary";
+      shippingName = best?.logisticName?.trim() || "CJPacket Ordinary";
     } catch (err) {
       console.warn(
         `[CJ] Could not fetch shipping options for order ${orderId}:`,
@@ -126,6 +127,8 @@ export async function handleCJFulfillment(orderId: string): Promise<void> {
       shippingName = "CJPacket Ordinary"; // safe default
     }
   }
+
+  shippingName = shippingName?.trim() || "CJPacket Ordinary";
 
   // ── Build shipping address ───────────────────────────────────────────────────
   const addr = (order.shipping_address as ShippingAddress) ?? {};

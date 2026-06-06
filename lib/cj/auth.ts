@@ -1,27 +1,3 @@
-// lib/cj/auth.ts
-//
-// Handles CJ access-token lifecycle:
-//   - Bootstrap a new token from apiKey
-//   - Refresh an existing token when expiring
-//   - Persist into platform_settings.cj_credentials
-//   - Provide getOrRefreshAccessToken() for callers
-//
-// CJ token lifetimes (per docs):
-//   - accessToken:  15 days
-//   - refreshToken: 180 days
-//   - QPS limit:    1 call per second
-//   - Server returns same cached tokens within 24h of a successful call
-//
-// Storage shape (jsonb under platform_settings.cj_credentials.value):
-//   {
-//     api_key:                     "...",   // optional, can also come from env
-//     open_id:                     123,
-//     access_token:                "...",
-//     refresh_token:               "...",
-//     access_token_expires_at:     ISO,
-//     refresh_token_expires_at:    ISO,
-//     updated_at:                  ISO
-//   }
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { CJ_BASE, getServiceClient } from "./client";

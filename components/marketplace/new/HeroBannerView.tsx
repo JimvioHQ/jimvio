@@ -346,7 +346,7 @@ export function HeroBannerView({ physical, digital, initialType = "physical" }: 
         {/* CTAs + thumbnails */}
         <div className="flex flex-col gap-2">
           <div className="flex flex-wrap gap-2">
-            <Link href={`/products/${product.slug}`}>
+            <Link href={`/marketplace/${product.slug}`}>
               <button
                 className="flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold text-white transition-opacity hover:opacity-90"
                 style={{ background: theme.ctaPrimary, boxShadow: `0 4px 16px ${theme.ctaGlow}` }}
@@ -355,7 +355,7 @@ export function HeroBannerView({ physical, digital, initialType = "physical" }: 
                 {typeKey === "digital" ? "Explore Now" : "Shop Now"}
               </button>
             </Link>
-            <Link href={`/products/${product.slug}`}>
+            <Link href={`/marketplace/${product.slug}`}>
               <button
                 className="flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-white/20"
                 style={{ background: "rgba(255,255,255,0.10)", border: "1px solid rgba(255,255,255,0.15)" }}

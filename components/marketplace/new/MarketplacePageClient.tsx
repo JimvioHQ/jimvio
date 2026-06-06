@@ -297,7 +297,7 @@ export function MarketplacePageClient({
               id, name, slug, price, compare_at_price, images, product_type,
               status, is_flash_deal, discount_label, shipping_from,
               delivery_time, affiliate_commission_rate, sold_count,
-              claimed_pct, rating, review_count, is_free_shipping, category_id
+              claimed_pct, rating, review_count, is_free_shipping, vendor_id, category_id
             `)
             .eq("status", "active")
             .eq("is_active", true)
@@ -316,7 +316,7 @@ export function MarketplacePageClient({
               id, name, slug, price, compare_at_price, images, product_type,
               status, is_flash_deal, discount_label, shipping_from,
               delivery_time, affiliate_commission_rate, sale_count,
-              rating, review_count, is_free_shipping, category_id
+              rating, review_count, is_free_shipping, vendor_id, category_id
             `)
             .eq("status", "active")
             .eq("is_active", true)

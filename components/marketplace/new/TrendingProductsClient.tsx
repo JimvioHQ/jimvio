@@ -1,45 +1,78 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import {
   Heart, Star, DollarSign, Flame, Sparkles,
   TrendingUp, Warehouse, MapPin, ShoppingCart, Eye, ChevronDown,
 } from "lucide-react";
 import Link from "next/link";
+import { toast } from "sonner";
 import { type DbProduct, getImage, getDiscount, fmtPrice, fmtCount } from "@/lib/utils";
-import { addToCart } from "@/lib/actions/marketplace";
+import { addToCart, toggleWishlist, getWishlistProductIds } from "@/lib/actions/marketplace";
 import type { Tables } from "@/types/supabase";
 
 export type DbVariant = Tables<"product_variants">;
 
+type Product = DbProduct & {
+  vendor_id?: string | null;
+  variants?: DbVariant[];
+  product_variants?: DbVariant[];
+};
+
 const PHYSICAL_TABS = [
-  { label: "Trending",      icon: Flame,      filter: (_p: DbProduct) => true                             },
-  { label: "New Arrivals",  icon: Sparkles,   filter: (_p: DbProduct) => true                             },
-  { label: "Best Selling",  icon: TrendingUp, filter: (p: DbProduct) => (p.sale_count ?? 0) > 0          },
-  { label: "Free Shipping", icon: Warehouse,  filter: (p: DbProduct) => p.is_free_shipping === true       },
-  { label: "Local Stock",   icon: MapPin,     filter: (p: DbProduct) => p.shipping_from != null          },
+  { label: "Trending",      icon: Flame,      filter: (_p: Product) => true                        },
+  { label: "New Arrivals",  icon: Sparkles,   filter: (_p: Product) => true                        },
+  { label: "Best Selling",  icon: TrendingUp, filter: (p: Product) => (p.sale_count ?? 0) > 0     },
+  { label: "Free Shipping", icon: Warehouse,  filter: (p: Product) => p.is_free_shipping === true  },
+  { label: "Local Stock",   icon: MapPin,     filter: (p: Product) => p.shipping_from != null      },
 ];
 
 const DIGITAL_TABS = [
-  { label: "Trending",       icon: Flame,      filter: (_p: DbProduct) => true                            },
-  { label: "New Arrivals",   icon: Sparkles,   filter: (_p: DbProduct) => true                            },
-  { label: "Best Selling",   icon: TrendingUp, filter: (p: DbProduct) => (p.sale_count ?? 0) > 0         },
-  { label: "Top Rated",      icon: Star,       filter: (p: DbProduct) => (p.rating ?? 0) >= 4            },
-  { label: "Instant Access", icon: Warehouse,  filter: (p: DbProduct) => p.product_type !== "physical"   },
+  { label: "Trending",       icon: Flame,      filter: (_p: Product) => true                           },
+  { label: "New Arrivals",   icon: Sparkles,   filter: (_p: Product) => true                           },
+  { label: "Best Selling",   icon: TrendingUp, filter: (p: Product) => (p.sale_count ?? 0) > 0        },
+  { label: "Top Rated",      icon: Star,       filter: (p: Product) => (p.rating ?? 0) >= 4           },
+  { label: "Instant Access", icon: Warehouse,  filter: (p: Product) => p.product_type !== "physical"  },
 ];
+
+function normaliseVariant(v: any): DbVariant {
+  const meta = v.source_metadata ?? {};
+  return {
+    ...v,
+    cj_vid: v.cj_vid ?? meta.cj_vid ?? null,
+    cj_pid: v.cj_pid ?? meta.cj_pid ?? null,
+  };
+}
+
+// Single helper — shows toast AND sets inline error state, never logs to console
+function reportError(
+  msg: string,
+  setAddError: (m: string | null) => void
+) {
+  setAddError(msg);
+  toast.error(msg);
+  setTimeout(() => setAddError(null), 3000);
+}
 
 export function TrendingProductsClient({
   products,
   type = "physical",
 }: {
-  products: DbProduct[];
+  products: Product[];
   type?: "physical" | "digital";
 }) {
   const TABS = type === "digital" ? DIGITAL_TABS : PHYSICAL_TABS;
-  const [activeTab, setActiveTab] = useState(0);
-  const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  const [activeTab, setActiveTab]           = useState(0);
+  const [favorites, setFavorites]           = useState<Set<string>>(new Set());
+  const [wishlistLoaded, setWishlistLoaded] = useState(false);
   const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
+  useEffect(() => {
+    getWishlistProductIds()
+      .then((ids) => { setFavorites(new Set(ids)); setWishlistLoaded(true); })
+      .catch(() => setWishlistLoaded(true));
+  }, []);
 
   useEffect(() => { setActiveTab(0); }, [type]);
 
@@ -50,16 +83,26 @@ export function TrendingProductsClient({
 
   const filtered = products.filter(TABS[activeTab].filter);
 
-  const toggleFav = (id: string) =>
+  const toggleFav = useCallback(async (productId: string) => {
     setFavorites((prev) => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      next.has(productId) ? next.delete(productId) : next.add(productId);
       return next;
     });
+    try {
+      await toggleWishlist(productId);
+    } catch {
+      // Revert optimistic update silently
+      setFavorites((prev) => {
+        const next = new Set(prev);
+        next.has(productId) ? next.delete(productId) : next.add(productId);
+        return next;
+      });
+    }
+  }, []);
 
   return (
     <div className="space-y-5">
-      {/* Tab bar */}
       <div className="relative flex items-center gap-0.5 border-b border-[var(--color-border)]">
         <div
           className="absolute bottom-0 h-[2px] bg-[var(--color-accent)] transition-all duration-300 ease-out rounded-full"
@@ -90,7 +133,6 @@ export function TrendingProductsClient({
         })}
       </div>
 
-      {/* Grid */}
       {filtered.length === 0 ? (
         <div
           className="rounded-xl border border-dashed px-6 py-16 text-center"
@@ -106,12 +148,12 @@ export function TrendingProductsClient({
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7">
-          {filtered.map((p, index) => (
+          {filtered.map((p) => (
             <ProductCard
               key={p.id}
               p={p}
-              index={index}
               isFav={favorites.has(p.id)}
+              wishlistLoaded={wishlistLoaded}
               onToggleFav={() => toggleFav(p.id)}
             />
           ))}
@@ -151,22 +193,27 @@ function cssColor(raw: string): string {
 
 function ProductCard({
   p,
-  index,
   isFav,
+  wishlistLoaded,
   onToggleFav,
 }: {
-  p: DbProduct;
-  index: number;
+  p: Product;
   isFav: boolean;
+  wishlistLoaded: boolean;
   onToggleFav: () => void;
 }) {
-  const variants: DbVariant[] = (p as any).variants ?? [];
-  const vendorId: string = (p as any).vendor_id ?? "";
+  const variants: DbVariant[] = (
+    p.variants ?? p.product_variants ?? []
+  ).map(normaliseVariant);
+
+  const vendorId: string = (p.vendor_id ?? (p as any)?.vendors?.id ?? "") as string;
 
   const colorVariants = variants.filter((v) => v.is_active && getColorValue(getOptions(v)));
-  const hasColors = colorVariants.length > 0;
+  const hasColors     = colorVariants.length > 0;
 
-  const sizeKey = ["size", "Size"].find((k) => variants.some((v) => getOptions(v)[k]));
+  const sizeKey = ["size", "Size"].find((k) =>
+    variants.some((v) => getOptions(v)[k])
+  );
   const sizeOptions = sizeKey
     ? [...new Set(
         variants
@@ -176,37 +223,92 @@ function ProductCard({
     : [];
   const hasSizes = sizeOptions.length > 0;
 
-  const [selectedColor, setSelectedColor] = useState<string | null>(
-    colorVariants[0] ? getColorValue(getOptions(colorVariants[0])) : null
-  );
-  const [selectedSize, setSelectedSize] = useState<string | null>(sizeOptions[0] ?? null);
-  const [showSizes, setShowSizes] = useState(false);
-  const [adding, setAdding] = useState(false);
-  const [added, setAdded] = useState(false);
-  const [addError, setAddError] = useState<string | null>(null);
+  const activeVariants      = variants.filter((v) => v.is_active);
+  const activeVariantsCount = activeVariants.length;
+  const defaultVariant      = activeVariantsCount === 1 ? activeVariants[0] : null;
 
-  const activeVariant = variants.find((v) => {
+  const initialColor = (() => {
+    if (defaultVariant) {
+      const c = getColorValue(getOptions(defaultVariant));
+      if (c) return c;
+    }
+    if (activeVariantsCount <= 1 && colorVariants[0])
+      return getColorValue(getOptions(colorVariants[0]));
+    return null;
+  })();
+
+  const initialSize = (() => {
+    if (sizeKey && defaultVariant) {
+      const s = getOptions(defaultVariant)[sizeKey];
+      if (s) return s;
+    }
+    return activeVariantsCount <= 1 ? sizeOptions[0] ?? null : null;
+  })();
+
+  const [selectedColor, setSelectedColor] = useState<string | null>(initialColor);
+  const [selectedSize,  setSelectedSize]  = useState<string | null>(initialSize);
+  const [showSizes, setShowSizes]         = useState(false);
+  const [adding,   setAdding]             = useState(false);
+  const [added,    setAdded]              = useState(false);
+  const [addError, setAddError]           = useState<string | null>(null);
+
+  let activeVariant = variants.find((v) => {
     const colorMatch = !selectedColor || getColorValue(getOptions(v)) === selectedColor;
-    const sizeMatch = !selectedSize || !sizeKey || getOptions(v)[sizeKey] === selectedSize;
+    const sizeMatch  = !selectedSize || !sizeKey || getOptions(v)[sizeKey] === selectedSize;
     return colorMatch && sizeMatch && v.is_active;
   }) ?? null;
 
+  if (!activeVariant && activeVariantsCount === 1) activeVariant = defaultVariant;
+
+  const sizeRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!showSizes) return;
+    const handler = (e: MouseEvent) => {
+      if (sizeRef.current && !sizeRef.current.contains(e.target as Node))
+        setShowSizes(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showSizes]);
+
   const displayPrice = activeVariant?.price ?? p.price;
   const displayImage = activeVariant?.image_url ?? getImage(p.images);
-  const discount = getDiscount(p);
-  const earn = p.affiliate_commission_rate
+  const discount     = getDiscount(p);
+  const earn         = p.affiliate_commission_rate
     ? `+${fmtPrice(displayPrice * (p.affiliate_commission_rate / 100))} earn`
     : null;
 
-  const SWATCH_LIMIT = 5;
+  const outOfStock =
+    activeVariant != null &&
+    activeVariant.inventory_quantity != null &&
+    activeVariant.inventory_quantity <= 0;
+
+  const SWATCH_LIMIT  = 5;
   const visibleColors = colorVariants.slice(0, SWATCH_LIMIT);
-  const extraColors = colorVariants.length - SWATCH_LIMIT;
+  const extraColors   = colorVariants.length - SWATCH_LIMIT;
 
   async function handleAddToCart(e: React.MouseEvent) {
     e.preventDefault();
-    if (adding || !vendorId) return;
+    if (adding) return;
+
+    if (!vendorId) {
+      reportError("Missing vendor information.", setAddError);
+      return;
+    }
+
+    if (variants.length > 0 && !activeVariant) {
+      reportError("Please select options first.", setAddError);
+      return;
+    }
+
+    if (outOfStock) {
+      reportError("This item is out of stock.", setAddError);
+      return;
+    }
+
     setAdding(true);
     setAddError(null);
+
     try {
       const result = await addToCart(
         p.id,
@@ -214,12 +316,25 @@ function ProductCard({
         1,
         activeVariant?.id ?? null
       );
-      if (!result.success) throw new Error(result.error ?? "Failed to add to cart");
+
+      if (!result.success) {
+        if (result.error === "Authentication required") {
+          window.location.href = `/login?next=${encodeURIComponent(window.location.pathname)}`;
+          return;
+        }
+        reportError(result.error ?? "Failed to add to cart.", setAddError);
+        return;
+      }
+
       setAdded(true);
+      toast.success("Added to cart!");
       setTimeout(() => setAdded(false), 2000);
     } catch (err: any) {
-      setAddError(err.message ?? "Something went wrong");
-      setTimeout(() => setAddError(null), 3000);
+      if (err?.message === "Authentication required") {
+        window.location.href = `/login?next=${encodeURIComponent(window.location.pathname)}`;
+        return;
+      }
+      reportError(err?.message ?? "Something went wrong.", setAddError);
     } finally {
       setAdding(false);
     }
@@ -253,7 +368,6 @@ function ProductCard({
           </div>
         </Link>
 
-        {/* Discount badge */}
         {discount && (
           <span
             className="absolute left-2 top-2 z-10 rounded-md px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wide text-white"
@@ -263,7 +377,6 @@ function ProductCard({
           </span>
         )}
 
-        {/* Free shipping pill */}
         {p.is_free_shipping && !discount && (
           <span
             className="absolute left-2 top-2 z-10 rounded-md px-1.5 py-0.5 text-[9px] font-bold text-white"
@@ -273,16 +386,26 @@ function ProductCard({
           </span>
         )}
 
-        {/* Wishlist */}
+        {outOfStock && (
+          <span
+            className="absolute left-2 bottom-10 z-10 rounded-md px-1.5 py-0.5 text-[9px] font-bold text-white"
+            style={{ background: "rgba(0,0,0,.55)" }}
+          >
+            Out of stock
+          </span>
+        )}
+
         <button
           type="button"
           onClick={(e) => { e.preventDefault(); onToggleFav(); }}
-          className="absolute right-2 top-2 z-10 grid size-7 place-items-center rounded-full shadow-sm transition-all duration-150 hover:scale-110 active:scale-95"
+          disabled={!wishlistLoaded}
+          className="absolute right-2 top-2 z-10 grid size-7 place-items-center rounded-full shadow-sm transition-all duration-150 hover:scale-110 active:scale-95 disabled:opacity-50"
           style={{
             background: isFav ? "var(--color-accent)" : "var(--color-surface)",
             border: "1px solid var(--color-border)",
           }}
           aria-label={isFav ? "Remove from wishlist" : "Add to wishlist"}
+          aria-pressed={isFav}
         >
           <Heart
             className="size-3.5 transition-colors duration-150"
@@ -291,7 +414,6 @@ function ProductCard({
           />
         </button>
 
-        {/* Quick action bar — slides up on hover */}
         <div
           className="absolute inset-x-0 bottom-0 z-10 flex translate-y-full gap-1 p-1.5 transition-transform duration-200 ease-out group-hover:translate-y-0"
           style={{ background: "linear-gradient(to top, rgba(0,0,0,.55) 0%, transparent 100%)" }}
@@ -299,13 +421,15 @@ function ProductCard({
           <button
             type="button"
             onClick={handleAddToCart}
-            disabled={adding || !vendorId}
+            disabled={adding || !vendorId || outOfStock}
             className="flex flex-1 items-center justify-center gap-1 rounded-lg py-1.5 text-[10px] font-bold text-white transition-all hover:opacity-90 disabled:opacity-60"
             style={{
               background: addError
                 ? "#dc2626"
                 : added
                 ? "var(--color-success, #16a34a)"
+                : outOfStock
+                ? "rgba(100,100,100,.7)"
                 : "var(--color-accent)",
             }}
           >
@@ -314,7 +438,7 @@ function ProductCard({
             ) : (
               <ShoppingCart className="size-3" />
             )}
-            {adding ? "Adding…" : addError ? "Failed" : added ? "Added!" : "Add to Cart"}
+            {adding ? "Adding…" : addError ? "Failed" : added ? "Added!" : outOfStock ? "Out of Stock" : "Add to Cart"}
           </button>
           <Link
             href={`/marketplace/${p.slug}`}
@@ -338,7 +462,6 @@ function ProductCard({
           </h4>
         </Link>
 
-        {/* Price */}
         <div className="flex items-baseline gap-1.5">
           <span className="text-sm font-black" style={{ color: "var(--color-accent)" }}>
             {fmtPrice(displayPrice)}
@@ -350,7 +473,6 @@ function ProductCard({
           )}
         </div>
 
-        {/* Rating + sold */}
         <div className="flex items-center justify-between">
           <span className="flex items-center gap-0.5 text-[10px]" style={{ color: "var(--color-text-muted)" }}>
             <Star className="size-2.5 fill-amber-400 text-amber-400" />
@@ -366,11 +488,10 @@ function ProductCard({
           )}
         </div>
 
-        {/* Colour swatches */}
         {hasColors && (
           <div className="mt-1 flex items-center gap-1 flex-wrap">
             {visibleColors.map((v) => {
-              const raw = getColorValue(getOptions(v))!;
+              const raw        = getColorValue(getOptions(v))!;
               const isSelected = selectedColor === raw;
               return (
                 <button
@@ -404,9 +525,8 @@ function ProductCard({
           </div>
         )}
 
-        {/* Size picker */}
         {hasSizes && (
-          <div className="relative mt-1">
+          <div className="relative mt-1" ref={sizeRef}>
             <button
               type="button"
               onClick={() => setShowSizes((s) => !s)}
@@ -476,7 +596,6 @@ function ProductCard({
         )}
       </div>
 
-      {/* Affiliate earn strip */}
       {earn && (
         <div
           className="mx-2 mb-2 flex items-center justify-center gap-1 rounded-lg py-1 text-[10px] font-bold"

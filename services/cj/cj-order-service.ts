@@ -11,15 +11,9 @@
 // server-side only (edge functions / API routes / server actions).
 
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { getOrRefreshAccessToken } from "@/lib/cj/auth";
 
 const CJ_BASE = "https://developers.cjdropshipping.com/api2.0/v1";
-
-export interface CJCredentials {
-  access_token: string;
-  refresh_token?: string;
-  email: string;
-  token_expires_at: string | null; // ISO string
-}
 
 export interface CJShippingOption {
   logisticName: string;       // e.g. "CJPacket Ordinary"
@@ -65,14 +59,6 @@ export interface CJOrderDetail {
   }>;
 }
 
-// Internal shape stored in platform_settings under key "cj_credentials"
-interface StoredCredentials {
-  access_token: string;
-  refresh_token?: string;
-  email: string;
-  token_expires_at: string | null;
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
 // ERRORS
 // ─────────────────────────────────────────────────────────────────────────────
@@ -92,119 +78,12 @@ export class CJApiError extends Error {
 // CREDENTIAL MANAGEMENT
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Read CJ credentials from platform_settings.
- * Throws if not configured.
- */
-async function getCredentials(): Promise<StoredCredentials> {
-  const supabase = createServiceRoleClient();
-  const { data, error } = await supabase
-    .from("platform_settings")
-    .select("value")
-    .eq("key", "cj_credentials")
-    .single();
-
-  if (error || !data) {
-    throw new CJApiError("CJ credentials not found in platform_settings");
-  }
-
-  const creds = data.value as StoredCredentials;
-  if (!creds.access_token || !creds.email) {
-    throw new CJApiError(
-      "CJ credentials are incomplete. Set access_token and email in platform_settings."
-    );
-  }
-
-  return creds;
-}
-
-/**
- * Persist refreshed credentials back to platform_settings.
- */
-async function saveCredentials(creds: StoredCredentials): Promise<void> {
-  const supabase = createServiceRoleClient();
-  await supabase
-    .from("platform_settings")
-    .update({ value: creds, updated_at: new Date().toISOString() })
-    .eq("key", "cj_credentials");
-}
-
-/**
- * Returns true when the stored token will expire within the next 10 minutes.
- */
-function isTokenExpiringSoon(expiresAt: string | null): boolean {
-  if (!expiresAt) return true; // treat unknown expiry as expired
-  const expiryMs = new Date(expiresAt).getTime();
-  const bufferMs = 10 * 60 * 1000; // 10 minutes
-  return Date.now() + bufferMs >= expiryMs;
-}
-
-/**
- * Refresh the CJ access token using email + password stored in settings,
- * or using the refresh_token if available.
- *
- * CJ's API: POST /authentication/getAccessToken
- */
-async function refreshAccessToken(current: StoredCredentials): Promise<StoredCredentials> {
-
-  const supabase = createServiceRoleClient();
-  const { data: secretRow } = await supabase
-    .from("platform_settings")
-    .select("value")
-    .eq("key", "cj_credentials_secret")
-    .maybeSingle();
-
-  const password = (secretRow?.value as any)?.password as string | undefined;
-  if (!password) {
-    throw new CJApiError(
-      "CJ password not found in platform_settings (key: cj_credentials_secret). " +
-      "Cannot refresh token automatically."
-    );
-  }
-
-  const res = await fetch(`${CJ_BASE}/authentication/getAccessToken`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email: current.email, password }),
-  });
-
-  const json = await res.json();
-  if (!json.result || !json.data?.accessToken) {
-    throw new CJApiError(
-      `CJ token refresh failed: ${json.message ?? "unknown error"}`,
-      json.code,
-      res.status
-    );
-  }
-
-  // CJ returns expiry as a Unix timestamp in milliseconds
-  const expiresAt = json.data.accessTokenExpiryDate
-    ? new Date(json.data.accessTokenExpiryDate).toISOString()
-    : null;
-
-  const refreshed: StoredCredentials = {
-    ...current,
-    access_token: json.data.accessToken,
-    refresh_token: json.data.refreshToken ?? current.refresh_token,
-    token_expires_at: expiresAt,
-  };
-
-  await saveCredentials(refreshed);
-  return refreshed;
-}
-
-/**
- * Get a valid (non-expired) access token, refreshing if necessary.
- * Use this before every CJ API call.
- */
 async function getValidToken(): Promise<string> {
-  let creds = await getCredentials();
+  return getOrRefreshAccessToken();
+}
 
-  if (isTokenExpiringSoon(creds.token_expires_at)) {
-    creds = await refreshAccessToken(creds);
-  }
-
-  return creds.access_token;
+function normalizeCJShippingName(name: string | undefined | null): string {
+  return name?.trim() || "CJPacket Ordinary";
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -347,6 +226,7 @@ export async function submitOrderToCJ(params: {
   // ── Build CJ payload ────────────────────────────────────────────────────────
   const payload = {
     orderNumber: orderId,             // our reference — CJ returns it in webhooks
+    fromCountryCode: "CN",
     shippingZip: shippingAddress.zip,
     shippingCountryCode: shippingAddress.countryCode,
     shippingCountry: shippingAddress.countryCode,
@@ -360,7 +240,7 @@ export async function submitOrderToCJ(params: {
     products: lines.map((l) => ({
       vid: l.vid,
       quantity: l.quantity,
-      shippingName: l.shippingName,
+      shippingName: normalizeCJShippingName(l.shippingName),
     })),
   };
 

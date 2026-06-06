@@ -13,6 +13,7 @@ import { StatusPill, ProviderLogo } from "@/components/ui/admin";
 import { verifyFlutterwaveTransaction } from "@/lib/payments/Transaction-verify";
 import { finalizeOrderPayment } from "@/lib/payments/finalize-order-payment";
 import { autoHealTransaction } from "@/lib/actions/auto-heal-transaction";
+import { markOrderPaidAction } from "@/lib/actions/orders";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 60;
@@ -455,8 +456,18 @@ export default async function OrderDetailPage({
                             Issue refund
                         </button>
                     )}
-                    {!isCancelled && !isPaid && (
-                        <button className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg text-[12.5px] font-medium bg-[var(--color-surface)] ring-1 ring-[var(--color-border)] text-rose-600 hover:bg-rose-50 transition-colors dark:hover:bg-rose-950/20">
+                    {!isCancelled && !isPaid && (                        <form action={markOrderPaidAction} className="inline">
+                            <input type="hidden" name="orderId" value={order.id} />
+                            <button
+                                type="submit"
+                                className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg text-[12.5px] font-medium bg-emerald-50 text-emerald-700 ring-1 ring-emerald-500/20 hover:bg-emerald-100 transition-colors dark:bg-emerald-950/20 dark:text-emerald-400"
+                            >
+                                <CheckCircle2 className="h-3.5 w-3.5" />
+                                Mark as paid
+                            </button>
+                        </form>
+                    )}
+                    {!isCancelled && !isPaid && (                        <button className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg text-[12.5px] font-medium bg-[var(--color-surface)] ring-1 ring-[var(--color-border)] text-rose-600 hover:bg-rose-50 transition-colors dark:hover:bg-rose-950/20">
                             <Ban className="h-3.5 w-3.5" />
                             Cancel order
                         </button>
