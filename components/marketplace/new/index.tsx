@@ -18,7 +18,7 @@ import {
   getImage,
   getDiscount,
 } from "@/lib/utils";
-import { LiveActivityBar } from "./Liveactivitybar ";
+import { LiveActivityBar } from "./Liveactivitybar";
 export type { DbProduct };
 
 type DbCategory = {

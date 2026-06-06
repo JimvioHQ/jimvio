@@ -25,8 +25,8 @@ function sanitizePath(raw: string | null | undefined): string {
 const ROLE_HOME: Record<string, string> = {
   admin: "/admin",
   vendor: "/dashboard/vendor",
-  affiliate: "/dashboard/affiliate",
-  influencer: "/dashboard/influencer",
+  affiliate: "/dashboard",
+  influencer: "/dashboard",
   buyer: "/dashboard",
 }
 const ROLE_PRIORITY = ["admin", "vendor", "affiliate", "influencer", "buyer"]

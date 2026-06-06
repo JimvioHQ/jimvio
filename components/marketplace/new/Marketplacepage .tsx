@@ -1,9 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
-import { Sidebar } from "@/components/marketplace/new/Sidebar";
 import { MarketplaceProvider } from "@/components/marketplace/new/marketplace-context";
 import { MarketplacePageClient } from "@/components/marketplace/new/MarketplacePageClient";
 import type { DbProduct } from "@/lib/utils";
-import type { HeroProduct } from "@/types";
 import { fetchHeroProducts } from "@/components/marketplace/new/HeroBanner";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -108,7 +106,12 @@ async function fetchInitialData(
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export async function MarketplacePage() {
+export async function MarketplacePage({
+  searchParams,
+}: {
+  searchParams?: { type?: string };
+}) {
+  const initialType = searchParams?.type === "digital" ? "digital" : "physical";
   const supabase = await createClient();
 
   const [{ flashDeals, trending, categories, listingCount, stats }, hero] =
@@ -121,10 +124,10 @@ export async function MarketplacePage() {
     <div className="min-h-screen" style={{ background: "var(--color-bg)" }}>
       <MarketplaceProvider>
         <main className="mx-auto flex max-w-[1500px] gap-4 px-4 py-4">
-          <Sidebar />
-          <div className="flex min-w-0 flex-1 flex-col gap-3">
+<div className="flex min-w-0 flex-1 flex-col gap-3">
             <MarketplacePageClient
               initialListingCount={listingCount}
+              initialType={initialType}
               initialFlashDeals={flashDeals}
               initialTrending={trending}
               initialCategories={categories}

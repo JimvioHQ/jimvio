@@ -15,63 +15,60 @@ type Theme = {
   badge:          string;
   badgeText:      string;
   headline:       string;
-  headlineAccent: string;
   sub:            string;
   price:          string;
   strikeout:      string;
   discountPill:   string;
   ctaPrimary:     string;
   ctaGlow:        string;
-  ctaSecondary:   string;
-  ctaSecondaryText: string;
   chip:           string;
   bg:             string;
+  glow:           string;
   dotActive:      string;
   dotInactive:    string;
   discountCircle: string;
   circleGlow:     string;
+  imageFade:      string;
 };
 
 const THEMES: Record<"physical" | "digital", Theme> = {
   physical: {
-    badge:            "var(--color-accent)",
-    badgeText:        "FLASH SALE",
-    headline:         "#ffffff",
-    headlineAccent:   "#fd8c00",
-    sub:              "rgba(255,255,255,0.75)",
-    price:            "#fd8c00",
-    strikeout:        "rgba(255,255,255,0.45)",
-    discountPill:     "var(--color-accent)",
-    ctaPrimary:       "var(--color-accent)",
-    ctaGlow:          "rgba(253,80,0,0.50)",
-    ctaSecondary:     "rgba(255,255,255,0.12)",
-    ctaSecondaryText: "#ffffff",
-    chip:             "var(--color-accent)",
-    bg:               "linear-gradient(135deg, #0d0500 0%, #1a0800 40%, #2d1200 100%)",
-    dotActive:        "var(--color-accent)",
-    dotInactive:      "rgba(255,255,255,0.25)",
-    discountCircle:   "linear-gradient(135deg, var(--color-accent) 0%, #ff8c00 100%)",
-    circleGlow:       "0 8px 32px rgba(253,80,0,0.55)",
+    badge:          "var(--color-accent)",
+    badgeText:      "FLASH SALE",
+    headline:       "#ffffff",
+    sub:            "rgba(255,255,255,0.72)",
+    price:          "#fd8c00",
+    strikeout:      "rgba(255,255,255,0.42)",
+    discountPill:   "var(--color-accent)",
+    ctaPrimary:     "var(--color-accent)",
+    ctaGlow:        "rgba(253,80,0,0.50)",
+    chip:           "var(--color-accent)",
+    bg:             "linear-gradient(135deg, #0d0500 0%, #1e0900 45%, #2d1200 100%)",
+    glow:           "radial-gradient(ellipse at 68% 50%, rgba(253,80,0,0.28) 0%, transparent 62%)",
+    dotActive:      "var(--color-accent)",
+    dotInactive:    "rgba(255,255,255,0.22)",
+    discountCircle: "linear-gradient(135deg, var(--color-accent) 0%, #ff8c00 100%)",
+    circleGlow:     "0 6px 28px rgba(253,80,0,0.55)",
+    imageFade:      "linear-gradient(to right, #0d0500 0%, rgba(13,5,0,0.70) 15%, rgba(13,5,0,0.20) 35%, transparent 55%)",
   },
   digital: {
-    badge:            "linear-gradient(90deg, #7c3aed, #a855f7)",
-    badgeText:        "DIGITAL BEST DEALS",
-    headline:         "#ffffff",
-    headlineAccent:   "#a855f7",
-    sub:              "rgba(255,255,255,0.70)",
-    price:            "#c084fc",
-    strikeout:        "rgba(255,255,255,0.40)",
-    discountPill:     "linear-gradient(90deg, #7c3aed, #a855f7)",
-    ctaPrimary:       "linear-gradient(90deg, #7c3aed, #a855f7)",
-    ctaGlow:          "rgba(139,92,246,0.55)",
-    ctaSecondary:     "rgba(255,255,255,0.12)",
-    ctaSecondaryText: "#ffffff",
-    chip:             "#7c3aed",
-    bg:               "linear-gradient(135deg, #050010 0%, #0d0020 40%, #1a0040 100%)",
-    dotActive:        "#a855f7",
-    dotInactive:      "rgba(255,255,255,0.20)",
-    discountCircle:   "linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)",
-    circleGlow:       "0 8px 32px rgba(139,92,246,0.55)",
+    badge:          "linear-gradient(90deg, #7c3aed, #a855f7)",
+    badgeText:      "DIGITAL BEST DEALS",
+    headline:       "#ffffff",
+    sub:            "rgba(255,255,255,0.68)",
+    price:          "#c084fc",
+    strikeout:      "rgba(255,255,255,0.38)",
+    discountPill:   "linear-gradient(90deg, #7c3aed, #a855f7)",
+    ctaPrimary:     "linear-gradient(90deg, #7c3aed, #a855f7)",
+    ctaGlow:        "rgba(139,92,246,0.55)",
+    chip:           "#7c3aed",
+    bg:             "linear-gradient(135deg, #050010 0%, #0d0025 45%, #1a0045 100%)",
+    glow:           "radial-gradient(ellipse at 68% 50%, rgba(139,92,246,0.32) 0%, transparent 62%)",
+    dotActive:      "#a855f7",
+    dotInactive:    "rgba(255,255,255,0.18)",
+    discountCircle: "linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)",
+    circleGlow:     "0 6px 28px rgba(139,92,246,0.55)",
+    imageFade:      "linear-gradient(to right, #050010 0%, rgba(5,0,16,0.70) 15%, rgba(5,0,16,0.20) 35%, transparent 55%)",
   },
 };
 
@@ -122,7 +119,7 @@ function getImage(images: unknown): string | null {
   return null;
 }
 
-// ─── Main ─────────────────────────────────────────────────────────────────────
+// ─── Props ────────────────────────────────────────────────────────────────────
 
 type Props = {
   physical:     HeroProduct[] | null;
@@ -159,6 +156,10 @@ export function HeroBannerView({ physical, digital, initialType = "physical" }: 
 
   const product     = products[activeIdx];
   const image       = getImage(product.images);
+  const rawName     = product.name ?? "";
+  const rawDesc     = product.short_description ?? "";
+  const displayName = rawName.length > 55 ? rawName.slice(0, 52) + "…" : rawName;
+  const displayDesc = rawDesc.length > 70 ? rawDesc.slice(0, 67) + "…" : rawDesc;
   const discount    = getDiscount(product.price, product.compare_at_price, product.discount_label);
   const discountNum = discount.replace(/[^0-9]/g, "");
   const price       = fmtPrice(product.price);
@@ -177,21 +178,11 @@ export function HeroBannerView({ physical, digital, initialType = "physical" }: 
       className="relative overflow-hidden rounded-3xl"
       style={{ height: 340, background: theme.bg, border: "1px solid rgba(255,255,255,0.06)" }}
     >
-      {/* ── Ambient glow behind image ── */}
-      <div
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background: typeKey === "digital"
-            ? "radial-gradient(ellipse at 65% 50%, rgba(139,92,246,0.30) 0%, transparent 60%)"
-            : "radial-gradient(ellipse at 65% 50%, rgba(253,80,0,0.22) 0%, transparent 60%)",
-        }}
-      />
+      {/* ── Ambient glow ── */}
+      <div className="pointer-events-none absolute inset-0" style={{ background: theme.glow }} />
 
-      {/* ── Product image — fills right half, touches top/right/bottom ── */}
-      <div
-        className="absolute top-0 right-0 bottom-0"
-        style={{ width: "52%", zIndex: 1 }}
-      >
+      {/* ── Product image — right half, object-contain, no crop ── */}
+      <div className="absolute top-0 right-0 bottom-0" style={{ width: "52%", zIndex: 1 }}>
         {image ? (
           <>
             <img
@@ -213,11 +204,7 @@ export function HeroBannerView({ physical, digital, initialType = "physical" }: 
             {/* Left fade into dark background */}
             <div
               className="absolute inset-0 pointer-events-none"
-              style={{
-                background: typeKey === "digital"
-                  ? "linear-gradient(to right, #050010 0%, rgba(5,0,16,0.55) 18%, transparent 42%)"
-                  : "linear-gradient(to right, #0d0500 0%, rgba(13,5,0,0.55) 18%, transparent 42%)",
-              }}
+              style={{ background: theme.imageFade }}
             />
           </>
         ) : (
@@ -230,15 +217,13 @@ export function HeroBannerView({ physical, digital, initialType = "physical" }: 
       {/* ── Discount circle ── */}
       {discountNum && (
         <div
-          className="absolute z-10 grid place-items-center rounded-full text-center text-white"
+          className="absolute grid place-items-center rounded-full text-center text-white"
           style={{
-            top:        20,
-            right:      20,
-            width:      80,
-            height:     80,
+            top:        16, right:  16,
+            width:      76, height: 76,
             background: theme.discountCircle,
             boxShadow:  theme.circleGlow,
-            zIndex:     10,
+            zIndex:     20,
           }}
         >
           <div>
@@ -249,20 +234,17 @@ export function HeroBannerView({ physical, digital, initialType = "physical" }: 
         </div>
       )}
 
-      {/* ── Countdown — bottom right ── */}
-      <div
-        className="absolute z-10 hidden sm:block"
-        style={{ bottom: 52, right: 16, zIndex: 10 }}
-      >
+      {/* ── Countdown ── */}
+      <div className="absolute hidden sm:block" style={{ bottom: 44, right: 12, zIndex: 20 }}>
         <HeroBannerClient claimedPct={product.claimed_pct ?? 0} />
       </div>
 
-      {/* ── Left content ── */}
+      {/* ── Left content panel ── */}
       <div
         className="absolute inset-0 flex flex-col justify-between p-5 sm:p-7"
-        style={{ zIndex: 5, maxWidth: "54%" }}
+        style={{ maxWidth: "52%", zIndex: 10 }}
       >
-        {/* Top — badge */}
+        {/* Badge */}
         <div className="flex items-center gap-2">
           <span
             className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-bold text-white"
@@ -281,30 +263,30 @@ export function HeroBannerView({ physical, digital, initialType = "physical" }: 
           )}
         </div>
 
-        {/* Middle — product info */}
+        {/* Product info */}
         <div className="flex flex-col gap-1.5">
           <h2
-            className="line-clamp-2 text-xl font-black leading-tight sm:text-2xl lg:text-3xl"
+            className="line-clamp-2 text-xl font-black leading-tight sm:text-2xl lg:text-[1.75rem]"
             style={{ color: theme.headline, letterSpacing: "-0.03em" }}
           >
-            {product.name}
+            {displayName}
           </h2>
 
-          {product.short_description && (
-            <p className="line-clamp-1 text-xs" style={{ color: theme.sub }}>
-              {product.short_description}
+          {displayDesc && (
+            <p className="truncate text-[11px]" style={{ color: theme.sub }}>
+              {displayDesc}
             </p>
           )}
 
           {/* Rating */}
           {product.rating && product.rating > 0 && (
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-0.5">
               {Array.from({ length: 5 }).map((_, i) => (
                 <Star
                   key={i}
                   className="size-3"
                   style={{
-                    color: i < Math.round(product.rating!) ? theme.price : "rgba(255,255,255,0.20)",
+                    color: i < Math.round(product.rating!) ? theme.price : "rgba(255,255,255,0.18)",
                     fill:  i < Math.round(product.rating!) ? theme.price : "none",
                   }}
                 />
@@ -313,23 +295,19 @@ export function HeroBannerView({ physical, digital, initialType = "physical" }: 
                 {product.rating.toFixed(1)}
               </span>
               {product.review_count && product.review_count > 0 && (
-                <span className="text-[11px]" style={{ color: theme.sub }}>
+                <span className="ml-0.5 text-[11px]" style={{ color: theme.sub }}>
                   ({product.review_count.toLocaleString()})
                 </span>
               )}
             </div>
           )}
 
-          {/* Sold count */}
+          {/* Sold */}
           {soldCount && (
             <div className="flex items-center gap-1.5">
               <div className="flex -space-x-1.5">
                 {[0, 1, 2].map((i) => (
-                  <span
-                    key={i}
-                    className="size-5 rounded-full border border-white/20"
-                    style={{ background: theme.chip }}
-                  />
+                  <span key={i} className="size-5 rounded-full border border-white/20" style={{ background: theme.chip }} />
                 ))}
               </div>
               <span className="flex items-center gap-1 text-[11px]" style={{ color: theme.sub }}>
@@ -339,9 +317,9 @@ export function HeroBannerView({ physical, digital, initialType = "physical" }: 
             </div>
           )}
 
-          {/* Price row */}
+          {/* Price */}
           <div className="flex flex-wrap items-baseline gap-2">
-            <span className="text-3xl font-black" style={{ color: theme.price }}>{price}</span>
+            <span className="text-2xl font-black" style={{ color: theme.price }}>{price}</span>
             {oldPrice && (
               <span className="text-sm line-through" style={{ color: theme.strikeout }}>{oldPrice}</span>
             )}
@@ -365,12 +343,12 @@ export function HeroBannerView({ physical, digital, initialType = "physical" }: 
           )}
         </div>
 
-        {/* Bottom — CTAs + carousel */}
-        <div className="flex flex-col gap-2.5">
-          <div className="flex gap-2">
+        {/* CTAs + thumbnails */}
+        <div className="flex flex-col gap-2">
+          <div className="flex flex-wrap gap-2">
             <Link href={`/products/${product.slug}`}>
               <button
-                className="flex items-center gap-1.5 rounded-xl px-5 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
+                className="flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold text-white transition-opacity hover:opacity-90"
                 style={{ background: theme.ctaPrimary, boxShadow: `0 4px 16px ${theme.ctaGlow}` }}
               >
                 <ShoppingCart className="size-3.5" />
@@ -379,17 +357,17 @@ export function HeroBannerView({ physical, digital, initialType = "physical" }: 
             </Link>
             <Link href={`/products/${product.slug}`}>
               <button
-                className="flex items-center gap-1.5 rounded-xl px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-white/20"
-                style={{ background: theme.ctaSecondary, border: "1px solid rgba(255,255,255,0.15)" }}
+                className="flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-white/20"
+                style={{ background: "rgba(255,255,255,0.10)", border: "1px solid rgba(255,255,255,0.15)" }}
               >
                 <Eye className="size-3.5" /> Quick View
               </button>
             </Link>
           </div>
 
-          {/* Carousel thumbnails + arrows */}
+          {/* Thumbnails + prev/next */}
           {products.length > 1 && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               {products.map((p, i) => {
                 const thumb = getImage(p.images);
                 return (
@@ -415,41 +393,10 @@ export function HeroBannerView({ physical, digital, initialType = "physical" }: 
                   </button>
                 );
               })}
-
-              <div className="ml-auto flex items-center gap-1">
-                <button
-                  onClick={prev}
-                  className="grid size-6 place-items-center rounded-full text-white transition-opacity hover:opacity-70"
-                  style={{ background: "rgba(255,255,255,0.10)", border: `1px solid ${theme.dotInactive}` }}
-                >
-                  <ChevronLeft className="size-3.5" />
-                </button>
-                <span className="w-6 text-center text-[10px] font-bold tabular-nums" style={{ color: theme.sub }}>
-                  {activeIdx + 1}/{products.length}
-                </span>
-                <button
-                  onClick={next}
-                  className="grid size-6 place-items-center rounded-full text-white transition-opacity hover:opacity-70"
-                  style={{ background: "rgba(255,255,255,0.10)", border: `1px solid ${theme.dotInactive}` }}
-                >
-                  <ChevronRight className="size-3.5" />
-                </button>
-              </div>
             </div>
           )}
         </div>
       </div>
-
-      {/* Progress bar */}
-      {products.length > 1 && (
-        <div className="absolute bottom-0 left-0 right-0 h-0.5" style={{ background: "rgba(255,255,255,0.08)", zIndex: 10 }}>
-          <div
-            key={`${typeKey}-${activeIdx}`}
-            className="h-full"
-            style={{ background: theme.dotActive, animation: "hero-progress 5s linear forwards", transformOrigin: "left" }}
-          />
-        </div>
-      )}
 
       <style>{`
         @keyframes hero-progress {

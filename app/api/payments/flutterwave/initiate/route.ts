@@ -8,8 +8,6 @@ import { verifyFlutterwaveTransaction, FlutterwaveAPIError } from "@/lib/payment
 
 export const dynamic = "force-dynamic";
 
-// ─── Typed error envelope ────────────────────────────────────────────────────
-
 type ApiError =
   | { code: "VALIDATION_ERROR"; details: z.ZodIssue[] }
   | { code: "ORDER_NOT_FOUND" }
@@ -113,7 +111,6 @@ async function buildAndReturnPaymentLink({
 }) {
   const origin =
     req.headers.get("origin") ??
-    process.env.NEXT_PUBLIC_APP_URL ??
     "https://www.jimvio.com";
 
   const redirectUrl = safeReturnUrl(origin, orderId, txRef);
