@@ -1,66 +1,90 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Heart, Star, DollarSign, Play, Flame, Sparkles, TrendingUp, Warehouse, MapPin } from "lucide-react";
+import { useEffect, useState, useRef } from "react";
+import {
+  Heart, Star, DollarSign, Flame, Sparkles,
+  TrendingUp, Warehouse, MapPin, ShoppingCart, Eye, ChevronDown,
+} from "lucide-react";
 import Link from "next/link";
 import { type DbProduct, getImage, getDiscount, fmtPrice, fmtCount } from "@/lib/utils";
+import { addToCart } from "@/lib/actions/marketplace";
+import type { Tables } from "@/types/supabase";
+
+export type DbVariant = Tables<"product_variants">;
 
 const PHYSICAL_TABS = [
-  { label: "Trending",        icon: Flame,      filter: (p: DbProduct) => true                              },
-  { label: "New Arrivals",    icon: Sparkles,   filter: (p: DbProduct) => true                              },
-  { label: "Best Selling",    icon: TrendingUp, filter: (p: DbProduct) => (p.sale_count ?? 0) > 0          },
-  { label: "Free Warehouse",  icon: Warehouse,  filter: (p: DbProduct) => p.is_free_shipping === true       },
-  { label: "Local Warehouse", icon: MapPin,     filter: (p: DbProduct) => p.shipping_from != null          },
+  { label: "Trending",      icon: Flame,      filter: (_p: DbProduct) => true                             },
+  { label: "New Arrivals",  icon: Sparkles,   filter: (_p: DbProduct) => true                             },
+  { label: "Best Selling",  icon: TrendingUp, filter: (p: DbProduct) => (p.sale_count ?? 0) > 0          },
+  { label: "Free Shipping", icon: Warehouse,  filter: (p: DbProduct) => p.is_free_shipping === true       },
+  { label: "Local Stock",   icon: MapPin,     filter: (p: DbProduct) => p.shipping_from != null          },
 ];
 
 const DIGITAL_TABS = [
-  { label: "Trending",        icon: Flame,      filter: (p: DbProduct) => true                              },
-  { label: "New Arrivals",    icon: Sparkles,   filter: (p: DbProduct) => true                              },
-  { label: "Best Selling",    icon: TrendingUp, filter: (p: DbProduct) => (p.sale_count ?? 0) > 0          },
-  { label: "Top Rated",       icon: Star,       filter: (p: DbProduct) => (p.rating ?? 0) >= 4             },
-  { label: "Instant Access",  icon: Warehouse,  filter: (p: DbProduct) => p.product_type !== "physical"    },
+  { label: "Trending",       icon: Flame,      filter: (_p: DbProduct) => true                            },
+  { label: "New Arrivals",   icon: Sparkles,   filter: (_p: DbProduct) => true                            },
+  { label: "Best Selling",   icon: TrendingUp, filter: (p: DbProduct) => (p.sale_count ?? 0) > 0         },
+  { label: "Top Rated",      icon: Star,       filter: (p: DbProduct) => (p.rating ?? 0) >= 4            },
+  { label: "Instant Access", icon: Warehouse,  filter: (p: DbProduct) => p.product_type !== "physical"   },
 ];
 
-export function TrendingProductsClient({ products, type = "physical" }: { products: DbProduct[]; type?: "physical" | "digital" }) {
+export function TrendingProductsClient({
+  products,
+  type = "physical",
+}: {
+  products: DbProduct[];
+  type?: "physical" | "digital";
+}) {
   const TABS = type === "digital" ? DIGITAL_TABS : PHYSICAL_TABS;
-  const [activeTab,  setActiveTab]  = useState(0);
-  const [favorites,  setFavorites]  = useState<Set<string>>(new Set());
+  const [activeTab, setActiveTab] = useState(0);
+  const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
+  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   useEffect(() => { setActiveTab(0); }, [type]);
 
+  useEffect(() => {
+    const el = tabRefs.current[activeTab];
+    if (el) setIndicatorStyle({ left: el.offsetLeft, width: el.offsetWidth });
+  }, [activeTab]);
+
   const filtered = products.filter(TABS[activeTab].filter);
 
-  const toggleFav = (id: string) => {
+  const toggleFav = (id: string) =>
     setFavorites((prev) => {
       const next = new Set(prev);
       next.has(id) ? next.delete(id) : next.add(id);
       return next;
     });
-  };
 
   return (
-    <>
-      {/* Tabs */}
-      <div className="mb-4 flex flex-wrap gap-1">
+    <div className="space-y-5">
+      {/* Tab bar */}
+      <div className="relative flex items-center gap-0.5 border-b border-[var(--color-border)]">
+        <div
+          className="absolute bottom-0 h-[2px] bg-[var(--color-accent)] transition-all duration-300 ease-out rounded-full"
+          style={{ left: indicatorStyle.left, width: indicatorStyle.width }}
+        />
         {TABS.map((t, i) => {
           const active = activeTab === i;
           return (
             <button
               key={t.label}
+              ref={(el) => { tabRefs.current[i] = el; }}
               type="button"
               onClick={() => setActiveTab(i)}
-              className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-all"
-              style={{
-                background: active
-                  ? "color-mix(in srgb, var(--color-accent) 12%, transparent)"
-                  : "transparent",
-                color:      active ? "var(--color-accent)" : "var(--color-text-muted)",
-                border:     active
-                  ? "1px solid color-mix(in srgb, var(--color-accent) 30%, transparent)"
-                  : "1px solid transparent",
-              }}
+              className="relative flex items-center gap-1.5 px-3.5 py-2.5 text-[11px] font-semibold tracking-wide transition-colors duration-150 whitespace-nowrap"
+              style={{ color: active ? "var(--color-accent)" : "var(--color-text-muted)" }}
             >
-              <t.icon className="size-3.5" /> {t.label}
+              <t.icon
+                style={{
+                  width: 12,
+                  height: 12,
+                  transform: active ? "scale(1.15)" : "scale(1)",
+                  transition: "transform 150ms",
+                }}
+              />
+              {t.label}
             </button>
           );
         })}
@@ -69,154 +93,403 @@ export function TrendingProductsClient({ products, type = "physical" }: { produc
       {/* Grid */}
       {filtered.length === 0 ? (
         <div
-          className="rounded-xl border-dashed px-6 py-12 text-center"
-          style={{ border: "1px dashed var(--color-border)", background: "var(--color-surface-secondary)" }}
+          className="rounded-xl border border-dashed px-6 py-16 text-center"
+          style={{ borderColor: "var(--color-border)", background: "var(--color-surface-secondary)" }}
         >
+          <div className="mb-2 text-2xl">🛍️</div>
           <p className="text-sm font-semibold" style={{ color: "var(--color-text-secondary)" }}>
-            No products in this category yet
+            Nothing here yet
+          </p>
+          <p className="mt-1 text-xs" style={{ color: "var(--color-text-muted)" }}>
+            Check back soon or explore other categories
           </p>
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7">
-          {filtered.map((p) => (
+          {filtered.map((p, index) => (
             <ProductCard
               key={p.id}
               p={p}
+              index={index}
               isFav={favorites.has(p.id)}
               onToggleFav={() => toggleFav(p.id)}
             />
           ))}
         </div>
       )}
-    </>
+    </div>
   );
 }
 
+/* ─────────────────────────────────────────────────────────── */
+/*  Helpers                                                    */
+/* ─────────────────────────────────────────────────────────── */
+
+function getOptions(v: DbVariant): Record<string, string> {
+  const o = v.options;
+  if (!o || typeof o !== "object" || Array.isArray(o)) return {};
+  return o as Record<string, string>;
+}
+
+const COLOR_KEYS = ["color", "colour", "Color", "Colour"];
+
+function getColorValue(opts: Record<string, string>): string | null {
+  for (const k of COLOR_KEYS) if (opts[k]) return opts[k];
+  return null;
+}
+
+function cssColor(raw: string): string {
+  if (/^#|^rgb|^hsl/.test(raw)) return raw;
+  let hash = 0;
+  for (let i = 0; i < raw.length; i++) hash = raw.charCodeAt(i) + ((hash << 5) - hash);
+  return `hsl(${Math.abs(hash) % 360}, 55%, 55%)`;
+}
+
+/* ─────────────────────────────────────────────────────────── */
+/*  ProductCard                                                */
+/* ─────────────────────────────────────────────────────────── */
+
 function ProductCard({
   p,
+  index,
   isFav,
   onToggleFav,
 }: {
   p: DbProduct;
+  index: number;
   isFav: boolean;
   onToggleFav: () => void;
 }) {
+  const variants: DbVariant[] = (p as any).variants ?? [];
+  const vendorId: string = (p as any).vendor_id ?? "";
+
+  const colorVariants = variants.filter((v) => v.is_active && getColorValue(getOptions(v)));
+  const hasColors = colorVariants.length > 0;
+
+  const sizeKey = ["size", "Size"].find((k) => variants.some((v) => getOptions(v)[k]));
+  const sizeOptions = sizeKey
+    ? [...new Set(
+        variants
+          .filter((v) => v.is_active && getOptions(v)[sizeKey])
+          .map((v) => getOptions(v)[sizeKey])
+      )]
+    : [];
+  const hasSizes = sizeOptions.length > 0;
+
+  const [selectedColor, setSelectedColor] = useState<string | null>(
+    colorVariants[0] ? getColorValue(getOptions(colorVariants[0])) : null
+  );
+  const [selectedSize, setSelectedSize] = useState<string | null>(sizeOptions[0] ?? null);
+  const [showSizes, setShowSizes] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [added, setAdded] = useState(false);
+  const [addError, setAddError] = useState<string | null>(null);
+
+  const activeVariant = variants.find((v) => {
+    const colorMatch = !selectedColor || getColorValue(getOptions(v)) === selectedColor;
+    const sizeMatch = !selectedSize || !sizeKey || getOptions(v)[sizeKey] === selectedSize;
+    return colorMatch && sizeMatch && v.is_active;
+  }) ?? null;
+
+  const displayPrice = activeVariant?.price ?? p.price;
+  const displayImage = activeVariant?.image_url ?? getImage(p.images);
   const discount = getDiscount(p);
-  const earn     = p.affiliate_commission_rate
-    ? `Earn ${fmtPrice(p.price * (p.affiliate_commission_rate / 100))}`
+  const earn = p.affiliate_commission_rate
+    ? `+${fmtPrice(displayPrice * (p.affiliate_commission_rate / 100))} earn`
     : null;
+
+  const SWATCH_LIMIT = 5;
+  const visibleColors = colorVariants.slice(0, SWATCH_LIMIT);
+  const extraColors = colorVariants.length - SWATCH_LIMIT;
+
+  async function handleAddToCart(e: React.MouseEvent) {
+    e.preventDefault();
+    if (adding || !vendorId) return;
+    setAdding(true);
+    setAddError(null);
+    try {
+      const result = await addToCart(
+        p.id,
+        vendorId,
+        1,
+        activeVariant?.id ?? null
+      );
+      if (!result.success) throw new Error(result.error ?? "Failed to add to cart");
+      setAdded(true);
+      setTimeout(() => setAdded(false), 2000);
+    } catch (err: any) {
+      setAddError(err.message ?? "Something went wrong");
+      setTimeout(() => setAddError(null), 3000);
+    } finally {
+      setAdding(false);
+    }
+  }
 
   return (
     <div
-      className="group flex flex-col rounded-xl p-2 sm:p-2.5 transition-shadow hover:shadow-md"
-      style={{
-        background: "var(--color-surface)",
-        border:     "1px solid var(--color-border)",
-      }}
+      className="group relative flex flex-col rounded-xl overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(0,0,0,.10)]"
+      style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}
     >
-      {/* Image */}
-      <div className="relative">
-        <Link href={`/products/${p.slug}`} className="block">
+      {/* ── Image ── */}
+      <div className="relative overflow-hidden">
+        <Link
+          href={`/marketplace/${p.slug}${activeVariant ? `?variant=${activeVariant.id}` : ""}`}
+          className="block"
+        >
           <div
-            className="relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-lg"
+            className="relative flex aspect-square w-full items-center justify-center overflow-hidden"
             style={{ background: "var(--color-surface-secondary)" }}
           >
             <img
-              src={getImage(p.images)}
+              src={displayImage}
               alt={p.name}
               width={512}
               height={512}
               loading="lazy"
               decoding="async"
-              className="h-full w-full object-contain object-center p-1.5 transition-transform group-hover:scale-105"
+              className="h-full w-full object-contain object-center p-2 transition-transform duration-300 ease-out group-hover:scale-[1.06]"
             />
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/[.03] transition-colors duration-200 pointer-events-none" />
           </div>
         </Link>
 
         {/* Discount badge */}
         {discount && (
           <span
-            className="absolute left-2 top-2 z-10 rounded-md px-1.5 py-0.5 text-[10px] font-bold text-white"
+            className="absolute left-2 top-2 z-10 rounded-md px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wide text-white"
             style={{ background: "var(--color-accent)" }}
           >
             {discount}
           </span>
         )}
 
-        {/* Wishlist button */}
+        {/* Free shipping pill */}
+        {p.is_free_shipping && !discount && (
+          <span
+            className="absolute left-2 top-2 z-10 rounded-md px-1.5 py-0.5 text-[9px] font-bold text-white"
+            style={{ background: "var(--color-success, #16a34a)" }}
+          >
+            Free ship
+          </span>
+        )}
+
+        {/* Wishlist */}
         <button
           type="button"
           onClick={(e) => { e.preventDefault(); onToggleFav(); }}
-          className="absolute right-2 top-2 z-10 grid size-6 place-items-center rounded-full shadow transition-transform hover:scale-110"
+          className="absolute right-2 top-2 z-10 grid size-7 place-items-center rounded-full shadow-sm transition-all duration-150 hover:scale-110 active:scale-95"
           style={{
-            background: "var(--color-surface)",
-            border:     "1px solid var(--color-border)",
+            background: isFav ? "var(--color-accent)" : "var(--color-surface)",
+            border: "1px solid var(--color-border)",
           }}
           aria-label={isFav ? "Remove from wishlist" : "Add to wishlist"}
         >
           <Heart
-            className="size-3.5 transition-colors"
-            style={{ color: isFav ? "var(--color-accent)" : "var(--color-text-muted)" }}
-            fill={isFav ? "var(--color-accent)" : "none"}
+            className="size-3.5 transition-colors duration-150"
+            style={{ color: isFav ? "#fff" : "var(--color-text-muted)" }}
+            fill={isFav ? "#fff" : "none"}
           />
         </button>
 
-        {/* Video indicator */}
-        <span className="absolute bottom-2 left-2 z-10 grid size-6 place-items-center rounded-full bg-black/50">
-          <Play className="size-3 fill-white text-white" />
-        </span>
+        {/* Quick action bar — slides up on hover */}
+        <div
+          className="absolute inset-x-0 bottom-0 z-10 flex translate-y-full gap-1 p-1.5 transition-transform duration-200 ease-out group-hover:translate-y-0"
+          style={{ background: "linear-gradient(to top, rgba(0,0,0,.55) 0%, transparent 100%)" }}
+        >
+          <button
+            type="button"
+            onClick={handleAddToCart}
+            disabled={adding || !vendorId}
+            className="flex flex-1 items-center justify-center gap-1 rounded-lg py-1.5 text-[10px] font-bold text-white transition-all hover:opacity-90 disabled:opacity-60"
+            style={{
+              background: addError
+                ? "#dc2626"
+                : added
+                ? "var(--color-success, #16a34a)"
+                : "var(--color-accent)",
+            }}
+          >
+            {adding ? (
+              <span className="size-3 animate-spin rounded-full border border-white border-t-transparent" />
+            ) : (
+              <ShoppingCart className="size-3" />
+            )}
+            {adding ? "Adding…" : addError ? "Failed" : added ? "Added!" : "Add to Cart"}
+          </button>
+          <Link
+            href={`/marketplace/${p.slug}`}
+            className="grid size-7 shrink-0 place-items-center rounded-lg text-white transition-colors hover:bg-white/20"
+            style={{ background: "rgba(255,255,255,.15)" }}
+            aria-label="Quick view"
+          >
+            <Eye className="size-3.5" />
+          </Link>
+        </div>
       </div>
 
-      {/* Info */}
-      <Link href={`/products/${p.slug}`} className="mt-2 flex flex-col gap-1">
-        <h4
-          className="truncate text-xs font-bold"
-          style={{ color: "var(--color-text-primary)" }}
-        >
-          {p.name}
-        </h4>
+      {/* ── Info ── */}
+      <div className="flex flex-col gap-1 p-2.5 pt-2">
+        <Link href={`/marketplace/${p.slug}`}>
+          <h4
+            className="line-clamp-2 text-[11px] font-semibold leading-snug hover:underline underline-offset-2"
+            style={{ color: "var(--color-text-primary)" }}
+          >
+            {p.name}
+          </h4>
+        </Link>
+
+        {/* Price */}
         <div className="flex items-baseline gap-1.5">
           <span className="text-sm font-black" style={{ color: "var(--color-accent)" }}>
-            {fmtPrice(p.price)}
+            {fmtPrice(displayPrice)}
           </span>
           {p.compare_at_price && p.compare_at_price > p.price && (
-            <span className="text-[11px] line-through" style={{ color: "var(--color-text-muted)" }}>
+            <span className="text-[10px] line-through" style={{ color: "var(--color-text-muted)" }}>
               {fmtPrice(p.compare_at_price)}
             </span>
           )}
         </div>
-        <div className="flex items-center justify-between text-[10px]">
-          <span className="flex items-center gap-1" style={{ color: "var(--color-text-muted)" }}>
-            <Star className="size-3 fill-current" style={{ color: "var(--color-accent)" }} />
-            {p.rating?.toFixed(1) ?? "—"} ({fmtCount(p.review_count)})
+
+        {/* Rating + sold */}
+        <div className="flex items-center justify-between">
+          <span className="flex items-center gap-0.5 text-[10px]" style={{ color: "var(--color-text-muted)" }}>
+            <Star className="size-2.5 fill-amber-400 text-amber-400" />
+            <span className="font-medium" style={{ color: "var(--color-text-secondary)" }}>
+              {p.rating?.toFixed(1) ?? "—"}
+            </span>
+            <span className="opacity-60">({fmtCount(p.review_count)})</span>
           </span>
-          {p.is_free_shipping && (
-            <span className="font-medium" style={{ color: "var(--color-success)" }}>Free ship</span>
+          {(p.sale_count ?? 0) > 0 && (
+            <span className="text-[9px] font-medium" style={{ color: "var(--color-text-muted)" }}>
+              {fmtCount(p.sale_count ?? 0)} sold
+            </span>
           )}
         </div>
-      </Link>
 
-      {/* Affiliate earn badge */}
+        {/* Colour swatches */}
+        {hasColors && (
+          <div className="mt-1 flex items-center gap-1 flex-wrap">
+            {visibleColors.map((v) => {
+              const raw = getColorValue(getOptions(v))!;
+              const isSelected = selectedColor === raw;
+              return (
+                <button
+                  key={v.id}
+                  type="button"
+                  title={raw}
+                  onClick={() => setSelectedColor(raw)}
+                  className="rounded-full transition-all duration-150 hover:scale-110"
+                  style={{
+                    width: 14,
+                    height: 14,
+                    background: cssColor(raw),
+                    border: isSelected
+                      ? "2px solid var(--color-accent)"
+                      : "1.5px solid rgba(0,0,0,.15)",
+                    outline: isSelected
+                      ? "2px solid color-mix(in srgb, var(--color-accent) 35%, transparent)"
+                      : "none",
+                    outlineOffset: 1,
+                  }}
+                  aria-label={raw}
+                  aria-pressed={isSelected}
+                />
+              );
+            })}
+            {extraColors > 0 && (
+              <span className="text-[9px] font-bold" style={{ color: "var(--color-text-muted)" }}>
+                +{extraColors}
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Size picker */}
+        {hasSizes && (
+          <div className="relative mt-1">
+            <button
+              type="button"
+              onClick={() => setShowSizes((s) => !s)}
+              className="flex w-full items-center justify-between rounded-md px-2 py-1 text-[10px] font-semibold transition-colors"
+              style={{
+                background: "var(--color-surface-secondary)",
+                border: "1px solid var(--color-border)",
+                color: "var(--color-text-secondary)",
+              }}
+            >
+              <span>{selectedSize ?? "Select size"}</span>
+              <ChevronDown
+                className="size-3 transition-transform duration-150"
+                style={{ transform: showSizes ? "rotate(180deg)" : "rotate(0deg)" }}
+              />
+            </button>
+
+            {showSizes && (
+              <div
+                className="absolute inset-x-0 top-full z-20 mt-0.5 overflow-hidden rounded-md shadow-lg"
+                style={{
+                  background: "var(--color-surface)",
+                  border: "1px solid var(--color-border)",
+                }}
+              >
+                {sizeOptions.map((size) => {
+                  const available = variants.some(
+                    (v) =>
+                      v.is_active &&
+                      getOptions(v)[sizeKey!] === size &&
+                      (!selectedColor || getColorValue(getOptions(v)) === selectedColor) &&
+                      (v.inventory_quantity == null || v.inventory_quantity > 0)
+                  );
+                  return (
+                    <button
+                      key={size}
+                      type="button"
+                      disabled={!available}
+                      onClick={() => { setSelectedSize(size); setShowSizes(false); }}
+                      className="flex w-full items-center justify-between px-2.5 py-1.5 text-[10px] font-semibold transition-colors"
+                      style={{
+                        color: available
+                          ? selectedSize === size
+                            ? "var(--color-accent)"
+                            : "var(--color-text-primary)"
+                          : "var(--color-text-muted)",
+                        background: selectedSize === size
+                          ? "color-mix(in srgb, var(--color-accent) 8%, transparent)"
+                          : "transparent",
+                        opacity: available ? 1 : 0.45,
+                        cursor: available ? "pointer" : "not-allowed",
+                        textDecoration: available ? "none" : "line-through",
+                      }}
+                    >
+                      {size}
+                      {!available && (
+                        <span className="text-[8px]" style={{ color: "var(--color-text-muted)" }}>
+                          Out
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Affiliate earn strip */}
       {earn && (
         <div
-          className="mt-2 flex items-center justify-center gap-1 rounded-md py-1 text-[11px] font-bold"
+          className="mx-2 mb-2 flex items-center justify-center gap-1 rounded-lg py-1 text-[10px] font-bold"
           style={{
-            background: "color-mix(in srgb, var(--color-accent) 10%, transparent)",
-            color:      "var(--color-accent)",
+            background: "color-mix(in srgb, var(--color-accent) 8%, transparent)",
+            color: "var(--color-accent)",
+            border: "1px solid color-mix(in srgb, var(--color-accent) 18%, transparent)",
           }}
         >
-          <DollarSign className="size-3" /> {earn}
+          <DollarSign className="size-2.5" />
+          {earn}
         </div>
       )}
-
-      {/* Quick shop button — appears on hover */}
-      <Link
-        href={`/products/${p.slug}`}
-        className="mt-2 hidden w-full rounded-lg py-1.5 text-center text-xs font-bold text-white transition-opacity hover:opacity-90 group-hover:block"
-        style={{ background: "var(--color-accent)" }}
-      >
-        View Product
-      </Link>
     </div>
   );
 }

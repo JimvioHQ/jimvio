@@ -160,7 +160,7 @@ export function HeroRightPanel({ profile }: HeroRightPanelProps) {
 
             {/* OAuth row */}
             <div className="grid grid-cols-2 gap-[6px]">
-              <form action={signInWithGoogle}>
+              <form action={() => signInWithGoogle()}>
                 <button
                   type="submit"
                   className="flex items-center justify-center gap-[6px] w-full h-[30px] rounded-sm text-[10px] font-bold text-[#6b6257] dark:text-[#a89f93] hover:bg-[#f5f4f1] dark:hover:bg-white/[.04] transition-all"
