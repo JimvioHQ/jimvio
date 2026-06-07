@@ -170,7 +170,7 @@ export async function submitCjOrderForLines(
 
   try {
     const body = await cjPost<any>(
-      "/shopping/order/createOrder",
+      "/shopping/order/createOrderV2",
       accessToken,
       cjPayload
     );
