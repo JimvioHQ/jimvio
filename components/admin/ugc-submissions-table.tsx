@@ -1,6 +1,11 @@
 "use client";
 
+// components/admin/ugc-submissions-table.tsx
+
 import React, { useState } from "react";
+import { CheckCircle2, XCircle, ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Th } from "@/components/ui/admin";
 
 type UGCSubmission = {
     id: string;
@@ -30,50 +35,13 @@ type UGCSubmission = {
     ugc_submission_media?: Array<{ url: string; type: string; thumbnail_url?: string | null }>;
 };
 
-interface UGCSubmissionsTableProps {
-    submissions: UGCSubmission[];
-}
-
-const PLATFORM_COLORS: Record<string, { bg: string; fg: string; label: string }> = {
-    tiktok: { bg: "rgba(0,0,0,0.06)", fg: "#111", label: "TikTok" },
-    instagram: { bg: "rgba(214,41,118,0.08)", fg: "#d62976", label: "Instagram" },
-    youtube: { bg: "rgba(255,0,0,0.08)", fg: "#ff0000", label: "YouTube" },
-    x: { bg: "rgba(29,155,240,0.08)", fg: "#1d9bf0", label: "X" },
-};
-
-function PlatformBadge({ platform }: { platform: string }) {
-    const p = PLATFORM_COLORS[platform] ?? { bg: "rgba(100,116,139,0.08)", fg: "#475569", label: platform };
-    return (
-        <span style={{
-            fontSize: 10, fontWeight: 700, padding: "3px 7px", borderRadius: 4,
-            background: p.bg, color: p.fg, border: `0.5px solid ${p.fg}22`,
-            textTransform: "capitalize",
-        }}>
-            {p.label}
-        </span>
-    );
-}
-
-function FraudBadge({ score }: { score: number }) {
-    if (score < 0.3) return null;
-    const high = score >= 0.7;
-    return (
-        <span style={{
-            fontSize: 10, fontWeight: 700, padding: "2px 6px", borderRadius: 4,
-            background: high ? "rgba(220,38,38,0.08)" : "rgba(240,180,41,0.1)",
-            color: high ? "#dc2626" : "#b45309",
-            border: `0.5px solid ${high ? "rgba(220,38,38,0.2)" : "rgba(240,180,41,0.2)"}`,
-        }}>
-            ⚠ {(score * 100).toFixed(0)}% fraud risk
-        </span>
-    );
-}
+// ─── helpers ──────────────────────────────────────────────────────────────────
 
 function formatViews(n: bigint | number | null | undefined): string {
     if (!n) return "—";
     const num = typeof n === "bigint" ? Number(n) : n;
     if (num >= 1_000_000) return `${(num / 1_000_000).toFixed(1)}M`;
-    if (num >= 1_000) return `${(num / 1_000).toFixed(1)}K`;
+    if (num >= 1_000)     return `${(num / 1_000).toFixed(1)}K`;
     return String(num);
 }
 
@@ -82,248 +50,326 @@ function daysSince(date: string | Date | null | undefined): number {
     return Math.floor((Date.now() - new Date(date).getTime()) / 86_400_000);
 }
 
-function truncate(str: string | null | undefined, len = 60): string {
+function truncate(str: string | null | undefined, len = 40): string {
     if (!str) return "—";
     return str.length > len ? str.slice(0, len) + "…" : str;
 }
 
-export function UGCSubmissionsTable({ submissions }: UGCSubmissionsTableProps) {
-    const [expanded, setExpanded] = useState<string | null>(null);
-    const [rejecting, setRejecting] = useState<string | null>(null);
-    const [rejectReason, setRejectReason] = useState("");
+// ─── Platform badge ───────────────────────────────────────────────────────────
 
+const PLATFORM_STYLES: Record<string, string> = {
+    tiktok:    "bg-slate-100 text-slate-700 ring-slate-300/60 dark:bg-slate-800 dark:text-slate-300",
+    instagram: "bg-pink-50 text-pink-700 ring-pink-300/40 dark:bg-pink-950/30 dark:text-pink-400",
+    youtube:   "bg-rose-50 text-rose-700 ring-rose-300/40 dark:bg-rose-950/30 dark:text-rose-400",
+    x:         "bg-sky-50 text-sky-700 ring-sky-300/40 dark:bg-sky-950/30 dark:text-sky-400",
+};
+const PLATFORM_LABELS: Record<string, string> = {
+    tiktok: "TikTok", instagram: "Instagram", youtube: "YouTube", x: "X",
+};
+
+function PlatformBadge({ platform }: { platform: string }) {
     return (
-        <div style={{ display: "flex", flexDirection: "column", gap: 0, border: "0.5px solid var(--color-border)", borderRadius: 10, overflow: "hidden" }}>
-            {/* Header */}
-            <div style={{
-                display: "grid",
-                gridTemplateColumns: "2fr 1.2fr 1fr 80px 80px 80px 120px",
-                gap: 10,
-                padding: "8px 16px",
-                fontSize: 11, fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase",
-                color: "var(--color-text-muted,#888)",
-                background: "var(--color-surface-secondary,#f9f9f9)",
-                borderBottom: "0.5px solid var(--color-border)",
-            }}>
-                <span>Creator / Post</span>
-                <span>Campaign</span>
-                <span>Platform</span>
-                <span>Views</span>
-                <span>Earned</span>
-                <span>Age</span>
-                <span>Actions</span>
-            </div>
+        <span className={cn(
+            "inline-flex px-2 py-0.5 rounded text-[10.5px] font-semibold capitalize ring-1 ring-inset",
+            PLATFORM_STYLES[platform] ?? "bg-slate-100 text-slate-600 ring-slate-300/60",
+        )}>
+            {PLATFORM_LABELS[platform] ?? platform}
+        </span>
+    );
+}
 
-            {submissions.map((s, i) => {
-                const days = daysSince(s.created_at);
-                const isOpen = expanded === s.id;
-                const fraudScore = s.fraud_score ? Number(s.fraud_score) : 0;
-                const isRejectOpen = rejecting === s.id;
+// ─── Fraud badge ──────────────────────────────────────────────────────────────
 
-                return (
-                    <div key={s.id} style={{
-                        borderBottom: i < submissions.length - 1 ? "0.5px solid var(--color-border)" : "none",
-                        background: isOpen ? "var(--color-surface-secondary,#f9f9f9)" : "var(--color-surface,#fff)",
-                    }}>
-                        <div style={{
-                            display: "grid",
-                            gridTemplateColumns: "2fr 1.2fr 1fr 80px 80px 80px 120px",
-                            gap: 10,
-                            padding: "12px 16px",
-                            alignItems: "center",
-                        }}>
-                            {/* Creator + post */}
-                            <div style={{ display: "flex", gap: 9, alignItems: "center", minWidth: 0 }}>
-                                {s.influencers?.profile_image ? (
-                                    <img src={s.influencers.profile_image} alt="" width={30} height={30}
-                                        style={{ borderRadius: "50%", objectFit: "cover", flexShrink: 0, border: "1px solid var(--color-border)" }} />
-                                ) : (
-                                    <div style={{
-                                        width: 30, height: 30, borderRadius: "50%", flexShrink: 0,
-                                        background: "var(--color-accent-light,#fff3ee)", color: "var(--color-accent,#fd5000)",
-                                        display: "flex", alignItems: "center", justifyContent: "center",
-                                        fontSize: 11, fontWeight: 700, border: "1px solid var(--color-border)",
-                                    }}>
-                                        {(s.influencers?.display_name ?? "?")[0].toUpperCase()}
-                                    </div>
-                                )}
-                                <div style={{ minWidth: 0 }}>
-                                    <div style={{ fontSize: 13, fontWeight: 600, color: "var(--color-text-primary)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                                        {s.influencers?.display_name ?? "Unknown"}
-                                    </div>
-                                    <a href={s.post_url} target="_blank" rel="noopener noreferrer"
-                                        style={{ fontSize: 11, color: "var(--color-accent,#fd5000)", textDecoration: "none", display: "block", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                                        {truncate(s.post_url, 40)}
-                                    </a>
-                                    {s.is_suspicious && <FraudBadge score={fraudScore} />}
-                                </div>
-                            </div>
+function FraudBadge({ score }: { score: number }) {
+    if (score < 0.3) return null;
+    const high = score >= 0.7;
+    return (
+        <span className={cn(
+            "inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold ring-1 ring-inset",
+            high
+                ? "bg-rose-50 text-rose-700 ring-rose-300/40 dark:bg-rose-950/30 dark:text-rose-400"
+                : "bg-amber-50 text-amber-700 ring-amber-300/40 dark:bg-amber-950/30 dark:text-amber-400",
+        )}>
+            ⚠ {(score * 100).toFixed(0)}% fraud risk
+        </span>
+    );
+}
 
-                            {/* Campaign */}
-                            <div style={{ minWidth: 0 }}>
-                                <div style={{ fontSize: 12, fontWeight: 600, color: "var(--color-text-primary)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                                    {s.ugc_campaigns?.title ?? "—"}
-                                </div>
-                                <div style={{ fontSize: 10, color: "var(--color-text-muted,#888)", textTransform: "capitalize", marginTop: 1 }}>
-                                    {s.ugc_campaigns?.campaign_type?.replace("_", " ") ?? ""}
-                                </div>
-                            </div>
+// ─── Age badge ────────────────────────────────────────────────────────────────
 
-                            {/* Platform */}
-                            <PlatformBadge platform={s.platform} />
+function AgeBadge({ days }: { days: number }) {
+    return (
+        <span className={cn(
+            "inline-flex px-2 py-0.5 rounded text-[11px] font-semibold tabular-nums ring-1 ring-inset",
+            days >= 7
+                ? "bg-rose-50 text-rose-700 ring-rose-300/40 dark:bg-rose-950/30 dark:text-rose-400"
+                : "bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)] ring-[var(--color-border)]",
+        )}>
+            {days}d
+        </span>
+    );
+}
 
-                            {/* Views */}
-                            <span style={{ fontSize: 13, fontWeight: 600, color: "var(--color-text-primary)" }}>
-                                {formatViews(s.total_views_earned)}
-                            </span>
+// ─── Influencer avatar ────────────────────────────────────────────────────────
 
-                            {/* Earned */}
-                            <span style={{ fontSize: 12, fontWeight: 600, color: s.total_earnings && Number(s.total_earnings) > 0 ? "#30a46c" : "var(--color-text-muted,#888)" }}>
-                                {s.total_earnings && Number(s.total_earnings) > 0
-                                    ? `${Number(s.total_earnings).toLocaleString()} RWF`
-                                    : "—"}
-                            </span>
-
-                            {/* Age */}
-                            <span style={{
-                                fontSize: 11, fontWeight: 600, padding: "2px 7px", borderRadius: 4,
-                                background: days >= 7 ? "rgba(220,38,38,0.08)" : "rgba(100,116,139,0.07)",
-                                color: days >= 7 ? "#dc2626" : "var(--color-text-muted,#888)",
-                                border: `0.5px solid ${days >= 7 ? "rgba(220,38,38,0.2)" : "var(--color-border)"}`,
-                            }}>
-                                {days}d
-                            </span>
-
-                            {/* Actions */}
-                            <div style={{ display: "flex", gap: 5, alignItems: "center" }}>
-                                <button
-                                    onClick={() => setExpanded(isOpen ? null : s.id)}
-                                    style={{
-                                        height: 28, padding: "0 9px", borderRadius: 5, fontSize: 11, fontWeight: 600,
-                                        border: "0.5px solid var(--color-border)", background: "transparent",
-                                        color: "var(--color-text-secondary)", cursor: "pointer",
-                                    }}
-                                >
-                                    {isOpen ? "Hide" : "View"}
-                                </button>
-                                <button
-                                    onClick={() => {/* approveUGCSubmission(s.id) */ }}
-                                    style={{
-                                        height: 28, width: 28, borderRadius: 5, fontSize: 13, fontWeight: 700,
-                                        border: "0.5px solid rgba(48,164,108,0.3)", background: "rgba(48,164,108,0.08)",
-                                        color: "#30a46c", cursor: "pointer",
-                                        display: "flex", alignItems: "center", justifyContent: "center",
-                                    }}
-                                    title="Approve"
-                                >✓</button>
-                                <button
-                                    onClick={() => setRejecting(isRejectOpen ? null : s.id)}
-                                    style={{
-                                        height: 28, width: 28, borderRadius: 5, fontSize: 13, fontWeight: 700,
-                                        border: "0.5px solid rgba(229,72,77,0.3)", background: "rgba(229,72,77,0.08)",
-                                        color: "#e5484d", cursor: "pointer",
-                                        display: "flex", alignItems: "center", justifyContent: "center",
-                                    }}
-                                    title="Reject"
-                                >✕</button>
-                            </div>
-                        </div>
-
-                        {/* Reject reason input */}
-                        {isRejectOpen && (
-                            <div style={{ padding: "0 16px 12px", display: "flex", gap: 8, alignItems: "center" }}>
-                                <input
-                                    type="text"
-                                    placeholder="Rejection reason (optional)"
-                                    value={rejectReason}
-                                    onChange={(e) => setRejectReason(e.target.value)}
-                                    style={{
-                                        flex: 1, height: 32, padding: "0 10px", fontSize: 12,
-                                        borderRadius: 6, border: "0.5px solid var(--color-border)",
-                                        background: "var(--color-surface,#fff)", color: "var(--color-text-primary)",
-                                        outline: "none",
-                                    }}
-                                />
-                                <button
-                                    onClick={() => {
-                                        // rejectUGCSubmission(s.id, rejectReason)
-                                        setRejecting(null);
-                                        setRejectReason("");
-                                    }}
-                                    style={{
-                                        height: 32, padding: "0 12px", borderRadius: 6, fontSize: 12, fontWeight: 600,
-                                        background: "#e5484d", color: "#fff", border: "none", cursor: "pointer",
-                                    }}
-                                >
-                                    Confirm reject
-                                </button>
-                                <button
-                                    onClick={() => { setRejecting(null); setRejectReason(""); }}
-                                    style={{
-                                        height: 32, padding: "0 10px", borderRadius: 6, fontSize: 12,
-                                        border: "0.5px solid var(--color-border)", background: "transparent",
-                                        color: "var(--color-text-secondary)", cursor: "pointer",
-                                    }}
-                                >
-                                    Cancel
-                                </button>
-                            </div>
-                        )}
-
-                        {/* Expanded detail */}
-                        {isOpen && (
-                            <div style={{ padding: "0 16px 16px", display: "flex", flexDirection: "column", gap: 12 }}>
-                                <div style={{ height: 1, background: "var(--color-border)", margin: "0 0 4px" }} />
-                                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 14, fontSize: 12 }}>
-                                    <Detail label="Post URL" value={<a href={s.post_url} target="_blank" rel="noopener noreferrer" style={{ color: "var(--color-accent,#fd5000)" }}>Open post ↗</a>} />
-                                    <Detail label="Submitted" value={s.created_at ? new Date(s.created_at).toLocaleString() : "—"} />
-                                    <Detail label="Rate/1K views" value={s.ugc_campaigns?.rate_per_1k_views ? `${Number(s.ugc_campaigns.rate_per_1k_views)} RWF` : "—"} />
-                                    <Detail label="Fraud score" value={fraudScore > 0 ? `${(fraudScore * 100).toFixed(1)}%` : "Clean"} />
-                                </div>
-                                {s.caption && (
-                                    <div>
-                                        <div style={{ fontSize: 10, fontWeight: 600, color: "var(--color-text-muted,#888)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4 }}>Caption</div>
-                                        <p style={{ margin: 0, fontSize: 12, color: "var(--color-text-secondary)", lineHeight: 1.6, maxWidth: 600 }}>{s.caption}</p>
-                                    </div>
-                                )}
-                                {s.ugc_submission_media && s.ugc_submission_media.length > 0 && (
-                                    <div>
-                                        <div style={{ fontSize: 10, fontWeight: 600, color: "var(--color-text-muted,#888)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>Media</div>
-                                        <div style={{ display: "flex", gap: 8 }}>
-                                            {s.ugc_submission_media.slice(0, 4).map((m, mi) => (
-                                                <a key={mi} href={m.url} target="_blank" rel="noopener noreferrer">
-                                                    {m.thumbnail_url ? (
-                                                        <img src={m.thumbnail_url} alt="" width={64} height={64}
-                                                            style={{ borderRadius: 6, objectFit: "cover", border: "0.5px solid var(--color-border)" }} />
-                                                    ) : (
-                                                        <div style={{
-                                                            width: 64, height: 64, borderRadius: 6, border: "0.5px solid var(--color-border)",
-                                                            background: "var(--color-surface-secondary,#f9f9f9)",
-                                                            display: "flex", alignItems: "center", justifyContent: "center",
-                                                            fontSize: 10, color: "var(--color-text-muted,#888)",
-                                                        }}>
-                                                            {m.type}
-                                                        </div>
-                                                    )}
-                                                </a>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                    </div>
-                );
-            })}
+function InfluencerAvatar({ src, name }: { src?: string | null; name: string }) {
+    const [failed, setFailed] = useState(false);
+    if (src && !failed) {
+        return (
+            <img
+                src={src} alt={name}
+                onError={() => setFailed(true)}
+                className="w-8 h-8 rounded-full object-cover shrink-0 border border-[var(--color-border)]"
+            />
+        );
+    }
+    return (
+        <div className="w-8 h-8 rounded-full shrink-0 flex items-center justify-center text-[11px] font-bold bg-orange-50 text-orange-600 dark:bg-orange-950/30 dark:text-orange-400 border border-[var(--color-border)]">
+            {(name ?? "?")[0].toUpperCase()}
         </div>
     );
 }
 
+// ─── Detail field ─────────────────────────────────────────────────────────────
+
 function Detail({ label, value }: { label: string; value: React.ReactNode }) {
     return (
         <div>
-            <div style={{ fontSize: 10, fontWeight: 600, color: "var(--color-text-muted,#888)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>{label}</div>
-            <div style={{ fontSize: 12, color: "var(--color-text-primary)", fontWeight: 500 }}>{value}</div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--color-text-muted)] mb-1">
+                {label}
+            </p>
+            <div className="text-[12px] text-[var(--color-text-primary)] font-medium">
+                {value ?? <span className="text-[var(--color-text-muted)]">—</span>}
+            </div>
+        </div>
+    );
+}
+
+// ─── Row ──────────────────────────────────────────────────────────────────────
+
+function SubmissionRow({ s }: { s: UGCSubmission }) {
+    const [expanded,     setExpanded    ] = useState(false);
+    const [rejectOpen,   setRejectOpen  ] = useState(false);
+    const [rejectReason, setRejectReason] = useState("");
+
+    const days       = daysSince(s.created_at);
+    const fraudScore = s.fraud_score ? Number(s.fraud_score) : 0;
+
+    return (
+        <>
+            <tr className={cn(
+                "border-b border-[var(--color-border)]/70 transition-colors",
+                expanded ? "bg-[var(--color-surface-secondary)]/40" : "hover:bg-[var(--color-surface-secondary)]/30",
+            )}>
+                {/* Creator + post */}
+                <td className="px-3 py-2.5">
+                    <div className="flex items-center gap-2.5">
+                        <InfluencerAvatar src={s.influencers?.profile_image} name={s.influencers?.display_name ?? "?"} />
+                        <div className="min-w-0">
+                            <p className="text-[13px] font-semibold text-[var(--color-text-primary)] truncate max-w-[150px]">
+                                {s.influencers?.display_name ?? "Unknown"}
+                            </p>
+                            <a
+                                href={s.post_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-[11px] text-orange-500 hover:underline block truncate max-w-[150px]"
+                            >
+                                {truncate(s.post_url, 38)}
+                            </a>
+                            {s.is_suspicious && <FraudBadge score={fraudScore} />}
+                        </div>
+                    </div>
+                </td>
+
+                {/* Campaign */}
+                <td className="px-3 py-2.5">
+                    <p className="text-[12px] font-semibold text-[var(--color-text-primary)] truncate max-w-[130px]">
+                        {s.ugc_campaigns?.title ?? "—"}
+                    </p>
+                    <p className="text-[10px] text-[var(--color-text-muted)] capitalize mt-0.5">
+                        {s.ugc_campaigns?.campaign_type?.replace(/_/g, " ") ?? ""}
+                    </p>
+                </td>
+
+                {/* Platform */}
+                <td className="px-3 py-2.5">
+                    <PlatformBadge platform={s.platform} />
+                </td>
+
+                {/* Views */}
+                <td className="px-3 py-2.5">
+                    <span className="text-[13px] font-semibold text-[var(--color-text-primary)] tabular-nums">
+                        {formatViews(s.total_views_earned)}
+                    </span>
+                </td>
+
+                {/* Earned */}
+                <td className="px-3 py-2.5">
+                    <span className={cn(
+                        "text-[12px] font-semibold tabular-nums",
+                        s.total_earnings && Number(s.total_earnings) > 0
+                            ? "text-emerald-600 dark:text-emerald-400"
+                            : "text-[var(--color-text-muted)]",
+                    )}>
+                        {s.total_earnings && Number(s.total_earnings) > 0
+                            ? `${Number(s.total_earnings).toLocaleString()} RWF`
+                            : "—"}
+                    </span>
+                </td>
+
+                {/* Age */}
+                <td className="px-3 py-2.5">
+                    <AgeBadge days={days} />
+                </td>
+
+                {/* Actions */}
+                <td className="px-3 py-2.5">
+                    <div className="flex items-center gap-1">
+                        <button
+                            onClick={() => setExpanded(!expanded)}
+                            className="h-7 w-7 inline-flex items-center justify-center rounded-lg border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-secondary)] transition-colors"
+                        >
+                            {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                        </button>
+                        <button
+                            onClick={() => {/* approveUGCSubmission(s.id) */}}
+                            title="Approve"
+                            className="h-7 w-7 inline-flex items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 dark:bg-emerald-950/30 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/40 transition-colors"
+                        >
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                            onClick={() => setRejectOpen(!rejectOpen)}
+                            title="Reject"
+                            className="h-7 w-7 inline-flex items-center justify-center rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100 dark:bg-rose-950/30 dark:text-rose-400 border border-rose-200/60 dark:border-rose-800/40 transition-colors"
+                        >
+                            <XCircle className="h-3.5 w-3.5" />
+                        </button>
+                    </div>
+                </td>
+            </tr>
+
+            {/* Reject reason row */}
+            {rejectOpen && (
+                <tr className="border-b border-[var(--color-border)]/70 bg-[var(--color-surface-secondary)]/20">
+                    <td colSpan={7} className="px-3 py-2.5">
+                        <div className="flex items-center gap-2">
+                            <input
+                                type="text"
+                                placeholder="Rejection reason (optional)…"
+                                value={rejectReason}
+                                onChange={(e) => setRejectReason(e.target.value)}
+                                className="flex-1 h-8 px-2.5 text-[12px] rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
+                            />
+                            <button
+                                onClick={() => { setRejectOpen(false); setRejectReason(""); }}
+                                className="h-8 px-3 rounded-lg text-[12px] font-semibold bg-rose-600 text-white hover:bg-rose-700 transition-colors"
+                            >
+                                Confirm
+                            </button>
+                            <button
+                                onClick={() => { setRejectOpen(false); setRejectReason(""); }}
+                                className="h-8 px-3 rounded-lg text-[12px] border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            )}
+
+            {/* Expanded detail row */}
+            {expanded && (
+                <tr className="border-b border-[var(--color-border)]/70 bg-[var(--color-surface-secondary)]/40">
+                    <td colSpan={7} className="px-4 py-4">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
+                            <Detail label="Post URL" value={
+                                <a href={s.post_url} target="_blank" rel="noopener noreferrer"
+                                    className="text-orange-500 hover:underline inline-flex items-center gap-1">
+                                    Open post <ExternalLink className="h-3 w-3" />
+                                </a>
+                            } />
+                            <Detail label="Submitted" value={s.created_at ? new Date(s.created_at).toLocaleString() : "—"} />
+                            <Detail label="Rate / 1K views" value={
+                                s.ugc_campaigns?.rate_per_1k_views
+                                    ? `${Number(s.ugc_campaigns.rate_per_1k_views)} RWF`
+                                    : "—"
+                            } />
+                            <Detail label="Fraud score" value={fraudScore > 0 ? `${(fraudScore * 100).toFixed(1)}%` : "Clean"} />
+                        </div>
+
+                        {s.caption && (
+                            <div className="mb-4">
+                                <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--color-text-muted)] mb-1.5">
+                                    Caption
+                                </p>
+                                <p className="text-[12px] text-[var(--color-text-secondary)] leading-relaxed max-w-xl">
+                                    {s.caption}
+                                </p>
+                            </div>
+                        )}
+
+                        {s.ugc_submission_media && s.ugc_submission_media.length > 0 && (
+                            <div>
+                                <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--color-text-muted)] mb-2">
+                                    Media
+                                </p>
+                                <div className="flex gap-2">
+                                    {s.ugc_submission_media.slice(0, 4).map((m, mi) => (
+                                        <a key={mi} href={m.url} target="_blank" rel="noopener noreferrer">
+                                            {m.thumbnail_url ? (
+                                                <img
+                                                    src={m.thumbnail_url} alt=""
+                                                    className="w-16 h-16 rounded-lg object-cover border border-[var(--color-border)]"
+                                                />
+                                            ) : (
+                                                <div className="w-16 h-16 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-secondary)] flex items-center justify-center text-[10px] text-[var(--color-text-muted)]">
+                                                    {m.type}
+                                                </div>
+                                            )}
+                                        </a>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </td>
+                </tr>
+            )}
+        </>
+    );
+}
+
+// ─── Table ────────────────────────────────────────────────────────────────────
+
+export function UGCSubmissionsTable({ submissions }: { submissions: UGCSubmission[] }) {
+    return (
+        <div className="rounded-xl border border-[var(--color-border)] overflow-hidden bg-[var(--color-surface)]">
+            <div className="overflow-x-auto">
+                <table className="w-full">
+                    <thead>
+                        <tr className="border-b border-[var(--color-border)] bg-[var(--color-surface-secondary)]/60">
+                            <Th>Creator / Post</Th>
+                            <Th>Campaign</Th>
+                            <Th>Platform</Th>
+                            <Th>Views</Th>
+                            <Th>Earned</Th>
+                            <Th>Age</Th>
+                            <Th>Actions</Th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {submissions.map((s) => (
+                            <SubmissionRow key={s.id} s={s} />
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+            <div className="px-4 py-2.5 border-t border-[var(--color-border)] bg-[var(--color-surface-secondary)]/40">
+                <p className="text-[11px] text-[var(--color-text-muted)]">
+                    {submissions.length} submission{submissions.length !== 1 ? "s" : ""} pending review
+                </p>
+            </div>
         </div>
     );
 }

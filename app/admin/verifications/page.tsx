@@ -1,14 +1,11 @@
-
-
-// app/admin/verifications/page.tsx
 import React from "react";
 import {
-  getPendingVendors,
-  getPendingCreators,
-  getPendingUGCSubmissions,
-  getPendingReports,
-  getVerificationCounts,
-  getVendorCountries,
+    getPendingVendors,
+    getPendingCreators,
+    getPendingUGCSubmissions,
+    getPendingReports,
+    getVerificationCounts,
+    getVendorCountries,
 } from "@/services/db";
 import { VerificationTable } from "@/components/admin/verification-table";
 import { VerificationTabs } from "@/components/admin/verification-tabs";
@@ -16,214 +13,225 @@ import { VerificationFilters } from "@/components/admin/verification-filters";
 import { CreatorsTable } from "@/components/admin/creators-table";
 import { UGCSubmissionsTable } from "@/components/admin/ugc-submissions-table";
 import { ReportsTable } from "@/components/admin/reports-table";
+import { EmptyState } from "@/components/ui/admin";
+import { Store, Video } from "lucide-react";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminVerificationsPage({
-  searchParams,
+    searchParams,
 }: {
-  searchParams: Promise<{
-    tab?: string;
-    q?: string;
-    country?: string;
-    sort?: string;
-    age?: string;
-    platform?: string;
-  }>;
+    searchParams: Promise<{
+        tab?: string;
+        q?: string;
+        country?: string;
+        sort?: string;
+        age?: string;
+        platform?: string;
+    }>;
 }) {
-  const sp = await searchParams;
-  const tab = sp.tab ?? "vendors";
+    const sp = await searchParams;
+    const tab = sp.tab ?? "vendors";
 
-  // Ensure `platform` matches the allowed values expected by the DB helper
-  const allowedPlatforms = ["all", "tiktok", "instagram", "youtube", "x"];
-  const platformFilter = allowedPlatforms.includes(sp.platform ?? "")
-    ? (sp.platform as "all" | "tiktok" | "instagram" | "youtube" | "x")
-    : undefined;
+    const allowedPlatforms = ["all", "tiktok", "instagram", "youtube", "x"];
+    const platformFilter = allowedPlatforms.includes(sp.platform ?? "")
+        ? (sp.platform as "all" | "tiktok" | "instagram" | "youtube" | "x")
+        : undefined;
 
-  // Run counts + active-tab query in parallel
-  const [counts, countries, vendorData, creatorData, ugcData, reportData] =
-    await Promise.all([
-      getVerificationCounts(),
-      getVendorCountries(),
-      tab === "vendors"
-        ? getPendingVendors({
-            q: sp.q,
-            country: sp.country,
-            sort: sp.sort ?? "oldest",
-            minAgeDays: sp.age ? Number(sp.age) : undefined,
-          })
-        : Promise.resolve([]),
-      tab === "creators"
-        ? getPendingCreators({ q: sp.q, sort: sp.sort ?? "oldest" })
-        : Promise.resolve([]),
-      tab === "ugc"
-        ? getPendingUGCSubmissions({ sort: sp.sort ?? "oldest", platform: platformFilter })
-        : Promise.resolve([]),
-      tab === "reports"
-        ? getPendingReports({ sort: sp.sort ?? "oldest" })
-        : Promise.resolve([]),
-    ]);
+    const [counts, countries, vendorData, creatorData, ugcData, reportData] =
+        await Promise.all([
+            getVerificationCounts(),
+            getVendorCountries(),
+            tab === "vendors"
+                ? getPendingVendors({
+                    q: sp.q,
+                    country: sp.country,
+                    sort: sp.sort ?? "oldest",
+                    minAgeDays: sp.age ? Number(sp.age) : undefined,
+                })
+                : Promise.resolve([]),
+            tab === "creators"
+                ? getPendingCreators({ q: sp.q, sort: sp.sort ?? "oldest" })
+                : Promise.resolve([]),
+            tab === "ugc"
+                ? getPendingUGCSubmissions({ sort: sp.sort ?? "oldest", platform: platformFilter })
+                : Promise.resolve([]),
+            tab === "reports"
+                ? getPendingReports({ sort: sp.sort ?? "oldest" })
+                : Promise.resolve([]),
+        ]);
 
-  // Aging buckets — vendors only
-  const buckets = vendorData.reduce(
-    (acc: any, v: any) => {
-      if (!v.created_at) return acc;
-      const days = Math.floor((Date.now() - new Date(v.created_at).getTime()) / 86_400_000);
-      if (days >= 14) acc.critical++;
-      else if (days >= 7) acc.aging++;
-      else if (days >= 3) acc.watching++;
-      else acc.fresh++;
-      return acc;
-    },
-    { critical: 0, aging: 0, watching: 0, fresh: 0 }
-  );
+    const buckets = vendorData.reduce(
+        (acc: any, v: any) => {
+            if (!v.created_at) return acc;
+            const days = Math.floor((Date.now() - new Date(v.created_at).getTime()) / 86_400_000);
+            if (days >= 14)     acc.critical++;
+            else if (days >= 7) acc.aging++;
+            else if (days >= 3) acc.watching++;
+            else                acc.fresh++;
+            return acc;
+        },
+        { critical: 0, aging: 0, watching: 0, fresh: 0 },
+    );
 
-  const oldestDays =
-    vendorData.length
-      ? Math.floor(
-          Math.max(
-            ...vendorData.map((v: any) =>
-              v.created_at ? Date.now() - new Date(v.created_at).getTime() : 0
-            )
-          ) / 86_400_000
+    const oldestDays = vendorData.length
+        ? Math.floor(
+            Math.max(...vendorData.map((v: any) =>
+                v.created_at ? Date.now() - new Date(v.created_at).getTime() : 0
+            )) / 86_400_000,
         )
-      : 0;
+        : 0;
 
-  const activeCount =
-    tab === "vendors"  ? vendorData.length
-    : tab === "creators" ? creatorData.length
-    : tab === "ugc"      ? ugcData.length
-    : reportData.length;
+    const activeCount =
+        tab === "vendors"  ? vendorData.length
+        : tab === "creators" ? creatorData.length
+        : tab === "ugc"      ? ugcData.length
+        : reportData.length;
 
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-      {/* Header */}
-      <header style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 16, flexWrap: "wrap" }}>
-        <div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.02em", margin: 0, color: "var(--color-text-primary)" }}>
-            Review queue
-          </h1>
-          <p style={{ fontSize: 13, color: "var(--color-text-muted, #888)", margin: "2px 0 0" }}>
-            {activeCount === 0
-              ? "Nothing waiting in this tab."
-              : tab === "vendors" && oldestDays >= 7
-                ? <>Oldest vendor waiting <strong style={{ color: "#dc2626" }}>{oldestDays} days</strong>. {activeCount} total.</>
-                : <>{activeCount} item{activeCount !== 1 ? "s" : ""} waiting.</>}
-          </p>
+    return (
+        <div className="space-y-5">
+
+            {/* ── Header ── */}
+            <div className="flex items-start justify-between gap-4 flex-wrap pb-4 border-b border-[var(--color-border)]/60">
+                <div>
+                    <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-[var(--color-text-muted)] mb-1.5">
+                        Admin
+                    </p>
+                    <h1 className="text-[22px] font-medium tracking-tight text-[var(--color-text-primary)] leading-tight">
+                        Review queue
+                    </h1>
+                    <p className="text-[13px] text-[var(--color-text-muted)] mt-1">
+                        {activeCount === 0
+                            ? "Nothing waiting in this tab."
+                            : tab === "vendors" && oldestDays >= 7
+                                ? <>Oldest vendor waiting <strong className="text-rose-600 font-semibold">{oldestDays} days</strong>. {activeCount} total.</>
+                                : <>{activeCount} item{activeCount !== 1 ? "s" : ""} waiting.</>
+                        }
+                    </p>
+                </div>
+
+                {/* Aging chips — vendors only */}
+                {tab === "vendors" && vendorData.length > 0 && (
+                    <div className="flex items-center gap-2 flex-wrap">
+                        {buckets.critical > 0 && <AgingChip n={buckets.critical} label="14d+" tone="critical" />}
+                        {buckets.aging    > 0 && <AgingChip n={buckets.aging}    label="7–13d" tone="aging" />}
+                        {buckets.watching > 0 && <AgingChip n={buckets.watching} label="3–6d"  tone="watching" />}
+                        {buckets.fresh    > 0 && <AgingChip n={buckets.fresh}    label="< 3d"  tone="fresh" />}
+                    </div>
+                )}
+            </div>
+
+            {/* ── Tabs ── */}
+            <VerificationTabs current={tab} counts={counts} />
+
+            {/* ── Filters ── */}
+            {tab === "vendors" && (
+                <VerificationFilters
+                    q={sp.q ?? ""}
+                    country={sp.country ?? ""}
+                    sort={sp.sort ?? "oldest"}
+                    age={sp.age ?? ""}
+                    countries={countries}
+                />
+            )}
+            {tab === "creators" && (
+                <VerificationFilters
+                    q={sp.q ?? ""}
+                    country=""
+                    sort={sp.sort ?? "oldest"}
+                    age=""
+                    countries={[]}
+                />
+            )}
+            {tab === "ugc" && (
+                <PlatformFilter current={sp.platform ?? "all"} />
+            )}
+
+            {/* ── Content ── */}
+            {tab === "vendors" && (
+                vendorData.length === 0
+                    ? <EmptyState
+                        icon={<Store className="h-5 w-5 text-[var(--color-text-muted)]" />}
+                        title="Queue is clear"
+                        message={sp.q || sp.country ? "No matches for these filters." : "No vendors are pending review."}
+                    />
+                    : <VerificationTable vendors={vendorData} />
+            )}
+            {tab === "creators" && (
+                creatorData.length === 0
+                    ? <EmptyState
+                        icon={<Store className="h-5 w-5 text-[var(--color-text-muted)]" />}
+                        title="No pending creators"
+                        message="No creator applications awaiting review."
+                    />
+                    : <CreatorsTable creators={creatorData} />
+            )}
+            {tab === "ugc" && (
+                ugcData.length === 0
+                    ? <EmptyState
+                        icon={<Video className="h-5 w-5 text-[var(--color-text-muted)]" />}
+                        title="No pending submissions"
+                        message="All UGC submissions have been reviewed."
+                    />
+                    : <UGCSubmissionsTable submissions={ugcData} />
+            )}
+            {tab === "reports" && (
+                reportData.length === 0
+                    ? <EmptyState
+                        icon={<Store className="h-5 w-5 text-[var(--color-text-muted)]" />}
+                        title="No pending reports"
+                        message="No reports awaiting review."
+                    />
+                    : <ReportsTable reports={reportData} />
+            )}
         </div>
-
-        {tab === "vendors" && vendorData.length > 0 && (
-          <div style={{ display: "flex", gap: 14, fontSize: 12 }}>
-            {buckets.critical > 0 && <AgingChip n={buckets.critical} label="14d+" tone="critical" />}
-            {buckets.aging    > 0 && <AgingChip n={buckets.aging}    label="7–13d" tone="aging" />}
-            {buckets.watching > 0 && <AgingChip n={buckets.watching} label="3–6d"  tone="watching" />}
-            {buckets.fresh    > 0 && <AgingChip n={buckets.fresh}    label="< 3d"  tone="fresh" />}
-          </div>
-        )}
-      </header>
-
-      {/* Tabs — now with real counts */}
-      <VerificationTabs current={tab} counts={counts} />
-
-      {/* Filters */}
-      {tab === "vendors" && (
-        <VerificationFilters
-          q={sp.q ?? ""}
-          country={sp.country ?? ""}
-          sort={sp.sort ?? "oldest"}
-          age={sp.age ?? ""}
-          countries={countries}
-        />
-      )}
-      {tab === "creators" && (
-        <VerificationFilters
-          q={sp.q ?? ""}
-          country=""
-          sort={sp.sort ?? "oldest"}
-          age=""
-          countries={[]}
-        />
-      )}
-      {tab === "ugc" && (
-        <PlatformFilter current={sp.platform ?? "all"} />
-      )}
-
-      {/* Content */}
-      {tab === "vendors" && (
-        vendorData.length === 0
-          ? <EmptyState message={sp.q || sp.country ? "No matches for these filters." : "Queue is clear."} />
-          : <VerificationTable vendors={vendorData} />
-      )}
-      {tab === "creators" && (
-        creatorData.length === 0
-          ? <EmptyState message="No pending creator applications." />
-          : <CreatorsTable creators={creatorData} />
-      )}
-      {tab === "ugc" && (
-        ugcData.length === 0
-          ? <EmptyState message="No pending UGC submissions." />
-          : <UGCSubmissionsTable submissions={ugcData} />
-      )}
-      {tab === "reports" && (
-        reportData.length === 0
-          ? <EmptyState message="No pending reports." />
-          : <ReportsTable reports={reportData} />
-      )}
-    </div>
-  );
+    );
 }
 
-// ── Platform filter for UGC tab ───────────────────────────────────────────────
+// ── Platform filter ───────────────────────────────────────────────────────────
+
 function PlatformFilter({ current }: { current: string }) {
-  const platforms = ["all", "tiktok", "instagram", "youtube", "x"];
-  return (
-    <div style={{ display: "flex", gap: 6 }}>
-      {platforms.map((p) => (
-        <a
-          key={p}
-          href={`?tab=ugc&platform=${p}`}
-          style={{
-            height: 28, padding: "0 12px", borderRadius: 5, fontSize: 12, fontWeight: 500,
-            display: "inline-flex", alignItems: "center", textDecoration: "none",
-            border: `0.5px solid ${current === p ? "var(--color-text-primary)" : "var(--color-border)"}`,
-            background: current === p ? "var(--color-text-primary)" : "transparent",
-            color: current === p ? "var(--color-bg, #fff)" : "var(--color-text-secondary)",
-            textTransform: "capitalize",
-          }}
-        >
-          {p}
-        </a>
-      ))}
-    </div>
-  );
+    const platforms = ["all", "tiktok", "instagram", "youtube", "x"];
+    return (
+        <div className="flex items-center gap-1.5 flex-wrap">
+            {platforms.map((p) => {
+                const active = current === p;
+                return (
+                    <Link
+                        key={p}
+                        href={`?tab=ugc&platform=${p}`}
+                        className={[
+                            "h-7 px-3 inline-flex items-center rounded-full text-[12px] font-medium capitalize transition-all select-none",
+                            active
+                                ? "bg-[var(--color-text-primary)] text-[var(--color-surface)] ring-0"
+                                : "bg-[var(--color-surface)] ring-[0.5px] ring-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]",
+                        ].join(" ")}
+                    >
+                        {p}
+                    </Link>
+                );
+            })}
+        </div>
+    );
 }
 
-function AgingChip({ n, label, tone }: { n: number; label: string; tone: "critical" | "aging" | "watching" | "fresh" }) {
-  const colors = {
-    critical: { bg: "rgba(220,38,38,0.08)", fg: "#dc2626", border: "rgba(220,38,38,0.2)" },
-    aging:    { bg: "rgba(234,88,12,0.08)", fg: "#ea580c", border: "rgba(234,88,12,0.2)" },
-    watching: { bg: "rgba(217,119,6,0.08)", fg: "#d97706", border: "rgba(217,119,6,0.2)" },
-    fresh:    { bg: "rgba(100,116,139,0.08)", fg: "#475569", border: "rgba(100,116,139,0.2)" },
-  }[tone];
-  return (
-    <div style={{
-      display: "inline-flex", alignItems: "baseline", gap: 5, padding: "5px 10px",
-      borderRadius: 6, background: colors.bg, border: `0.5px solid ${colors.border}`,
-    }}>
-      <span style={{ fontWeight: 700, color: colors.fg, fontSize: 13 }}>{n}</span>
-      <span style={{ color: colors.fg, opacity: 0.7, fontSize: 11 }}>{label}</span>
-    </div>
-  );
-}
+// ── Aging chip ────────────────────────────────────────────────────────────────
 
-function EmptyState({ message }: { message: string }) {
-  return (
-    <div style={{
-      padding: "44px 24px", textAlign: "center",
-      border: "0.5px dashed var(--color-border)",
-      borderRadius: 10, color: "var(--color-text-muted, #888)", fontSize: 13,
-    }}>
-      {message}
-    </div>
-  );
+const AGING_STYLES = {
+    critical: "bg-rose-500/[0.08]   text-rose-600   border-rose-500/20   dark:text-rose-400",
+    aging:    "bg-orange-500/[0.08] text-orange-600 border-orange-500/20 dark:text-orange-400",
+    watching: "bg-amber-500/[0.08]  text-amber-600  border-amber-500/20  dark:text-amber-400",
+    fresh:    "bg-slate-500/[0.08]  text-slate-500  border-slate-500/20  dark:text-slate-400",
+} as const;
+
+function AgingChip({ n, label, tone }: {
+    n: number; label: string; tone: keyof typeof AGING_STYLES;
+}) {
+    return (
+        <div className={`inline-flex items-baseline gap-1.5 px-2.5 py-1.5 rounded-lg border text-[12px] ${AGING_STYLES[tone]}`}>
+            <span className="font-bold tabular-nums">{n}</span>
+            <span className="opacity-70 text-[11px]">{label}</span>
+        </div>
+    );
 }

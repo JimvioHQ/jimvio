@@ -1,252 +1,211 @@
-
-
 "use client";
+
+// ─────────────────────────────────────────────────────────────────────────────
+// components/admin/vendors/vendor-data.tsx
+// ─────────────────────────────────────────────────────────────────────────────
 
 import Link from "next/link";
 import { Package, Star, Users, TrendingUp, Sparkles } from "lucide-react";
 import { useState } from "react";
+import { cn } from "@/lib/utils";
+import { RowArrow } from "@/components/ui/admin";
 
 export function VendorRow({ v, last }: { v: any; last: boolean }) {
-    const [hovered, setHovered] = useState(false);
-
-    // ── Avatar resolution ────────────────────────────────────────────────────
-    // Priority: business_logo (vendor brand) → owner avatar_url → initials
-    const logo = v.business_logo ?? null;
-    const ownerAvatar = v.owner_avatar ?? null;
+    const logo        = v.business_logo ?? null;
+    const ownerAvatar = v.owner_avatar  ?? null;
     const displayImage = logo ?? ownerAvatar ?? null;
-    const initials = (v.business_name ?? "?").slice(0, 2).toUpperCase();
+    const initials    = (v.business_name ?? "?").slice(0, 2).toUpperCase();
 
     const joined = v.created_at ? new Date(v.created_at) : null;
     const joinedStr = joined
-        ? joined.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+        ? joined.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
         : "—";
 
     function fmt(n: number) {
         if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-        if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+        if (n >= 1_000)     return `${(n / 1_000).toFixed(1)}K`;
         return String(n);
     }
 
     return (
-        <Link
-            href={`/admin/vendors/${v.id}`}
-            onMouseEnter={() => setHovered(true)}
-            onMouseLeave={() => setHovered(false)}
-            style={{
-                display: "grid",
-                // Store | Owner | Products | Revenue | Sales | Rating | Status | Joined
-                gridTemplateColumns: "2.4fr 1.3fr 80px 90px 90px 90px 100px 104px",
-                gap: 8,
-                padding: "10px 16px",
-                alignItems: "center",
-                borderBottom: last ? "none" : "0.5px solid var(--color-border)",
-                background: hovered ? "var(--color-surface-secondary)" : "var(--color-surface)",
-                textDecoration: "none",
-                transition: "background 0.12s",
-            }}
-        >
+        <tr className="group hover:bg-[var(--color-surface-secondary)]/40 transition-colors duration-100">
+
             {/* ── Store ── */}
-            <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-                {/* Avatar */}
-                <div style={{ position: "relative", flexShrink: 0 }}>
-                    {displayImage ? (
-                        <img
-                            src={displayImage}
-                            alt={v.business_name}
-                            width={34}
-                            height={34}
-                            style={{
-                                borderRadius: 50,
-                                objectFit: "cover",
-                                border: "0.5px solid var(--color-border)",
-                                display: "block",
-                            }}
-
-                            onError={(e) => {
-                                (e.target as HTMLImageElement).style.display = "none";
-                                const parent = (e.target as HTMLImageElement).parentElement;
-                                if (parent) {
-                                    const fallback = parent.querySelector("[data-initials]") as HTMLElement;
-                                    if (fallback) fallback.style.display = "flex";
-                                }
-                            }}
-                        />
-                    ) : null}
-
-                    <div
-                        data-initials
-                        style={{
-                            width: 34, height: 34, borderRadius: 50,
-                            background: "var(--color-accent-light)",
-                            color: "var(--color-accent)",
-                            display: displayImage ? "none" : "flex",
-                            alignItems: "center", justifyContent: "center",
-                            fontSize: 11, fontWeight: 700,
-                            border: "0.5px solid rgba(253,80,0,0.15)",
-                            flexShrink: 0,
-                        }}
-                    >
-                        {initials}
+            <td className="px-3 py-2.5">
+                <div className="flex items-center gap-2.5">
+                    <VendorAvatar logo={displayImage} initials={initials} isFeatured={v.is_featured} />
+                    <div className="min-w-0">
+                        <Link
+                            href={`/admin/vendors/${v.id}`}
+                            className="text-[13px] font-semibold text-[var(--color-text-primary)] hover:text-orange-500 transition-colors truncate block max-w-[160px]"
+                        >
+                            {v.business_name ?? "—"}
+                        </Link>
+                        {(v.business_country || v.business_type) && (
+                            <p className="text-[11px] text-[var(--color-text-muted)] truncate max-w-[160px]">
+                                {[v.business_country, v.business_type].filter(Boolean).join(" · ")}
+                            </p>
+                        )}
                     </div>
-
-                    {/* Featured star badge */}
-                    {v.is_featured && (
-                        <div style={{
-                            position: "absolute", bottom: -3, right: -3,
-                            width: 14, height: 14, borderRadius: "50%",
-                            background: "#f0b429",
-                            display: "flex", alignItems: "center", justifyContent: "center",
-                            border: "1.5px solid var(--color-surface)",
-                        }}>
-                            <Sparkles size={7} color="#fff" />
-                        </div>
-                    )}
                 </div>
-
-                {/* Name + country + type */}
-                <div style={{ minWidth: 0 }}>
-                    <div style={{
-                        fontSize: 13, fontWeight: 600, color: "var(--color-text-primary)",
-                        whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-                    }}>
-                        {v.business_name ?? "—"}
-                    </div>
-                    {(v.business_country || v.business_type) && (
-                        <div style={{ fontSize: 11, color: "var(--color-text-muted)", marginTop: 1 }}>
-                            {v.business_country}
-                            {v.business_country && v.business_type && (
-                                <span style={{ margin: "0 4px", opacity: 0.5 }}>·</span>
-                            )}
-                            {v.business_type}
-                        </div>
-                    )}
-                </div>
-            </div>
+            </td>
 
             {/* ── Owner ── */}
-            <div style={{ display: "flex", alignItems: "center", gap: 7, minWidth: 0 }}>
-                {/* Owner avatar */}
-                {v.owner_avatar ? (
-                    <img
-                        src={v.owner_avatar}
-                        alt=""
-                        width={22}
-                        height={22}
-                        style={{
-                            borderRadius: "50%", objectFit: "cover", flexShrink: 0,
-                            border: "0.5px solid var(--color-border)",
-                        }}
-                    />
-                ) : (
-                    <div style={{
-                        width: 22, height: 22, borderRadius: "50%", flexShrink: 0,
-                        background: "var(--color-surface-secondary)",
-                        border: "0.5px solid var(--color-border)",
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        fontSize: 9, fontWeight: 700, color: "var(--color-text-muted)",
-                    }}>
-                        {(v.owner_name ?? "?").slice(0, 1).toUpperCase()}
-                    </div>
-                )}
-                <div style={{ minWidth: 0 }}>
-                    <div style={{
-                        fontSize: 12, fontWeight: 500, color: "var(--color-text-primary)",
-                        whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-                    }}>
-                        {v.owner_name ?? "—"}
-                    </div>
-                    <div style={{
-                        fontSize: 11, color: "var(--color-text-muted)",
-                        whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-                    }}>
-                        {v.owner_email ?? ""}
+            <td className="px-3 py-2.5">
+                <div className="flex items-center gap-2 min-w-0">
+                    <OwnerAvatar avatar={ownerAvatar} name={v.owner_name} />
+                    <div className="min-w-0">
+                        <p className="text-[12px] font-medium text-[var(--color-text-primary)] truncate max-w-[120px]">
+                            {v.owner_name ?? "—"}
+                        </p>
+                        <p className="text-[11px] text-[var(--color-text-muted)] truncate max-w-[120px]">
+                            {v.owner_email ?? ""}
+                        </p>
                     </div>
                 </div>
-            </div>
+            </td>
 
             {/* ── Products ── */}
-            <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                <Package size={11} style={{ color: "var(--color-text-muted)", flexShrink: 0 }} />
-                <span style={{ fontSize: 13, fontWeight: 600, color: "var(--color-text-primary)" }}>
-                    {v.products_count ?? 0}
-                </span>
-            </div>
+            <td className="px-3 py-2.5">
+                <div className="flex items-center gap-1.5">
+                    <Package className="h-3 w-3 text-[var(--color-text-muted)] shrink-0" />
+                    <span className="text-[13px] font-semibold text-[var(--color-text-primary)] tabular-nums">
+                        {v.products_count ?? 0}
+                    </span>
+                </div>
+            </td>
 
             {/* ── Revenue ── */}
-            <div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--color-text-primary)" }}>
+            <td className="px-3 py-2.5">
+                <p className="text-[12.5px] font-semibold text-[var(--color-text-primary)] tabular-nums">
                     {fmt(Number(v.total_revenue ?? 0))}
-                </div>
-                <div style={{ fontSize: 10, color: "var(--color-text-muted)" }}>RWF</div>
-            </div>
+                </p>
+                <p className="text-[10px] text-[var(--color-text-muted)]">RWF</p>
+            </td>
 
             {/* ── Sales ── */}
-            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                <TrendingUp size={11} style={{ color: "var(--color-text-muted)", flexShrink: 0 }} />
-                <span style={{ fontSize: 13, fontWeight: 600, color: "var(--color-text-primary)" }}>
-                    {fmt(Number(v.total_sales ?? 0))}
-                </span>
-            </div>
+            <td className="px-3 py-2.5">
+                <div className="flex items-center gap-1.5">
+                    <TrendingUp className="h-3 w-3 text-[var(--color-text-muted)] shrink-0" />
+                    <span className="text-[13px] font-semibold text-[var(--color-text-primary)] tabular-nums">
+                        {fmt(Number(v.total_sales ?? 0))}
+                    </span>
+                </div>
+            </td>
 
             {/* ── Rating ── */}
-            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            <td className="px-3 py-2.5">
                 {v.rating && Number(v.rating) > 0 ? (
-                    <>
-                        <Star size={11} style={{ color: "#f0b429", flexShrink: 0 }} fill="#f0b429" />
-                        <span style={{ fontSize: 13, fontWeight: 600, color: "var(--color-text-primary)" }}>
+                    <div className="flex items-center gap-1.5">
+                        <Star className="h-3 w-3 text-amber-400 fill-amber-400 shrink-0" />
+                        <span className="text-[13px] font-semibold text-[var(--color-text-primary)] tabular-nums">
                             {Number(v.rating).toFixed(1)}
                         </span>
                         {v.follower_count > 0 && (
-                            <span style={{ fontSize: 10, color: "var(--color-text-muted)", marginLeft: 2 }}>
-                                · <Users size={9} style={{ display: "inline", verticalAlign: "middle" }} /> {fmt(v.follower_count)}
+                            <span className="text-[10.5px] text-[var(--color-text-muted)] flex items-center gap-0.5">
+                                · <Users className="h-2.5 w-2.5 inline" /> {fmt(v.follower_count)}
                             </span>
                         )}
-                    </>
+                    </div>
                 ) : (
-                    <span style={{ fontSize: 12, color: "var(--color-text-muted)" }}>—</span>
+                    <span className="text-[12px] text-[var(--color-text-muted)]">—</span>
                 )}
-            </div>
+            </td>
 
-            {/* ── Verification status ── */}
-            <VerificationBadge status={v.verification_status} isActive={v.is_active} />
+            {/* ── Status ── */}
+            <td className="px-3 py-2.5">
+                <VerificationBadge status={v.verification_status} isActive={v.is_active} />
+            </td>
 
             {/* ── Joined ── */}
-            <span style={{ fontSize: 11, color: "var(--color-text-muted)" }}>
-                {joinedStr}
-            </span>
-        </Link>
+            <td className="px-3 py-2.5">
+                <span className="text-[11.5px] text-[var(--color-text-muted)] whitespace-nowrap tabular-nums">
+                    {joinedStr}
+                </span>
+            </td>
+
+            {/* ── Arrow ── */}
+            <td className="px-3 py-2.5 text-right">
+                <RowArrow href={`/admin/vendors/${v.id}`} />
+            </td>
+        </tr>
     );
 }
 
-function VerificationBadge({
-    status,
-    isActive,
-}: {
-    status: string;
-    isActive: boolean;
-}) {
-    const map: Record<string, { label: string; bg: string; fg: string; border: string }> = {
-        verified: { label: "Verified", bg: "rgba(48,164,108,0.08)", fg: "#30a46c", border: "rgba(48,164,108,0.2)" },
-        pending: { label: "Pending", bg: "rgba(240,180,41,0.08)", fg: "#b45309", border: "rgba(240,180,41,0.25)" },
-        rejected: { label: "Rejected", bg: "rgba(229,72,77,0.08)", fg: "#e5484d", border: "rgba(229,72,77,0.2)" },
-        suspended: { label: "Suspended", bg: "rgba(100,116,139,0.08)", fg: "#475569", border: "rgba(100,116,139,0.2)" },
-    };
-    const s = map[status] ?? map.pending;
+// ── Avatar sub-components ─────────────────────────────────────────────────────
 
+function VendorAvatar({ logo, initials, isFeatured }: {
+    logo: string | null; initials: string; isFeatured: boolean;
+}) {
+    const [failed, setFailed] = useState(false);
     return (
-        <span style={{
-            display: "inline-flex", alignItems: "center", gap: 5,
-            fontSize: 11, fontWeight: 600, padding: "3px 8px", borderRadius: 5,
-            background: s.bg, color: s.fg, border: `0.5px solid ${s.border}`,
-            whiteSpace: "nowrap",
-        }}>
-            <span style={{
-                width: 5, height: 5, borderRadius: "50%",
-                background: s.fg, flexShrink: 0,
-            }} />
-            {s.label}
+        <div className="relative shrink-0">
+            {logo && !failed ? (
+                <img
+                    src={logo}
+                    alt=""
+                    width={34}
+                    height={34}
+                    className="w-[34px] h-[34px] rounded-full object-cover border border-[var(--color-border)] block"
+                    onError={() => setFailed(true)}
+                />
+            ) : (
+                <div className="w-[34px] h-[34px] rounded-full flex items-center justify-center text-[11px] font-bold bg-orange-50 text-orange-600 dark:bg-orange-950/30 dark:text-orange-400 border border-orange-200/60 shrink-0">
+                    {initials}
+                </div>
+            )}
+            {isFeatured && (
+                <span className="absolute -bottom-1 -right-1 w-[14px] h-[14px] rounded-full bg-amber-400 ring-2 ring-[var(--color-surface)] flex items-center justify-center">
+                    <Sparkles className="h-2 w-2 text-white" />
+                </span>
+            )}
+        </div>
+    );
+}
+
+function OwnerAvatar({ avatar, name }: { avatar: string | null; name: string | null }) {
+    const [failed, setFailed] = useState(false);
+    const initial = (name ?? "?").slice(0, 1).toUpperCase();
+    if (avatar && !failed) {
+        return (
+            <img
+                src={avatar}
+                alt=""
+                width={22}
+                height={22}
+                className="w-[22px] h-[22px] rounded-full object-cover border border-[var(--color-border)] shrink-0"
+                onError={() => setFailed(true)}
+            />
+        );
+    }
+    return (
+        <div className="w-[22px] h-[22px] rounded-full shrink-0 bg-[var(--color-surface-secondary)] border border-[var(--color-border)] flex items-center justify-center text-[9px] font-bold text-[var(--color-text-muted)]">
+            {initial}
+        </div>
+    );
+}
+
+// ── Verification badge ────────────────────────────────────────────────────────
+
+const VERIFY_STYLES: Record<string, string> = {
+    verified:  "bg-emerald-50 text-emerald-700 ring-emerald-600/20 dark:bg-emerald-950/30 dark:text-emerald-400",
+    pending:   "bg-amber-50 text-amber-700 ring-amber-600/20 dark:bg-amber-950/30 dark:text-amber-400",
+    rejected:  "bg-rose-50 text-rose-700 ring-rose-600/20 dark:bg-rose-950/30 dark:text-rose-400",
+    suspended: "bg-slate-100 text-slate-600 ring-slate-600/20 dark:bg-slate-800 dark:text-slate-300",
+};
+
+function VerificationBadge({ status, isActive }: { status: string; isActive: boolean }) {
+    const s = VERIFY_STYLES[status] ?? VERIFY_STYLES.pending;
+    const label = status ? status.charAt(0).toUpperCase() + status.slice(1) : "Pending";
+    return (
+        <span className={cn(
+            "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10.5px] font-medium ring-1 ring-inset whitespace-nowrap",
+            s,
+        )}>
+            <span className="w-1.5 h-1.5 rounded-full bg-current opacity-70 shrink-0" />
+            {label}
             {!isActive && status === "verified" && (
-                <span style={{ opacity: 0.6, fontWeight: 400 }}> · off</span>
+                <span className="opacity-50 font-normal">· off</span>
             )}
         </span>
     );

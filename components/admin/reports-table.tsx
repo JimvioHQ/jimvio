@@ -1,6 +1,11 @@
 "use client";
 
+// components/admin/reports-table.tsx
+
 import React, { useState } from "react";
+import { CheckCircle2, Trash2, ChevronDown, ChevronUp, ExternalLink, AlertTriangle } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Th } from "@/components/ui/admin";
 
 type UGCReport = {
     id: string;
@@ -28,41 +33,11 @@ type UGCReport = {
             display_name: string;
             profile_image?: string | null;
         };
-        ugc_campaigns?: {
-            title: string;
-        };
+        ugc_campaigns?: { title: string };
     } | null;
 };
 
-interface ReportsTableProps {
-    reports: UGCReport[];
-}
-
-const REASON_COLORS: Record<string, { bg: string; fg: string }> = {
-    spam: { bg: "rgba(100,116,139,0.08)", fg: "#475569" },
-    fraud: { bg: "rgba(220,38,38,0.08)", fg: "#dc2626" },
-    fake_views: { bg: "rgba(220,38,38,0.08)", fg: "#dc2626" },
-    inappropriate: { bg: "rgba(234,88,12,0.08)", fg: "#ea580c" },
-    copyright: { bg: "rgba(217,119,6,0.08)", fg: "#d97706" },
-    misinformation: { bg: "rgba(234,88,12,0.08)", fg: "#ea580c" },
-    off_topic: { bg: "rgba(100,116,139,0.08)", fg: "#475569" },
-};
-
-function ReasonBadge({ reason }: { reason: string }) {
-    const key = reason.toLowerCase().replace(/\s+/g, "_");
-    const colors = REASON_COLORS[key] ?? { bg: "rgba(100,116,139,0.08)", fg: "#475569" };
-    return (
-        <span style={{
-            fontSize: 10, fontWeight: 700, padding: "3px 7px", borderRadius: 4,
-            background: colors.bg, color: colors.fg,
-            border: `0.5px solid ${colors.fg}33`,
-            textTransform: "capitalize",
-            whiteSpace: "nowrap",
-        }}>
-            {reason.replace(/_/g, " ")}
-        </span>
-    );
-}
+// ─── helpers ──────────────────────────────────────────────────────────────────
 
 function daysSince(date: string | Date | null | undefined): number {
     if (!date) return 0;
@@ -73,237 +48,281 @@ const PLATFORM_LABELS: Record<string, string> = {
     tiktok: "TikTok", instagram: "Instagram", youtube: "YouTube", x: "X",
 };
 
-export function ReportsTable({ reports }: ReportsTableProps) {
-    const [expanded, setExpanded] = useState<string | null>(null);
-    const [actioning, setActioning] = useState<string | null>(null);
+// ─── Reason badge ─────────────────────────────────────────────────────────────
 
+const REASON_STYLES: Record<string, string> = {
+    spam:           "bg-slate-100 text-slate-600 ring-slate-300/50 dark:bg-slate-800 dark:text-slate-300",
+    fraud:          "bg-rose-50 text-rose-700 ring-rose-300/40 dark:bg-rose-950/30 dark:text-rose-400",
+    fake_views:     "bg-rose-50 text-rose-700 ring-rose-300/40 dark:bg-rose-950/30 dark:text-rose-400",
+    inappropriate:  "bg-orange-50 text-orange-700 ring-orange-300/40 dark:bg-orange-950/30 dark:text-orange-400",
+    copyright:      "bg-amber-50 text-amber-700 ring-amber-300/40 dark:bg-amber-950/30 dark:text-amber-400",
+    misinformation: "bg-orange-50 text-orange-700 ring-orange-300/40 dark:bg-orange-950/30 dark:text-orange-400",
+    off_topic:      "bg-slate-100 text-slate-600 ring-slate-300/50 dark:bg-slate-800 dark:text-slate-300",
+};
+
+function ReasonBadge({ reason }: { reason: string }) {
+    const key = reason.toLowerCase().replace(/\s+/g, "_");
     return (
-        <div style={{ display: "flex", flexDirection: "column", gap: 0, border: "0.5px solid var(--color-border)", borderRadius: 10, overflow: "hidden" }}>
-            {/* Header */}
-            <div style={{
-                display: "grid",
-                gridTemplateColumns: "2fr 1.5fr 1fr 80px 130px",
-                gap: 10,
-                padding: "8px 16px",
-                fontSize: 11, fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase",
-                color: "var(--color-text-muted,#888)",
-                background: "var(--color-surface-secondary,#f9f9f9)",
-                borderBottom: "0.5px solid var(--color-border)",
-            }}>
-                <span>Reported Content</span>
-                <span>Reporter</span>
-                <span>Reason</span>
-                <span>Age</span>
-                <span>Actions</span>
-            </div>
+        <span className={cn(
+            "inline-flex px-2 py-0.5 rounded text-[10.5px] font-semibold capitalize ring-1 ring-inset whitespace-nowrap",
+            REASON_STYLES[key] ?? "bg-slate-100 text-slate-600 ring-slate-300/50",
+        )}>
+            {reason.replace(/_/g, " ")}
+        </span>
+    );
+}
 
-            {reports.map((r, i) => {
-                const days = daysSince(r.created_at);
-                const isOpen = expanded === r.id;
-                const reporter = r.profiles_ugc_reports_reporter_idToprofiles;
-                const sub = r.ugc_submissions;
+// ─── Age badge ────────────────────────────────────────────────────────────────
 
-                return (
-                    <div key={r.id} style={{
-                        borderBottom: i < reports.length - 1 ? "0.5px solid var(--color-border)" : "none",
-                        background: isOpen ? "var(--color-surface-secondary,#f9f9f9)" : "var(--color-surface,#fff)",
-                    }}>
-                        <div style={{
-                            display: "grid",
-                            gridTemplateColumns: "2fr 1.5fr 1fr 80px 130px",
-                            gap: 10,
-                            padding: "12px 16px",
-                            alignItems: "center",
-                        }}>
-                            {/* Reported content */}
-                            <div style={{ minWidth: 0 }}>
-                                {sub ? (
-                                    <>
-                                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
-                                            {sub.influencers?.profile_image ? (
-                                                <img src={sub.influencers.profile_image} alt="" width={22} height={22}
-                                                    style={{ borderRadius: "50%", objectFit: "cover", flexShrink: 0, border: "1px solid var(--color-border)" }} />
-                                            ) : null}
-                                            <span style={{ fontSize: 13, fontWeight: 600, color: "var(--color-text-primary)" }}>
-                                                {sub.influencers?.display_name ?? "Unknown creator"}
-                                            </span>
-                                            {sub.platform && (
-                                                <span style={{ fontSize: 10, fontWeight: 600, padding: "1px 5px", borderRadius: 3, background: "var(--color-surface-secondary,#f9f9f9)", border: "0.5px solid var(--color-border)", color: "var(--color-text-secondary)" }}>
-                                                    {PLATFORM_LABELS[sub.platform] ?? sub.platform}
-                                                </span>
-                                            )}
-                                        </div>
-                                        <div style={{ fontSize: 11, color: "var(--color-text-muted,#888)" }}>
-                                            {sub.ugc_campaigns?.title && <span style={{ marginRight: 6 }}>Campaign: {sub.ugc_campaigns.title}</span>}
-                                            <a href={sub.post_url} target="_blank" rel="noopener noreferrer"
-                                                style={{ color: "var(--color-accent,#fd5000)", textDecoration: "none" }}>
-                                                View post ↗
-                                            </a>
-                                        </div>
-                                        {sub.is_suspicious && (
-                                            <span style={{
-                                                fontSize: 10, fontWeight: 700, padding: "1px 5px", borderRadius: 3, marginTop: 3, display: "inline-block",
-                                                background: "rgba(220,38,38,0.08)", color: "#dc2626", border: "0.5px solid rgba(220,38,38,0.2)",
-                                            }}>
-                                                ⚠ Flagged as suspicious
-                                            </span>
-                                        )}
-                                    </>
-                                ) : (
-                                    <span style={{ fontSize: 12, color: "var(--color-text-muted,#888)" }}>
-                                        Submission #{r.submission_id?.slice(0, 8) ?? "—"}
-                                    </span>
-                                )}
-                            </div>
+function AgeBadge({ days }: { days: number }) {
+    return (
+        <span className={cn(
+            "inline-flex px-2 py-0.5 rounded text-[11px] font-semibold tabular-nums ring-1 ring-inset",
+            days >= 7
+                ? "bg-rose-50 text-rose-700 ring-rose-300/40 dark:bg-rose-950/30 dark:text-rose-400"
+                : "bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)] ring-[var(--color-border)]",
+        )}>
+            {days}d
+        </span>
+    );
+}
 
-                            {/* Reporter */}
-                            <div style={{ display: "flex", alignItems: "center", gap: 7, minWidth: 0 }}>
-                                {reporter?.avatar_url ? (
-                                    <img src={reporter.avatar_url} alt="" width={24} height={24}
-                                        style={{ borderRadius: "50%", objectFit: "cover", flexShrink: 0, border: "1px solid var(--color-border)" }} />
-                                ) : (
-                                    <div style={{
-                                        width: 24, height: 24, borderRadius: "50%", flexShrink: 0,
-                                        background: "var(--color-surface-secondary,#f9f9f9)", border: "0.5px solid var(--color-border)",
-                                        display: "flex", alignItems: "center", justifyContent: "center",
-                                        fontSize: 10, fontWeight: 700, color: "var(--color-text-muted,#888)",
-                                    }}>
-                                        {(reporter?.full_name ?? reporter?.email ?? "?")[0].toUpperCase()}
-                                    </div>
-                                )}
-                                <div style={{ minWidth: 0 }}>
-                                    <div style={{ fontSize: 12, fontWeight: 500, color: "var(--color-text-primary)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                                        {reporter?.full_name ?? reporter?.username ?? "Unknown"}
-                                    </div>
-                                    <div style={{ fontSize: 10, color: "var(--color-text-muted,#888)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                                        {reporter?.email}
-                                    </div>
-                                </div>
-                            </div>
+// ─── Avatars ──────────────────────────────────────────────────────────────────
 
-                            {/* Reason */}
-                            <ReasonBadge reason={r.reason} />
-
-                            {/* Age */}
-                            <span style={{
-                                fontSize: 11, fontWeight: 600, padding: "2px 7px", borderRadius: 4,
-                                background: days >= 7 ? "rgba(220,38,38,0.08)" : "rgba(100,116,139,0.07)",
-                                color: days >= 7 ? "#dc2626" : "var(--color-text-muted,#888)",
-                                border: `0.5px solid ${days >= 7 ? "rgba(220,38,38,0.2)" : "var(--color-border)"}`,
-                            }}>
-                                {days}d
-                            </span>
-
-                            {/* Actions */}
-                            <div style={{ display: "flex", gap: 5, alignItems: "center" }}>
-                                <button
-                                    onClick={() => setExpanded(isOpen ? null : r.id)}
-                                    style={{
-                                        height: 28, padding: "0 9px", borderRadius: 5, fontSize: 11, fontWeight: 600,
-                                        border: "0.5px solid var(--color-border)", background: "transparent",
-                                        color: "var(--color-text-secondary)", cursor: "pointer",
-                                    }}
-                                >
-                                    {isOpen ? "Hide" : "View"}
-                                </button>
-
-                                {/* Dismiss */}
-                                <button
-                                    disabled={actioning === r.id}
-                                    onClick={() => {
-                                        setActioning(r.id);
-                                        // dismissReport(r.id)
-                                    }}
-                                    style={{
-                                        height: 28, padding: "0 9px", borderRadius: 5, fontSize: 11, fontWeight: 600,
-                                        border: "0.5px solid rgba(48,164,108,0.3)", background: "rgba(48,164,108,0.08)",
-                                        color: "#30a46c", cursor: actioning === r.id ? "not-allowed" : "pointer",
-                                        opacity: actioning === r.id ? 0.5 : 1,
-                                    }}
-                                    title="Dismiss report"
-                                >
-                                    Dismiss
-                                </button>
-
-                                {/* Remove content */}
-                                <button
-                                    disabled={actioning === r.id}
-                                    onClick={() => {
-                                        setActioning(r.id);
-                                        // removeSubmission(r.submission_id, r.id)
-                                    }}
-                                    style={{
-                                        height: 28, padding: "0 9px", borderRadius: 5, fontSize: 11, fontWeight: 600,
-                                        border: "0.5px solid rgba(229,72,77,0.3)", background: "rgba(229,72,77,0.08)",
-                                        color: "#e5484d", cursor: actioning === r.id ? "not-allowed" : "pointer",
-                                        opacity: actioning === r.id ? 0.5 : 1,
-                                        whiteSpace: "nowrap",
-                                    }}
-                                    title="Remove submission"
-                                >
-                                    Remove
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Expanded detail */}
-                        {isOpen && (
-                            <div style={{ padding: "0 16px 16px", display: "flex", flexDirection: "column", gap: 12 }}>
-                                <div style={{ height: 1, background: "var(--color-border)", margin: "0 0 4px" }} />
-                                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14, fontSize: 12 }}>
-                                    <DetailItem label="Report ID" value={r.id.slice(0, 12) + "…"} />
-                                    <DetailItem label="Submitted" value={r.created_at ? new Date(r.created_at).toLocaleString() : "—"} />
-                                    <DetailItem label="Submission ID" value={r.submission_id ? r.submission_id.slice(0, 12) + "…" : "—"} />
-                                </div>
-
-                                {r.details && (
-                                    <div>
-                                        <div style={{ fontSize: 10, fontWeight: 600, color: "var(--color-text-muted,#888)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4 }}>
-                                            Reporter's details
-                                        </div>
-                                        <p style={{ margin: 0, fontSize: 12, color: "var(--color-text-secondary)", lineHeight: 1.6, maxWidth: 640, padding: "8px 12px", borderRadius: 6, background: "var(--color-surface,#fff)", border: "0.5px solid var(--color-border)" }}>
-                                            {r.details}
-                                        </p>
-                                    </div>
-                                )}
-
-                                {sub?.caption && (
-                                    <div>
-                                        <div style={{ fontSize: 10, fontWeight: 600, color: "var(--color-text-muted,#888)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4 }}>
-                                            Post caption
-                                        </div>
-                                        <p style={{ margin: 0, fontSize: 12, color: "var(--color-text-secondary)", lineHeight: 1.6, maxWidth: 640 }}>
-                                            {sub.caption}
-                                        </p>
-                                    </div>
-                                )}
-
-                                {sub?.fraud_score && Number(sub.fraud_score) > 0 && (
-                                    <div style={{
-                                        padding: "8px 12px", borderRadius: 6,
-                                        background: "rgba(220,38,38,0.05)", border: "0.5px solid rgba(220,38,38,0.15)",
-                                        display: "flex", alignItems: "center", gap: 8,
-                                    }}>
-                                        <span style={{ fontSize: 16 }}>⚠️</span>
-                                        <span style={{ fontSize: 12, color: "#dc2626", fontWeight: 500 }}>
-                                            System fraud score: <strong>{(Number(sub.fraud_score) * 100).toFixed(1)}%</strong>. This submission has been auto-flagged.
-                                        </span>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                    </div>
-                );
-            })}
+function Avatar({ src, name, size = "sm" }: { src?: string | null; name: string; size?: "sm" | "md" }) {
+    const [failed, setFailed] = useState(false);
+    const dim = size === "md" ? "w-8 h-8 text-[12px]" : "w-6 h-6 text-[10px]";
+    if (src && !failed) {
+        return (
+            <img src={src} alt={name} onError={() => setFailed(true)}
+                className={cn("rounded-full object-cover shrink-0 border border-[var(--color-border)]", dim)} />
+        );
+    }
+    return (
+        <div className={cn(
+            "rounded-full shrink-0 flex items-center justify-center font-bold bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)] border border-[var(--color-border)]",
+            dim,
+        )}>
+            {(name ?? "?")[0].toUpperCase()}
         </div>
     );
 }
 
-function DetailItem({ label, value }: { label: string; value: string }) {
+// ─── Detail field ─────────────────────────────────────────────────────────────
+
+function Detail({ label, value }: { label: string; value: React.ReactNode }) {
     return (
         <div>
-            <div style={{ fontSize: 10, fontWeight: 600, color: "var(--color-text-muted,#888)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>{label}</div>
-            <div style={{ fontSize: 12, color: "var(--color-text-primary)", fontWeight: 500 }}>{value}</div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--color-text-muted)] mb-1">
+                {label}
+            </p>
+            <div className="text-[12px] text-[var(--color-text-primary)] font-medium">
+                {value ?? <span className="text-[var(--color-text-muted)]">—</span>}
+            </div>
+        </div>
+    );
+}
+
+// ─── Row ──────────────────────────────────────────────────────────────────────
+
+function ReportRow({ r }: { r: UGCReport }) {
+    const [expanded,  setExpanded ] = useState(false);
+    const [actioning, setActioning] = useState(false);
+
+    const days     = daysSince(r.created_at);
+    const reporter = r.profiles_ugc_reports_reporter_idToprofiles;
+    const sub      = r.ugc_submissions;
+
+    return (
+        <>
+            <tr className={cn(
+                "border-b border-[var(--color-border)]/70 transition-colors",
+                expanded
+                    ? "bg-[var(--color-surface-secondary)]/40"
+                    : "hover:bg-[var(--color-surface-secondary)]/30",
+            )}>
+                {/* Reported content */}
+                <td className="px-3 py-2.5">
+                    {sub ? (
+                        <div>
+                            <div className="flex items-center gap-2 mb-0.5">
+                                {sub.influencers?.profile_image && (
+                                    <Avatar src={sub.influencers.profile_image} name={sub.influencers.display_name ?? ""} />
+                                )}
+                                <span className="text-[13px] font-semibold text-[var(--color-text-primary)]">
+                                    {sub.influencers?.display_name ?? "Unknown creator"}
+                                </span>
+                                {sub.platform && (
+                                    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-[var(--color-surface-secondary)] border border-[var(--color-border)] text-[var(--color-text-secondary)]">
+                                        {PLATFORM_LABELS[sub.platform] ?? sub.platform}
+                                    </span>
+                                )}
+                            </div>
+                            <div className="flex items-center gap-2 text-[11px] text-[var(--color-text-muted)]">
+                                {sub.ugc_campaigns?.title && (
+                                    <span>{sub.ugc_campaigns.title}</span>
+                                )}
+                                <a href={sub.post_url} target="_blank" rel="noopener noreferrer"
+                                    className="text-orange-500 hover:underline inline-flex items-center gap-0.5">
+                                    View post <ExternalLink className="h-2.5 w-2.5" />
+                                </a>
+                            </div>
+                            {sub.is_suspicious && (
+                                <span className="inline-flex items-center gap-1 mt-1 text-[10px] font-semibold text-rose-600 dark:text-rose-400">
+                                    <AlertTriangle className="h-3 w-3" /> Flagged as suspicious
+                                </span>
+                            )}
+                        </div>
+                    ) : (
+                        <span className="text-[12px] text-[var(--color-text-muted)]">
+                            Submission #{r.submission_id?.slice(0, 8) ?? "—"}
+                        </span>
+                    )}
+                </td>
+
+                {/* Reporter */}
+                <td className="px-3 py-2.5">
+                    <div className="flex items-center gap-2 min-w-0">
+                        <Avatar src={reporter?.avatar_url} name={reporter?.full_name ?? reporter?.email ?? "?"} size="md" />
+                        <div className="min-w-0">
+                            <p className="text-[12px] font-medium text-[var(--color-text-primary)] truncate max-w-[120px]">
+                                {reporter?.full_name ?? reporter?.username ?? "Unknown"}
+                            </p>
+                            <p className="text-[10.5px] text-[var(--color-text-muted)] truncate max-w-[120px]">
+                                {reporter?.email}
+                            </p>
+                        </div>
+                    </div>
+                </td>
+
+                {/* Reason */}
+                <td className="px-3 py-2.5">
+                    <ReasonBadge reason={r.reason} />
+                </td>
+
+                {/* Age */}
+                <td className="px-3 py-2.5">
+                    <AgeBadge days={days} />
+                </td>
+
+                {/* Actions */}
+                <td className="px-3 py-2.5">
+                    <div className="flex items-center gap-1">
+                        <button
+                            onClick={() => setExpanded(!expanded)}
+                            className="h-7 w-7 inline-flex items-center justify-center rounded-lg border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-secondary)] transition-colors"
+                        >
+                            {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                        </button>
+                        <button
+                            disabled={actioning}
+                            onClick={() => setActioning(true) /* dismissReport(r.id) */}
+                            title="Dismiss report"
+                            className={cn(
+                                "h-7 px-2 rounded-lg text-[11.5px] font-medium inline-flex items-center gap-1",
+                                "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200/60",
+                                "dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800/40 transition-colors",
+                                actioning && "opacity-40 cursor-not-allowed",
+                            )}
+                        >
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                            Dismiss
+                        </button>
+                        <button
+                            disabled={actioning}
+                            onClick={() => setActioning(true) /* removeSubmission(r.submission_id, r.id) */}
+                            title="Remove submission"
+                            className={cn(
+                                "h-7 px-2 rounded-lg text-[11.5px] font-medium inline-flex items-center gap-1",
+                                "bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200/60",
+                                "dark:bg-rose-950/30 dark:text-rose-400 dark:border-rose-800/40 transition-colors whitespace-nowrap",
+                                actioning && "opacity-40 cursor-not-allowed",
+                            )}
+                        >
+                            <Trash2 className="h-3.5 w-3.5" />
+                            Remove
+                        </button>
+                    </div>
+                </td>
+            </tr>
+
+            {/* Expanded detail */}
+            {expanded && (
+                <tr className="border-b border-[var(--color-border)]/70 bg-[var(--color-surface-secondary)]/40">
+                    <td colSpan={5} className="px-4 py-4 space-y-4">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                            <Detail label="Report ID"     value={r.id.slice(0, 12) + "…"} />
+                            <Detail label="Submitted"     value={r.created_at ? new Date(r.created_at).toLocaleString() : "—"} />
+                            <Detail label="Submission ID" value={r.submission_id ? r.submission_id.slice(0, 12) + "…" : "—"} />
+                        </div>
+
+                        {r.details && (
+                            <div>
+                                <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--color-text-muted)] mb-1.5">
+                                    Reporter's details
+                                </p>
+                                <p className="text-[12px] text-[var(--color-text-secondary)] leading-relaxed max-w-xl px-3 py-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)]">
+                                    {r.details}
+                                </p>
+                            </div>
+                        )}
+
+                        {sub?.caption && (
+                            <div>
+                                <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--color-text-muted)] mb-1.5">
+                                    Post caption
+                                </p>
+                                <p className="text-[12px] text-[var(--color-text-secondary)] leading-relaxed max-w-xl">
+                                    {sub.caption}
+                                </p>
+                            </div>
+                        )}
+
+                        {sub?.fraud_score && Number(sub.fraud_score) > 0 && (
+                            <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg bg-rose-50 dark:bg-rose-950/20 border border-rose-200/60 dark:border-rose-800/30">
+                                <AlertTriangle className="h-4 w-4 text-rose-500 shrink-0" />
+                                <span className="text-[12px] text-rose-700 dark:text-rose-400 font-medium">
+                                    System fraud score:{" "}
+                                    <strong>{(Number(sub.fraud_score) * 100).toFixed(1)}%</strong>.
+                                    This submission has been auto-flagged.
+                                </span>
+                            </div>
+                        )}
+                    </td>
+                </tr>
+            )}
+        </>
+    );
+}
+
+// ─── Table ────────────────────────────────────────────────────────────────────
+
+export function ReportsTable({ reports }: { reports: UGCReport[] }) {
+    return (
+        <div className="rounded-xl border border-[var(--color-border)] overflow-hidden bg-[var(--color-surface)]">
+            <div className="overflow-x-auto">
+                <table className="w-full">
+                    <thead>
+                        <tr className="border-b border-[var(--color-border)] bg-[var(--color-surface-secondary)]/60">
+                            <Th>Reported content</Th>
+                            <Th>Reporter</Th>
+                            <Th>Reason</Th>
+                            <Th>Age</Th>
+                            <Th>Actions</Th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {reports.map((r) => (
+                            <ReportRow key={r.id} r={r} />
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+            <div className="px-4 py-2.5 border-t border-[var(--color-border)] bg-[var(--color-surface-secondary)]/40">
+                <p className="text-[11px] text-[var(--color-text-muted)]">
+                    {reports.length} report{reports.length !== 1 ? "s" : ""} pending review
+                </p>
+            </div>
         </div>
     );
 }

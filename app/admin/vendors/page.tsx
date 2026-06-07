@@ -2,315 +2,289 @@ import React from "react";
 import Link from "next/link";
 import { getAdminVendors } from "@/services/db";
 import {
-  Search, Store, ArrowUpRight, ShieldCheck, Clock,
-  ShieldOff, ShieldAlert, TrendingUp, DollarSign,
-  Users, Star, Download,
+    Store, ArrowUpRight, TrendingUp, DollarSign,
+    Users, Star, Clock, Download,
 } from "lucide-react";
 import { VendorRow } from "@/components/admin/vendors/vendor-data";
-import { SortSelect } from "@/components/admin/vendors/sort-select";
+import { VendorsToolbar } from "@/components/admin/vendors/vendors-toolbar";
+import { PageHeader, EmptyState, Th } from "@/components/ui/admin";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminVendorsPage({
-  searchParams,
+    searchParams,
 }: {
-  searchParams: Promise<{ q?: string; status?: string; sort?: string }>;
+    searchParams: Promise<{ q?: string; status?: string; sort?: string }>;
 }) {
-  const { q, status, sort } = await searchParams;
-  const { vendors, total } = await getAdminVendors(q, 200);
+    const { q, status, sort } = await searchParams;
+    const { vendors, total } = await getAdminVendors(q, 200);
 
-  const statusFilter = status ?? "all";
-  const sortKey = sort ?? "created_at";
+    const statusFilter = status ?? "all";
+    const sortKey = sort ?? "created_at";
 
-  const filtered = (
-    statusFilter === "all"
-      ? vendors
-      : vendors.filter((v: any) => v.verification_status === statusFilter)
-  ).sort((a: any, b: any) => {
-    switch (sortKey) {
-      case "revenue": return b.total_revenue - a.total_revenue;
-      case "sales": return b.total_sales - a.total_sales;
-      case "rating": return b.rating - a.rating;
-      case "followers": return b.follower_count - a.follower_count;
-      case "products": return b.products_count - a.products_count;
-      default: return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    const filtered = (
+        statusFilter === "all"
+            ? vendors
+            : vendors.filter((v: any) => v.verification_status === statusFilter)
+    ).sort((a: any, b: any) => {
+        switch (sortKey) {
+            case "revenue":   return Number(b.total_revenue)  - Number(a.total_revenue);
+            case "sales":     return Number(b.total_sales)    - Number(a.total_sales);
+            case "rating":    return Number(b.rating)         - Number(a.rating);
+            case "followers": return Number(b.follower_count) - Number(a.follower_count);
+            case "products":  return Number(b.products_count) - Number(a.products_count);
+            default:          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        }
+    });
+
+    const counts = {
+        all:       vendors.length,
+        pending:   vendors.filter((v: any) => v.verification_status === "pending").length,
+        verified:  vendors.filter((v: any) => v.verification_status === "verified").length,
+        rejected:  vendors.filter((v: any) => v.verification_status === "rejected").length,
+        suspended: vendors.filter((v: any) => v.verification_status === "suspended").length,
+    };
+
+    const totalRevenue  = vendors.reduce((s: number, v: any) => s + Number(v.total_revenue  ?? 0), 0);
+    const totalSales    = vendors.reduce((s: number, v: any) => s + Number(v.total_sales    ?? 0), 0);
+    const featuredCount = vendors.filter((v: any) => v.is_featured).length;
+    const avgRating     = vendors.length
+        ? vendors.reduce((s: number, v: any) => s + Number(v.rating ?? 0), 0) / vendors.length
+        : 0;
+
+    function fmt(n: number) {
+        if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+        if (n >= 1_000)     return `${(n / 1_000).toFixed(1)}K`;
+        return String(n);
     }
-  });
 
-  const counts = {
-    all: vendors.length,
-    pending: vendors.filter((v: any) => v.verification_status === "pending").length,
-    verified: vendors.filter((v: any) => v.verification_status === "verified").length,
-    rejected: vendors.filter((v: any) => v.verification_status === "rejected").length,
-    suspended: vendors.filter((v: any) => v.verification_status === "suspended").length,
-  };
+    return (
+        <div className="space-y-5">
 
-  const totalRevenue = vendors.reduce((s: number, v: any) => s + Number(v.total_revenue ?? 0), 0);
-  const totalSales = vendors.reduce((s: number, v: any) => s + Number(v.total_sales ?? 0), 0);
-  const featuredCount = vendors.filter((v: any) => v.is_featured).length;
-  const avgRating = vendors.length
-    ? vendors.reduce((s: number, v: any) => s + Number(v.rating ?? 0), 0) / vendors.length
-    : 0;
+            {/* ── Header ── */}
+            <PageHeader
+                eyebrow="Platform"
+                title="Vendors"
+                subtitle={`${total} store${total !== 1 ? "s" : ""} registered`}
+                actions={
+                    <>
+                        <button className="h-9 px-3.5 inline-flex items-center gap-1.5 rounded-lg text-[12px] font-medium border border-[var(--color-border)] bg-[var(--color-surface-secondary)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors cursor-pointer">
+                            <Download className="h-3.5 w-3.5" />
+                            Export
+                        </button>
+                        <Link
+                            href="/admin/verifications?tab=vendors"
+                            className="h-9 px-4 inline-flex items-center gap-1.5 rounded-lg text-[12px] font-semibold bg-[var(--color-accent)] text-white hover:opacity-90 transition-opacity"
+                        >
+                            Review queue
+                            {counts.pending > 0 && (
+                                <span className="bg-white/25 rounded px-1.5 py-0.5 text-[11px] font-bold tabular-nums">
+                                    {counts.pending}
+                                </span>
+                            )}
+                            <ArrowUpRight className="h-3.5 w-3.5" />
+                        </Link>
+                    </>
+                }
+            />
 
-  function fmt(n: number) {
-    if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-    if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
-    return String(n);
-  }
-
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-
-      {/* ── Header ── */}
-      <div style={{
-        display: "flex", justifyContent: "space-between",
-        alignItems: "flex-start", flexWrap: "wrap", gap: 12,
-      }}>
-        <div>
-          <h1 style={{
-            fontSize: 20, fontWeight: 700, letterSpacing: "-0.02em",
-            margin: 0, color: "var(--color-text-primary)",
-          }}>
-            Vendors
-          </h1>
-          <p style={{ fontSize: 13, color: "var(--color-text-muted)", margin: "3px 0 0" }}>
-            {total} store{total !== 1 ? "s" : ""} registered
-          </p>
-        </div>
-
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          {/* Export stub — wire up your own CSV export */}
-          <button
-            style={{
-              height: 34, padding: "0 12px", borderRadius: 7, fontSize: 12, fontWeight: 600,
-              border: "0.5px solid var(--color-border)",
-              background: "var(--color-surface-secondary)",
-              color: "var(--color-text-secondary)", cursor: "pointer",
-              display: "inline-flex", alignItems: "center", gap: 5,
-            }}
-          >
-            <Download size={12} /> Export
-          </button>
-
-          <Link
-            href="/admin/verifications?tab=vendors"
-            style={{
-              display: "inline-flex", alignItems: "center", gap: 6,
-              height: 34, padding: "0 14px", borderRadius: 7, fontSize: 12, fontWeight: 600,
-              background: "var(--color-accent)", color: "#fff",
-              textDecoration: "none", letterSpacing: "-0.01em",
-            }}
-          >
-            Review queue
-            {counts.pending > 0 && (
-              <span style={{
-                background: "rgba(255,255,255,0.25)", borderRadius: 4,
-                padding: "0 5px", fontSize: 11, fontWeight: 700,
-              }}>
-                {counts.pending}
-              </span>
-            )}
-            <ArrowUpRight size={13} />
-          </Link>
-        </div>
-      </div>
-
-      {/* ── Overview metric cards ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10 }}>
-        <MetricCard icon={<Store size={14} />} label="Total vendors" value={fmt(counts.all)} sub={`${counts.verified} verified`} color="default" />
-        <MetricCard icon={<DollarSign size={14} />} label="Total revenue" value={`${fmt(totalRevenue)} RWF`} sub="across all vendors" color="success" />
-        <MetricCard icon={<TrendingUp size={14} />} label="Total sales" value={fmt(totalSales)} sub="completed orders" color="info" />
-        <MetricCard icon={<Star size={14} />} label="Avg rating" value={avgRating.toFixed(2)} sub={`${featuredCount} featured`} color="warning" />
-        <MetricCard icon={<Clock size={14} />} label="Pending review" value={String(counts.pending)} sub="awaiting verification" color="pending" />
-      </div>
-
-      {/* ── Search + status filter + sort ── */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-
-        {/* Search bar */}
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-          <form method="get" action="/admin/vendors" style={{ display: "flex", gap: 8, flex: 1, minWidth: 240, maxWidth: 440 }}>
-            {status && <input type="hidden" name="status" value={status} />}
-            {sort && <input type="hidden" name="sort" value={sort} />}
-            <div style={{ position: "relative", flex: 1 }}>
-              <Search
-                size={13}
-                style={{
-                  position: "absolute", left: 10, top: "50%",
-                  transform: "translateY(-50%)",
-                  color: "var(--color-text-muted)", pointerEvents: "none",
-                }}
-              />
-              <input
-                name="q"
-                defaultValue={q ?? ""}
-                placeholder="Search by name or email…"
-                style={{
-                  width: "100%", height: 34, paddingLeft: 30, paddingRight: 12, fontSize: 13,
-                  borderRadius: 7, border: "0.5px solid var(--color-border)",
-                  background: "var(--color-surface)", color: "var(--color-text-primary)",
-                  outline: "none", boxSizing: "border-box",
-                }}
-              />
+            {/* ── Metric cards ── */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
+                <MetricCard
+                    icon={Store}
+                    label="Total vendors"
+                    value={fmt(counts.all)}
+                    sub={`${counts.verified} verified`}
+                    color="default"
+                />
+                <MetricCard
+                    icon={DollarSign}
+                    label="Total revenue"
+                    value={`${fmt(totalRevenue)} RWF`}
+                    sub="across all vendors"
+                    color="success"
+                />
+                <MetricCard
+                    icon={TrendingUp}
+                    label="Total sales"
+                    value={fmt(totalSales)}
+                    sub="completed orders"
+                    color="info"
+                />
+                <MetricCard
+                    icon={Star}
+                    label="Avg rating"
+                    value={avgRating.toFixed(2)}
+                    sub={`${featuredCount} featured`}
+                    color="warning"
+                />
+                <MetricCard
+                    icon={Clock}
+                    label="Pending review"
+                    value={String(counts.pending)}
+                    sub="awaiting verification"
+                    color="pending"
+                />
             </div>
-            <button
-              type="submit"
-              style={{
-                height: 34, padding: "0 14px", borderRadius: 7, fontSize: 12, fontWeight: 600,
-                border: "0.5px solid var(--color-border)",
-                background: "var(--color-surface-secondary)",
-                color: "var(--color-text-secondary)", cursor: "pointer",
-              }}
-            >
-              Search
-            </button>
-            {q && (
-              <Link
-                href={`/admin/vendors${status ? `?status=${status}` : ""}`}
-                style={{
-                  height: 34, padding: "0 12px", borderRadius: 7, fontSize: 12,
-                  border: "0.5px solid var(--color-border)", background: "transparent",
-                  color: "var(--color-text-muted)", textDecoration: "none",
-                  display: "inline-flex", alignItems: "center",
-                }}
-              >
-                Clear
-              </Link>
+
+            {/* ── Toolbar (search + sort) — client component ── */}
+            <VendorsToolbar
+                initialQ={q ?? ""}
+                initialSort={sortKey}
+                status={statusFilter}
+            />
+
+            {/* ── Status tabs ── */}
+            <div className="flex items-center gap-1.5 flex-wrap">
+                {(["all", "verified", "pending", "rejected", "suspended"] as const).map((s) => {
+                    const active = statusFilter === s;
+                    const label  = s === "all" ? "All" : s.charAt(0).toUpperCase() + s.slice(1);
+                    return (
+                        <Link
+                            key={s}
+                            href={`/admin/vendors?status=${s}${q ? `&q=${encodeURIComponent(q)}` : ""}${sort ? `&sort=${sort}` : ""}`}
+                            className={[
+                                "h-7 px-3 inline-flex items-center gap-1.5 rounded-full text-[12px] font-medium transition-all select-none",
+                                active
+                                    ? "bg-[var(--color-text-primary)] text-[var(--color-surface)] ring-0"
+                                    : "bg-[var(--color-surface)] ring-[0.5px] ring-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:ring-[var(--color-border-strong)]",
+                            ].join(" ")}
+                        >
+                            {label}
+                            <span className={[
+                                "inline-flex items-center justify-center h-4 min-w-4 px-1 rounded-full text-[10px] font-semibold tabular-nums",
+                                active
+                                    ? "bg-white/20 text-white"
+                                    : "bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)]",
+                            ].join(" ")}>
+                                {counts[s]}
+                            </span>
+                        </Link>
+                    );
+                })}
+            </div>
+
+            {/* ── Results label ── */}
+            {(q || statusFilter !== "all") && filtered.length > 0 && (
+                <p className="text-[12px] text-[var(--color-text-muted)]">
+                    Showing{" "}
+                    <strong className="text-[var(--color-text-primary)] font-semibold">{filtered.length}</strong>{" "}
+                    result{filtered.length !== 1 ? "s" : ""}
+                    {q && (
+                        <> for{" "}
+                            <strong className="text-[var(--color-text-primary)] font-semibold">"{q}"</strong>
+                        </>
+                    )}
+                </p>
             )}
-          </form>
 
-          {/* Sort selector — client component (onChange needs interactivity) */}
-          <SortSelect current={sortKey} q={q} status={status} />
+            {/* ── Table ── */}
+            <div className="rounded-xl border border-[var(--color-border)] overflow-hidden bg-[var(--color-surface)]">
+                {filtered.length === 0 ? (
+                    <EmptyState
+                        icon={<Store className="h-5 w-5 text-[var(--color-text-muted)]" />}
+                        title={q ? `No vendors matching "${q}"` : "No vendors in this category"}
+                        message="Try adjusting your search or filter."
+                    />
+                ) : (
+                    <div className="overflow-x-auto">
+                        <table className="w-full">
+                            <thead>
+                                <tr className="border-b border-[var(--color-border)] bg-[var(--color-surface-secondary)]/60">
+                                    <Th>Store</Th>
+                                    <Th>Owner</Th>
+                                    <Th>Products</Th>
+                                    <Th>Revenue</Th>
+                                    <Th>Sales</Th>
+                                    <Th>Rating</Th>
+                                    <Th>Status</Th>
+                                    <Th>Joined</Th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-[var(--color-border)]/60">
+                                {filtered.map((v: any) => (
+                                    <VendorRow key={v.id} v={v} last={false} />
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+
+                {/* Footer */}
+                {filtered.length > 0 && (
+                    <div className="px-4 py-2.5 border-t border-[var(--color-border)] bg-[var(--color-surface-secondary)]/40">
+                        <p className="text-[11px] text-[var(--color-text-muted)]">
+                            Showing {filtered.length} of {total} vendor{total !== 1 ? "s" : ""}.{" "}
+                            Approve or reject from the{" "}
+                            <Link
+                                href="/admin/verifications?tab=vendors"
+                                className="text-[var(--color-accent)] hover:underline"
+                            >
+                                verification queue
+                            </Link>.
+                        </p>
+                    </div>
+                )}
+            </div>
         </div>
-
-        {/* Status tabs */}
-        <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-          {(["all", "verified", "pending", "rejected", "suspended"] as const).map((s) => {
-            const active = statusFilter === s;
-            const label = s === "all" ? "All" : s.charAt(0).toUpperCase() + s.slice(1);
-            return (
-              <Link
-                key={s}
-                href={`/admin/vendors?status=${s}${q ? `&q=${q}` : ""}${sort ? `&sort=${sort}` : ""}`}
-                style={{
-                  height: 28, padding: "0 11px", borderRadius: 5, fontSize: 12, fontWeight: 500,
-                  display: "inline-flex", alignItems: "center", gap: 5, textDecoration: "none",
-                  border: `0.5px solid ${active ? "var(--color-text-primary)" : "var(--color-border)"}`,
-                  background: active ? "var(--color-text-primary)" : "transparent",
-                  color: active ? "var(--color-bg)" : "var(--color-text-secondary)",
-                }}
-              >
-                {label}
-                <span style={{
-                  fontSize: 10, fontWeight: 700, minWidth: 16, textAlign: "center",
-                  padding: "0 4px", borderRadius: 3,
-                  background: active ? "rgba(255,255,255,0.15)" : "var(--color-surface-secondary)",
-                  color: active ? "inherit" : "var(--color-text-muted)",
-                }}>
-                  {counts[s]}
-                </span>
-              </Link>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* ── Results label ── */}
-      {(q || statusFilter !== "all") && filtered.length > 0 && (
-        <p style={{ fontSize: 12, color: "var(--color-text-muted)", margin: 0 }}>
-          Showing <strong style={{ color: "var(--color-text-primary)" }}>{filtered.length}</strong> result{filtered.length !== 1 ? "s" : ""}
-          {q && <> for <strong style={{ color: "var(--color-text-primary)" }}>"{q}"</strong></>}
-        </p>
-      )}
-
-      {/* ── Table ── */}
-      <div style={{
-        border: "0.5px solid var(--color-border)", borderRadius: 10, overflow: "hidden",
-      }}>
-        {/* Table header */}
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "2.4fr 1.3fr 80px 90px 90px 90px 100px 104px",
-          gap: 8, padding: "8px 16px",
-          fontSize: 11, fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase",
-          color: "var(--color-text-muted)",
-          background: "var(--color-surface-secondary)",
-          borderBottom: "0.5px solid var(--color-border)",
-        }}>
-          <span>Store</span>
-          <span>Owner</span>
-          <span>Products</span>
-          <span>Revenue</span>
-          <span>Sales</span>
-          <span>Rating</span>
-          <span>Status</span>
-          <span>Joined</span>
-        </div>
-
-        {filtered.length === 0 ? (
-          <div style={{
-            padding: "44px 24px", textAlign: "center",
-            color: "var(--color-text-muted)", fontSize: 13,
-          }}>
-            {q ? `No vendors matching "${q}"` : "No vendors in this category."}
-          </div>
-        ) : (
-          filtered.map((v: any, i: number) => (
-            <VendorRow key={v.id} v={v} last={i === filtered.length - 1} />
-          ))
-        )}
-      </div>
-
-      {/* ── Footer ── */}
-      {filtered.length > 0 && (
-        <p style={{ fontSize: 12, color: "var(--color-text-muted)", margin: 0 }}>
-          Showing {filtered.length} of {total} vendor{total !== 1 ? "s" : ""}.{" "}
-          Approve or reject from the{" "}
-          <Link
-            href="/admin/verifications?tab=vendors"
-            style={{ color: "var(--color-accent)", textDecoration: "none" }}
-          >
-            verification queue
-          </Link>.
-        </p>
-      )}
-    </div>
-  );
+    );
 }
 
-// ─── Metric card ─────────────────────────────────────────────────────────────
+// ─── Metric card ──────────────────────────────────────────────────────────────
+
+const METRIC_PALETTE = {
+    default: {
+        bg:     "bg-[var(--color-surface-secondary)]",
+        border: "border-[var(--color-border)]",
+        fg:     "text-[var(--color-text-primary)]",
+        icon:   "text-[var(--color-text-muted)]",
+    },
+    success: {
+        bg:     "bg-emerald-500/[0.06]",
+        border: "border-emerald-500/20",
+        fg:     "text-emerald-600 dark:text-emerald-400",
+        icon:   "text-emerald-500",
+    },
+    info: {
+        bg:     "bg-sky-500/[0.06]",
+        border: "border-sky-500/20",
+        fg:     "text-sky-600 dark:text-sky-400",
+        icon:   "text-sky-500",
+    },
+    warning: {
+        bg:     "bg-amber-500/[0.06]",
+        border: "border-amber-500/25",
+        fg:     "text-amber-700 dark:text-amber-400",
+        icon:   "text-amber-500",
+    },
+    pending: {
+        bg:     "bg-orange-500/[0.05]",
+        border: "border-orange-500/20",
+        fg:     "text-orange-600 dark:text-orange-400",
+        icon:   "text-orange-500",
+    },
+} as const;
 
 function MetricCard({
-  icon, label, value, sub, color,
+    icon: Icon, label, value, sub, color,
 }: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  sub: string;
-  color: "default" | "success" | "info" | "warning" | "pending";
+    icon: React.ElementType;
+    label: string;
+    value: string;
+    sub: string;
+    color: keyof typeof METRIC_PALETTE;
 }) {
-  const palette = {
-    default: { bg: "var(--color-surface-secondary)", fg: "var(--color-text-primary)", border: "var(--color-border)", icon: "var(--color-text-muted)" },
-    success: { bg: "rgba(48,164,108,0.06)", fg: "#30a46c", border: "rgba(48,164,108,0.15)", icon: "#30a46c" },
-    info: { bg: "rgba(14,165,233,0.06)", fg: "#0ea5e9", border: "rgba(14,165,233,0.15)", icon: "#0ea5e9" },
-    warning: { bg: "rgba(240,180,41,0.06)", fg: "#b45309", border: "rgba(240,180,41,0.2)", icon: "#f0b429" },
-    pending: { bg: "rgba(253,80,0,0.05)", fg: "var(--color-accent)", border: "rgba(253,80,0,0.15)", icon: "var(--color-accent)" },
-  }[color];
-
-  return (
-    <div style={{
-      padding: "12px 14px", borderRadius: 9,
-      background: palette.bg, border: `0.5px solid ${palette.border}`,
-      display: "flex", flexDirection: "column", gap: 6,
-    }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <span style={{ fontSize: 11, color: "var(--color-text-muted)", fontWeight: 500 }}>{label}</span>
-        <span style={{ color: palette.icon, display: "flex" }}>{icon}</span>
-      </div>
-      <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: "-0.03em", color: palette.fg, lineHeight: 1 }}>
-        {value}
-      </div>
-      <div style={{ fontSize: 11, color: "var(--color-text-muted)" }}>{sub}</div>
-    </div>
-  );
+    const p = METRIC_PALETTE[color];
+    return (
+        <div className={`flex flex-col gap-2 p-3.5 rounded-xl border ${p.bg} ${p.border}`}>
+            <div className="flex items-center justify-between">
+                <span className="text-[11px] text-[var(--color-text-muted)] font-medium">{label}</span>
+                <Icon className={`h-3.5 w-3.5 shrink-0 ${p.icon}`} />
+            </div>
+            <p className={`text-[20px] font-bold tracking-tight leading-none tabular-nums ${p.fg}`}>
+                {value}
+            </p>
+            <p className="text-[11px] text-[var(--color-text-muted)]">{sub}</p>
+        </div>
+    );
 }

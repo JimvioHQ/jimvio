@@ -1,529 +1,11 @@
-// "use client";
-
-// import React, { useState, useMemo, useCallback } from "react";
-// import Link from "next/link";
-// import { toast } from "sonner";
-// import { ChevronLeft, Pencil, Package, Truck, ChevronRight } from "lucide-react";
-
-// import { CheckoutTopBar } from "./CheckoutTopBar";
-// import { CheckoutFooter } from "./CheckoutFooter";
-// import { OrderSummaryCard } from "./OrderSummaryCard";
-// import { PaymentMethodSelector, type MethodId } from "./PaymentMethodSelector";
-// import ShippingForm, { type ShippingFormValues } from "./ShippingForm";
-// import { CJShippingSelector } from "./CJShippingSelector";
-
-// import { updatePendingOrdersShipping } from "@/lib/actions/checkout";
-// import { useCurrency } from "@/context/CurrencyContext";
-
-
-// import type { CartItem, CartOrder, CJShippingOption, PaymentApiResponse } from "@/types";
-// import { Button } from "../ui/button";
-// function defaultPayment(currency: string | null): MethodId {
-//    const c = (currency || "USD").toUpperCase();
-//    if (c === "RWF" || c === "USD") return "flutterwave";
-//    return "pesapal";
-// }
-// function hasCJItems(orders: CartOrder[]): boolean {
-//    return orders.some((o) => o.order_items.some((i) => i.product_source === "cj"));
-// }
-
-// function getCJCartItems(orders: CartOrder[]): CartItem[] {
-//    return orders.flatMap((o) => o.order_items.filter((i) => i.product_source === "cj"));
-// }
-
-// const USER_FACING_ERRORS: Record<string, string> = {
-//    VALIDATION_ERROR: "Some order details are missing. Please review and try again.",
-//    ORDER_NOT_FOUND: "We couldn't find your order. Please refresh and try again.",
-//    ORDER_ALREADY_PAID: "This order has already been paid. Check your order history.",
-//    BUYER_EMAIL_MISSING: "Your account is missing an email address. Please update your profile.",
-//    PAYMENT_LINK_FAILED: "The payment provider is temporarily unavailable. Please try again shortly.",
-//    BINANCEPAY_UNAVAILABLE: "Binance Pay is temporarily unavailable. Please choose another payment method.",
-//    INVALID_REQUEST_PAYLOAD: "Invalid payment request. Please try again.",
-//    INTERNAL_ERROR: "Something went wrong on our end. Please contact support if this persists.",
-// } as const;
-
-// function extractRedirectUrl(data: PaymentApiResponse): string | null {
-//    return data.redirectUrl ?? data.approvalUrl ?? data.invoiceUrl ?? data.redirectURL ?? null;
-// }
-
-// function extractErrorMessage(data: PaymentApiResponse): string {
-//    if (!data.error) return data.message ?? "Payment initiation failed";
-//    if (typeof data.error === "string") return data.error;
-//    return USER_FACING_ERRORS[data.error.code] ?? "Payment initiation failed";
-// }
-// const PAYMENT_ENDPOINTS: Record<MethodId, string> = {
-//    pesapal: "/api/payments/pesapal/initiate",
-//    flutterwave: "/api/payments/flutterwave/initiate",
-//    paypal: "/api/payments/paypal/create-order",
-//    pawapay: "/api/pawapay/checkout",
-//    nowpayments: "/api/payments/nowpayments/initiate",
-//    binancepay: "/api/payments/binancepay/initiate",
-// } as const;
-
-// // Above the component, alongside hasCJItems / getCJCartItems
-// function getCJVid(item: CartItem): string | null {
-//    return item.cj_vid ?? item.source_metadata?.cj_vid ?? null;
-// }
-
-// function getCJWeight(item: CartItem): number | null {
-//    return item.variant_weight ?? item.source_metadata?.cj_weight ?? null;
-// }
-
-// type Stage = "shipping" | "delivery" | "payment";
-
-// type CheckoutSyncChanges = {
-//    itemsAdded: number;
-//    itemsRemoved: number;
-//    itemsUpdated: number;
-//    priceChanged: boolean;
-//    shippingReset: boolean;
-// };
-
-// interface CheckoutExperienceProps {
-//    orders: CartOrder[];
-//    profile: { full_name: string | null; email: string | null; phone: string | null } | null;
-//    preferredMethod?: string | null;
-//    mode?: "cart" | "community";
-//    cartWasUpdated?: boolean;
-//    changes?: CheckoutSyncChanges;
-// }
-
-// const COUNTRY_NAMES: Record<string, { name: string; flag: string }> = {
-//    RW: { name: "Rwanda", flag: "🇷🇼" },
-//    KE: { name: "Kenya", flag: "🇰🇪" },
-//    NG: { name: "Nigeria", flag: "🇳🇬" },
-//    US: { name: "United States", flag: "🇺🇸" },
-//    GB: { name: "United Kingdom", flag: "🇬🇧" },
-//    // ... extend as needed
-// };
-
-// export function CheckoutExperience({
-//    orders, profile, preferredMethod, mode = "cart",
-// }: CheckoutExperienceProps) {
-//    const { formatMoney, rates } = useCurrency();
-
-//    const isCJOrder = hasCJItems(orders);
-//    const isCommunity = mode === "community";
-//    const allItems = useMemo(() => orders.flatMap((o) => o.order_items), [orders]);
-//    const isAllDigital = allItems.every((i) => i.product_type === "digital");
-
-//    const currency = orders[0]?.currency ?? "USD";
-//    const countryCode = orders[0]?.shipping_address?.country_code ?? "RW";
-//    const countryInfo = COUNTRY_NAMES[countryCode] ?? { name: countryCode, flag: "🌐" };
-
-//    const [stage, setStage] = useState<Stage>(
-//       isAllDigital || isCommunity ? "payment" : "shipping"
-//    );
-
-//    // ── Payment ───────────────────────────────────────────────────────────────
-//    const [payment, setPayment] = useState<MethodId>(() => {
-//       const valid: MethodId[] = ["pesapal", "nowpayments", "flutterwave", "paypal", "pawapay", "binancepay"];
-//       if (preferredMethod && valid.includes(preferredMethod as MethodId)) {
-//          return preferredMethod as MethodId;
-//       }
-//       return defaultPayment(currency);
-//    });
-
-//    const existingAddr = orders[0]?.shipping_address;
-//    const nameParts = (profile?.full_name ?? "").split(" ");
-//    const [shipping, setShipping] = useState<ShippingFormValues>({
-//       firstName: existingAddr?.firstName ?? nameParts[0] ?? "",
-//       lastName: existingAddr?.lastName ?? nameParts.slice(1).join(" ") ?? "",
-//       email: existingAddr?.email ?? profile?.email ?? "",
-//       phone: existingAddr?.phone ?? profile?.phone ?? "",
-//       address1: existingAddr?.address1 ?? "",
-//       address2: existingAddr?.address2 ?? "",
-//       city: existingAddr?.city ?? "",
-//       country: existingAddr?.country ?? countryInfo.name,
-//       countryCode: existingAddr?.country_code ?? countryCode,
-//       zip: existingAddr?.zip ?? "",
-//    });
-
-//    // ── CJ shipping options ───────────────────────────────────────────────────
-//    const [cjOptions, setCjOptions] = useState<CJShippingOption[]>([]);
-//    const [cjSelected, setCjSelected] = useState<CJShippingOption | null>(null);
-//    const [cjLoading, setCjLoading] = useState(false);
-//    const [cjError, setCjError] = useState("");
-
-//    // ── Promo ─────────────────────────────────────────────────────────────────
-//    const [promoCode, setPromoCode] = useState("");
-//    const [promoApplying, setPromoApplying] = useState(false);
-//    const [discount, setDiscount] = useState(0);
-
-//    // ── Submission ────────────────────────────────────────────────────────────
-//    const [submitting, setSubmitting] = useState(false);
-
-//    // ── Totals ────────────────────────────────────────────────────────────────
-//    const subtotal = useMemo(
-//       () => allItems.reduce((s, i) => s + Number(i.total_price), 0),
-//       [allItems]
-//    );
-
-//    const shippingCost = useMemo(() => {
-//       if (!isCJOrder) return 0;
-//       if (!cjSelected) return null;
-//       if (cjSelected.priceUSD === 0) return 0;
-//       const rate = rates[currency];
-//       if (!rate || !Number.isFinite(rate)) return null;
-//       return cjSelected.priceUSD * rate;
-//    }, [isCJOrder, cjSelected, rates, currency]);
-
-//    const total = subtotal - discount + (shippingCost ?? 0);
-
-//    async function applyPromo() {
-//       setPromoApplying(true);
-//       try {
-//          const res = await fetch("/api/promo/validate", {
-//             method: "POST",
-//             headers: { "Content-Type": "application/json" },
-//             body: JSON.stringify({ code: promoCode, subtotal, currency }),
-//          });
-//          const json = await res.json();
-//          if (!json.success) {
-//             toast.error(json.error ?? "Invalid promo code");
-//             return;
-//          }
-//          setDiscount(json.discount ?? 0);
-//          toast.success(`Promo applied: ${formatMoney(json.discount, currency)} off`);
-//       } catch {
-//          toast.error("Could not apply promo code");
-//       } finally {
-//          setPromoApplying(false);
-//       }
-//    }
-
-//    // ── Shipping → delivery/payment ───────────────────────────────────────────
-//    async function advanceFromShipping() {
-//       // validation
-//       const { firstName, email, phone, address1, city, countryCode } = shipping;
-//       if (!firstName.trim()) return toast.error("First name is required");
-//       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return toast.error("Valid email required");
-//       if (!/^\+?[\d\s\-()\x20]{7,}$/.test(phone)) return toast.error("Valid phone required");
-//       if (!address1.trim()) return toast.error("Address is required");
-//       if (!city.trim()) return toast.error("City is required");
-
-//       if (isCJOrder) {
-//          setCjLoading(true);
-//          setCjError("");
-//          try {
-//             const cjItems = getCJCartItems(orders);
-//             console.log(cjItems);
-
-
-//             // Build the CJ payload with proper vids and weights
-//             const products = cjItems.map((item) => ({
-//                variantId: getCJVid(item),
-//                quantity: item.quantity,
-
-//                weight: getCJWeight(item),
-//             }));
-//             console.log(products);
-
-//             const missing = products.filter((p) => !p.variantId);
-//             if (missing.length > 0) {
-//                throw new Error(
-//                   "Some items are missing CJ variant info. Please remove them from your cart and add them again."
-//                );
-//             }
-//             const missingWeight = products.filter((p) => !p.weight);
-//             if (missingWeight.length > 0) {
-//                console.warn(
-//                   "[CJ rates] items missing weight, CJ will use default:",
-//                   missingWeight,
-//                );
-//             }
-
-//             const res = await fetch("/api/cj/shipping-rates", {
-//                method: "POST",
-//                headers: { "Content-Type": "application/json" },
-//                body: JSON.stringify({
-//                   destCountryCode: countryCode,
-//                   cartItems: products
-//                }),
-//             });
-
-//             const json = await res.json();
-//             if (!json.success) throw new Error(json.error ?? "Rates unavailable");
-
-//             const opts: CJShippingOption[] = (json.rates ?? []).map((r: any) => ({
-//                optionId: r.optionId,
-//                channelId: r.channelId,
-//                name: r.name,
-//                arrivalDays: r.arrivalDays,
-//                priceUSD: r.priceUSD ?? 0,
-//             }));
-//             setCjOptions(opts);
-//             if (opts.length > 0) {
-//                const cheapest = opts.reduce((a, b) => (a.priceUSD <= b.priceUSD ? a : b));
-//                setCjSelected(cheapest);
-//             }
-//             setStage("delivery");
-//          } catch (e) {
-//             setCjError((e as Error).message);
-//             toast.error((e as Error).message || "Could not load shipping options");
-//          } finally {
-//             setCjLoading(false);
-//          }
-//       } else {
-//          setStage("payment");
-//       }
-//    }
-
-//    // ── Final pay ─────────────────────────────────────────────────────────────
-//    async function handlePay() {
-//       if (submitting) return;
-//       if (isCJOrder && !cjSelected) {
-//          toast.error("Please select a delivery method");
-//          setStage("delivery");
-//          return;
-//       }
-//       if (isCJOrder && shippingCost === null) {
-//          toast.error("Exchange rates are loading — please wait");
-//          return;
-//       }
-//       if (total <= 0 || !Number.isFinite(total)) {
-//          toast.error("Order total is invalid");
-//          return;
-//       }
-
-//       setSubmitting(true);
-//       try {
-//          const orderIds = orders.map((o) => o.id);
-//          const primaryOrderId = orderIds[0];
-
-//          // Save shipping
-//          const save = await updatePendingOrdersShipping({
-//             orderIds,
-//             ...shipping,
-//             address1: shipping.address1 || (isAllDigital ? "Digital Delivery" : ""),
-//             city: shipping.city || (isAllDigital ? "Online" : ""),
-//             shippingAmount: shippingCost ?? 0,
-//          });
-//          if (!save.success) throw new Error(save.error ?? "Couldn't save shipping");
-
-//          if (isCJOrder && cjSelected) {
-//             const cjRes = await fetch("/api/cj/set-shipping", {
-//                method: "POST",
-//                headers: { "Content-Type": "application/json" },
-//                body: JSON.stringify({ orderIds, shippingOption: cjSelected, destCountryCode: shipping.countryCode }),
-//             });
-//             const cjJson = await cjRes.json();
-//             if (!cjJson.success) throw new Error(cjJson.error ?? "Failed to save delivery");
-//          }
-
-//          const confirmedTotal = total;
-
-//          // Initiate payment
-//          const res = await fetch(PAYMENT_ENDPOINTS[payment], {
-//             method: "POST",
-//             headers: { "Content-Type": "application/json" },
-//             body: JSON.stringify({
-//                orderId: primaryOrderId, orderIds,
-//                amount: confirmedTotal, currency,
-//             }),
-//          });
-//          const data = await res.json();
-//          if (!res.ok) throw new Error(extractErrorMessage(data));
-//          const redirectUrl = extractRedirectUrl(data);
-//          if (!redirectUrl) throw new Error("No redirect URL");
-//          if (!redirectUrl.startsWith("https://")) throw new Error("Invalid redirect");
-//          window.location.href = redirectUrl;
-//       } catch (e) {
-//          toast.error(e instanceof Error ? e.message : "Checkout failed");
-//       } finally {
-//          setSubmitting(false);
-//       }
-//    }
-
-//    // ── Empty cart guard ──────────────────────────────────────────────────────
-//    if (!orders.length) {
-//       return (
-//          <div className="min-h-[60vh] flex items-center justify-center p-12">
-//             <div className="text-center max-w-sm">
-//                <Package className="h-12 w-12 text-[var(--color-text-muted)]/30 mx-auto mb-4" />
-//                <h2 className="text-lg font-semibold mb-2">Your cart is empty</h2>
-//                <Link href="/marketplace" className="inline-flex items-center gap-1.5 h-11 px-5 rounded-xl bg-orange-500 text-white font-semibold">
-//                   Browse marketplace
-//                </Link>
-//             </div>
-//          </div>
-//       );
-//    }
-
-//    const payDisabled =
-//       isCJOrder && (shippingCost === null || !cjSelected);
-
-//    return (
-//       <div className="min-h-screen bg-[var(--color-bg)] flex flex-col">
-//          <div className="flex-1 pb-20">
-//             <div className="w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-10">
-
-//                <Link
-//                   href="/cart"
-//                   className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-blue-500 hover:text-blue-600 mb-6"
-//                >
-//                   <ChevronLeft className="h-4 w-4" />
-//                   Back to Cart
-//                </Link>
-//                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-//                   <div className="lg:col-span-7 space-y-6">
-
-//                      {stage !== "shipping" && !isAllDigital && !isCommunity && (
-//                         <CompletedSummaryPill
-//                            icon={<Package className="h-4 w-4 text-orange-500" />}
-//                            title={`${shipping.firstName} ${shipping.lastName}`}
-//                            subtitle={`${shipping.email} · ${shipping.address1}, ${shipping.city}`}
-//                            onEdit={() => setStage("shipping")}
-//                         />
-//                      )}
-
-//                      {/* Delivery completed pill */}
-//                      {stage === "payment" && isCJOrder && cjSelected && (
-//                         <CompletedSummaryPill
-//                            icon={<Truck className="h-4 w-4 text-blue-500" />}
-//                            title={cjSelected.name}
-//                            subtitle={
-//                               cjSelected.priceUSD === 0
-//                                  ? "Free shipping"
-//                                  : `${cjSelected.arrivalDays} days · ${formatMoney(cjSelected.priceUSD, "USD")}`
-//                            }
-//                            onEdit={() => setStage("delivery")}
-//                         />
-//                      )}
-
-//                      {/* Stage content */}
-//                      {stage === "shipping" && (
-//                         <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl p-5 sm:p-7">
-//                            <h1 className="text-[20px] font-bold text-[var(--color-text-primary)] tracking-tight mb-1">
-//                               Where should we ship?
-//                            </h1>
-//                            <p className="text-[13px] text-[var(--color-text-muted)] mb-6">
-//                               We'll send tracking information to your email.
-//                            </p>
-//                            <ShippingForm
-//                               values={shipping}
-//                               onChange={(p) => setShipping((s) => ({ ...s, ...p }))}
-//                               hideAddress={isAllDigital || isCommunity}
-//                            />
-//                            <Button
-//                               onClick={advanceFromShipping}
-//                               disabled={cjLoading}
-//                               className="mt-6 w-full h-11 rounded-sm bg-orange-500 hover:bg-orange-600 text-white text-[13px] font-bold transition-colors disabled:opacity-60"
-//                            >
-//                               {cjLoading ? "Loading shipping rates…" : "Continue to delivery"}
-//                            </Button>
-//                         </div>
-//                      )}
-
-//                      {stage === "delivery" && (
-//                         <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl p-5 sm:p-7">
-//                            <h1 className="text-[20px] font-bold text-[var(--color-text-primary)] tracking-tight mb-1">
-//                               Choose delivery method
-//                            </h1>
-//                            <p className="text-[13px] text-[var(--color-text-muted)] mb-5">
-//                               Shipping to <strong>{shipping.country}</strong>
-//                            </p>
-
-//                            <CJShippingSelector
-//                               options={cjOptions}
-//                               selected={cjSelected}
-//                               onSelect={setCjSelected}
-//                               loading={cjLoading}
-//                               error={cjError}
-//                               formatMoney={formatMoney}
-//                            />
-//                            <Button
-//                               onClick={() => setStage("payment")}
-//                               disabled={!cjSelected}
-//                               className="mt-6 w-full h-11 rounded-sm bg-orange-500 hover:bg-orange-600 text-white text-[13px] font-bold transition-colors disabled:opacity-60"
-//                            >
-//                               Continue to payment
-//                            </Button>
-//                         </div>
-//                      )}
-
-//                      {stage === "payment" && (
-//                         <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl p-5 sm:p-7">
-//                            <PaymentMethodSelector
-//                               selected={payment}
-//                               onSelect={setPayment}
-//                               orderCurrency={currency}
-//                               orderTotal={total}
-//                               showSummary={false}
-//                            />
-//                         </div>
-//                      )}
-//                   </div>
-
-//                   <aside className="lg:col-span-5 lg:sticky lg:top-24">
-//                      <OrderSummaryCard
-//                         orders={orders}
-//                         items={allItems}
-//                         subtotal={subtotal}
-//                         discount={discount}
-//                         shipping={shippingCost}
-//                         total={total}
-//                         currency={currency}
-//                         formatMoney={formatMoney}
-//                         isAllDigital={isAllDigital}
-//                         promoCode={promoCode}
-//                         onPromoChange={setPromoCode}
-//                         onPromoApply={applyPromo}
-//                         promoApplying={promoApplying}
-//                         onEditOrder={() => (window.location.href = "/cart")}
-//                         onPay={handlePay}
-//                         paySubmitting={submitting}
-//                         payDisabled={payDisabled || stage !== "payment"}
-//                      />
-//                   </aside>
-//                </div>
-//             </div>
-//          </div>
-
-//          <CheckoutFooter />
-//       </div>
-//    );
-// }
-
-// // ─── Completed-summary collapsible pill ─────────────────────────────────────
-
-// function CompletedSummaryPill({
-//    icon, title, subtitle, onEdit,
-// }: {
-//    icon: React.ReactNode;
-//    title: string;
-//    subtitle: string;
-//    onEdit: () => void;
-// }) {
-//    return (
-//       <div className="flex items-center gap-3 p-4 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-sm">
-//          <div className="w-9 h-9 rounded-lg bg-[var(--color-surface-secondary)] flex items-center justify-center flex-shrink-0">
-//             {icon}
-//          </div>
-//          <div className="flex-1 min-w-0">
-//             <p className="text-[13px] font-semibold text-[var(--color-text-primary)] truncate">
-//                {title}
-//             </p>
-//             <p className="text-[11px] text-[var(--color-text-muted)] truncate">{subtitle}</p>
-//          </div>
-//          <button
-//             onClick={onEdit}
-//             className="inline-flex items-center gap-1 text-[12px] font-semibold text-blue-500 hover:text-blue-600 shrink-0"
-//          >
-//             <Pencil className="h-3 w-3" />
-//             Edit
-//          </button>
-//       </div>
-//    );
-// }
-
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { ChevronLeft, Pencil, Package, Truck } from "lucide-react";
+import { ChevronLeft, Pencil, Package, Truck, ChevronRight } from "lucide-react";
 
+import { CheckoutTopBar } from "./CheckoutTopBar";
 import { CheckoutFooter } from "./CheckoutFooter";
 import { OrderSummaryCard } from "./OrderSummaryCard";
 import { PaymentMethodSelector, type MethodId } from "./PaymentMethodSelector";
@@ -533,598 +15,503 @@ import { CJShippingSelector } from "./CJShippingSelector";
 import { updatePendingOrdersShipping } from "@/lib/actions/checkout";
 import { useCurrency } from "@/context/CurrencyContext";
 
+
 import type { CartItem, CartOrder, CJShippingOption, PaymentApiResponse } from "@/types";
-import { Button } from "../ui/button";
-
-// ─────────────────────────────────────────────
-// Constants
-// ─────────────────────────────────────────────
-
-const VALID_METHOD_IDS: MethodId[] = [
-  "pesapal", "nowpayments", "flutterwave", "paypal", "pawapay", "binancepay",
-];
-
-const PAYMENT_ENDPOINTS: Record<MethodId, string> = {
-  pesapal:     "/api/payments/pesapal/initiate",
-  flutterwave: "/api/payments/flutterwave/initiate",
-  paypal:      "/api/payments/paypal/create-order",
-  pawapay:     "/api/pawapay/checkout",
-  nowpayments: "/api/payments/nowpayments/initiate",
-  binancepay:  "/api/payments/binancepay/initiate",
-} as const;
-
-// Whitelist of allowed payment redirect hostnames.
-// Any redirect URL whose hostname is not in this list will be rejected.
-const ALLOWED_REDIRECT_HOSTS: string[] = [
-  "pay.pesapal.com",
-  "checkout.flutterwave.com",
-  "www.sandbox.paypal.com",
-  "www.paypal.com",
-  "checkout.pawapay.io",
-  "nowpayments.io",
-  "bpay.binance.com",
-];
-
-const USER_FACING_ERRORS: Record<string, string> = {
-  VALIDATION_ERROR:        "Some order details are missing. Please review and try again.",
-  ORDER_NOT_FOUND:         "We couldn't find your order. Please refresh and try again.",
-  ORDER_ALREADY_PAID:      "This order has already been paid. Check your order history.",
-  BUYER_EMAIL_MISSING:     "Your account is missing an email address. Please update your profile.",
-  PAYMENT_LINK_FAILED:     "The payment provider is temporarily unavailable. Please try again shortly.",
-  BINANCEPAY_UNAVAILABLE:  "Binance Pay is temporarily unavailable. Please choose another payment method.",
-  INVALID_REQUEST_PAYLOAD: "Invalid payment request. Please try again.",
-  INTERNAL_ERROR:          "Something went wrong on our end. Please contact support if this persists.",
-} as const;
-
-const COUNTRY_NAMES: Record<string, { name: string; flag: string }> = {
-  RW: { name: "Rwanda",         flag: "🇷🇼" },
-  KE: { name: "Kenya",          flag: "🇰🇪" },
-  NG: { name: "Nigeria",        flag: "🇳🇬" },
-  US: { name: "United States",  flag: "🇺🇸" },
-  GB: { name: "United Kingdom", flag: "🇬🇧" },
-};
-
-// ─────────────────────────────────────────────
-// Helpers
-// ─────────────────────────────────────────────
-
 function defaultPayment(currency: string | null): MethodId {
-  const c = (currency || "USD").toUpperCase();
-  if (c === "RWF" || c === "USD") return "flutterwave";
-  return "pesapal";
+   const c = (currency || "USD").toUpperCase();
+   if (c === "RWF" || c === "USD") return "flutterwave";
+   return "pesapal";
 }
-
 function hasCJItems(orders: CartOrder[]): boolean {
-  return orders.some((o) => o.order_items.some((i) => i.product_source === "cj"));
+   return orders.some((o) => o.order_items.some((i) => i.product_source === "cj"));
 }
 
 function getCJCartItems(orders: CartOrder[]): CartItem[] {
-  return orders.flatMap((o) => o.order_items.filter((i) => i.product_source === "cj"));
+   return orders.flatMap((o) => o.order_items.filter((i) => i.product_source === "cj"));
 }
 
-function getCJVid(item: CartItem): string | null {
-  return item.cj_vid ?? item.source_metadata?.cj_vid ?? null;
-}
-
-function getCJWeight(item: CartItem): number | null {
-  return item.variant_weight ?? item.source_metadata?.cj_weight ?? null;
-}
+const USER_FACING_ERRORS: Record<string, string> = {
+   VALIDATION_ERROR: "Some order details are missing. Please review and try again.",
+   ORDER_NOT_FOUND: "We couldn't find your order. Please refresh and try again.",
+   ORDER_ALREADY_PAID: "This order has already been paid. Check your order history.",
+   BUYER_EMAIL_MISSING: "Your account is missing an email address. Please update your profile.",
+   PAYMENT_LINK_FAILED: "The payment provider is temporarily unavailable. Please try again shortly.",
+   BINANCEPAY_UNAVAILABLE: "Binance Pay is temporarily unavailable. Please choose another payment method.",
+   INVALID_REQUEST_PAYLOAD: "Invalid payment request. Please try again.",
+   INTERNAL_ERROR: "Something went wrong on our end. Please contact support if this persists.",
+} as const;
 
 function extractRedirectUrl(data: PaymentApiResponse): string | null {
-  return data.redirectUrl ?? data.approvalUrl ?? data.invoiceUrl ?? data.redirectURL ?? null;
+   return data.redirectUrl ?? data.approvalUrl ?? data.invoiceUrl ?? data.redirectURL ?? null;
 }
 
 function extractErrorMessage(data: PaymentApiResponse): string {
-  if (!data.error) return data.message ?? "Payment initiation failed";
-  if (typeof data.error === "string") return data.error;
-  return USER_FACING_ERRORS[data.error.code] ?? "Payment initiation failed";
+   if (!data.error) return data.message ?? "Payment initiation failed";
+   if (typeof data.error === "string") return data.error;
+   return USER_FACING_ERRORS[data.error.code] ?? "Payment initiation failed";
+}
+const PAYMENT_ENDPOINTS: Record<MethodId, string> = {
+   pesapal: "/api/payments/pesapal/initiate",
+   flutterwave: "/api/payments/flutterwave/initiate",
+   paypal: "/api/payments/paypal/create-order",
+   pawapay: "/api/pawapay/checkout",
+   nowpayments: "/api/payments/nowpayments/initiate",
+   binancepay: "/api/payments/binancepay/initiate",
+} as const;
+
+// Above the component, alongside hasCJItems / getCJCartItems
+function getCJVid(item: CartItem): string | null {
+   return item.cj_vid ?? item.source_metadata?.cj_vid ?? null;
 }
 
-/**
- * Validates the redirect URL against a whitelist of allowed payment provider
- * hostnames. Prevents open-redirect attacks via a compromised API response.
- */
-function validateRedirectUrl(url: string): { valid: boolean; reason?: string } {
-  if (!url.startsWith("https://")) return { valid: false, reason: "Redirect must use HTTPS" };
-  try {
-    const { hostname } = new URL(url);
-    if (!ALLOWED_REDIRECT_HOSTS.includes(hostname)) {
-      return { valid: false, reason: `Redirect to '${hostname}' is not allowed` };
-    }
-    return { valid: true };
-  } catch {
-    return { valid: false, reason: "Invalid redirect URL" };
-  }
+function getCJWeight(item: CartItem): number | null {
+   return item.variant_weight ?? item.source_metadata?.cj_weight ?? null;
 }
 
-// ─────────────────────────────────────────────
-// Types
-// ─────────────────────────────────────────────
-
-type Stage = "shipping" | "payment";
+type Stage = "shipping" | "delivery" | "payment";
 
 type CheckoutSyncChanges = {
-  itemsAdded:    number;
-  itemsRemoved:  number;
-  itemsUpdated:  number;
-  priceChanged:  boolean;
-  shippingReset: boolean;
+   itemsAdded: number;
+   itemsRemoved: number;
+   itemsUpdated: number;
+   priceChanged: boolean;
+   shippingReset: boolean;
 };
 
 interface CheckoutExperienceProps {
-  orders:          CartOrder[];
-  profile:         { full_name: string | null; email: string | null; phone: string | null } | null;
-  preferredMethod?: string | null;
-  mode?:           "cart" | "community";
-  // cartWasUpdated and changes are reserved for future use
-  cartWasUpdated?: boolean;
-  changes?:        CheckoutSyncChanges;
+   orders: CartOrder[];
+   profile: { full_name: string | null; email: string | null; phone: string | null } | null;
+   preferredMethod?: string | null;
+   mode?: "cart" | "community";
+   cartWasUpdated?: boolean;
+   changes?: CheckoutSyncChanges;
 }
 
-// ─────────────────────────────────────────────
-// Component
-// ─────────────────────────────────────────────
+const COUNTRY_NAMES: Record<string, { name: string; flag: string }> = {
+   RW: { name: "Rwanda", flag: "🇷🇼" },
+   KE: { name: "Kenya", flag: "🇰🇪" },
+   NG: { name: "Nigeria", flag: "🇳🇬" },
+   US: { name: "United States", flag: "🇺🇸" },
+   GB: { name: "United Kingdom", flag: "🇬🇧" },
+   // ... extend as needed
+};
 
 export function CheckoutExperience({
-  orders, profile, preferredMethod, mode = "cart",
+   orders, profile, preferredMethod, mode = "cart",
 }: CheckoutExperienceProps) {
-  const { formatMoney, rates } = useCurrency();
+   const { formatMoney, rates } = useCurrency();
 
-  const isCJOrder    = hasCJItems(orders);
-  const isCommunity  = mode === "community";
-  const allItems     = useMemo(() => orders.flatMap((o) => o.order_items), [orders]);
-  const isAllDigital = allItems.every((i) => i.product_type === "digital");
+   const isCJOrder = hasCJItems(orders);
+   const isCommunity = mode === "community";
+   const allItems = useMemo(() => orders.flatMap((o) => o.order_items), [orders]);
+   const isAllDigital = allItems.every((i) => i.product_type === "digital");
 
-  const currency    = orders[0]?.currency ?? "USD";
-  const countryCode = orders[0]?.shipping_address?.country_code ?? "RW";
-  const countryInfo = COUNTRY_NAMES[countryCode] ?? { name: countryCode, flag: "🌐" };
+   const currency = orders[0]?.currency ?? "USD";
+   const countryCode = orders[0]?.shipping_address?.country_code ?? "RW";
+   const countryInfo = COUNTRY_NAMES[countryCode] ?? { name: countryCode, flag: "🌐" };
 
-  const [stage, setStage] = useState<Stage>(
-    isAllDigital || isCommunity ? "payment" : "shipping"
-  );
+   const [stage, setStage] = useState<Stage>(
+      isAllDigital || isCommunity ? "payment" : "shipping"
+   );
 
-  // ── Payment ──────────────────────────────────────────────────────────────
-  const [payment, setPayment] = useState<MethodId>(() => {
-    if (preferredMethod && VALID_METHOD_IDS.includes(preferredMethod as MethodId)) {
-      return preferredMethod as MethodId;
-    }
-    return defaultPayment(currency);
-  });
-
-  // ── Shipping form ─────────────────────────────────────────────────────────
-  const existingAddr = orders[0]?.shipping_address;
-  const nameParts    = (profile?.full_name ?? "").split(" ");
-
-  const [shipping, setShipping] = useState<ShippingFormValues>({
-    firstName:   existingAddr?.firstName    ?? nameParts[0] ?? "",
-    lastName:    existingAddr?.lastName     ?? nameParts.slice(1).join(" ") ?? "",
-    email:       existingAddr?.email        ?? profile?.email ?? "",
-    phone:       existingAddr?.phone        ?? profile?.phone ?? "",
-    address1:    existingAddr?.address1     ?? "",
-    address2:    existingAddr?.address2     ?? "",
-    city:        existingAddr?.city         ?? "",
-    country:     existingAddr?.country      ?? countryInfo.name,
-    countryCode: existingAddr?.country_code ?? countryCode,
-    zip:         existingAddr?.zip          ?? "",
-  });
-
-  // ── CJ shipping ───────────────────────────────────────────────────────────
-  const [cjOptions,  setCjOptions]  = useState<CJShippingOption[]>([]);
-  const [cjSelected, setCjSelected] = useState<CJShippingOption | null>(null);
-  const [cjLoading,  setCjLoading]  = useState(false);
-  const [cjError,    setCjError]    = useState("");
-
-  // ── Promo ─────────────────────────────────────────────────────────────────
-  const [promoCode,     setPromoCode]     = useState("");
-  const [promoApplying, setPromoApplying] = useState(false);
-  // NOTE: discount is display-only — the payment API must recalculate
-  // the authoritative amount server-side from the DB.
-  const [discount, setDiscount] = useState(0);
-
-  // ── Submission ────────────────────────────────────────────────────────────
-  const [submitting, setSubmitting] = useState(false);
-
-  // ── Totals ────────────────────────────────────────────────────────────────
-  const subtotal = useMemo(
-    () => allItems.reduce((s, i) => s + Number(i.total_price), 0),
-    [allItems]
-  );
-
-  const shippingCost = useMemo(() => {
-    if (!isCJOrder) return 0;
-    if (!cjSelected) return null;
-    if (cjSelected.priceUSD === 0) return 0;
-    const rate = rates[currency];
-    if (!rate || !Number.isFinite(rate)) return null;
-    return cjSelected.priceUSD * rate;
-  }, [isCJOrder, cjSelected, rates, currency]);
-
-  const total = subtotal - discount + (shippingCost ?? 0);
-
-  // ── Promo ─────────────────────────────────────────────────────────────────
-  async function applyPromo() {
-    setPromoApplying(true);
-    try {
-      const res  = await fetch("/api/promo/validate", {
-        method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ code: promoCode, subtotal, currency }),
-      });
-      const json = await res.json();
-      if (!json.success) {
-        toast.error(json.error ?? "Invalid promo code");
-        return;
+   // ── Payment ───────────────────────────────────────────────────────────────
+   const [payment, setPayment] = useState<MethodId>(() => {
+      const valid: MethodId[] = ["pesapal", "nowpayments", "flutterwave", "paypal", "pawapay", "binancepay"];
+      if (preferredMethod && valid.includes(preferredMethod as MethodId)) {
+         return preferredMethod as MethodId;
       }
-      setDiscount(json.discount ?? 0);
-      toast.success(`Promo applied: ${formatMoney(json.discount, currency)} off`);
-    } catch {
-      toast.error("Could not apply promo code");
-    } finally {
-      setPromoApplying(false);
-    }
-  }
+      return defaultPayment(currency);
+   });
 
-  // ── Shipping → CJ rates (once) → payment ─────────────────────────────────
-  async function advanceFromShipping() {
-    const { firstName, email, phone, address1, city, countryCode: cc } = shipping;
-    if (!firstName.trim())                          return toast.error("First name is required");
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return toast.error("Valid email required");
-    if (!/^\+?[\d\s\-()\x20]{7,}$/.test(phone))    return toast.error("Valid phone required");
-    if (!address1.trim())                           return toast.error("Address is required");
-    if (!city.trim())                               return toast.error("City is required");
+   const existingAddr = orders[0]?.shipping_address;
+   const nameParts = (profile?.full_name ?? "").split(" ");
+   const [shipping, setShipping] = useState<ShippingFormValues>({
+      firstName: existingAddr?.firstName ?? nameParts[0] ?? "",
+      lastName: existingAddr?.lastName ?? nameParts.slice(1).join(" ") ?? "",
+      email: existingAddr?.email ?? profile?.email ?? "",
+      phone: existingAddr?.phone ?? profile?.phone ?? "",
+      address1: existingAddr?.address1 ?? "",
+      address2: existingAddr?.address2 ?? "",
+      city: existingAddr?.city ?? "",
+      country: existingAddr?.country ?? countryInfo.name,
+      countryCode: existingAddr?.country_code ?? countryCode,
+      zip: existingAddr?.zip ?? "",
+   });
 
-    if (isCJOrder) {
-      // ── Options already loaded: validate selection and move on ──
-      // Never re-fetch — the customer already has the list and picked (or
-      // hasn't picked yet). Re-fetching would wipe their selection.
-      if (cjOptions.length > 0) {
-        if (!cjSelected) {
-          toast.error("Please select a delivery method to continue");
-          return;
-        }
-        setStage("payment");
-        return;
-      }
+   // ── CJ shipping options ───────────────────────────────────────────────────
+   const [cjOptions, setCjOptions] = useState<CJShippingOption[]>([]);
+   const [cjSelected, setCjSelected] = useState<CJShippingOption | null>(null);
+   const [cjLoading, setCjLoading] = useState(false);
+   const [cjError, setCjError] = useState("");
 
-      // ── First visit: fetch rates once ──
-      setCjLoading(true);
-      setCjError("");
+   // ── Promo ─────────────────────────────────────────────────────────────────
+   const [promoCode, setPromoCode] = useState("");
+   const [promoApplying, setPromoApplying] = useState(false);
+   const [discount, setDiscount] = useState(0);
+
+   // ── Submission ────────────────────────────────────────────────────────────
+   const [submitting, setSubmitting] = useState(false);
+
+   // ── Totals ────────────────────────────────────────────────────────────────
+   const subtotal = useMemo(
+      () => allItems.reduce((s, i) => s + Number(i.total_price), 0),
+      [allItems]
+   );
+
+   const shippingCost = useMemo(() => {
+      if (!isCJOrder) return 0;
+      if (!cjSelected) return null;
+      if (cjSelected.priceUSD === 0) return 0;
+      const rate = rates[currency];
+      if (!rate || !Number.isFinite(rate)) return null;
+      return cjSelected.priceUSD * rate;
+   }, [isCJOrder, cjSelected, rates, currency]);
+
+   const total = subtotal - discount + (shippingCost ?? 0);
+
+   async function applyPromo() {
+      setPromoApplying(true);
       try {
-        const cjItems  = getCJCartItems(orders);
-        const products = cjItems.map((item) => ({
-          variantId: getCJVid(item),
-          quantity:  item.quantity,
-          weight:    getCJWeight(item),
-        }));
-
-        const missing = products.filter((p) => !p.variantId);
-        if (missing.length > 0) {
-          throw new Error(
-            "Some items are missing CJ variant info. Please remove and re-add them to your cart."
-          );
-        }
-
-        if (process.env.NODE_ENV === "development") {
-          const missingWeight = products.filter((p) => !p.weight);
-          if (missingWeight.length > 0) {
-            console.warn("[CJ rates] items missing weight, CJ will use default:", missingWeight);
-          }
-        }
-
-        const res  = await fetch("/api/cj/shipping-rates", {
-          method:  "POST",
-          headers: { "Content-Type": "application/json" },
-          body:    JSON.stringify({ destCountryCode: cc, cartItems: products }),
-        });
-        const json = await res.json();
-        if (!json.success) throw new Error(json.error ?? "Rates unavailable");
-
-        const opts: CJShippingOption[] = (json.rates ?? []).map((r: {
-          optionId:    string;
-          channelId:   string;
-          name:        string;
-          arrivalDays: number;
-          priceUSD?:   number;
-        }) => ({
-          optionId:    r.optionId,
-          channelId:   r.channelId,
-          name:        r.name,
-          arrivalDays: r.arrivalDays,
-          priceUSD:    r.priceUSD ?? 0,
-        }));
-
-        // Show options — no auto-selection, customer must choose
-        setCjOptions(opts);
-        setCjSelected(null);
-        // Stay on shipping stage so customer can pick a method
-        return;
-      } catch (e) {
-        setCjError((e as Error).message);
-        toast.error((e as Error).message || "Could not load shipping options");
-        return;
+         const res = await fetch("/api/promo/validate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ code: promoCode, subtotal, currency }),
+         });
+         const json = await res.json();
+         if (!json.success) {
+            toast.error(json.error ?? "Invalid promo code");
+            return;
+         }
+         setDiscount(json.discount ?? 0);
+         toast.success(`Promo applied: ${formatMoney(json.discount, currency)} off`);
+      } catch {
+         toast.error("Could not apply promo code");
       } finally {
-        setCjLoading(false);
+         setPromoApplying(false);
       }
-    }
+   }
 
-    // Non-CJ order — go straight to payment
-    setStage("payment");
-  }
+   // ── Shipping → delivery/payment ───────────────────────────────────────────
+   async function advanceFromShipping() {
+      // validation
+      const { firstName, email, phone, address1, city, countryCode } = shipping;
+      if (!firstName.trim()) return toast.error("First name is required");
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return toast.error("Valid email required");
+      if (!/^\+?[\d\s\-()\x20]{7,}$/.test(phone)) return toast.error("Valid phone required");
+      if (!address1.trim()) return toast.error("Address is required");
+      if (!city.trim()) return toast.error("City is required");
 
-  // ── Final pay ─────────────────────────────────────────────────────────────
-  async function handlePay() {
-    if (submitting) return;
+      if (isCJOrder) {
+         setCjLoading(true);
+         setCjError("");
+         try {
+            const cjItems = getCJCartItems(orders);
+            console.log(cjItems);
 
-    if (isCJOrder && !cjSelected) {
-      toast.error("Please select a delivery method");
-      setStage("shipping");
-      return;
-    }
 
-    if (isCJOrder && shippingCost === null) {
-      toast.error("Exchange rates are still loading — please wait a moment");
-      return;
-    }
+            // Build the CJ payload with proper vids and weights
+            const products = cjItems.map((item) => ({
+               variantId: getCJVid(item),
+               quantity: item.quantity,
 
-    if (!Number.isFinite(total) || total <= 0) {
-      toast.error("Order total is invalid");
-      return;
-    }
+               weight: getCJWeight(item),
+            }));
+            console.log(products);
 
-    setSubmitting(true);
-    try {
-      const orderIds       = orders.map((o) => o.id);
-      const primaryOrderId = orderIds[0];
+            const missing = products.filter((p) => !p.variantId);
+            if (missing.length > 0) {
+               throw new Error(
+                  "Some items are missing CJ variant info. Please remove them from your cart and add them again."
+               );
+            }
+            const missingWeight = products.filter((p) => !p.weight);
+            if (missingWeight.length > 0) {
+               console.warn(
+                  "[CJ rates] items missing weight, CJ will use default:",
+                  missingWeight,
+               );
+            }
 
-      const save = await updatePendingOrdersShipping({
-        orderIds,
-        ...shipping,
-        address1:       shipping.address1 || (isAllDigital ? "Digital Delivery" : ""),
-        city:           shipping.city     || (isAllDigital ? "Online"           : ""),
-        shippingAmount: shippingCost ?? 0,
-      });
-      if (!save.success) throw new Error(save.error ?? "Couldn't save shipping");
+            const res = await fetch("/api/cj/shipping-rates", {
+               method: "POST",
+               headers: { "Content-Type": "application/json" },
+               body: JSON.stringify({
+                  destCountryCode: countryCode,
+                  cartItems: products
+               }),
+            });
 
-      if (isCJOrder && cjSelected) {
-        const cjRes  = await fetch("/api/cj/set-shipping", {
-          method:  "POST",
-          headers: { "Content-Type": "application/json" },
-          body:    JSON.stringify({
+            const json = await res.json();
+            if (!json.success) throw new Error(json.error ?? "Rates unavailable");
+
+            const opts: CJShippingOption[] = (json.rates ?? []).map((r: any) => ({
+               optionId: r.optionId,
+               channelId: r.channelId,
+               name: r.name,
+               arrivalDays: r.arrivalDays,
+               priceUSD: r.priceUSD ?? 0,
+            }));
+            setCjOptions(opts);
+            if (opts.length > 0) {
+               const cheapest = opts.reduce((a, b) => (a.priceUSD <= b.priceUSD ? a : b));
+               setCjSelected(cheapest);
+            }
+            setStage("delivery");
+         } catch (e) {
+            setCjError((e as Error).message);
+            toast.error((e as Error).message || "Could not load shipping options");
+         } finally {
+            setCjLoading(false);
+         }
+      } else {
+         setStage("payment");
+      }
+   }
+
+   // ── Final pay ─────────────────────────────────────────────────────────────
+   async function handlePay() {
+      if (submitting) return;
+      if (isCJOrder && !cjSelected) {
+         toast.error("Please select a delivery method");
+         setStage("delivery");
+         return;
+      }
+      if (isCJOrder && shippingCost === null) {
+         toast.error("Exchange rates are loading — please wait");
+         return;
+      }
+      if (total <= 0 || !Number.isFinite(total)) {
+         toast.error("Order total is invalid");
+         return;
+      }
+
+      setSubmitting(true);
+      try {
+         const orderIds = orders.map((o) => o.id);
+         const primaryOrderId = orderIds[0];
+
+         // Save shipping
+         const save = await updatePendingOrdersShipping({
             orderIds,
-            shippingOption:  cjSelected,
-            destCountryCode: shipping.countryCode,
-          }),
-        });
-        const cjJson = await cjRes.json();
-        if (!cjJson.success) throw new Error(cjJson.error ?? "Failed to save delivery");
+            ...shipping,
+            address1: shipping.address1 || (isAllDigital ? "Digital Delivery" : ""),
+            city: shipping.city || (isAllDigital ? "Online" : ""),
+            shippingAmount: shippingCost ?? 0,
+         });
+         if (!save.success) throw new Error(save.error ?? "Couldn't save shipping");
+
+         if (isCJOrder && cjSelected) {
+            const cjRes = await fetch("/api/cj/set-shipping", {
+               method: "POST",
+               headers: { "Content-Type": "application/json" },
+               body: JSON.stringify({ orderIds, shippingOption: cjSelected, destCountryCode: shipping.countryCode }),
+            });
+            const cjJson = await cjRes.json();
+            if (!cjJson.success) throw new Error(cjJson.error ?? "Failed to save delivery");
+         }
+
+         const confirmedTotal = total;
+
+         // Initiate payment
+         const res = await fetch(PAYMENT_ENDPOINTS[payment], {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+               orderId: primaryOrderId, orderIds,
+               amount: confirmedTotal, currency,
+            }),
+         });
+         const data = await res.json();
+         if (!res.ok) throw new Error(extractErrorMessage(data));
+         const redirectUrl = extractRedirectUrl(data);
+         if (!redirectUrl) throw new Error("No redirect URL");
+         if (!redirectUrl.startsWith("https://")) throw new Error("Invalid redirect");
+         window.location.href = redirectUrl;
+      } catch (e) {
+         toast.error(e instanceof Error ? e.message : "Checkout failed");
+      } finally {
+         setSubmitting(false);
       }
+   }
 
-      // NOTE: `total` is display-only. The payment API must recalculate the
-      // authoritative amount server-side from the order rows in the DB.
-      const res  = await fetch(PAYMENT_ENDPOINTS[payment], {
-        method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({
-          orderId: primaryOrderId,
-          orderIds,
-          amount:  total,
-          currency,
-        }),
-      });
-      const data = await res.json() as PaymentApiResponse;
-      if (!res.ok) throw new Error(extractErrorMessage(data));
+   // ── Empty cart guard ──────────────────────────────────────────────────────
+   if (!orders.length) {
+      return (
+         <div className="min-h-[60vh] flex items-center justify-center p-12">
+            <div className="text-center max-w-sm">
+               <Package className="h-12 w-12 text-[var(--color-text-muted)]/30 mx-auto mb-4" />
+               <h2 className="text-lg font-semibold mb-2">Your cart is empty</h2>
+               <Link href="/marketplace" className="inline-flex items-center gap-1.5 h-11 px-5 rounded-xl bg-orange-500 text-white font-semibold">
+                  Browse marketplace
+               </Link>
+            </div>
+         </div>
+      );
+   }
 
-      const redirectUrl = extractRedirectUrl(data);
-      if (!redirectUrl) throw new Error("No redirect URL returned by payment provider");
+   const payDisabled =
+      isCJOrder && (shippingCost === null || !cjSelected);
 
-      const { valid, reason } = validateRedirectUrl(redirectUrl);
-      if (!valid) throw new Error(reason ?? "Invalid redirect URL");
+   return (
+      <div className="min-h-screen bg-[var(--color-bg)] flex flex-col">
+         <div className="flex-1 pb-20">
+            <div className="w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-10">
 
-      window.location.href = redirectUrl;
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Checkout failed");
-    } finally {
-      setSubmitting(false);
-    }
-  }
+               <Link
+                  href="/cart"
+                  className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-blue-500 hover:text-blue-600 mb-6"
+               >
+                  <ChevronLeft className="h-4 w-4" />
+                  Back to Cart
+               </Link>
+               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                  <div className="lg:col-span-7 space-y-6">
 
-  // ── Empty cart guard ──────────────────────────────────────────────────────
-  if (!orders.length) {
-    return (
-      <div className="min-h-[60vh] flex items-center justify-center p-12">
-        <div className="text-center max-w-sm">
-          <Package className="h-12 w-12 text-[var(--color-text-muted)]/30 mx-auto mb-4" />
-          <h2 className="text-lg font-semibold mb-2">Your cart is empty</h2>
-          <Link
-            href="/marketplace"
-            className="inline-flex items-center gap-1.5 h-11 px-5 rounded-xl bg-orange-500 text-white font-semibold"
-          >
-            Browse marketplace
-          </Link>
-        </div>
-      </div>
-    );
-  }
+                     {stage !== "shipping" && !isAllDigital && !isCommunity && (
+                        <CompletedSummaryPill
+                           icon={<Package className="h-4 w-4 text-orange-500" />}
+                           title={`${shipping.firstName} ${shipping.lastName}`}
+                           subtitle={`${shipping.email} · ${shipping.address1}, ${shipping.city}`}
+                           onEdit={() => setStage("shipping")}
+                        />
+                     )}
 
-  const payDisabled = isCJOrder && (shippingCost === null || !cjSelected);
+                     {/* Delivery completed pill */}
+                     {stage === "payment" && isCJOrder && cjSelected && (
+                        <CompletedSummaryPill
+                           icon={<Truck className="h-4 w-4 text-blue-500" />}
+                           title={cjSelected.name}
+                           subtitle={
+                              cjSelected.priceUSD === 0
+                                 ? "Free shipping"
+                                 : `${cjSelected.arrivalDays} days · ${formatMoney(cjSelected.priceUSD, "USD")}`
+                           }
+                           onEdit={() => setStage("delivery")}
+                        />
+                     )}
 
-  // Button label reflects current state clearly
-  const continueLabel = (() => {
-    if (cjLoading) return "Loading delivery options…";
-    if (isCJOrder && cjOptions.length > 0 && !cjSelected) return "Select a delivery method to continue";
-    return "Continue to payment";
-  })();
+                     {/* Stage content */}
+                     {stage === "shipping" && (
+                        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl p-5 sm:p-7">
+                           <h1 className="text-[20px] font-bold text-[var(--color-text-primary)] tracking-tight mb-1">
+                              Where should we ship?
+                           </h1>
+                           <p className="text-[13px] text-[var(--color-text-muted)] mb-6">
+                              We'll send tracking information to your email.
+                           </p>
+                           <ShippingForm
+                              values={shipping}
+                              onChange={(p) => setShipping((s) => ({ ...s, ...p }))}
+                              hideAddress={isAllDigital || isCommunity}
+                           />
+                           <button
+                              onClick={advanceFromShipping}
+                              disabled={cjLoading}
+                              className="mt-6 w-full h-11 rounded-sm bg-orange-500 hover:bg-orange-600 text-white text-[13px] font-bold transition-colors disabled:opacity-60"
+                           >
+                              {cjLoading ? "Loading shipping rates…" : "Continue to delivery"}
+                           </button>
+                        </div>
+                     )}
 
-  return (
-    <div className="min-h-screen bg-[var(--color-bg)] flex flex-col">
-      <div className="flex-1 pb-20">
-        <div className="w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-10">
+                     {stage === "delivery" && (
+                        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl p-5 sm:p-7">
+                           <h1 className="text-[20px] font-bold text-[var(--color-text-primary)] tracking-tight mb-1">
+                              Choose delivery method
+                           </h1>
+                           <p className="text-[13px] text-[var(--color-text-muted)] mb-5">
+                              Shipping to <strong>{shipping.country}</strong>
+                           </p>
 
-          <Link
-            href="/cart"
-            className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-blue-500 hover:text-blue-600 mb-6"
-          >
-            <ChevronLeft className="h-4 w-4" />
-            Back to Cart
-          </Link>
+                           <CJShippingSelector
+                              options={cjOptions}
+                              selected={cjSelected}
+                              onSelect={setCjSelected}
+                              loading={cjLoading}
+                              error={cjError}
+                              formatMoney={formatMoney}
+                           />
+                           <button
+                              onClick={() => setStage("payment")}
+                              disabled={!cjSelected}
+                              className="mt-6 w-full h-11 rounded-sm bg-orange-500 hover:bg-orange-600 text-white text-[13px] font-bold transition-colors disabled:opacity-60"
+                           >
+                              Continue to payment
+                           </button>
+                        </div>
+                     )}
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-            <div className="lg:col-span-7 space-y-6">
-
-              {/* Completed shipping pill */}
-              {stage === "payment" && !isAllDigital && !isCommunity && (
-                <CompletedSummaryPill
-                  icon={<Package className="h-4 w-4 text-orange-500" />}
-                  title={`${shipping.firstName} ${shipping.lastName}`}
-                  subtitle={`${shipping.email} · ${shipping.address1}, ${shipping.city}`}
-                  onEdit={() => setStage("shipping")}
-                />
-              )}
-
-              {/* Completed delivery pill */}
-              {stage === "payment" && isCJOrder && cjSelected && (
-                <CompletedSummaryPill
-                  icon={<Truck className="h-4 w-4 text-blue-500" />}
-                  title={cjSelected.name}
-                  subtitle={
-                    cjSelected.priceUSD === 0
-                      ? "Free shipping"
-                      : `${cjSelected.arrivalDays} days · ${formatMoney(cjSelected.priceUSD, "USD")}`
-                  }
-                  onEdit={() => setStage("shipping")}
-                />
-              )}
-
-              {/* ── Shipping stage: form + CJ selector inline ── */}
-              {stage === "shipping" && (
-                <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl p-5 sm:p-7 space-y-6">
-                  <div>
-                    <h1 className="text-[20px] font-bold text-[var(--color-text-primary)] tracking-tight mb-1">
-                      Where should we ship?
-                    </h1>
-                    <p className="text-[13px] text-[var(--color-text-muted)]">
-                      We'll send tracking information to your email.
-                    </p>
+                     {stage === "payment" && (
+                        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl p-5 sm:p-7">
+                           <PaymentMethodSelector
+                              selected={payment}
+                              onSelect={setPayment}
+                              orderCurrency={currency}
+                              orderTotal={total}
+                              showSummary={false}
+                           />
+                        </div>
+                     )}
                   </div>
 
-                  <ShippingForm
-                    values={shipping}
-                    onChange={(p) => setShipping((s) => ({ ...s, ...p }))}
-                    hideAddress={isAllDigital || isCommunity}
-                  />
-
-                  {/* CJ delivery selector — shown after rates are fetched */}
-                  {isCJOrder && cjOptions.length > 0 && (
-                    <div className="space-y-3">
-                      <div className="border-t border-[var(--color-border)]" />
-                      <div>
-                        <h2 className="text-[15px] font-bold text-[var(--color-text-primary)] tracking-tight mb-1">
-                          Delivery method
-                        </h2>
-                        <p className="text-[13px] text-[var(--color-text-muted)]">
-                          Shipping to {shipping.country} — pick one to continue
-                        </p>
-                      </div>
-                      <CJShippingSelector
-                        options={cjOptions}
-                        selected={cjSelected}
-                        onSelect={setCjSelected}
-                        loading={false}
-                        error={cjError}
+                  <aside className="lg:col-span-5 lg:sticky lg:top-24">
+                     <OrderSummaryCard
+                        orders={orders}
+                        items={allItems}
+                        subtotal={subtotal}
+                        discount={discount}
+                        shipping={shippingCost}
+                        total={total}
+                        currency={currency}
                         formatMoney={formatMoney}
-                      />
-                    </div>
-                  )}
-
-                  {cjError && (
-                    <p className="text-[12px] text-red-500 font-medium">{cjError}</p>
-                  )}
-
-                  <Button
-                    onClick={advanceFromShipping}
-                    disabled={cjLoading || (isCJOrder && cjOptions.length > 0 && !cjSelected)}
-                    className="w-full h-11 rounded-sm bg-orange-500 hover:bg-orange-600 text-white text-[13px] font-bold transition-colors disabled:opacity-60"
-                  >
-                    {continueLabel}
-                  </Button>
-                </div>
-              )}
-
-              {/* ── Payment stage ── */}
-              {stage === "payment" && (
-                <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl p-5 sm:p-7">
-                  <PaymentMethodSelector
-                    selected={payment}
-                    onSelect={setPayment}
-                    orderCurrency={currency}
-                    orderTotal={total}
-                    showSummary={false}
-                  />
-                </div>
-              )}
+                        isAllDigital={isAllDigital}
+                        promoCode={promoCode}
+                        onPromoChange={setPromoCode}
+                        onPromoApply={applyPromo}
+                        promoApplying={promoApplying}
+                        onEditOrder={() => (window.location.href = "/cart")}
+                        onPay={handlePay}
+                        paySubmitting={submitting}
+                        payDisabled={payDisabled || stage !== "payment"}
+                     />
+                  </aside>
+               </div>
             </div>
+         </div>
 
-            {/* Sidebar summary */}
-            <aside className="lg:col-span-5 lg:sticky lg:top-24">
-              <OrderSummaryCard
-                orders={orders}
-                items={allItems}
-                subtotal={subtotal}
-                discount={discount}
-                shipping={shippingCost}
-                total={total}
-                currency={currency}
-                formatMoney={formatMoney}
-                isAllDigital={isAllDigital}
-                promoCode={promoCode}
-                onPromoChange={setPromoCode}
-                onPromoApply={applyPromo}
-                promoApplying={promoApplying}
-                onEditOrder={() => (window.location.href = "/cart")}
-                onPay={handlePay}
-                paySubmitting={submitting}
-                payDisabled={payDisabled || stage !== "payment"}
-              />
-            </aside>
-          </div>
-        </div>
+         <CheckoutFooter />
       </div>
-
-      <CheckoutFooter />
-    </div>
-  );
+   );
 }
 
-// ─────────────────────────────────────────────
-// Completed summary pill
-// ─────────────────────────────────────────────
+// ─── Completed-summary collapsible pill ─────────────────────────────────────
 
 function CompletedSummaryPill({
-  icon, title, subtitle, onEdit,
+   icon, title, subtitle, onEdit,
 }: {
-  icon:     React.ReactNode;
-  title:    string;
-  subtitle: string;
-  onEdit:   () => void;
+   icon: React.ReactNode;
+   title: string;
+   subtitle: string;
+   onEdit: () => void;
 }) {
-  return (
-    <div className="flex items-center gap-3 p-4 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-sm">
-      <div className="w-9 h-9 rounded-lg bg-[var(--color-surface-secondary)] flex items-center justify-center flex-shrink-0">
-        {icon}
+   return (
+      <div className="flex items-center gap-3 p-4 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-sm">
+         <div className="w-9 h-9 rounded-lg bg-[var(--color-surface-secondary)] flex items-center justify-center flex-shrink-0">
+            {icon}
+         </div>
+         <div className="flex-1 min-w-0">
+            <p className="text-[13px] font-semibold text-[var(--color-text-primary)] truncate">
+               {title}
+            </p>
+            <p className="text-[11px] text-[var(--color-text-muted)] truncate">{subtitle}</p>
+         </div>
+         <button
+            onClick={onEdit}
+            className="inline-flex items-center gap-1 text-[12px] font-semibold text-blue-500 hover:text-blue-600 shrink-0"
+         >
+            <Pencil className="h-3 w-3" />
+            Edit
+         </button>
       </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-[13px] font-semibold text-[var(--color-text-primary)] truncate">
-          {title}
-        </p>
-        <p className="text-[11px] text-[var(--color-text-muted)] truncate">{subtitle}</p>
-      </div>
-      <button
-        onClick={onEdit}
-        className="inline-flex items-center gap-1 text-[12px] font-semibold text-blue-500 hover:text-blue-600 shrink-0"
-      >
-        <Pencil className="h-3 w-3" />
-        Edit
-      </button>
-    </div>
-  );
+   );
 }

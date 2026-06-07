@@ -10,6 +10,8 @@ import {
 } from "@/services/db";
 import { VendorActions } from "@/components/admin/vendors/vendor-action";
 import { VendorOrdersTable, VendorProductsTable, VendorReviewsList } from "@/components/admin/vendor-products-table";
+import { ArrowLeft, BadgeCheck, ExternalLink, KeyRound, Sparkles } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -30,101 +32,100 @@ export default async function AdminVendorProfilePage({
 
     const p = vendor.profiles as any;
     const shopify = vendor.shopify_credentials as any;
-    const statusColors: Record<string, { bg: string; fg: string; border: string }> = {
-        pending: { bg: "rgba(217,119,6,0.08)", fg: "#d97706", border: "rgba(217,119,6,0.2)" },
-        verified: { bg: "rgba(22,163,74,0.08)", fg: "#16a34a", border: "rgba(22,163,74,0.2)" },
-        rejected: { bg: "rgba(220,38,38,0.08)", fg: "#dc2626", border: "rgba(220,38,38,0.2)" },
-        suspended: { bg: "rgba(147,51,234,0.08)", fg: "#9333ea", border: "rgba(147,51,234,0.2)" },
-    };
-    const sc = statusColors[vendor.verification_status ?? "pending"];
 
     const totalRevenue = Number(vendor.total_revenue ?? 0);
     const rating = Number(vendor.rating ?? 0);
 
+    const VERIFY_CLS: Record<string, string> = {
+        verified: "bg-emerald-50 text-emerald-700 ring-emerald-600/20 dark:bg-emerald-950/30 dark:text-emerald-400",
+        pending: "bg-amber-50 text-amber-700 ring-amber-600/20 dark:bg-amber-950/30 dark:text-amber-400",
+        rejected: "bg-rose-50 text-rose-700 ring-rose-600/20 dark:bg-rose-950/30 dark:text-rose-400",
+        suspended: "bg-violet-50 text-violet-700 ring-violet-600/20 dark:bg-violet-950/30 dark:text-violet-400",
+    };
+
     return (
-        <div style={{ display: "flex", flexDirection: "column", gap: 24, maxWidth: 1100 }}>
-            {/* Breadcrumb */}
-            <nav style={{ fontSize: 13, color: "var(--color-text-muted, #888)", display: "flex", gap: 6, alignItems: "center" }}>
-                <Link href="/admin/verifications" style={{ color: "inherit", textDecoration: "none" }}>
+        <div className="space-y-5 max-w-[1500px] pb-10">
+
+            {/* ── Breadcrumb ── */}
+            <nav className="flex items-center gap-1.5 text-[12.5px] text-[var(--color-text-muted)]">
+                <Link
+                    href="/admin/verifications"
+                    className="inline-flex items-center gap-1 hover:text-[var(--color-text-primary)] transition-colors"
+                >
+                    <ArrowLeft className="h-3.5 w-3.5" />
                     Review queue
                 </Link>
                 <span>/</span>
-                <span style={{ color: "var(--color-text-primary)" }}>{vendor.business_name}</span>
+                <span className="text-[var(--color-text-primary)] font-medium">{vendor.business_name}</span>
             </nav>
 
-            {/* ── Header card ─────────────────────────────────────────────────── */}
-            <div style={{
-                border: "0.5px solid var(--color-border)",
-                borderRadius: 10, overflow: "hidden",
-                background: "var(--color-bg, #fff)",
-            }}>
+            {/* ── Header card ── */}
+            <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden">
                 {/* Banner */}
                 {vendor.business_banner ? (
-                    <div style={{ height: 140, overflow: "hidden" }}>
-                        <img src={vendor.business_banner} alt="Banner"
-                            style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    <div className="h-36 overflow-hidden">
+                        <img
+                            src={vendor.business_banner}
+                            alt="Banner"
+                            className="w-full h-full object-cover"
+                        />
                     </div>
                 ) : (
-                    <div style={{ height: 80, background: "var(--color-surface, #fafaf9)" }} />
+                    <div className="h-16 bg-gradient-to-r from-orange-50 via-orange-50/30 to-[var(--color-surface-secondary)] dark:from-orange-950/20 dark:via-orange-950/10" />
                 )}
 
-                <div style={{ padding: "0 24px 24px", display: "flex", gap: 20, alignItems: "flex-end", marginTop: -28, flexWrap: "wrap" }}>
+                <div className="px-6 pb-6 flex flex-wrap gap-5 items-end -mt-8">
                     {/* Logo */}
-                    <div style={{
-                        width: 64, height: 64, borderRadius: 10, flexShrink: 0,
-                        border: "2px solid var(--color-bg, #fff)",
-                        background: "var(--color-surface, #fafaf9)",
-                        overflow: "hidden", position: "relative",
-                    }}>
+                    <div className="w-16 h-16 rounded-xl border-2 border-[var(--color-surface)] bg-[var(--color-surface-secondary)] overflow-hidden shrink-0 flex items-center justify-center relative">
                         {vendor.business_logo ? (
-                            <img src={vendor.business_logo} alt={vendor.business_name}
-                                style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                            <img
+                                src={vendor.business_logo}
+                                alt={vendor.business_name}
+                                className="w-full h-full object-cover"
+                            />
                         ) : (
-                            <div style={{
-                                width: "100%", height: "100%",
-                                display: "flex", alignItems: "center", justifyContent: "center",
-                                fontSize: 22, fontWeight: 700,
-                                color: "var(--color-text-muted, #888)",
-                            }}>
+                            <span className="text-[22px] font-bold text-[var(--color-text-muted)]">
                                 {vendor.business_name?.charAt(0)?.toUpperCase()}
-                            </div>
+                            </span>
+                        )}
+                        {vendor.is_featured && (
+                            <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-amber-400 ring-2 ring-[var(--color-surface)] flex items-center justify-center">
+                                <Sparkles className="h-2.5 w-2.5 text-white" />
+                            </span>
                         )}
                     </div>
 
-                    <div style={{ flex: 1, minWidth: 0, paddingBottom: 4 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-                            <h1 style={{ fontSize: 18, fontWeight: 700, margin: 0, color: "var(--color-text-primary)", letterSpacing: "-0.02em" }}>
+                    {/* Name + meta */}
+                    <div className="flex-1 min-w-0 pb-1">
+                        <div className="flex flex-wrap items-center gap-2 mb-0.5">
+                            <h1 className="text-[20px] font-semibold tracking-tight text-[var(--color-text-primary)] leading-tight">
                                 {vendor.business_name}
                             </h1>
-                            <span style={{
-                                fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 4,
-                                background: sc.bg, color: sc.fg, border: `0.5px solid ${sc.border}`,
-                                textTransform: "capitalize",
-                            }}>
+                            <span className={cn(
+                                "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10.5px] font-medium ring-1 ring-inset capitalize",
+                                VERIFY_CLS[vendor.verification_status ?? "pending"] ?? VERIFY_CLS.pending,
+                            )}>
+                                <span className="w-1.5 h-1.5 rounded-full bg-current opacity-70" />
                                 {vendor.verification_status}
                             </span>
-                            {vendor.is_featured && (
-                                <span style={{
-                                    fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 4,
-                                    background: "rgba(59,130,246,0.08)", color: "#3b82f6",
-                                    border: "0.5px solid rgba(59,130,246,0.2)",
-                                }}>
-                                    Featured
-                                </span>
-                            )}
                         </div>
-                        <p style={{ margin: "2px 0 0", fontSize: 13, color: "var(--color-text-muted, #888)" }}>
-                            {p?.email} · /{vendor.business_slug}
+                        <p className="text-[12.5px] text-[var(--color-text-muted)]">
+                            {p?.email}
+                            {vendor.business_slug && (
+                                <span className="ml-2 opacity-60">/{vendor.business_slug}</span>
+                            )}
                         </p>
                     </div>
 
                     {/* Actions */}
-                    <VendorActions vendor={vendor} />
+                    <div className="shrink-0">
+                        <VendorActions vendor={vendor} />
+                    </div>
                 </div>
             </div>
 
-            {/* ── Stats row ────────────────────────────────────────────────────── */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12 }}>
+            {/* ── Stats strip ── */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
                 {[
                     { label: "Total sales", value: (vendor.total_sales ?? 0).toLocaleString() },
                     { label: "Revenue", value: `${totalRevenue.toLocaleString()} RWF` },
@@ -133,46 +134,46 @@ export default async function AdminVendorProfilePage({
                     { label: "Products", value: products.length.toLocaleString() },
                     { label: "Commission", value: `${Number(vendor.commission_rate ?? 0)}%` },
                 ].map((s) => (
-                    <div key={s.label} style={{
-                        background: "var(--color-surface, #fafaf9)", borderRadius: 8,
-                        border: "0.5px solid var(--color-border)", padding: "12px 16px",
-                    }}>
-                        <div style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--color-text-muted, #888)", marginBottom: 4 }}>
+                    <div
+                        key={s.label}
+                        className="px-4 py-3 rounded-md border border-[var(--color-border)] bg-[var(--color-surface)]"
+                    >
+                        <p className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[var(--color-text-muted)] mb-1">
                             {s.label}
-                        </div>
-                        <div style={{ fontSize: 16, fontWeight: 700, color: "var(--color-text-primary)", letterSpacing: "-0.01em" }}>
+                        </p>
+                        <p className="text-[17px] font-semibold tracking-tight text-[var(--color-text-primary)] tabular-nums leading-none">
                             {s.value}
-                        </div>
+                        </p>
                     </div>
                 ))}
             </div>
 
-            {/* ── Two-col layout ───────────────────────────────────────────────── */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: 20, alignItems: "start" }}>
+            {/* ── Two-col body ── */}
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-4 items-start">
 
-                {/* Left — main content */}
-                <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+                {/* ── Left ── */}
+                <div className="space-y-4">
 
                     {/* Business details */}
                     <Section title="Business information">
                         <FieldGrid fields={[
                             { label: "Business name", value: vendor.business_name },
                             { label: "Slug", value: `/${vendor.business_slug}`, mono: true },
-                            { label: "Type", value: vendor.business_type || "—" },
-                            { label: "Email", value: vendor.business_email || "—" },
-                            { label: "Phone", value: vendor.business_phone || "—" },
-                            { label: "Country", value: vendor.business_country || "—" },
-                            { label: "Address", value: vendor.business_address || "—" },
-                            { label: "Tax ID", value: vendor.tax_id || "—", mono: true, sensitive: true },
-                            { label: "Website", value: vendor.website, link: vendor.website || undefined },
-                            { label: "Categories", value: vendor.product_categories || "—" },
-                            { label: "Payout method", value: vendor.payout_method || "—" },
-                            { label: "Payout account", value: vendor.payout_account || "—", mono: true, sensitive: true },
+                            { label: "Type", value: vendor.business_type },
+                            { label: "Email", value: vendor.business_email },
+                            { label: "Phone", value: vendor.business_phone },
+                            { label: "Country", value: vendor.business_country },
+                            { label: "Address", value: vendor.business_address },
+                            { label: "Tax ID", value: vendor.tax_id, mono: true },
+                            { label: "Website", value: vendor.website, link: vendor.website ?? undefined },
+                            { label: "Categories", value: vendor.product_categories },
+                            { label: "Payout method", value: vendor.payout_method },
+                            { label: "Payout account", value: vendor.payout_account, mono: true },
                         ]} />
                         {vendor.business_description && (
-                            <div style={{ marginTop: 16 }}>
+                            <div className="mt-4 pt-4 border-t border-[var(--color-border)]/60">
                                 <FieldLabel>Description</FieldLabel>
-                                <p style={{ margin: 0, fontSize: 13, color: "var(--color-text-primary)", lineHeight: 1.6, whiteSpace: "pre-wrap" }}>
+                                <p className="text-[13px] text-[var(--color-text-primary)] leading-relaxed whitespace-pre-wrap mt-1">
                                     {vendor.business_description}
                                 </p>
                             </div>
@@ -211,72 +212,81 @@ export default async function AdminVendorProfilePage({
                     )}
                 </div>
 
-                {/* Right — sidebar */}
-                <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                {/* ── Right sidebar ── */}
+                <div className="space-y-3">
 
-                    {/* Owner profile */}
+                    {/* Owner */}
                     <Section title="Account owner">
                         {p ? (
-                            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                                    <div style={{
-                                        width: 40, height: 40, borderRadius: "50%", flexShrink: 0,
-                                        background: "var(--color-surface, #f0f0f0)",
-                                        overflow: "hidden", display: "flex", alignItems: "center",
-                                        justifyContent: "center", fontSize: 15, fontWeight: 700,
-                                        color: "var(--color-text-muted, #888)",
-                                    }}>
+                            <div className="space-y-3">
+                                <div className="flex items-center gap-2.5">
+                                    <div className="w-10 h-10 rounded-full shrink-0 overflow-hidden bg-[var(--color-surface-secondary)] flex items-center justify-center text-[15px] font-bold text-[var(--color-text-muted)] border border-[var(--color-border)]">
                                         {p.avatar_url
-                                            ? <img src={p.avatar_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                                            ? <img src={p.avatar_url} alt="" className="w-full h-full object-cover" />
                                             : (p.full_name?.charAt(0) ?? p.email?.charAt(0) ?? "?")}
                                     </div>
-                                    <div>
-                                        <div style={{ fontWeight: 600, fontSize: 13, color: "var(--color-text-primary)" }}>
+                                    <div className="min-w-0">
+                                        <p className="text-[13px] font-semibold text-[var(--color-text-primary)] leading-tight truncate">
                                             {p.full_name || "—"}
-                                        </div>
-                                        <div style={{ fontSize: 12, color: "var(--color-text-muted, #888)" }}>
+                                        </p>
+                                        <p className="text-[11.5px] text-[var(--color-text-muted)]">
                                             @{p.username || "no username"}
-                                        </div>
+                                        </p>
                                     </div>
+                                    {p.two_factor_enabled && (
+                                        <KeyRound className="h-3.5 w-3.5 text-orange-500 shrink-0 ml-auto" />
+                                    )}
                                 </div>
-                                {[
-                                    { label: "Email", value: p.email },
-                                    { label: "Phone", value: p.phone || "—" },
-                                    { label: "Country", value: p.country || "—" },
-                                    { label: "City", value: p.city || "—" },
-                                    { label: "Joined", value: p.created_at ? new Date(p.created_at).toLocaleDateString() : "—" },
-                                    { label: "2FA", value: p.two_factor_enabled ? "Enabled" : "Disabled" },
-                                ].map((f) => (
-                                    <div key={f.label} style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
-                                        <span style={{ color: "var(--color-text-muted, #888)" }}>{f.label}</span>
-                                        <span style={{ color: "var(--color-text-primary)", fontWeight: 500, textAlign: "right", maxWidth: 160, wordBreak: "break-all" }}>
-                                            {f.value}
-                                        </span>
-                                    </div>
-                                ))}
+
+                                <div className="space-y-0 divide-y divide-[var(--color-border)]/50">
+                                    {[
+                                        { label: "Email", value: p.email },
+                                        { label: "Phone", value: p.phone || "—" },
+                                        { label: "Country", value: p.country || "—" },
+                                        { label: "City", value: p.city || "—" },
+                                        { label: "Joined", value: p.created_at ? new Date(p.created_at).toLocaleDateString() : "—" },
+                                        { label: "2FA", value: p.two_factor_enabled ? "Enabled" : "Disabled" },
+                                    ].map((f) => (
+                                        <div key={f.label} className="flex items-start justify-between gap-3 py-2">
+                                            <span className="text-[11.5px] text-[var(--color-text-muted)] shrink-0">{f.label}</span>
+                                            <span className="text-[11.5px] text-[var(--color-text-primary)] font-medium text-right break-all">
+                                                {f.value}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <Link
+                                    href={`/admin/users/${vendor.user_id}`}
+                                    className="inline-flex items-center gap-1.5 text-[11.5px] text-orange-500 hover:underline mt-1"
+                                >
+                                    View full profile <ExternalLink className="h-3 w-3" />
+                                </Link>
                             </div>
                         ) : (
-                            <p style={{ fontSize: 13, color: "var(--color-text-muted, #888)", margin: 0 }}>No profile data</p>
+                            <p className="text-[13px] text-[var(--color-text-muted)]">No profile data</p>
                         )}
                     </Section>
 
                     {/* Affiliate settings */}
                     <Section title="Affiliate settings">
-                        {[
-                            { label: "Affiliate enabled", value: vendor.affiliate_enabled ? "Yes" : "No" },
-                            { label: "Commission rate", value: `${Number(vendor.affiliate_commission_rate ?? 10)}%` },
-                        ].map((f) => (
-                            <div key={f.label} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 8 }}>
-                                <span style={{ color: "var(--color-text-muted, #888)" }}>{f.label}</span>
-                                <span style={{ color: "var(--color-text-primary)", fontWeight: 500 }}>{f.value}</span>
-                            </div>
-                        ))}
+                        <div className="divide-y divide-[var(--color-border)]/50">
+                            {[
+                                { label: "Affiliate enabled", value: vendor.affiliate_enabled ? "Yes" : "No" },
+                                { label: "Commission rate", value: `${Number(vendor.affiliate_commission_rate ?? 10)}%` },
+                            ].map((f) => (
+                                <div key={f.label} className="flex items-center justify-between py-2">
+                                    <span className="text-[11.5px] text-[var(--color-text-muted)]">{f.label}</span>
+                                    <span className="text-[11.5px] text-[var(--color-text-primary)] font-medium">{f.value}</span>
+                                </div>
+                            ))}
+                        </div>
                     </Section>
 
                     {/* Verification notes */}
                     {vendor.verification_notes && (
                         <Section title="Verification notes">
-                            <p style={{ fontSize: 12, color: "var(--color-text-primary)", margin: 0, whiteSpace: "pre-wrap", lineHeight: 1.6 }}>
+                            <p className="text-[12px] text-[var(--color-text-primary)] leading-relaxed whitespace-pre-wrap">
                                 {vendor.verification_notes}
                             </p>
                         </Section>
@@ -284,16 +294,20 @@ export default async function AdminVendorProfilePage({
 
                     {/* Timestamps */}
                     <Section title="Timestamps">
-                        {[
-                            { label: "Applied", value: vendor.created_at ? new Date(vendor.created_at).toLocaleString() : "—" },
-                            { label: "Updated", value: vendor.updated_at ? new Date(vendor.updated_at).toLocaleString() : "—" },
-                            { label: "Verified at", value: (vendor as any).verified_at ? new Date((vendor as any).verified_at).toLocaleString() : "Not yet" },
-                        ].map((f) => (
-                            <div key={f.label} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 6 }}>
-                                <span style={{ color: "var(--color-text-muted, #888)" }}>{f.label}</span>
-                                <span style={{ color: "var(--color-text-primary)", fontWeight: 500, fontSize: 11 }}>{f.value}</span>
-                            </div>
-                        ))}
+                        <div className="divide-y divide-[var(--color-border)]/50">
+                            {[
+                                { label: "Applied", value: vendor.created_at ? new Date(vendor.created_at).toLocaleString() : "—" },
+                                { label: "Updated", value: vendor.updated_at ? new Date(vendor.updated_at).toLocaleString() : "—" },
+                                { label: "Verified at", value: (vendor as any).verified_at ? new Date((vendor as any).verified_at).toLocaleString() : "Not yet" },
+                            ].map((f) => (
+                                <div key={f.label} className="flex items-start justify-between gap-3 py-2">
+                                    <span className="text-[11.5px] text-[var(--color-text-muted)] shrink-0">{f.label}</span>
+                                    <span className="text-[11px] text-[var(--color-text-primary)] font-medium text-right tabular-nums">
+                                        {f.value}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
                     </Section>
                 </div>
             </div>
@@ -305,20 +319,13 @@ export default async function AdminVendorProfilePage({
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
     return (
-        <div style={{
-            border: "0.5px solid var(--color-border)",
-            borderRadius: 8, background: "var(--color-bg, #fff)",
-            overflow: "hidden",
-        }}>
-            <div style={{
-                padding: "10px 16px",
-                borderBottom: "0.5px solid var(--color-border)",
-                fontSize: 11, fontWeight: 600, textTransform: "uppercase",
-                letterSpacing: "0.05em", color: "var(--color-text-muted, #888)",
-            }}>
-                {title}
+        <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden">
+            <div className="px-4 py-2.5 border-b border-[var(--color-border)] bg-[var(--color-surface-secondary)]/50">
+                <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--color-text-muted)]">
+                    {title}
+                </span>
             </div>
-            <div style={{ padding: "14px 16px" }}>
+            <div className="p-4">
                 {children}
             </div>
         </div>
@@ -327,12 +334,9 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
     return (
-        <div style={{
-            fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em",
-            color: "var(--color-text-muted, #888)", marginBottom: 3,
-        }}>
+        <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--color-text-muted)] mb-1">
             {children}
-        </div>
+        </p>
     );
 }
 
@@ -341,22 +345,32 @@ function FieldGrid({ fields }: {
         label: string;
         value?: string | null;
         mono?: boolean;
-        sensitive?: boolean;
         link?: string;
     }[];
 }) {
     return (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "12px 20px" }}>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-5 gap-y-3.5">
             {fields.map((f) => (
                 <div key={f.label}>
                     <FieldLabel>{f.label}</FieldLabel>
-                    <div
-                        style={{ fontSize: 12 }}
-                        className={`${f.mono ? "font-mono" : ""} ${f.sensitive ? "text-muted" : "text-primary"} break-all`}
-                    >
+                    <div className={cn(
+                        "text-[12.5px] text-[var(--color-text-primary)] break-all leading-snug",
+                        f.mono && "font-mono text-[11.5px]",
+                    )}>
                         {f.link
-                            ? <a href={f.link} target="_blank" rel="noopener noreferrer" style={{ color: "var(--color-accent, #fd5000)" }}>{f.value}</a>
-                            : (f.value || "—")}
+                            ? (
+                                <a
+                                    href={f.link}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-orange-500 hover:underline inline-flex items-center gap-1"
+                                >
+                                    {f.value}
+                                    <ExternalLink className="h-3 w-3 shrink-0" />
+                                </a>
+                            )
+                            : (f.value || <span className="text-[var(--color-text-muted)]">—</span>)
+                        }
                     </div>
                 </div>
             ))}
