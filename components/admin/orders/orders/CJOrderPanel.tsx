@@ -1,8 +1,10 @@
 "use client";
+
 import React, { useState, useTransition } from "react";
 import { cn } from "@/lib/utils";
 import {
-    RefreshCw, Send, RotateCcw, ChevronDown, ChevronUp, Loader2, Package,
+    RefreshCw, Send, RotateCcw, ChevronDown, ChevronUp,
+    CheckCircle2, XCircle, Clock, Loader2, Package,
     ExternalLink, AlertTriangle,
 } from "lucide-react";
 import {
@@ -16,16 +18,17 @@ import { toast } from "sonner";
 // ─── Status config ────────────────────────────────────────────────────────────
 
 const STATUS_CFG: Record<string, { label: string; cls: string }> = {
-    waiting_for_submission: { label: "Waiting",    cls: "bg-slate-100 text-slate-600 ring-slate-400/30 dark:bg-slate-800 dark:text-slate-300" },
-    submitting:             { label: "Submitting", cls: "bg-blue-50 text-blue-700 ring-blue-400/30 dark:bg-blue-950/30 dark:text-blue-400" },
-    submitted:              { label: "Submitted",  cls: "bg-indigo-50 text-indigo-700 ring-indigo-400/30 dark:bg-indigo-950/30 dark:text-indigo-400" },
-    accepted:               { label: "Accepted",   cls: "bg-cyan-50 text-cyan-700 ring-cyan-400/30 dark:bg-cyan-950/30 dark:text-cyan-400" },
-    processing:             { label: "Processing", cls: "bg-blue-50 text-blue-700 ring-blue-400/30 dark:bg-blue-950/30 dark:text-blue-400" },
-    shipped:                { label: "Shipped",    cls: "bg-violet-50 text-violet-700 ring-violet-400/30 dark:bg-violet-950/30 dark:text-violet-400" },
-    delivered:              { label: "Delivered",  cls: "bg-emerald-50 text-emerald-700 ring-emerald-400/30 dark:bg-emerald-950/30 dark:text-emerald-400" },
-    cancelled:              { label: "Cancelled",  cls: "bg-slate-100 text-slate-600 ring-slate-400/30 dark:bg-slate-800 dark:text-slate-300" },
-    failed:                 { label: "Failed",     cls: "bg-rose-50 text-rose-700 ring-rose-400/30 dark:bg-rose-950/30 dark:text-rose-400" },
-    unfulfilled:            { label: "Unfulfilled",cls: "bg-slate-100 text-slate-600 ring-slate-400/30 dark:bg-slate-800 dark:text-slate-300" },
+    waiting_for_submission: { label: "Waiting",         cls: "bg-slate-100 text-slate-600 ring-slate-400/30 dark:bg-slate-800 dark:text-slate-300" },
+    submitting:             { label: "Submitting",      cls: "bg-blue-50 text-blue-700 ring-blue-400/30 dark:bg-blue-950/30 dark:text-blue-400" },
+    submitted:              { label: "Submitted",       cls: "bg-indigo-50 text-indigo-700 ring-indigo-400/30 dark:bg-indigo-950/30 dark:text-indigo-400" },
+    accepted:               { label: "Accepted",        cls: "bg-cyan-50 text-cyan-700 ring-cyan-400/30 dark:bg-cyan-950/30 dark:text-cyan-400" },
+    processing:             { label: "Processing",      cls: "bg-blue-50 text-blue-700 ring-blue-400/30 dark:bg-blue-950/30 dark:text-blue-400" },
+    waiting_payment:        { label: "Awaiting Payment",cls: "bg-amber-50 text-amber-700 ring-amber-400/30 dark:bg-amber-950/30 dark:text-amber-400" },
+    shipped:                { label: "Shipped",         cls: "bg-violet-50 text-violet-700 ring-violet-400/30 dark:bg-violet-950/30 dark:text-violet-400" },
+    delivered:              { label: "Delivered",       cls: "bg-emerald-50 text-emerald-700 ring-emerald-400/30 dark:bg-emerald-950/30 dark:text-emerald-400" },
+    cancelled:              { label: "Cancelled",       cls: "bg-slate-100 text-slate-600 ring-slate-400/30 dark:bg-slate-800 dark:text-slate-300" },
+    failed:                 { label: "Failed",          cls: "bg-rose-50 text-rose-700 ring-rose-400/30 dark:bg-rose-950/30 dark:text-rose-400" },
+    unfulfilled:            { label: "Unfulfilled",     cls: "bg-slate-100 text-slate-600 ring-slate-400/30 dark:bg-slate-800 dark:text-slate-300" },
 };
 
 const ACTION_LOG_CLS: Record<string, string> = {
@@ -86,20 +89,23 @@ export function CJOrderPanel({
 
     if (!hasCJItems) return null;
 
-    const status  = cjFulfillmentStatus ?? "unfulfilled";
-    const cfg     = STATUS_CFG[status] ?? STATUS_CFG.unfulfilled;
-    const isFinal = ["delivered", "cancelled"].includes(status);
-    const isFailed = status === "failed";
+    const status       = cjFulfillmentStatus ?? "unfulfilled";
+    const cfg          = STATUS_CFG[status] ?? STATUS_CFG.unfulfilled;
+    const isFinal      = ["delivered", "cancelled"].includes(status);
+    const isFailed     = status === "failed";
+    const isUnpaid     = status === "waiting_payment";
     const isNotSubmitted = !cjOrderId;
 
-    function run(
-        action: () => Promise<{ success: boolean; error?: string }>,
-        label: string,
-    ) {
+    function run(action: () => Promise<{ success: boolean; message: string; error?: string }>) {
         startTransition(async () => {
             const res = await action();
-            if (res.success) toast.success(label);
-            else toast.error(res.error ?? `Failed: ${label}`);
+            if (res.success) {
+                toast.success(res.message);
+            } else {
+                toast.error(res.message, {
+                    description: res.error,
+                });
+            }
         });
     }
 
@@ -121,7 +127,7 @@ export function CJOrderPanel({
     }
 
     return (
-        <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden">
+        <div className="rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden">
             {/* Header */}
             <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-[var(--color-border)] bg-[var(--color-surface-secondary)]/50">
                 <div className="flex items-center gap-2">
@@ -167,33 +173,43 @@ export function CJOrderPanel({
             <div className="flex flex-wrap items-center gap-2 px-4 py-3 border-t border-[var(--color-border)] bg-[var(--color-surface-secondary)]/30">
 
                 {/* Retry failed */}
-                {(isFailed || isNotSubmitted) && (
+                {/* Balance warning */}
+                {isUnpaid && (
+                    <div className="flex items-start gap-2 px-4 py-3 border-t border-amber-200/60 bg-amber-50/60 dark:border-amber-800/30 dark:bg-amber-950/20">
+                        <AlertTriangle className="h-3.5 w-3.5 text-amber-600 shrink-0 mt-0.5" />
+                        <p className="text-[12px] text-amber-700 dark:text-amber-400 leading-snug">
+                            CJ order created but payment failed — insufficient wallet balance.
+                            Top up your CJ account then retry.
+                        </p>
+                    </div>
+                )}
+
+                {/* Action buttons */}
+                {(isFailed || isNotSubmitted || isUnpaid) && (
                     <ActionBtn
                         icon={RotateCcw}
-                        label="Retry submission"
+                        label={isUnpaid ? "Retry payment" : "Retry submission"}
                         loading={pending}
-                        onClick={() => run(() => retryCJSubmission(orderId), "Submission queued for retry")}
+                        onClick={() => run(() => retryCJSubmission(orderId))}
                     />
                 )}
 
-                {/* Force submit now */}
-                {isNotSubmitted && (
+                {isNotSubmitted && !isUnpaid && (
                     <ActionBtn
                         icon={Send}
                         label="Send to CJ now"
                         loading={pending}
                         primary
-                        onClick={() => run(() => sendToCJNow(orderId), "Submitted to CJ")}
+                        onClick={() => run(() => sendToCJNow(orderId))}
                     />
                 )}
 
-                {/* Sync status */}
                 {cjOrderId && !isFinal && (
                     <ActionBtn
                         icon={RefreshCw}
                         label="Sync CJ status"
                         loading={pending}
-                        onClick={() => run(() => syncOneCJOrder(orderId), "CJ status synced")}
+                        onClick={() => run(() => syncOneCJOrder(orderId))}
                     />
                 )}
 

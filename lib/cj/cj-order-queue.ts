@@ -1,6 +1,9 @@
 
-import { createClient } from "@/lib/supabase/server";
+import { getAdminDB } from "@/services/db";
 import { submitCjOrderForLines, type CjOrderLine } from "@/lib/sources/cj/submit-order";
+
+// ─── Retry delays (ms) ────────────────────────────────────────────────────────
+// Attempt 1 → 3s, 2 → 10s, 3 → 30s, 4 → 60s
 
 const RETRY_DELAYS_MS = [3_000, 10_000, 30_000, 60_000];
 
@@ -15,6 +18,7 @@ export type CJQueueStatus =
     | "submitting"
     | "submitted"
     | "accepted"
+    | "waiting_payment"
     | "failed"
     | "skipped";
 
@@ -22,7 +26,7 @@ export type CJQueueStatus =
 // Called from payment webhook — NEVER submits to CJ directly.
 
 export async function enqueueCJOrder(orderId: string): Promise<void> {
-    const supabase = await createClient();
+    const supabase = getAdminDB();
 
     // Guard 1: already in queue?
     const { data: existing } = await supabase
@@ -68,7 +72,7 @@ export async function enqueueCJOrder(orderId: string): Promise<void> {
 // Called by cron (every minute). submitCjOrderForLines owns the 1.1s throttle.
 
 export async function processCJQueue(): Promise<{ processed: number; errors: number }> {
-    const supabase = await createClient();
+    const supabase = getAdminDB();
     let processed = 0;
     let errors = 0;
 
@@ -100,7 +104,7 @@ async function processOneJob(job: {
     last_error: string | null;
     next_attempt_at: string | null;
 }): Promise<boolean> {
-    const supabase = await createClient();
+    const supabase = getAdminDB();
 
     // Mark in-flight
     await supabase
@@ -113,7 +117,7 @@ async function processOneJob(job: {
         .update({ cj_fulfillment_status: "submitting" })
         .eq("id", job.order_id);
 
-    // Fetch order + line items
+    // Fetch order + line items + variant cj_vid
     const { data: order } = await supabase
         .from("orders")
         .select(`
@@ -122,7 +126,8 @@ async function processOneJob(job: {
             order_items (
                 id, product_id, variant_id, vendor_id,
                 quantity, unit_price, total_price,
-                product_source, source_metadata
+                product_source, source_metadata,
+                product_variants ( cj_vid, cj_pid )
             )
         `)
         .eq("id", job.order_id)
@@ -144,17 +149,29 @@ async function processOneJob(job: {
     }
 
     // Build CjOrderLine[] — only CJ items
+    // cj_vid lives on product_variants, not source_metadata
     const lines: CjOrderLine[] = (order.order_items ?? [])
         .filter((item: any) => item.product_source === "cj")
-        .map((item: any): CjOrderLine => ({
-            orderItemId:    item.id,
-            productId:      item.product_id,
-            vendorId:       item.vendor_id,
-            quantity:       item.quantity,
-            unitPrice:      Number(item.unit_price  ?? 0),
-            totalPrice:     Number(item.total_price ?? 0),
-            sourceMetadata: item.source_metadata ?? null,
-        }));
+        .map((item: any): CjOrderLine => {
+            const variant = Array.isArray(item.product_variants)
+                ? item.product_variants[0]
+                : item.product_variants;
+            const cjVid = variant?.cj_vid
+                ?? (item.source_metadata as any)?.cj_vid
+                ?? (item.source_metadata as any)?.vid
+                ?? null;
+            return {
+                orderItemId:    item.id,
+                productId:      item.product_id,
+                vendorId:       item.vendor_id,
+                quantity:       item.quantity,
+                unitPrice:      Number(item.unit_price  ?? 0),
+                totalPrice:     Number(item.total_price ?? 0),
+                sourceMetadata: { ...(item.source_metadata ?? {}), vid: cjVid },
+                cjVid,
+            };
+        })
+        .filter((line: any) => line.cjVid); // drop lines without a resolvable VID
 
     if (lines.length === 0) {
         await skipJob(job, "No CJ line items in order");
@@ -233,7 +250,7 @@ async function scheduleRetry(
     error: string,
     delayMs: number,
 ) {
-    const supabase = await createClient();
+    const supabase = getAdminDB();
     await supabase
         .from("cj_order_queue")
         .update({
@@ -256,7 +273,7 @@ async function failJob(
     job: { id: string; order_id: string; attempts: number },
     error: string,
 ) {
-    const supabase = await createClient();
+    const supabase = getAdminDB();
     await supabase
         .from("cj_order_queue")
         .update({ status: "failed", last_error: error, updated_at: new Date().toISOString() })
@@ -274,7 +291,7 @@ async function failJob(
 }
 
 async function skipJob(job: { id: string; order_id: string }, reason: string) {
-    const supabase = await createClient();
+    const supabase = getAdminDB();
     await supabase
         .from("cj_order_queue")
         .update({ status: "skipped", last_error: reason, updated_at: new Date().toISOString() })
@@ -300,7 +317,7 @@ export async function logCJ({
     error?:    string;
 }) {
     try {
-        const supabase = await createClient();
+        const supabase = getAdminDB();
         await supabase.from("cj_logs").insert({
             order_id,
             action,
