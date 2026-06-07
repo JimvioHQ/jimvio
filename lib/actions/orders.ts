@@ -9,6 +9,7 @@ import { normalizeProductSource } from "@/lib/sources/product-source";
 import { getAdminDB } from "@/services/db";
 import { revalidatePath } from "next/cache";
 import { finalizeOrderPayment } from "@/lib/payments/finalize-order-payment";
+import { handleCJFulfillment } from "@/services/cj/cj-lifecycle-integration";
 
 export async function createOrder(productId: string, quantity: number = 1) {
   const supabase = await createClient();
@@ -25,7 +26,6 @@ export async function createOrder(productId: string, quantity: number = 1) {
     .select("*, vendors(*)")
     .eq("id", productId)
     .maybeSingle();
-
   if (!product) throw new Error("Product not found");
 
   const cookieStore = await cookies();
@@ -212,4 +212,36 @@ export async function resolveFailedCreditAction(formData: FormData) {
 
   revalidatePath("/admin/payments/failed-credits");
   revalidatePath("/admin/payments");
+}
+
+export async function retryCJOrderAction(formData: FormData) {
+  const orderId = formData.get("orderId") as string;
+  if (!orderId) return;
+
+  try {
+    await handleCJFulfillment(orderId, { throwOnError: true });
+
+    const admin = getAdminDB();
+    await admin.from("order_status_history").insert({
+      order_id: orderId,
+      previous_status: null,
+      new_status: "processing",
+      notes: `CJ retry requested from admin portal`,
+      metadata: { triggered_by: "admin_retry" },
+    });
+  } catch (err) {
+    const admin = getAdminDB();
+    const message = err instanceof Error ? err.message : String(err);
+    await admin.from("order_status_history").insert({
+      order_id: orderId,
+      previous_status: null,
+      new_status: "processing",
+      notes: `CJ retry FAILED: ${message}`,
+      metadata: { cj_error: message, triggered_by: "admin_retry" },
+    });
+    throw err;
+  } finally {
+    revalidatePath(`/admin/orders/${orderId}`);
+    revalidatePath("/admin/orders");
+  }
 }

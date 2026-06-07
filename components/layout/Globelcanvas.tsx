@@ -183,6 +183,29 @@ export function GlobeCanvas() {
                 })
                 .sort((a, b) => b.ordersToday - a.ordersToday);
 
+            // ── Merge with full country list to render denser nodes (even if zero activity) ──
+            const builtMap: Record<string, RegionNode> = {};
+            for (const n of builtNodes) builtMap[n.country_code] = n;
+
+            const mergedNodes: RegionNode[] = Object.keys(COUNTRY_COORDS)
+                .map((code) => {
+                    const upper = code.toUpperCase().slice(0, 2);
+                    if (builtMap[upper]) return builtMap[upper];
+                    const coords = COUNTRY_COORDS[upper];
+                    return {
+                        id: upper,
+                        name: coords.name,
+                        lat: coords.lat,
+                        lng: coords.lng,
+                        country_code: upper,
+                        activeUsers: 0,
+                        ordersToday: 0,
+                        revenueToday: 0,
+                        status: "offline",
+                    } as RegionNode;
+                })
+                .sort((a, b) => b.ordersToday - a.ordersToday);
+
             // ── Build flow arcs: top source countries → Rwanda hub ──
             const rwCoords = COUNTRY_COORDS["RW"];
             const builtArcs: FlowArc[] = [];
@@ -240,7 +263,7 @@ export function GlobeCanvas() {
                 };
             });
 
-            setNodes(builtNodes);
+            setNodes(mergedNodes);
             setArcs(builtArcs);
             setLiveEvents(events);
             setStats({
@@ -354,8 +377,8 @@ export function GlobeCanvas() {
                             onClick={() => setSelectedNode((p) => p?.id === node.id ? null : node)}
                         >
                             <MarkerContent>
-                                <div className="relative flex items-center justify-center">
-                                    {node.status === "online" && (
+                                <div className="relative flex items-center justify-center cursor-pointer">
+                                    {node.status === "online" && node.ordersToday > 0 && (
                                         <span
                                             className="absolute inline-flex h-4 w-4 animate-ping rounded-full opacity-60"
                                             style={{ backgroundColor: STATUS_COLOR[node.status] }}
@@ -364,18 +387,21 @@ export function GlobeCanvas() {
                                     <span
                                         className="relative inline-flex rounded-full border-2 border-white shadow-lg"
                                         style={{
-                                            width: node.ordersToday > 20 ? 14 : node.ordersToday > 5 ? 11 : 8,
-                                            height: node.ordersToday > 20 ? 14 : node.ordersToday > 5 ? 11 : 8,
+                                            width: node.ordersToday > 20 ? 14 : node.ordersToday > 5 ? 11 : 6,
+                                            height: node.ordersToday > 20 ? 14 : node.ordersToday > 5 ? 11 : 6,
                                             backgroundColor: STATUS_COLOR[node.status],
+                                            opacity: node.ordersToday === 0 ? 0.85 : 1,
                                         }}
                                     />
                                 </div>
-                                <MarkerLabel
-                                    position="top"
-                                    className="rounded-sm bg-black/75 px-1.5 py-0.5 text-[9px] font-bold text-white backdrop-blur"
-                                >
-                                    {node.name}
-                                </MarkerLabel>
+                                {(node.ordersToday > 0 || selectedNode?.id === node.id) && (
+                                    <MarkerLabel
+                                        position="top"
+                                        className="rounded-sm bg-black/75 px-1.5 py-0.5 text-[9px] font-bold text-white backdrop-blur"
+                                    >
+                                        {node.name}
+                                    </MarkerLabel>
+                                )}
                             </MarkerContent>
                         </MapMarker>
                     ))}

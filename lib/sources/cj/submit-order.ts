@@ -13,14 +13,28 @@ export type CjOrderLine = {
 
 const CJ_API_BASE = "https://developers.cjdropshipping.com/api2.0/v1";
 
+// Module-level — shared across all calls in the same process
+let lastCjCallAt = 0;
+const CJ_MIN_INTERVAL_MS = 1100;
+
+async function cjThrottle(): Promise<void> {
+  const now = Date.now();
+  const since = now - lastCjCallAt;
+  if (since < CJ_MIN_INTERVAL_MS) {
+    await new Promise((r) => setTimeout(r, CJ_MIN_INTERVAL_MS - since));
+  }
+  lastCjCallAt = Date.now();
+}
+
 async function cjPost<T>(
   path: string,
   accessToken: string,
   body: unknown,
-  retries = 3,
-  delayMs = 1300
+  retries = 3
 ): Promise<T> {
   for (let attempt = 0; attempt < retries; attempt++) {
+    await cjThrottle();
+
     const res = await fetch(`${CJ_API_BASE}${path}`, {
       method: "POST",
       headers: {
@@ -33,11 +47,9 @@ async function cjPost<T>(
     const json = await res.json();
 
     if (res.status === 429 || json?.message?.includes("Too Many Requests")) {
-      if (attempt < retries - 1) {
-        await new Promise((r) => setTimeout(r, delayMs * (attempt + 1)));
-        continue;
-      }
-      throw new Error(`CJ API error on ${path}: Too Many Requests, QPS limit is 1 time/1second`);
+      console.warn(`[CJ] QPS hit on ${path}, attempt ${attempt + 1}/${retries}`);
+      lastCjCallAt = Date.now() + 2000; // force a longer pause before next attempt
+      continue;
     }
 
     if (!res.ok) {
@@ -46,8 +58,10 @@ async function cjPost<T>(
 
     return json as T;
   }
-  throw new Error(`CJ request to ${path} failed after ${retries} retries`);
+
+  throw new Error(`CJ API error on ${path}: Too Many Requests, QPS limit is 1 time/1second`);
 }
+
 
 async function resolveCjLogisticName(
   accessToken: string,
@@ -124,9 +138,16 @@ export async function submitCjOrderForLines(
   }));
 
   const savedMethod = ((orderData as any)?.cj_shipping_method as string | undefined)?.trim();
-  const logisticName = savedMethod
+  let logisticName = savedMethod
     ? savedMethod
     : await resolveCjLogisticName(accessToken, productLines, countryCode, "CJPacket Ordinary");
+
+  // Ensure we never send an empty logisticName (some CJ responses may include empty names)
+  logisticName = (logisticName || "").toString().trim();
+  if (!logisticName) {
+    console.warn(`[CJ] Resolved logisticName empty for order ${orderId}, falling back to CJPacket Ordinary`);
+    logisticName = "CJPacket Ordinary";
+  }
 
   const cjPayload = {
     orderNumber,

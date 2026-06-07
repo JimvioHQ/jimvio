@@ -53,7 +53,7 @@ interface ShippingAddress {
  *   // After: await adminClient.from("orders").update({ payment_status: "paid" })
  *   await handleCJFulfillment(orderId);
  */
-export async function handleCJFulfillment(orderId: string): Promise<void> {
+export async function handleCJFulfillment(orderId: string, options?: { throwOnError?: boolean }): Promise<void> {
   const supabase = createServiceRoleClient();
 
   // ── Fetch order + items ──────────────────────────────────────────────────────
@@ -157,13 +157,18 @@ export async function handleCJFulfillment(orderId: string): Promise<void> {
 
     console.log(`[CJ] Order ${orderId} submitted successfully`);
   } catch (err) {
-    // Non-fatal — payment already confirmed.
+    const message = (err as Error).message;
+    // Non-fatal by default — payment already confirmed.
     // The error is logged inside submitOrderToCJ to order_status_history
     // and failed_wallet_credits so ops can retry manually.
     console.error(
       `[CJ] Submission failed for order ${orderId} (non-fatal):`,
-      (err as Error).message
+      message
     );
+
+    if (options?.throwOnError) {
+      throw err;
+    }
   }
 }
 

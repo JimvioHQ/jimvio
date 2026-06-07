@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Slider } from "@/components/ui/slider";
+import CustomSelect from "@/components/ui/select-2";
 import { useMarketplace } from "./marketplace-context";
 import type { DeliveryTime } from "@/lib/utils";
 
@@ -262,45 +263,23 @@ export function Sidebar({ type = "physical" }: Props) {
               {Array.from({ length: 8 }).map((_, i) => <SkeletonRow key={i} />)}
             </div>
           ) : (
-            <ul className="space-y-0">
-              {allCategories.map((cat) => {
-                const Icon = iconMap[cat.icon ?? "Flame"] ?? Flame;
-                const isActive = filters.category === cat.name;
-                return (
-                  <li key={cat.name}>
-                    <button
-                      type="button"
-                      onClick={() => setCategory(cat.name)}
-                      className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-xs transition-colors"
-                      style={{
-                        background: isActive ? `color-mix(in srgb, var(--color-accent) 10%, transparent)` : "transparent",
-                        color: isActive ? "var(--color-accent)" : "var(--color-text-secondary)",
-                        fontWeight: isActive ? 700 : 400,
-                      }}
-                    >
-                      <span className="flex items-center gap-2">
-                        <Icon
-                          className="size-3.5 shrink-0"
-                          style={{ color: isActive ? "var(--color-accent)" : "var(--color-text-muted)" }}
-                        />
-                        <span className="truncate">{cat.name}</span>
-                      </span>
-                      {cat.product_count != null && (
-                        <span className="ml-1 shrink-0 text-[10px]" style={{ color: "var(--color-text-muted)" }}>
-                          {fmtCount(cat.product_count)}
-                        </span>
-                      )}
-                    </button>
-                  </li>
-                );
-              })}
+            <div>
+              <CustomSelect
+                options={allCategories.map((c) => ({ label: c.product_count ? `${c.name} (${fmtCount(c.product_count)})` : c.name, value: c.name }))}
+                value={filters.category ?? null}
+                onChange={(v) => setCategory(v)}
+                placeholder="Select category"
+                searchable
+                isClearable
+                textSize="sm"
+              />
 
               {!loadingCats && sidebarCategories.length === 0 && (
-                <li className="py-2 text-center text-[10px]" style={{ color: "var(--color-text-muted)" }}>
+                <div className="py-2 text-center text-[10px]" style={{ color: "var(--color-text-muted)" }}>
                   No {type} categories yet
-                </li>
+                </div>
               )}
-            </ul>
+            </div>
           )}
         </div>
 

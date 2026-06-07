@@ -13,7 +13,7 @@ import { StatusPill, ProviderLogo } from "@/components/ui/admin";
 import { verifyFlutterwaveTransaction } from "@/lib/payments/Transaction-verify";
 import { finalizeOrderPayment } from "@/lib/payments/finalize-order-payment";
 import { autoHealTransaction } from "@/lib/actions/auto-heal-transaction";
-import { markOrderPaidAction } from "@/lib/actions/orders";
+import { markOrderPaidAction, retryCJOrderAction } from "@/lib/actions/orders";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 60;
@@ -519,6 +519,18 @@ export default async function OrderDetailPage({
                         <p className="text-[12px] text-rose-600/80 dark:text-rose-400/80 mt-0.5">
                             Buyer paid but the order hasn't been forwarded to CJ Dropshipping. Manual intervention required.
                         </p>
+                        <div className="mt-3">
+                            <form action={retryCJOrderAction} className="inline">
+                                <input type="hidden" name="orderId" value={order.id} />
+                                <button
+                                    type="submit"
+                                    className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg text-[12.5px] font-medium bg-[var(--color-surface)] ring-1 ring-[var(--color-border)] hover:bg-[var(--color-surface-secondary)] transition-colors"
+                                >
+                                    <RefreshCcw className="h-3.5 w-3.5" />
+                                    Retry CJ submission
+                                </button>
+                            </form>
+                        </div>
                     </div>
                 </div>
             )}
