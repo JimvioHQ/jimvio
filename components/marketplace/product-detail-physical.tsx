@@ -10,9 +10,7 @@ import {
   Package, MapPin, RotateCcw, Lock,
   Award, TrendingUp, CheckCircle2,
   MessageSquare, Globe, Zap, Timer,
-  AlertTriangle, Flame, ThumbsUp, ImageIcon,
-  ChevronLeft, ChevronRight, Eye, Heart,
-  Search, Users, Headphones,
+  AlertTriangle, Flame, ThumbsUp, Eye, Headphones,
 } from "lucide-react";
 import { cn, normalizeImages } from "@/lib/utils";
 import { ProductActionModule } from "@/components/marketplace/product-action-module";
@@ -26,7 +24,7 @@ import {
 } from "@/components/marketplace/variant-selector";
 import { useCurrency } from "@/context/CurrencyContext";
 import {
-  ProductBreadcrumb, SaveShareBar, SocialProofBar,
+  ProductBreadcrumb, SaveShareBar,
   AffiliateBanner, FaqSection, CommunityAccessCard, RelatedProducts,
 } from "@/components/marketplace/product-detail-shared";
 import {
@@ -871,12 +869,12 @@ function VendorSectionCard({ vendor, followedVendorIds }: { vendor: any; followe
           </div>
         </div>
         <div className="grid grid-cols-2 gap-2 mt-3">
-          <button className="h-9 rounded-md text-[12px] font-semibold transition-colors" style={{ border: "1px solid var(--color-border)", color: "var(--color-text-primary)", background: "var(--color-surface)" }}>
+          <button className="h-9 rounded-sm text-[12px] font-semibold transition-colors" style={{ border: "1px solid var(--color-border)", color: "var(--color-text-primary)", background: "var(--color-surface)" }}>
             Contact Seller
           </button>
           <Link
             href={`/vendors/${vendor.business_slug}`}
-            className="h-9 rounded-md text-[12px] font-semibold text-[var(--color-text-primary)] transition-colors flex items-center justify-center"
+            className="h-9 rounded-sm text-[12px] font-semibold text-[var(--color-text-primary)] transition-colors flex items-center justify-center"
             style={{ border: "1px solid var(--color-border)", background: "var(--color-surface)" }}
           >
             Visit Store

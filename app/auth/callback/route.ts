@@ -3,10 +3,6 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 import { resolvePostLoginPath } from "@/lib/auth/post-login-redirect";
 
-// ─────────────────────────────────────────────
-// Helpers
-// ─────────────────────────────────────────────
-
 function isSafeInternalPath(path: string): boolean {
   return (
     typeof path === "string" &&
@@ -18,11 +14,6 @@ function isSafeInternalPath(path: string): boolean {
   );
 }
 
-/**
- * Ensures profile, role, and wallet rows exist for the given user.
- * Called after every OAuth login since signInWithGoogle never reaches
- * the password sign-in path where ensureUserProfile runs.
- */
 async function ensureUserProfile(
   userId: string,
   email: string,
@@ -49,20 +40,22 @@ async function ensureUserProfile(
   }
 }
 
-// ─────────────────────────────────────────────
-// GET /auth/callback
-// ─────────────────────────────────────────────
-
 export async function GET(request: Request) {
-  const { searchParams, origin } = new URL(request.url);
+  const requestUrl = new URL(request.url);
+  const { searchParams } = requestUrl;
+
+  // ── Always use the request's own origin (fixes localhost vs production mismatch) ──
+  const origin =
+    process.env.NEXT_PUBLIC_APP_URL?.trim().replace(/\/$/, "") ||
+    `${requestUrl.protocol}//${requestUrl.host}`;
 
   if (process.env.NODE_ENV === "development") {
-    console.log("[auth/callback] params:", {
-      code: searchParams.get("code"),
+    console.log("[auth/callback] incoming:", {
+      url: request.url,
+      resolvedOrigin: origin,
+      code: searchParams.get("code") ? "present" : "missing",
       error: searchParams.get("error"),
-      error_description: searchParams.get("error_description"),
       next: searchParams.get("next"),
-      origin,
     });
   }
 
@@ -72,14 +65,12 @@ export async function GET(request: Request) {
   const next = searchParams.get("next") ?? "/dashboard";
   const safeNext = isSafeInternalPath(next) ? next : "/dashboard";
 
-  // ── Provider-level errors (e.g. user denied Google consent) ──
+  // ── Provider-level errors ──
   if (errorParam || errorDescription) {
-    console.error("[auth/callback] Provider error:", { errorParam, errorDescription });
-
+    console.error("[auth/callback] provider error:", { errorParam, errorDescription });
     if (errorParam === "access_denied") {
       return NextResponse.redirect(`${origin}/login`);
     }
-
     const message = errorDescription ?? errorParam ?? "auth_error";
     return NextResponse.redirect(
       `${origin}/login?error=${encodeURIComponent(message)}`
@@ -88,21 +79,30 @@ export async function GET(request: Request) {
 
   // ── Missing code ──
   if (!code) {
-    console.error("[auth/callback] Missing code param");
+    console.error("[auth/callback] missing code param");
     return NextResponse.redirect(`${origin}/login?error=auth_error_missing_code`);
   }
 
-  // ── Exchange code for session ──
+  // ── Create Supabase client ──
   let supabase: Awaited<ReturnType<typeof createClient>>;
   try {
     supabase = await createClient();
   } catch (err) {
-    console.error("[auth/callback] Failed to create Supabase client:", err);
+    console.error("[auth/callback] failed to create Supabase client:", err);
     return NextResponse.redirect(`${origin}/login?error=server_error`);
   }
 
+  // ── Exchange code for session ──
   const { data: sessionData, error: exchangeError } =
     await supabase.auth.exchangeCodeForSession(code);
+
+  if (process.env.NODE_ENV === "development") {
+    console.log("[auth/callback] exchange result:", {
+      user: sessionData?.user?.email ?? null,
+      error: exchangeError?.message ?? null,
+      status: exchangeError?.status ?? null,
+    });
+  }
 
   if (exchangeError) {
     console.error("[auth/callback] exchangeCodeForSession failed:", {
@@ -125,18 +125,20 @@ export async function GET(request: Request) {
     );
   }
 
-  const user = sessionData.user;
+  const user = sessionData?.user;
   if (!user?.email) {
-    console.error("[auth/callback] Session exchanged but no user returned");
+    console.error("[auth/callback] no user after exchange");
     return NextResponse.redirect(`${origin}/login?error=no_user`);
   }
 
+  // ── Ensure profile exists ──
   await ensureUserProfile(
     user.id,
     user.email,
     user.user_metadata?.full_name as string | undefined
   );
 
+  // ── Resolve post-login destination ──
   let destination: string;
   try {
     destination = await resolvePostLoginPath(user.id, safeNext);
@@ -145,6 +147,7 @@ export async function GET(request: Request) {
     destination = safeNext;
   }
 
+  // ── Redirect and clean up PKCE cookie ──
   const response = NextResponse.redirect(`${origin}${destination}`);
   response.cookies.delete("sb-code-verifier");
 
