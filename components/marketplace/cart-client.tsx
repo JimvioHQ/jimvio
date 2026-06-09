@@ -866,7 +866,7 @@ export function CartClient({ initialItems }: CartClientProps) {
               </div>
               <div className="flex justify-between">
                 <span className="flex items-center gap-1 text-gray-500">
-                  Escrow Protection
+                  Buyer Protection Included
                   <Info className="h-3.5 w-3.5 text-gray-400 cursor-help" />
                 </span>
                 <span className="font-medium text-gray-700 tabular-nums">
@@ -892,7 +892,7 @@ export function CartClient({ initialItems }: CartClientProps) {
             </div>
 
             {/* Checkout button */}
-            <div className="px-4 pb-4">
+            <div className="px-4 pb-6">
               <Button
                 onClick={handleProceedToCheckout}
                 disabled={proceedingCheckout || items.length === 0}
@@ -912,12 +912,12 @@ export function CartClient({ initialItems }: CartClientProps) {
               </Button>
               <p className="mt-2.5 flex items-start gap-1.5 text-[11px] text-gray-400 leading-relaxed">
                 <Shield className="h-3 w-3 mt-0.5 text-[#F97316] shrink-0" />
-                Payment is held in escrow until you receive your order.
+                Your order is protected until delivery is confirmed.
               </p>
             </div>
 
             {/* Commission notice */}
-            <div className="mx-4 mb-4 flex items-start gap-2.5 bg-orange-50 border border-orange-100 rounded-lg px-3 py-2.5">
+            <div className="mx-4 mb-4 hidden  items-start gap-2.5 bg-orange-50 border border-orange-100 rounded-lg px-3 py-2.5">
               <Gift className="h-4 w-4 text-[#F97316] shrink-0 mt-0.5" />
               <p className="text-[12px] text-gray-700 leading-relaxed">
                 You will earn{" "}
