@@ -869,7 +869,7 @@ export function CartClient({ initialItems }: CartClientProps) {
                   Buyer Protection Included
                   <Info className="h-3.5 w-3.5 text-gray-400 cursor-help" />
                 </span>
-                <span className="font-medium text-gray-700 tabular-nums">
+                <span className="font-medium sr-only text-gray-700 tabular-nums">
                   ${ESCROW_FEE.toFixed(2)}
                 </span>
               </div>

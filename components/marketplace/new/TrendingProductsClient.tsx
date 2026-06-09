@@ -2,12 +2,13 @@
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import {
-  Heart, Star, DollarSign, Flame, Sparkles,
-  TrendingUp, Warehouse, MapPin, ShoppingCart, Eye, ChevronDown,
+  Heart, ShieldCheck, Flame, Sparkles,
+  TrendingUp, Warehouse, MapPin, ShoppingCart, Eye, ChevronDown, Star,
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { type DbProduct, getImage, getDiscount, fmtPrice, fmtCount } from "@/lib/utils";
+import { useCurrency } from "@/context/CurrencyContext";
+import { type DbProduct, getImage, getDiscount } from "@/lib/utils";
 import { addToCart, toggleWishlist, getWishlistProductIds } from "@/lib/actions/marketplace";
 import type { Tables } from "@/types/supabase";
 
@@ -17,22 +18,24 @@ type Product = DbProduct & {
   vendor_id?: string | null;
   variants?: DbVariant[];
   product_variants?: DbVariant[];
+  currency?: string | null;
+  vendors?: { id: string; verification_status?: string | null } | null;
 };
 
 const PHYSICAL_TABS = [
-  { label: "Trending",      icon: Flame,      filter: (_p: Product) => true                        },
-  { label: "New Arrivals",  icon: Sparkles,   filter: (_p: Product) => true                        },
-  { label: "Best Selling",  icon: TrendingUp, filter: (p: Product) => (p.sale_count ?? 0) > 0     },
-  { label: "Free Shipping", icon: Warehouse,  filter: (p: Product) => p.is_free_shipping === true  },
-  { label: "Local Stock",   icon: MapPin,     filter: (p: Product) => p.shipping_from != null      },
+  { label: "Trending", icon: Flame, filter: (_p: Product) => true },
+  { label: "New Arrivals", icon: Sparkles, filter: (_p: Product) => true },
+  { label: "Best Selling", icon: TrendingUp, filter: (p: Product) => (p.sale_count ?? 0) > 0 },
+  { label: "Free Shipping", icon: Warehouse, filter: (p: Product) => p.is_free_shipping === true },
+  { label: "Local Stock", icon: MapPin, filter: (p: Product) => p.shipping_from != null },
 ];
 
 const DIGITAL_TABS = [
-  { label: "Trending",       icon: Flame,      filter: (_p: Product) => true                           },
-  { label: "New Arrivals",   icon: Sparkles,   filter: (_p: Product) => true                           },
-  { label: "Best Selling",   icon: TrendingUp, filter: (p: Product) => (p.sale_count ?? 0) > 0        },
-  { label: "Top Rated",      icon: Star,       filter: (p: Product) => (p.rating ?? 0) >= 4           },
-  { label: "Instant Access", icon: Warehouse,  filter: (p: Product) => p.product_type !== "physical"  },
+  { label: "Trending", icon: Flame, filter: (_p: Product) => true },
+  { label: "New Arrivals", icon: Sparkles, filter: (_p: Product) => true },
+  { label: "Best Selling", icon: TrendingUp, filter: (p: Product) => (p.sale_count ?? 0) > 0 },
+  { label: "Top Rated", icon: Star, filter: (p: Product) => (p.rating ?? 0) >= 4 },
+  { label: "Instant Access", icon: Warehouse, filter: (p: Product) => p.product_type !== "physical" },
 ];
 
 function normaliseVariant(v: any): DbVariant {
@@ -62,8 +65,8 @@ export function TrendingProductsClient({
   type?: "physical" | "digital";
 }) {
   const TABS = type === "digital" ? DIGITAL_TABS : PHYSICAL_TABS;
-  const [activeTab, setActiveTab]           = useState(0);
-  const [favorites, setFavorites]           = useState<Set<string>>(new Set());
+  const [activeTab, setActiveTab] = useState(0);
+  const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [wishlistLoaded, setWishlistLoaded] = useState(false);
   const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
@@ -209,23 +212,23 @@ function ProductCard({
   const vendorId: string = (p.vendor_id ?? (p as any)?.vendors?.id ?? "") as string;
 
   const colorVariants = variants.filter((v) => v.is_active && getColorValue(getOptions(v)));
-  const hasColors     = colorVariants.length > 0;
+  const hasColors = colorVariants.length > 0;
 
   const sizeKey = ["size", "Size"].find((k) =>
     variants.some((v) => getOptions(v)[k])
   );
   const sizeOptions = sizeKey
     ? [...new Set(
-        variants
-          .filter((v) => v.is_active && getOptions(v)[sizeKey])
-          .map((v) => getOptions(v)[sizeKey])
-      )]
+      variants
+        .filter((v) => v.is_active && getOptions(v)[sizeKey])
+        .map((v) => getOptions(v)[sizeKey])
+    )]
     : [];
   const hasSizes = sizeOptions.length > 0;
 
-  const activeVariants      = variants.filter((v) => v.is_active);
+  const activeVariants = variants.filter((v) => v.is_active);
   const activeVariantsCount = activeVariants.length;
-  const defaultVariant      = activeVariantsCount === 1 ? activeVariants[0] : null;
+  const defaultVariant = activeVariantsCount === 1 ? activeVariants[0] : null;
 
   const initialColor = (() => {
     if (defaultVariant) {
@@ -246,15 +249,16 @@ function ProductCard({
   })();
 
   const [selectedColor, setSelectedColor] = useState<string | null>(initialColor);
-  const [selectedSize,  setSelectedSize]  = useState<string | null>(initialSize);
-  const [showSizes, setShowSizes]         = useState(false);
-  const [adding,   setAdding]             = useState(false);
-  const [added,    setAdded]              = useState(false);
-  const [addError, setAddError]           = useState<string | null>(null);
+  const [selectedSize, setSelectedSize] = useState<string | null>(initialSize);
+  const [showSizes, setShowSizes] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [added, setAdded] = useState(false);
+  const [addError, setAddError] = useState<string | null>(null);
+  const { formatMoney } = useCurrency();
 
   let activeVariant = variants.find((v) => {
     const colorMatch = !selectedColor || getColorValue(getOptions(v)) === selectedColor;
-    const sizeMatch  = !selectedSize || !sizeKey || getOptions(v)[sizeKey] === selectedSize;
+    const sizeMatch = !selectedSize || !sizeKey || getOptions(v)[sizeKey] === selectedSize;
     return colorMatch && sizeMatch && v.is_active;
   }) ?? null;
 
@@ -272,20 +276,24 @@ function ProductCard({
   }, [showSizes]);
 
   const displayPrice = activeVariant?.price ?? p.price;
+  const compareAtPrice = activeVariant?.compare_at_price ?? p.compare_at_price;
   const displayImage = activeVariant?.image_url ?? getImage(p.images);
-  const discount     = getDiscount(p);
-  const earn         = p.affiliate_commission_rate
-    ? `+${fmtPrice(displayPrice * (p.affiliate_commission_rate / 100))} earn`
-    : null;
+  const discount = p.discount_label
+    ? p.discount_label
+    : displayPrice != null && compareAtPrice != null && compareAtPrice > displayPrice
+      ? `-${Math.round((1 - displayPrice / compareAtPrice) * 100)}%`
+      : "";
+  const currency = (activeVariant as any)?.currency ?? p.currency ?? "USD";
+  const isVerifiedSupplier = p.vendors?.verification_status === "verified";
 
   const outOfStock =
     activeVariant != null &&
     activeVariant.inventory_quantity != null &&
     activeVariant.inventory_quantity <= 0;
 
-  const SWATCH_LIMIT  = 5;
+  const SWATCH_LIMIT = 5;
   const visibleColors = colorVariants.slice(0, SWATCH_LIMIT);
-  const extraColors   = colorVariants.length - SWATCH_LIMIT;
+  const extraColors = colorVariants.length - SWATCH_LIMIT;
 
   async function handleAddToCart(e: React.MouseEvent) {
     e.preventDefault();
@@ -342,7 +350,7 @@ function ProductCard({
 
   return (
     <div
-      className="group relative flex flex-col rounded-xl overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(0,0,0,.10)]"
+      className="group relative flex flex-col rounded-md overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(0,0,0,.10)]"
       style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}
     >
       {/* ── Image ── */}
@@ -427,10 +435,10 @@ function ProductCard({
               background: addError
                 ? "#dc2626"
                 : added
-                ? "var(--color-success, #16a34a)"
-                : outOfStock
-                ? "rgba(100,100,100,.7)"
-                : "var(--color-accent)",
+                  ? "var(--color-success, #16a34a)"
+                  : outOfStock
+                    ? "rgba(100,100,100,.7)"
+                    : "var(--color-accent)",
             }}
           >
             {adding ? (
@@ -464,34 +472,31 @@ function ProductCard({
 
         <div className="flex items-baseline gap-1.5">
           <span className="text-sm font-black" style={{ color: "var(--color-accent)" }}>
-            {fmtPrice(displayPrice)}
+            {formatMoney(displayPrice, currency)}
           </span>
-          {p.compare_at_price && p.compare_at_price > p.price && (
+          {compareAtPrice && compareAtPrice > displayPrice && (
             <span className="text-[10px] line-through" style={{ color: "var(--color-text-muted)" }}>
-              {fmtPrice(p.compare_at_price)}
+              {formatMoney(compareAtPrice, currency)}
             </span>
           )}
         </div>
 
         <div className="flex items-center justify-between">
-          <span className="flex items-center gap-0.5 text-[10px]" style={{ color: "var(--color-text-muted)" }}>
-            <Star className="size-2.5 fill-amber-400 text-amber-400" />
-            <span className="font-medium" style={{ color: "var(--color-text-secondary)" }}>
-              {p.rating?.toFixed(1) ?? "—"}
-            </span>
-            <span className="opacity-60">({fmtCount(p.review_count)})</span>
+          <span
+            className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-semibold ${isVerifiedSupplier
+              ? "bg-emerald-50 text-emerald-700"
+              : "bg-zinc-100 text-zinc-700"
+              }`}
+          >
+            <ShieldCheck className="size-3" />
+            {isVerifiedSupplier ? "Verified supplier" : "Not verified"}
           </span>
-          {(p.sale_count ?? 0) > 0 && (
-            <span className="text-[9px] font-medium" style={{ color: "var(--color-text-muted)" }}>
-              {fmtCount(p.sale_count ?? 0)} sold
-            </span>
-          )}
         </div>
 
         {hasColors && (
           <div className="mt-1 flex items-center gap-1 flex-wrap">
             {visibleColors.map((v) => {
-              const raw        = getColorValue(getOptions(v))!;
+              const raw = getColorValue(getOptions(v))!;
               const isSelected = selectedColor === raw;
               return (
                 <button
@@ -596,19 +601,6 @@ function ProductCard({
         )}
       </div>
 
-      {earn && (
-        <div
-          className="mx-2 mb-2 flex items-center justify-center gap-1 rounded-lg py-1 text-[10px] font-bold"
-          style={{
-            background: "color-mix(in srgb, var(--color-accent) 8%, transparent)",
-            color: "var(--color-accent)",
-            border: "1px solid color-mix(in srgb, var(--color-accent) 18%, transparent)",
-          }}
-        >
-          <DollarSign className="size-2.5" />
-          {earn}
-        </div>
-      )}
     </div>
   );
 }

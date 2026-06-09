@@ -124,9 +124,7 @@ const ConsoleButton = React.forwardRef<
     "relative inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-[13px] font-medium tracking-tight transition-all duration-150 active:scale-[0.97] select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-stone-400/60",
     active
       ? [
-        // Light: denser fill + inset ring so selection is unmistakable
         "bg-black/[0.07] text-stone-900 font-semibold shadow-[inset_0_0_0_1px_rgba(0,0,0,0.09)]",
-        // Dark: bump to 11% white + matching inset ring
         "dark:bg-white/[0.11] dark:text-white dark:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.10)]",
       ]
       : orange
@@ -327,7 +325,6 @@ export function Navbar({ user, marketing }: NavbarProps) {
   const marketplaceVariants = [
     { title: "Digital Market", desc: "Software, courses & assets", href: "/marketplace?type=digital", icon: Zap, color: "#0ea5e9", badge: "Hot" },
     { title: "Physical Market", desc: "Real-world goods & equipment", href: "/marketplace?type=physical", icon: Package, color: "#f59e0b" },
-    { title: "All Products", desc: "Complete global catalog", href: "/marketplace", icon: ShoppingBag, color: "#fd5000" },
   ];
 
   const mobileBottomLinks = [

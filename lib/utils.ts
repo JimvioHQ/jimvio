@@ -480,6 +480,7 @@ export type DbProduct = {
   compare_at_price: number | null;
   images: unknown;
   product_type: string;
+  currency: string;
   status: string;
   is_flash_deal: boolean | null;
   discount_label: string | null;

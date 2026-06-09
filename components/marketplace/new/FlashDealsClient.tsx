@@ -3,9 +3,14 @@
 import { useRef } from "react";
 import { ChevronLeft, ChevronRight, DollarSign } from "lucide-react";
 import Link from "next/link";
-import { type DbProduct, getImage, getDiscount, fmtPrice, fmtCount } from "@/lib/utils";
+import { useCurrency } from "@/context/CurrencyContext";
+import { type DbProduct, getImage, getDiscount, fmtCount } from "@/lib/utils";
 
-export function FlashDealsClient({ deals }: { deals: DbProduct[] }) {
+type FlashDealProduct = DbProduct & {
+  currency?: string | null;
+};
+
+export function FlashDealsClient({ deals }: { deals: FlashDealProduct[] }) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const scroll = (dir: "left" | "right") => {
@@ -37,10 +42,11 @@ export function FlashDealsClient({ deals }: { deals: DbProduct[] }) {
 }
 
 function FlashDealCard({ d }: { d: DbProduct }) {
+  const { formatMoney } = useCurrency();
   const pct = d.claimed_pct ?? 0;
   const discount = getDiscount(d);
   const earn = d.affiliate_commission_rate
-    ? `Earn ${fmtPrice(d.price * (d.affiliate_commission_rate / 100))}`
+    ? `Earn ${formatMoney(d.price * (d.affiliate_commission_rate / 100), d.currency)}`
     : null;
 
   return (
@@ -66,10 +72,10 @@ function FlashDealCard({ d }: { d: DbProduct }) {
       </div>
       <h4 className="mt-2 truncate text-xs font-bold">{d.name}</h4>
       <div className="mt-1 flex items-baseline gap-1.5">
-        <span className="text-sm font-black text-primary">{fmtPrice(d.price)}</span>
+        <span className="text-sm font-black text-primary">{formatMoney(d.price, d.currency)}</span>
         {d.compare_at_price && d.compare_at_price > d.price && (
           <span className="text-[11px] text-muted-foreground line-through">
-            {fmtPrice(d.compare_at_price)}
+            {formatMoney(d.compare_at_price, d.currency)}
           </span>
         )}
       </div>
