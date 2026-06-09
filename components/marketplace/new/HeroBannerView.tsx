@@ -6,6 +6,7 @@ import {
   ChevronLeft, ChevronRight, Crown, ShoppingCart, Eye,
 } from "lucide-react";
 import Link from "next/link";
+import { useCurrency } from "@/context/CurrencyContext";
 import { HeroBannerClient } from "./HeroBannerClient";
 import type { HeroProduct } from "@/types";
 
@@ -74,10 +75,6 @@ const THEMES: Record<"physical" | "digital", Theme> = {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function fmtPrice(n: number): string {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n);
-}
-
 function getDiscount(price: number, compare: number | null, label: string | null): string {
   if (label) return label;
   if (compare && compare > price) return `-${Math.round((1 - price / compare) * 100)}%`;
@@ -121,16 +118,20 @@ function getImage(images: unknown): string | null {
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
+type BannerHeroProduct = HeroProduct & {
+  currency?: string | null;
+};
+
 type Props = {
-  physical:     HeroProduct[] | null;
-  digital:      HeroProduct[] | null;
+  physical:     BannerHeroProduct[] | null;
+  digital:      BannerHeroProduct[] | null;
   initialType?: "physical" | "digital";
 };
 
 export function HeroBannerView({ physical, digital, initialType = "physical" }: Props) {
   const typeKey  = initialType;
   const products = Array.isArray(typeKey === "digital" ? digital : physical)
-    ? (typeKey === "digital" ? digital : physical) as HeroProduct[]
+    ? (typeKey === "digital" ? digital : physical) as BannerHeroProduct[]
     : [];
   const theme = THEMES[typeKey];
 
@@ -154,7 +155,9 @@ export function HeroBannerView({ physical, digital, initialType = "physical" }: 
 
   if (products.length === 0) return null;
 
+  const { formatMoney } = useCurrency();
   const product     = products[activeIdx];
+  const currency    = product.currency ?? "USD";
   const image       = getImage(product.images);
   const rawName     = product.name ?? "";
   const rawDesc     = product.short_description ?? "";
@@ -162,10 +165,10 @@ export function HeroBannerView({ physical, digital, initialType = "physical" }: 
   const displayDesc = rawDesc.length > 70 ? rawDesc.slice(0, 67) + "…" : rawDesc;
   const discount    = getDiscount(product.price, product.compare_at_price, product.discount_label);
   const discountNum = discount.replace(/[^0-9]/g, "");
-  const price       = fmtPrice(product.price);
-  const oldPrice    = product.compare_at_price ? fmtPrice(product.compare_at_price) : null;
+  const price       = formatMoney(product.price, currency);
+  const oldPrice    = product.compare_at_price ? formatMoney(product.compare_at_price, currency) : null;
   const earn        = product.affiliate_commission_rate
-    ? fmtPrice(product.price * (product.affiliate_commission_rate / 100))
+    ? formatMoney(product.price * (product.affiliate_commission_rate / 100), currency)
     : null;
   const soldCount   = product.sale_count && product.sale_count > 0
     ? product.sale_count >= 1000
