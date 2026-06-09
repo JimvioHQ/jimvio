@@ -13,63 +13,63 @@ import type { HeroProduct } from "@/types";
 // ─── Theme ────────────────────────────────────────────────────────────────────
 
 type Theme = {
-  badge:          string;
-  badgeText:      string;
-  headline:       string;
-  sub:            string;
-  price:          string;
-  strikeout:      string;
-  discountPill:   string;
-  ctaPrimary:     string;
-  ctaGlow:        string;
-  chip:           string;
-  bg:             string;
-  glow:           string;
-  dotActive:      string;
-  dotInactive:    string;
+  badge: string;
+  badgeText: string;
+  headline: string;
+  sub: string;
+  price: string;
+  strikeout: string;
+  discountPill: string;
+  ctaPrimary: string;
+  ctaGlow: string;
+  chip: string;
+  bg: string;
+  glow: string;
+  dotActive: string;
+  dotInactive: string;
   discountCircle: string;
-  circleGlow:     string;
-  imageFade:      string;
+  circleGlow: string;
+  imageFade: string;
 };
 
 const THEMES: Record<"physical" | "digital", Theme> = {
   physical: {
-    badge:          "var(--color-accent)",
-    badgeText:      "FLASH SALE",
-    headline:       "#ffffff",
-    sub:            "rgba(255,255,255,0.72)",
-    price:          "#fd8c00",
-    strikeout:      "rgba(255,255,255,0.42)",
-    discountPill:   "var(--color-accent)",
-    ctaPrimary:     "var(--color-accent)",
-    ctaGlow:        "rgba(253,80,0,0.50)",
-    chip:           "var(--color-accent)",
-    bg:             "linear-gradient(135deg, #0d0500 0%, #1e0900 45%, #2d1200 100%)",
-    glow:           "radial-gradient(ellipse at 68% 50%, rgba(253,80,0,0.28) 0%, transparent 62%)",
-    dotActive:      "var(--color-accent)",
-    dotInactive:    "rgba(255,255,255,0.22)",
+    badge: "var(--color-accent)",
+    badgeText: "FLASH SALE",
+    headline: "#ffffff",
+    sub: "rgba(255,255,255,0.72)",
+    price: "#fd8c00",
+    strikeout: "rgba(255,255,255,0.42)",
+    discountPill: "var(--color-accent)",
+    ctaPrimary: "var(--color-accent)",
+    ctaGlow: "rgba(253,80,0,0.50)",
+    chip: "var(--color-accent)",
+    bg: "linear-gradient(135deg, #0d0500 0%, #1e0900 45%, #2d1200 100%)",
+    glow: "radial-gradient(ellipse at 68% 50%, rgba(253,80,0,0.28) 0%, transparent 62%)",
+    dotActive: "var(--color-accent)",
+    dotInactive: "rgba(255,255,255,0.22)",
     discountCircle: "linear-gradient(135deg, var(--color-accent) 0%, #ff8c00 100%)",
-    circleGlow:     "0 6px 28px rgba(253,80,0,0.55)",
-    imageFade:      "linear-gradient(to right, #0d0500 0%, rgba(13,5,0,0.70) 15%, rgba(13,5,0,0.20) 35%, transparent 55%)",
+    circleGlow: "0 6px 28px rgba(253,80,0,0.55)",
+    imageFade: "linear-gradient(to right, #0d0500 0%, rgba(13,5,0,0.70) 15%, rgba(13,5,0,0.20) 35%, transparent 55%)",
   },
   digital: {
-    badge:          "linear-gradient(90deg, #7c3aed, #a855f7)",
-    badgeText:      "DIGITAL BEST DEALS",
-    headline:       "#ffffff",
-    sub:            "rgba(255,255,255,0.68)",
-    price:          "#c084fc",
-    strikeout:      "rgba(255,255,255,0.38)",
-    discountPill:   "linear-gradient(90deg, #7c3aed, #a855f7)",
-    ctaPrimary:     "linear-gradient(90deg, #7c3aed, #a855f7)",
-    ctaGlow:        "rgba(139,92,246,0.55)",
-    chip:           "#7c3aed",
-    bg:             "linear-gradient(135deg, #050010 0%, #0d0025 45%, #1a0045 100%)",
-    glow:           "radial-gradient(ellipse at 68% 50%, rgba(139,92,246,0.32) 0%, transparent 62%)",
-    dotActive:      "#a855f7",
-    dotInactive:    "rgba(255,255,255,0.18)",
+    badge: "linear-gradient(90deg, #7c3aed, #a855f7)",
+    badgeText: "DIGITAL BEST DEALS",
+    headline: "#ffffff",
+    sub: "rgba(255,255,255,0.68)",
+    price: "#c084fc",
+    strikeout: "rgba(255,255,255,0.38)",
+    discountPill: "linear-gradient(90deg, #7c3aed, #a855f7)",
+    ctaPrimary: "linear-gradient(90deg, #7c3aed, #a855f7)",
+    ctaGlow: "rgba(139,92,246,0.55)",
+    chip: "#7c3aed",
+    bg: "linear-gradient(135deg, #050010 0%, #0d0025 45%, #1a0045 100%)",
+    glow: "radial-gradient(ellipse at 68% 50%, rgba(139,92,246,0.32) 0%, transparent 62%)",
+    dotActive: "#a855f7",
+    dotInactive: "rgba(255,255,255,0.18)",
     discountCircle: "linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)",
-    circleGlow:     "0 6px 28px rgba(139,92,246,0.55)",
-    imageFade:      "linear-gradient(to right, #050010 0%, rgba(5,0,16,0.70) 15%, rgba(5,0,16,0.20) 35%, transparent 55%)",
+    circleGlow: "0 6px 28px rgba(139,92,246,0.55)",
+    imageFade: "linear-gradient(to right, #050010 0%, rgba(5,0,16,0.70) 15%, rgba(5,0,16,0.20) 35%, transparent 55%)",
   },
 };
 
@@ -123,13 +123,13 @@ type BannerHeroProduct = HeroProduct & {
 };
 
 type Props = {
-  physical:     BannerHeroProduct[] | null;
-  digital:      BannerHeroProduct[] | null;
+  physical: BannerHeroProduct[] | null;
+  digital: BannerHeroProduct[] | null;
   initialType?: "physical" | "digital";
 };
 
 export function HeroBannerView({ physical, digital, initialType = "physical" }: Props) {
-  const typeKey  = initialType;
+  const typeKey = initialType;
   const products = Array.isArray(typeKey === "digital" ? digital : physical)
     ? (typeKey === "digital" ? digital : physical) as BannerHeroProduct[]
     : [];
@@ -145,32 +145,24 @@ export function HeroBannerView({ physical, digital, initialType = "physical" }: 
     return () => clearInterval(t);
   }, [products.length, typeKey]);
 
-  const prev = useCallback(() =>
-    setActiveIdx((i) => (i - 1 + products.length) % products.length),
-  [products.length]);
-
-  const next = useCallback(() =>
-    setActiveIdx((i) => (i + 1) % products.length),
-  [products.length]);
-
   if (products.length === 0) return null;
 
   const { formatMoney } = useCurrency();
-  const product     = products[activeIdx];
-  const currency    = product.currency ?? "USD";
-  const image       = getImage(product.images);
-  const rawName     = product.name ?? "";
-  const rawDesc     = product.short_description ?? "";
+  const product = products[activeIdx];
+  const currency = product.currency ?? "USD";
+  const image = getImage(product.images);
+  const rawName = product.name ?? "";
+  const rawDesc = product.short_description ?? "";
   const displayName = rawName.length > 55 ? rawName.slice(0, 52) + "…" : rawName;
   const displayDesc = rawDesc.length > 70 ? rawDesc.slice(0, 67) + "…" : rawDesc;
-  const discount    = getDiscount(product.price, product.compare_at_price, product.discount_label);
+  const discount = getDiscount(product.price, product.compare_at_price, product.discount_label);
   const discountNum = discount.replace(/[^0-9]/g, "");
-  const price       = formatMoney(product.price, currency);
-  const oldPrice    = product.compare_at_price ? formatMoney(product.compare_at_price, currency) : null;
-  const earn        = product.affiliate_commission_rate
+  const price = formatMoney(product.price, currency);
+  const oldPrice = product.compare_at_price ? formatMoney(product.compare_at_price, currency) : null;
+  const earn = product.affiliate_commission_rate
     ? formatMoney(product.price * (product.affiliate_commission_rate / 100), currency)
     : null;
-  const soldCount   = product.sale_count && product.sale_count > 0
+  const soldCount = product.sale_count && product.sale_count > 0
     ? product.sale_count >= 1000
       ? `${(product.sale_count / 1000).toFixed(1)}K`
       : String(product.sale_count)
@@ -193,15 +185,15 @@ export function HeroBannerView({ physical, digital, initialType = "physical" }: 
               src={image}
               alt={product.name}
               style={{
-                position:       "absolute",
-                top:            0,
-                right:          0,
-                bottom:         0,
-                width:          "100%",
-                height:         "100%",
-                objectFit:      "cover",
+                position: "absolute",
+                top: 0,
+                right: 0,
+                bottom: 0,
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
                 objectPosition: "center",
-                filter:         "drop-shadow(-8px 0 24px rgba(0,0,0,0.5))",
+                filter: "drop-shadow(-8px 0 24px rgba(0,0,0,0.5))",
               }}
             />
             {/* Left fade into dark background */}
@@ -222,11 +214,11 @@ export function HeroBannerView({ physical, digital, initialType = "physical" }: 
         <div
           className="absolute grid place-items-center rounded-full text-center text-white"
           style={{
-            top:        16, right:  16,
-            width:      76, height: 76,
+            top: 16, right: 16,
+            width: 76, height: 76,
             background: theme.discountCircle,
-            boxShadow:  theme.circleGlow,
-            zIndex:     20,
+            boxShadow: theme.circleGlow,
+            zIndex: 20,
           }}
         >
           <div>
@@ -290,7 +282,7 @@ export function HeroBannerView({ physical, digital, initialType = "physical" }: 
                   className="size-3"
                   style={{
                     color: i < Math.round(product.rating!) ? theme.price : "rgba(255,255,255,0.18)",
-                    fill:  i < Math.round(product.rating!) ? theme.price : "none",
+                    fill: i < Math.round(product.rating!) ? theme.price : "none",
                   }}
                 />
               ))}
@@ -379,10 +371,10 @@ export function HeroBannerView({ physical, digital, initialType = "physical" }: 
                     onClick={() => setActiveIdx(i)}
                     className="overflow-hidden rounded-lg transition-all duration-300"
                     style={{
-                      width:      i === activeIdx ? 44 : 30,
-                      height:     30,
+                      width: i === activeIdx ? 44 : 30,
+                      height: 30,
                       flexShrink: 0,
-                      border:     `2px solid ${i === activeIdx ? theme.dotActive : theme.dotInactive}`,
+                      border: `2px solid ${i === activeIdx ? theme.dotActive : theme.dotInactive}`,
                       background: "rgba(255,255,255,0.08)",
                     }}
                   >
