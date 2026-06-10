@@ -386,7 +386,8 @@ export async function mapCJProductToJimvio(
 ): Promise<JimvioProduct> {
     const costUsd = parseFloat(cjProduct.sellPrice);
     const weightGrams = parseFloat(cjProduct.productWeight) || 0;
-    const status = mapSaleStatus(cjProduct.saleStatus);
+    // All imported CJ products must default to draft for manual review
+    const status = "draft" as const;
     const names = parseCJProductNames(cjProduct.productName);
     const remarkImages = extractImagesFromRemark(cjProduct.remark);
     const images = buildImagesArray(cjProduct.productImage, remarkImages);
@@ -439,7 +440,8 @@ export async function mapCJProductToJimvio(
         affiliate_commission_rate, // ✅ now tier-based, not hardcoded
         affiliate_price,            // ✅ RWF amount per sale
         influencer_enabled: true,
-        is_active: status === "active",
+        // Imported products are inactive until reviewed by admin
+        is_active: false,
         is_featured: false,
         cj_last_synced_at: new Date().toISOString(),
         source_metadata: {
@@ -535,24 +537,90 @@ export async function upsertCJProduct(
             rawVariants
         );
 
-        const { data, error } = await supabase
-            .from("products")
-            .upsert(
-                { ...mapped },
-                {
-                    onConflict: "vendor_id,slug",
-                    ignoreDuplicates: false,
+        // Protect against duplicate imports by CJ pid.
+        // Try to find existing product via cj_product_map first.
+        try {
+            const { data: mapRow } = await supabase
+                .from("cj_product_map")
+                .select("product_id")
+                .eq("cj_pid", cjProduct.pid)
+                .maybeSingle();
+
+            if (mapRow?.product_id) {
+                const productId = mapRow.product_id as string;
+                // Update existing product but keep it draft/inactive for review
+                const { error: updErr } = await supabase
+                    .from("products")
+                    .update({ ...mapped, status: "draft", is_active: false })
+                    .eq("id", productId);
+
+                if (updErr) {
+                    console.error(`[CJ import] Failed to update existing product ${productId}:`, updErr.message);
+                    return { success: false, error: updErr.message };
                 }
-            )
-            .select("id")
-            .single();
 
-        if (error) {
-            return { success: false, error: error.message };
+                console.log(`[CJ import] Updated existing product ${productId} for cj_pid=${cjProduct.pid}`);
+                return { success: true, productId };
+            }
+
+            // Fallback: try to find by source_metadata->>cj_pid
+            const { data: existing } = await supabase
+                .from("products")
+                .select("id")
+                .filter("source_metadata->>cj_pid", "eq", cjProduct.pid)
+                .maybeSingle();
+
+            if (existing?.id) {
+                const productId = existing.id as string;
+                const { error: updErr } = await supabase
+                    .from("products")
+                    .update({ ...mapped, status: "draft", is_active: false })
+                    .eq("id", productId);
+
+                if (updErr) {
+                    console.error(`[CJ import] Failed to update product by metadata ${productId}:`, updErr.message);
+                    return { success: false, error: updErr.message };
+                }
+
+                await supabase.from("cj_product_map").upsert({ cj_pid: cjProduct.pid, product_id: productId }, { onConflict: "cj_pid" });
+                console.log(`[CJ import] Reconciled product ${productId} for cj_pid=${cjProduct.pid}`);
+                return { success: true, productId };
+            }
+
+            // Insert new product as draft/inactive
+            // If no images were found, keep draft and log it
+            if (!mapped.images || mapped.images.length === 0) {
+                console.warn(`[CJ import] No images found for cj_pid=${cjProduct.pid}; importing as draft`);
+                mapped.status = "draft";
+                mapped.is_active = false;
+            }
+
+            const { data: inserted, error: insErr } = await supabase
+                .from("products")
+                .insert({ ...mapped })
+                .select("id")
+                .single();
+
+            if (insErr) {
+                console.error(`[CJ import] Failed to insert product cj_pid=${cjProduct.pid}:`, insErr.message);
+                return { success: false, error: insErr.message };
+            }
+
+            const productId = (inserted as { id: string } | null)?.id;
+            if (!productId) {
+                return { success: false, error: "Insert did not return id" };
+            }
+
+            // Ensure mapping exists
+            await supabase.from("cj_product_map").upsert({ cj_pid: cjProduct.pid, product_id: productId }, { onConflict: "cj_pid" });
+
+            console.log(`[CJ import] Inserted new product ${productId} for cj_pid=${cjProduct.pid}`);
+            return { success: true, productId };
+        } catch (e: any) {
+            const msg = e?.message ?? String(e);
+            console.error(`[CJ import] Unexpected DB error for cj_pid=${cjProduct.pid}:`, msg);
+            return { success: false, error: msg };
         }
-
-        const row = data as { id: string } | null;
-        return { success: true, productId: row?.id };
     } catch (err) {
         const message = err instanceof Error ? err.message : "Unknown error";
         return { success: false, error: message };
@@ -576,6 +644,17 @@ export async function syncCJProducts(
     exchangeRate: number,
     onProgress?: (current: number, total: number) => void
 ): Promise<SyncResult> {
+    // Safety guard: prevent automatic bulk imports unless explicitly enabled
+    if (process.env.CJ_AUTO_IMPORT_ENABLED !== "true") {
+        console.warn("[CJ sync] Automatic CJ bulk import disabled by CJ_AUTO_IMPORT_ENABLED");
+        return {
+            total: 0,
+            succeeded: 0,
+            failed: 0,
+            success: false,
+            error: [],
+        } as SyncResult;
+    }
     let syncLogId: string | null = null;
     try {
         const { data: logRow } = await supabase

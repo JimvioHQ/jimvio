@@ -157,6 +157,7 @@ async function resolveVariantRow(
                 .from("product_variants")
                 .update({ cj_vid: vid })
                 .eq("id", bySku.id);
+            console.log(`[CJ webhook] Backfilled cj_vid=${vid} for variant id=${bySku.id} via SKU match`);
             return { ...bySku, cj_vid: vid };
         }
     }
@@ -174,6 +175,7 @@ async function resolveVariantRow(
                 .from("product_variants")
                 .update({ cj_vid: vid })
                 .eq("id", byMeta.id);
+            console.log(`[CJ webhook] Backfilled cj_vid=${vid} for variant id=${byMeta.id} via source_metadata match`);
             return { ...byMeta, cj_vid: vid };
         }
     }

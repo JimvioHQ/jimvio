@@ -204,6 +204,12 @@ export async function POST(req: Request): Promise<Response> {
             );
 
             const incomingVids = detail.data.variants.map(v => v.vid);
+            // Log any variants missing vid for easier debugging
+            for (const v of variantRows) {
+                if (!v.cj_vid) {
+                    console.warn(`[CJ import] Variant missing cj_vid for product=${productId} sku=${v.sku}`);
+                }
+            }
             await supabase
                 .from("product_variants")
                 .delete()

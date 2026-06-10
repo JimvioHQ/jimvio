@@ -53,54 +53,84 @@ const BADGES = [
   { icon: Truck, title: "Fast Delivery", sub: "Worldwide shipping" },
 ];
 
-// ─── CategoryImage — image with emoji fallback ────────────────────────────────
+// ─── Category image map — local assets from category.zip ─────────────────────
+// Place all PNGs in: public/images/categories/
 
-function getCategoryEmoji(name: string): string {
+const CATEGORY_IMAGE_BASE = "/images/categories/";
+
+const CATEGORY_IMAGE_MAP: { keywords: string[]; file: string }[] = [
+  {
+    keywords: ["auto", "car", "vehicle", "motorcycle", "bike", "motor"],
+    file: "Automobiles & Motorcycles.png",
+  },
+  {
+    keywords: ["bag", "shoe", "sneaker", "backpack", "purse", "footwear", "boot", "sandal", "luggage"],
+    file: "Bags & Shoes.png",
+  },
+  {
+    keywords: ["computer", "office", "laptop", "pc", "printer", "stationery", "monitor", "keyboard", "mouse", "desk"],
+    file: "Computer & Office.png",
+  },
+  {
+    keywords: ["electron", "gadget", "tv", "television", "camera", "audio", "speaker", "smart", "wearable", "drone"],
+    file: "Consumer Electronics.png",
+  },
+  {
+    keywords: ["health", "beauty", "hair", "makeup", "cosmetic", "wellness", "skincare", "perfume", "fragrance", "nail"],
+    file: "Health, Beauty & Hair.png",
+  },
+  {
+    keywords: ["home improvement", "tool", "hardware", "diy", "repair", "drill", "saw", "plumbing", "electrical"],
+    file: "Home Improvement.png",
+  },
+  {
+    keywords: ["home", "garden", "furniture", "kitchen", "living", "household", "plant", "sofa", "cookware", "bedding", "decor", "lamp", "curtain"],
+    file: "Home, Garden & Furniture.png",
+  },
+  {
+    keywords: ["jewel", "watch", "ring", "earring", "necklace", "bracelet", "accessory", "pendant", "gemstone"],
+    file: "Jewelry & Watches.png",
+  },
+  {
+    keywords: ["men", "shirt", "jacket", "trouser", "pant", "coat", "outerwear", "suit", "hoodie", "sweatshirt"],
+    file: "Men's Clothing.png",
+  },
+  {
+    keywords: ["pet", "dog", "cat", "animal", "aquarium", "bird", "hamster"],
+    file: "Pet Supplies.png",
+  },
+  {
+    keywords: ["phone", "smartphone", "mobile", "tablet", "iphone", "android", "charger", "case", "screen protector"],
+    file: "Phones & Accessories.png",
+  },
+  {
+    keywords: ["sport", "fitness", "gym", "outdoor", "camping", "basketball", "soccer", "cycling", "running", "yoga", "hiking"],
+    file: "Sports & Outdoors.png",
+  },
+  {
+    keywords: ["toy", "kids", "children", "baby", "infant", "game", "puzzle", "doll", "lego"],
+    file: "Toys, Kids & Babies.png",
+  },
+  {
+    keywords: ["women", "dress", "tops", "blouse", "skirt", "fashion", "cloth", "wear", "leggings", "lingerie"],
+    file: "Women's Clothing.png",
+  },
+];
+
+/**
+ * Returns the best-matching local image path for a category name.
+ * Falls back to Consumer Electronics if nothing matches.
+ */
+function getCategoryImageSrc(name: string): string {
   const n = name.toLowerCase();
-  if (n.includes("electron")) return "⚡";
-  if (n.includes("phone") || n.includes("smartphone") || n.includes("mobile")) return "📱";
-  if (n.includes("tablet")) return "📱";
-  if (n.includes("laptop") || n.includes("computer")) return "💻";
-  if (n.includes("fashion") || n.includes("cloth") || n.includes("wear")) return "👗";
-  if (n.includes("shoe") || n.includes("sneaker") || n.includes("basketball shoe")) return "👟";
-  if (n.includes("jacket") || n.includes("coat") || n.includes("outerwear")) return "🧥";
-  if (n.includes("t-shirt") || n.includes("tee") || n.includes("tops")) return "👕";
-  if (n.includes("dress")) return "👗";
-  if (n.includes("pant") || n.includes("jean") || n.includes("trouser")) return "👖";
-  if (n.includes("cap") || n.includes("hat")) return "🧢";
-  if (n.includes("beauty") || n.includes("makeup") || n.includes("cosmetic")) return "💄";
-  if (n.includes("hair")) return "💇";
-  if (n.includes("health") || n.includes("wellness")) return "💊";
-  if (n.includes("home") || n.includes("living") || n.includes("household")) return "🏠";
-  if (n.includes("kitchen") || n.includes("cookware")) return "🍳";
-  if (n.includes("furniture") || n.includes("sofa")) return "🛋️";
-  if (n.includes("sport") || n.includes("fitness") || n.includes("gym")) return "⚽";
-  if (n.includes("basketball")) return "🏀";
-  if (n.includes("outdoor") || n.includes("camping")) return "🏕️";
-  if (n.includes("toy") || n.includes("kids") || n.includes("children")) return "🧸";
-  if (n.includes("baby")) return "🍼";
-  if (n.includes("auto") || n.includes("car") || n.includes("vehicle")) return "🚗";
-  if (n.includes("tool") || n.includes("hardware")) return "🔧";
-  if (n.includes("garden") || n.includes("plant")) return "🌱";
-  if (n.includes("office") || n.includes("stationery")) return "💼";
-  if (n.includes("book") || n.includes("ebook")) return "📚";
-  if (n.includes("gaming") || n.includes("game")) return "🎮";
-  if (n.includes("watch")) return "⌚";
-  if (n.includes("jewel") || n.includes("ring") || n.includes("earring") || n.includes("necklace")) return "💎";
-  if (n.includes("bag") || n.includes("backpack") || n.includes("purse")) return "👜";
-  if (n.includes("air condition") || n.includes("conditioning")) return "❄️";
-  if (n.includes("printer") || n.includes("3d")) return "🖨️";
-  if (n.includes("packaging")) return "📦";
-  if (n.includes("wool") || n.includes("blend")) return "🧶";
-  if (n.includes("course") || n.includes("education")) return "🎓";
-  if (n.includes("design") || n.includes("creative") || n.includes("template")) return "🎨";
-  if (n.includes("marketing")) return "📣";
-  if (n.includes("software") || n.includes("saas") || n.includes("ai")) return "💡";
-  if (n.includes("music") || n.includes("audio")) return "🎵";
-  return "🏷️";
+  const match = CATEGORY_IMAGE_MAP.find(({ keywords }) =>
+    keywords.some((kw) => n.includes(kw))
+  );
+  return `${CATEGORY_IMAGE_BASE}${match ? match.file : "Consumer Electronics.png"}`;
 }
 
-// Tint colors per category name for cards without tint_color set
+// ─── Tint colors per category name for cards without tint_color in DB ────────
+
 function getCategoryTint(name: string): string {
   const n = name.toLowerCase();
   if (n.includes("electron") || n.includes("phone") || n.includes("tablet") || n.includes("computer")) return "#eef6ff";
@@ -116,12 +146,19 @@ function getCategoryTint(name: string): string {
   if (n.includes("software") || n.includes("digital") || n.includes("ai")) return "#f0f0ff";
   if (n.includes("shoe") || n.includes("sneaker")) return "#fff0ee";
   if (n.includes("pant") || n.includes("cap") || n.includes("hat") || n.includes("jacket")) return "#f5faff";
+  if (n.includes("pet") || n.includes("dog") || n.includes("cat")) return "#f5fff0";
+  if (n.includes("men")) return "#f0f4ff";
+  if (n.includes("women")) return "#fff0f8";
   return "#f8f8f8";
 }
 
+// ─── CategoryCard ─────────────────────────────────────────────────────────────
+
 function CategoryCard({ c }: { c: DbCategory }) {
   const [imgErr, setImgErr] = useState(false);
-  const showImg = c.image_url && !imgErr;
+
+  // Priority: DB image_url → local mapped image
+  const imgSrc = c.image_url && !imgErr ? c.image_url : getCategoryImageSrc(c.name);
   const tintBg = c.tint_color ?? getCategoryTint(c.name);
 
   return (
@@ -134,20 +171,18 @@ function CategoryCard({ c }: { c: DbCategory }) {
         border: "1px solid var(--color-border)",
       }}
     >
-      {/* Image — large, right side */}
-      {showImg && (
-        <div className="absolute bottom-0 right-0 top-0 flex w-[60%] items-center justify-end">
-          <img
-            src={c.image_url!}
-            alt={c.name}
-            width={80}
-            height={80}
-            loading="lazy"
-            className="mr-2 h-16 w-16 object-contain drop-shadow-sm transition-transform duration-300 group-hover:scale-110"
-            onError={() => setImgErr(true)}
-          />
-        </div>
-      )}
+      {/* Image — large, right side — always shown */}
+      <div className="absolute bottom-0 right-0 top-0 flex w-[60%] items-center justify-end">
+        <img
+          src={imgSrc}
+          alt={c.name}
+          width={80}
+          height={80}
+          loading="lazy"
+          className="mr-2 h-16 w-16 object-contain drop-shadow-sm transition-transform duration-300 group-hover:scale-110"
+          onError={() => setImgErr(true)}
+        />
+      </div>
 
       {/* Text — bottom left, always above image */}
       <div className="relative z-10 p-2.5 pt-0">
@@ -167,46 +202,44 @@ function CategoryCard({ c }: { c: DbCategory }) {
   );
 }
 
-function CategoryImage({ name, imageUrl, size = "sm" }: {
+// ─── CategoryImage — used elsewhere (sidebar, etc.) ──────────────────────────
+
+function CategoryImage({
+  name,
+  imageUrl,
+  size = "sm",
+}: {
   name: string;
   imageUrl: string | null;
   size?: "sm" | "lg";
 }) {
   const [imgError, setImgError] = useState(false);
-  const emoji = getCategoryEmoji(name);
-  const isSvg = imageUrl?.endsWith(".svg");
-  const showImage = imageUrl && !imgError;
+
+  // Priority: DB image_url → local mapped image — no emoji fallback
+  const imgSrc = imageUrl && !imgError ? imageUrl : getCategoryImageSrc(name);
+  const isSvg = imgSrc.endsWith(".svg");
   const dim = size === "lg" ? 80 : 44;
-  const emojiCls = size === "lg" ? "text-5xl" : "text-2xl";
 
   return (
     <div
       className="flex shrink-0 items-center justify-center"
       style={{ width: dim, height: dim }}
     >
-      {showImage ? (
-        <img
-          src={imageUrl}
-          alt={name}
-          width={dim}
-          height={dim}
-          loading="lazy"
-          className="h-full w-full object-contain transition-transform group-hover:scale-105"
-          style={{ imageRendering: isSvg ? "auto" : undefined }}
-          onError={() => setImgError(true)}
-        />
-      ) : (
-        <span
-          className={`${emojiCls} leading-none transition-transform group-hover:scale-105 select-none`}
-          role="img"
-          aria-label={name}
-        >
-          {emoji}
-        </span>
-      )}
+      <img
+        src={imgSrc}
+        alt={name}
+        width={dim}
+        height={dim}
+        loading="lazy"
+        className="h-full w-full object-contain transition-transform group-hover:scale-105"
+        style={{ imageRendering: isSvg ? "auto" : undefined }}
+        onError={() => setImgError(true)}
+      />
     </div>
   );
 }
+
+// ─── MarketplacePageClient ────────────────────────────────────────────────────
 
 export function MarketplacePageClient({
   initialType,
@@ -227,7 +260,7 @@ export function MarketplacePageClient({
   const searchParams = useSearchParams();
 
   // Read type from URL, default to physical
-  const urlType = (searchParams.get("type") as ProductType | null);
+  const urlType = searchParams.get("type") as ProductType | null;
   const [type, setType] = useState<ProductType>(
     urlType === "digital" ? "digital" : urlType === "physical" ? "physical" : initialType
   );
@@ -239,6 +272,7 @@ export function MarketplacePageClient({
     params.set("type", t);
     router.replace(`/marketplace?${params.toString()}`, { scroll: false });
   }
+
   const [search, setSearch] = useState("");
   const [flashDeals, setFlashDeals] = useState<DbProduct[]>(initialFlashDeals);
   const [trending, setTrending] = useState<DbProduct[]>(initialTrending);
@@ -255,11 +289,12 @@ export function MarketplacePageClient({
     async function load() {
       setLoading(true);
 
-      const typeFilter = type === "digital"
-        ? (["digital", "course", "ebook", "software", "template", "coaching"] as const)
-        : (["physical"] as const);
+      const typeFilter =
+        type === "digital"
+          ? (["digital", "course", "ebook", "software", "template", "coaching"] as const)
+          : (["physical"] as const);
 
-      // Build shipping_from filter from sidebar
+      // Build filter flags from sidebar
       const hasShipping = filters.shippingFrom.length > 0;
       const hasDelivery = filters.deliveryTimes.length > 0;
       const hasPriceMax = filters.priceRange[1] < 5000;
@@ -338,6 +373,7 @@ export function MarketplacePageClient({
             .in("product_type", [...typeFilter])
         ),
       ]);
+
       console.log(deals);
       setFlashDeals((deals ?? []) as DbProduct[]);
       setTrending((trend ?? []) as DbProduct[]);
@@ -351,8 +387,12 @@ export function MarketplacePageClient({
 
   // ── Client-side search filter ─────────────────────────────────────────────
   const q = search.trim().toLowerCase();
-  const filteredTrending = q ? trending.filter((p) => p.name.toLowerCase().includes(q)) : trending;
-  const filteredDeals = q ? flashDeals.filter((p) => p.name.toLowerCase().includes(q)) : flashDeals;
+  const filteredTrending = q
+    ? trending.filter((p) => p.name.toLowerCase().includes(q))
+    : trending;
+  const filteredDeals = q
+    ? flashDeals.filter((p) => p.name.toLowerCase().includes(q))
+    : flashDeals;
 
   return (
     <div className="flex gap-4">
@@ -401,9 +441,18 @@ export function MarketplacePageClient({
         {/* ── Loading skeleton ── */}
         {loading && (
           <div className="flex flex-col gap-4">
-            <div className="h-12 animate-pulse rounded-2xl" style={{ background: "var(--color-surface)" }} />
-            <div className="h-48 animate-pulse rounded-2xl" style={{ background: "var(--color-surface)" }} />
-            <div className="h-32 animate-pulse rounded-2xl" style={{ background: "var(--color-surface)" }} />
+            <div
+              className="h-12 animate-pulse rounded-2xl"
+              style={{ background: "var(--color-surface)" }}
+            />
+            <div
+              className="h-48 animate-pulse rounded-2xl"
+              style={{ background: "var(--color-surface)" }}
+            />
+            <div
+              className="h-32 animate-pulse rounded-2xl"
+              style={{ background: "var(--color-surface)" }}
+            />
           </div>
         )}
 
@@ -415,18 +464,32 @@ export function MarketplacePageClient({
             {/* ── Trust badges ── */}
             <div
               className="flex flex-wrap items-center gap-2 rounded-xl p-2.5"
-              style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", boxShadow: "var(--shadow-sm)" }}
+              style={{
+                background: "var(--color-surface)",
+                border: "1px solid var(--color-border)",
+                boxShadow: "var(--shadow-sm)",
+              }}
             >
               {BADGES.map((b) => (
                 <div key={b.title} className="flex min-w-[140px] flex-1 items-center gap-2.5">
                   <b.icon className="size-5 shrink-0" style={{ color: "var(--color-accent)" }} />
                   <div>
-                    <div className="text-xs font-bold leading-tight" style={{ color: "var(--color-text-primary)" }}>{b.title}</div>
-                    <div className="text-[10px]" style={{ color: "var(--color-text-muted)" }}>{b.sub}</div>
+                    <div
+                      className="text-xs font-bold leading-tight"
+                      style={{ color: "var(--color-text-primary)" }}
+                    >
+                      {b.title}
+                    </div>
+                    <div className="text-[10px]" style={{ color: "var(--color-text-muted)" }}>
+                      {b.sub}
+                    </div>
                   </div>
                 </div>
               ))}
-              <div className="hidden items-center gap-1.5 border-l pl-3 xl:flex" style={{ borderColor: "var(--color-border)" }}>
+              <div
+                className="hidden items-center gap-1.5 border-l pl-3 xl:flex"
+                style={{ borderColor: "var(--color-border)" }}
+              >
                 <DollarSign className="size-4" style={{ color: "var(--color-accent)" }} />
                 <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>
                   Revenue today:{" "}
@@ -435,10 +498,16 @@ export function MarketplacePageClient({
                   </b>
                 </span>
               </div>
-              <div className="hidden items-center gap-1.5 border-l pl-3 xl:flex" style={{ borderColor: "var(--color-border)" }}>
+              <div
+                className="hidden items-center gap-1.5 border-l pl-3 xl:flex"
+                style={{ borderColor: "var(--color-border)" }}
+              >
                 <Users className="size-4" style={{ color: "var(--color-accent)" }} />
                 <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>
-                  <b className="font-bold" style={{ color: "var(--color-text-primary)" }}>{stats.creators_active}</b> creators active
+                  <b className="font-bold" style={{ color: "var(--color-text-primary)" }}>
+                    {stats.creators_active}
+                  </b>{" "}
+                  creators active
                 </span>
               </div>
             </div>
@@ -446,11 +515,17 @@ export function MarketplacePageClient({
             {/* ── Flash Deals — always shown, falls back to top products ── */}
             <section
               className="overflow-hidden rounded-2xl"
-              style={{ border: "1px solid var(--color-border)", background: "var(--color-surface)", boxShadow: "var(--shadow-sm)" }}
+              style={{
+                border: "1px solid var(--color-border)",
+                background: "var(--color-surface)",
+                boxShadow: "var(--shadow-sm)",
+              }}
             >
               <div
                 className="flex items-center justify-between px-4 py-2 text-white"
-                style={{ background: "linear-gradient(90deg, var(--color-accent) 0%, #ff8c00 100%)" }}
+                style={{
+                  background: "linear-gradient(90deg, var(--color-accent) 0%, #ff8c00 100%)",
+                }}
               >
                 <div className="flex items-center gap-2">
                   <Zap className="size-4 fill-current" />
@@ -461,7 +536,10 @@ export function MarketplacePageClient({
                 </div>
                 <div className="flex items-center gap-4">
                   <FlashDealsCountdown />
-                  <button type="button" className="flex items-center gap-1 text-xs font-semibold text-white/90 hover:text-white">
+                  <button
+                    type="button"
+                    className="flex items-center gap-1 text-xs font-semibold text-white/90 hover:text-white"
+                  >
                     View All Deals <ChevronRight className="size-3.5" />
                   </button>
                 </div>
@@ -469,15 +547,16 @@ export function MarketplacePageClient({
               <div className="p-2">
                 {filteredDeals.length > 0 ? (
                   <FlashDealsClient deals={filteredDeals} />
-                ) : (
+                ) : filteredTrending.length > 0 ? (
                   /* Fallback — show top trending as deals when no flash deals set */
-                  filteredTrending.length > 0 ? (
-                    <FlashDealsClient deals={filteredTrending.slice(0, 12)} />
-                  ) : (
-                    <p className="py-6 text-center text-xs" style={{ color: "var(--color-text-muted)" }}>
-                      No deals available right now — check back soon
-                    </p>
-                  )
+                  <FlashDealsClient deals={filteredTrending.slice(0, 12)} />
+                ) : (
+                  <p
+                    className="py-6 text-center text-xs"
+                    style={{ color: "var(--color-text-muted)" }}
+                  >
+                    No deals available right now — check back soon
+                  </p>
                 )}
               </div>
             </section>
@@ -487,12 +566,17 @@ export function MarketplacePageClient({
               <section>
                 <div className="mb-2 flex items-center gap-2">
                   <h2 className="text-lg font-black">Shop by Category</h2>
-                  <button className="text-xs font-semibold" style={{ color: "var(--color-accent)" }}>
+                  <button
+                    className="text-xs font-semibold"
+                    style={{ color: "var(--color-accent)" }}
+                  >
                     Explore top categories
                   </button>
                 </div>
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
-                  {categories.map((c) => <CategoryCard key={c.id} c={c} />)}
+                  {categories.map((c) => (
+                    <CategoryCard key={c.id} c={c} />
+                  ))}
                 </div>
               </section>
             )}
@@ -526,9 +610,15 @@ export function MarketplacePageClient({
               {filteredTrending.length === 0 ? (
                 <div
                   className="rounded-xl border-dashed px-6 py-12 text-center"
-                  style={{ border: "1px dashed var(--color-border)", background: "var(--color-surface-secondary)" }}
+                  style={{
+                    border: "1px dashed var(--color-border)",
+                    background: "var(--color-surface-secondary)",
+                  }}
                 >
-                  <p className="text-sm font-semibold" style={{ color: "var(--color-text-secondary)" }}>
+                  <p
+                    className="text-sm font-semibold"
+                    style={{ color: "var(--color-text-secondary)" }}
+                  >
                     No products match your filters
                   </p>
                   <p className="mt-1 text-xs" style={{ color: "var(--color-text-muted)" }}>

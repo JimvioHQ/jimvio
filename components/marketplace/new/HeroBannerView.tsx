@@ -150,6 +150,7 @@ export function HeroBannerView({ physical, digital, initialType = "physical" }: 
   const { formatMoney } = useCurrency();
   const product = products[activeIdx];
   const currency = product.currency ?? "USD";
+  
   const image = getImage(product.images);
   const rawName = product.name ?? "";
   const rawDesc = product.short_description ?? "";
@@ -175,8 +176,7 @@ export function HeroBannerView({ physical, digital, initialType = "physical" }: 
     >
       {/* ── Ambient glow ── */}
       <div className="pointer-events-none absolute inset-0" style={{ background: theme.glow }} />
-
-      {/* ── Product image — right half, object-contain, no crop ── */}
+      
       <div className="absolute top-0 right-0 bottom-0" style={{ width: "52%", zIndex: 1 }}>
         {image ? (
           <>
@@ -275,7 +275,7 @@ export function HeroBannerView({ physical, digital, initialType = "physical" }: 
 
           {/* Rating */}
           {product.rating && product.rating > 0 && (
-            <div className="flex items-center gap-0.5">
+            <div className="flex  items-center gap-0.5">
               {Array.from({ length: 5 }).map((_, i) => (
                 <Star
                   key={i}
@@ -286,7 +286,7 @@ export function HeroBannerView({ physical, digital, initialType = "physical" }: 
                   }}
                 />
               ))}
-              <span className="ml-1 text-[11px] font-bold" style={{ color: theme.price }}>
+              <span className="ml-1 text-[11px] hidden font-bold" style={{ color: theme.price }}>
                 {product.rating.toFixed(1)}
               </span>
               {product.review_count && product.review_count > 0 && (
@@ -314,9 +314,9 @@ export function HeroBannerView({ physical, digital, initialType = "physical" }: 
 
           {/* Price */}
           <div className="flex flex-wrap items-baseline gap-2">
-            <span className="text-2xl font-black" style={{ color: theme.price }}>{price}</span>
+            <span className="text-2xl font-black" style={{ color: theme.price }}>{price} {product.currency}</span>
             {oldPrice && (
-              <span className="text-sm line-through" style={{ color: theme.strikeout }}>{oldPrice}</span>
+              <span className="text-sm line-through" style={{ color: theme.strikeout }}>{oldPrice} {product.currency}</span>
             )}
             {discount && (
               <span

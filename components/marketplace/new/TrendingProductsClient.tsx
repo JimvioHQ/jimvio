@@ -484,7 +484,7 @@ function ProductCard({
         <div className="flex items-center justify-between">
           <span
             className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-semibold ${isVerifiedSupplier
-              ? "bg-emerald-50 text-emerald-700"
+              ? "bg-blue-50 text-blue-600"
               : "bg-zinc-100 text-zinc-700"
               }`}
           >

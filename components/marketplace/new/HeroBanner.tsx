@@ -10,7 +10,7 @@ const DIGITAL_TYPES = [
 ] as const;
 
 const HERO_SELECT = `
-  id, name, slug, price, compare_at_price, discount_label,
+  id, name, slug, price,currency, compare_at_price, discount_label,
   images, short_description, affiliate_commission_rate,
   sale_count, claimed_pct, product_type, rating, review_count,
   is_featured, is_flash_deal

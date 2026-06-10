@@ -7,6 +7,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { useCurrency } from "@/context/CurrencyContext";
 import { Slider } from "@/components/ui/slider";
 import CustomSelect from "@/components/ui/select-2";
 import { useMarketplace } from "./marketplace-context";
@@ -48,6 +49,110 @@ function fmtCount(n: number | null | undefined): string {
   return String(n);
 }
 
+// ─── Skeleton components ──────────────────────────────────────────────────────
+
+function SkeletonRow({ width = "full" }: { width?: "full" | "3/4" | "2/3" | "1/2" }) {
+  const widthClass = {
+    full: "w-full",
+    "3/4": "w-3/4",
+    "2/3": "w-2/3",
+    "1/2": "w-1/2",
+  }[width];
+  return (
+    <div
+      className={`h-4 ${widthClass} animate-pulse rounded-md`}
+      style={{ background: "var(--color-border)" }}
+    />
+  );
+}
+
+function CategorySkeleton() {
+  const widths: Array<"full" | "3/4" | "2/3" | "1/2"> = ["full", "3/4", "full", "2/3", "3/4", "full", "1/2", "2/3"];
+  return (
+    <div className="flex flex-col gap-2">
+      {/* Fake select box */}
+      <div
+        className="h-8 w-full animate-pulse rounded-md"
+        style={{ background: "var(--color-border)" }}
+      />
+      <div className="mt-1 flex flex-col gap-1.5">
+        {widths.map((w, i) => (
+          <div key={i} className="flex items-center gap-2">
+            <div
+              className="size-3.5 shrink-0 animate-pulse rounded"
+              style={{ background: "var(--color-border)", animationDelay: `${i * 60}ms` }}
+            />
+            <div
+              className={`h-3 ${w === "full" ? "w-full" : w === "3/4" ? "w-3/4" : w === "2/3" ? "w-2/3" : "w-1/2"} animate-pulse rounded`}
+              style={{ background: "var(--color-border)", animationDelay: `${i * 60}ms` }}
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function FilterSkeleton() {
+  return (
+    <div className="flex flex-col gap-4">
+      {/* Shipping section */}
+      <div className="flex flex-col gap-2">
+        <div className="h-3 w-1/3 animate-pulse rounded" style={{ background: "var(--color-border)" }} />
+        <div className="flex flex-col gap-1.5">
+          {["full", "3/4", "2/3", "full", "1/2"].map((w, i) => (
+            <div key={i} className="flex items-center gap-2" style={{ animationDelay: `${i * 50}ms` }}>
+              <div className="size-3.5 shrink-0 animate-pulse rounded" style={{ background: "var(--color-border)" }} />
+              <div
+                className={`h-3 animate-pulse rounded ${w === "full" ? "w-full" : w === "3/4" ? "w-3/4" : w === "2/3" ? "w-2/3" : "w-1/2"}`}
+                style={{ background: "var(--color-border)" }}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Price range section */}
+      <div className="flex flex-col gap-2">
+        <div className="h-3 w-1/4 animate-pulse rounded" style={{ background: "var(--color-border)" }} />
+        <div className="h-2 w-full animate-pulse rounded-full" style={{ background: "var(--color-border)" }} />
+        <div className="flex justify-between">
+          <div className="h-3 w-6 animate-pulse rounded" style={{ background: "var(--color-border)" }} />
+          <div className="h-3 w-10 animate-pulse rounded" style={{ background: "var(--color-border)" }} />
+        </div>
+      </div>
+
+      {/* Delivery section */}
+      <div className="flex flex-col gap-2">
+        <div className="h-3 w-2/5 animate-pulse rounded" style={{ background: "var(--color-border)" }} />
+        {["full", "3/4", "2/3"].map((w, i) => (
+          <div key={i} className="flex items-center gap-2">
+            <div className="size-3.5 shrink-0 animate-pulse rounded" style={{ background: "var(--color-border)" }} />
+            <div
+              className={`h-3 animate-pulse rounded ${w === "full" ? "w-full" : w === "3/4" ? "w-3/4" : "w-2/3"}`}
+              style={{ background: "var(--color-border)" }}
+            />
+          </div>
+        ))}
+      </div>
+
+      {/* Rating section */}
+      <div className="flex flex-col gap-2">
+        <div className="h-3 w-1/3 animate-pulse rounded" style={{ background: "var(--color-border)" }} />
+        {[0, 1].map((i) => (
+          <div key={i} className="flex items-center gap-2">
+            <div className="size-3.5 shrink-0 animate-pulse rounded" style={{ background: "var(--color-border)" }} />
+            <div className="h-3 w-16 animate-pulse rounded" style={{ background: "var(--color-border)" }} />
+          </div>
+        ))}
+      </div>
+
+      {/* Apply button skeleton */}
+      <div className="h-8 w-full animate-pulse rounded-lg" style={{ background: "var(--color-border)" }} />
+    </div>
+  );
+}
+
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
@@ -70,12 +175,12 @@ function CheckRow({
     <button
       type="button"
       onClick={onToggle}
-      className="flex w-full items-center justify-between py-0.5 text-xs"
+      className="flex w-full items-center justify-between rounded-md px-1.5 py-1 text-xs transition-colors hover:bg-black/5"
       style={{ color: "var(--color-text-secondary)" }}
     >
       <span className="flex items-center gap-1.5">
         <span
-          className="grid size-3.5 shrink-0 place-items-center rounded"
+          className="grid size-3.5 shrink-0 place-items-center rounded transition-all"
           style={{
             background: checked ? "var(--color-accent)" : "transparent",
             border: checked ? "none" : "1px solid var(--color-border-strong)",
@@ -87,16 +192,15 @@ function CheckRow({
         <span className="truncate">{label}</span>
       </span>
       {count && (
-        <span className="ml-1 shrink-0 text-[10px]" style={{ color: "var(--color-text-muted)" }}>
+        <span
+          className="ml-1 shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-semibold"
+          style={{ background: "var(--color-border)", color: "var(--color-text-muted)" }}
+        >
           {count}
         </span>
       )}
     </button>
   );
-}
-
-function SkeletonRow() {
-  return <div className="h-4 animate-pulse rounded" style={{ background: "var(--color-border)" }} />;
 }
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -114,6 +218,7 @@ export function Sidebar({ type = "physical" }: Props) {
     setPriceRange, setMinRating, applyFilters, clearFilters,
   } = useMarketplace();
 
+  const { formatMoney } = useCurrency();
   const [aiQuery, setAiQuery] = useState("");
   const [sidebarCategories, setSidebarCategories] = useState<SidebarCategory[]>([]);
   const [shippingCounts, setShippingCounts] = useState<ShippingCount[]>([]);
@@ -129,7 +234,6 @@ export function Sidebar({ type = "physical" }: Props) {
       setLoadingCats(true);
       const typeFilter = type === "digital" ? [...DIGITAL_TYPES] : [...PHYSICAL_TYPES];
 
-      // Get category IDs that have products of this type
       const { data: catIds } = await supabase
         .from("products")
         .select("category_id")
@@ -160,7 +264,7 @@ export function Sidebar({ type = "physical" }: Props) {
       setLoadingCats(false);
     }
     load();
-  }, [type]); // re-fetch when type changes
+  }, [type]);
 
   // ── Filter counts filtered by product type ────────────────────────────────
   useEffect(() => {
@@ -200,7 +304,7 @@ export function Sidebar({ type = "physical" }: Props) {
       setLoadingFilters(false);
     }
     load();
-  }, [type]); // re-fetch when type changes
+  }, [type]);
 
   const shippingItems = shippingCounts.slice(0, 5).map((s) => ({
     name: s.shipping_from, count: fmtCount(s.count),
@@ -235,13 +339,12 @@ export function Sidebar({ type = "physical" }: Props) {
 
         {/* ── Categories ── */}
         <div
-          className="rounded-xl p-3"
+          className="rounded-md p-3"
           style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}
         >
-          <div className="mb-2 flex items-center justify-between">
+          <div className="mb-2.5 flex items-center justify-between">
             <span className="text-xs font-black" style={{ color: "var(--color-text-primary)" }}>
               Categories
-              {/* Type indicator */}
               <span
                 className="ml-1.5 rounded-full px-1.5 py-0.5 text-[9px] font-bold text-white"
                 style={{ background: type === "digital" ? "#7c3aed" : "var(--color-accent)" }}
@@ -259,13 +362,14 @@ export function Sidebar({ type = "physical" }: Props) {
           </div>
 
           {loadingCats ? (
-            <div className="flex flex-col gap-1">
-              {Array.from({ length: 8 }).map((_, i) => <SkeletonRow key={i} />)}
-            </div>
+            <CategorySkeleton />
           ) : (
             <div>
               <CustomSelect
-                options={allCategories.map((c) => ({ label: c.product_count ? `${c.name} (${fmtCount(c.product_count)})` : c.name, value: c.name }))}
+                options={allCategories.map((c) => ({
+                  label: c.product_count ? `${c.name} (${fmtCount(c.product_count)})` : c.name,
+                  value: c.name,
+                }))}
                 value={filters.category ?? null}
                 onChange={(v) => setCategory(v)}
                 placeholder="Select category"
@@ -273,9 +377,8 @@ export function Sidebar({ type = "physical" }: Props) {
                 isClearable
                 textSize="sm"
               />
-
-              {!loadingCats && sidebarCategories.length === 0 && (
-                <div className="py-2 text-center text-[10px]" style={{ color: "var(--color-text-muted)" }}>
+              {sidebarCategories.length === 0 && (
+                <div className="mt-2 rounded-md py-3 text-center text-[10px]" style={{ color: "var(--color-text-muted)", background: "var(--color-surface-secondary)" }}>
                   No {type} categories yet
                 </div>
               )}
@@ -285,20 +388,22 @@ export function Sidebar({ type = "physical" }: Props) {
 
         {/* ── Filters ── */}
         <div
-          className="rounded-xl p-3"
+          className="rounded-md p-3"
           style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}
         >
-          <div className="mb-2 flex items-center justify-between">
+          <div className="mb-2.5 flex items-center justify-between">
             <span className="text-xs font-black" style={{ color: "var(--color-text-primary)" }}>Filters</span>
-            <button onClick={clearFilters} className="text-[10px] font-semibold" style={{ color: "var(--color-accent)" }}>
+            <button
+              onClick={clearFilters}
+              className="rounded-full px-2 py-0.5 text-[10px] font-semibold transition-colors hover:opacity-80"
+              style={{ color: "var(--color-accent)", background: "var(--color-border)" }}
+            >
               Clear All
             </button>
           </div>
 
           {loadingFilters ? (
-            <div className="flex flex-col gap-1.5">
-              {Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} />)}
-            </div>
+            <FilterSkeleton />
           ) : (
             <div className="flex flex-col gap-3">
 
@@ -324,17 +429,22 @@ export function Sidebar({ type = "physical" }: Props) {
               <div>
                 <SectionLabel>Price Range</SectionLabel>
                 <Slider
-                  min={0} max={type === "digital" ? 500 : 5000} step={type === "digital" ? 5 : 50}
+                  min={0}
+                  max={type === "digital" ? 500 : 5000}
+                  step={type === "digital" ? 5 : 50}
                   value={[pending.priceRange[1]]}
                   onValueChange={(v) => setPriceRange([0, v[0] ?? 5000])}
                   className="py-1"
                 />
-                <div className="mt-1 flex justify-between text-[10px]" style={{ color: "var(--color-text-muted)" }}>
-                  <span>$0</span>
-                  <span>
-                    ${pending.priceRange[1] >= (type === "digital" ? 500 : 5000)
-                      ? (type === "digital" ? "500+" : "5000+")
-                      : pending.priceRange[1]}
+                <div
+                  className="mt-1.5 flex justify-between rounded-md px-2 py-1 text-[10px] font-semibold"
+                  style={{ background: "var(--color-surface-secondary)", color: "var(--color-text-muted)" }}
+                >
+                  <span>{formatMoney(0, "USD")}</span>
+                  <span style={{ color: "var(--color-text-primary)" }}>
+                    {pending.priceRange[1] >= (type === "digital" ? 500 : 5000)
+                      ? `${formatMoney(type === "digital" ? 500 : 5000, "USD")}+`
+                      : formatMoney(pending.priceRange[1], "USD")}
                   </span>
                 </div>
               </div>
@@ -357,7 +467,7 @@ export function Sidebar({ type = "physical" }: Props) {
                 </div>
               )}
 
-              {/* Rating — shown for both, more relevant for digital */}
+              {/* Rating */}
               <div>
                 <SectionLabel>
                   {type === "digital" ? "Product Rating" : "Supplier Rating"}
@@ -380,8 +490,9 @@ export function Sidebar({ type = "physical" }: Props) {
           <button
             type="button"
             onClick={applyFilters}
-            className="mt-3 w-full rounded-lg py-2 text-xs font-bold text-white transition-opacity hover:opacity-90"
+            className="mt-3 w-full rounded-lg py-2 text-xs font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
             style={{ background: "var(--color-accent)" }}
+            disabled={loadingFilters}
           >
             Apply Filters
           </button>
@@ -389,7 +500,7 @@ export function Sidebar({ type = "physical" }: Props) {
 
         {/* ── AI Shopping Assistant ── */}
         <div
-          className="rounded-xl p-3"
+          className="rounded-md p-3"
           style={{
             background: type === "digital"
               ? "linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)"
@@ -399,16 +510,19 @@ export function Sidebar({ type = "physical" }: Props) {
           <div className="mb-1 flex items-center gap-1.5">
             <Sparkles className="size-3.5 text-white" />
             <span className="text-xs font-black text-white">AI Shopping Assistant</span>
-            <span className="rounded-full bg-white/20 px-1 py-0.5 text-[8px] font-bold text-white">Beta</span>
+            <span className="rounded-full bg-white/20 px-1.5 py-0.5 text-[8px] font-bold text-white">Beta</span>
           </div>
-          <p className="mb-2 text-[10px] text-white/75">
+          <p className="mb-2.5 text-[10px] leading-relaxed text-white/75">
             {type === "digital"
               ? "Find top digital products, courses and tools."
               : "Find winning products, trending items and profitable opportunities."}
           </p>
           <form
-            className="flex items-center gap-1.5 rounded-lg bg-white/15 px-2.5 py-1.5"
-            onSubmit={(e) => { e.preventDefault(); if (aiQuery.trim()) { setCategory("Trending Now"); setAiQuery(""); } }}
+            className="flex items-center gap-1.5 rounded-lg bg-white/15 px-2.5 py-1.5 ring-1 ring-white/10 focus-within:ring-white/30 transition-all"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (aiQuery.trim()) { setCategory("Trending Now"); setAiQuery(""); }
+            }}
           >
             <input
               value={aiQuery}
@@ -416,11 +530,14 @@ export function Sidebar({ type = "physical" }: Props) {
               placeholder={type === "digital" ? "Find digital products..." : "Ask AI anything..."}
               className="w-full bg-transparent text-[11px] text-white outline-none placeholder:text-white/55"
             />
-            <button type="submit">
+            <button
+              type="submit"
+              className="rounded p-0.5 transition-colors hover:bg-white/20"
+            >
               <Send className="size-3 text-white" />
             </button>
           </form>
-          <div className="mt-2 flex flex-wrap gap-1 text-[9px] font-semibold">
+          <div className="mt-2.5 flex flex-wrap gap-1 text-[9px] font-semibold">
             {(type === "digital"
               ? ["Top courses", "AI tools", "Templates"]
               : ["Winning products", "Viral now", "High commission"]
@@ -429,7 +546,7 @@ export function Sidebar({ type = "physical" }: Props) {
                 key={t}
                 type="button"
                 onClick={() => setCategory("Trending Now")}
-                className="rounded-full bg-white/15 px-2 py-0.5 text-white hover:bg-white/25"
+                className="rounded-full bg-white/15 px-2 py-0.5 text-white transition-colors hover:bg-white/30"
               >
                 {t}
               </button>
@@ -439,10 +556,10 @@ export function Sidebar({ type = "physical" }: Props) {
 
         {/* ── Elite Club ── */}
         <div
-          className="rounded-xl p-3"
+          className="rounded-md p-3"
           style={{ background: "var(--color-surface-secondary)", border: "1px solid var(--color-border)" }}
         >
-          <div className="mb-1.5 flex items-center gap-1.5">
+          <div className="mb-2 flex items-center gap-1.5">
             <Crown className="size-3.5" style={{ color: "var(--color-accent)" }} />
             <span className="text-xs font-black" style={{ color: "var(--color-text-primary)" }}>
               Jimvio Elite Club
@@ -454,10 +571,14 @@ export function Sidebar({ type = "physical" }: Props) {
               New
             </span>
           </div>
-          <ul className="mb-2 space-y-0.5 text-[10px]" style={{ color: "var(--color-text-secondary)" }}>
+          <ul className="mb-3 space-y-1 text-[10px]" style={{ color: "var(--color-text-secondary)" }}>
             {["Exclusive perks", "Higher commissions", "VIP support"].map((item) => (
               <li key={item} className="flex items-center gap-1.5">
-                <span style={{ color: "var(--color-accent)" }}>★</span> {item}
+                <span
+                  className="size-1.5 shrink-0 rounded-full"
+                  style={{ background: "var(--color-accent)" }}
+                />
+                {item}
               </li>
             ))}
           </ul>
