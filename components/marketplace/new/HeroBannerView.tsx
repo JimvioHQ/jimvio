@@ -137,7 +137,7 @@ export function HeroBannerView({ physical, digital, initialType = "physical" }: 
 
   const [activeIdx, setActiveIdx] = useState(0);
 
-  useEffect(() => { setActiveIdx(0); }, [typeKey]);
+  useEffect(() => { setActiveIdx(0); }, [typeKey, products.length]);
 
   useEffect(() => {
     if (products.length <= 1) return;
@@ -148,7 +148,8 @@ export function HeroBannerView({ physical, digital, initialType = "physical" }: 
   if (products.length === 0) return null;
 
   const { formatMoney } = useCurrency();
-  const product = products[activeIdx];
+  const safeActiveIdx = Math.min(activeIdx, products.length - 1);
+  const product = products[safeActiveIdx];
   const currency = product.currency ?? "USD";
   
   const image = getImage(product.images);

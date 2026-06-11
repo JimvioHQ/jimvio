@@ -902,20 +902,34 @@ async function submitCJItemsIfPresent(
     return;
   }
 
-  const lines = cjItems.map((item) => {
+  const lines: Array<{ vid: string; quantity: number; shippingName: string }> = [];
+  const invalidCJItemIds: string[] = [];
+
+  for (const item of cjItems) {
     const cjVid =
       (item.source_metadata?.cj_vid as string | undefined) ??
       (item.source_metadata?.vid as string | undefined) ??
       null;
 
     if (!cjVid) {
-      throw new Error(
-        `[CJ] Order item ${item.id} is source=cj but has no cj_vid in source_metadata.`
-      );
+      invalidCJItemIds.push(item.id);
+      continue;
     }
 
-    return { vid: cjVid, quantity: item.quantity, shippingName: shippingMethod };
-  });
+    lines.push({ vid: cjVid, quantity: item.quantity, shippingName: shippingMethod });
+  }
+
+  if (invalidCJItemIds.length > 0) {
+    console.warn(
+      `[CJ] Order ${orderId} has ${invalidCJItemIds.length} CJ items without cj_vid. ` +
+      `Skipping item IDs: ${invalidCJItemIds.join(", ")}`
+    );
+  }
+
+  if (lines.length === 0) {
+    console.warn(`[CJ] Order ${orderId} has no valid CJ line items to submit. Skipping CJ submission.`);
+    return;
+  }
 
   const sa = order.shipping_address;
   const profile = order.profiles;

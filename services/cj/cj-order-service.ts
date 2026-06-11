@@ -141,18 +141,6 @@ async function cjGet<T>(
   return json.data as T;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// SHIPPING OPTIONS
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * Fetch available shipping options for a set of CJ variants going to a country.
- *
- * Call this at checkout so the buyer can pick their preferred shipping method.
- * Store the chosen `logisticName` on the order and pass it to `submitOrderToCJ`.
- *
- * CJ endpoint: POST /logistic/freightCalculate
- */
 export async function getCJShippingOptions(params: {
   countryCode: string;
   
@@ -237,10 +225,11 @@ export async function submitOrderToCJ(params: {
     shippingCustomerName: shippingAddress.name,
     shippingPhone: shippingAddress.phone,
     remark: remark ?? "",
+    logisticName: normalizeCJShippingName(lines[0]?.shippingName),
     products: lines.map((l) => ({
       vid: l.vid,
       quantity: l.quantity,
-      shippingName: normalizeCJShippingName(l.shippingName),
+      logisticName: normalizeCJShippingName(l.shippingName),
     })),
   };
 
@@ -329,24 +318,16 @@ const CJ_STATUS_MAP: Record<string, string> = {
   CANCELLED:  "cancelled",
 };
 
-/**
- * Poll CJ for the current status of one order and sync it back to Supabase.
- *
- * Called by your cj-sync-fulfillment edge function (cron or webhook handler).
- *
- * CJ endpoint: GET /shopping/order/getOrderDetail
- */
+
 export async function syncCJOrderStatus(params: {
-  /** Your internal Jimvio order ID */
   orderId: string;
-  /** The CJ order ID stored in orders.cj_order_id */
   cjOrderId: string;
 }): Promise<{ updated: boolean; newStatus?: string }> {
   const { orderId, cjOrderId } = params;
   const token = await getValidToken();
   const supabase = createServiceRoleClient();
 
-  // ── Fetch current state of the order from your DB ───────────────────────────
+
   const { data: order, error: fetchErr } = await supabase
     .from("orders")
     .select("status, cj_fulfillment_status, tracking_number")

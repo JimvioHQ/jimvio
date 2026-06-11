@@ -93,7 +93,7 @@ function FlashDealCard({ d }: { d: DbProduct }) {
       )}
       {earn && (
         <div className="mt-2 flex items-center justify-center gap-1 rounded-md bg-accent/10 py-1 text-[11px] font-bold text-accent">
-          <DollarSign className="size-3" /> {earn}
+          {earn}
         </div>
       )}
     </Link>

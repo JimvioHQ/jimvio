@@ -19,7 +19,6 @@ import { ReviewForm } from "@/components/marketplace/review-form";
 import { ImageGallery } from "@/components/marketplace/image-gallery";
 import {
   VariantSelector,
-  VariantStockBadge,
   type ProductVariant,
 } from "@/components/marketplace/variant-selector";
 import { useCurrency } from "@/context/CurrencyContext";
@@ -429,21 +428,15 @@ function SocialProofActivityFeed({
   recentActivity?: ActivityEvent[];
 }) {
   const items = useMemo(() => {
-    if (recentActivity && recentActivity.length > 0) {
-      return recentActivity.slice(0, 3).map((e, i) => ({
-        initial: e.city[0],
-        name: ACTIVITY_AVATARS[i % ACTIVITY_AVATARS.length].name,
-        city: e.city,
-        country: "",
-        action: FAKE_ACTION_LABELS[e.action] ?? "viewed this",
-        time: `${Math.floor((Date.now() - e.timestamp) / 60000) || 1} mins ago`,
-        color: ACTIVITY_AVATARS[i % ACTIVITY_AVATARS.length].color,
-      }));
-    }
-    return ACTIVITY_AVATARS.map((a, i) => ({
-      ...a,
-      action: "purchased this product",
-      time: `${(i + 1) * 2} mins ago`,
+    if (!recentActivity || recentActivity.length === 0) return [];
+    return recentActivity.slice(0, 3).map((e, i) => ({
+      initial: e.city?.[0] ?? "U",
+      name: e.action === "purchased" ? "Purchased" : e.action === "added_to_cart" ? "Added to cart" : "Viewed",
+      city: e.city,
+      country: "",
+      action: FAKE_ACTION_LABELS[e.action] ?? "viewed this",
+      time: `${Math.floor((Date.now() - e.timestamp) / 60000) || 1} mins ago`,
+      color: ACTIVITY_AVATARS[i % ACTIVITY_AVATARS.length].color,
     }));
   }, [recentActivity]);
 
@@ -456,26 +449,32 @@ function SocialProofActivityFeed({
         </span>
       </div>
       <div className="rounded-lg overflow-hidden" style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
-        <div className="divide-y divide-[var(--color-border)]">
-          {items.map((item, i) => (
-            <div key={i} className="flex items-center gap-2.5 px-3 py-2.5">
-              <div
-                className="h-8 w-8 rounded-full flex items-center justify-center text-white text-[11px] font-bold shrink-0 shadow-sm"
-                style={{ background: item.color }}
-              >
-                {item.initial}
+        {items.length > 0 ? (
+          <div className="divide-y divide-[var(--color-border)]">
+            {items.map((item, i) => (
+              <div key={i} className="flex items-center gap-2.5 px-3 py-2.5">
+                <div
+                  className="h-8 w-8 rounded-full flex items-center justify-center text-white text-[11px] font-bold shrink-0 shadow-sm"
+                  style={{ background: item.color }}
+                >
+                  {item.initial}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[12px] leading-tight">
+                    <strong className="text-[var(--color-text-primary)]">{item.name}</strong>{" "}
+                    <span className="text-[var(--color-text-muted)]">from {item.city}</span>
+                  </p>
+                  <p className="text-[11px] text-[var(--color-text-muted)] mt-0.5">{item.action}</p>
+                </div>
+                <span className="text-[11px] text-[var(--color-text-muted)] shrink-0 tabular-nums">{item.time}</span>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-[12px] leading-tight">
-                  <strong className="text-[var(--color-text-primary)]">{item.name}</strong>{" "}
-                  <span className="text-[var(--color-text-muted)]">from {item.city}{item.country ? `, ${item.country}` : ""}</span>
-                </p>
-                <p className="text-[11px] text-[var(--color-text-muted)] mt-0.5">{item.action}</p>
-              </div>
-              <span className="text-[11px] text-[var(--color-text-muted)] shrink-0 tabular-nums">{item.time}</span>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <div className="px-3 py-4 text-[12px] text-[var(--color-text-muted)]">
+            Recent activity is not available for this product.
+          </div>
+        )}
         {saleCount > 0 && (
           <div className="flex items-center gap-2 px-3 py-2 border-t border-[var(--color-border)] text-[12px]" style={{ background: "rgba(253,80,0,0.04)" }}>
             <TrendingUp className="h-4 w-4 text-orange-500 shrink-0" />
@@ -707,13 +706,20 @@ function OrderTrackingCard() {
 
 // ─── Why Choose Section ───────────────────────────────────────────────────────
 
-function WhyChooseSection({ brandName = "Jimvio" }: { brandName?: string }) {
+function WhyChooseSection({ vendor, product }: { vendor?: any; product?: any }) {
+  const rating = Number(product?.rating ?? vendor?.rating ?? 0);
+  const orders = vendor?.total_sales ?? product?.sale_count ?? 0;
+  const followers = vendor?.follower_count ?? null;
+  const positiveRate = vendor?.positive_rate ?? null;
+
   const stats = [
-    { value: "1M+", label: "Customers" },
-    { value: "50K+", label: "Products" },
-    { value: "10K+", label: "Active Sellers" },
-    { value: "4.8", label: "Average Rating", isRating: true },
+    { value: orders > 0 ? (orders >= 1000 ? `${(orders / 1000).toFixed(1)}K` : orders.toString()) : "—", label: "Orders" },
+    { value: followers ? (followers >= 1000 ? `${(followers / 1000).toFixed(1)}K` : followers.toString()) : "—", label: "Followers" },
+    { value: rating > 0 ? rating.toFixed(1) : "—", label: "Rating", isRating: rating > 0 },
+    { value: positiveRate !== null ? `${positiveRate}%` : "—", label: "Positive Rate" },
   ];
+  const brandName = vendor?.business_name ?? product?.brand ?? "Seller";
+
   return (
     <div className="rounded-md overflow-hidden" style={{ border: "1px solid var(--color-border)", background: "var(--color-surface)" }}>
       <div className="px-5 py-3.5 border-b border-[var(--color-border)]">
@@ -736,15 +742,17 @@ function WhyChooseSection({ brandName = "Jimvio" }: { brandName?: string }) {
 
 // ─── Live Activity Feed Sidebar ───────────────────────────────────────────────
 
-const SIDEBAR_PRODUCTS = [
-  { name: "Wireless Earbuds", location: "New York, USA" },
-  { name: "Smart Watch Series 8", location: "London, UK" },
-  { name: "Car Phone Holder", location: "Paris, France" },
-  { name: "LED Desk Lamp", location: "Toronto, Canada" },
-];
-const SIDEBAR_TIME_LABELS = ["just now", "1 min ago", "2 mins ago", "3 mins ago"];
+function LiveActivityFeedSidebar({ liveViewers, recentActivity }: { liveViewers: number; recentActivity?: ActivityEvent[] }) {
+  const items = useMemo(() => {
+    if (!recentActivity || recentActivity.length === 0) return [];
+    return recentActivity.slice(0, 4).map((event, index) => ({
+      id: `${event.city}-${event.timestamp}-${index}`,
+      name: event.action === "purchased" ? "Purchased product" : event.action === "added_to_cart" ? "Added to cart" : "Viewed product",
+      location: event.city,
+      time: `${Math.floor((Date.now() - event.timestamp) / 60000) || 1} mins ago`,
+    }));
+  }, [recentActivity]);
 
-function LiveActivityFeedSidebar({ liveViewers }: { liveViewers: number }) {
   return (
     <div className="rounded-md overflow-hidden" style={{ border: "1px solid var(--color-border)", background: "var(--color-surface)" }}>
       <div className="px-5 py-3.5 border-b border-[var(--color-border)] flex items-center justify-between">
@@ -754,18 +762,24 @@ function LiveActivityFeedSidebar({ liveViewers }: { liveViewers: number }) {
         </Link>
       </div>
       <div className="divide-y divide-[var(--color-border)]">
-        {SIDEBAR_PRODUCTS.map((item, i) => (
-          <div key={i} className="flex items-center gap-3 px-4 py-3">
-            <div className="h-9 w-9 rounded-lg bg-[var(--color-surface-secondary)] border border-[var(--color-border)] flex items-center justify-center shrink-0">
-              <Package className="h-4 w-4 text-[var(--color-text-muted)]" />
+        {items.length > 0 ? (
+          items.map((item) => (
+            <div key={item.id} className="flex items-center gap-3 px-4 py-3">
+              <div className="h-9 w-9 rounded-lg bg-[var(--color-surface-secondary)] border border-[var(--color-border)] flex items-center justify-center shrink-0">
+                <Package className="h-4 w-4 text-[var(--color-text-muted)]" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[11px] font-semibold text-[var(--color-text-primary)] truncate leading-none">{item.name}</p>
+                <p className="text-[10px] text-[var(--color-text-muted)] mt-0.5">{item.location}</p>
+              </div>
+              <span className="text-[9px] text-[var(--color-text-muted)] shrink-0 tabular-nums">{item.time}</span>
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-[11px] font-semibold text-[var(--color-text-primary)] truncate leading-none">{item.name}</p>
-              <p className="text-[10px] text-[var(--color-text-muted)] mt-0.5">Sold in {item.location}</p>
-            </div>
-            <span className="text-[9px] text-[var(--color-text-muted)] shrink-0 tabular-nums">{SIDEBAR_TIME_LABELS[i]}</span>
+          ))
+        ) : (
+          <div className="px-4 py-5 text-[12px] text-[var(--color-text-muted)]">
+            Live activity is not available for this product.
           </div>
-        ))}
+        )}
       </div>
       <div className="px-4 py-3 border-t border-[var(--color-border)]" style={{ background: "var(--color-surface-secondary)" }}>
         <div className="flex items-center gap-2 text-[11px] text-[var(--color-text-muted)]">
@@ -787,11 +801,11 @@ function LiveActivityFeedSidebar({ liveViewers }: { liveViewers: number }) {
 function VendorSectionCard({ vendor, followedVendorIds }: { vendor: any; followedVendorIds: string[] }) {
   const rating = Number(vendor.rating ?? 0);
   const followerCount = vendor.follower_count ?? null;
-  const positiveRate = vendor.positive_rate ?? 98;
-  const onTimeDelivery = vendor.on_time_delivery ?? 98;
+  const positiveRate = vendor.positive_rate ?? 0;
+  const onTimeDelivery = vendor.on_time_delivery ?? 0;
   const fulfilledOrders = vendor.total_sales ?? 0;
-  const responseTime = vendor.response_time ?? "5 min";
-  const isVerified = vendor.verification_status === "verified" || true;
+  const responseTime = vendor.response_time ?? "N/A";
+  const isVerified = vendor.verification_status === "verified";
 
   const ordersLabel = fulfilledOrders >= 1000
     ? `${(fulfilledOrders / 1000).toFixed(fulfilledOrders >= 10000 ? 0 : 1)}k`
@@ -815,7 +829,7 @@ function VendorSectionCard({ vendor, followedVendorIds }: { vendor: any; followe
             <p className="text-[10px] text-[var(--color-text-muted)] mb-0.5">Sold by</p>
             <div className="flex items-center gap-1.5">
               <Link href={`/vendors/${vendor.business_slug}`} className="text-[14px] font-semibold text-[var(--color-text-primary)] hover:underline underline-offset-2 truncate">
-                {vendor.business_name ?? "Jimvio Official Store"}
+                {vendor.business_name ?? "Official Store"}
               </Link>
               {isVerified && <BadgeCheck className="h-4 w-4 text-sky-500 shrink-0" aria-label="Verified" />}
             </div>
@@ -834,12 +848,7 @@ function VendorSectionCard({ vendor, followedVendorIds }: { vendor: any; followe
                   <span aria-hidden>|</span>
                   <span>{followerCount >= 1000 ? `${(followerCount / 1000).toFixed(1)}K` : followerCount} Followers</span>
                 </>
-              ) : (
-                <>
-                  <span aria-hidden>|</span>
-                  <span>2.3K Followers</span>
-                </>
-              )}
+              ) : null}
             </div>
           </div>
         </div>
@@ -1116,7 +1125,7 @@ export function PhysicalProductDetail({
     const extras = [
       { label: "Weight", value: weightDisplay || "—" }, { label: "SKU", value: product.sku || "—" },
       { label: "Brand", value: product.brand ?? cjMeta.brand ?? "—" }, { label: "Material", value: product.material ?? cjMeta.material ?? "—" },
-      { label: "Package size", value: cjMeta.package_size ?? "—" }, { label: "Condition", value: "Brand New" },
+      { label: "Package size", value: cjMeta.package_size ?? "—" }, { label: "Condition", value: product.condition ?? "—" },
       { label: "Shipping", value: isFreeShipping ? "Free shipping" : "Standard rates apply" },
     ];
     const existingKeys = new Set(base.map((r) => r.label.toLowerCase()));
@@ -1140,21 +1149,12 @@ export function PhysicalProductDetail({
 
   const whatsIncluded: string[] = useMemo(() => {
     const meta = cjMeta.package_includes ?? product.package_includes;
-    if (Array.isArray(meta) && meta.length > 0) return meta;
-    return ["1 x GPS Tracker", "1 x USB Charging Cable", "1 x User Manual", "1 x Retail Box"];
+    return Array.isArray(meta) ? meta : [];
   }, [cjMeta, product]);
 
   const featureBullets: string[] = useMemo(() => {
     const meta = cjMeta.feature_bullets ?? product.feature_bullets;
-    if (Array.isArray(meta) && meta.length > 0) return meta;
-    return [
-      "Real-time tracking via SMS/APP",
-      "Built-in strong magnet for easy installation",
-      "SOS alarm for emergency situations",
-      "Long battery life up to 15 days",
-      "Compact size, easy to hide",
-      "Worldwide coverage",
-    ];
+    return Array.isArray(meta) ? meta : [];
   }, [cjMeta, product]);
 
   // ─── Shared Shipping cards (used in both sub-col-3 and mobile) ─────────────
@@ -1203,7 +1203,7 @@ export function PhysicalProductDetail({
                 />
                 <SocialProofActivityFeed
                   liveViewers={liveViewers}
-                  saleCount={saleCount || 125}
+                  saleCount={saleCount}
                   recentActivity={recentActivity}
                 />
               </section>
@@ -1218,7 +1218,7 @@ export function PhysicalProductDetail({
                   {/* Rating row */}
                   <div className="flex flex-wrap items-center gap-2 text-[12px] text-[var(--color-text-muted)] mt-1">
                     <span className="font-bold text-[var(--color-text-primary)]">
-                      {(product.rating ?? 4.8).toFixed(1)}
+                      {(product.rating ?? 0).toFixed(1)}
                     </span>
                     <span className="inline-flex items-center gap-0.5">
                       {[1, 2, 3, 4, 5].map((i) => (
@@ -1226,19 +1226,17 @@ export function PhysicalProductDetail({
                           key={i}
                           className={cn(
                             "h-3.5 w-3.5",
-                            i <= Math.round(product.rating ?? 4.8)
+                            i <= Math.round(product.rating ?? 0)
                               ? "fill-amber-400 text-amber-400"
                               : "fill-gray-200 text-gray-200",
                           )}
                         />
                       ))}
                     </span>
-                    <span>({reviewCount || 128} reviews)</span>
+                    <span>({reviewCount} reviews)</span>
                     <span aria-hidden className="text-[var(--color-border-strong)]">·</span>
                     <span className="tabular-nums">
-                      {((saleCount || 2300) >= 1000)
-                        ? `${((saleCount || 2300) / 1000).toFixed(1)}K`
-                        : (saleCount || 2300)} sold
+                      {saleCount >= 1000 ? `${(saleCount / 1000).toFixed(1)}K` : saleCount} sold
                     </span>
                     <span aria-hidden className="text-[var(--color-border-strong)]">·</span>
                     <span className="flex items-center gap-1.5">
@@ -1293,6 +1291,7 @@ export function PhysicalProductDetail({
                         variants={variants}
                         selectedVariantId={selectedVariant?.id ?? null}
                         onSelect={handleVariantSelect}
+                        currency={product.currency ?? "USD"}
                       />
                     </div>
                   )}
@@ -1625,8 +1624,8 @@ export function PhysicalProductDetail({
             <div className="sticky top-24 space-y-4">
               {shippingCards}
               <CompactBuyerProtectionCard />
-              <WhyChooseSection brandName="Jimvio" />
-              <LiveActivityFeedSidebar liveViewers={liveViewers} />
+              <WhyChooseSection vendor={vendor} product={product} />
+              <LiveActivityFeedSidebar liveViewers={liveViewers} recentActivity={recentActivity} />
             </div>
           </aside>
         </div>
