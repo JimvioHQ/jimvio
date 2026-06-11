@@ -3,7 +3,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { ChevronRight, Sparkles, ShoppingBag, TrendingUp, Store, Video, Share2, Users, LayoutDashboard } from "lucide-react";
+import { ChevronRight, Sparkles, ShoppingBag, TrendingUp, Store, Video, Share2, Users, LayoutDashboard, DollarSign, Zap, Globe } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { useAIStore } from "@/lib/store/use-ai-store";
@@ -237,12 +237,15 @@ export function HomepageHero({
     <StartEarnDialog
       platformStats={platformStats}
       className={cn(
-        "h-11 px-7 rounded-full border-none text-white text-[13px] font-semibold",
-        "bg-orange-500 hover:bg-orange-600 active:scale-[0.97] transition-all",
-        "shadow-[0_4px_14px_rgba(249,115,22,0.35)]"
+        "relative group h-12 px-8 rounded-full border-none text-white text-[14px] font-bold overflow-hidden",
+        "transition-all duration-300 active:scale-[0.97] shadow-[0_8px_24px_rgba(249,115,22,0.35)]",
+        "hover:shadow-[0_12px_32px_rgba(249,115,22,0.5)]"
       )}
     >
-      Start earning free →
+      <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-orange-400 via-orange-500 to-orange-600" />
+      <span className="relative flex items-center gap-2">
+        Start earning free <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+      </span>
     </StartEarnDialog>
   );
 
@@ -320,16 +323,37 @@ export function HomepageHero({
 
   const DesktopHero = (
     <section className="hidden lg:block w-full bg-[var(--color-surface)] border-b border-[var(--color-border)]">
-      <div className="grid" style={{ gridTemplateColumns: "1fr 280px" }}>
+      <div className="grid" style={{ gridTemplateColumns: "1fr 300px" }}>
 
         {/* Left: search + main panel */}
         <div className="flex flex-col">
           <HeroSearch />
 
           <div
-            className="relative overflow-hidden min-h-[360px] flex-1 bg-[var(--color-bg)]"
-            style={{ display: "grid", gridTemplateColumns: "1fr 1fr" }}
+            className="relative overflow-hidden min-h-[360px] flex-1"
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              background: "var(--color-surface)",
+            }}
           >
+            {/* Ambient Background Glows */}
+            <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[60%] rounded-full opacity-20 pointer-events-none mix-blend-screen"
+                 style={{ background: "radial-gradient(circle, #f97316 0%, transparent 70%)" }} />
+            <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[70%] rounded-full opacity-10 pointer-events-none mix-blend-screen"
+                 style={{ background: "radial-gradient(circle, #fb923c 0%, transparent 70%)" }} />
+            
+            {/* Subtle grid pattern */}
+            <div
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                backgroundImage: "linear-gradient(rgba(249,115,22,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(249,115,22,0.04) 1px, transparent 1px)",
+                backgroundSize: "40px 40px",
+                maskImage: "linear-gradient(to bottom, black 40%, transparent 100%)",
+                WebkitMaskImage: "linear-gradient(to bottom, black 40%, transparent 100%)",
+              }}
+            />
+
             {/* Left column: copy + CTAs */}
             <div className="relative z-10 flex flex-col justify-center gap-5 px-12 py-8">
 
@@ -410,18 +434,112 @@ export function HomepageHero({
               </motion.div>
             </div>
 
-            {/* Right column: story card + marquee */}
+            {/* Right column: story card + video marquee + floating stat cards */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.45, duration: 0.6 }}
-              className="relative z-10 flex items-center gap-8 pr-12 py-8 overflow-hidden"
+              className="relative z-10 flex items-center pr-8 py-6 overflow-hidden"
+              style={{ gap: "20px" }}
             >
-              <div className="w-[180px] shrink-0">
+              {/* Story card with floating overlays */}
+              <div className="relative shrink-0" style={{ width: "160px" }}>
                 <HeroStoryCard viralClips={viralClips} />
+
+                {/* Floating: live viewers badge */}
+                <motion.div
+                  initial={{ opacity: 0, x: -12, y: 0 }}
+                  animate={{ opacity: 1, x: 0, y: 0 }}
+                  transition={{ delay: 0.8, duration: 0.4 }}
+                  className="absolute -left-8 top-8 flex items-center gap-1.5 px-3 py-2 rounded-xl shadow-xl backdrop-blur-md border border-white/10 dark:border-white/5"
+                  style={{
+                    background: "rgba(var(--color-surface-rgb), 0.7)",
+                  }}
+                >
+                  <span className="flex-shrink-0 w-2 h-2 rounded-full bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.8)]" />
+                  <span className="text-[11px] font-bold text-[var(--color-text-primary)] whitespace-nowrap">1.2k live</span>
+                </motion.div>
+
+                {/* Floating: earnings card */}
+                <motion.div
+                  initial={{ opacity: 0, x: 12 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 1.0, duration: 0.4 }}
+                  className="absolute -right-10 bottom-16 px-3.5 py-2.5 rounded-xl shadow-xl backdrop-blur-md border border-white/10 dark:border-white/5"
+                  style={{
+                    background: "rgba(var(--color-surface-rgb), 0.7)",
+                  }}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-5 h-5 rounded-full bg-green-500/10 flex items-center justify-center">
+                      <DollarSign className="h-3 w-3 text-green-500" />
+                    </div>
+                    <span className="text-[12px] font-black text-[var(--color-text-primary)]">+$84</span>
+                  </div>
+                  <p className="text-[10px] text-[var(--color-text-muted)] mt-1 ml-0.5">today&apos;s earnings</p>
+                </motion.div>
               </div>
-              <div className="flex-1 h-full">
-                <VideoMarquee videos={videos} />
+
+              {/* Video marquee with stat overlays */}
+              <div className="flex-1 flex flex-col gap-3 h-full overflow-hidden">
+                {/* Top stat row */}
+                <motion.div
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.7, duration: 0.4 }}
+                  className="flex gap-2"
+                >
+                  {[
+                    { icon: Globe, value: "50+", label: "Countries", color: "#3b82f6" },
+                    { icon: Users, value: "10K+", label: "Creators", color: "#f97316" },
+                    { icon: Zap, value: "$1M+", label: "Paid out", color: "#22c55e" },
+                  ].map(({ icon: Icon, value, label, color }) => (
+                    <div
+                      key={label}
+                      className="flex-1 flex items-center gap-1.5 px-2.5 py-2 rounded-lg"
+                      style={{
+                        background: `${color}08`,
+                        border: `1px solid ${color}18`,
+                      }}
+                    >
+                      <Icon className="h-3 w-3 flex-shrink-0" style={{ color }} />
+                      <div>
+                        <div className="text-[11px] font-black leading-none" style={{ color: "var(--color-text-primary)" }}>{value}</div>
+                        <div className="text-[8px] text-[var(--color-text-muted)] uppercase tracking-wide">{label}</div>
+                      </div>
+                    </div>
+                  ))}
+                </motion.div>
+
+                {/* Video marquee */}
+                <div className="flex-1 min-h-0">
+                  <VideoMarquee videos={videos} />
+                </div>
+
+                {/* Bottom CTA strip */}
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.9, duration: 0.4 }}
+                >
+                  <Link
+                    href="/ugc"
+                    className="flex items-center justify-between px-3 py-2 rounded-lg transition-all hover:brightness-95 active:scale-[0.98]"
+                    style={{
+                      background: "linear-gradient(135deg, rgba(249,115,22,0.08) 0%, rgba(249,115,22,0.04) 100%)",
+                      border: "1px solid rgba(249,115,22,0.18)",
+                    }}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Video className="h-3 w-3 text-orange-500" />
+                      <span className="text-[11px] font-bold text-[var(--color-text-primary)]">Browse UGC Campaigns</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="text-[9px] font-bold text-orange-500 uppercase tracking-wide">120+ live</span>
+                      <ChevronRight className="h-3 w-3 text-orange-500" />
+                    </div>
+                  </Link>
+                </motion.div>
               </div>
             </motion.div>
           </div>

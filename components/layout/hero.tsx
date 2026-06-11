@@ -2,9 +2,9 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, Shield, CheckCircle, Globe, Plus, Minus, RotateCcw, Locate, Eye, EyeOff, Map } from "lucide-react";
+import { ArrowRight, Shield, CheckCircle, Globe, Plus, Minus, RotateCcw, Locate, Eye, EyeOff, Map, Package, Video, DollarSign, ShoppingBag, Users, Star, TrendingUp, Zap } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { GlobeCanvas } from "./Globelcanvas";
+import HeroCommunities from "./HeroCommunities";
 
 /* ─── Animation variants ─────────────────────────────────────────────────── */
 const fadeUp = {
@@ -103,713 +103,1042 @@ function tokens(isDark: boolean) {
 }
 
 /* ─── GlobeCanvas ────────────────────────────────────────────────────────── */
-// export function GlobeCanvas() {
-//     const containerRef = useRef<HTMLDivElement>(null);
-//     const canvasRef = useRef<HTMLCanvasElement>(null);
-//     const cwRef = useRef(520);
-//     const chRef = useRef(480);
+export function GlobeCanvas() {
+    const containerRef = useRef<HTMLDivElement>(null);
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const cwRef = useRef(520);
+    const chRef = useRef(480);
 
-//     const quatRef = useRef<Quat>(latLngToQuat(DEFAULT_LOC.lat, DEFAULT_LOC.lng));
-//     const targetQuatRef = useRef<Quat | null>(null);
-//     const radiusRef = useRef(R_DEFAULT);
-//     const targetZoomRef = useRef(180);
-//     const rafRef = useRef<number>(0);
+    const quatRef = useRef<Quat>(latLngToQuat(DEFAULT_LOC.lat, DEFAULT_LOC.lng));
+    const targetQuatRef = useRef<Quat | null>(null);
+    const radiusRef = useRef(R_DEFAULT);
+    const targetZoomRef = useRef(180);
+    const rafRef = useRef<number>(0);
 
-//     // isDarkRef = canvas truth; isDark state = React UI truth — always kept in sync
-//     const isDarkRef = useRef(false);
-//     const [isDark, setIsDark] = useState(false);
+    // isDarkRef = canvas truth; isDark state = React UI truth — always kept in sync
+    const isDarkRef = useRef(false);
+    const [isDark, setIsDark] = useState(false);
 
-//     // Globe enabled/disabled — ref for canvas loop, state for UI
-//     const globeEnabledRef = useRef(true);
-//     const [globeEnabled, setGlobeEnabled] = useState(true);
+    // Globe enabled/disabled — ref for canvas loop, state for UI
+    const globeEnabledRef = useRef(true);
+    const [globeEnabled, setGlobeEnabled] = useState(true);
 
-//     // Legend visible
-//     const [legendVisible, setLegendVisible] = useState(true);
+    // Legend visible
+    const [legendVisible, setLegendVisible] = useState(true);
 
-//     const draggingRef = useRef(false);
-//     const lastXRef = useRef(0), lastYRef = useRef(0);
-//     const velXRef = useRef(0), velYRef = useRef(0);
-//     const movedRef = useRef(0);
-//     const pinchRef = useRef<number | null>(null);
+    const draggingRef = useRef(false);
+    const lastXRef = useRef(0), lastYRef = useRef(0);
+    const velXRef = useRef(0), velYRef = useRef(0);
+    const movedRef = useRef(0);
+    const pinchRef = useRef<number | null>(null);
 
-//     const userLocRef = useRef<{ lat: number; lng: number; label: string } | null>(DEFAULT_LOC);
-//     const userProjRef = useRef<{ x: number; y: number; visible: boolean } | null>(null);
-//     const countriesRef = useRef<{ rings: LatLng[][] }[]>([]);
-//     const starsRef = useRef<{ x: number; y: number; r: number; tw: number }[]>([]);
-//     const arcsRef = useRef<Arc[]>([]);
+    const userLocRef = useRef<{ lat: number; lng: number; label: string } | null>(DEFAULT_LOC);
+    const userProjRef = useRef<{ x: number; y: number; visible: boolean } | null>(null);
+    const countriesRef = useRef<{ rings: LatLng[][] }[]>([]);
+    const starsRef = useRef<{ x: number; y: number; r: number; tw: number }[]>([]);
+    const arcsRef = useRef<Arc[]>([]);
 
-//     const [liveTx, setLiveTx] = useState("$840 / min");
-//     const [users, setUsers] = useState("9,200");
-//     const [locAccuracy, setLocAccuracy] = useState<"city" | "exact">("city");
-//     const [tooltip, setTooltip] = useState<{
-//         label: string; sub: string; dotColor: string; x: number; y: number;
-//     } | null>(null);
+    const [liveTx, setLiveTx] = useState("$840 / min");
+    const [users, setUsers] = useState("9,200");
+    const [locAccuracy, setLocAccuracy] = useState<"city" | "exact">("city");
+    const [tooltip, setTooltip] = useState<{
+        label: string; sub: string; dotColor: string; x: number; y: number;
+    } | null>(null);
 
-//     /* ── Dark mode sync ─────────────────────────────────────────────────── */
-//     useEffect(() => {
-//         const mq = window.matchMedia("(prefers-color-scheme: dark)");
-//         const apply = (dark: boolean) => { isDarkRef.current = dark; setIsDark(dark); };
-//         apply(mq.matches);
-//         const h = (e: MediaQueryListEvent) => apply(e.matches);
-//         mq.addEventListener("change", h);
-//         return () => mq.removeEventListener("change", h);
-//     }, []);
+    /* ── Dark mode sync ─────────────────────────────────────────────────── */
+    useEffect(() => {
+        const mq = window.matchMedia("(prefers-color-scheme: dark)");
+        const apply = (dark: boolean) => { isDarkRef.current = dark; setIsDark(dark); };
+        apply(mq.matches);
+        const h = (e: MediaQueryListEvent) => apply(e.matches);
+        mq.addEventListener("change", h);
+        return () => mq.removeEventListener("change", h);
+    }, []);
 
-//     /* ── Canvas resize ──────────────────────────────────────────────────── */
-//     useEffect(() => {
-//         const container = containerRef.current;
-//         const cv = canvasRef.current;
-//         if (!container || !cv) return;
-//         const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    /* ── Canvas resize ──────────────────────────────────────────────────── */
+    useEffect(() => {
+        const container = containerRef.current;
+        const cv = canvasRef.current;
+        if (!container || !cv) return;
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
 
-//         function applySize(w: number, h: number) {
-//             if (w < 50) w = 520;
-//             if (h < 50) h = 480;
-//             if (cwRef.current === w && chRef.current === h) return;
-//             cwRef.current = w; chRef.current = h;
-//             cv!.width = Math.round(w * dpr);
-//             cv!.height = Math.round(h * dpr);
-//             cv!.getContext("2d")!.setTransform(dpr, 0, 0, dpr, 0, 0);
-//             starsRef.current = Array.from({ length: 80 }, () => ({
-//                 x: Math.random() * w, y: Math.random() * h,
-//                 r: 0.4 + Math.random() * 1.1, tw: Math.random() * Math.PI * 2,
-//             }));
-//         }
+        function applySize(w: number, h: number) {
+            if (w < 50) w = 520;
+            if (h < 50) h = 480;
+            if (cwRef.current === w && chRef.current === h) return;
+            cwRef.current = w; chRef.current = h;
+            cv!.width = Math.round(w * dpr);
+            cv!.height = Math.round(h * dpr);
+            cv!.getContext("2d")!.setTransform(dpr, 0, 0, dpr, 0, 0);
+            starsRef.current = Array.from({ length: 80 }, () => ({
+                x: Math.random() * w, y: Math.random() * h,
+                r: 0.4 + Math.random() * 1.1, tw: Math.random() * Math.PI * 2,
+            }));
+        }
 
-//         applySize(container.clientWidth || 520, container.clientHeight || 480);
-//         const ro = new ResizeObserver(entries => {
-//             const e = entries[0];
-//             if (e) applySize(Math.round(e.contentRect.width), Math.round(e.contentRect.height));
-//         });
-//         ro.observe(container);
-//         return () => ro.disconnect();
-//     }, []);
+        applySize(container.clientWidth || 520, container.clientHeight || 480);
+        const ro = new ResizeObserver(entries => {
+            const e = entries[0];
+            if (e) applySize(Math.round(e.contentRect.width), Math.round(e.contentRect.height));
+        });
+        ro.observe(container);
+        return () => ro.disconnect();
+    }, []);
 
-//     useEffect(() => { targetQuatRef.current = latLngToQuat(DEFAULT_LOC.lat, DEFAULT_LOC.lng); }, []);
+    useEffect(() => { targetQuatRef.current = latLngToQuat(DEFAULT_LOC.lat, DEFAULT_LOC.lng); }, []);
 
-//     useEffect(() => {
-//         if (!navigator?.geolocation) return;
-//         navigator.geolocation.getCurrentPosition(pos => {
-//             userLocRef.current = { lat: pos.coords.latitude, lng: pos.coords.longitude, label: "You" };
-//             setLocAccuracy("exact");
-//             targetQuatRef.current = latLngToQuat(pos.coords.latitude, pos.coords.longitude);
-//             targetZoomRef.current = Math.max(targetZoomRef.current, 195);
-//         }, () => { }, { timeout: 6000 });
-//     }, []);
+    useEffect(() => {
+        if (!navigator?.geolocation) return;
+        navigator.geolocation.getCurrentPosition(pos => {
+            userLocRef.current = { lat: pos.coords.latitude, lng: pos.coords.longitude, label: "You" };
+            setLocAccuracy("exact");
+            targetQuatRef.current = latLngToQuat(pos.coords.latitude, pos.coords.longitude);
+            targetZoomRef.current = Math.max(targetZoomRef.current, 195);
+        }, () => { }, { timeout: 6000 });
+    }, []);
 
-//     useEffect(() => {
-//         let dead = false;
-//         fetch("https://cdn.jsdelivr.net/gh/nvkelso/natural-earth-vector@master/geojson/ne_110m_admin_0_countries.geojson")
-//             .then(r => r.ok ? r.json() : Promise.reject())
-//             .then((data: any) => {
-//                 if (dead) return;
-//                 countriesRef.current = data.features.flatMap((f: any) => {
-//                     const g = f.geometry; if (!g) return [];
-//                     const raw: number[][][] =
-//                         g.type === "Polygon" ? g.coordinates :
-//                             g.type === "MultiPolygon" ? g.coordinates.map((p: number[][][][]) => p[0]) : [];
-//                     const rings: LatLng[][] = raw.map((r: number[][]) => r.map((c: number[]) => [c[1], c[0]] as LatLng));
-//                     return rings.length ? [{ rings }] : [];
-//                 });
-//             }).catch(() => { });
-//         return () => { dead = true; };
-//     }, []);
+    useEffect(() => {
+        let dead = false;
+        fetch("https://cdn.jsdelivr.net/gh/nvkelso/natural-earth-vector@master/geojson/ne_110m_admin_0_countries.geojson")
+            .then(r => r.ok ? r.json() : Promise.reject())
+            .then((data: any) => {
+                if (dead) return;
+                countriesRef.current = data.features.flatMap((f: any) => {
+                    const g = f.geometry; if (!g) return [];
+                    const raw: number[][][] =
+                        g.type === "Polygon" ? g.coordinates :
+                            g.type === "MultiPolygon" ? g.coordinates.map((p: number[][][][]) => p[0]) : [];
+                    const rings: LatLng[][] = raw.map((r: number[][]) => r.map((c: number[]) => [c[1], c[0]] as LatLng));
+                    return rings.length ? [{ rings }] : [];
+                });
+            }).catch(() => { });
+        return () => { dead = true; };
+    }, []);
 
-//     useEffect(() => {
-//         const colors = ["#fd5000", "#22c55e", "#fda000", "#50a0ff"];
-//         arcsRef.current = Array.from({ length: 6 }, (_, i) => {
-//             const rt = ROUTES[i % ROUTES.length], fc = CITIES[rt.from], tc = CITIES[rt.to];
-//             if (!fc || !tc) return null!;
-//             return {
-//                 from: latLngTo3D(fc.lat, fc.lng, 1), to: latLngTo3D(tc.lat, tc.lng, 1),
-//                 progress: -i * 0.18, speed: 0.0035 + Math.random() * 0.0025,
-//                 amount: rt.amount, color: colors[i % 4], route: `${rt.from}→${rt.to}`
-//             };
-//         }).filter(Boolean);
-//     }, []);
+    useEffect(() => {
+        const colors = ["#fd5000", "#22c55e", "#fda000", "#50a0ff"];
+        arcsRef.current = Array.from({ length: 6 }, (_, i) => {
+            const rt = ROUTES[i % ROUTES.length], fc = CITIES[rt.from], tc = CITIES[rt.to];
+            if (!fc || !tc) return null!;
+            return {
+                from: latLngTo3D(fc.lat, fc.lng, 1), to: latLngTo3D(tc.lat, tc.lng, 1),
+                progress: -i * 0.18, speed: 0.0035 + Math.random() * 0.0025,
+                amount: rt.amount, color: colors[i % 4], route: `${rt.from}→${rt.to}`
+            };
+        }).filter(Boolean);
+    }, []);
 
-//     /* ── Touch ──────────────────────────────────────────────────────────── */
-//     useEffect(() => {
-//         const cv = canvasRef.current; if (!cv) return;
-//         const pd = (t: TouchList) => { const dx = t[0].clientX - t[1].clientX, dy = t[0].clientY - t[1].clientY; return Math.sqrt(dx * dx + dy * dy); };
-//         const onTS = (e: TouchEvent) => {
-//             if (!globeEnabledRef.current) return;
-//             if (e.touches.length === 1) {
-//                 draggingRef.current = true;
-//                 lastXRef.current = e.touches[0].clientX; lastYRef.current = e.touches[0].clientY;
-//                 velXRef.current = velYRef.current = movedRef.current = 0; pinchRef.current = null;
-//             } else if (e.touches.length === 2) { draggingRef.current = false; pinchRef.current = pd(e.touches); }
-//         };
-//         const onTM = (e: TouchEvent) => {
-//             if (!globeEnabledRef.current) return;
-//             e.preventDefault();
-//             if (e.touches.length === 2) {
-//                 const d = pd(e.touches);
-//                 if (pinchRef.current !== null) targetZoomRef.current = Math.max(R_MIN, Math.min(R_MAX, targetZoomRef.current + (d - pinchRef.current) * 0.6));
-//                 pinchRef.current = d; return;
-//             }
-//             if (!draggingRef.current || e.touches.length !== 1) return;
-//             const cw = cwRef.current, ch = chRef.current;
-//             const dx = e.touches[0].clientX - lastXRef.current, dy = e.touches[0].clientY - lastYRef.current;
-//             movedRef.current += Math.abs(dx) + Math.abs(dy);
-//             const vx = dx * (Math.PI * 2) / cw, vy = dy * Math.PI / ch;
-//             quatRef.current = qNorm(qMul(qAA(0, 1, 0, vx), qMul(qAA(1, 0, 0, vy), quatRef.current)));
-//             velXRef.current = vx; velYRef.current = vy;
-//             lastXRef.current = e.touches[0].clientX; lastYRef.current = e.touches[0].clientY;
-//             targetQuatRef.current = null;
-//         };
-//         const onTE = () => { draggingRef.current = false; pinchRef.current = null; };
-//         cv.addEventListener("touchstart", onTS, { passive: true });
-//         cv.addEventListener("touchmove", onTM, { passive: false });
-//         cv.addEventListener("touchend", onTE, { passive: true });
-//         return () => { cv.removeEventListener("touchstart", onTS); cv.removeEventListener("touchmove", onTM); cv.removeEventListener("touchend", onTE); };
-//     }, []);
+    /* ── Touch ──────────────────────────────────────────────────────────── */
+    useEffect(() => {
+        const cv = canvasRef.current; if (!cv) return;
+        const pd = (t: TouchList) => { const dx = t[0].clientX - t[1].clientX, dy = t[0].clientY - t[1].clientY; return Math.sqrt(dx * dx + dy * dy); };
+        const onTS = (e: TouchEvent) => {
+            if (!globeEnabledRef.current) return;
+            if (e.touches.length === 1) {
+                draggingRef.current = true;
+                lastXRef.current = e.touches[0].clientX; lastYRef.current = e.touches[0].clientY;
+                velXRef.current = velYRef.current = movedRef.current = 0; pinchRef.current = null;
+            } else if (e.touches.length === 2) { draggingRef.current = false; pinchRef.current = pd(e.touches); }
+        };
+        const onTM = (e: TouchEvent) => {
+            if (!globeEnabledRef.current) return;
+            e.preventDefault();
+            if (e.touches.length === 2) {
+                const d = pd(e.touches);
+                if (pinchRef.current !== null) targetZoomRef.current = Math.max(R_MIN, Math.min(R_MAX, targetZoomRef.current + (d - pinchRef.current) * 0.6));
+                pinchRef.current = d; return;
+            }
+            if (!draggingRef.current || e.touches.length !== 1) return;
+            const cw = cwRef.current, ch = chRef.current;
+            const dx = e.touches[0].clientX - lastXRef.current, dy = e.touches[0].clientY - lastYRef.current;
+            movedRef.current += Math.abs(dx) + Math.abs(dy);
+            const vx = dx * (Math.PI * 2) / cw, vy = dy * Math.PI / ch;
+            quatRef.current = qNorm(qMul(qAA(0, 1, 0, vx), qMul(qAA(1, 0, 0, vy), quatRef.current)));
+            velXRef.current = vx; velYRef.current = vy;
+            lastXRef.current = e.touches[0].clientX; lastYRef.current = e.touches[0].clientY;
+            targetQuatRef.current = null;
+        };
+        const onTE = () => { draggingRef.current = false; pinchRef.current = null; };
+        cv.addEventListener("touchstart", onTS, { passive: true });
+        cv.addEventListener("touchmove", onTM, { passive: false });
+        cv.addEventListener("touchend", onTE, { passive: true });
+        return () => { cv.removeEventListener("touchstart", onTS); cv.removeEventListener("touchmove", onTM); cv.removeEventListener("touchend", onTE); };
+    }, []);
 
-//     useEffect(() => {
-//         const cv = canvasRef.current; if (!cv) return;
-//         const h = (e: WheelEvent) => {
-//             if (!globeEnabledRef.current) return;
-//             e.preventDefault();
-//             targetZoomRef.current = Math.max(R_MIN, Math.min(R_MAX, targetZoomRef.current - e.deltaY * 0.25));
-//         };
-//         cv.addEventListener("wheel", h, { passive: false });
-//         return () => cv.removeEventListener("wheel", h);
-//     }, []);
+    useEffect(() => {
+        const cv = canvasRef.current; if (!cv) return;
+        const h = (e: WheelEvent) => {
+            if (!globeEnabledRef.current) return;
+            e.preventDefault();
+            targetZoomRef.current = Math.max(R_MIN, Math.min(R_MAX, targetZoomRef.current - e.deltaY * 0.25));
+        };
+        cv.addEventListener("wheel", h, { passive: false });
+        return () => cv.removeEventListener("wheel", h);
+    }, []);
 
-//     /* ── Main render loop ───────────────────────────────────────────────── */
-//     useEffect(() => {
-//         const cv = canvasRef.current!, ctx = cv.getContext("2d")!;
+    /* ── Main render loop ───────────────────────────────────────────────── */
+    useEffect(() => {
+        const cv = canvasRef.current!, ctx = cv.getContext("2d")!;
 
-//         function proj(p: Vec3, q: Quat) {
-//             const r = qRot(q, p);
-//             return { x: cwRef.current / 2 + r.x, y: chRef.current / 2 - r.y, z: r.z };
-//         }
-//         const ea = (z: number) => Math.max(0, Math.min(1, z / 40));
+        function proj(p: Vec3, q: Quat) {
+            const r = qRot(q, p);
+            return { x: cwRef.current / 2 + r.x, y: chRef.current / 2 - r.y, z: r.z };
+        }
+        const ea = (z: number) => Math.max(0, Math.min(1, z / 40));
 
-//         function drawDisabledState(dark: boolean) {
-//             // When globe is disabled, draw a minimal placeholder
-//             const cw = cwRef.current, ch = chRef.current, cx = cw / 2, cy = ch / 2;
-//             const R = radiusRef.current;
-//             ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2);
-//             ctx.fillStyle = dark ? "rgba(20,10,5,0.6)" : "rgba(240,230,220,0.6)";
-//             ctx.fill();
-//             ctx.strokeStyle = dark ? "rgba(253,80,0,0.12)" : "rgba(253,80,0,0.16)";
-//             ctx.lineWidth = 1; ctx.stroke();
-//             // Dashed grid lines for visual interest
-//             ctx.setLineDash([3, 6]);
-//             ctx.strokeStyle = dark ? "rgba(253,80,0,0.06)" : "rgba(253,80,0,0.10)";
-//             ctx.lineWidth = 0.5;
-//             for (let lat = -60; lat <= 60; lat += 30) {
-//                 ctx.beginPath();
-//                 for (let lng = -180; lng <= 180; lng += 6) {
-//                     const p = proj(latLngTo3D(lat, lng, R), quatRef.current);
-//                     if (p.z < 0) continue;
-//                     lng === -180 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y);
-//                 }
-//                 ctx.stroke();
-//             }
-//             ctx.setLineDash([]);
-//             // Centre icon hint
-//             ctx.save();
-//             ctx.font = `${R * 0.22}px sans-serif`;
-//             ctx.textAlign = "center"; ctx.textBaseline = "middle";
-//             ctx.fillStyle = dark ? "rgba(253,80,0,0.18)" : "rgba(253,80,0,0.14)";
-//             ctx.fillText("◎", cx, cy);
-//             ctx.restore();
-//         }
+        function drawDisabledState(dark: boolean) {
+            // When globe is disabled, draw a minimal placeholder
+            const cw = cwRef.current, ch = chRef.current, cx = cw / 2, cy = ch / 2;
+            const R = radiusRef.current;
+            ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2);
+            ctx.fillStyle = dark ? "rgba(20,10,5,0.6)" : "rgba(240,230,220,0.6)";
+            ctx.fill();
+            ctx.strokeStyle = dark ? "rgba(253,80,0,0.12)" : "rgba(253,80,0,0.16)";
+            ctx.lineWidth = 1; ctx.stroke();
+            // Dashed grid lines for visual interest
+            ctx.setLineDash([3, 6]);
+            ctx.strokeStyle = dark ? "rgba(253,80,0,0.06)" : "rgba(253,80,0,0.10)";
+            ctx.lineWidth = 0.5;
+            for (let lat = -60; lat <= 60; lat += 30) {
+                ctx.beginPath();
+                for (let lng = -180; lng <= 180; lng += 6) {
+                    const p = proj(latLngTo3D(lat, lng, R), quatRef.current);
+                    if (p.z < 0) continue;
+                    lng === -180 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y);
+                }
+                ctx.stroke();
+            }
+            ctx.setLineDash([]);
+            // Centre icon hint
+            ctx.save();
+            ctx.font = `${R * 0.22}px sans-serif`;
+            ctx.textAlign = "center"; ctx.textBaseline = "middle";
+            ctx.fillStyle = dark ? "rgba(253,80,0,0.18)" : "rgba(253,80,0,0.14)";
+            ctx.fillText("◎", cx, cy);
+            ctx.restore();
+        }
 
-//         function drawStars(dark: boolean) {
-//             if (!dark) return;
-//             const t = Date.now() / 1000;
-//             for (const s of starsRef.current) {
-//                 const a = 0.25 + 0.35 * (0.5 + 0.5 * Math.sin(s.tw + t * 1.5));
-//                 ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
-//                 ctx.fillStyle = `rgba(255,255,255,${a})`; ctx.fill();
-//             }
-//         }
+        function drawStars(dark: boolean) {
+            if (!dark) return;
+            const t = Date.now() / 1000;
+            for (const s of starsRef.current) {
+                const a = 0.25 + 0.35 * (0.5 + 0.5 * Math.sin(s.tw + t * 1.5));
+                ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255,255,255,${a})`; ctx.fill();
+            }
+        }
 
-//         function drawAtmosphere(dark: boolean, R: number) {
-//             const cw = cwRef.current, ch = chRef.current, cx = cw / 2, cy = ch / 2;
-//             const g = ctx.createRadialGradient(cx, cy, R * 0.95, cx, cy, R * 1.25);
-//             g.addColorStop(0, dark ? "rgba(253,80,0,0.18)" : "rgba(253,80,0,0.10)");
-//             g.addColorStop(0.6, dark ? "rgba(253,80,0,0.04)" : "rgba(253,80,0,0.02)");
-//             g.addColorStop(1, "rgba(253,80,0,0)");
-//             ctx.beginPath(); ctx.arc(cx, cy, R * 1.25, 0, Math.PI * 2);
-//             ctx.fillStyle = g; ctx.fill();
-//         }
+        function drawAtmosphere(dark: boolean, R: number) {
+            const cw = cwRef.current, ch = chRef.current, cx = cw / 2, cy = ch / 2;
+            const g = ctx.createRadialGradient(cx, cy, R * 0.95, cx, cy, R * 1.25);
+            g.addColorStop(0, dark ? "rgba(253,80,0,0.18)" : "rgba(253,80,0,0.10)");
+            g.addColorStop(0.6, dark ? "rgba(253,80,0,0.04)" : "rgba(253,80,0,0.02)");
+            g.addColorStop(1, "rgba(253,80,0,0)");
+            ctx.beginPath(); ctx.arc(cx, cy, R * 1.25, 0, Math.PI * 2);
+            ctx.fillStyle = g; ctx.fill();
+        }
 
-//         function drawSphere(dark: boolean, R: number) {
-//             const cw = cwRef.current, ch = chRef.current, cx = cw / 2, cy = ch / 2;
-//             const g = ctx.createRadialGradient(cx - R * 0.3, cy - R * 0.3, 0, cx, cy, R);
-//             dark
-//                 ? (g.addColorStop(0, "rgba(50,22,8,0.85)"), g.addColorStop(1, "rgba(20,8,2,0.95)"))
-//                 : (g.addColorStop(0, "rgba(255,240,228,0.65)"), g.addColorStop(1, "rgba(253,80,0,0.06)"));
-//             ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2);
-//             ctx.fillStyle = g; ctx.fill();
-//             ctx.strokeStyle = dark ? "rgba(253,80,0,0.18)" : "rgba(253,80,0,0.22)";
-//             ctx.lineWidth = 1; ctx.stroke();
-//         }
+        function drawSphere(dark: boolean, R: number) {
+            const cw = cwRef.current, ch = chRef.current, cx = cw / 2, cy = ch / 2;
+            const g = ctx.createRadialGradient(cx - R * 0.3, cy - R * 0.3, 0, cx, cy, R);
+            dark
+                ? (g.addColorStop(0, "rgba(50,22,8,0.85)"), g.addColorStop(1, "rgba(20,8,2,0.95)"))
+                : (g.addColorStop(0, "rgba(255,240,228,0.65)"), g.addColorStop(1, "rgba(253,80,0,0.06)"));
+            ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2);
+            ctx.fillStyle = g; ctx.fill();
+            ctx.strokeStyle = dark ? "rgba(253,80,0,0.18)" : "rgba(253,80,0,0.22)";
+            ctx.lineWidth = 1; ctx.stroke();
+        }
 
-//         function drawDayNight(q: Quat, dark: boolean, R: number) {
-//             const cw = cwRef.current, ch = chRef.current, cx = cw / 2, cy = ch / 2;
-//             const hrs = (Date.now() / 1000 / 3600) % 24;
-//             const sd = latLngTo3D(0, -((hrs / 24) * 360 - 180), R);
-//             const sp = proj(sd, q);
-//             if (!isFinite(sp.x) || !isFinite(sp.y)) return;
-//             const op = { x: 2 * cx - sp.x, y: 2 * cy - sp.y };
-//             if (!isFinite(op.x) || !isFinite(op.y)) return;
-//             const ng = ctx.createRadialGradient(op.x, op.y, R * 0.1, op.x, op.y, R * 1.6);
-//             ng.addColorStop(0, dark ? "rgba(0,0,0,0.55)" : "rgba(0,0,0,0.22)");
-//             ng.addColorStop(0.55, dark ? "rgba(0,0,0,0.18)" : "rgba(0,0,0,0.06)");
-//             ng.addColorStop(1, "rgba(0,0,0,0)");
-//             ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, R - 0.5, 0, Math.PI * 2); ctx.clip();
-//             ctx.fillStyle = ng; ctx.fillRect(0, 0, cw, ch); ctx.restore();
-//         }
+        function drawDayNight(q: Quat, dark: boolean, R: number) {
+            const cw = cwRef.current, ch = chRef.current, cx = cw / 2, cy = ch / 2;
+            const hrs = (Date.now() / 1000 / 3600) % 24;
+            const sd = latLngTo3D(0, -((hrs / 24) * 360 - 180), R);
+            const sp = proj(sd, q);
+            if (!isFinite(sp.x) || !isFinite(sp.y)) return;
+            const op = { x: 2 * cx - sp.x, y: 2 * cy - sp.y };
+            if (!isFinite(op.x) || !isFinite(op.y)) return;
+            const ng = ctx.createRadialGradient(op.x, op.y, R * 0.1, op.x, op.y, R * 1.6);
+            ng.addColorStop(0, dark ? "rgba(0,0,0,0.55)" : "rgba(0,0,0,0.22)");
+            ng.addColorStop(0.55, dark ? "rgba(0,0,0,0.18)" : "rgba(0,0,0,0.06)");
+            ng.addColorStop(1, "rgba(0,0,0,0)");
+            ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, R - 0.5, 0, Math.PI * 2); ctx.clip();
+            ctx.fillStyle = ng; ctx.fillRect(0, 0, cw, ch); ctx.restore();
+        }
 
-//         function drawGrid(q: Quat, dark: boolean, R: number) {
-//             const gc = dark ? "rgba(253,80,0,0.07)" : "rgba(253,80,0,0.12)";
-//             for (let lat = -60; lat <= 60; lat += 30) {
-//                 ctx.beginPath(); let f = true;
-//                 for (let lng = -180; lng <= 180; lng += 4) { const p = proj(latLngTo3D(lat, lng, R), q); if (p.z < 0) { f = true; continue; } f ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y); f = false; }
-//                 ctx.strokeStyle = gc; ctx.lineWidth = 0.5; ctx.stroke();
-//             }
-//             for (let lng = -180; lng <= 180; lng += 30) {
-//                 ctx.beginPath(); let f = true;
-//                 for (let lat2 = -80; lat2 <= 80; lat2 += 4) { const p = proj(latLngTo3D(lat2, lng, R), q); if (p.z < 0) { f = true; continue; } f ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y); f = false; }
-//                 ctx.strokeStyle = gc; ctx.lineWidth = 0.5; ctx.stroke();
-//             }
-//         }
+        function drawGrid(q: Quat, dark: boolean, R: number) {
+            const gc = dark ? "rgba(253,80,0,0.07)" : "rgba(253,80,0,0.12)";
+            for (let lat = -60; lat <= 60; lat += 30) {
+                ctx.beginPath(); let f = true;
+                for (let lng = -180; lng <= 180; lng += 4) { const p = proj(latLngTo3D(lat, lng, R), q); if (p.z < 0) { f = true; continue; } f ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y); f = false; }
+                ctx.strokeStyle = gc; ctx.lineWidth = 0.5; ctx.stroke();
+            }
+            for (let lng = -180; lng <= 180; lng += 30) {
+                ctx.beginPath(); let f = true;
+                for (let lat2 = -80; lat2 <= 80; lat2 += 4) { const p = proj(latLngTo3D(lat2, lng, R), q); if (p.z < 0) { f = true; continue; } f ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y); f = false; }
+                ctx.strokeStyle = gc; ctx.lineWidth = 0.5; ctx.stroke();
+            }
+        }
 
-//         function drawCountries(q: Quat, dark: boolean, R: number) {
-//             if (!countriesRef.current.length) return;
-//             ctx.strokeStyle = dark ? "rgba(255,200,160,0.22)" : "rgba(120,60,20,0.28)"; ctx.lineWidth = 0.6;
-//             for (const c of countriesRef.current) {
-//                 for (const ring of c.rings) {
-//                     ctx.beginPath(); let prev: { x: number; y: number; z: number } | null = null, pen = false;
-//                     for (const co of ring) {
-//                         const pt = proj(latLngTo3D(co[0], co[1], R), q);
-//                         if (prev) {
-//                             if (prev.z >= 0 && pt.z >= 0) { if (!pen) { ctx.moveTo(prev.x, prev.y); pen = true; } ctx.lineTo(pt.x, pt.y); }
-//                             else if (prev.z >= 0 && pt.z < 0) { const t = prev.z / (prev.z - pt.z); if (!pen) { ctx.moveTo(prev.x, prev.y); pen = true; } ctx.lineTo(prev.x + t * (pt.x - prev.x), prev.y + t * (pt.y - prev.y)); pen = false; }
-//                             else if (prev.z < 0 && pt.z >= 0) { const t = prev.z / (prev.z - pt.z); ctx.moveTo(prev.x + t * (pt.x - prev.x), prev.y + t * (pt.y - prev.y)); ctx.lineTo(pt.x, pt.y); pen = true; }
-//                             else pen = false;
-//                         }
-//                         prev = pt;
-//                     }
-//                     ctx.stroke();
-//                 }
-//             }
-//         }
+        function drawCountries(q: Quat, dark: boolean, R: number) {
+            if (!countriesRef.current.length) return;
+            ctx.strokeStyle = dark ? "rgba(255,200,160,0.22)" : "rgba(120,60,20,0.28)"; ctx.lineWidth = 0.6;
+            for (const c of countriesRef.current) {
+                for (const ring of c.rings) {
+                    ctx.beginPath(); let prev: { x: number; y: number; z: number } | null = null, pen = false;
+                    for (const co of ring) {
+                        const pt = proj(latLngTo3D(co[0], co[1], R), q);
+                        if (prev) {
+                            if (prev.z >= 0 && pt.z >= 0) { if (!pen) { ctx.moveTo(prev.x, prev.y); pen = true; } ctx.lineTo(pt.x, pt.y); }
+                            else if (prev.z >= 0 && pt.z < 0) { const t = prev.z / (prev.z - pt.z); if (!pen) { ctx.moveTo(prev.x, prev.y); pen = true; } ctx.lineTo(prev.x + t * (pt.x - prev.x), prev.y + t * (pt.y - prev.y)); pen = false; }
+                            else if (prev.z < 0 && pt.z >= 0) { const t = prev.z / (prev.z - pt.z); ctx.moveTo(prev.x + t * (pt.x - prev.x), prev.y + t * (pt.y - prev.y)); ctx.lineTo(pt.x, pt.y); pen = true; }
+                            else pen = false;
+                        }
+                        prev = pt;
+                    }
+                    ctx.stroke();
+                }
+            }
+        }
 
-//         function drawCityMarkers(q: Quat, dark: boolean, R: number) {
-//             for (const [name, c] of Object.entries(CITIES)) {
-//                 const p = proj(latLngTo3D(c.lat, c.lng, R), q); if (p.z < 0) continue;
-//                 const a = ea(p.z);
-//                 ctx.beginPath(); ctx.arc(p.x, p.y, 2.2, 0, Math.PI * 2);
-//                 ctx.fillStyle = `rgba(253,80,0,${0.85 * a})`; ctx.fill();
-//                 ctx.strokeStyle = `rgba(255,255,255,${0.75 * a})`; ctx.lineWidth = 0.8; ctx.stroke();
-//                 if (R > 170 && a > 0.5) {
-//                     ctx.save(); ctx.font = "600 7px sans-serif";
-//                     ctx.fillStyle = dark ? `rgba(255,220,200,${0.7 * a})` : `rgba(80,30,10,${0.75 * a})`;
-//                     ctx.textAlign = "left"; ctx.fillText(name, p.x + 4, p.y - 3); ctx.restore();
-//                 }
-//             }
-//         }
+        function drawCityMarkers(q: Quat, dark: boolean, R: number) {
+            for (const [name, c] of Object.entries(CITIES)) {
+                const p = proj(latLngTo3D(c.lat, c.lng, R), q); if (p.z < 0) continue;
+                const a = ea(p.z);
+                ctx.beginPath(); ctx.arc(p.x, p.y, 2.2, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(253,80,0,${0.85 * a})`; ctx.fill();
+                ctx.strokeStyle = `rgba(255,255,255,${0.75 * a})`; ctx.lineWidth = 0.8; ctx.stroke();
+                if (R > 170 && a > 0.5) {
+                    ctx.save(); ctx.font = "600 7px sans-serif";
+                    ctx.fillStyle = dark ? `rgba(255,220,200,${0.7 * a})` : `rgba(80,30,10,${0.75 * a})`;
+                    ctx.textAlign = "left"; ctx.fillText(name, p.x + 4, p.y - 3); ctx.restore();
+                }
+            }
+        }
 
-//         function drawArcs(q: Quat, R: number) {
-//             const S = 48;
-//             for (const arc of arcsRef.current) {
-//                 if (arc.progress < 0) continue;
-//                 const head = Math.min(1, arc.progress), tail = Math.max(0, arc.progress - 0.35);
-//                 if (head <= 0) continue;
-//                 ctx.beginPath(); let f = true;
-//                 for (let i = 0; i <= S; i++) { const t = i / S, sl = slerp3(arc.from, arc.to, t), lift = R + Math.sin(t * Math.PI) * R * 0.35, p = proj({ x: sl.x * lift, y: sl.y * lift, z: sl.z * lift }, q); if (p.z < 0) { f = true; continue; } f ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y); f = false; }
-//                 ctx.strokeStyle = arc.color; ctx.globalAlpha = 0.18; ctx.lineWidth = 0.8; ctx.stroke();
-//                 ctx.beginPath(); f = true; let last: { x: number; y: number } | null = null;
-//                 for (let i = 0; i <= S; i++) { const t = tail + (head - tail) * (i / S), sl = slerp3(arc.from, arc.to, t), lift = R + Math.sin(t * Math.PI) * R * 0.35, p = proj({ x: sl.x * lift, y: sl.y * lift, z: sl.z * lift }, q); if (p.z < 0) { f = true; continue; } f ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y); f = false; last = { x: p.x, y: p.y }; }
-//                 ctx.strokeStyle = arc.color; ctx.globalAlpha = 0.85; ctx.lineWidth = 1.6; ctx.stroke();
-//                 if (last) {
-//                     ctx.beginPath(); ctx.arc(last.x, last.y, 3, 0, Math.PI * 2); ctx.fillStyle = arc.color; ctx.globalAlpha = 1; ctx.fill();
-//                     ctx.beginPath(); ctx.arc(last.x, last.y, 6, 0, Math.PI * 2); ctx.strokeStyle = arc.color; ctx.globalAlpha = 0.4; ctx.lineWidth = 1.2; ctx.stroke();
-//                 }
-//                 ctx.globalAlpha = 1;
-//             }
-//         }
+        function drawArcs(q: Quat, R: number) {
+            const S = 48;
+            for (const arc of arcsRef.current) {
+                if (arc.progress < 0) continue;
+                const head = Math.min(1, arc.progress), tail = Math.max(0, arc.progress - 0.35);
+                if (head <= 0) continue;
+                ctx.beginPath(); let f = true;
+                for (let i = 0; i <= S; i++) { const t = i / S, sl = slerp3(arc.from, arc.to, t), lift = R + Math.sin(t * Math.PI) * R * 0.35, p = proj({ x: sl.x * lift, y: sl.y * lift, z: sl.z * lift }, q); if (p.z < 0) { f = true; continue; } f ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y); f = false; }
+                ctx.strokeStyle = arc.color; ctx.globalAlpha = 0.18; ctx.lineWidth = 0.8; ctx.stroke();
+                ctx.beginPath(); f = true; let last: { x: number; y: number } | null = null;
+                for (let i = 0; i <= S; i++) { const t = tail + (head - tail) * (i / S), sl = slerp3(arc.from, arc.to, t), lift = R + Math.sin(t * Math.PI) * R * 0.35, p = proj({ x: sl.x * lift, y: sl.y * lift, z: sl.z * lift }, q); if (p.z < 0) { f = true; continue; } f ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y); f = false; last = { x: p.x, y: p.y }; }
+                ctx.strokeStyle = arc.color; ctx.globalAlpha = 0.85; ctx.lineWidth = 1.6; ctx.stroke();
+                if (last) {
+                    ctx.beginPath(); ctx.arc(last.x, last.y, 3, 0, Math.PI * 2); ctx.fillStyle = arc.color; ctx.globalAlpha = 1; ctx.fill();
+                    ctx.beginPath(); ctx.arc(last.x, last.y, 6, 0, Math.PI * 2); ctx.strokeStyle = arc.color; ctx.globalAlpha = 0.4; ctx.lineWidth = 1.2; ctx.stroke();
+                }
+                ctx.globalAlpha = 1;
+            }
+        }
 
-//         function drawUserLocation(q: Quat, R: number) {
-//             const loc = userLocRef.current; if (!loc) { userProjRef.current = null; return; }
-//             const ulp = proj(latLngTo3D(loc.lat, loc.lng, R), q);
-//             userProjRef.current = { x: ulp.x, y: ulp.y, visible: ulp.z >= 0 };
-//             if (ulp.z < 0) return;
-//             const dark = isDarkRef.current;
-//             [0, 1].forEach(i => { const p = ((Date.now() + i * 800) % 1600) / 1600; ctx.beginPath(); ctx.arc(ulp.x, ulp.y, 6 + p * 20, 0, Math.PI * 2); ctx.strokeStyle = `rgba(34,197,94,${0.6 * (1 - p)})`; ctx.lineWidth = 1.5; ctx.stroke(); });
-//             ctx.beginPath(); ctx.arc(ulp.x, ulp.y, 10, 0, Math.PI * 2); ctx.fillStyle = "rgba(34,197,94,0.18)"; ctx.fill();
-//             ctx.beginPath(); ctx.arc(ulp.x, ulp.y, 5.5, 0, Math.PI * 2); ctx.fillStyle = "#22c55e"; ctx.fill();
-//             ctx.strokeStyle = "rgba(255,255,255,0.9)"; ctx.lineWidth = 1.8; ctx.stroke();
-//             ctx.save(); ctx.font = "bold 9px sans-serif"; ctx.textAlign = "center";
-//             const lb = loc.label || "YOU", tw = ctx.measureText(lb).width;
-//             ctx.fillStyle = "rgba(34,197,94,0.92)";
-//             ctx.beginPath(); ctx.roundRect(ulp.x - tw / 2 - 5, ulp.y + 14, tw + 10, 14, 4); ctx.fill();
-//             ctx.fillStyle = "#fff"; ctx.fillText(lb, ulp.x, ulp.y + 24); ctx.restore();
-//         }
+        function drawUserLocation(q: Quat, R: number) {
+            const loc = userLocRef.current; if (!loc) { userProjRef.current = null; return; }
+            const ulp = proj(latLngTo3D(loc.lat, loc.lng, R), q);
+            userProjRef.current = { x: ulp.x, y: ulp.y, visible: ulp.z >= 0 };
+            if (ulp.z < 0) return;
+            const dark = isDarkRef.current;
+            [0, 1].forEach(i => { const p = ((Date.now() + i * 800) % 1600) / 1600; ctx.beginPath(); ctx.arc(ulp.x, ulp.y, 6 + p * 20, 0, Math.PI * 2); ctx.strokeStyle = `rgba(34,197,94,${0.6 * (1 - p)})`; ctx.lineWidth = 1.5; ctx.stroke(); });
+            ctx.beginPath(); ctx.arc(ulp.x, ulp.y, 10, 0, Math.PI * 2); ctx.fillStyle = "rgba(34,197,94,0.18)"; ctx.fill();
+            ctx.beginPath(); ctx.arc(ulp.x, ulp.y, 5.5, 0, Math.PI * 2); ctx.fillStyle = "#22c55e"; ctx.fill();
+            ctx.strokeStyle = "rgba(255,255,255,0.9)"; ctx.lineWidth = 1.8; ctx.stroke();
+            ctx.save(); ctx.font = "bold 9px sans-serif"; ctx.textAlign = "center";
+            const lb = loc.label || "YOU", tw = ctx.measureText(lb).width;
+            ctx.fillStyle = "rgba(34,197,94,0.92)";
+            ctx.beginPath(); ctx.roundRect(ulp.x - tw / 2 - 5, ulp.y + 14, tw + 10, 14, 4); ctx.fill();
+            ctx.fillStyle = "#fff"; ctx.fillText(lb, ulp.x, ulp.y + 24); ctx.restore();
+        }
 
-//         function updateArcs() {
-//             for (const a of arcsRef.current) {
-//                 a.progress += a.speed;
-//                 if (a.progress > 1.4) {
-//                     const r = ROUTES[Math.floor(Math.random() * ROUTES.length)], f = CITIES[r.from], t = CITIES[r.to];
-//                     if (f && t) { a.from = latLngTo3D(f.lat, f.lng, 1); a.to = latLngTo3D(t.lat, t.lng, 1); a.amount = r.amount; a.route = `${r.from}→${r.to}`; }
-//                     a.progress = -Math.random() * 0.4; a.speed = 0.0035 + Math.random() * 0.0025;
-//                 }
-//             }
-//         }
+        function updateArcs() {
+            for (const a of arcsRef.current) {
+                a.progress += a.speed;
+                if (a.progress > 1.4) {
+                    const r = ROUTES[Math.floor(Math.random() * ROUTES.length)], f = CITIES[r.from], t = CITIES[r.to];
+                    if (f && t) { a.from = latLngTo3D(f.lat, f.lng, 1); a.to = latLngTo3D(t.lat, t.lng, 1); a.amount = r.amount; a.route = `${r.from}→${r.to}`; }
+                    a.progress = -Math.random() * 0.4; a.speed = 0.0035 + Math.random() * 0.0025;
+                }
+            }
+        }
 
-//         function loop() {
-//             const enabled = globeEnabledRef.current;
-//             const dark = isDarkRef.current;
-//             const cw = cwRef.current, ch = chRef.current;
+        function loop() {
+            const enabled = globeEnabledRef.current;
+            const dark = isDarkRef.current;
+            const cw = cwRef.current, ch = chRef.current;
 
-//             // Smooth zoom always runs so entering/exiting disabled state looks fluid
-//             radiusRef.current += (targetZoomRef.current - radiusRef.current) * 0.12;
-//             const R = radiusRef.current;
+            // Smooth zoom always runs so entering/exiting disabled state looks fluid
+            radiusRef.current += (targetZoomRef.current - radiusRef.current) * 0.12;
+            const R = radiusRef.current;
 
-//             ctx.clearRect(0, 0, cw, ch);
+            ctx.clearRect(0, 0, cw, ch);
 
-//             if (!enabled) {
-//                 // Disabled: draw frozen placeholder, no arc updates
-//                 drawDisabledState(dark);
-//                 rafRef.current = requestAnimationFrame(loop);
-//                 return;
-//             }
+            if (!enabled) {
+                // Disabled: draw frozen placeholder, no arc updates
+                drawDisabledState(dark);
+                rafRef.current = requestAnimationFrame(loop);
+                return;
+            }
 
-//             // ── Full globe ──
-//             let q = quatRef.current;
-//             if (targetQuatRef.current !== null) {
-//                 q = qSlerp(q, targetQuatRef.current, 0.07); quatRef.current = q;
-//                 const d = Math.abs(q.w * targetQuatRef.current.w + q.x * targetQuatRef.current.x + q.y * targetQuatRef.current.y + q.z * targetQuatRef.current.z);
-//                 if (d > 0.9999) targetQuatRef.current = null;
-//             } else if (!draggingRef.current) {
-//                 if (Math.abs(velXRef.current) > 0.0003) { q = qNorm(qMul(qAA(0, 1, 0, velXRef.current), q)); velXRef.current *= 0.93; }
-//                 else { velXRef.current = 0; q = qNorm(qMul(qAA(0, 1, 0, 0.003), q)); }
-//                 if (Math.abs(velYRef.current) > 0.0003) { q = qNorm(qMul(qAA(1, 0, 0, velYRef.current), q)); velYRef.current *= 0.93; }
-//                 else velYRef.current = 0;
-//                 quatRef.current = q;
-//             }
+            // ── Full globe ──
+            let q = quatRef.current;
+            if (targetQuatRef.current !== null) {
+                q = qSlerp(q, targetQuatRef.current, 0.07); quatRef.current = q;
+                const d = Math.abs(q.w * targetQuatRef.current.w + q.x * targetQuatRef.current.x + q.y * targetQuatRef.current.y + q.z * targetQuatRef.current.z);
+                if (d > 0.9999) targetQuatRef.current = null;
+            } else if (!draggingRef.current) {
+                if (Math.abs(velXRef.current) > 0.0003) { q = qNorm(qMul(qAA(0, 1, 0, velXRef.current), q)); velXRef.current *= 0.93; }
+                else { velXRef.current = 0; q = qNorm(qMul(qAA(0, 1, 0, 0.003), q)); }
+                if (Math.abs(velYRef.current) > 0.0003) { q = qNorm(qMul(qAA(1, 0, 0, velYRef.current), q)); velYRef.current *= 0.93; }
+                else velYRef.current = 0;
+                quatRef.current = q;
+            }
 
-//             drawStars(dark);
-//             drawAtmosphere(dark, R);
-//             drawSphere(dark, R);
-//             drawGrid(q, dark, R);
-//             drawCountries(q, dark, R);
-//             drawDayNight(q, dark, R);
-//             drawArcs(q, R);
-//             drawCityMarkers(q, dark, R);
-//             drawUserLocation(q, R);
-//             updateArcs();
+            drawStars(dark);
+            drawAtmosphere(dark, R);
+            drawSphere(dark, R);
+            drawGrid(q, dark, R);
+            drawCountries(q, dark, R);
+            drawDayNight(q, dark, R);
+            drawArcs(q, R);
+            drawCityMarkers(q, dark, R);
+            drawUserLocation(q, R);
+            updateArcs();
 
-//             rafRef.current = requestAnimationFrame(loop);
-//         }
+            rafRef.current = requestAnimationFrame(loop);
+        }
 
-//         loop();
-//         return () => cancelAnimationFrame(rafRef.current);
-//         // eslint-disable-next-line react-hooks/exhaustive-deps
-//     }, []);
+        loop();
+        return () => cancelAnimationFrame(rafRef.current);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
-//     /* ── Live stats ─────────────────────────────────────────────────────── */
-//     useEffect(() => {
-//         const txs = ["$840 / min", "$1,240 / min", "$2,100 / min", "$980 / min", "$1,590 / min"]; let i = 0;
-//         const t = setInterval(() => { i = (i + 1) % txs.length; setLiveTx(txs[i]); setUsers((9000 + Math.floor(Math.random() * 800)).toLocaleString()); }, 3200);
-//         return () => clearInterval(t);
-//     }, []);
+    /* ── Live stats ─────────────────────────────────────────────────────── */
+    useEffect(() => {
+        const txs = ["$840 / min", "$1,240 / min", "$2,100 / min", "$980 / min", "$1,590 / min"]; let i = 0;
+        const t = setInterval(() => { i = (i + 1) % txs.length; setLiveTx(txs[i]); setUsers((9000 + Math.floor(Math.random() * 800)).toLocaleString()); }, 3200);
+        return () => clearInterval(t);
+    }, []);
 
-//     /* ── Mouse handlers ─────────────────────────────────────────────────── */
-//     function onMouseDown(e: React.MouseEvent<HTMLCanvasElement>) {
-//         if (!globeEnabledRef.current) return;
-//         draggingRef.current = true; lastXRef.current = e.clientX; lastYRef.current = e.clientY;
-//         velXRef.current = velYRef.current = movedRef.current = 0;
-//         if (canvasRef.current) canvasRef.current.style.cursor = "grabbing";
-//     }
-//     function onMouseMove(e: React.MouseEvent<HTMLCanvasElement>) {
-//         if (!globeEnabledRef.current) return;
-//         const cv = canvasRef.current!, rect = cv.getBoundingClientRect();
-//         const cw = cwRef.current, ch = chRef.current;
-//         const mx = (e.clientX - rect.left) * (cw / rect.width);
-//         const my = (e.clientY - rect.top) * (ch / rect.height);
-//         if (draggingRef.current) {
-//             const dx = e.clientX - lastXRef.current, dy = e.clientY - lastYRef.current;
-//             movedRef.current += Math.abs(dx) + Math.abs(dy);
-//             const vx = dx * (Math.PI * 2) / cw, vy = dy * Math.PI / ch;
-//             quatRef.current = qNorm(qMul(qAA(0, 1, 0, vx), qMul(qAA(1, 0, 0, vy), quatRef.current)));
-//             velXRef.current = vx; velYRef.current = vy;
-//             lastXRef.current = e.clientX; lastYRef.current = e.clientY;
-//             targetQuatRef.current = null; setTooltip(null); return;
-//         }
-//         const ulp = userProjRef.current;
-//         if (ulp?.visible) {
-//             const d2 = ulp.x - mx, dy2 = ulp.y - my;
-//             if (Math.sqrt(d2 * d2 + dy2 * dy2) < 16) {
-//                 setTooltip({
-//                     label: userLocRef.current?.label || "Your Location",
-//                     sub: locAccuracy === "exact" ? "GPS location" : "City-level (Kigali, Rwanda)",
-//                     dotColor: "#22c55e", x: e.clientX - rect.left + 16, y: e.clientY - rect.top - 10
-//                 }); return;
-//             }
-//         }
-//         setTooltip(null);
-//     }
-//     function onMouseUp() {
-//         draggingRef.current = false;
-//         if (canvasRef.current) canvasRef.current.style.cursor = globeEnabledRef.current ? "grab" : "default";
-//     }
+    /* ── Mouse handlers ─────────────────────────────────────────────────── */
+    function onMouseDown(e: React.MouseEvent<HTMLCanvasElement>) {
+        if (!globeEnabledRef.current) return;
+        draggingRef.current = true; lastXRef.current = e.clientX; lastYRef.current = e.clientY;
+        velXRef.current = velYRef.current = movedRef.current = 0;
+        if (canvasRef.current) canvasRef.current.style.cursor = "grabbing";
+    }
+    function onMouseMove(e: React.MouseEvent<HTMLCanvasElement>) {
+        if (!globeEnabledRef.current) return;
+        const cv = canvasRef.current!, rect = cv.getBoundingClientRect();
+        const cw = cwRef.current, ch = chRef.current;
+        const mx = (e.clientX - rect.left) * (cw / rect.width);
+        const my = (e.clientY - rect.top) * (ch / rect.height);
+        if (draggingRef.current) {
+            const dx = e.clientX - lastXRef.current, dy = e.clientY - lastYRef.current;
+            movedRef.current += Math.abs(dx) + Math.abs(dy);
+            const vx = dx * (Math.PI * 2) / cw, vy = dy * Math.PI / ch;
+            quatRef.current = qNorm(qMul(qAA(0, 1, 0, vx), qMul(qAA(1, 0, 0, vy), quatRef.current)));
+            velXRef.current = vx; velYRef.current = vy;
+            lastXRef.current = e.clientX; lastYRef.current = e.clientY;
+            targetQuatRef.current = null; setTooltip(null); return;
+        }
+        const ulp = userProjRef.current;
+        if (ulp?.visible) {
+            const d2 = ulp.x - mx, dy2 = ulp.y - my;
+            if (Math.sqrt(d2 * d2 + dy2 * dy2) < 16) {
+                setTooltip({
+                    label: userLocRef.current?.label || "Your Location",
+                    sub: locAccuracy === "exact" ? "GPS location" : "City-level (Kigali, Rwanda)",
+                    dotColor: "#22c55e", x: e.clientX - rect.left + 16, y: e.clientY - rect.top - 10
+                }); return;
+            }
+        }
+        setTooltip(null);
+    }
+    function onMouseUp() {
+        draggingRef.current = false;
+        if (canvasRef.current) canvasRef.current.style.cursor = globeEnabledRef.current ? "grab" : "default";
+    }
 
-//     /* ── Globe toggle ───────────────────────────────────────────────────── */
-//     const toggleGlobe = useCallback(() => {
-//         const next = !globeEnabledRef.current;
-//         globeEnabledRef.current = next;
-//         setGlobeEnabled(next);
-//         // Reset velocity so re-enable starts clean
-//         if (next) { velXRef.current = 0; velYRef.current = 0; }
-//         if (canvasRef.current) canvasRef.current.style.cursor = next ? "grab" : "default";
-//     }, []);
+    /* ── Globe toggle ───────────────────────────────────────────────────── */
+    const toggleGlobe = useCallback(() => {
+        const next = !globeEnabledRef.current;
+        globeEnabledRef.current = next;
+        setGlobeEnabled(next);
+        // Reset velocity so re-enable starts clean
+        if (next) { velXRef.current = 0; velYRef.current = 0; }
+        if (canvasRef.current) canvasRef.current.style.cursor = next ? "grab" : "default";
+    }, []);
 
-//     const zoomIn = useCallback(() => { targetZoomRef.current = Math.min(R_MAX, targetZoomRef.current + 25); }, []);
-//     const zoomOut = useCallback(() => { targetZoomRef.current = Math.max(R_MIN, targetZoomRef.current - 25); }, []);
-//     const resetView = useCallback(() => { targetQuatRef.current = latLngToQuat(0, 0); targetZoomRef.current = R_DEFAULT; velXRef.current = velYRef.current = 0; }, []);
-//     const focusUser = useCallback(() => {
-//         const loc = userLocRef.current; if (!loc) return;
-//         targetQuatRef.current = latLngToQuat(loc.lat, loc.lng);
-//         targetZoomRef.current = Math.max(targetZoomRef.current, 195);
-//     }, []);
+    const zoomIn = useCallback(() => { targetZoomRef.current = Math.min(R_MAX, targetZoomRef.current + 25); }, []);
+    const zoomOut = useCallback(() => { targetZoomRef.current = Math.max(R_MIN, targetZoomRef.current - 25); }, []);
+    const resetView = useCallback(() => { targetQuatRef.current = latLngToQuat(0, 0); targetZoomRef.current = R_DEFAULT; velXRef.current = velYRef.current = 0; }, []);
+    const focusUser = useCallback(() => {
+        const loc = userLocRef.current; if (!loc) return;
+        targetQuatRef.current = latLngToQuat(loc.lat, loc.lng);
+        targetZoomRef.current = Math.max(targetZoomRef.current, 195);
+    }, []);
 
-//     const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-//         if (!globeEnabledRef.current) return;
-//         const S = 0.18;
-//         switch (e.key) {
-//             case "ArrowLeft": quatRef.current = qNorm(qMul(qAA(0, 1, 0, -S), quatRef.current)); targetQuatRef.current = null; e.preventDefault(); break;
-//             case "ArrowRight": quatRef.current = qNorm(qMul(qAA(0, 1, 0, S), quatRef.current)); targetQuatRef.current = null; e.preventDefault(); break;
-//             case "ArrowUp": quatRef.current = qNorm(qMul(qAA(1, 0, 0, -S), quatRef.current)); targetQuatRef.current = null; e.preventDefault(); break;
-//             case "ArrowDown": quatRef.current = qNorm(qMul(qAA(1, 0, 0, S), quatRef.current)); targetQuatRef.current = null; e.preventDefault(); break;
-//             case "+": case "=": zoomIn(); e.preventDefault(); break;
-//             case "-": case "_": zoomOut(); e.preventDefault(); break;
-//             case "r": case "R": resetView(); e.preventDefault(); break;
-//         }
-//     };
+    const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+        if (!globeEnabledRef.current) return;
+        const S = 0.18;
+        switch (e.key) {
+            case "ArrowLeft": quatRef.current = qNorm(qMul(qAA(0, 1, 0, -S), quatRef.current)); targetQuatRef.current = null; e.preventDefault(); break;
+            case "ArrowRight": quatRef.current = qNorm(qMul(qAA(0, 1, 0, S), quatRef.current)); targetQuatRef.current = null; e.preventDefault(); break;
+            case "ArrowUp": quatRef.current = qNorm(qMul(qAA(1, 0, 0, -S), quatRef.current)); targetQuatRef.current = null; e.preventDefault(); break;
+            case "ArrowDown": quatRef.current = qNorm(qMul(qAA(1, 0, 0, S), quatRef.current)); targetQuatRef.current = null; e.preventDefault(); break;
+            case "+": case "=": zoomIn(); e.preventDefault(); break;
+            case "-": case "_": zoomOut(); e.preventDefault(); break;
+            case "r": case "R": resetView(); e.preventDefault(); break;
+        }
+    };
 
-//     const tk = tokens(isDark);
-//     const pillStyle: React.CSSProperties = {
-//         background: tk.badgeBg,
-//         border: `1px solid ${tk.badgeBorder}`,
-//         borderRadius: 99,
-//         padding: "5px 12px",
-//     };
-//     const ctrlBtnStyle: React.CSSProperties = {
-//         background: tk.controlBg,
-//         border: `1px solid ${tk.controlBdr}`,
-//         color: tk.controlIcon,
-//         width: 30, height: 30, borderRadius: 10,
-//         display: "flex", alignItems: "center", justifyContent: "center",
-//         cursor: "pointer", backdropFilter: "blur(8px)",
-//         transition: "opacity 0.15s",
-//     };
-//     // Disabled controls are dimmed when globe is off
-//     const ctrlBtnDisabled: React.CSSProperties = { ...ctrlBtnStyle, opacity: 0.4, pointerEvents: "none" };
+    const tk = tokens(isDark);
+    const pillStyle: React.CSSProperties = {
+        background: tk.badgeBg,
+        border: `1px solid ${tk.badgeBorder}`,
+        borderRadius: 99,
+        padding: "5px 12px",
+    };
+    const ctrlBtnStyle: React.CSSProperties = {
+        background: tk.controlBg,
+        border: `1px solid ${tk.controlBdr}`,
+        color: tk.controlIcon,
+        width: 30, height: 30, borderRadius: 10,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        cursor: "pointer", backdropFilter: "blur(8px)",
+        transition: "opacity 0.15s",
+    };
+    // Disabled controls are dimmed when globe is off
+    const ctrlBtnDisabled: React.CSSProperties = { ...ctrlBtnStyle, opacity: 0.4, pointerEvents: "none" };
 
-//     return (
-//         // Outer wrapper: paddingTop gives the "You" label + pulse rings room above the sphere
-//         <div style={{ paddingTop: 28, overflow: "hidden" }}>
-//             <div
-//                 ref={containerRef}
-//                 tabIndex={0}
-//                 role="img"
-//                 aria-label="Interactive 3D globe. Drag to rotate, scroll to zoom."
-//                 onKeyDown={onKeyDown}
-//                 className="w-full rounded-3xl outline-none focus-visible:ring-2 focus-visible:ring-orange-500/40"
-//                 style={{
-//                     position: "relative",
-//                     overflow: "hidden",
-//                     isolation: "isolate",
-//                     background: "transparent",
-//                     aspectRatio: "520 / 480",
-//                     width: "100%",
-//                     minHeight: 320,
-//                 }}
-//             >
-//                 <canvas
-//                     ref={canvasRef}
-//                     style={{
-//                         position: "absolute", inset: 0,
-//                         width: "100%", height: "100%",
-//                         cursor: globeEnabled ? "grab" : "default",
-//                         display: "block", touchAction: "none",
-//                         transition: "opacity 0.3s",
-//                         opacity: globeEnabled ? 1 : 0.5,
-//                     }}
-//                     onMouseDown={onMouseDown}
-//                     onMouseMove={onMouseMove}
-//                     onMouseUp={onMouseUp}
-//                     onMouseLeave={() => {
-//                         draggingRef.current = false; setTooltip(null);
-//                         if (canvasRef.current) canvasRef.current.style.cursor = globeEnabled ? "grab" : "default";
-//                     }}
-//                     aria-hidden="true"
-//                 />
+    return (
+        // Outer wrapper: paddingTop gives the "You" label + pulse rings room above the sphere
+        <div style={{ paddingTop: 28, overflow: "hidden" }}>
+            <div
+                ref={containerRef}
+                tabIndex={0}
+                role="img"
+                aria-label="Interactive 3D globe. Drag to rotate, scroll to zoom."
+                onKeyDown={onKeyDown}
+                className="w-full rounded-3xl outline-none focus-visible:ring-2 focus-visible:ring-orange-500/40"
+                style={{
+                    position: "relative",
+                    overflow: "hidden",
+                    isolation: "isolate",
+                    background: "transparent",
+                    aspectRatio: "520 / 480",
+                    width: "100%",
+                    minHeight: 320,
+                }}
+            >
+                <canvas
+                    ref={canvasRef}
+                    style={{
+                        position: "absolute", inset: 0,
+                        width: "100%", height: "100%",
+                        cursor: globeEnabled ? "grab" : "default",
+                        display: "block", touchAction: "none",
+                        transition: "opacity 0.3s",
+                        opacity: globeEnabled ? 1 : 0.5,
+                    }}
+                    onMouseDown={onMouseDown}
+                    onMouseMove={onMouseMove}
+                    onMouseUp={onMouseUp}
+                    onMouseLeave={() => {
+                        draggingRef.current = false; setTooltip(null);
+                        if (canvasRef.current) canvasRef.current.style.cursor = globeEnabled ? "grab" : "default";
+                    }}
+                    aria-hidden="true"
+                />
 
-//                 {/* Live transaction badge */}
-//                 <div
-//                     className="absolute flex items-center gap-2 pointer-events-none"
-//                     style={{ top: 16, left: "50%", transform: "translateX(-50%)", ...pillStyle, padding: "5px 14px", whiteSpace: "nowrap" }}
-//                 >
-//                     <span className="rounded-full animate-pulse" style={{ width: 6, height: 6, background: "#22c55e", display: "inline-block", flexShrink: 0 }} />
-//                     <span style={{ fontSize: 10, color: tk.labelColor }}>Live transactions:</span>
-//                     <span style={{ fontSize: 10, fontWeight: 800, color: "#fd5000" }}>{liveTx}</span>
-//                 </div>
+                {/* Live transaction badge */}
+                <div
+                    className="absolute flex items-center gap-2 pointer-events-none"
+                    style={{ top: 16, left: "50%", transform: "translateX(-50%)", ...pillStyle, padding: "5px 14px", whiteSpace: "nowrap" }}
+                >
+                    <span className="rounded-full animate-pulse" style={{ width: 6, height: 6, background: "#22c55e", display: "inline-block", flexShrink: 0 }} />
+                    <span style={{ fontSize: 10, color: tk.labelColor }}>Live transactions:</span>
+                    <span style={{ fontSize: 10, fontWeight: 800, color: "#fd5000" }}>{liveTx}</span>
+                </div>
 
-//                 {/* ── Left controls: zoom + globe toggle ── */}
-//                 <div className="absolute flex flex-col gap-1.5" style={{ top: 16, left: 16 }}>
-//                     <button onClick={zoomIn} aria-label="Zoom in" style={globeEnabled ? ctrlBtnStyle : ctrlBtnDisabled} title="Zoom in (+)">
-//                         <Plus size={14} />
-//                     </button>
-//                     <button onClick={zoomOut} aria-label="Zoom out" style={globeEnabled ? ctrlBtnStyle : ctrlBtnDisabled} title="Zoom out (−)">
-//                         <Minus size={14} />
-//                     </button>
-//                     <button onClick={resetView} aria-label="Reset view" style={globeEnabled ? ctrlBtnStyle : ctrlBtnDisabled} title="Reset (R)">
-//                         <RotateCcw size={13} />
-//                     </button>
-//                     <button onClick={focusUser} aria-label="My location" style={globeEnabled ? ctrlBtnStyle : ctrlBtnDisabled} title="My location">
-//                         <Locate size={13} color="#22c55e" />
-//                     </button>
+                {/* ── Left controls: zoom + globe toggle ── */}
+                <div className="absolute flex flex-col gap-1.5" style={{ top: 16, left: 16 }}>
+                    <button onClick={zoomIn} aria-label="Zoom in" style={globeEnabled ? ctrlBtnStyle : ctrlBtnDisabled} title="Zoom in (+)">
+                        <Plus size={14} />
+                    </button>
+                    <button onClick={zoomOut} aria-label="Zoom out" style={globeEnabled ? ctrlBtnStyle : ctrlBtnDisabled} title="Zoom out (−)">
+                        <Minus size={14} />
+                    </button>
+                    <button onClick={resetView} aria-label="Reset view" style={globeEnabled ? ctrlBtnStyle : ctrlBtnDisabled} title="Reset (R)">
+                        <RotateCcw size={13} />
+                    </button>
+                    <button onClick={focusUser} aria-label="My location" style={globeEnabled ? ctrlBtnStyle : ctrlBtnDisabled} title="My location">
+                        <Locate size={13} color="#22c55e" />
+                    </button>
 
-//                     {/* Divider */}
-//                     <div style={{ height: 1, background: tk.controlBdr, margin: "2px 0" }} />
+                    {/* Divider */}
+                    <div style={{ height: 1, background: tk.controlBdr, margin: "2px 0" }} />
 
-//                     {/* Globe on/off toggle */}
-//                     <button
-//                         onClick={toggleGlobe}
-//                         aria-label={globeEnabled ? "Disable globe" : "Enable globe"}
-//                         title={globeEnabled ? "Disable globe (pause)" : "Enable globe (resume)"}
-//                         style={{
-//                             ...ctrlBtnStyle,
-//                             color: globeEnabled ? "#22c55e" : tk.controlIcon,
-//                             border: `1px solid ${globeEnabled ? "rgba(34,197,94,0.4)" : tk.controlBdr}`,
-//                         }}
-//                     >
-//                         {globeEnabled ? <Eye size={13} /> : <EyeOff size={13} />}
-//                     </button>
-//                 </div>
+                    {/* Globe on/off toggle */}
+                    <button
+                        onClick={toggleGlobe}
+                        aria-label={globeEnabled ? "Disable globe" : "Enable globe"}
+                        title={globeEnabled ? "Disable globe (pause)" : "Enable globe (resume)"}
+                        style={{
+                            ...ctrlBtnStyle,
+                            color: globeEnabled ? "#22c55e" : tk.controlIcon,
+                            border: `1px solid ${globeEnabled ? "rgba(34,197,94,0.4)" : tk.controlBdr}`,
+                        }}
+                    >
+                        {globeEnabled ? <Eye size={13} /> : <EyeOff size={13} />}
+                    </button>
+                </div>
 
-//                 {/* ── Legend (top-right) — toggleable ── */}
-//                 <div className="absolute flex flex-col items-end gap-1" style={{ top: 16, right: 16 }}>
-//                     {/* Legend toggle button */}
-//                     <button
-//                         onClick={() => setLegendVisible(v => !v)}
-//                         aria-label={legendVisible ? "Hide legend" : "Show legend"}
-//                         title={legendVisible ? "Hide legend" : "Show legend"}
-//                         style={{ ...ctrlBtnStyle, width: 24, height: 24, borderRadius: 6, marginBottom: 4 }}
-//                     >
-//                         <Map size={11} />
-//                     </button>
+                {/* ── Legend (top-right) — toggleable ── */}
+                <div className="absolute flex flex-col items-end gap-1" style={{ top: 16, right: 16 }}>
+                    {/* Legend toggle button */}
+                    <button
+                        onClick={() => setLegendVisible(v => !v)}
+                        aria-label={legendVisible ? "Hide legend" : "Show legend"}
+                        title={legendVisible ? "Hide legend" : "Show legend"}
+                        style={{ ...ctrlBtnStyle, width: 24, height: 24, borderRadius: 6, marginBottom: 4 }}
+                    >
+                        <Map size={11} />
+                    </button>
 
-//                     <AnimatePresence>
-//                         {legendVisible && (
-//                             <motion.div
-//                                 key="legend"
-//                                 initial={{ opacity: 0, x: 8, scale: 0.95 }}
-//                                 animate={{ opacity: 1, x: 0, scale: 1 }}
-//                                 exit={{ opacity: 0, x: 8, scale: 0.95 }}
-//                                 transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
-//                                 className="flex flex-col gap-1 pointer-events-none"
-//                             >
-//                                 {/* Location row */}
-//                                 <div className="flex items-center gap-2">
-//                                     <div className="rounded-full animate-pulse" style={{ width: 9, height: 9, background: "#22c55e", flexShrink: 0 }} />
-//                                     <span style={{ fontSize: 10, color: tk.legendColor, fontWeight: 700 }}>
-//                                         {locAccuracy === "exact" ? "Your location" : `${DEFAULT_LOC.label}, Rwanda`}
-//                                     </span>
-//                                 </div>
-//                                 {/* Globe status */}
-//                                 <div className="flex items-center gap-2">
-//                                     <div style={{
-//                                         width: 9, height: 9, borderRadius: "50%", flexShrink: 0,
-//                                         background: globeEnabled ? "#fd5000" : "rgba(150,150,150,0.5)",
-//                                     }} />
-//                                     <span style={{ fontSize: 10, color: tk.legendColor, opacity: 0.7 }}>
-//                                         Globe {globeEnabled ? "live" : "paused"}
-//                                     </span>
-//                                 </div>
-//                                 {/* Hint */}
-//                                 <div style={{ marginTop: 2, opacity: 0.45 }}>
-//                                     <span style={{ fontSize: 9, color: tk.legendColor }}>drag · scroll · arrows</span>
-//                                 </div>
-//                             </motion.div>
-//                         )}
-//                     </AnimatePresence>
-//                 </div>
+                    <AnimatePresence>
+                        {legendVisible && (
+                            <motion.div
+                                key="legend"
+                                initial={{ opacity: 0, x: 8, scale: 0.95 }}
+                                animate={{ opacity: 1, x: 0, scale: 1 }}
+                                exit={{ opacity: 0, x: 8, scale: 0.95 }}
+                                transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+                                className="flex flex-col gap-1 pointer-events-none"
+                            >
+                                {/* Location row */}
+                                <div className="flex items-center gap-2">
+                                    <div className="rounded-full animate-pulse" style={{ width: 9, height: 9, background: "#22c55e", flexShrink: 0 }} />
+                                    <span style={{ fontSize: 10, color: tk.legendColor, fontWeight: 700 }}>
+                                        {locAccuracy === "exact" ? "Your location" : `${DEFAULT_LOC.label}, Rwanda`}
+                                    </span>
+                                </div>
+                                {/* Globe status */}
+                                <div className="flex items-center gap-2">
+                                    <div style={{
+                                        width: 9, height: 9, borderRadius: "50%", flexShrink: 0,
+                                        background: globeEnabled ? "#fd5000" : "rgba(150,150,150,0.5)",
+                                    }} />
+                                    <span style={{ fontSize: 10, color: tk.legendColor, opacity: 0.7 }}>
+                                        Globe {globeEnabled ? "live" : "paused"}
+                                    </span>
+                                </div>
+                                {/* Hint */}
+                                <div style={{ marginTop: 2, opacity: 0.45 }}>
+                                    <span style={{ fontSize: 9, color: tk.legendColor }}>drag · scroll · arrows</span>
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
 
-//                 {/* Stat chips — hidden on mobile (shown in Hero section instead) */}
-//                 <div
-//                     className="absolute gap-2 flex-wrap justify-center pointer-events-none hidden sm:flex"
-//                     style={{ bottom: 16, left: "50%", transform: "translateX(-50%)", whiteSpace: "nowrap" }}
-//                 >
-//                     {[
-//                         { label: "Active users", val: users, dot: "#22c55e", pulse: true },
-//                         { label: "Countries", val: "50+", dot: "#fd5000", pulse: false },
-//                         { label: "Total paid", val: "$1M+", dot: "#fd5000", pulse: false },
-//                     ].map(c => (
-//                         <div key={c.label} className="flex items-center gap-2" style={pillStyle}>
-//                             <div className={`rounded-full${c.pulse ? " animate-pulse" : ""}`} style={{ width: 6, height: 6, background: c.dot, flexShrink: 0 }} />
-//                             <span style={{ fontSize: 9, color: tk.labelColor }}>{c.label}</span>
-//                             <span style={{ fontSize: 10, fontWeight: 800, color: "#fd5000" }}>{c.val}</span>
-//                         </div>
-//                     ))}
-//                 </div>
+                {/* Stat chips — hidden on mobile (shown in Hero section instead) */}
+                <div
+                    className="absolute gap-2 flex-wrap justify-center pointer-events-none hidden sm:flex"
+                    style={{ bottom: 16, left: "50%", transform: "translateX(-50%)", whiteSpace: "nowrap" }}
+                >
+                    {[
+                        { label: "Active users", val: users, dot: "#22c55e", pulse: true },
+                        { label: "Countries", val: "50+", dot: "#fd5000", pulse: false },
+                        { label: "Total paid", val: "$1M+", dot: "#fd5000", pulse: false },
+                    ].map(c => (
+                        <div key={c.label} className="flex items-center gap-2" style={pillStyle}>
+                            <div className={`rounded-full${c.pulse ? " animate-pulse" : ""}`} style={{ width: 6, height: 6, background: c.dot, flexShrink: 0 }} />
+                            <span style={{ fontSize: 9, color: tk.labelColor }}>{c.label}</span>
+                            <span style={{ fontSize: 10, fontWeight: 800, color: "#fd5000" }}>{c.val}</span>
+                        </div>
+                    ))}
+                </div>
 
-//                 {/* Disabled overlay label */}
-//                 <AnimatePresence>
-//                     {!globeEnabled && (
-//                         <motion.div
-//                             key="disabled-label"
-//                             initial={{ opacity: 0, scale: 0.9 }}
-//                             animate={{ opacity: 1, scale: 1 }}
-//                             exit={{ opacity: 0, scale: 0.9 }}
-//                             transition={{ duration: 0.2 }}
-//                             className="absolute inset-0 flex items-center justify-center pointer-events-none"
-//                         >
-//                             <div style={{
-//                                 background: tk.badgeBg,
-//                                 border: `1px solid ${tk.badgeBorder}`,
-//                                 borderRadius: 12, padding: "8px 16px",
-//                                 display: "flex", alignItems: "center", gap: 8,
-//                             }}>
-//                                 <EyeOff size={12} style={{ color: tk.labelColor }} />
-//                                 <span style={{ fontSize: 11, fontWeight: 600, color: tk.labelColor }}>Globe paused</span>
-//                             </div>
-//                         </motion.div>
-//                     )}
-//                 </AnimatePresence>
+                {/* Disabled overlay label */}
+                <AnimatePresence>
+                    {!globeEnabled && (
+                        <motion.div
+                            key="disabled-label"
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.9 }}
+                            transition={{ duration: 0.2 }}
+                            className="absolute inset-0 flex items-center justify-center pointer-events-none"
+                        >
+                            <div style={{
+                                background: tk.badgeBg,
+                                border: `1px solid ${tk.badgeBorder}`,
+                                borderRadius: 12, padding: "8px 16px",
+                                display: "flex", alignItems: "center", gap: 8,
+                            }}>
+                                <EyeOff size={12} style={{ color: tk.labelColor }} />
+                                <span style={{ fontSize: 11, fontWeight: 600, color: tk.labelColor }}>Globe paused</span>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
 
-//                 {/* Tooltip */}
-//                 {tooltip && globeEnabled && (
-//                     <div
-//                         className="absolute rounded-xl pointer-events-none"
-//                         style={{
-//                             left: tooltip.x, top: tooltip.y,
-//                             background: tk.tooltipBg,
-//                             border: `1px solid ${tk.tooltipBdr}`,
-//                             padding: "8px 12px", zIndex: 10, minWidth: 130,
-//                             boxShadow: isDark ? "0 4px 16px rgba(0,0,0,0.5)" : "0 4px 16px rgba(0,0,0,0.10)",
-//                         }}
-//                     >
-//                         <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
-//                             <span style={{ width: 8, height: 8, borderRadius: "50%", background: tooltip.dotColor, flexShrink: 0, display: "inline-block" }} />
-//                             <p style={{ fontSize: 12, fontWeight: 800, color: "#fd5000", margin: 0 }}>{tooltip.label}</p>
-//                         </div>
-//                         <p style={{ fontSize: 10, color: tk.tooltipSub, margin: 0 }}>{tooltip.sub}</p>
-//                     </div>
-//                 )}
-//             </div>
-//         </div>
-//     );
-// }
+                {/* Tooltip */}
+                {tooltip && globeEnabled && (
+                    <div
+                        className="absolute rounded-xl pointer-events-none"
+                        style={{
+                            left: tooltip.x, top: tooltip.y,
+                            background: tk.tooltipBg,
+                            border: `1px solid ${tk.tooltipBdr}`,
+                            padding: "8px 12px", zIndex: 10, minWidth: 130,
+                            boxShadow: isDark ? "0 4px 16px rgba(0,0,0,0.5)" : "0 4px 16px rgba(0,0,0,0.10)",
+                        }}
+                    >
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                            <span style={{ width: 8, height: 8, borderRadius: "50%", background: tooltip.dotColor, flexShrink: 0, display: "inline-block" }} />
+                            <p style={{ fontSize: 12, fontWeight: 800, color: "#fd5000", margin: 0 }}>{tooltip.label}</p>
+                        </div>
+                        <p style={{ fontSize: 10, color: tk.tooltipSub, margin: 0 }}>{tooltip.sub}</p>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
+
+/* ─── FloatingHeroVisual ─────────────────────────────────────────────────── */
+
+interface HeroData {
+    product: { name: string; slug: string; price: string; saleCount: number; rating: number; image: string | null } | null;
+    campaign: { title: string; id: string; rate: string; type: string } | null;
+    sale: { amount: string; timeAgo: string };
+    community: { name: string; slug: string; memberCount: string; avatar: string | null } | null;
+    stats: { totalUsers: string };
+}
+
+function Shimmer({ className }: { className?: string }) {
+    return (
+        <div
+            className={`animate-pulse rounded ${className}`}
+            style={{ background: "var(--color-border)" }}
+        />
+    );
+}
+
+export function FloatingHeroVisual() {
+    const [data, setData] = useState<HeroData | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        let cancelled = false;
+        fetch("/api/hero-data")
+            .then(r => r.ok ? r.json() : null)
+            .then(d => { if (!cancelled && d) { setData(d); setLoading(false); } })
+            .catch(() => { if (!cancelled) setLoading(false); });
+        return () => { cancelled = true; };
+    }, []);
+
+    const product = data?.product;
+    const campaign = data?.campaign;
+    const sale = data?.sale ?? { amount: "$24", timeAgo: "just now" };
+    const community = data?.community;
+    const totalUsers = data?.stats?.totalUsers ?? "10K+";
+
+    return (
+        <div className="relative w-full h-[500px] flex items-center justify-center select-none">
+            {/* Ambient glow layers */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="w-72 h-72 rounded-full opacity-[0.15]" style={{ background: "radial-gradient(circle, #fd5000 0%, transparent 65%)", filter: "blur(24px)" }} />
+                <div className="absolute w-48 h-48 rounded-full opacity-[0.10]" style={{ background: "radial-gradient(circle, #facc15 0%, transparent 65%)", filter: "blur(20px)", transform: "translate(-30px, 20px)" }} />
+            </div>
+
+            {/* Orbit ring */}
+            <div
+                className="absolute z-0 rounded-full pointer-events-none"
+                style={{
+                    width: 280, height: 280,
+                    border: "1px dashed rgba(253,80,0,0.18)",
+                    animation: "spin 32s linear infinite",
+                }}
+            />
+            <div
+                className="absolute z-0 rounded-full pointer-events-none"
+                style={{
+                    width: 380, height: 380,
+                    border: "1px dashed rgba(253,80,0,0.08)",
+                    animation: "spin 48s linear infinite reverse",
+                }}
+            />
+            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+
+            {/* ── Central Hub ── */}
+            <motion.div
+                initial={{ opacity: 0, scale: 0.7 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+                className="relative z-10 flex flex-col items-center justify-center rounded-[2rem] backdrop-blur-2xl"
+                style={{
+                    width: 136, height: 136,
+                    background: "var(--color-surface)",
+                    border: "1.5px solid rgba(253,80,0,0.25)",
+                    boxShadow: "0 0 0 6px rgba(253,80,0,0.06), 0 24px 48px rgba(0,0,0,0.14)",
+                }}
+            >
+                <div
+                    className="w-14 h-14 rounded-2xl mb-2 flex items-center justify-center"
+                    style={{ background: "linear-gradient(135deg, rgba(253,80,0,0.15), rgba(253,80,0,0.06))", color: "#fd5000" }}
+                >
+                    <ShoppingBag size={26} strokeWidth={1.8} />
+                </div>
+                <span className="text-[12px] font-black tracking-tight" style={{ color: "var(--color-text-primary)" }}>Jimvio</span>
+                {loading ? (
+                    <Shimmer className="w-14 h-3 mt-1" />
+                ) : (
+                    <span className="text-[10px] font-semibold mt-0.5" style={{ color: "#fd5000" }}>{totalUsers} creators</span>
+                )}
+            </motion.div>
+
+            {/* ── Card 1: Trending Product (top-left) ── */}
+            <motion.div
+                initial={{ opacity: 0, x: -30, y: -10 }}
+                animate={{ opacity: 1, x: 0, y: [-6, 6, -6] }}
+                transition={{ opacity: { duration: 0.6, delay: 0.15 }, y: { repeat: Infinity, duration: 5.4, ease: "easeInOut" } }}
+                className="absolute z-20 top-[8%] left-[0%]"
+            >
+                <Link
+                    href={product ? `/products/${product.slug}` : "/marketplace"}
+                    className="flex items-center gap-3 p-3 rounded-2xl backdrop-blur-xl transition-all hover:scale-[1.03] active:scale-[0.98]"
+                    style={{
+                        background: "var(--color-surface)",
+                        border: "1px solid var(--color-border)",
+                        boxShadow: "0 8px 28px rgba(0,0,0,0.10)",
+                        maxWidth: 210,
+                    }}
+                >
+                    {/* Product image or icon */}
+                    <div
+                        className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden"
+                        style={{ background: "rgba(14,165,233,0.08)", border: "1px solid rgba(14,165,233,0.15)" }}
+                    >
+                        {product?.image ? (
+                            <img src={product.image} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                            <Package size={18} style={{ color: "#0ea5e9" }} />
+                        )}
+                    </div>
+                    <div className="min-w-0">
+                        {loading ? (
+                            <>
+                                <Shimmer className="w-28 h-3 mb-1" />
+                                <Shimmer className="w-16 h-2.5" />
+                            </>
+                        ) : (
+                            <>
+                                <p className="text-[11px] font-bold truncate leading-tight" style={{ color: "var(--color-text-primary)" }}>
+                                    {product?.name ?? "Top Product"}
+                                </p>
+                                <div className="flex items-center gap-1.5 mt-0.5">
+                                    <span className="text-[11px] font-black" style={{ color: "#0ea5e9" }}>{product?.price ?? "—"}</span>
+                                    <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: "rgba(14,165,233,0.1)", color: "#0ea5e9" }}>
+                                        🔥 Trending
+                                    </span>
+                                </div>
+                                <div className="flex items-center gap-1 mt-1">
+                                    <Star size={9} fill="#f59e0b" stroke="none" />
+                                    <span className="text-[9px] font-bold" style={{ color: "var(--color-text-muted)" }}>
+                                        {product?.rating?.toFixed(1) ?? "4.5"} • {product?.saleCount ? `${product.saleCount.toLocaleString()} sold` : "Top seller"}
+                                    </span>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </Link>
+            </motion.div>
+
+            {/* ── Card 2: Live Campaign (top-right) ── */}
+            <motion.div
+                initial={{ opacity: 0, x: 30, y: -10 }}
+                animate={{ opacity: 1, x: 0, y: [8, -8, 8] }}
+                transition={{ opacity: { duration: 0.6, delay: 0.3 }, y: { repeat: Infinity, duration: 6.1, ease: "easeInOut" } }}
+                className="absolute z-20 top-[10%] right-[0%]"
+            >
+                <Link
+                    href={campaign ? `/ugc/${campaign.id}` : "/ugc"}
+                    className="flex flex-col gap-2.5 p-3.5 rounded-2xl backdrop-blur-xl transition-all hover:scale-[1.03] active:scale-[0.98]"
+                    style={{
+                        background: "var(--color-surface)",
+                        border: "1px solid rgba(253,80,0,0.18)",
+                        boxShadow: "0 8px 28px rgba(253,80,0,0.08)",
+                        minWidth: 190,
+                    }}
+                >
+                    <div className="flex items-center gap-2.5">
+                        <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "rgba(253,80,0,0.1)", color: "#fd5000" }}>
+                            <Video size={15} strokeWidth={2} />
+                        </div>
+                        <div className="min-w-0">
+                            {loading ? (
+                                <>
+                                    <Shimmer className="w-12 h-2 mb-1" />
+                                    <Shimmer className="w-24 h-3" />
+                                </>
+                            ) : (
+                                <>
+                                    <p className="text-[9px] font-bold uppercase tracking-widest" style={{ color: "#fd5000" }}>
+                                        {campaign?.type ?? "UGC"} Campaign
+                                    </p>
+                                    <p className="text-[11px] font-bold truncate" style={{ color: "var(--color-text-primary)" }}>
+                                        {campaign?.title ?? "Live Campaign"}
+                                    </p>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                    <div
+                        className="flex items-center justify-between pt-2"
+                        style={{ borderTop: "1px solid var(--color-border)" }}
+                    >
+                        <div className="flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                            <span className="text-[9px] font-semibold" style={{ color: "var(--color-text-muted)" }}>Live</span>
+                        </div>
+                        {loading ? (
+                            <Shimmer className="w-20 h-3" />
+                        ) : (
+                            <span className="text-[11px] font-black" style={{ color: "var(--color-text-primary)" }}>
+                                {campaign?.rate ?? "Paid per view"}
+                            </span>
+                        )}
+                    </div>
+                </Link>
+            </motion.div>
+
+            {/* ── Card 3: Recent Sale (bottom-right) ── */}
+            <motion.div
+                initial={{ opacity: 0, x: 20, y: 20 }}
+                animate={{ opacity: 1, x: 0, y: [-4, 10, -4] }}
+                transition={{ opacity: { duration: 0.6, delay: 0.45 }, y: { repeat: Infinity, duration: 4.9, ease: "easeInOut" } }}
+                className="absolute z-20 bottom-[18%] right-[4%]"
+            >
+                <div
+                    className="flex items-center gap-3 p-3 rounded-xl backdrop-blur-xl"
+                    style={{
+                        background: "linear-gradient(135deg, rgba(34,197,94,0.08), rgba(34,197,94,0.04))",
+                        border: "1px solid rgba(34,197,94,0.25)",
+                        boxShadow: "0 8px 28px rgba(34,197,94,0.10)",
+                    }}
+                >
+                    <div
+                        className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+                        style={{ background: "rgba(34,197,94,0.15)", color: "#22c55e" }}
+                    >
+                        <TrendingUp size={15} strokeWidth={2.2} />
+                    </div>
+                    <div>
+                        <p className="text-[9px] font-semibold" style={{ color: "rgba(34,197,94,0.7)" }}>Sale completed</p>
+                        {loading ? (
+                            <Shimmer className="w-16 h-3.5 mt-0.5" />
+                        ) : (
+                            <>
+                                <p className="text-[13px] font-black leading-none" style={{ color: "#22c55e" }}>
+                                    {sale.amount}
+                                </p>
+                                <p className="text-[9px] mt-0.5" style={{ color: "var(--color-text-muted)" }}>{sale.timeAgo}</p>
+                            </>
+                        )}
+                    </div>
+                </div>
+            </motion.div>
+
+            {/* ── Card 4: Top Community (bottom-left) ── */}
+            <motion.div
+                initial={{ opacity: 0, x: -20, y: 20 }}
+                animate={{ opacity: 1, x: 0, y: [10, -4, 10] }}
+                transition={{ opacity: { duration: 0.6, delay: 0.6 }, y: { repeat: Infinity, duration: 5.8, ease: "easeInOut" } }}
+                className="absolute z-20 bottom-[14%] left-[0%]"
+            >
+                <Link
+                    href={community ? `/communities/${community.slug}` : "/communities"}
+                    className="flex flex-col gap-2 p-3.5 rounded-2xl backdrop-blur-xl transition-all hover:scale-[1.03] active:scale-[0.98]"
+                    style={{
+                        background: "var(--color-surface)",
+                        border: "1px solid var(--color-border)",
+                        boxShadow: "0 8px 28px rgba(0,0,0,0.08)",
+                        minWidth: 185,
+                    }}
+                >
+                    <div className="flex items-center gap-2">
+                        {/* Community avatar or icon */}
+                        {community?.avatar ? (
+                            <img
+                                src={community.avatar}
+                                alt=""
+                                className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                                style={{ border: "2px solid rgba(253,80,0,0.2)" }}
+                            />
+                        ) : (
+                            <div
+                                className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
+                                style={{ background: "rgba(253,80,0,0.1)", color: "#fd5000" }}
+                            >
+                                <Users size={14} strokeWidth={2} />
+                            </div>
+                        )}
+                        <div className="min-w-0 flex-1">
+                            {loading ? (
+                                <>
+                                    <Shimmer className="w-24 h-3 mb-1" />
+                                    <Shimmer className="w-16 h-2.5" />
+                                </>
+                            ) : (
+                                <>
+                                    <p className="text-[11px] font-bold truncate" style={{ color: "var(--color-text-primary)" }}>
+                                        {community?.name ?? "Creator Hub"}
+                                    </p>
+                                    <div className="flex items-center gap-1 mt-0.5">
+                                        <Users size={9} style={{ color: "var(--color-text-muted)" }} />
+                                        <span className="text-[9px] font-semibold" style={{ color: "var(--color-text-muted)" }}>
+                                            {community?.memberCount ?? "1K+"} members
+                                        </span>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                        <Zap size={13} style={{ color: "#fd5000", flexShrink: 0 }} />
+                    </div>
+                    <div
+                        className="flex items-center gap-1.5 pt-2"
+                        style={{ borderTop: "1px solid var(--color-border)" }}
+                    >
+                        <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: "#22c55e" }} />
+                        <span className="text-[9px] font-semibold" style={{ color: "var(--color-text-muted)" }}>Active community</span>
+                    </div>
+                </Link>
+            </motion.div>
+
+            {/* ── Small floating badge: live indicator ── */}
+            <motion.div
+                initial={{ opacity: 0, scale: 0.5 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 1.1, duration: 0.4 }}
+                className="absolute z-20 top-[42%] right-[12%] flex items-center gap-1.5 px-2.5 py-1.5 rounded-full"
+                style={{
+                    background: "rgba(253,80,0,0.08)",
+                    border: "1px solid rgba(253,80,0,0.2)",
+                    backdropFilter: "blur(8px)",
+                }}
+            >
+                <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                <span className="text-[9px] font-bold" style={{ color: "#fd5000" }}>LIVE</span>
+            </motion.div>
+        </div>
+    );
+}
 
 /* ─── Hero ───────────────────────────────────────────────────────────────── */
 export function Hero() {
@@ -840,7 +1169,7 @@ export function Hero() {
     }, []);
 
     return (
-        <section className="relative overflow-hidden pt-16 pb-24 sm:pt-24 sm:pb-32" style={{ background: "var(--color-bg)" }}>
+        <section className="relative overflow-visible pt-16 pb-24 sm:pt-24 sm:pb-32" style={{ background: "var(--color-bg)" }}>
             <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[800px] h-[400px] pointer-events-none"
                 style={{ background: "radial-gradient(ellipse at center, rgba(253,80,0,0.06) 0%, transparent 65%)" }} />
 
@@ -855,7 +1184,7 @@ export function Hero() {
                                 <button
                                     onClick={handleLive}
                                     className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full text-xs font-semibold"
-                                    style={{ background: "rgba(253,80,0,0.08)", border: "1px solid rgba(253,80,0,0.18)", color: "var(--color-accent)" }}
+                                    style={{ background: "rgba(253,80,0,0.10)", border: "1px solid rgba(253,80,0,0.22)", color: "var(--color-accent)", boxShadow: "0 6px 16px rgba(253,80,0,0.08)" }}
                                 >
                                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" style={{ background: mobileStats[mobileStatIdx].dot }} />
                                     <AnimatePresence mode="wait">
@@ -883,7 +1212,7 @@ export function Hero() {
                             <button
                                 onClick={handleLive}
                                 className="hidden sm:inline-flex items-center gap-2.5 px-4 py-2 rounded-full text-xs font-semibold"
-                                style={{ background: "rgba(253,80,0,0.08)", border: "1px solid rgba(253,80,0,0.18)", color: "var(--color-accent)" }}
+                                style={{ background: "rgba(253,80,0,0.10)", border: "1px solid rgba(253,80,0,0.22)", color: "var(--color-accent)", boxShadow: "0 8px 26px rgba(253,80,0,0.12)" }}
                             >
                                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
                                 {activeCount.toLocaleString()} people active now
@@ -897,14 +1226,21 @@ export function Hero() {
                                 <span className="relative inline-block overflow-hidden" style={{ color: "var(--color-accent)" }}>
                                     <AnimatePresence mode="wait">
                                         <motion.span key={currentWord} initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -40, opacity: 0 }}
-                                            transition={{ duration: 0.36, ease: [0.22, 1, 0.36, 1] }} className="block">{words[currentWord]}</motion.span>
+                                            transition={{ duration: 0.36, ease: [0.22, 1, 0.36, 1] }} className="block"
+                                            style={{
+                                                background: "linear-gradient(90deg,#fd5000,#facc15)",
+                                                WebkitBackgroundClip: "text",
+                                                WebkitTextFillColor: "transparent",
+                                                display: "inline-block",
+                                            }}
+                                        >{words[currentWord]}</motion.span>
                                     </AnimatePresence>
                                 </span>
                                 <br /><span style={{ color: "var(--color-text-primary)" }}>Anywhere.</span>
                             </h1>
                         </motion.div>
 
-                        <motion.p variants={fadeUp} className="text-base sm:text-lg leading-relaxed mb-9 max-w-[440px] mx-auto lg:mx-0"
+                        <motion.p variants={fadeUp} className="text-base sm:text-lg leading-relaxed mb-9 max-w-[560px] mx-auto lg:mx-0"
                             style={{ color: "var(--color-text-muted)" }}>
                             Sell products. Promote offers. Create content. Build your community. Grow your audience — all in one place.
                         </motion.p>
@@ -912,26 +1248,37 @@ export function Hero() {
                         <motion.div variants={fadeUp} className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start mb-10">
                             <Link href="/register"
                                 className="group inline-flex items-center justify-center gap-2.5 px-8 rounded-2xl text-sm font-bold text-white transition-all active:scale-[0.97]"
-                                style={{ height: "50px", background: "var(--color-accent)", boxShadow: "0 6px 22px rgba(253,80,0,0.28)" }}
+                                style={{ height: "52px", background: "var(--color-accent)", boxShadow: "0 10px 34px rgba(253,80,0,0.20)", paddingLeft: 22, paddingRight: 22, borderRadius: 14 }}
                                 onMouseEnter={e => (e.currentTarget.style.background = "var(--color-accent-hover)")}
                                 onMouseLeave={e => (e.currentTarget.style.background = "var(--color-accent)")}>
                                 Start earning for Free <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                             </Link>
                             <Link href="/marketplace"
                                 className="inline-flex items-center justify-center gap-2 px-8 rounded-2xl text-sm font-semibold transition-all"
-                                style={{ height: "50px", border: "1px solid var(--color-border)", color: "var(--color-text-secondary)" }}
-                                onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--color-border-strong)"; e.currentTarget.style.color = "var(--color-text-primary)"; }}
-                                onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--color-border)"; e.currentTarget.style.color = "var(--color-text-secondary)"; }}>
+                                style={{ height: "52px", border: "1px solid var(--color-border)", color: "var(--color-text-secondary)", paddingLeft: 20, paddingRight: 20, borderRadius: 14 }}
+                                onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--color-border-strong)"; e.currentTarget.style.color = "var(--color-text-primary)"; e.currentTarget.style.background = "rgba(0,0,0,0.02)"; }}
+                                onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--color-border)"; e.currentTarget.style.color = "var(--color-text-secondary)"; e.currentTarget.style.background = "transparent"; }}>
                                 Browse Marketplace
+                            </Link>
+
+                            <Link href="/communities/create"
+                                className="inline-flex items-center justify-center gap-2 px-6 rounded-2xl text-sm font-semibold transition-all"
+                                style={{ height: "52px", border: "1px solid rgba(253,80,0,0.14)", color: "var(--color-accent)", paddingLeft: 18, paddingRight: 18, borderRadius: 14, background: "rgba(253,80,0,0.04)" }}
+                                onMouseEnter={e => { e.currentTarget.style.background = "rgba(253,80,0,0.08)"; }}
+                                onMouseLeave={e => { e.currentTarget.style.background = "rgba(253,80,0,0.04)"; }}
+                            >
+                                Create Community
                             </Link>
                         </motion.div>
 
-                        <motion.div variants={fadeUp} className="flex items-center gap-5 flex-wrap justify-center lg:justify-start">
+                        <motion.div variants={fadeUp} className="flex items-center gap-6 flex-wrap justify-center lg:justify-start">
                             {[{ icon: Shield, label: "Secure Payments" }, { icon: CheckCircle, label: "Verified Vendors" }, { icon: Globe, label: "50+ Countries" }]
                                 .map(({ icon: Icon, label }) => (
-                                    <div key={label} className="flex items-center gap-1.5">
-                                        <Icon className="h-3.5 w-3.5" style={{ color: "var(--color-accent)" }} />
-                                        <span className="text-xs font-medium" style={{ color: "var(--color-text-muted)" }}>{label}</span>
+                                    <div key={label} className="flex items-center gap-2">
+                                        <div style={{ width: 28, height: 28, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(253,80,0,0.06)', border: '1px solid rgba(253,80,0,0.08)' }}>
+                                            <Icon className="h-4 w-4" style={{ color: "var(--color-accent)" }} />
+                                        </div>
+                                        <span className="text-sm font-medium" style={{ color: "var(--color-text-muted)" }}>{label}</span>
                                     </div>
                                 ))}
                         </motion.div>
@@ -941,9 +1288,12 @@ export function Hero() {
                     <motion.div
                         initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.25, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-                        className="w-full hidden sm:block overflow-hidden"
+                        className="w-full hidden sm:block"
+                        style={{ minHeight: 420, alignSelf: 'center' }}
                     >
-                        <GlobeCanvas />
+                        <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'visible' }}>
+                            <FloatingHeroVisual />
+                        </div>
                     </motion.div>
 
                 </div>

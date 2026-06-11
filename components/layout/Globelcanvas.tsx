@@ -7,6 +7,7 @@ import React, {
   useCallback,
   useMemo,
 } from "react";
+import useSWR from "swr";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -139,32 +140,7 @@ const CITIES = [
   { name: "Auckland", lat: -36.86, lng: 174.77, pop: 1700000 },
 ];
 
-const ROUTES = [
-  { from: "Lagos", to: "London" },
-  { from: "New York", to: "São Paulo" },
-  { from: "London", to: "Mumbai" },
-  { from: "Tokyo", to: "Singapore" },
-  { from: "Dubai", to: "Nairobi" },
-  { from: "Sydney", to: "Tokyo" },
-  { from: "Mexico City", to: "New York" },
-  { from: "Cairo", to: "Dubai" },
-  { from: "Kigali", to: "London" },
-  { from: "Johannesburg", to: "Mumbai" },
-  { from: "Singapore", to: "Sydney" },
-  { from: "Mumbai", to: "Nairobi" },
-  { from: "Berlin", to: "New York" },
-  { from: "Shanghai", to: "Los Angeles" },
-  { from: "Seoul", to: "Tokyo" },
-  { from: "Moscow", to: "Beijing" },
-  { from: "Paris", to: "Casablanca" },
-  { from: "Buenos Aires", to: "São Paulo" },
-  { from: "Riyadh", to: "Cairo" },
-  { from: "Hong Kong", to: "Sydney" },
-  { from: "London", to: "New York" },
-  { from: "Dubai", to: "Mumbai" },
-  { from: "Tokyo", to: "Los Angeles" },
-  { from: "Lagos", to: "Nairobi" },
-];
+const ROUTES: any[] = []; // Replaced by dynamic arcs
 
 /* ─── Activity data ─────────────────────────────────────────────────────── */
 type ActivityCard = {
@@ -178,44 +154,17 @@ type ActivityCard = {
   fullscreenStyle: React.CSSProperties;
 };
 
-const ACTIVITY_CARDS: ActivityCard[] = [
-  {
-    id: "ebook", iconEmoji: "📘", iconBg: "#dbeafe",
-    event: "Ebook Sold", city: "London, UK", amount: "$29",
-    inlineStyle: { top: "7%", left: "3%" },
-    fullscreenStyle: { top: "10%", left: "6%" },
-  },
-  {
-    id: "commission", iconEmoji: "💰", iconBg: "#fef3c7",
-    event: "Commission Earned", city: "New York, USA", amount: "$142",
-    inlineStyle: { top: "15%", right: "3%" },
-    fullscreenStyle: { top: "12%", right: "6%" },
-  },
-  {
-    id: "creator", iconEmoji: "👤", iconBg: "#dcfce7",
-    event: "Creator Signup", city: "Lagos, Nigeria",
-    inlineStyle: { top: "48%", left: "1%" },
-    fullscreenStyle: { top: "42%", left: "4%" },
-  },
-  {
-    id: "sale", iconEmoji: "🛒", iconBg: "#ffedd5",
-    event: "Product Sale", city: "Kigali, Rwanda", amount: "$89",
-    inlineStyle: { top: "52%", left: "38%" },
-    fullscreenStyle: { top: "52%", left: "42%" },
-  },
-  {
-    id: "ugc", iconEmoji: "🎬", iconBg: "#f3e8ff",
-    event: "UGC Campaign", city: "São Paulo, Brazil",
-    inlineStyle: { bottom: "20%", left: "3%" },
-    fullscreenStyle: { bottom: "22%", left: "6%" },
-  },
-  {
-    id: "community", iconEmoji: "👥", iconBg: "#fce7f3",
-    event: "Community Join", city: "Cape Town, SA",
-    inlineStyle: { bottom: "8%", right: "3%" },
-    fullscreenStyle: { bottom: "10%", right: "6%" },
-  },
+// Array of style positions for mapping dynamic data
+const STYLES_POOL = [
+  { inlineStyle: { top: "7%", left: "3%" }, fullscreenStyle: { top: "10%", left: "6%" } },
+  { inlineStyle: { top: "15%", right: "3%" }, fullscreenStyle: { top: "12%", right: "6%" } },
+  { inlineStyle: { top: "48%", left: "1%" }, fullscreenStyle: { top: "42%", left: "4%" } },
+  { inlineStyle: { top: "52%", left: "38%" }, fullscreenStyle: { top: "52%", left: "42%" } },
+  { inlineStyle: { bottom: "20%", left: "3%" }, fullscreenStyle: { bottom: "22%", left: "6%" } },
+  { inlineStyle: { bottom: "8%", right: "3%" }, fullscreenStyle: { bottom: "10%", right: "6%" } },
 ];
+
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 /* ─── Sub-components ─────────────────────────────────────────────────────── */
 
@@ -582,6 +531,30 @@ function GlobeView({
 }) {
   const globeRef = useRef<GlobeMethods | null>(null);
 
+  // Fetch real data
+  // Live globe data from our backend: events and summary stats.
+  // Renamed to `liveGlobeData` for clarity.
+  const { data: liveGlobeData } = useSWR<{
+    events: any[];
+    stats: { totalUsers: number; totalOrders: number; activeCountries: number };
+  }>("/api/globe-data", fetcher, { refreshInterval: 60000 });
+
+  const dynamicCards = useMemo(() => {
+    if (!liveGlobeData || !liveGlobeData.events || liveGlobeData.events.length === 0) {
+      return []; // No live data available
+    }
+    return liveGlobeData.events.slice(0, 6).map((evt: any, i: number) => ({
+      id: evt.id,
+      iconEmoji: evt.iconEmoji,
+      iconBg: evt.iconBg,
+      event: evt.event,
+      city: evt.city,
+      amount: evt.amount,
+      inlineStyle: STYLES_POOL[i % STYLES_POOL.length].inlineStyle,
+      fullscreenStyle: STYLES_POOL[i % STYLES_POOL.length].fullscreenStyle,
+    }));
+  }, [liveGlobeData]);
+
   // State
   const [nightMode, setNightMode] = useState(false);
   const [arcsOn, setArcsOn] = useState(true);
@@ -713,8 +686,8 @@ function GlobeView({
         ((b.lat - lat) ** 2 + (b.lng - lng) ** 2)
       );
 
-      setLocalPlaces(nearby.slice(0, 40));
-    }, 1200); // Poll every 1.2s — smooth enough, avoids main-thread pressure
+      setLocalPlaces(nearby.slice(0, 30));
+    }, 2500); // Poll every 2.5s (less frequent to improve framerate)
 
     return () => {
       clearInterval(id);
@@ -727,26 +700,34 @@ function GlobeView({
 
   /* ── Arc data — neon orange/gold/amber routes ── */
   const arcsData = useMemo(() => {
-    const cityMap = Object.fromEntries(CITIES.map((c) => [c.name, c]));
-    return ROUTES.flatMap((rt, i) => {
-      const from = cityMap[rt.from];
-      const to = cityMap[rt.to];
-      if (!from || !to) return [];
-      // Cinematic orange/amber/gold palette — brand-matched neon routes
+    // Generate arcs from recent events connecting to Kigali (HQ) or connecting to each other
+    // Default HQ coordinates for Jimvio (Kigali)
+    const hqLat = -1.95;
+    const hqLng = 30.06;
+
+    if (!liveGlobeData || !liveGlobeData.events || liveGlobeData.events.length === 0) return [];
+
+    return liveGlobeData.events.map((evt: any, i: number) => {
       const colors = [
         ["rgba(253,80,0,0.95)",  "rgba(255,160,30,0.95)"],  // vivid orange → amber
         ["rgba(255,200,0,0.90)", "rgba(253,120,0,0.90)"],   // gold → orange
         ["rgba(255,120,0,0.92)", "rgba(255,220,60,0.92)"],  // orange → yellow-gold
         ["rgba(253,80,0,0.85)",  "rgba(255,60,0,0.85)"],    // orange → red-orange
       ];
-      return [{
-        startLat: from.lat, startLng: from.lng,
-        endLat: to.lat, endLng: to.lng,
+
+      // Sometimes connect to HQ, sometimes connect previous event
+      const prevEvt = i > 0 ? liveGlobeData.events[i - 1] : null;
+      const startLat = (i % 3 === 0 || !prevEvt) ? hqLat : prevEvt.lat;
+      const startLng = (i % 3 === 0 || !prevEvt) ? hqLng : prevEvt.lng;
+
+      return {
+        startLat, startLng,
+        endLat: evt.lat, endLng: evt.lng,
         color: colors[i % 4],
         dashAnimateTime: 1400 + (i % 6) * 200,
-      }];
-    });
-  }, []);
+      };
+    }).filter((a: any) => Math.abs(a.startLat - a.endLat) > 1 || Math.abs(a.startLng - a.endLng) > 1); // Ignore tiny arcs
+  }, [liveGlobeData]);
 
   /* ── Labels ── */
   const cityLabels = useMemo(
@@ -901,6 +882,12 @@ function GlobeView({
       ? "https://unpkg.com/three-globe/example/img/night-sky.png"
       : "";
 
+  // Prefer real satellite tiles (ESRI World Imagery) — falls back to single-texture globeImageUrl
+  const satelliteTileUrl = (x: number, y: number, z: number) =>
+    // ESRI uses /{z}/{y}/{x}
+    `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`;
+  const useSatellite = true; // toggle for satellite tiles
+
   // Cinematic atmosphere — wide orange-amber glow in dark, sky-blue in light
   const atmosphereColor = nightMode
     ? "#1144cc"
@@ -961,7 +948,7 @@ function GlobeView({
   }, [isDark]);
 
   return (
-    <div style={{ position: "relative", width: "100%", height: "100%", overflow: "hidden" }}>
+    <div style={{ position: "relative", width: "100%", height: "100%", overflow: "visible" }}>
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
 
       <Globe
@@ -969,7 +956,8 @@ function GlobeView({
         width={dimensions.width}
         height={dimensions.height}
         backgroundColor="rgba(0,0,0,0)"
-        globeImageUrl={globeImageUrl}
+        globeImageUrl={useSatellite ? undefined : globeImageUrl}
+        globeTileEngineUrl={useSatellite ? satelliteTileUrl : undefined}
         bumpImageUrl="https://unpkg.com/three-globe/example/img/earth-topology.png"
         backgroundImageUrl={backgroundUrl}
         atmosphereColor={atmosphereColor}
@@ -977,6 +965,19 @@ function GlobeView({
         showAtmosphere={true}
         showGraticules={false}
         onGlobeReady={handleGlobeReady}
+        
+        /* Points (nodes) — use live events when available, else fall back to CITIES */
+        pointsData={(liveGlobeData && Array.isArray(liveGlobeData.events) && liveGlobeData.events.length > 0)
+          ? liveGlobeData.events.map((e: any) => ({ lat: e.lat, lng: e.lng, name: e.city ?? e.name ?? 'Event', weight: e.weight ?? 1, amount: e.amount }))
+          : CITIES.map(c => ({ lat: c.lat, lng: c.lng, name: c.name, weight: Math.max(1, Math.log10(c.pop || 1000000)) }))}
+        pointLat={(d: any) => d.lat}
+        pointLng={(d: any) => d.lng}
+        pointColor={(d: any) => (d.weight && d.weight > 4 ? "rgba(253,80,0,0.98)" : "rgba(255,220,80,0.95)")}
+        pointAltitude={(d: any) => 0.003}
+        pointRadius={(d: any) => Math.max(0.12, (d.weight ?? 1) * 0.18)}
+        pointResolution={8}
+        pointsMerge={true}
+        pointsTransitionDuration={600}
 
         /* Country polygons */
         polygonsData={countriesData}
@@ -1028,10 +1029,10 @@ function GlobeView({
         /* Arcs — neon orange/gold cinematic routes */
         arcsData={arcsOn ? arcsData : []}
         arcColor="color"
-        arcAltitude={0.32}
-        arcStroke={1.2}
-        arcDashLength={0.5}
-        arcDashGap={0.12}
+        arcAltitude={0.25}
+        arcStroke={0.5}
+        arcDashLength={0.4}
+        arcDashGap={0.2}
         arcDashAnimateTime={(d: any) => d.dashAnimateTime ?? 1800}
 
         /* Rings — vivid glowing data hubs */
@@ -1056,7 +1057,7 @@ function GlobeView({
       />
 
       {showCards &&
-        ACTIVITY_CARDS.map((card, i) => (
+        dynamicCards.map((card, i) => (
           <ActivityBadge
             key={card.id}
             card={card}
@@ -1201,7 +1202,7 @@ function FullscreenModal({ onClose }: { onClose: () => void }) {
       </div>
 
       {/* Globe */}
-      <div ref={containerRef} className="relative flex-1 overflow-hidden">
+      <div ref={containerRef} className="relative flex-1 overflow-visible">
         <GlobeView
           containerRef={containerRef}
           showControls
@@ -1240,7 +1241,7 @@ export function GlobeCanvas() {
       <div className="relative w-full" style={{ aspectRatio: "520 / 490", minHeight: 320 }}>
         <div
           ref={containerRef}
-          className="absolute inset-0 rounded-3xl overflow-hidden"
+          className="absolute inset-0 rounded-3xl overflow-visible"
           onClick={() => { if (isMobile) setIsFullscreen(true); }}
           style={{ cursor: isMobile ? "pointer" : "default" }}
         >

@@ -43,9 +43,7 @@ export default async function HomePage() {
     getAffiliateSpotlightProducts(9),
     getResolvedPlatformSettings(),
   ]);
-  const [] = await Promise.all([
 
-  ]);
   const platformSettings = platformSettingsMaybe ?? PLATFORM_SETTINGS_DEFAULTS;
 
   return (
