@@ -14,14 +14,14 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "react-jsx",
+    "jsx": "preserve",
     "incremental": true,
     "plugins": [
       {
         "name": "next"
       }
     ],
-    "noUncheckedSideEffectImports": false, // Fixes the side-effect import error
+    "noUncheckedSideEffectImports": false,
     "paths": {
       "@/*": [
         "./*"
