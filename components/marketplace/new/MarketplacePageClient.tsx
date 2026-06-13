@@ -82,59 +82,29 @@ function getCategoryImageSrc(name: string): string {
   return `${CATEGORY_IMAGE_BASE}${match ? match.file : "Consumer Electronics.png"}`;
 }
 
-function getCategoryTint(name: string): string {
-  const n = name.toLowerCase();
-  if (n.includes("electron") || n.includes("phone") || n.includes("tablet") || n.includes("computer")) return "#eef6ff";
-  if (n.includes("fashion") || n.includes("cloth") || n.includes("dress") || n.includes("wear") || n.includes("tops")) return "#fff5f9";
-  if (n.includes("beauty") || n.includes("hair") || n.includes("makeup")) return "#fff0f5";
-  if (n.includes("home") || n.includes("garden") || n.includes("furniture") || n.includes("kitchen")) return "#f0fff8";
-  if (n.includes("sport") || n.includes("fitness") || n.includes("outdoor") || n.includes("basketball")) return "#f0fff4";
-  if (n.includes("toy") || n.includes("kids") || n.includes("baby")) return "#fffbf0";
-  if (n.includes("jewel") || n.includes("watch") || n.includes("ring") || n.includes("necklace") || n.includes("earring")) return "#fffff0";
-  if (n.includes("bag") || n.includes("backpack") || n.includes("packaging")) return "#fff8f0";
-  if (n.includes("auto") || n.includes("car")) return "#f5f5ff";
-  if (n.includes("book") || n.includes("course") || n.includes("education")) return "#f5f0ff";
-  if (n.includes("software") || n.includes("digital") || n.includes("ai")) return "#f0f0ff";
-  if (n.includes("shoe") || n.includes("sneaker")) return "#fff0ee";
-  if (n.includes("pant") || n.includes("cap") || n.includes("hat") || n.includes("jacket")) return "#f5faff";
-  if (n.includes("pet") || n.includes("dog") || n.includes("cat")) return "#f5fff0";
-  if (n.includes("men")) return "#f0f4ff";
-  if (n.includes("women")) return "#fff0f8";
-  return "#f8f8f8";
-}
-
 // ─── CategoryCard ─────────────────────────────────────────────────────────────
 
-function CategoryCard({ c }: { c: DbCategory }) {
+function CategoryCard({ c, type }: { c: DbCategory; type: ProductType }) {
   const [imgErr, setImgErr] = useState(false);
 
   const imgSrc = c.image_url && !imgErr ? c.image_url : getCategoryImageSrc(c.name);
-  const tintBg = c.tint_color ?? getCategoryTint(c.name);
 
   return (
     <Link
-      href={`/marketplace?category=${c.slug}`}
-      className="group relative flex flex-shrink-0 flex-col overflow-hidden rounded-xl text-center transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg"
-      style={{
-        width: 116,
-        height: 160,
-        background: tintBg,
-      }}
+      href={`/marketplace?type=${type}&category=${c.slug}`}
+      className="group relative flex flex-col overflow-hidden rounded-xl border border-[var(--color-border)] bg-white text-center shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg"
     >
-      {/* Image covers full card */}
-      <img
-        src={imgSrc}
-        alt={c.name}
-        loading="lazy"
-        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
-        onError={() => setImgErr(true)}
-      />
+      <div className="aspect-[4/3] w-full overflow-hidden bg-white">
+        <img
+          src={imgSrc}
+          alt={c.name}
+          loading="lazy"
+          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
+          onError={() => setImgErr(true)}
+        />
+      </div>
 
-      {/* Label pinned to bottom */}
-      <div
-        className="absolute bottom-0 left-0 w-full px-2 py-2"
-        style={{ background: "var(--color-background-primary)" }}
-      >
+      <div className="w-full bg-white px-2 py-2">
         <div
           className="line-clamp-2 text-[12px] font-bold leading-tight"
           style={{ color: "var(--color-text-primary)" }}
@@ -191,7 +161,7 @@ export function MarketplacePageClient({
 }: Props) {
   const supabase = createClient();
 
-  const { filters, setCategory } = useMarketplace();
+  const { filters, setCategory, clearFilters } = useMarketplace();
 
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -201,10 +171,20 @@ export function MarketplacePageClient({
     urlType === "digital" ? "digital" : urlType === "physical" ? "physical" : initialType
   );
 
+  useEffect(() => {
+    const next = searchParams.get("type");
+    if (next === "digital" || next === "physical") {
+      setType(next);
+    }
+  }, [searchParams]);
+
   function handleTypeChange(t: ProductType) {
     setType(t);
+    setCategory("Trending Now");
+    clearFilters();
     const params = new URLSearchParams(searchParams.toString());
     params.set("type", t);
+    params.delete("category");
     router.replace(`/marketplace?${params.toString()}`, { scroll: false });
   }
 
@@ -221,6 +201,27 @@ export function MarketplacePageClient({
   // Skip the refetch on initial mount — we already have SSR data
   const isFirstRender = useRef(true);
 
+  // Apply ?category=slug from URL (e.g. category cards)
+  useEffect(() => {
+    const slug = searchParams.get("category");
+    if (!slug || slug === "trending") return;
+
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabaseRef.current
+        .from("product_categories")
+        .select("name")
+        .eq("slug", slug)
+        .maybeSingle();
+      if (cancelled || !data?.name) return;
+      setCategory(data.name);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [searchParams, setCategory]);
+
   useEffect(() => {
     if (isFirstRender.current) {
       isFirstRender.current = false;
@@ -234,6 +235,32 @@ export function MarketplacePageClient({
         type === "digital"
           ? (["digital", "course", "ebook", "software", "template", "coaching"] as const)
           : (["physical"] as const);
+
+      const { data: catIds } = await supabaseRef.current
+        .from("products")
+        .select("category_id")
+        .eq("status", "active")
+        .eq("is_active", true)
+        .is("deleted_at", null)
+        .in("product_type", [...typeFilter])
+        .not("category_id", "is", null);
+
+      const ids = [...new Set((catIds ?? []).map((r: { category_id: string | null }) => r.category_id).filter(Boolean))];
+
+      let nextCategories: DbCategory[] = [];
+      if (ids.length > 0) {
+        const { data: catRows } = await supabaseRef.current
+          .from("product_categories")
+          .select("id, name, slug, product_count, image_url, tint_color")
+          .eq("is_active", true)
+          .eq("visible", true)
+          .is("parent_id", null)
+          .in("id", ids)
+          .order("product_count", { ascending: false })
+          .limit(7);
+        nextCategories = (catRows ?? []) as DbCategory[];
+      }
+      setCategories(nextCategories);
 
       const hasShipping = filters.shippingFrom.length > 0;
       const hasDelivery = filters.deliveryTimes.length > 0;
@@ -492,7 +519,7 @@ export function MarketplacePageClient({
             </div>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
               {categories.map((c) => (
-                <CategoryCard key={c.id} c={c} />
+                <CategoryCard key={c.id} c={c} type={type} />
               ))}
             </div>
           </section>

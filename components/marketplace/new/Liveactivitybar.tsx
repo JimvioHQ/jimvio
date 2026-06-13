@@ -12,7 +12,7 @@ type ActivityItem = {
 };
 
 export function LiveActivityBar() {
-  const [items,      setItems]      = useState<ActivityItem[]>([]);
+  const [items, setItems] = useState<ActivityItem[]>([]);
   const [viewersNow, setViewersNow] = useState(0);
 
   useEffect(() => {
@@ -48,13 +48,13 @@ export function LiveActivityBar() {
 
       for (const order of orders ?? []) {
         const profile = Array.isArray(order.profiles) ? order.profiles[0] : order.profiles;
-        const item    = Array.isArray(order.order_items) ? order.order_items[0] : null;
+        const item = Array.isArray(order.order_items) ? order.order_items[0] : null;
         if (!profile || !item) continue;
         const p = profile as { full_name?: string; country?: string };
         built.push({
-          id:          order.id,
-          kind:        "purchase",
-          actor:       `${p.full_name ?? "Someone"}${p.country ? ` from ${p.country}` : ""}`,
+          id: order.id,
+          kind: "purchase",
+          actor: `${p.full_name ?? "Someone"}${p.country ? ` from ${p.country}` : ""}`,
           description: `purchased ${(item as { product_name: string }).product_name}`,
         });
       }
@@ -63,9 +63,9 @@ export function LiveActivityBar() {
         const profile = Array.isArray(vid.profiles) ? vid.profiles[0] : vid.profiles;
         const p = profile as { full_name?: string } | null;
         built.push({
-          id:          vid.id,
-          kind:        "video",
-          actor:       p?.full_name ?? "A creator",
+          id: vid.id,
+          kind: "video",
+          actor: p?.full_name ?? "A creator",
           description: `posted: ${vid.title}`,
         });
       }
@@ -76,19 +76,18 @@ export function LiveActivityBar() {
 
     load();
 
-    // Realtime: new paid orders
     const channel = supabase
       .channel("live-bar-orders")
       .on(
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "orders", filter: "payment_status=eq.paid" },
-        (payload:any) => {
-          const order = payload.new as Record<string, unknown>;
+        (payload: { new: Record<string, unknown> }) => {
+          const order = payload.new;
           setItems((prev) => [
             {
-              id:          order.id as string,
-              kind:        "purchase",
-              actor:       "Someone",
+              id: order.id as string,
+              kind: "purchase",
+              actor: "Someone",
               description: "placed a new order",
             },
             ...prev.slice(0, 4),
@@ -97,7 +96,9 @@ export function LiveActivityBar() {
       )
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   if (items.length === 0) return null;
@@ -105,8 +106,12 @@ export function LiveActivityBar() {
   return (
     <div className="sticky bottom-0 z-40 mt-2">
       <div
-        className="flex items-center gap-4 overflow-hidden rounded-2xl px-4 py-2.5 shadow-lg"
-        style={{ background: "oklch(0.14 0.025 285)", border: "1px solid rgba(255,255,255,0.06)" }}
+        className="flex items-center gap-4 overflow-hidden rounded-xl px-4 py-2.5"
+        style={{
+          background: "var(--color-surface)",
+          border: "1px solid var(--color-border)",
+          boxShadow: "var(--shadow-md)",
+        }}
       >
         {/* Live badge */}
         <span
@@ -117,24 +122,40 @@ export function LiveActivityBar() {
         </span>
 
         {/* Viewer count */}
-        <span className="hidden shrink-0 items-center gap-1.5 text-xs text-white/60 sm:flex">
-          <span className="size-2 rounded-full bg-green-500" /> {viewersNow} people viewing now
+        <span
+          className="hidden shrink-0 items-center gap-1.5 text-xs sm:flex"
+          style={{ color: "var(--color-text-muted)" }}
+        >
+          <span
+            className="size-2 rounded-full"
+            style={{ background: "var(--color-success)" }}
+          />
+          {viewersNow} people viewing now
         </span>
 
         {/* Scrolling items */}
         <div className="flex flex-1 items-center gap-6 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {items.map((a) => (
-            <div key={a.id} className="flex shrink-0 items-center gap-2 text-xs text-white/80">
+            <div
+              key={a.id}
+              className="flex shrink-0 items-center gap-2 text-xs"
+              style={{ color: "var(--color-text-secondary)" }}
+            >
               {a.kind === "purchase" ? (
-                <span className="size-6 rounded-full" style={{ background: "var(--color-accent)" }} />
+                <span
+                  className="size-6 shrink-0 rounded-full ring-2 ring-white dark:ring-[var(--color-surface)]"
+                  style={{ background: "var(--color-accent)" }}
+                />
               ) : a.kind === "campaign" ? (
-                <Gift className="size-5" style={{ color: "var(--color-accent)" }} />
+                <Gift className="size-5 shrink-0" style={{ color: "var(--color-accent)" }} />
               ) : (
-                <Package className="size-5" style={{ color: "var(--color-accent)" }} />
+                <Package className="size-5 shrink-0" style={{ color: "var(--color-accent)" }} />
               )}
               <span>
-                <b className="font-semibold text-white">{a.actor}</b>{" "}
-                <span className="text-white/60">{a.description}</span>
+                <b className="font-semibold" style={{ color: "var(--color-text-primary)" }}>
+                  {a.actor}
+                </b>{" "}
+                <span style={{ color: "var(--color-text-muted)" }}>{a.description}</span>
               </span>
             </div>
           ))}
@@ -142,13 +163,22 @@ export function LiveActivityBar() {
 
         {/* CTA */}
         <button
-          className="flex shrink-0 items-center gap-1 rounded-full px-4 py-1.5 text-xs font-bold text-white"
+          type="button"
+          className="flex shrink-0 items-center gap-1 rounded-full px-4 py-1.5 text-xs font-bold text-white transition-opacity hover:opacity-90"
           style={{ background: "var(--color-accent)" }}
         >
           View All Activity <ArrowRight className="size-3.5" />
         </button>
-        <button className="grid size-7 shrink-0 place-items-center rounded-full bg-white/10">
-          <ChevronRight className="size-4 text-white" />
+        <button
+          type="button"
+          className="grid size-7 shrink-0 place-items-center rounded-full transition-colors hover:opacity-80"
+          style={{
+            background: "var(--color-surface-secondary)",
+            border: "1px solid var(--color-border)",
+            color: "var(--color-text-secondary)",
+          }}
+        >
+          <ChevronRight className="size-4" />
         </button>
       </div>
     </div>

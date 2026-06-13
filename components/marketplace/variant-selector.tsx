@@ -88,6 +88,121 @@ function extractOptions(
     return Object.keys(out).length > 0 ? out : null;
 }
 
+const KNOWN_COLOR_LABELS = Object.keys(COLOR_MAP).sort((a, b) => b.length - a.length);
+
+function titleCaseWords(s: string): string {
+    return s.replace(/\b\w+/g, (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+}
+
+/** Parse a short label like "Blue 2PCS", "Black", or "Dark blue-116". */
+function parseShortVariantLabel(label: string): Record<string, string> {
+    const axes: Record<string, string> = {};
+    let rest = label.trim();
+    if (!rest) return axes;
+
+    const packMatch = rest.match(/\s+(\d+\s*PCS?)\s*$/i);
+    if (packMatch) {
+        axes.Pack = packMatch[1].replace(/\s+/g, "").toUpperCase();
+        rest = rest.slice(0, packMatch.index).trim();
+    }
+
+    for (const color of KNOWN_COLOR_LABELS) {
+        const re = new RegExp(`\\b${color.replace(/\s+/g, "\\s+")}\\b`, "i");
+        const match = rest.match(re);
+        if (match) {
+            axes.Color = titleCaseWords(match[0]);
+            rest = rest.replace(re, "").trim();
+            break;
+        }
+    }
+
+    if (!axes.Color && rest) {
+        const dashParts = rest.split(/[-–—]/).map((p) => p.trim()).filter(Boolean);
+        if (dashParts.length >= 2) {
+            axes.Color = titleCaseWords(dashParts[0]);
+            axes.Size = dashParts.slice(1).join("-");
+        } else if (rest.length <= 40) {
+            axes.Style = titleCaseWords(rest);
+        }
+    }
+
+    return axes;
+}
+
+function tryParseVariantOptions(
+    options: Record<string, string> | null | undefined,
+    name: string
+): Record<string, string> | null {
+    const structured = extractOptions(options);
+    if (structured) return structured;
+
+    const variantKey =
+        options && typeof options.variant_key === "string" ? options.variant_key.trim() : "";
+    if (variantKey && variantKey.length <= 80 && variantKey !== name) {
+        const fromKey = parseShortVariantLabel(variantKey);
+        if (Object.keys(fromKey).length > 0) return fromKey;
+    }
+
+    return null;
+}
+
+function inferAxesFromVariantNames(
+    variants: ProductVariant[]
+): Map<string, Record<string, string>> {
+    const result = new Map<string, Record<string, string>>();
+    if (variants.length === 0) return result;
+
+    const names = variants.map((v) => v.name.trim()).filter(Boolean);
+    const prefix =
+        names.length > 1 ? longestCommonWordPrefix(names) : "";
+
+    const suffixById = new Map<string, string>();
+    for (const v of variants) {
+        const name = v.name.trim();
+        let suffix = prefix && name.startsWith(prefix)
+            ? name.slice(prefix.length).replace(/^[\s,\-–—]+/, "").trim()
+            : name;
+        if (!suffix) suffix = name;
+        suffixById.set(v.id, suffix);
+    }
+
+    const parsedById = new Map<string, Record<string, string>>();
+    for (const v of variants) {
+        const suffix = suffixById.get(v.id) ?? v.name;
+        parsedById.set(v.id, parseShortVariantLabel(suffix));
+    }
+
+    const axisValues: Record<string, Set<string>> = {};
+    for (const axes of parsedById.values()) {
+        for (const [key, val] of Object.entries(axes)) {
+            if (!val) continue;
+            (axisValues[key] ??= new Set()).add(val);
+        }
+    }
+
+    const hasPackAxis = (axisValues.Pack?.size ?? 0) > 1;
+    if (hasPackAxis) {
+        for (const v of variants) {
+            const axes = parsedById.get(v.id) ?? {};
+            if (!axes.Pack) axes.Pack = "1PC";
+            parsedById.set(v.id, axes);
+        }
+    }
+
+    for (const v of variants) {
+        const axes = parsedById.get(v.id) ?? {};
+        const cleaned = Object.fromEntries(
+            Object.entries(axes).filter(([key, val]) => {
+                if (!val) return false;
+                return (axisValues[key]?.size ?? 0) > 1;
+            })
+        );
+        if (Object.keys(cleaned).length > 0) result.set(v.id, cleaned);
+    }
+
+    return result;
+}
+
 interface ParsedVariant extends ProductVariant {
     axes: Record<string, string>;
     axesReliable: boolean;
@@ -95,16 +210,25 @@ interface ParsedVariant extends ProductVariant {
 
 function parseVariants(variants: ProductVariant[]): ParsedVariant[] {
     const active = variants.filter((v) => v.is_active);
-    return active.map((v) => {
-        const structured = extractOptions(v.options);
+
+    const firstPass = active.map((v) => {
+        const structured = tryParseVariantOptions(v.options, v.name);
         if (structured) return { ...v, axes: structured, axesReliable: true };
-        if (process.env.NODE_ENV === "development") {
-            console.warn(
-                `[VariantSelector] Variant "${v.name}" (id: ${v.id}) has no structured options. ` +
-                `Falling back to flat variant display.`
-            );
-        }
         return { ...v, axes: {}, axesReliable: false };
+    });
+
+    const needsInference = firstPass.filter((v) => !v.axesReliable);
+    if (needsInference.length === 0) return firstPass;
+
+    const inferred = inferAxesFromVariantNames(needsInference);
+
+    return firstPass.map((v) => {
+        if (v.axesReliable) return v;
+        const axes = inferred.get(v.id);
+        if (axes && Object.keys(axes).length > 0) {
+            return { ...v, axes, axesReliable: true };
+        }
+        return v;
     });
 }
 
@@ -171,7 +295,7 @@ function resolveVariant(
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-const AXIS_PRIORITY = ["Color", "Size", "Material", "Style", "Storage", "Mode"];
+const AXIS_PRIORITY = ["Color", "Size", "Pack", "Material", "Style", "Storage", "Mode"];
 
 export function VariantSelector({
     variants,

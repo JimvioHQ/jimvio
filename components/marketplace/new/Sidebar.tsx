@@ -266,6 +266,18 @@ export function Sidebar({ type = "physical" }: Props) {
     load();
   }, [type]);
 
+  // Drop stale category when switching product type (physical ↔ digital lists differ)
+  useEffect(() => {
+    if (loadingCats) return;
+    const valid = new Set([
+      "Trending Now",
+      ...sidebarCategories.map((c) => c.name),
+    ]);
+    if (filters.category && !valid.has(filters.category)) {
+      setCategory("Trending Now");
+    }
+  }, [type, loadingCats, sidebarCategories, filters.category, setCategory]);
+
   // ── Filter counts filtered by product type ────────────────────────────────
   useEffect(() => {
     async function load() {

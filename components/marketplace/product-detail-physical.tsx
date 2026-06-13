@@ -799,17 +799,34 @@ function LiveActivityFeedSidebar({ liveViewers, recentActivity }: { liveViewers:
 // ─── Vendor Section Card ──────────────────────────────────────────────────────
 
 function VendorSectionCard({ vendor, followedVendorIds }: { vendor: any; followedVendorIds: string[] }) {
-  const rating = Number(vendor.rating ?? 0);
   const followerCount = vendor.follower_count ?? null;
-  const positiveRate = vendor.positive_rate ?? 0;
-  const onTimeDelivery = vendor.on_time_delivery ?? 0;
-  const fulfilledOrders = vendor.total_sales ?? 0;
-  const responseTime = vendor.response_time ?? "N/A";
   const isVerified = vendor.verification_status === "verified";
 
-  const ordersLabel = fulfilledOrders >= 1000
-    ? `${(fulfilledOrders / 1000).toFixed(fulfilledOrders >= 10000 ? 0 : 1)}k`
-    : fulfilledOrders > 0 ? fulfilledOrders.toLocaleString() : "—";
+  const followersLabel =
+    followerCount && followerCount > 0
+      ? `${followerCount >= 1000 ? `${(followerCount / 1000).toFixed(1)}K` : followerCount.toLocaleString()} Followers`
+      : "No followers yet";
+
+  const trustItems = [
+    {
+      icon: BadgeCheck,
+      label: "Verified Supplier",
+      iconClass: isVerified ? "text-[var(--color-accent)]" : "text-[var(--color-text-muted)]",
+      bgClass: isVerified ? "bg-[var(--color-accent-light)]" : "bg-[var(--color-surface-secondary)]",
+    },
+    {
+      icon: Lock,
+      label: "Secure Transaction",
+      iconClass: "text-[var(--color-success)]",
+      bgClass: "bg-[var(--color-success-light)]",
+    },
+    {
+      icon: ShieldCheck,
+      label: "Buyer Protection",
+      iconClass: "text-sky-500",
+      bgClass: "bg-sky-500/10",
+    },
+  ] as const;
 
   return (
     <div className="rounded-md overflow-hidden" style={{ border: "1px solid var(--color-border)", background: "var(--color-surface)" }}>
@@ -831,51 +848,22 @@ function VendorSectionCard({ vendor, followedVendorIds }: { vendor: any; followe
               <Link href={`/vendors/${vendor.business_slug}`} className="text-[14px] font-semibold text-[var(--color-text-primary)] hover:underline underline-offset-2 truncate">
                 {vendor.business_name ?? "Official Store"}
               </Link>
-              {isVerified && <BadgeCheck className="h-4 w-4 text-sky-500 shrink-0" aria-label="Verified" />}
+              {isVerified && <BadgeCheck className="h-4 w-4 text-[var(--color-accent)] shrink-0" aria-label="Verified supplier" />}
             </div>
-            <div className="flex items-center gap-1.5 text-[11px] text-[var(--color-text-muted)] flex-wrap mt-0.5">
-              {rating > 0 && (
-                <span className="inline-flex items-center gap-0.5">
-                  <span className="font-semibold text-[var(--color-text-primary)]">{rating.toFixed(1)}</span>
-                  <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
-                  Seller Rating
-                </span>
-              )}
-              <span aria-hidden>|</span>
-              <span>{positiveRate}% Positive</span>
-              {followerCount && followerCount > 0 ? (
-                <>
-                  <span aria-hidden>|</span>
-                  <span>{followerCount >= 1000 ? `${(followerCount / 1000).toFixed(1)}K` : followerCount} Followers</span>
-                </>
-              ) : null}
-            </div>
+            <p className="text-[11px] text-[var(--color-text-muted)] mt-0.5">{followersLabel}</p>
           </div>
         </div>
         <div className="grid grid-cols-3 gap-2 border-t border-[var(--color-border)] pt-3 text-[11px]">
-          <div className="flex items-center gap-1.5">
-            <span className="grid h-5 w-5 place-items-center rounded-full bg-emerald-500/10 text-emerald-500">
-              <CheckCircle2 className="h-3 w-3" />
-            </span>
-            <div>
-              <div className="font-bold text-[var(--color-text-primary)]">{onTimeDelivery}%</div>
-              <div className="text-[var(--color-text-muted)] text-[10px]">On-time Delivery</div>
+          {trustItems.map(({ icon: Icon, label, iconClass, bgClass }) => (
+            <div key={label} className="flex flex-col items-center gap-1.5 text-center px-1">
+              <span className={cn("grid h-8 w-8 place-items-center rounded-full", bgClass)}>
+                <Icon className={cn("h-4 w-4", iconClass)} />
+              </span>
+              <div className="font-semibold text-[var(--color-text-primary)] leading-tight text-[10px]">
+                {label}
+              </div>
             </div>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <Package className="h-4 w-4 text-orange-500 shrink-0" />
-            <div>
-              <div className="font-bold text-[var(--color-text-primary)]">{ordersLabel}</div>
-              <div className="text-[var(--color-text-muted)] text-[10px]">Fulfilled Orders</div>
-            </div>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <Zap className="h-4 w-4 text-sky-500 shrink-0" />
-            <div>
-              <div className="font-bold text-[var(--color-text-primary)]">{responseTime}</div>
-              <div className="text-[var(--color-text-muted)] text-[10px]">Avg. Response Time</div>
-            </div>
-          </div>
+          ))}
         </div>
         <div className="grid grid-cols-2 gap-2 mt-3">
           <button className="h-9 rounded-sm text-[12px] font-semibold transition-colors" style={{ border: "1px solid var(--color-border)", color: "var(--color-text-primary)", background: "var(--color-surface)" }}>
@@ -1163,7 +1151,7 @@ export function PhysicalProductDetail({
       if (typeof window === "undefined") return;
       if (sessionStorage.getItem(key)) return;
       sessionStorage.setItem(key, "1");
-      fetch(`/api/products/${product.id}/view`, { method: "POST" }).catch(() => {});
+      fetch(`/api/products/${product.id}/view`, { method: "POST" }).catch(() => { });
     } catch { /* silent */ }
   }, [product.id]);
 
@@ -1239,7 +1227,7 @@ export function PhysicalProductDetail({
                   </h1>
 
                   <div className="flex flex-wrap items-center gap-2 text-[12px] text-[var(--color-text-muted)] mt-1">
-                   
+
                     <span aria-hidden className="text-[var(--color-border-strong)]">·</span>
                     <span className="flex items-center gap-1.5">
                       <span className="relative flex h-2 w-2 shrink-0">
@@ -1367,7 +1355,7 @@ export function PhysicalProductDetail({
                     {[
                       { id: "overview", label: "Overview", badge: null },
                       { id: "specs", label: "Specifications", badge: specRows.length > 0 ? specRows.length : null },
-                      { id: "reviews", label: `Reviews (${reviewCount})`, badge: null },
+                      { id: "reviews", label: `Leave a review`, badge: null },
                       { id: "shipping", label: "Shipping & Returns", badge: null },
                       { id: "variants", label: "Variants", badge: hasVariants ? variants.length : null },
                       { id: "seller", label: "Seller Info", badge: null },
@@ -1527,18 +1515,18 @@ export function PhysicalProductDetail({
                       {reviewCount > 0 ? (
                         <div className="flex items-center gap-6 p-5 rounded-md" style={{ background: "var(--color-surface-secondary)", border: "1px solid var(--color-border)" }}>
                           <div className="text-center shrink-0">
-                                  <p className="text-5xl font-bold tabular-nums leading-none" style={{ color: "var(--color-text-primary)" }}>{rating.toFixed(1)}</p>
-                                  <div className="flex gap-0.5 mt-2 justify-center">{[1, 2, 3, 4, 5].map((i) => <Star key={i} className={cn("h-3.5 w-3.5", i <= Math.round(rating) ? "fill-amber-400 text-amber-400" : "fill-amber-200 text-amber-200")} />)}</div>
-                                  <p className="text-[10px] mt-1.5" style={{ color: "var(--color-text-muted)" }}>{reviewCount} review{reviewCount !== 1 ? "s" : ""}</p>
-                                  <div className="flex items-center gap-1 justify-center mt-2"><CheckCircle2 className="h-3 w-3 text-emerald-500" /><span className="text-[9px] text-emerald-600 dark:text-emerald-400 font-semibold">Verified reviews</span></div>
-                                </div>
-                                <div className="h-16 w-px" style={{ background: "var(--color-border)" }} />
-                                <ReviewBreakdown rating={rating} reviewCount={reviewCount} breakdown={ratingBreakdown} />
+                            <p className="text-5xl font-bold tabular-nums leading-none" style={{ color: "var(--color-text-primary)" }}>{rating.toFixed(1)}</p>
+                            <div className="flex gap-0.5 mt-2 justify-center">{[1, 2, 3, 4, 5].map((i) => <Star key={i} className={cn("h-3.5 w-3.5", i <= Math.round(rating) ? "fill-amber-400 text-amber-400" : "fill-amber-200 text-amber-200")} />)}</div>
+                            <p className="text-[10px] mt-1.5" style={{ color: "var(--color-text-muted)" }}>{reviewCount} review{reviewCount !== 1 ? "s" : ""}</p>
+                            <div className="flex items-center gap-1 justify-center mt-2"><CheckCircle2 className="h-3 w-3 text-emerald-500" /><span className="text-[9px] text-emerald-600 dark:text-emerald-400 font-semibold">Verified reviews</span></div>
+                          </div>
+                          <div className="h-16 w-px" style={{ background: "var(--color-border)" }} />
+                          <ReviewBreakdown rating={rating} reviewCount={reviewCount} breakdown={ratingBreakdown} />
                         </div>
                       ) : (
                         <div className="text-center py-8 rounded-md" style={{ background: "var(--color-surface-secondary)", border: "1px solid var(--color-border)" }}>
                           <Star className="h-8 w-8 text-[var(--color-text-muted)] mx-auto mb-2" />
-                          <p className="text-sm font-semibold text-[var(--color-text-primary)]">No reviews yet</p>
+                          <p className="text-sm font-semibold text-[var(--color-text-primary)]"> Leave a review</p>
                           <p className="text-[12px] text-[var(--color-text-muted)] mt-1">Be the first to review this product</p>
                         </div>
                       )}
