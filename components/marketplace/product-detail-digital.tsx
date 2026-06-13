@@ -492,7 +492,7 @@ import {
   Globe, BadgeCheck, AlertTriangle, ShoppingBag,
   Infinity as InfinityIcon,
 } from "lucide-react";
-import { cn, asStringArray } from "@/lib/utils";
+import { cn, asStringArray, getEffectiveCompareAtPrice, getProductDiscountPercent } from "@/lib/utils";
 import { ProductActionModule } from "@/components/marketplace/product-action-module";
 import { FollowButton } from "@/components/marketplace/follow-button";
 import { ReviewForm } from "@/components/marketplace/review-form";
@@ -1221,7 +1221,7 @@ function MobileStickyBuyBar({
           <span className="text-lg font-bold text-[var(--color-text-primary)]">
             {formatMoney(price, currency)}
           </span>
-          {compareAtPrice && compareAtPrice > price && (
+          {compareAtPrice && (
             <span className="text-[11px] text-[var(--color-text-muted)] line-through">
               {formatMoney(compareAtPrice, currency)}
             </span>
@@ -1270,14 +1270,19 @@ export function DigitalProductDetail({
   const previewUrl = getPreviewUrl(product);
 
   const price = Number(product.price ?? 0);
-  const compareAtPrice =
-    product.compare_at_price != null ? Number(product.compare_at_price) : null;
-  const savings =
-    compareAtPrice && compareAtPrice > price
-      ? Math.round((1 - price / compareAtPrice) * 100)
-      : null;
-  const savingsAmount =
-    compareAtPrice && compareAtPrice > price ? compareAtPrice - price : 0;
+  const compareAtPrice = getEffectiveCompareAtPrice({
+    price,
+    compare_at_price: product.compare_at_price != null ? Number(product.compare_at_price) : null,
+    discount_label: product.discount_label ?? null,
+    is_flash_deal: product.is_flash_deal ?? null,
+  });
+  const savings = compareAtPrice ? getProductDiscountPercent({
+    price,
+    compare_at_price: compareAtPrice,
+    discount_label: product.discount_label ?? null,
+    is_flash_deal: product.is_flash_deal ?? null,
+  }) : null;
+  const savingsAmount = compareAtPrice ? compareAtPrice - price : 0;
 
   const liveViewers = useLiveViewers(5);
   const buyBoxRef = useRef<HTMLDivElement>(null);
@@ -1433,7 +1438,7 @@ export function DigitalProductDetail({
                       <span className="text-[30px] font-extrabold text-orange-600 leading-none">
                         {formatMoney(price, product.currency)}
                       </span>
-                      {compareAtPrice && compareAtPrice > price && (
+                      {compareAtPrice && (
                         <span className="text-base text-[var(--color-text-muted)] line-through">
                           {formatMoney(compareAtPrice, product.currency)}
                         </span>

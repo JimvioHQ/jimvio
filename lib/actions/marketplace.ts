@@ -2249,6 +2249,7 @@ export async function getFlashDeals() {
       images, category_id, shipping_from, delivery_time, product_type,
       affiliate_commission_rate, sold_count, claimed_pct,
       is_free_shipping, rating, review_count, vendor_id,
+      vendors(id, verification_status),
       product_categories ( name, slug )
     `)
     .eq("is_flash_deal", true)

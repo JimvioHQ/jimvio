@@ -1,13 +1,14 @@
 "use client";
 
 import { useRef } from "react";
-import { ChevronLeft, ChevronRight, DollarSign } from "lucide-react";
+import { ChevronLeft, ChevronRight, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { useCurrency } from "@/context/CurrencyContext";
-import { type DbProduct, getImage, getDiscount, fmtCount } from "@/lib/utils";
+import { type DbProduct, getImage, getDiscount, fmtCount, getEffectiveCompareAtPrice } from "@/lib/utils";
 
 type FlashDealProduct = DbProduct & {
   currency?: string | null;
+  vendors?: { id: string; verification_status?: string | null } | null;
 };
 
 export function FlashDealsClient({ deals }: { deals: FlashDealProduct[] }) {
@@ -41,10 +42,11 @@ export function FlashDealsClient({ deals }: { deals: FlashDealProduct[] }) {
   );
 }
 
-function FlashDealCard({ d }: { d: DbProduct }) {
+function FlashDealCard({ d }: { d: FlashDealProduct }) {
   const { formatMoney } = useCurrency();
-  const pct = d.claimed_pct ?? 0;
   const discount = getDiscount(d);
+  const compareAtPrice = getEffectiveCompareAtPrice(d);
+  const isVerifiedSupplier = d.vendors?.verification_status === "verified";
 
   return (
     <Link
@@ -68,27 +70,24 @@ function FlashDealCard({ d }: { d: DbProduct }) {
         />
       </div>
       <h4 className="mt-2 truncate text-xs font-bold">{d.name}</h4>
+      {isVerifiedSupplier && (
+        <span className="mt-1 inline-flex items-center gap-0.5 text-[9px] font-semibold text-blue-600">
+          <ShieldCheck className="size-2.5" />
+          Verified supplier
+        </span>
+      )}
       <div className="mt-1 flex items-baseline gap-1.5">
         <span className="text-sm font-black text-primary">{formatMoney(d.price, d.currency)}</span>
-        {d.compare_at_price && d.compare_at_price > d.price && (
+        {compareAtPrice && (
           <span className="text-[11px] text-muted-foreground line-through">
-            {formatMoney(d.compare_at_price, d.currency)}
+            {formatMoney(compareAtPrice, d.currency)}
           </span>
         )}
       </div>
       <div className="mt-1 flex items-center justify-between text-[10px] text-muted-foreground">
         <span>{(d.sold_count ?? d.sale_count ?? 0) > 0 ? `${fmtCount(d.sold_count ?? d.sale_count)} sold` : "New Product"}</span>
-        {pct > 0 && <span>{pct}% claimed</span>}
       </div>
-      {pct > 0 && (
-        <div className="mt-1 h-1 overflow-hidden rounded-full bg-muted">
-          <div
-            className="h-full rounded-full bg-primary transition-all"
-            style={{ width: `${pct}%` }}
-          />
-        </div>
-      )}
-      
+
     </Link>
   );
 }

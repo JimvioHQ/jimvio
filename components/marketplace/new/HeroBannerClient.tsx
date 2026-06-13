@@ -133,57 +133,6 @@ export function HeroBannerClient({ claimedPct }: Props) {
           </div>
         ))}
       </div>
-
-      {/* Claimed bar */}
-      {claimedPct > 0 && (
-        <div className="flex flex-col gap-1">
-          {/* Label row */}
-          <div className="flex items-center justify-between">
-            <span className="text-[8px] font-semibold" style={{ color: "rgba(255,255,255,0.40)" }}>
-              Claimed
-            </span>
-            <span
-              className="text-[8px] font-black"
-              style={{
-                color: claimedPct >= 80
-                  ? "var(--color-accent)"
-                  : "rgba(255,255,255,0.65)",
-              }}
-            >
-              {claimedPct}%
-            </span>
-          </div>
-
-          {/* Bar */}
-          <div
-            className="h-1 overflow-hidden rounded-full"
-            style={{ background: "rgba(255,255,255,0.08)" }}
-          >
-            <div
-              className="h-full rounded-full"
-              style={{
-                width:      `${claimedPct}%`,
-                background: claimedPct >= 80
-                  ? "linear-gradient(90deg, var(--color-accent) 0%, #ff3a00 100%)"
-                  : "linear-gradient(90deg, var(--color-accent) 0%, #ff8c00 100%)",
-                transition: "width 0.7s cubic-bezier(0.4,0,0.2,1)",
-                boxShadow:  claimedPct >= 80
-                  ? "0 0 8px rgba(253,80,0,0.6)"
-                  : "none",
-              }}
-            />
-          </div>
-
-          {claimedPct >= 80 && (
-            <p
-              className="text-[8px] font-black uppercase tracking-wide"
-              style={{ color: "var(--color-accent)" }}
-            >
-              🔥 Only {100 - claimedPct}% left!
-            </p>
-          )}
-        </div>
-      )}
     </div>
   );
 }

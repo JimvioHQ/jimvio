@@ -31,7 +31,8 @@ async function fetchInitialData(
         id, name, slug, price, compare_at_price,currency, images, product_type,
         status, is_flash_deal, discount_label, shipping_from,
         delivery_time, affiliate_commission_rate, view_count, sale_count,
-        sold_count, claimed_pct, rating, review_count, is_free_shipping, vendor_id, category_id
+        sold_count, claimed_pct, rating, review_count, is_free_shipping, vendor_id, category_id,
+        vendors(id, verification_status)
       `)
       .eq("is_flash_deal", true)
       .eq("status", "active")

@@ -400,9 +400,18 @@ export async function POST(req: Request): Promise<Response> {
     let payload: CJWebhookPayload;
     try {
         payload = JSON.parse(rawBody) as CJWebhookPayload;
-    } catch {
+    } catch (err: any) {
         console.error("[CJ webhook] Failed to parse JSON body");
-        return Response.json({ ok: false, error: "Invalid JSON" }, { status: 200 });
+        console.error("[CJ webhook] Raw body (first 500 chars):", rawBody.substring(0, 500));
+        console.error("[CJ webhook] Parse error:", err?.message || String(err));
+        return Response.json(
+            { 
+                ok: false, 
+                error: "Invalid JSON",
+                details: err?.message || "Unknown parse error"
+            }, 
+            { status: 200 }
+        );
     }
 
     if (!payload.type || !payload.messageType) {

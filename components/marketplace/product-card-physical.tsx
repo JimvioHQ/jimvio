@@ -7,7 +7,7 @@ import {
   MessageCircle, ShoppingBag, Check, X, Minus,
   Heart, PercentSquare, AlertTriangle,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, getProductDiscountPercent, getEffectiveCompareAtPrice } from "@/lib/utils";
 import {
   addToCart,
   checkProductInCart,
@@ -56,9 +56,15 @@ export function ProductCardPhysical({
   const imgSrc = images[0] ?? null;
   const hoverImg = images[1] ?? null;
   const price = Number(p.price ?? 0);
-  const compareAt = Number(p.compare_at_price ?? 0);
-  const onSale = compareAt > price && compareAt > 0;
-  const discount = onSale ? Math.round(((compareAt - price) / compareAt) * 100) : 0;
+  const discountFields = {
+    price,
+    compare_at_price: p.compare_at_price ?? null,
+    discount_label: (p as any).discount_label ?? null,
+    is_flash_deal: (p as any).is_flash_deal ?? null,
+  };
+  const compareAtPrice = getEffectiveCompareAtPrice(discountFields);
+  const onSale = compareAtPrice != null;
+  const discount = getProductDiscountPercent(discountFields);
 
   /* ── Stock / affiliate helpers (safe cast — fields optional) ── */
   const stockQty = (p as any).stock_quantity as number | null | undefined;
@@ -390,9 +396,9 @@ export function ProductCardPhysical({
               currency={p.currency}
               className="text-[17px] font-semibold tabular-nums tracking-tight text-[var(--color-text-primary)]"
             />
-            {onSale && (
+            {onSale && compareAtPrice != null && (
               <LocalizedPrice
-                amount={compareAt}
+                amount={compareAtPrice}
                 currency={p.currency}
                 className="text-[12px] tabular-nums text-[var(--color-text-muted)] line-through decoration-1"
               />
@@ -491,6 +497,7 @@ export function ProductCardPhysical({
         productImage={imgSrc ?? null}
         currency={p.currency}
         loadingVariantId={loadingVariantId}
+        productDiscount={discountFields}
       />
     </>
   );

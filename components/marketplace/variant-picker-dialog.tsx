@@ -764,7 +764,7 @@ import { createPortal } from "react-dom";
 import Image from "next/image";
 import { X, ShoppingCart, AlertCircle, Ruler, TrendingUp } from "lucide-react";
 import { LocalizedPrice } from "@/components/currency/localized-price";
-import { cn, isRenderableImageSrc } from "@/lib/utils";
+import { cn, isRenderableImageSrc, getEffectiveCompareAtPrice, getProductDiscountPercent, type ProductDiscountFields } from "@/lib/utils";
 
 /* ──────────────────────────────────────────────
    Types
@@ -804,6 +804,7 @@ interface Props {
   // pass product-level affiliate rate as fallback
   productAffiliateRate?: number | null;
   productAffiliateEnabled?: boolean;
+  productDiscount?: ProductDiscountFields;
 }
 
 /* ──────────────────────────────────────────────
@@ -1057,9 +1058,11 @@ function GenericChipBtn({
   );
 }
 
-function DiscountBadge({ price, compareAt }: { price: number; compareAt: number | null }) {
-  if (!compareAt || Number(compareAt) <= Number(price)) return null;
-  const pct = Math.round(((Number(compareAt) - Number(price)) / Number(compareAt)) * 100);
+function DiscountBadge({ price, compareAt, productDiscount }: { price: number; compareAt: number | null; productDiscount?: ProductDiscountFields }) {
+  const pct = productDiscount
+    ? getProductDiscountPercent({ ...productDiscount, price, compare_at_price: compareAt })
+    : 0;
+  if (pct <= 0) return null;
   return (
     <span
       className="inline-flex items-center text-[11px] font-semibold px-1.5 py-0.5 rounded-md"
@@ -1096,6 +1099,7 @@ export function VariantPickerDialog({
   loadingVariantId,
   productAffiliateRate,
   productAffiliateEnabled,
+  productDiscount,
 }: Props) {
   const [mounted, setMounted] = useState(false);
   const [selections, setSelections] = useState<Record<string, string>>({});
@@ -1271,17 +1275,26 @@ export function VariantPickerDialog({
                   currency={currency}
                   className="text-[15px] font-bold"
                 />
-                {resolvedVariant.compare_at_price &&
-                  Number(resolvedVariant.compare_at_price) > Number(resolvedVariant.price) && (
+                {(() => {
+                  const effectiveCompareAt = productDiscount
+                    ? getEffectiveCompareAtPrice({
+                        ...productDiscount,
+                        price: Number(resolvedVariant.price),
+                        compare_at_price: resolvedVariant.compare_at_price,
+                      })
+                    : null;
+                  return effectiveCompareAt ? (
                     <LocalizedPrice
-                      amount={Number(resolvedVariant.compare_at_price)}
+                      amount={effectiveCompareAt}
                       currency={currency}
                       className="text-[12px] line-through"
                     />
-                  )}
+                  ) : null;
+                })()}
                 <DiscountBadge
                   price={resolvedVariant.price}
                   compareAt={resolvedVariant.compare_at_price}
+                  productDiscount={productDiscount}
                 />
               </div>
             ) : (

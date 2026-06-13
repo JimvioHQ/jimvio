@@ -13,7 +13,7 @@ import {
   X,
   Loader2,
 } from "lucide-react";
-import { cn, isRenderableImageSrc, normalizeImages } from "@/lib/utils";
+import { cn, isRenderableImageSrc, normalizeImages, getProductDiscountPercent, getEffectiveCompareAtPrice } from "@/lib/utils";
 import {
   addToCart,
   checkProductInCart,
@@ -33,6 +33,8 @@ interface Product {
   slug: string;
   price: number;
   compare_at_price?: number | null;
+  discount_label?: string | null;
+  is_flash_deal?: boolean | null;
   images?: string[];
   rating?: number;
   review_count?: number;
@@ -101,11 +103,14 @@ export function ProductCardClient({
   }, [images, p.slug]);
 
   const price = Number(p.price ?? 0);
-  const compareAt = Number(p.compare_at_price ?? 0);
-  const discount =
-    compareAt > price && compareAt > 0
-      ? Math.round(((compareAt - price) / compareAt) * 100)
-      : 0;
+  const discountFields = {
+    price,
+    compare_at_price: p.compare_at_price ?? null,
+    discount_label: p.discount_label ?? null,
+    is_flash_deal: p.is_flash_deal ?? null,
+  };
+  const compareAtPrice = getEffectiveCompareAtPrice(discountFields);
+  const discount = getProductDiscountPercent(discountFields);
   const isDigital =
     p.product_type === "digital" ||
     (p.product_type === undefined && p.is_digital === true);
@@ -457,9 +462,9 @@ export function ProductCardClient({
                 compact ? "text-[17px]" : "text-[20px]"
               )}
             />
-            {discount > 0 && (
+            {discount > 0 && compareAtPrice != null && (
               <LocalizedPrice
-                amount={compareAt}
+                amount={compareAtPrice}
                 currency={p.currency}
                 className="text-[12px] font-semibold text-stone-400 dark:text-stone-500 line-through"
               />
@@ -553,6 +558,7 @@ export function ProductCardClient({
         productImage={images[0] ?? null}
         currency={p.currency}
         loadingVariantId={loadingVariantId}
+        productDiscount={discountFields}
       />
     </>
   );

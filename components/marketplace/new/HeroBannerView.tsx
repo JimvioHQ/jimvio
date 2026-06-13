@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useCurrency } from "@/context/CurrencyContext";
+import { getProductDiscountLabel, getEffectiveCompareAtPrice } from "@/lib/utils";
 import { HeroBannerClient } from "./HeroBannerClient";
 import type { HeroProduct } from "@/types";
 
@@ -74,12 +75,6 @@ const THEMES: Record<"physical" | "digital", Theme> = {
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function getDiscount(price: number, compare: number | null, label: string | null): string {
-  if (label) return label;
-  if (compare && compare > price) return `-${Math.round((1 - price / compare) * 100)}%`;
-  return "";
-}
 
 function isRenderableUrl(s: unknown): s is string {
   if (typeof s !== "string") return false;
@@ -151,23 +146,19 @@ export function HeroBannerView({ physical, digital, initialType = "physical" }: 
   const safeActiveIdx = Math.min(activeIdx, products.length - 1);
   const product = products[safeActiveIdx];
   const currency = product.currency ?? "USD";
-  
+
   const image = getImage(product.images);
   const rawName = product.name ?? "";
   const rawDesc = product.short_description ?? "";
   const displayName = rawName.length > 55 ? rawName.slice(0, 52) + "…" : rawName;
   const displayDesc = rawDesc.length > 70 ? rawDesc.slice(0, 67) + "…" : rawDesc;
-  const discount = getDiscount(product.price, product.compare_at_price, product.discount_label);
+  const discount = getProductDiscountLabel(product);
   const discountNum = discount.replace(/[^0-9]/g, "");
   const price = formatMoney(product.price, currency);
-  const oldPrice = product.compare_at_price ? formatMoney(product.compare_at_price, currency) : null;
+  const compareAt = getEffectiveCompareAtPrice(product);
+  const oldPrice = compareAt ? formatMoney(compareAt, currency) : null;
   const earn = product.affiliate_commission_rate
     ? formatMoney(product.price * (product.affiliate_commission_rate / 100), currency)
-    : null;
-  const soldCount = product.sale_count && product.sale_count > 0
-    ? product.sale_count >= 1000
-      ? `${(product.sale_count / 1000).toFixed(1)}K`
-      : String(product.sale_count)
     : null;
   const bannerReviewCount = Array.isArray((product as any).reviews) ? (product as any).reviews.length : (product.review_count ?? 0);
   const bannerHasReviews = bannerReviewCount > 0;
@@ -182,7 +173,7 @@ export function HeroBannerView({ physical, digital, initialType = "physical" }: 
     >
       {/* ── Ambient glow ── */}
       <div className="pointer-events-none absolute inset-0" style={{ background: theme.glow }} />
-      
+
       <div className="absolute top-0 right-0 bottom-0" style={{ width: "52%", zIndex: 1 }}>
         {image ? (
           <>
@@ -302,22 +293,6 @@ export function HeroBannerView({ physical, digital, initialType = "physical" }: 
               )}
             </div>
           )}
-
-          {/* Sold */}
-          {soldCount && (
-            <div className="flex items-center gap-1.5">
-              <div className="flex -space-x-1.5">
-                {[0, 1, 2].map((i) => (
-                  <span key={i} className="size-5 rounded-full border border-white/20" style={{ background: theme.chip }} />
-                ))}
-              </div>
-              <span className="flex items-center gap-1 text-[11px]" style={{ color: theme.sub }}>
-                <span className="size-1.5 rounded-full bg-green-400" />
-                {soldCount} sold
-              </span>
-            </div>
-          )}
-
           {/* Price */}
           <div className="flex flex-wrap items-baseline gap-2">
             <span className="text-2xl font-black" style={{ color: theme.price }}>{price} {product.currency}</span>
@@ -365,37 +340,6 @@ export function HeroBannerView({ physical, digital, initialType = "physical" }: 
               </button>
             </Link>
           </div>
-
-          {/* Thumbnails + prev/next */}
-          {products.length > 1 && (
-            <div className="flex items-center gap-1.5">
-              {products.map((p, i) => {
-                const thumb = getImage(p.images);
-                return (
-                  <button
-                    key={p.id}
-                    onClick={() => setActiveIdx(i)}
-                    className="overflow-hidden rounded-lg transition-all duration-300"
-                    style={{
-                      width: i === activeIdx ? 44 : 30,
-                      height: 30,
-                      flexShrink: 0,
-                      border: `2px solid ${i === activeIdx ? theme.dotActive : theme.dotInactive}`,
-                      background: "rgba(255,255,255,0.08)",
-                    }}
-                  >
-                    {thumb ? (
-                      <img src={thumb} alt={p.name} className="h-full w-full object-contain p-0.5" />
-                    ) : (
-                      <span className="flex h-full w-full items-center justify-center text-xs opacity-30">
-                        {typeKey === "digital" ? "💻" : "📦"}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          )}
         </div>
       </div>
 

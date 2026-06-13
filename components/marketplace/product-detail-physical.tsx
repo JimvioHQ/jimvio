@@ -12,7 +12,7 @@ import {
   MessageSquare, Globe, Zap, Timer,
   AlertTriangle, Flame, ThumbsUp, Eye, Headphones,
 } from "lucide-react";
-import { cn, normalizeImages } from "@/lib/utils";
+import { cn, normalizeImages, getEffectiveCompareAtPrice, getProductDiscountPercent, hasRealProductDiscount } from "@/lib/utils";
 import { ProductActionModule } from "@/components/marketplace/product-action-module";
 import { FollowButton } from "@/components/marketplace/follow-button";
 import { ReviewForm } from "@/components/marketplace/review-form";
@@ -944,7 +944,7 @@ function commonPrefixLength(names: string[]): number {
   return len;
 }
 
-function VariantsTable({ variants, currency }: { variants: ProductVariant[]; productName: string; currency?: string | null }) {
+function VariantsTable({ variants, currency, showDiscount }: { variants: ProductVariant[]; productName: string; currency?: string | null; showDiscount?: boolean }) {
   const names = variants.map((v) => v.name ?? "");
   const prefixLen = commonPrefixLength(names);
   return (
@@ -971,7 +971,7 @@ function VariantsTable({ variants, currency }: { variants: ProductVariant[]; pro
                 </td>
                 <td className="px-4 py-3 text-right text-[13px] font-semibold text-[var(--color-text-primary)]">
                   {currency} {v.price.toLocaleString()}
-                  {v.compare_at_price && v.compare_at_price > v.price && <span className="text-[10px] text-[var(--color-text-muted)] line-through ml-1">{currency} {v.compare_at_price.toLocaleString()}</span>}
+                  {showDiscount && v.compare_at_price && v.compare_at_price > v.price && <span className="text-[10px] text-[var(--color-text-muted)] line-through ml-1">{currency} {v.compare_at_price.toLocaleString()}</span>}
                 </td>
                 <td className="px-4 py-3 text-right">
                   {isOos ? <span className="text-[11px] font-semibold text-red-500">Out of stock</span> : v.inventory_quantity <= 5 ? <span className="text-[11px] font-semibold text-amber-500">{v.inventory_quantity} left</span> : <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">In stock</span>}
@@ -1064,7 +1064,15 @@ export function PhysicalProductDetail({
   const handleVariantSelect = useCallback((v: ProductVariant) => setSelectedVariant(v), []);
 
   const activePrice = selectedVariant ? selectedVariant.price : Number(product.price);
-  const activeCompareAt = selectedVariant?.compare_at_price ?? product.compare_at_price ?? null;
+  const activeCompareAtRaw = selectedVariant?.compare_at_price ?? product.compare_at_price ?? null;
+  const productDiscountFields = {
+    price: activePrice,
+    compare_at_price: activeCompareAtRaw,
+    discount_label: (product as any).discount_label ?? null,
+    is_flash_deal: (product as any).is_flash_deal ?? null,
+  };
+  const activeCompareAt = getEffectiveCompareAtPrice(productDiscountFields);
+  const showProductDiscount = hasRealProductDiscount(productDiscountFields);
   const activeInventory = selectedVariant?.inventory_quantity ?? product.inventory_quantity ?? 0;
   const isOutOfStock = hasVariants ? activeInventory <= 0 : false;
 
@@ -1076,8 +1084,8 @@ export function PhysicalProductDetail({
     return baseImages;
   }, [selectedVariant, baseImages]);
 
-  const savings = activeCompareAt && activeCompareAt > activePrice ? Math.round((1 - activePrice / activeCompareAt) * 100) : null;
-  const savingsAmount = activeCompareAt && activeCompareAt > activePrice ? activeCompareAt - activePrice : 0;
+  const savings = activeCompareAt ? getProductDiscountPercent(productDiscountFields) : null;
+  const savingsAmount = activeCompareAt ? activeCompareAt - activePrice : 0;
   const reviewCount = Array.isArray(product.reviews) ? product.reviews.length : (product.review_count ?? 0);
   const saleCount = product.sale_count ?? product.sold_count ?? 0;
   const ratingBreakdown: RatingBreakdown | null = product.rating_breakdown ?? null;
@@ -1230,29 +1238,8 @@ export function PhysicalProductDetail({
                     {title}
                   </h1>
 
-                  {/* Rating row */}
                   <div className="flex flex-wrap items-center gap-2 text-[12px] text-[var(--color-text-muted)] mt-1">
-                    <span className="font-bold text-[var(--color-text-primary)]">
-                      {ratingDisplay ?? "Not rated yet"}
-                    </span>
-                    <span className="inline-flex items-center gap-0.5">
-                      {[1, 2, 3, 4, 5].map((i) => (
-                        <Star
-                          key={i}
-                          className={cn(
-                            "h-3.5 w-3.5",
-                            i <= Math.round(rating) && hasReviews
-                              ? "fill-amber-400 text-amber-400"
-                              : "fill-gray-200 text-gray-200",
-                          )}
-                        />
-                      ))}
-                    </span>
-                    {hasReviews ? <span>({reviewCount} review{reviewCount !== 1 ? "s" : ""})</span> : null}
-                    <span aria-hidden className="text-[var(--color-border-strong)]">·</span>
-                    <span className="tabular-nums">
-                      {saleCount > 0 ? (saleCount >= 1000 ? `${(saleCount / 1000).toFixed(1)}K` : saleCount + " sold") : "New Product"}
-                    </span>
+                   
                     <span aria-hidden className="text-[var(--color-border-strong)]">·</span>
                     <span className="flex items-center gap-1.5">
                       <span className="relative flex h-2 w-2 shrink-0">
@@ -1269,7 +1256,7 @@ export function PhysicalProductDetail({
                       <span className="text-[30px] font-extrabold text-orange-600 leading-none">
                         {formatMoney(activePrice, product.currency)}
                       </span>
-                      {activeCompareAt && activeCompareAt > activePrice && (
+                      {activeCompareAt && (
                         <span className="text-base text-[var(--color-text-muted)] line-through">
                           {formatMoney(activeCompareAt, product.currency)}
                         </span>
@@ -1531,7 +1518,7 @@ export function PhysicalProductDetail({
 
                   {/* Variants tab */}
                   {activeTab === "variants" && hasVariants && (
-                    <VariantsTable variants={variants} productName={product.name} currency={product.currency} />
+                    <VariantsTable variants={variants} productName={product.name} currency={product.currency} showDiscount={showProductDiscount} />
                   )}
 
                   {/* Reviews tab */}

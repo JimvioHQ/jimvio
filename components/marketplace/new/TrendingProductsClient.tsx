@@ -8,7 +8,7 @@ import {
 import Link from "next/link";
 import { toast } from "sonner";
 import { useCurrency } from "@/context/CurrencyContext";
-import { type DbProduct, getImage, getDiscount } from "@/lib/utils";
+import { type DbProduct, getImage, getEffectiveCompareAtPrice, getProductDiscountLabel } from "@/lib/utils";
 import { addToCart, toggleWishlist, getWishlistProductIds } from "@/lib/actions/marketplace";
 import type { Tables } from "@/types/supabase";
 
@@ -278,11 +278,14 @@ function ProductCard({
   const displayPrice = activeVariant?.price ?? p.price;
   const compareAtPrice = activeVariant?.compare_at_price ?? p.compare_at_price;
   const displayImage = activeVariant?.image_url ?? getImage(p.images);
-  const discount = p.discount_label
-    ? p.discount_label
-    : displayPrice != null && compareAtPrice != null && compareAtPrice > displayPrice
-      ? `-${Math.round((1 - displayPrice / compareAtPrice) * 100)}%`
-      : "";
+  const discountFields = {
+    price: displayPrice,
+    compare_at_price: compareAtPrice,
+    discount_label: p.discount_label,
+    is_flash_deal: p.is_flash_deal,
+  };
+  const discount = getProductDiscountLabel(discountFields);
+  const effectiveCompareAt = getEffectiveCompareAtPrice(discountFields);
   const currency = (activeVariant as any)?.currency ?? p.currency ?? "USD";
   const isVerifiedSupplier = p.vendors?.verification_status === "verified";
 
@@ -480,16 +483,16 @@ function ProductCard({
               }`}
           >
             <ShieldCheck className="size-3" />
-            {isVerifiedSupplier ? "Verified supplier" : "Not verified"}
+            {isVerifiedSupplier ? "Verified supplier" : ""}
           </span>
         </div>
         <div className="flex items-baseline gap-1.5">
           <span className="text-sm font-black" style={{ color: "var(--color-accent)" }}>
             {formatMoney(displayPrice, currency)}
           </span>
-          {compareAtPrice && compareAtPrice > displayPrice && (
+          {effectiveCompareAt && (
             <span className="text-[10px] line-through" style={{ color: "var(--color-text-muted)" }}>
-              {formatMoney(compareAtPrice, currency)}
+              {formatMoney(effectiveCompareAt, currency)}
             </span>
           )}
         </div>

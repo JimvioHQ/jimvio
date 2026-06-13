@@ -159,6 +159,39 @@ export function calculateDiscount(
   return Math.round(((compareAtPrice - price) / compareAtPrice) * 100);
 }
 
+export type ProductDiscountFields = {
+  price: number;
+  compare_at_price?: number | null;
+  discount_label?: string | null;
+  is_flash_deal?: boolean | null;
+};
+
+/** True only when a discount was explicitly set or the product is a flash deal with a higher compare price. */
+export function hasRealProductDiscount(p: ProductDiscountFields): boolean {
+  if (p.discount_label?.trim()) return true;
+  if (p.is_flash_deal && p.compare_at_price != null && p.compare_at_price > p.price) return true;
+  return false;
+}
+
+export function getEffectiveCompareAtPrice(p: ProductDiscountFields): number | null {
+  if (!hasRealProductDiscount(p)) return null;
+  const compare = p.compare_at_price;
+  if (compare != null && compare > p.price) return compare;
+  return null;
+}
+
+export function getProductDiscountPercent(p: ProductDiscountFields): number {
+  const compare = getEffectiveCompareAtPrice(p);
+  if (!compare) return 0;
+  return calculateDiscount(p.price, compare);
+}
+
+export function getProductDiscountLabel(p: ProductDiscountFields): string {
+  if (p.discount_label?.trim()) return p.discount_label.trim();
+  const pct = getProductDiscountPercent(p);
+  return pct > 0 ? `-${pct}%` : "";
+}
+
 export function getStarRating(rating: number): string {
   const full = Math.floor(rating);
   const half = rating % 1 >= 0.5;
@@ -539,9 +572,5 @@ export function getImage(images: unknown): string {
 }
 
 export function getDiscount(p: DbProduct): string {
-  if (p.discount_label) return p.discount_label;
-  if (p.compare_at_price && p.price && p.compare_at_price > p.price) {
-    return `-${Math.round((1 - p.price / p.compare_at_price) * 100)}%`;
-  }
-  return "";
+  return getProductDiscountLabel(p);
 }

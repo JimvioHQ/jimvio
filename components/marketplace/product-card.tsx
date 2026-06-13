@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Heart, Star, Zap, ShoppingCart } from "lucide-react";
-import { cn, calculateDiscount } from "@/lib/utils";
+import { cn, getProductDiscountPercent, getEffectiveCompareAtPrice } from "@/lib/utils";
 import { LocalizedPrice } from "@/components/currency/localized-price";
 import { Product } from "@/types/db";
 
@@ -46,9 +46,14 @@ function GlassBadge({
 export function ProductCard({ product, viewMode = "grid" }: ProductCardProps) {
   const [wishlisted, setWishlisted] = useState(false);
   const [imageError, setImageError] = useState(false);
-  const discount = product.compare_at_price
-    ? calculateDiscount(product.price, product.compare_at_price)
-    : 0;
+  const discountFields = {
+    price: product.price,
+    compare_at_price: product.compare_at_price ?? null,
+    discount_label: product.discount_label ?? null,
+    is_flash_deal: product.is_flash_deal ?? null,
+  };
+  const effectiveCompareAt = getEffectiveCompareAtPrice(discountFields);
+  const discount = getProductDiscountPercent(discountFields);
 
   const images = Array.isArray(product.images) ? (product.images as string[]) : [];
   const primaryImage = images[0] || null;
@@ -114,7 +119,7 @@ export function ProductCard({ product, viewMode = "grid" }: ProductCardProps) {
               {discount > 0 && (
                 <>
                   <LocalizedPrice
-                    amount={product.compare_at_price!}
+                    amount={effectiveCompareAt!}
                     currency={(product as any).currency}
                     className="text-[11px] text-stone-400 line-through"
                   />
@@ -237,7 +242,7 @@ export function ProductCard({ product, viewMode = "grid" }: ProductCardProps) {
               />
               {discount > 0 && (
                 <LocalizedPrice
-                  amount={product.compare_at_price!}
+                  amount={effectiveCompareAt!}
                   currency={(product as any).currency}
                   className="text-[10px] text-stone-400 line-through"
                 />

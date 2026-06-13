@@ -233,7 +233,7 @@ export async function calculateCJPricing(costUsd: number): Promise<{
     affiliate_price: number;
     affiliate_commission_rate: number;
     markup_percent: number;
-    compare_at_price: number;
+    compare_at_price: number | null;
 }> {
     if (costUsd <= 0) {
         return {
@@ -241,7 +241,7 @@ export async function calculateCJPricing(costUsd: number): Promise<{
             affiliate_price: 0,
             affiliate_commission_rate: 0,
             markup_percent: 0,
-            compare_at_price: 0,
+            compare_at_price: null,
         };
     }
 
@@ -254,14 +254,12 @@ export async function calculateCJPricing(costUsd: number): Promise<{
 
     const price = Math.ceil((retailUsd * exchangeRate) / 100) * 100;
     const affiliate_price = Math.floor((affiliateUsd * exchangeRate) / 10) * 10;
-    const compare_at_price = Math.ceil((price * 1.3) / 100) * 100;
-
     return {
         price,
         affiliate_price,
         affiliate_commission_rate: tier.commissionPercent,
         markup_percent: tier.markupPercent,
-        compare_at_price,
+        compare_at_price: null,
     };
 }
 

@@ -9,10 +9,10 @@ import {
   DollarSign, Package, Zap, Menu, BarChart2, TrendingUp,
   UserPlus, ArrowRight, Search, Lock, PlayCircle,
 } from "lucide-react";
-import { cn, formatDisplayMoney } from "@/lib/utils";
+import { cn, formatDisplayMoney, getProductDiscountPercent } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { stableDiscountPercent, industryCardBackground, INDUSTRY_GRADIENTS } from "@/lib/homepage-helpers";
+import { industryCardBackground, INDUSTRY_GRADIENTS } from "@/lib/homepage-helpers";
 
 type LucideIcon = React.FC<React.SVGProps<SVGSVGElement>>;
 
@@ -197,8 +197,13 @@ export function FlashDeals({ products }: { products: any[] }) {
 
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 divide-x divide-border">
         {products.slice(0, 5).map((p, i) => {
-          const dealPct = stableDiscountPercent(p.id);
-          const heat = Math.min(94, 65 + (dealPct % 30));
+          const dealPct = getProductDiscountPercent({
+            price: Number(p.price ?? 0),
+            compare_at_price: p.compare_at_price ?? null,
+            discount_label: p.discount_label ?? null,
+            is_flash_deal: p.is_flash_deal ?? null,
+          });
+          const heat = Math.min(94, 65 + (dealPct > 0 ? dealPct % 30 : i * 7));
           const img = p.images?.[0] || null;
 
           return (
@@ -207,10 +212,11 @@ export function FlashDeals({ products }: { products: any[] }) {
                 href={`/marketplace/${p.slug}`}
                 className="block p-4 hover:bg-muted/30 transition-colors border-t border-border md:border-t-0 relative"
               >
-                {/* Discount badge — top-left corner, not floating */}
+                {dealPct > 0 && (
                 <div className="absolute rounded-br top-0 left-0 bg-[#fd5000] text-white text-[10px] font-bold px-2 py-0.5 leading-none">
                   -{dealPct}%
                 </div>
+                )}
 
                 {/* Product image */}
                 <div className="aspect-square bg-muted flex items-center justify-center mb-3 mt-4 overflow-hidden border border-border/50">

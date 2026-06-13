@@ -93,7 +93,6 @@ export function SocialProofBar({
 }) {
     const items = [
         { icon: <TrendingUp className="h-3.5 w-3.5 text-emerald-500" />, text: saleCount > 0 ? `${saleCount.toLocaleString()}+ users` : "New Product" },
-        { icon: <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />, text: reviewCount > 0 ? `${reviewCount} reviews` : "Not rated yet" },
         { icon: <Clock className="h-3.5 w-3.5 text-sky-500" />, text: "Updated recently" },
         { icon: <ThumbsUp className="h-3.5 w-3.5 text-violet-500" />, text: "97% recommend" },
     ];
