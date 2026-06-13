@@ -276,7 +276,7 @@ async function processOrderPayment(
     // Guard: skip if already completed
     const { data: order } = await db
       .from("orders")
-      .select("payment_status, total_amount, buyer_id")
+      .select("payment_status, total_amount, currency, buyer_id")
       .eq("id", orderId)
       .single();
 
@@ -290,15 +290,31 @@ async function processOrderPayment(
       return;
     }
 
-    // Amount validation (soft — warn but don't block; rounding across currencies)
+    // Amount validation — strict for matching checkout currency
     if (event.amount != null && order.total_amount != null) {
-      const diff = Math.abs(Number(event.amount) - Number(order.total_amount));
-      const threshold = Math.max(1, Number(order.total_amount) * 0.02); // 2% tolerance
-      if (diff > threshold) {
-        console.warn(
+      const expected = Number(order.total_amount);
+      const received = Number(event.amount);
+      const orderCurrency = (order.currency ?? "RWF").toString().toUpperCase();
+      const eventCurrency = event.currency?.toString().toUpperCase();
+
+      if (eventCurrency && eventCurrency !== orderCurrency) {
+        const message =
+          `[webhook/payment] Currency mismatch order=${orderId} ` +
+          `expected=${orderCurrency} received=${eventCurrency}`;
+        console.error(message);
+        throw new Error(message);
+      }
+
+      const amountsMatch = orderCurrency === "RWF"
+        ? received === expected
+        : Math.abs(received - expected) < 0.005;
+
+      if (!amountsMatch) {
+        const message =
           `[webhook/payment] Amount mismatch order=${orderId} ` +
-            `expected=${order.total_amount} received=${event.amount} diff=${diff}`
-        );
+          `expected=${expected} ${orderCurrency} received=${received} ${eventCurrency ?? orderCurrency}`;
+        console.error(message);
+        throw new Error(message);
       }
     }
 

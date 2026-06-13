@@ -291,7 +291,7 @@ export async function submitOrderToCJ(params: {
     order_id: orderId,
     previous_status: "confirmed",
     new_status: "processing",
-    notes: `Submitted to CJ Dropshipping. CJ order: ${cjData.orderNum}`,
+    notes: "Order submitted to fulfillment partner.",
     metadata: {
       cj_order_id: cjData.orderId,
       cj_order_num: cjData.orderNum,

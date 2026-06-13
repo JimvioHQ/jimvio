@@ -212,9 +212,9 @@ export async function submitCjOrderForLines(
             const needed    = body.data?.actualPayment ?? body.data?.orderAmount ?? "?";
 
             console.warn(
-                `[CJ] Insufficient balance for order ${orderId}. ` +
-                `CJ order created: ${cjOrderId}, payId: ${payId}, amount needed: $${needed} USD. ` +
-                `Attempting payBalanceV2...`,
+                `[supplier] Insufficient balance for order ${orderId}. ` +
+                `Order created on supplier side: ${cjOrderId}, payId: ${payId}, amount needed: $${needed} USD. ` +
+                `Attempting automatic supplier balance payment...`,
             );
 
             // Save CJ order ID immediately so we don't re-submit

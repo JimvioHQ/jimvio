@@ -714,12 +714,28 @@ import { creditVendorWalletsForNativeOrder } from "@/lib/payments/credit-vendors
 import { dispatchNonShopifyFulfillmentIntegrations, isShopifyFulfillmentLine } from "@/lib/order-fulfillment/after-payment";
 import { grantDigitalAccess as executeDigitalAccessGrant } from "@/lib/actions/digital-access";
 import { submitOrderToCJ } from "@/services/cj/cj-order-service";
+import { decrementOrderInventory } from "@/lib/actions/inventory-management";
 import {
   recordOrderStatusChange,
   recordPaymentStatusChange,
   type OrderStatusValue,
   type PaymentStatusValue,
 } from "@/lib/payments/record-status-change";
+
+function getPaymentProviderLabel(provider: string | null | undefined): string {
+  if (!provider) return "gateway";
+  const map: Record<string, string> = {
+    nowpayments: "Crypto",
+    pesapal: "PesaPal",
+    pawapay: "PawaPay",
+    flutterwave: "Flutterwave",
+    stripe: "Card",
+    mtn: "MTN Money",
+    airtel: "Airtel Money",
+    manual: "manual payment",
+  };
+  return map[provider.toLowerCase()] ?? provider;
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -959,8 +975,8 @@ async function submitCJItemsIfPresent(
         user_id: buyerId,
         type: "order",
         title: "Order sent to supplier",
-        message: `Your order is being processed by our supplier. CJ reference: ${result.cjOrderNum}`,
-        data: { order_id: orderId, cj_order_num: result.cjOrderNum },
+        message: "Your order is being processed by our supplier.",
+        data: { order_id: orderId },
         action_url: `/dashboard/orders/${orderId}`,
       });
     }
@@ -1185,6 +1201,12 @@ export async function finalizeOrderPayment(
       throw new Error(`Failed to update order status: ${patchError.message}`);
     }
 
+    // Decrement inventory when order transitions to confirmed
+    const inventoryResult = await decrementOrderInventory(orderId);
+    if (!inventoryResult.success) {
+      console.warn("[finalizeOrderPayment] inventory decrement failed (non-fatal):", inventoryResult.error);
+    }
+
     // ── Record order status transition ────────────────────────────────────
     await recordOrderStatusChange(
       db,
@@ -1193,7 +1215,7 @@ export async function finalizeOrderPayment(
       "confirmed",
       {
         ...statusChangeOptions,
-        notes: `Payment confirmed via ${ctx.paymentProvider ?? "gateway"}.`,
+        notes: `Payment confirmed via ${getPaymentProviderLabel(ctx.paymentProvider)}.`,
       }
     );
 
@@ -1354,7 +1376,7 @@ export async function finalizeOrderPayment(
       "processing",
       {
         ...statusChangeOptions,
-        notes: `Payment confirmed via ${ctx.paymentProvider ?? "gateway"}. Forwarding to Shopify.`,
+        notes: `Payment confirmed via ${getPaymentProviderLabel(ctx.paymentProvider)}. Forwarding to Shopify.`,
       }
     );
 

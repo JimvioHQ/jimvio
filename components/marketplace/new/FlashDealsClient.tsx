@@ -45,9 +45,6 @@ function FlashDealCard({ d }: { d: DbProduct }) {
   const { formatMoney } = useCurrency();
   const pct = d.claimed_pct ?? 0;
   const discount = getDiscount(d);
-  const earn = d.affiliate_commission_rate
-    ? `Earn ${formatMoney(d.price * (d.affiliate_commission_rate / 100), d.currency)}`
-    : null;
 
   return (
     <Link
@@ -80,7 +77,7 @@ function FlashDealCard({ d }: { d: DbProduct }) {
         )}
       </div>
       <div className="mt-1 flex items-center justify-between text-[10px] text-muted-foreground">
-        <span>{fmtCount(d.sold_count ?? d.sale_count)} sold</span>
+        <span>{(d.sold_count ?? d.sale_count ?? 0) > 0 ? `${fmtCount(d.sold_count ?? d.sale_count)} sold` : "New Product"}</span>
         {pct > 0 && <span>{pct}% claimed</span>}
       </div>
       {pct > 0 && (
@@ -91,11 +88,7 @@ function FlashDealCard({ d }: { d: DbProduct }) {
           />
         </div>
       )}
-      {earn && (
-        <div className="mt-2 flex items-center justify-center gap-1 rounded-md bg-accent/10 py-1 text-[11px] font-bold text-accent">
-          {earn}
-        </div>
-      )}
+      
     </Link>
   );
 }

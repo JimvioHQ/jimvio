@@ -221,13 +221,13 @@ export function CheckoutExperience({
             const missing = products.filter((p) => !p.variantId);
             if (missing.length > 0) {
                throw new Error(
-                  "Some items are missing CJ variant info. Please remove them from your cart and add them again."
+                  "Some items are missing variant information. Please remove them from your cart and add them again."
                );
             }
             const missingWeight = products.filter((p) => !p.weight);
             if (missingWeight.length > 0) {
                console.warn(
-                  "[CJ rates] items missing weight, CJ will use default:",
+                  "[shipping rates] items missing weight; default will be used:",
                   missingWeight,
                );
             }

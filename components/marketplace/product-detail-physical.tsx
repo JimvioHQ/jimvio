@@ -809,7 +809,7 @@ function VendorSectionCard({ vendor, followedVendorIds }: { vendor: any; followe
 
   const ordersLabel = fulfilledOrders >= 1000
     ? `${(fulfilledOrders / 1000).toFixed(fulfilledOrders >= 10000 ? 0 : 1)}k`
-    : fulfilledOrders > 0 ? fulfilledOrders.toLocaleString() : "2,345";
+    : fulfilledOrders > 0 ? fulfilledOrders.toLocaleString() : "—";
 
   return (
     <div className="rounded-md overflow-hidden" style={{ border: "1px solid var(--color-border)", background: "var(--color-surface)" }}>
@@ -919,7 +919,7 @@ function GalleryBadgePills({ product, isFreeShipping }: { product: any; isFreeSh
           <CheckCircle2 className="h-3 w-3" /> Free Shipping
         </span>
       )}
-      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
+      <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
         <ShieldCheck className="h-3 w-3" /> Verified Supplier
       </span>
     </div>
@@ -1078,9 +1078,14 @@ export function PhysicalProductDetail({
 
   const savings = activeCompareAt && activeCompareAt > activePrice ? Math.round((1 - activePrice / activeCompareAt) * 100) : null;
   const savingsAmount = activeCompareAt && activeCompareAt > activePrice ? activeCompareAt - activePrice : 0;
-  const reviewCount = product.review_count ?? 0;
-  const saleCount = product.sale_count ?? 0;
+  const reviewCount = Array.isArray(product.reviews) ? product.reviews.length : (product.review_count ?? 0);
+  const saleCount = product.sale_count ?? product.sold_count ?? 0;
   const ratingBreakdown: RatingBreakdown | null = product.rating_breakdown ?? null;
+  const hasReviews = reviewCount > 0;
+  const rating = hasReviews
+    ? (product.reviews as any[]).reduce((s: number, r: any) => s + (Number(r.rating ?? 0) || 0), 0) / Math.max(1, reviewCount)
+    : (product.rating ?? 0);
+  const ratingDisplay = hasReviews ? rating.toFixed(1) : null;
 
   const cleanedHtml = useMemo(() => cleanCJDescription(product.description), [product.description]);
   const safeHtml = useMemo(() => DOMPurify.sanitize(cleanedHtml, { ALLOWED_TAGS: ALLOWED_HTML_TAGS, ALLOWED_ATTR: ALLOWED_HTML_ATTR }), [cleanedHtml]);
@@ -1143,6 +1148,16 @@ export function PhysicalProductDetail({
 
   const liveViewers = useLiveViewers(product.view_count ? Math.min(product.view_count, 12) : 5);
   useRecentlyViewed(product.id, product);
+
+  useEffect(() => {
+    try {
+      const key = `viewed_${product.id}`;
+      if (typeof window === "undefined") return;
+      if (sessionStorage.getItem(key)) return;
+      sessionStorage.setItem(key, "1");
+      fetch(`/api/products/${product.id}/view`, { method: "POST" }).catch(() => {});
+    } catch { /* silent */ }
+  }, [product.id]);
 
   const vendorProps = vendor ? { id: vendor.id, business_name: vendor.business_name ?? null, business_logo: vendor.business_logo ?? null, business_slug: vendor.business_slug ?? null } : null;
   const productProps = { id: product.id, name: title, slug: product.slug, price: activePrice, images: activeImages, vendor_id: product.vendor_id, currency: product.currency };
@@ -1218,7 +1233,7 @@ export function PhysicalProductDetail({
                   {/* Rating row */}
                   <div className="flex flex-wrap items-center gap-2 text-[12px] text-[var(--color-text-muted)] mt-1">
                     <span className="font-bold text-[var(--color-text-primary)]">
-                      {(product.rating ?? 0).toFixed(1)}
+                      {ratingDisplay ?? "Not rated yet"}
                     </span>
                     <span className="inline-flex items-center gap-0.5">
                       {[1, 2, 3, 4, 5].map((i) => (
@@ -1226,17 +1241,17 @@ export function PhysicalProductDetail({
                           key={i}
                           className={cn(
                             "h-3.5 w-3.5",
-                            i <= Math.round(product.rating ?? 0)
+                            i <= Math.round(rating) && hasReviews
                               ? "fill-amber-400 text-amber-400"
                               : "fill-gray-200 text-gray-200",
                           )}
                         />
                       ))}
                     </span>
-                    <span>({reviewCount} reviews)</span>
+                    {hasReviews ? <span>({reviewCount} review{reviewCount !== 1 ? "s" : ""})</span> : null}
                     <span aria-hidden className="text-[var(--color-border-strong)]">·</span>
                     <span className="tabular-nums">
-                      {saleCount >= 1000 ? `${(saleCount / 1000).toFixed(1)}K` : saleCount} sold
+                      {saleCount > 0 ? (saleCount >= 1000 ? `${(saleCount / 1000).toFixed(1)}K` : saleCount + " sold") : "New Product"}
                     </span>
                     <span aria-hidden className="text-[var(--color-border-strong)]">·</span>
                     <span className="flex items-center gap-1.5">
@@ -1365,7 +1380,7 @@ export function PhysicalProductDetail({
                     {[
                       { id: "overview", label: "Overview", badge: null },
                       { id: "specs", label: "Specifications", badge: specRows.length > 0 ? specRows.length : null },
-                      { id: "reviews", label: `Reviews (${reviewCount || 128})`, badge: null },
+                      { id: "reviews", label: `Reviews (${reviewCount})`, badge: null },
                       { id: "shipping", label: "Shipping & Returns", badge: null },
                       { id: "variants", label: "Variants", badge: hasVariants ? variants.length : null },
                       { id: "seller", label: "Seller Info", badge: null },
@@ -1525,13 +1540,13 @@ export function PhysicalProductDetail({
                       {reviewCount > 0 ? (
                         <div className="flex items-center gap-6 p-5 rounded-md" style={{ background: "var(--color-surface-secondary)", border: "1px solid var(--color-border)" }}>
                           <div className="text-center shrink-0">
-                            <p className="text-5xl font-bold tabular-nums leading-none" style={{ color: "var(--color-text-primary)" }}>{(product.rating ?? 0).toFixed(1)}</p>
-                            <div className="flex gap-0.5 mt-2 justify-center">{[1, 2, 3, 4, 5].map((i) => <Star key={i} className={cn("h-3.5 w-3.5", i <= Math.round(product.rating ?? 0) ? "fill-amber-400 text-amber-400" : "fill-amber-200 text-amber-200")} />)}</div>
-                            <p className="text-[10px] mt-1.5" style={{ color: "var(--color-text-muted)" }}>{reviewCount} review{reviewCount !== 1 ? "s" : ""}</p>
-                            <div className="flex items-center gap-1 justify-center mt-2"><CheckCircle2 className="h-3 w-3 text-emerald-500" /><span className="text-[9px] text-emerald-600 dark:text-emerald-400 font-semibold">Verified reviews</span></div>
-                          </div>
-                          <div className="h-16 w-px" style={{ background: "var(--color-border)" }} />
-                          <ReviewBreakdown rating={product.rating ?? 0} reviewCount={reviewCount} breakdown={ratingBreakdown} />
+                                  <p className="text-5xl font-bold tabular-nums leading-none" style={{ color: "var(--color-text-primary)" }}>{rating.toFixed(1)}</p>
+                                  <div className="flex gap-0.5 mt-2 justify-center">{[1, 2, 3, 4, 5].map((i) => <Star key={i} className={cn("h-3.5 w-3.5", i <= Math.round(rating) ? "fill-amber-400 text-amber-400" : "fill-amber-200 text-amber-200")} />)}</div>
+                                  <p className="text-[10px] mt-1.5" style={{ color: "var(--color-text-muted)" }}>{reviewCount} review{reviewCount !== 1 ? "s" : ""}</p>
+                                  <div className="flex items-center gap-1 justify-center mt-2"><CheckCircle2 className="h-3 w-3 text-emerald-500" /><span className="text-[9px] text-emerald-600 dark:text-emerald-400 font-semibold">Verified reviews</span></div>
+                                </div>
+                                <div className="h-16 w-px" style={{ background: "var(--color-border)" }} />
+                                <ReviewBreakdown rating={rating} reviewCount={reviewCount} breakdown={ratingBreakdown} />
                         </div>
                       ) : (
                         <div className="text-center py-8 rounded-md" style={{ background: "var(--color-surface-secondary)", border: "1px solid var(--color-border)" }}>
@@ -1581,7 +1596,7 @@ export function PhysicalProductDetail({
                           <div className="grid grid-cols-3 gap-3">
                             {[
                               { icon: CheckCircle2, value: `${vendor.on_time_delivery ?? 98}%`, label: "On-time Delivery", color: "text-emerald-500", bg: "bg-emerald-500/10" },
-                              { icon: Package, value: (vendor.total_sales ?? 0) >= 1000 ? `${((vendor.total_sales ?? 0) / 1000).toFixed(1)}k` : `${vendor.total_sales ?? "2,345"}`, label: "Fulfilled Orders", color: "text-blue-500", bg: "bg-blue-500/10" },
+                              { icon: Package, value: (vendor.total_sales ?? 0) >= 1000 ? `${((vendor.total_sales ?? 0) / 1000).toFixed(1)}k` : `${vendor.total_sales ?? "—"}`, label: "Fulfilled Orders", color: "text-blue-500", bg: "bg-blue-500/10" },
                               { icon: MessageSquare, value: vendor.response_time ?? "5 min", label: "Avg. Response Time", color: "text-orange-500", bg: "bg-orange-500/10" },
                             ].map(({ icon: Icon, value, label, color, bg }) => (
                               <div key={label} className="flex flex-col items-center p-4 rounded-md text-center" style={{ border: "1px solid var(--color-border)", background: "var(--color-surface-secondary)" }}>

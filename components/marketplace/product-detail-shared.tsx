@@ -92,8 +92,8 @@ export function SocialProofBar({
     reviewCount: number;
 }) {
     const items = [
-        { icon: <TrendingUp className="h-3.5 w-3.5 text-emerald-500" />, text: `${saleCount.toLocaleString()}+ users` },
-        { icon: <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />, text: `4.9 from ${reviewCount} reviews` },
+        { icon: <TrendingUp className="h-3.5 w-3.5 text-emerald-500" />, text: saleCount > 0 ? `${saleCount.toLocaleString()}+ users` : "New Product" },
+        { icon: <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />, text: reviewCount > 0 ? `${reviewCount} reviews` : "Not rated yet" },
         { icon: <Clock className="h-3.5 w-3.5 text-sky-500" />, text: "Updated recently" },
         { icon: <ThumbsUp className="h-3.5 w-3.5 text-violet-500" />, text: "97% recommend" },
     ];
@@ -345,9 +345,11 @@ export function UrgencyStrip({ saleCount }: { saleCount: number }) {
         <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20">
             <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse flex-shrink-0" />
             <p className="text-[12px] font-semibold text-amber-800 dark:text-amber-400">
-                {saleCount > 50
-                    ? `${saleCount.toLocaleString()}+ people already own this`
-                    : "Limited time — price may increase soon"}
+                {saleCount === 0
+                    ? "New Product"
+                    : saleCount > 50
+                        ? `${saleCount.toLocaleString()}+ people already own this`
+                        : "Limited time — price may increase soon"}
             </p>
         </div>
     );

@@ -470,6 +470,19 @@ function ProductCard({
           </h4>
         </Link>
 
+
+
+        <div className="flex items-center justify-between">
+          <span
+            className={`inline-flex items-center gap-1 rounded-full text-[12px] font-semibold ${isVerifiedSupplier
+              ? " text-blue-600"
+              : "bg-zinc-100 text-zinc-700"
+              }`}
+          >
+            <ShieldCheck className="size-3" />
+            {isVerifiedSupplier ? "Verified supplier" : "Not verified"}
+          </span>
+        </div>
         <div className="flex items-baseline gap-1.5">
           <span className="text-sm font-black" style={{ color: "var(--color-accent)" }}>
             {formatMoney(displayPrice, currency)}
@@ -479,18 +492,6 @@ function ProductCard({
               {formatMoney(compareAtPrice, currency)}
             </span>
           )}
-        </div>
-
-        <div className="flex items-center justify-between">
-          <span
-            className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-semibold ${isVerifiedSupplier
-              ? "bg-blue-50 text-blue-600"
-              : "bg-zinc-100 text-zinc-700"
-              }`}
-          >
-            <ShieldCheck className="size-3" />
-            {isVerifiedSupplier ? "Verified supplier" : "Not verified"}
-          </span>
         </div>
 
         {hasColors && (

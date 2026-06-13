@@ -2,6 +2,7 @@
 
 import { getAdminDB } from "@/services/db";
 import { recordBothStatusChanges } from "@/lib/payments/record-status-change";
+import { decrementOrderInventory } from "./inventory-management";
 
 export type AutoHealResult = {
     action: "completed" | "failed" | "none" | "error";
@@ -62,17 +63,25 @@ export async function autoHealTransaction(input: HealInput): Promise<AutoHealRes
                     .single();
 
                 if (order && order.payment_status !== "paid") {
+                    const newOrderStatus = order.status === "pending" ? "confirmed" : order.status;
+                    
                     const { error: orderErr } = await admin
                         .from("orders")
                         .update({
                             payment_status: "paid",
                             paid_at: now,
-                            status: order.status === "pending" ? "confirmed" : order.status,
+                            status: newOrderStatus,
                         })
                         .eq("id", orderId);
 
                     if (orderErr) {
                         console.warn("[autoHeal] order update failed (non-fatal)", orderErr);
+                    } else if (newOrderStatus === "confirmed") {
+                        // Decrement inventory when order transitions to confirmed
+                        const inventoryResult = await decrementOrderInventory(orderId);
+                        if (!inventoryResult.success) {
+                            console.warn("[autoHeal] inventory decrement failed (non-fatal):", inventoryResult.error);
+                        }
                     }
 
                     await recordBothStatusChanges(
@@ -80,7 +89,7 @@ export async function autoHealTransaction(input: HealInput): Promise<AutoHealRes
                         orderId,
                         {
                             previousOrderStatus: order.status as any,
-                            newOrderStatus: order.status === "pending" ? "confirmed" : order.status as any,
+                            newOrderStatus: newOrderStatus as any,
                             previousPaymentStatus: order.payment_status as any,
                             newPaymentStatus: "paid",
                         },

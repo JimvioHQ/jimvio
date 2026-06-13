@@ -328,7 +328,7 @@
 //       if (!cjVid) {
 //         return {
 //           success: false,
-//           error: "This CJ product is missing variant information. Please contact support.",
+//           error: "This supplier product is missing variant information. Please contact support.",
 //         };
 //       }
 //     }
@@ -793,7 +793,7 @@
 //       return {
 //         success: false,
 //         error:
-//           "CJ orders update automatically once the carrier confirms delivery. Check your tracking number.",
+//           "Supplier orders update automatically once the carrier confirms delivery. Check your tracking number.",
 //       };
 //     }
 
@@ -902,7 +902,7 @@
 //       if (!cjVid) {
 //         return {
 //           success: false,
-//           error: "This CJ product is missing variant information. Please contact support.",
+//           error: "This supplier product is missing variant information. Please contact support.",
 //         };
 //       }
 //     }
@@ -1384,7 +1384,13 @@ export async function submitReview({
       .single();
 
     if (error) throw error;
-    if (productId) revalidatePath("/marketplace");
+    if (productId) {
+      try { revalidatePath(`/marketplace/${productId}`); } catch {}
+      try { revalidatePath("/marketplace"); } catch {}
+    }
+    if (vendorId) {
+      try { revalidatePath(`/vendors/${vendorId}`); } catch {}
+    }
     return { success: true, data };
   } catch (error: any) {
     console.error("Submit review error:", error);
@@ -1502,7 +1508,7 @@ export async function addToCart(
       if (!cjVid) {
         return {
           success: false,
-          error: "This CJ product is missing variant information. Please contact support.",
+          error: "This product is missing variant information. Please contact support.",
         };
       }
     }
@@ -1955,7 +1961,7 @@ export async function updateOrderStatus(
       return {
         success: false,
         error:
-          "CJ orders update automatically once the carrier confirms delivery. Check your tracking number.",
+          "This order's delivery is handled by our supplier and will update automatically when the carrier confirms delivery. Check your tracking number.",
       };
     }
 
@@ -2063,7 +2069,7 @@ export async function buyDirectCheckout(
       if (!cjVid) {
         return {
           success: false,
-          error: "This CJ product is missing variant information. Please contact support.",
+          error: "This supplier product is missing variant information. Please contact support.",
         };
       }
     }

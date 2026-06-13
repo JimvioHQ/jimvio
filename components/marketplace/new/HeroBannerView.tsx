@@ -169,6 +169,11 @@ export function HeroBannerView({ physical, digital, initialType = "physical" }: 
       ? `${(product.sale_count / 1000).toFixed(1)}K`
       : String(product.sale_count)
     : null;
+  const bannerReviewCount = Array.isArray((product as any).reviews) ? (product as any).reviews.length : (product.review_count ?? 0);
+  const bannerHasReviews = bannerReviewCount > 0;
+  const bannerRating = bannerHasReviews
+    ? (Array.isArray((product as any).reviews) ? ((product as any).reviews as any[]).reduce((s, r) => s + (Number(r.rating ?? 0) || 0), 0) / Math.max(1, bannerReviewCount) : (product.rating ?? 0))
+    : (product.rating ?? 0);
 
   return (
     <section
@@ -275,24 +280,24 @@ export function HeroBannerView({ physical, digital, initialType = "physical" }: 
           )}
 
           {/* Rating */}
-          {product.rating && product.rating > 0 && (
+          {bannerHasReviews && bannerRating > 0 && (
             <div className="flex  items-center gap-0.5">
               {Array.from({ length: 5 }).map((_, i) => (
                 <Star
                   key={i}
                   className="size-3"
                   style={{
-                    color: i < Math.round(product.rating!) ? theme.price : "rgba(255,255,255,0.18)",
-                    fill: i < Math.round(product.rating!) ? theme.price : "none",
+                    color: i < Math.round(bannerRating) ? theme.price : "rgba(255,255,255,0.18)",
+                    fill: i < Math.round(bannerRating) ? theme.price : "none",
                   }}
                 />
               ))}
               <span className="ml-1 text-[11px] hidden font-bold" style={{ color: theme.price }}>
-                {product.rating.toFixed(1)}
+                {bannerRating.toFixed(1)}
               </span>
-              {product.review_count && product.review_count > 0 && (
+              {bannerHasReviews && (
                 <span className="ml-0.5 text-[11px]" style={{ color: theme.sub }}>
-                  ({product.review_count.toLocaleString()})
+                  ({bannerReviewCount.toLocaleString()})
                 </span>
               )}
             </div>

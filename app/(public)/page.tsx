@@ -44,8 +44,6 @@ export default async function HomePage() {
     getResolvedPlatformSettings(),
   ]);
 
-  const platformSettings = platformSettingsMaybe ?? PLATFORM_SETTINGS_DEFAULTS;
-
   return (
     <HomepageRedesign
       campaigns={campaigns as never}
