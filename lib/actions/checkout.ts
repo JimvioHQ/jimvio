@@ -52,6 +52,7 @@ const ShippingSchema = z.object({
     .regex(/^[A-Z]{2}$/, "Country code must be a 2-letter ISO code"),
   zip: z.string().trim().max(20).default(""),
   shippingAmount: z.number().nonnegative().optional(),
+  discountAmount: z.number().nonnegative().optional(),
 });
 
 export type ShippingPayload = z.input<typeof ShippingSchema>;
@@ -381,6 +382,10 @@ export async function updatePendingOrdersShipping(
 
   if (typeof payload.shippingAmount === "number") {
     update.shipping_amount = payload.shippingAmount;
+  }
+
+  if (typeof payload.discountAmount === "number") {
+    update.discount_amount = payload.discountAmount;
   }
 
   // ✅ Use admin client (matches startCheckout) so RLS doesn't silently block

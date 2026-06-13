@@ -4,6 +4,12 @@ import { notFound } from "next/navigation";
 import { getAdminDB } from "@/services/db";
 import { absoluteTime, cn, relativeTime } from "@/lib/utils";
 import {
+    isOrderPaymentComplete,
+    computeOrderEconomicsBreakdown,
+    resolveChargedPayment,
+    type PaymentSnapshot,
+} from "@/lib/payments/order-payment-utils";
+import {
     ArrowLeft, ShoppingBag, User, Building2, MapPin, Truck,
     Receipt, Clock, Package, AlertCircle, CheckCircle2,
     CreditCard, Mail, Phone, Globe, ExternalLink,
@@ -199,7 +205,7 @@ export default async function OrderDetailPage({
     let healResult: HealResult = { action: "none", reason: "no condition matched · skipped" };
 
     const shouldVerify =
-        (order.payment_status === "pending" || order.payment_status === "processing") &&
+        !isOrderPaymentComplete(order.payment_status) &&
         order.status !== "cancelled";
 
     if (shouldVerify) {
@@ -342,7 +348,7 @@ export default async function OrderDetailPage({
     const hasCJItems = items.some((i: any) => i.product_source === "cj");
     const isCJ = !!order.cj_order_id || hasCJItems;
     const isShopify = !!order.shopify_order_id || items.some((i: any) => i.product_source === "shopify");
-    const isPaid = order.payment_status === "paid";
+    const isPaid = isOrderPaymentComplete(order.payment_status);
     const isCancelled = order.status === "cancelled";
     const needsRefund = isPaid && isCancelled;
     const isStuckDisplay =
@@ -351,8 +357,34 @@ export default async function OrderDetailPage({
         new Date(order.created_at).getTime() < Date.now() - 60 * 60_000 &&
         healResult.action === "none";
 
-    const cjMargin = order.cj_supplier_cost ? Number(order.total_amount) - Number(order.cj_supplier_cost) : null;
-    const cjMarginPct = cjMargin && order.total_amount ? (cjMargin / Number(order.total_amount)) * 100 : null;
+    const paymentSnapshot =
+        metadata.payment_snapshot && typeof metadata.payment_snapshot === "object"
+            ? (metadata.payment_snapshot as { exchange_rate?: number | null; payment_amount?: number; payment_currency?: string })
+            : null;
+
+    const chargedPayment = resolveChargedPayment({
+        orderTotal: Number(order.total_amount ?? 0),
+        orderCurrency: String(order.currency ?? "USD"),
+        transactions: txs,
+        paymentSnapshot: paymentSnapshot as PaymentSnapshot | null,
+    });
+
+    const vendorEarningsTotal = txs
+        .filter((t: any) => t.type === "vendor_earning")
+        .reduce((sum: number, t: any) => sum + Number(t.amount ?? 0), 0);
+
+    const economics = computeOrderEconomicsBreakdown({
+        totalAmount: Number(order.total_amount ?? 0),
+        currency: String(order.currency ?? "USD"),
+        shippingAmount: order.shipping_amount,
+        cjShippingCostUsd: order.cj_supplier_cost,
+        paymentProvider:
+            txs[0]?.provider ??
+            (typeof metadata.payment_provider === "string" ? metadata.payment_provider : "flutterwave"),
+        exchangeRate: paymentSnapshot?.exchange_rate ?? txs[0]?.exchange_rate ?? null,
+        items,
+        vendorEarnings: vendorEarningsTotal,
+    });
 
     return (
         <div className="space-y-5 pb-10">
@@ -571,23 +603,35 @@ export default async function OrderDetailPage({
                             <MoneyRow label="Tax" value={order.tax_amount} currency={order.currency ?? "RWF"} muted />
                             <MoneyRow label="Discount" value={order.discount_amount ? -Number(order.discount_amount) : null} currency={order.currency ?? "RWF"} muted />
                             <MoneyRow label="Total" value={order.total_amount} currency={order.currency ?? "RWF"} bold />
+                            {(chargedPayment.currency !== (order.currency ?? "USD").toUpperCase() ||
+                                Math.abs(chargedPayment.amount - Number(order.total_amount ?? 0)) > 0.01) && (
+                                <MoneyRow
+                                    label={`Charged (${chargedPayment.currency})`}
+                                    value={chargedPayment.amount}
+                                    currency={chargedPayment.currency}
+                                    muted
+                                />
+                            )}
+                            {chargedPayment.exchangeRate && (
+                                <p className="text-[10.5px] text-[var(--color-text-muted)] tabular-nums">
+                                    Exchange rate: 1 USD = {Number(chargedPayment.exchangeRate).toLocaleString()} {chargedPayment.currency}
+                                </p>
+                            )}
 
-                            {isCJ && order.cj_supplier_cost && (
+                            {(isPaid || isCJ) && (
                                 <div className="mt-4 pt-3 border-t border-[var(--color-border)] space-y-2">
-                                    <p className="text-[10.5px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">Supplier breakdown</p>
-                                    <div className="flex items-center justify-between text-[12.5px] text-[var(--color-text-muted)]">
-                                        <span>CJ supplier cost</span>
-                                        <span className="tabular-nums">${Number(order.cj_supplier_cost).toFixed(2)} USD</span>
-                                    </div>
-                                    {cjMargin !== null && (
-                                        <div className={cn("flex items-center justify-between text-[12.5px] font-medium", cjMargin > 0 ? "text-emerald-600" : "text-rose-600")}>
-                                            <span>Margin</span>
-                                            <span className="tabular-nums">
-                                                {cjMargin.toFixed(2)} {order.currency}
-                                                {cjMarginPct !== null && <span className="ml-1 opacity-70">({cjMarginPct.toFixed(1)}%)</span>}
-                                            </span>
-                                        </div>
-                                    )}
+                                    <p className="text-[10.5px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">Economics breakdown</p>
+                                    <MoneyRow label="Customer paid" value={economics.customerPaid} currency={economics.currency} />
+                                    <MoneyRow label="Supplier cost" value={economics.supplierCost} currency={economics.currency} muted />
+                                    <MoneyRow label="Shipping cost" value={economics.shippingCost} currency={economics.currency} muted />
+                                    <MoneyRow label="Payment fee" value={economics.paymentFee} currency={economics.currency} muted />
+                                    <MoneyRow label="Vendor earnings" value={economics.vendorEarnings} currency={economics.currency} muted />
+                                    <MoneyRow
+                                        label="Platform profit"
+                                        value={economics.platformProfit}
+                                        currency={economics.currency}
+                                        bold
+                                    />
                                 </div>
                             )}
                         </div>

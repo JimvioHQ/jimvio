@@ -297,6 +297,7 @@ export function CheckoutExperience({
             address1: shipping.address1 || (isAllDigital ? "Digital Delivery" : ""),
             city: shipping.city || (isAllDigital ? "Online" : ""),
             shippingAmount: shippingCost ?? 0,
+            discountAmount: discount,
          });
          if (!save.success) throw new Error(save.error ?? "Couldn't save shipping");
 

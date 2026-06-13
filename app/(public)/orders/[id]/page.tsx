@@ -17,6 +17,11 @@ import { toast } from "sonner";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { useCurrency } from "@/context/CurrencyContext";
 import { cn } from "@/lib/utils";
+import {
+  isOrderPaymentComplete,
+  orderNeedsPayment,
+  displayFulfillmentStatus,
+} from "@/lib/payments/order-payment-utils";
 
 /* ─── Types ─────────────────────────────────────────────────────── */
 
@@ -130,7 +135,7 @@ function getProviderLabel(provider: string | null | undefined) {
 }
 
 function isPaidStatus(s: string | null | undefined): boolean {
-  return s === "paid" || s === "completed";
+  return isOrderPaymentComplete(s);
 }
 
 function formatDate(iso: string, opts?: Intl.DateTimeFormatOptions) {
@@ -399,7 +404,7 @@ function HeroSummary({
             </span>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <OrderStatusBadge status={order.status} size="md" />
+            <OrderStatusBadge status={displayFulfillmentStatus(order.status, order.payment_status)} size="md" />
             {isFreeOrder && <StatusPill variant="success">Free</StatusPill>}
             {order.affiliate_id && <StatusPill variant="neutral" icon={Tag}>Affiliate</StatusPill>}
             {order.integration_source === "shopify" && <StatusPill variant="neutral">Shopify</StatusPill>}
@@ -1209,7 +1214,9 @@ export default function PublicOrderDetailPage() {
     if (!order || order.order_items.length === 0) return false;
     return order.order_items.every((i) => i.product_type === "digital");
   }, [order]);
-  const isPendingPayment = order?.payment_status === "pending" && !isFreeOrder;
+  const isPendingPayment = order
+    ? orderNeedsPayment(order.payment_status, order.status, Number(order.total_amount ?? 0))
+    : false;
   const isPaid = isPaidStatus(order?.payment_status) || isFreeOrder;
   const isRefunded = order?.payment_status === "refunded";
   const isCancelled = order?.status === "cancelled";
@@ -1269,7 +1276,10 @@ export default function PublicOrderDetailPage() {
         }
         if (!orderData) { setOrderError({ kind: "not_found" }); setLoading(false); return; }
 
-        if (orderData.status === "pending" && orderData.payment_status === "pending") {
+        if (
+          orderData.status === "pending" &&
+          orderNeedsPayment(orderData.payment_status, orderData.status, Number(orderData.total_amount ?? 0))
+        ) {
           fetch(`/api/orders/${id}/status`, { headers: { "Content-Type": "application/json" } })
             .catch((err) => console.error("[OrderDetail] Status sync failed:", err));
         }

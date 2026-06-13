@@ -4,6 +4,7 @@ import { z } from "zod";
 import { createFlutterwavePaymentLink } from "@/lib/flutterwave";
 import { usdToRwfAmount } from "@/lib/money";
 import { generateTxRef } from "@/lib/payments/tx-ref";
+import { buildPaymentSnapshot } from "@/lib/payments/order-payment-utils";
 import { verifyFlutterwaveTransaction, FlutterwaveAPIError } from "@/lib/payments/Transaction-verify";
 
 export const dynamic = "force-dynamic";
@@ -168,7 +169,7 @@ export async function POST(req: NextRequest) {
     // ── 1. Fetch order + buyer profile ────────────────────────────────────
     const { data: order, error: fetchError } = await supabase
       .from("orders")
-      .select(`id, order_number, buyer_id, total_amount, currency, payment_status, profiles (full_name, email, phone)`)
+      .select(`id, order_number, buyer_id, total_amount, currency, payment_status, metadata, profiles (full_name, email, phone)`)
       .eq("id", orderId)
       .single();
 
@@ -190,6 +191,29 @@ export async function POST(req: NextRequest) {
     const { amount, currency, fxRate } = normaliseToRwf(Number(order.total_amount), orderCurrency);
     const isConverted = orderCurrency !== "RWF";
     const amountUsd = isConverted ? Number(order.total_amount) : null;
+    const paymentSnapshot = buildPaymentSnapshot({
+      orderTotal: Number(order.total_amount),
+      orderCurrency,
+      paymentAmount: amount,
+      paymentCurrency: currency,
+      exchangeRate: fxRate,
+    });
+
+    const existingMetadata =
+      order.metadata && typeof order.metadata === "object" && !Array.isArray(order.metadata)
+        ? (order.metadata as Record<string, unknown>)
+        : {};
+
+    await supabase
+      .from("orders")
+      .update({
+        metadata: {
+          ...existingMetadata,
+          payment_snapshot: paymentSnapshot,
+        },
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", orderId);
 
     // ── 3. Check for a reusable pending transaction ───────────────────────
     const cutoff = new Date(Date.now() - PENDING_TX_REUSE_WINDOW_MS).toISOString();
@@ -241,6 +265,26 @@ export async function POST(req: NextRequest) {
         // Still pending on Flutterwave's side — reuse the existing tx_ref
         txRef = existingTx.provider_transaction_id;
 
+        if (Number(existingTx.amount) !== amount) {
+          await supabase
+            .from("transactions")
+            .update({
+              amount,
+              currency,
+              amount_usd: amountUsd,
+              exchange_rate: fxRate,
+              metadata: {
+                channel,
+                initiated_at: new Date().toISOString(),
+                original_currency: orderCurrency,
+                original_amount: Number(order.total_amount),
+                payment_snapshot: paymentSnapshot,
+              },
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", existingTx.id);
+        }
+
         const result = await buildAndReturnPaymentLink({
           supabase, req, returnUrl, orderId, txRef, amount, currency, profile, order, channel,
         });
@@ -278,6 +322,7 @@ export async function POST(req: NextRequest) {
         initiated_at: new Date().toISOString(),
         original_currency: orderCurrency,
         original_amount: Number(order.total_amount),
+        payment_snapshot: paymentSnapshot,
       },
     });
 

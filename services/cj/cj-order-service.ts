@@ -251,18 +251,7 @@ export async function submitOrderToCJ(params: {
       metadata: { cj_error: (err as Error).message },
     });
 
-    // Also log to failed_wallet_credits equivalent for ops visibility
-    // (reusing the table since there's no dedicated failed_cj_orders table)
-    await supabase.from("failed_wallet_credits").insert({
-      order_id: orderId,
-      vendor_id: null,   // platform-level failure
-      amount: 0,
-      currency: "USD",
-      reason: `CJ submission failed: ${(err as Error).message}`,
-      resolved: false,
-    });
-
-    throw err; // re-throw so the caller can decide whether to retry
+    throw err;
   }
 
   // ── Write CJ references back to the order ───────────────────────────────────

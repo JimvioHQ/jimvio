@@ -4,6 +4,10 @@ import crypto from "crypto";
 import { verifyFlutterwaveTransaction } from "@/lib/flutterwave";
 import { finalizeOrderPayment } from "@/lib/payments/finalize-order-payment";
 import {
+  isOrderPaymentComplete,
+  paymentAmountsMatch,
+} from "@/lib/payments/order-payment-utils";
+import {
   markWebhookProcessed,
   markWebhookFailed,
   logWebhookEvent,
@@ -217,7 +221,7 @@ async function logWebhookIdempotent(
 }
 
 function isOrderFinalized(paymentStatus: string | null | undefined): boolean {
-  return paymentStatus === "completed" || paymentStatus === "paid";
+  return isOrderPaymentComplete(paymentStatus);
 }
 
 // ─── POST handler ─────────────────────────────────────────────────────────────
@@ -407,10 +411,16 @@ export async function POST(req: NextRequest) {
 
   const { orderId, transactionId } = resolved;
 
+  const { data: txRow } = await supabase
+    .from("transactions")
+    .select("amount, currency, exchange_rate, amount_usd, metadata")
+    .eq("id", transactionId)
+    .maybeSingle();
+
   // 10. Fetch full order
   const { data: order, error: orderError } = await supabase
     .from("orders")
-    .select("id, payment_status, buyer_id, vendor_id, total_amount, currency")
+    .select("id, payment_status, buyer_id, vendor_id, total_amount, currency, metadata")
     .eq("id", orderId)
     .single();
 
@@ -420,11 +430,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ received: true });
   }
 
-  // FIX #3: Amount check against order's expected total
-  if (amount != null && Number(amount) < Number(order.total_amount)) {
+  // Amount check against saved transaction (same currency as Flutterwave charge)
+  const expectedAmount = txRow?.amount ?? null;
+  const expectedCurrency = (txRow?.currency ?? "RWF").toUpperCase();
+  if (
+    amount != null &&
+    expectedAmount != null &&
+    currency &&
+    !paymentAmountsMatch(Number(amount), currency, Number(expectedAmount), expectedCurrency)
+  ) {
     console.warn("[Flutterwave webhook] ✗ Amount mismatch — possible fraud attempt", {
-      expected: order.total_amount,
+      expected: expectedAmount,
+      expectedCurrency,
       received: amount,
+      receivedCurrency: currency,
       orderId,
     });
     if (eventId) await markWebhookFailed(supabase, eventId, "Amount mismatch");
@@ -454,18 +473,29 @@ export async function POST(req: NextRequest) {
   // 12. Finalise order + credit wallet
   try {
     await finalizeOrderPayment(supabase, orderId, {
-      providerTransactionId: txId != null ? String(txId) : txRef,
+      providerTransactionId: txRef,
       providerReference: txRef,
       paidAtIso: new Date().toISOString(),
       notifyUserId: order.buyer_id ?? null,
       paymentProvider: "flutterwave",
       webhookReference: idempotencyKey,
+      amountForMessage: Number(order.total_amount),
     });
 
     await Promise.all([
       supabase
         .from("transactions")
-        .update({ status: "completed", updated_at: new Date().toISOString() })
+        .update({
+          status: "completed",
+          exchange_rate: txRow?.exchange_rate ?? null,
+          amount_usd: txRow?.amount_usd ?? null,
+          updated_at: new Date().toISOString(),
+          metadata: {
+            ...(typeof txRow?.metadata === "object" && txRow.metadata ? txRow.metadata : {}),
+            flutterwave_transaction_id: txId ?? null,
+            flutterwave_tx_ref: txRef,
+          },
+        })
         .eq("id", transactionId),
 
       supabase.rpc("merge_order_metadata", {

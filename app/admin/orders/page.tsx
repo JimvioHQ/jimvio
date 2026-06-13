@@ -3,6 +3,7 @@ import React from "react";
 import Link from "next/link";
 import { getAdminDB } from "@/services/db";
 import { formatCurrency, cn, relativeTime } from "@/lib/utils";
+import { isOrderPaymentComplete } from "@/lib/payments/order-payment-utils";
 import {
   ShoppingBag, TrendingUp, Package, Truck,
   CircleDot, AlertTriangle, Download,
@@ -92,10 +93,10 @@ export default async function AdminOrdersPage({
   const list = (orders ?? []) as any[];
   const kpi = (kpiOrders ?? []) as any[];
 
-  const paidCount = kpi.filter((o) => o.payment_status === "paid").length;
-  const totalRevenue = kpi.filter((o) => o.payment_status === "paid").reduce((s, o) => s + Number(o.total_amount ?? 0), 0);
+  const paidCount = kpi.filter((o) => isOrderPaymentComplete(o.payment_status)).length;
+  const totalRevenue = kpi.filter((o) => isOrderPaymentComplete(o.payment_status)).reduce((s, o) => s + Number(o.total_amount ?? 0), 0);
   const pendingPayment = kpi.filter((o) => o.payment_status === "pending").length;
-  const awaitingShipment = kpi.filter((o) => o.payment_status === "paid" && ["confirmed", "processing"].includes(o.status)).length;
+  const awaitingShipment = kpi.filter((o) => isOrderPaymentComplete(o.payment_status) && ["confirmed", "processing"].includes(o.status)).length;
   const inTransit = kpi.filter((o) => o.status === "shipped").length;
   const cancelled = kpi.filter((o) => o.status === "cancelled").length;
   const aov = paidCount > 0 ? totalRevenue / paidCount : 0;

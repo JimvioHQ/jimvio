@@ -27,6 +27,13 @@ export default async function FailedCreditsPage({
 
     const admin = getAdminDB();
 
+    // Auto-resolve invalid $0 / vendor-less failed credit rows (legacy CJ noise)
+    await admin
+        .from("failed_wallet_credits")
+        .update({ resolved: true, resolved_at: new Date().toISOString() })
+        .eq("resolved", false)
+        .or("amount.eq.0,vendor_id.is.null");
+
     let query = admin
         .from("failed_wallet_credits")
         .select(
@@ -36,6 +43,8 @@ export default async function FailedCreditsPage({
        orders(order_number, total_amount, currency, payment_status)`,
             { count: "exact" }
         )
+        .gt("amount", 0)
+        .not("vendor_id", "is", null)
         .order("created_at", { ascending: false })
         .range((page - 1) * pageSize, page * pageSize - 1);
 

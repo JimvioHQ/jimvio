@@ -192,7 +192,7 @@ async function saveSelection(
     const { data: orders, error } = await supabase
         .from("orders")
         .select(
-            "id, buyer_id, payment_status, shipping_address, order_items(variant_id, quantity, product_source)"
+            "id, buyer_id, payment_status, shipping_address, metadata, order_items(variant_id, quantity, product_source)"
         )
         .in("id", orderIds);
 
@@ -204,7 +204,7 @@ async function saveSelection(
         throw new UserError("Unauthorized: orders do not belong to this user");
     }
 
-    const alreadyPaid = orders.filter((o) => o.payment_status === "paid");
+    const alreadyPaid = orders.filter((o) => o.payment_status === "paid" || o.payment_status === "completed");
     if (alreadyPaid.length) {
         throw new UserError("Cannot change shipping on a paid order");
     }
@@ -251,6 +251,25 @@ async function saveSelection(
             updated_at: new Date().toISOString(),
         })
         .in("id", orderIds);
+
+    if (!updateErr) {
+        for (const order of orders) {
+            const existingMeta =
+                order && typeof (order as any).metadata === "object" && (order as any).metadata
+                    ? ((order as any).metadata as Record<string, unknown>)
+                    : {};
+            await supabase
+                .from("orders")
+                .update({
+                    metadata: {
+                        ...existingMeta,
+                        cj_logistic_code: trusted.channelId,
+                        cj_shipping_cost_usd: trusted.priceUSD,
+                    },
+                })
+                .eq("id", order.id);
+        }
+    }
 
     if (updateErr) {
         throw new Error(`Failed to save shipping method: ${updateErr.message}`);

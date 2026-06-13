@@ -713,7 +713,7 @@ import { getShopifyPlatformCommissionFallback } from "@/lib/platform-settings";
 import { creditVendorWalletsForNativeOrder } from "@/lib/payments/credit-vendors-for-native-order";
 import { dispatchNonShopifyFulfillmentIntegrations, isShopifyFulfillmentLine } from "@/lib/order-fulfillment/after-payment";
 import { grantDigitalAccess as executeDigitalAccessGrant } from "@/lib/actions/digital-access";
-import { submitOrderToCJ } from "@/services/cj/cj-order-service";
+import { isOrderPaymentComplete } from "@/lib/payments/order-payment-utils";
 import { decrementOrderInventory } from "@/lib/actions/inventory-management";
 import {
   recordOrderStatusChange,
@@ -870,121 +870,6 @@ async function grantDigitalAccess(
   }
 }
 
-// ─── CJ submission ────────────────────────────────────────────────────────────
-
-async function submitCJItemsIfPresent(
-  db: SupabaseClient,
-  orderId: string,
-  orderItems: CJOrderItem[],
-  order: {
-    cj_shipping_method: string | null;
-    shipping_address: Record<string, string> | null;
-    profiles: {
-      id?: string | null;
-      full_name?: string | null;
-      email?: string | null;
-      phone?: string | null;
-    } | null;
-  }
-): Promise<void> {
-  const cjItems = orderItems.filter((i) => i.product_source === "cj");
-  if (cjItems.length === 0) return;
-
-  const shippingMethod = order.cj_shipping_method;
-  if (!shippingMethod) {
-    // ── Log the skip as a note on the order — don't fake a status transition
-    console.warn(
-      `[CJ] Order ${orderId} has CJ items but no cj_shipping_method. Skipping submission.`
-    );
-    await db
-      .from("orders")
-      .update({
-        metadata: db
-          .from("orders")
-          .select("metadata")
-          .eq("id", orderId)
-          .then(() => ({})), // best-effort metadata note — non-fatal
-      });
-
-    // Write a note to order_status_history via the typed helper
-    // (same status → no-op in recordOrderStatusChange, so use raw insert for notes only)
-    await db.from("order_status_history").insert({
-      order_id: orderId,
-      previous_status: null,
-      new_status: "confirmed",
-      notes: "CJ submission skipped: cj_shipping_method not set on order.",
-      metadata: { triggered_by: "system", status_type: "note" },
-    });
-    return;
-  }
-
-  const lines: Array<{ vid: string; quantity: number; shippingName: string }> = [];
-  const invalidCJItemIds: string[] = [];
-
-  for (const item of cjItems) {
-    const cjVid =
-      (item.source_metadata?.cj_vid as string | undefined) ??
-      (item.source_metadata?.vid as string | undefined) ??
-      null;
-
-    if (!cjVid) {
-      invalidCJItemIds.push(item.id);
-      continue;
-    }
-
-    lines.push({ vid: cjVid, quantity: item.quantity, shippingName: shippingMethod });
-  }
-
-  if (invalidCJItemIds.length > 0) {
-    console.warn(
-      `[CJ] Order ${orderId} has ${invalidCJItemIds.length} CJ items without cj_vid. ` +
-      `Skipping item IDs: ${invalidCJItemIds.join(", ")}`
-    );
-  }
-
-  if (lines.length === 0) {
-    console.warn(`[CJ] Order ${orderId} has no valid CJ line items to submit. Skipping CJ submission.`);
-    return;
-  }
-
-  const sa = order.shipping_address;
-  const profile = order.profiles;
-
-  const shippingAddress = {
-    name: profile?.full_name ?? "Customer",
-    phone: sa?.phone ?? profile?.phone ?? "",
-    countryCode: sa?.country_code ?? sa?.countryCode ?? "RW",
-    province: sa?.province ?? sa?.city ?? "",
-    city: sa?.city ?? "",
-    address: sa?.address1 ?? sa?.address ?? "",
-    address2: sa?.address2 ?? "",
-    zip: sa?.zip ?? "00000",
-  };
-
-  try {
-    const result = await submitOrderToCJ({ orderId, lines, shippingAddress });
-
-    console.log(
-      `[CJ] Order ${orderId} submitted. CJ order: ${result.cjOrderNum} (${result.cjOrderId})`
-    );
-
-    // Notify buyer — only if we have their user id from profiles
-    const buyerId = profile?.id ?? null;
-    if (buyerId) {
-      await db.from("notifications").insert({
-        user_id: buyerId,
-        type: "order",
-        title: "Order sent to supplier",
-        message: "Your order is being processed by our supplier.",
-        data: { order_id: orderId },
-        action_url: `/dashboard/orders/${orderId}`,
-      });
-    }
-  } catch (err) {
-    console.error(`[CJ] Submission failed for order ${orderId}:`, (err as Error).message);
-  }
-}
-
 // ─── Affiliate commissions (deduplicated) ─────────────────────────────────────
 // Shared between regular and Shopify paths — always deduplicates before insert.
 
@@ -1111,8 +996,7 @@ export async function finalizeOrderPayment(
     throw new Error(`Order not found: ${orderId}`);
   }
 
-  const isPaid = order.payment_status === PAYMENT_TERMINAL_STATUS
-    || order.payment_status === "paid"; // backward compat
+  const isPaid = isOrderPaymentComplete(order.payment_status);
 
   const rawOrderItems = order.order_items ?? [];
   const orderItems = rawOrderItems.map((item: Record<string, unknown>) => ({
@@ -1235,10 +1119,26 @@ export async function finalizeOrderPayment(
       currency: String(order.currency ?? "RWF"),
       paymentProvider: ctx.paymentProvider ?? null,
       providerTransactionId: ctx.providerTransactionId,
+      orderContext: {
+        totalAmount: Number(order.total_amount ?? 0),
+        currency: String(order.currency ?? "RWF"),
+        shippingAmount: order.shipping_amount,
+        cjShippingCostUsd: order.cj_supplier_cost,
+        exchangeRate:
+          order.metadata &&
+          typeof order.metadata === "object" &&
+          !Array.isArray(order.metadata) &&
+          (order.metadata as Record<string, unknown>).payment_snapshot
+            ? (((order.metadata as Record<string, unknown>).payment_snapshot as { exchange_rate?: number | null })
+                ?.exchange_rate ?? null)
+            : null,
+      },
       items: orderItems.map((i) => ({
         vendor_id: i.vendor_id,
         total_price: i.total_price,
+        quantity: i.quantity,
         product_source: i.product_source,
+        source_metadata: i.source_metadata,
         shopify_variant_id: i.shopify_variant_id,
       })),
     });
@@ -1246,7 +1146,7 @@ export async function finalizeOrderPayment(
     // Grant digital access
     await grantDigitalAccess(db, orderId, ctx.notifyUserId, ctx.paymentProvider);
 
-    // Dispatch non-Shopify fulfillment integrations
+    // Dispatch non-Shopify fulfillment integrations (single CJ path via createOrderV2)
     await dispatchNonShopifyFulfillmentIntegrations(db, {
       orderId,
       orderNumber: String(order.order_number ?? orderId),
@@ -1262,26 +1162,21 @@ export async function finalizeOrderPayment(
       })),
     });
 
-    // Submit CJ items
-    await submitCJItemsIfPresent(db, orderId, orderItems, {
-      cj_shipping_method: order.cj_shipping_method ?? null,
-      shipping_address: order.shipping_address as Record<string, string> | null,
-      profiles: buyerProfile,
-    });
-
     // Affiliate commissions — deduplicated
     await insertAffiliateCommissions(db, orderId, orderItems);
 
     // Notify buyer
     if (ctx.notifyUserId) {
+      const orderCurrency = String(order.currency ?? "RWF").toUpperCase();
+      const paidLabel =
+        ctx.amountForMessage != null
+          ? `${orderCurrency} ${Number(ctx.amountForMessage).toLocaleString()}`
+          : null;
       await db.from("notifications").insert({
         user_id: ctx.notifyUserId,
         type: "order",
         title: "Payment Confirmed!",
-        message: `Your payment${ctx.amountForMessage != null
-          ? ` of RWF ${Number(ctx.amountForMessage).toLocaleString()}`
-          : ""
-          } has been confirmed. Order is being processed.`,
+        message: `Your payment${paidLabel ? ` of ${paidLabel}` : ""} has been confirmed. Order is being processed.`,
         data: { order_id: orderId, reference: ctx.webhookReference },
         action_url: `/dashboard/orders/${orderId}`,
       });
@@ -1412,10 +1307,26 @@ export async function finalizeOrderPayment(
     currency: String(order.currency ?? "RWF"),
     paymentProvider: ctx.paymentProvider ?? null,
     providerTransactionId: ctx.providerTransactionId,
+    orderContext: {
+      totalAmount: Number(order.total_amount ?? 0),
+      currency: String(order.currency ?? "RWF"),
+      shippingAmount: order.shipping_amount,
+      cjShippingCostUsd: order.cj_supplier_cost,
+      exchangeRate:
+        order.metadata &&
+        typeof order.metadata === "object" &&
+        !Array.isArray(order.metadata) &&
+        (order.metadata as Record<string, unknown>).payment_snapshot
+          ? (((order.metadata as Record<string, unknown>).payment_snapshot as { exchange_rate?: number | null })
+              ?.exchange_rate ?? null)
+          : null,
+    },
     items: orderItems.map((i) => ({
       vendor_id: i.vendor_id,
       total_price: i.total_price,
+      quantity: i.quantity,
       product_source: i.product_source,
+      source_metadata: i.source_metadata,
       shopify_variant_id: i.shopify_variant_id,
     })),
   });
@@ -1433,13 +1344,6 @@ export async function finalizeOrderPayment(
       product_source: i.product_source,
       source_metadata: i.source_metadata ?? null,
     })),
-  });
-
-  // Submit CJ items (Shopify path — independent of Shopify items)
-  await submitCJItemsIfPresent(db, orderId, orderItems, {
-    cj_shipping_method: order.cj_shipping_method ?? null,
-    shipping_address: order.shipping_address as Record<string, string> | null,
-    profiles: buyerProfile,
   });
 
   // Affiliate commissions — deduplicated on both paths

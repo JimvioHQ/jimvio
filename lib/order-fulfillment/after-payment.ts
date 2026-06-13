@@ -35,20 +35,98 @@ export async function dispatchNonShopifyFulfillmentIntegrations(
     return;
   }
 
-  await submitCjOrderForLines(
+  const { data: orderRow } = await db
+    .from("orders")
+    .select("cj_order_id, cj_shipping_method")
+    .eq("id", params.orderId)
+    .maybeSingle();
+
+  if (orderRow?.cj_order_id) {
+    console.log("[CJ] Order already submitted — skipping duplicate dispatch", {
+      orderId: params.orderId,
+      cjOrderId: orderRow.cj_order_id,
+    });
+    return;
+  }
+
+  if (!orderRow?.cj_shipping_method?.trim()) {
+    console.warn(`[CJ] Order ${params.orderId} missing cj_shipping_method — cannot submit to CJ`);
+    await db.from("order_status_history").insert({
+      order_id: params.orderId,
+      previous_status: null,
+      new_status: "confirmed",
+      notes: "CJ submission skipped: shipping method not saved at checkout.",
+      metadata: { triggered_by: "system", status_type: "note" },
+    });
+    return;
+  }
+
+  const variantIds = cjLines
+    .map((line) => (line.source_metadata as Record<string, unknown> | null)?.variant_id)
+    .filter((id): id is string => typeof id === "string" && id.length > 0);
+
+  const variantVidMap = new Map<string, string>();
+  if (variantIds.length) {
+    const { data: variants } = await db
+      .from("product_variants")
+      .select("id, cj_vid, source_metadata")
+      .in("id", variantIds);
+
+    for (const variant of variants ?? []) {
+      const vid =
+        (variant.cj_vid as string | null) ??
+        ((variant.source_metadata as Record<string, unknown> | null)?.cj_vid as string | undefined) ??
+        null;
+      if (vid) variantVidMap.set(variant.id, vid);
+    }
+  }
+
+  const result = await submitCjOrderForLines(
     db,
     params.orderId,
     params.orderNumber,
-    cjLines.map((line) => ({
-      orderItemId: line.id,
-      productId: line.product_id,
-      vendorId: line.vendor_id,
-      quantity: line.quantity,
-      unitPrice: Number(line.unit_price),
-      totalPrice: Number(line.total_price),
-      sourceMetadata: (line.source_metadata as Record<string, unknown> | null) ?? null,
-    }))
+    cjLines.map((line) => {
+      const meta = (line.source_metadata as Record<string, unknown> | null) ?? null;
+      const variantId = typeof meta?.variant_id === "string" ? meta.variant_id : null;
+      return {
+        orderItemId: line.id,
+        productId: line.product_id,
+        vendorId: line.vendor_id,
+        quantity: line.quantity,
+        unitPrice: Number(line.unit_price),
+        totalPrice: Number(line.total_price),
+        sourceMetadata: meta,
+        cjVid:
+          (meta?.cj_vid as string | undefined) ??
+          (meta?.vid as string | undefined) ??
+          (variantId ? variantVidMap.get(variantId) : null) ??
+          null,
+      };
+    })
   );
+
+  if (!result.ok) {
+    console.error(`[CJ] Submission failed for order ${params.orderId}:`, result.error);
+    await db.from("order_status_history").insert({
+      order_id: params.orderId,
+      previous_status: "confirmed",
+      new_status: "processing",
+      notes: `CJ order submission FAILED: ${result.error ?? "unknown error"}`,
+      metadata: { cj_error: result.error ?? null },
+    });
+    return;
+  }
+
+  if (result.externalReference) {
+    await db
+      .from("orders")
+      .update({
+        cj_order_id: result.externalReference,
+        cj_fulfillment_status: "processing",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", params.orderId);
+  }
 }
 
 export function isShopifyFulfillmentLine(item: {

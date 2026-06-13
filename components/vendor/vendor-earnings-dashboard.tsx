@@ -327,15 +327,17 @@ export function VendorEarningsDashboard() {
             ) : (
               <>
                 <div className="overflow-x-auto">
-                  <table className="w-full text-sm min-w-[800px]">
+                  <table className="w-full text-sm min-w-[1100px]">
                     <thead>
                       <tr className="border-b border-[var(--color-border)] bg-[var(--color-surface-secondary)]">
                         <th className="text-left p-3 font-medium text-[var(--color-text-secondary)]">Date</th>
                         <th className="text-left p-3 font-medium text-[var(--color-text-secondary)]">Order</th>
-                        <th className="text-right p-3 font-medium text-[var(--color-text-secondary)]">Products</th>
-                        <th className="text-right p-3 font-medium text-[var(--color-text-secondary)]">Gross</th>
-                        <th className="text-right p-3 font-medium text-[var(--color-text-secondary)]">Commission</th>
+                        <th className="text-right p-3 font-medium text-[var(--color-text-secondary)]">Customer paid</th>
+                        <th className="text-right p-3 font-medium text-[var(--color-text-secondary)]">Supplier cost</th>
+                        <th className="text-right p-3 font-medium text-[var(--color-text-secondary)]">Shipping</th>
+                        <th className="text-right p-3 font-medium text-[var(--color-text-secondary)]">Payment fee</th>
                         <th className="text-right p-3 font-medium text-[var(--color-text-secondary)]">Your earnings</th>
+                        <th className="text-right p-3 font-medium text-[var(--color-text-secondary)]">Platform profit</th>
                         <th className="text-left p-3 font-medium text-[var(--color-text-secondary)]">Status</th>
                       </tr>
                     </thead>
@@ -345,12 +347,17 @@ export function VendorEarningsDashboard() {
                           vendor_total?: number;
                           commission_rate?: number;
                           commission_amount?: number;
-                          line_count?: number;
+                          customer_paid?: number | null;
+                          supplier_cost?: number | null;
+                          shipping_cost?: number | null;
+                          payment_fee?: number | null;
+                          platform_profit?: number | null;
+                          vendor_earnings?: number | null;
                         };
                         const gross = meta.vendor_total ?? 0;
                         const rate = meta.commission_rate ?? 8;
                         const comm = meta.commission_amount ?? gross * (rate / 100);
-                        const lines = meta.line_count ?? 0;
+                        const earn = meta.vendor_earnings ?? num(t.amount);
                         const st = t.status === "completed" ? "completed" : "pending";
                         return (
                           <tr key={t.id} className="border-b border-[var(--color-border)]">
@@ -369,14 +376,14 @@ export function VendorEarningsDashboard() {
                                 ""
                               )}
                             </td>
-                            <td className="p-3 text-right tabular-nums">{lines}</td>
-                            <td className="p-3 text-right tabular-nums">{formatCurrency(gross, t.currency || currency)}</td>
-                            <td className="p-3 text-right tabular-nums text-[var(--color-text-muted)]">
-                              {formatCurrency(comm, t.currency || currency)} ({rate}%)
-                            </td>
+                            <td className="p-3 text-right tabular-nums">{formatCurrency(meta.customer_paid ?? gross, t.currency || currency)}</td>
+                            <td className="p-3 text-right tabular-nums text-[var(--color-text-muted)]">{formatCurrency(meta.supplier_cost ?? 0, t.currency || currency)}</td>
+                            <td className="p-3 text-right tabular-nums text-[var(--color-text-muted)]">{formatCurrency(meta.shipping_cost ?? 0, t.currency || currency)}</td>
+                            <td className="p-3 text-right tabular-nums text-[var(--color-text-muted)]">{formatCurrency(meta.payment_fee ?? comm, t.currency || currency)}</td>
                             <td className="p-3 text-right font-medium text-[var(--color-success)] tabular-nums">
-                              {formatCurrency(num(t.amount), t.currency || currency)}
+                              {formatCurrency(earn, t.currency || currency)}
                             </td>
+                            <td className="p-3 text-right tabular-nums">{formatCurrency(meta.platform_profit ?? 0, t.currency || currency)}</td>
                             <td className="p-3">
                               <Badge variant={st === "completed" ? "success" : "warning"}>{st}</Badge>
                             </td>

@@ -3,6 +3,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { verifyFlutterwaveTransaction } from "@/lib/flutterwave";
 import { finalizeOrderPayment } from "@/lib/payments/finalize-order-payment";
+import {
+    isOrderPaymentComplete,
+    paymentAmountsMatch,
+} from "@/lib/payments/order-payment-utils";
 
 export const dynamic = "force-dynamic";
 
@@ -95,12 +99,42 @@ export async function GET(req: NextRequest) {
             .eq("id", resolvedOrderId)
             .maybeSingle();
 
-        if (order?.payment_status === "paid" || order?.payment_status === "completed") {
+        if (isOrderPaymentComplete(order?.payment_status)) {
             return redirect(`/checkout/success?order=${resolvedOrderId}`);
         }
 
+        const { data: txRow } = await supabase
+            .from("transactions")
+            .select("amount, currency")
+            .eq("provider_transaction_id", txRef)
+            .eq("provider", "flutterwave")
+            .maybeSingle();
+
+        const expectedAmount = txRow?.amount ?? null;
+        const expectedCurrency = (txRow?.currency ?? "RWF").toUpperCase();
+        const receivedAmount = txData.amount != null ? Number(txData.amount) : null;
+        const receivedCurrency = (txData.currency ?? "").toUpperCase();
+
+        if (
+            receivedAmount != null &&
+            expectedAmount != null &&
+            receivedCurrency &&
+            !paymentAmountsMatch(receivedAmount, receivedCurrency, Number(expectedAmount), expectedCurrency)
+        ) {
+            console.warn("[Flutterwave callback] Amount mismatch", {
+                expected: expectedAmount,
+                expectedCurrency,
+                received: receivedAmount,
+                receivedCurrency,
+                orderId: resolvedOrderId,
+            });
+            return redirect(
+                `/checkout/cancel?reason=amount_mismatch&order=${resolvedOrderId}`
+            );
+        }
+
         await finalizeOrderPayment(supabase, resolvedOrderId, {
-            providerTransactionId: transactionId,
+            providerTransactionId: txRef,
             providerReference: txRef,
             paidAtIso: txData.created_at || new Date().toISOString(),
             notifyUserId: order?.buyer_id ?? null,
@@ -108,13 +142,6 @@ export async function GET(req: NextRequest) {
             paymentProvider: "flutterwave",
             webhookReference: `flw-${transactionId}`,
         });
-
-        await supabase
-            .from("transactions")
-            .update({ status: "completed", updated_at: new Date().toISOString() })
-            .eq("provider_transaction_id", txRef)
-            .eq("provider", "flutterwave")
-            .eq("status", "pending");
 
         return redirect(`/checkout/success?order=${resolvedOrderId}`);
 

@@ -18,6 +18,11 @@ import { OrderStatusBadge } from "@/components/orders/OrderStatusBadge";
 import { TrackingCard } from "@/components/orders/TrackingCard";
 import { toast } from "sonner";
 import {
+  isOrderPaymentComplete,
+  orderNeedsPayment,
+  displayFulfillmentStatus,
+} from "@/lib/payments/order-payment-utils";
+import {
   getDownloadUrl,
   triggerDownload
 } from "@/lib/download";
@@ -365,7 +370,7 @@ function DigitalAccessCard({
   onResend: () => void;
   resending: boolean;
 }) {
-  const isPaid = order.payment_status === "paid" || order.payment_status === "completed";
+  const isPaid = isOrderPaymentComplete(order.payment_status);
   const accessGranted = order.order_items?.some((i: any) => i.access_granted_at) || digitalAccess.length > 0;
   const buyerEmail = order.shipping_address?.email;
 
@@ -476,7 +481,7 @@ function QuickActions({
 }) {
   const isPending = order.status === "pending";
   const isDelivered = order.status === "delivered" || order.status === "completed";
-  const showPay = order.payment_status === "pending" && order.status !== "cancelled";
+  const showPay = orderNeedsPayment(order.payment_status, order.status, Number(order.total_amount ?? 0));
 
   return (
     <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
@@ -688,7 +693,7 @@ export default function OrderDetailPage() {
   }, [id, router]);
 
   useEffect(() => {
-    if (!order || order.payment_status !== "pending") return;
+    if (!order || !orderNeedsPayment(order.payment_status, order.status, Number(order.total_amount ?? 0))) return;
     if ((order.payment_provider || "").toLowerCase() === "pawapay" && order.pawapay_deposit_id) {
       fetch("/api/payments/pawapay/sync-status", {
         method: "POST",
@@ -822,7 +827,9 @@ export default function OrderDetailPage() {
   const addr = order.shipping_address;
   const billingAddr = order.billing_address;
   const isDigital = isDigitalOrder(order.order_items);
-  const isPaid = order.payment_status === "paid" || order.payment_status === "completed";
+  const isPaid = isOrderPaymentComplete(order.payment_status);
+  const needsPayment = orderNeedsPayment(order.payment_status, order.status, Number(order.total_amount ?? 0));
+  const fulfillmentStatus = displayFulfillmentStatus(order.status, order.payment_status);
   const isRefunded = order.payment_status === "refunded" || order.status === "refunded";
 
   const financials = [
@@ -901,11 +908,11 @@ export default function OrderDetailPage() {
                         Digital
                       </span>
                     )}
-                    <OrderStatusBadge status={order.status} size="md" />
+                    <OrderStatusBadge status={fulfillmentStatus} size="md" />
                   </div>
                 </div>
-                <StatusStepper status={order.status} isDigital={isDigital} />
-                {order.payment_status === "pending" && order.status !== "cancelled" && (
+                <StatusStepper status={fulfillmentStatus} isDigital={isDigital} />
+                {needsPayment && (
                   <PaymentBanner paying={paying} onPay={handlePay} />
                 )}
                 {isRefunded && (

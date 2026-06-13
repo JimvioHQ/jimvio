@@ -164,7 +164,10 @@ export async function submitCjOrderForLines(
             "CJPacket Ordinary",
         );
 
-    logisticName = (logisticName ?? "").toString().trim() || "CJPacket Ordinary";
+    logisticName = (logisticName ?? "").toString().trim();
+    if (!logisticName) {
+        return { ok: false, error: "logisticName must not be empty — select a shipping method at checkout" };
+    }
 
     // ── Build full name (V2 uses shippingCustomerName, not first+last) ─────────
     const firstName = (shipping.firstName ?? shipping.first_name ?? "").trim();
