@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { getOrRefreshAccessToken } from "@/lib/cj/auth";
+import { CJ_CUSTOMER_MESSAGES, logCjInternalError, sanitizeCustomerError } from "@/lib/cj/customer-errors";
 
 const CJ_BASE = "https://developers.cjdropshipping.com/api2.0/v1";
 
@@ -216,7 +217,7 @@ async function saveSelection(
             .map((it: any) => ({ variantId: it.variant_id, quantity: it.quantity }))
     );
 
-    if (!cartItems.length) throw new UserError("No CJ items found on these orders");
+    if (!cartItems.length) throw new UserError("No shippable items found on these orders");
 
     const destCountryCode =
         (orders[0] as any)?.shipping_address?.country_code ??
@@ -281,6 +282,7 @@ async function saveSelection(
 // ─── Route handler ────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
+    let logOrderId: string | undefined;
     try {
         const supabase = await createClient();
         const {
@@ -305,6 +307,7 @@ export async function POST(req: NextRequest) {
         // ── Save operation ───────────────────────────────────────────────────
         if (body.orderIds && body.shippingOption) {
             const { orderIds, shippingOption, destCountryCode } = body;
+            logOrderId = Array.isArray(orderIds) ? orderIds[0] : undefined;
             if (!Array.isArray(orderIds) || !orderIds.length) {
                 return NextResponse.json(
                     { success: false, error: "orderIds must be a non-empty array" },
@@ -373,9 +376,16 @@ export async function POST(req: NextRequest) {
                 { status: 400 }
             );
         }
+        await logCjInternalError({
+            action: "set_shipping",
+            message: "CJ set-shipping route failed during checkout",
+            error: err,
+            orderId: logOrderId,
+        });
         console.error("[/api/cj/set-shipping]", err);
+        const message = sanitizeCustomerError(err, CJ_CUSTOMER_MESSAGES.shippingSave);
         return NextResponse.json(
-            { success: false, error: err.message ?? "Internal server error" },
+            { success: false, error: message },
             { status: 500 }
         );
     }

@@ -14,6 +14,7 @@ import { CJShippingSelector } from "./CJShippingSelector";
 
 import { updatePendingOrdersShipping } from "@/lib/actions/checkout";
 import { useCurrency } from "@/context/CurrencyContext";
+import { CJ_CUSTOMER_MESSAGES, sanitizeCustomerError } from "@/lib/cj/customer-errors";
 
 
 import type { CartItem, CartOrder, CJShippingOption, PaymentApiResponse } from "@/types";
@@ -242,7 +243,11 @@ export function CheckoutExperience({
             });
 
             const json = await res.json();
-            if (!json.success) throw new Error(json.error ?? "Rates unavailable");
+            if (!json.success) {
+               throw new Error(
+                  sanitizeCustomerError(json.error, CJ_CUSTOMER_MESSAGES.shippingRates)
+               );
+            }
 
             const opts: CJShippingOption[] = (json.rates ?? []).map((r: any) => ({
                optionId: r.optionId,
@@ -258,8 +263,9 @@ export function CheckoutExperience({
             }
             setStage("delivery");
          } catch (e) {
-            setCjError((e as Error).message);
-            toast.error((e as Error).message || "Could not load shipping options");
+            const message = sanitizeCustomerError(e, CJ_CUSTOMER_MESSAGES.shippingRates);
+            setCjError(message);
+            toast.error(message);
          } finally {
             setCjLoading(false);
          }
@@ -308,7 +314,11 @@ export function CheckoutExperience({
                body: JSON.stringify({ orderIds, shippingOption: cjSelected, destCountryCode: shipping.countryCode }),
             });
             const cjJson = await cjRes.json();
-            if (!cjJson.success) throw new Error(cjJson.error ?? "Failed to save delivery");
+            if (!cjJson.success) {
+               throw new Error(
+                  sanitizeCustomerError(cjJson.error, CJ_CUSTOMER_MESSAGES.shippingSave)
+               );
+            }
          }
 
          const confirmedTotal = total;
@@ -329,7 +339,7 @@ export function CheckoutExperience({
          if (!redirectUrl.startsWith("https://")) throw new Error("Invalid redirect");
          window.location.href = redirectUrl;
       } catch (e) {
-         toast.error(e instanceof Error ? e.message : "Checkout failed");
+         toast.error(sanitizeCustomerError(e, CJ_CUSTOMER_MESSAGES.checkout));
       } finally {
          setSubmitting(false);
       }

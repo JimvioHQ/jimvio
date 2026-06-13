@@ -9,9 +9,12 @@ import {
     type CJVariant,
     upsertCJProduct,
     mapCJVariantToJimvio,
+    upsertCJProductVariants,
 } from "@/lib/actions/cj_product";
 import { subscribeCJProducts } from "@/lib/cj/webhoo-subscription";
 import { syncProductShipping } from "@/lib/cj/sync-shipping";
+import { mergeProductVideoUrls, normalizeCjVideoUrls } from "@/lib/cj/product-videos";
+import { normalizeCjVid } from "@/lib/cj/variant-vid";
 
 
 interface CJDetailVariant {
@@ -58,6 +61,8 @@ interface CJDetailResponse {
         packageLength?: number;
         packageWidth?: number;
         packageHeight?: number;
+        productVideo?: string[];
+        videoList?: string[];
     };
 }
 
@@ -88,6 +93,10 @@ function detailToCJProduct(d: CJDetailResponse["data"]): CJProduct {
         sourceFrom: "cj",
         customizationVersion: 0,
         isTestProduct: false,
+        productVideos: mergeProductVideoUrls(
+            normalizeCjVideoUrls(d.productVideo),
+            normalizeCjVideoUrls(d.videoList),
+        ),
     };
 }
 
@@ -97,8 +106,13 @@ function detailVariantToCJVariant(
     v: CJDetailVariant,
     productSku: string
 ): CJVariant {
+    const vid = normalizeCjVid(v.vid);
+    if (!vid) {
+        throw new Error(`CJ detail variant missing vid (sku=${v.variantSku})`);
+    }
+
     return {
-        vid: v.vid,
+        vid,
         pid: v.pid,
         productSku,
         variantSku: v.variantSku,
@@ -146,7 +160,7 @@ export async function POST(req: Request): Promise<Response> {
 
         // ── Step 1: Fetch full product detail from CJ ─────────────────────
         const detail = await cjFetch<CJDetailResponse>(
-            `/product/query?pid=${encodeURIComponent(pid)}&features=enable_inventory`,
+            `/product/query?pid=${encodeURIComponent(pid)}&features=enable_inventory,enable_video`,
             token
         );
 
@@ -203,41 +217,30 @@ export async function POST(req: Request): Promise<Response> {
                 })
             );
 
-            const incomingVids = detail.data.variants.map(v => v.vid);
-            // Log any variants missing vid for easier debugging
-            for (const v of variantRows) {
-                if (!v.cj_vid) {
-                    console.warn(`[CJ import] Variant missing cj_vid for product=${productId} sku=${v.sku}`);
-                }
-            }
-            await supabase
-                .from("product_variants")
-                .delete()
-                .eq("product_id", productId)
-                .not("cj_vid", "in", incomingVids);
+            const { error: variantErr, upserted, skipped } = await upsertCJProductVariants(
+                supabase,
+                productId,
+                variantRows
+            );
 
-
-            const { error: upsertErr } = await supabase
-                .from("product_variants")
-                .upsert(variantRows, {
-                    onConflict: "cj_vid",
-                    ignoreDuplicates: false,
-                });
-
-            if (upsertErr) {
+            if (variantErr) {
                 console.error(
                     `[CJ import] Variant upsert failed for ${productId}:`,
-                    upsertErr.message
+                    variantErr
                 );
                 return Response.json(
                     {
                         success: false,
                         productId,
-                        error: `Product saved but variants failed: ${upsertErr.message}`,
+                        error: `Product saved but variants failed: ${variantErr}`,
                     },
                     { status: 500 }
                 );
             }
+
+            console.log(
+                `[CJ import] Variants upserted=${upserted} skipped=${skipped} product=${productId}`
+            );
 
             // ✅ Fix: subscribe is now outside the variant block
             // so it always runs regardless of variant count

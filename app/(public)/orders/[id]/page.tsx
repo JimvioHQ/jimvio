@@ -20,8 +20,9 @@ import { cn } from "@/lib/utils";
 import {
   isOrderPaymentComplete,
   orderNeedsPayment,
-  displayFulfillmentStatus,
+  resolveCustomerOrderStatus,
 } from "@/lib/payments/order-payment-utils";
+import { sanitizeOrderTimelineNote } from "@/lib/cj/customer-errors";
 
 /* ─── Types ─────────────────────────────────────────────────────── */
 
@@ -91,6 +92,7 @@ type Order = {
   shopify_fulfillment_status: string | null;
   tracking_number: string | null;
   tracking_status: string | null;
+  cj_fulfillment_status?: string | null;
   buyer?: { full_name: string | null; email: string | null } | null;
   order_items: OrderItem[];
   transactions: Transaction[];
@@ -351,13 +353,14 @@ function OrderSkeleton() {
 /* ─── Hero summary — the visual anchor ──────────────────────────── */
 
 function HeroSummary({
-  order, providerLabel, isFreeOrder, isCancelled, isRefunded,
+  order, providerLabel, isFreeOrder, isCancelled, isRefunded, fulfillmentStatus,
 }: {
   order: Order;
   providerLabel: string;
   isFreeOrder: boolean;
   isCancelled: boolean;
   isRefunded: boolean;
+  fulfillmentStatus: string;
 }) {
   const { formatMoney } = useCurrency();
   const orderRef = String(order.order_number || order.id).slice(0, 12).toUpperCase();
@@ -404,7 +407,7 @@ function HeroSummary({
             </span>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <OrderStatusBadge status={displayFulfillmentStatus(order.status, order.payment_status)} size="md" />
+            <OrderStatusBadge status={fulfillmentStatus} size="md" />
             {isFreeOrder && <StatusPill variant="success">Free</StatusPill>}
             {order.affiliate_id && <StatusPill variant="neutral" icon={Tag}>Affiliate</StatusPill>}
             {order.integration_source === "shopify" && <StatusPill variant="neutral">Shopify</StatusPill>}
@@ -771,7 +774,12 @@ function StatusTimeline({ history }: { history: NonNullable<Order["order_status_
                   <p className="font-semibold capitalize text-[var(--color-text-primary)]">
                     {event.new_status.replace(/_/g, " ")}
                   </p>
-                  {event.notes && <p className="mt-0.5 text-[var(--color-text-secondary)]">{event.notes}</p>}
+                  {(() => {
+                    const note = sanitizeOrderTimelineNote(event.notes);
+                    return note ? (
+                      <p className="mt-0.5 text-[var(--color-text-secondary)]">{note}</p>
+                    ) : null;
+                  })()}
                   <p className="mt-0.5 text-[11px] text-[var(--color-text-muted)]">
                     {formatDate(event.created_at, { month: "short", day: "numeric", year: "numeric" })}
                     {" · "}{formatTime(event.created_at)}{" · "}{relativeTime(event.created_at)}
@@ -981,7 +989,7 @@ function DigitalAssetsPanel({ order, celebratory = false }: {
           Order details
         </div>
         <p className="mt-2 text-[12px] text-[var(--color-text-secondary)]">
-          {order.notes || "No additional details to show."}
+          {sanitizeOrderTimelineNote(order.notes) || "No additional details to show."}
         </p>
       </div>
     );
@@ -1231,6 +1239,24 @@ export default function PublicOrderDetailPage() {
   const paymentRef = latestTransaction?.provider_transaction_id || (latestTransaction?.metadata as any)?.reference || "—";
   const vendorGroups = useMemo(() => order ? groupItemsByVendor(order.order_items) : [], [order]);
 
+  const fulfillmentStatus = useMemo(() => {
+    if (!order) return "pending";
+    return resolveCustomerOrderStatus({
+      status: order.status,
+      payment_status: order.payment_status,
+      tracking_number: order.tracking_number,
+      shipped_at: order.shipped_at,
+      delivered_at: order.delivered_at,
+      cj_fulfillment_status: order.cj_fulfillment_status,
+      order_status_history: order.order_status_history,
+    });
+  }, [order]);
+
+  const displayOrder = useMemo(() => {
+    if (!order) return null;
+    return { ...order, status: fulfillmentStatus };
+  }, [order, fulfillmentStatus]);
+
   /* ── Load ───────────────────────────────────────────────────── */
 
   useEffect(() => {
@@ -1276,6 +1302,12 @@ export default function PublicOrderDetailPage() {
         }
         if (!orderData) { setOrderError({ kind: "not_found" }); setLoading(false); return; }
 
+        const { data: historyData } = await supabase
+          .from("order_status_history")
+          .select("id, previous_status, new_status, notes, created_at")
+          .eq("order_id", orderData.id)
+          .order("created_at", { ascending: false });
+
         if (
           orderData.status === "pending" &&
           orderNeedsPayment(orderData.payment_status, orderData.status, Number(orderData.total_amount ?? 0))
@@ -1284,7 +1316,10 @@ export default function PublicOrderDetailPage() {
             .catch((err) => console.error("[OrderDetail] Status sync failed:", err));
         }
 
-        setOrder(orderData as Order);
+        setOrder({
+          ...(orderData as Order),
+          order_status_history: historyData ?? [],
+        });
       } catch (err: any) {
         const message = err?.message ?? "Unexpected error";
         setOrderError({ kind: message.toLowerCase().includes("fetch") ? "network" : "unknown", message });
@@ -1298,6 +1333,7 @@ export default function PublicOrderDetailPage() {
     channelRef.current = supabase
       .channel(`order-${id}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "orders", filter: `id=eq.${id}` }, () => { void load(); })
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "order_status_history", filter: `order_id=eq.${id}` }, () => { void load(); })
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "transactions", filter: `order_id=eq.${id}` }, () => { void load(); })
       .subscribe();
 
@@ -1399,6 +1435,7 @@ export default function PublicOrderDetailPage() {
           isFreeOrder={isFreeOrder}
           isCancelled={isCancelled}
           isRefunded={isRefunded}
+          fulfillmentStatus={fulfillmentStatus}
         />
 
         {/* Stepper */}
@@ -1415,7 +1452,7 @@ export default function PublicOrderDetailPage() {
             <div className="mb-4 flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wider text-[var(--color-text-muted)]">
               <Truck className="h-3 w-3" /> Progress
             </div>
-            <StatusStepper status={order.status} etaIso={order.estimated_delivery_at} />
+            <StatusStepper status={fulfillmentStatus} etaIso={order.estimated_delivery_at} />
           </div>
         )}
 
@@ -1538,7 +1575,7 @@ export default function PublicOrderDetailPage() {
           >
             <div className="lg:sticky lg:top-6 space-y-3">
               <ActionPanel
-                order={order}
+                order={displayOrder ?? order}
                 isFreeOrder={isFreeOrder}
                 isDigitalOrder={isDigitalOrder}
                 isPendingPayment={isPendingPayment}
@@ -1553,7 +1590,7 @@ export default function PublicOrderDetailPage() {
                 onReorder={handleReorder}
               />
 
-              {(order.status === "delivered" && !isDigitalOrder) && (
+              {(fulfillmentStatus === "delivered" && !isDigitalOrder) && (
                 <button onClick={handleReorder} className={cn(btnSecondary, "w-full")}>
                   <RotateCcw className="h-3.5 w-3.5" /> Buy again
                 </button>

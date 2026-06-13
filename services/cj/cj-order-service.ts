@@ -12,6 +12,10 @@
 
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { getOrRefreshAccessToken } from "@/lib/cj/auth";
+import { CJ_CUSTOMER_MESSAGES, logCjInternalError } from "@/lib/cj/customer-errors";
+import { advanceOrderFulfillment } from "@/lib/order-fulfillment/advance-order-status";
+import { mapCjFulfillmentToOrderStatus } from "@/lib/payments/order-payment-utils";
+import type { OrderStatusValue } from "@/lib/payments/record-status-change";
 
 const CJ_BASE = "https://developers.cjdropshipping.com/api2.0/v1";
 
@@ -242,13 +246,20 @@ export async function submitOrderToCJ(params: {
       token
     );
   } catch (err) {
-    // Persist failure to order_status_history so ops can see it
+    const errMessage = (err as Error).message;
+    await logCjInternalError({
+      action: "submit_fail",
+      message: `Legacy CJ order submission failed for order ${orderId}`,
+      error: errMessage,
+      orderId,
+    });
+
     await supabase.from("order_status_history").insert({
       order_id: orderId,
       previous_status: "confirmed",
       new_status: "processing",
-      notes: `CJ order submission FAILED: ${(err as Error).message}`,
-      metadata: { cj_error: (err as Error).message },
+      notes: CJ_CUSTOMER_MESSAGES.fulfillmentFailed,
+      metadata: { triggered_by: "system", status_type: "note" },
     });
 
     throw err;
@@ -346,58 +357,35 @@ export async function syncCJOrderStatus(params: {
     return { updated: false };
   }
 
-  const mappedStatus = CJ_STATUS_MAP[detail.orderStatus] ?? "processing";
-  const trackingChanged =
-    detail.trackingNumber && detail.trackingNumber !== order.tracking_number;
-  const statusChanged = mappedStatus !== order.status;
+  const mappedStatus = (CJ_STATUS_MAP[detail.orderStatus] ??
+    mapCjFulfillmentToOrderStatus(detail.orderStatus.toLowerCase()) ??
+    "processing") as OrderStatusValue;
+  const trackingNumber = detail.trackingNumber?.trim() || null;
+  const trackingChanged = Boolean(trackingNumber && trackingNumber !== order.tracking_number);
 
-  if (!statusChanged && !trackingChanged) {
+  if (!trackingChanged && mappedStatus === order.status) {
     return { updated: false };
   }
 
-  // ── Write updates ────────────────────────────────────────────────────────────
-  const updates: Record<string, unknown> = {
-    cj_fulfillment_status: detail.orderStatus.toLowerCase(),
-    updated_at: new Date().toISOString(),
-  };
+  const result = await advanceOrderFulfillment(supabase, orderId, {
+    newStatus: mappedStatus,
+    trackingNumber,
+    cjFulfillmentStatus: detail.orderStatus.toLowerCase(),
+    notes: trackingNumber
+      ? "Your order is on the way."
+      : mappedStatus === "delivered"
+        ? "Your order was delivered."
+        : mappedStatus === "processing"
+          ? CJ_CUSTOMER_MESSAGES.fulfillmentDelayed
+          : undefined,
+    metadata: {
+      cj_order_id: cjOrderId,
+      cj_status: detail.orderStatus,
+      source: "cj_order_service",
+    },
+  });
 
-  if (trackingChanged) {
-    updates.tracking_number = detail.trackingNumber;
-    updates.tracking_status = "in_transit";
-  }
-
-  if (statusChanged) {
-    updates.status = mappedStatus;
-    if (mappedStatus === "shipped") updates.shipped_at = new Date().toISOString();
-    if (mappedStatus === "delivered") updates.delivered_at = new Date().toISOString();
-  }
-
-  const { error: updateErr } = await supabase
-    .from("orders")
-    .update(updates)
-    .eq("id", orderId);
-
-  if (updateErr) {
-    console.error(`[CJ sync] DB update failed for order ${orderId}:`, updateErr);
-    return { updated: false };
-  }
-
-  // ── Status history (only on status change) ───────────────────────────────────
-  if (statusChanged) {
-    await supabase.from("order_status_history").insert({
-      order_id: orderId,
-      previous_status: order.status,
-      new_status: mappedStatus,
-      notes: `CJ fulfillment update: ${detail.orderStatus}`,
-      metadata: {
-        cj_order_id: cjOrderId,
-        cj_status: detail.orderStatus,
-        tracking_number: detail.trackingNumber ?? null,
-      },
-    });
-  }
-
-  return { updated: true, newStatus: mappedStatus };
+  return { updated: result.updated, newStatus: result.status };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

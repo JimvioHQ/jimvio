@@ -58,7 +58,7 @@ export function CJShippingSelector({
               Couldn't load shipping rates
             </p>
             <p className="text-[12px] text-rose-600/80 dark:text-rose-400/80 mt-0.5">
-              {error}
+              Please try again in a moment. If the problem continues, contact support.
             </p>
             {onRetry && (
               <button

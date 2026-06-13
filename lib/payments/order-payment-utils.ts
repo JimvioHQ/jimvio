@@ -33,6 +33,100 @@ export function displayFulfillmentStatus(
   return orderStatus ?? "pending";
 }
 
+const CUSTOMER_STATUS_RANK: Record<string, number> = {
+  pending: 0,
+  confirmed: 1,
+  processing: 2,
+  shipped: 3,
+  delivered: 4,
+  completed: 4,
+};
+
+/** Map CJ fulfillment status strings to customer-facing order status. */
+export function mapCjFulfillmentToOrderStatus(
+  cjFulfillmentStatus: string | null | undefined
+): string | null {
+  if (!cjFulfillmentStatus) return null;
+  const key = cjFulfillmentStatus.toLowerCase();
+
+  if (["shipped", "in_transit"].includes(key)) return "shipped";
+  if (["delivered", "done", "finished"].includes(key)) return "delivered";
+  if (key === "cancelled") return "cancelled";
+  if (
+    [
+      "processing",
+      "submitted",
+      "accepted",
+      "submitting",
+      "waiting_for_submission",
+      "waiting_payment",
+      "unshipped",
+      "in_production",
+      "picking",
+      "packed",
+      "wait_ship",
+      "created",
+      "paying",
+      "in_process",
+    ].includes(key)
+  ) {
+    return "processing";
+  }
+
+  return null;
+}
+
+function pickHigherCustomerStatus(current: string, candidate: string): string {
+  const currentRank = CUSTOMER_STATUS_RANK[current.toLowerCase()] ?? -1;
+  const candidateRank = CUSTOMER_STATUS_RANK[candidate.toLowerCase()] ?? -1;
+  return candidateRank > currentRank ? candidate.toLowerCase() : current.toLowerCase();
+}
+
+/**
+ * Single customer-facing fulfillment status used by badges, steppers, and panels.
+ * Aligns with timeline/history and CJ tracking when those are ahead of orders.status.
+ */
+export function resolveCustomerOrderStatus(input: {
+  status?: string | null;
+  payment_status?: string | null;
+  tracking_number?: string | null;
+  shipped_at?: string | null;
+  delivered_at?: string | null;
+  cj_fulfillment_status?: string | null;
+  order_status_history?: Array<{ new_status: string; created_at: string }>;
+}): string {
+  const rawStatus = (input.status ?? "pending").toLowerCase();
+  if (rawStatus === "cancelled") return "cancelled";
+  if (rawStatus === "refunded" || input.payment_status === "refunded") return "refunded";
+
+  let resolved = displayFulfillmentStatus(input.status, input.payment_status).toLowerCase();
+
+  const cjMapped = mapCjFulfillmentToOrderStatus(input.cj_fulfillment_status);
+  if (cjMapped) resolved = pickHigherCustomerStatus(resolved, cjMapped);
+
+  if (input.order_status_history?.length) {
+    const sorted = [...input.order_status_history].sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+    for (const entry of sorted) {
+      const historyStatus = (entry.new_status ?? "").toLowerCase();
+      if (!historyStatus || historyStatus === "confirmed") continue;
+      if (CUSTOMER_STATUS_RANK[historyStatus] !== undefined) {
+        resolved = pickHigherCustomerStatus(resolved, historyStatus);
+        break;
+      }
+    }
+  }
+
+  if (input.delivered_at || rawStatus === "delivered") {
+    resolved = pickHigherCustomerStatus(resolved, "delivered");
+  } else if (input.tracking_number?.trim() || input.shipped_at || rawStatus === "shipped") {
+    resolved = pickHigherCustomerStatus(resolved, "shipped");
+  }
+
+  return resolved;
+}
+
 export type PaymentSnapshot = {
   original_amount: number;
   original_currency: string;

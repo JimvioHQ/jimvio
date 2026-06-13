@@ -5,7 +5,18 @@ import {
     upsertCJProduct,
     getUSDToRWFRate,
     calculateCJPricing,
+    mapCJVariantToJimvio,
+    type CJVariant,
 } from "@/lib/actions/cj_product";
+import {
+    resolveProductIdByCjPid,
+    resolveVariantByCjVid,
+} from "@/lib/cj/resolve-variant";
+import { normalizeCjVid } from "@/lib/cj/variant-vid";
+import type { CJOrderParams } from "@/lib/cj/webhoo-subscription";
+import { advanceOrderFulfillment } from "@/lib/order-fulfillment/advance-order-status";
+import { mapCjFulfillmentToOrderStatus } from "@/lib/payments/order-payment-utils";
+import type { OrderStatusValue } from "@/lib/payments/record-status-change";
 
 function createClient() {
     return createSupabaseClient(
@@ -102,85 +113,161 @@ function isTestPing(params: CJProductParams): boolean {
     return params.pid === "test" && params.productName === "test";
 }
 
+async function syncOrderFromWebhook(
+    supabase: SupabaseClient,
+    params: CJOrderParams
+): Promise<void> {
+    const cjOrderId = params.cjOrderId?.trim();
+    const orderRef = (params.orderNumber ?? params.orderNum ?? "").trim();
+    if (!cjOrderId && !orderRef) return;
+
+    let orderId: string | null = null;
+
+    if (cjOrderId) {
+        const { data } = await supabase
+            .from("orders")
+            .select("id")
+            .eq("cj_order_id", cjOrderId)
+            .maybeSingle();
+        orderId = data?.id ?? null;
+    }
+
+    if (!orderId && orderRef) {
+        const { data: byId } = await supabase
+            .from("orders")
+            .select("id")
+            .eq("id", orderRef)
+            .maybeSingle();
+        if (byId?.id) {
+            orderId = byId.id;
+        } else {
+            const { data: byNumber } = await supabase
+                .from("orders")
+                .select("id")
+                .eq("order_number", orderRef)
+                .maybeSingle();
+            orderId = byNumber?.id ?? null;
+        }
+    }
+
+    if (!orderId) {
+        console.warn(
+            `[CJ webhook] ORDER: no local order for cjOrderId=${cjOrderId} ref=${orderRef}`
+        );
+        return;
+    }
+
+    const trackingNumber = params.trackNumber?.trim() || null;
+    const mappedStatus = mapCjFulfillmentToOrderStatus(
+        params.orderStatus
+    ) as OrderStatusValue | null;
+
+    await advanceOrderFulfillment(supabase, orderId, {
+        newStatus: mappedStatus ?? undefined,
+        trackingNumber,
+        trackingUrl: params.trackingUrl ?? null,
+        cjFulfillmentStatus: params.orderStatus?.toLowerCase(),
+        notes: trackingNumber ? "Your order is on the way." : undefined,
+        metadata: {
+            cj_order_id: cjOrderId,
+            cj_status: params.orderStatus,
+            source: "cj_webhook",
+        },
+    });
+
+    if (trackingNumber && cjOrderId) {
+        await supabase.from("cj_tracking").upsert(
+            {
+                order_id: orderId,
+                cj_order_id: cjOrderId,
+                tracking_number: trackingNumber,
+                tracking_url: params.trackingUrl ?? null,
+                cj_status: params.orderStatus,
+                synced_at: new Date().toISOString(),
+            },
+            { onConflict: "order_id" }
+        );
+    }
+}
+
 async function resolveProductId(
     supabase: SupabaseClient,
     pid: string
 ): Promise<string | null> {
-    const { data: mapRow } = await supabase
-        .from("cj_product_map")
-        .select("product_id")
-        .eq("cj_pid", pid)
-        .maybeSingle();
+    return resolveProductIdByCjPid(supabase, pid);
+}
 
-    if (mapRow?.product_id) return mapRow.product_id;
+function webhookVariantToCJVariant(params: CJVariantParams): CJVariant {
+    const vid = normalizeCjVid(params.vid) ?? "";
+    return {
+        vid,
+        pid: params.pid ?? undefined,
+        productSku: params.variantSku ?? "",
+        variantSku: params.variantSku ?? "",
+        variantName: params.variantName ?? "",
+        variantNameEn: params.variantName ?? "",
+        variantImage: params.variantImage ?? "",
+        variantProperty: params.variantKey ?? params.variantSku ?? "",
+        variantSellPrice: String(params.variantSellPrice ?? "0"),
+        variantWeight: String(params.variantWeight ?? "0"),
+        isSell: params.variantStatus === 1 ? 1 : 0,
+    };
+}
 
-    const { data: product } = await supabase
-        .from("products")
-        .select("id")
-        .filter("source_metadata->>cj_pid", "eq", pid)
-        .maybeSingle();
+async function ensureVariantFromWebhook(
+    supabase: SupabaseClient,
+    params: CJVariantParams
+): Promise<{ id: string; inventory_quantity: number; cj_vid: string | null } | null> {
+    const existing = await resolveVariantByCjVid(supabase, params.vid, {
+        variantSku: params.variantSku,
+        pid: params.pid,
+    });
+    if (existing?.id) return existing;
 
-    if (!product?.id) return null;
+    if (!params.pid) return null;
 
-    await supabase
-        .from("cj_product_map")
-        .upsert({ cj_pid: pid, product_id: product.id }, { onConflict: "cj_pid" });
+    const productId = await resolveProductId(supabase, params.pid);
+    if (!productId) return null;
 
-    return product.id;
+    const cjVariant = webhookVariantToCJVariant(params);
+    if (!normalizeCjVid(cjVariant.vid)) return null;
+
+    try {
+        const mapped = await mapCJVariantToJimvio(cjVariant, productId);
+        const { data: inserted, error } = await supabase
+            .from("product_variants")
+            .insert(mapped)
+            .select("id, inventory_quantity, cj_vid")
+            .single();
+
+        if (error || !inserted?.id) {
+            console.error(
+                `[CJ webhook] Failed to create variant vid=${params.vid}:`,
+                error?.message
+            );
+            return null;
+        }
+
+        console.log(
+            `[CJ webhook] Created variant from webhook vid=${params.vid} productId=${productId}`
+        );
+        return inserted;
+    } catch (err) {
+        console.error(
+            `[CJ webhook] ensureVariantFromWebhook failed vid=${params.vid}:`,
+            err instanceof Error ? err.message : String(err)
+        );
+        return null;
+    }
 }
 
 async function resolveVariantRow(
     supabase: SupabaseClient,
     vid: string,
-    variantSku: string | null
+    variantSku: string | null,
+    pid?: string | null
 ): Promise<{ id: string; inventory_quantity: number; cj_vid: string | null } | null> {
-    // 1. cj_vid column — fastest
-    const { data: byVid } = await supabase
-        .from("product_variants")
-        .select("id, inventory_quantity, cj_vid")
-        .eq("cj_vid", vid)
-        .maybeSingle();
-
-    if (byVid?.id) return byVid;
-
-    // 2. sku column
-    if (variantSku) {
-        const { data: bySku } = await supabase
-            .from("product_variants")
-            .select("id, inventory_quantity, cj_vid")
-            .eq("sku", variantSku)
-            .maybeSingle();
-
-        if (bySku?.id) {
-            // Backfill cj_vid
-            await supabase
-                .from("product_variants")
-                .update({ cj_vid: vid })
-                .eq("id", bySku.id);
-            console.log(`[CJ webhook] Backfilled cj_vid=${vid} for variant id=${bySku.id} via SKU match`);
-            return { ...bySku, cj_vid: vid };
-        }
-    }
-
-    // 3. JSONB scan — last resort
-    if (variantSku) {
-        const { data: byMeta } = await supabase
-            .from("product_variants")
-            .select("id, inventory_quantity, cj_vid")
-            .filter("source_metadata->>cj_sku", "eq", variantSku)
-            .maybeSingle();
-
-        if (byMeta?.id) {
-            await supabase
-                .from("product_variants")
-                .update({ cj_vid: vid })
-                .eq("id", byMeta.id);
-            console.log(`[CJ webhook] Backfilled cj_vid=${vid} for variant id=${byMeta.id} via source_metadata match`);
-            return { ...byMeta, cj_vid: vid };
-        }
-    }
-
-    return null;
+    return resolveVariantByCjVid(supabase, vid, { variantSku, pid });
 }
 
 async function archiveProduct(
@@ -209,7 +296,16 @@ async function syncVariantByVid(
     params: CJVariantParams,
     exchangeRate: number
 ): Promise<void> {
-    const row = await resolveVariantRow(supabase, params.vid, params.variantSku);
+    let row = await resolveVariantRow(
+        supabase,
+        params.vid,
+        params.variantSku,
+        params.pid
+    );
+
+    if (!row) {
+        row = await ensureVariantFromWebhook(supabase, params);
+    }
 
     if (!row) {
         console.warn(
@@ -282,52 +378,24 @@ async function syncStock(
     supabase: SupabaseClient,
     params: CJStockParams
 ): Promise<void> {
-    const updates = Object.entries(params).map(async ([vid, entries]) => {
+    const updates = Object.entries(params).map(async ([vidKey, entries]) => {
+        const normalizedVid = normalizeCjVid(vidKey) ?? normalizeCjVid(entries[0]?.vid);
+        if (!normalizedVid) {
+            console.warn("[CJ webhook] Stock: skipping entry with missing vid");
+            return;
+        }
+
         // Sum stock across all warehouses for this variant
         const totalStock = entries.reduce(
             (sum, e) => sum + (e.storageNum ?? 0),
             0
         );
 
-        // ── Resolve variant with current quantity ─────────────────────────
-        let variantRow: {
-            id: string;
-            inventory_quantity: number;
-            cj_vid: string | null;
-        } | null = null;
-
-        const { data: byVid } = await supabase
-            .from("product_variants")
-            .select("id, inventory_quantity, cj_vid")
-            .eq("cj_vid", vid)
-            .maybeSingle();
-
-        if (byVid?.id) {
-            variantRow = byVid;
-        }
-
-        // Fallback: source_metadata scan
-        if (!variantRow) {
-            const { data: byMeta } = await supabase
-                .from("product_variants")
-                .select("id, inventory_quantity, cj_vid")
-                .filter("source_metadata->>cj_vid", "eq", vid)
-                .maybeSingle();
-
-            if (byMeta?.id) {
-                variantRow = byMeta;
-
-                // Backfill cj_vid so future lookups are fast
-                await supabase
-                    .from("product_variants")
-                    .update({ cj_vid: vid })
-                    .eq("id", variantRow.id);
-            }
-        }
+        let variantRow = await resolveVariantByCjVid(supabase, normalizedVid);
 
         if (!variantRow) {
             console.warn(
-                `[CJ webhook] Stock: no variant found for vid=${vid} — may not be imported yet`
+                `[CJ webhook] Stock: no variant found for vid=${normalizedVid} — may not be imported yet`
             );
             return;
         }
@@ -346,7 +414,7 @@ async function syncStock(
 
         if (error) {
             console.error(
-                `[CJ webhook] Stock update failed vid=${vid}:`,
+                `[CJ webhook] Stock update failed vid=${normalizedVid}:`,
                 error.message
             );
             return;
@@ -357,7 +425,7 @@ async function syncStock(
         // No manual insert needed here
 
         console.log(
-            `[CJ webhook] Stock updated vid=${vid} ` +
+            `[CJ webhook] Stock updated vid=${normalizedVid} ` +
             `${variantRow.inventory_quantity} → ${totalStock} ` +
             `(warehouses: ${entries.map((e) => `${e.areaEn}:${e.storageNum}`).join(", ")})`
         );
@@ -509,7 +577,8 @@ export async function POST(req: Request): Promise<Response> {
                 const row = await resolveVariantRow(
                     supabase,
                     params.vid,
-                    params.variantSku
+                    params.variantSku,
+                    params.pid
                 );
 
                 if (row) {
@@ -556,6 +625,20 @@ export async function POST(req: Request): Promise<Response> {
                 ok: true,
                 event: `VARIANT_${payload.messageType}`,
                 changedFields: params.fields,
+            });
+        }
+
+        // ── ORDER ─────────────────────────────────────────────────────────
+        if (payload.type === "ORDER") {
+            const params = payload.params as unknown as CJOrderParams;
+            await syncOrderFromWebhook(supabase, params);
+            console.log(
+                `[CJ webhook] ORDER sync ok cjOrderId=${params.cjOrderId} status=${params.orderStatus}`
+            );
+            return Response.json({
+                ok: true,
+                event: `ORDER_${payload.messageType}`,
+                cjOrderId: params.cjOrderId,
             });
         }
 

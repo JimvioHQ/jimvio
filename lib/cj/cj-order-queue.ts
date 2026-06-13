@@ -1,6 +1,7 @@
 
 import { getAdminDB } from "@/services/db";
 import { submitCjOrderForLines, type CjOrderLine } from "@/lib/sources/cj/submit-order";
+import { advanceOrderFulfillment } from "@/lib/order-fulfillment/advance-order-status";
 
 // ─── Retry delays (ms) ────────────────────────────────────────────────────────
 // Attempt 1 → 3s, 2 → 10s, 3 → 30s, 4 → 60s
@@ -207,11 +208,17 @@ async function processOneJob(job: {
         await supabase
             .from("orders")
             .update({
-                cj_order_id:           cjOrderId,
-                cj_fulfillment_status: "submitted",
-                cj_submit_time:        new Date().toISOString(),
+                cj_order_id:    cjOrderId,
+                cj_submit_time: new Date().toISOString(),
             })
             .eq("id", job.order_id);
+
+        await advanceOrderFulfillment(supabase, job.order_id, {
+            newStatus: "processing",
+            cjFulfillmentStatus: "submitted",
+            notes: "Your order is being prepared for shipment.",
+            metadata: { cj_order_id: cjOrderId, source: "cj_queue" },
+        });
 
         await supabase
             .from("cj_order_queue")

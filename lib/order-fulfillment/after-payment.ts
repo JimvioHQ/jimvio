@@ -1,4 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { CJ_CUSTOMER_MESSAGES, logCjInternalError } from "@/lib/cj/customer-errors";
+import { advanceOrderFulfillment } from "@/lib/order-fulfillment/advance-order-status";
 import { normalizeProductSource, type ProductSource } from "@/lib/sources/product-source";
 import { submitCjOrderForLines } from "@/lib/sources/cj/submit-order";
 
@@ -51,11 +53,17 @@ export async function dispatchNonShopifyFulfillmentIntegrations(
 
   if (!orderRow?.cj_shipping_method?.trim()) {
     console.warn(`[CJ] Order ${params.orderId} missing cj_shipping_method — cannot submit to CJ`);
+    await logCjInternalError({
+      action: "submit_skipped",
+      message: "CJ submission skipped: shipping method not saved at checkout",
+      error: "cj_shipping_method missing on order",
+      orderId: params.orderId,
+    });
     await db.from("order_status_history").insert({
       order_id: params.orderId,
       previous_status: null,
       new_status: "confirmed",
-      notes: "CJ submission skipped: shipping method not saved at checkout.",
+      notes: CJ_CUSTOMER_MESSAGES.shippingSkipped,
       metadata: { triggered_by: "system", status_type: "note" },
     });
     return;
@@ -106,13 +114,16 @@ export async function dispatchNonShopifyFulfillmentIntegrations(
   );
 
   if (!result.ok) {
-    console.error(`[CJ] Submission failed for order ${params.orderId}:`, result.error);
-    await db.from("order_status_history").insert({
-      order_id: params.orderId,
-      previous_status: "confirmed",
-      new_status: "processing",
-      notes: `CJ order submission FAILED: ${result.error ?? "unknown error"}`,
-      metadata: { cj_error: result.error ?? null },
+    await logCjInternalError({
+      action: "submit_fail",
+      message: `CJ order submission failed for order ${params.orderNumber}`,
+      error: result.error ?? "unknown error",
+      orderId: params.orderId,
+    });
+    await advanceOrderFulfillment(db, params.orderId, {
+      newStatus: "processing",
+      notes: CJ_CUSTOMER_MESSAGES.fulfillmentFailed,
+      metadata: { triggered_by: "system", status_type: "note" },
     });
     return;
   }
@@ -122,10 +133,16 @@ export async function dispatchNonShopifyFulfillmentIntegrations(
       .from("orders")
       .update({
         cj_order_id: result.externalReference,
-        cj_fulfillment_status: "processing",
         updated_at: new Date().toISOString(),
       })
       .eq("id", params.orderId);
+
+    await advanceOrderFulfillment(db, params.orderId, {
+      newStatus: "processing",
+      cjFulfillmentStatus: "processing",
+      notes: "Your order is being prepared for shipment.",
+      metadata: { cj_order_id: result.externalReference, source: "cj_submit" },
+    });
   }
 }
 

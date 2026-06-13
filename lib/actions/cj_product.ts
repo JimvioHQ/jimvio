@@ -5,6 +5,15 @@ import {
     buildProductOptions,
     type VariantOptions,
 } from "@/services/cj/cj_options";
+import {
+    extractVideosFromHtml,
+    mergeProductVideoUrls,
+    normalizeCjVideoUrls,
+} from "@/lib/cj/product-videos";
+import {
+    normalizeCjVid,
+    withCjVariantSourceMetadata,
+} from "@/lib/cj/variant-vid";
 
 type SupabaseLike = SupabaseClient<any, any, any>;
 
@@ -30,6 +39,7 @@ export interface CJProduct {
     sourceFrom: string;
     customizationVersion: number;
     isTestProduct: boolean;
+    productVideos?: string[];
 }
 
 export interface CJVariant {
@@ -115,6 +125,8 @@ export interface CJSourceMetadata {
             [key: string]: string[] | Array<{ value: string; label: string }>;
         };
     };
+    cj_videos?: string[];
+    cj_has_video?: boolean;
 }
 
 interface PlatformSettingRow {
@@ -389,6 +401,10 @@ export async function mapCJProductToJimvio(
     const names = parseCJProductNames(cjProduct.productName);
     const remarkImages = extractImagesFromRemark(cjProduct.remark);
     const images = buildImagesArray(cjProduct.productImage, remarkImages);
+    const productVideos = mergeProductVideoUrls(
+        normalizeCjVideoUrls(cjProduct.productVideos),
+        extractVideosFromHtml(cjProduct.remark),
+    );
 
     const {
         price, affiliate_price, affiliate_commission_rate,
@@ -459,6 +475,9 @@ export async function mapCJProductToJimvio(
                 commission_percent: affiliate_commission_rate,
             },
             ...(productOptions ? { options: productOptions } : {}),
+            ...(productVideos.length
+                ? { cj_videos: productVideos, cj_has_video: true }
+                : {}),
         },
     };
 }
@@ -488,6 +507,13 @@ export async function mapCJVariantToJimvio(
         cjVariant.variantProperty ||
         cjVariant.variantSku;
 
+    const cjVid = normalizeCjVid(cjVariant.vid);
+    if (!cjVid) {
+        throw new Error(
+            `CJ variant missing vid (sku=${cjVariant.variantSku ?? "unknown"})`
+        );
+    }
+
     return {
         product_id: productId,
         name,
@@ -500,7 +526,7 @@ export async function mapCJVariantToJimvio(
         is_active: cjVariant.isSell === 1,
 
         // CJ-specific columns (migration 061)
-        cj_vid: cjVariant.vid,
+        cj_vid: cjVid,
         cj_pid: cjVariant.pid ?? null,
         weight: weightGrams,
         length: cjVariant.variantLength ?? 0,
@@ -508,13 +534,122 @@ export async function mapCJVariantToJimvio(
         height: cjVariant.variantHeight ?? 0,
         volume: cjVariant.variantVolume ?? 0,
         source: "cj" as const,
-        source_metadata: {
-            cj_sku: cjVariant.variantSku,
-            cj_property: cjVariant.variantProperty,
-            price_usd: priceUsd,
-        },
+        source_metadata: withCjVariantSourceMetadata(
+            {
+                cj_sku: cjVariant.variantSku,
+                cj_property: cjVariant.variantProperty,
+                price_usd: priceUsd,
+            },
+            cjVid,
+            cjVariant.pid ?? null
+        ),
         options,
     };
+}
+
+export type CJVariantRow = Awaited<ReturnType<typeof mapCJVariantToJimvio>>;
+
+/** Upsert CJ variants by cj_vid, backfilling legacy rows matched by SKU. */
+export async function upsertCJProductVariants(
+    supabase: SupabaseLike,
+    productId: string,
+    variantRows: CJVariantRow[]
+): Promise<{ error?: string; upserted: number; skipped: number }> {
+    const incomingVids = new Set<string>();
+    let upserted = 0;
+    let skipped = 0;
+
+    for (const row of variantRows) {
+        const cjVid = normalizeCjVid(row.cj_vid);
+        if (!cjVid) {
+            skipped += 1;
+            console.warn(
+                `[CJ import] Variant missing cj_vid for product=${productId} sku=${row.sku}`
+            );
+            continue;
+        }
+
+        incomingVids.add(cjVid);
+        const payload: CJVariantRow = {
+            ...row,
+            product_id: productId,
+            cj_vid: cjVid,
+            source_metadata: withCjVariantSourceMetadata(
+                (row.source_metadata ?? {}) as Record<string, unknown>,
+                cjVid,
+                row.cj_pid
+            ),
+        };
+
+        const { data: existingByVid } = await supabase
+            .from("product_variants")
+            .select("id")
+            .eq("cj_vid", cjVid)
+            .maybeSingle();
+
+        if (existingByVid?.id) {
+            const { error } = await supabase
+                .from("product_variants")
+                .update(payload)
+                .eq("id", existingByVid.id);
+
+            if (error) {
+                return { error: error.message, upserted, skipped };
+            }
+            upserted += 1;
+            continue;
+        }
+
+        if (row.sku) {
+            const { data: existingBySku } = await supabase
+                .from("product_variants")
+                .select("id, cj_vid")
+                .eq("product_id", productId)
+                .eq("sku", row.sku)
+                .maybeSingle();
+
+            if (existingBySku?.id) {
+                const { error } = await supabase
+                    .from("product_variants")
+                    .update(payload)
+                    .eq("id", existingBySku.id);
+
+                if (error) {
+                    return { error: error.message, upserted, skipped };
+                }
+                upserted += 1;
+                continue;
+            }
+        }
+
+        const { error } = await supabase.from("product_variants").insert(payload);
+        if (error) {
+            return { error: error.message, upserted, skipped };
+        }
+        upserted += 1;
+    }
+
+    const { data: existingVariants } = await supabase
+        .from("product_variants")
+        .select("id, cj_vid")
+        .eq("product_id", productId);
+
+    const staleIds = (existingVariants ?? [])
+        .filter((v) => v.cj_vid && !incomingVids.has(v.cj_vid))
+        .map((v) => v.id);
+
+    if (staleIds.length > 0) {
+        const { error } = await supabase
+            .from("product_variants")
+            .delete()
+            .in("id", staleIds);
+
+        if (error) {
+            return { error: error.message, upserted, skipped };
+        }
+    }
+
+    return { upserted, skipped };
 }
 
 // ── Upsert Single Product ─────────────────────────────────────────────────────

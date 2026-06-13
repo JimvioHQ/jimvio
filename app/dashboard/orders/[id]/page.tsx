@@ -20,8 +20,9 @@ import { toast } from "sonner";
 import {
   isOrderPaymentComplete,
   orderNeedsPayment,
-  displayFulfillmentStatus,
+  resolveCustomerOrderStatus,
 } from "@/lib/payments/order-payment-utils";
+import { sanitizeOrderTimelineNote } from "@/lib/cj/customer-errors";
 import {
   getDownloadUrl,
   triggerDownload
@@ -801,6 +802,19 @@ export default function OrderDetailPage() {
     return Number(order.total_amount || 0) - Number(order.tax_amount || 0) - Number(order.shipping_amount || 0) + Number(order.discount_amount || 0);
   }, [order]);
 
+  const fulfillmentStatus = useMemo(() => {
+    if (!order) return "pending";
+    return resolveCustomerOrderStatus({
+      status: order.status,
+      payment_status: order.payment_status,
+      tracking_number: order.tracking_number,
+      shipped_at: order.shipped_at,
+      delivered_at: order.delivered_at,
+      cj_fulfillment_status: order.cj_fulfillment_status,
+      order_status_history: statusHistory,
+    });
+  }, [order, statusHistory]);
+
   /* ── Guards — AFTER all hooks ─────────────────────────────────────────── */
 
   if (loading) return <PageSkeleton />;
@@ -829,7 +843,6 @@ export default function OrderDetailPage() {
   const isDigital = isDigitalOrder(order.order_items);
   const isPaid = isOrderPaymentComplete(order.payment_status);
   const needsPayment = orderNeedsPayment(order.payment_status, order.status, Number(order.total_amount ?? 0));
-  const fulfillmentStatus = displayFulfillmentStatus(order.status, order.payment_status);
   const isRefunded = order.payment_status === "refunded" || order.status === "refunded";
 
   const financials = [
@@ -847,7 +860,7 @@ export default function OrderDetailPage() {
       date: h.created_at,
       icon: h.new_status === "cancelled" ? AlertCircle : h.new_status === "delivered" ? Home : h.new_status === "shipped" ? Truck : h.new_status === "paid" ? CreditCard : FileText,
       color: h.new_status === "cancelled" ? "text-red-500" : h.new_status === "delivered" || h.new_status === "completed" ? "text-emerald-600" : "text-[var(--color-text-muted)]",
-      note: h.notes,
+      note: sanitizeOrderTimelineNote(h.notes),
     }))
     : [
       { label: "Order placed", date: order.created_at, icon: FileText, color: "text-[var(--color-text-muted)]", note: null },
@@ -1110,7 +1123,7 @@ export default function OrderDetailPage() {
                   resending={resending}
                 />
               ) : (
-                <TrackingCard order={order} />
+                <TrackingCard order={{ ...order, status: fulfillmentStatus }} />
               )}
 
               <VendorCards items={order.order_items ?? []} />

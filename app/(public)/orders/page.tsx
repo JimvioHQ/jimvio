@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { OrderStatusBadge } from "@/components/orders/OrderStatusBadge";
+import { resolveCustomerOrderStatus } from "@/lib/payments/order-payment-utils";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
@@ -141,7 +142,16 @@ export default function PublicOrdersPage() {
                   <div className="flex flex-wrap items-center gap-2 sm:justify-end">
                     <span className="font-bold">{formatCurrency(Number(o.total_amount), o.currency || "USD")}</span>
                     <Badge variant="secondary">{pay}</Badge>
-                    <OrderStatusBadge status={o.status} />
+                    <OrderStatusBadge
+                      status={resolveCustomerOrderStatus({
+                        status: o.status,
+                        payment_status: o.payment_status,
+                        tracking_number: o.tracking_number,
+                        shipped_at: o.shipped_at,
+                        delivered_at: o.delivered_at,
+                        cj_fulfillment_status: o.cj_fulfillment_status,
+                      })}
+                    />
                     <Button asChild size="sm" variant="outline">
                       <Link href={`/orders/${o.id}`}>View details</Link>
                     </Button>

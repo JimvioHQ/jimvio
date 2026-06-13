@@ -2,6 +2,9 @@
 import { getAdminDB } from "@/services/db";
 import { getOrRefreshAccessToken } from "@/lib/cj/auth";
 import { logCJ } from "./cj-order-queue";
+import { advanceOrderFulfillment } from "@/lib/order-fulfillment/advance-order-status";
+import { mapCjFulfillmentToOrderStatus } from "@/lib/payments/order-payment-utils";
+import type { OrderStatusValue } from "@/lib/payments/record-status-change";
 
 const CJ_API_BASE = "https://developers.cjdropshipping.com/api2.0/v1";
 
@@ -70,25 +73,40 @@ async function syncOneOrder(order: any, token: string): Promise<boolean> {
     const internal = CJ_STATUS_MAP[cjStatus] ?? order.cj_fulfillment_status;
 
     const trackingNumber = (cjOrder.trackNumber ?? cjOrder.trackingNumber ?? null) as string | null;
+    const trackingUrl    = (cjOrder.trackUrl ?? null) as string | null;
     const carrier        = (cjOrder.shippingInfo?.logisticName ?? cjOrder.logisticName ?? null) as string | null;
 
-    const now = new Date().toISOString();
+    const mappedStatus = mapCjFulfillmentToOrderStatus(internal) as OrderStatusValue | null;
 
-    // ── Build update with explicit typed fields, no dynamic Record ───────────
+    await advanceOrderFulfillment(supabase, order.id, {
+        newStatus: mappedStatus ?? undefined,
+        trackingNumber,
+        trackingUrl,
+        cjFulfillmentStatus: internal,
+        notes: trackingNumber
+            ? "Your order is on the way."
+            : mappedStatus === "delivered"
+              ? "Your order was delivered."
+              : mappedStatus === "processing"
+                ? "Your order is being prepared for shipment."
+                : undefined,
+        metadata: { cj_status: cjStatus, source: "cj_sync" },
+    });
+
     await supabase
         .from("orders")
-        .update({
-            cj_fulfillment_status: internal,
-            cj_last_sync:          now,
-            // Only include optional fields when they have values
-            ...(trackingNumber ? { tracking_number:   trackingNumber } : {}),
-            ...(carrier        ? { cj_shipping_method: carrier }       : {}),
-            ...(internal === "shipped"   && !order.shipped_at   ? { shipped_at:   now, status: "shipped"   } : {}),
-            ...(internal === "delivered" && !order.delivered_at ? { delivered_at: now, status: "delivered" } : {}),
-        })
+        .update({ cj_last_sync: new Date().toISOString() })
         .eq("id", order.id);
 
+    if (carrier) {
+        await supabase
+            .from("orders")
+            .update({ cj_shipping_method: carrier, updated_at: new Date().toISOString() })
+            .eq("id", order.id);
+    }
+
     if (trackingNumber) {
+        const now = new Date().toISOString();
         await supabase
             .from("cj_tracking")
             .upsert({
@@ -96,13 +114,12 @@ async function syncOneOrder(order: any, token: string): Promise<boolean> {
                 cj_order_id:     order.cj_order_id as string,
                 tracking_number: trackingNumber,
                 carrier,
-                tracking_url:    (cjOrder.trackUrl ?? null) as string | null,
+                tracking_url:    trackingUrl,
                 cj_status:       cjStatus,
                 raw_response:    JSON.stringify(cjOrder),
                 synced_at:       now,
             }, { onConflict: "order_id" });
-    }
-    await logCJ({
+    }    await logCJ({
         order_id: order.id,
         action:   "sync_updated",
         message:  `${cjStatus} → ${internal}${trackingNumber ? ` | ${trackingNumber}` : ""}`,

@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getOrRefreshAccessToken } from "@/lib/cj/auth";
+import { CJ_CUSTOMER_MESSAGES, logCjInternalError, sanitizeCustomerError } from "@/lib/cj/customer-errors";
 
 interface CartItemInput {
     variantId?: string;
@@ -93,7 +94,12 @@ export async function POST(req: NextRequest) {
 
         const cjData = await cjRes.json();
         if (cjData.result !== true) {
-            return NextResponse.json({ success: true, rates: [], error: cjData.message });
+            await logCjInternalError({
+                action: "shipping_rates",
+                message: "CJ freightCalculate returned failure during checkout",
+                error: cjData.message ?? "CJ freightCalculate failed",
+            });
+            return NextResponse.json({ success: true, rates: [] });
         }
         const rawRates: any[] = cjData.data ?? [];
         const fxRate = await getExchangeRate("USD", orderCurrency);
@@ -113,8 +119,12 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json({ success: true, rates });
     } catch (e) {
-        const message = e instanceof Error ? e.message : "Failed to fetch shipping rates";
-        console.error("[/api/cj/shipping-rates]", e);
+        await logCjInternalError({
+            action: "shipping_rates",
+            message: "Failed to fetch CJ shipping rates during checkout",
+            error: e,
+        });
+        const message = sanitizeCustomerError(e, CJ_CUSTOMER_MESSAGES.shippingRates);
         return NextResponse.json({ success: false, error: message }, { status: 500 });
     }
 }

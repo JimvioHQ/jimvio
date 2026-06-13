@@ -300,10 +300,24 @@ import { cn, ImageInput, normalizeImages } from "@/lib/utils";
 interface ImageGalleryProps {
     images: ImageInput;
     productName: string;
+    videos?: string[];
     isFeatured?: boolean;
     savings?: number | null;
     thumbnailsPosition?: "bottom" | "left";
     className?: string;
+}
+
+type GalleryMedia =
+    | { type: "video"; url: string; poster?: string }
+    | { type: "image"; url: string };
+
+function buildGalleryMedia(images: string[], videos: string[] = []): GalleryMedia[] {
+    const poster = images[0];
+    const videoItems: GalleryMedia[] = videos
+        .filter((url) => url.startsWith("http"))
+        .map((url) => ({ type: "video", url, poster }));
+    const imageItems: GalleryMedia[] = images.map((url) => ({ type: "image", url }));
+    return [...videoItems, ...imageItems];
 }
 
 // ─── Hooks ────────────────────────────────────────────────────────────────────
@@ -475,16 +489,18 @@ function Thumbnail({
     index,
     active,
     onClick,
+    isVideo = false,
 }: {
     src: string;
     index: number;
     active: boolean;
     onClick: () => void;
+    isVideo?: boolean;
 }) {
     return (
         <button
             onClick={onClick}
-            aria-label={`View image ${index + 1}`}
+            aria-label={isVideo ? `View product video ${index + 1}` : `View image ${index + 1}`}
             className={cn(
                 "relative flex-shrink-0 w-[64px] h-[64px] rounded-lg overflow-hidden transition-all duration-200 outline-none",
                 "focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]",
@@ -497,13 +513,26 @@ function Thumbnail({
                 opacity: active ? 1 : 0.55,
             }}
         >
-            <img
-                src={src}
-                alt=""
-                className="w-full h-full object-contain p-1.5 transition-transform duration-200 hover:scale-105"
-                draggable={false}
-            />
-            {/* Active indicator bar */}
+            {isVideo ? (
+                <>
+                    <img
+                        src={src}
+                        alt=""
+                        className="w-full h-full object-cover"
+                        draggable={false}
+                    />
+                    <span className="absolute inset-0 flex items-center justify-center bg-black/35">
+                        <Play className="h-5 w-5 text-white fill-white" />
+                    </span>
+                </>
+            ) : (
+                <img
+                    src={src}
+                    alt=""
+                    className="w-full h-full object-contain p-1.5 transition-transform duration-200 hover:scale-105"
+                    draggable={false}
+                />
+            )}
             <span
                 className="absolute bottom-0 inset-x-0 h-[2px] transition-all duration-300"
                 style={{ background: active ? "var(--color-text-primary)" : "transparent" }}
@@ -538,35 +567,43 @@ function ImageSkeleton() {
 export function ImageGallery({
     images: imagesInput,
     productName,
+    videos = [],
     isFeatured,
     savings,
     thumbnailsPosition = "bottom",
     className,
 }: ImageGalleryProps) {
     const images = useMemo(() => normalizeImages(imagesInput), [imagesInput]);
+    const media = useMemo(() => buildGalleryMedia(images, videos), [images, videos]);
     const isLeftThumbnails = thumbnailsPosition === "left";
 
     const [activeIndex, setActiveIndex] = useState(0);
     const [imageLoaded, setImageLoaded] = useState(false);
     const [zoomHintDismissed, setZoomHintDismissed] = useState(false);
     const [lightboxOpen, setLightboxOpen] = useState(false);
-    const [prevIndex, setPrevIndex] = useState(0);
+    const videoRef = useRef<HTMLVideoElement>(null);
 
     const stripRef = useRef<HTMLDivElement>(null);
     const { zoom, onMove, onLeave } = useZoom();
 
     // Clamp activeIndex
     useEffect(() => {
-        if (activeIndex >= images.length && images.length > 0) {
+        if (activeIndex >= media.length && media.length > 0) {
             setActiveIndex(0);
         }
-    }, [images.length, activeIndex]);
+    }, [media.length, activeIndex]);
 
-    // Reset loaded state on image change
+    // Reset loaded state on media change
     useEffect(() => {
         setImageLoaded(false);
-        setPrevIndex(activeIndex);
     }, [activeIndex]);
+
+    useEffect(() => {
+        const item = media[activeIndex];
+        if (item?.type !== "video") {
+            videoRef.current?.pause();
+        }
+    }, [activeIndex, media]);
 
     // Scroll active thumbnail into view
     useEffect(() => {
@@ -580,19 +617,22 @@ export function ImageGallery({
         if (lightboxOpen) return;
         const handler = (e: KeyboardEvent) => {
             if (e.key === "ArrowLeft") setActiveIndex((i) => Math.max(0, i - 1));
-            if (e.key === "ArrowRight") setActiveIndex((i) => Math.min(images.length - 1, i + 1));
+            if (e.key === "ArrowRight") setActiveIndex((i) => Math.min(media.length - 1, i + 1));
         };
         window.addEventListener("keydown", handler);
         return () => window.removeEventListener("keydown", handler);
-    }, [images.length, lightboxOpen]);
+    }, [media.length, lightboxOpen]);
 
     const prev = useCallback(() => setActiveIndex((i) => Math.max(0, i - 1)), []);
-    const next = useCallback(() => setActiveIndex((i) => Math.min(images.length - 1, i + 1)), [images.length]);
+    const next = useCallback(() => setActiveIndex((i) => Math.min(media.length - 1, i + 1)), [media.length]);
 
     const { onTouchStart, onTouchEnd } = useSwipe(next, prev);
 
-    const mainImage = images[activeIndex] ?? null;
-    const hasMultiple = images.length > 1;
+    const activeMedia = media[activeIndex] ?? null;
+    const mainImage = activeMedia?.type === "image" ? activeMedia.url : null;
+    const mainVideo = activeMedia?.type === "video" ? activeMedia : null;
+    const hasMultiple = media.length > 1;
+    const showZoom = activeMedia?.type === "image";
 
     const handleMouseEnter = useCallback(() => {
         setZoomHintDismissed(true);
