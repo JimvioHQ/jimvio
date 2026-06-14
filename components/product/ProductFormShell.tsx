@@ -20,6 +20,11 @@ import { CloudinaryImage } from "@/components/ui/cloudinary-image";
 import { cn } from "@/lib/utils";
 import { StyledTextarea } from "../ui/textarea";
 import { Button } from "../ui/button";
+import {
+    getAdminProductForEdit,
+    updateAdminProduct,
+    type AdminProductUpdateInput,
+} from "@/lib/actions/admin-products";
 
 /* ── helpers ── */
 function slugify(text: string) {
@@ -1398,12 +1403,18 @@ export function ProductFormShell({
     title,
     isEdit,
     productId,
+    mode = "vendor",
+    returnHref,
 }: {
     title: string;
     isEdit: boolean;
     productId?: string;
+    mode?: "vendor" | "admin";
+    returnHref?: string;
 }) {
     const router = useRouter();
+    const isAdminMode = mode === "admin";
+    const listHref = returnHref ?? (isAdminMode ? "/admin/products" : "/dashboard/products");
     const [isPending, startTransition] = useTransition();
     const [step, setStep] = useState(1);
     const [vendor, setVendor] = useState<any>(null);
@@ -1433,9 +1444,12 @@ export function ProductFormShell({
             const supabase = createClient();
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) { router.push("/login"); return; }
-            const { data: vends } = await supabase.from("vendors").select("*").eq("user_id", user.id);
-            if (!vends || vends.length === 0) { router.push("/dashboard/activate/vendor"); return; }
-            setVendor(vends[0]);
+
+            if (!isAdminMode) {
+                const { data: vends } = await supabase.from("vendors").select("*").eq("user_id", user.id);
+                if (!vends || vends.length === 0) { router.push("/dashboard/activate/vendor"); return; }
+                setVendor(vends[0]);
+            }
 
             const { data: cats } = await supabase
                 .from("product_categories")
@@ -1445,15 +1459,41 @@ export function ProductFormShell({
             setCategories(cats ?? []);
 
             if (isEdit && productId) {
-                const { data: product, error: pErr } = await supabase
-                    .from("products")
-                    .select("*")
-                    .eq("id", productId)
-                    .single();
-                if (pErr || !product) { setError("Product not found."); setLoading(false); return; }
+                let product: Record<string, unknown> | null = null;
 
-                const savedType: string = product.product_type ?? "digital";
+                if (isAdminMode) {
+                    const result = await getAdminProductForEdit(productId);
+                    if (!result.success) {
+                        setError("error" in result ? result.error : "Product not found.");
+                        setLoading(false);
+                        return;
+                    }
+                    if (!result.data?.product) {
+                        setError("Product not found.");
+                        setLoading(false);
+                        return;
+                    }
+                    product = result.data.product;
+                } else {
+                    const { data, error: pErr } = await supabase
+                        .from("products")
+                        .select("*")
+                        .eq("id", productId)
+                        .single();
+                    if (pErr || !data) { setError("Product not found."); setLoading(false); return; }
+                    product = data;
+                }
+
+                if (!product) {
+                    setError("Product not found.");
+                    setLoading(false);
+                    return;
+                }
+
+                const savedType: string = (product.product_type as string) ?? "digital";
                 const isDigitalBucket = DIGITAL_ENUM_VALUES.has(savedType);
+                const savedPricingType =
+                    product.pricing_type === "recurring" ? "recurring" : "one_time";
 
                 const uiSubtype =
                     savedType !== "physical" &&
@@ -1463,43 +1503,41 @@ export function ProductFormShell({
                         : "";
 
                 setForm({
-                    name: product.name ?? "",
-                    slug: product.slug ?? "",
-                    short_description: product.short_description ?? "",
-                    description: product.description ?? "",
+                    name: (product.name as string) ?? "",
+                    slug: (product.slug as string) ?? "",
+                    short_description: (product.short_description as string) ?? "",
+                    description: (product.description as string) ?? "",
                     product_type: isDigitalBucket ? "digital" : "physical",
                     product_subtype: uiSubtype,
                     price: String(product.price ?? "0"),
-                    currency: product.currency ?? "USD",
-                    category_id: product.category_id ?? "",
+                    currency: (product.currency as string) ?? "USD",
+                    category_id: (product.category_id as string) ?? "",
                     is_digital: isDigitalBucket,
-                    pricing_type: isDigitalBucket
-                        ? (product.pricing_type ?? "one_time")
-                        : "one_time",
-                    billing_period: product.billing_period ?? (isDigitalBucket && product.pricing_type === "recurring" ? "monthly" : ""),
-                    digital_file_url: product.digital_file_url ?? "",
-                    track_inventory: product.track_inventory ?? false,
+                    pricing_type: isDigitalBucket ? savedPricingType : "one_time",
+                    billing_period: (product.billing_period as string) ?? (isDigitalBucket && savedPricingType === "recurring" ? "monthly" : ""),
+                    digital_file_url: (product.digital_file_url as string) ?? "",
+                    track_inventory: (product.track_inventory as boolean) ?? false,
                     inventory_quantity: String(product.inventory_quantity ?? "0"),
-                    affiliate_enabled: product.affiliate_enabled ?? false,
+                    affiliate_enabled: (product.affiliate_enabled as boolean) ?? false,
                     affiliate_commission_rate: String(product.affiliate_commission_rate ?? "10"),
-                    is_featured: product.is_featured ?? false,
-                    button_text: product.button_text ?? "Buy Now",
-                    tags: Array.isArray(product.tags) ? product.tags.join(", ") : (product.tags ?? ""),
+                    is_featured: (product.is_featured as boolean) ?? false,
+                    button_text: (product.button_text as string) ?? "Buy Now",
+                    tags: Array.isArray(product.tags) ? product.tags.join(", ") : ((product.tags as string) ?? ""),
                     weight: String(product.weight ?? ""),
                     dimensions: typeof product.dimensions === "string"
                         ? product.dimensions
                         : (product.dimensions ? JSON.stringify(product.dimensions) : ""),
-                    images: Array.isArray(product.images) ? product.images : [],
-                    show_author: product.show_author ?? true,
-                    show_reviews: product.show_reviews ?? true,
-                    enable_discussions: product.enable_discussions ?? false,
-                    status: product.status ?? "active",
+                    images: Array.isArray(product.images) ? product.images as string[] : [],
+                    show_author: (product.show_author as boolean) ?? true,
+                    show_reviews: (product.show_reviews as boolean) ?? true,
+                    enable_discussions: (product.enable_discussions as boolean) ?? false,
+                    status: ((product.status as FormState["status"]) ?? "active"),
                 });
             }
             setLoading(false);
         }
         load();
-    }, [router, isEdit, productId]);
+    }, [router, isEdit, productId, isAdminMode]);
 
     function handleChange(field: string, value: unknown) {
         setForm(prev => {
@@ -1556,7 +1594,8 @@ export function ProductFormShell({
 
     async function handleSubmit() {
         setError(null);
-        if (!vendor || !form.name.trim()) { setError("Product name is required."); return; }
+        if (!isAdminMode && !vendor) { setError("Vendor account required."); return; }
+        if (!form.name.trim()) { setError("Product name is required."); return; }
         const price = parseFloat(form.price) || 0;
         if (price < 0) { setError("Price cannot be negative."); return; }
 
@@ -1574,14 +1613,14 @@ export function ProductFormShell({
             const billingPeriod =
                 isDigital && form.pricing_type === "recurring" ? form.billing_period : null;
 
-            const payload: any = {
+            const payload: AdminProductUpdateInput = {
                 name: form.name,
                 slug: form.slug || slugify(form.name),
                 short_description: form.short_description || null,
                 description: form.description || null,
                 product_type: resolvedProductType,
                 status: form.status,
-                is_active: true,
+                is_active: form.status === "active",
                 price,
                 currency: form.currency,
                 pricing_type: isDigital ? form.pricing_type : "one_time",
@@ -1607,8 +1646,18 @@ export function ProductFormShell({
                 show_author: form.show_author,
                 show_reviews: form.show_reviews,
                 enable_discussions: form.enable_discussions,
-                source_metadata: {},
             };
+
+            if (isAdminMode && isEdit && productId) {
+                const result = await updateAdminProduct(productId, payload);
+                if (!result.success) {
+                    setError("error" in result ? result.error : "Failed to save product.");
+                    return;
+                }
+                setSuccess(true);
+                setTimeout(() => router.push(listHref), 1800);
+                return;
+            }
 
             let insertErr: any = null;
 
@@ -1629,7 +1678,7 @@ export function ProductFormShell({
             }
 
             if (insertErr) { setError(insertErr.message); }
-            else { setSuccess(true); setTimeout(() => router.push("/dashboard/products"), 1800); }
+            else { setSuccess(true); setTimeout(() => router.push(listHref), 1800); }
         });
     }
 
@@ -1650,7 +1699,9 @@ export function ProductFormShell({
                 <p className="text-base font-bold" style={{ color: "var(--color-text-primary)" }}>
                     {isEdit ? "Changes saved!" : "Product published!"}
                 </p>
-                <p className="text-sm mt-1" style={{ color: "var(--color-text-muted)" }}>Redirecting to your products…</p>
+                <p className="text-sm mt-1" style={{ color: "var(--color-text-muted)" }}>
+                    Redirecting to {isAdminMode ? "products…" : "your products…"}
+                </p>
             </div>
         </div>
     );
@@ -1678,7 +1729,7 @@ export function ProductFormShell({
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 h-[60px] flex items-center gap-4">
                     <div className="flex items-center gap-3 flex-1 min-w-0">
                         <NextLink
-                            href="/dashboard/products"
+                            href={listHref}
                             className="w-8 h-8 flex items-center justify-center transition-all"
                             style={{
                                 borderRadius: "var(--radius-sm)",

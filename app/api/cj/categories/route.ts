@@ -1,5 +1,6 @@
 
 import { getServiceClient, getCJToken, cjFetch } from "@/lib/cj/client";
+import { requireAdmin } from "@/lib/auth/api-helpers";
 
 interface CJCategoryThird {
     categoryId: string;
@@ -21,6 +22,9 @@ interface CategoryResponse {
 }
 
 export async function GET(): Promise<Response> {
+    const auth = await requireAdmin();
+    if ("error" in auth && auth.error) return auth.error;
+
     try {
         const supabase = getServiceClient();
         const token = await getCJToken(supabase);

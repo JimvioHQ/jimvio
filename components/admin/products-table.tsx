@@ -859,7 +859,8 @@ import { toast } from "sonner";
 import { MoveProductDialog } from "@/components/admin/MoveProductDialog";
 import { EmptyState, Th, StatusPill } from "@/components/ui/admin";
 import { formatAdminMoney } from "@/lib/admin/format-money";
-import { SquarePen, Trash2, ExternalLink, Star, ChevronLeft, ChevronRight, ChevronDown, Package, AlertCircle } from "lucide-react";
+import { publishAdminProduct } from "@/lib/actions/admin-products";
+import { SquarePen, Trash2, ExternalLink, Star, ChevronLeft, ChevronRight, ChevronDown, Package, AlertCircle, Rocket } from "lucide-react";
 
 const SOURCE_CONFIG: Record<string, { label: string; bg: string; text: string }> = {
     cj: { label: "CJ", bg: "rgba(168,85,247,0.1)", text: "#9333ea" },
@@ -1081,6 +1082,48 @@ function BulkActionBar({ count, onClear, onMoveSuccess, onDeleteRequest, selecte
     );
 }
 
+function PublishDraftButton({
+    productId,
+    status,
+    images,
+}: {
+    productId: string;
+    status?: string;
+    images?: unknown;
+}) {
+    const router = useRouter();
+    const [loading, setLoading] = useState(false);
+    const imgs = parseImages(images);
+
+    if ((status ?? "draft") !== "draft") return null;
+
+    return (
+        <button
+            onClick={async () => {
+                if (imgs.length === 0) {
+                    toast.error("Add images before publishing");
+                    return;
+                }
+                if (!confirm("Publish this product to the storefront?")) return;
+                setLoading(true);
+                const result = await publishAdminProduct(productId);
+                if (result.success) {
+                    toast.success("Product published");
+                    router.refresh();
+                } else {
+                    toast.error(result.error ?? "Publish failed");
+                }
+                setLoading(false);
+            }}
+            disabled={loading || imgs.length === 0}
+            title={imgs.length === 0 ? "No images" : "Publish draft"}
+            className="h-7 px-2 rounded-md border border-emerald-200 bg-emerald-50 text-emerald-700 text-[11px] font-semibold inline-flex items-center gap-1 hover:bg-emerald-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+            {loading ? <span className="animate-pulse">…</span> : <><Rocket size={11} /> Publish</>}
+        </button>
+    );
+}
+
 function TableRow({ p, selected, onSelect, onDeleteRequest }: {
     p: any;
     selected: boolean;
@@ -1167,6 +1210,7 @@ function TableRow({ p, selected, onSelect, onDeleteRequest }: {
 
             <td className="px-3 py-3 pr-5 text-right">
                 <div className="inline-flex items-center gap-1.5">
+                    <PublishDraftButton productId={p.id} status={p.status} images={p.images} />
                     <Link
                         href={`/marketplace/${p.slug}`}
                         target="_blank"

@@ -805,12 +805,13 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import {
   Search, SlidersHorizontal, X, Check, Loader2, Package,
   ChevronLeft, ChevronRight, Play, Truck, ShieldCheck, AlertCircle,
   Star, Flame, Zap, Eye, TrendingUp, Award, Clock, MapPin,
   RotateCcw, Shield, Users, Activity, BadgeCheck, Timer,
-  ChevronDown, Info, Heart, ExternalLink, Sparkles,
+  ChevronDown, Info, Heart, ExternalLink, Sparkles, SquarePen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -991,12 +992,25 @@ export default function CJProductBrowser() {
   const [categories, setCategories] = useState<CJCategory[]>([]);
   const [filtersOpen, setFiltersOpen] = useState(true);
   const [importingPid, setImportingPid] = useState<string | null>(null);
-  const [importedPids, setImportedPids] = useState<Set<string>>(new Set());
+  const [importedMap, setImportedMap] = useState<Record<string, string>>({});
+  const [selectedPids, setSelectedPids] = useState<Set<string>>(new Set());
+  const [bulkImporting, setBulkImporting] = useState(false);
+  const [directPid, setDirectPid] = useState("");
   const [selectedProduct, setSelectedProduct] = useState<CJProduct | null>(null);
   const [recentlyViewed, setRecentlyViewed] = useState<CJProduct[]>([]);
   const searchRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => { fetchCJCategories().then(setCategories); }, []);
+  useEffect(() => {
+    fetchCJCategories().then(setCategories);
+    fetch("/api/admin/cj/imported")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data?.map && typeof data.map === "object") {
+          setImportedMap(data.map);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const load = useCallback(async (f: Filters, page: number) => {
     setLoading(true); setError("");
@@ -1017,7 +1031,7 @@ export default function CJProductBrowser() {
   const resetFilters = () => { setPending(DEFAULT_FILTERS); setFilters(DEFAULT_FILTERS); load(DEFAULT_FILTERS, 1); };
   const goPage = (p: number) => load(filters, p);
 
-  const importProduct = async (pid: string) => {
+  const importProduct = async (pid: string, resync = false) => {
     setImportingPid(pid);
     try {
       const res = await fetch("/api/cj/import", {
@@ -1026,13 +1040,72 @@ export default function CJProductBrowser() {
       });
       const json = await res.json();
       if (!json.success) throw new Error(json.error);
-      setImportedPids((prev) => new Set([...prev, pid]));
-      toast.success("Product imported to Jimvio");
+      if (json.productId) {
+        setImportedMap((prev) => ({ ...prev, [pid]: json.productId }));
+      }
+      toast.success(resync ? "Product re-synced from CJ" : "Product imported as draft", {
+        action: json.productId ? {
+          label: "Edit",
+          onClick: () => { window.location.href = `/admin/products/${json.productId}/edit`; },
+        } : undefined,
+      });
     } catch (e) {
       toast.error(`Import failed: ${(e as Error).message}`);
     } finally {
       setImportingPid(null);
     }
+  };
+
+  const importDirectPid = async () => {
+    const pid = directPid.trim();
+    if (!pid) {
+      toast.error("Enter a CJ product ID (PID)");
+      return;
+    }
+    await importProduct(pid);
+    setDirectPid("");
+  };
+
+  const importSelected = async () => {
+    const pids = Array.from(selectedPids);
+    if (pids.length === 0) {
+      toast.error("Select products to import");
+      return;
+    }
+    setBulkImporting(true);
+    let ok = 0;
+    let failed = 0;
+    for (const pid of pids) {
+      if (importedMap[pid]) continue;
+      try {
+        const res = await fetch("/api/cj/import", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pid }),
+        });
+        const json = await res.json();
+        if (!json.success) throw new Error(json.error);
+        if (json.productId) {
+          setImportedMap((prev) => ({ ...prev, [pid]: json.productId }));
+        }
+        ok += 1;
+      } catch {
+        failed += 1;
+      }
+    }
+    setBulkImporting(false);
+    setSelectedPids(new Set());
+    if (ok > 0) toast.success(`Imported ${ok} product${ok === 1 ? "" : "s"} as drafts`);
+    if (failed > 0) toast.error(`${failed} import${failed === 1 ? "" : "s"} failed`);
+  };
+
+  const toggleSelect = (pid: string) => {
+    setSelectedPids((prev) => {
+      const next = new Set(prev);
+      if (next.has(pid)) next.delete(pid);
+      else next.add(pid);
+      return next;
+    });
   };
 
   const openProduct = (product: CJProduct) => {
@@ -1083,7 +1156,23 @@ export default function CJProductBrowser() {
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Trust strip */}
+            {selectedPids.size > 0 && (
+              <button
+                onClick={importSelected}
+                disabled={bulkImporting}
+                className="inline-flex items-center gap-2 h-10 px-4 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold transition-colors disabled:opacity-60"
+              >
+                {bulkImporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Package className="h-4 w-4" />}
+                Import {selectedPids.size} selected
+              </button>
+            )}
+            <Link
+              href="/admin/products?status=draft&source=cj"
+              className="hidden sm:inline-flex items-center gap-2 h-10 px-4 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] text-sm font-medium text-[var(--color-text-primary)] hover:bg-[var(--color-surface-secondary)] transition-colors"
+            >
+              <SquarePen className="h-4 w-4" />
+              Review drafts
+            </Link>
             <div className="hidden lg:flex items-center gap-3 text-[11px] text-[var(--color-text-muted)] border border-[var(--color-border)] rounded-xl px-3 py-2 bg-[var(--color-surface)]">
               <span className="flex items-center gap-1"><Shield className="h-3 w-3 text-emerald-500" /> Buyer protection</span>
               <span className="text-[var(--color-border)]">·</span>
@@ -1108,6 +1197,29 @@ export default function CJProductBrowser() {
               )}
             </button>
           </div>
+        </div>
+
+        {/* Direct PID import */}
+        <div className="mb-6 flex flex-col sm:flex-row gap-2">
+          <div className="relative flex-1">
+            <Package className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--color-text-muted)]" />
+            <input
+              type="text"
+              value={directPid}
+              onChange={(e) => setDirectPid(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && importDirectPid()}
+              placeholder="Import by CJ product ID (PID)…"
+              className={inputCls + " pl-10"}
+            />
+          </div>
+          <button
+            onClick={importDirectPid}
+            disabled={!!importingPid || !directPid.trim()}
+            className="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-xl bg-[var(--color-text-primary)] text-[var(--color-surface)] text-sm font-semibold hover:bg-orange-600 transition-colors disabled:opacity-50"
+          >
+            {importingPid === directPid.trim() ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+            Import by PID
+          </button>
         </div>
 
         {/* ── Layout ── */}
@@ -1325,9 +1437,13 @@ export default function CJProductBrowser() {
                     <ProductCard
                       key={product.pid}
                       product={product}
-                      imported={importedPids.has(product.pid)}
+                      imported={Boolean(importedMap[product.pid])}
+                      importedProductId={importedMap[product.pid]}
                       importing={importingPid === product.pid}
+                      selected={selectedPids.has(product.pid)}
+                      onToggleSelect={() => toggleSelect(product.pid)}
                       onImport={() => importProduct(product.pid)}
+                      onResync={() => importProduct(product.pid, true)}
                       onOpen={() => openProduct(product)}
                       rank={idx < 3 ? idx + 1 : undefined}
                     />
@@ -1403,9 +1519,11 @@ export default function CJProductBrowser() {
       {selectedProduct && (
         <ProductDetailModal
           product={selectedProduct}
-          imported={importedPids.has(selectedProduct.pid)}
+          imported={Boolean(importedMap[selectedProduct.pid])}
+          importedProductId={importedMap[selectedProduct.pid]}
           importing={importingPid === selectedProduct.pid}
           onImport={() => importProduct(selectedProduct.pid)}
+          onResync={() => importProduct(selectedProduct.pid, true)}
           onClose={() => setSelectedProduct(null)}
         />
       )}
@@ -1416,12 +1534,16 @@ export default function CJProductBrowser() {
 // ─── ProductCard ──────────────────────────────────────────────────────────────
 
 function ProductCard({
-  product, imported, importing, onImport, onOpen, rank,
+  product, imported, importedProductId, importing, selected, onToggleSelect, onImport, onResync, onOpen, rank,
 }: {
   product: CJProduct;
   imported: boolean;
+  importedProductId?: string;
   importing: boolean;
+  selected: boolean;
+  onToggleSelect: () => void;
   onImport: () => void;
+  onResync: () => void;
   onOpen: () => void;
   rank?: number;
 }) {
@@ -1444,10 +1566,25 @@ function ProductCard({
       "group relative flex flex-col h-full rounded-2xl overflow-hidden",
       "bg-[var(--color-surface)] transition-all duration-300 ease-out",
       "hover:-translate-y-0.5",
-      imported
+      selected
+        ? "ring-2 ring-orange-500/60"
+        : imported
         ? "ring-1 ring-emerald-500/40 shadow-[0_8px_24px_-12px_rgba(16,185,129,0.3)]"
         : "ring-1 ring-[var(--color-border)] hover:shadow-[0_12px_32px_-16px_rgba(0,0,0,0.2)]"
     )}>
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); onToggleSelect(); }}
+        className={cn(
+          "absolute top-2.5 left-2.5 z-10 h-5 w-5 rounded-md border flex items-center justify-center transition-colors",
+          selected
+            ? "bg-orange-500 border-orange-500 text-white"
+            : "bg-white/90 border-[var(--color-border)] text-transparent hover:border-orange-400"
+        )}
+        aria-label={selected ? "Deselect product" : "Select product"}
+      >
+        <Check className="h-3 w-3" strokeWidth={3} />
+      </button>
 
       {/* Image */}
       <div className="relative aspect-square bg-[var(--color-surface-secondary)] overflow-hidden cursor-pointer" onClick={onOpen}>
@@ -1467,7 +1604,7 @@ function ProductCard({
         {/* Rank badge */}
         {rank && (
           <span className={cn(
-            "absolute top-2.5 left-2.5 h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-black text-white shadow-sm",
+            "absolute top-2.5 right-2.5 h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-black text-white shadow-sm",
             rank === 1 ? "bg-amber-500" : rank === 2 ? "bg-slate-400" : "bg-amber-700/80"
           )}>
             {rank}
@@ -1575,6 +1712,24 @@ function ProductCard({
             </span>
             <span className="text-[10px] text-[var(--color-text-muted)]">USD</span>
           </div>
+          {imported && importedProductId ? (
+            <div className="flex items-center gap-1">
+              <button
+                onClick={onResync}
+                disabled={importing}
+                title="Re-sync from CJ"
+                className="h-8 w-8 rounded-lg border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] inline-flex items-center justify-center"
+              >
+                {importing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5" />}
+              </button>
+              <Link
+                href={`/admin/products/${importedProductId}/edit`}
+                className="h-8 px-2.5 rounded-lg text-[11px] font-medium bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 inline-flex items-center gap-1"
+              >
+                <SquarePen className="h-3 w-3" /> Edit
+              </Link>
+            </div>
+          ) : (
           <button
             onClick={onImport}
             disabled={imported || importing}
@@ -1593,6 +1748,7 @@ function ProductCard({
               <span className="inline-flex items-center gap-1"><Check className="h-3 w-3" strokeWidth={2.5} /> Added</span>
             ) : "Import"}
           </button>
+          )}
         </div>
       </div>
     </article>
@@ -1602,12 +1758,14 @@ function ProductCard({
 // ─── Product Detail Modal ─────────────────────────────────────────────────────
 
 function ProductDetailModal({
-  product, imported, importing, onImport, onClose,
+  product, imported, importedProductId, importing, onImport, onResync, onClose,
 }: {
   product: CJProduct;
   imported: boolean;
+  importedProductId?: string;
   importing: boolean;
   onImport: () => void;
+  onResync: () => void;
   onClose: () => void;
 }) {
   const [selectedVariant, setSelectedVariant] = useState<CJVariant | null>(
@@ -1935,6 +2093,24 @@ function ProductDetailModal({
 
               {/* Import CTA */}
               <div className="flex items-center gap-3 pt-2 pb-1">
+                {imported && importedProductId ? (
+                  <>
+                    <Link
+                      href={`/admin/products/${importedProductId}/edit`}
+                      className="flex-1 h-11 rounded-xl text-[14px] font-semibold inline-flex items-center justify-center gap-2 bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/30"
+                    >
+                      <SquarePen className="h-4 w-4" /> Edit in admin
+                    </Link>
+                    <button
+                      onClick={onResync}
+                      disabled={importing}
+                      className="h-11 px-4 rounded-xl border border-[var(--color-border)] text-sm font-medium inline-flex items-center gap-2 hover:bg-[var(--color-surface-secondary)]"
+                    >
+                      {importing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}
+                      Re-sync
+                    </button>
+                  </>
+                ) : (
                 <button
                   onClick={onImport}
                   disabled={imported || importing}
@@ -1951,8 +2127,9 @@ function ProductDetailModal({
                 >
                   {importing ? <Loader2 className="h-4 w-4 animate-spin" />
                     : imported ? <><Check className="h-4 w-4" strokeWidth={2.5} /> Imported to store</>
-                    : <><Sparkles className="h-4 w-4" /> Import to Jimvio</>}
+                    : <><Sparkles className="h-4 w-4" /> Import as draft</>}
                 </button>
+                )}
                 <button className="h-11 w-11 flex items-center justify-center rounded-xl border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-red-500 hover:border-red-200 transition-colors">
                   <Heart className="h-4 w-4" />
                 </button>

@@ -1,6 +1,7 @@
 
 import { NextRequest } from "next/server";
 import { getServiceClient, getCJToken, cjFetch } from "@/lib/cj/client";
+import { requireAdmin } from "@/lib/auth/api-helpers";
 
 // ─── Types matching the component's CJProduct ─────────────────────────
 
@@ -135,6 +136,9 @@ function mapProduct(p: ListV2Product) {
 // ─── Route handler ────────────────────────────────────────────────────
 
 export async function GET(req: NextRequest): Promise<Response> {
+    const auth = await requireAdmin();
+    if ("error" in auth && auth.error) return auth.error;
+
     try {
         const supabase = getServiceClient();
         const token = await getCJToken(supabase);

@@ -15,6 +15,7 @@ import { subscribeCJProducts } from "@/lib/cj/webhoo-subscription";
 import { syncProductShipping } from "@/lib/cj/sync-shipping";
 import { mergeProductVideoUrls, normalizeCjVideoUrls } from "@/lib/cj/product-videos";
 import { normalizeCjVid } from "@/lib/cj/variant-vid";
+import { requireAdmin } from "@/lib/auth/api-helpers";
 
 
 interface CJDetailVariant {
@@ -133,6 +134,9 @@ function detailVariantToCJVariant(
 // ── Route Handler ─────────────────────────────────────────────────────────────
 
 export async function POST(req: Request): Promise<Response> {
+    const auth = await requireAdmin();
+    if ("error" in auth && auth.error) return auth.error;
+
     let pid: string | undefined;
     try {
         const body = (await req.json()) as { pid?: string };
