@@ -13,10 +13,16 @@ import {
 } from "@/lib/actions/cj_product";
 import { subscribeCJProducts } from "@/lib/cj/webhoo-subscription";
 import { syncProductShipping } from "@/lib/cj/sync-shipping";
+import {
+    fetchCJVariantStockMap,
+    syncProductInventoryFromVariants,
+} from "@/lib/cj/sync-inventory";
 import { mergeProductVideoUrls, normalizeCjVideoUrls } from "@/lib/cj/product-videos";
 import { normalizeCjVid } from "@/lib/cj/variant-vid";
 import { requireAdmin } from "@/lib/auth/api-helpers";
 
+export const runtime = "nodejs";
+export const maxDuration = 120;
 
 interface CJDetailVariant {
     vid: string;
@@ -207,11 +213,24 @@ export async function POST(req: Request): Promise<Response> {
 
         // ── Step 4: Upsert variants ───────────────────────────────────────
         if (detail.data.variants?.length > 0) {
+            const { stock: stockByVid, failed: stockFailed } = await fetchCJVariantStockMap(
+                token,
+                detail.data.variants.map((v) => v.vid)
+            );
+
             const variantRows = await Promise.all(
                 detail.data.variants.map(async (v) => {
                     const cjVariant = detailVariantToCJVariant(v, detail.data.productSku);
+                    const hasStock = stockByVid.has(cjVariant.vid);
+                    const stock = hasStock ? (stockByVid.get(cjVariant.vid) ?? 0) : 0;
                     return {
-                        ...(await mapCJVariantToJimvio(cjVariant, productId, optionKeys)),
+                        ...(await mapCJVariantToJimvio(
+                            cjVariant,
+                            productId,
+                            optionKeys,
+                            stock
+                        )),
+                        skipInventoryUpdate: !hasStock,
                         name:
                             v.variantNameEn ||
                             v.variantName ||
@@ -242,12 +261,17 @@ export async function POST(req: Request): Promise<Response> {
                 );
             }
 
+            const productStock = await syncProductInventoryFromVariants(supabase, productId);
+
             console.log(
-                `[CJ import] Variants upserted=${upserted} skipped=${skipped} product=${productId}`
+                `[CJ import] Variants upserted=${upserted} skipped=${skipped} product=${productId} totalStock=${productStock} stockFetched=${stockByVid.size}/${detail.data.variants.length}` +
+                    (stockFailed.length ? ` stockFailed=${stockFailed.length}` : "")
             );
 
             // ✅ Fix: subscribe is now outside the variant block
             // so it always runs regardless of variant count
+        } else {
+            await syncProductInventoryFromVariants(supabase, productId);
         }
 
         // ✅ Fix: moved subscribe outside the variants block

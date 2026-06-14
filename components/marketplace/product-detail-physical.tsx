@@ -21,6 +21,7 @@ import {
   VariantSelector,
   type ProductVariant,
 } from "@/components/marketplace/variant-selector";
+import { filterStorefrontVariants } from "@/lib/products/storefront-variants";
 import { useCurrency } from "@/context/CurrencyContext";
 import {
   ProductBreadcrumb, SaveShareBar,
@@ -947,14 +948,12 @@ function VariantsTable({ variants, currency, showDiscount }: { variants: Product
           {variants.map((v, i) => {
             const words = (v.name ?? "").split(" ");
             const label = words.slice(prefixLen).join(" ").trim() || v.name;
-            const isOos = v.inventory_quantity <= 0;
             return (
-              <tr key={v.id} style={{ background: i % 2 === 0 ? "var(--color-surface)" : "var(--color-surface-secondary)", borderBottom: i < variants.length - 1 ? "1px solid var(--color-border)" : "none", opacity: isOos ? 0.5 : 1 }}>
+              <tr key={v.id} style={{ background: i % 2 === 0 ? "var(--color-surface)" : "var(--color-surface-secondary)", borderBottom: i < variants.length - 1 ? "1px solid var(--color-border)" : "none" }}>
                 <td className="px-4 py-3 text-[13px] font-medium text-[var(--color-text-primary)]">
                   <div className="flex items-center gap-2">
                     {v.image_url && <img src={v.image_url} className="h-7 w-7 rounded object-cover border border-[var(--color-border)]" alt="" />}
                     {label}
-                    {isOos && <span className="text-[9px] px-1.5 py-0.5 rounded bg-red-500/10 text-red-500 font-semibold">OOS</span>}
                   </div>
                 </td>
                 <td className="px-4 py-3 text-right text-[13px] font-semibold text-[var(--color-text-primary)]">
@@ -962,7 +961,7 @@ function VariantsTable({ variants, currency, showDiscount }: { variants: Product
                   {showDiscount && v.compare_at_price && v.compare_at_price > v.price && <span className="text-[10px] text-[var(--color-text-muted)] line-through ml-1">{currency} {v.compare_at_price.toLocaleString()}</span>}
                 </td>
                 <td className="px-4 py-3 text-right">
-                  {isOos ? <span className="text-[11px] font-semibold text-red-500">Out of stock</span> : v.inventory_quantity <= 5 ? <span className="text-[11px] font-semibold text-amber-500">{v.inventory_quantity} left</span> : <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">In stock</span>}
+                  {v.inventory_quantity <= 5 ? <span className="text-[11px] font-semibold text-amber-500">{v.inventory_quantity} left</span> : <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">In stock</span>}
                 </td>
               </tr>
             );
@@ -1043,10 +1042,30 @@ export function PhysicalProductDetail({
   const title = useMemo(() => getCJTitle({ productNameEn: product.name, productName: null }) || product.name, [product.name]);
   const isCJ = product.source === "cj";
 
-  const variants: ProductVariant[] = useMemo(() => (product.product_variants ?? []).filter((v: any) => v.is_active).map((v: any) => ({ id: v.id, name: v.name ?? "", price: Number(v.price), compare_at_price: v.compare_at_price ? Number(v.compare_at_price) : null, inventory_quantity: v.inventory_quantity ?? 0, image_url: v.image_url ?? null, options: v.options ?? null, is_active: Boolean(v.is_active), sku: v.sku ?? null })), [product.product_variants]);
+  const trackInventory = Boolean(product.track_inventory);
+
+  const variants: ProductVariant[] = useMemo(
+    () =>
+      filterStorefrontVariants(product.product_variants ?? [], trackInventory)
+        .map((v: any) => ({
+          id: v.id,
+          name: v.name ?? "",
+          price: Number(v.price),
+          compare_at_price: v.compare_at_price ? Number(v.compare_at_price) : null,
+          inventory_quantity: v.inventory_quantity ?? 0,
+          image_url: v.image_url ?? null,
+          options: v.options ?? null,
+          is_active: Boolean(v.is_active),
+          sku: v.sku ?? null,
+        })),
+    [product.product_variants, trackInventory]
+  );
 
   const hasVariants = variants.length > 0;
-  const defaultVariant = useMemo(() => variants.find((v) => v.inventory_quantity > 0) ?? variants[0] ?? null, [variants]);
+  const defaultVariant = useMemo(
+    () => variants[0] ?? null,
+    [variants]
+  );
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(defaultVariant);
   const buyBoxRef = useRef<HTMLDivElement>(null);
   const handleVariantSelect = useCallback((v: ProductVariant) => setSelectedVariant(v), []);

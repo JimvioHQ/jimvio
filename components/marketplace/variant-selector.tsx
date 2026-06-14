@@ -254,13 +254,11 @@ function buildAvailabilityMap(
         map[key] = {};
         for (const val of vals) {
             const matches = parsed.filter((v) => v.axes[key] === val);
-            const available = matches.some((v) => v.inventory_quantity > 0);
-            const inCombo = matches.some(
-                (v) =>
-                    v.inventory_quantity > 0 &&
-                    Object.entries(currentSelections)
-                        .filter(([k]) => k !== key)
-                        .every(([k, s]) => v.axes[k] === s)
+            const available = matches.length > 0;
+            const inCombo = matches.some((v) =>
+                Object.entries(currentSelections)
+                    .filter(([k]) => k !== key)
+                    .every(([k, s]) => v.axes[k] === s)
             );
             map[key][val] = { available, inCombo };
         }
@@ -282,12 +280,7 @@ function resolveVariant(
     const sameAxis = parsed.filter((v) => v.axes[changedKey] === selections[changedKey]);
     const otherKeys = Object.keys(selections).filter((k) => k !== changedKey);
     return (
-        sameAxis.find(
-            (v) =>
-                v.inventory_quantity > 0 &&
-                otherKeys.every((k) => v.axes[k] === selections[k])
-        ) ??
-        sameAxis.find((v) => v.inventory_quantity > 0) ??
+        sameAxis.find((v) => otherKeys.every((k) => v.axes[k] === selections[k])) ??
         sameAxis[0] ??
         null
     );
@@ -310,7 +303,12 @@ export function VariantSelector({
     const { formatMoney } = useCurrency();
     const formatPrice = formatPriceProp ?? ((amount: number) => formatMoney(amount, currency ?? "USD"));
 
-    const parsed = useMemo(() => parseVariants(variants), [variants]);
+    const visibleVariants = useMemo(
+        () => variants.filter((v) => v.is_active),
+        [variants]
+    );
+
+    const parsed = useMemo(() => parseVariants(visibleVariants), [visibleVariants]);
 
     const axisKeys = useMemo(() => {
         const seen = new Set<string>();
@@ -615,8 +613,8 @@ function FlatVariantGroup({
                             value={shortLabel}
                             fullLabel={v.name}
                             selected={v.id === selectedVariantId}
-                            available={v.inventory_quantity > 0}
-                            inCurrentCombo
+                            available={true}
+                            inCurrentCombo={true}
                             priceDelta={hasPriceVariation ? v.price - minPrice : null}
                             formatPrice={formatPrice}
                             tabbable={i === tabbableIdx}

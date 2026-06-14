@@ -447,9 +447,9 @@ export async function mapCJProductToJimvio(
         sku: cjProduct.productSku,
         images,
         category_id: categoryId,
-        track_inventory: false,
-        inventory_quantity: 9999,
-        allow_backorder: true,
+        track_inventory: true,
+        inventory_quantity: 0,
+        allow_backorder: false,
         affiliate_enabled: true,
         affiliate_commission_rate, // ✅ now tier-based, not hardcoded
         affiliate_price,            // ✅ RWF amount per sale
@@ -485,7 +485,8 @@ export async function mapCJProductToJimvio(
 export async function mapCJVariantToJimvio(
     cjVariant: CJVariant,
     productId: string,
-    optionKeys: string[] = []
+    optionKeys: string[] = [],
+    inventoryQuantity = 0
 ) {
     const priceUsd = parseFloat(cjVariant.variantSellPrice);
 
@@ -521,7 +522,7 @@ export async function mapCJVariantToJimvio(
         price,
         affiliate_price,            // ✅ per-variant affiliate earning
         affiliate_commission_rate,  // ✅ per-variant rate
-        inventory_quantity: 9999,
+        inventory_quantity: Math.max(0, inventoryQuantity),
         image_url: cjVariant.variantImage || null,
         is_active: cjVariant.isSell === 1,
 
@@ -547,7 +548,9 @@ export async function mapCJVariantToJimvio(
     };
 }
 
-export type CJVariantRow = Awaited<ReturnType<typeof mapCJVariantToJimvio>>;
+export type CJVariantRow = Awaited<ReturnType<typeof mapCJVariantToJimvio>> & {
+    skipInventoryUpdate?: boolean;
+};
 
 /** Upsert CJ variants by cj_vid, backfilling legacy rows matched by SKU. */
 export async function upsertCJProductVariants(
@@ -570,8 +573,9 @@ export async function upsertCJProductVariants(
         }
 
         incomingVids.add(cjVid);
-        const payload: CJVariantRow = {
-            ...row,
+        const { skipInventoryUpdate, ...rowFields } = row;
+        const payload: Omit<CJVariantRow, "skipInventoryUpdate"> = {
+            ...rowFields,
             product_id: productId,
             cj_vid: cjVid,
             source_metadata: withCjVariantSourceMetadata(
@@ -587,10 +591,15 @@ export async function upsertCJProductVariants(
             .eq("cj_vid", cjVid)
             .maybeSingle();
 
+        const updatePayload =
+            skipInventoryUpdate && existingByVid?.id
+                ? (({ inventory_quantity: _iq, ...rest }) => rest)(payload)
+                : payload;
+
         if (existingByVid?.id) {
             const { error } = await supabase
                 .from("product_variants")
-                .update(payload)
+                .update(updatePayload)
                 .eq("id", existingByVid.id);
 
             if (error) {
@@ -611,7 +620,7 @@ export async function upsertCJProductVariants(
             if (existingBySku?.id) {
                 const { error } = await supabase
                     .from("product_variants")
-                    .update(payload)
+                    .update(updatePayload)
                     .eq("id", existingBySku.id);
 
                 if (error) {

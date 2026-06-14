@@ -13,6 +13,10 @@ import {
     resolveVariantByCjVid,
 } from "@/lib/cj/resolve-variant";
 import { normalizeCjVid } from "@/lib/cj/variant-vid";
+import {
+    sumCJStockRows,
+    syncProductInventoryFromVariants,
+} from "@/lib/cj/sync-inventory";
 import type { CJOrderParams } from "@/lib/cj/webhoo-subscription";
 import { advanceOrderFulfillment } from "@/lib/order-fulfillment/advance-order-status";
 import { mapCjFulfillmentToOrderStatus } from "@/lib/payments/order-payment-utils";
@@ -84,7 +88,8 @@ interface CJStockEntry {
     areaId: string;
     areaEn: string;
     countryCode: string;
-    storageNum: number;
+    storageNum?: number;
+    totalInventoryNum?: number;
 }
 type CJStockParams = Record<string, CJStockEntry[]>;
 
@@ -378,6 +383,8 @@ async function syncStock(
     supabase: SupabaseClient,
     params: CJStockParams
 ): Promise<void> {
+    const productIdsToSync = new Set<string>();
+
     const updates = Object.entries(params).map(async ([vidKey, entries]) => {
         const normalizedVid = normalizeCjVid(vidKey) ?? normalizeCjVid(entries[0]?.vid);
         if (!normalizedVid) {
@@ -385,11 +392,7 @@ async function syncStock(
             return;
         }
 
-        // Sum stock across all warehouses for this variant
-        const totalStock = entries.reduce(
-            (sum, e) => sum + (e.storageNum ?? 0),
-            0
-        );
+        const totalStock = sumCJStockRows(entries);
 
         let variantRow = await resolveVariantByCjVid(supabase, normalizedVid);
 
@@ -398,6 +401,16 @@ async function syncStock(
                 `[CJ webhook] Stock: no variant found for vid=${normalizedVid} — may not be imported yet`
             );
             return;
+        }
+
+        const { data: variantMeta } = await supabase
+            .from("product_variants")
+            .select("product_id")
+            .eq("id", variantRow.id)
+            .maybeSingle();
+
+        if (variantMeta?.product_id) {
+            productIdsToSync.add(variantMeta.product_id as string);
         }
 
         // ✅ Skip if stock hasn't changed — avoids noisy history logs
@@ -420,18 +433,18 @@ async function syncStock(
             return;
         }
 
-        // ✅ tr_variant_stock_change trigger fires automatically on the UPDATE above
-        // and writes to variant_stock_history with change_reason='sync'
-        // No manual insert needed here
-
         console.log(
             `[CJ webhook] Stock updated vid=${normalizedVid} ` +
             `${variantRow.inventory_quantity} → ${totalStock} ` +
-            `(warehouses: ${entries.map((e) => `${e.areaEn}:${e.storageNum}`).join(", ")})`
+            `(warehouses: ${entries.map((e) => `${e.areaEn}:${e.totalInventoryNum ?? e.storageNum ?? 0}`).join(", ")})`
         );
     });
 
     await Promise.allSettled(updates);
+
+    for (const productId of productIdsToSync) {
+        await syncProductInventoryFromVariants(supabase, productId);
+    }
 }
 
 function mapParamsToCJProduct(params: CJProductParams): CJProduct {

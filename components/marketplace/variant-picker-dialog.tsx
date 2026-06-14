@@ -765,6 +765,7 @@ import Image from "next/image";
 import { X, ShoppingCart, AlertCircle, Ruler, TrendingUp } from "lucide-react";
 import { LocalizedPrice } from "@/components/currency/localized-price";
 import { cn, isRenderableImageSrc, getEffectiveCompareAtPrice, getProductDiscountPercent, type ProductDiscountFields } from "@/lib/utils";
+import { filterStorefrontVariants } from "@/lib/products/storefront-variants";
 
 /* ──────────────────────────────────────────────
    Types
@@ -805,6 +806,8 @@ interface Props {
   productAffiliateRate?: number | null;
   productAffiliateEnabled?: boolean;
   productDiscount?: ProductDiscountFields;
+  /** When true (default), zero-stock variants are hidden instead of shown disabled. */
+  trackInventory?: boolean;
 }
 
 /* ──────────────────────────────────────────────
@@ -881,18 +884,15 @@ function unavailableValues(
   axis: string,
   currentSelections: Record<string, string>
 ): Set<string> {
-  const oos = new Set<string>();
+  const unavailable = new Set<string>();
   const axes = deriveAxes(variants);
   const values = axes.get(axis) ?? [];
   for (const val of values) {
     const testSel = { ...currentSelections, [axis]: val };
     const match = resolveVariant(variants, testSel);
-    if (!match) { oos.add(val); continue; }
-    if (match.inventory_quantity !== null && match.inventory_quantity <= 0) {
-      oos.add(val);
-    }
+    if (!match) unavailable.add(val);
   }
-  return oos;
+  return unavailable;
 }
 
 /* ──────────────────────────────────────────────
@@ -1100,32 +1100,32 @@ export function VariantPickerDialog({
   productAffiliateRate,
   productAffiliateEnabled,
   productDiscount,
+  trackInventory = true,
 }: Props) {
   const [mounted, setMounted] = useState(false);
   const [selections, setSelections] = useState<Record<string, string>>({});
 
+  const visibleVariants = useMemo(
+    () => filterStorefrontVariants(variants, trackInventory),
+    [variants, trackInventory]
+  );
+
   useEffect(() => setMounted(true), []);
 
-  const axes = useMemo(() => deriveAxes(variants), [variants]);
+  const axes = useMemo(() => deriveAxes(visibleVariants), [visibleVariants]);
 
-  // initialise selections: first in-stock value per axis
+  // initialise selections: first value per axis
   useEffect(() => {
     if (!open) return;
     const initial: Record<string, string> = {};
     for (const [key, values] of axes.entries()) {
-      const pick = values.find((val) => {
-        const match = variants.find(
-          (v) =>
-            v.options?.[key] === val &&
-            v.is_active &&
-            (v.inventory_quantity === null || v.inventory_quantity > 0)
-        );
-        return !!match;
-      });
+      const pick = values.find((val) =>
+        visibleVariants.some((v) => v.options?.[key] === val && v.is_active)
+      );
       initial[key] = pick ?? values[0] ?? "";
     }
     setSelections(initial);
-  }, [open, axes, variants]);
+  }, [open, axes, visibleVariants]);
 
   // keyboard + scroll lock
   useEffect(() => {
@@ -1141,8 +1141,8 @@ export function VariantPickerDialog({
   }, [open, onClose]);
 
   const resolvedVariant = useMemo(
-    () => resolveVariant(variants, selections),
-    [variants, selections]
+    () => resolveVariant(visibleVariants, selections),
+    [visibleVariants, selections]
   );
 
   const select = useCallback((key: string, val: string) => {
@@ -1212,8 +1212,8 @@ export function VariantPickerDialog({
 
   // whether any CJ variant has dimension data to show size guide
   const showSizeGuide = useMemo(
-    () => variants.some((v) => v.source === "cj" && hasDimensions(v)),
-    [variants]
+    () => visibleVariants.some((v) => v.source === "cj" && hasDimensions(v)),
+    [visibleVariants]
   );
 
   if (!open || !mounted) return null;
@@ -1331,7 +1331,7 @@ export function VariantPickerDialog({
             <div className="px-4 py-4 space-y-5">
               {sortedAxes.map(([key, values]) => {
                 const currentVal = selections[key];
-                const oos = unavailableValues(variants, key, selections);
+                const oos = unavailableValues(visibleVariants, key, selections);
                 const isColor = isColorAxis(key);
                 const isSize = isSizeAxis(key);
 

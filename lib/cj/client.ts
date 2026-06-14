@@ -89,3 +89,75 @@ export async function cjFetch<T = unknown>(
 
     return json as T;
 }
+
+const RETRYABLE_HTTP = new Set([429, 503, 502]);
+
+function sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * CJ API fetch with exponential backoff on rate limits / transient errors.
+ */
+export async function cjFetchWithRetry<T = unknown>(
+    path: string,
+    token: string,
+    init: RequestInit = {},
+    options: { maxRetries?: number; baseDelayMs?: number } = {}
+): Promise<T> {
+    const maxRetries = options.maxRetries ?? 5;
+    const baseDelayMs = options.baseDelayMs ?? 1000;
+    let lastError: Error | null = null;
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        const url = path.startsWith("http") ? path : `${CJ_BASE}${path}`;
+
+        const res = await fetch(url, {
+            ...init,
+            headers: {
+                "Content-Type": "application/json",
+                "CJ-Access-Token": token,
+                ...(init.headers ?? {}),
+            },
+        });
+
+        if (!res.ok) {
+            const status = res.status;
+            lastError = new Error(`CJ HTTP ${status} on ${path}`);
+
+            if (RETRYABLE_HTTP.has(status) && attempt < maxRetries) {
+                const retryAfterHeader = res.headers.get("retry-after");
+                const retryAfterSec = retryAfterHeader
+                    ? parseInt(retryAfterHeader, 10)
+                    : NaN;
+                const delay = Number.isFinite(retryAfterSec)
+                    ? retryAfterSec * 1000
+                    : baseDelayMs * Math.pow(2, attempt);
+
+                console.warn(
+                    `[CJ] HTTP ${status} on ${path} — retry ${attempt + 1}/${maxRetries} in ${delay}ms`
+                );
+                await sleep(delay);
+                continue;
+            }
+
+            throw lastError;
+        }
+
+        const json = (await res.json()) as {
+            result?: boolean;
+            success?: boolean;
+            message?: string;
+            data?: unknown;
+        };
+
+        const ok = json.result === true || json.success === true;
+        if (!ok) {
+            throw new Error(json.message || "CJ API error");
+        }
+
+        return json as T;
+    }
+
+    throw lastError ?? new Error(`CJ request failed on ${path}`);
+}

@@ -559,6 +559,7 @@ export function ProductCardClient({
         currency={p.currency}
         loadingVariantId={loadingVariantId}
         productDiscount={discountFields}
+        trackInventory={Boolean((p as any).track_inventory ?? true)}
       />
     </>
   );

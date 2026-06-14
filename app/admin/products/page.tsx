@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/ui/admin";
 import { Tile } from "@/components/ui/admin-server";
 import { ProductsTable } from "@/components/admin/products-table";
 import { ProductFilterBar } from "@/components/admin/products/product-filter-bar";
+import { AdminProductsHeaderActions } from "@/components/admin/products/admin-products-header-actions";
 import {
   Package, Star, CheckCircle2, FileEdit, AlertTriangle, Download,
 } from "lucide-react";
@@ -39,6 +40,7 @@ export default async function AdminProductsPage({
     { count: catalogTotal },
     { count: draftTotal },
     { count: lowStockTotal },
+    { count: cjProductTotal },
   ] = await Promise.all([
     getAdminProducts({
       q: sp.q,
@@ -59,11 +61,17 @@ export default async function AdminProductsPage({
       .eq("status", "active")
       .is("deleted_at", null)
       .lte("inventory_quantity", 5),
+    admin
+      .from("products")
+      .select("id", { count: "exact", head: true })
+      .eq("source", "cj")
+      .is("deleted_at", null),
   ]);
 
   const catalogCount = catalogTotal ?? 0;
   const draftCount = draftTotal ?? 0;
   const lowStockCount = lowStockTotal ?? 0;
+  const cjProductCount = cjProductTotal ?? 0;
   const activePct = catalogCount > 0 ? Math.round((totalActive / catalogCount) * 100) : 0;
 
   return (
@@ -76,14 +84,15 @@ export default async function AdminProductsPage({
           <>
             <button
               type="button"
-              className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg text-[12.5px] font-medium bg-[var(--color-surface)] ring-1 ring-[var(--color-border)] hover:bg-[var(--color-surface-secondary)] transition-colors"
+              className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-sm text-[12.5px] font-medium bg-[var(--color-surface)] ring-1 ring-[var(--color-border)] hover:bg-[var(--color-surface-secondary)] transition-colors"
             >
               <Download className="h-3.5 w-3.5" />
               Export
             </button>
+            <AdminProductsHeaderActions cjProductCount={cjProductCount} />
             <Link
               href="/admin/products/import/cj"
-              className="inline-flex items-center gap-2 h-9 px-4 rounded-lg bg-[var(--color-accent)] text-[var(--color-surface)] text-[13px] font-semibold transition-colors hover:bg-orange-500"
+              className="inline-flex items-center gap-2 h-9 px-4 rounded-sm bg-[var(--color-accent)] text-[var(--color-surface)] text-[13px] font-semibold transition-colors hover:bg-orange-500"
             >
               Import from CJ
             </Link>

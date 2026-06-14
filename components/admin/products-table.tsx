@@ -860,7 +860,7 @@ import { MoveProductDialog } from "@/components/admin/MoveProductDialog";
 import { EmptyState, Th, StatusPill } from "@/components/ui/admin";
 import { formatAdminMoney } from "@/lib/admin/format-money";
 import { publishAdminProduct } from "@/lib/actions/admin-products";
-import { SquarePen, Trash2, ExternalLink, Star, ChevronLeft, ChevronRight, ChevronDown, Package, AlertCircle, Rocket } from "lucide-react";
+import { SquarePen, Trash2, ExternalLink, Star, ChevronLeft, ChevronRight, ChevronDown, Package, AlertCircle, Eye, Rocket } from "lucide-react";
 
 const SOURCE_CONFIG: Record<string, { label: string; bg: string; text: string }> = {
     cj: { label: "CJ", bg: "rgba(168,85,247,0.1)", text: "#9333ea" },
@@ -1008,14 +1008,14 @@ function ConfirmDeleteDialog({
                     <button
                         onClick={onCancel}
                         disabled={loading}
-                        className="h-9 px-4 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-secondary)] text-[13px] font-semibold hover:bg-[var(--color-surface-secondary)] disabled:opacity-60 disabled:cursor-not-allowed"
+                        className="h-9 px-4 rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-secondary)] text-[13px] font-semibold hover:bg-[var(--color-surface-secondary)] disabled:opacity-60 disabled:cursor-not-allowed"
                     >
                         Cancel
                     </button>
                     <button
                         onClick={onConfirm}
                         disabled={loading}
-                        className="h-9 px-4 rounded-lg bg-red-500 hover:bg-red-600 text-white text-[13px] font-bold inline-flex items-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed"
+                        className="h-9 px-4 rounded-md bg-red-500 hover:bg-red-600 text-white text-[13px] font-bold inline-flex items-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed"
                     >
                         {loading ? (
                             <>
@@ -1145,9 +1145,12 @@ function TableRow({ p, selected, onSelect, onDeleteRequest }: {
                     <ProductThumb images={p.images} name={p.name} />
                     <div className="min-w-0">
                         <div className="flex items-center gap-1.5">
-                            <p className="font-semibold text-[13px] text-[var(--color-text-primary)] truncate max-w-[180px]">
+                            <Link
+                                href={`/admin/products/${p.id}`}
+                                className="font-semibold text-[13px] text-[var(--color-text-primary)] truncate max-w-[180px] hover:text-[var(--color-accent)] transition-colors"
+                            >
                                 {p.name}
-                            </p>
+                            </Link>
                             <SourceBadge source={p.source} />
                             {lowStock && (
                                 <span title="Low stock" className="inline-flex items-center text-amber-600">
@@ -1211,6 +1214,13 @@ function TableRow({ p, selected, onSelect, onDeleteRequest }: {
             <td className="px-3 py-3 pr-5 text-right">
                 <div className="inline-flex items-center gap-1.5">
                     <PublishDraftButton productId={p.id} status={p.status} images={p.images} />
+                    <Link
+                        href={`/admin/products/${p.id}`}
+                        title="View product details"
+                        className="w-7 h-7 rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-muted)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] inline-flex items-center justify-center transition-colors"
+                    >
+                        <Eye size={13} />
+                    </Link>
                     <Link
                         href={`/marketplace/${p.slug}`}
                         target="_blank"

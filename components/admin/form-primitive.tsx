@@ -4,9 +4,7 @@ import { ReactNode, useEffect, CSSProperties, MouseEventHandler } from "react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
-import {
-    Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select"
+import CustomSelect from "@/components/ui/select-2"
 import { Loader2, CheckCircle2, XCircle, X, Zap } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -90,28 +88,25 @@ export function TextInput({
 }
 
 export function SelectInput({
-    value, onChange, options,
+    value, onChange, options, searchable, placeholder, className,
 }: {
     value: string
     onChange: (v: string) => void
     options: { value: string; label: string }[]
+    searchable?: boolean
+    placeholder?: string
+    className?: string
 }) {
     return (
-        <Select value={value} onValueChange={onChange}>
-            <SelectTrigger
-                className="focus:ring-1 focus:ring-[var(--color-accent,#fd5000)] focus:border-[var(--color-accent,#fd5000)]"
-                style={baseInputStyle}
-            >
-                <SelectValue />
-            </SelectTrigger>
-            <SelectContent style={{ borderRadius: "var(--radius-md)", background: "var(--color-surface)" }}>
-                {options.map(o => (
-                    <SelectItem key={o.value} value={o.value} style={{ fontSize: 13 }}>
-                        {o.label}
-                    </SelectItem>
-                ))}
-            </SelectContent>
-        </Select>
+        <CustomSelect
+            value={value}
+            onChange={onChange}
+            options={options}
+            searchable={searchable}
+            placeholder={placeholder}
+            textSize="sm"
+            className={cn("!h-9 min-h-9 text-[13px]", className)}
+        />
     )
 }
 

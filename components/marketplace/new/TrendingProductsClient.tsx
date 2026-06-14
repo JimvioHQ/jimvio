@@ -10,12 +10,14 @@ import { toast } from "sonner";
 import { useCurrency } from "@/context/CurrencyContext";
 import { type DbProduct, getImage, getEffectiveCompareAtPrice, getProductDiscountLabel } from "@/lib/utils";
 import { addToCart, toggleWishlist, getWishlistProductIds } from "@/lib/actions/marketplace";
+import { filterStorefrontVariants } from "@/lib/products/storefront-variants";
 import type { Tables } from "@/types/supabase";
 
 export type DbVariant = Tables<"product_variants">;
 
 type Product = DbProduct & {
   vendor_id?: string | null;
+  track_inventory?: boolean | null;
   variants?: DbVariant[];
   product_variants?: DbVariant[];
   currency?: string | null;
@@ -205,9 +207,11 @@ function ProductCard({
   wishlistLoaded: boolean;
   onToggleFav: () => void;
 }) {
-  const variants: DbVariant[] = (
-    p.variants ?? p.product_variants ?? []
-  ).map(normaliseVariant);
+  const trackInventory = Boolean(p.track_inventory);
+  const variants: DbVariant[] = filterStorefrontVariants(
+    (p.variants ?? p.product_variants ?? []).map(normaliseVariant),
+    trackInventory
+  );
 
   const vendorId: string = (p.vendor_id ?? (p as any)?.vendors?.id ?? "") as string;
 
@@ -562,40 +566,31 @@ function ProductCard({
                 }}
               >
                 {sizeOptions.map((size) => {
+                  const matchesColor = (v: DbVariant) =>
+                    !selectedColor || getColorValue(getOptions(v)) === selectedColor;
                   const available = variants.some(
                     (v) =>
                       v.is_active &&
                       getOptions(v)[sizeKey!] === size &&
-                      (!selectedColor || getColorValue(getOptions(v)) === selectedColor) &&
-                      (v.inventory_quantity == null || v.inventory_quantity > 0)
+                      matchesColor(v)
                   );
+                  if (!available) return null;
                   return (
                     <button
                       key={size}
                       type="button"
-                      disabled={!available}
                       onClick={() => { setSelectedSize(size); setShowSizes(false); }}
                       className="flex w-full items-center justify-between px-2.5 py-1.5 text-[10px] font-semibold transition-colors"
                       style={{
-                        color: available
-                          ? selectedSize === size
-                            ? "var(--color-accent)"
-                            : "var(--color-text-primary)"
-                          : "var(--color-text-muted)",
+                        color: selectedSize === size
+                          ? "var(--color-accent)"
+                          : "var(--color-text-primary)",
                         background: selectedSize === size
                           ? "color-mix(in srgb, var(--color-accent) 8%, transparent)"
                           : "transparent",
-                        opacity: available ? 1 : 0.45,
-                        cursor: available ? "pointer" : "not-allowed",
-                        textDecoration: available ? "none" : "line-through",
                       }}
                     >
                       {size}
-                      {!available && (
-                        <span className="text-[8px]" style={{ color: "var(--color-text-muted)" }}>
-                          Out
-                        </span>
-                      )}
                     </button>
                   );
                 })}

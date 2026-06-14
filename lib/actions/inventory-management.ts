@@ -1,6 +1,7 @@
 "use server";
 
 import { getAdminDB } from "@/services/db";
+import { syncProductInventoryFromVariants } from "@/lib/cj/sync-inventory";
 
 /**
  * Decrement inventory for all items in an order when it transitions to "confirmed".
@@ -40,6 +41,8 @@ export async function decrementOrderInventory(orderId: string): Promise<{ succes
       return { success: true }; // No items to process
     }
 
+    const productsToResync = new Set<string>();
+
     // 2. Process each item
     for (const item of orderItems) {
       const productData = Array.isArray(item.products) ? item.products[0] : item.products;
@@ -76,6 +79,7 @@ export async function decrementOrderInventory(orderId: string): Promise<{ succes
           // Continue processing other items instead of failing entirely
         } else {
           console.log(`[decrementOrderInventory] ✓ Decremented variant ${item.variant_id} by ${item.quantity} (new: ${newQuantity})`);
+          if (item.product_id) productsToResync.add(item.product_id);
         }
       } else {
         // Decrement product-level inventory
@@ -96,6 +100,10 @@ export async function decrementOrderInventory(orderId: string): Promise<{ succes
           console.log(`[decrementOrderInventory] ✓ Decremented product ${item.product_id} by ${item.quantity} (new: ${newQuantity})`);
         }
       }
+    }
+
+    for (const productId of productsToResync) {
+      await syncProductInventoryFromVariants(admin, productId);
     }
 
     return { success: true };

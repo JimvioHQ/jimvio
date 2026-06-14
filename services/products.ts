@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { getDB, getAdminDB } from "./base";
+import { filterStorefrontVariants } from "@/lib/products/storefront-variants";
 
 import type { Tables } from "@/types/supabase";
 import type { Product, ProductStatus } from "@/types/db";
@@ -301,7 +302,14 @@ export async function getProductBySlug(slug: string): Promise<ProductWithRelatio
     console.error(`[getProductBySlug] "${slug}":`, error);
     return null;
   }
-  return data as ProductWithRelations | null;
+  if (!data) return null;
+
+  const product = data as ProductWithRelations;
+  product.product_variants = filterStorefrontVariants(
+    product.product_variants,
+    Boolean(product.track_inventory)
+  );
+  return product;
 }
 
 /**
@@ -606,4 +614,117 @@ export async function getAdminProducts(params: GetAdminProductsParams) {
     console.error("[getAdminProducts] unexpected error:", err instanceof Error ? err.message : JSON.stringify(err), { params });
     return { products: [], total: 0, totalActive: 0, totalFeatured: 0 };
   }
+}
+
+export type AdminProductDetail = {
+  product: Record<string, unknown> & {
+    vendors?: {
+      id: string;
+      business_name: string | null;
+      business_logo: string | null;
+      business_slug: string | null;
+      business_email: string | null;
+      verification_status: string | null;
+    } | null;
+    product_categories?: { id: string; name: string; slug: string } | null;
+    product_variants?: Array<Record<string, unknown>>;
+    product_shipping_options?: Array<Record<string, unknown>>;
+  };
+  images: string[];
+  cjPid: string | null;
+  orderCount: number;
+  reviewCount: number;
+  averageRating: number | null;
+  recentOrderItems: Array<{
+    id: string;
+    quantity: number;
+    total_price: number;
+    created_at: string;
+    order: {
+      id: string;
+      order_number: string | null;
+      status: string | null;
+      total_amount: number | null;
+      currency: string | null;
+      created_at: string | null;
+    } | null;
+  }>;
+};
+
+export async function getAdminProductDetail(id: string): Promise<AdminProductDetail | null> {
+  const supabase = await getAdminDB();
+
+  const { data: product, error } = await supabase
+    .from("products")
+    .select(
+      `
+      *,
+      vendors ( id, business_name, business_logo, business_slug, business_email, verification_status ),
+      product_categories ( id, name, slug ),
+      product_variants ( ${VARIANT_COLS} ),
+      product_shipping_options ( ${SHIPPING_COLS} )
+    `
+    )
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error) {
+    console.error("[getAdminProductDetail]", error);
+    return null;
+  }
+  if (!product) return null;
+
+  const [
+    cjMapRes,
+    orderCountRes,
+    reviewRes,
+    recentItemsRes,
+  ] = await Promise.all([
+    supabase.from("cj_product_map").select("cj_pid").eq("product_id", id).maybeSingle(),
+    supabase.from("order_items").select("id", { count: "exact", head: true }).eq("product_id", id),
+    supabase.from("reviews").select("rating").eq("product_id", id),
+    supabase
+      .from("order_items")
+      .select(
+        "id, quantity, total_price, created_at, orders ( id, order_number, status, total_amount, currency, created_at )"
+      )
+      .eq("product_id", id)
+      .order("created_at", { ascending: false })
+      .limit(8),
+  ]);
+
+  const ratings = (reviewRes.data ?? [])
+    .map((r) => Number(r.rating))
+    .filter((n) => Number.isFinite(n));
+  const averageRating =
+    ratings.length > 0
+      ? Math.round((ratings.reduce((sum, n) => sum + n, 0) / ratings.length) * 10) / 10
+      : null;
+
+  const recentOrderItems = (recentItemsRes.data ?? []).map((row: any) => ({
+    id: row.id as string,
+    quantity: Number(row.quantity ?? 0),
+    total_price: Number(row.total_price ?? 0),
+    created_at: row.created_at as string,
+    order: row.orders
+      ? {
+          id: row.orders.id as string,
+          order_number: row.orders.order_number as string | null,
+          status: row.orders.status as string | null,
+          total_amount: row.orders.total_amount as number | null,
+          currency: row.orders.currency as string | null,
+          created_at: row.orders.created_at as string | null,
+        }
+      : null,
+  }));
+
+  return {
+    product: product as AdminProductDetail["product"],
+    images: normaliseImages(product.images),
+    cjPid: cjMapRes.data?.cj_pid ?? (product.source_metadata as { cj_pid?: string } | null)?.cj_pid ?? null,
+    orderCount: orderCountRes.count ?? 0,
+    reviewCount: ratings.length,
+    averageRating,
+    recentOrderItems,
+  };
 }

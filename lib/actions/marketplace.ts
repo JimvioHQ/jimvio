@@ -1194,6 +1194,7 @@ import { getDefaultAffiliateCommissionPercent } from "@/lib/platform-settings";
 import { grantDigitalAccess } from "./digital-access";
 import { Json } from "@/types/supabase";
 import { getAdminDB } from "../supabase/admin";
+import { filterStorefrontVariants } from "@/lib/products/storefront-variants";
 
 interface CJProductMeta {
   cj_pid?: string;
@@ -2217,23 +2218,28 @@ export async function buyDirectCheckout(
 export async function getProductVariants(productId: string) {
   try {
     const supabase = await createClient();
-    const { data, error } = await supabase
-      .from("product_variants")
-      .select(`
-        id, name, sku, price, compare_at_price,
-        inventory_quantity, image_url, options, is_active,
-        source, weight, length, width, height, volume,
-        affiliate_price, affiliate_commission_rate,
-        cj_vid, cj_pid
-      `)
-      .eq("product_id", productId)
-      .eq("is_active", true)
-      .order("created_at", { ascending: true });
+    const [{ data: product }, { data, error }] = await Promise.all([
+      supabase.from("products").select("track_inventory").eq("id", productId).maybeSingle(),
+      supabase
+        .from("product_variants")
+        .select(`
+          id, name, sku, price, compare_at_price,
+          inventory_quantity, image_url, options, is_active,
+          source, weight, length, width, height, volume,
+          affiliate_price, affiliate_commission_rate,
+          cj_vid, cj_pid
+        `)
+        .eq("product_id", productId)
+        .eq("is_active", true)
+        .order("created_at", { ascending: true }),
+    ]);
 
     if (error) throw error;
-    console.log(data);
 
-    return { success: true, variants: data ?? [] };
+    const trackInventory = Boolean(product?.track_inventory);
+    const variants = filterStorefrontVariants(data ?? [], trackInventory);
+
+    return { success: true, variants };
   } catch (error: any) {
     console.error("Get variants error:", error);
     return { success: false, error: error.message, variants: [] };
@@ -2279,7 +2285,7 @@ export async function getTrendingProducts(filters?: {
       images, category_id, shipping_from, delivery_time, product_type,
       affiliate_commission_rate, sale_count, rating, review_count,
       is_free_shipping, is_flash_deal, vendor_id,
-      source, source_metadata,
+      source, source_metadata, track_inventory,
       product_variants (
         id, name, price, image_url, options,
         is_active, inventory_quantity,
@@ -2302,11 +2308,14 @@ export async function getTrendingProducts(filters?: {
 
   const products = (data ?? []).map((p) => ({
     ...p,
-    product_variants: (p.product_variants ?? []).map((v: any) => ({
-      ...v,
-      cj_vid: v.cj_vid ?? v.source_metadata?.cj_vid ?? null,
-      cj_pid: v.cj_pid ?? v.source_metadata?.cj_pid ?? null,
-    })),
+    product_variants: filterStorefrontVariants(
+      (p.product_variants ?? []).map((v: any) => ({
+        ...v,
+        cj_vid: v.cj_vid ?? v.source_metadata?.cj_vid ?? null,
+        cj_pid: v.cj_pid ?? v.source_metadata?.cj_pid ?? null,
+      })),
+      Boolean(p.track_inventory)
+    ),
   }));
 
   if (filters?.category && filters.category !== "Trending Now") {
