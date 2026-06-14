@@ -35,6 +35,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [badges, setBadges] = useState<Partial<Record<string, number>>>({});
 
   useEffect(() => {
     async function check() {
@@ -66,6 +67,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     check();
   }, [router]);
 
+  useEffect(() => {
+    if (!isAdmin) return;
+    fetch("/api/admin/nav-badges")
+      .then((r) => r.json())
+      .then((data) => setBadges(data))
+      .catch(() => {});
+  }, [isAdmin, pathname]);
+
   if (isAdmin === null || !user) {
     return (
       <div className="flex h-screen items-center justify-center bg-[var(--color-bg)]">
@@ -90,6 +99,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         onCollapsedChange={setCollapsed}
         mobileOpen={mobileOpen}
         onMobileClose={() => setMobileOpen(false)}
+        badges={badges}
       />
 
       <div className="flex-1 flex flex-col min-w-0 min-h-0">
@@ -168,9 +178,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   <DropdownMenuSeparator />
 
                   <DropdownMenuItem asChild>
+                    <Link href="/admin/settings/profile" className="flex items-center gap-2 cursor-pointer">
+                      <UserRound className="h-4 w-4 opacity-60" />
+                      Edit profile
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
                     <Link href="/admin/settings" className="flex items-center gap-2 cursor-pointer">
                       <Settings className="h-4 w-4 opacity-60" />
-                      Settings
+                      Platform settings
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
@@ -228,7 +244,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 icon={<ShoppingCart strokeWidth={1.5} />}
                 label="Orders"
                 pathname={pathname}
-                badge={4}
+                badge={badges["/admin/orders"]}
               />
               <BottomNavMore onClick={() => setMobileOpen(true)} />
             </div>

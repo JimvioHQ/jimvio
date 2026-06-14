@@ -4,7 +4,7 @@
 // import Link from "next/link";
 // import { MoveProductDialog } from "@/components/admin/MoveProductDialog";
 // import { EmptyState } from "@/components/ui/admin";
-// import { formatCurrency } from "@/lib/utils";
+// import { formatAdminMoney } from "@/lib/utils";
 // import { Edit2, SquarePen } from "lucide-react";
 
 // // ─── Icons ────────────────────────────────────────────────────────────────────
@@ -495,10 +495,10 @@
 
 //             {/* Price */}
 //             <td style={{ padding: "11px 16px", fontWeight: 700, color: "var(--color-text-primary)", whiteSpace: "nowrap", fontSize: 13 }}>
-//                 {formatCurrency(Number(p.price ?? 0))}
+//                 {formatAdminMoney(Number(p.price ?? 0))}
 //                 {p.compare_at_price && Number(p.compare_at_price) > Number(p.price) && (
 //                     <span style={{ fontSize: 11, color: "var(--color-text-muted, #aaa)", textDecoration: "line-through", marginLeft: 4, fontWeight: 400 }}>
-//                         {formatCurrency(Number(p.compare_at_price))}
+//                         {formatAdminMoney(Number(p.compare_at_price))}
 //                     </span>
 //                 )}
 //             </td>
@@ -857,18 +857,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { MoveProductDialog } from "@/components/admin/MoveProductDialog";
-import { EmptyState } from "@/components/ui/admin";
-import { formatCurrency } from "@/lib/utils";
+import { EmptyState, Th, StatusPill } from "@/components/ui/admin";
+import { formatAdminMoney } from "@/lib/admin/format-money";
 import { SquarePen, Trash2, ExternalLink, Star, ChevronLeft, ChevronRight, ChevronDown, Package, AlertCircle } from "lucide-react";
-
-const STATUS_CONFIG: Record<string, { label: string; dot: string; bg: string; text: string }> = {
-    active: { label: "Active", dot: "#22c55e", bg: "rgba(34,197,94,0.1)", text: "#16a34a" },
-    inactive: { label: "Inactive", dot: "#94a3b8", bg: "rgba(148,163,184,0.1)", text: "#64748b" },
-    draft: { label: "Draft", dot: "#f59e0b", bg: "rgba(245,158,11,0.1)", text: "#d97706" },
-    paused: { label: "Paused", dot: "#f59e0b", bg: "rgba(245,158,11,0.1)", text: "#d97706" },
-    archived: { label: "Archived", dot: "#94a3b8", bg: "rgba(148,163,184,0.1)", text: "#64748b" },
-    banned: { label: "Banned", dot: "#ef4444", bg: "rgba(239,68,68,0.1)", text: "#dc2626" },
-};
 
 const SOURCE_CONFIG: Record<string, { label: string; bg: string; text: string }> = {
     cj: { label: "CJ", bg: "rgba(168,85,247,0.1)", text: "#9333ea" },
@@ -876,16 +867,6 @@ const SOURCE_CONFIG: Record<string, { label: string; bg: string; text: string }>
     vendor: { label: "Vendor", bg: "rgba(99,102,241,0.08)", text: "#6366f1" },
 };
 
-function StatusBadge({ status }: { status?: string }) {
-    const cfg = STATUS_CONFIG[status ?? "draft"] ?? STATUS_CONFIG.draft;
-    return (
-        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold"
-            style={{ background: cfg.bg, color: cfg.text }}>
-            <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: cfg.dot }} />
-            {cfg.label}
-        </span>
-    );
-}
 
 function SourceBadge({ source }: { source?: string }) {
     if (!source) return null;
@@ -1064,7 +1045,7 @@ function BulkActionBar({ count, onClear, onMoveSuccess, onDeleteRequest, selecte
 }) {
     if (count === 0) return null;
     return (
-        <div className="flex items-center justify-between gap-3 px-4 py-2.5 bg-[var(--color-accent)] text-white rounded-t-xl">
+        <div className="flex items-center justify-between gap-3 px-4 py-2.5 bg-[var(--color-accent)] text-white rounded-t-2xl">
             <div className="flex items-center gap-2 text-[13px] font-semibold">
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                     <rect x="2" y="2" width="12" height="12" rx="3" stroke="#fff" strokeWidth="1.3" />
@@ -1110,13 +1091,13 @@ function TableRow({ p, selected, onSelect, onDeleteRequest }: {
 
     return (
         <tr
-            className={`border-b border-[var(--color-border)] transition-colors ${selected ? "bg-orange-50/30" : "hover:bg-[var(--color-surface-secondary)]/50"}`}
+            className={`border-t border-[var(--color-border)]/60 transition-colors ${selected ? "bg-orange-50/30 dark:bg-orange-950/10" : "hover:bg-[var(--color-surface-secondary)]/40"}`}
         >
-            <td className="py-2.5 pl-4 pr-2 w-9">
+            <td className="px-3 py-3 pl-5 pr-2 w-9">
                 <Checkbox checked={selected} onChange={() => onSelect(p.id)} />
             </td>
 
-            <td className="py-2.5 pr-4">
+            <td className="px-3 py-3 pr-4">
                 <div className="flex items-center gap-2.5">
                     <ProductThumb images={p.images} name={p.name} />
                     <div className="min-w-0">
@@ -1138,7 +1119,7 @@ function TableRow({ p, selected, onSelect, onDeleteRequest }: {
                 </div>
             </td>
 
-            <td className="py-2.5 px-4 text-[var(--color-text-secondary)] whitespace-nowrap text-[13px]">
+            <td className="px-3 py-3 text-[var(--color-text-secondary)] whitespace-nowrap text-[12.5px]">
                 {p.vendor_name ? (
                     <span className="inline-flex items-center gap-1.5">
                         <VendorAvatar name={p.vendor_name} avatarUrl={p.vendor_avatar_url} />
@@ -1149,20 +1130,20 @@ function TableRow({ p, selected, onSelect, onDeleteRequest }: {
                 )}
             </td>
 
-            <td className="py-2.5 px-4 font-bold text-[var(--color-text-primary)] whitespace-nowrap text-[13px]">
-                {formatCurrency(Number(p.price ?? 0))}
+            <td className="px-3 py-3 font-semibold text-[var(--color-text-primary)] whitespace-nowrap text-[12.5px] tabular-nums">
+                {formatAdminMoney(Number(p.price ?? 0))}
                 {p.compare_at_price && Number(p.compare_at_price) > Number(p.price) && (
                     <span className="text-[11px] text-[var(--color-text-muted)] line-through ml-1 font-normal">
-                        {formatCurrency(Number(p.compare_at_price))}
+                        {formatAdminMoney(Number(p.compare_at_price))}
                     </span>
                 )}
             </td>
 
-            <td className="py-2.5 px-4">
-                <StatusBadge status={p.status} />
+            <td className="px-3 py-3">
+                <StatusPill status={p.status ?? "draft"} />
             </td>
 
-            <td className="py-2.5 px-4">
+            <td className="px-3 py-3">
                 {p.product_type ? (
                     <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-[var(--color-surface-secondary)] text-[var(--color-text-secondary)] border border-[var(--color-border)] capitalize">
                         {p.product_type}
@@ -1170,13 +1151,13 @@ function TableRow({ p, selected, onSelect, onDeleteRequest }: {
                 ) : <span className="text-[var(--color-text-muted)] text-[12px]">—</span>}
             </td>
 
-            <td className="py-2.5 px-4">
+            <td className="px-3 py-3">
                 {p.is_featured ? (
                     <Star size={14} className="text-amber-500" fill="currentColor" />
                 ) : <span className="text-[var(--color-text-muted)] text-[12px]">—</span>}
             </td>
 
-            <td className="py-2.5 px-4">
+            <td className="px-3 py-3">
                 {p.affiliate_enabled ? (
                     <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-200">
                         {p.affiliate_commission_rate ? `${p.affiliate_commission_rate}%` : "On"}
@@ -1184,7 +1165,7 @@ function TableRow({ p, selected, onSelect, onDeleteRequest }: {
                 ) : <span className="text-[var(--color-text-muted)] text-[12px]">—</span>}
             </td>
 
-            <td className="py-2.5 px-4 text-right">
+            <td className="px-3 py-3 pr-5 text-right">
                 <div className="inline-flex items-center gap-1.5">
                     <Link
                         href={`/marketplace/${p.slug}`}
@@ -1421,8 +1402,6 @@ export function ProductsTable({
         );
     }
 
-    const thClass = "px-4 py-2.5 text-left text-[11px] font-bold tracking-wider uppercase text-[var(--color-text-muted)] whitespace-nowrap";
-
     return (
         <div>
             <ConfirmDeleteDialog
@@ -1442,26 +1421,26 @@ export function ProductsTable({
                 onDeleteRequest={requestDeleteBulk}
             />
 
-            <div className={`bg-[var(--color-bg)] border border-[var(--color-border)] overflow-hidden ${hasBulk ? "rounded-b-xl border-t-0" : "rounded-xl"}`}>
+            <div className={`bg-[var(--color-surface)] ring-1 ring-[var(--color-border)] overflow-hidden ${hasBulk ? "rounded-b-2xl border-t-0" : "rounded-2xl"}`}>
                 <div className="overflow-x-auto">
-                    <table className="w-full text-[13px] border-collapse">
+                    <table className="w-full text-[12.5px]">
                         <thead className="bg-[var(--color-surface-secondary)]/50">
-                            <tr className="border-b border-[var(--color-border)]">
-                                <th className={`${thClass} pl-4 pr-2 w-9`}>
+                            <tr>
+                                <th className="px-3 py-3 pl-5 pr-2 w-9">
                                     <Checkbox
                                         checked={allSelected}
                                         indeterminate={someSelected && !allSelected}
                                         onChange={toggleAll}
                                     />
                                 </th>
-                                <th className={`${thClass} pl-2`}><SortLink col="name">Product</SortLink></th>
-                                <th className={thClass}>Vendor</th>
-                                <th className={thClass}><SortLink col="price">Price</SortLink></th>
-                                <th className={thClass}><SortLink col="status">Status</SortLink></th>
-                                <th className={thClass}>Type</th>
-                                <th className={thClass}>Featured</th>
-                                <th className={thClass}>Affiliate</th>
-                                <th className={`${thClass} text-right`}>Actions</th>
+                                <Th><SortLink col="name">Product</SortLink></Th>
+                                <Th>Vendor</Th>
+                                <Th><SortLink col="price">Price</SortLink></Th>
+                                <Th><SortLink col="status">Status</SortLink></Th>
+                                <Th>Type</Th>
+                                <Th>Featured</Th>
+                                <Th>Affiliate</Th>
+                                <Th align="right">Actions</Th>
                             </tr>
                         </thead>
                         <tbody>

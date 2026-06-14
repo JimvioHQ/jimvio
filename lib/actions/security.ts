@@ -5,19 +5,17 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import type { Json } from '@/types/database.types'
 import { generateTOTPSecret, verifyTOTP, generateBackupCodes } from '@/lib/totp'
 import QRCode from 'qrcode'
+import { headers } from 'next/headers'
+import {
+  extractSessionMeta,
+  listUserSessions,
+  revokeAllOtherUserSessions,
+  revokeUserSession,
+  syncUserSession,
+  type Session,
+} from '@/lib/auth/user-sessions'
 
-// ─────────────────────────────────────────────
-// Types
-// ─────────────────────────────────────────────
-
-export type Session = {
-  id: string
-  device: string
-  ip: string
-  lastActivity: string
-  location: string
-  current?: boolean
-}
+export type { Session } from '@/lib/auth/user-sessions'
 
 export type TwoFASetupData = {
   secret: string
@@ -312,85 +310,70 @@ export async function regenerateBackupCodes(
 // Sessions
 // ─────────────────────────────────────────────
 
-function sessionKey(userId: string) { return `sessions:${userId}` }
+async function sessionMeta() {
+  return extractSessionMeta(await headers())
+}
+
+/** Register or refresh the current browser session (call after login or on security page). */
+export async function syncCurrentSession(): Promise<Session | null> {
+  const { user } = await getAuthenticatedUser()
+  return syncUserSession(user.id, await sessionMeta())
+}
 
 export async function getSessions(): Promise<Session[]> {
   const { user } = await getAuthenticatedUser()
-  const supabase = createAdminClient()
-
-  const { data } = await supabase
-    .from('platform_settings')
-    .select('value')
-    .eq('key', sessionKey(user.id))
-    .maybeSingle()
-
-  if (!data?.value) {
-    return [{
-      id: '1', device: 'Current Browser', ip: '127.0.0.1',
-      lastActivity: 'Just now', location: 'Unknown', current: true,
-    }]
-  }
-  return (data.value as { sessions: Session[] }).sessions
+  const meta = await sessionMeta()
+  const synced = await syncUserSession(user.id, meta)
+  if (!synced) return []
+  return listUserSessions(user.id)
 }
 
 export async function revokeSession(sessionId: string): Promise<ActionResult> {
   const { user } = await getAuthenticatedUser()
-  const supabase = createAdminClient()
-
-  const { data } = await supabase
-    .from('platform_settings')
-    .select('value')
-    .eq('key', sessionKey(user.id))
-    .maybeSingle()
-
-  if (!data?.value) return { success: false, error: 'Session not found.' }
-
-  const sessions: Session[] = (data.value as { sessions: Session[] }).sessions
-  const session = sessions.find(s => s.id === sessionId)
-
-  if (!session) return { success: false, error: 'Session not found.' }
-  if (session.current) return { success: false, error: 'Cannot revoke current session.' }
-
-  const { error } = await supabase.from('platform_settings').upsert(
-    {
-      key: sessionKey(user.id),
-      value: { sessions: sessions.filter(s => s.id !== sessionId) },
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: 'key' }
-  )
-
-  if (error) return { success: false, error: error.message }
+  const result = await revokeUserSession(user.id, sessionId, await sessionMeta())
+  if (!result.ok) return { success: false, error: result.error }
   return { success: true }
 }
 
 export async function revokeAllOtherSessions(): Promise<ActionResult<{ revokedCount: number }>> {
-  const { user } = await getAuthenticatedUser()
-  const supabase = createAdminClient()
+  const { user, supabase } = await getAuthenticatedUser()
+  const result = await revokeAllOtherUserSessions(user.id, await sessionMeta(), supabase)
+  if (!result.ok) return { success: false, error: result.error }
+  return { success: true, data: { revokedCount: result.revokedCount } }
+}
 
-  const { data } = await supabase
-    .from('platform_settings')
-    .select('value')
-    .eq('key', sessionKey(user.id))
-    .maybeSingle()
+// ─────────────────────────────────────────────
+// Password
+// ─────────────────────────────────────────────
 
-  if (!data?.value) return { success: true, data: { revokedCount: 0 } }
+export async function changePassword(input: {
+  currentPassword: string
+  newPassword: string
+}): Promise<ActionResult> {
+  const { user, supabase } = await getAuthenticatedUser()
 
-  const sessions: Session[] = (data.value as { sessions: Session[] }).sessions
-  const current = sessions.find(s => s.current)
-  const revokedCount = sessions.length - (current ? 1 : 0)
+  if (!input.currentPassword?.trim()) {
+    return { success: false, error: 'Current password is required.' }
+  }
+  if (!input.newPassword || input.newPassword.length < 8) {
+    return { success: false, error: 'New password must be at least 8 characters.' }
+  }
+  if (!user.email) {
+    return { success: false, error: 'Account email required to change password.' }
+  }
 
-  const { error } = await supabase.from('platform_settings').upsert(
-    {
-      key: sessionKey(user.id),
-      value: { sessions: current ? [current] : [] },
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: 'key' }
-  )
+  const { error: verifyErr } = await supabase.auth.signInWithPassword({
+    email: user.email,
+    password: input.currentPassword,
+  })
+  if (verifyErr) {
+    return { success: false, error: 'Current password is incorrect.' }
+  }
 
+  const { error } = await supabase.auth.updateUser({ password: input.newPassword })
   if (error) return { success: false, error: error.message }
-  return { success: true, data: { revokedCount } }
+
+  return { success: true }
 }
 
 // ─────────────────────────────────────────────

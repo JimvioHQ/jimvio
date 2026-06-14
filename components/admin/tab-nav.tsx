@@ -4,10 +4,14 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import {
-    Coins, Truck, ToggleLeft, ShieldCheck, Store,
+    Coins, Truck, ToggleLeft, ShieldCheck, Store, UserRound,
 } from "lucide-react"
 
 const TABS = [
+    {
+        href: "/admin/settings/profile", label: "Profile", icon: UserRound,
+        description: "Your admin account"
+    },
     {
         href: "/admin/settings/commerce", label: "Commerce", icon: Coins,
         description: "Fees, defaults, pricing"

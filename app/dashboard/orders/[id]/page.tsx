@@ -22,7 +22,7 @@ import {
   orderNeedsPayment,
   resolveCustomerOrderStatus,
 } from "@/lib/payments/order-payment-utils";
-import { sanitizeOrderTimelineNote } from "@/lib/cj/customer-errors";
+import { sanitizeOrderTimelineNote } from "@/lib/cj/customer-errors-shared";
 import {
   getDownloadUrl,
   triggerDownload

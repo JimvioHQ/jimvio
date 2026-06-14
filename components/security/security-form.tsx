@@ -11,7 +11,7 @@ import {
 } from "@/components/admin/form-primitive"
 import { SessionCard } from "./session-card"
 import { TwoFAEnabled, NewBackupCodesPanel } from "@/components/security/2fa-enabled"
-import { revokeSession, type Session } from "@/lib/actions/security"
+import { revokeSession, changePassword, revokeAllOtherSessions, type Session } from "@/lib/actions/security"
 import { TwoFASetup } from "./2fa-setup"
 
 function PasswordStrength({ password }: { password: string }) {
@@ -49,10 +49,11 @@ function PasswordStrength({ password }: { password: string }) {
 }
 
 export function SecurityForm({
-    initialTwoFa, initialSessions,
+    initialTwoFa, initialSessions, sessionsError,
 }: {
     initialTwoFa: { enabled: boolean; backupCodesRemaining?: number }
     initialSessions: Session[]
+    sessionsError?: string
 }) {
     // ── State ──
     const [twoFaEnabled, setTwoFaEnabled] = useState(initialTwoFa.enabled)
@@ -88,9 +89,11 @@ export function SecurityForm({
 
         setPwSubmitting(true)
         try {
-            // TODO: wire to your password change server action
-            // const r = await changePassword({ currentPassword: currentPw, newPassword: newPw })
-            await new Promise(r => setTimeout(r, 800))
+            const r = await changePassword({ currentPassword: currentPw, newPassword: newPw })
+            if (!r.success) {
+                notify(r.error ?? "Failed to update password", "err")
+                return
+            }
             notify("Password updated")
             setCurrentPw(""); setNewPw(""); setConfirmPw("")
         } catch (e) {
@@ -100,14 +103,24 @@ export function SecurityForm({
         }
     }
 
+    const handleRevokeAllOthers = async () => {
+        const r = await revokeAllOtherSessions()
+        if (!r.success) {
+            notify(r.error ?? "Failed to revoke sessions", "err")
+            return
+        }
+        setSessions((s) => s.filter((x) => x.current))
+        notify(`Signed out ${r.data?.revokedCount ?? 0} other device(s)`)
+    }
+
     const handleRevokeSession = async (id: string) => {
         setRevokingId(id)
         const r = await revokeSession(id)
         if (r.success) {
             setSessions(s => s.filter(x => x.id !== id))
-            notify("Session revoked")
+            notify("That device was signed out and banned from this account")
         } else {
-            notify(r.error ?? "Failed to revoke", "err")
+            notify(r.error ?? "Failed to sign out device", "err")
         }
         setRevokingId(null)
     }
@@ -263,11 +276,32 @@ export function SecurityForm({
 
                 {/* ─── Active sessions ─── */}
                 <section>
-                    <SectionHeader
-                        icon={<ShieldCheck className="size-4" />}
-                        title="Active sessions"
-                        description="Devices currently signed in to your account"
-                    />
+                    <div className="flex items-center justify-between gap-3 mb-4">
+                        <SectionHeader
+                            icon={<ShieldCheck className="size-4" />}
+                            title="Active sessions"
+                            description="Devices signed in to your account. Sign out any device except this one."
+                            inline
+                        />
+                        {sessions.filter((s) => !s.current).length > 0 && (
+                            <BrandBtn variant="ghost" size="sm" onClick={handleRevokeAllOthers}>
+                                Sign out all others
+                            </BrandBtn>
+                        )}
+                    </div>
+
+                    {sessionsError && (
+                        <div
+                            className="mb-3 rounded-sm px-3 py-2 text-[12px]"
+                            style={{
+                                border: "1px solid var(--color-danger)",
+                                background: "var(--color-danger-light, #fef2f2)",
+                                color: "var(--color-danger)",
+                            }}
+                        >
+                            {sessionsError}. Check that `SUPABASE_SERVICE_ROLE_KEY` is set, then sign in again.
+                        </div>
+                    )}
 
                     <div className="flex flex-col gap-2">
                         {sessions.length === 0
@@ -278,7 +312,7 @@ export function SecurityForm({
                                     background: "var(--color-surface-secondary)",
                                     color: "var(--color-text-muted)",
                                 }}>
-                                No active sessions
+                                No sessions yet. Sign in again or refresh this page to register this device.
                             </div>
                             : sessions.map(s => (
                                 <SessionCard
@@ -297,14 +331,15 @@ export function SecurityForm({
 }
 
 function SectionHeader({
-    icon, title, description,
+    icon, title, description, inline = false,
 }: {
     icon: React.ReactNode
     title: string
     description?: string
+    inline?: boolean
 }) {
     return (
-        <div className="flex items-center gap-3 mb-4">
+        <div className={inline ? "flex items-center gap-3" : "flex items-center gap-3 mb-4"}>
             <div className="size-8 rounded-lg flex items-center justify-center"
                 style={{ background: "var(--color-accent-light)", color: "var(--color-accent)" }}>
                 {icon}

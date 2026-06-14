@@ -1,13 +1,14 @@
 
 "use server"
 
-import { cookies } from "next/headers"
+import { cookies, headers } from "next/headers"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { resolvePostLoginPath } from "@/lib/auth/post-login-redirect"
 import { getPublicAppUrl } from "@/lib/app-url"
 import { verifyTOTP } from "@/lib/totp"
+import { extractSessionMeta, syncUserSession } from "@/lib/auth/user-sessions"
 
 // ─────────────────────────────────────────────
 // Constants
@@ -88,6 +89,14 @@ function isSafeInternalPath(path: string): boolean {
 
 async function resolveLandingPath(userId: string, next?: string | null): Promise<string> {
   return resolvePostLoginPath(userId, next)
+}
+
+async function registerLoginSession(userId: string) {
+  try {
+    await syncUserSession(userId, extractSessionMeta(await headers()))
+  } catch (err) {
+    console.error("[auth] registerLoginSession failed:", err)
+  }
 }
 
 async function ensureUserProfile(
@@ -217,6 +226,7 @@ export async function signIn(formData: FormData) {
     return { error: "Sign in failed. Please try again." }
   }
 
+  await registerLoginSession(userId)
   const path = await resolveLandingPath(userId, next)
   redirect(path)
 }
@@ -272,6 +282,7 @@ export async function verify2FAAndLogin(formData: FormData) {
   // ── No secret stored — skip 2FA and continue ──
   if (!secretData?.secret) {
     cookieStore.delete(TWO_FA_COOKIE)
+    await registerLoginSession(pendingUserId)
     const path = await resolveLandingPath(pendingUserId, next)
     redirect(path)
   }
@@ -308,6 +319,7 @@ export async function verify2FAAndLogin(formData: FormData) {
 
     clearFailedAttempts(pendingUserId)
     cookieStore.delete(TWO_FA_COOKIE)
+    await registerLoginSession(pendingUserId)
     const path = await resolveLandingPath(pendingUserId, next)
     redirect(path)
   }
@@ -323,6 +335,7 @@ export async function verify2FAAndLogin(formData: FormData) {
 
   clearFailedAttempts(pendingUserId)
   cookieStore.delete(TWO_FA_COOKIE)
+  await registerLoginSession(pendingUserId)
   const path = await resolveLandingPath(pendingUserId, next)
   redirect(path)
 }

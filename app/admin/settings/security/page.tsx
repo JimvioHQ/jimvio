@@ -9,7 +9,6 @@ export const metadata = {
 }
 
 export default async function SecurityPage() {
-    // Fetch on the server so the client doesn't flash a loading state for known data
     const [status, sessions] = await Promise.allSettled([
         check2FAStatus(),
         getSessions(),
@@ -17,10 +16,22 @@ export default async function SecurityPage() {
 
     const initialTwoFa = status.status === "fulfilled" ? status.value : { enabled: false }
     const initialSessions = sessions.status === "fulfilled" ? sessions.value : []
+    const sessionsError =
+        sessions.status === "rejected"
+            ? (sessions.reason as Error)?.message ?? "Could not load sessions"
+            : undefined
+
+    if (sessions.status === "rejected") {
+        console.error("[admin/security] getSessions failed:", sessions.reason)
+    }
     
     return (
         <Suspense fallback={<Loader />}>
-            <SecurityForm initialTwoFa={initialTwoFa} initialSessions={initialSessions} />
+            <SecurityForm
+                initialTwoFa={initialTwoFa}
+                initialSessions={initialSessions}
+                sessionsError={sessionsError}
+            />
         </Suspense>
     )
 }

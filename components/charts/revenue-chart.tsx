@@ -3,8 +3,9 @@
 import React from "react";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, BarChart, Bar, LineChart, Line
+  ResponsiveContainer, BarChart, Bar, LineChart, Line,
 } from "recharts";
+import { formatCurrency } from "@/lib/utils";
 
 export interface ChartDataPoint {
   [key: string]: string | number | undefined;
@@ -25,45 +26,124 @@ const defaultData: ChartDataPoint[] = [
   { month: "Dec", revenue: 1480000, orders: 156, affiliate: 296000 },
 ];
 
-const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: Array<{ color: string; name: string; value: number }>; label?: string }) => {
-  if (active && payload && payload.length) {
-    return (
-      <div className="bg-slate-900/90 border border-white/10 rounded-sm p-3 shadow-none">
-        <p className="text-white/60 text-xs mb-2">{label}</p>
-        {payload.map((entry, i) => (
-          <p key={i} className="text-sm font-semibold" style={{ color: entry.color }}>
-            {entry.name}: {entry.name === "orders"
-              ? entry.value
-              : `RWF ${entry.value.toLocaleString()}`
-            }
-          </p>
-        ))}
-      </div>
-    );
-  }
-  return null;
-};
+function pctChange(current: number, prev: number): number | null {
+  if (!prev) return null;
+  return ((current - prev) / prev) * 100;
+}
+
+function AdminRevenueTooltip({
+  active,
+  payload,
+  label,
+  theme,
+}: {
+  active?: boolean;
+  payload?: Array<{ color: string; name: string; value: number; dataKey: string; payload: ChartDataPoint }>;
+  label?: string;
+  theme: "light" | "dark";
+}) {
+  if (!active || !payload?.length) return null;
+
+  const row = payload[0]?.payload;
+  const revenue = Number(row?.revenue ?? 0);
+  const orders = Number(row?.orders ?? 0);
+  const prevRevenue = Number(row?.prevRevenue ?? 0);
+  const prevOrders = Number(row?.prevOrders ?? 0);
+  const revDelta = pctChange(revenue, prevRevenue);
+  const year = row?.year ? ` ${row.year}` : "";
+
+  const shell =
+    theme === "light"
+      ? "bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-primary)] shadow-md"
+      : "bg-slate-900/90 border-white/10 text-white shadow-none";
+
+  return (
+    <div className={`rounded-md border p-3 min-w-[180px] ${shell}`}>
+      <p className={`text-xs mb-2 ${theme === "light" ? "text-[var(--color-text-muted)]" : "text-white/60"}`}>
+        {label}{year}
+      </p>
+      <p className="text-sm font-semibold tabular-nums">{formatCurrency(revenue)}</p>
+      <p className={`text-[11px] mt-1 tabular-nums ${theme === "light" ? "text-[var(--color-text-secondary)]" : "text-white/80"}`}>
+        {orders.toLocaleString()} paid orders
+      </p>
+      {prevRevenue > 0 && revDelta != null && (
+        <p
+          className={`text-[11px] mt-1.5 font-medium tabular-nums ${
+            revDelta >= 0 ? "text-emerald-600" : "text-rose-600"
+          }`}
+        >
+          {revDelta >= 0 ? "+" : ""}
+          {revDelta.toFixed(1)}% vs prior month ({formatCurrency(prevRevenue)})
+        </p>
+      )}
+      {prevOrders > 0 && (
+        <p className={`text-[10.5px] mt-0.5 tabular-nums ${theme === "light" ? "text-[var(--color-text-muted)]" : "text-white/50"}`}>
+          Prior month orders: {prevOrders}
+        </p>
+      )}
+    </div>
+  );
+}
 
 interface RevenueChartProps {
   data?: ChartDataPoint[];
   type?: "area" | "bar" | "line";
   dataKey?: string;
   labelKey?: string;
+  comparisonKey?: string;
   height?: number;
+  theme?: "light" | "dark";
+  showAffiliate?: boolean;
+  showComparison?: boolean;
+  onActivePointChange?: (point: ChartDataPoint | null) => void;
 }
 
-export function RevenueChart({ data = defaultData, type = "area", dataKey = "revenue", labelKey = "month", height = 300 }: RevenueChartProps) {
-  const color = "#6366f1";
-  const colorSecondary = "#d946ef";
+export function RevenueChart({
+  data = defaultData,
+  type = "area",
+  dataKey = "revenue",
+  labelKey = "month",
+  comparisonKey = "prevRevenue",
+  height = 300,
+  theme = "light",
+  showAffiliate,
+  showComparison = false,
+  onActivePointChange,
+}: RevenueChartProps) {
+  const color = theme === "light" ? "#ea580c" : "#6366f1";
+  const colorSecondary = theme === "light" ? "#f97316" : "#d946ef";
+  const compareColor = theme === "light" ? "#94a3b8" : "rgba(255,255,255,0.35)";
+  const gridStroke = theme === "light" ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.05)";
+  const tickFill = theme === "light" ? "rgba(0,0,0,0.45)" : "rgba(255,255,255,0.4)";
+  const hasAffiliate = showAffiliate ?? data.some((d) => typeof d.affiliate === "number" && d.affiliate > 0);
+  const hasComparison =
+    showComparison && data.some((d) => Number(d[comparisonKey] ?? 0) > 0);
+
+  function handleMouseMove(state: { activePayload?: Array<{ payload: ChartDataPoint }> }) {
+    const point = state?.activePayload?.[0]?.payload ?? null;
+    onActivePointChange?.(point);
+  }
+
+  function handleMouseLeave() {
+    onActivePointChange?.(null);
+  }
+
+  const tooltip = <AdminRevenueTooltip theme={theme} />;
 
   return (
-    <ResponsiveContainer width="100%" height={height}>
+    <div className="w-full" style={{ height, minHeight: height }}>
+      <ResponsiveContainer width="100%" height="100%">
       {type === "bar" ? (
-        <BarChart data={data} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-          <XAxis dataKey={labelKey} tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 11 }} axisLine={false} tickLine={false} />
-          <YAxis tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} />
-          <Tooltip content={<CustomTooltip />} />
+        <BarChart
+          data={data}
+          margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
+          onMouseMove={handleMouseMove}
+          onMouseLeave={handleMouseLeave}
+        >
+          <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
+          <XAxis dataKey={labelKey} tick={{ fill: tickFill, fontSize: 11 }} axisLine={false} tickLine={false} />
+          <YAxis tick={{ fill: tickFill, fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} />
+          <Tooltip content={tooltip} />
           <Bar dataKey={dataKey} fill="url(#barGradient)" radius={[4, 4, 0, 0]} />
           <defs>
             <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
@@ -73,15 +153,28 @@ export function RevenueChart({ data = defaultData, type = "area", dataKey = "rev
           </defs>
         </BarChart>
       ) : type === "line" ? (
-        <LineChart data={data} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-          <XAxis dataKey={labelKey} tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 11 }} axisLine={false} tickLine={false} />
-          <YAxis tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 11 }} axisLine={false} tickLine={false} />
-          <Tooltip content={<CustomTooltip />} />
+        <LineChart
+          data={data}
+          margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
+          onMouseMove={handleMouseMove}
+          onMouseLeave={handleMouseLeave}
+        >
+          <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
+          <XAxis dataKey={labelKey} tick={{ fill: tickFill, fontSize: 11 }} axisLine={false} tickLine={false} />
+          <YAxis tick={{ fill: tickFill, fontSize: 11 }} axisLine={false} tickLine={false} />
+          <Tooltip content={tooltip} />
           <Line type="monotone" dataKey={dataKey} stroke={color} strokeWidth={2} dot={{ fill: color, strokeWidth: 2, r: 4 }} activeDot={{ r: 6, fill: colorSecondary }} />
+          {hasComparison && (
+            <Line type="monotone" dataKey={comparisonKey} stroke={compareColor} strokeWidth={1.5} strokeDasharray="4 4" dot={false} />
+          )}
         </LineChart>
       ) : (
-        <AreaChart data={data} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
+        <AreaChart
+          data={data}
+          margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
+          onMouseMove={handleMouseMove}
+          onMouseLeave={handleMouseLeave}
+        >
           <defs>
             <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor={color} stopOpacity={0.4} />
@@ -92,17 +185,28 @@ export function RevenueChart({ data = defaultData, type = "area", dataKey = "rev
               <stop offset="100%" stopColor={colorSecondary} stopOpacity={0} />
             </linearGradient>
           </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-          <XAxis dataKey={labelKey} tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 11 }} axisLine={false} tickLine={false} />
-          <YAxis tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} />
-          <Tooltip content={<CustomTooltip />} />
+          <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
+          <XAxis dataKey={labelKey} tick={{ fill: tickFill, fontSize: 11 }} axisLine={false} tickLine={false} />
+          <YAxis tick={{ fill: tickFill, fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} />
+          <Tooltip content={tooltip} />
           <Area type="monotone" dataKey={dataKey} stroke={color} strokeWidth={2} fill="url(#areaGradient)" />
-          {dataKey === "revenue" && (
+          {hasComparison && (
+            <Area
+              type="monotone"
+              dataKey={comparisonKey}
+              stroke={compareColor}
+              strokeWidth={1.5}
+              strokeDasharray="4 4"
+              fill="transparent"
+              activeDot={{ r: 4, fill: compareColor }}
+            />
+          )}
+          {hasAffiliate && (
             <Area type="monotone" dataKey="affiliate" stroke={colorSecondary} strokeWidth={2} fill="url(#areaGradient2)" />
           )}
         </AreaChart>
       )}
-    </ResponsiveContainer>
+      </ResponsiveContainer>
+    </div>
   );
 }
-

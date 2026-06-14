@@ -3,6 +3,7 @@ import {
     recordOrderStatusChange,
     type OrderStatusValue,
 } from "@/lib/payments/record-status-change";
+import { notifyUser } from "@/lib/notifications/notify-user";
 
 const TERMINAL_STATUSES = new Set(["delivered", "cancelled", "refunded"]);
 
@@ -21,7 +22,7 @@ export async function advanceOrderFulfillment(
 ): Promise<{ updated: boolean; status: string }> {
     const { data: order } = await db
         .from("orders")
-        .select("status, shipped_at, delivered_at, tracking_number")
+        .select("status, shipped_at, delivered_at, tracking_number, tracking_url, buyer_id, order_number")
         .eq("id", orderId)
         .maybeSingle();
 
@@ -88,6 +89,37 @@ export async function advanceOrderFulfillment(
                 ...(params.metadata ?? {}),
                 tracking_number: params.trackingNumber,
                 ...(params.trackingUrl ? { tracking_url: params.trackingUrl } : {}),
+            },
+        });
+    }
+
+    const becameShipped =
+        targetStatus === "shipped" &&
+        (previousStatus !== "shipped" || trackingAdded);
+
+    if (becameShipped && order.buyer_id) {
+        const trackingNumber = params.trackingNumber?.trim() ?? order.tracking_number ?? null;
+        const trackingUrl = params.trackingUrl ?? order.tracking_url ?? null;
+        const orderNumber = String(order.order_number ?? orderId);
+
+        await notifyUser(db, {
+            userId: order.buyer_id,
+            type: "order",
+            title: "Order Shipped 📦",
+            message: `Your order #${orderNumber} is on the way.${trackingNumber ? ` Tracking: ${trackingNumber}` : ""}`,
+            actionUrl: `/dashboard/orders/${orderId}`,
+            data: {
+                order_id: orderId,
+                status: "shipped",
+                tracking_number: trackingNumber,
+                tracking_url: trackingUrl,
+            },
+            email: {
+                kind: "order_shipped",
+                orderId,
+                orderNumber,
+                trackingNumber,
+                trackingUrl,
             },
         });
     }

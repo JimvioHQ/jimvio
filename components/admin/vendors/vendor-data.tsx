@@ -7,8 +7,7 @@
 import Link from "next/link";
 import { Package, Star, Users, TrendingUp, Sparkles } from "lucide-react";
 import { useState } from "react";
-import { cn } from "@/lib/utils";
-import { RowArrow } from "@/components/ui/admin";
+import { RowArrow, StatusPill } from "@/components/ui/admin";
 
 export function VendorRow({ v, last }: { v: any; last: boolean }) {
     const logo        = v.business_logo ?? null;
@@ -28,7 +27,7 @@ export function VendorRow({ v, last }: { v: any; last: boolean }) {
     }
 
     return (
-        <tr className="group hover:bg-[var(--color-surface-secondary)]/40 transition-colors duration-100">
+        <tr className="border-t border-[var(--color-border)]/60 hover:bg-[var(--color-surface-secondary)]/40 transition-colors">
 
             {/* ── Store ── */}
             <td className="px-3 py-2.5">
@@ -113,8 +112,14 @@ export function VendorRow({ v, last }: { v: any; last: boolean }) {
             </td>
 
             {/* ── Status ── */}
-            <td className="px-3 py-2.5">
-                <VerificationBadge status={v.verification_status} isActive={v.is_active} />
+            <td className="px-3 py-3">
+                <StatusPill
+                    status={
+                        v.verification_status === "verified" && !v.is_active
+                            ? "inactive"
+                            : (v.verification_status ?? "pending")
+                    }
+                />
             </td>
 
             {/* ── Joined ── */}
@@ -182,31 +187,5 @@ function OwnerAvatar({ avatar, name }: { avatar: string | null; name: string | n
         <div className="w-[22px] h-[22px] rounded-full shrink-0 bg-[var(--color-surface-secondary)] border border-[var(--color-border)] flex items-center justify-center text-[9px] font-bold text-[var(--color-text-muted)]">
             {initial}
         </div>
-    );
-}
-
-// ── Verification badge ────────────────────────────────────────────────────────
-
-const VERIFY_STYLES: Record<string, string> = {
-    verified:  "bg-emerald-50 text-emerald-700 ring-emerald-600/20 dark:bg-emerald-950/30 dark:text-emerald-400",
-    pending:   "bg-amber-50 text-amber-700 ring-amber-600/20 dark:bg-amber-950/30 dark:text-amber-400",
-    rejected:  "bg-rose-50 text-rose-700 ring-rose-600/20 dark:bg-rose-950/30 dark:text-rose-400",
-    suspended: "bg-slate-100 text-slate-600 ring-slate-600/20 dark:bg-slate-800 dark:text-slate-300",
-};
-
-function VerificationBadge({ status, isActive }: { status: string; isActive: boolean }) {
-    const s = VERIFY_STYLES[status] ?? VERIFY_STYLES.pending;
-    const label = status ? status.charAt(0).toUpperCase() + status.slice(1) : "Pending";
-    return (
-        <span className={cn(
-            "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10.5px] font-medium ring-1 ring-inset whitespace-nowrap",
-            s,
-        )}>
-            <span className="w-1.5 h-1.5 rounded-full bg-current opacity-70 shrink-0" />
-            {label}
-            {!isActive && status === "verified" && (
-                <span className="opacity-50 font-normal">· off</span>
-            )}
-        </span>
     );
 }

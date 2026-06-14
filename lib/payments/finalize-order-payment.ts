@@ -721,6 +721,7 @@ import {
   type OrderStatusValue,
   type PaymentStatusValue,
 } from "@/lib/payments/record-status-change";
+import { notifyUser } from "@/lib/notifications/notify-user";
 
 function getPaymentProviderLabel(provider: string | null | undefined): string {
   if (!provider) return "gateway";
@@ -855,13 +856,13 @@ async function grantDigitalAccess(
         .eq("id", orderId);
 
       if (buyerUserId) {
-        await db.from("notifications").insert({
-          user_id: buyerUserId,
+        await notifyUser(db, {
+          userId: buyerUserId,
           type: "order",
           title: "Digital Access Granted! ⚡",
           message: "Your digital purchase is ready. Access it anytime from your Library.",
           data: { order_id: orderId, type: "digital_access" },
-          action_url: "/dashboard/library",
+          actionUrl: "/dashboard/library",
         });
       }
     }
@@ -1172,13 +1173,21 @@ export async function finalizeOrderPayment(
         ctx.amountForMessage != null
           ? `${orderCurrency} ${Number(ctx.amountForMessage).toLocaleString()}`
           : null;
-      await db.from("notifications").insert({
-        user_id: ctx.notifyUserId,
+      await notifyUser(db, {
+        userId: ctx.notifyUserId,
         type: "order",
         title: "Payment Confirmed!",
         message: `Your payment${paidLabel ? ` of ${paidLabel}` : ""} has been confirmed. Order is being processed.`,
         data: { order_id: orderId, reference: ctx.webhookReference },
-        action_url: `/dashboard/orders/${orderId}`,
+        actionUrl: `/dashboard/orders/${orderId}`,
+        email: {
+          kind: "payment_success",
+          orderId,
+          orderNumber: String(order.order_number ?? orderId),
+          amount: Number(ctx.amountForMessage ?? order.total_amount ?? 0),
+          currency: orderCurrency,
+          providerLabel: getPaymentProviderLabel(ctx.paymentProvider),
+        },
       });
     }
 
@@ -1286,8 +1295,8 @@ export async function finalizeOrderPayment(
 
     // Notify buyer
     if (ctx.notifyUserId) {
-      await db.from("notifications").insert({
-        user_id: ctx.notifyUserId,
+      await notifyUser(db, {
+        userId: ctx.notifyUserId,
         type: "order",
         title: "Payment Confirmed!",
         message: `Your Shopify order${ctx.amountForMessage != null
@@ -1295,7 +1304,15 @@ export async function finalizeOrderPayment(
           : ""
           } is being fulfilled by the merchant.`,
         data: { order_id: orderId, reference: ctx.webhookReference },
-        action_url: `/dashboard/orders/${orderId}`,
+        actionUrl: `/dashboard/orders/${orderId}`,
+        email: {
+          kind: "payment_success",
+          orderId,
+          orderNumber: String(order.order_number ?? orderId),
+          amount: Number(ctx.amountForMessage ?? order.total_amount ?? 0),
+          currency: String(order.currency ?? "RWF").toUpperCase(),
+          providerLabel: getPaymentProviderLabel(ctx.paymentProvider),
+        },
       });
     }
   }

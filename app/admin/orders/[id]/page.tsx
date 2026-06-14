@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getAdminDB } from "@/services/db";
 import { absoluteTime, cn, relativeTime } from "@/lib/utils";
+import { formatAdminMoney, formatAdminRate } from "@/lib/admin/format-money";
 import {
     isOrderPaymentComplete,
     computeOrderEconomicsBreakdown,
@@ -11,15 +12,17 @@ import {
 } from "@/lib/payments/order-payment-utils";
 import {
     ArrowLeft, ShoppingBag, User, Building2, MapPin, Truck,
-    Receipt, Clock, Package, AlertCircle, CheckCircle2,
+    Receipt, Clock, Package, AlertCircle,
     CreditCard, Mail, Phone, Globe, ExternalLink,
     RefreshCcw, Ban, ArrowRight, Hash, Activity, Zap,
 } from "lucide-react";
 import { StatusPill, ProviderLogo } from "@/components/ui/admin";
-import { verifyFlutterwaveTransaction } from "@/lib/payments/Transaction-verify";
+import { verifyFlutterwaveTransaction, FlutterwaveAPIError } from "@/lib/payments/Transaction-verify";
 import { finalizeOrderPayment } from "@/lib/payments/finalize-order-payment";
 import { autoHealTransaction } from "@/lib/actions/auto-heal-transaction";
-import { markOrderPaidAction, retryCJOrderAction } from "@/lib/actions/orders";
+import { retryCJOrderAction } from "@/lib/actions/orders";
+import { autoCompleteOrderPaymentIfEligible } from "@/lib/payments/auto-complete-order-payment";
+import { formatHealError } from "@/lib/payments/heal-error";
 import { CJOrderPanel } from "@/components/admin/orders/orders/CJOrderPanel";
 
 
@@ -95,8 +98,7 @@ function MoneyRow({ label, value, currency, muted = false, bold = false }: {
         )}>
             <span className="text-[12.5px]">{label}</span>
             <span className="text-[13px] tabular-nums">
-                {Number(value).toLocaleString()}{" "}
-                <span className="text-[10px] font-normal opacity-70">{currency}</span>
+                {formatAdminMoney(value, currency)}
             </span>
         </div>
     );
@@ -217,34 +219,59 @@ export default async function OrderDetailPage({
                 let txData: any = null;
 
                 if (pendingTx.provider === "flutterwave") {
-                    const res = await verifyFlutterwaveTransaction(pendingTx.provider_transaction_id);
-                    txData = res?.data ?? null;
-                    verifiedStatus = txData?.status === "successful" ? "successful"
-                        : txData?.status === "failed" ? "failed"
-                            : null;
+                    try {
+                        const res = await verifyFlutterwaveTransaction(pendingTx.provider_transaction_id);
+                        txData = res?.data ?? null;
+                        const flwStatus = String(txData?.status ?? "").toLowerCase();
+                        verifiedStatus = flwStatus === "successful" ? "successful"
+                            : flwStatus === "failed" ? "failed"
+                                : null;
 
-                    if (verifiedStatus === "successful") {
-                        await finalizeOrderPayment(admin, id, {
-                            providerTransactionId: String(pendingTx.provider_transaction_id),
-                            providerReference: txData.tx_ref,
-                            paidAtIso: txData.created_at || new Date().toISOString(),
-                            notifyUserId: order.buyer_id,
-                            amountForMessage: Number(order.total_amount),
-                            paymentProvider: "flutterwave",
-                        });
-                        const { data: refreshed } = await admin
-                            .from("orders")
-                            .select("status, payment_status, paid_at, updated_at")
-                            .eq("id", id)
-                            .single();
-                        if (refreshed) {
-                            order.status = refreshed.status;
-                            order.payment_status = refreshed.payment_status;
-                            order.paid_at = refreshed.paid_at;
-                            order.updated_at = refreshed.updated_at;
+                        if (verifiedStatus === "successful") {
+                            try {
+                                await finalizeOrderPayment(admin, id, {
+                                    providerTransactionId: String(pendingTx.provider_transaction_id),
+                                    providerReference: txData.tx_ref,
+                                    paidAtIso: txData.created_at || new Date().toISOString(),
+                                    notifyUserId: order.buyer_id,
+                                    amountForMessage: Number(order.total_amount),
+                                    paymentProvider: "flutterwave",
+                                });
+                                const { data: refreshed } = await admin
+                                    .from("orders")
+                                    .select("status, payment_status, paid_at, updated_at")
+                                    .eq("id", id)
+                                    .single();
+                                if (refreshed) {
+                                    order.status = refreshed.status;
+                                    order.payment_status = refreshed.payment_status;
+                                    order.paid_at = refreshed.paid_at;
+                                    order.updated_at = refreshed.updated_at;
+                                }
+                                healResult = { action: "completed", reason: "flutterwave · verified successful · auto-completed", healedAt: new Date().toISOString() };
+                                verifiedStatus = null;
+                            } catch (finalizeErr) {
+                                healResult = {
+                                    action: "error",
+                                    reason: `flutterwave_finalize · ${formatHealError(finalizeErr)}`,
+                                };
+                                console.warn(
+                                    `[OrderDetailPage] flutterwave finalize failed orderId=${id}: ${formatHealError(finalizeErr)}`
+                                );
+                            }
                         }
-                        healResult = { action: "completed", reason: "flutterwave · verified successful · auto-completed", healedAt: new Date().toISOString() };
-                        verifiedStatus = null;
+                    } catch (verifyErr) {
+                        if (verifyErr instanceof FlutterwaveAPIError && verifyErr.isNotFound) {
+                            // Payment not found on Flutterwave yet — normal for pending checkout
+                        } else {
+                            healResult = {
+                                action: "error",
+                                reason: `flutterwave_verify · ${formatHealError(verifyErr)}`,
+                            };
+                            console.warn(
+                                `[OrderDetailPage] flutterwave verify failed orderId=${id}: ${formatHealError(verifyErr)}`
+                            );
+                        }
                     }
                 } else {
                     const txMeta = (pendingTx.metadata ?? {}) as Record<string, unknown>;
@@ -322,7 +349,11 @@ export default async function OrderDetailPage({
                     }
                 }
             } catch (err) {
-                console.error("[OrderDetailPage] verification error", { orderId: id, reason: err instanceof Error ? err.message : String(err) });
+                const reason = formatHealError(err);
+                healResult = { action: "error", reason: `verification · ${reason}` };
+                console.warn(
+                    `[OrderDetailPage] verification failed orderId=${id}: ${reason}`
+                );
             }
         } else {
             const isStuck =
@@ -340,6 +371,34 @@ export default async function OrderDetailPage({
                     verifiedStatus: null,
                     isStuck: true,
                 });
+            }
+        }
+
+        if (!isOrderPaymentComplete(order.payment_status)) {
+            const autoComplete = await autoCompleteOrderPaymentIfEligible(
+                admin,
+                id,
+                order,
+                txs
+            );
+            if (autoComplete.action === "completed") {
+                healResult = autoComplete;
+                const { data: refreshed } = await admin
+                    .from("orders")
+                    .select("status, payment_status, paid_at, updated_at")
+                    .eq("id", id)
+                    .single();
+                if (refreshed) {
+                    order.status = refreshed.status;
+                    order.payment_status = refreshed.payment_status;
+                    order.paid_at = refreshed.paid_at;
+                    order.updated_at = refreshed.updated_at;
+                }
+            } else if (autoComplete.action === "error") {
+                healResult = autoComplete;
+                console.warn(
+                    `[OrderDetailPage] auto-complete failed orderId=${id}: ${autoComplete.reason}`
+                );
             }
         }
     }
@@ -439,18 +498,6 @@ export default async function OrderDetailPage({
                             <RefreshCcw className="h-3.5 w-3.5" />
                             Issue refund
                         </button>
-                    )}
-                    {!isCancelled && !isPaid && (
-                        <form action={markOrderPaidAction} className="inline">
-                            <input type="hidden" name="orderId" value={order.id} />
-                            <button
-                                type="submit"
-                                className="h-8 px-3 inline-flex items-center gap-1.5 rounded text-[12px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-300/40 hover:bg-emerald-100 transition-colors dark:bg-emerald-950/20 dark:text-emerald-400"
-                            >
-                                <CheckCircle2 className="h-3.5 w-3.5" />
-                                Mark as paid
-                            </button>
-                        </form>
                     )}
                     {!isCancelled && !isPaid && (
                         <button className="h-8 px-3 inline-flex items-center gap-1.5 rounded text-[12px] font-medium border border-[var(--color-border)] text-rose-600 hover:bg-rose-50 transition-colors dark:hover:bg-rose-950/20">
@@ -573,7 +620,7 @@ export default async function OrderDetailPage({
                                         <div className="flex items-center gap-3 mt-1.5 text-[11px] text-[var(--color-text-muted)] flex-wrap">
                                             <span className="tabular-nums">Qty {item.quantity}</span>
                                             <span>×</span>
-                                            <span className="tabular-nums">{Number(item.unit_price).toLocaleString()} {order.currency}</span>
+                                            <span className="tabular-nums">{formatAdminMoney(item.unit_price, order.currency)}</span>
                                             {item.product_type === "digital" && item.access_granted_at && (
                                                 <><span>·</span><span className="text-emerald-600">Access granted</span></>
                                             )}
@@ -581,14 +628,13 @@ export default async function OrderDetailPage({
                                                 <><span>·</span><span>{item.download_count} downloads</span></>
                                             )}
                                             {item.affiliate_commission_amount > 0 && (
-                                                <><span>·</span><span className="text-orange-500">Commission: {Number(item.affiliate_commission_amount).toLocaleString()} {order.currency}</span></>
+                                                <><span>·</span><span className="text-orange-500">Commission: {formatAdminMoney(item.affiliate_commission_amount, order.currency)}</span></>
                                             )}
                                         </div>
                                     </div>
 
                                     <p className="text-[13px] font-semibold tabular-nums text-[var(--color-text-primary)] shrink-0 pt-0.5">
-                                        {Number(item.total_price).toLocaleString()}{" "}
-                                        <span className="text-[10px] font-normal text-[var(--color-text-muted)]">{order.currency}</span>
+                                        {formatAdminMoney(item.total_price, order.currency)}
                                     </p>
                                 </div>
                             ))}
@@ -614,7 +660,7 @@ export default async function OrderDetailPage({
                             )}
                             {chargedPayment.exchangeRate && (
                                 <p className="text-[10.5px] text-[var(--color-text-muted)] tabular-nums">
-                                    Exchange rate: 1 USD = {Number(chargedPayment.exchangeRate).toLocaleString()} {chargedPayment.currency}
+                                    Exchange rate: 1 USD = {formatAdminRate(chargedPayment.exchangeRate, chargedPayment.currency)}
                                 </p>
                             )}
 
@@ -676,8 +722,7 @@ export default async function OrderDetailPage({
                                         </div>
                                         <div className="text-right shrink-0">
                                             <p className="text-[12.5px] font-semibold tabular-nums text-[var(--color-text-primary)]">
-                                                {Number(tx.amount).toLocaleString()}{" "}
-                                                <span className="text-[10px] font-normal text-[var(--color-text-muted)]">{tx.currency}</span>
+                                                {formatAdminMoney(tx.amount, tx.currency)}
                                             </p>
                                             {tx.amount_usd && tx.currency !== "USD" && (
                                                 <p className="text-[10px] text-[var(--color-text-muted)] tabular-nums">≈ ${Number(tx.amount_usd).toFixed(2)}</p>

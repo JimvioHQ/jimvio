@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 import { resolvePostLoginPath } from "@/lib/auth/post-login-redirect";
+import { extractSessionMeta, syncUserSession } from "@/lib/auth/user-sessions";
 
 function isSafeInternalPath(path: string): boolean {
   return (
@@ -137,6 +138,12 @@ export async function GET(request: Request) {
     user.email,
     user.user_metadata?.full_name as string | undefined
   );
+
+  try {
+    await syncUserSession(user.id, extractSessionMeta(request.headers));
+  } catch (err) {
+    console.error("[auth/callback] session sync failed:", err);
+  }
 
   // ── Resolve post-login destination ──
   let destination: string;

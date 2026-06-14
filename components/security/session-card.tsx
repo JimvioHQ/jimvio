@@ -60,7 +60,7 @@ export function SessionCard({
                     size="sm"
                     icon={<X className="size-3" />}
                 >
-                    <span style={{ color: "var(--color-danger)" }}>Revoke</span>
+                    <span style={{ color: "var(--color-danger)" }}>Sign out device</span>
                 </BrandBtn>
             )}
         </div>

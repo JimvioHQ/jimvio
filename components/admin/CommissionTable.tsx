@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { formatCurrency } from "@/lib/utils";
+import { formatAdminMoney } from "@/lib/admin/format-money";
 import { cn } from "@/lib/utils";
 
 export type CommissionRow = {
@@ -110,7 +110,7 @@ export function CommissionTable({
                 </td>
                 <td className="p-3">-</td>
                 <td className="p-3">8%</td>
-                <td className="p-3 font-bold">{formatCurrency(r.amount, r.currency)}</td>
+                <td className="p-3 font-bold">{formatAdminMoney(r.amount, r.currency)}</td>
                 <td className="p-3">
                   <span className={cn("text-xs font-bold", r.status === "completed" ? "text-[var(--color-success)]" : "")}>
                     {r.status}

@@ -21,7 +21,9 @@ export default function AdminReportsPage() {
         </CardHeader>
         <CardContent className="space-y-3">
           <p className="text-sm text-[var(--color-text-muted)]">
-            High-level metrics are on the <Link href="/admin" className="text-[var(--color-accent)] hover:underline">Overview</Link> page (users, vendors, products, orders, revenue). Here you can add:
+            High-level metrics are on the <Link href="/admin" className="text-[var(--color-accent)] hover:underline">Overview</Link> page.
+            For platform health, integrations, and ops signals, see{" "}
+            <Link href="/admin/system-analysis" className="text-[var(--color-accent)] hover:underline">System analysis</Link>.
           </p>
           <ul className="list-disc list-inside text-sm text-[var(--color-text-muted)] space-y-1">
             <li>Exportable CSV/Excel reports</li>

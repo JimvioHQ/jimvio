@@ -5,6 +5,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { formatAdminMoney, formatAdminWalletMoney } from "@/lib/admin/format-money";
 import {
     ArrowLeft, Star, Users, Package, TrendingUp,
     Globe, Mail, Phone, MapPin, ExternalLink,
@@ -88,12 +89,6 @@ export interface AdminVendorDetail {
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function fmt(n: number, currency = "RWF") {
-    return new Intl.NumberFormat("en-US", {
-        style: "currency", currency, maximumFractionDigits: 0,
-    }).format(n);
-}
 
 function fmtNum(n: number) {
     if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
@@ -277,7 +272,7 @@ export function AdminVendorDetailClient({ vendor }: { vendor: AdminVendorDetail 
             {/* Metrics */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                 {[
-                    { label: "Total revenue", value: fmt(vendor.total_revenue),     icon: CircleDollarSign, color: "text-emerald-500" },
+                    { label: "Total revenue", value: formatAdminWalletMoney(vendor.total_revenue),     icon: CircleDollarSign, color: "text-emerald-500" },
                     { label: "Total sales",   value: fmtNum(vendor.total_sales),    icon: TrendingUp,       color: "text-blue-500" },
                     { label: "Products",      value: String(vendor.products_count), icon: Package,          color: "text-violet-500" },
                     { label: "Followers",     value: fmtNum(vendor.follower_count), icon: Users,            color: "text-orange-500" },
@@ -382,7 +377,7 @@ export function AdminVendorDetailClient({ vendor }: { vendor: AdminVendorDetail 
                                                 <td className="px-3 py-2.5"><Link href={`/admin/orders/${o.id}`} className="font-mono text-[11.5px] text-orange-500 hover:underline">{o.order_number}</Link></td>
                                                 <td className="px-3 py-2.5"><StatusPill status={o.status} /></td>
                                                 <td className="px-3 py-2.5"><StatusPill status={o.payment_status} /></td>
-                                                <td className="px-3 py-2.5 text-right font-medium text-[13px] tabular-nums">{fmt(o.total_amount, o.currency)}</td>
+                                                <td className="px-3 py-2.5 text-right font-medium text-[13px] tabular-nums">{formatAdminMoney(o.total_amount, o.currency)}</td>
                                                 <td className="px-3 py-2.5 text-[12px] text-[var(--color-text-muted)] whitespace-nowrap">{fmtDate(o.created_at)}</td>
                                             </tr>
                                         ))}
@@ -415,7 +410,7 @@ export function AdminVendorDetailClient({ vendor }: { vendor: AdminVendorDetail 
                                                     </div>
                                                 </td>
                                                 <td className="px-3 py-2.5"><ProductTypeBadge type={p.product_type} /></td>
-                                                <td className="px-3 py-2.5 text-right text-[12.5px] font-medium tabular-nums">{fmt(p.price, p.currency)}</td>
+                                                <td className="px-3 py-2.5 text-right text-[12.5px] font-medium tabular-nums">{formatAdminMoney(p.price, p.currency)}</td>
                                                 <td className="px-3 py-2.5 text-right text-[12px] tabular-nums text-[var(--color-text-muted)]">{fmtNum(p.sale_count)}</td>
                                                 <td className="px-3 py-2.5 text-[12px] text-[var(--color-text-muted)] whitespace-nowrap">{fmtDate(p.created_at)}</td>
                                             </tr>

@@ -365,6 +365,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getAdminDB } from "@/services/db";
 import { cn } from "@/lib/utils";
+import { formatAdminMoney } from "@/lib/admin/format-money";
 import {
     ArrowLeft, Receipt, User, ShoppingBag,
     Calendar, Hash, Activity, AlertCircle,
@@ -795,7 +796,7 @@ export default async function TransactionDetailPage({
                             )}
                         </p>
                         <h1 className="text-xl font-semibold tabular-nums tracking-tight text-[var(--color-text-primary)]">
-                            {Number(tx.amount).toLocaleString()} {tx.currency}
+                            {formatAdminMoney(tx.amount, tx.currency)}
                         </h1>
                         {tx.amount_usd && tx.currency !== "USD" && (
                             <p className="text-[12.5px] text-[var(--color-text-muted)] tabular-nums mt-0.5">
@@ -857,7 +858,7 @@ export default async function TransactionDetailPage({
                     <DetailRow label="Status" value={<StatusPill status={verifyData.status} />} />
                     <DetailRow
                         label="Amount"
-                        value={`${Number(verifyData.amount).toLocaleString()} ${verifyData.currency}`}
+                        value={formatAdminMoney(verifyData.amount, verifyData.currency)}
                     />
                     {verifyData.tx_ref && (
                         <DetailRow label="Tx ref" value={verifyData.tx_ref} mono />
@@ -1025,7 +1026,7 @@ export default async function TransactionDetailPage({
                             />
                             <DetailRow
                                 label="Total"
-                                value={`${Number(displayOrder.total_amount).toLocaleString()} ${displayOrder.currency}`}
+                                value={formatAdminMoney(displayOrder.total_amount, displayOrder.currency)}
                             />
                             <DetailRow
                                 label="Payment"

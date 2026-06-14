@@ -1,7 +1,8 @@
 import React from "react";
 import Link from "next/link";
 import { getAdminDB } from "@/services/db";
-import { absoluteTime, cn, formatCurrency, relativeTime } from "@/lib/utils";
+import { absoluteTime, cn, relativeTime } from "@/lib/utils";
+import { formatAdminMoney } from "@/lib/admin/format-money";
 import {
     AlertTriangle, CheckCircle2, Wallet, XCircle,
 } from "lucide-react";
@@ -60,6 +61,8 @@ export default async function FailedCreditsPage({
     const statsList = (stats ?? []) as any[];
 
     const unresolvedCount = statsList.filter((s) => !s.resolved).length;
+    const resolvedCount = statsList.filter((s) => s.resolved).length;
+    const allCount = statsList.length;
     const unresolvedTotal = statsList
         .filter((s) => !s.resolved)
         .reduce((sum, s) => sum + Number(s.amount ?? 0), 0);
@@ -87,7 +90,7 @@ export default async function FailedCreditsPage({
                     <AlertTriangle className="h-5 w-5 text-rose-600 shrink-0 mt-0.5" />
                     <div className="flex-1">
                         <p className="text-[14px] font-semibold text-rose-700 dark:text-rose-300">
-                            {unresolvedCount} unresolved · {formatCurrency(unresolvedTotal)} pending
+                            {unresolvedCount} unresolved · {formatAdminMoney(unresolvedTotal)} pending
                         </p>
                         <p className="text-[12px] text-rose-600/80 dark:text-rose-400/80 mt-0.5">
                             Each row represents money the platform received but didn't pass to the vendor's wallet.
@@ -99,9 +102,9 @@ export default async function FailedCreditsPage({
 
             {/* Filters */}
             <div className="flex items-center gap-2 flex-wrap">
-                <FilterChip label={`Unresolved (${unresolvedCount})`} href="?filter=unresolved" active={filter === "unresolved"} />
-                <FilterChip label="Resolved" href="?filter=resolved" active={filter === "resolved"} />
-                <FilterChip label="All" href="?filter=all" active={filter === "all"} />
+                <FilterChip label="Unresolved" href="?filter=unresolved" active={filter === "unresolved"} count={unresolvedCount} />
+                <FilterChip label="Resolved" href="?filter=resolved" active={filter === "resolved"} count={resolvedCount} />
+                <FilterChip label="All" href="?filter=all" active={filter === "all"} count={allCount} />
             </div>
 
             {/* Table */}
@@ -150,7 +153,7 @@ export default async function FailedCreditsPage({
                                                 </td>
                                                 <td className="px-3 py-3 text-right">
                                                     <p className="font-semibold tabular-nums text-[var(--color-text-primary)]">
-                                                        {Number(r.amount).toLocaleString()} <span className="text-[10px] font-normal text-[var(--color-text-muted)]">{r.currency}</span>
+                                                        {formatAdminMoney(r.amount, r.currency)}
                                                     </p>
                                                 </td>
                                                 <td className="px-3 py-3 text-[11.5px] text-[var(--color-text-muted)] max-w-[300px]" title={r.reason ?? ""}>

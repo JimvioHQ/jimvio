@@ -45,13 +45,23 @@ export default async function WebhookEventsPage({
 
   // Stats over last 24h
   const dayAgo = new Date(Date.now() - 86400_000).toISOString();
-  const [{ data: events, count }, { data: statsData }] = await Promise.all([
+  const [{ data: events, count }, { data: statsData }, { data: statusRows }] = await Promise.all([
     query,
     admin.from("webhook_events").select("status, provider").gte("created_at", dayAgo),
+    admin.from("webhook_events").select("status"),
   ]);
 
   const list = (events ?? []) as any[];
   const stats = (statsData ?? []) as any[];
+  const allStatuses = (statusRows ?? []) as Array<{ status: string }>;
+
+  const statusCounts: Record<StatusFilter, number> = {
+    all: allStatuses.length,
+    received: allStatuses.filter((e) => e.status === "received").length,
+    processing: allStatuses.filter((e) => e.status === "processing").length,
+    completed: allStatuses.filter((e) => e.status === "completed").length,
+    failed: allStatuses.filter((e) => e.status === "failed").length,
+  };
 
   const total24h = stats.length;
   const success24h = stats.filter((e) => e.status === "completed").length;
@@ -107,6 +117,7 @@ export default async function WebhookEventsPage({
               label={s === "all" ? "All" : s}
               href={`/admin/payments/webhooks${qs({ status: s, page: "1" })}`}
               active={status === s}
+              count={statusCounts[s]}
             />
           ))}
         </div>

@@ -15,6 +15,7 @@ import {
   Siren,
   Landmark,
   SlidersHorizontal,
+  Activity,
   PanelLeftClose,
   PanelLeftOpen,
   Search,
@@ -56,6 +57,7 @@ const navSections = [
   {
     label: "System",
     items: [
+      { label: "System analysis", href: "/admin/system-analysis", icon: Activity },
       { label: "Settings", href: "/admin/settings", icon: SlidersHorizontal },
     ],
   },
@@ -286,31 +288,39 @@ export function AdminSidebar({
 
       {/* ── User footer ── */}
       <div className="shrink-0 border-t border-[var(--color-border)] p-3">
-        <div className={cn(
-          "flex items-center gap-2.5 rounded-sm px-2 py-1.5",
-          "hover:bg-[var(--color-surface-secondary)] transition-colors",
-          collapsed && "justify-center px-0"
-        )}>
-          <Avatar className="h-8 w-8 shrink-0">
-            <AvatarImage src={user.avatar_url || ""} />
-            <AvatarFallback className="bg-[var(--color-surface-secondary)] border border-[var(--color-border)] text-[var(--color-text-primary)] text-[11px] font-bold">
-              {initials}
-            </AvatarFallback>
-          </Avatar>
+        <div
+          className={cn(
+            "flex items-center gap-2.5 rounded-sm px-2 py-1.5",
+            collapsed && "justify-center px-0"
+          )}
+        >
+          <Link
+            href="/admin/settings/profile"
+            className={cn(
+              "flex items-center gap-2.5 min-w-0 flex-1 rounded-sm",
+              "hover:bg-[var(--color-surface-secondary)] transition-colors",
+              collapsed && "flex-none"
+            )}
+          >
+            <Avatar className="h-8 w-8 shrink-0">
+              <AvatarImage src={user.avatar_url || ""} />
+              <AvatarFallback className="bg-[var(--color-surface-secondary)] border border-[var(--color-border)] text-[var(--color-text-primary)] text-[11px] font-bold">
+                {initials}
+              </AvatarFallback>
+            </Avatar>
 
-          {!collapsed && (
-            <>
+            {!collapsed && (
               <div className="flex-1 min-w-0">
                 <p className="text-[13px] font-semibold leading-tight truncate text-[var(--color-text-primary)]">
                   {user.full_name || "Admin"}
                 </p>
                 <p className="text-[11px] leading-tight text-[var(--color-text-muted)] truncate mt-0.5">
-                  {user.role ?? "Super admin"}
+                  Edit profile
                 </p>
               </div>
-              <SignOutButton variant="icon" />
-            </>
-          )}
+            )}
+          </Link>
+          {!collapsed && <SignOutButton variant="icon" />}
         </div>
       </div>
     </div>

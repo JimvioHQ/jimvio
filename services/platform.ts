@@ -29,8 +29,8 @@ export async function getAdminOverviewStats() {
     admin.from("profiles").select("id", { count: "exact", head: true }),
     admin.from("vendors").select("id", { count: "exact", head: true }),
     admin.from("orders").select("id", { count: "exact", head: true }),
-    admin.from("orders").select("total_amount").eq("payment_status", "completed"),
-    admin.from("products").select("id", { count: "exact", head: true }),
+    admin.from("orders").select("total_amount").in("payment_status", ["paid", "completed"]),
+    admin.from("products").select("id", { count: "exact", head: true }).is("deleted_at", null),
   ]);
 
   const totalRevenue = revenue.data?.reduce((sum: number, o: any) => sum + Number(o.total_amount), 0) ?? 0;
@@ -46,20 +46,25 @@ export async function getAdminOverviewStats() {
 
 export async function getAdminRevenueChartData() {
   const admin = getAdminDB();
+  const since12mo = new Date(Date.now() - 365 * 86400000).toISOString();
   const { data: recentOrders } = await admin
     .from("orders")
     .select("total_amount, created_at")
-    .eq("payment_status", "completed")
-    .order("created_at", { ascending: true })
-    .limit(100);
+    .in("payment_status", ["paid", "completed"])
+    .gte("created_at", since12mo)
+    .order("created_at", { ascending: true });
 
-  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  const chartData = months.map(m => ({ name: m, revenue: 0 }));
+  const now = new Date();
+  const chartData = Array.from({ length: 12 }, (_, i) => {
+    const d = new Date(now.getFullYear(), now.getMonth() - (11 - i), 1);
+    return { name: d.toLocaleDateString("en-US", { month: "short" }), revenue: 0 };
+  });
 
   recentOrders?.forEach((o: any) => {
     const d = new Date(o.created_at);
-    const mIdx = d.getMonth();
-    chartData[mIdx].revenue += Number(o.total_amount);
+    const monthsAgo = (now.getFullYear() - d.getFullYear()) * 12 + (now.getMonth() - d.getMonth());
+    if (monthsAgo < 0 || monthsAgo > 11) return;
+    chartData[11 - monthsAgo].revenue += Number(o.total_amount);
   });
 
   return chartData;

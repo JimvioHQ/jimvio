@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { formatCurrency } from "@/lib/utils";
+import { formatAdminMoney } from "@/lib/admin/format-money";
 import { toast } from "sonner";
 
 type Profile = { full_name: string | null; email: string | null; phone: string | null } | null;
@@ -195,7 +195,7 @@ export function AdminPayoutsDashboard() {
             ) : (
               <>
                 <p className="text-lg font-bold text-[var(--color-text-primary)] tabular-nums">
-                  {pendingStats.count} · {formatCurrency(pendingStats.amount, currency)}
+                  {pendingStats.count} · {formatAdminMoney(pendingStats.amount, currency)}
                 </p>
               </>
             )}
@@ -210,7 +210,7 @@ export function AdminPayoutsDashboard() {
               <div className="h-8 w-24 bg-[var(--color-surface-secondary)] rounded animate-pulse" />
             ) : (
               <p className="text-lg font-bold text-[var(--color-text-primary)] tabular-nums">
-                {formatCurrency(paidMonth, currency)}
+                {formatAdminMoney(paidMonth, currency)}
               </p>
             )}
           </CardContent>
@@ -224,7 +224,7 @@ export function AdminPayoutsDashboard() {
               <div className="h-8 w-24 bg-[var(--color-surface-secondary)] rounded animate-pulse" />
             ) : (
               <p className="text-lg font-bold text-[var(--color-text-primary)] tabular-nums">
-                {formatCurrency(paidLife, currency)}
+                {formatAdminMoney(paidLife, currency)}
               </p>
             )}
           </CardContent>
@@ -284,11 +284,11 @@ export function AdminPayoutsDashboard() {
                         <td className="p-3 whitespace-nowrap text-[var(--color-text-secondary)]">
                           {new Date(p.created_at).toLocaleString()}
                         </td>
-                        <td className="p-3 text-right tabular-nums">{formatCurrency(num(p.amount), p.currency || currency)}</td>
+                        <td className="p-3 text-right tabular-nums">{formatAdminMoney(num(p.amount), p.currency || currency)}</td>
                         <td className="p-3 text-right tabular-nums text-[var(--color-text-muted)]">
-                          {formatCurrency(num(p.fee), p.currency || currency)}
+                          {formatAdminMoney(num(p.fee), p.currency || currency)}
                         </td>
-                        <td className="p-3 text-right tabular-nums">{formatCurrency(num(p.net_amount), p.currency || currency)}</td>
+                        <td className="p-3 text-right tabular-nums">{formatAdminMoney(num(p.net_amount), p.currency || currency)}</td>
                         <td className="p-3">{methodLabel(p.payout_method)}</td>
                         <td className="p-3 font-mono text-xs">{maskAccount(p.payout_account)}</td>
                         <td className="p-3">
@@ -349,7 +349,7 @@ export function AdminPayoutsDashboard() {
               </p>
               <p>
                 <span className="text-[var(--color-text-muted)]">Amount to pay: </span>
-                <span className="font-bold tabular-nums">{formatCurrency(num(active.amount), active.currency || currency)}</span>
+                <span className="font-bold tabular-nums">{formatAdminMoney(num(active.amount), active.currency || currency)}</span>
               </p>
               <p>
                 <span className="text-[var(--color-text-muted)]">Method: </span>

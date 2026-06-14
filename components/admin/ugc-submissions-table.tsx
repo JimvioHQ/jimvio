@@ -5,6 +5,7 @@
 import React, { useState } from "react";
 import { CheckCircle2, XCircle, ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { formatAdminWalletMoney } from "@/lib/admin/format-money";
 import { Th } from "@/components/ui/admin";
 
 type UGCSubmission = {
@@ -213,7 +214,7 @@ function SubmissionRow({ s }: { s: UGCSubmission }) {
                             : "text-[var(--color-text-muted)]",
                     )}>
                         {s.total_earnings && Number(s.total_earnings) > 0
-                            ? `${Number(s.total_earnings).toLocaleString()} RWF`
+                            ? formatAdminWalletMoney(s.total_earnings)
                             : "—"}
                     </span>
                 </td>

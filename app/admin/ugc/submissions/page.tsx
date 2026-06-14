@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import type { UGCSubmission } from '@/types/ugc';
+import { TabCountBadge } from '@/components/ui/tab-count-badge';
+import { cn } from '@/lib/utils';
 
 const STATUS_STYLES: Record<string, string> = {
   pending:  'bg-amber-500/20 text-amber-400',
@@ -18,6 +20,28 @@ export default function AdminAllSubmissionsPage() {
   const [submissions, setSubmissions] = useState<UGCSubmission[]>([]);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState('all');
+  const [counts, setCounts] = useState<Record<string, number>>({
+    all: 0,
+    pending: 0,
+    approved: 0,
+    rejected: 0,
+  });
+
+  useEffect(() => {
+    async function loadCounts() {
+      const entries = await Promise.all(
+        (['all', 'pending', 'approved', 'rejected'] as const).map(async (key) => {
+          const p = new URLSearchParams({ limit: '1' });
+          if (key !== 'all') p.set('status', key);
+          const res = await fetch(`/api/ugc/submissions?${p}`);
+          const json = await res.json();
+          return [key, Number(json.total ?? 0)] as const;
+        })
+      );
+      setCounts(Object.fromEntries(entries));
+    }
+    loadCounts();
+  }, []);
 
   useEffect(() => {
     const p = new URLSearchParams({ limit: '100' });
@@ -32,6 +56,11 @@ export default function AdminAllSubmissionsPage() {
   async function handleApprove(id: string) {
     await fetch(`/api/ugc/submissions/${id}/approve`, { method: 'PATCH' });
     setSubmissions(prev => prev.map(s => s.id === id ? { ...s, status: 'approved' } : s));
+    setCounts((c) => ({
+      ...c,
+      pending: Math.max(0, (c.pending ?? 0) - 1),
+      approved: (c.approved ?? 0) + 1,
+    }));
   }
 
   return (
@@ -42,19 +71,29 @@ export default function AdminAllSubmissionsPage() {
           <p className="text-sm text-[var(--color-text-muted)]">Admin view of all influencer content submissions</p>
         </div>
 
-        <div className="flex gap-2 mb-6">
-          {['all','pending','approved','rejected'].map(f => (
+        <div className="flex gap-2 mb-6 flex-wrap items-center">
+          {(['all','pending','approved','rejected'] as const).map(f => (
             <button
               key={f}
               onClick={() => setStatus(f)}
-              className={`px-3 py-1 rounded-sm text-xs font-medium capitalize transition-all ${
-                status === f ? 'bg-[var(--color-accent)] text-[var(--color-text-primary)]' : 'bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)] hover:bg-[var(--color-surface-secondary)]/80 hover:text-[var(--color-text-primary)]'
-              }`}
+              className={cn(
+                "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium capitalize transition-all border",
+                status === f
+                  ? "bg-[var(--color-accent)] text-white border-[var(--color-accent)]"
+                  : "bg-[var(--color-surface)] text-[var(--color-text-muted)] border-[var(--color-border)] hover:text-[var(--color-text-primary)]"
+              )}
             >
               {f}
+              <TabCountBadge
+                count={counts[f] ?? 0}
+                active={status === f}
+                warn={f === 'pending'}
+              />
             </button>
           ))}
-          <span className="ml-auto text-xs text-[var(--color-text-muted)] opacity-80 self-center">{submissions.length} results</span>
+          <span className="ml-auto text-xs text-[var(--color-text-muted)] opacity-80 self-center">
+            {submissions.length} shown
+          </span>
         </div>
 
         {loading ? (

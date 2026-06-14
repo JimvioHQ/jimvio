@@ -3,470 +3,479 @@
 import React from "react";
 import Link from "next/link";
 import {
-  UsersRound,
-  Store,
-  Boxes,
-  ClipboardList,
-  BadgeCheck,
-  Landmark,
-  TrendingUp,
-  TrendingDown,
-  ArrowRight,
-  Clock,
-  CircleDollarSign,
-  AlertCircle,
-  Siren,
-  Video,
-  ShieldAlert,
+    UsersRound,
+    Store,
+    Boxes,
+    ClipboardList,
+    TrendingUp,
+    Package,
+    ArrowRight,
+    Activity,
+    Mail,
+    MailX,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { formatCurrency } from "@/lib/utils";
-import { RevenueChart } from "@/components/charts/revenue-chart";
-import { cn } from "@/lib/utils";
+import { PageHeader, StatusPill, RowArrow, Th, EmptyState } from "@/components/ui/admin";
+import { Tile } from "@/components/ui/admin-tile";
+import { AdminDonutChart, DonutLegend } from "@/components/charts/admin-donut-chart";
+import { PaidRevenueChartSection } from "@/components/admin/paid-revenue-chart-section";
+import { cn, relativeTime } from "@/lib/utils";
+import { formatAdminMoney } from "@/lib/admin/format-money";
+import { displayFulfillmentStatus } from "@/lib/payments/order-payment-utils";
+import type { AdminDashboardData, DashboardAttentionItem } from "@/services/admin/getAdminDashboard";
 
-// ── Types ──────────────────────────────────────────────────────────────────────
-
-type Stats = {
-  totalUsers: number;
-  totalVendors: number;
-  totalProducts: number;
-  totalOrders: number;
-  totalRevenue: number;
-  monthlyRevenue: number;
-  pendingVerifications: number;
-  // Extended — pulled from schema
-  pendingDisputes?: number;
-  activeUgcCampaigns?: number;
-  pendingPayouts?: number;
-  totalTransactionsThisMonth?: number;
-  newUsersThisMonth?: number;
-  prevMonthRevenue?: number;
-};
-
-type ChartPoint = { month: string; revenue: number; orders?: number };
-
-type RecentOrder = {
-  id: string;
-  order_number: string;
-  buyer_name: string;
-  total_amount: number;
-  status: string;
-  created_at: string;
-};
-
-type PendingVerification = {
-  id: string;
-  business_name: string;
-  business_country: string | null;
-  created_at: string | null;
-};
-
-interface AdminOverviewClientProps {
-  stats: Stats;
-  chartData: ChartPoint[];
-  recentOrders?: RecentOrder[];
-  pendingVendors?: PendingVerification[];
+function pctChange(current: number, prev: number): number | null {
+    if (!prev) return null;
+    return ((current - prev) / prev) * 100;
 }
 
-// ── Helpers ────────────────────────────────────────────────────────────────────
+function HealthPill({ score, label }: { score: number; label: AdminDashboardData["healthLabel"] }) {
+    const styles = {
+        healthy: "bg-emerald-50 text-emerald-700 ring-emerald-600/20 dark:bg-emerald-950/30 dark:text-emerald-400",
+        degraded: "bg-amber-50 text-amber-700 ring-amber-600/20 dark:bg-amber-950/30 dark:text-amber-400",
+        critical: "bg-rose-50 text-rose-700 ring-rose-600/20 dark:bg-rose-950/30 dark:text-rose-400",
+    };
 
-function pctChange(current: number, prev: number) {
-  if (!prev) return null;
-  return ((current - prev) / prev) * 100;
+    return (
+        <span className={cn(
+            "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium ring-1 ring-inset capitalize",
+            styles[label]
+        )}>
+            <Activity className="h-3 w-3" />
+            {label} · {score}
+        </span>
+    );
 }
 
-function timeAgo(iso: string) {
-  const diff = Date.now() - new Date(iso).getTime();
-  const m = Math.floor(diff / 60000);
-  if (m < 60) return `${m}m ago`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h ago`;
-  return `${Math.floor(h / 24)}d ago`;
+function AttentionRow({ item }: { item: DashboardAttentionItem }) {
+    const border =
+        item.severity === "critical"
+            ? "border-rose-500/25 bg-rose-500/[0.04]"
+            : item.severity === "warn"
+                ? "border-amber-500/25 bg-amber-500/[0.04]"
+                : "border-[var(--color-border)] bg-[var(--color-surface-secondary)]/40";
+
+    return (
+        <Link
+            href={item.href}
+            className={cn(
+                "flex items-center gap-3 rounded-md border px-3 py-2.5 transition-colors",
+                "hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface-secondary)]/60",
+                border
+            )}
+        >
+            <span className="flex h-7 min-w-[1.75rem] items-center justify-center rounded-md bg-[var(--color-surface)] ring-1 ring-[var(--color-border)] text-[12px] font-semibold tabular-nums text-[var(--color-text-primary)]">
+                {item.count}
+            </span>
+            <div className="min-w-0 flex-1">
+                <p className="text-[13px] font-medium text-[var(--color-text-primary)] truncate">{item.label}</p>
+                <p className="text-[11.5px] text-[var(--color-text-muted)] truncate">{item.detail}</p>
+            </div>
+            <ArrowRight className="h-3.5 w-3.5 shrink-0 text-[var(--color-text-muted)]" />
+        </Link>
+    );
 }
 
-const ORDER_STATUS_STYLES: Record<string, string> = {
-  pending:    "bg-amber-500/10 text-amber-600 border-amber-500/20",
-  confirmed:  "bg-blue-500/10 text-blue-600 border-blue-500/20",
-  processing: "bg-violet-500/10 text-violet-600 border-violet-500/20",
-  shipped:    "bg-cyan-500/10 text-cyan-600 border-cyan-500/20",
-  delivered:  "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
-  cancelled:  "bg-red-500/10 text-red-600 border-red-500/20",
-  completed:  "bg-green-500/10 text-green-600 border-green-500/20",
-};
-
-// ── Stat card ──────────────────────────────────────────────────────────────────
-
-interface KpiCardProps {
-  label: string;
-  value: string;
-  icon: React.ReactNode;
-  accent: string;        // Tailwind bg class for icon ring
-  delta?: number | null; // % change vs prev period
-  sub?: string;
-  href?: string;
+function OpsRow({ label, value, href, highlight }: { label: string; value: number; href: string; highlight?: boolean }) {
+    return (
+        <Link
+            href={href}
+            className="flex items-center justify-between gap-3 px-4 py-2.5 border-t border-[var(--color-border)]/60 first:border-t-0 hover:bg-[var(--color-surface-secondary)]/40 transition-colors"
+        >
+            <span className="text-[12.5px] text-[var(--color-text-secondary)]">{label}</span>
+            <span className={cn(
+                "text-[13px] font-semibold tabular-nums",
+                highlight && value > 0 ? "text-amber-600" : "text-[var(--color-text-primary)]"
+            )}>
+                {value.toLocaleString()}
+            </span>
+        </Link>
+    );
 }
 
-function KpiCard({ label, value, icon, accent, delta, sub, href }: KpiCardProps) {
-  const inner = (
-    <div className="group relative flex flex-col gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 transition-all duration-200 hover:border-[var(--color-border)]/80 hover:shadow-sm overflow-hidden">
-      {/* faint top-left glow */}
-      <div className={cn("absolute -top-6 -left-6 h-16 w-16 rounded-full opacity-10 blur-xl", accent)} />
+function ShortcutsPanel() {
+    const links = [
+        { label: "Orders", href: "/admin/orders" },
+        { label: "Products", href: "/admin/products" },
+        { label: "Users", href: "/admin/users" },
+        { label: "Vendors", href: "/admin/vendors" },
+        { label: "Payments", href: "/admin/payments" },
+        { label: "Verifications", href: "/admin/verifications" },
+        { label: "Reports", href: "/admin/reports" },
+        { label: "Settings", href: "/admin/settings" },
+    ];
 
-      <div className="flex items-start justify-between gap-2">
-        <div className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-white", accent)}>
-          {icon}
-        </div>
-        {delta != null && (
-          <span className={cn(
-            "flex items-center gap-0.5 text-[11px] font-medium tabular-nums",
-            delta >= 0 ? "text-emerald-600" : "text-red-500"
-          )}>
-            {delta >= 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-            {Math.abs(delta).toFixed(1)}%
-          </span>
-        )}
-      </div>
-
-      <div>
-        <p className="text-[22px] font-bold leading-none tracking-tight text-[var(--color-text-primary)]">
-          {value}
-        </p>
-        <p className="mt-1 text-[12px] text-[var(--color-text-muted)]">{label}</p>
-        {sub && <p className="mt-0.5 text-[11px] text-[var(--color-text-muted)]/70">{sub}</p>}
-      </div>
-    </div>
-  );
-
-  if (href) return <Link href={href} className="block">{inner}</Link>;
-  return inner;
-}
-
-// ── Alert banner ───────────────────────────────────────────────────────────────
-
-function AlertBanner({
-  icon,
-  title,
-  description,
-  href,
-  cta,
-  variant = "amber",
-}: {
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-  href: string;
-  cta: string;
-  variant?: "amber" | "red";
-}) {
-  const styles = {
-    amber: "border-amber-500/25 bg-amber-500/5",
-    red:   "border-red-500/25 bg-red-500/5",
-  };
-  const iconStyles = {
-    amber: "bg-amber-500/15 text-amber-600",
-    red:   "bg-red-500/15 text-red-600",
-  };
-
-  return (
-    <div className={cn("flex items-center justify-between gap-4 rounded-xl border px-4 py-3.5", styles[variant])}>
-      <div className="flex items-center gap-3 min-w-0">
-        <div className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-lg", iconStyles[variant])}>
-          {icon}
-        </div>
-        <div className="min-w-0">
-          <p className="text-[13px] font-semibold text-[var(--color-text-primary)] truncate">{title}</p>
-          <p className="text-[12px] text-[var(--color-text-muted)] truncate">{description}</p>
-        </div>
-      </div>
-      <Button asChild size="sm" variant="outline" className="shrink-0 h-8 text-xs">
-        <Link href={href}>{cta} <ArrowRight className="ml-1 h-3 w-3" /></Link>
-      </Button>
-    </div>
-  );
-}
-
-// ── Main component ─────────────────────────────────────────────────────────────
-
-export function AdminOverviewClient({
-  stats,
-  chartData,
-  recentOrders = [],
-  pendingVendors = [],
-}: AdminOverviewClientProps) {
-  const revDelta = pctChange(stats.monthlyRevenue, stats.prevMonthRevenue ?? 0);
-  const now = new Date();
-  const dateLabel = now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
-
-  return (
-    <div className="space-y-6 pb-8">
-
-      {/* ── Page header ── */}
-      <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-[11px] font-medium uppercase tracking-widest text-[var(--color-text-muted)]">
-            {dateLabel}
-          </p>
-          <h1 className="mt-0.5 text-[26px] font-bold leading-tight tracking-tight text-[var(--color-text-primary)]">
-            Platform Overview
-          </h1>
-        </div>
-        <Badge className="self-start sm:self-auto bg-red-500/10 text-red-600 border-red-500/20 px-2.5 py-1 text-[11px] font-semibold">
-          <ShieldAlert className="mr-1 h-3 w-3" /> Admin Console
-        </Badge>
-      </div>
-
-      {/* ── Alert banners ── */}
-      {(stats.pendingVerifications > 0 || (stats.pendingDisputes ?? 0) > 0) && (
-        <div className="space-y-2">
-          {stats.pendingVerifications > 0 && (
-            <AlertBanner
-              icon={<BadgeCheck className="h-4 w-4" />}
-              title={`${stats.pendingVerifications} vendor verification${stats.pendingVerifications > 1 ? "s" : ""} pending`}
-              description="Vendor applications awaiting review and approval"
-              href="/admin/verifications"
-              cta="Review"
-              variant="amber"
-            />
-          )}
-          {(stats.pendingDisputes ?? 0) > 0 && (
-            <AlertBanner
-              icon={<Siren className="h-4 w-4" />}
-              title={`${stats.pendingDisputes} open dispute${stats.pendingDisputes! > 1 ? "s" : ""} require attention`}
-              description="Buyer–vendor conflicts awaiting admin resolution"
-              href="/admin/disputes"
-              cta="Resolve"
-              variant="red"
-            />
-          )}
-        </div>
-      )}
-
-      {/* ── KPI grid ── */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
-        <KpiCard
-          label="Total users"
-          value={stats.totalUsers.toLocaleString()}
-          icon={<UsersRound className="h-4 w-4" />}
-          accent="bg-blue-600"
-          sub={stats.newUsersThisMonth ? `+${stats.newUsersThisMonth} this month` : undefined}
-          href="/admin/users"
-        />
-        <KpiCard
-          label="Vendors"
-          value={stats.totalVendors.toLocaleString()}
-          icon={<Store className="h-4 w-4" />}
-          accent="bg-teal-600"
-          href="/admin/vendors"
-        />
-        <KpiCard
-          label="Products"
-          value={stats.totalProducts.toLocaleString()}
-          icon={<Boxes className="h-4 w-4" />}
-          accent="bg-violet-600"
-          href="/admin/products"
-        />
-        <KpiCard
-          label="Orders (30d)"
-          value={stats.totalOrders.toLocaleString()}
-          icon={<ClipboardList className="h-4 w-4" />}
-          accent="bg-orange-500"
-          href="/admin/orders"
-        />
-        <KpiCard
-          label="Revenue (30d)"
-          value={formatCurrency(stats.monthlyRevenue)}
-          icon={<CircleDollarSign className="h-4 w-4" />}
-          accent="bg-emerald-600"
-          delta={revDelta}
-          sub={stats.prevMonthRevenue ? `prev. ${formatCurrency(stats.prevMonthRevenue)}` : undefined}
-        />
-        <KpiCard
-          label="UGC campaigns"
-          value={(stats.activeUgcCampaigns ?? 0).toLocaleString()}
-          icon={<Video className="h-4 w-4" />}
-          accent="bg-pink-600"
-          href="/admin/reports"
-        />
-      </div>
-
-      {/* ── Revenue chart ── */}
-      <Card className="border-[var(--color-border)] bg-[var(--color-surface)]">
-        <CardHeader className="flex flex-row items-center justify-between pb-0">
-          <div>
-            <CardTitle className="text-[15px] font-semibold">Revenue trend</CardTitle>
-            <p className="text-[12px] text-[var(--color-text-muted)] mt-0.5">Last 12 months · all vendors</p>
-          </div>
-          <Button asChild variant="ghost" size="sm" className="text-[12px] text-[var(--color-text-muted)] h-7 px-2">
-            <Link href="/admin/reports">Full report <ArrowRight className="ml-1 h-3 w-3" /></Link>
-          </Button>
-        </CardHeader>
-        <CardContent className="pt-4">
-          <RevenueChart data={chartData} height={260} type="area" />
-        </CardContent>
-      </Card>
-
-      {/* ── Bottom grid ── */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-
-        {/* Recent orders */}
-        <div className="lg:col-span-2">
-          <Card className="border-[var(--color-border)] bg-[var(--color-surface)] h-full">
-            <CardHeader className="flex flex-row items-center justify-between pb-3">
-              <CardTitle className="text-[15px] font-semibold">Recent orders</CardTitle>
-              <Button asChild variant="ghost" size="sm" className="text-[12px] text-[var(--color-text-muted)] h-7 px-2">
-                <Link href="/admin/orders">All orders <ArrowRight className="ml-1 h-3 w-3" /></Link>
-              </Button>
-            </CardHeader>
-            <CardContent className="p-0">
-              {recentOrders.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-10 text-[var(--color-text-muted)]">
-                  <ClipboardList className="h-8 w-8 mb-2 opacity-30" />
-                  <p className="text-sm">No recent orders</p>
-                </div>
-              ) : (
-                <div className="divide-y divide-[var(--color-border)]">
-                  {recentOrders.slice(0, 6).map((order) => (
+    return (
+        <SectionShell title="Shortcuts">
+            <div className="px-4 py-3 flex flex-wrap gap-x-3 gap-y-2">
+                {links.map(({ label, href }) => (
                     <Link
-                      key={order.id}
-                      href={`/admin/orders/${order.id}`}
-                      className="flex items-center justify-between px-5 py-3 hover:bg-[var(--color-surface-secondary)] transition-colors"
+                        key={href}
+                        href={href}
+                        className="text-[12.5px] text-[var(--color-text-secondary)] hover:text-orange-500 transition-colors"
                     >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-[var(--color-surface-secondary)] text-[11px] font-bold text-[var(--color-text-muted)]">
-                          #
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-[13px] font-medium text-[var(--color-text-primary)] truncate">
-                            {order.order_number}
-                          </p>
-                          <p className="text-[11px] text-[var(--color-text-muted)] truncate">
-                            {order.buyer_name}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3 shrink-0 ml-3">
-                        <Badge className={cn("text-[10px] font-medium px-2 py-0.5 border", ORDER_STATUS_STYLES[order.status] ?? ORDER_STATUS_STYLES.pending)}>
-                          {order.status}
-                        </Badge>
-                        <div className="text-right">
-                          <p className="text-[13px] font-semibold text-[var(--color-text-primary)]">
-                            {formatCurrency(order.total_amount)}
-                          </p>
-                          <p className="text-[10px] text-[var(--color-text-muted)]">
-                            {timeAgo(order.created_at)}
-                          </p>
-                        </div>
-                      </div>
+                        {label}
                     </Link>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Right column */}
-        <div className="flex flex-col gap-4">
-
-          {/* Platform summary */}
-          <Card className="border-[var(--color-border)] bg-[var(--color-surface)]">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-[15px] font-semibold">Platform summary</CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <dl className="divide-y divide-[var(--color-border)]">
-                {[
-                  { label: "All-time revenue", value: formatCurrency(stats.totalRevenue) },
-                  { label: "Monthly revenue",  value: formatCurrency(stats.monthlyRevenue) },
-                  { label: "Orders (30d)",      value: stats.totalOrders.toLocaleString() },
-                  {
-                    label: "Pending payouts",
-                    value: stats.pendingPayouts != null ? stats.pendingPayouts.toLocaleString() : "—",
-                    alert: (stats.pendingPayouts ?? 0) > 0,
-                  },
-                  {
-                    label: "Pending verifs.",
-                    value: stats.pendingVerifications.toLocaleString(),
-                    alert: stats.pendingVerifications > 0,
-                  },
-                ].map(({ label, value, alert }) => (
-                  <div key={label} className="flex items-center justify-between px-5 py-2.5">
-                    <dt className="text-[12px] text-[var(--color-text-muted)]">{label}</dt>
-                    <dd className={cn(
-                      "text-[13px] font-semibold tabular-nums",
-                      alert ? "text-amber-600" : "text-[var(--color-text-primary)]"
-                    )}>
-                      {alert && <AlertCircle className="inline h-3 w-3 mr-1 -mt-0.5" />}
-                      {value}
-                    </dd>
-                  </div>
                 ))}
-              </dl>
-            </CardContent>
-          </Card>
+            </div>
+        </SectionShell>
+    );
+}
 
-          {/* Pending verifications */}
-          {pendingVendors.length > 0 && (
-            <Card className="border-[var(--color-border)] bg-[var(--color-surface)]">
-              <CardHeader className="flex flex-row items-center justify-between pb-3">
-                <CardTitle className="text-[15px] font-semibold">Awaiting verification</CardTitle>
-                <Button asChild variant="ghost" size="sm" className="text-[12px] text-[var(--color-text-muted)] h-7 px-2">
-                  <Link href="/admin/verifications">All <ArrowRight className="ml-1 h-3 w-3" /></Link>
-                </Button>
-              </CardHeader>
-              <CardContent className="p-0">
-                <div className="divide-y divide-[var(--color-border)]">
-                  {pendingVendors.slice(0, 4).map((v) => (
-                    <Link
-                      key={v.id}
-                      href={`/admin/verifications/${v.id}`}
-                      className="flex items-center justify-between px-5 py-2.5 hover:bg-[var(--color-surface-secondary)] transition-colors"
-                    >
-                      <div className="min-w-0">
-                        <p className="text-[13px] font-medium text-[var(--color-text-primary)] truncate">{v.business_name}</p>
-                        <p className="text-[11px] text-[var(--color-text-muted)]">
-                          {v.business_country ?? "Unknown"} · {v.created_at ? timeAgo(v.created_at) : "—"}
-                        </p>
-                      </div>
-                      <Badge className="shrink-0 ml-2 bg-amber-500/10 text-amber-600 border-amber-500/20 text-[10px]">
-                        <Clock className="h-2.5 w-2.5 mr-1" /> Pending
-                      </Badge>
-                    </Link>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Quick actions */}
-          <Card className="border-[var(--color-border)] bg-[var(--color-surface)]">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-[15px] font-semibold">Quick actions</CardTitle>
-            </CardHeader>
-            <CardContent className="grid grid-cols-2 gap-2">
-              {[
-                { label: "Users",         href: "/admin/users",         icon: <UsersRound className="h-3.5 w-3.5" /> },
-                { label: "Vendors",       href: "/admin/vendors",       icon: <Store className="h-3.5 w-3.5" /> },
-                { label: "Products",      href: "/admin/products",      icon: <Boxes className="h-3.5 w-3.5" /> },
-                { label: "Payments",      href: "/admin/payments",      icon: <Landmark className="h-3.5 w-3.5" /> },
-              ].map(({ label, href, icon }) => (
-                <Button
-                  key={href}
-                  asChild
-                  variant="outline"
-                  size="sm"
-                  className="justify-start gap-1.5 h-8 text-[12px] font-medium"
-                >
-                  <Link href={href}>{icon}{label}</Link>
-                </Button>
-              ))}
-            </CardContent>
-          </Card>
-
+function SectionShell({
+    title,
+    action,
+    children,
+    className,
+}: {
+    title: string;
+    action?: React.ReactNode;
+    children: React.ReactNode;
+    className?: string;
+}) {
+    return (
+        <div className={cn("rounded-2xl bg-[var(--color-surface)] ring-1 ring-[var(--color-border)] overflow-hidden", className)}>
+            <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-[var(--color-border)]/60">
+                <h2 className="text-[13px] font-semibold text-[var(--color-text-primary)]">{title}</h2>
+                {action}
+            </div>
+            {children}
         </div>
-      </div>
-    </div>
-  );
+    );
+}
+
+function DonutPanel({
+    title,
+    data,
+    compact = false,
+}: {
+    title: string;
+    data: AdminDashboardData["paymentStatusChart"];
+    subtitle?: string;
+    compact?: boolean;
+}) {
+    const total = data.reduce((s, d) => s + d.value, 0);
+
+    if (compact) {
+        return (
+            <div className="px-3 py-3 min-w-0">
+                <div className="mb-2 flex items-center justify-between gap-2">
+                    <p className="text-[12px] font-semibold text-[var(--color-text-primary)]">{title}</p>
+                    {total > 0 && (
+                        <span className="text-[10px] tabular-nums text-[var(--color-text-muted)] shrink-0">{total}</span>
+                    )}
+                </div>
+                <div className="mx-auto w-full max-w-[120px]">
+                    <AdminDonutChart data={data} height={88} emptyLabel="No data" />
+                </div>
+                <DonutLegend data={data} compact />
+            </div>
+        );
+    }
+
+    return (
+        <div className="rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+            <div className="mb-1 flex items-start justify-between gap-2">
+                <h3 className="text-[13px] font-semibold text-[var(--color-text-primary)]">{title}</h3>
+                {total > 0 && (
+                    <span className="text-[11px] tabular-nums text-[var(--color-text-muted)]">{total} total</span>
+                )}
+            </div>
+            <AdminDonutChart data={data} height={168} />
+            <DonutLegend data={data} />
+        </div>
+    );
+}
+
+export function AdminOverviewClient({ data }: { data: AdminDashboardData }) {
+    const revDelta = pctChange(data.revenue30d, data.revenuePrev30d);
+    const revDeltaLabel =
+        revDelta != null
+            ? `${revDelta >= 0 ? "+" : ""}${revDelta.toFixed(0)}% vs prior 30d`
+            : "No prior period data";
+
+    const updated = new Date(data.generatedAt).toLocaleTimeString("en-GB", {
+        hour: "2-digit",
+        minute: "2-digit",
+    });
+
+    return (
+        <div className="space-y-6 pb-4">
+            <PageHeader
+                eyebrow="Admin · Overview"
+                title="Dashboard"
+                subtitle={`Last refreshed ${updated} · ${data.orders30d.toLocaleString()} orders in the last 30 days`}
+                actions={
+                    <div className="flex items-center gap-2 flex-wrap">
+                        <HealthPill score={data.healthScore} label={data.healthLabel} />
+                        <Link
+                            href="/admin/system-analysis"
+                            className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg text-[12.5px] font-medium bg-[var(--color-surface)] ring-1 ring-[var(--color-border)] hover:bg-[var(--color-surface-secondary)] transition-colors"
+                        >
+                            System analysis
+                            <ArrowRight className="h-3.5 w-3.5" />
+                        </Link>
+                    </div>
+                }
+            />
+
+            {data.attentionItems.length > 0 && (
+                <div className="rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] p-3 sm:p-4 space-y-3">
+                    <div className="flex items-center justify-between gap-2">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--color-text-muted)]">
+                            Needs attention
+                        </p>
+                        <span className="text-[11px] text-[var(--color-text-muted)] tabular-nums">
+                            {data.attentionItems.length} item{data.attentionItems.length !== 1 ? "s" : ""}
+                        </span>
+                    </div>
+                    <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                        {data.attentionItems.slice(0, 6).map((item) => (
+                            <AttentionRow key={item.id} item={item} />
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                <Tile
+                    label="Revenue (30d)"
+                    value={data.revenue30dDisplay}
+                    sublabel={revDeltaLabel}
+                    icon={TrendingUp}
+                    tone={revDelta != null && revDelta < 0 ? "warn" : "success"}
+                />
+                <Tile
+                    label="Orders (30d)"
+                    value={data.orders30d.toLocaleString()}
+                    sublabel="All sources"
+                    icon={ClipboardList}
+                />
+                <Tile
+                    label="Users"
+                    value={data.totalUsers.toLocaleString()}
+                    sublabel={`+${data.newUsers7d} this week`}
+                    icon={UsersRound}
+                />
+                <Tile
+                    label="Vendors"
+                    value={data.totalVendors.toLocaleString()}
+                    sublabel={`${data.verifiedVendors} verified`}
+                    icon={Store}
+                />
+                <Tile
+                    label="Products"
+                    value={data.totalProducts.toLocaleString()}
+                    sublabel={`${data.activeProducts} active`}
+                    icon={Boxes}
+                />
+                <Tile
+                    label="To fulfill"
+                    value={data.toFulfill.toLocaleString()}
+                    sublabel="Paid · not shipped"
+                    icon={Package}
+                    tone={data.toFulfill > 0 ? "warn" : "default"}
+                />
+            </div>
+
+            <PaidRevenueChartSection data={data.revenueChart} />
+
+            <SectionShell title="Order breakdown (30d)">
+                <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-[var(--color-border)]/60">
+                    <DonutPanel title="Payment status" data={data.paymentStatusChart} compact />
+                    <DonutPanel title="Fulfillment" data={data.fulfillmentStatusChart} compact />
+                    <DonutPanel title="Order source" data={data.orderSourceChart} compact />
+                </div>
+            </SectionShell>
+
+            <div className="grid grid-cols-1 gap-4 xl:grid-cols-3 xl:items-start">
+                <SectionShell className="xl:col-span-2" title="Operations">
+                    <div>
+                        <OpsRow
+                            label="Awaiting payment"
+                            value={data.awaitingPayment}
+                            href="/admin/orders?payment=pending"
+                            highlight
+                        />
+                        <OpsRow
+                            label="Paid · not shipped"
+                            value={data.toFulfill}
+                            href="/admin/orders?status=confirmed"
+                            highlight
+                        />
+                        <OpsRow
+                            label="Vendor reviews"
+                            value={data.pendingVerifications}
+                            href="/admin/verifications?tab=vendors"
+                            highlight
+                        />
+                        <OpsRow
+                            label="Pending payouts"
+                            value={data.pendingPayouts}
+                            href="/admin/payments"
+                            highlight
+                        />
+                        <OpsRow
+                            label="Failed payments (30d)"
+                            value={data.failedPayments30d}
+                            href="/admin/orders?payment=failed"
+                        />
+                        <OpsRow
+                            label="Low stock SKUs"
+                            value={data.lowStockProducts}
+                            href="/admin/products"
+                        />
+                        <OpsRow
+                            label="Webhooks failed (24h)"
+                            value={data.webhookFailures24h}
+                            href="/admin/payments/webhooks"
+                            highlight
+                        />
+                    </div>
+                </SectionShell>
+
+                <div className="flex flex-col gap-4">
+                    <SectionShell title="Email & webhooks">
+                        <div className="divide-y divide-[var(--color-border)]/60">
+                            <div className="px-4 py-3 flex items-center gap-2 text-[12px] text-[var(--color-text-secondary)]">
+                                {data.emailEnabled ? (
+                                    <>
+                                        <Mail className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                                        Transactional email is active
+                                    </>
+                                ) : (
+                                    <>
+                                        <MailX className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+                                        Email not configured
+                                    </>
+                                )}
+                            </div>
+                            <div className="px-4 py-2.5 flex items-center justify-between gap-3 border-t border-[var(--color-border)]/60 text-[12.5px]">
+                                <span className="text-[var(--color-text-secondary)]">Webhook success (24h)</span>
+                                <span className="font-semibold tabular-nums text-[var(--color-text-primary)]">
+                                    {data.webhookSuccess24h.toFixed(0)}%
+                                </span>
+                            </div>
+                            <OpsRow
+                                label="Webhook failures (24h)"
+                                value={data.webhookFailures24h}
+                                href="/admin/payments/webhooks"
+                                highlight
+                            />
+                        </div>
+                    </SectionShell>
+
+                    <ShortcutsPanel />
+                </div>
+            </div>
+
+            <div className={cn(
+                "grid grid-cols-1 gap-4 lg:items-start",
+                data.pendingVendors.length > 0 ? "lg:grid-cols-3" : "lg:grid-cols-1"
+            )}>
+                <SectionShell
+                    className={data.pendingVendors.length > 0 ? "lg:col-span-2" : undefined}
+                    title="Recent orders"
+                    action={
+                        <Link href="/admin/orders" className="text-[12px] text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors">
+                            All orders →
+                        </Link>
+                    }
+                >
+                    {data.recentOrders.length === 0 ? (
+                        <EmptyState
+                            icon={<ClipboardList className="h-5 w-5 text-[var(--color-text-muted)]" />}
+                            title="No orders yet"
+                            message="New checkout activity will show up here."
+                        />
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-[12.5px]">
+                                <thead className="bg-[var(--color-surface-secondary)]/50">
+                                    <tr>
+                                        <Th>Order</Th>
+                                        <Th>Buyer</Th>
+                                        <Th>Vendor</Th>
+                                        <Th align="right">Total</Th>
+                                        <Th>Payment</Th>
+                                        <Th>Fulfillment</Th>
+                                        <Th>When</Th>
+                                        <Th>{""}</Th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {data.recentOrders.map((order) => (
+                                        <tr
+                                            key={order.id}
+                                            className="border-t border-[var(--color-border)]/60 hover:bg-[var(--color-surface-secondary)]/40 transition-colors"
+                                        >
+                                            <td className="px-3 py-3 pl-5">
+                                                <Link
+                                                    href={`/admin/orders/${order.id}`}
+                                                    className="font-mono text-[11px] text-[var(--color-text-primary)] hover:text-orange-500 transition-colors"
+                                                >
+                                                    {order.order_number}
+                                                </Link>
+                                            </td>
+                                            <td className="px-3 py-3 min-w-0">
+                                                <p className="truncate max-w-[140px] text-[var(--color-text-primary)]">{order.buyer_name}</p>
+                                            </td>
+                                            <td className="px-3 py-3 text-[var(--color-text-secondary)] truncate max-w-[120px]">
+                                                {order.vendor_name ?? "—"}
+                                            </td>
+                                            <td className="px-3 py-3 text-right tabular-nums font-semibold text-[var(--color-text-primary)]">
+                                                {formatAdminMoney(order.total_amount, order.currency)}
+                                            </td>
+                                            <td className="px-3 py-3">
+                                                <StatusPill status={order.payment_status} />
+                                            </td>
+                                            <td className="px-3 py-3">
+                                                <StatusPill status={displayFulfillmentStatus(order.status, order.payment_status)} />
+                                            </td>
+                                            <td className="px-3 py-3 text-[var(--color-text-muted)] whitespace-nowrap" title={order.created_at}>
+                                                {relativeTime(order.created_at)}
+                                            </td>
+                                            <td className="px-3 py-3 pr-5 text-right">
+                                                <RowArrow href={`/admin/orders/${order.id}`} />
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </SectionShell>
+
+                {data.pendingVendors.length > 0 && (
+                <div className="flex flex-col gap-4">
+                        <SectionShell
+                            title="Vendor queue"
+                            action={
+                                <Link href="/admin/verifications?tab=vendors" className="text-[12px] text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors">
+                                    Review →
+                                </Link>
+                            }
+                        >
+                            <div className="divide-y divide-[var(--color-border)]/60">
+                                {data.pendingVendors.map((v) => (
+                                    <Link
+                                        key={v.id}
+                                        href={`/admin/vendors/${v.id}`}
+                                        className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-[var(--color-surface-secondary)]/40 transition-colors"
+                                    >
+                                        <div className="min-w-0">
+                                            <p className="text-[13px] font-medium text-[var(--color-text-primary)] truncate">{v.business_name}</p>
+                                            <p className="text-[11px] text-[var(--color-text-muted)]">
+                                                {[v.business_country, v.created_at ? relativeTime(v.created_at) : null].filter(Boolean).join(" · ")}
+                                            </p>
+                                        </div>
+                                        <StatusPill status="pending" />
+                                    </Link>
+                                ))}
+                            </div>
+                        </SectionShell>
+                </div>
+                )}
+            </div>
+        </div>
+    );
 }

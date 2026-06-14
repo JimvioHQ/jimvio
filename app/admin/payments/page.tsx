@@ -1,13 +1,15 @@
 import React from "react";
 import Link from "next/link";
 import { getAdminDB } from "@/services/db";
-import { formatCurrency, cn } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import { formatAdminMoney, formatAdminMoneyTotals, formatAdminWalletMoney } from "@/lib/admin/format-money";
 import {
   TrendingUp, Clock, AlertTriangle, Wallet, Users, XCircle,
   CheckCircle2, ArrowUpRight, ExternalLink, ShoppingBag,
   CreditCard, Activity, ChevronDown,
 } from "lucide-react";
 import { ProviderLogo, RangePicker } from "@/components/ui/admin";
+import { TabCountBadge } from "@/components/ui/tab-count-badge";
 
 export const dynamic = "force-dynamic";
 
@@ -164,7 +166,15 @@ function ProviderHealthCard({
 
 type TabKey = "transactions" | "orders" | "payouts" | "health";
 
-function Tabs({ range, current }: { range: RangeKey; current: TabKey }) {
+function Tabs({
+  range,
+  current,
+  counts,
+}: {
+  range: RangeKey;
+  current: TabKey;
+  counts: Record<TabKey, number>;
+}) {
   const items: { key: TabKey; label: string; icon: React.ElementType }[] = [
     { key: "transactions", label: "Transactions", icon: Activity },
     { key: "orders", label: "Orders", icon: ShoppingBag },
@@ -190,6 +200,7 @@ function Tabs({ range, current }: { range: RangeKey; current: TabKey }) {
           >
             <Icon className="h-3.5 w-3.5" />
             {label}
+            <TabCountBadge count={counts[key]} active={active} />
           </Link>
         );
       })}
@@ -221,6 +232,9 @@ export default async function AdminPaymentsPage({
     { data: txRows, count: txCount },
     { data: orderRows, count: orderCount },
     { data: payoutRows, count: payoutCount },
+    { count: transactionsTabCount },
+    { count: ordersTabCount },
+    { count: payoutsTabCount },
   ] = await Promise.all([
     admin.from("transactions")
       .select("amount, amount_usd, currency, status, provider")
@@ -285,6 +299,10 @@ export default async function AdminPaymentsPage({
         .order("created_at", { ascending: false })
         .limit(50)
       : Promise.resolve({ data: [] as any[], count: 0 }),
+
+    admin.from("transactions").select("id", { count: "exact", head: true }).gte("created_at", startIso),
+    admin.from("orders").select("id", { count: "exact", head: true }).gte("created_at", startIso),
+    admin.from("payouts").select("id", { count: "exact", head: true }).gte("created_at", startIso),
   ]);
 
   // ── KPIs ───────────────────────────────────────────────────────────────
@@ -299,7 +317,11 @@ export default async function AdminPaymentsPage({
   const grossRevenueUsd = txList.filter((t) => t.status === "completed").reduce((s, t) => s + usdValue(t), 0);
   const pendingAmount = txList.filter((t) => t.status === "pending").reduce((s, t) => s + usdValue(t), 0);
   const failedCount = txList.filter((t) => t.status === "failed").length;
-  const payoutsPending = (pendingPayoutsTotal ?? []).reduce((s, p) => s + Number(p.amount as number ?? 0), 0);
+  const pendingPayoutRows = (pendingPayoutsTotal ?? []) as Array<{ amount: number; currency?: string | null }>;
+  const payoutsPendingDisplay = formatAdminMoneyTotals(
+    pendingPayoutRows.map((p) => ({ amount: p.amount, currency: p.currency })),
+    "RWF"
+  );
   const commissionsTotal = (commissionData ?? []).reduce((s, c) => s + Number(c.commission_amount as number ?? 0), 0);
 
   const providers = ["flutterwave", "pesapal", "paypal", "nowpayments", "pawapay", "afripay", "binance"] as const;
@@ -367,16 +389,25 @@ const providerHealth = providers
 
       {/* KPI grid */}
       <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
-        <StatCard label="Gross revenue" value={`$${grossRevenueUsd.toLocaleString(undefined, { maximumFractionDigits: 0 })}`} sublabel="Completed · USD" icon={TrendingUp} tone="success" />
-        <StatCard label="Pending" value={`$${pendingAmount.toLocaleString(undefined, { maximumFractionDigits: 0 })}`} sublabel="Awaiting confirmation" icon={Clock} tone={pendingAmount > 1000 ? "warn" : "default"} />
+        <StatCard label="Gross revenue" value={formatAdminMoney(grossRevenueUsd, "USD")} sublabel="Completed · USD" icon={TrendingUp} tone="success" />
+        <StatCard label="Pending" value={formatAdminMoney(pendingAmount, "USD")} sublabel="Awaiting confirmation" icon={Clock} tone={pendingAmount > 1000 ? "warn" : "default"} />
         <StatCard label="Failed" value={failedCount.toLocaleString()} sublabel={RANGES[range].label.toLowerCase()} icon={XCircle} tone={failedCount > 5 ? "danger" : "default"} />
-        <StatCard label="Payouts pending" value={formatCurrency(payoutsPending)} sublabel="Vendors & affiliates" icon={Wallet} href={`?range=${range}&tab=payouts`} />
-        <StatCard label="Commissions" value={formatCurrency(commissionsTotal)} sublabel="Affiliate earnings" icon={Users} />
+        <StatCard label="Payouts pending" value={payoutsPendingDisplay} sublabel="Vendors & affiliates" icon={Wallet} href={`?range=${range}&tab=payouts`} />
+        <StatCard label="Commissions" value={formatAdminWalletMoney(commissionsTotal)} sublabel="Affiliate earnings" icon={Users} />
         <StatCard label="Stuck credits" value={(failedCreditsCount ?? 0).toLocaleString()} sublabel="Need manual review" icon={AlertTriangle} tone={(failedCreditsCount ?? 0) > 0 ? "danger" : "default"} href="/admin/payments/failed-credits" />
       </div>
 
       {/* Tabs */}
-      <Tabs range={range} current={tab} />
+      <Tabs
+        range={range}
+        current={tab}
+        counts={{
+          transactions: transactionsTabCount ?? 0,
+          orders: ordersTabCount ?? 0,
+          payouts: payoutsTabCount ?? 0,
+          health: providerHealth.length,
+        }}
+      />
 
       {/* Tab body */}
       {tab === "transactions" && <TransactionsTable rows={txRows ?? []} count={txCount ?? 0} />}
@@ -490,7 +521,7 @@ function TransactionsTable({ rows, count }: { rows: any[]; count: number }) {
                 <td className="px-3 py-3 font-mono text-[11px] text-[var(--color-text-muted)]">{order?.order_number ?? "—"}</td>
                 <td className="px-3 py-3 text-right">
                   <p className="font-semibold tabular-nums text-[var(--color-text-primary)]">
-                    {Number(tx.amount).toLocaleString()} <span className="text-[10px] font-normal text-[var(--color-text-muted)]">{tx.currency}</span>
+                    {formatAdminMoney(tx.amount, tx.currency)}
                   </p>
                   {tx.amount_usd && tx.currency !== "USD" && (
                     <p className="text-[10.5px] text-[var(--color-text-muted)] tabular-nums">≈ ${Number(tx.amount_usd).toFixed(2)}</p>
@@ -541,7 +572,7 @@ function OrdersTable({ rows, count }: { rows: any[]; count: number }) {
                 <td className="px-3 py-3 text-[var(--color-text-secondary)] truncate max-w-[150px]">{vendor?.business_name ?? "—"}</td>
                 <td className="px-3 py-3 text-right">
                   <p className="font-semibold tabular-nums text-[var(--color-text-primary)]">
-                    {Number(o.total_amount).toLocaleString()} <span className="text-[10px] font-normal text-[var(--color-text-muted)]">{o.currency}</span>
+                    {formatAdminMoney(o.total_amount, o.currency)}
                   </p>
                 </td>
                 <td className="px-3 py-3"><StatusPill status={o.payment_status} /></td>
@@ -589,11 +620,11 @@ function PayoutsTable({ rows, count }: { rows: any[]; count: number }) {
                 <td className="px-3 py-3 text-[var(--color-text-secondary)] capitalize">{p.payout_method ?? "—"}</td>
                 <td className="px-3 py-3 text-right">
                   <p className="font-semibold tabular-nums text-[var(--color-text-primary)]">
-                    {Number(p.net_amount ?? p.amount).toLocaleString()} <span className="text-[10px] font-normal text-[var(--color-text-muted)]">{p.currency}</span>
+                    {formatAdminMoney(p.net_amount ?? p.amount, p.currency)}
                   </p>
                 </td>
                 <td className="px-3 py-3 text-right text-[var(--color-text-muted)] tabular-nums">
-                  {p.fee > 0 ? Number(p.fee).toLocaleString() : "—"}
+                  {p.fee > 0 ? formatAdminMoney(p.fee, p.currency) : "—"}
                 </td>
                 <td className="px-3 py-3"><StatusPill status={p.status} /></td>
                 <td className="px-3 py-3 pr-5 text-right">

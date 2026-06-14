@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getAdminDB } from "@/services/db";
-import type { SupplierSourcesSettings } from "@/lib/sources/supplier-settings";
+import type { SupplierSourcesSettings } from "@/lib/sources/supplier-settings-shared";
 
 export async function saveSupplierSourcesAction(
   next: SupplierSourcesSettings

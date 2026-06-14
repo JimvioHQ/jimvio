@@ -769,6 +769,11 @@ export default function SettingsPage() {
          setUserId(user.id);
          setUserEmail(user.email ?? null);
 
+         const prefs = user.user_metadata?.notification_preferences;
+         if (prefs && typeof prefs === "object") {
+            setNotifications((n) => ({ ...n, ...prefs }));
+         }
+
          const [profRes, vendRes] = await Promise.all([
             supabase.from("profiles").select("*").eq("id", user.id).single(),
             supabase.from("vendors").select("*").eq("user_id", user.id).single(),
@@ -924,6 +929,21 @@ export default function SettingsPage() {
             showToast("Password updated successfully", "success");
          } catch {
             showToast("Failed to update password. Check your current password.", "error");
+         }
+      });
+   }
+
+   function saveNotifications() {
+      startTransition(async () => {
+         try {
+            const supabase = createClient();
+            const { error } = await supabase.auth.updateUser({
+               data: { notification_preferences: notifications },
+            });
+            if (error) throw error;
+            showToast("Notification preferences saved", "success");
+         } catch {
+            showToast("Failed to save notification preferences.", "error");
          }
       });
    }
@@ -1340,10 +1360,11 @@ export default function SettingsPage() {
                         <div className="pt-2 border-t border-stone-100 dark:border-zinc-800">
                            <Button
                               className="h-11 px-8 rounded-xl bg-orange-500 text-white font-bold text-[10px]  tracking-widest hover:bg-orange-600 active:scale-95 transition-all shadow-lg shadow-orange-500/20 border-none"
-                              onClick={() => showToast("Notification preferences saved", "success")}
+                              onClick={saveNotifications}
+                              disabled={isPending}
                            >
-                              <Edit className="h-4 w-4 mr-2" />
-                              <span>Save Preferences</span>
+                              {isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Edit className="h-4 w-4 mr-2" />}
+                              <span>{isPending ? "Saving…" : "Save Preferences"}</span>
                            </Button>
                         </div>
                      </div>
@@ -1353,6 +1374,21 @@ export default function SettingsPage() {
                {/* ── Security Tab ── */}
                <TabsContent value="security" className="mt-0 animate-in fade-in duration-300">
                   <div className="max-w-2xl space-y-6">
+                     <Link
+                        href="/dashboard/security"
+                        className="flex items-center justify-between gap-3 rounded-2xl border border-orange-200/80 dark:border-orange-500/20 bg-orange-50/80 dark:bg-orange-500/5 px-4 py-3.5 text-sm transition-colors hover:border-orange-300 dark:hover:border-orange-500/35"
+                     >
+                        <div>
+                           <p className="font-semibold text-stone-900 dark:text-white">Full security settings</p>
+                           <p className="text-[11px] text-stone-500 dark:text-zinc-400 mt-0.5">
+                              Two-factor auth, active sessions, and sign out other devices
+                           </p>
+                        </div>
+                        <span className="text-[11px] font-bold uppercase tracking-wide text-orange-600 dark:text-orange-400 shrink-0">
+                           Open →
+                        </span>
+                     </Link>
+
                      <div className="rounded-2xl border border-stone-100 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-6 sm:p-8 space-y-6 shadow-sm">
                         <div>
                            <h3 className="text-base font-bold text-stone-900 dark:text-white">Change Password</h3>

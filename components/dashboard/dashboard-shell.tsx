@@ -178,8 +178,8 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
             MOBILE BOTTOM NAV — Frosted Bar
         ══════════════════════════════════════ */}
         <BottomNav
-          unreadMessages={12}
-          hasMoreNotifications={true}
+          unreadMessages={0}
+          hasMoreNotifications={false}
           onMoreClick={() => setMobileMenuOpen(true)}
         />
       </div>

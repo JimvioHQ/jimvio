@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { formatAdminWalletMoney } from "@/lib/admin/format-money";
 import {
     ArrowLeft,
     BadgeCheck,
@@ -16,7 +17,6 @@ import {
     MapPin,
     Clock,
     Languages,
-    ShieldAlert,
     ExternalLink,
     Wallet,
     Receipt,
@@ -34,17 +34,10 @@ import {
     Th,
     EmptyState,
 } from "@/components/ui/admin";
+import { Tile } from "@/components/ui/admin-tile";
 import { AdminUserDetail } from "@/services/admin/getAdminUsers";
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
-
-function fmt(n: number, currency = "RWF") {
-    return new Intl.NumberFormat("en-US", {
-        style: "currency",
-        currency,
-        maximumFractionDigits: 0,
-    }).format(n);
-}
 
 function fmtDate(d: string | null) {
     if (!d) return "—";
@@ -111,20 +104,6 @@ function Section({ title, icon: Icon, children, className }: {
     );
 }
 
-// ─── Stat tile ────────────────────────────────────────────────────────────────
-
-function Stat({ label, value, sub }: { label: string; value: React.ReactNode; sub?: string }) {
-    return (
-        <div className="px-4 py-3.5 border-r border-[var(--color-border)] last:border-r-0">
-            <p className="text-[10.5px] text-[var(--color-text-muted)] uppercase tracking-wider mb-1">{label}</p>
-            <p className="text-[18px] font-semibold text-[var(--color-text-primary)] leading-none tabular-nums">{value}</p>
-            {sub && <p className="text-[10.5px] text-[var(--color-text-muted)] mt-1">{sub}</p>}
-        </div>
-    );
-}
-
-// ─── Info row ─────────────────────────────────────────────────────────────────
-
 function InfoRow({ icon: Icon, label, value }: {
     icon: React.ElementType; label: string; value: React.ReactNode;
 }) {
@@ -163,17 +142,6 @@ function RoleBadge({ role, isActive }: { role: string; isActive: boolean }) {
     );
 }
 
-// ─── Vendor verification badge ────────────────────────────────────────────────
-
-const VVERIFY: Record<string, string> = {
-    verified: "bg-emerald-50 text-emerald-700 ring-emerald-600/20 dark:bg-emerald-950/30 dark:text-emerald-400",
-    pending: "bg-amber-50 text-amber-700 ring-amber-600/20 dark:bg-amber-950/30 dark:text-amber-400",
-    rejected: "bg-rose-50 text-rose-700 ring-rose-600/20 dark:bg-rose-950/30 dark:text-rose-400",
-    suspended: "bg-slate-100 text-slate-700 ring-slate-600/20 dark:bg-slate-800 dark:text-slate-300",
-};
-
-// ─── Main component ───────────────────────────────────────────────────────────
-
 export function AdminUserDetailClient({ user }: { user: AdminUserDetail }) {
     const displayName = user.full_name || user.email;
 
@@ -202,13 +170,11 @@ export function AdminUserDetailClient({ user }: { user: AdminUserDetail }) {
                             <h1 className="text-[22px] font-medium tracking-tight text-[var(--color-text-primary)] leading-tight">
                                 {displayName}
                             </h1>
-                            {user.is_verified && (
-                                <BadgeCheck className="h-5 w-5 text-emerald-500 shrink-0" />
-                            )}
                             {!user.is_active && (
-                                <span className="inline-flex items-center gap-1 text-[10.5px] font-medium text-rose-600 bg-rose-50 dark:bg-rose-950/30 px-2 py-0.5 rounded-full ring-1 ring-rose-600/20">
-                                    <ShieldAlert className="h-3 w-3" /> Inactive
-                                </span>
+                                <StatusPill status="inactive" size="md" />
+                            )}
+                            {user.is_verified && (
+                                <StatusPill status="verified" size="md" />
                             )}
                             {user.two_factor_enabled && (
                                 <span className="inline-flex items-center gap-1 text-[10.5px] font-medium text-orange-700 bg-orange-50 dark:bg-orange-950/30 px-2 py-0.5 rounded-full ring-1 ring-orange-600/20 dark:text-orange-400">
@@ -237,6 +203,47 @@ export function AdminUserDetailClient({ user }: { user: AdminUserDetail }) {
                         <p className="text-[10.5px] text-[var(--color-text-muted)] mt-0.5">Updated {fmtDate(user.updated_at)}</p>
                     </div>
                 </div>
+            </div>
+
+            {/* ── Summary KPIs (same Tile style as admin/orders) ── */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                <Tile
+                    label="Account"
+                    value={user.is_active ? "Active" : "Inactive"}
+                    sublabel={user.is_verified ? "Verified email" : "Unverified"}
+                    icon={ShieldCheck}
+                    tone={user.is_active ? "success" : "danger"}
+                />
+                <Tile
+                    label="Recent orders"
+                    value={String(user.recent_orders.length)}
+                    sublabel="Latest activity"
+                    icon={Receipt}
+                />
+                <Tile
+                    label="Transactions"
+                    value={String(user.recent_transactions.length)}
+                    sublabel="Recent ledger"
+                    icon={CircleDollarSign}
+                />
+                <Tile
+                    label="Notifications"
+                    value={String(user.unread_notifications)}
+                    sublabel="Unread"
+                    icon={Bell}
+                    tone={user.unread_notifications > 0 ? "warn" : "default"}
+                />
+                {user.wallet ? (
+                    <Tile
+                        label="Wallet"
+                        value={formatAdminWalletMoney(user.wallet.available_balance, user.wallet.currency)}
+                        sublabel="Available balance"
+                        icon={Wallet}
+                        tone="success"
+                    />
+                ) : (
+                    <Tile label="Roles" value={String(user.roles.filter((r) => r.is_active).length)} sublabel="Active roles" icon={Users} />
+                )}
             </div>
 
             {/* ── Main grid ── */}
@@ -273,11 +280,11 @@ export function AdminUserDetailClient({ user }: { user: AdminUserDetail }) {
                     {/* Wallet */}
                     {user.wallet && (
                         <Section title="Wallet" icon={Wallet}>
-                            <div className="grid grid-cols-2 divide-x divide-y divide-[var(--color-border)]">
-                                <Stat label="Available" value={fmt(user.wallet.available_balance, user.wallet.currency)} />
-                                <Stat label="Pending" value={fmt(user.wallet.pending_balance, user.wallet.currency)} />
-                                <Stat label="Total earned" value={fmt(user.wallet.total_earned, user.wallet.currency)} />
-                                <Stat label="Total paid" value={fmt(user.wallet.total_paid, user.wallet.currency)} />
+                            <div className="grid grid-cols-2 gap-3 p-4">
+                                <Tile label="Available" value={formatAdminWalletMoney(user.wallet.available_balance, user.wallet.currency)} icon={Wallet} tone="success" />
+                                <Tile label="Pending" value={formatAdminWalletMoney(user.wallet.pending_balance, user.wallet.currency)} icon={Clock} tone="warn" />
+                                <Tile label="Total earned" value={formatAdminWalletMoney(user.wallet.total_earned, user.wallet.currency)} icon={TrendingUp} />
+                                <Tile label="Total paid" value={formatAdminWalletMoney(user.wallet.total_paid, user.wallet.currency)} icon={CircleDollarSign} />
                             </div>
                         </Section>
                     )}
@@ -298,24 +305,13 @@ export function AdminUserDetailClient({ user }: { user: AdminUserDetail }) {
                                         </p>
                                         <p className="text-[11.5px] text-[var(--color-text-muted)]">/{user.vendor.business_slug}</p>
                                     </div>
-                                    <span className={cn(
-                                        "inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10.5px] font-medium ring-1 ring-inset capitalize",
-                                        VVERIFY[user.vendor.verification_status] ?? VVERIFY.pending,
-                                    )}>
-                                        <span className="w-1.5 h-1.5 rounded-full bg-current opacity-70" />
-                                        {user.vendor.verification_status}
-                                    </span>
+                                    <StatusPill status={user.vendor.verification_status} size="md" />
                                 </div>
-                                <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-[var(--color-border)] border border-[var(--color-border)] rounded-lg overflow-hidden">
-                                    <Stat label="Sales" value={fmtNum(user.vendor.total_sales)} />
-                                    <Stat label="Revenue" value={fmt(user.vendor.total_revenue)} />
-                                    <Stat label="Rating" value={
-                                        <span className="flex items-center gap-1">
-                                            <Star className="h-3.5 w-3.5 text-amber-400 fill-amber-400" />
-                                            {user.vendor.rating.toFixed(1)}
-                                        </span>
-                                    } />
-                                    <Stat label="Followers" value={fmtNum(user.vendor.follower_count)} />
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                    <Tile label="Sales" value={fmtNum(user.vendor.total_sales)} icon={BarChart3} />
+                                    <Tile label="Revenue" value={formatAdminWalletMoney(user.vendor.total_revenue)} icon={CircleDollarSign} tone="success" />
+                                    <Tile label="Rating" value={user.vendor.rating.toFixed(1)} sublabel="Store rating" icon={Star} />
+                                    <Tile label="Followers" value={fmtNum(user.vendor.follower_count)} icon={Users} />
                                 </div>
                                 <div className="grid grid-cols-2 gap-2 text-[12px]">
                                     <div className="flex items-center gap-1.5 text-[var(--color-text-muted)]">
@@ -360,28 +356,23 @@ export function AdminUserDetailClient({ user }: { user: AdminUserDetail }) {
                                             {user.affiliate.tier}
                                         </span>
                                     </div>
-                                    <span className={cn(
-                                        "text-[10.5px] font-medium",
-                                        user.affiliate.is_active ? "text-emerald-600" : "text-rose-500",
-                                    )}>
-                                        {user.affiliate.is_active ? "Active" : "Inactive"}
-                                    </span>
+                                    <StatusPill status={user.affiliate.is_active ? "active" : "inactive"} size="sm" />
                                 </div>
-                                <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-[var(--color-border)] border border-[var(--color-border)] rounded-lg overflow-hidden">
-                                    <Stat label="Clicks" value={fmtNum(user.affiliate.total_clicks)} />
-                                    <Stat label="Conversions" value={fmtNum(user.affiliate.total_conversions)} />
-                                    <Stat label="Conv. rate" value={`${user.affiliate.conversion_rate.toFixed(1)}%`} />
-                                    <Stat label="Earned" value={fmt(user.affiliate.total_earnings)} />
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                    <Tile label="Clicks" value={fmtNum(user.affiliate.total_clicks)} icon={MousePointerClick} />
+                                    <Tile label="Conversions" value={fmtNum(user.affiliate.total_conversions)} icon={TrendingUp} />
+                                    <Tile label="Conv. rate" value={`${user.affiliate.conversion_rate.toFixed(1)}%`} icon={BarChart3} />
+                                    <Tile label="Earned" value={formatAdminWalletMoney(user.affiliate.total_earnings)} icon={CircleDollarSign} tone="success" />
                                 </div>
                                 <div className="flex gap-4 text-[12px]">
                                     <div className="flex items-center gap-1.5 text-[var(--color-text-muted)]">
                                         <CircleDollarSign className="h-3.5 w-3.5" />
                                         <span className="font-medium text-[var(--color-text-primary)]">Available:</span>
-                                        {fmt(user.affiliate.available_balance)}
+                                        {formatAdminWalletMoney(user.affiliate.available_balance)}
                                     </div>
                                     <div className="flex items-center gap-1.5 text-[var(--color-text-muted)]">
                                         <span className="font-medium text-[var(--color-text-primary)]">Pending:</span>
-                                        {fmt(user.affiliate.pending_earnings)}
+                                        {formatAdminWalletMoney(user.affiliate.pending_earnings)}
                                     </div>
                                 </div>
                             </div>
@@ -405,11 +396,11 @@ export function AdminUserDetailClient({ user }: { user: AdminUserDetail }) {
                                         )}
                                     </div>
                                 </div>
-                                <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-[var(--color-border)] border border-[var(--color-border)] rounded-lg overflow-hidden">
-                                    <Stat label="Followers" value={fmtNum(user.influencer.total_followers)} />
-                                    <Stat label="Engagement" value={`${user.influencer.engagement_rate.toFixed(1)}%`} />
-                                    <Stat label="Campaigns" value={user.influencer.total_campaigns} />
-                                    <Stat label="Earned" value={fmt(user.influencer.total_earnings)} />
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                    <Tile label="Followers" value={fmtNum(user.influencer.total_followers)} icon={Users} />
+                                    <Tile label="Engagement" value={`${user.influencer.engagement_rate.toFixed(1)}%`} icon={BarChart3} />
+                                    <Tile label="Campaigns" value={String(user.influencer.total_campaigns)} icon={TrendingUp} />
+                                    <Tile label="Earned" value={formatAdminWalletMoney(user.influencer.total_earnings)} icon={CircleDollarSign} tone="success" />
                                 </div>
                             </div>
                         </Section>
@@ -449,7 +440,7 @@ export function AdminUserDetailClient({ user }: { user: AdminUserDetail }) {
                                                     <StatusPill status={o.payment_status} />
                                                 </td>
                                                 <td className="px-3 py-2.5 text-right font-medium text-[13px] tabular-nums">
-                                                    {fmt(o.total_amount, o.currency)}
+                                                    {formatAdminWalletMoney(o.total_amount, o.currency)}
                                                 </td>
                                                 <td className="px-3 py-2.5 text-[12px] text-[var(--color-text-muted)] whitespace-nowrap">
                                                     {fmtDate(o.created_at)}
@@ -509,7 +500,7 @@ export function AdminUserDetailClient({ user }: { user: AdminUserDetail }) {
                                                 </td>
                                                 <td className="px-3 py-2.5 text-right font-medium text-[13px] tabular-nums">
                                                     <span className={t.direction === "credit" ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}>
-                                                        {t.direction === "credit" ? "+" : "−"}{fmt(t.amount, t.currency)}
+                                                        {t.direction === "credit" ? "+" : "−"}{formatAdminWalletMoney(t.amount, t.currency)}
                                                     </span>
                                                 </td>
                                                 <td className="px-3 py-2.5 text-[12px] text-[var(--color-text-muted)] whitespace-nowrap">

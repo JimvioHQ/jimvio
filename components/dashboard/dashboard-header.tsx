@@ -940,9 +940,10 @@ function UserMenu({ user }: { user: UserProfile }) {
 
 export function DashboardHeader({
     onMobileMenuOpen,
-    unreadNotifications = 2,
+    unreadNotifications: unreadNotificationsProp,
 }: DashboardHeaderProps) {
     const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+    const [unreadNotifications, setUnreadNotifications] = useState(unreadNotificationsProp ?? 0);
 
     const [user, setUser] = useState<UserProfile>({
         email: "",
@@ -957,15 +958,25 @@ export function DashboardHeader({
                 data: { user: authUser },
             } = await supabase.auth.getUser();
             if (!authUser) return;
-            const { data } = await supabase
-                .from("profiles")
-                .select("email, full_name, avatar_url")
-                .eq("id", authUser.id)
-                .single();
+            const [{ data }, { count }] = await Promise.all([
+                supabase
+                    .from("profiles")
+                    .select("email, full_name, avatar_url")
+                    .eq("id", authUser.id)
+                    .single(),
+                supabase
+                    .from("notifications")
+                    .select("id", { count: "exact", head: true })
+                    .eq("user_id", authUser.id)
+                    .eq("is_read", false),
+            ]);
             if (data) setUser(data);
+            if (typeof unreadNotificationsProp !== "number") {
+                setUnreadNotifications(count ?? 0);
+            }
         }
         load();
-    }, []);
+    }, [unreadNotificationsProp]);
 
     return (
         <header

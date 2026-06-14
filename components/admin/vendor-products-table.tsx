@@ -2,6 +2,7 @@
 "use client";
 
 import React from "react";
+import { formatAdminMoney } from "@/lib/admin/format-money";
 
 const statusColors: Record<string, { bg: string; fg: string }> = {
     active: { bg: "rgba(22,163,74,0.08)", fg: "#16a34a" },
@@ -85,7 +86,7 @@ export function VendorProductsTable({ products }: { products: any[] }) {
                                     </span>
                                 </td>
                                 <td style={{ ...td, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
-                                    {Number(p.price).toLocaleString()}
+                                    {formatAdminMoney(p.price, p.currency)}
                                 </td>
                                 <td style={{ ...td, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
                                     {(p.sale_count ?? 0).toLocaleString()}
@@ -191,7 +192,7 @@ export function VendorOrdersTable({ orders }: { orders: any[] }) {
                                     </span>
                                 </td>
                                 <td style={{ ...td, textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 600 }}>
-                                    {Number(o.total_amount).toLocaleString()} {o.currency}
+                                    {formatAdminMoney(o.total_amount, o.currency)}
                                 </td>
                                 <td style={{ ...td, color: "var(--color-text-muted, #888)", whiteSpace: "nowrap", fontSize: 11 }}>
                                     {o.created_at ? new Date(o.created_at).toLocaleDateString() : "—"}

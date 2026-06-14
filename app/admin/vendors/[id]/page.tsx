@@ -12,6 +12,7 @@ import { VendorActions } from "@/components/admin/vendors/vendor-action";
 import { VendorOrdersTable, VendorProductsTable, VendorReviewsList } from "@/components/admin/vendor-products-table";
 import { ArrowLeft, BadgeCheck, ExternalLink, KeyRound, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { formatAdminWalletMoney } from "@/lib/admin/format-money";
 
 export const dynamic = "force-dynamic";
 
@@ -128,7 +129,7 @@ export default async function AdminVendorProfilePage({
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
                 {[
                     { label: "Total sales", value: (vendor.total_sales ?? 0).toLocaleString() },
-                    { label: "Revenue", value: `${totalRevenue.toLocaleString()} RWF` },
+                    { label: "Revenue", value: formatAdminWalletMoney(totalRevenue) },
                     { label: "Rating", value: rating > 0 ? `${rating.toFixed(1)} / 5` : "No ratings" },
                     { label: "Followers", value: (vendor.follower_count ?? 0).toLocaleString() },
                     { label: "Products", value: products.length.toLocaleString() },

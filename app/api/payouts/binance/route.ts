@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { transferToBinanceUser } from "@/lib/binance-pay";
+import { notifyUser } from "@/lib/notifications/notify-user";
 
 async function getExchangeRate(
     fromCurrency: string,
@@ -130,12 +131,19 @@ export async function POST(req: NextRequest) {
         });
 
         // ── Notify user ────────────────────────────────────────────────────────────
-        await supabase.from("notifications").insert({
-            user_id: user.id,
+        await notifyUser(supabase, {
+            userId: user.id,
             type: "payment",
             title: "Payout sent",
             message: `${amount} USDT has been sent to your Binance account.`,
-            action_url: "/dashboard/wallet",
+            actionUrl: "/dashboard/wallet",
+            data: { payout_id: payout.id, amount_usdt: amount },
+            email: {
+                kind: "payout_sent",
+                amount,
+                currency: "USDT",
+                destinationLabel: "Binance account",
+            },
         });
 
         return NextResponse.json({

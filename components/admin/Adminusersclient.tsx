@@ -13,8 +13,10 @@ import {
     EmptyState,
     OrderFilterToolbar,
     RowArrow,
+    StatusPill,
     type FilterSelectGroup,
 } from "@/components/ui/admin";
+import { Tile } from "@/components/ui/admin-tile";
 import { cn } from "@/lib/utils";
 import type { SelectOption } from "@/components/ui/select-2";
 import { AdminUserRow } from "@/services/admin/getAdminUsers";
@@ -102,22 +104,10 @@ function RoleBadge({ role }: { role: string }) {
     );
 }
 
-// ─── Vendor status pill ───────────────────────────────────────────────────────
-
-const VENDOR_STATUS: Record<string, string> = {
-    pending: "text-amber-600 dark:text-amber-400",
-    verified: "text-emerald-600 dark:text-emerald-400",
-    rejected: "text-rose-600 dark:text-rose-400",
-    suspended: "text-slate-500 dark:text-slate-400",
-};
+// ─── Vendor status ────────────────────────────────────────────────────────────
 
 function VendorStatus({ status }: { status: string }) {
-    const cls = VENDOR_STATUS[status] ?? VENDOR_STATUS.pending;
-    return (
-        <span className={cn("text-[11px] font-medium capitalize", cls)}>
-            {status}
-        </span>
-    );
+    return <StatusPill status={status} size="sm" />;
 }
 
 // ─── Boolean pill ─────────────────────────────────────────────────────────────
@@ -235,25 +225,13 @@ export function AdminUsersClient({
                 subtitle={`${total.toLocaleString()} registered user${total !== 1 ? "s" : ""}`}
             />
 
-            {/* ── Summary strip ── */}
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-                {[
-                    { label: "Vendors", value: counts.vendors, icon: Store, color: "text-indigo-500" },
-                    { label: "Affiliates", value: counts.affiliates, icon: TrendingUp, color: "text-violet-500" },
-                    { label: "Influencers", value: counts.influencers, icon: TrendingUp, color: "text-pink-500" },
-                    { label: "Verified", value: counts.verified, icon: BadgeCheck, color: "text-emerald-500" },
-                    { label: "2FA on", value: counts.twoFa, icon: KeyRound, color: "text-orange-500" },
-                ].map(({ label, value, icon: Icon, color }) => (
-                    <div key={label} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]">
-                        <Icon className={cn("h-4 w-4 shrink-0", color)} />
-                        <div>
-                            <p className="text-[18px] font-semibold text-[var(--color-text-primary)] leading-none tabular-nums">
-                                {value}
-                            </p>
-                            <p className="text-[10.5px] text-[var(--color-text-muted)] mt-0.5">{label}</p>
-                        </div>
-                    </div>
-                ))}
+            {/* ── Summary KPIs (same Tile style as admin/orders) ── */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                <Tile label="Vendors" value={counts.vendors.toLocaleString()} sublabel="In results" icon={Store} />
+                <Tile label="Affiliates" value={counts.affiliates.toLocaleString()} sublabel="In results" icon={TrendingUp} />
+                <Tile label="Influencers" value={counts.influencers.toLocaleString()} sublabel="In results" icon={UserCircle2} tone="default" />
+                <Tile label="Verified" value={counts.verified.toLocaleString()} sublabel="Email verified" icon={BadgeCheck} tone="success" />
+                <Tile label="2FA enabled" value={counts.twoFa.toLocaleString()} sublabel="Security on" icon={KeyRound} tone={counts.twoFa > 0 ? "success" : "default"} />
             </div>
 
             <OrderFilterToolbar

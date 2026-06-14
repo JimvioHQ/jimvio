@@ -44,6 +44,8 @@ export interface Product {
 }
 
 export interface Community {
+  id?: string;
+  slug?: string | null;
   name: string;
   initial: string;
   color: string;
@@ -52,7 +54,7 @@ export interface Community {
   lastMessage: string;
   time: string;
   unread: number;
-  avatarUrl?: string
+  avatarUrl?: string;
 }
 
 export interface TickerItem {

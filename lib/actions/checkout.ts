@@ -6,6 +6,7 @@ import { getAdminDB } from "@/services/db";
 import { OrderUpdate } from "@/types/db";
 import { Json } from "@/types/supabase";
 import { revalidatePath } from "next/cache";
+import { notifyUser } from "@/lib/notifications/notify-user";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -253,7 +254,7 @@ async function createVendorOrder(
       currency: safeCurrency,
       metadata: { cart_id: cartId },
     })
-    .select("id")
+    .select("id, order_number, total_amount, currency")
     .single();
 
   if (orderError || !order) {
@@ -275,6 +276,22 @@ async function createVendorOrder(
       }${itemsError.hint ? ` | hint: ${itemsError.hint}` : ""}`
     );
   }
+
+  await notifyUser(admin, {
+    userId: buyerId,
+    type: "order",
+    title: "Order received",
+    message: `Order #${order.order_number} is ready. Complete payment to confirm your items.`,
+    actionUrl: `/checkout?order=${order.id}`,
+    data: { order_id: order.id, order_number: order.order_number },
+    email: {
+      kind: "order_confirmation",
+      orderId: order.id,
+      orderNumber: String(order.order_number),
+      totalAmount: Number(order.total_amount ?? subtotal),
+      currency: String(order.currency ?? safeCurrency),
+    },
+  });
 
   return order.id;
 }

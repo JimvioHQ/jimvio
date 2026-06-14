@@ -12,6 +12,7 @@ import {
   markWebhookFailed,
   logWebhookEvent,
 } from "@/lib/payments/webhook-logger";
+import { notifyUser } from "@/lib/notifications/notify-user";
 
 export const dynamic = "force-dynamic";
 
@@ -298,7 +299,7 @@ export async function POST(req: NextRequest) {
       const { orderId, transactionId } = resolved;
       const { data: existingOrder } = await supabase
         .from("orders")
-        .select("id, payment_status, buyer_id")
+        .select("id, payment_status, buyer_id, order_number")
         .eq("id", orderId)
         .single();
 
@@ -312,16 +313,24 @@ export async function POST(req: NextRequest) {
             .from("transactions")
             .update({ status: "failed", updated_at: new Date().toISOString() })
             .eq("id", transactionId),
-          existingOrder.buyer_id
-            ? supabase.from("notifications").insert({
-              user_id: existingOrder.buyer_id,
-              type: "payment",
-              title: "Payment Failed",
-              message: "Your payment could not be processed. Please try again.",
-              action_url: `/checkout?order=${orderId}`,
-            })
-            : Promise.resolve(),
         ]);
+
+        if (existingOrder.buyer_id) {
+          await notifyUser(supabase, {
+            userId: existingOrder.buyer_id,
+            type: "payment",
+            title: "Payment Failed",
+            message: "Your payment could not be processed. Please try again.",
+            actionUrl: `/checkout?order=${orderId}`,
+            data: { order_id: orderId },
+            email: {
+              kind: "payment_failed",
+              orderId,
+              orderNumber: String(existingOrder.order_number ?? orderId),
+              reason: "Payment was declined or cancelled.",
+            },
+          });
+        }
       }
     }
 

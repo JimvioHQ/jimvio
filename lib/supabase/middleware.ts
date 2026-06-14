@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { extractSessionMeta, isSessionRevoked } from "@/lib/auth/user-sessions";
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -31,12 +32,27 @@ export async function updateSession(request: NextRequest) {
       request.nextUrl.pathname.startsWith(p)
     );
 
-    // Only call getUser if we are on a protected path or if we have a session cookie
-    // This avoids unnecessary network calls for truly anonymous users on public pages.
     const hasSession = request.cookies.getAll().some(c => c.name.startsWith("sb-"));
     
     if (isProtected || hasSession) {
       const { data: { user } } = await supabase.auth.getUser();
+
+      if (user && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+        const meta = extractSessionMeta(request.headers);
+        const banned = await isSessionRevoked(user.id, meta).catch((err) => {
+          console.error("[middleware] session ban check failed:", err);
+          return false;
+        });
+
+        if (banned) {
+          await supabase.auth.signOut();
+          const url = request.nextUrl.clone();
+          url.pathname = "/login";
+          url.searchParams.set("error", "session_revoked");
+          url.searchParams.set("redirect", request.nextUrl.pathname);
+          return NextResponse.redirect(url);
+        }
+      }
 
       if (!user && isProtected) {
         const url = request.nextUrl.clone();
@@ -46,7 +62,6 @@ export async function updateSession(request: NextRequest) {
       }
     }
   } catch (err) {
-    // Don't block the request if middleware fails
     console.error("Middleware error:", err);
   }
 

@@ -483,6 +483,7 @@ export async function getTopVendorProducts(vendorId: string, limit = 4) {
 interface GetAdminProductsParams {
   q?: string;
   status?: ProductStatus | "all";
+  source?: string;
   featured?: string;
   sort?: string;
   order?: "asc" | "desc";
@@ -500,6 +501,7 @@ export async function getAdminProducts(params: GetAdminProductsParams) {
     const {
       q,
       status,
+      source,
       featured,
       sort = "created_at",
       order = "desc",
@@ -522,7 +524,7 @@ export async function getAdminProducts(params: GetAdminProductsParams) {
       id, name, slug, status, price, compare_at_price, currency,
       product_type, is_featured, is_active, source,
       affiliate_enabled, affiliate_commission_rate,
-      images, sale_count, view_count, inventory_quantity, low_stock_threshold,
+      images, sale_count, view_count, inventory_quantity, low_stock_threshold, track_inventory,
       created_at, deleted_at,
       vendors!inner ( id, business_name, business_logo, business_slug )
       `,
@@ -549,6 +551,10 @@ export async function getAdminProducts(params: GetAdminProductsParams) {
 
     if (featured === "1") {
       query = query.eq("is_featured", true);
+    }
+
+    if (source && source !== "all") {
+      query = query.eq("source", source);
     }
 
     query = query.order(safeSort, { ascending: safeOrder === "asc" });

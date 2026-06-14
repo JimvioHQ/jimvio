@@ -18,6 +18,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
+import { notifyUser } from "@/lib/notifications/notify-user";
 
 export const dynamic = "force-dynamic";
 
@@ -155,10 +156,13 @@ export async function PATCH(
   };
 
   if (order.buyer_id) {
-    await adminDb.from("notifications").insert({
-      user_id: order.buyer_id,
+    const orderNumber = String(order.order_number ?? orderId);
+    const isShipped = newStatus === "shipped";
+
+    await notifyUser(adminDb, {
+      userId: order.buyer_id,
       type: "order",
-      title: newStatus === "shipped" ? "Order Shipped 📦" : "Order Delivered ✅",
+      title: isShipped ? "Order Shipped 📦" : "Order Delivered ✅",
       message: messages[newStatus],
       data: {
         order_id: orderId,
@@ -166,7 +170,16 @@ export async function PATCH(
         tracking_number: body.tracking_number ?? null,
         tracking_url: body.tracking_url ?? null,
       },
-      action_url: `/dashboard/orders/${orderId}`,
+      actionUrl: `/dashboard/orders/${orderId}`,
+      email: isShipped
+        ? {
+            kind: "order_shipped",
+            orderId,
+            orderNumber,
+            trackingNumber: body.tracking_number ?? null,
+            trackingUrl: body.tracking_url ?? null,
+          }
+        : undefined,
     });
   }
 

@@ -2,7 +2,8 @@
 import React from "react";
 import Link from "next/link";
 import { getAdminDB } from "@/services/db";
-import { formatCurrency, cn, relativeTime } from "@/lib/utils";
+import { cn, relativeTime } from "@/lib/utils";
+import { formatAdminMoney, formatAdminAverageMoney, formatAdminMoneyTotals } from "@/lib/admin/format-money";
 import { isOrderPaymentComplete } from "@/lib/payments/order-payment-utils";
 import {
   ShoppingBag, TrendingUp, Package, Truck,
@@ -93,13 +94,18 @@ export default async function AdminOrdersPage({
   const list = (orders ?? []) as any[];
   const kpi = (kpiOrders ?? []) as any[];
 
-  const paidCount = kpi.filter((o) => isOrderPaymentComplete(o.payment_status)).length;
-  const totalRevenue = kpi.filter((o) => isOrderPaymentComplete(o.payment_status)).reduce((s, o) => s + Number(o.total_amount ?? 0), 0);
+  const paidOrders = kpi.filter((o) => isOrderPaymentComplete(o.payment_status));
+  const paidCount = paidOrders.length;
+  const paidMoneyRows = paidOrders.map((o) => ({
+    amount: o.total_amount,
+    currency: o.currency,
+  }));
+  const revenueDisplay = formatAdminMoneyTotals(paidMoneyRows, "RWF");
+  const aovDisplay = formatAdminAverageMoney(paidMoneyRows, "RWF");
   const pendingPayment = kpi.filter((o) => o.payment_status === "pending").length;
   const awaitingShipment = kpi.filter((o) => isOrderPaymentComplete(o.payment_status) && ["confirmed", "processing"].includes(o.status)).length;
   const inTransit = kpi.filter((o) => o.status === "shipped").length;
   const cancelled = kpi.filter((o) => o.status === "cancelled").length;
-  const aov = paidCount > 0 ? totalRevenue / paidCount : 0;
 
   // ── qs helper (for pagination links only) ─────────────────────────────
   const qs = (over: Record<string, string>) => {
@@ -141,8 +147,8 @@ export default async function AdminOrdersPage({
 
       {/* KPIs */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        <Tile label="Revenue" value={formatCurrency(totalRevenue)} sublabel="Paid orders" icon={TrendingUp} tone="success" />
-        <Tile label="Avg order" value={formatCurrency(aov)} sublabel="Per paid order" icon={ShoppingBag} />
+        <Tile label="Revenue" value={revenueDisplay} sublabel="Paid orders" icon={TrendingUp} tone="success" />
+        <Tile label="Avg order" value={aovDisplay} sublabel="Per paid order" icon={ShoppingBag} />
         <Tile label="Awaiting payment" value={pendingPayment.toLocaleString()} sublabel="Pending" icon={CircleDot} tone={pendingPayment > 10 ? "warn" : "default"} />
         <Tile label="To fulfill" value={awaitingShipment.toLocaleString()} sublabel="Paid · not shipped" icon={Package} tone={awaitingShipment > 0 ? "warn" : "default"} />
         <Tile label="In transit" value={inTransit.toLocaleString()} sublabel="Shipped" icon={Truck} />
@@ -203,11 +209,11 @@ export default async function AdminOrdersPage({
                         </td>
                         <td className="px-3 py-3 text-right">
                           <p className="font-semibold tabular-nums text-[var(--color-text-primary)]">
-                            {Number(o.total_amount).toLocaleString()} <span className="text-[10px] font-normal text-[var(--color-text-muted)]">{o.currency}</span>
+                            {formatAdminMoney(o.total_amount, o.currency)}
                           </p>
                           {o.shipping_amount > 0 && (
                             <p className="text-[10.5px] text-[var(--color-text-muted)] tabular-nums">
-                              + {Number(o.shipping_amount).toLocaleString()} ship
+                              + {formatAdminMoney(o.shipping_amount, o.currency)} ship
                             </p>
                           )}
                         </td>

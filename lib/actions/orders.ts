@@ -8,7 +8,6 @@ import { getDefaultAffiliateCommissionPercent } from "@/lib/platform-settings";
 import { normalizeProductSource } from "@/lib/sources/product-source";
 import { getAdminDB } from "@/services/db";
 import { revalidatePath } from "next/cache";
-import { finalizeOrderPayment } from "@/lib/payments/finalize-order-payment";
 import { handleCJFulfillment } from "@/services/cj/cj-lifecycle-integration";
 
 export async function createOrder(productId: string, quantity: number = 1) {
@@ -136,63 +135,6 @@ export async function createOrder(productId: string, quantity: number = 1) {
   return { orderId: order.id };
 }
 
-export async function markOrderPaidAction(formData: FormData) {
-  const orderId = formData.get("orderId") as string;
-  if (!orderId) return;
-
-  const admin = getAdminDB();
-  const { data: order, error: orderError } = await admin
-    .from("orders")
-    .select("id, total_amount, currency, payment_status, buyer_id")
-    .eq("id", orderId)
-    .single();
-
-  if (orderError || !order) {
-    throw new Error("Order not found");
-  }
-
-  if (order.payment_status === "paid" || order.payment_status === "completed") {
-    return;
-  }
-
-  const { data: existingTx } = await admin
-    .from("transactions")
-    .select("id, status, provider_transaction_id")
-    .eq("order_id", orderId)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  let providerTransactionId = existingTx?.provider_transaction_id ??
-    `manual-${orderId}-${Date.now()}`;
-
-  if (!existingTx || existingTx.status !== "pending") {
-    await admin.from("transactions").insert({
-      user_id: order.buyer_id ?? "",
-      order_id: orderId,
-      provider_transaction_id: providerTransactionId,
-      provider: "manual",
-      type: "payment",
-      status: "pending",
-      amount: Number(order.total_amount) || 0,
-      currency: order.currency ?? "USD",
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    });
-  }
-
-  await finalizeOrderPayment(admin, orderId, {
-    providerTransactionId,
-    providerReference: providerTransactionId,
-    paidAtIso: new Date().toISOString(),
-    notifyUserId: order.buyer_id,
-    amountForMessage: Number(order.total_amount) || 0,
-    paymentProvider: "manual",
-  });
-
-  revalidatePath(`/admin/orders/${orderId}`);
-  revalidatePath("/admin/orders");
-}
 
 export async function resolveFailedCreditAction(formData: FormData) {
   const id = formData.get("id") as string;
