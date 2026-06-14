@@ -1,6 +1,10 @@
 import React from "react";
 import Link from "next/link";
-import { getAdminVendors } from "@/services/db";
+import {
+    getAdminVendors,
+    type AdminVendorSort,
+    type AdminVendorStatus,
+} from "@/services/db";
 import { formatAdminWalletMoney } from "@/lib/admin/format-money";
 import {
     Store, ArrowUpRight, TrendingUp, DollarSign,
@@ -13,46 +17,71 @@ import { Tile } from "@/components/ui/admin-server";
 
 export const dynamic = "force-dynamic";
 
+const PAGE_SIZE = 30;
+
+function resolveStatus(input: string | undefined): AdminVendorStatus {
+    if (input === "pending" || input === "verified" || input === "rejected" || input === "suspended") {
+        return input;
+    }
+    return "all";
+}
+
+function resolveSort(input: string | undefined): AdminVendorSort {
+    const allowed: AdminVendorSort[] = [
+        "created_at",
+        "revenue",
+        "sales",
+        "rating",
+        "followers",
+        "products",
+    ];
+    return allowed.includes(input as AdminVendorSort) ? (input as AdminVendorSort) : "created_at";
+}
+
 export default async function AdminVendorsPage({
     searchParams,
 }: {
-    searchParams: Promise<{ q?: string; status?: string; sort?: string }>;
+    searchParams: Promise<{ q?: string; status?: string; sort?: string; page?: string }>;
 }) {
-    const { q, status, sort } = await searchParams;
-    const { vendors, total } = await getAdminVendors(q, 200);
+    const params = await searchParams;
+    const q = (params.q ?? "").trim();
+    const statusFilter = resolveStatus(params.status);
+    const sortKey = resolveSort(params.sort);
+    const page = Math.max(1, parseInt(params.page ?? "1", 10) || 1);
 
-    const statusFilter = status ?? "all";
-    const sortKey = sort ?? "created_at";
-
-    const filtered = (
-        statusFilter === "all"
-            ? vendors
-            : vendors.filter((v: any) => v.verification_status === statusFilter)
-    ).sort((a: any, b: any) => {
-        switch (sortKey) {
-            case "revenue":   return Number(b.total_revenue)  - Number(a.total_revenue);
-            case "sales":     return Number(b.total_sales)    - Number(a.total_sales);
-            case "rating":    return Number(b.rating)         - Number(b.rating);
-            case "followers": return Number(b.follower_count) - Number(a.follower_count);
-            case "products":  return Number(b.products_count) - Number(a.products_count);
-            default:          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-        }
-    });
-
-    const counts = {
-        all:       vendors.length,
-        pending:   vendors.filter((v: any) => v.verification_status === "pending").length,
-        verified:  vendors.filter((v: any) => v.verification_status === "verified").length,
-        rejected:  vendors.filter((v: any) => v.verification_status === "rejected").length,
-        suspended: vendors.filter((v: any) => v.verification_status === "suspended").length,
+    const qs = (over: Record<string, string> = {}) => {
+        const u = new URLSearchParams();
+        if (q) u.set("q", q);
+        if (statusFilter !== "all") u.set("status", statusFilter);
+        if (sortKey !== "created_at") u.set("sort", sortKey);
+        if (page > 1) u.set("page", String(page));
+        Object.entries(over).forEach(([key, value]) => {
+            if (
+                !value ||
+                (key === "status" && value === "all") ||
+                (key === "sort" && value === "created_at") ||
+                (key === "page" && value === "1")
+            ) {
+                u.delete(key);
+            } else {
+                u.set(key, value);
+            }
+        });
+        const s = u.toString();
+        return s ? `?${s}` : "";
     };
 
-    const totalRevenue  = vendors.reduce((s: number, v: any) => s + Number(v.total_revenue  ?? 0), 0);
-    const totalSales    = vendors.reduce((s: number, v: any) => s + Number(v.total_sales    ?? 0), 0);
-    const featuredCount = vendors.filter((v: any) => v.is_featured).length;
-    const avgRating     = vendors.length
-        ? vendors.reduce((s: number, v: any) => s + Number(v.rating ?? 0), 0) / vendors.length
-        : 0;
+    const { vendors, total, statusCounts, platformStats } = await getAdminVendors({
+        query: q || undefined,
+        page,
+        pageSize: PAGE_SIZE,
+        status: statusFilter,
+        sort: sortKey,
+    });
+
+    const totalPages = total ? Math.ceil(total / PAGE_SIZE) : 0;
+    const from = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
+    const to = Math.min(page * PAGE_SIZE, total);
 
     return (
         <div className="space-y-6">
@@ -60,21 +89,21 @@ export default async function AdminVendorsPage({
             <PageHeader
                 eyebrow="Platform"
                 title="Vendors"
-                subtitle={`${total} store${total !== 1 ? "s" : ""} registered`}
+                subtitle={`${total.toLocaleString()} store${total !== 1 ? "s" : ""} registered`}
                 actions={
                     <>
-                        <button className="h-9 px-3.5 inline-flex items-center gap-1.5 rounded-lg text-[12px] font-medium border border-[var(--color-border)] bg-[var(--color-surface-secondary)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors cursor-pointer">
+                        <button className="h-9 px-3.5 inline-flex items-center gap-1.5 rounded-sm text-[12px] font-medium border border-[var(--color-border)] bg-[var(--color-surface-secondary)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors cursor-pointer">
                             <Download className="h-3.5 w-3.5" />
                             Export
                         </button>
                         <Link
                             href="/admin/verifications?tab=vendors"
-                            className="h-9 px-4 inline-flex items-center gap-1.5 rounded-lg text-[12px] font-semibold bg-[var(--color-accent)] text-white hover:opacity-90 transition-opacity"
+                            className="h-9 px-4 inline-flex items-center gap-1.5 rounded-sm text-[12px] font-semibold bg-[var(--color-accent)] text-white hover:opacity-90 transition-opacity"
                         >
                             Review queue
-                            {counts.pending > 0 && (
+                            {statusCounts.pending > 0 && (
                                 <span className="bg-white/25 rounded px-1.5 py-0.5 text-[11px] font-bold tabular-nums">
-                                    {counts.pending}
+                                    {statusCounts.pending}
                                 </span>
                             )}
                             <ArrowUpRight className="h-3.5 w-3.5" />
@@ -86,41 +115,41 @@ export default async function AdminVendorsPage({
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
                 <Tile
                     label="Total vendors"
-                    value={counts.all.toLocaleString()}
-                    sublabel={`${counts.verified} verified`}
+                    value={statusCounts.all.toLocaleString()}
+                    sublabel={`${statusCounts.verified} verified`}
                     icon={Store}
                 />
                 <Tile
                     label="Total revenue"
-                    value={formatAdminWalletMoney(totalRevenue)}
-                    sublabel="Across all vendors"
+                    value={formatAdminWalletMoney(platformStats.totalRevenue)}
+                    sublabel="Paid orders · RWF"
                     icon={DollarSign}
                     tone="success"
                 />
                 <Tile
                     label="Total sales"
-                    value={totalSales.toLocaleString()}
+                    value={platformStats.totalSales.toLocaleString()}
                     sublabel="Completed orders"
                     icon={TrendingUp}
                 />
                 <Tile
                     label="Avg rating"
-                    value={avgRating.toFixed(2)}
-                    sublabel={`${featuredCount} featured`}
+                    value={platformStats.avgRating.toFixed(2)}
+                    sublabel={`${platformStats.featuredCount} featured`}
                     icon={Star}
-                    tone={avgRating >= 4 ? "success" : "default"}
+                    tone={platformStats.avgRating >= 4 ? "success" : "default"}
                 />
                 <Tile
                     label="Pending review"
-                    value={counts.pending.toLocaleString()}
+                    value={statusCounts.pending.toLocaleString()}
                     sublabel="Awaiting verification"
                     icon={Clock}
-                    tone={counts.pending > 0 ? "warn" : "default"}
+                    tone={statusCounts.pending > 0 ? "warn" : "default"}
                 />
             </div>
 
             <VendorsToolbar
-                initialQ={q ?? ""}
+                initialQ={q}
                 initialSort={sortKey}
                 status={statusFilter}
             />
@@ -132,7 +161,7 @@ export default async function AdminVendorsPage({
                     return (
                         <Link
                             key={s}
-                            href={`/admin/vendors?status=${s}${q ? `&q=${encodeURIComponent(q)}` : ""}${sort ? `&sort=${sort}` : ""}`}
+                            href={`/admin/vendors${qs({ status: s === "all" ? "" : s, page: "" })}`}
                             className={[
                                 "h-7 px-3 inline-flex items-center gap-1.5 rounded-full text-[12px] font-medium transition-all select-none",
                                 active
@@ -147,18 +176,21 @@ export default async function AdminVendorsPage({
                                     ? "bg-white/20 text-white"
                                     : "bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)]",
                             ].join(" ")}>
-                                {counts[s]}
+                                {statusCounts[s]}
                             </span>
                         </Link>
                     );
                 })}
             </div>
 
-            {(q || statusFilter !== "all") && filtered.length > 0 && (
+            {(q || statusFilter !== "all") && vendors.length > 0 && (
                 <p className="text-[12px] text-[var(--color-text-muted)]">
                     Showing{" "}
-                    <strong className="text-[var(--color-text-primary)] font-semibold">{filtered.length}</strong>{" "}
-                    result{filtered.length !== 1 ? "s" : ""}
+                    <strong className="text-[var(--color-text-primary)] font-semibold">
+                        {from.toLocaleString()}–{to.toLocaleString()}
+                    </strong>{" "}
+                    of{" "}
+                    <strong className="text-[var(--color-text-primary)] font-semibold">{total.toLocaleString()}</strong>
                     {q && (
                         <> for{" "}
                             <strong className="text-[var(--color-text-primary)] font-semibold">&ldquo;{q}&rdquo;</strong>
@@ -168,7 +200,7 @@ export default async function AdminVendorsPage({
             )}
 
             <div className="rounded-2xl bg-[var(--color-surface)] ring-1 ring-[var(--color-border)] overflow-hidden">
-                {filtered.length === 0 ? (
+                {vendors.length === 0 ? (
                     <EmptyState
                         icon={<Store className="h-5 w-5 text-[var(--color-text-muted)]" />}
                         title={q ? `No vendors matching "${q}"` : "No vendors in this category"}
@@ -192,17 +224,19 @@ export default async function AdminVendorsPage({
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {filtered.map((v: any) => (
+                                    {vendors.map((v) => (
                                         <VendorRow key={v.id} v={v} last={false} />
                                     ))}
                                 </tbody>
                             </table>
                         </div>
 
-                        <div className="px-5 py-3 border-t border-[var(--color-border)]">
-                            <p className="text-[11.5px] text-[var(--color-text-muted)]">
-                                Showing {filtered.length} of {total} vendor{total !== 1 ? "s" : ""}.{" "}
-                                Approve or reject from the{" "}
+                        <div className="flex items-center justify-between px-5 py-3 border-t border-[var(--color-border)]">
+                            <p className="text-[11.5px] text-[var(--color-text-muted)] tabular-nums">
+                                {totalPages > 1
+                                    ? `Page ${page} of ${totalPages} · ${from.toLocaleString()}–${to.toLocaleString()} of ${total.toLocaleString()} vendors`
+                                    : `${total.toLocaleString()} vendor${total !== 1 ? "s" : ""}`}
+                                . Approve or reject from the{" "}
                                 <Link
                                     href="/admin/verifications?tab=vendors"
                                     className="text-[var(--color-accent)] hover:underline"
@@ -210,6 +244,26 @@ export default async function AdminVendorsPage({
                                     verification queue
                                 </Link>.
                             </p>
+                            {totalPages > 1 && (
+                                <div className="flex items-center gap-1">
+                                    {page > 1 && (
+                                        <Link
+                                            href={`/admin/vendors${qs({ page: String(page - 1) })}`}
+                                            className="h-8 px-3 rounded-md text-[12px] font-medium text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)] transition-colors"
+                                        >
+                                            Previous
+                                        </Link>
+                                    )}
+                                    {page < totalPages && (
+                                        <Link
+                                            href={`/admin/vendors${qs({ page: String(page + 1) })}`}
+                                            className="h-8 px-3 rounded-md text-[12px] font-medium text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)] transition-colors"
+                                        >
+                                            Next
+                                        </Link>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </>
                 )}

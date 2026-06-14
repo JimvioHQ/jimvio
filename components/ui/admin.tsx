@@ -211,7 +211,7 @@ export const RANGES: Record<RangeKey, { label: string; start: () => Date | null 
 export function RangePicker({ current, base }: { current: RangeKey; base: string }) {
     const items: RangeKey[] = ["today", "7d", "30d", "mtd", "qtd", "ytd"];
     return (
-        <div className="inline-flex items-center gap-0.5 rounded-xl ring-[0.5px] ring-[var(--color-border)] bg-[var(--color-surface-secondary)] p-[3px]">
+        <div className="inline-flex items-center gap-0.5 rounded-md ring-[0.5px] ring-[var(--color-border)] bg-[var(--color-surface-secondary)] p-[3px]">
             {items.map((k) => (
                 <Link
                     key={k}

@@ -11,6 +11,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Copy,
+  ClipboardPaste,
   ExternalLink,
   FileEdit,
   Filter,
@@ -186,7 +187,7 @@ export default function CJImportBrowser({
       .then((data) => {
         if (data?.map && typeof data.map === "object") setImportedMap(data.map);
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   const importedCount = Object.keys(importedMap).length;
@@ -393,7 +394,7 @@ export default function CJImportBrowser({
               onChange={(e) => setDraft((d) => ({ ...d, keyWord: e.target.value }))}
               onKeyDown={(e) => e.key === "Enter" && applySearch()}
               placeholder="Search by product name…"
-              icon={<Search className="h-4 w-4" />}
+              icon={<Search className="h-4 w-4 shrink-0 opacity-60" strokeWidth={2} />}
               iconRight={
                 draft.keyWord ? (
                   <button
@@ -410,7 +411,7 @@ export default function CJImportBrowser({
                   </kbd>
                 )
               }
-              className="h-9"
+              className="h-9 rounded-sm"
             />
           </div>
           <div className="flex gap-2 shrink-0">
@@ -418,7 +419,7 @@ export default function CJImportBrowser({
               type="button"
               onClick={applySearch}
               disabled={loading}
-              className="h-9 px-4 rounded-md bg-[var(--color-accent)] text-white text-[13px] font-semibold hover:opacity-90 disabled:opacity-60 inline-flex items-center gap-2"
+              className="h-9 px-4 rounded-sm bg-[var(--color-accent)] text-white text-[13px] font-semibold hover:opacity-90 disabled:opacity-60 inline-flex items-center gap-2"
             >
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
               Search catalog
@@ -427,7 +428,7 @@ export default function CJImportBrowser({
               type="button"
               onClick={() => setFiltersOpen((o) => !o)}
               className={cn(
-                "h-9 px-3 rounded-md border text-[13px] font-medium inline-flex items-center gap-2 transition-colors",
+                "h-9 px-3 rounded-sm border text-[13px] font-medium inline-flex items-center gap-2 transition-colors",
                 filtersOpen
                   ? "border-[var(--color-accent)]/40 bg-[var(--color-accent-light)] text-[var(--color-accent)]"
                   : "border-[var(--color-border)] bg-[var(--color-bg)] text-[var(--color-text-primary)] hover:bg-[var(--color-surface-secondary)]"
@@ -446,8 +447,8 @@ export default function CJImportBrowser({
               value={directPid}
               onChange={(e) => setDirectPid(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && importDirectPid()}
-              placeholder="Or paste CJ product ID (PID)…"
-              icon={<Package className="h-3.5 w-3.5" />}
+              placeholder="Paste CJ product ID (PID)…"
+              icon={<ClipboardPaste className="h-4 w-4 shrink-0 opacity-60" strokeWidth={2} />}
               iconRight={
                 directPid.trim() ? (
                   <button
@@ -458,16 +459,20 @@ export default function CJImportBrowser({
                   >
                     <X className="h-3 w-3" />
                   </button>
-                ) : undefined
+                ) : (
+                  <kbd className="hidden h-5 items-center rounded-sm border border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-1.5 text-[10.5px] font-mono font-medium text-[var(--color-text-muted)] sm:inline-flex pointer-events-none">
+                    ↵
+                  </kbd>
+                )
               }
-              className="h-9"
+              className="h-9 rounded-sm"
             />
           </div>
           <button
             type="button"
             onClick={importDirectPid}
             disabled={!directPid.trim() || importingPid === directPid.trim()}
-            className="h-8 px-3 rounded-md border border-[var(--color-border)] text-[12.5px] font-medium hover:bg-[var(--color-surface-secondary)] disabled:opacity-50"
+            className="h-8 px-3 rounded-sm border border-[var(--color-border)] text-[12.5px] font-medium hover:bg-[var(--color-surface-secondary)] disabled:opacity-50"
           >
             Import by PID
           </button>

@@ -118,7 +118,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 width={128}
                 height={40}
                 priority
-                className="h-7 w-auto"
+                style={{ width: "auto", height: 28 }}
               />
             </Link>
 

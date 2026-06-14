@@ -36,8 +36,8 @@ export function JimvioLogo({
         alt="Jimvio"
         width={icon}
         height={icon}
-        className="w-auto mix-blend-multiply dark:mix-blend-normal flex-shrink-0"
-        style={{ height: icon }}
+        className="mix-blend-multiply dark:mix-blend-normal flex-shrink-0"
+        style={{ width: "auto", height: icon }}
         priority
       />
       {variant === "full" && (

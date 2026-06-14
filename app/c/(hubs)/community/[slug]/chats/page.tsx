@@ -1,7 +1,5 @@
-"use client";
-
-import { CommunityChats } from "@/components/community/community-chats";
+import { HubCommunityChatShell } from "@/components/community/hub/hub-community-chat-shell";
 
 export default function CommunityChatsPage() {
-  return <CommunityChats />
+  return <HubCommunityChatShell />;
 }

@@ -1401,6 +1401,7 @@ import { WorkspaceProvider } from "@/components/community/workspace-context";
 import { CallProvider } from "@/components/community/call-context";
 import type { WorkspaceCommunity, WorkspaceRole, WorkspaceView } from "@/types/workspace";
 import type { WorkspaceSpaceRow, PointsSnapshot } from "@/components/community/workspace-context";
+import type { CommunityOverviewStats } from "@/services/community/hub-data";
 import type { MembershipLite } from "@/lib/community-workspace-access";
 import { WorkspaceRoomOverlay } from "../workspace-room-overlay";
 import { RoomContent } from "./room-content";
@@ -1418,6 +1419,7 @@ interface Props {
   points?: PointsSnapshot | null;
   spacesWithRooms?: WorkspaceSpaceRow[];
   membership?: MembershipLite | null;
+  overview?: CommunityOverviewStats | null;
   children: React.ReactNode;
 }
 
@@ -1431,7 +1433,7 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { href: "", label: "Feed", icon: Home, matchExact: true },
+  { href: "", label: "Overview", icon: Home, matchExact: true },
   { href: "/chats", label: "Chats", icon: MessageCircle },
   { href: "/live", label: "Live", icon: Radio },
   { href: "/courses", label: "Courses", icon: GraduationCap },
@@ -1497,7 +1499,7 @@ export function WorkspaceLayout({
   community, currentUserId, role, isAdmin, isOwner,
   initialView,
   profile = null, points = null, spacesWithRooms = [],
-  membership = null,
+  membership = null, overview = null,
   children,
 }: Props) {
   const router = useRouter();
@@ -1528,6 +1530,7 @@ export function WorkspaceLayout({
     membership,
     spacesWithRooms,
     points,
+    overview,
   };
 
   // URL helper — only allow whitelisted query params

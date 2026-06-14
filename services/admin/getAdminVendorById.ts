@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getVendorOrderStats } from "@/services/vendors";
 
 export interface AdminVendorDetail {
     id: string;
@@ -132,6 +133,7 @@ export async function getAdminVendorById(vendorId: string): Promise<AdminVendorD
     const profile = (v as any).profiles as any;
     const allProducts = productsRes.data ?? [];
     const sh = shopifyRes.data;
+    const orderStats = await getVendorOrderStats(vendorId);
 
     return {
         id: v.id,
@@ -153,8 +155,8 @@ export async function getAdminVendorById(vendorId: string): Promise<AdminVendorD
         verification_notes: v.verification_notes ?? null,
         verified_at: v.verified_at ?? null,
         rating: Number(v.rating ?? 0),
-        total_sales: Number(v.total_sales ?? 0),
-        total_revenue: Number(v.total_revenue ?? 0),
+        total_sales: orderStats.sales,
+        total_revenue: orderStats.revenue,
         commission_rate: Number(v.commission_rate ?? 0),
         affiliate_enabled: v.affiliate_enabled ?? true,
         affiliate_commission_rate: Number(v.affiliate_commission_rate ?? 0),

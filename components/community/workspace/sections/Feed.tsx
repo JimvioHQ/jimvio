@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { uploadCommunityChatFile } from "@/lib/community-chat-upload";
 import { formatDistanceToNow } from "date-fns";
+import { cn } from "@/lib/utils";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -115,8 +116,19 @@ const PAGE_SIZE = 20;
 
 // ─── FeedSection ──────────────────────────────────────────────────────────────
 
-export function FeedSection() {
+const FEED_FILTER_MAP: Record<string, string> = {
+    "for-you": "for-you",
+    "following": "following",
+    "trending": "trending",
+    "spaces": "spaces",
+    "missions": "missions",
+    "ai-picks": "ai-picks",
+};
+
+export function FeedSection({ filter = "for-you", variant = "default" }: { filter?: string; variant?: "default" | "hub" }) {
     const supabase = createClient();
+    const feedFilter = FEED_FILTER_MAP[filter] ?? "for-you";
+    const isHub = variant === "hub";
 
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
     const [memberships, setMemberships] = useState<Membership[]>([]);
@@ -244,7 +256,7 @@ export function FeedSection() {
     const load = useCallback(async (replace = true) => {
         if (replace) setLoading(true);
         try {
-            const params = new URLSearchParams({ limit: String(PAGE_SIZE) });
+            const params = new URLSearchParams({ limit: String(PAGE_SIZE), filter: feedFilter });
             const res = await fetch(`/api/posts/feed?${params}`);
             const data = await res.json();
             const normalized = (data.posts ?? []).map(normalizePost);
@@ -266,7 +278,7 @@ export function FeedSection() {
         } finally {
             if (replace) setLoading(false);
         }
-    }, []);
+    }, [feedFilter]);
 
     useEffect(() => { load(); }, [load]);
 
@@ -275,7 +287,7 @@ export function FeedSection() {
         if (!cursor || loadingMore) return;
         setLoadingMore(true);
         try {
-            const params = new URLSearchParams({ limit: String(PAGE_SIZE), cursor });
+            const params = new URLSearchParams({ limit: String(PAGE_SIZE), cursor, filter: feedFilter });
             const res = await fetch(`/api/posts/feed?${params}`);
             const data = await res.json();
             const normalized = (data.posts ?? []).map(normalizePost);
@@ -549,10 +561,10 @@ export function FeedSection() {
         : false;
 
     return (
-        <div className="flex flex-col gap-4">
+        <div className={cn("flex flex-col", isHub ? "gap-3" : "gap-4")}>
 
             {/* ── Community Picker ───────────────────────────────────────────── */}
-            {communities.length > 1 && (
+            {communities.length > 1 && !isHub && (
                 <div className="relative" ref={communityPickerRef}>
                     <button
                         type="button"
@@ -612,7 +624,12 @@ export function FeedSection() {
             )}
 
             {/* ── Composer ───────────────────────────────────────────────────── */}
-            <div className="bg-surface border border-border rounded-2xl p-4">
+            <div
+                className={cn(
+                    "bg-surface border rounded-2xl p-4",
+                    isHub ? "border-[var(--color-border,#e4e4e7)] bg-white shadow-sm" : "border-border"
+                )}
+            >
 
                 {/* Membership gate warning */}
                 {selectedCommunity && !isMemberOfSelected && (
@@ -631,6 +648,7 @@ export function FeedSection() {
                 )}
 
                 <textarea
+                    id={isHub ? "hub-community-composer" : undefined}
                     ref={composerRef}
                     value={composer}
                     onChange={(e) => { setComposer(e.target.value); setComposerError(null); }}
@@ -639,9 +657,12 @@ export function FeedSection() {
                             ? "Select a community above to post…"
                             : `Share something in ${selectedCommunity.name}…`
                     }
-                    rows={3}
+                    rows={isHub ? 2 : 3}
                     disabled={!isMemberOfSelected && communities.length > 0}
-                    className="w-full bg-transparent text-[14px] text-text-primary placeholder:text-text-muted resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                    className={cn(
+                        "w-full resize-none text-[14px] text-text-primary placeholder:text-text-muted focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed",
+                        isHub ? "min-h-[56px] bg-transparent" : "bg-transparent"
+                    )}
                 />
 
                 {/* Pending images */}
@@ -678,7 +699,7 @@ export function FeedSection() {
                     </div>
                 )}
 
-                <div className="flex items-center justify-between pt-3 border-t border-border mt-3">
+                <div className={cn("flex items-center justify-between pt-3 border-t border-border", isHub ? "mt-2" : "mt-3")}>
                     <div className="flex items-center gap-1">
                         <button
                             type="button"
@@ -694,8 +715,13 @@ export function FeedSection() {
                         type="button"
                         disabled={!composer.trim() || saving || uploading || !isMemberOfSelected}
                         onClick={submitPost}
-                        className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-white px-4 py-2 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-                        style={{ background: "linear-gradient(135deg, #fd5000, #ff7a30)" }}
+                        className={cn(
+                            "inline-flex items-center gap-1.5 text-[12px] font-semibold px-4 py-2 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed transition-all",
+                            isHub
+                                ? "bg-[#fd5000]/15 text-[#fd5000] hover:bg-[#fd5000]/22"
+                                : "text-white"
+                        )}
+                        style={isHub ? undefined : { background: "linear-gradient(135deg, #fd5000, #ff7a30)" }}
                     >
                         {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
                         Post

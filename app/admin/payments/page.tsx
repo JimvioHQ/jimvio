@@ -13,6 +13,8 @@ import { TabCountBadge } from "@/components/ui/tab-count-badge";
 
 export const dynamic = "force-dynamic";
 
+const PAGE_SIZE = 30;
+
 // ─── Date helpers ─────────────────────────────────────────────────────────────
 
 type RangeKey = "today" | "7d" | "30d" | "mtd" | "qtd" | "ytd";
@@ -170,10 +172,12 @@ function Tabs({
   range,
   current,
   counts,
+  qs,
 }: {
   range: RangeKey;
   current: TabKey;
   counts: Record<TabKey, number>;
+  qs: (over?: Record<string, string>) => string;
 }) {
   const items: { key: TabKey; label: string; icon: React.ElementType }[] = [
     { key: "transactions", label: "Transactions", icon: Activity },
@@ -189,7 +193,7 @@ function Tabs({
         return (
           <Link
             key={key}
-            href={`?range=${range}&tab=${key}`}
+            href={`/admin/payments${qs({ tab: key === "transactions" ? "" : key, page: "" })}`}
             scroll={false}
             className={cn(
               "inline-flex items-center gap-1.5 px-3.5 h-10 text-[13px] font-medium transition-colors border-b-2 -mb-px whitespace-nowrap",
@@ -213,12 +217,30 @@ function Tabs({
 export default async function AdminPaymentsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ range?: RangeKey; tab?: TabKey }>;
+  searchParams: Promise<{ range?: RangeKey; tab?: TabKey; page?: string }>;
 }) {
   const params = await searchParams;
   const range: RangeKey = params.range && RANGES[params.range] ? params.range : "mtd";
   const tab: TabKey = params.tab ?? "transactions";
+  const page = Math.max(1, parseInt(params.page ?? "1", 10) || 1);
+  const pageSize = PAGE_SIZE;
   const startIso = RANGES[range].start().toISOString();
+
+  const qs = (over: Record<string, string> = {}) => {
+    const u = new URLSearchParams();
+    if (range !== "mtd") u.set("range", range);
+    if (tab !== "transactions") u.set("tab", tab);
+    if (page > 1) u.set("page", String(page));
+    Object.entries(over).forEach(([k, v]) => {
+      if (!v || v === "all" || (k === "range" && v === "mtd") || (k === "tab" && v === "transactions") || (k === "page" && v === "1")) {
+        u.delete(k);
+      } else {
+        u.set(k, v);
+      }
+    });
+    const s = u.toString();
+    return s ? `?${s}` : "";
+  };
 
   const admin = getAdminDB();
 
@@ -270,7 +292,7 @@ export default async function AdminPaymentsPage({
         )
         .gte("created_at", startIso)
         .order("created_at", { ascending: false })
-        .limit(50)
+        .range((page - 1) * pageSize, page * pageSize - 1)
       : Promise.resolve({ data: [] as any[], count: 0 }),
 
     tab === "orders"
@@ -284,7 +306,7 @@ export default async function AdminPaymentsPage({
         )
         .gte("created_at", startIso)
         .order("created_at", { ascending: false })
-        .limit(50)
+        .range((page - 1) * pageSize, page * pageSize - 1)
       : Promise.resolve({ data: [] as any[], count: 0 }),
 
     tab === "payouts"
@@ -297,7 +319,7 @@ export default async function AdminPaymentsPage({
         )
         .gte("created_at", startIso)
         .order("created_at", { ascending: false })
-        .limit(50)
+        .range((page - 1) * pageSize, page * pageSize - 1)
       : Promise.resolve({ data: [] as any[], count: 0 }),
 
     admin.from("transactions").select("id", { count: "exact", head: true }).gte("created_at", startIso),
@@ -343,6 +365,14 @@ const providerHealth = providers
     }
     return b.total - a.total;
   });
+
+  const activeTabCount =
+    tab === "transactions" ? (txCount ?? 0)
+    : tab === "orders" ? (orderCount ?? 0)
+    : tab === "payouts" ? (payoutCount ?? 0)
+    : 0;
+  const totalPages = activeTabCount ? Math.ceil(activeTabCount / pageSize) : 0;
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -360,7 +390,7 @@ const providerHealth = providers
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <RangePicker current={range} base="/admin/payments" />
-          <button className="h-[38px] px-4 rounded-xl text-[12px] font-medium bg-[var(--color-surface)] ring-[0.5px] ring-[var(--color-border)] hover:bg-[var(--color-surface-secondary)] transition-all duration-150 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] whitespace-nowrap">
+          <button className="h-[38px] px-4 rounded-sm text-[12px] font-medium bg-[var(--color-surface)] ring-[0.5px] ring-[var(--color-border)] hover:bg-[var(--color-surface-secondary)] transition-all duration-150 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] whitespace-nowrap">
             Export
           </button>
         </div>
@@ -392,7 +422,7 @@ const providerHealth = providers
         <StatCard label="Gross revenue" value={formatAdminMoney(grossRevenueUsd, "USD")} sublabel="Completed · USD" icon={TrendingUp} tone="success" />
         <StatCard label="Pending" value={formatAdminMoney(pendingAmount, "USD")} sublabel="Awaiting confirmation" icon={Clock} tone={pendingAmount > 1000 ? "warn" : "default"} />
         <StatCard label="Failed" value={failedCount.toLocaleString()} sublabel={RANGES[range].label.toLowerCase()} icon={XCircle} tone={failedCount > 5 ? "danger" : "default"} />
-        <StatCard label="Payouts pending" value={payoutsPendingDisplay} sublabel="Vendors & affiliates" icon={Wallet} href={`?range=${range}&tab=payouts`} />
+        <StatCard label="Payouts pending" value={payoutsPendingDisplay} sublabel="Vendors & affiliates" icon={Wallet} href={`/admin/payments${qs({ tab: "payouts", page: "" })}`} />
         <StatCard label="Commissions" value={formatAdminWalletMoney(commissionsTotal)} sublabel="Affiliate earnings" icon={Users} />
         <StatCard label="Stuck credits" value={(failedCreditsCount ?? 0).toLocaleString()} sublabel="Need manual review" icon={AlertTriangle} tone={(failedCreditsCount ?? 0) > 0 ? "danger" : "default"} href="/admin/payments/failed-credits" />
       </div>
@@ -401,6 +431,7 @@ const providerHealth = providers
       <Tabs
         range={range}
         current={tab}
+        qs={qs}
         counts={{
           transactions: transactionsTabCount ?? 0,
           orders: ordersTabCount ?? 0,
@@ -410,9 +441,33 @@ const providerHealth = providers
       />
 
       {/* Tab body */}
-      {tab === "transactions" && <TransactionsTable rows={txRows ?? []} count={txCount ?? 0} />}
-      {tab === "orders" && <OrdersTable rows={orderRows ?? []} count={orderCount ?? 0} />}
-      {tab === "payouts" && <PayoutsTable rows={payoutRows ?? []} count={payoutCount ?? 0} />}
+      {tab === "transactions" && (
+        <TransactionsTable
+          rows={txRows ?? []}
+          count={txCount ?? 0}
+          page={page}
+          totalPages={totalPages}
+          qs={qs}
+        />
+      )}
+      {tab === "orders" && (
+        <OrdersTable
+          rows={orderRows ?? []}
+          count={orderCount ?? 0}
+          page={page}
+          totalPages={totalPages}
+          qs={qs}
+        />
+      )}
+      {tab === "payouts" && (
+        <PayoutsTable
+          rows={payoutRows ?? []}
+          count={payoutCount ?? 0}
+          page={page}
+          totalPages={totalPages}
+          qs={qs}
+        />
+      )}
       {tab === "health" && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {providerHealth.map((p) => <ProviderHealthCard key={p.provider} {...p} />)}
@@ -432,7 +487,7 @@ const providerHealth = providers
 // ─── Table shells ─────────────────────────────────────────────────────────────
 
 function TableShell({
-  title, count, total, href, empty, children,
+  title, count, total, href, empty, children, page, totalPages, pageSize, qs,
 }: {
   title: string;
   count: number;
@@ -440,14 +495,26 @@ function TableShell({
   href: string;
   empty: React.ReactNode;
   children: React.ReactNode;
+  page?: number;
+  totalPages?: number;
+  pageSize?: number;
+  qs?: (over?: Record<string, string>) => string;
 }) {
+  const size = pageSize ?? PAGE_SIZE;
+  const from = total === 0 ? 0 : ((page ?? 1) - 1) * size + 1;
+  const to = Math.min((page ?? 1) * size, total);
+
   return (
     <div className="rounded-2xl bg-[var(--color-surface)] ring-1 ring-[var(--color-border)] overflow-hidden">
       <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--color-border)]">
         <div>
           <h2 className="text-[14px] font-semibold text-[var(--color-text-primary)]">{title}</h2>
           <p className="text-[11.5px] text-[var(--color-text-muted)] mt-0.5 tabular-nums">
-            {count} of {total.toLocaleString()} · newest first
+            {total === 0
+              ? "No results"
+              : totalPages && totalPages > 1
+                ? `${from.toLocaleString()}–${to.toLocaleString()} of ${total.toLocaleString()} · newest first`
+                : `${count} of ${total.toLocaleString()} · newest first`}
           </p>
         </div>
         <Link
@@ -457,7 +524,36 @@ function TableShell({
           View all <ArrowUpRight className="h-3.5 w-3.5" />
         </Link>
       </div>
-      {count === 0 ? empty : <div className="overflow-x-auto">{children}</div>}
+      {count === 0 ? empty : (
+        <>
+          <div className="overflow-x-auto">{children}</div>
+          {totalPages && totalPages > 1 && page && qs && (
+            <div className="flex items-center justify-between px-5 py-3 border-t border-[var(--color-border)]">
+              <p className="text-[11.5px] text-[var(--color-text-muted)] tabular-nums">
+                Page {page} of {totalPages}
+              </p>
+              <div className="flex items-center gap-1">
+                {page > 1 && (
+                  <Link
+                    href={`/admin/payments${qs({ page: String(page - 1) })}`}
+                    className="h-8 px-3 rounded-md text-[12px] font-medium text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)] transition-colors"
+                  >
+                    Previous
+                  </Link>
+                )}
+                {page < totalPages && (
+                  <Link
+                    href={`/admin/payments${qs({ page: String(page + 1) })}`}
+                    className="h-8 px-3 rounded-md text-[12px] font-medium text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)] transition-colors"
+                  >
+                    Next
+                  </Link>
+                )}
+              </div>
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }
@@ -483,7 +579,19 @@ function EmptyState({ message }: { message: string }) {
 
 // ─── Transactions table ───────────────────────────────────────────────────────
 
-function TransactionsTable({ rows, count }: { rows: any[]; count: number }) {
+function TransactionsTable({
+  rows,
+  count,
+  page,
+  totalPages,
+  qs,
+}: {
+  rows: any[];
+  count: number;
+  page: number;
+  totalPages: number;
+  qs: (over?: Record<string, string>) => string;
+}) {
   return (
     <TableShell
       title="Transactions"
@@ -491,6 +599,10 @@ function TransactionsTable({ rows, count }: { rows: any[]; count: number }) {
       total={count}
       href="/admin/transactions"
       empty={<EmptyState message="No transactions in this period" />}
+      page={page}
+      totalPages={totalPages}
+      pageSize={PAGE_SIZE}
+      qs={qs}
     >
       <table className="w-full text-[12.5px]">
         <thead className="bg-[var(--color-surface-secondary)]/50">
@@ -544,7 +656,19 @@ function TransactionsTable({ rows, count }: { rows: any[]; count: number }) {
 
 // ─── Orders table ─────────────────────────────────────────────────────────────
 
-function OrdersTable({ rows, count }: { rows: any[]; count: number }) {
+function OrdersTable({
+  rows,
+  count,
+  page,
+  totalPages,
+  qs,
+}: {
+  rows: any[];
+  count: number;
+  page: number;
+  totalPages: number;
+  qs: (over?: Record<string, string>) => string;
+}) {
   return (
     <TableShell
       title="Orders"
@@ -552,6 +676,10 @@ function OrdersTable({ rows, count }: { rows: any[]; count: number }) {
       total={count}
       href="/admin/orders"
       empty={<EmptyState message="No orders in this period" />}
+      page={page}
+      totalPages={totalPages}
+      pageSize={PAGE_SIZE}
+      qs={qs}
     >
       <table className="w-full text-[12.5px]">
         <thead className="bg-[var(--color-surface-secondary)]/50">
@@ -593,7 +721,19 @@ function OrdersTable({ rows, count }: { rows: any[]; count: number }) {
 
 // ─── Payouts table ────────────────────────────────────────────────────────────
 
-function PayoutsTable({ rows, count }: { rows: any[]; count: number }) {
+function PayoutsTable({
+  rows,
+  count,
+  page,
+  totalPages,
+  qs,
+}: {
+  rows: any[];
+  count: number;
+  page: number;
+  totalPages: number;
+  qs: (over?: Record<string, string>) => string;
+}) {
   return (
     <TableShell
       title="Payouts"
@@ -601,6 +741,10 @@ function PayoutsTable({ rows, count }: { rows: any[]; count: number }) {
       total={count}
       href="/admin/payouts"
       empty={<EmptyState message="No payouts in this period" />}
+      page={page}
+      totalPages={totalPages}
+      pageSize={PAGE_SIZE}
+      qs={qs}
     >
       <table className="w-full text-[12.5px]">
         <thead className="bg-[var(--color-surface-secondary)]/50">

@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import { useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { User, Mail, MapPin, Link as LinkIcon, Loader2, Check, X } from "lucide-react";
+import { User, MapPin, Link as LinkIcon, Loader2, Check, X } from "lucide-react";
 
 interface Profile {
     id: string;
@@ -15,12 +16,16 @@ interface Profile {
     updated_at?: string;
 }
 
-export default function MyProfilePage() {
+export default function ProfilePage() {
+    const params = useParams<{ username: string }>();
+    const usernameParam = params.username;
+
     const [profile, setProfile] = useState<Profile | null>(null);
     const [editing, setEditing] = useState(false);
     const [saving, setSaving] = useState(false);
     const [loading, setLoading] = useState(true);
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+    const [isOwnProfile, setIsOwnProfile] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const [formData, setFormData] = useState({
@@ -32,30 +37,24 @@ export default function MyProfilePage() {
     });
 
     useEffect(() => {
-        async function getUser() {
+        async function load() {
+            setLoading(true);
             const supabase = createClient();
             const { data: { user } } = await supabase.auth.getUser();
-            if (user) {
-                setCurrentUserId(user.id);
-                loadProfile(user.id);
-            }
-        }
-        getUser();
-    }, []);
 
-    async function loadProfile(userId: string) {
-        setLoading(true);
-        try {
-            const { data, error } = await createClient()
+            if (user) setCurrentUserId(user.id);
+
+            const { data, error } = await supabase
                 .from("profiles")
                 .select("id,full_name,avatar_url,username,bio,location,website,updated_at")
-                .eq("id", userId)
-                .single();
+                .eq("username", usernameParam)
+                .maybeSingle();
 
             if (error) {
                 console.error("Failed to load profile:", error);
             } else if (data) {
                 setProfile(data as Profile);
+                setIsOwnProfile(user?.id === data.id);
                 setFormData({
                     full_name: data.full_name || "",
                     username: data.username || "",
@@ -63,14 +62,18 @@ export default function MyProfilePage() {
                     location: data.location || "",
                     website: data.website || "",
                 });
+            } else {
+                setProfile(null);
             }
-        } finally {
+
             setLoading(false);
         }
-    }
+
+        if (usernameParam) load();
+    }, [usernameParam]);
 
     async function handleSave() {
-        if (!currentUserId) return;
+        if (!currentUserId || !isOwnProfile) return;
         setSaving(true);
         try {
             const { error } = await createClient()
@@ -88,7 +91,7 @@ export default function MyProfilePage() {
             if (error) {
                 console.error("Failed to save profile:", error);
             } else {
-                setProfile(prev => prev ? { ...prev, ...formData } : null);
+                setProfile((prev) => prev ? { ...prev, ...formData } : null);
                 setEditing(false);
             }
         } finally {
@@ -98,7 +101,7 @@ export default function MyProfilePage() {
 
     async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
         const file = e.target.files?.[0];
-        if (!file || !currentUserId) return;
+        if (!file || !currentUserId || !isOwnProfile) return;
 
         setSaving(true);
         try {
@@ -120,7 +123,7 @@ export default function MyProfilePage() {
 
             if (updateError) throw updateError;
 
-            setProfile(prev => prev ? { ...prev, avatar_url: publicUrl } : null);
+            setProfile((prev) => prev ? { ...prev, avatar_url: publicUrl } : null);
         } catch (error) {
             console.error("Avatar upload failed:", error);
         } finally {
@@ -128,44 +131,41 @@ export default function MyProfilePage() {
         }
     }
 
-    if (!currentUserId) return <div className="p-4">Loading...</div>;
     if (loading) return <div className="p-4">Loading profile...</div>;
+    if (!profile) return <div className="p-4">Profile not found.</div>;
 
     return (
         <div className="min-h-screen bg-bg">
-            <div className="max-w-2xl mx-auto p-4">
-                {/* Header */}
+            <div className="mx-auto max-w-2xl p-4">
                 <div className="mb-8">
-                    <h1 className="text-2xl font-bold flex items-center gap-2">
-                        <User className="w-6 h-6" />
-                        My Profile
+                    <h1 className="flex items-center gap-2 text-2xl font-bold">
+                        <User className="h-6 w-6" />
+                        {isOwnProfile ? "My Profile" : `@${profile.username ?? usernameParam}`}
                     </h1>
                 </div>
 
-                {/* Profile Card */}
-                <div className="bg-surface rounded-lg border border-border p-6 mb-6">
-                    {/* Avatar */}
-                    <div className="flex items-start justify-between mb-6">
+                <div className="mb-6 rounded-lg border border-border bg-surface p-6">
+                    <div className="mb-6 flex items-start justify-between">
                         <div className="flex items-center gap-4">
                             <div className="relative">
-                                {profile?.avatar_url ? (
+                                {profile.avatar_url ? (
                                     <img
                                         src={profile.avatar_url}
                                         alt="Avatar"
-                                        className="w-20 h-20 rounded-full object-cover"
+                                        className="h-20 w-20 rounded-full object-cover"
                                     />
                                 ) : (
-                                    <div className="w-20 h-20 bg-primary rounded-full flex items-center justify-center text-white font-bold text-2xl">
-                                        {(profile?.full_name || "U")[0]?.toUpperCase()}
+                                    <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary text-2xl font-bold text-white">
+                                        {(profile.full_name || profile.username || "U")[0]?.toUpperCase()}
                                     </div>
                                 )}
                                 {editing && (
                                     <button
                                         onClick={() => fileInputRef.current?.click()}
                                         disabled={saving}
-                                        className="absolute bottom-0 right-0 bg-primary hover:bg-primary/80 text-white p-2 rounded-full"
+                                        className="absolute bottom-0 right-0 rounded-full bg-primary p-2 text-white hover:bg-primary/80"
                                     >
-                                        <LinkIcon className="w-4 h-4" />
+                                        <LinkIcon className="h-4 w-4" />
                                     </button>
                                 )}
                             </div>
@@ -178,37 +178,38 @@ export default function MyProfilePage() {
                             />
                             <div>
                                 <div className="text-sm text-text-muted">Profile Picture</div>
-                                {profile?.updated_at && (
+                                {profile.updated_at && (
                                     <div className="text-xs text-text-muted">
                                         Updated {new Date(profile.updated_at).toLocaleDateString()}
                                     </div>
                                 )}
                             </div>
                         </div>
-                        <button
-                            onClick={() => setEditing(!editing)}
-                            className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/80 transition-colors"
-                        >
-                            {editing ? "Cancel" : "Edit"}
-                        </button>
+                        {isOwnProfile && (
+                            <button
+                                onClick={() => setEditing(!editing)}
+                                className="rounded-lg bg-primary px-4 py-2 text-white transition-colors hover:bg-primary/80"
+                            >
+                                {editing ? "Cancel" : "Edit"}
+                            </button>
+                        )}
                     </div>
 
-                    {/* Form */}
                     <div className="space-y-4">
                         <div>
-                            <label className="block text-sm font-medium mb-1">Full Name</label>
+                            <label className="mb-1 block text-sm font-medium">Full Name</label>
                             <input
                                 type="text"
                                 value={formData.full_name}
                                 onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
                                 disabled={!editing}
-                                className="w-full px-3 py-2 border border-border rounded-lg bg-bg disabled:opacity-50"
+                                className="w-full rounded-lg border border-border bg-bg px-3 py-2 disabled:opacity-50"
                             />
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium mb-1 flex items-center gap-1">
-                                <User className="w-4 h-4" />
+                            <label className="mb-1 flex items-center gap-1 text-sm font-medium">
+                                <User className="h-4 w-4" />
                                 Username
                             </label>
                             <input
@@ -216,25 +217,25 @@ export default function MyProfilePage() {
                                 value={formData.username}
                                 onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                                 disabled={!editing}
-                                className="w-full px-3 py-2 border border-border rounded-lg bg-bg disabled:opacity-50"
+                                className="w-full rounded-lg border border-border bg-bg px-3 py-2 disabled:opacity-50"
                             />
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium mb-1">Bio</label>
+                            <label className="mb-1 block text-sm font-medium">Bio</label>
                             <textarea
                                 value={formData.bio}
                                 onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
                                 disabled={!editing}
                                 rows={4}
                                 placeholder="Tell us about yourself..."
-                                className="w-full px-3 py-2 border border-border rounded-lg bg-bg disabled:opacity-50"
+                                className="w-full rounded-lg border border-border bg-bg px-3 py-2 disabled:opacity-50"
                             />
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium mb-1 flex items-center gap-1">
-                                <MapPin className="w-4 h-4" />
+                            <label className="mb-1 flex items-center gap-1 text-sm font-medium">
+                                <MapPin className="h-4 w-4" />
                                 Location
                             </label>
                             <input
@@ -243,13 +244,13 @@ export default function MyProfilePage() {
                                 onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                                 disabled={!editing}
                                 placeholder="City, Country"
-                                className="w-full px-3 py-2 border border-border rounded-lg bg-bg disabled:opacity-50"
+                                className="w-full rounded-lg border border-border bg-bg px-3 py-2 disabled:opacity-50"
                             />
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium mb-1 flex items-center gap-1">
-                                <LinkIcon className="w-4 h-4" />
+                            <label className="mb-1 flex items-center gap-1 text-sm font-medium">
+                                <LinkIcon className="h-4 w-4" />
                                 Website
                             </label>
                             <input
@@ -258,36 +259,30 @@ export default function MyProfilePage() {
                                 onChange={(e) => setFormData({ ...formData, website: e.target.value })}
                                 disabled={!editing}
                                 placeholder="https://example.com"
-                                className="w-full px-3 py-2 border border-border rounded-lg bg-bg disabled:opacity-50"
+                                className="w-full rounded-lg border border-border bg-bg px-3 py-2 disabled:opacity-50"
                             />
                         </div>
 
-                        {editing && (
+                        {editing && isOwnProfile && (
                             <div className="flex gap-2 pt-4">
                                 <button
                                     onClick={handleSave}
                                     disabled={saving}
-                                    className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center justify-center gap-2"
+                                    className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-white hover:bg-green-700 disabled:opacity-50"
                                 >
-                                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                                    {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
                                     Save Changes
                                 </button>
                                 <button
                                     onClick={() => setEditing(false)}
-                                    className="flex-1 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 flex items-center justify-center gap-2"
+                                    className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-gray-600 px-4 py-2 text-white hover:bg-gray-700"
                                 >
-                                    <X className="w-4 h-4" />
+                                    <X className="h-4 w-4" />
                                     Cancel
                                 </button>
                             </div>
                         )}
                     </div>
-                </div>
-
-                {/* User ID Info */}
-                <div className="bg-surface rounded-lg border border-border p-4 text-center">
-                    <div className="text-sm text-text-muted mb-1">User ID</div>
-                    <div className="font-mono text-sm text-text-primary break-all">{currentUserId}</div>
                 </div>
             </div>
         </div>

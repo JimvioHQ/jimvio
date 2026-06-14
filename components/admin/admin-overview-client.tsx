@@ -23,11 +23,6 @@ import { formatAdminMoney } from "@/lib/admin/format-money";
 import { displayFulfillmentStatus } from "@/lib/payments/order-payment-utils";
 import type { AdminDashboardData, DashboardAttentionItem } from "@/services/admin/getAdminDashboard";
 
-function pctChange(current: number, prev: number): number | null {
-    if (!prev) return null;
-    return ((current - prev) / prev) * 100;
-}
-
 function HealthPill({ score, label }: { score: number; label: AdminDashboardData["healthLabel"] }) {
     const styles = {
         healthy: "bg-emerald-50 text-emerald-700 ring-emerald-600/20 dark:bg-emerald-950/30 dark:text-emerald-400",
@@ -187,11 +182,8 @@ function DonutPanel({
 }
 
 export function AdminOverviewClient({ data }: { data: AdminDashboardData }) {
-    const revDelta = pctChange(data.revenue30d, data.revenuePrev30d);
-    const revDeltaLabel =
-        revDelta != null
-            ? `${revDelta >= 0 ? "+" : ""}${revDelta.toFixed(0)}% vs prior 30d`
-            : "No prior period data";
+    const revDeltaPositive = data.revenue30dDeltaPositive;
+    const revDeltaLabel = data.revenue30dDeltaLabel;
 
     const updated = new Date(data.generatedAt).toLocaleTimeString("en-GB", {
         hour: "2-digit",
@@ -242,7 +234,7 @@ export function AdminOverviewClient({ data }: { data: AdminDashboardData }) {
                     value={data.revenue30dDisplay}
                     sublabel={revDeltaLabel}
                     icon={TrendingUp}
-                    tone={revDelta != null && revDelta < 0 ? "warn" : "success"}
+                    tone={revDeltaPositive === false ? "warn" : revDeltaPositive === true ? "success" : "default"}
                 />
                 <Tile
                     label="Orders (30d)"
@@ -446,7 +438,7 @@ export function AdminOverviewClient({ data }: { data: AdminDashboardData }) {
                 </SectionShell>
 
                 {data.pendingVendors.length > 0 && (
-                <div className="flex flex-col gap-4">
+                    <div className="flex flex-col gap-4">
                         <SectionShell
                             title="Vendor queue"
                             action={
@@ -473,7 +465,7 @@ export function AdminOverviewClient({ data }: { data: AdminDashboardData }) {
                                 ))}
                             </div>
                         </SectionShell>
-                </div>
+                    </div>
                 )}
             </div>
         </div>

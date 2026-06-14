@@ -388,7 +388,7 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
@@ -470,6 +470,11 @@ function usePageTitle(pathname: string): string {
     else if (pathname.startsWith("/c/messages")) staticTitle = "Messages";
     else if (pathname.startsWith("/c/bookmarks")) staticTitle = "Bookmarks";
     else if (pathname.startsWith("/c/live")) staticTitle = "Live";
+    else if (pathname.startsWith("/c/spaces")) staticTitle = "Spaces";
+    else if (pathname.startsWith("/c/wallet")) staticTitle = "Wallet";
+    else if (pathname.startsWith("/c/analytics")) staticTitle = "Analytics";
+    else if (pathname.startsWith("/c/missions")) staticTitle = "Missions";
+    else if (pathname.startsWith("/c/courses")) staticTitle = "Courses";
     else if (pathname.startsWith("/c/events")) staticTitle = "Events";
     else if (pathname.startsWith("/c/my-communities")) staticTitle = "My Communities";
     else if (pathname.startsWith("/c/u/")) {
@@ -519,6 +524,17 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
 
     // Close mobile nav on route change
     useEffect(() => { setMobileNavOpen(false); }, [pathname]);
+
+    // Close mobile nav when returning to desktop width
+    useEffect(() => {
+        const mq = window.matchMedia("(min-width: 641px)");
+        const closeOnDesktop = () => {
+            if (mq.matches) setMobileNavOpen(false);
+        };
+        closeOnDesktop();
+        mq.addEventListener("change", closeOnDesktop);
+        return () => mq.removeEventListener("change", closeOnDesktop);
+    }, []);
 
     useEffect(() => {
         let cancelled = false;
@@ -571,8 +587,8 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
         shell: {
             display: "flex",
             height: "100vh",
-            background: "var(--color-bg, #09090b)",
-            color: "var(--color-text-primary, #ededed)",
+            background: "var(--color-bg, #f4f4f5)",
+            color: "var(--color-text-primary, #18181b)",
             fontFamily: "'DM Sans', 'Inter', system-ui, sans-serif",
             overflow: "hidden",
         } as React.CSSProperties,
@@ -584,8 +600,8 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
             alignItems: "center",
             padding: "0 20px",
             gap: 12,
-            borderBottom: "1px solid var(--color-border, rgba(255,255,255,0.06))",
-            background: "var(--color-bg, #09090b)",
+            borderBottom: "1px solid var(--color-border, rgba(0,0,0,0.08))",
+            background: "var(--color-surface, #ffffff)",
             flexShrink: 0,
             zIndex: 30,
         } as React.CSSProperties,
@@ -720,14 +736,16 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
 
     return (
         <div style={styles.shell}>
-            <HubSidebar
-                collapsed={collapsed}
-                onToggleCollapse={() => setCollapsed((c) => !c)}
-                username={profile?.username ?? ""}
-                unreadMessages={unreadMessages}
-                mobileOpen={mobileNavOpen}
-                onMobileClose={() => setMobileNavOpen(false)}
-            />
+            <Suspense fallback={null}>
+                <HubSidebar
+                    collapsed={collapsed}
+                    onToggleCollapse={() => setCollapsed((c) => !c)}
+                    username={profile?.username ?? ""}
+                    unreadMessages={unreadMessages}
+                    mobileOpen={mobileNavOpen}
+                    onMobileClose={() => setMobileNavOpen(false)}
+                />
+            </Suspense>
 
             {/* ── Mobile overlay backdrop ── */}
             <div
@@ -761,7 +779,7 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                         )}
                     </Link>
                     <Link
-                        href={profile?.username ? `/c/u/${profile.username}` : "/c/u"}
+                        href={profile?.username ? `/c/profile/${profile.username}` : "/c/profile"}
                         aria-label="My profile"
                         style={{ borderRadius: "50%", display: "flex", alignItems: "center" }}
                     >
@@ -774,16 +792,35 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                     <h1 style={styles.pageTitle}>{pageTitle}</h1>
 
                     <div style={styles.searchBar}>
-                        <span style={{ color: "var(--color-text-muted, rgba(255,255,255,0.3))", flexShrink: 0 }}>
+                        <span style={{ color: "var(--color-text-muted, rgba(0,0,0,0.35))", flexShrink: 0 }}>
                             <SearchIcon />
                         </span>
                         <input
-                            placeholder="Search…"
+                            placeholder="Search creators, clips, spaces, courses, lives, missions…"
                             style={styles.searchInput}
                             aria-label="Search"
                         />
                         <kbd style={styles.kbd}>⌘K</kbd>
                     </div>
+
+                    <Link
+                        href="/c/live"
+                        style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 6,
+                            padding: "6px 12px",
+                            borderRadius: "var(--radius-sm, 8px)",
+                            background: "var(--color-accent, #fd5000)",
+                            color: "#fff",
+                            fontSize: 12,
+                            fontWeight: 700,
+                            textDecoration: "none",
+                            flexShrink: 0,
+                        }}
+                    >
+                        + Create
+                    </Link>
 
                     <Link
                         href="/notifications"
@@ -807,7 +844,7 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                     </Link>
 
                     <Link
-                        href={profile?.username ? `/c/u/${profile.username}` : "/c/u"}
+                        href={profile?.username ? `/c/profile/${profile.username}` : "/c/profile"}
                         aria-label="My profile"
                         style={{ borderRadius: "50%", display: "flex", alignItems: "center", transition: "opacity 0.15s" }}
                         onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.8")}
@@ -828,7 +865,7 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                         { label: "Feed", href: "/c", icon: "M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z M9 22V12h6v10" },
                         { label: "Messages", href: "/c/messages", icon: "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z", badge: unreadMessages },
                         { label: "Saved", href: "/c/bookmarks", icon: "M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" },
-                        { label: "Profile", href: profile?.username ? `/c/u/${profile.username}` : "/c/u", icon: "M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2 M12 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8z" },
+                        { label: "Profile", href: profile?.username ? `/c/profile/${profile.username}` : "/c/profile", icon: "M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2 M12 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8z" },
                     ].map(({ label, href, icon, badge }) => {
                         const isActive = pathname === href || (href !== "/c" && pathname.startsWith(href));
                         return (
@@ -885,13 +922,14 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                     .hub-desktop-topbar { display: none !important; }
                     .hub-mobile-topbar { display: flex !important; }
                     .hub-mobile-bottom-nav { display: flex !important; }
-                    .hub-sidebar { display: none !important; }
+                    .hub-sidebar-root .hub-sidebar { display: none !important; }
                     .hub-sidebar-mobile-open { display: flex !important; }
                 }
                 @media (min-width: 641px) {
                     .hub-mobile-topbar { display: none !important; }
                     .hub-mobile-bottom-nav { display: none !important; }
-                    .hub-sidebar { display: flex !important; }
+                    .hub-sidebar-root .hub-sidebar { display: flex !important; }
+                    .hub-sidebar-mobile-open { display: none !important; }
                 }
             `}</style>
         </div>

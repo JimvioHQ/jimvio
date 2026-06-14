@@ -6,6 +6,7 @@ import {
   ResponsiveContainer, BarChart, Bar, LineChart, Line,
 } from "recharts";
 import { formatCurrency } from "@/lib/utils";
+import { formatAdminAmount } from "@/lib/admin/format-money";
 
 export interface ChartDataPoint {
   [key: string]: string | number | undefined;
@@ -36,11 +37,13 @@ function AdminRevenueTooltip({
   payload,
   label,
   theme,
+  currency,
 }: {
   active?: boolean;
   payload?: Array<{ color: string; name: string; value: number; dataKey: string; payload: ChartDataPoint }>;
   label?: string;
   theme: "light" | "dark";
+  currency?: string;
 }) {
   if (!active || !payload?.length) return null;
 
@@ -51,6 +54,8 @@ function AdminRevenueTooltip({
   const prevOrders = Number(row?.prevOrders ?? 0);
   const revDelta = pctChange(revenue, prevRevenue);
   const year = row?.year ? ` ${row.year}` : "";
+  const formatValue = (amount: number) =>
+    currency ? formatAdminAmount(amount, currency, currency) : formatCurrency(amount);
 
   const shell =
     theme === "light"
@@ -62,7 +67,7 @@ function AdminRevenueTooltip({
       <p className={`text-xs mb-2 ${theme === "light" ? "text-[var(--color-text-muted)]" : "text-white/60"}`}>
         {label}{year}
       </p>
-      <p className="text-sm font-semibold tabular-nums">{formatCurrency(revenue)}</p>
+      <p className="text-sm font-semibold tabular-nums">{formatValue(revenue)}</p>
       <p className={`text-[11px] mt-1 tabular-nums ${theme === "light" ? "text-[var(--color-text-secondary)]" : "text-white/80"}`}>
         {orders.toLocaleString()} paid orders
       </p>
@@ -73,7 +78,7 @@ function AdminRevenueTooltip({
           }`}
         >
           {revDelta >= 0 ? "+" : ""}
-          {revDelta.toFixed(1)}% vs prior month ({formatCurrency(prevRevenue)})
+          {revDelta.toFixed(1)}% vs prior month ({formatValue(prevRevenue)})
         </p>
       )}
       {prevOrders > 0 && (
@@ -93,6 +98,7 @@ interface RevenueChartProps {
   comparisonKey?: string;
   height?: number;
   theme?: "light" | "dark";
+  currency?: string;
   showAffiliate?: boolean;
   showComparison?: boolean;
   onActivePointChange?: (point: ChartDataPoint | null) => void;
@@ -106,6 +112,7 @@ export function RevenueChart({
   comparisonKey = "prevRevenue",
   height = 300,
   theme = "light",
+  currency,
   showAffiliate,
   showComparison = false,
   onActivePointChange,
@@ -128,7 +135,7 @@ export function RevenueChart({
     onActivePointChange?.(null);
   }
 
-  const tooltip = <AdminRevenueTooltip theme={theme} />;
+  const tooltip = <AdminRevenueTooltip theme={theme} currency={currency} />;
 
   return (
     <div className="w-full" style={{ height, minHeight: height }}>

@@ -2,8 +2,8 @@
 "use client";
 
 import React, { createContext, useContext } from "react";
+import type { CommunityOverviewStats } from "@/services/community/hub-data";
 import type { MembershipLite } from "@/lib/community-workspace-access";
-import type { WorkspaceCommunity } from "@/types/workspace";
 
 export type WorkspaceRoomRow = {
   id: string;
@@ -63,6 +63,7 @@ export type WorkspaceContextValue = {
   membership: MembershipLite | null;
   spacesWithRooms: WorkspaceSpaceRow[];
   points: PointsSnapshot | null;
+  overview: CommunityOverviewStats | null;
 };
 
 const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);

@@ -21,7 +21,8 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
                   alt="Jimvio Icon"
                   width={36}
                   height={36}
-                  className="h-9 w-auto mix-blend-multiply dark:mix-blend-normal"
+                  className="mix-blend-multiply dark:mix-blend-normal"
+                  style={{ width: "auto", height: 36 }}
                 />
               </div>
               <span className="text-[32px] font-black tracking-[-0.07em] flex items-center leading-none select-none">

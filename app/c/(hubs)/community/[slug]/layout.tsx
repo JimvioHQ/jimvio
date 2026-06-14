@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 // import { WorkspaceShell } from "@/components/community/workspace/WorkspaceShell";
 import type { WorkspaceSpaceRow, PointsSnapshot } from "@/components/community/workspace-context";
 import { WorkspaceLayout } from "@/components/community/workspace/WorkspaceShell";
+import { buildPointsSnapshot } from "@/lib/community/points";
+import { getCommunityOverviewStats } from "@/services/community/hub-data";
 
 export default async function CommunityWorkspaceLayout({
   children,
@@ -43,7 +45,7 @@ export default async function CommunityWorkspaceLayout({
   const isAdmin = isOwner || membership.role === "admin" || membership.role === "moderator";
 
   // ─ Parallel data fetches ─
-  const [profileRes, pointsRes, spacesRes, roomsRes, notificationsRes] = await Promise.all([
+  const [profileRes, pointsRes, spacesRes, roomsRes, overview] = await Promise.all([
     supabase
       .from("profiles")
       .select("full_name, avatar_url, username")
@@ -67,13 +69,7 @@ export default async function CommunityWorkspaceLayout({
       .eq("community_id", community.id)
       .eq("is_active", true)
       .order("sort_order"),
-    supabase
-      .from("notifications")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", user.id)
-      .eq("is_read", false),
-    // NOTE: removed ugc_campaigns count — it was global, not per-community.
-    // Re-add with a real community filter when missions are wired up.
+    getCommunityOverviewStats(community.id, user.id),
   ]);
 
   // ─ Build spaces with rooms ─
@@ -104,17 +100,12 @@ export default async function CommunityWorkspaceLayout({
   }));
 
   // ─ Build points snapshot ─
-  const LEVEL_THRESHOLDS = [0, 500, 2000, 8000, 25000, 100000];
   const points: PointsSnapshot | null = pointsRes.data
-    ? {
-      total_points: pointsRes.data.total_points ?? 0,
-      level: pointsRes.data.level ?? 1,
-      level_start_xp: LEVEL_THRESHOLDS[(pointsRes.data.level ?? 1) - 1] ?? 0,
-      next_level_xp:
-        LEVEL_THRESHOLDS[pointsRes.data.level ?? 1] ??
-        (LEVEL_THRESHOLDS[LEVEL_THRESHOLDS.length - 1] + 100000),
-      streak_days: pointsRes.data.streak_days ?? 0,
-    }
+    ? buildPointsSnapshot(
+        pointsRes.data.total_points ?? 0,
+        pointsRes.data.level ?? 1,
+        pointsRes.data.streak_days ?? 0
+      )
     : null;
 
   return (
@@ -129,6 +120,7 @@ export default async function CommunityWorkspaceLayout({
       points={points}
       spacesWithRooms={spacesWithRooms}
       membership={membership as any}
+      overview={overview}
     >
       {children}
     </WorkspaceLayout>

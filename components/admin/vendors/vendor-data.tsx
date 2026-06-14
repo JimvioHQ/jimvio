@@ -8,6 +8,7 @@ import Link from "next/link";
 import { Package, Star, Users, TrendingUp, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { RowArrow, StatusPill } from "@/components/ui/admin";
+import { formatAdminWalletMoney } from "@/lib/admin/format-money";
 
 export function VendorRow({ v, last }: { v: any; last: boolean }) {
     const logo        = v.business_logo ?? null;
@@ -20,7 +21,7 @@ export function VendorRow({ v, last }: { v: any; last: boolean }) {
         ? joined.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
         : "—";
 
-    function fmt(n: number) {
+    function fmtCount(n: number) {
         if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
         if (n >= 1_000)     return `${(n / 1_000).toFixed(1)}K`;
         return String(n);
@@ -77,9 +78,8 @@ export function VendorRow({ v, last }: { v: any; last: boolean }) {
             {/* ── Revenue ── */}
             <td className="px-3 py-2.5">
                 <p className="text-[12.5px] font-semibold text-[var(--color-text-primary)] tabular-nums">
-                    {fmt(Number(v.total_revenue ?? 0))}
+                    {formatAdminWalletMoney(Number(v.total_revenue ?? 0))}
                 </p>
-                <p className="text-[10px] text-[var(--color-text-muted)]">RWF</p>
             </td>
 
             {/* ── Sales ── */}
@@ -87,7 +87,7 @@ export function VendorRow({ v, last }: { v: any; last: boolean }) {
                 <div className="flex items-center gap-1.5">
                     <TrendingUp className="h-3 w-3 text-[var(--color-text-muted)] shrink-0" />
                     <span className="text-[13px] font-semibold text-[var(--color-text-primary)] tabular-nums">
-                        {fmt(Number(v.total_sales ?? 0))}
+                        {fmtCount(Number(v.total_sales ?? 0))}
                     </span>
                 </div>
             </td>
@@ -102,7 +102,7 @@ export function VendorRow({ v, last }: { v: any; last: boolean }) {
                         </span>
                         {v.follower_count > 0 && (
                             <span className="text-[10.5px] text-[var(--color-text-muted)] flex items-center gap-0.5">
-                                · <Users className="h-2.5 w-2.5 inline" /> {fmt(v.follower_count)}
+                                · <Users className="h-2.5 w-2.5 inline" /> {fmtCount(v.follower_count)}
                             </span>
                         )}
                     </div>

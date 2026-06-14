@@ -1055,6 +1055,7 @@ export function DashboardCourseStudio({ roomId, communityId, onClose }: { roomId
     liveSessions: [],
     unreadNotifications: 0,
     openMissionsCount: 0,
+    overview: null,
   };
 
   return (

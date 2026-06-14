@@ -1,7 +1,34 @@
 import { Vendor, VendorWithRelations } from "@/types/db";
 import { getDB, getAdminDB } from "./base";
 import { Profile } from "@/types";
+import { ADMIN_PRIMARY_CURRENCY } from "@/lib/admin/format-money";
 
+export type AdminVendorSort =
+  | "created_at"
+  | "revenue"
+  | "sales"
+  | "rating"
+  | "followers"
+  | "products";
+
+export type AdminVendorStatus = "all" | "pending" | "verified" | "rejected" | "suspended";
+
+export type AdminVendorPlatformStats = {
+  totalRevenue: number;
+  totalSales: number;
+  avgRating: number;
+  featuredCount: number;
+};
+
+export type AdminVendorStatusCounts = Record<AdminVendorStatus, number>;
+
+export type GetAdminVendorsOptions = {
+  query?: string;
+  page?: number;
+  pageSize?: number;
+  status?: AdminVendorStatus;
+  sort?: AdminVendorSort;
+};
 
 export interface AdminVendor {
   id: string;
@@ -28,63 +55,40 @@ export interface AdminVendor {
   products_count: number;
 }
 
-export async function getAdminVendors(
-  query?: string,
-  limit = 200
-): Promise<{ vendors: AdminVendor[]; total: number }> {
-  const admin = getAdminDB();
+type VendorOrderStats = { revenue: number; sales: number };
 
-  let q = admin.from("vendors").select(
-    `
-      id,
-      business_name,
-      business_slug,
-      business_logo,
-      business_banner,
-      business_country,
-      business_type,
-      business_email,
-      verification_status,
-      is_active,
-      is_featured,
-      created_at,
-      rating,
-      total_sales,
-      total_revenue,
-      commission_rate,
-      payout_method,
-      follower_count,
-      profiles (
-        full_name,
-        email,
-        avatar_url
-      ),
-      products ( count )
-    `,
-    { count: "exact" }
-  );
+const VENDOR_SELECT = `
+  id,
+  business_name,
+  business_slug,
+  business_logo,
+  business_banner,
+  business_country,
+  business_type,
+  business_email,
+  verification_status,
+  is_active,
+  is_featured,
+  created_at,
+  rating,
+  total_sales,
+  total_revenue,
+  commission_rate,
+  payout_method,
+  follower_count,
+  profiles (
+    full_name,
+    email,
+    avatar_url
+  ),
+  products ( count )
+`;
 
-  if (query?.trim()) {
-    // Search across business name AND owner email via OR filter
-    q = q.or(
-      `business_name.ilike.%${query}%,business_email.ilike.%${query}%`
-    );
-  }
-
-  const { data, count, error } = await q
-    .order("created_at", { ascending: false })
-    .limit(limit);
-
-  if (error) {
-    console.error("[getAdminVendors]", error.message);
-    return { vendors: [], total: 0 };
-  }
-
-  const vendors: AdminVendor[] = (data ?? []).map((v: any) => ({
+function mapAdminVendorRow(v: any): AdminVendor {
+  return {
     id: v.id,
     business_name: v.business_name,
     business_slug: v.business_slug,
-    // ─── FIX: business_logo lives on vendors, not profiles ───────────────
     business_logo: v.business_logo ?? null,
     business_banner: v.business_banner ?? null,
     business_country: v.business_country ?? null,
@@ -100,15 +104,250 @@ export async function getAdminVendors(
     commission_rate: Number(v.commission_rate ?? 0),
     payout_method: v.payout_method ?? null,
     follower_count: Number(v.follower_count ?? 0),
-    // profiles is a 1-1 join, Supabase returns it as an object (not array)
     owner_name: v.profiles?.full_name ?? null,
     owner_email: v.profiles?.email ?? null,
     owner_avatar: v.profiles?.avatar_url ?? null,
-    // products count is an aggregation — Supabase returns [{ count: N }]
     products_count: Number(v.products?.[0]?.count ?? 0),
-  }));
+  };
+}
 
-  return { vendors, total: count ?? vendors.length };
+function applyAdminVendorFilters<
+  T extends { or: (filter: string) => T; eq: (column: string, value: string) => T }
+>(q: T, query?: string, status: AdminVendorStatus = "all"): T {
+  let next = q;
+  if (query?.trim()) {
+    next = next.or(
+      `business_name.ilike.%${query.trim()}%,business_email.ilike.%${query.trim()}%`
+    );
+  }
+  if (status !== "all") {
+    next = next.eq("verification_status", status);
+  }
+  return next;
+}
+
+export function buildVendorOrderStatsMap(
+  rows: Array<{ vendor_id: string | null; total_amount: number | null; currency?: string | null }>
+): Map<string, VendorOrderStats> {
+  const map = new Map<string, VendorOrderStats>();
+  for (const row of rows) {
+    if (!row.vendor_id) continue;
+    const currency = (row.currency ?? ADMIN_PRIMARY_CURRENCY).toUpperCase();
+    if (currency !== ADMIN_PRIMARY_CURRENCY) continue;
+    const amount = Number(row.total_amount ?? 0);
+    const entry = map.get(row.vendor_id) ?? { revenue: 0, sales: 0 };
+    entry.revenue += amount;
+    entry.sales += 1;
+    map.set(row.vendor_id, entry);
+  }
+  return map;
+}
+
+async function fetchVendorOrderStatsMap(admin = getAdminDB()) {
+  const { data, error } = await admin
+    .from("orders")
+    .select("vendor_id, total_amount, currency")
+    .in("payment_status", ["paid", "completed"])
+    .not("vendor_id", "is", null);
+
+  if (error) {
+    console.error("[fetchVendorOrderStatsMap]", error.message);
+    return new Map<string, VendorOrderStats>();
+  }
+
+  return buildVendorOrderStatsMap((data ?? []) as Array<{
+    vendor_id: string | null;
+    total_amount: number | null;
+    currency?: string | null;
+  }>);
+}
+
+async function fetchAdminVendorStatusCounts(
+  admin: ReturnType<typeof getAdminDB>,
+  query?: string
+): Promise<AdminVendorStatusCounts> {
+  const statuses: Exclude<AdminVendorStatus, "all">[] = [
+    "pending",
+    "verified",
+    "rejected",
+    "suspended",
+  ];
+
+  const countFor = async (status?: Exclude<AdminVendorStatus, "all">) => {
+    let q = admin.from("vendors").select("id", { count: "exact", head: true });
+    q = applyAdminVendorFilters(q, query, status ?? "all");
+    const { count } = await q;
+    return count ?? 0;
+  };
+
+  const [all, pending, verified, rejected, suspended] = await Promise.all([
+    countFor(),
+    countFor("pending"),
+    countFor("verified"),
+    countFor("rejected"),
+    countFor("suspended"),
+  ]);
+
+  return { all, pending, verified, rejected, suspended };
+}
+
+async function fetchAdminVendorDetailsByIds(
+  admin: ReturnType<typeof getAdminDB>,
+  ids: string[]
+): Promise<AdminVendor[]> {
+  if (ids.length === 0) return [];
+
+  const { data, error } = await admin
+    .from("vendors")
+    .select(VENDOR_SELECT)
+    .in("id", ids);
+
+  if (error) {
+    console.error("[fetchAdminVendorDetailsByIds]", error.message);
+    return [];
+  }
+
+  const byId = new Map((data ?? []).map((row: any) => [row.id as string, mapAdminVendorRow(row)]));
+  return ids.map((id) => byId.get(id)).filter((v): v is AdminVendor => Boolean(v));
+}
+
+function mergeVendorOrderStats(
+  vendors: AdminVendor[],
+  statsMap: Map<string, VendorOrderStats>
+): AdminVendor[] {
+  return vendors.map((vendor) => {
+    const stats = statsMap.get(vendor.id);
+    return {
+      ...vendor,
+      total_revenue: stats?.revenue ?? 0,
+      total_sales: stats?.sales ?? 0,
+    };
+  });
+}
+
+export async function getAdminVendors(
+  options: GetAdminVendorsOptions = {}
+): Promise<{
+  vendors: AdminVendor[];
+  total: number;
+  statusCounts: AdminVendorStatusCounts;
+  platformStats: AdminVendorPlatformStats;
+}> {
+  const admin = getAdminDB();
+  const page = Math.max(1, options.page ?? 1);
+  const pageSize = Math.min(100, Math.max(10, options.pageSize ?? 30));
+  const sort = options.sort ?? "created_at";
+  const status = options.status ?? "all";
+  const query = options.query?.trim();
+
+  const [statusCounts, orderStatsMap, featuredRes, ratingRes] = await Promise.all([
+    fetchAdminVendorStatusCounts(admin, query),
+    fetchVendorOrderStatsMap(admin),
+    admin.from("vendors").select("id", { count: "exact", head: true }).eq("is_featured", true),
+    admin.from("vendors").select("rating"),
+  ]);
+
+  const total = status === "all" ? statusCounts.all : statusCounts[status];
+  const ratings = (ratingRes.data ?? []).map((row) => Number(row.rating ?? 0));
+  const avgRating = ratings.length
+    ? ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length
+    : 0;
+
+  let platformRevenue = 0;
+  let platformSales = 0;
+  for (const stats of orderStatsMap.values()) {
+    platformRevenue += stats.revenue;
+    platformSales += stats.sales;
+  }
+
+  const platformStats: AdminVendorPlatformStats = {
+    totalRevenue: platformRevenue,
+    totalSales: platformSales,
+    avgRating,
+    featuredCount: featuredRes.count ?? 0,
+  };
+
+  let vendorIds: string[] = [];
+
+  if (sort === "revenue" || sort === "sales" || sort === "products") {
+    let q = admin.from("vendors").select("id, created_at, products ( count )");
+    q = applyAdminVendorFilters(q, query, status);
+    const { data, error } = await q;
+
+    if (error) {
+      console.error("[getAdminVendors]", error.message);
+      return { vendors: [], total, statusCounts, platformStats };
+    }
+
+    const ranked = (data ?? []).map((row: any) => ({
+      id: row.id as string,
+      revenue: orderStatsMap.get(row.id)?.revenue ?? 0,
+      sales: orderStatsMap.get(row.id)?.sales ?? 0,
+      products: Number(row.products?.[0]?.count ?? 0),
+      created_at: row.created_at as string,
+    }));
+
+    ranked.sort((a, b) => {
+      switch (sort) {
+        case "revenue":
+          return b.revenue - a.revenue || new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        case "sales":
+          return b.sales - a.sales || new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        case "products":
+          return b.products - a.products || new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        default:
+          return 0;
+      }
+    });
+
+    vendorIds = ranked
+      .slice((page - 1) * pageSize, page * pageSize)
+      .map((row) => row.id);
+  } else {
+    const orderColumn =
+      sort === "followers" ? "follower_count" : sort === "rating" ? "rating" : "created_at";
+
+    let q = admin.from("vendors").select("id", { count: "exact" });
+    q = applyAdminVendorFilters(q, query, status);
+    const { data, error } = await q
+      .order(orderColumn, { ascending: false })
+      .range((page - 1) * pageSize, page * pageSize - 1);
+
+    if (error) {
+      console.error("[getAdminVendors]", error.message);
+      return { vendors: [], total, statusCounts, platformStats };
+    }
+
+    vendorIds = (data ?? []).map((row: { id: string }) => row.id);
+  }
+
+  const vendors = mergeVendorOrderStats(
+    await fetchAdminVendorDetailsByIds(admin, vendorIds),
+    orderStatsMap
+  );
+
+  return { vendors, total, statusCounts, platformStats };
+}
+
+export async function getVendorOrderStats(vendorId: string): Promise<VendorOrderStats> {
+  const admin = getAdminDB();
+  const { data, error } = await admin
+    .from("orders")
+    .select("vendor_id, total_amount, currency")
+    .eq("vendor_id", vendorId)
+    .in("payment_status", ["paid", "completed"]);
+
+  if (error) {
+    console.error("[getVendorOrderStats]", error.message);
+    return { revenue: 0, sales: 0 };
+  }
+
+  const map = buildVendorOrderStatsMap((data ?? []) as Array<{
+    vendor_id: string | null;
+    total_amount: number | null;
+    currency?: string | null;
+  }>);
+  return map.get(vendorId) ?? { revenue: 0, sales: 0 };
 }
 // ─────────────────────────────────────────────────────────────
 // VENDORS

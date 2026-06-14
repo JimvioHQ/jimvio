@@ -1,7 +1,12 @@
 import { getAdminDB } from "@/services/base";
 import { isEmailEnabled } from "@/lib/email/config";
 import { buildChartSlices, type ChartSlice } from "@/lib/admin/chart-slices";
-import { formatAdminMoneyTotals } from "@/lib/admin/format-money";
+import {
+    ADMIN_PRIMARY_CURRENCY,
+    formatAdminMoneyTotals,
+    formatAdminPeriodChange,
+    sumAdminMoneyForCurrency,
+} from "@/lib/admin/format-money";
 
 export type DashboardAttentionItem = {
     id: string;
@@ -52,6 +57,8 @@ export type AdminDashboardData = {
     revenue30d: number;
     revenue30dDisplay: string;
     revenuePrev30d: number;
+    revenue30dDeltaLabel: string;
+    revenue30dDeltaPositive: boolean | null;
     pendingVerifications: number;
     pendingPayouts: number;
     awaitingPayment: number;
@@ -103,8 +110,13 @@ function computeHealthScore(input: {
 }
 
 function buildRevenueChart(
-    rows: Array<{ total_amount: number; created_at: string }>
+    rows: Array<{ total_amount: number; created_at: string; currency?: string | null }>,
+    currency = ADMIN_PRIMARY_CURRENCY
 ): DashboardChartPoint[] {
+    const normalizedCurrency = currency.toUpperCase();
+    const filteredRows = rows.filter(
+        (row) => (row.currency ?? ADMIN_PRIMARY_CURRENCY).toUpperCase() === normalizedCurrency
+    );
     const now = new Date();
     const buckets: DashboardChartPoint[] = [];
     let priorBucket = { revenue: 0, orders: 0 };
@@ -121,7 +133,7 @@ function buildRevenueChart(
         });
     }
 
-    for (const row of rows) {
+    for (const row of filteredRows) {
         const d = new Date(row.created_at);
         const monthsAgo =
             (now.getFullYear() - d.getFullYear()) * 12 + (now.getMonth() - d.getMonth());
@@ -364,7 +376,7 @@ export async function getAdminDashboardData(): Promise<AdminDashboardData> {
             .lt("created_at", stalePaymentCutoff),
         admin
             .from("orders")
-            .select("total_amount, created_at")
+            .select("total_amount, currency, created_at")
             .in("payment_status", ["paid", "completed"])
             .gte("created_at", since13mo),
         admin
@@ -403,15 +415,17 @@ export async function getAdminDashboardData(): Promise<AdminDashboardData> {
     ]);
 
     const revenue30dRows = (revenue30dRes.data ?? []) as Array<{ total_amount: number; currency?: string | null }>;
-    const revenue30d = revenue30dRows.reduce((sum, o) => sum + Number(o.total_amount ?? 0), 0);
-    const revenue30dDisplay = formatAdminMoneyTotals(
-        revenue30dRows.map((o) => ({ amount: o.total_amount, currency: o.currency })),
-        "RWF"
-    );
-    const revenuePrev30d = ((revenuePrev30dRes.data ?? []) as Array<{ total_amount: number }>).reduce(
-        (sum, o) => sum + Number(o.total_amount ?? 0),
-        0
-    );
+    const revenuePrev30dRows = (revenuePrev30dRes.data ?? []) as Array<{ total_amount: number; currency?: string | null }>;
+    const primaryCurrency = ADMIN_PRIMARY_CURRENCY;
+    const revenue30dMoneyRows = revenue30dRows.map((o) => ({ amount: o.total_amount, currency: o.currency }));
+    const revenuePrev30dMoneyRows = revenuePrev30dRows.map((o) => ({ amount: o.total_amount, currency: o.currency }));
+    const revenue30d = sumAdminMoneyForCurrency(revenue30dMoneyRows, primaryCurrency, primaryCurrency);
+    const revenue30dDisplay = formatAdminMoneyTotals(revenue30dMoneyRows, primaryCurrency);
+    const revenuePrev30d = sumAdminMoneyForCurrency(revenuePrev30dMoneyRows, primaryCurrency, primaryCurrency);
+    const revenueDelta = formatAdminPeriodChange(revenue30d, revenuePrev30d, {
+        currency: primaryCurrency,
+        periodLabel: "prior 30d",
+    });
 
     const webhookRows = (webhooks24hRes.data ?? []) as Array<{ status: string }>;
     const webhookTotal = webhookRows.length;
@@ -474,6 +488,8 @@ export async function getAdminDashboardData(): Promise<AdminDashboardData> {
         revenue30d,
         revenue30dDisplay,
         revenuePrev30d,
+        revenue30dDeltaLabel: revenueDelta.label,
+        revenue30dDeltaPositive: revenueDelta.positive,
         pendingVerifications,
         pendingPayouts,
         awaitingPayment: awaitingPaymentRes.count ?? 0,
@@ -487,7 +503,10 @@ export async function getAdminDashboardData(): Promise<AdminDashboardData> {
         healthScore: score,
         healthLabel: label,
         emailEnabled: isEmailEnabled() && Boolean(process.env.EMAIL_FROM?.trim()),
-        revenueChart: buildRevenueChart((chartOrdersRes.data ?? []) as Array<{ total_amount: number; created_at: string }>),
+        revenueChart: buildRevenueChart(
+            (chartOrdersRes.data ?? []) as Array<{ total_amount: number; currency?: string | null; created_at: string }>,
+            primaryCurrency
+        ),
         paymentStatusChart: buildChartSlices(paymentCountsRes, {
             paid: "paid",
             completed: "paid",

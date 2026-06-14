@@ -1,7 +1,5 @@
-"use client";
-
-import { FeedSection } from "@/components/community/workspace/sections/FeedSection";
+import { HubCommunityOverview } from "@/components/community/hub/hub-community-overview";
 
 export default function CommunityWorkspacePage() {
-  return <FeedSection />;
+  return <HubCommunityOverview />;
 }

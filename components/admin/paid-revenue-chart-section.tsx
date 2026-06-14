@@ -5,23 +5,19 @@ import Link from "next/link";
 import { TrendingDown, TrendingUp } from "lucide-react";
 import { RevenueChart } from "@/components/charts/revenue-chart";
 import { cn } from "@/lib/utils";
-import { formatAdminMoney } from "@/lib/admin/format-money";
+import {
+    ADMIN_PRIMARY_CURRENCY,
+    formatAdminAmount,
+    formatAdminMoMDelta,
+} from "@/lib/admin/format-money";
 import type { DashboardChartPoint } from "@/services/admin/getAdminDashboard";
 
 function monthLabel(point: DashboardChartPoint) {
     return `${point.month} ${point.year}`;
 }
 
-function pctChange(current: number, prev: number): number | null {
-    if (!prev) return null;
-    return ((current - prev) / prev) * 100;
-}
-
-function formatDelta(current: number, prev: number): string {
-    const diff = current - prev;
-    if (diff === 0) return "No change";
-    const sign = diff > 0 ? "+" : "−";
-    return `${sign}${formatAdminMoney(Math.abs(diff))}`;
+function formatMoney(amount: number) {
+    return formatAdminAmount(amount, ADMIN_PRIMARY_CURRENCY, ADMIN_PRIMARY_CURRENCY);
 }
 
 function SectionShell({
@@ -82,10 +78,15 @@ function HoverStatCard({
     point: DashboardChartPoint;
     isHovering: boolean;
 }) {
-    const revDelta = pctChange(point.revenue, point.prevRevenue);
-    const ordersDelta = pctChange(point.orders, point.prevOrders);
+    const revDelta = formatAdminMoMDelta(point.revenue, point.prevRevenue, {
+        type: "money",
+        currency: ADMIN_PRIMARY_CURRENCY,
+    });
+    const ordersDelta = formatAdminMoMDelta(point.orders, point.prevOrders, {
+        type: "count",
+    });
     const hasPrior = point.prevRevenue > 0 || point.prevOrders > 0;
-    const revDiffPositive = point.revenue >= point.prevRevenue;
+    const revDiffPositive = revDelta.positive !== false;
 
     return (
         <div
@@ -114,7 +115,7 @@ function HoverStatCard({
                             This month
                         </p>
                         <p className="mt-0.5 text-[20px] font-semibold tabular-nums tracking-tight text-[var(--color-text-primary)]">
-                            {formatAdminMoney(point.revenue)}
+                            {formatMoney(point.revenue)}
                         </p>
                         <p className="mt-0.5 text-[11.5px] tabular-nums text-[var(--color-text-secondary)]">
                             {point.orders.toLocaleString()} paid order{point.orders !== 1 ? "s" : ""}
@@ -125,7 +126,7 @@ function HoverStatCard({
                             Prior month
                         </p>
                         <p className="mt-0.5 text-[20px] font-semibold tabular-nums tracking-tight text-[var(--color-text-secondary)]">
-                            {formatAdminMoney(point.prevRevenue)}
+                            {formatMoney(point.prevRevenue)}
                         </p>
                         <p className="mt-0.5 text-[11.5px] tabular-nums text-[var(--color-text-muted)]">
                             {point.prevOrders.toLocaleString()} order{point.prevOrders !== 1 ? "s" : ""}
@@ -135,7 +136,7 @@ function HoverStatCard({
             ) : (
                 <>
                     <p className="mt-1 text-[22px] font-semibold tabular-nums tracking-tight text-[var(--color-text-primary)]">
-                        {formatAdminMoney(point.revenue)}
+                        {formatMoney(point.revenue)}
                     </p>
                     <p className="mt-1 text-[12px] tabular-nums text-[var(--color-text-secondary)]">
                         {point.orders.toLocaleString()} paid order{point.orders !== 1 ? "s" : ""}
@@ -157,28 +158,22 @@ function HoverStatCard({
                             ) : (
                                 <TrendingDown className="h-3 w-3" />
                             )}
-                            {formatDelta(point.revenue, point.prevRevenue)} revenue
-                            {revDelta != null && (
-                                <span className="text-[11px] font-normal opacity-90">
-                                    ({revDelta >= 0 ? "+" : ""}
-                                    {revDelta.toFixed(1)}%)
-                                </span>
+                            {revDelta.primary}
+                            {revDelta.secondary && (
+                                <span className="text-[11px] font-normal opacity-90">{revDelta.secondary}</span>
                             )}
                         </span>
-                        {ordersDelta != null && (
+                        {point.prevOrders > 0 && (
                             <span
                                 className={cn(
                                     "tabular-nums",
-                                    point.orders >= point.prevOrders ? "text-emerald-600" : "text-rose-600"
+                                    ordersDelta.positive !== false ? "text-emerald-600" : "text-rose-600"
                                 )}
                             >
-                                {point.orders - point.prevOrders >= 0 ? "+" : ""}
-                                {point.orders - point.prevOrders} orders
-                                <span className="text-[11px] opacity-90">
-                                    {" "}
-                                    ({ordersDelta >= 0 ? "+" : ""}
-                                    {ordersDelta.toFixed(0)}%)
-                                </span>
+                                {ordersDelta.primary}
+                                {ordersDelta.secondary && (
+                                    <span className="text-[11px] opacity-90"> {ordersDelta.secondary}</span>
+                                )}
                             </span>
                         )}
                     </div>
@@ -233,6 +228,7 @@ export function PaidRevenueChartSection({ data }: { data: DashboardChartPoint[] 
                             height={220}
                             type="area"
                             theme="light"
+                            currency={ADMIN_PRIMARY_CURRENCY}
                             showAffiliate={false}
                             showComparison
                             labelKey="month"
