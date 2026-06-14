@@ -1,11 +1,14 @@
 ﻿import { Suspense } from "react";
 import { LoginForm } from "./login-form";
+import { getMaintenanceModeEnabled } from "@/lib/platform-maintenance";
 
 export const metadata = {
   title: "Sign In - Jimvio",
 };
 
-export default function LoginPage() {
+export default async function LoginPage() {
+  const maintenanceMode = await getMaintenanceModeEnabled();
+
   return (
     <Suspense
       fallback={
@@ -17,7 +20,7 @@ export default function LoginPage() {
         </div>
       }
     >
-      <LoginForm />
+      <LoginForm maintenanceMode={maintenanceMode} />
     </Suspense>
   );
 }

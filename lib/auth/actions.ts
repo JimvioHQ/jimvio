@@ -9,6 +9,10 @@ import { resolvePostLoginPath } from "@/lib/auth/post-login-redirect"
 import { getPublicAppUrl } from "@/lib/app-url"
 import { verifyTOTP } from "@/lib/totp"
 import { extractSessionMeta, syncUserSession } from "@/lib/auth/user-sessions"
+import {
+  canSignInDuringMaintenance,
+  MAINTENANCE_LOGIN_ERROR,
+} from "@/lib/platform-maintenance"
 
 // ─────────────────────────────────────────────
 // Constants
@@ -188,6 +192,12 @@ export async function signIn(formData: FormData) {
     userId = data.user.id
     await ensureUserProfile(userId, email)
 
+    const allowedDuringMaintenance = await canSignInDuringMaintenance(userId, email)
+    if (!allowedDuringMaintenance) {
+      await supabase.auth.signOut()
+      return { error: MAINTENANCE_LOGIN_ERROR }
+    }
+
     // ── 2FA gate ──
     const [profileResult, secretResult] = await Promise.all([
       supabase
@@ -282,6 +292,11 @@ export async function verify2FAAndLogin(formData: FormData) {
   // ── No secret stored — skip 2FA and continue ──
   if (!secretData?.secret) {
     cookieStore.delete(TWO_FA_COOKIE)
+    const allowed = await canSignInDuringMaintenance(pendingUserId, sessionUser.email)
+    if (!allowed) {
+      await supabase.auth.signOut()
+      return { error: MAINTENANCE_LOGIN_ERROR }
+    }
     await registerLoginSession(pendingUserId)
     const path = await resolveLandingPath(pendingUserId, next)
     redirect(path)
@@ -319,9 +334,14 @@ export async function verify2FAAndLogin(formData: FormData) {
 
     clearFailedAttempts(pendingUserId)
     cookieStore.delete(TWO_FA_COOKIE)
+    const allowedBackup = await canSignInDuringMaintenance(pendingUserId, sessionUser.email)
+    if (!allowedBackup) {
+      await supabase.auth.signOut()
+      return { error: MAINTENANCE_LOGIN_ERROR }
+    }
     await registerLoginSession(pendingUserId)
-    const path = await resolveLandingPath(pendingUserId, next)
-    redirect(path)
+    const backupPath = await resolveLandingPath(pendingUserId, next)
+    redirect(backupPath)
   }
 
   // ── TOTP verification ──
@@ -335,6 +355,11 @@ export async function verify2FAAndLogin(formData: FormData) {
 
   clearFailedAttempts(pendingUserId)
   cookieStore.delete(TWO_FA_COOKIE)
+  const allowedTotp = await canSignInDuringMaintenance(pendingUserId, sessionUser.email)
+  if (!allowedTotp) {
+    await supabase.auth.signOut()
+    return { error: MAINTENANCE_LOGIN_ERROR }
+  }
   await registerLoginSession(pendingUserId)
   const path = await resolveLandingPath(pendingUserId, next)
   redirect(path)

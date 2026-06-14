@@ -1,6 +1,11 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { extractSessionMeta, isSessionRevoked } from "@/lib/auth/user-sessions";
+import {
+  getMaintenanceModeEnabled,
+  isMaintenanceExemptPath,
+  userIsPlatformAdmin,
+} from "@/lib/platform-maintenance";
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -27,12 +32,39 @@ export async function updateSession(request: NextRequest) {
       }
     );
 
+    const pathname = request.nextUrl.pathname;
     const protectedPaths = ["/dashboard", "/admin", "/settings"];
-    const isProtected = protectedPaths.some((p) =>
-      request.nextUrl.pathname.startsWith(p)
-    );
+    const isProtected = protectedPaths.some((p) => pathname.startsWith(p));
 
     const hasSession = request.cookies.getAll().some(c => c.name.startsWith("sb-"));
+    const maintenance = await getMaintenanceModeEnabled();
+
+    if (maintenance && !isMaintenanceExemptPath(pathname)) {
+      const { data: { user: maintenanceUser } } = await supabase.auth.getUser();
+
+      if (maintenanceUser) {
+        const isAdmin = await userIsPlatformAdmin(
+          maintenanceUser.id,
+          maintenanceUser.email
+        ).catch((err) => {
+          console.error("[middleware] maintenance admin check failed:", err);
+          return false;
+        });
+
+        if (!isAdmin) {
+          await supabase.auth.signOut();
+          const url = request.nextUrl.clone();
+          url.pathname = "/maintenance";
+          url.search = "";
+          return NextResponse.redirect(url);
+        }
+      } else {
+        const url = request.nextUrl.clone();
+        url.pathname = "/maintenance";
+        url.search = "";
+        return NextResponse.redirect(url);
+      }
+    }
     
     if (isProtected || hasSession) {
       const { data: { user } } = await supabase.auth.getUser();

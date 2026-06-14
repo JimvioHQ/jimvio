@@ -3,14 +3,14 @@
 import React, { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, Wrench } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { signIn, signInWithGoogle } from "@/lib/auth/actions";
 import { isNextRedirectError } from "@/lib/auth/redirect-error";
 import { Field } from "@/components/ui/field";
 import { FieldInput } from "@/components/ui/field-input";
 
-export function LoginForm() {
+export function LoginForm({ maintenanceMode = false }: { maintenanceMode?: boolean }) {
   const searchParams = useSearchParams();
 
   const next = searchParams.get("next") ?? searchParams.get("redirect") ?? "";
@@ -56,6 +56,20 @@ export function LoginForm() {
           Sign in to your account to continue
         </p>
       </div>
+
+      {maintenanceMode && (
+        <div className="mb-6 flex gap-3 rounded-xl border border-amber-200/80 bg-amber-50 px-4 py-3 text-left dark:border-amber-500/20 dark:bg-amber-500/10">
+          <Wrench className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+          <div>
+            <p className="text-sm font-semibold text-amber-900 dark:text-amber-100">
+              Maintenance mode is active
+            </p>
+            <p className="mt-0.5 text-[13px] leading-relaxed text-amber-800/80 dark:text-amber-200/80">
+              Only platform administrators can sign in until maintenance ends.
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="space-y-6">
         {/* Google OAuth */}

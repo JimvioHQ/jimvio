@@ -163,7 +163,7 @@ export function FeaturesForm({ initial }: { initial: Record<string, unknown> }) 
                         <div className="flex items-start gap-3 mb-3">
                             <AlertTriangle className="size-4 text-amber-600 shrink-0 mt-0.5" />
                             <p className="text-[12px] text-[var(--color-text-secondary)]">
-                                When enabled, buyer-facing pages show a maintenance screen. Admin and vendor dashboards stay available.
+                                When enabled, public pages show a maintenance screen and existing non-admin sessions are signed out. Only platform administrators can sign in.
                             </p>
                         </div>
                         <Toggle

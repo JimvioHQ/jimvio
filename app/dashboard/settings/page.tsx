@@ -494,11 +494,11 @@ export const dynamic = "force-dynamic";
 
 import React, { useEffect, useState, useTransition, useCallback } from "react";
 import {
-   User, Store, Bell, Shield, Save, CheckCircle, Camera, Globe,
-   Smartphone, MapPin, Mail, Zap, CreditCard, Building, Image as ImageIcon,
-   CheckCircle2, Loader2, MoreVertical, ArrowLeft, AlertCircle, Eye, EyeOff,
-   Info, X, ChevronDown,
-   Edit,
+  User, Store, Bell, Save, CheckCircle, Camera, Globe,
+  Smartphone, MapPin, Mail, Zap, CreditCard, Building, Image as ImageIcon,
+  CheckCircle2, Loader2, MoreVertical, ArrowLeft, AlertCircle,
+  Info, X, ChevronDown, Shield,
+  Edit,
 } from "lucide-react";
 import { StyledTextarea, Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -569,15 +569,6 @@ function validateVendor(v: NonNullable<typeof defaultVendor>) {
    };
 }
 
-function validateSecurity(s: typeof defaultSecurity) {
-   return {
-      new_password: validators.password(s.new_password),
-      confirm_password: s.new_password
-         ? validators.passwordMatch(s.new_password, s.confirm_password)
-         : null,
-   };
-}
-
 // ─── Defaults ─────────────────────────────────────────────────────────────────
 
 const defaultProfile = {
@@ -592,8 +583,6 @@ const defaultVendor = {
    affiliate_enabled: true, affiliate_commission_rate: "10",
 };
 
-const defaultSecurity = { current_password: "", new_password: "", confirm_password: "" };
-
 // ─── Field Components ──────────────────────────────────────────────────────────
 
 function FieldWrapper({ label, error, children, hint }: {
@@ -602,7 +591,7 @@ function FieldWrapper({ label, error, children, hint }: {
    return (
       <div className="space-y-1.5">
          <div className="flex items-center justify-between">
-            <label className="text-[10px] font-bold uppercase tracking-widest text-stone-400 dark:text-stone-500 pl-0.5">
+            <label className="text-xs font-medium text-[var(--color-text-muted)] pl-0.5">
                {label}
             </label>
             {hint && !error && (
@@ -708,7 +697,7 @@ function SectionHeader({ icon, title }: { icon: React.ReactNode; title: string }
          <div className="h-7 w-7 rounded-lg bg-orange-50 dark:bg-orange-500/10 flex items-center justify-center text-orange-500">
             {icon}
          </div>
-         <h3 className="text-[11px] font-black uppercase tracking-widest text-stone-700 dark:text-white">{title}</h3>
+         <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">{title}</h3>
       </div>
    );
 }
@@ -736,9 +725,6 @@ export default function SettingsPage() {
    const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
    const [userId, setUserId] = useState<string | null>(null);
    const [userEmail, setUserEmail] = useState<string | null>(null);
-   const [showCurrentPw, setShowCurrentPw] = useState(false);
-   const [showNewPw, setShowNewPw] = useState(false);
-   const [showConfirmPw, setShowConfirmPw] = useState(false);
 
    const [profile, setProfile] = useState(defaultProfile);
    const [profileErrors, setProfileErrors] = useState<Record<string, FieldError>>({});
@@ -747,10 +733,6 @@ export default function SettingsPage() {
    const [vendor, setVendor] = useState<typeof defaultVendor | null>(null);
    const [vendorErrors, setVendorErrors] = useState<Record<string, FieldError>>({});
    const [vendorTouched, setVendorTouched] = useState<Record<string, boolean>>({});
-
-   const [security, setSecurity] = useState(defaultSecurity);
-   const [securityErrors, setSecurityErrors] = useState<Record<string, FieldError>>({});
-   const [securityTouched, setSecurityTouched] = useState<Record<string, boolean>>({});
 
    const [notifications, setNotifications] = useState({
       new_sales: true, affiliate_activity: true, withdrawals: false, system_updates: true,
@@ -898,40 +880,7 @@ export default function SettingsPage() {
       });
    }
 
-   // ── Security Handlers ────────────────────────────────────────────────────
-
-   const touchSecurity = (field: string) =>
-      setSecurityTouched(t => ({ ...t, [field]: true }));
-
-   const updateSecurity = (field: keyof typeof defaultSecurity, value: string) => {
-      const next = { ...security, [field]: value };
-      setSecurity(next);
-      const errs = validateSecurity(next);
-      setSecurityErrors(e => ({ ...e, [field]: errs[field as keyof typeof errs] ?? null }));
-   };
-
-   function savePassword() {
-      const errs = validateSecurity(security);
-      setSecurityErrors(errs);
-      setSecurityTouched({ current_password: true, new_password: true, confirm_password: true });
-      if (!security.current_password.trim()) {
-         setSecurityErrors(e => ({ ...e, current_password: "Current password is required" }));
-         return;
-      }
-      if (Object.values(errs).some(Boolean)) return;
-
-      startTransition(async () => {
-         try {
-            const supabase = createClient();
-            const { error } = await supabase.auth.updateUser({ password: security.new_password });
-            if (error) throw error;
-            setSecurity(defaultSecurity);
-            showToast("Password updated successfully", "success");
-         } catch {
-            showToast("Failed to update password. Check your current password.", "error");
-         }
-      });
-   }
+   // ── Notifications ────────────────────────────────────────────────────────
 
    function saveNotifications() {
       startTransition(async () => {
@@ -952,11 +901,9 @@ export default function SettingsPage() {
 
    if (loading) {
       return (
-         <div className="min-h-screen flex flex-col items-center justify-center gap-4" style={{ background: "var(--color-bg)" }}>
-            <div className="h-10 w-10 rounded-2xl bg-transparent flex items-center justify-center">
-               <Loader2 className="h-5 w-5 animate-spin text-orange-500" />
-            </div>
-            <p className="text-[11px] font-bold text-stone-600 tracking-widest">Loading Settings…</p>
+    <div className="min-h-[40vh] flex flex-col items-center justify-center gap-4">
+            <Loader2 className="h-5 w-5 animate-spin text-[var(--color-accent)]" />
+            <p className="text-sm text-[var(--color-text-muted)]">Loading settings…</p>
          </div>
       );
    }
@@ -967,59 +914,69 @@ export default function SettingsPage() {
    const vendorHasErrors = Object.keys(vendorErrs).filter(k => vendorTouched[k]).some(k => vendorErrs[k as keyof typeof vendorErrs]);
 
    return (
-      <div className="min-h-screen pb-24 relative" style={{ background: "var(--color-bg)" }}>
+      <div className="space-y-8 relative">
          {toast && <Toast message={toast.msg} type={toast.type} />}
 
-         {/* Subtle ambient bg */}
-         <div className="pointer-events-none fixed inset-0 overflow-hidden">
-            <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-orange-400/5 rounded-full blur-3xl" />
-            <div className="absolute bottom-[-10%] left-[-5%] w-[400px] h-[400px] bg-amber-300/5 rounded-full blur-3xl" />
-         </div>
-
-         <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-8 sm:pt-12 space-y-8 relative z-10">
-
-            {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-               <div className="flex items-center gap-3">
+         {/* Header */}
+         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+            <div>
+               <div className="flex items-center gap-2 mb-2">
                   <Button asChild variant="ghost" size="icon"
-                     className="h-9 w-9 rounded-xl border border-stone-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-sm hover:border-orange-300 transition-all">
+                     className="h-8 w-8 rounded-lg bg-[var(--color-surface)] ring-1 ring-[var(--color-border)] hover:ring-[var(--color-border-strong)]">
                      <Link href="/dashboard"><ArrowLeft className="h-4 w-4" /></Link>
                   </Button>
-                  <div>
-                     <h1 className="text-xl sm:text-2xl font-black text-stone-900 dark:text-white tracking-tight">Account Settings</h1>
-                     <p className="text-[10px] text-stone-600 dark:text-zinc-500 uppercase tracking-widest mt-0.5">Manage your profile and business</p>
-                  </div>
+                  <span className="text-[11px] font-medium text-[var(--color-text-muted)]">
+                     Account
+                  </span>
                </div>
-
-               <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-stone-50 dark:bg-zinc-900 border border-stone-100 dark:border-zinc-800">
-                  <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  <span className="text-[10px] font-semibold text-stone-600 dark:text-zinc-400 truncate max-w-[200px]">{userEmail}</span>
-               </div>
+               <h1 className="text-2xl font-bold tracking-tight text-[var(--color-text-primary)]">
+                  Settings
+               </h1>
+               <p className="mt-1 text-[13px] text-[var(--color-text-muted)]">
+                  Profile, business details, and notification preferences.
+               </p>
             </div>
 
-            {/* Tabs */}
-            <Tabs defaultValue="profile" className="space-y-6">
-               <TabsList className="flex items-center gap-1 p-1 rounded-full bg-stone-100 dark:bg-zinc-900 border border-stone-200 dark:border-zinc-800 w-fit max-sm:w-full overflow-x-auto no-scrollbar">
+            {userEmail && (
+               <div className="inline-flex items-center gap-2 h-10 px-4 rounded-xl text-sm text-[var(--color-text-muted)] bg-[var(--color-surface)] ring-1 ring-[var(--color-border)] shrink-0">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                  <span className="truncate max-w-[220px]">{userEmail}</span>
+               </div>
+            )}
+         </div>
+
+         {/* Tabs */}
+         <Tabs defaultValue="profile" className="space-y-6">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+               <TabsList className="flex items-center gap-1 p-1 rounded-xl bg-[var(--color-surface)] ring-1 ring-[var(--color-border)] w-fit max-sm:w-full overflow-x-auto no-scrollbar h-auto">
                   {[
                      { value: "profile", icon: <User className="h-3.5 w-3.5" />, label: "Profile" },
                      ...(vendor ? [{ value: "vendor", icon: <Store className="h-3.5 w-3.5" />, label: "Business" }] : []),
-                     { value: "notifications", icon: <Bell className="h-3.5 w-3.5" />, label: "Alerts" },
-                     { value: "security", icon: <Shield className="h-3.5 w-3.5" />, label: "Security" },
+                     { value: "notifications", icon: <Bell className="h-3.5 w-3.5" />, label: "Notifications" },
                   ].map(tab => (
                      <TabsTrigger
                         key={tab.value}
                         value={tab.value}
-                        className="px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all flex items-center gap-1.5
-                           data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800
-                           data-[state=active]:text-orange-500 dark:data-[state=active]:text-orange-400
+                        className="px-3.5 py-2 rounded-lg text-[13px] font-medium transition-all flex items-center gap-1.5
+                           data-[state=active]:bg-[var(--color-bg)]
+                           data-[state=active]:text-[var(--color-accent)]
                            data-[state=active]:shadow-sm
-                           text-stone-600 dark:text-zinc-500
-                           hover:text-stone-700 dark:hover:text-zinc-300"
+                           text-[var(--color-text-muted)]
+                           hover:text-[var(--color-text-primary)]"
                      >
                         {tab.icon} {tab.label}
                      </TabsTrigger>
                   ))}
                </TabsList>
+
+               <Link
+                  href="/dashboard/security"
+                  className="inline-flex items-center gap-2 h-10 px-4 rounded-xl text-sm font-semibold transition-all bg-[var(--color-surface)] ring-1 ring-[var(--color-border)] hover:ring-[var(--color-border-strong)] text-[var(--color-text-primary)] shrink-0"
+               >
+                  <Shield className="h-4 w-4" />
+                  Security
+               </Link>
+            </div>
 
                {/* ── Profile Tab ── */}
                <TabsContent value="profile" className="mt-0 animate-in fade-in duration-300">
@@ -1370,146 +1327,7 @@ export default function SettingsPage() {
                      </div>
                   </div>
                </TabsContent>
-
-               {/* ── Security Tab ── */}
-               <TabsContent value="security" className="mt-0 animate-in fade-in duration-300">
-                  <div className="max-w-2xl space-y-6">
-                     <Link
-                        href="/dashboard/security"
-                        className="flex items-center justify-between gap-3 rounded-2xl border border-orange-200/80 dark:border-orange-500/20 bg-orange-50/80 dark:bg-orange-500/5 px-4 py-3.5 text-sm transition-colors hover:border-orange-300 dark:hover:border-orange-500/35"
-                     >
-                        <div>
-                           <p className="font-semibold text-stone-900 dark:text-white">Full security settings</p>
-                           <p className="text-[11px] text-stone-500 dark:text-zinc-400 mt-0.5">
-                              Two-factor auth, active sessions, and sign out other devices
-                           </p>
-                        </div>
-                        <span className="text-[11px] font-bold uppercase tracking-wide text-orange-600 dark:text-orange-400 shrink-0">
-                           Open →
-                        </span>
-                     </Link>
-
-                     <div className="rounded-2xl border border-stone-100 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-6 sm:p-8 space-y-6 shadow-sm">
-                        <div>
-                           <h3 className="text-base font-bold text-stone-900 dark:text-white">Change Password</h3>
-                           <p className="text-[10px] text-stone-400 dark:text-zinc-500 uppercase tracking-widest mt-1">Protect your account and assets</p>
-                        </div>
-
-                        <Field label="Current Password" error={securityTouched.current_password ? securityErrors.current_password : null}>
-                           <div className="relative">
-                              <FieldInput
-                                 type={showCurrentPw ? "text" : "password"}
-                                 value={security.current_password}
-                                 onChange={e => updateSecurity("current_password", e.target.value)}
-                                 onBlur={() => touchSecurity("current_password")}
-                                 placeholder="Enter current password"
-                                 className={"pl-4"}
-                                 hasError={!!securityErrors.current_password}
-                              />
-                              <button
-                                 type="button"
-                                 onClick={() => setShowCurrentPw(!showCurrentPw)}
-                                 className="absolute right-5 top-1/2 -translate-y-1/2 text-stone-300 dark:text-zinc-600 hover:text-stone-500 transition-colors"
-                              >
-                                 {showCurrentPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                              </button>
-                           </div>
-                        </Field>
-
-                        <Field label="New Password" error={securityTouched.new_password ? securityErrors.new_password : null} hint="min 8 chars">
-                           <div className="relative">
-                              <FieldInput
-                                 type={showNewPw ? "text" : "password"}
-                                 value={security.new_password}
-                                 onChange={e => updateSecurity("new_password", e.target.value)}
-                                 onBlur={() => touchSecurity("new_password")}
-                                 placeholder="Enter new password"
-                                 className={"pl-4"}
-                                 hasError={!!securityErrors.new_password}
-                              />
-                              <button
-                                 type="button"
-                                 onClick={() => setShowNewPw(!showNewPw)}
-                                 className="absolute right-5 top-1/2 -translate-y-1/2 text-stone-300 dark:text-zinc-600 hover:text-stone-500 transition-colors"
-                              >
-                                 {showNewPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                              </button>
-                           </div>
-
-                           {/* Password strength */}
-                           {security.new_password && (
-                              <div className="mt-2 space-y-1.5 animate-in slide-in-from-top-1">
-                                 <div className="flex gap-1">
-                                    {[8, 12, 16, 20].map((len, i) => (
-                                       <div key={i} className={cn(
-                                          "h-1 flex-1 rounded-full transition-colors duration-300",
-                                          security.new_password.length >= len
-                                             ? i < 1 ? "bg-rose-400" : i < 2 ? "bg-amber-400" : i < 3 ? "bg-yellow-400" : "bg-emerald-400"
-                                             : "bg-stone-100 dark:bg-zinc-800"
-                                       )} />
-                                    ))}
-                                 </div>
-                                 <p className="text-[9px] font-bold text-stone-400 uppercase tracking-widest">
-                                    {security.new_password.length < 8 ? "Too short"
-                                       : security.new_password.length < 12 ? "Weak"
-                                          : security.new_password.length < 16 ? "Good"
-                                             : "Strong"}
-                                 </p>
-                              </div>
-                           )}
-                        </Field>
-
-                        <Field label="Confirm New Password" error={securityTouched.confirm_password ? securityErrors.confirm_password : null}>
-                           <div className="relative">
-                              <FieldInput
-                                 type={showConfirmPw ? "text" : "password"}
-                                 value={security.confirm_password}
-                                 onChange={e => updateSecurity("confirm_password", e.target.value)}
-                                 onBlur={() => touchSecurity("confirm_password")}
-                                 placeholder="Re-enter new password"
-                                 className={"pl-4"}
-                                 hasError={!!securityErrors.confirm_password}
-                              />
-                              <button
-                                 type="button"
-                                 onClick={() => setShowConfirmPw(!showConfirmPw)}
-                                 className="absolute right-5 top-1/2 -translate-y-1/2 text-stone-300 dark:text-zinc-600 hover:text-stone-500 transition-colors"
-                              >
-                                 {showConfirmPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                              </button>
-                           </div>
-                        </Field>
-
-                        <Button
-                           onClick={savePassword}
-                           disabled={isPending}
-                           className="h-11 px-8 rounded-xl bg-orange-500 text-white font-bold text-[10px] tracking-widest hover:bg-orange-600 active:scale-95 transition-all shadow-lg shadow-orange-500/20 border-none w-full"
-                        >
-                           {isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Edit className="h-4 w-4 mr-2" />}
-                           Update Password
-                        </Button>
-                     </div>
-
-                     {/* Danger Zone */}
-                     <div className="rounded-2xl border border-rose-200 dark:border-rose-500/20 bg-rose-50 dark:bg-rose-500/5 p-6 space-y-4">
-                        <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400">
-                           <Shield className="h-4 w-4" />
-                           <span className="text-[11px] font-black uppercase tracking-widest">Danger Zone</span>
-                        </div>
-                        <p className="text-[11px] text-rose-400/80 dark:text-rose-400/60 leading-relaxed">
-                           Deleting your account permanently erases all data — products, orders, and earnings. This cannot be undone.
-                        </p>
-                        <Button
-                           variant="ghost"
-                           className="h-10 px-6 rounded-xl border border-rose-300 dark:border-rose-500/30 text-rose-500 font-bold text-[10px] uppercase tracking-widest hover:bg-rose-500 hover:text-white transition-all w-full sm:w-auto"
-                        >
-                           Permanently Delete Account
-                        </Button>
-                     </div>
-                  </div>
-               </TabsContent>
             </Tabs>
-         </div>
       </div>
    );
 }

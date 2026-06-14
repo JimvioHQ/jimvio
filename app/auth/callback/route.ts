@@ -3,6 +3,10 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 import { resolvePostLoginPath } from "@/lib/auth/post-login-redirect";
 import { extractSessionMeta, syncUserSession } from "@/lib/auth/user-sessions";
+import {
+  canSignInDuringMaintenance,
+  MAINTENANCE_LOGIN_ERROR,
+} from "@/lib/platform-maintenance";
 
 function isSafeInternalPath(path: string): boolean {
   return (
@@ -138,6 +142,12 @@ export async function GET(request: Request) {
     user.email,
     user.user_metadata?.full_name as string | undefined
   );
+
+  const allowedDuringMaintenance = await canSignInDuringMaintenance(user.id, user.email);
+  if (!allowedDuringMaintenance) {
+    await supabase.auth.signOut();
+    return NextResponse.redirect(`${origin}/maintenance`);
+  }
 
   try {
     await syncUserSession(user.id, extractSessionMeta(request.headers));
