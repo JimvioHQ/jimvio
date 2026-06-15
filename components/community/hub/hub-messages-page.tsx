@@ -10,6 +10,7 @@ import {
   Users, Link2, Volume2, Image as ImageIcon, Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { isCallSignalingMessage } from "@/lib/community/message-signaling";
 import { createClient } from "@/lib/supabase/client";
 import { HubAvatar, HubBadge, HubLinkButton, HubSectionTitle } from "./hub-ui";
 
@@ -111,6 +112,11 @@ export function HubMessagesPage() {
 
   const activeThread = threads.find((t) => t.id === activeThreadId) ?? null;
 
+  const visibleMessages = useMemo(
+    () => messages.filter((m) => !isCallSignalingMessage(m.message_type, m.body)),
+    [messages]
+  );
+
   const loadThreads = useCallback(async () => {
     setLoading(true);
     try {
@@ -171,22 +177,29 @@ export function HubMessagesPage() {
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [visibleMessages]);
 
   async function sendMessage() {
     if (!draft.trim() || !activeThreadId || !activeThread) return;
-    if (activeThread.kind !== "direct") return;
+    if (activeThread.kind === "space") return;
 
     setSending(true);
     try {
-      const res = await fetch(`/api/c/messages/${encodeURIComponent(activeThreadId)}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ body: draft.trim() }),
-      });
+      const res =
+        activeThread.kind === "group" && activeThread.roomId
+          ? await fetch(`/api/messages/${activeThread.roomId}`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ body: draft.trim() }),
+            })
+          : await fetch(`/api/c/messages/${encodeURIComponent(activeThreadId)}`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ body: draft.trim() }),
+            });
       if (!res.ok) return;
       const data = await res.json();
-      const msg = data.message;
+      const msg = data.message ?? data.row;
       if (msg) {
         setMessages((prev) => [
           ...prev,
@@ -194,11 +207,11 @@ export function HubMessagesPage() {
             id: msg.id,
             body: msg.body,
             sender_id: msg.sender_id,
-            sender_name: "You",
-            sender_avatar: null,
+            sender_name: msg.profiles?.full_name ?? msg.profiles?.username ?? "You",
+            sender_avatar: msg.profiles?.avatar_url ?? null,
             created_at: msg.created_at ?? new Date().toISOString(),
             message_type: msg.message_type ?? "text",
-            attachments: [],
+            attachments: Array.isArray(msg.attachments) ? msg.attachments : [],
             reactions: {},
           },
         ]);
@@ -243,7 +256,7 @@ export function HubMessagesPage() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-56px)] min-h-0 bg-[var(--color-bg,#f4f4f5)]">
+    <div className="flex h-full min-h-0 bg-[var(--color-bg,#f4f4f5)]">
       {/* ── Thread list ── */}
       <div className="flex w-[300px] shrink-0 flex-col border-r border-[var(--color-border)] bg-[var(--color-surface)]">
         <div className="border-b border-[var(--color-border)] p-4">
@@ -348,7 +361,7 @@ export function HubMessagesPage() {
       </div>
 
       {/* ── Chat window ── */}
-      <div className="flex min-w-0 flex-1 flex-col bg-[var(--color-surface)]">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-[var(--color-surface)]">
         {activeThread ? (
           activeThread.kind === "space" ? (
             <div className="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
@@ -416,14 +429,14 @@ export function HubMessagesPage() {
                   <div className="flex justify-center py-10">
                     <Loader2 className="h-6 w-6 animate-spin text-zinc-400" />
                   </div>
-                ) : messages.length === 0 ? (
+                ) : visibleMessages.length === 0 ? (
                   <p className="py-10 text-center text-[12px] text-[var(--color-text-muted)]">
                     {activeThread.kind === "group" ? "No messages in this room yet." : "Say hello to start the conversation."}
                   </p>
                 ) : (
-                  messages.map((msg, idx) => {
+                  visibleMessages.map((msg, idx) => {
                     const mine = currentUserId ? msg.sender_id === currentUserId : false;
-                    const showAvatar = !mine && (idx === 0 || messages[idx - 1]?.sender_id !== msg.sender_id);
+                    const showAvatar = !mine && (idx === 0 || visibleMessages[idx - 1]?.sender_id !== msg.sender_id);
                     return (
                       <MessageBubble
                         key={msg.id}
@@ -439,8 +452,8 @@ export function HubMessagesPage() {
                 <div ref={bottomRef} />
               </div>
 
-              {activeThread.kind === "direct" ? (
-                <div className="border-t border-[var(--color-border)] p-3">
+              {activeThread.kind === "direct" || activeThread.kind === "group" ? (
+                <div className="shrink-0 border-t border-[var(--color-border)] p-3">
                   <div className="mb-2 flex flex-wrap gap-1.5">
                     {QUICK_ACTIONS.map(({ label, icon: Icon, accent }) => (
                       <button
@@ -480,12 +493,12 @@ export function HubMessagesPage() {
                   </div>
                 </div>
               ) : (
-                <div className="border-t border-[var(--color-border)] p-4 text-center">
+                <div className="shrink-0 border-t border-[var(--color-border)] p-4 text-center">
                   <p className="text-[12px] text-[var(--color-text-muted)]">
-                    Group messages are sent in the community room.
+                    Open this space in the community to participate.
                   </p>
                   {activeThread.href && (
-                    <HubLinkButton href={activeThread.href} className="mt-2">Open group chat</HubLinkButton>
+                    <HubLinkButton href={activeThread.href} className="mt-2">Open space</HubLinkButton>
                   )}
                 </div>
               )}

@@ -136,7 +136,7 @@ export function ChatInputZone({
 
       {/* ── Normal input row ────────────────────────────────────────── */}
       {!voiceRecording && !voiceBlob && (
-        <div className="flex items-end gap-1 px-3 py-[9px] min-h-[62px] pb-[max(9px,env(safe-area-inset-bottom,0px))]">
+        <div className="flex items-end gap-1 px-3 py-[9px] min-h-[62px] pb-[max(9px,env(safe-area-inset-bottom,0px))] max-lg:pb-[calc(3.5rem+max(9px,env(safe-area-inset-bottom,0px)))]">
           <WaIconBtn aria-label="Emoji picker" onClick={onOpenEmojiPicker}>
             <Smile className="h-6 w-6" />
           </WaIconBtn>

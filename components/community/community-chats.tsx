@@ -22,13 +22,15 @@ export function CommunityChats() {
     );
   }
   return (
-    <ChatRoom
-      roomId={firstChatRoom.id}
-      roomName={firstChatRoom.name}
-      communityId={communityId}
-      slug={slug}
-      hideHeader={true}
-    />
-  )
+    <div className="h-full min-h-0">
+      <ChatRoom
+        roomId={firstChatRoom.id}
+        roomName={firstChatRoom.name}
+        communityId={communityId}
+        slug={slug}
+        hideHeader={true}
+      />
+    </div>
+  );
 }
 

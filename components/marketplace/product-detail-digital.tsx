@@ -507,13 +507,13 @@ import {
   RelatedProducts,
 } from "@/components/marketplace/product-detail-shared";
 import type { Tables } from "@/types/supabase";
-import type { ProductWithRelations } from "@/services/products";
+import type { ProductWithRelations, VendorPublic } from "@/services/products";
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface DigitalProductDetailProps {
   product: ProductWithRelations;
-  vendor: Tables<"vendors"> | null;
+  vendor: VendorPublic | null;
   followedVendorIds: string[];
   relatedProducts?: Tables<"products">[];
 }
@@ -797,21 +797,13 @@ function SocialProofActivityFeed({
 function VendorSectionCard({
   vendor,
   followedVendorIds,
-}: { vendor: Tables<"vendors">; followedVendorIds: string[] }) {
-  const v = vendor as Tables<"vendors"> & {
-    rating?: number | null;
-    follower_count?: number | null;
-    positive_rate?: number | null;
-    response_time?: string | null;
-    total_sales?: number | null;
-    verification_status?: string | null;
-  };
-  const rating = Number(v.rating ?? 0);
-  const followerCount = v.follower_count ?? null;
-  const positiveRate = v.positive_rate ?? 99;
-  const responseTime = v.response_time ?? "5 min";
-  const fulfilledOrders = v.total_sales ?? 0;
-  const isVerified = v.verification_status === "verified" || true;
+}: { vendor: VendorPublic; followedVendorIds: string[] }) {
+  const rating = Number(vendor.rating ?? 0);
+  const followerCount = vendor.follower_count ?? null;
+  const positiveRate = 99;
+  const responseTime = vendor.response_time ?? "5 min";
+  const fulfilledOrders = vendor.total_sales ?? 0;
+  const isVerified = vendor.verification_status === "verified" || true;
 
   const ordersLabel =
     fulfilledOrders >= 1000
@@ -1947,16 +1939,9 @@ export function DigitalProductDetail({
                             {
                               icon: Download,
                               value:
-                                ((vendor as Tables<"vendors"> & { total_sales?: number })
-                                  .total_sales ?? 0) >= 1000
-                                  ? `${(
-                                    ((vendor as Tables<"vendors"> & {
-                                      total_sales?: number;
-                                    }).total_sales ?? 0) / 1000
-                                  ).toFixed(1)}k`
-                                  : `${(vendor as Tables<"vendors"> & { total_sales?: number })
-                                    .total_sales ?? 1200
-                                  }`,
+                                (vendor.total_sales ?? 0) >= 1000
+                                  ? `${((vendor.total_sales ?? 0) / 1000).toFixed(1)}k`
+                                  : `${vendor.total_sales ?? 1200}`,
                               label: "Total Downloads",
                               color: "text-orange-500",
                               bg: "bg-orange-500/10",
@@ -1970,9 +1955,7 @@ export function DigitalProductDetail({
                             },
                             {
                               icon: MessageSquare,
-                              value:
-                                (vendor as Tables<"vendors"> & { response_time?: string })
-                                  .response_time ?? "5 min",
+                              value: vendor.response_time ?? "5 min",
                               label: "Avg. Response",
                               color: "text-sky-500",
                               bg: "bg-sky-500/10",

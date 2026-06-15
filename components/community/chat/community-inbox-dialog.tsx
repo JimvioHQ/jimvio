@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
+import { isCallSignalingMessage } from "@/lib/community/message-signaling";
 
 type Profile = { full_name: string | null; avatar_url: string | null; username: string | null };
 
@@ -17,6 +18,7 @@ type InboxMsg = {
   sender_id: string;
   body: string;
   created_at: string;
+  message_type?: string | null;
   profiles?: Profile | Profile[] | null;
 };
 
@@ -54,7 +56,8 @@ export function CommunityInboxDialog({
       const res = await fetch(`/api/communities/${communityId}/inbox/${convId}/messages`);
       const data = await res.json();
       if (!res.ok) return;
-      setMessages(data.messages ?? []);
+      const rows = (data.messages ?? []) as InboxMsg[];
+      setMessages(rows.filter((m) => !isCallSignalingMessage(m.message_type, m.body)));
     },
     [communityId]
   );
@@ -111,11 +114,15 @@ export function CommunityInboxDialog({
           const { data: prof } = await supabase.from("profiles").select("full_name, avatar_url, username").eq("id", senderId).maybeSingle();
           setMessages((prev) => {
             if (prev.some((m) => m.id === row.id)) return prev;
+            const messageType = row.message_type != null ? String(row.message_type) : null;
+            const body = String(row.body ?? "");
+            if (isCallSignalingMessage(messageType, body)) return prev;
             const next: InboxMsg = {
               id: String(row.id),
               sender_id: senderId,
-              body: String(row.body ?? ""),
+              body,
               created_at: String(row.created_at),
+              message_type: messageType,
               profiles: prof,
             };
             return [...prev, next].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
@@ -186,7 +193,9 @@ export function CommunityInboxDialog({
             <p className="py-8 text-center text-sm text-[var(--color-text-muted)]">No messages yet — say hello.</p>
           ) : (
             <div className="space-y-3">
-              {messages.map((m) => {
+              {messages
+                .filter((m) => !isCallSignalingMessage(m.message_type, m.body))
+                .map((m) => {
                 const own = !!currentUserId && m.sender_id === currentUserId;
                 const p = oneProfile(m.profiles);
                 return (

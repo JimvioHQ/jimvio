@@ -9,14 +9,51 @@ import type { Product, ProductStatus } from "@/types/db";
 // TYPES
 // ─────────────────────────────────────────────────────────────
 
+export type VendorPublic = Pick<
+  Tables<"vendors">,
+  | "id"
+  | "business_name"
+  | "business_slug"
+  | "business_logo"
+  | "business_banner"
+  | "business_description"
+  | "business_country"
+  | "verification_status"
+  | "rating"
+  | "total_sales"
+  | "follower_count"
+  | "response_time"
+  | "created_at"
+>;
+
+export type ProductCategoryPublic = Pick<
+  Tables<"product_categories">,
+  "id" | "name" | "slug" | "parent_id"
+>;
+
+export type ProductReviewPublic = Pick<
+  Tables<"reviews">,
+  | "id"
+  | "rating"
+  | "title"
+  | "body"
+  | "images"
+  | "is_verified_purchase"
+  | "is_featured"
+  | "helpful_count"
+  | "vendor_reply"
+  | "vendor_replied_at"
+  | "created_at"
+> & {
+  buyer: Pick<Tables<"profiles">, "id" | "full_name" | "avatar_url"> | null;
+};
+
 export type ProductWithRelations = Tables<"products"> & {
-  vendors: Tables<"vendors"> | null;
-  product_categories: Tables<"product_categories"> | null;
+  vendors: VendorPublic | null;
+  product_categories: ProductCategoryPublic | null;
   product_variants: Tables<"product_variants">[];
   product_shipping_options: Tables<"product_shipping_options">[];
-  reviews: (Tables<"reviews"> & {
-    profiles: Pick<Tables<"profiles">, "full_name" | "avatar_url"> | null;
-  })[];
+  reviews: ProductReviewPublic[];
 };
 
 export interface ProductQuery {
@@ -37,7 +74,7 @@ export interface ProductQuery {
 
 export interface ProductPageData {
   product: ProductWithRelations;
-  vendor: Tables<"vendors"> | null;
+  vendor: VendorPublic | null;
   relatedProducts: any[];
   shippingOptions: any[];
   isDigital: boolean;

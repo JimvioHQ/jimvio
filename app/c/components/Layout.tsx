@@ -855,7 +855,7 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                 </header>
 
                 {/* ── Page content ── */}
-                <main style={{ flex: 1, overflowY: "auto", overflowX: "hidden" }}>
+                <main style={{ flex: 1, overflowY: "auto", overflowX: "hidden", minHeight: 0, display: "flex", flexDirection: "column" }}>
                     {children}
                 </main>
 

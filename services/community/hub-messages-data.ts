@@ -1,5 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { aggregateMemberPoints } from "@/lib/community/points";
+import {
+  findLastVisibleMessage,
+  isCallSignalingMessage,
+  previewChatMessage,
+} from "@/lib/community/message-signaling";
 
 const ONLINE_WINDOW_MS = 15 * 60 * 1000;
 
@@ -54,13 +59,6 @@ export type HubMessagePeer = {
   isOnline: boolean;
   sharedCommunities: Array<{ id: string; name: string; slug: string; href: string }>;
 };
-
-function previewMessage(body: string, messageType: string | null) {
-  if (messageType === "audio") return "Voice message";
-  if (messageType === "file") return "Sent a file";
-  if (messageType === "image") return "Sent an image";
-  return body || "No messages yet";
-}
 
 function countReactions(raw: unknown) {
   if (!raw || typeof raw !== "object") return {};
@@ -118,10 +116,7 @@ export async function getHubMessageThreads(userId: string) {
       const peerId = conv.user_high === userId ? conv.user_low : conv.user_high;
       const peer = peerMap.get(peerId);
       const community = conv.communities as { name: string; slug: string } | null;
-      const msgs = [...(conv.community_inbox_messages ?? [])].sort(
-        (a, b) => new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime()
-      );
-      const last = msgs[0];
+      const last = findLastVisibleMessage(conv.community_inbox_messages ?? []);
       const unreadCount =
         last && last.sender_id !== userId ? 1 : 0;
 
@@ -132,7 +127,7 @@ export async function getHubMessageThreads(userId: string) {
         avatarUrl: peer?.avatar_url ?? null,
         subtitle: community?.name ?? null,
         lastMessage: last
-          ? previewMessage(last.body, last.message_type)
+          ? previewChatMessage(last.body ?? "", last.message_type)
           : "No messages yet",
         lastMessageTime: last?.created_at ?? conv.updated_at ?? new Date().toISOString(),
         unreadCount,
@@ -176,14 +171,14 @@ export async function getHubMessageThreads(userId: string) {
         .limit(300);
 
       for (const msg of roomMsgs ?? []) {
-        if (!roomLastMsg.has(msg.room_id)) {
-          roomLastMsg.set(msg.room_id, {
-            body: msg.body ?? "",
-            created_at: msg.created_at ?? new Date().toISOString(),
-            sender_id: msg.sender_id,
-            message_type: msg.message_type,
-          });
-        }
+        if (roomLastMsg.has(msg.room_id)) continue;
+        if (isCallSignalingMessage(msg.message_type, msg.body)) continue;
+        roomLastMsg.set(msg.room_id, {
+          body: msg.body ?? "",
+          created_at: msg.created_at ?? new Date().toISOString(),
+          sender_id: msg.sender_id,
+          message_type: msg.message_type,
+        });
       }
     }
 
@@ -197,7 +192,7 @@ export async function getHubMessageThreads(userId: string) {
         avatarUrl: null,
         subtitle: community?.name ?? null,
         lastMessage: last
-          ? previewMessage(last.body, last.message_type)
+          ? previewChatMessage(last.body, last.message_type)
           : "Group chat",
         lastMessageTime: last?.created_at ?? new Date().toISOString(),
         unreadCount: last && last.sender_id !== userId ? 1 : 0,
@@ -280,21 +275,25 @@ export async function getHubDirectMessages(userId: string, conversationId: strin
 
   const profileMap = new Map((profs ?? []).map((p) => [p.id, p]));
 
-  const messages: HubMessageItem[] = (rows ?? []).map((r) => {
-    const profile = profileMap.get(r.sender_id);
-    const attachments = Array.isArray(r.attachments) ? (r.attachments as HubMessageItem["attachments"]) : [];
-    return {
-      id: r.id,
-      body: r.body,
-      sender_id: r.sender_id,
-      sender_name: profile?.full_name ?? profile?.username ?? "Member",
-      sender_avatar: profile?.avatar_url ?? null,
-      created_at: r.created_at ?? new Date().toISOString(),
-      message_type: r.message_type ?? "text",
-      attachments,
-      reactions: countReactions(r.reactions),
-    };
-  });
+  const messages: HubMessageItem[] = (rows ?? [])
+    .filter((r) => !isCallSignalingMessage(r.message_type, r.body))
+    .map((r) => {
+      const profile = profileMap.get(r.sender_id);
+      const attachments = Array.isArray(r.attachments)
+        ? (r.attachments as HubMessageItem["attachments"])
+        : [];
+      return {
+        id: r.id,
+        body: r.body,
+        sender_id: r.sender_id,
+        sender_name: profile?.full_name ?? profile?.username ?? "Member",
+        sender_avatar: profile?.avatar_url ?? null,
+        created_at: r.created_at ?? new Date().toISOString(),
+        message_type: r.message_type ?? "text",
+        attachments,
+        reactions: countReactions(r.reactions),
+      };
+    });
 
   return { conversationId, messages, pinnedMessage: null as string | null };
 }
@@ -346,21 +345,25 @@ export async function getHubRoomMessages(userId: string, roomId: string) {
 
   const profileMap = new Map((profs ?? []).map((p) => [p.id, p]));
 
-  const messages: HubMessageItem[] = (rows ?? []).map((r) => {
-    const profile = profileMap.get(r.sender_id);
-    const attachments = Array.isArray(r.attachments) ? (r.attachments as HubMessageItem["attachments"]) : [];
-    return {
-      id: r.id,
-      body: r.body ?? "",
-      sender_id: r.sender_id,
-      sender_name: profile?.full_name ?? profile?.username ?? "Member",
-      sender_avatar: profile?.avatar_url ?? null,
-      created_at: r.created_at ?? new Date().toISOString(),
-      message_type: r.message_type ?? "text",
-      attachments,
-      reactions: countReactions(r.reactions),
-    };
-  });
+  const messages: HubMessageItem[] = (rows ?? [])
+    .filter((r) => !isCallSignalingMessage(r.message_type, r.body))
+    .map((r) => {
+      const profile = profileMap.get(r.sender_id);
+      const attachments = Array.isArray(r.attachments)
+        ? (r.attachments as HubMessageItem["attachments"])
+        : [];
+      return {
+        id: r.id,
+        body: r.body ?? "",
+        sender_id: r.sender_id,
+        sender_name: profile?.full_name ?? profile?.username ?? "Member",
+        sender_avatar: profile?.avatar_url ?? null,
+        created_at: r.created_at ?? new Date().toISOString(),
+        message_type: r.message_type ?? "text",
+        attachments,
+        reactions: countReactions(r.reactions),
+      };
+    });
 
   const community = room.communities as { slug: string; name: string } | null;
 
