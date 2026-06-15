@@ -427,7 +427,7 @@
 //                     {/* Communities */}
 //                     {(communitiesOpen || collapsed) &&
 //                         communitiesToRender.map((community) => {
-//                             const href = `/c/community/${community.slug}`;
+//                             const href = `/c/${community.slug}`;
 //                             const active = pathname.startsWith(href);
 //                             return (
 //                                 <Link
@@ -1128,7 +1128,7 @@ function SidebarContent({
 
                     {/* Community list */}
                     {(communitiesOpen || collapsed) && communitiesToRender.map((community) => {
-                        const href = `/c/community/${community.slug}`;
+                        const href = `/c/${community.slug}`;
                         const active = pathname.startsWith(href);
                         return (
                             <Link

@@ -8,11 +8,8 @@ import type { ChatAttachmentPayload } from "@/lib/community-chat-upload";
 import { useCall } from "@/components/community/call-context";
 import { useWorkspace } from "@/components/community/workspace-context";
 import { useRouter } from "next/navigation";
-import {
-    deriveMessageType,
-    parseAttachments,
-    pickMime,
-} from "@/lib/utils";
+import { deriveMessageType, parseAttachments, pickMime } from "@/lib/utils";
+import { toast } from "sonner";
 import type {
     ActiveConvPeer,
     ChatFilter,
@@ -537,6 +534,7 @@ export function useChatRoom({
                 }
             } catch (e: unknown) {
                 console.error(e);
+                toast.error(e instanceof Error ? e.message : "Failed to upload file");
             } finally {
                 setUploading(false);
             }
@@ -598,6 +596,7 @@ export function useChatRoom({
                 }
             } catch (e: unknown) {
                 console.error(e);
+                toast.error(e instanceof Error ? e.message : "Failed to send message");
             } finally {
                 setSending(false);
             }
@@ -637,7 +636,7 @@ export function useChatRoom({
         if (voiceRecording || sending || uploading) return;
         const mime = pickMime();
         if (!mime) {
-            console.error("Voice recording not supported in this browser.");
+            toast.error("Voice recording is not supported in this browser.");
             return;
         }
         try {
@@ -674,6 +673,7 @@ export function useChatRoom({
             setVoiceRecording(true);
         } catch (e: unknown) {
             console.error("Microphone access denied.", e);
+            toast.error("Microphone access is required for voice messages.");
         }
     }, [voiceRecording, sending, uploading]);
 
@@ -715,13 +715,14 @@ export function useChatRoom({
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error);
-            upsertMessage(data.message as Msg);
+            upsertMessage((data.message ?? data.row) as Msg);
             setVoiceBlob(null);
             setVoiceMime("");
             setAtBottom(true);
             setTimeout(() => scrollToBottom(), 50);
         } catch (e: unknown) {
             console.error("Voice send failed:", e);
+            toast.error(e instanceof Error ? e.message : "Failed to send voice message");
         } finally {
             setSending(false);
         }

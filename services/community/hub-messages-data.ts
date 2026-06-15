@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { aggregateMemberPoints } from "@/lib/community/points";
+import type { Json } from "@/types/supabase";
 import {
   findLastVisibleMessage,
   isCallSignalingMessage,
@@ -202,7 +203,7 @@ export async function getHubMessageThreads(userId: string) {
         communitySlug: community?.slug ?? "",
         peerId: null,
         roomId: room.id,
-        href: community ? `/c/community/${community.slug}/room?room=${room.id}` : null,
+        href: community ? `/c/${community.slug}/room?room=${room.id}` : null,
       });
     }
 
@@ -223,7 +224,7 @@ export async function getHubMessageThreads(userId: string) {
         communitySlug: community?.slug ?? "",
         peerId: null,
         roomId: null,
-        href: community ? `/c/community/${community.slug}` : null,
+        href: community ? `/c/${community.slug}` : null,
       });
     }
   }
@@ -417,7 +418,7 @@ export async function getHubMessagePeer(userId: string, peerId: string) {
     .map((m) => {
       const c = m.communities as { id: string; name: string; slug: string } | null;
       return c
-        ? { id: c.id, name: c.name, slug: c.slug, href: `/c/community/${c.slug}` }
+        ? { id: c.id, name: c.name, slug: c.slug, href: `/c/${c.slug}` }
         : null;
     })
     .filter(Boolean) as HubMessagePeer["sharedCommunities"];
@@ -438,7 +439,9 @@ export async function getHubMessagePeer(userId: string, peerId: string) {
 export async function sendHubDirectMessage(
   userId: string,
   conversationId: string,
-  body: string
+  body: string,
+  attachments: unknown[] = [],
+  messageType?: string
 ) {
   const supabase = await createClient();
 
@@ -452,8 +455,23 @@ export async function sendHubDirectMessage(
     return { error: "Forbidden" };
   }
 
+  const attachmentList = Array.isArray(attachments) ? attachments : [];
   const trimmed = body.trim();
-  if (!trimmed) return { error: "Message cannot be empty" };
+  if (!trimmed && attachmentList.length === 0) return { error: "Message cannot be empty" };
+
+  let resolvedType = messageType ?? "text";
+  if (attachmentList.length > 0 && !trimmed) {
+    const mimes = attachmentList.map((a) =>
+      typeof a === "object" && a && "mime" in a && typeof (a as { mime?: string }).mime === "string"
+        ? (a as { mime: string }).mime
+        : ""
+    );
+    const allImages = mimes.length > 0 && mimes.every((m) => m.startsWith("image/"));
+    const allAudio = mimes.length > 0 && mimes.every((m) => m.startsWith("audio/"));
+    if (allImages) resolvedType = "image";
+    else if (allAudio) resolvedType = "audio";
+    else resolvedType = "file";
+  }
 
   const { data, error } = await supabase
     .from("community_inbox_messages")
@@ -461,9 +479,9 @@ export async function sendHubDirectMessage(
       conversation_id: conversationId,
       sender_id: userId,
       body: trimmed,
-      message_type: "text",
+      message_type: resolvedType,
       reactions: {},
-      attachments: [],
+      attachments: attachmentList as Json[],
     })
     .select("id, body, sender_id, created_at, message_type, attachments, reactions")
     .single();

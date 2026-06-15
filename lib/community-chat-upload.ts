@@ -11,6 +11,13 @@ export type ChatAttachmentPayload = {
   publicId?: string;
 };
 
+/** Pick Cloudinary resource type for chat attachments. */
+function cloudinaryResourceType(mime: string): "image" | "video" | "raw" {
+  if (mime.startsWith("image/")) return "image";
+  if (mime.startsWith("video/") || mime.startsWith("audio/")) return "video";
+  return "raw";
+}
+
 /** Upload a file for community chat directly to Cloudinary via the signed upload API. */
 export async function uploadCommunityChatFile(
   _communityId: string,
@@ -31,10 +38,8 @@ export async function uploadCommunityChatFile(
 
   const { data: sig } = await sigRes.json();
 
-  // 2. Determine resource type (audio files are uploaded as "video" resource type in Cloudinary)
-  const resourceType = file.type.startsWith("video/") || file.type.startsWith("audio/") ? "video" : "image";
+  const resourceType = cloudinaryResourceType(file.type || "");
 
-  // 3. Upload directly from browser to Cloudinary
   const formData = new FormData();
   formData.append("file",      file);
   formData.append("api_key",   sig.apiKey);

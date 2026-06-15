@@ -15,7 +15,7 @@ export function HubCard({
   return (
     <div
       className={cn(
-        "rounded-2xl border border-[var(--color-border,#e4e4e7)] bg-[var(--color-surface,#ffffff)] shadow-sm",
+        "rounded-lg border border-[var(--color-border,#e4e4e7)] bg-[var(--color-surface,#ffffff)] shadow-sm",
         padding && "p-4",
         className
       )}
@@ -184,7 +184,7 @@ export function HubLinkButton({
     <Link
       href={href}
       className={cn(
-        "inline-flex items-center justify-center rounded-xl px-3 py-2 text-[12px] font-semibold transition-colors",
+        "inline-flex items-center justify-center rounded-md px-3 py-2 text-[12px] font-semibold transition-colors",
         styles[variant],
         className
       )}
@@ -204,7 +204,7 @@ export function HubPremiumCard({ className }: { className?: string }) {
         </p>
         <Link
           href="/c/settings"
-          className="mt-3 inline-flex rounded-xl bg-[#fd5000] px-3 py-2 text-[11px] font-bold text-white transition hover:bg-[#e04800]"
+          className="mt-3 inline-flex rounded-md bg-[#fd5000] px-3 py-2 text-[11px] font-bold text-white transition hover:bg-[#e04800]"
         >
           Upgrade Now
         </Link>

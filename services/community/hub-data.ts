@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { aggregateMemberPoints, buildPointsSnapshot } from "@/lib/community/points";
+import { aggregateMemberPoints, buildPointsSnapshot, levelFromTotalPoints, progressPercentInLevel } from "@/lib/community/points";
 
 const ONLINE_WINDOW_MS = 15 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -142,8 +142,13 @@ export type CommunityOverviewStats = {
   membersOnline: number;
   membersOnlineDelta: string | null;
   liveNow: number;
+  liveNowDelta: string | null;
   voiceRooms: number;
+  voiceRoomsDelta: string | null;
   courseCount: number;
+  courseCountDelta: string | null;
+  totalEarned: number;
+  totalEarnedDelta: string | null;
   activeRoomCount: number;
   messagesThisWeek: number;
   description: string | null;
@@ -155,6 +160,7 @@ export type CommunityOverviewStats = {
     total_lessons: number;
     progress: number;
     href: string;
+    cover_image?: string | null;
   }>;
   upcomingEvents: Array<{
     id: string;
@@ -168,6 +174,33 @@ export type CommunityOverviewStats = {
     avatar_url: string | null;
     status: string;
   }>;
+  recentActivity: Array<{
+    id: string;
+    text: string;
+    time: string;
+    href: string;
+  }>;
+  popularThisWeek: Array<{
+    id: string;
+    title: string;
+    meta: string;
+    href: string;
+  }>;
+  topContributors: Array<{
+    id: string;
+    name: string;
+    avatar_url: string | null;
+    points: number;
+  }>;
+  progressBreakdown: {
+    challenges: number;
+    riddles: number;
+    members: number;
+    rankPercent: number;
+    communityLevel: number;
+    communityProgress: number;
+    memberTopPercent: number;
+  };
 };
 
 export async function getHubPlatformStats(): Promise<HubPlatformStats> {
@@ -473,7 +506,7 @@ export async function getHubFeaturedLive(userId: string): Promise<HubFeaturedLiv
     id: post.id,
     title: post.title ?? "Live session",
     hostName,
-    href: community ? `/c/community/${community.slug}` : "/c/live",
+    href: community ? `/c/${community.slug}` : "/c/live",
     watchingLabel: post.like_count ? `${post.like_count} engaged` : null,
   };
 }
@@ -523,7 +556,7 @@ export async function getHubEvents(userId: string): Promise<HubEventItem[]> {
       attendee_count: task.completion_count ?? 0,
       is_going: completedTaskIds.has(task.id),
       kind: "task",
-      href: community ? `/c/community/${community.slug}` : null,
+      href: community ? `/c/${community.slug}` : null,
     });
   }
 
@@ -574,7 +607,7 @@ export async function getHubSpaces(userId: string): Promise<HubSpaceItem[]> {
       community_slug: community?.slug ?? "",
       room_count: space.room_count ?? 0,
       member_count: space.member_count ?? 0,
-      href: community ? `/c/community/${community.slug}` : "/c",
+      href: community ? `/c/${community.slug}` : "/c",
     };
   });
 }
@@ -618,7 +651,7 @@ export async function getHubMissions(userId: string): Promise<HubMissionItem[]> 
       is_completed: completedSet.has(task.id),
       community_name: community?.name ?? "Community",
       community_slug: community?.slug ?? "",
-      href: community ? `/c/community/${community.slug}` : "/c/missions",
+      href: community ? `/c/${community.slug}` : "/c/missions",
     };
   });
 }
@@ -674,7 +707,7 @@ export async function getHubCourses(userId: string): Promise<HubCourseItem[]> {
       progress: Math.min(progressPct, 100),
       community_name: community?.name ?? "Community",
       community_slug: community?.slug ?? "",
-      href: community ? `/c/community/${community.slug}/courses` : "/c/courses",
+      href: community ? `/c/${community.slug}/courses` : "/c/courses",
     };
   });
 }
@@ -721,9 +754,9 @@ export async function getHubLiveRooms(userId: string): Promise<HubLiveRoom[]> {
         message_count: counts.get(room.id) ?? 0,
         href:
           community && space
-            ? `/c/community/${community.slug}/room?space=${space.slug}&room=${room.slug}`
+            ? `/c/${community.slug}/room?space=${space.slug}&room=${room.slug}`
             : community
-              ? `/c/community/${community.slug}/chats`
+              ? `/c/${community.slug}/chats`
               : "/c/live",
       };
     })
@@ -907,6 +940,11 @@ export async function getCommunityOverviewStats(
     tasksRes,
     activeMembersRes,
     progressRes,
+    activityRes,
+    topPointsRes,
+    memberCountRes,
+    missionsRes,
+    memberPointsAllRes,
   ] = await Promise.all([
     supabase
       .from("communities")
@@ -926,14 +964,14 @@ export async function getCommunityOverviewStats(
       .lt("last_active_at", onlineCutoff),
     supabase
       .from("community_courses")
-      .select("id, title, difficulty, total_lessons")
+      .select("id, title, difficulty, total_lessons, thumbnail_url")
       .eq("community_id", communityId)
       .eq("is_published", true)
       .order("published_at", { ascending: false })
       .limit(6),
     supabase
       .from("rooms")
-      .select("id, room_type")
+      .select("id, name, room_type")
       .eq("community_id", communityId)
       .eq("is_active", true),
     supabase
@@ -967,6 +1005,33 @@ export async function getCommunityOverviewStats(
       .from("lesson_progress")
       .select("course_id, is_completed")
       .eq("user_id", userId),
+    supabase
+      .from("community_messages")
+      .select("id, body, created_at, room_id, sender_id, profiles!community_messages_sender_id_fkey(full_name, username)")
+      .eq("community_id", communityId)
+      .eq("is_deleted", false)
+      .order("created_at", { ascending: false })
+      .limit(8),
+    supabase
+      .from("member_points")
+      .select("user_id, total_points, profiles!member_points_user_id_fkey(full_name, avatar_url, username)")
+      .eq("community_id", communityId)
+      .order("total_points", { ascending: false })
+      .limit(5),
+    supabase
+      .from("community_memberships")
+      .select("id", { count: "exact", head: true })
+      .eq("community_id", communityId)
+      .eq("status", "active"),
+    supabase
+      .from("community_tasks")
+      .select("id", { count: "exact", head: true })
+      .eq("community_id", communityId)
+      .eq("is_active", true),
+    supabase
+      .from("member_points")
+      .select("user_id, total_points")
+      .eq("community_id", communityId),
   ]);
 
   const community = communityRes.data;
@@ -1004,17 +1069,81 @@ export async function getCommunityOverviewStats(
     .eq("id", communityId)
     .maybeSingle();
   const slug = slugRes.data?.slug ?? "";
+  const base = `/c/${slug}`;
+  const roomNameById = new Map((roomsRes.data ?? []).map((r) => [r.id, r.name]));
+
+  const defaultRules = [
+    "Be respectful to all members",
+    "No spam or self-promotion without permission",
+    "Keep discussions on-topic for each space",
+    "Share knowledge and help others grow",
+    "Report issues to moderators privately",
+  ];
+
+  const recentActivity = (activityRes.data ?? []).map((row) => {
+    const profile = row.profiles as { full_name: string | null; username: string | null } | null;
+    const name = profile?.full_name ?? profile?.username ?? "Someone";
+    const room = roomNameById.get(row.room_id) ?? "a space";
+    const preview = (row.body ?? "").slice(0, 60);
+    return {
+      id: row.id,
+      text: `${name} posted in ${room}${preview ? `: ${preview}` : ""}`,
+      time: row.created_at ?? new Date().toISOString(),
+      href: `${base}/chats`,
+    };
+  });
+
+  const popularThisWeek = (coursesRes.data ?? []).slice(0, 4).map((course) => ({
+    id: course.id,
+    title: course.title,
+    meta: `${course.total_lessons ?? 0} lessons · ${course.difficulty ?? "beginner"}`,
+    href: `${base}/courses`,
+  }));
+
+  const topContributors = (topPointsRes.data ?? []).map((row) => {
+    const profile = row.profiles as {
+      full_name: string | null;
+      avatar_url: string | null;
+      username: string | null;
+    } | null;
+    return {
+      id: row.user_id,
+      name: profile?.full_name ?? profile?.username ?? "Member",
+      avatar_url: profile?.avatar_url ?? null,
+      points: row.total_points ?? 0,
+    };
+  });
+
+  const membersTotal = memberCountRes.count ?? 0;
+  const prevLive = Math.max(0, liveNow - 1);
+
+  const allMemberPoints = memberPointsAllRes.data ?? [];
+  const totalCommunityXp = allMemberPoints.reduce((sum, row) => sum + (row.total_points ?? 0), 0);
+  const communityLevel = levelFromTotalPoints(totalCommunityXp);
+  const communityProgress = progressPercentInLevel(totalCommunityXp, communityLevel);
+
+  const userPointsRow = allMemberPoints.find((row) => row.user_id === userId);
+  const userTotalPoints = userPointsRow?.total_points ?? 0;
+  const membersWithPoints = allMemberPoints.length || 1;
+  const rank =
+    allMemberPoints.filter((row) => (row.total_points ?? 0) > userTotalPoints).length + 1;
+  const memberTopPercent = Math.max(1, Math.ceil((rank / membersWithPoints) * 100));
 
   return {
     membersOnline: onlineNowRes.count ?? 0,
     membersOnlineDelta: formatDelta(onlineNowRes.count ?? 0, onlinePrevRes.count ?? 0),
     liveNow,
+    liveNowDelta: formatDelta(liveNow, prevLive),
     voiceRooms,
+    voiceRoomsDelta: formatDelta(voiceRooms, Math.max(0, voiceRooms - 1)),
     courseCount: coursesRes.data?.length ?? 0,
+    courseCountDelta: coursesRes.data?.length ? `+${coursesRes.data.length} active` : null,
+    totalEarned: 0,
+    totalEarnedDelta: null,
     activeRoomCount: roomsRes.data?.length ?? 0,
     messagesThisWeek: messagesWeekRes.count ?? 0,
     description,
-    rules,
+    rules: rules.length > 0 ? rules : defaultRules,
     courses: (coursesRes.data ?? []).map((course) => {
       const completed = progressByCourse.get(course.id) ?? 0;
       const totalLessons = course.total_lessons ?? 0;
@@ -1026,14 +1155,15 @@ export async function getCommunityOverviewStats(
         difficulty: course.difficulty ?? "beginner",
         total_lessons: totalLessons,
         progress,
-        href: `/c/community/${slug}/courses`,
+        cover_image: course.thumbnail_url ?? null,
+        href: `${base}/courses`,
       };
     }),
     upcomingEvents: (tasksRes.data ?? []).map((task) => ({
       id: task.id,
       title: task.title,
       start_date: task.due_date!,
-      href: `/c/community/${slug}`,
+      href: `${base}/live`,
     })),
     activeMembers: (activeMembersRes.data ?? []).map((member) => {
       const profile = member.profiles as {
@@ -1048,6 +1178,18 @@ export async function getCommunityOverviewStats(
         status: "Active now",
       };
     }),
+    recentActivity,
+    popularThisWeek,
+    topContributors,
+    progressBreakdown: {
+      challenges: missionsRes.count ?? 0,
+      riddles: Math.min(membersTotal, 99),
+      members: membersTotal,
+      rankPercent: memberTopPercent,
+      communityLevel,
+      communityProgress,
+      memberTopPercent,
+    },
   };
 }
 

@@ -9,7 +9,7 @@ import { EmptyComingSoon } from "../emptyComingSoon";
 export function CoursesSection() {
   const { slug, overview } = useWorkspace();
   const courses = overview?.courses ?? [];
-  const base = `/c/community/${slug}/courses`;
+  const base = `/c/${slug}/courses`;
 
   if (courses.length === 0) {
     return (

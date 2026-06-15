@@ -490,7 +490,7 @@
 
 //       {/* Premium upsell */}
 //       {!isPremium && (
-//         <div className="flex-shrink-0 mx-2 mt-3 p-3 rounded-2xl bg-gradient-to-br from-[#fd5000] to-[#ff8c42] text-white">
+//         <div className="flex-shrink-0 mx-2 mt-3 p-3 rounded-lg bg-gradient-to-br from-[#fd5000] to-[#ff8c42] text-white">
 //           <div className="flex items-center gap-2 mb-1.5">
 //             <Star className="w-4 h-4 fill-white" />
 //             <span className="text-[13px] font-bold">Go Premium</span>
@@ -500,7 +500,7 @@
 //           </p>
 //           <button
 //             type="button"
-//             className="w-full py-1.5 rounded-lg bg-white text-[#fd5000] text-[12px] font-bold hover:bg-white/90 transition-colors"
+//             className="w-full py-1.5 rounded-md bg-white text-[#fd5000] text-[12px] font-bold hover:bg-white/90 transition-colors"
 //           >
 //             Upgrade Now
 //           </button>
@@ -1393,7 +1393,7 @@ import {
   Home, Radio, GraduationCap, Users, Trophy, Layers,
   Plus, ChevronDown, ChevronRight, Flame,
   MessageCircle, FileText, Folder, CheckSquare, LayoutList, Hash,
-  MoreHorizontal, Star,
+  MoreHorizontal, Star, UserPlus, ShieldCheck, Calendar, Megaphone, Target,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -1420,25 +1420,22 @@ interface Props {
   spacesWithRooms?: WorkspaceSpaceRow[];
   membership?: MembershipLite | null;
   overview?: CommunityOverviewStats | null;
+  basePath?: string;
   children: React.ReactNode;
 }
 
 /* ─── Nav config ──────────────────────────────────────────────────── */
 
 interface NavItem {
-  href: string;        // relative to /c/community/[slug]
+  href: string;        // relative to /c/[slug]
   label: string;
   icon: LucideIcon;
   matchExact?: boolean;
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { href: "", label: "Overview", icon: Home, matchExact: true },
   { href: "/chats", label: "Chats", icon: MessageCircle },
   { href: "/live", label: "Live", icon: Radio },
-  { href: "/courses", label: "Courses", icon: GraduationCap },
-  { href: "/members", label: "Members", icon: Users },
-  { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
 ];
 
 const MOBILE_NAV_ITEMS: NavItem[] = [
@@ -1499,13 +1496,13 @@ export function WorkspaceLayout({
   community, currentUserId, role, isAdmin, isOwner,
   initialView,
   profile = null, points = null, spacesWithRooms = [],
-  membership = null, overview = null,
+  membership = null, overview = null, basePath: basePathProp,
   children,
 }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const basePath = `/c/community/${community.slug}`;
+  const basePath = basePathProp ?? `/c/${community.slug}`;
 
   const urlView = searchParams.get("view");
   const [view, setView] = useState<WorkspaceView>(
@@ -1583,12 +1580,12 @@ export function WorkspaceLayout({
   return (
     <WorkspaceProvider value={ctx}>
       <CallProvider>
-        <div className="flex flex-col bg-bg font-[family-name:var(--font-dm-sans)] h-full">
+        <div className="flex flex-col bg-bg font-[family-name:var(--font-dm-sans)] h-full min-h-0">
           <div
             className={cn(
-              "px-4 lg:px-6 py-4 lg:py-6 pb-24 lg:pb-6",
+              "flex flex-1 min-h-0 px-4 lg:px-6 py-4 lg:py-6 pb-24 lg:pb-6",
               roomOverlayOpen
-                ? "flex-1"
+                ? "flex flex-col"
                 : "lg:grid lg:grid-cols-[240px_1fr] lg:gap-5",
             )}
           >
@@ -1604,6 +1601,7 @@ export function WorkspaceLayout({
                   onViewToggle={toggleView}
                   profile={profile}
                   points={points}
+                  overview={overview}
                   spacesWithRooms={spacesWithRooms}
                   expandedSpaces={expandedSpaces}
                   onToggleSpace={(id) =>
@@ -1615,8 +1613,8 @@ export function WorkspaceLayout({
             )}
 
             {/* ── Main content slot ── */}
-            <main className={cn("relative min-w-0", roomOverlayOpen && "overflow-hidden")}>
-              <div className="min-w-0">{children}</div>
+            <main className={cn("relative flex min-h-0 min-w-0 flex-1 flex-col", roomOverlayOpen && "overflow-hidden")}>
+              <div className="flex min-h-0 min-w-0 flex-1 flex-col">{children}</div>
 
               {roomOverlayOpen && (
                 <WorkspaceRoomOverlay
@@ -1651,7 +1649,7 @@ export function WorkspaceLayout({
 
 function Sidebar({
   community, basePath, pathname, view, isAdmin, onViewToggle,
-  profile, points, spacesWithRooms, expandedSpaces, onToggleSpace, onNavigateRoom,
+  profile, points, overview, spacesWithRooms, expandedSpaces, onToggleSpace, onNavigateRoom,
 }: {
   community: WorkspaceCommunity;
   basePath: string;
@@ -1661,6 +1659,7 @@ function Sidebar({
   onViewToggle: () => void;
   profile: { full_name: string | null; avatar_url: string | null; username: string | null } | null;
   points: PointsSnapshot | null;
+  overview: CommunityOverviewStats | null;
   spacesWithRooms: WorkspaceSpaceRow[];
   expandedSpaces: Record<string, boolean>;
   onToggleSpace: (id: string) => void;
@@ -1678,24 +1677,40 @@ function Sidebar({
     <div className="sticky top-0 flex flex-col h-[calc(100vh-var(--hub-topbar-h,56px))] overflow-y-auto pb-4">
 
       {/* Community header */}
-      <div className="flex items-center gap-2.5 px-3 py-3 flex-shrink-0">
-        {community.avatar_url ? (
-          <img
-            src={community.avatar_url}
-            alt={community.name}
-            className="w-9 h-9 rounded-lg object-cover ring-1 ring-border flex-shrink-0"
-          />
-        ) : (
-          <div className="w-9 h-9 rounded-lg bg-[#fd5000] text-white font-bold text-sm flex items-center justify-center flex-shrink-0">
-            {community.name[0]?.toUpperCase()}
+      <div className="px-3 py-3 flex-shrink-0 space-y-2.5">
+        <div className="flex items-center gap-2.5">
+          {community.avatar_url ? (
+            <img
+              src={community.avatar_url}
+              alt={community.name}
+              className="w-9 h-9 rounded-md object-cover ring-1 ring-border flex-shrink-0"
+            />
+          ) : (
+            <div className="w-9 h-9 rounded-md bg-[#fd5000] text-white font-bold text-sm flex items-center justify-center flex-shrink-0">
+              {community.name[0]?.toUpperCase()}
+            </div>
+          )}
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1">
+              <p className="text-[13px] font-bold text-text-primary truncate">{community.name}</p>
+              <ShieldCheck className="w-3.5 h-3.5 text-[#fd5000] flex-shrink-0" />
+            </div>
+            <p className="text-[10px] text-text-muted">
+              {(community as { is_private?: boolean }).is_private ? "Private Community" : "Public Community"}
+            </p>
+            <p className="text-[10px] text-emerald-600 font-medium">
+              {(overview?.membersOnline ?? community.member_count ?? 0).toLocaleString()} members online
+            </p>
           </div>
-        )}
-        <div className="min-w-0 flex-1">
-          <p className="text-[13px] font-bold text-text-primary truncate">{community.name}</p>
-          <p className="text-[10px] text-text-muted">
-            {community.member_count?.toLocaleString() ?? 0} members
-          </p>
         </div>
+
+        <Link
+          href={`${basePath}/members`}
+          className="flex w-full items-center justify-center gap-2 rounded-md bg-[#fd5000] px-3 py-2 text-[12px] font-semibold text-white shadow-sm shadow-[#fd5000]/25 transition-opacity hover:opacity-90"
+        >
+          <UserPlus className="w-3.5 h-3.5" />
+          Invite People
+        </Link>
       </div>
 
       {/* Admin/Member toggle */}
@@ -1705,7 +1720,7 @@ function Sidebar({
             type="button"
             onClick={onViewToggle}
             className={cn(
-              "w-full px-2.5 py-1.5 text-[11px] font-semibold rounded-lg transition-all",
+              "w-full px-2.5 py-1.5 text-[11px] font-semibold rounded-md transition-all",
               view === "admin"
                 ? "bg-[#fd5000]/10 text-[#fd5000]"
                 : "bg-surface-secondary text-text-muted hover:text-text-primary",
@@ -1718,8 +1733,49 @@ function Sidebar({
 
       <div className="h-px bg-border mx-2 flex-shrink-0" />
 
-      {/* Main nav — uses <Link> */}
-      <nav className="flex-shrink-0 space-y-0.5 py-3 px-2">
+      {/* Overview links */}
+      <div className="flex-shrink-0 py-2 px-2">
+        <p className="px-3 mb-2 text-[10px] font-bold uppercase tracking-wider text-text-muted">Overview</p>
+        <nav className="space-y-0.5">
+          {[
+            { href: "", label: "Announcements", icon: Megaphone, badge: overview?.messagesThisWeek ? String(Math.min(overview.messagesThisWeek, 99)) : null, matchExact: true },
+            { href: "/live", label: "Events", icon: Calendar, badge: overview?.upcomingEvents?.length ? String(overview.upcomingEvents.length) : null },
+            { href: "/courses", label: "Courses", icon: GraduationCap, badge: overview?.courseCount ? String(overview.courseCount) : null },
+            { href: "/members", label: "Members", icon: Users },
+            { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
+            { href: "", label: "Challenges", icon: Target, matchExact: true },
+          ].map((item) => {
+            const active = isActive(item);
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.label}
+                href={`${basePath}${item.href}`}
+                className={cn(
+                  "w-full flex items-center gap-3 px-3 py-2 rounded-md text-[12px] font-medium transition-all",
+                  active
+                    ? "bg-[#fd5000]/10 text-[#fd5000]"
+                    : "text-text-secondary hover:bg-surface-secondary hover:text-text-primary",
+                )}
+              >
+                <Icon className="w-4 h-4 flex-shrink-0 opacity-70" />
+                <span className="flex-1 text-left">{item.label}</span>
+                {item.badge && (
+                  <span className="rounded-md bg-surface-secondary px-1.5 py-0.5 text-[10px] font-semibold text-text-muted">
+                    {item.badge}
+                  </span>
+                )}
+              </Link>
+            );
+          })}
+        </nav>
+      </div>
+
+      <div className="h-px bg-border mx-2 flex-shrink-0" />
+
+      {/* Quick links */}
+      <nav className="flex-shrink-0 space-y-0.5 py-2 px-2">
+        <p className="px-3 mb-2 text-[10px] font-bold uppercase tracking-wider text-text-muted">Quick access</p>
         {NAV_ITEMS.map((item) => {
           const active = isActive(item);
           const Icon = item.icon;
@@ -1728,7 +1784,7 @@ function Sidebar({
               key={item.href || "feed"}
               href={`${basePath}${item.href}`}
               className={cn(
-                "w-full flex items-center gap-3 px-3 py-2 rounded-xl text-[13px] font-medium transition-all",
+                "w-full flex items-center gap-3 px-3 py-2 rounded-md text-[13px] font-medium transition-all",
                 active
                   ? "bg-[#fd5000] text-white shadow-sm shadow-[#fd5000]/25"
                   : "text-text-secondary hover:bg-surface-secondary hover:text-text-primary",
@@ -1769,9 +1825,9 @@ function Sidebar({
                   <button
                     type="button"
                     onClick={() => onToggleSpace(space.id)}
-                    className="w-full flex items-center gap-2 px-3 py-1.5 rounded-xl text-left hover:bg-surface-secondary transition-colors group"
+                    className="w-full flex items-center gap-2 px-3 py-1.5 rounded-md text-left hover:bg-surface-secondary transition-colors group"
                   >
-                    <div className="w-6 h-6 rounded-lg bg-[#fd5000]/10 flex items-center justify-center flex-shrink-0">
+                    <div className="w-6 h-6 rounded-md bg-[#fd5000]/10 flex items-center justify-center flex-shrink-0">
                       <Hash className="w-3 h-3 text-[#fd5000]" />
                     </div>
                     <span className="flex-1 truncate text-[12px] font-medium text-text-primary">
@@ -1793,7 +1849,7 @@ function Sidebar({
                             <button
                               type="button"
                               onClick={() => onNavigateRoom(space.id, room.id)}
-                              className="w-full flex items-center gap-1.5 px-2 py-1 rounded-lg text-[12px] text-text-secondary hover:bg-surface-secondary hover:text-text-primary transition-colors"
+                              className="w-full flex items-center gap-1.5 px-2 py-1 rounded-md text-[12px] text-text-secondary hover:bg-surface-secondary hover:text-text-primary transition-colors"
                             >
                               <RoomIcon className="w-3.5 h-3.5 shrink-0 opacity-60" />
                               <span className="truncate">{room.name}</span>
@@ -1812,7 +1868,7 @@ function Sidebar({
         {isAdmin && view === "admin" && (
           <button
             type="button"
-            className="w-full flex items-center gap-2.5 px-5 py-1.5 mt-1 rounded-xl text-[12px] font-medium text-text-muted hover:text-[#fd5000] hover:bg-[#fd5000]/5 transition-all"
+            className="w-full flex items-center gap-2.5 px-5 py-1.5 mt-1 rounded-md text-[12px] font-medium text-text-muted hover:text-[#fd5000] hover:bg-[#fd5000]/5 transition-all"
           >
             <Plus className="w-3.5 h-3.5" />
             Create Space
@@ -1824,7 +1880,7 @@ function Sidebar({
 
       {/* Premium upsell */}
       {!isPremium && (
-        <div className="flex-shrink-0 mx-2 mt-3 p-3 rounded-2xl bg-gradient-to-br from-[#fd5000] to-[#ff8c42] text-white">
+        <div className="flex-shrink-0 mx-2 mt-3 p-3 rounded-lg bg-gradient-to-br from-[#fd5000] to-[#ff8c42] text-white">
           <div className="flex items-center gap-2 mb-1.5">
             <Star className="w-4 h-4 fill-white" />
             <span className="text-[13px] font-bold">Go Premium</span>
@@ -1834,7 +1890,7 @@ function Sidebar({
           </p>
           <button
             type="button"
-            className="w-full py-1.5 rounded-lg bg-white text-[#fd5000] text-[12px] font-bold hover:bg-white/90 transition-colors"
+            className="w-full py-1.5 rounded-md bg-white text-[#fd5000] text-[12px] font-bold hover:bg-white/90 transition-colors"
           >
             Upgrade Now
           </button>
@@ -1865,7 +1921,7 @@ function UserProfileCard({
   const name = profile?.full_name || profile?.username || "Member";
 
   return (
-    <div className="p-3 rounded-xl bg-surface border border-border hover:border-border-hover transition-colors">
+    <div className="p-3 rounded-md bg-surface border border-border hover:border-border-hover transition-colors">
       <div className="flex items-center gap-2.5 mb-2.5">
         <Avatar name={name} avatar={profile?.avatar_url} size="sm" />
         <div className="min-w-0 flex-1">

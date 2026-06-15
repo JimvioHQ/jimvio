@@ -170,7 +170,7 @@ export function HubFeedPage() {
           {challenge && (
             <HubCard>
               <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#fd5000]/10 text-[#fd5000]">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-[#fd5000]/10 text-[#fd5000]">
                   <Flame className="h-4 w-4" />
                 </div>
                 <div className="min-w-0 flex-1">
@@ -232,7 +232,7 @@ export function HubFeedPage() {
                 size={40}
               />
               <div className="min-w-0 flex-1">
-                <div className="rounded-xl border-2 border-[#fd5000]/20 bg-[var(--color-surface-secondary,#fafafa)] px-3 py-2.5 transition focus-within:border-[#fd5000]/45">
+                <div className="rounded-md border-2 border-[#fd5000]/20 bg-[var(--color-surface-secondary,#fafafa)] px-3 py-2.5 transition focus-within:border-[#fd5000]/45">
                   <input
                     type="text"
                     readOnly
@@ -263,7 +263,7 @@ export function HubFeedPage() {
                       </button>
                     );
                   })}
-                  <HubLinkButton href="/c/live" className="ml-auto !rounded-xl !px-3.5 !py-1.5 !text-[11px]">
+                  <HubLinkButton href="/c/live" className="ml-auto !rounded-md !px-3.5 !py-1.5 !text-[11px]">
                     <Radio className="mr-1 inline h-3.5 w-3.5" />Go Live
                   </HubLinkButton>
                 </div>
@@ -311,8 +311,8 @@ export function HubFeedPage() {
                 { icon: Scissors, label: "Upload Clip", desc: "Share a short video", href: "/c", color: "#fd5000" },
                 { icon: Target, label: "Create Mission", desc: "Challenge your community", href: "/c/missions", color: "#3b82f6" },
               ].map(({ icon: Icon, label, desc, href, color }) => (
-                <Link key={label} href={href} className="flex items-center gap-2.5 rounded-xl px-2 py-2 transition hover:bg-[var(--color-surface-secondary)]">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-xl" style={{ background: `${color}14`, color }}>
+                <Link key={label} href={href} className="flex items-center gap-2.5 rounded-md px-2 py-2 transition hover:bg-[var(--color-surface-secondary)]">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-md" style={{ background: `${color}14`, color }}>
                     <Icon className="h-4 w-4" />
                   </div>
                   <div className="min-w-0 flex-1">
@@ -359,7 +359,7 @@ export function HubFeedPage() {
                   { label: "Communities", value: data.insights.communitiesJoined, sub: "Joined" },
                   { label: "Live rooms", value: stats?.liveSessions ?? 0, sub: "Active now" },
                 ].map(({ label, value, sub }) => (
-                  <div key={label} className="rounded-xl bg-[var(--color-surface-secondary)] p-2.5">
+                  <div key={label} className="rounded-md bg-[var(--color-surface-secondary)] p-2.5">
                     <p className="text-[10px] text-[var(--color-text-muted)]">{label}</p>
                     <p className="text-[16px] font-black">{value.toLocaleString()}</p>
                     <p className="text-[10px] font-semibold text-emerald-600">{sub}</p>
@@ -371,7 +371,7 @@ export function HubFeedPage() {
 
           <HubCard>
             <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-violet-500/10 text-violet-600">
+              <div className="flex h-8 w-8 items-center justify-center rounded-md bg-violet-500/10 text-violet-600">
                 <Bot className="h-4 w-4" />
               </div>
               <div>
@@ -383,7 +383,7 @@ export function HubFeedPage() {
               <li>• Your audience is most active during evenings.</li>
               <li>• Post clips today to boost reach.</li>
             </ul>
-            <Input placeholder="Ask AI anything…" inputSize="sm" className="mt-3 rounded-xl" />
+            <Input placeholder="Ask AI anything…" inputSize="sm" className="mt-3 rounded-md" />
           </HubCard>
 
           {(data?.stories?.length ?? 0) > 0 && (
@@ -425,7 +425,7 @@ export function HubFeedPage() {
                 <HubLinkButton
                   href="/dashboard/earnings"
                   variant="secondary"
-                  className="mt-3 w-full !rounded-xl !border-white/25 !bg-white/15 !text-white hover:!bg-white/25"
+                  className="mt-3 w-full !rounded-md !border-white/25 !bg-white/15 !text-white hover:!bg-white/25"
                 >
                   View Payouts
                 </HubLinkButton>

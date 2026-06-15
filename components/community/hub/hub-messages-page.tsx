@@ -9,10 +9,14 @@ import {
   Share2, MoreHorizontal, Heart, Flame, Bot, GraduationCap, Scissors,
   Users, Link2, Volume2, Image as ImageIcon, Loader2,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, deriveMessageType, pickMime } from "@/lib/utils";
 import { isCallSignalingMessage } from "@/lib/community/message-signaling";
+import { uploadCommunityChatFile, type ChatAttachmentPayload } from "@/lib/community-chat-upload";
 import { createClient } from "@/lib/supabase/client";
 import { HubAvatar, HubBadge, HubLinkButton, HubSectionTitle } from "./hub-ui";
+import { ChatInputZone } from "@/components/community/chat/ChatInputZone";
+import { MAX_ATTACH, MAX_FILE_BYTES } from "@/types/chat";
+import { toast } from "sonner";
 
 type ThreadKind = "direct" | "group" | "space";
 
@@ -26,6 +30,7 @@ type Thread = {
   lastMessageTime: string;
   unreadCount: number;
   isOnline: boolean;
+  communityId: string;
   communityName: string;
   communitySlug: string;
   peerId: string | null;
@@ -99,6 +104,12 @@ export function HubMessagesPage() {
   const [peer, setPeer] = useState<PeerInfo | null>(null);
   const [loadingMsgs, setLoadingMsgs] = useState(false);
   const [draft, setDraft] = useState("");
+  const [pendingMain, setPendingMain] = useState<ChatAttachmentPayload[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [voiceRecording, setVoiceRecording] = useState(false);
+  const [voiceSeconds, setVoiceSeconds] = useState(0);
+  const [voiceBlob, setVoiceBlob] = useState<Blob | null>(null);
+  const [voiceMime, setVoiceMime] = useState("");
   const [sending, setSending] = useState(false);
   const [activeTab, setActiveTab] = useState<(typeof TABS)[number]["id"]>("all");
   const [search, setSearch] = useState("");
@@ -109,6 +120,10 @@ export function HubMessagesPage() {
   const [showPinned, setShowPinned] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const voiceChunksRef = useRef<Blob[]>([]);
+  const voiceStreamRef = useRef<MediaStream | null>(null);
+  const voiceTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const activeThread = threads.find((t) => t.id === activeThreadId) ?? null;
 
@@ -179,45 +194,171 @@ export function HubMessagesPage() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [visibleMessages]);
 
+  useEffect(() => {
+    return () => {
+      voiceStreamRef.current?.getTracks().forEach((t) => t.stop());
+      if (voiceTimerRef.current) clearInterval(voiceTimerRef.current);
+    };
+  }, []);
+
+  async function handleFiles(files: FileList | null) {
+    if (!files?.length || !activeThread) return;
+    setUploading(true);
+    try {
+      const roomKey = activeThread.roomId ?? activeThread.id;
+      for (const file of Array.from(files)) {
+        if (file.size > MAX_FILE_BYTES) {
+          toast.error(`${file.name} is too large (max 15 MB)`);
+          continue;
+        }
+        const up = await uploadCommunityChatFile(activeThread.communityId, roomKey, file);
+        setPendingMain((p) => (p.length >= MAX_ATTACH ? p : [...p, up]));
+      }
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Failed to upload file");
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function startVoiceRecording() {
+    if (voiceRecording || sending || uploading) return;
+    const mime = pickMime();
+    if (!mime) {
+      toast.error("Voice recording is not supported in this browser.");
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      voiceStreamRef.current = stream;
+      voiceChunksRef.current = [];
+      setVoiceSeconds(0);
+      voiceTimerRef.current = setInterval(() => setVoiceSeconds((s) => s + 1), 1000);
+      const mr = new MediaRecorder(stream, { mimeType: mime });
+      mediaRecorderRef.current = mr;
+      mr.ondataavailable = (e) => {
+        if (e.data.size) voiceChunksRef.current.push(e.data);
+      };
+      mr.onstop = () => {
+        stream.getTracks().forEach((t) => t.stop());
+        voiceStreamRef.current = null;
+        mediaRecorderRef.current = null;
+        if (voiceTimerRef.current) {
+          clearInterval(voiceTimerRef.current);
+          voiceTimerRef.current = null;
+        }
+        const blob = new Blob(voiceChunksRef.current, { type: mime });
+        voiceChunksRef.current = [];
+        setVoiceRecording(false);
+        if (blob.size >= 100) {
+          setVoiceBlob(blob);
+          setVoiceMime(mime);
+        }
+      };
+      mr.start();
+      setVoiceRecording(true);
+    } catch {
+      toast.error("Microphone access is required for voice messages.");
+    }
+  }
+
+  function stopVoiceRecording() {
+    const mr = mediaRecorderRef.current;
+    if (mr && mr.state === "recording") mr.stop();
+    else {
+      setVoiceRecording(false);
+      if (voiceTimerRef.current) {
+        clearInterval(voiceTimerRef.current);
+        voiceTimerRef.current = null;
+      }
+    }
+  }
+
+  async function sendVoiceBlob() {
+    if (!voiceBlob || !activeThread || sending) return;
+    setSending(true);
+    try {
+      const ext = voiceMime.includes("mp4") ? "m4a" : "webm";
+      const file = new File([voiceBlob], `voice-${Date.now()}.${ext}`, {
+        type: voiceBlob.type || voiceMime,
+      });
+      setUploading(true);
+      const up = await uploadCommunityChatFile(
+        activeThread.communityId,
+        activeThread.roomId ?? activeThread.id,
+        file
+      );
+      setUploading(false);
+      await postMessage("", [up], "audio");
+      setVoiceBlob(null);
+      setVoiceMime("");
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Failed to send voice message");
+    } finally {
+      setSending(false);
+      setUploading(false);
+    }
+  }
+
+  async function postMessage(body: string, attachments: ChatAttachmentPayload[], messageType?: string) {
+    if (!activeThreadId || !activeThread) return;
+    const res =
+      activeThread.kind === "group" && activeThread.roomId
+        ? await fetch(`/api/messages/${activeThread.roomId}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              body,
+              attachments,
+              message_type: messageType ?? deriveMessageType(attachments, body),
+            }),
+          })
+        : await fetch(`/api/c/messages/${encodeURIComponent(activeThreadId)}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              body,
+              attachments,
+              message_type: messageType ?? deriveMessageType(attachments, body),
+            }),
+          });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error ?? "Failed to send message");
+    }
+    const data = await res.json();
+    const msg = data.message ?? data.row;
+    if (msg) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: msg.id,
+          body: msg.body ?? "",
+          sender_id: msg.sender_id,
+          sender_name: msg.profiles?.full_name ?? msg.profiles?.username ?? "You",
+          sender_avatar: msg.profiles?.avatar_url ?? null,
+          created_at: msg.created_at ?? new Date().toISOString(),
+          message_type: msg.message_type ?? "text",
+          attachments: Array.isArray(msg.attachments) ? msg.attachments : attachments,
+          reactions: {},
+        },
+      ]);
+      setDraft("");
+      setPendingMain([]);
+      void loadThreads();
+    }
+  }
+
   async function sendMessage() {
-    if (!draft.trim() || !activeThreadId || !activeThread) return;
+    const body = draft.trim();
+    if ((!body && pendingMain.length === 0) || !activeThreadId || !activeThread) return;
     if (activeThread.kind === "space") return;
 
     setSending(true);
     try {
-      const res =
-        activeThread.kind === "group" && activeThread.roomId
-          ? await fetch(`/api/messages/${activeThread.roomId}`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ body: draft.trim() }),
-            })
-          : await fetch(`/api/c/messages/${encodeURIComponent(activeThreadId)}`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ body: draft.trim() }),
-            });
-      if (!res.ok) return;
-      const data = await res.json();
-      const msg = data.message ?? data.row;
-      if (msg) {
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: msg.id,
-            body: msg.body,
-            sender_id: msg.sender_id,
-            sender_name: msg.profiles?.full_name ?? msg.profiles?.username ?? "You",
-            sender_avatar: msg.profiles?.avatar_url ?? null,
-            created_at: msg.created_at ?? new Date().toISOString(),
-            message_type: msg.message_type ?? "text",
-            attachments: Array.isArray(msg.attachments) ? msg.attachments : [],
-            reactions: {},
-          },
-        ]);
-        setDraft("");
-        void loadThreads();
-      }
+      await postMessage(body, pendingMain);
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Failed to send message");
     } finally {
       setSending(false);
     }
@@ -280,7 +421,7 @@ export function HubMessagesPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search messages"
-              className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-secondary,#fafafa)] py-2 pl-9 pr-3 text-[12px] focus:border-[#fd5000]/40 focus:outline-none"
+              className="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-secondary,#fafafa)] py-2 pl-9 pr-3 text-[12px] focus:border-[#fd5000]/40 focus:outline-none"
             />
           </div>
           <div className="mt-3 flex gap-1 overflow-x-auto scrollbar-hide">
@@ -306,7 +447,7 @@ export function HubMessagesPage() {
           {loading ? (
             <div className="space-y-2 p-3">
               {[...Array(6)].map((_, i) => (
-                <div key={i} className="h-16 animate-pulse rounded-xl bg-[var(--color-surface-secondary)]" />
+                <div key={i} className="h-16 animate-pulse rounded-md bg-[var(--color-surface-secondary)]" />
               ))}
             </div>
           ) : filteredThreads.length === 0 ? (
@@ -453,45 +594,30 @@ export function HubMessagesPage() {
               </div>
 
               {activeThread.kind === "direct" || activeThread.kind === "group" ? (
-                <div className="shrink-0 border-t border-[var(--color-border)] p-3">
-                  <div className="mb-2 flex flex-wrap gap-1.5">
-                    {QUICK_ACTIONS.map(({ label, icon: Icon, accent }) => (
-                      <button
-                        key={label}
-                        type="button"
-                        className={cn(
-                          "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-semibold",
-                          accent
-                            ? "border-[#fd5000]/30 bg-[#fd5000]/10 text-[#fd5000]"
-                            : "border-[var(--color-border)] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)]"
-                        )}
-                      >
-                        <Icon className="h-3 w-3" />{label}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="flex items-end gap-2">
-                    <button type="button" className="rounded-lg p-2 hover:bg-[var(--color-surface-secondary)]"><Smile className="h-4 w-4" /></button>
-                    <button type="button" className="rounded-lg p-2 hover:bg-[var(--color-surface-secondary)]"><Plus className="h-4 w-4" /></button>
-                    <input
-                      value={draft}
-                      onChange={(e) => setDraft(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), sendMessage())}
-                      placeholder="Type a message…"
-                      className="min-w-0 flex-1 rounded-xl border border-[var(--color-border)] px-3 py-2 text-[13px] focus:border-[#fd5000]/40 focus:outline-none"
-                    />
-                    <button type="button" className="rounded-lg p-2 hover:bg-[var(--color-surface-secondary)]"><Paperclip className="h-4 w-4" /></button>
-                    <button type="button" className="rounded-lg p-2 hover:bg-[var(--color-surface-secondary)]"><Mic className="h-4 w-4" /></button>
-                    <button
-                      type="button"
-                      onClick={sendMessage}
-                      disabled={sending || !draft.trim()}
-                      className="flex h-9 w-9 items-center justify-center rounded-full bg-[#fd5000] text-white disabled:opacity-40"
-                    >
-                      <Send className="h-4 w-4" />
-                    </button>
-                  </div>
-                </div>
+                <ChatInputZone
+                  text={draft}
+                  setText={setDraft}
+                  pendingMain={pendingMain}
+                  setPendingMain={setPendingMain}
+                  replyingTo={null}
+                  onCancelReply={() => {}}
+                  voiceBlob={voiceBlob}
+                  voiceRecording={voiceRecording}
+                  voiceSeconds={voiceSeconds}
+                  sending={sending}
+                  uploading={uploading}
+                  onSend={() => void sendMessage()}
+                  onStartVoice={startVoiceRecording}
+                  onStopVoice={stopVoiceRecording}
+                  onSendVoice={() => void sendVoiceBlob()}
+                  onDiscardVoice={() => {
+                    setVoiceBlob(null);
+                    setVoiceMime("");
+                  }}
+                  onOpenEmojiPicker={() => {}}
+                  onAttachImage={handleFiles}
+                  onAttachFile={handleFiles}
+                />
               ) : (
                 <div className="shrink-0 border-t border-[var(--color-border)] p-4 text-center">
                   <p className="text-[12px] text-[var(--color-text-muted)]">
@@ -538,7 +664,7 @@ export function HubMessagesPage() {
           </div>
 
           {peer && (
-            <div className="mx-4 grid grid-cols-3 gap-2 rounded-xl bg-[var(--color-surface-secondary)] p-3 text-center">
+            <div className="mx-4 grid grid-cols-3 gap-2 rounded-md bg-[var(--color-surface-secondary)] p-3 text-center">
               <div>
                 <p className="text-[13px] font-black">Level {peer.level}</p>
                 <p className="text-[9px] text-[var(--color-text-muted)]">Level</p>
@@ -556,7 +682,7 @@ export function HubMessagesPage() {
 
           <div className="mx-4 mt-4 grid grid-cols-5 gap-1">
             {[Phone, Video, Info, Bell, MoreHorizontal].map((Icon, i) => (
-              <button key={i} type="button" className="flex flex-col items-center gap-1 rounded-xl border border-[var(--color-border)] p-2 text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)]">
+              <button key={i} type="button" className="flex flex-col items-center gap-1 rounded-md border border-[var(--color-border)] p-2 text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)]">
                 <Icon className="h-4 w-4" />
               </button>
             ))}
@@ -626,7 +752,7 @@ export function HubMessagesPage() {
             {mediaTab === "Files" && (
               fileItems.length > 0 ? (
                 fileItems.slice(0, 5).map((f) => (
-                  <div key={f.key} className="mb-2 flex items-center gap-2 rounded-xl border border-[var(--color-border)] p-2">
+                  <div key={f.key} className="mb-2 flex items-center gap-2 rounded-md border border-[var(--color-border)] p-2">
                     <FileText className="h-4 w-4 shrink-0 text-[#fd5000]" />
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-[11px] font-semibold">{f.name ?? "File"}</p>
@@ -641,7 +767,7 @@ export function HubMessagesPage() {
                 ))
               ) : (
                 messages.filter((m) => m.message_type === "file").slice(0, 3).map((m) => (
-                  <div key={m.id} className="mb-2 flex items-center gap-2 rounded-xl border border-[var(--color-border)] p-2">
+                  <div key={m.id} className="mb-2 flex items-center gap-2 rounded-md border border-[var(--color-border)] p-2">
                     <FileText className="h-4 w-4 shrink-0 text-[#fd5000]" />
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-[11px] font-semibold">{m.body || "Attachment"}</p>
@@ -723,7 +849,7 @@ function MessageBubble({
 
       <div className={cn("max-w-[72%]", mine ? "items-end" : "items-start")}>
         {msg.message_type === "audio" ? (
-          <div className={cn("rounded-2xl px-3 py-2", mine ? "bg-emerald-100" : "bg-[var(--color-surface-secondary)]")}>
+          <div className={cn("rounded-md px-3 py-2", mine ? "bg-emerald-100" : "bg-[var(--color-surface-secondary)]")}>
             <div className="flex items-center gap-2">
               <Volume2 className="h-4 w-4 text-[#fd5000]" />
               <div className="flex h-6 flex-1 items-center gap-0.5">
@@ -735,7 +861,7 @@ function MessageBubble({
             </div>
           </div>
         ) : msg.message_type === "file" || (msg.attachments.length > 0 && msg.attachments[0]?.name) ? (
-          <div className={cn("rounded-2xl border px-3 py-2", mine ? "border-emerald-200 bg-emerald-50" : "border-[var(--color-border)] bg-[var(--color-surface-secondary)]")}>
+          <div className={cn("rounded-md border px-3 py-2", mine ? "border-emerald-200 bg-emerald-50" : "border-[var(--color-border)] bg-[var(--color-surface-secondary)]")}>
             <div className="flex items-center gap-2">
               <FileText className="h-5 w-5 text-[#fd5000]" />
               <div>
@@ -746,7 +872,7 @@ function MessageBubble({
           </div>
         ) : (
           <div className={cn(
-            "rounded-2xl px-3 py-2 text-[13px] leading-relaxed",
+            "rounded-md px-3 py-2 text-[13px] leading-relaxed",
             mine ? "bg-emerald-100 text-zinc-900" : "bg-[var(--color-surface-secondary)] text-[var(--color-text-primary)]"
           )}>
             {msg.body}

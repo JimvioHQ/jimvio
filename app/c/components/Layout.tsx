@@ -461,6 +461,27 @@ function UserAvatar({ profile, size = 32 }: { profile: Profile | null; size?: nu
     );
 }
 
+// ── Community route helpers ───────────────────────────────────────────────────
+const HUB_RESERVED_SEGMENTS = new Set([
+    "messages", "bookmarks", "live", "spaces", "wallet", "analytics",
+    "missions", "courses", "events", "my-communities", "community", "u", "settings", "profile",
+]);
+
+function getCommunitySlugFromPath(pathname: string): string | null {
+    const legacyMatch = pathname.match(/^\/c\/community\/([^/]+)/);
+    if (legacyMatch) return legacyMatch[1];
+
+    const match = pathname.match(/^\/c\/([^/]+)/);
+    if (!match) return null;
+    const slug = match[1];
+    if (HUB_RESERVED_SEGMENTS.has(slug)) return null;
+    return slug;
+}
+
+function isCommunityWorkspacePath(pathname: string): boolean {
+    return getCommunitySlugFromPath(pathname) !== null;
+}
+
 // ── Page title hook ───────────────────────────────────────────────────────────
 function usePageTitle(pathname: string): string {
     const [communityName, setCommunityName] = useState<string | null>(null);
@@ -485,8 +506,7 @@ function usePageTitle(pathname: string): string {
         else staticTitle = "Profile";
     }
 
-    const communitySlugMatch = pathname.match(/^\/c\/community\/([^/]+)/);
-    const slug = communitySlugMatch?.[1] ?? null;
+    const slug = getCommunitySlugFromPath(pathname);
 
     useEffect(() => {
         if (!slug) { setCommunityName(null); return; }
@@ -510,7 +530,7 @@ function usePageTitle(pathname: string): string {
 // ── Layout ────────────────────────────────────────────────────────────────────
 export default function HubLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
-    const isInsideCommunity = pathname.startsWith("/c/community/");
+    const isInsideCommunity = isCommunityWorkspacePath(pathname);
 
     const [collapsed, setCollapsed] = useState(isInsideCommunity);
     const [mobileNavOpen, setMobileNavOpen] = useState(false);

@@ -1,9 +1,10 @@
-import { HubCommunityChatShell } from "@/components/community/hub/hub-community-chat-shell";
+import { redirect } from "next/navigation";
 
-export default function CommunityChatsPage() {
-  return (
-    <div className="h-full min-h-0">
-      <HubCommunityChatShell />
-    </div>
-  );
+export default async function LegacyRedirect({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
+  redirect(`/c/${slug}/chats`);
 }

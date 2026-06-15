@@ -1,5 +1,10 @@
-import { CoursesSection } from "@/components/community/workspace/sections/course-section";
+import { redirect } from "next/navigation";
 
-export default function CoursesPage() {
-    return <CoursesSection />;
+export default async function LegacyRedirect({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
+  redirect(`/c/${slug}/courses`);
 }

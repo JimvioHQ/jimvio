@@ -100,7 +100,7 @@ export function YourCommunities({ communities }: { communities: Community[] }) {
         ) : (
           communities.map((c, i) => (
             <Link
-              href={c.slug ? `/c/community/${c.slug}` : "/dashboard/communities"}
+              href={c.slug ? `/c/${c.slug}` : "/dashboard/communities"}
               key={c.id ?? i}
               className="flex gap-3 items-center cursor-pointer group p-2 -mx-2 rounded-sm hover:bg-surface-secondary transition-all duration-200"
             >

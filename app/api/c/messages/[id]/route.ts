@@ -61,12 +61,23 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { body } = (await req.json()) as { body?: string };
+  const payload = (await req.json()) as {
+    body?: string;
+    attachments?: unknown[];
+    message_type?: string;
+  };
+
   if (id.startsWith("room:")) {
     return NextResponse.json({ error: "Use community room chat to send group messages" }, { status: 400 });
   }
 
-  const result = await sendHubDirectMessage(user.id, id, body ?? "");
+  const result = await sendHubDirectMessage(
+    user.id,
+    id,
+    payload.body ?? "",
+    payload.attachments,
+    payload.message_type
+  );
   if (result.error) {
     return NextResponse.json({ error: result.error }, { status: 400 });
   }

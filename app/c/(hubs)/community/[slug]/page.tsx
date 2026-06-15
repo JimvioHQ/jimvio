@@ -1,5 +1,10 @@
-import { HubCommunityOverview } from "@/components/community/hub/hub-community-overview";
+import { redirect } from "next/navigation";
 
-export default function CommunityWorkspacePage() {
-  return <HubCommunityOverview />;
+export default async function LegacyCommunityPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
+  redirect(`/c/${slug}`);
 }

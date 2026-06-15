@@ -644,7 +644,7 @@ export function CommunityDetailView({
                   )}
 
                   <Link
-                    href={`/c/community/${community.slug}/chats`}
+                    href={`/c/${community.slug}/chats`}
                     className="inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-md bg-[var(--color-accent)] text-[13px] font-medium text-white hover:bg-[var(--color-accent-hover)]"
                   >
                     Open workspace <ArrowRight size={13} />

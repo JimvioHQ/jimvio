@@ -24,15 +24,15 @@ export function RoomContent({
 }) {
     switch (room.room_type) {
         case "chat":
-            return <ChatRoom roomId={room.id} roomName={room.name} communityId={community.id} slug={room.slug} />;
+            return <ChatRoom roomId={room.id} roomName={room.name} communityId={community.id} slug={community.slug} />;
         case "posts":
-            return <PostsRoom roomId={room.id} roomName={room.name} communityId={community.id} slug={room.slug} />;
+            return <PostsRoom roomId={room.id} roomName={room.name} communityId={community.id} slug={community.slug} />;
         case "course":
-            return <CourseRoom roomId={room.id} roomName={room.name} communityId={community.id} slug={room.slug} />;
+            return <CourseRoom roomId={room.id} roomName={room.name} communityId={community.id} slug={community.slug} />;
         case "tasks":
-            return <TasksRoom roomId={room.id} roomName={room.name} communityId={community.id} slug={room.slug} />;
+            return <TasksRoom roomId={room.id} roomName={room.name} communityId={community.id} slug={community.slug} />;
         case "resources":
-            return <ResourcesRoom roomId={room.id} roomName={room.name} communityId={community.id} slug={room.slug} />;
+            return <ResourcesRoom roomId={room.id} roomName={room.name} communityId={community.id} slug={community.slug} />;
         default:
             return <UnknownRoomBody roomType={room.room_type} />;
     }

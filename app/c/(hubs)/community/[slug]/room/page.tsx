@@ -1,3 +1,10 @@
-import { WorkspaceRoomView } from "@/components/community/workspace-room-view";
+import { redirect } from "next/navigation";
 
-export default WorkspaceRoomView;
+export default async function LegacyRedirect({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
+  redirect(`/c/${slug}/room`);
+}

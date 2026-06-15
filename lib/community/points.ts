@@ -25,6 +25,24 @@ export function buildPointsSnapshot(
   };
 }
 
+export function levelFromTotalPoints(total_points: number): number {
+  let level = 1;
+  for (let i = LEVEL_THRESHOLDS.length - 1; i >= 0; i--) {
+    if (total_points >= LEVEL_THRESHOLDS[i]) {
+      level = i + 1;
+      break;
+    }
+  }
+  return level;
+}
+
+export function progressPercentInLevel(total_points: number, level: number): number {
+  const snap = buildPointsSnapshot(total_points, level);
+  const span = Math.max(1, snap.next_level_xp - snap.level_start_xp);
+  const earned = Math.max(0, total_points - snap.level_start_xp);
+  return Math.min(100, Math.round((earned / span) * 100));
+}
+
 export function aggregateMemberPoints(
   rows: Array<{ total_points: number | null; level: number | null; streak_days?: number | null }>
 ): PointsSnapshot {
