@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { CommunityChats } from "@/components/community/community-chats";
 import { useWorkspace } from "@/components/community/workspace-context";
-import { Users, TrendingUp } from "lucide-react";
-import { HubBadge, HubCard, HubSectionTitle, HubStatCard } from "./hub-ui";
+import { Pin, Sparkles, TrendingUp } from "lucide-react";
+import { HubBadge, HubCard, HubSectionTitle } from "./hub-ui";
 
 export function HubCommunityChatShell() {
   const { communityName, overview } = useWorkspace();
@@ -23,8 +23,9 @@ export function HubCommunityChatShell() {
               </p>
             </div>
           </div>
-          <div className="mt-2 rounded-md border border-[#fd5000]/20 bg-[#fd5000]/5 px-3 py-2 text-[11px] font-semibold text-[#fd5000]">
-            Welcome to {communityName}! Be respectful, helpful, and stay active.
+          <div className="mt-2 flex items-center gap-1.5 rounded-md border border-[#fd5000]/20 bg-[#fd5000]/5 px-3 py-2 text-[11px] font-semibold text-[#fd5000]">
+            <Pin className="h-3 w-3 shrink-0" />
+            <span className="truncate">Welcome to {communityName}! Be respectful, helpful, and stay active.</span>
           </div>
         </div>
         <div className="min-h-0 flex-1 overflow-hidden">
@@ -36,16 +37,37 @@ export function HubCommunityChatShell() {
         <HubCard>
           <HubSectionTitle title="Community Stats" badge="This Week" />
           <div className="grid grid-cols-2 gap-2">
-            <HubStatCard
-              label="Messages"
-              value={(overview?.messagesThisWeek ?? 0).toLocaleString()}
-              icon={<TrendingUp className="h-3.5 w-3.5" />}
-            />
-            <HubStatCard
-              label="Online"
-              value={(overview?.membersOnline ?? 0).toLocaleString()}
-              icon={<Users className="h-3.5 w-3.5" />}
-            />
+            {[
+              { label: "Messages", value: (overview?.messagesThisWeek ?? 0).toLocaleString(), delta: null },
+              { label: "Members Online", value: (overview?.membersOnline ?? 0).toLocaleString(), delta: overview?.membersOnlineDelta ?? null },
+              { label: "Voice Rooms", value: String(overview?.voiceRooms ?? 0), delta: overview?.voiceRoomsDelta ?? null },
+              { label: "Courses", value: String(overview?.courseCount ?? 0), delta: overview?.courseCountDelta ?? null },
+            ].map(({ label, value, delta }) => (
+              <div key={label} className="rounded-md bg-[var(--color-surface-secondary)] p-2.5">
+                <p className="text-[10px] text-[var(--color-text-muted)]">{label}</p>
+                <p className="text-[16px] font-black leading-tight text-[var(--color-text-primary)]">{value}</p>
+                {delta && <p className="text-[10px] font-semibold text-emerald-600">{delta}</p>}
+              </div>
+            ))}
+          </div>
+          <div className="mt-3 flex h-16 items-end gap-1">
+            {[40, 55, 35, 70, 50, 65, 80].map((h, i) => (
+              <div key={i} className="flex-1 rounded-t bg-[#fd5000]/20" style={{ height: `${h}%` }} />
+            ))}
+          </div>
+        </HubCard>
+
+        <HubCard>
+          <HubSectionTitle title="AI Community Insights" badge="Beta" />
+          <div className="space-y-2 text-[11px] text-[var(--color-text-secondary)]">
+            <p className="flex gap-2">
+              <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#fd5000]" />
+              Engagement is up this week — keep the conversation going.
+            </p>
+            <p className="flex gap-2">
+              <TrendingUp className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-500" />
+              {(overview?.membersOnline ?? 0).toLocaleString()} members active now across spaces.
+            </p>
           </div>
         </HubCard>
 

@@ -16,6 +16,7 @@ import { createClient } from "@/lib/supabase/client";
 import { HubAvatar, HubBadge, HubLinkButton, HubSectionTitle } from "./hub-ui";
 import { ChatInputZone } from "@/components/community/chat/ChatInputZone";
 import { MAX_ATTACH, MAX_FILE_BYTES } from "@/types/chat";
+import { useAIStore } from "@/lib/store/use-ai-store";
 import { toast } from "sonner";
 
 type ThreadKind = "direct" | "group" | "space";
@@ -119,6 +120,7 @@ export function HubMessagesPage() {
   const [muted, setMuted] = useState(false);
   const [showPinned, setShowPinned] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const { openAssistant } = useAIStore();
   const bottomRef = useRef<HTMLDivElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const voiceChunksRef = useRef<Blob[]>([]);
@@ -594,30 +596,51 @@ export function HubMessagesPage() {
               </div>
 
               {activeThread.kind === "direct" || activeThread.kind === "group" ? (
-                <ChatInputZone
-                  text={draft}
-                  setText={setDraft}
-                  pendingMain={pendingMain}
-                  setPendingMain={setPendingMain}
-                  replyingTo={null}
-                  onCancelReply={() => {}}
-                  voiceBlob={voiceBlob}
-                  voiceRecording={voiceRecording}
-                  voiceSeconds={voiceSeconds}
-                  sending={sending}
-                  uploading={uploading}
-                  onSend={() => void sendMessage()}
-                  onStartVoice={startVoiceRecording}
-                  onStopVoice={stopVoiceRecording}
-                  onSendVoice={() => void sendVoiceBlob()}
-                  onDiscardVoice={() => {
-                    setVoiceBlob(null);
-                    setVoiceMime("");
-                  }}
-                  onOpenEmojiPicker={() => {}}
-                  onAttachImage={handleFiles}
-                  onAttachFile={handleFiles}
-                />
+                <>
+                  <ChatInputZone
+                    text={draft}
+                    setText={setDraft}
+                    pendingMain={pendingMain}
+                    setPendingMain={setPendingMain}
+                    replyingTo={null}
+                    onCancelReply={() => {}}
+                    voiceBlob={voiceBlob}
+                    voiceRecording={voiceRecording}
+                    voiceSeconds={voiceSeconds}
+                    sending={sending}
+                    uploading={uploading}
+                    onSend={() => void sendMessage()}
+                    onStartVoice={startVoiceRecording}
+                    onStopVoice={stopVoiceRecording}
+                    onSendVoice={() => void sendVoiceBlob()}
+                    onDiscardVoice={() => {
+                      setVoiceBlob(null);
+                      setVoiceMime("");
+                    }}
+                    onOpenEmojiPicker={() => {}}
+                    onAttachImage={handleFiles}
+                    onAttachFile={handleFiles}
+                  />
+                  {/* Quick actions row — matches mockup composer footer */}
+                  <div className="flex shrink-0 items-center gap-1.5 overflow-x-auto border-t border-[var(--color-border)] px-4 py-2 scrollbar-hide">
+                    {QUICK_ACTIONS.map(({ label, icon: Icon, accent }) => (
+                      <button
+                        key={label}
+                        type="button"
+                        onClick={label === "AI Assistant" ? () => openAssistant() : undefined}
+                        className={cn(
+                          "inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold transition-colors",
+                          accent
+                            ? "bg-[#fd5000] text-white hover:bg-[#e04800]"
+                            : "border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
+                        )}
+                      >
+                        <Icon className="h-3.5 w-3.5" />
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </>
               ) : (
                 <div className="shrink-0 border-t border-[var(--color-border)] p-4 text-center">
                   <p className="text-[12px] text-[var(--color-text-muted)]">

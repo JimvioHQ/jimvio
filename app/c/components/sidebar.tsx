@@ -600,7 +600,6 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import JimvioLogo from "@/components/ui/logo";
 import { HubPremiumCard, HubUserCard } from "@/components/community/hub/hub-ui";
 import { aggregateMemberPoints } from "@/lib/community/points";
 
@@ -797,6 +796,29 @@ const AVATAR_COLORS = [
     { bg: "#ede9fe", fg: "#5b21b6" },
 ];
 
+function UserSidebarAvatar({ name, src, size = 36 }: { name: string; src?: string | null; size?: number }) {
+    if (src) {
+        return (
+            <img
+                src={src}
+                alt={name}
+                style={{ width: size, height: size, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }}
+            />
+        );
+    }
+    const initials = name.split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() ?? "").join("") || "?";
+    return (
+        <span style={{
+            display: "inline-flex", alignItems: "center", justifyContent: "center",
+            width: size, height: size, borderRadius: "50%", flexShrink: 0,
+            background: "linear-gradient(135deg, #fd5000, #ff7a30)",
+            color: "#fff", fontSize: size * 0.38, fontWeight: 700,
+        }}>
+            {initials}
+        </span>
+    );
+}
+
 function CommunityAvatar({ community, size = 26 }: { community: Community; size?: number }) {
     if (community.avatar_url) {
         return (
@@ -970,16 +992,38 @@ function SidebarContent({
 
     return (
         <>
-            {/* ── Logo + collapse toggle ── */}
+            {/* ── User identity + collapse toggle ── */}
             <div style={{
-                height: 56, display: "flex", alignItems: "center",
-                padding: "0 16px",
+                minHeight: 60, display: "flex", alignItems: "center",
+                padding: "10px 12px",
+                gap: 8,
                 justifyContent: collapsed ? "center" : "space-between",
                 borderBottom: "1px solid var(--color-border, rgba(255,255,255,0.06))",
                 flexShrink: 0,
             }}>
-                {!collapsed && (
-                    <JimvioLogo />
+                {!collapsed ? (
+                    <Link
+                        href={username ? `/c/profile/${username}` : "/c/profile"}
+                        onClick={onLinkClick}
+                        style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, flex: 1, textDecoration: "none" }}
+                    >
+                        <UserSidebarAvatar name={userCard?.name ?? username.replace(/_/g, " ") ?? "Member"} src={userCard?.avatarUrl} size={36} />
+                        <span style={{ minWidth: 0, display: "flex", flexDirection: "column" }}>
+                            <span style={{
+                                fontSize: 13, fontWeight: 700, color: "var(--color-text-primary, #18181b)",
+                                whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                            }}>
+                                {userCard?.name ?? (username ? username.replace(/_/g, " ") : "Member")}
+                            </span>
+                            <span style={{ fontSize: 11, fontWeight: 600, color: "var(--color-accent, #fd5000)" }}>
+                                Level {userCard?.level ?? 1} · Creator
+                            </span>
+                        </span>
+                    </Link>
+                ) : (
+                    <Link href={username ? `/c/profile/${username}` : "/c/profile"} onClick={onLinkClick} style={{ display: "flex" }}>
+                        <UserSidebarAvatar name={userCard?.name ?? "Member"} src={userCard?.avatarUrl} size={32} />
+                    </Link>
                 )}
 
                 {/* Desktop: collapse button / Mobile drawer: close button */}
@@ -1263,55 +1307,47 @@ export default function HubSidebar({
 }: HubSidebarProps) {
 
     const sidebarBase: React.CSSProperties = {
-        height: "100vh",
+        height: "100%",
         display: "flex",
         flexDirection: "column",
         background: "var(--color-surface, #ffffff)",
         borderRight: "1px solid var(--color-border, rgba(0,0,0,0.08))",
         overflow: "hidden",
-        position: "sticky",
-        top: 0,
-        zIndex: 40,
     };
 
     return (
-        <div
-            className="hub-sidebar-root"
-            style={{
-                flexShrink: 0,
-                width: collapsed ? 64 : 240,
-                minWidth: collapsed ? 64 : 240,
-                transition: "width 0.22s cubic-bezier(.4,0,.2,1), min-width 0.22s cubic-bezier(.4,0,.2,1)",
-            }}
-        >
-            {/* Desktop sidebar */}
-            <aside
-                className="hub-sidebar"
+        <>
+            {/* Desktop sidebar rail (hidden below lg) */}
+            <div
+                className="hidden lg:block"
                 style={{
-                    ...sidebarBase,
-                    width: "100%",
-                    minWidth: 0,
+                    flexShrink: 0,
+                    width: collapsed ? 64 : 240,
+                    minWidth: collapsed ? 64 : 240,
+                    transition: "width 0.22s cubic-bezier(.4,0,.2,1), min-width 0.22s cubic-bezier(.4,0,.2,1)",
                 }}
             >
-                <SidebarContent
-                    collapsed={collapsed}
-                    onToggleCollapse={onToggleCollapse}
-                    username={username}
-                    unreadMessages={unreadMessages}
-                />
-            </aside>
+                <aside style={{ ...sidebarBase, width: "100%", minWidth: 0 }}>
+                    <SidebarContent
+                        collapsed={collapsed}
+                        onToggleCollapse={onToggleCollapse}
+                        username={username}
+                        unreadMessages={unreadMessages}
+                    />
+                </aside>
+            </div>
 
             {/* Mobile drawer — only mount when open to avoid duplicate nav in the DOM */}
             {mobileOpen && (
                 <aside
-                    className="hub-sidebar-mobile-open"
+                    className="lg:hidden"
                     style={{
                         ...sidebarBase,
                         position: "fixed",
-                        top: 52,
+                        top: 56,
                         left: 0,
                         width: 260,
-                        height: "calc(100vh - 52px)",
+                        height: "calc(100vh - 56px)",
                         zIndex: 99,
                     }}
                 >
@@ -1325,6 +1361,6 @@ export default function HubSidebar({
                     />
                 </aside>
             )}
-        </div>
+        </>
     );
 }

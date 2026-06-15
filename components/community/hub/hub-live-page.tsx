@@ -9,7 +9,7 @@ import {
   QrCode, Camera, UserCheck, Settings, BarChart3, Layers, Package,
   Copy, Check, Home, Calendar,
   Flame, Volume2, Disc, ThumbsUp, LayoutGrid, ChevronDown,
-  Crown, Star,
+  Crown, Star, RotateCcw, Bot, MoreHorizontal, Wand2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { HubAvatar, HubBadge, HubCard, HubLinkButton, HubSectionTitle, HubStatCard } from "./hub-ui";
@@ -91,7 +91,7 @@ const QUICK_TOOLS = [
   { label: "Backstage", icon: Layers },
   { label: "Stream Health", icon: Activity },
   { label: "Layouts", icon: LayoutGrid },
-  { label: "Docs", icon: Package },
+  { label: "Duos", icon: Package },
   { label: "Integrations", icon: Settings },
 ];
 
@@ -116,13 +116,14 @@ const STAGE_CONTROLS = [
   { icon: Volume2, label: "Sounds" },
   { icon: Video, label: "Start Video" },
   { icon: ScreenShare, label: "Share Screen", active: true },
-  { icon: Share2, label: "Sharing" },
+  { icon: Wand2, label: "Shanny" },
   { icon: UsersRound, label: "Invite" },
   { icon: Disc, label: "Record", danger: true },
-  { icon: ThumbsUp, label: "React" },
+  { icon: RotateCcw, label: "Reset" },
   { icon: BarChart3, label: "Polls" },
   { icon: Subtitles, label: "Subtitles" },
-  { icon: Crown, label: "VIP Spots" },
+  { icon: Bot, label: "AI Tools" },
+  { icon: MoreHorizontal, label: "More" },
 ];
 
 const RIGHT_FOOTER_NAV = [

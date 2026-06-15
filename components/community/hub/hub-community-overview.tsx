@@ -16,7 +16,7 @@ import {
   Sparkles,
   TrendingUp,
   Flame,
-  MessageCircle,
+  DollarSign,
   MoreHorizontal,
   Play,
 } from "lucide-react";
@@ -206,9 +206,10 @@ export function HubCommunityOverview({
             icon={<GraduationCap className="h-4 w-4" />}
           />
           <HubStatCard
-            label="Messages"
-            value={(overview?.messagesThisWeek ?? 0).toLocaleString()}
-            icon={<MessageCircle className="h-4 w-4" />}
+            label="Total Earned"
+            value={`$${(overview?.totalEarned ?? 0).toLocaleString()}`}
+            delta={overview?.totalEarnedDelta ?? undefined}
+            icon={<DollarSign className="h-4 w-4" />}
             accent="#fd5000"
           />
         </div>
@@ -358,7 +359,21 @@ export function HubCommunityOverview({
       <aside className="hidden min-w-0 space-y-4 xl:block">
         <HubCard>
           <HubSectionTitle title="Community Stats" badge="This Week" />
-          <div className="flex h-28 items-end gap-1">
+          <div className="grid grid-cols-2 gap-2">
+            {[
+              { label: "Messages", value: (overview?.messagesThisWeek ?? 0).toLocaleString(), delta: null },
+              { label: "Members Online", value: (overview?.membersOnline ?? 0).toLocaleString(), delta: overview?.membersOnlineDelta ?? null },
+              { label: "Voice Rooms", value: String(overview?.voiceRooms ?? 0), delta: overview?.voiceRoomsDelta ?? null },
+              { label: "Courses", value: String(overview?.courseCount ?? 0), delta: overview?.courseCountDelta ?? null },
+            ].map(({ label, value, delta }) => (
+              <div key={label} className="rounded-md bg-[var(--color-surface-secondary)] p-2.5">
+                <p className="text-[10px] text-[var(--color-text-muted)]">{label}</p>
+                <p className="text-[16px] font-black leading-tight text-[var(--color-text-primary)]">{value}</p>
+                {delta && <p className="text-[10px] font-semibold text-emerald-600">{delta}</p>}
+              </div>
+            ))}
+          </div>
+          <div className="mt-3 flex h-20 items-end gap-1">
             {[40, 55, 35, 70, 50, 65, 80].map((h, i) => (
               <div
                 key={i}
