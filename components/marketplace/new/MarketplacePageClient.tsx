@@ -5,8 +5,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 import {
   Search, Zap, DollarSign, ShieldCheck, BadgeDollarSign,
   CircleCheck, Truck, Users, ChevronRight, ArrowRight,
+  Sparkles, Camera, Eye,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { useAIStore } from "@/lib/store/use-ai-store";
 import { FlashDealsClient } from "./FlashDealsClient";
 import { TrendingProductsClient } from "./TrendingProductsClient";
 import { FlashDealsCountdown } from "./FlashDealsCountdown";
@@ -162,6 +164,7 @@ export function MarketplacePageClient({
   const supabase = createClient();
 
   const { filters, setCategory, clearFilters } = useMarketplace();
+  const openAssistant = useAIStore((s) => s.openAssistant);
 
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -364,41 +367,83 @@ export function MarketplacePageClient({
 
       <div className="flex min-w-0 flex-1 flex-col gap-3">
         {/* ── Search bar + type switcher ── */}
-        <div className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-2 shadow-sm">
-          <Search className="size-4 shrink-0 text-muted-foreground" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder={
-              type === "digital"
-                ? "Search for digital products, tools, software & more..."
-                : "Search for physical products & gear..."
-            }
-            className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-          />
-          <div className="flex shrink-0 items-center gap-1 rounded-xl border border-border p-1">
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 shadow-sm sm:gap-3 sm:px-4">
+            <Search className="size-4 shrink-0 text-muted-foreground" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={
+                type === "digital"
+                  ? "Search for digital products, tools, software & more..."
+                  : "Search for physical products & gear..."
+              }
+              className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+            />
+
+            {/* Visual / camera search */}
+            <button
+              type="button"
+              aria-label="Visual search"
+              className="grid size-7 shrink-0 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-muted"
+            >
+              <Camera className="size-4" />
+            </button>
+
+            {/* AI assistant */}
+            <button
+              type="button"
+              onClick={() => openAssistant(search.trim() || undefined)}
+              className="flex shrink-0 items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-bold text-white transition-opacity hover:opacity-90"
+              style={{ background: "linear-gradient(135deg, #7c3aed 0%, #ec4899 100%)" }}
+            >
+              <Sparkles className="size-3.5" />
+              AI
+            </button>
+
+            {/* Desktop-only inline type switcher */}
+            <div className="hidden shrink-0 items-center gap-1 rounded-xl border border-border p-1 sm:flex">
+              {(["physical", "digital"] as ProductType[]).map((t) => (
+                <button
+                  key={t}
+                  onClick={() => handleTypeChange(t)}
+                  className="rounded-lg px-4 py-1.5 text-xs font-bold capitalize transition-all"
+                  style={{
+                    background: type === t ? "var(--color-accent)" : "transparent",
+                    color: type === t ? "white" : "var(--color-text-muted)",
+                  }}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+            <span
+              className="hidden shrink-0 items-center gap-1.5 text-xs lg:flex"
+              style={{ color: "var(--color-text-muted)" }}
+            >
+              <span className="size-1.5 rounded-full bg-green-500" />
+              {listingCount} listings
+            </span>
+          </div>
+
+          {/* Mobile-only centered type switcher pills */}
+          <div className="flex items-center justify-center gap-2 sm:hidden">
             {(["physical", "digital"] as ProductType[]).map((t) => (
               <button
                 key={t}
                 onClick={() => handleTypeChange(t)}
-                className="rounded-lg px-4 py-1.5 text-xs font-bold capitalize transition-all"
+                className="flex-1 rounded-full px-4 py-2 text-sm font-bold capitalize transition-all"
                 style={{
-                  background: type === t ? "var(--color-accent)" : "transparent",
+                  background: type === t ? "var(--color-accent)" : "var(--color-surface-secondary)",
                   color: type === t ? "white" : "var(--color-text-muted)",
+                  border: type === t ? "none" : "1px solid var(--color-border)",
                 }}
               >
                 {t}
               </button>
             ))}
           </div>
-          <span
-            className="hidden shrink-0 items-center gap-1.5 text-xs sm:flex"
-            style={{ color: "var(--color-text-muted)" }}
-          >
-            <span className="size-1.5 rounded-full bg-green-500" />
-            {listingCount} listings
-          </span>
         </div>
 
         {/* ── Hero banner — always rendered, doesn't depend on loading ── */}
@@ -414,16 +459,22 @@ export function MarketplacePageClient({
           }}
         >
           {BADGES.map((b) => (
-            <div key={b.title} className="flex min-w-[140px] flex-1 items-center gap-2.5">
-              <b.icon className="size-5 shrink-0" style={{ color: "var(--color-accent)" }} />
-              <div>
+            <div
+              key={b.title}
+              className="flex min-w-0 flex-1 items-center gap-1.5 sm:min-w-[140px] sm:gap-2.5"
+            >
+              <b.icon className="size-4 shrink-0 sm:size-5" style={{ color: "var(--color-accent)" }} />
+              <div className="min-w-0">
                 <div
-                  className="text-xs font-bold leading-tight"
+                  className="text-[10px] font-bold leading-tight sm:text-xs"
                   style={{ color: "var(--color-text-primary)" }}
                 >
                   {b.title}
                 </div>
-                <div className="text-[10px]" style={{ color: "var(--color-text-muted)" }}>
+                <div
+                  className="truncate text-[8px] sm:text-[10px]"
+                  style={{ color: "var(--color-text-muted)" }}
+                >
                   {b.sub}
                 </div>
               </div>
@@ -451,6 +502,46 @@ export function MarketplacePageClient({
                 {stats.creators_active}
               </b>{" "}
               creators active
+            </span>
+          </div>
+        </div>
+
+        {/* ── Mobile stats strip ── */}
+        <div
+          className="flex items-center justify-between gap-1 rounded-xl px-3 py-2 sm:hidden"
+          style={{
+            background: "var(--color-surface)",
+            border: "1px solid var(--color-border)",
+            boxShadow: "var(--shadow-sm)",
+          }}
+        >
+          <div className="flex min-w-0 flex-1 items-center justify-center gap-1.5">
+            <Eye className="size-3.5 shrink-0" style={{ color: "var(--color-accent)" }} />
+            <span className="truncate text-[11px]" style={{ color: "var(--color-text-muted)" }}>
+              <b className="font-bold" style={{ color: "var(--color-text-primary)" }}>
+                {fmtCount(stats.viewers_now > 0 ? stats.viewers_now : listingCount)}
+              </b>{" "}
+              {stats.viewers_now > 0 ? "viewing now" : "listings"}
+            </span>
+          </div>
+          <span className="h-5 w-px shrink-0" style={{ background: "var(--color-border)" }} />
+          <div className="flex min-w-0 flex-1 items-center justify-center gap-1.5">
+            <DollarSign className="size-3.5 shrink-0" style={{ color: "var(--color-accent)" }} />
+            <span className="truncate text-[11px]" style={{ color: "var(--color-text-muted)" }}>
+              <b className="font-bold" style={{ color: "var(--color-text-primary)" }}>
+                {fmtPrice(stats.revenue_today)}
+              </b>{" "}
+              today
+            </span>
+          </div>
+          <span className="h-5 w-px shrink-0" style={{ background: "var(--color-border)" }} />
+          <div className="flex min-w-0 flex-1 items-center justify-center gap-1.5">
+            <Users className="size-3.5 shrink-0" style={{ color: "var(--color-accent)" }} />
+            <span className="truncate text-[11px]" style={{ color: "var(--color-text-muted)" }}>
+              <b className="font-bold" style={{ color: "var(--color-text-primary)" }}>
+                {fmtCount(stats.creators_active)}
+              </b>{" "}
+              creators
             </span>
           </div>
         </div>

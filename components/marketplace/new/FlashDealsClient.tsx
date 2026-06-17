@@ -28,13 +28,13 @@ export function FlashDealsClient({ deals }: { deals: FlashDealProduct[] }) {
       </div>
       <button
         onClick={() => scroll("left")}
-        className="absolute left-1 top-1/2 grid size-8 -translate-y-1/2 place-items-center rounded-full border border-border bg-card shadow-md transition-colors hover:bg-muted"
+        className="absolute left-1 top-1/2 hidden size-8 -translate-y-1/2 place-items-center rounded-full border border-border bg-card shadow-md transition-colors hover:bg-muted sm:grid"
       >
         <ChevronLeft className="size-4" />
       </button>
       <button
         onClick={() => scroll("right")}
-        className="absolute right-1 top-1/2 grid size-8 -translate-y-1/2 place-items-center rounded-full border border-border bg-card shadow-md transition-colors hover:bg-muted"
+        className="absolute right-1 top-1/2 hidden size-8 -translate-y-1/2 place-items-center rounded-full border border-border bg-card shadow-md transition-colors hover:bg-muted sm:grid"
       >
         <ChevronRight className="size-4" />
       </button>
@@ -51,7 +51,7 @@ function FlashDealCard({ d }: { d: FlashDealProduct }) {
   return (
     <Link
       href={`/marketplace/${d.slug}`}
-      className="group relative w-[42vw] max-w-[180px] shrink-0 flex flex-col rounded-xl border border-border bg-card p-2 sm:w-[160px] sm:p-2.5 md:w-[180px] transition-shadow hover:shadow-[var(--shadow-card)]"
+      className="group relative w-[34vw] max-w-[180px] shrink-0 flex flex-col rounded-xl border border-border bg-card p-2 sm:w-[160px] sm:p-2.5 md:w-[180px] transition-shadow hover:shadow-[var(--shadow-card)]"
     >
       {discount && (
         <span className="absolute left-2 top-2 z-10 rounded-md bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground">
