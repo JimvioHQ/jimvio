@@ -1629,6 +1629,25 @@ import { formatPlatformCount } from "@/lib/platform-settings-shared";
 import { createClient } from "@/lib/supabase/client";
 import CommunitiesSection from "./communities-section";
 import { SwipeableCardGrid } from "../ui/swipeable-card-grid";
+import {
+    WhatToDoToday,
+    TrustedStrip,
+    PlatformOverviewBar,
+    ChooseYourJourney,
+    HowJimvioWorks,
+    TrendingProductsRow,
+    FeaturedUGCCampaigns,
+    FeaturedCommunities,
+    OnePlatformOpportunities,
+    GrowthStack,
+    WhyChooseJimvio,
+    GlobalNetworkStats,
+    TopCreatorsEarnings,
+    First30Minutes,
+    FAQSection,
+    TrustedBrands,
+    TakeJimvioEverywhere,
+} from "./homepage-sections";
 
 import {
     GridPattern,
@@ -1688,6 +1707,15 @@ interface Community {
 interface HomepageRedesignProps {
     campaigns?: SharedCampaignRow[];
     communities?: Community[];
+    products?: any[];
+    creators?: any[];
+    platform?: {
+        totalUsers: number;
+        totalProducts: number;
+        totalEarnings: number;
+        totalVendors: number;
+        totalCommunities: number;
+    };
     stats?: {
         users: string;
         earned: string;
@@ -3054,27 +3082,33 @@ function FinalCTA() {
 export function HomepageRedesign({
     campaigns = [],
     communities = [],
+    products = [],
+    creators = [],
+    platform,
     stats,
 }: HomepageRedesignProps) {
     return (
         <div className="min-h-screen" style={{ background: "var(--color-bg)" }}>
-            <Ticker />
+            {/* Hero */}
             <Hero />
-            <CorePillars />
-            <CategoryBrowse />
-            <UGCCampaigns campaigns={campaigns} />
-            <AffiliateSpotlight />
-            <CommunitiesSection
-                communities={communities}
-                heading="Top Communities"
-                eyebrow="Discover"
-                seeAllHref="/communities"
-                limit={6}
-            />
-            <HowItWorks />
-            <TrustSection stats={stats} />
-            <VendorBanner />
-            <FinalCTA />
+
+            <WhatToDoToday />
+            <TrustedStrip usersLabel={stats?.users} countriesLabel={stats?.countries} />
+            <PlatformOverviewBar />
+            <ChooseYourJourney />
+            <HowJimvioWorks />
+            <TrendingProductsRow products={products} />
+            <FeaturedUGCCampaigns campaigns={campaigns} />
+            <FeaturedCommunities communities={communities} />
+            <OnePlatformOpportunities />
+            <GrowthStack />
+            <WhyChooseJimvio />
+            <GlobalNetworkStats platform={platform} countriesLabel={stats?.countries} />
+            <TopCreatorsEarnings creators={creators} />
+            <First30Minutes />
+            <FAQSection />
+            <TrustedBrands />
+            <TakeJimvioEverywhere />
         </div>
     );
 }

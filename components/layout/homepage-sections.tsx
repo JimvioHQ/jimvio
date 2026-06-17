@@ -1,1486 +1,1019 @@
-
 "use client";
 
-import React from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
 import {
-  ChevronRight, Star, ShieldCheck, CheckCircle, Ship, Globe,
-  DollarSign, Package, Zap, Menu, BarChart2, TrendingUp,
-  UserPlus, ArrowRight, Search, Lock, PlayCircle,
+  ShoppingBag, Store, DollarSign, Megaphone, Users, Package,
+  ArrowRight, Check, ShieldCheck, Globe, Zap, Sparkles,
+  Bot, Wand2, Search, Clapperboard, Play, Instagram, Youtube,
+  ChevronDown, Layers, TrendingUp, Wallet,
 } from "lucide-react";
-import { cn, formatDisplayMoney, getProductDiscountPercent } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { industryCardBackground, INDUSTRY_GRADIENTS } from "@/lib/homepage-helpers";
+import { useCurrency } from "@/context/CurrencyContext";
+import { getImage, fmtCount } from "@/lib/utils";
+import type { SharedCampaignRow } from "@/components/ugc/campaign-card-shared";
+import { WorldMap, type WorldMapPin } from "@/components/ui/world-map";
+import { TakeJimvioPhonesClient } from "@/components/layout/take-jimvio-phones-client";
+import { Slider } from "@/components/ui/slider";
 
-type LucideIcon = React.FC<React.SVGProps<SVGSVGElement>>;
+/* ─── Design tokens (match mockup) ─── */
+const ORANGE = "#fd5000";
+const GREEN = "#16a34a";
+const PURPLE = "#7c3aed";
+const BLUE = "#2563eb";
+const YELLOW = "#ca8a04";
 
-const fadeUp = {
-  hidden: { opacity: 0, y: 20 },
-  show: {
-    opacity: 1, y: 0,
-    transition: { duration: 0.45, ease: [0.22, 1, 0.36, 1] },
-  },
-};
-const stagger = {
-  show: { transition: { staggerChildren: 0.07 } },
-};
-const scaleIn = {
-  hidden: { opacity: 0, scale: 0.96 },
-  show: {
-    opacity: 1, scale: 1,
-    transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] },
-  },
-};
+const shell = "mx-auto w-full max-w-8xl px-4 sm:px-6";
+const cardBase =
+  "rounded-2xl border border-[#ececec] bg-white shadow-[0_2px_12px_rgba(0,0,0,0.04)]";
 
-/* ─── Shared primitives ───────────────────────────────────────── */
-
-/** Ruled eyebrow label — uses a leading tick mark instead of generic uppercase */
-function Eyebrow({ text }: { text: string }) {
+function SectionTitle({ children, sub }: { children: React.ReactNode; sub?: string }) {
   return (
-    <p className="text-[10px] font-semibold text-stone-400 dark:text-stone-500 uppercase tracking-[0.25em] mb-2 flex items-center gap-2">
-      <span className="inline-block w-4 h-px bg-[#fd5000] flex-shrink-0" />
-      {text}
-    </p>
+    <div className="mb-8 text-center">
+      <h2 className="text-[26px] font-black tracking-tight text-[#111] sm:text-[30px]">{children}</h2>
+      {sub && <p className="mx-auto mt-2 max-w-xl text-sm text-[#6b7280]">{sub}</p>}
+    </div>
   );
 }
 
-/** Hard ruled divider — used between sections instead of space alone */
-function Rule({ className }: { className?: string }) {
-  return <div className={cn("h-px w-full bg-border", className)} />;
-}
+/* ═══ 1. What do you want to do today ═══ */
+const ACTIONS = [
+  { icon: ShoppingBag, title: "Buy Products", desc: "Shop trending products from verified global suppliers.", cta: "Start Buying", href: "/marketplace", tint: "#fff4ed", color: ORANGE },
+  { icon: Store, title: "Sell Products", desc: "Launch your store and reach buyers worldwide.", cta: "Start Selling", href: "/dashboard", tint: "#eff6ff", color: BLUE },
+  { icon: DollarSign, title: "Earn Commissions", desc: "Promote products and earn on every sale.", cta: "Start Earning", href: "/ugc", tint: "#f0fdf4", color: GREEN },
+  { icon: Megaphone, title: "Join Campaigns", desc: "Create content for brands and get paid per view.", cta: "See Campaigns", href: "/ugc", tint: "#f5f3ff", color: PURPLE },
+  { icon: Users, title: "Build Communities", desc: "Grow, connect and monetize your audience.", cta: "Start Building", href: "/communities", tint: "#fffbeb", color: YELLOW },
+];
 
-/** Orange accent dot — replaces animated blobs */
-function AccentDot({ className }: { className?: string }) {
-  return <span className={cn("inline-block w-1.5 h-1.5 rounded-full bg-[#fd5000] flex-shrink-0", className)} />;
-}
-
-/* ─── TRUST BAR ───────────────────────────────────────────────── */
-interface TrustBarItem { title: string; desc: string; }
-const TRUST_ICONS: LucideIcon[] = [ShieldCheck, CheckCircle, Ship, DollarSign, Globe];
-
-export function TrustBar({ items }: { items: TrustBarItem[] }) {
+export function WhatToDoToday() {
   return (
-    <motion.div
-      initial="hidden" whileInView="show" viewport={{ once: true, margin: "-40px" }}
-      variants={stagger}
-      className="relative z-10 bg-background border-y border-border"
-    >
-      {/* Ticker-style inner rule */}
-      <div className="max-w-[1536px] mx-auto px-4 sm:px-6">
-        <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-border">
-          {items.map((item, idx) => {
-            const Icon = TRUST_ICONS[idx % TRUST_ICONS.length];
-            return (
-              <motion.div
-                key={idx}
-                variants={fadeUp}
-                className="flex items-center gap-3 py-4 px-5 first:pl-0 last:pr-0 group"
+    <section className="bg-white py-10 sm:py-14">
+      <div className={shell}>
+        <SectionTitle sub="Choose your path and dive into your goals.">What Do You Want To Do Today?</SectionTitle>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          {ACTIONS.map((a) => (
+            <div key={a.title} className={`flex flex-col p-5 ${cardBase}`}>
+              <span
+                className="mb-4 grid size-11 place-items-center rounded-xl"
+                style={{ background: a.tint, color: a.color }}
               >
-                <div className="shrink-0 w-8 h-8 flex items-center justify-center border border-[#fd5000]/30 bg-[#fd5000]/5 text-[#fd5000] transition-colors group-hover:bg-[#fd5000] group-hover:border-[#fd5000] group-hover:text-white">
-                  <Icon className="h-4 w-4" />
+                <a.icon className="size-5" strokeWidth={2.2} />
+              </span>
+              <h3 className="text-[15px] font-bold text-[#111]">{a.title}</h3>
+              <p className="mt-1.5 flex-1 text-[13px] leading-snug text-[#6b7280]">{a.desc}</p>
+              <Link
+                href={a.href}
+                className="mt-4 inline-flex items-center gap-1 text-[13px] font-bold transition-opacity hover:opacity-80"
+                style={{ color: a.color }}
+              >
+                {a.cta} <ArrowRight className="size-3.5" />
+              </Link>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ═══ 2. Trusted strip ═══ */
+const AVATARS = [
+  "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=80&h=80&fit=crop",
+  "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&h=80&fit=crop",
+  "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=80&h=80&fit=crop",
+  "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=80&h=80&fit=crop",
+  "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&h=80&fit=crop",
+];
+
+/** ISO countries Jimvio serves — real flags via flagcdn.com */
+const FEATURED_COUNTRIES = [
+  { code: "us", name: "United States" },
+  { code: "gb", name: "United Kingdom" },
+  { code: "ng", name: "Nigeria" },
+  { code: "ke", name: "Kenya" },
+  { code: "za", name: "South Africa" },
+  { code: "gh", name: "Ghana" },
+  { code: "in", name: "India" },
+  { code: "br", name: "Brazil" },
+  { code: "fr", name: "France" },
+  { code: "de", name: "Germany" },
+] as const;
+
+function flagSrc(code: string, size: 20 | 40 | 80 = 40) {
+  return `https://flagcdn.com/w${size}/${code}.png`;
+}
+
+export function TrustedStrip({ usersLabel = "977K+", countriesLabel = "50+" }: { usersLabel?: string; countriesLabel?: string }) {
+  const moreLabel = countriesLabel.endsWith("+")
+    ? `+${countriesLabel.slice(0, -1)}`
+    : countriesLabel;
+
+  return (
+    <div className="border-y border-[#f0f0f0] bg-[#fafafa]">
+      <div className={`${shell} flex flex-wrap items-center justify-center gap-4 py-4 sm:gap-6`}>
+        <div className="flex -space-x-2.5">
+          {AVATARS.map((src, i) => (
+            <img key={i} src={src} alt="" className="size-8 rounded-full border-2 border-white object-cover sm:size-9" />
+          ))}
+        </div>
+        <p className="text-center text-sm text-[#4b5563]">
+          Trusted by <b className="text-[#111]">{usersLabel} users</b> in{" "}
+          <b className="text-[#111]">{countriesLabel} countries</b>
+        </p>
+        <div className="flex items-center gap-1">
+          {FEATURED_COUNTRIES.map((c) => (
+            <img
+              key={c.code}
+              src={flagSrc(c.code, 40)}
+              srcSet={`${flagSrc(c.code, 80)} 2x`}
+              alt={c.name}
+              title={c.name}
+              width={28}
+              height={28}
+              loading="lazy"
+              decoding="async"
+              className="size-7 rounded-full border border-[#e5e7eb] bg-white object-cover shadow-sm"
+            />
+          ))}
+          <span className="ml-1 rounded-full bg-[#111] px-2 py-0.5 text-[10px] font-bold text-white">
+            {moreLabel}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ═══ 3. Platform overview bar ═══ */
+const OVERVIEW = [
+  { icon: ShoppingBag, title: "Buy Products", desc: "Verified suppliers & secure checkout", color: ORANGE },
+  { icon: Store, title: "Sell Products", desc: "Open your store in minutes", color: BLUE },
+  { icon: DollarSign, title: "Earn Commissions", desc: "Up to 30% per sale", color: GREEN },
+  { icon: Megaphone, title: "Join Campaigns", desc: "Get paid per view", color: PURPLE },
+  { icon: Users, title: "Build Communities", desc: "Monetize your audience", color: YELLOW },
+];
+
+export function PlatformOverviewBar() {
+  return (
+    <section className="bg-white py-8">
+      <div className={shell}>
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+          {OVERVIEW.map((o) => (
+            <div key={o.title} className="flex items-start gap-3">
+              <span
+                className="grid size-9 shrink-0 place-items-center rounded-lg"
+                style={{ background: `${o.color}14`, color: o.color }}
+              >
+                <o.icon className="size-4" strokeWidth={2.2} />
+              </span>
+              <div>
+                <div className="text-[13px] font-bold text-[#111]">{o.title}</div>
+                <div className="text-[11px] leading-snug text-[#9ca3af]">{o.desc}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ═══ 4. Choose your journey ═══ */
+const JOURNEYS = [
+  {
+    title: "I'm a Buyer",
+    photo: "https://images.unsplash.com/photo-1483985988350-763728e1935b?w=400&h=280&fit=crop",
+    items: ["Shop verified products", "Track every order", "Buyer protection"],
+    cta: "Start as Buyer",
+    href: "/marketplace",
+    color: ORANGE,
+  },
+  {
+    title: "I'm a Seller",
+    photo: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400&h=280&fit=crop",
+    items: ["Open your store", "Reach global buyers", "Powerful seller tools"],
+    cta: "Start as Seller",
+    href: "/dashboard",
+    color: GREEN,
+  },
+  {
+    title: "I'm an Affiliate",
+    photo: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&h=280&fit=crop",
+    items: ["Promote & earn", "High commissions", "Instant payouts"],
+    cta: "Start as Affiliate",
+    href: "/ugc",
+    color: YELLOW,
+  },
+  {
+    title: "I'm a Creator",
+    photo: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=400&h=280&fit=crop",
+    items: ["Get paid per view", "Brand campaigns", "Grow your audience"],
+    cta: "Start as Creator",
+    href: "/ugc",
+    color: PURPLE,
+  },
+  {
+    title: "I'm a Community Owner",
+    photo: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=400&h=280&fit=crop",
+    items: ["Build your space", "Monetize members", "Host live events"],
+    cta: "Start Community",
+    href: "/communities",
+    color: BLUE,
+  },
+];
+
+export function ChooseYourJourney() {
+  return (
+    <section className="bg-[#fafafa] py-12 sm:py-16">
+      <div className={shell}>
+        <SectionTitle sub="Whoever you are, there's a place for you on Jimvio.">Choose Your Journey</SectionTitle>
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-5">
+          {JOURNEYS.map((j) => (
+            <div key={j.title} className={`overflow-hidden ${cardBase}`}>
+              <img src={j.photo} alt={j.title} className="h-36 w-full object-cover" />
+              <div className="flex flex-col p-4">
+                <h3 className="text-[15px] font-bold text-[#111]">{j.title}</h3>
+                <ul className="my-3 space-y-1.5">
+                  {j.items.map((it) => (
+                    <li key={it} className="flex items-center gap-2 text-[12px] text-[#4b5563]">
+                      <Check className="size-3.5 shrink-0" style={{ color: j.color }} strokeWidth={3} />
+                      {it}
+                    </li>
+                  ))}
+                </ul>
+                <Link
+                  href={j.href}
+                  className="mt-auto flex w-full items-center justify-center gap-1 rounded-xl py-2.5 text-[13px] font-bold text-white"
+                  style={{ background: j.color }}
+                >
+                  {j.cta}
+                </Link>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ═══ 5. How Jimvio works ═══ */
+const STEPS = [
+  { n: 1, title: "Discover", desc: "Find products, campaigns and opportunities you love.", color: ORANGE },
+  { n: 2, title: "Promote & Earn", desc: "Share or sell and get paid instantly.", color: GREEN },
+  { n: 3, title: "Scale", desc: "Build your income and build your brand.", color: PURPLE },
+];
+
+export function HowJimvioWorks() {
+  return (
+    <section className="bg-white py-12 sm:py-16">
+      <div className={shell}>
+        <SectionTitle>How Jimvio Works</SectionTitle>
+        <div className="relative grid grid-cols-1 gap-8 md:grid-cols-3 md:gap-4">
+          <div className="pointer-events-none absolute left-[20%] right-[20%] top-7 hidden h-px border-t-2 border-dashed border-[#e5e7eb] md:block" />
+          {STEPS.map((s) => (
+            <div key={s.n} className="relative flex flex-col items-center text-center">
+              <span
+                className="relative z-10 mb-4 grid size-14 place-items-center rounded-full text-lg font-black text-white shadow-md"
+                style={{ background: s.color }}
+              >
+                {s.n}
+              </span>
+              <h3 className="text-[16px] font-bold text-[#111]">{s.title}</h3>
+              <p className="mt-1.5 max-w-[220px] text-[13px] leading-relaxed text-[#6b7280]">{s.desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ═══ 6. Trending products ═══ */
+export function TrendingProductsRow({ products = [] }: { products: any[] }) {
+  const { formatMoney } = useCurrency();
+  if (!products.length) return null;
+
+  return (
+    <section className="bg-[#fafafa] py-12 sm:py-16">
+      <div className={shell}>
+        <div className="mb-6 flex items-center justify-between">
+          <h2 className="text-[22px] font-black text-[#111] sm:text-[26px]">Trending Products</h2>
+          <Link href="/marketplace" className="inline-flex items-center gap-1 text-[13px] font-bold" style={{ color: ORANGE }}>
+            View Marketplace <ArrowRight className="size-3.5" />
+          </Link>
+        </div>
+        <div className="flex gap-4 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {products.slice(0, 8).map((p) => {
+            const verified = p.vendors?.verification_status === "verified";
+            return (
+              <Link
+                key={p.id}
+                href={`/marketplace/${p.slug}`}
+                className={`w-[168px] shrink-0 overflow-hidden sm:w-[190px] ${cardBase}`}
+              >
+                <div className="flex aspect-square items-center justify-center bg-[#f8f8f8] p-3">
+                  <img src={getImage(p.images)} alt={p.name} className="max-h-full max-w-full object-contain" loading="lazy" />
                 </div>
-                <div className="min-w-0">
-                  <p className="text-[12px] font-semibold text-foreground tracking-tight leading-tight truncate">{item.title}</p>
-                  <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{item.desc}</p>
+                <div className="p-3">
+                  <h4 className="line-clamp-2 text-[12px] font-semibold leading-snug text-[#111]">{p.name}</h4>
+                  <div className="mt-1.5 text-[15px] font-black" style={{ color: GREEN }}>
+                    {formatMoney(p.price, p.currency)}
+                  </div>
+                  {verified && (
+                    <div className="mt-1 flex items-center gap-1 text-[10px] font-semibold" style={{ color: GREEN }}>
+                      <Check className="size-3" strokeWidth={3} /> Verified Supplier
+                    </div>
+                  )}
                 </div>
-              </motion.div>
+              </Link>
             );
           })}
         </div>
       </div>
-    </motion.div>
+    </section>
   );
 }
 
-/* ─── RECOMMENDED PICKS HEADER ────────────────────────────────── */
-export function RecommendedHeader() {
+/* ═══ 7. Featured UGC campaigns ═══ */
+const PLATFORM_ICON: Record<string, typeof Play> = {
+  tiktok: Play,
+  instagram: Instagram,
+  youtube: Youtube,
+};
+
+export function FeaturedUGCCampaigns({ campaigns = [] }: { campaigns: SharedCampaignRow[] }) {
+  const { formatMoney } = useCurrency();
+  const list = campaigns.slice(0, 4);
+  if (!list.length) return null;
+
   return (
-    <motion.div
-      initial="hidden" whileInView="show" viewport={{ once: true }}
-      variants={stagger}
-      className="mb-8 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4"
-    >
-      <motion.div variants={fadeUp}>
-        <Eyebrow text="Hand-Picked Listings" />
-        <h2 className="text-[28px] sm:text-[34px] font-black text-foreground leading-tight tracking-tight flex items-center gap-3">
-          <span className="inline-flex rounded-sm items-center justify-center w-9 h-9 border border-[#fd5000]/30 bg-[#fd5000]/5">
-            <Star className="h-4 w-4 fill-[#fd5000] text-[#fd5000]" />
-          </span>
-          Recommended Picks
-        </h2>
-        <p className="mt-2 text-[14px] font-medium text-muted-foreground">
-          Curated from verified suppliers — updated as inventory changes.
-        </p>
-      </motion.div>
-      <motion.div variants={fadeUp}>
-        <Link
-          href="/marketplace"
-          className="inline-flex rounded-sm items-center gap-2 px-5 py-2.5 text-[13px] font-semibold text-muted-foreground hover:text-foreground transition-colors border border-border hover:border-foreground/30 bg-background"
-        >
-          Browse all <ChevronRight className="h-4 w-4" />
-        </Link>
-      </motion.div>
-    </motion.div>
-  );
-}
-
-/* ─── CATEGORY SIDEBAR ────────────────────────────────────────── */
-interface SidebarCat { icon: React.ReactNode; label: string; slug: string; }
-
-export function CategorySidebar({ cats }: { cats: SidebarCat[] }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, x: 20 }}
-      whileInView={{ opacity: 1, x: 0 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1], delay: 0.15 }}
-      className="sticky top-[calc(var(--navbar-height)+1rem)] bg-background border border-border overflow-hidden"
-    >
-      <div className="px-5 py-3.5 border-b border-border flex items-center justify-between">
-        <Eyebrow text="Browse by Category" />
-      </div>
-
-      <div className="divide-y divide-border/60">
-        {cats.slice(0, 8).map((cat, idx) => (
-          <Link
-            key={idx}
-            href={`/marketplace?cat=${encodeURIComponent(cat.slug)}`}
-            className="flex items-center gap-3 px-5 py-3 hover:bg-muted/40 transition-colors group"
-          >
-            <div className="w-7 h-7 flex items-center justify-center border border-border text-muted-foreground group-hover:border-[#fd5000]/40 group-hover:text-[#fd5000] transition-colors flex-shrink-0">
-              {cat.icon}
-            </div>
-            <span className="text-[13px] font-semibold text-foreground/80 group-hover:text-foreground flex-1 transition-colors">{cat.label}</span>
-            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors" />
+    <section className="bg-white py-12 sm:py-16">
+      <div className={shell}>
+        <div className="mb-6 flex items-center justify-between">
+          <h2 className="text-[22px] font-black text-[#111] sm:text-[26px]">Featured UGC Campaigns</h2>
+          <Link href="/ugc" className="text-[13px] font-bold" style={{ color: ORANGE }}>
+            View All Campaigns →
           </Link>
-        ))}
-      </div>
-
-      <div className="p-4 border-t border-border">
-        <Link
-          href="/marketplace"
-          className="block w-full text-center py-2.5 text-[12px] font-semibold text-[#fd5000] border border-[#fd5000]/30 hover:bg-[#fd5000] hover:text-white transition-all"
-        >
-          View All Categories
-        </Link>
-      </div>
-    </motion.div>
-  );
-}
-
-/* ─── FLASH DEALS ─────────────────────────────────────────────── */
-export function FlashDeals({ products }: { products: any[] }) {
-  return (
-    <motion.div
-      initial="hidden" whileInView="show" viewport={{ once: true, margin: "-60px" }}
-      variants={stagger}
-      className="bg-background border border-border overflow-hidden rounded-xl"
-    >
-      {/* Header row — ruled, no card shadows */}
-      <div className="px-6 py-4 border-b border-border flex items-center justify-between ">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-[#fd5000] rounded-full flex items-center justify-center flex-shrink-0">
-            <Zap className="h-4 w-4 text-white fill-white stroke-none" />
-          </div>
-          <div>
-            <h3 className="text-[18px] font-black text-foreground leading-tight tracking-tight">Flash Trade Deals</h3>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Live · Refreshed daily</p>
-          </div>
         </div>
-        <div className="flex items-center gap-1.5 rounded px-3 py-1 border border-[#fd5000]/30 bg-[#fd5000]/5">
-          <AccentDot className="animate-pulse" />
-          <span className="text-[10px] font-bold text-[#fd5000] uppercase tracking-wider">High Demand</span>
-        </div>
-      </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {list.map((c) => {
+            const platform = (c.allowed_platforms?.[0] ?? "tiktok").toLowerCase();
+            const Icon = PLATFORM_ICON[platform] ?? Clapperboard;
+            const joined = c.approved_count ?? c.submission_count ?? 0;
+            const cap = 100;
+            const pct = Math.min(100, (joined / cap) * 100);
+            const vendor = c.vendor ?? c.vendors;
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 divide-x divide-border">
-        {products.slice(0, 5).map((p, i) => {
-          const dealPct = getProductDiscountPercent({
-            price: Number(p.price ?? 0),
-            compare_at_price: p.compare_at_price ?? null,
-            discount_label: p.discount_label ?? null,
-            is_flash_deal: p.is_flash_deal ?? null,
-          });
-          const heat = Math.min(94, 65 + (dealPct > 0 ? dealPct % 30 : i * 7));
-          const img = p.images?.[0] || null;
-
-          return (
-            <motion.div key={p.id} variants={scaleIn} className="group">
-              <Link
-                href={`/marketplace/${p.slug}`}
-                className="block p-4 hover:bg-muted/30 transition-colors border-t border-border md:border-t-0 relative"
-              >
-                {dealPct > 0 && (
-                <div className="absolute rounded-br top-0 left-0 bg-[#fd5000] text-white text-[10px] font-bold px-2 py-0.5 leading-none">
-                  -{dealPct}%
-                </div>
-                )}
-
-                {/* Product image */}
-                <div className="aspect-square bg-muted flex items-center justify-center mb-3 mt-4 overflow-hidden border border-border/50">
-                  {img
-                    ? <img src={img} alt={p.name} className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                    : <Package className="h-8 w-8 text-muted-foreground/30" />
-                  }
-                </div>
-
-                {/* Product info */}
-                <h4 className="text-[13px] font-bold text-foreground line-clamp-1 group-hover:text-[#fd5000] transition-colors tracking-tight mb-1">
-                  {p.name || "Refined Goods"}
-                </h4>
-                <div className="text-[16px] font-black text-foreground tracking-tighter mb-3">
-                  {formatDisplayMoney(Number(p.price), (p as any).currency ?? "RWF")}
-                </div>
-
-                {/* Heat bar */}
-                <div>
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="text-[9px] font-bold text-[#fd5000] uppercase tracking-widest">{heat}% Sold</span>
-                    {heat > 80 && (
-                      <span className="text-[9px] font-bold text-[#fd5000]">HOT</span>
-                    )}
-                  </div>
-                  <div className="w-full h-1 bg-muted overflow-hidden">
-                    <motion.div
-                      initial={{ width: 0 }}
-                      whileInView={{ width: `${heat}%` }}
-                      viewport={{ once: true }}
-                      transition={{ duration: 1, ease: "easeOut", delay: 0.2 }}
-                      className="h-full bg-[#fd5000]"
-                    />
+            return (
+              <Link key={c.id} href={`/ugc/${c.id}`} className={`flex flex-col overflow-hidden ${cardBase}`}>
+                <div className="flex items-center gap-2 border-b border-[#f0f0f0] px-4 py-3">
+                  <span className="grid size-8 place-items-center rounded-lg bg-[#111] text-white">
+                    <Icon className="size-4" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-[13px] font-bold capitalize text-[#111]">{platform}</div>
+                    <div className="truncate text-[11px] text-[#9ca3af]">{c.campaign_type ?? "UGC"}</div>
                   </div>
                 </div>
-              </Link>
-            </motion.div>
-          );
-        })}
-      </div>
-    </motion.div>
-  );
-}
-
-/* ─── TRENDING SIDE PANEL ─────────────────────────────────────── */
-interface TrendingCat { name: string; slug: string; product_count?: number; }
-interface Supplier { business_name?: string; business_slug?: string; rating?: number; }
-
-export function TrendingSidePanel({
-  trendingCats, suppliers,
-}: { trendingCats: TrendingCat[]; suppliers: Supplier[] }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, x: 20 }}
-      whileInView={{ opacity: 1, x: 0 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-      className="hidden lg:flex flex-col gap-4 "
-    >
-      {/* Trending Now — dark panel */}
-      <div className="bg-stone-900 dark:bg-stone-950 border border-stone-800 overflow-hidden rounded-lg">
-        <div className="px-5 py-3.5 border-b border-stone-800 flex items-center justify-between">
-          <div>
-            <p className="text-[10px] font-bold text-stone-500 uppercase tracking-[0.2em] mb-0.5">Hot This Week</p>
-            <h3 className="text-[16px] font-bold text-white tracking-tight leading-none">Trending Now</h3>
-          </div>
-          <AccentDot className="animate-pulse" />
-        </div>
-        <div className="divide-y divide-stone-800">
-          {trendingCats.map((item, i) => (
-            <Link
-              key={item.slug}
-              href={`/marketplace?cat=${encodeURIComponent(item.slug)}`}
-              className="flex items-center justify-between px-5 py-3 hover:bg-stone-800/60 transition-colors group"
-            >
-              <div className="flex items-center gap-2.5">
-                <span className="text-[10px] font-bold text-stone-600 tabular-nums w-4">
-                  {String(i + 1).padStart(2, "0")}
-                </span>
-                <span className="text-[13px] font-semibold text-stone-300 group-hover:text-white transition-colors">{item.name}</span>
-              </div>
-              <span className="text-[10px] text-stone-600 font-bold tabular-nums">
-                {item.product_count != null && item.product_count > 0 ? item.product_count : "—"}
-              </span>
-            </Link>
-          ))}
-        </div>
-      </div>
-
-      {/* Top Suppliers */}
-      <div className="bg-background border border-border overflow-hidden rounded-lg">
-        <div className="px-5 py-3.5 border-b border-border">
-          <Eyebrow text="Top Suppliers" />
-        </div>
-        <div className="divide-y divide-border/60">
-          {suppliers.length === 0 ? (
-            <p className="text-[12px] text-muted-foreground px-5 py-4">Suppliers appear as stores join.</p>
-          ) : (
-            suppliers.map((v, i) => (
-              <Link
-                key={v.business_slug ?? i}
-                href={v.business_slug ? `/vendors/${v.business_slug}` : "/vendors"}
-                className="flex items-center gap-3 px-5 py-3.5 hover:bg-muted/40 transition-colors group"
-              >
-                {/* Rank */}
-                <span className="text-[11px] font-bold text-muted-foreground/40 tabular-nums w-5 flex-shrink-0">
-                  {String(i + 1).padStart(2, "0")}
-                </span>
-                {/* Initial avatar */}
-                <div className="w-8 h-8 bg-[#fd5000]/10 border border-[#fd5000]/20 text-[#fd5000] text-[12px] font-black flex items-center justify-center flex-shrink-0 group-hover:bg-[#fd5000] group-hover:text-white transition-colors">
-                  {(v.business_name ?? "?")[0]}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[13px] font-semibold text-foreground truncate group-hover:text-[#fd5000] transition-colors">{v.business_name}</p>
-                  <p className="text-[10px] text-muted-foreground flex items-center gap-1.5">
-                    <Star className="h-3 w-3 fill-[#fd5000] text-[#fd5000]" />
-                    {Number(v.rating ?? 0).toFixed(1)} · Active
-                  </p>
-                </div>
-              </Link>
-            ))
-          )}
-        </div>
-      </div>
-    </motion.div>
-  );
-}
-
-/* ─── INDUSTRIES SECTION ──────────────────────────────────────── */
-interface Industry { name: string; slug: string; product_count?: number; image_url?: string | null; }
-
-function pickIcon(slug: string, name: string): LucideIcon {
-  const s = `${slug} ${name}`.toLowerCase();
-  if (s.includes("elect")) return Zap;
-  if (s.includes("fashion") || s.includes("apparel")) return Menu;
-  if (s.includes("machin")) return Menu;
-  if (s.includes("agri")) return Globe;
-  if (s.includes("health")) return ShieldCheck;
-  return Package;
-}
-
-export function IndustriesSection({ industries }: { industries: Industry[] }) {
-  return (
-    <motion.section
-      initial="hidden" whileInView="show" viewport={{ once: true, margin: "-60px" }}
-      variants={stagger}
-      className="bg-background border border-border overflow-hidden rounded-xl"
-    >
-      {/* Section header */}
-      <div className="px-8 py-5 border-b rounded-md border-border flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <motion.div variants={fadeUp} className="rounded-md">
-          <Eyebrow text="Browse by Sector" />
-          <h2 className="text-[28px] sm:text-[34px] font-bold text-foreground tracking-tight leading-tight flex items-center gap-3">
-            <span className="inline-flex rounded-sm items-center justify-center w-9 h-9 border border-border text-muted-foreground">
-              <Menu className="h-4 w-4" />
-            </span>
-            Global Industries
-          </h2>
-        </motion.div>
-        <motion.div variants={fadeUp}>
-          <Link href="/marketplace" className="inline-flex items-center gap-1.5 text-[12px] font-bold text-[#fd5000] uppercase tracking-[0.15em] hover:gap-3 transition-all">
-            All Sections <ChevronRight className="h-4 w-4" />
-          </Link>
-        </motion.div>
-      </div>
-
-      {/* Industry grid — borderless inner cards, separated by grid lines */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 divide-x divide-y divide-border">
-        {industries.map((cat, i) => {
-          const Icon = pickIcon(cat.slug, cat.name);
-          const img = industryCardBackground(cat.slug, cat.image_url ?? null);
-          const grad = INDUSTRY_GRADIENTS[i % INDUSTRY_GRADIENTS.length];
-          const countLabel = cat.product_count != null && cat.product_count > 0
-            ? cat.product_count >= 1000
-              ? `${Math.round(cat.product_count / 1000)}k+`
-              : `${cat.product_count}+`
-            : "Explore";
-
-          return (
-            <motion.div key={cat.slug} variants={scaleIn}>
-              <Link
-                href={`/marketplace?cat=${encodeURIComponent(cat.slug)}`}
-                className="relative h-[180px] overflow-hidden block group"
-              >
-                <div className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
-                  style={{ backgroundImage: `url('${img}')` }} />
-                <div className={cn("absolute inset-0", grad)} />
-                {/* Hover overlay */}
-                <div className="absolute inset-0 bg-[#fd5000]/0 group-hover:bg-[#fd5000]/15 transition-colors duration-300" />
-                <div className="absolute inset-0 p-4 flex flex-col items-center justify-center text-center z-10">
-                  <div className="w-9 h-9 border border-white/30 bg-black/20 flex items-center justify-center mb-2 group-hover:border-white/60 transition-colors">
-                    <Icon className="h-4 w-4 text-white" />
+                <div className="flex flex-1 flex-col p-4">
+                  <h3 className="line-clamp-2 text-[14px] font-bold text-[#111]">{c.title}</h3>
+                  <div className="mt-2 space-y-1 text-[11px] text-[#6b7280]">
+                    <div>Budget: <b className="text-[#111]">{formatMoney(c.total_budget, "USD")}</b></div>
+                    <div>Pay Per View: <b style={{ color: GREEN }}>{formatMoney(c.rate_per_1k_views, "USD")}</b></div>
                   </div>
-                  <h4 className="text-[14px] font-bold text-white leading-tight">{cat.name}</h4>
-                  <p className="text-[10px] text-white/60 font-semibold uppercase tracking-widest mt-1">{countLabel}</p>
-                </div>
-              </Link>
-            </motion.div>
-          );
-        })}
-      </div>
-    </motion.section>
-  );
-}
-
-/* ─── AFFILIATE PANEL ─────────────────────────────────────────── */
-interface AffiliatePanelProps {
-  valueProps: string[];
-  campaigns?: string[];
-  spotlightCreator?: {
-    full_name?: string;
-    total_earnings?: number;
-    total_clicks?: number;
-    total_conversions?: number;
-  } | null;
-  trendingCats: { name: string }[];
-}
-
-export function AffiliatePanel({
-  valueProps, campaigns = [], spotlightCreator, trendingCats,
-}: AffiliatePanelProps) {
-  const chips = campaigns.length > 0 ? campaigns : trendingCats.map(c => c.name);
-
-  return (
-    <motion.section
-      initial="hidden" whileInView="show" viewport={{ once: true, margin: "-60px" }}
-      variants={stagger}
-      className="border border-border overflow-hidden grid grid-cols-1 lg:grid-cols-2 min-h-[460px] rounded-xl"
-    >
-      {/* Left — value prop */}
-      <motion.div
-        variants={fadeUp}
-        className="p-8 md:p-12 flex flex-col justify-center border-b lg:border-b-0 lg:border-r border-border bg-background"
-      >
-        <span className="inline-block w-fit px-4 py-1.5 bg-foreground text-background text-[10px] font-black uppercase tracking-[0.2em] mb-6">
-          Partner with Jimvio
-        </span>
-        <h3 className="text-[32px] md:text-[40px] font-black text-foreground leading-tight mb-6 tracking-tight">
-          Turn Your Network<br />Into Global Trade
-        </h3>
-        <p className="text-[15px] text-muted-foreground font-medium leading-relaxed mb-8 max-w-md">
-          Earn high-ticket commissions on every bulk deal referred through our creator-friendly B2B ecosystem.
-        </p>
-
-        {/* Value props list */}
-        <div className="space-y-2.5 mb-10">
-          {valueProps.map((t) => (
-            <div key={t} className="flex items-center gap-3 text-[14px] font-medium text-foreground">
-              <div className="w-5 h-5 flex items-center rounded justify-center bg-[#fd5000] text-white text-[10px] font-black flex-shrink-0">
-                ✓
-              </div>
-              {t}
-            </div>
-          ))}
-        </div>
-
-        <div className="flex flex-col sm:flex-row gap-3">
-          <Button
-            className="h-11 px-8 bg-foreground text-background font-bold text-[14px] hover:opacity-85 transition-opacity border-0"
-            asChild
-          >
-            <Link href="/register?role=affiliate">Start Earning →</Link>
-          </Button>
-          <Button
-            variant="outline"
-            className="h-11 px-8 border-border text-foreground font-bold text-[14px] hover:bg-muted/50"
-            asChild
-          >
-            <Link href="/dashboard">Creator Hub →</Link>
-          </Button>
-        </div>
-      </motion.div>
-
-      {/* Right — chips + spotlight */}
-      <motion.div
-        variants={fadeUp}
-        className="p-8 md:p-12 flex flex-col justify-center bg-stone-50 dark:bg-stone-900/50"
-      >
-        {chips.length > 0 && (
-          <div className="mb-8">
-            <h3 className="text-[22px] font-black text-foreground mb-1 tracking-tight">Active Categories</h3>
-            <p className="text-[13px] text-muted-foreground font-medium mb-5">Bridging manufacturers and authentic voices.</p>
-            <div className="flex flex-wrap gap-2">
-              {chips.map((t, i) => (
-                <span
-                  key={`${t}-${i}`}
-                  className={cn(
-                    "px-3 py-1.5 rounded text-[11px] font-bold border capitalize tracking-[0.08em]",
-                    i === 0
-                      ? "bg-[#fd5000] text-white border-[#fd5000]"
-                      : "bg-background text-muted-foreground border-border hover:border-[#fd5000]/40 hover:text-[#fd5000] transition-colors cursor-default"
+                  {vendor && (
+                    <span className="mt-2 inline-flex w-fit items-center gap-1 rounded-md bg-[#f0fdf4] px-2 py-0.5 text-[10px] font-bold" style={{ color: GREEN }}>
+                      <Check className="size-3" /> Brand Verified
+                    </span>
                   )}
-                >
-                  {t}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Creator spotlight */}
-        <div className="border border-border bg-background p-5 flex items-center gap-4 border-l-2 border-l-[#fd5000]">
-          {spotlightCreator ? (
-            <>
-              <Avatar className="h-11 w-11 flex-shrink-0">
-                <AvatarFallback className="bg-[#fd5000] text-white font-black text-[15px]">
-                  {(spotlightCreator.full_name ?? "C")[0]}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1 min-w-0">
-                <p className="text-[15px] font-bold text-foreground truncate">{spotlightCreator.full_name ?? "Top creator"}</p>
-                <p className="text-[11px] text-muted-foreground font-semibold uppercase tracking-[0.1em]">
-                  {Number(spotlightCreator.total_conversions ?? 0).toLocaleString()} conversions
-                </p>
-              </div>
-              <div className="text-right flex-shrink-0">
-                <div className="text-[18px] font-black text-[#fd5000]">
-                  {formatDisplayMoney(Number(spotlightCreator.total_earnings ?? 0), "RWF")}
+                  <div className="mt-3 flex items-center gap-2">
+                    <span className="grid size-8 place-items-center rounded-full bg-[#f3f4f6] text-[11px] font-bold text-[#6b7280]">
+                      {(vendor?.business_name ?? "B").slice(0, 1)}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="h-1.5 overflow-hidden rounded-full bg-[#f3f4f6]">
+                        <div className="h-full rounded-full" style={{ width: `${pct}%`, background: ORANGE }} />
+                      </div>
+                      <div className="mt-1 flex justify-between text-[10px] text-[#9ca3af]">
+                        <span>{joined} / {cap} joined</span>
+                        <span>4 days left</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-[0.15em]">Earnings</p>
-              </div>
-            </>
-          ) : (
-            <p className="text-[13px] text-muted-foreground w-full text-center py-2">
-              Be the first top earner — share products you love.
-            </p>
-          )}
+              </Link>
+            );
+          })}
         </div>
-
-        <Button
-          className="w-full h-11 mt-6 bg-[#fd5000] hover:bg-orange-600 text-white font-bold text-[14px] border-0"
-          asChild
-        >
-          <Link href="/dashboard">Access Dashboard →</Link>
-        </Button>
-      </motion.div>
-    </motion.section>
+      </div>
+    </section>
   );
 }
 
-/* ─── MARKET INTELLIGENCE ─────────────────────────────────────── */
-interface MarketCategory { name: string; product_count?: number; }
+/* ═══ 8. Featured communities ═══ */
+type CommunityRow = {
+  id: string;
+  name: string;
+  slug: string;
+  tagline?: string;
+  member_count?: number;
+  category?: string;
+  avatar_url?: string | null;
+  cover_image?: string | null;
+  image_url?: string | null;
+  profiles?:
+    | { full_name?: string | null; avatar_url?: string | null }
+    | { full_name?: string | null; avatar_url?: string | null }[]
+    | null;
+};
 
-export function MarketIntelligence({
-  categories, trending,
-}: { categories: MarketCategory[]; trending: any[] }) {
-  const displayCats = categories.length > 0
-    ? categories.slice(0, 4)
-    : [
-      { name: "Electronics", product_count: 80 },
-      { name: "Machinery", product_count: 35 },
-      { name: "Textiles", product_count: 65 },
-      { name: "Health", product_count: 90 },
-    ];
+const COMMUNITY_ICONS: Record<string, { icon: typeof Users; color: string; bg: string }> = {
+  affiliate: { icon: DollarSign, color: GREEN, bg: "#f0fdf4" },
+  ecommerce: { icon: Store, color: BLUE, bg: "#eff6ff" },
+  ugc: { icon: Clapperboard, color: PURPLE, bg: "#f5f3ff" },
+  digital: { icon: Layers, color: ORANGE, bg: "#fff4ed" },
+};
+
+function communityStyle(name: string) {
+  const n = name.toLowerCase();
+  if (n.includes("affiliate")) return COMMUNITY_ICONS.affiliate;
+  if (n.includes("ecom") || n.includes("seller")) return COMMUNITY_ICONS.ecommerce;
+  if (n.includes("ugc") || n.includes("creator")) return COMMUNITY_ICONS.ugc;
+  return COMMUNITY_ICONS.digital;
+}
+
+function communityProfileImage(c: CommunityRow): string | null {
+  const profile = Array.isArray(c.profiles) ? c.profiles[0] : c.profiles;
+  return c.avatar_url ?? c.image_url ?? c.cover_image ?? profile?.avatar_url ?? null;
+}
+
+export function FeaturedCommunities({ communities = [] }: { communities: CommunityRow[] }) {
+  const list = (communities.length > 0 ? communities : [
+    { id: "1", name: "Affiliate Hub", slug: "affiliate-hub", member_count: 12400, tagline: "Learn, share and earn together." },
+    { id: "2", name: "Ecommerce Sellers", slug: "ecommerce-sellers", member_count: 8900, tagline: "Scale your online store." },
+    { id: "3", name: "UGC Creators", slug: "ugc-creators", member_count: 15600, tagline: "Create content, get paid." },
+    { id: "4", name: "Digital Products", slug: "digital-products", member_count: 6700, tagline: "Courses, tools and templates." },
+  ]).slice(0, 4);
 
   return (
-    <motion.div
-      initial="hidden" whileInView="show" viewport={{ once: true, margin: "-60px" }}
-      variants={stagger}
-      className="grid grid-cols-1 gap-px lg:grid-cols-2 border border-border bg-border rounded-xl"
-    >
-      {/* Market Pulse */}
-      <motion.div variants={fadeUp} className="bg-background p-7">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="w-9 h-9 flex items-center justify-center border border-border text-muted-foreground">
-            <BarChart2 className="h-4 w-4" />
-          </div>
-          <h4 className="text-[20px] font-bold text-foreground tracking-tight">Market Pulse</h4>
+    <section className="bg-[#fafafa] py-12 sm:py-16">
+      <div className={shell}>
+        <div className="mb-6 flex items-center justify-between">
+          <h2 className="text-[22px] font-black text-[#111] sm:text-[26px]">Featured Communities</h2>
+          <Link href="/communities" className="text-[13px] font-bold" style={{ color: ORANGE }}>
+            Explore Communities →
+          </Link>
         </div>
-
-        {/* Ruled separator */}
-        <Rule className="mb-6" />
-
-        <div className="space-y-5">
-          {displayCats.map((cat, i) => (
-            <div key={i} className="space-y-2 group">
-              <div className="flex justify-between items-baseline">
-                <span className="text-[13px] font-semibold rounded-r text-foreground group-hover:text-[#fd5000] transition-colors">
-                  {cat.name}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {list.map((c) => {
+            const style = communityStyle(c.name);
+            const Icon = style.icon;
+            const profileImage = communityProfileImage(c);
+            return (
+              <Link key={c.id} href={`/communities/${c.slug}`} className={`p-5 ${cardBase}`}>
+                {profileImage ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={profileImage}
+                    alt={c.name}
+                    className="mb-4 size-12 rounded-2xl border border-[#ececec] object-cover"
+                  />
+                ) : (
+                  <span
+                    className="mb-4 grid size-12 place-items-center rounded-2xl"
+                    style={{ background: style.bg, color: style.color }}
+                  >
+                    <Icon className="size-6" />
+                  </span>
+                )}
+                <h3 className="text-[15px] font-bold text-[#111]">{c.name}</h3>
+                <p className="mt-1 text-[12px] text-[#9ca3af]">{fmtCount(c.member_count ?? 0)} members</p>
+                <p className="mt-2 text-[12px] leading-relaxed text-[#6b7280]">{c.tagline ?? "Connect with like-minded people."}</p>
+                <span className="mt-3 inline-flex items-center gap-1 text-[12px] font-bold" style={{ color: ORANGE }}>
+                  Join Community <ArrowRight className="size-3" />
                 </span>
-                <span className="text-[11px] font-bold text-emerald-500 tabular-nums">↑ {8 + i}%</span>
-              </div>
-              <div className="h-1.5 w-full bg-muted overflow-hidden">
-                <motion.div
-                  initial={{ width: 0 }}
-                  whileInView={{ width: `${60 + i * 10}%` }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 1, delay: i * 0.12, ease: "easeOut" }}
-                  className="h-full bg-[#fd5000] rounded-md"
-                />
-              </div>
-            </div>
-          ))}
+              </Link>
+            );
+          })}
         </div>
-      </motion.div>
-
-      {/* Hot Sourcing */}
-      <motion.div variants={fadeUp} className="bg-background p-7">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 flex items-center justify-center border border-border text-muted-foreground">
-              <TrendingUp className="h-4 w-4" />
-            </div>
-            <h4 className="text-[20px] font-bold text-foreground tracking-tight">Hot Sourcing</h4>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <AccentDot className="animate-pulse" />
-            <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Live</span>
-          </div>
-        </div>
-
-        <Rule className="mb-5" />
-
-        {/* Category tags — flat, not pill-shaped */}
-        <div className="flex flex-wrap gap-1.5 mb-5">
-          {categories.slice(0, 8).map((cat: any) => (
-            <Link key={cat.id} href={`/marketplace?cat=${encodeURIComponent(cat.slug)}`}>
-              <span className="inline-flex cursor-pointer rounded border border-border bg-muted/40 px-3 py-1.5 text-[11px] font-semibold text-muted-foreground hover:border-[#fd5000]/40 hover:text-[#fd5000] hover:bg-[#fd5000]/5 transition-all">
-                {cat.name}
-              </span>
-            </Link>
-          ))}
-        </div>
-
-        {/* Trending products — ruled list */}
-        <div className="divide-y divide-border">
-          {trending.slice(0, 3).map((prod: any, i: number) => (
-            <Link key={prod.id ?? i} href={`/marketplace/${prod.slug}`} className="group flex gap-3 py-3 first:pt-0 last:pb-0 items-center">
-              <div className="w-11 h-11 items-center justify-center flex-shrink-0 bg-muted border rounded-md border-border overflow-hidden">
-                {prod.images?.[0]
-                  ? <img src={prod.images[0]} className="h-full w-full object-cover" alt="" />
-                  : <Package className="h-4 w-4 text-muted-foreground/40 m-auto" />
-                }
-              </div>
-              <div className="flex-1 min-w-0">
-                <h5 className="text-[12px] font-semibold text-foreground line-clamp-1 group-hover:text-[#fd5000] transition-colors">{prod.name}</h5>
-                <p className="text-[11px] text-muted-foreground">{formatDisplayMoney(Number(prod.price ?? 0), (prod as any).currency ?? "RWF")}</p>
-              </div>
-              <div className="flex-shrink-0 bg-[#fd5000] px-2 py-0.5">
-                <span className="text-[9px] font-bold uppercase tracking-wide text-white">Live</span>
-              </div>
-            </Link>
-          ))}
-        </div>
-      </motion.div>
-    </motion.div>
+      </div>
+    </section>
   );
 }
 
-/* ─── HOW IT WORKS ────────────────────────────────────────────── */
-export function HowItWorks() {
-  const steps = [
-    { icon: <UserPlus className="h-5 w-5" />, num: "01", title: "Digital ID", desc: "One unified account for vendors, buyers, and creators." },
-    { icon: <ArrowRight className="h-5 w-5" />, num: "02", title: "AI Search", desc: "Find verified partners in seconds using our neural matching." },
-    { icon: <Search className="h-5 w-5" />, num: "03", title: "Smart Contracts", desc: "Automated agreements and secure multi-currency escrow." },
-    { icon: <ShieldCheck className="h-5 w-5" />, num: "04", title: "Global Sync", desc: "Real-time tracking and logistics integration across 180 countries." },
+/* ═══ 9. One platform opportunities ═══ */
+const OPPS = [
+  { title: "Marketplace", color: ORANGE, items: ["Verified suppliers", "Global shipping", "Secure payments"] },
+  { title: "Affiliate Program", color: GREEN, items: ["Up to 30% commission", "Real-time analytics", "Instant payouts"] },
+  { title: "UGC Campaigns", color: PURPLE, items: ["Paid per view", "Brand partnerships", "Content rewards"] },
+  { title: "Communities", color: BLUE, items: ["Free & paid tiers", "Live rooms", "Courses & events"] },
+];
+
+export function OnePlatformOpportunities() {
+  return (
+    <section className="bg-white py-12 sm:py-16">
+      <div className={shell}>
+        <SectionTitle>One Platform. Endless Opportunities.</SectionTitle>
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          {OPPS.map((o) => (
+            <div key={o.title} className="px-2">
+              <h3 className="mb-3 text-[15px] font-bold text-[#111]">{o.title}</h3>
+              <ul className="space-y-2">
+                {o.items.map((it) => (
+                  <li key={it} className="flex items-center gap-2 text-[13px] text-[#4b5563]">
+                    <Check className="size-4 shrink-0" style={{ color: GREEN }} strokeWidth={3} />
+                    {it}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ═══ 10. AI growth tools ═══ */
+const AI_TOOLS = [
+  { icon: Search, title: "AI Product Finder", desc: "Discover winning products before they trend.", href: "/marketplace" },
+  { icon: Wand2, title: "AI Content Generator", desc: "Create posts, captions and scripts instantly.", href: "/ugc" },
+  { icon: TrendingUp, title: "AI Product Research", desc: "Analyze demand, pricing and competition.", href: "/marketplace" },
+  { icon: Bot, title: "AI Campaign Assistant", desc: "Match with the best brand campaigns for you.", href: "/ugc" },
+];
+
+export function GrowthStack() {
+  return (
+    <section className="bg-[#fafafa] py-12 sm:py-16">
+      <div className={shell}>
+        <SectionTitle>AI Powered Growth Tools</SectionTitle>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {AI_TOOLS.map((t) => (
+            <div key={t.title} className={`p-5 ${cardBase}`}>
+              <span className="mb-3 grid size-10 place-items-center rounded-xl bg-[#f5f3ff] text-[#7c3aed]">
+                <t.icon className="size-5" />
+              </span>
+              <h3 className="text-[14px] font-bold text-[#111]">{t.title}</h3>
+              <p className="mt-1 text-[12px] leading-relaxed text-[#6b7280]">{t.desc}</p>
+              <Link href={t.href} className="mt-3 inline-flex items-center gap-1 text-[12px] font-bold text-[#7c3aed]">
+                Try Now <ArrowRight className="size-3" />
+              </Link>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ═══ 11. Why choose Jimvio ═══ */
+const WHY = [
+  { icon: ShieldCheck, title: "Trusted & Secure", desc: "Every vendor verified. Every payment protected." },
+  { icon: Wallet, title: "Fast Payouts", desc: "Get your earnings quickly with instant transfers." },
+  { icon: Globe, title: "Global Reach", desc: "Buy, sell and earn across 50+ countries." },
+  { icon: Sparkles, title: "All-in-one Platform", desc: "Marketplace, affiliate, UGC and communities in one place." },
+];
+
+export function WhyChooseJimvio() {
+  return (
+    <section className="bg-white py-12 sm:py-16">
+      <div className={shell}>
+        <SectionTitle>Why People Choose Jimvio</SectionTitle>
+        <div className="mx-auto grid max-w-3xl grid-cols-1 gap-6 sm:grid-cols-2">
+          {WHY.map((w) => (
+            <div key={w.title} className="flex items-start gap-3">
+              <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-[#fff4ed]" style={{ color: ORANGE }}>
+                <w.icon className="size-5" />
+              </span>
+              <div>
+                <h3 className="text-[14px] font-bold text-[#111]">{w.title}</h3>
+                <p className="mt-0.5 text-[12px] text-[#6b7280]">{w.desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ═══ 12. Global network + platform stats (two cards, mockup layout) ═══ */
+
+const GLOBAL_MAP_PINS: WorldMapPin[] = [
+  { lat: 40.71, lng: -74.01, color: PURPLE },
+  { lat: 51.51, lng: -0.13, color: PURPLE },
+  { lat: 48.86, lng: 2.35, color: PURPLE },
+  { lat: -23.55, lng: -46.63, color: ORANGE },
+  { lat: 6.52, lng: 3.38, color: ORANGE },
+  { lat: -26.20, lng: 28.04, color: ORANGE },
+  { lat: -1.29, lng: 36.82, color: GREEN },
+  { lat: 20.59, lng: 78.96, color: GREEN },
+  { lat: 25.20, lng: 55.27, color: GREEN },
+  { lat: -33.87, lng: 151.21, color: BLUE },
+  { lat: 35.68, lng: 139.69, color: BLUE },
+];
+
+function formatNetworkCount(n: number, fallback: string): string {
+  if (!n) return fallback;
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 10_000) return `${(n / 1_000).toFixed(1)}K`;
+  if (n >= 1_000) return `${Math.round(n / 1_000)}K`;
+  return `${n}`;
+}
+
+function formatPlatformPlus(n: number, fallback: string, prefix = ""): string {
+  if (!n) return fallback;
+  if (n >= 1_000_000) return `${prefix}${(n / 1_000_000).toFixed(2)}M+`;
+  if (n >= 10_000) return `${prefix}${(n / 1_000).toFixed(1)}K+`;
+  if (n >= 1_000) return `${prefix}${Math.round(n / 1_000)}K+`;
+  return `${prefix}${n}+`;
+}
+
+export function GlobalNetworkStats({
+  platform,
+  countriesLabel = "50+",
+}: {
+  platform?: { totalUsers: number; totalProducts: number; totalEarnings: number; totalVendors: number };
+  countriesLabel?: string;
+}) {
+  const networkRows = [
+    { icon: Globe, value: countriesLabel, label: "Countries", tint: "#dcfce7", color: GREEN },
+    { icon: Users, value: formatNetworkCount(platform?.totalUsers ?? 0, "977K"), label: "Users", tint: "#dcfce7", color: GREEN },
+    { icon: Store, value: formatNetworkCount(platform?.totalVendors ?? 0, "12.4K"), label: "Businesses", tint: "#dbeafe", color: BLUE },
+    { icon: Package, value: formatNetworkCount(platform?.totalProducts ?? 0, "250K"), label: "Products", tint: "#dbeafe", color: BLUE },
+  ];
+
+  const platformStats = [
+    { value: formatPlatformPlus(platform?.totalEarnings ?? 0, "$1.24M+", "$"), label: "Paid Out", accent: ORANGE, bg: "#ffedd5" },
+    { value: formatPlatformPlus(platform?.totalUsers ?? 0, "977K+"), label: "Users", accent: PURPLE, bg: "#f3e8ff" },
+    { value: formatPlatformPlus(platform?.totalProducts ?? 0, "250K+"), label: "Products", accent: GREEN, bg: "#dcfce7" },
+    { value: formatPlatformPlus(platform?.totalVendors ?? 0, "12.4K+"), label: "Businesses", accent: BLUE, bg: "#dbeafe" },
+    { value: countriesLabel.endsWith("+") ? countriesLabel : `${countriesLabel}+`, label: "Countries", accent: ORANGE, bg: "#ffedd5" },
   ];
 
   return (
-    <div className="relative overflow-hidden py-16 md:py-24 bg-stone-50 dark:bg-stone-900/60 border-y border-border">
-      <div className="max-w-[1536px] mx-auto px-4 sm:px-6">
-        <motion.div initial="hidden" whileInView="show" viewport={{ once: true }} variants={stagger}>
+    <section className="bg-[#fafafa] py-12 sm:py-16">
+      <div className={shell}>
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-6">
+          {/* Left card — Global Network */}
+          <div className={`min-w-0 flex-1 p-6 sm:p-7 ${cardBase}`}>
+            <h2 className="text-[20px] font-black text-[#111] sm:text-[22px]">Global Network</h2>
+            <p className="mt-1 text-[13px] text-[#6b7280]">{countriesLabel} Countries Connected</p>
 
-          <motion.div variants={fadeUp} className="mb-12">
-            <Eyebrow text="How it works" />
-            <h2 className="text-[30px] sm:text-[38px] font-bold text-foreground tracking-tight">The Jimvio Protocol</h2>
-            <p className="mt-2 text-[15px] font-medium text-muted-foreground max-w-md">
-              Simplifying global trade for the modern era
-            </p>
-          </motion.div>
-
-          {/* Steps — ruled grid, numbered */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 rounded-lg lg:grid-cols-4 border border-border divide-x divide-y sm:divide-y-0 divide-border">
-            {steps.map((s, idx) => (
-              <motion.div key={idx} variants={fadeUp}>
-                <div className="p-7 group hover:bg-muted/30 transition-colors h-full">
-                  {/* Step number */}
-                  <p className="text-[11px] font-bold text-muted-foreground/40 tracking-widest mb-4">{s.num}</p>
-                  <div className="w-10 h-10 rounded flex items-center justify-center border border-border text-muted-foreground mb-4 group-hover:border-[#fd5000]/40 group-hover:text-[#fd5000] transition-colors">
-                    {s.icon}
-                  </div>
-                  <h4 className="text-[15px] font-semibold text-foreground mb-2">{s.title}</h4>
-                  <p className="text-[12px] text-muted-foreground leading-relaxed">{s.desc}</p>
+            <div className="mt-5 flex flex-col gap-5 sm:flex-row sm:items-center sm:gap-6">
+              <div className="w-full shrink-0 sm:w-[190px]">
+                <div className="space-y-3.5">
+                  {networkRows.map((row) => (
+                    <div key={row.label} className="flex items-center gap-3">
+                      <span
+                        className="grid size-9 shrink-0 place-items-center rounded-lg"
+                        style={{ background: row.tint, color: row.color }}
+                      >
+                        <row.icon className="size-4" strokeWidth={2.2} />
+                      </span>
+                      <div className="flex min-w-0 items-baseline gap-2">
+                        <span className="text-[20px] font-black leading-none text-[#111]">{row.value}</span>
+                        <span className="text-[12px] font-medium text-[#6b7280]">{row.label}</span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              </motion.div>
-            ))}
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <WorldMap pins={GLOBAL_MAP_PINS} showArcs={false} className="rounded-xl" />
+              </div>
+            </div>
           </div>
 
-          <motion.div variants={fadeUp} className="mt-8">
-            <Button
-              className="h-11 px-10 bg-[#fd5000] hover:bg-orange-600
-               text-white text-[13px] font-medium capitalize border-0"
-              asChild
-            >
-              <Link href="/marketplace">Initialize Trade Access →</Link>
-            </Button>
-          </motion.div>
-        </motion.div>
+          {/* Right card — Platform Stats (compact, content height only) */}
+          <div className={`w-full self-start p-5 sm:p-6 lg:w-[min(100%,440px)] lg:shrink-0 ${cardBase}`}>
+            <h2 className="text-[18px] font-black text-[#111] sm:text-[20px]">Platform Stats</h2>
+
+            <div className="mt-4 flex flex-wrap gap-2">
+              {platformStats.map((stat) => (
+                <div
+                  key={stat.label}
+                  className="flex min-w-[68px] flex-1 flex-col items-center justify-center rounded-lg px-2 py-2.5 text-center"
+                  style={{ background: stat.bg }}
+                >
+                  <div className="text-[12px] font-black leading-tight sm:text-[13px]" style={{ color: stat.accent }}>
+                    {stat.value}
+                  </div>
+                  <div className="mt-0.5 text-[9px] font-medium text-[#6b7280]">{stat.label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
+    </section>
   );
 }
 
-/* ─── APP PROMO ───────────────────────────────────────────────── */
-export function AppPromo() {
+/* ═══ 13. Top creators + earnings calculator ═══ */
+
+type TopCreatorRow = {
+  id: string;
+  display_name?: string;
+  full_name?: string;
+  profile_image?: string | null;
+  avatar_url?: string | null;
+  role?: string;
+  earnings?: number;
+  total_earnings?: number;
+};
+
+const DEMO_CREATORS: TopCreatorRow[] = [
+  { id: "demo-1", display_name: "Amara K.", profile_image: AVATARS[0], role: "UGC Creator", earnings: 4820 },
+  { id: "demo-2", display_name: "David O.", profile_image: AVATARS[1], role: "Affiliate", earnings: 3150 },
+  { id: "demo-3", display_name: "Lina M.", profile_image: AVATARS[2], role: "Seller", earnings: 6240 },
+];
+
+function normalizeCreator(c: TopCreatorRow, index: number) {
+  return {
+    id: c.id,
+    name: c.display_name ?? c.full_name ?? "Creator",
+    image: c.profile_image ?? c.avatar_url ?? AVATARS[index % AVATARS.length],
+    role: c.role ?? "Creator",
+    earnings: Number(c.earnings ?? c.total_earnings ?? 0),
+  };
+}
+
+export function TopCreatorsEarnings({ creators = [] }: { creators: TopCreatorRow[] }) {
+  const [clicks, setClicks] = useState(5000);
+  const [views, setViews] = useState(50000);
+  const [commission, setCommission] = useState(15);
+
+  const { low, high } = useMemo(() => {
+    const base = (clicks * 0.05 + views / 1000 * 8) * (commission / 10);
+    return { low: Math.max(50, Math.round(base * 0.6)), high: Math.max(250, Math.round(base * 2.5)) };
+  }, [clicks, views, commission]);
+
+  const list = (creators.length > 0 ? creators : DEMO_CREATORS).map(normalizeCreator);
+
+  const sliders: {
+    label: string;
+    val: number;
+    set: (n: number) => void;
+    min: number;
+    max: number;
+    step: number;
+    suffix?: string;
+  }[] = [
+    { label: "Monthly Clicks", val: clicks, set: setClicks, min: 100, max: 50000, step: 100 },
+    { label: "Monthly Views", val: views, set: setViews, min: 1000, max: 500000, step: 1000 },
+    { label: "Commission Rate", val: commission, set: setCommission, min: 5, max: 30, step: 1, suffix: "%" },
+  ];
+
   return (
-    <div className="relative overflow-hidden py-20 md:py-28 bg-stone-900 dark:bg-stone-950 border-t border-stone-800">
-      <motion.div
-        initial="hidden" whileInView="show" viewport={{ once: true, margin: "-80px" }}
-        variants={stagger}
-        className="max-w-[1536px] mx-auto px-4 sm:px-6 flex flex-col md:flex-row items-start justify-between gap-16 relative z-10"
-      >
-        <motion.div variants={fadeUp} className="flex-1 max-w-[580px]">
-          <Eyebrow text="Mobile Ecosystem" />
-          <h3 className="text-[36px] sm:text-[48px] font-bold text-white mb-5 leading-tight tracking-tight">
-            Trade Anywhere.<br />
-            <span className="text-[#fd5000]">Global Mastery.</span>
-          </h3>
-          <p className="text-[15px] text-stone-400 font-medium leading-relaxed mb-10 max-w-[500px]">
-            The Jimvio mobile app integrates every facet of the creator-commerce ecosystem into a single high-performance interface.
-          </p>
-
-          <Rule className="bg-stone-800 mb-8" />
-
-          {/* Store buttons — hard-edged */}
-          <div className="flex flex-wrap gap-3">
-            {[
-              { name: "App Store", sub: "Available on", icon: <Lock className="h-5 w-5" /> },
-              { name: "Google Play", sub: "Get it on", icon: <PlayCircle className="h-5 w-5" /> },
-            ].map(btn => (
-              <div
-                key={btn.name}
-                className="flex rounded-sm items-center gap-4 px-6 py-3.5 cursor-pointer transition-all group border border-stone-700 hover:border-[#fd5000]/50 hover:bg-[#fd5000]/5"
-              >
-                <div className="text-stone-500 group-hover:text-[#fd5000] transition-colors flex-shrink-0">{btn.icon}</div>
-                <div>
-                  <div className="text-[10px] text-stone-600 font-bold uppercase tracking-[0.2em]">{btn.sub}</div>
-                  <div className="text-[16px] font-bold tracking-tight text-white leading-tight mt-0.5">{btn.name}</div>
+    <section className="bg-white py-12 sm:py-16">
+      <div className={shell}>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <div className={`p-6 ${cardBase}`}>
+            <h3 className="text-[18px] font-black text-[#111]">Top Creators This Month</h3>
+            <div className="mt-5 space-y-4">
+              {list.slice(0, 3).map((c, i) => (
+                <div key={c.id} className={`flex items-center gap-3 rounded-xl p-3 ${i === 0 ? "bg-[#fafafa]" : ""}`}>
+                  <img src={c.image} alt={c.name} className="size-11 rounded-full object-cover" />
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[14px] font-bold text-[#111]">{c.name}</div>
+                    <div className="text-[11px] text-[#9ca3af]">{c.role}</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-[14px] font-black" style={{ color: GREEN }}>
+                      ${fmtCount(c.earnings)}
+                    </div>
+                    <div className="text-[10px] text-[#9ca3af]">this month</div>
+                  </div>
                 </div>
+              ))}
+            </div>
+          </div>
+
+          <div className={`p-6 ${cardBase}`}>
+            <h3 className="text-[18px] font-black text-[#111]">How Much Could You Earn?</h3>
+            <p className="mt-1 text-[12px] text-[#6b7280]">Adjust the sliders to estimate your potential.</p>
+
+            {sliders.map((s) => (
+              <div key={s.label} className="mt-5">
+                <div className="mb-2 flex justify-between text-[12px] font-semibold text-[#4b5563]">
+                  <span>{s.label}</span>
+                  <span className="text-[#111]">
+                    {fmtCount(s.val)}
+                    {s.suffix ?? ""}
+                  </span>
+                </div>
+                <Slider
+                  min={s.min}
+                  max={s.max}
+                  step={s.step}
+                  value={[s.val]}
+                  onValueChange={(v) => s.set(v[0] ?? s.min)}
+                  className="py-1 [--color-accent:#7c3aed]"
+                />
+              </div>
+            ))}
+
+            <div className="mt-6 rounded-2xl bg-gradient-to-br from-[#7c3aed] to-[#a855f7] p-6 text-center text-white">
+              <div className="text-[12px] font-semibold opacity-90">Potential Earnings</div>
+              <div className="mt-1 text-[32px] font-black leading-none">
+                ${low.toLocaleString()} – ${high.toLocaleString()}+
+              </div>
+              <Link
+                href="/ugc"
+                className="mt-4 inline-flex items-center gap-1 rounded-full bg-white px-5 py-2 text-[13px] font-bold text-[#7c3aed]"
+              >
+                Start Earning Now <ArrowRight className="size-3.5" />
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ═══ 14. First 30 minutes ═══ */
+const ONBOARD = [
+  { title: "Create Account", desc: "Sign up free in under a minute." },
+  { title: "Choose Path", desc: "Pick buyer, seller, creator or community." },
+  { title: "Complete Profile", desc: "Set up your store or creator profile." },
+  { title: "Start Earning", desc: "Promote, sell or create your first content." },
+  { title: "Scale Business", desc: "Grow income and build your brand." },
+];
+
+export function First30Minutes() {
+  return (
+    <section className="bg-[#fafafa] py-12 sm:py-16">
+      <div className={shell}>
+        <SectionTitle>Your First 30 Minutes On Jimvio</SectionTitle>
+        <div className="relative">
+          <div className="pointer-events-none absolute left-[8%] right-[8%] top-5 hidden h-px border-t-2 border-dashed border-[#e5e7eb] lg:block" />
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-5">
+            {ONBOARD.map((s, i) => (
+              <div key={s.title} className="relative flex flex-col items-center text-center">
+                <span
+                  className="relative z-10 mb-3 grid size-10 place-items-center rounded-full text-sm font-black text-white"
+                  style={{ background: ORANGE }}
+                >
+                  {i + 1}
+                </span>
+                <h3 className="text-[13px] font-bold text-[#111]">{s.title}</h3>
+                <p className="mt-1 text-[11px] leading-relaxed text-[#6b7280]">{s.desc}</p>
               </div>
             ))}
           </div>
-        </motion.div>
-      </motion.div>
-    </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ═══ 15. FAQ ═══ */
+const FAQS = [
+  { q: "How do payouts work?", a: "Earnings are tracked in real time. Once you reach the minimum threshold, payouts are sent instantly to your preferred method." },
+  { q: "Is Jimvio free to join?", a: "Yes — creating an account is completely free. You only pay fees on successful transactions." },
+  { q: "How do I earn commissions?", a: "Share your affiliate link for any product. When someone buys, you earn up to 30% commission." },
+  { q: "Can I sell my own products?", a: "Absolutely. Open a store, list products, and reach buyers across 50+ countries." },
+  { q: "How do UGC campaigns work?", a: "Brands post campaigns. You create content and get paid per view or per approved submission." },
+  { q: "When do I get paid?", a: "Payouts are processed as soon as your balance hits the minimum — usually within 24 hours." },
+];
+
+export function FAQSection() {
+  const [open, setOpen] = useState<number | null>(null);
+  return (
+    <section className="bg-white py-12 sm:py-16">
+      <div className={shell}>
+        <SectionTitle>Frequently Asked Questions</SectionTitle>
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          {FAQS.map((f, i) => {
+            const isOpen = open === i;
+            return (
+              <div key={f.q} className={`overflow-hidden ${cardBase}`}>
+                <button
+                  type="button"
+                  onClick={() => setOpen(isOpen ? null : i)}
+                  className="flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left"
+                >
+                  <span className="text-[13px] font-bold text-[#111]">{f.q}</span>
+                  <ChevronDown
+                    className="size-4 shrink-0 text-[#9ca3af] transition-transform"
+                    style={{ transform: isOpen ? "rotate(180deg)" : "none" }}
+                  />
+                </button>
+                {isOpen && (
+                  <p className="border-t border-[#f0f0f0] px-4 py-3 text-[12px] leading-relaxed text-[#6b7280]">
+                    {f.a}
+                  </p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ═══ 16. Trusted brands ═══ */
+const BRANDS = [
+  { src: "/logos/binance.png", h: "h-6" },
+  { src: "/logos/flutterwave.png", h: "h-5" },
+  { src: "/logos/paypal.png", h: "h-5" },
+  { src: "/logos/Payoneer_Master_Logo_OnWhite_RGB.svg", h: "h-5" },
+  { src: "/logos/Afrigo-Logo.png", h: "h-6" },
+];
+
+export function TrustedBrands() {
+  return (
+    <section className="border-t border-[#f0f0f0] bg-white py-10">
+      <div className={shell}>
+        <p className="mb-6 text-center text-[11px] font-bold uppercase tracking-[0.15em] text-[#9ca3af]">
+          Trusted by leading brands &amp; platforms
+        </p>
+        <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-4">
+          {BRANDS.map((b) => (
+            <img key={b.src} src={b.src} alt="" className={`${b.h} w-auto object-contain opacity-50 grayscale`} />
+          ))}
+        </div>
+      </div>
+    </section>
   );
 }
 
 
-// function CategoryBrowse() {
-//     const cats = [
-//         { name: "Electronics", count: "2.4K+", icon: Zap },
-//         { name: "Fashion", count: "5.1K+", icon: Tag },
-//         { name: "Home & Living", count: "1.8K+", icon: Layers },
-//         { name: "Health", count: "890+", icon: Heart },
-//         { name: "Business", count: "1.2K+", icon: BarChart3 },
-//         { name: "Local Vendors", count: "640+", icon: MapPin },
-//     ];
+/* ═══ 17. Take Jimvio everywhere ═══ */
+export function TakeJimvioEverywhere() {
+  const features = [
+    "Shop & sell on the go",
+    "Track earnings in real time",
+    "Join campaigns from your phone",
+  ];
 
-//     return (
-//         <section className="py-20 sm:py-28" style={{ background: "var(--color-bg)" }}>
-//             <div className="max-w-8xl mx-auto px-4 sm:px-6">
-//                 <motion.div
-//                     initial="hidden"
-//                     whileInView="show"
-//                     viewport={{ once: true, margin: "-80px" }}
-//                     variants={stagger}
-//                 >
-//                     <motion.div
-//                         variants={fadeUp}
-//                         className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-10"
-//                     >
-//                         <div>
-//                             <p
-//                                 className="text-[11px] font-bold uppercase tracking-widest mb-2"
-//                                 style={{ color: "var(--color-accent)" }}
-//                             >
-//                                 Product categories
-//                             </p>
-//                             <h2
-//                                 className="font-black tracking-tight"
-//                                 style={{
-//                                     fontSize: "clamp(1.75rem, 3vw, 2.5rem)",
-//                                     color: "var(--color-text-primary)",
-//                                     letterSpacing: "-0.02em",
-//                                 }}
-//                             >
-//                                 Browse by category
-//                             </h2>
-//                         </div>
-//                         <Link
-//                             href="/marketplace"
-//                             className="inline-flex items-center gap-1.5 text-sm font-medium shrink-0"
-//                             style={{ color: "var(--color-accent)" }}
-//                         >
-//                             View all products <ChevronRight className="h-4 w-4" />
-//                         </Link>
-//                     </motion.div>
+  return (
+    <section className="w-full" style={{ background: ORANGE }}>
+      <div className={`${shell} py-10 sm:py-14`}>
+        <div className="flex flex-col items-center gap-10 lg:flex-row lg:items-center lg:justify-between lg:gap-6">
+          {/* Left — copy */}
+          <div className="w-full shrink-0 text-white lg:max-w-[300px] lg:text-left">
+            <h2 className="text-[28px] font-black leading-tight tracking-tight sm:text-[32px]">
+              Take Jimvio
+              <br />
+              Everywhere
+            </h2>
+            <p className="mt-2 text-[14px] font-medium text-white/95">Available on Android &amp; iOS</p>
+            <ul className="mt-5 space-y-2.5">
+              {features.map((t) => (
+                <li key={t} className="flex items-center gap-2.5 text-[13px] font-medium text-white/95">
+                  <span className="grid size-5 shrink-0 place-items-center rounded-full bg-white/20">
+                    <Check className="size-3" strokeWidth={3} />
+                  </span>
+                  {t}
+                </li>
+              ))}
+            </ul>
+          </div>
 
-//                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-//                         {cats.map(cat => (
-//                             <motion.div key={cat.name} variants={fadeUp}>
-//                                 <Link
-//                                     href={`/marketplace?category=${cat.name.toLowerCase().replace(/ /g, "-")}`}
-//                                     className="group flex flex-col items-center text-center p-5 rounded-2xl transition-all duration-200 hover:-translate-y-0.5"
-//                                     style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}
-//                                     onMouseEnter={e => (e.currentTarget.style.borderColor = "rgba(253,80,0,0.3)")}
-//                                     onMouseLeave={e => (e.currentTarget.style.borderColor = "var(--color-border)")}
-//                                 >
-//                                     <div
-//                                         className="h-12 w-12 rounded-xl flex items-center justify-center mb-3 transition-transform group-hover:scale-110"
-//                                         style={{ background: "rgba(253,80,0,0.08)", color: "var(--color-accent)" }}
-//                                     >
-//                                         <cat.icon className="h-5 w-5" />
-//                                     </div>
-//                                     <p className="text-xs font-bold mb-1 leading-tight" style={{ color: "var(--color-text-primary)" }}>
-//                                         {cat.name}
-//                                     </p>
-//                                     <p className="text-[10px] font-semibold" style={{ color: "var(--color-text-muted)" }}>
-//                                         {cat.count} items
-//                                     </p>
-//                                 </Link>
-//                             </motion.div>
-//                         ))}
-//                     </div>
-//                 </motion.div>
-//             </div>
-//         </section>
-//     );
-// }
+          {/* Center — phone mockups (Android interactive + iOS static) */}
+          <TakeJimvioPhonesClient />
 
-// /* ─── Updated type ─── */
-
-
-// export function AffiliateSpotlight() {
-//     const [cards, setCards] = useState<AffiliateCampaign[]>(AFFILIATE_FALLBACK);
-//     const [affiliateStats, setAffiliateStats] = useState<AffiliateStats>({
-//         affiliateCount: 0,
-//         affiliateSkus: 0,
-//         totalProducts: 0,
-//     });
-//     const [maxRate, setMaxRate] = useState(0);
-
-//     useEffect(() => {
-//         async function fetchData() {
-//             const db = createClient();
-//             const { data, count, error } = await db
-//                 .from("products")
-//                 .select("id, slug, name, product_type, affiliate_commission_rate, price, currency, images, is_featured, status, is_active, affiliate_enabled", { count: "exact" })
-//                 .eq("status", "active")
-//                 .eq("is_active", true)
-//                 .eq("affiliate_enabled", true);
-
-//             if (error) {
-//                 console.error("Supabase error:", error);
-//                 return;
-//             }
-
-//             const spotlight = data ?? [];
-
-//             const fetchedMaxRate = spotlight.reduce(
-//                 (m: number, p: any) => Math.max(m, Number(p.affiliate_commission_rate ?? 0)),
-//                 0
-//             );
-
-//             const displayCampaigns: AffiliateCampaign[] = spotlight.map((p: any) => ({
-//                 id: p.id,
-//                 slug: p.slug ?? p.id,
-//                 title: p.name,
-//                 // Capitalise the product_type for display
-//                 campaign_type: p.product_type
-//                     ? p.product_type.charAt(0).toUpperCase() + p.product_type.slice(1)
-//                     : "Affiliate",
-//                 commission: Number(p.affiliate_commission_rate ?? DEFAULT_COMMISSION),
-//                 price: Number(p.price ?? 0),
-//                 currency: p.currency ?? "USD",
-//                 image: Array.isArray(p.images) && p.images.length > 0 ? p.images[0] : null,
-//                 is_featured: !!p.is_featured,
-//             }));
-
-//             setMaxRate(fetchedMaxRate);
-//             setAffiliateStats({
-//                 affiliateCount: spotlight.length,
-//                 affiliateSkus: spotlight.length,
-//                 totalProducts: count ?? spotlight.length,
-//             });
-
-//             if (displayCampaigns.length > 0) setCards(displayCampaigns);
-//         }
-//         fetchData();
-//     }, []);
-
-//     const heroRate = maxRate > 0 ? Math.round(maxRate) : DEFAULT_COMMISSION;
-
-//     const statsGrid = [
-//         { label: "Active Affiliates", value: affiliateStats.affiliateCount ? formatPlatformCount(affiliateStats.affiliateCount) : "—" },
-//         { label: "Affiliate-ready SKUs", value: affiliateStats.affiliateSkus ? formatPlatformCount(affiliateStats.affiliateSkus) : "—" },
-//         { label: "Top commission rate", value: maxRate > 0 ? `${Math.round(maxRate)}%` : `${heroRate}%` },
-//         { label: "Live products", value: affiliateStats.totalProducts ? formatPlatformCount(affiliateStats.totalProducts) : "—" },
-//     ];
-
-//     return (
-//         <section
-//             className="py-20 sm:py-28"
-//             style={{
-//                 background: "var(--color-surface)",
-//                 borderTop: "1px solid var(--color-border)",
-//                 borderBottom: "1px solid var(--color-border)",
-//             }}
-//         >
-//             <div className="max-w-8xl mx-auto px-4 sm:px-6">
-//                 <motion.div
-//                     initial="hidden"
-//                     whileInView="show"
-//                     viewport={{ once: true, margin: "-80px" }}
-//                     variants={stagger}
-//                 >
-//                     {/* ── Header ── */}
-//                     <motion.div
-//                         variants={fadeUp}
-//                         className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-8 items-end mb-12"
-//                     >
-//                         <div>
-//                             <p className="text-[11px] font-bold uppercase tracking-widest mb-2"
-//                                 style={{ color: "var(--color-accent)" }}>
-//                                 Affiliate program
-//                             </p>
-//                             <h2
-//                                 className="font-black tracking-tight mb-4"
-//                                 style={{
-//                                     fontSize: "clamp(1.75rem, 3vw, 2.75rem)",
-//                                     color: "var(--color-text-primary)",
-//                                     letterSpacing: "-0.025em",
-//                                 }}
-//                             >
-//                                 Earn commissions on<br />every product you share
-//                             </h2>
-//                             <p className="text-base max-w-lg" style={{ color: "var(--color-text-muted)" }}>
-//                                 Get your unique affiliate link. Share anywhere. Earn up to{" "}
-//                                 <strong style={{ color: "var(--color-accent)" }}>{heroRate}%</strong> on every
-//                                 purchase — automatically tracked and paid.
-//                             </p>
-//                         </div>
-
-//                         {/* Stats sidebar */}
-//                         <div
-//                             className="flex flex-col gap-4 p-5 rounded-2xl shrink-0 w-full lg:w-56"
-//                             style={{ background: "rgba(253,80,0,0.05)", border: "1px solid rgba(253,80,0,0.15)" }}
-//                         >
-//                             {statsGrid.map(row => (
-//                                 <div key={row.label} className="flex items-center justify-between">
-//                                     <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>{row.label}</span>
-//                                     <span className="text-sm font-black" style={{ color: "var(--color-accent)" }}>{row.value}</span>
-//                                 </div>
-//                             ))}
-//                         </div>
-//                     </motion.div>
-//                     <SwipeableCardGrid
-//                         items={cards}
-//                         cols={{ sm: 2, lg: 4 }}
-//                         renderCard={(c) => (
-//                             <motion.div key={c.id} variants={fadeUp} className="relative">
-
-//                                 {/* Featured badge */}
-//                                 {c.is_featured && (
-//                                     <div
-//                                         className="absolute -top-3 left-4 z-10 px-3 py-1 rounded-full text-[10px] font-bold text-white"
-//                                         style={{ background: "var(--color-accent)", boxShadow: "0 4px 12px rgba(253,80,0,0.35)" }}
-//                                     >
-//                                         ⭐ Featured
-//                                     </div>
-//                                 )}
-//                                 <Link
-//                                     href={`/marketplace/${c.slug}`}
-//                                     className="group flex flex-col rounded-2xl h-full overflow-hidden transition-all duration-200 hover:-translate-y-0.5"
-//                                     style={{ background: "var(--color-bg)", border: "1px solid var(--color-border)" }}
-//                                     onMouseEnter={e => (e.currentTarget.style.borderColor = "rgba(253,80,0,0.35)")}
-//                                     onMouseLeave={e => (e.currentTarget.style.borderColor = "var(--color-border)")}
-//                                 >
-//                                     {/* ── Product image / placeholder ── */}
-//                                     <div
-//                                         className="relative w-full overflow-hidden"
-//                                         style={{
-//                                             height: "160px",
-//                                             background: c.image ? "transparent" : "rgba(253,80,0,0.06)",
-//                                             borderBottom: "1px solid var(--color-border)",
-//                                         }}
-//                                     >
-//                                         {c.image ? (
-//                                             <img
-//                                                 src={c.image}
-//                                                 alt={c.title}
-//                                                 className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-//                                             />
-//                                         ) : (
-//                                             <div className="w-full h-full flex items-center justify-center">
-//                                                 <Package
-//                                                     className="h-10 w-10"
-//                                                     style={{ color: "rgba(253,80,0,0.3)" }}
-//                                                 />
-//                                             </div>
-//                                         )}
-
-//                                         {/* Product type pill */}
-//                                         <div
-//                                             className="absolute top-2.5 left-2.5 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wide"
-//                                             style={{
-//                                                 background: "rgba(0,0,0,0.55)",
-//                                                 color: "#fff",
-//                                                 backdropFilter: "blur(4px)",
-//                                             }}
-//                                         >
-//                                             {c.campaign_type}
-//                                         </div>
-
-//                                         {/* Commission badge */}
-//                                         <div
-//                                             className="absolute top-2.5 right-2.5 flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-black"
-//                                             style={{ background: "var(--color-accent)", color: "#fff" }}
-//                                         >
-//                                             <DollarSign className="h-3 w-3" />
-//                                             {c.commission}% commission
-//                                         </div>
-//                                     </div>
-
-//                                     {/* ── Card body ── */}
-//                                     <div className="flex flex-col flex-1 p-4 gap-3">
-//                                         <p
-//                                             className="text-sm font-bold leading-snug line-clamp-2"
-//                                             style={{ color: "var(--color-text-primary)" }}
-//                                         >
-//                                             {c.title}
-//                                         </p>
-
-//                                         {/* Price row */}
-//                                         <div className="flex items-center justify-between">
-//                                             <span
-//                                                 className="text-lg font-black"
-//                                                 style={{ color: "var(--color-text-primary)" }}
-//                                             >
-//                                                 {c.currency === "USD" ? "$" : c.currency}
-//                                                 {c.price.toFixed(2)}
-//                                             </span>
-//                                             <span
-//                                                 className="text-[10px] font-semibold px-2 py-0.5 rounded-md"
-//                                                 style={{
-//                                                     background: "rgba(253,80,0,0.08)",
-//                                                     color: "var(--color-accent)",
-//                                                     border: "1px solid rgba(253,80,0,0.18)",
-//                                                 }}
-//                                             >
-//                                                 Affiliate enabled
-//                                             </span>
-//                                         </div>
-
-//                                         {/* Earnings estimate */}
-//                                         <div
-//                                             className="flex items-center justify-between p-3 rounded-xl mt-auto"
-//                                             style={{ background: "rgba(253,80,0,0.05)", border: "1px solid rgba(253,80,0,0.12)" }}
-//                                         >
-//                                             <div>
-//                                                 <p className="text-[10px] font-medium" style={{ color: "var(--color-text-muted)" }}>
-//                                                     You earn per sale
-//                                                 </p>
-//                                                 <p className="text-base font-black" style={{ color: "var(--color-accent)" }}>
-//                                                     {c.currency === "USD" ? "$" : c.currency}
-//                                                     {((c.price * c.commission) / 100).toFixed(2)}
-//                                                 </p>
-//                                             </div>
-//                                             <div
-//                                                 className="flex items-center gap-1 text-xs font-bold transition-all group-hover:gap-2"
-//                                                 style={{ color: "var(--color-accent)" }}
-//                                             >
-//                                                 Get link <ExternalLink className="h-3.5 w-3.5" />
-//                                             </div>
-//                                         </div>
-//                                     </div>
-//                                 </Link>
-//                             </motion.div>
-//                         )}
-//                     />
-
-//                     {/* ── CTA ── */}
-//                     <motion.div variants={fadeUp} className="flex justify-center mt-9">
-//                         <Link
-//                             href="/affiliate"
-//                             className="inline-flex items-center gap-2.5 h-12 px-8 rounded-2xl text-sm font-bold text-white"
-//                             style={{ background: "var(--color-accent)", boxShadow: "0 6px 20px rgba(253,80,0,0.28)" }}
-//                             onMouseEnter={e => (e.currentTarget.style.background = "var(--color-accent-hover)")}
-//                             onMouseLeave={e => (e.currentTarget.style.background = "var(--color-accent)")}
-//                         >
-//                             Browse all affiliate products <ArrowRight className="h-4 w-4" />
-//                         </Link>
-//                     </motion.div>
-//                 </motion.div>
-//             </div>
-//         </section>
-//     );
-// }
-
-// /* ═══════════════════════════════════════════════
-//    HOW IT WORKS
-// ═══════════════════════════════════════════════ */
-// function HowItWorks() {
-//     const steps = [
-//         { num: "01", icon: Users, title: "Create your free account", desc: "Sign up in 60 seconds. No credit card required." },
-//         { num: "02", icon: Search, title: "Pick your path", desc: "Sell products, become an affiliate, or join communities." },
-//         { num: "03", icon: Store, title: "List or promote", desc: "Add your own products or share links to earn commissions." },
-//         { num: "04", icon: Wallet, title: "Get paid", desc: "Withdraw earnings directly to your account, any time." },
-//     ];
-
-//     return (
-//         <section
-//             className="py-20 sm:py-28"
-//             style={{
-//                 background: "var(--color-surface)",
-//                 borderTop: "1px solid var(--color-border)",
-//                 borderBottom: "1px solid var(--color-border)",
-//             }}
-//         >
-//             <div className="max-w-8xl mx-auto px-4 sm:px-6">
-//                 <motion.div
-//                     initial="hidden"
-//                     whileInView="show"
-//                     viewport={{ once: true, margin: "-80px" }}
-//                     variants={stagger}
-//                 >
-//                     <motion.div variants={fadeUp} className="text-center mb-14">
-//                         <p
-//                             className="text-[11px] font-bold uppercase tracking-widest mb-2"
-//                             style={{ color: "var(--color-accent)" }}
-//                         >
-//                             Simple to start
-//                         </p>
-//                         <h2
-//                             className="font-black tracking-tight mb-3"
-//                             style={{
-//                                 fontSize: "clamp(1.75rem, 3.5vw, 3rem)",
-//                                 color: "var(--color-text-primary)",
-//                                 letterSpacing: "-0.025em",
-//                             }}
-//                         >
-//                             From zero to earning<br />in 4 steps
-//                         </h2>
-//                         <p className="text-sm max-w-sm mx-auto" style={{ color: "var(--color-text-muted)" }}>
-//                             No experience needed. Built for anyone ready to grow online.
-//                         </p>
-//                     </motion.div>
-
-//                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-//                         {steps.map((step, i) => (
-//                             <motion.div key={step.num} variants={fadeUp}>
-//                                 <div
-//                                     className="relative flex flex-col p-6 rounded-2xl h-full"
-//                                     style={{ background: "var(--color-bg)", border: "1px solid var(--color-border)" }}
-//                                 >
-//                                     <div
-//                                         className="absolute top-4 right-4 text-5xl font-black leading-none select-none"
-//                                         style={{ color: "rgba(253,80,0,0.07)" }}
-//                                     >
-//                                         {step.num}
-//                                     </div>
-//                                     <div
-//                                         className="h-12 w-12 rounded-xl flex items-center justify-center mb-5 z-10"
-//                                         style={{
-//                                             background: "rgba(253,80,0,0.08)",
-//                                             border: "1px solid rgba(253,80,0,0.15)",
-//                                             color: "var(--color-accent)",
-//                                         }}
-//                                     >
-//                                         <step.icon className="h-5 w-5" />
-//                                     </div>
-//                                     <p className="text-base font-bold mb-2" style={{ color: "var(--color-text-primary)" }}>
-//                                         {step.title}
-//                                     </p>
-//                                     <p className="text-sm leading-relaxed" style={{ color: "var(--color-text-muted)" }}>
-//                                         {step.desc}
-//                                     </p>
-//                                     {i < steps.length - 1 && (
-//                                         <div
-//                                             className="hidden lg:block absolute top-1/2 -right-3 h-2 w-2 rounded-full -translate-y-1/2 z-20"
-//                                             style={{ background: "var(--color-border-strong)" }}
-//                                         />
-//                                     )}
-//                                 </div>
-//                             </motion.div>
-//                         ))}
-//                     </div>
-
-//                     <motion.div variants={fadeUp} className="flex justify-center mt-10">
-//                         <Link
-//                             href="/register"
-//                             className="inline-flex items-center gap-2.5 px-9 rounded-2xl text-sm font-bold text-white transition-all active:scale-[0.97]"
-//                             style={{ height: "50px", background: "var(--color-accent)", boxShadow: "0 6px 20px rgba(253,80,0,0.28)" }}
-//                             onMouseEnter={e => (e.currentTarget.style.background = "var(--color-accent-hover)")}
-//                             onMouseLeave={e => (e.currentTarget.style.background = "var(--color-accent)")}
-//                         >
-//                             Get started free <ArrowRight className="h-4 w-4" />
-//                         </Link>
-//                     </motion.div>
-//                 </motion.div>
-//             </div>
-//         </section>
-//     );
-// }
-
-// /* ═══════════════════════════════════════════════
-//    TRUST / STATS
-// ═══════════════════════════════════════════════ */
-// function TrustSection({ stats: trustStats }: { stats?: HomepageRedesignProps["stats"] }) {
-//     const s = trustStats ?? { users: "10K+", earned: "$1M+", secure: "99.9%", countries: "50+" };
-//     const items = [
-//         { value: s.users, label: "Active users", icon: Users, sub: "and growing daily" },
-//         { value: s.earned, label: "Total paid out", icon: DollarSign, sub: "to creators & sellers" },
-//         { value: s.secure, label: "Platform uptime", icon: Shield, sub: "always available" },
-//         { value: s.countries, label: "Countries", icon: Globe, sub: "worldwide reach" },
-//     ];
-
-//     return (
-//         <section className="py-20 sm:py-28" style={{ background: "var(--color-bg)" }}>
-//             <div className="max-w-8xl mx-auto px-4 sm:px-6">
-//                 <motion.div
-//                     initial="hidden"
-//                     whileInView="show"
-//                     viewport={{ once: true, margin: "-80px" }}
-//                     variants={stagger}
-//                 >
-//                     <motion.div variants={fadeUp} className="text-center mb-14">
-//                         <p
-//                             className="text-[11px] font-bold uppercase tracking-widest mb-2"
-//                             style={{ color: "var(--color-accent)" }}
-//                         >
-//                             By the numbers
-//                         </p>
-//                         <h2
-//                             className="font-black tracking-tight"
-//                             style={{
-//                                 fontSize: "clamp(1.75rem, 3.5vw, 2.75rem)",
-//                                 color: "var(--color-text-primary)",
-//                                 letterSpacing: "-0.025em",
-//                             }}
-//                         >
-//                             Trusted by thousands globally
-//                         </h2>
-//                     </motion.div>
-
-//                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-//                         {items.map(item => (
-//                             <motion.div key={item.label} variants={fadeUp}>
-//                                 <div
-//                                     className="flex flex-col items-center text-center p-7 rounded-2xl"
-//                                     style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}
-//                                 >
-//                                     <div
-//                                         className="h-12 w-12 rounded-2xl flex items-center justify-center mb-5"
-//                                         style={{
-//                                             background: "rgba(253,80,0,0.08)",
-//                                             border: "1px solid rgba(253,80,0,0.15)",
-//                                             color: "var(--color-accent)",
-//                                         }}
-//                                     >
-//                                         <item.icon className="h-5 w-5" />
-//                                     </div>
-//                                     <p
-//                                         className="font-black mb-1"
-//                                         style={{
-//                                             fontSize: "clamp(2rem, 3vw, 2.75rem)",
-//                                             color: "var(--color-text-primary)",
-//                                             letterSpacing: "-0.03em",
-//                                         }}
-//                                     >
-//                                         {item.value}
-//                                     </p>
-//                                     <p className="text-sm font-semibold mb-1" style={{ color: "var(--color-text-secondary)" }}>
-//                                         {item.label}
-//                                     </p>
-//                                     <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>{item.sub}</p>
-//                                 </div>
-//                             </motion.div>
-//                         ))}
-//                     </div>
-//                 </motion.div>
-//             </div>
-//         </section>
-//     );
-// }
-
-// /* ═══════════════════════════════════════════════
-//    VENDOR BANNER
-// ═══════════════════════════════════════════════ */
-// function VendorBanner() {
-//     return (
-//         <section
-//             className="py-16 sm:py-20"
-//             style={{ background: "var(--color-surface)", borderTop: "1px solid var(--color-border)" }}
-//         >
-//             <div className="max-w-8xl mx-auto px-4 sm:px-6">
-//                 <motion.div
-//                     initial="hidden"
-//                     whileInView="show"
-//                     viewport={{ once: true, margin: "-80px" }}
-//                     variants={stagger}
-//                 >
-//                     <motion.div
-//                         variants={fadeUp}
-//                         className="relative overflow-hidden rounded-3xl p-8 sm:p-12"
-//                         style={{
-//                             background: "linear-gradient(135deg, #0d0600 0%, #1a0800 50%, #0d0600 100%)",
-//                             border: "1px solid rgba(253,80,0,0.2)",
-//                         }}
-//                     >
-//                         <div
-//                             className="absolute top-0 right-0 w-[400px] h-[300px] pointer-events-none"
-//                             style={{ background: "radial-gradient(ellipse at top right, rgba(253,80,0,0.15) 0%, transparent 60%)" }}
-//                         />
-//                         <div
-//                             className="absolute inset-0 opacity-5 pointer-events-none"
-//                             style={{
-//                                 backgroundImage: "linear-gradient(rgba(253,80,0,0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(253,80,0,0.6) 1px, transparent 1px)",
-//                                 backgroundSize: "40px 40px",
-//                             }}
-//                         />
-//                         <div className="relative grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-8 items-center">
-//                             <div>
-//                                 <div className="flex items-center gap-2.5 mb-5">
-//                                     <Award className="h-5 w-5" style={{ color: "var(--color-accent)" }} />
-//                                     <span
-//                                         className="text-xs font-bold uppercase tracking-widest"
-//                                         style={{ color: "var(--color-accent)" }}
-//                                     >
-//                                         For vendors &amp; sellers
-//                                     </span>
-//                                 </div>
-//                                 <h2
-//                                     className="font-black text-white tracking-tight mb-4"
-//                                     style={{ fontSize: "clamp(1.75rem, 3vw, 2.75rem)", letterSpacing: "-0.025em" }}
-//                                 >
-//                                     Ready to reach your<br />
-//                                     <span style={{ color: "var(--color-accent)" }}>first 1,000 customers?</span>
-//                                 </h2>
-//                                 <p className="text-white/60 text-base max-w-lg">
-//                                     List your products for free. Access our global network of buyers, affiliates
-//                                     and communities ready to share your brand.
-//                                 </p>
-//                             </div>
-//                             <div className="flex flex-col gap-3 shrink-0">
-//                                 <Link
-//                                     href="/vendor/register"
-//                                     className="inline-flex items-center justify-center gap-2.5 px-8 rounded-2xl text-sm font-bold text-white transition-all"
-//                                     style={{ height: "50px", background: "var(--color-accent)", boxShadow: "0 6px 20px rgba(253,80,0,0.4)" }}
-//                                     onMouseEnter={e => (e.currentTarget.style.background = "var(--color-accent-hover)")}
-//                                     onMouseLeave={e => (e.currentTarget.style.background = "var(--color-accent)")}
-//                                 >
-//                                     Open your store <Store className="h-4 w-4" />
-//                                 </Link>
-//                                 <Link
-//                                     href="/marketplace"
-//                                     className="inline-flex items-center justify-center gap-2 h-11 px-8 rounded-2xl text-sm font-semibold text-white/70 border border-white/10 hover:border-white/25 transition-all"
-//                                 >
-//                                     Browse marketplace
-//                                 </Link>
-//                             </div>
-//                         </div>
-//                     </motion.div>
-//                 </motion.div>
-//             </div>
-//         </section>
-//     );
-// }
-
-// /* ═══════════════════════════════════════════════
-//    FINAL CTA
-// ═══════════════════════════════════════════════ */
-// function FinalCTA() {
-//     return (
-//         <section className="py-24 sm:py-32" style={{ background: "var(--color-bg)" }}>
-//             <div className="max-w-2xl mx-auto px-4 sm:px-6 text-center">
-//                 <motion.div
-//                     initial="hidden"
-//                     whileInView="show"
-//                     viewport={{ once: true, margin: "-80px" }}
-//                     variants={stagger}
-//                 >
-//                     <motion.div variants={fadeUp}>
-//                         <div
-//                             className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-7 text-xs font-bold"
-//                             style={{
-//                                 background: "rgba(253,80,0,0.08)",
-//                                 border: "1px solid rgba(253,80,0,0.18)",
-//                                 color: "var(--color-accent)",
-//                             }}
-//                         >
-//                             <Star className="h-3.5 w-3.5" />
-//                             Free forever — no credit card needed
-//                         </div>
-//                     </motion.div>
-
-//                     <motion.h2
-//                         variants={fadeUp}
-//                         className="font-black tracking-tight mb-5"
-//                         style={{
-//                             fontSize: "clamp(2.5rem, 5vw, 4rem)",
-//                             color: "var(--color-text-primary)",
-//                             letterSpacing: "-0.035em",
-//                             lineHeight: 1.05,
-//                         }}
-//                     >
-//                         Your growth starts<br />
-//                         <span style={{ color: "var(--color-accent)" }}>today.</span>
-//                     </motion.h2>
-
-//                     <motion.p
-//                         variants={fadeUp}
-//                         className="text-base leading-relaxed mb-10 max-w-sm mx-auto"
-//                         style={{ color: "var(--color-text-muted)" }}
-//                     >
-//                         Thousands of vendors and affiliates already growing on Jimvio.
-//                         Join for free and see the difference.
-//                     </motion.p>
-
-//                     <motion.div variants={fadeUp} className="flex flex-col sm:flex-row gap-3 justify-center">
-//                         <Link
-//                             href="/register"
-//                             className="group inline-flex items-center justify-center gap-2.5 px-10 rounded-2xl text-base font-bold text-white transition-all active:scale-[0.97]"
-//                             style={{ height: "56px", background: "var(--color-accent)", boxShadow: "0 10px 32px rgba(253,80,0,0.32)" }}
-//                             onMouseEnter={e => (e.currentTarget.style.background = "var(--color-accent-hover)")}
-//                             onMouseLeave={e => (e.currentTarget.style.background = "var(--color-accent)")}
-//                         >
-//                             Create Free Account
-//                             <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-0.5" />
-//                         </Link>
-//                         <Link
-//                             href="/marketplace"
-//                             className="inline-flex items-center justify-center gap-2 px-8 rounded-2xl text-base font-semibold transition-all"
-//                             style={{ height: "56px", border: "1px solid var(--color-border)", color: "var(--color-text-secondary)" }}
-//                             onMouseEnter={e => {
-//                                 e.currentTarget.style.borderColor = "var(--color-border-strong)";
-//                                 e.currentTarget.style.color = "var(--color-text-primary)";
-//                             }}
-//                             onMouseLeave={e => {
-//                                 e.currentTarget.style.borderColor = "var(--color-border)";
-//                                 e.currentTarget.style.color = "var(--color-text-secondary)";
-//                             }}
-//                         >
-//                             Explore first
-//                         </Link>
-//                     </motion.div>
-
-//                     <motion.div variants={fadeUp} className="flex items-center justify-center gap-6 mt-10 flex-wrap">
-//                         {[
-//                             { icon: CheckCircle, label: "No setup fees" },
-//                             { icon: Shield, label: "Secure & private" },
-//                             { icon: Globe, label: "Works globally" },
-//                         ].map(({ icon: Icon, label }) => (
-//                             <div key={label} className="flex items-center gap-1.5">
-//                                 <Icon className="h-3.5 w-3.5" style={{ color: "var(--color-accent)" }} />
-//                                 <span className="text-xs font-medium" style={{ color: "var(--color-text-muted)" }}>
-//                                     {label}
-//                                 </span>
-//                             </div>
-//                         ))}
-//                     </motion.div>
-//                 </motion.div>
-//             </div>
-//         </section>
-//     );
-// }
+          {/* Right — download */}
+          <div className="flex w-full shrink-0 flex-col items-center lg:max-w-[220px] lg:items-start">
+            <span className="mb-3 text-[15px] font-bold text-white">Download the App</span>
+            <div className="flex w-full max-w-[220px] flex-col gap-3">
+              <a
+                href="#"
+                aria-label="Download on the App Store"
+                className="block transition-opacity hover:opacity-90"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/logos/app-store-badge.svg"
+                  alt="Download on the App Store"
+                  width={180}
+                  height={60}
+                  className="h-11 w-auto"
+                />
+              </a>
+              <a
+                href="#"
+                aria-label="Get it on Google Play"
+                className="block transition-opacity hover:opacity-90"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/logos/google-play-badge.svg"
+                  alt="Get it on Google Play"
+                  width={200}
+                  height={60}
+                  className="h-11 w-auto"
+                />
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}

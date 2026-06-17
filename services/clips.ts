@@ -137,21 +137,44 @@ export async function getVendorClipsWithDetails(vendorId: string, limit = 50) {
 }
 
 /**
- * Influencers who have approved submissions sorted by rank
+ * Top creators from DB — ranked by earnings, with profile data.
  */
 export async function getTopCreators(limit = 6) {
   const admin = getAdminDB();
+
+  const { data: byEarnings } = await admin
+    .from("influencers")
+    .select("id, user_id, display_name, profile_image, total_earnings, total_conversions, total_clicks, total_followers")
+    .eq("is_active", true)
+    .order("total_earnings", { ascending: false })
+    .limit(limit);
+
+  if (byEarnings?.length) {
+    return byEarnings.map((inf) => ({
+      id: inf.id,
+      user_id: inf.user_id,
+      display_name: inf.display_name || "Creator",
+      profile_image: inf.profile_image || null,
+      role: "Creator",
+      earnings: Number(inf.total_earnings ?? 0),
+      total_conversions: Number(inf.total_conversions ?? 0),
+      total_clicks: Number(inf.total_clicks ?? 0),
+    }));
+  }
+
   const { data: clipRows } = await admin
     .from("ugc_submissions")
-    .select("influencer_id, view_count")
+    .select("influencer_id, view_count, total_earnings")
     .eq("status", "approved");
 
   if (!clipRows?.length) return [];
 
   const viewsByInfluencer = new Map<string, number>();
-  for (const r of clipRows as any) {
+  const earningsByInfluencer = new Map<string, number>();
+  for (const r of clipRows as { influencer_id: string; view_count?: number; total_earnings?: number }[]) {
     const id = r.influencer_id;
     viewsByInfluencer.set(id, (viewsByInfluencer.get(id) ?? 0) + Number(r.view_count ?? 0));
+    earningsByInfluencer.set(id, (earningsByInfluencer.get(id) ?? 0) + Number(r.total_earnings ?? 0));
   }
 
   const rankedIds = [...viewsByInfluencer.entries()]
@@ -163,22 +186,25 @@ export async function getTopCreators(limit = 6) {
 
   const { data: influencers } = await admin
     .from("influencers")
-    .select("id, user_id, display_name, profile_image, total_followers, total_clicks, total_conversions")
+    .select("id, user_id, display_name, profile_image, total_earnings, total_conversions, total_clicks")
     .in("id", rankedIds)
     .eq("is_active", true);
 
   const order = new Map(rankedIds.map((id, i) => [id, i]));
-  const sorted: any[] = (influencers ?? []).sort((a: any, b: any) => (order.get(a.id) ?? 999) - (order.get(b.id) ?? 999)).slice(0, limit);
+  const sorted = (influencers ?? []).sort(
+    (a, b) => (order.get(a.id) ?? 999) - (order.get(b.id) ?? 999),
+  ).slice(0, limit);
 
   return sorted.map((inf) => ({
     id: inf.id,
     user_id: inf.user_id,
-    full_name: inf.display_name || "Creator",
-    avatar_url: inf.profile_image || null,
-    total_earnings: 0,
-    total_conversions: Number(inf.total_conversions || 0),
-    total_clicks: Number(inf.total_clicks || 0),
-    total_views: viewsByInfluencer.get(inf.id) || 0,
+    display_name: inf.display_name || "Creator",
+    profile_image: inf.profile_image || null,
+    role: "Creator",
+    earnings: Number(inf.total_earnings ?? earningsByInfluencer.get(inf.id) ?? 0),
+    total_conversions: Number(inf.total_conversions ?? 0),
+    total_clicks: Number(inf.total_clicks ?? 0),
+    total_views: viewsByInfluencer.get(inf.id) ?? 0,
   }));
 }
 
