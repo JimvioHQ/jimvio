@@ -40,6 +40,7 @@ import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCurrency } from "@/context/CurrencyContext";
 import { getUserBalance } from "@/lib/actions/wallet";
+import { createClient } from "@/lib/supabase/client";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -107,8 +108,8 @@ const SECTIONS: NavSection[] = [
     items: [
       { label: "Explore", href: "/communities", icon: Globe },
       { label: "My communities", href: "/dashboard/communities", icon: Users },
-      { label: "Messages", href: "/dashboard/messages", icon: MessageSquare, badge: "3" },
-      { label: "Notifications", href: "/dashboard/notifications", icon: Bell, badge: "8" },
+      { label: "Messages", href: "/dashboard/messages", icon: MessageSquare },
+      { label: "Notifications", href: "/dashboard/notifications", icon: Bell },
     ],
   },
   {
@@ -197,9 +198,70 @@ function SidebarContent({
   const { formatMoney } = useCurrency();
   const [balance, setBalance] = React.useState({ available: 0, pending: 0 });
   const [balanceHidden, setBalanceHidden] = React.useState(true);
+  const [unreadNotifications, setUnreadNotifications] = React.useState(0);
+  const [unreadMessages, setUnreadMessages] = React.useState(0);
   const [openSections, setOpenSections] = React.useState<Set<string>>(
     new Set(["earn", "marketplace", "communities"])
   );
+
+  React.useEffect(() => {
+    let cancelled = false;
+    const supabase = createClient();
+
+    async function refreshBadges() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || cancelled) return;
+
+      const [{ count: notifCount }, { count: msgCount }] = await Promise.all([
+        supabase
+          .from("notifications")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", user.id)
+          .eq("is_read", false),
+        supabase
+          .from("notifications")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", user.id)
+          .eq("type", "message")
+          .eq("is_read", false),
+      ]);
+
+      if (cancelled) return;
+      setUnreadNotifications(notifCount ?? 0);
+      setUnreadMessages(msgCount ?? 0);
+    }
+
+    refreshBadges();
+
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || cancelled) return;
+      channel = supabase
+        .channel(`sidebar-notifications-${user.id}`)
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
+          () => refreshBadges(),
+        )
+        .subscribe();
+    })();
+
+    return () => {
+      cancelled = true;
+      if (channel) supabase.removeChannel(channel);
+    };
+  }, []);
+
+  function badgeForItem(label: string, fallback?: string): string | undefined {
+    if (label === "Notifications" && unreadNotifications > 0) {
+      return unreadNotifications > 99 ? "99+" : String(unreadNotifications);
+    }
+    if (label === "Messages" && unreadMessages > 0) {
+      return unreadMessages > 99 ? "99+" : String(unreadMessages);
+    }
+    return fallback;
+  }
 
   React.useEffect(() => {
     async function load() {
@@ -250,7 +312,8 @@ function SidebarContent({
       { label: "Affiliate links", href: "/dashboard/links", icon: Link2 },
       { label: "Campaigns", href: "/dashboard/vendor/campaigns", icon: Megaphone, badge: "New" },
       { label: "Browse products", href: "/marketplace", icon: Package },
-      { label: "Messages", href: "/dashboard/messages", icon: MessageSquare, badge: "3" },
+      { label: "Messages", href: "/dashboard/messages", icon: MessageSquare, badge: badgeForItem("Messages") },
+      { label: "Notifications", href: "/dashboard/notifications", icon: Bell, badge: badgeForItem("Notifications") },
       { label: "Settings", href: "/dashboard/settings", icon: Settings },
     ];
 
@@ -318,15 +381,15 @@ function SidebarContent({
                   <span
                     className="absolute top-0.5 right-0.5 flex items-center justify-center rounded-full font-bold"
                     style={{
-                      width: /^\d+$/.test(item.badge) ? "1rem" : "0.5rem",
-                      height: /^\d+$/.test(item.badge) ? "1rem" : "0.5rem",
+                      width: /^\d/.test(item.badge) ? "1rem" : "0.5rem",
+                      height: /^\d/.test(item.badge) ? "1rem" : "0.5rem",
                       fontSize: "8px",
                       backgroundColor: "var(--color-accent)",
                       color: "white",
                       border: "2px solid var(--color-bg)",
                     }}
                   >
-                    {/^\d+$/.test(item.badge) ? item.badge : ""}
+                    {/^\d/.test(item.badge) ? item.badge : ""}
                   </span>
                 )}
               </Link>
@@ -570,6 +633,7 @@ function SidebarContent({
                           const active = isActive(item.href);
                           const locked = isLocked(item);
                           const Icon = item.icon;
+                          const badge = badgeForItem(item.label, item.badge);
                           return (
                             <li key={`${section.key}-${item.label}`}>
                               <Link
@@ -606,8 +670,8 @@ function SidebarContent({
                                   }}
                                 />
                                 <span className="flex-1 truncate">{item.label}</span>
-                                {item.badge && !locked && (
-                                  <BadgePill label={item.badge} />
+                                {badge && !locked && (
+                                  <BadgePill label={badge} />
                                 )}
                                 {locked && (
                                   <span
@@ -637,42 +701,6 @@ function SidebarContent({
           );
         })}
       </nav>
-
-      {/* Streak footer */}
-      <div
-        className="px-3 pb-3 pt-2 flex-shrink-0"
-        style={{ borderTop: "1px solid var(--color-border)" }}
-      >
-        <div
-          className="flex items-center gap-2.5 px-3 py-2.5"
-          style={{
-            borderRadius: "var(--radius-lg)",
-            backgroundColor: "var(--color-accent-light)",
-            border: "1px solid var(--color-accent-subtle)",
-            boxShadow: "var(--shadow-sm)",
-          }}
-        >
-          <span className="text-lg leading-none">🔥</span>
-          <div className="min-w-0">
-            <p
-              className="text-[11px] font-semibold leading-tight"
-              style={{ color: "var(--color-accent)" }}
-            >
-              4 day streak 🔥
-            </p>
-            <p
-              className="text-[10px] leading-tight mt-0.5 truncate"
-              style={{ color: "var(--color-text-muted)" }}
-            >
-              Keep it up! You&apos;re doing great.
-            </p>
-          </div>
-          <ChevronRight
-            className="h-3.5 w-3.5 ml-auto flex-shrink-0"
-            style={{ color: "var(--color-accent)" }}
-          />
-        </div>
-      </div>
     </div>
   );
 }

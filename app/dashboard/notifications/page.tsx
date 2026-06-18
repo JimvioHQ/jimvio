@@ -7,7 +7,8 @@ import {
     DollarSign, ShieldCheck, ArrowUpRight, Check, X, Loader2,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { cn } from "@/lib/utils";
+import { PageHeader } from "@/components/ui/admin";
+import { DashboardPage, DashboardPanel } from "@/components/dashboard/dashboard-page";
 import {
     dismissNotification,
     markAllNotificationsRead,
@@ -263,31 +264,18 @@ export default function NotificationsPage() {
     ];
 
     return (
-        <div className="min-h-screen pb-24" style={{ background: "var(--color-bg, #f9fafb)" }}>
-            <div className="max-w-2xl mx-auto px-4 pt-10 space-y-8">
-                <div className="flex items-start justify-between gap-4">
-                    <div className="space-y-1">
-                        <div className="flex items-center gap-3">
-                            <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-white">
-                                Notifications
-                            </h1>
-                            {unreadCount > 0 && (
-                                <span className="h-6 min-w-6 px-1.5 rounded-full bg-orange-500 text-white text-[11px] font-bold flex items-center justify-center tabular-nums">
-                                    {unreadCount}
-                                </span>
-                            )}
-                        </div>
-                        <p className="text-sm text-zinc-500">
-                            Orders, messages, and platform updates
-                        </p>
-                    </div>
-
-                    {unreadCount > 0 && (
+        <DashboardPage className="max-w-2xl mx-auto pb-24">
+            <PageHeader
+                eyebrow="Inbox"
+                title="Notifications"
+                subtitle="Orders, messages, and platform updates"
+                actions={
+                    unreadCount > 0 ? (
                         <button
                             type="button"
                             disabled={busyId === "all"}
                             onClick={markAllRead}
-                            className="flex items-center gap-1.5 text-[12px] font-semibold text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors mt-1 disabled:opacity-50"
+                            className="inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-[12px] font-medium text-[var(--color-text-muted)] ring-1 ring-[var(--color-border)] transition-colors hover:text-[var(--color-text-primary)] disabled:opacity-50"
                         >
                             {busyId === "all" ? (
                                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -296,14 +284,17 @@ export default function NotificationsPage() {
                             )}
                             Mark all read
                         </button>
-                    )}
-                </div>
+                    ) : undefined
+                }
+            />
 
                 <div className="flex items-center gap-1 overflow-x-auto pb-1 scrollbar-hide">
                     {filterTabs.map((tab) => {
                         const count = tab.key === "all"
-                            ? notifications.length
-                            : notifications.filter((n) => getNotificationUiCategory(n) === tab.key).length;
+                            ? unreadCount
+                            : notifications.filter(
+                                (n) => !n.is_read && getNotificationUiCategory(n) === tab.key,
+                              ).length;
                         if (count === 0 && tab.key !== "all") return null;
 
                         return (
@@ -375,7 +366,6 @@ export default function NotificationsPage() {
                         </Link>
                     </div>
                 )}
-            </div>
-        </div>
+        </DashboardPage>
     );
 }

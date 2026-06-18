@@ -18,6 +18,7 @@ import { ChatInputZone } from "@/components/community/chat/ChatInputZone";
 import { MAX_ATTACH, MAX_FILE_BYTES } from "@/types/chat";
 import { useAIStore } from "@/lib/store/use-ai-store";
 import { toast } from "sonner";
+import { Switch } from "@/components/ui/switch";
 
 type ThreadKind = "direct" | "group" | "space";
 
@@ -827,21 +828,9 @@ function ChevronRight() {
 
 function ToggleRow({ label, on, onChange }: { label: string; on: boolean; onChange: (v: boolean) => void }) {
   return (
-    <div className="flex items-center justify-between">
-      <span className="text-[12px] font-semibold">{label}</span>
-      <button
-        type="button"
-        onClick={() => onChange(!on)}
-        className={cn(
-          "relative h-5 w-9 rounded-full transition-colors",
-          on ? "bg-[#fd5000]" : "bg-zinc-200"
-        )}
-      >
-        <span className={cn(
-          "absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform",
-          on ? "left-[18px]" : "left-0.5"
-        )} />
-      </button>
+    <div className="flex items-center justify-between gap-4">
+      <span className="text-[12px] font-semibold text-[var(--color-text-primary)]">{label}</span>
+      <Switch checked={on} onCheckedChange={onChange} />
     </div>
   );
 }

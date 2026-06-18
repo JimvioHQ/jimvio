@@ -3,12 +3,13 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { DollarSign, ArrowUpRight, Clock, CheckCircle, Filter, Download, Wallet, TrendingUp, Zap, ArrowRight, ShieldCheck, History } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { GlassPill, GlassAmbientGlow } from "@/components/ui/glass";
+import { DollarSign, ArrowUpRight, Clock, CheckCircle, Download, Wallet, TrendingUp, Zap, ArrowRight, History } from "lucide-react";
 import { useCurrency } from "@/context/CurrencyContext";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
+import { PageHeader, StatusPill } from "@/components/ui/admin";
+import { Tile } from "@/components/ui/admin-tile";
+import { DashboardPage, DashboardPanel, DashboardActionLink } from "@/components/dashboard/dashboard-page";
 
 export default function AffiliateEarningsPage() {
   const { formatMoney } = useCurrency();
@@ -79,82 +80,33 @@ export default function AffiliateEarningsPage() {
   }
 
   return (
-    <div
-      className="min-h-screen animate-in fade-in duration-700 pb-24 relative overflow-hidden"
-      style={{
-        background: "var(--color-bg)",
-      }}
-    >
-      <GlassAmbientGlow color="emerald" position="top-right" />
-      <GlassAmbientGlow color="indigo" position="bottom-left" />
+    <DashboardPage className="pb-24">
+      <PageHeader
+        eyebrow="Affiliate"
+        title="My Earnings"
+        subtitle="Track your commissions and payout history"
+        actions={
+          <>
+            <DashboardActionLink href="#" onClick={(e) => e.preventDefault()}>
+              <Download className="h-3.5 w-3.5" />
+              Export
+            </DashboardActionLink>
+            <DashboardActionLink href="/dashboard/withdrawals" variant="primary">
+              <Wallet className="h-3.5 w-3.5" />
+              Withdraw
+            </DashboardActionLink>
+          </>
+        }
+      />
 
-      <div className="max-w-[1440px] mx-auto space-y-6 sm:space-y-8 px-4 sm:px-6 pt-6 sm:pt-8 relative z-10">
-        
-        {/* Header Protocol */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 sm:gap-6">
-           <div className="space-y-1">
-              <h1 className="text-xl sm:text-2xl font-bold text-stone-900 dark:text-white tracking-tight flex items-center gap-3">
-                 <div className="p-1.5 sm:p-2 rounded-xl bg-surface dark:bg-surface-secondary border border-border shadow-sm shrink-0">
-                    <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-500" />
-                 </div>
-                 My Earnings
-              </h1>
-              <p className="text-[9px] sm:text-[10px] font-semibold text-stone-400 dark:text-text-muted uppercase tracking-widest pl-[3.25rem]">
-                 Track your commissions and payout history
-              </p>
-           </div>
-           <div className="flex items-center gap-2 w-full md:w-auto">
-              <Button variant="outline" className="flex-1 md:flex-none h-10 sm:h-11 px-4 sm:px-6 rounded-xl bg-surface dark:bg-surface-secondary text-stone-900 dark:text-white border-border shadow-sm font-bold text-[9px] sm:text-[10px] uppercase tracking-widest active:scale-95 transition-all hover:bg-surface-secondary dark:hover:bg-zinc-700">
-                 <Download className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" /> Export
-              </Button>
-              <Button asChild className="flex-1 md:flex-none h-10 sm:h-11 px-4 sm:px-6 rounded-xl bg-stone-900 dark:bg-white text-white dark:text-stone-900 shadow-sm font-bold text-[9px] sm:text-[10px] uppercase tracking-widest active:scale-95 transition-all hover:bg-black dark:hover:bg-stone-100 border-none">
-                 <Link href="/dashboard/withdrawals"><Wallet className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" /> Withdraw</Link>
-              </Button>
-           </div>
-        </div>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <Tile label="Pending" value={formatMoney(stats.pending, "USD")} icon={Clock} tone="warn" />
+        <Tile label="Available" value={formatMoney(stats.available, "USD")} icon={CheckCircle} tone="success" />
+        <Tile label="Total paid" value={formatMoney(stats.paid, "USD")} icon={ArrowUpRight} />
+        <Tile label="Lifetime" value={formatMoney(stats.total, "USD")} icon={Zap} />
+      </div>
 
-        {/* Breakdown Protocol */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-           <div className="p-5 sm:p-6 flex flex-col justify-between rounded-2xl bg-surface/40 dark:bg-surface/40 border border-border shadow-sm group">
-              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-amber-500/10 border border-amber-500/10 flex items-center justify-center mb-5 sm:mb-6 group-hover:scale-110 transition-transform">
-                 <Clock className="h-5 w-5 sm:h-6 sm:w-6 text-amber-500" />
-              </div>
-              <div>
-                 <p className="text-xl sm:text-2xl font-bold text-stone-900 dark:text-white tracking-tight leading-none tabular-nums">{formatMoney(stats.pending, "USD")}</p>
-                 <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-stone-400 dark:text-text-muted mt-1.5 sm:mt-2">Pending</p>
-              </div>
-           </div>
-           <div className="p-5 sm:p-6 flex flex-col justify-between rounded-2xl bg-surface/40 dark:bg-surface/40 border border-border shadow-sm group">
-              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-emerald-500/10 border border-emerald-500/10 flex items-center justify-center mb-5 sm:mb-6 group-hover:scale-110 transition-transform">
-                 <CheckCircle className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-500" />
-              </div>
-              <div>
-                 <p className="text-xl sm:text-2xl font-bold text-stone-900 dark:text-white tracking-tight leading-none tabular-nums">{formatMoney(stats.available, "USD")}</p>
-                 <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-stone-400 dark:text-text-muted mt-1.5 sm:mt-2">Available</p>
-              </div>
-           </div>
-           <div className="p-5 sm:p-6 flex flex-col justify-between rounded-2xl bg-surface/40 dark:bg-surface/40 border border-border shadow-sm group">
-              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-indigo-500/10 border border-indigo-500/10 flex items-center justify-center mb-5 sm:mb-6 group-hover:scale-110 transition-transform">
-                 <ArrowUpRight className="h-5 w-5 sm:h-6 sm:w-6 text-indigo-500" />
-              </div>
-              <div>
-                 <p className="text-xl sm:text-2xl font-bold text-stone-900 dark:text-white tracking-tight leading-none tabular-nums">{formatMoney(stats.paid, "USD")}</p>
-                 <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-stone-400 dark:text-text-muted mt-1.5 sm:mt-2">Total Paid</p>
-              </div>
-           </div>
-           <div className="p-5 sm:p-6 flex flex-col justify-between rounded-2xl bg-surface/40 dark:bg-surface/40 border border-border shadow-sm group">
-              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-sky-500/10 border border-sky-500/10 flex items-center justify-center mb-5 sm:mb-6 group-hover:scale-110 transition-transform">
-                 <Zap className="h-5 w-5 sm:h-6 sm:w-6 text-sky-500" />
-              </div>
-              <div>
-                 <p className="text-xl sm:text-2xl font-bold text-stone-900 dark:text-white tracking-tight leading-none tabular-nums">{formatMoney(stats.total, "USD")}</p>
-                 <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-stone-400 dark:text-text-muted mt-1.5 sm:mt-2">Lifetime</p>
-              </div>
-           </div>
-        </div>
-
-         {/* Global Registry Table */}
-        <div className="rounded-2xl border border-border bg-surface/40 dark:bg-surface/40 shadow-sm overflow-hidden max-sm:-mx-4 max-sm:rounded-sm max-sm:border-x-0">
+      <DashboardPanel padding={false}>
            <div className="p-4 sm:p-6 border-b border-border flex flex-col md:flex-row items-center justify-between gap-4">
               <div className="space-y-0.5 sm:space-y-1 text-center md:text-left">
                  <h3 className="text-base sm:text-lg font-bold text-stone-900 dark:text-white">Commission Log</h3>
@@ -217,9 +169,7 @@ export default function AffiliateEarningsPage() {
                            </span>
                         </td>
                         <td className="pr-4 sm:pr-6 py-4 sm:py-5 text-right">
-                           <Button variant="ghost" size="icon" className="h-7 w-7 sm:h-8 sm:w-8 rounded-lg border border-border hover:bg-stone-900 dark:hover:bg-white text-stone-400 hover:text-white dark:hover:text-stone-900 transition-all shadow-sm">
-                              <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                           </Button>
+                           <ArrowRight className="ml-auto h-4 w-4 text-[var(--color-text-muted)] opacity-0 transition-opacity group-hover:opacity-100" />
                         </td>
                       </tr>
                     ))
@@ -227,10 +177,9 @@ export default function AffiliateEarningsPage() {
                 </tbody>
               </table>
            </div>
-        </div>
+      </DashboardPanel>
 
-        {/* Settlement Registry */}
-        <div className="rounded-2xl border border-border bg-surface/40 dark:bg-surface/40 shadow-sm overflow-hidden mt-6 sm:mt-8 max-sm:-mx-4 max-sm:rounded-sm max-sm:border-x-0">
+      <DashboardPanel padding={false}>
            <div className="p-4 sm:p-6 border-b border-border flex items-center justify-between">
               <div className="space-y-0.5 sm:space-y-1">
                  <h3 className="text-base sm:text-lg font-bold text-stone-900 dark:text-white">Payout History</h3>
@@ -271,14 +220,10 @@ export default function AffiliateEarningsPage() {
                            {formatMoney(Number(p.amount ?? 0), "USD")}
                         </td>
                         <td className="px-4 sm:px-6 py-6 sm:py-8 text-center">
-                           <GlassPill color={p.status === "paid" ? "emerald" : p.status === "failed" ? "red" : "orange"} className="mx-auto px-3 sm:px-4 py-1.5 sm:py-2 font-black border-border shadow-sm ring-1 ring-border bg-surface/40 dark:bg-surface/40 text-[9px] sm:text-[10px]">
-                              {p.status?.toUpperCase() || "PENDING"}
-                           </GlassPill>
+                           <StatusPill status={p.status === "paid" ? "paid" : p.status === "failed" ? "failed" : "pending"} />
                         </td>
                         <td className="pr-4 sm:pr-10 py-6 sm:py-8 text-right">
-                           <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-surface dark:bg-surface-secondary border border-border shadow-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                              <ShieldCheck className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-400" />
-                           </div>
+                           <ArrowRight className="ml-auto h-4 w-4 text-[var(--color-text-muted)] opacity-0 transition-opacity group-hover:opacity-100" />
                         </td>
                       </tr>
                     ))
@@ -286,9 +231,8 @@ export default function AffiliateEarningsPage() {
                 </tbody>
               </table>
            </div>
-        </div>
-      </div>
-    </div>
+        </DashboardPanel>
+    </DashboardPage>
   );
 }
 

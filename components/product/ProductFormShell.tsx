@@ -20,6 +20,7 @@ import { CloudinaryImage } from "@/components/ui/cloudinary-image";
 import { cn } from "@/lib/utils";
 import { StyledTextarea } from "../ui/textarea";
 import { Button } from "../ui/button";
+import { Switch } from "@/components/ui/switch";
 import {
     getAdminProductForEdit,
     updateAdminProduct,
@@ -249,21 +250,7 @@ function Select({ className, children, style, ...props }: React.SelectHTMLAttrib
 }
 
 function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
-    return (
-        <button
-            type="button"
-            role="switch"
-            aria-checked={checked}
-            onClick={() => onChange(!checked)}
-            className="relative inline-flex h-5 w-9 shrink-0 rounded-full transition-colors duration-200 outline-none"
-            style={{ background: checked ? "var(--color-accent)" : "var(--color-border-strong)" }}
-        >
-            <span
-                className="inline-block h-3.5 w-3.5 mt-[3px] rounded-full bg-white shadow-sm transition-transform duration-200"
-                style={{ transform: checked ? "translateX(18px)" : "translateX(3px)" }}
-            />
-        </button>
-    );
+    return <Switch checked={checked} onCheckedChange={onChange} />;
 }
 
 function ToggleRow({ title, description, checked, onChange }: {

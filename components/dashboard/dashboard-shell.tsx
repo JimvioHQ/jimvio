@@ -8,6 +8,7 @@ import { LayoutDashboard, UserRound, Menu, Wallet, Search, Bell } from "lucide-r
 import { Sidebar, type DashboardRole } from "@/components/dashboard/sidebar";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
+import { ProfileImage } from "@/components/ui/profile-image";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { CurrencySelector } from "@/context/CurrencyContext";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
@@ -37,10 +38,8 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<UserProfile>({ email: "", full_name: null, avatar_url: null });
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
-  const initials = user.full_name
-    ? user.full_name.substring(0, 2).toUpperCase()
-    : user.email ? user.email.substring(0, 2).toUpperCase() : "U";
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [unreadMessages, setUnreadMessages] = useState(0);
 
   useEffect(() => {
     async function loadUser() {
@@ -61,6 +60,53 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
 
     loadUser();
     fetchRoles();
+
+    let cancelled = false;
+    const supabase = createClient();
+
+    async function refreshBadges() {
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (!authUser || cancelled) return;
+
+      const [{ count: notifCount }, { count: msgCount }] = await Promise.all([
+        supabase
+          .from("notifications")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", authUser.id)
+          .eq("is_read", false),
+        supabase
+          .from("notifications")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", authUser.id)
+          .eq("type", "message")
+          .eq("is_read", false),
+      ]);
+
+      if (cancelled) return;
+      setUnreadNotifications(notifCount ?? 0);
+      setUnreadMessages(msgCount ?? 0);
+    }
+
+    refreshBadges();
+
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    (async () => {
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (!authUser || cancelled) return;
+      channel = supabase
+        .channel(`shell-notifications-${authUser.id}`)
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${authUser.id}` },
+          () => refreshBadges(),
+        )
+        .subscribe();
+    })();
+
+    return () => {
+      cancelled = true;
+      if (channel) supabase.removeChannel(channel);
+    };
   }, [fetchRoles]);
 
   return (
@@ -132,8 +178,12 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button className="flex items-center gap-2 p-1 rounded-full transition-all hover:shadow-none active:scale-95 bg-surface border border-border hover:bg-background">
-                    <div className="w-7 h-7 rounded-full bg-background flex items-center justify-center text-[10px] font-bold text-[var(--color-text-secondary)] border border-border overflow-hidden">
-                      {user.avatar_url && user.avatar_url.trim() ? <img src={user.avatar_url} className="w-full h-full object-cover" /> : initials}
+                    <div className="w-7 h-7 rounded-full bg-background flex items-center justify-center border border-border overflow-hidden">
+                      <ProfileImage
+                        src={user.avatar_url}
+                        alt={user.full_name ?? "Profile"}
+                        className="w-full h-full"
+                      />
                     </div>
                   </button>
                 </DropdownMenuTrigger>
@@ -167,7 +217,7 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
             </div>
           </div>
         </header>
-        <DashboardHeader />
+        <DashboardHeader unreadNotifications={unreadNotifications} />
         <main className="flex-1 overflow-y-auto overflow-x-hidden relative bg-background">
           <div className="px-0 py-3 sm:px-6 sm:py-8 lg:p-10 max-w-[1400px] mx-auto">
             {children}
@@ -178,8 +228,8 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
             MOBILE BOTTOM NAV — Frosted Bar
         ══════════════════════════════════════ */}
         <BottomNav
-          unreadMessages={0}
-          hasMoreNotifications={false}
+          unreadMessages={unreadMessages}
+          hasMoreNotifications={unreadNotifications > 0}
           onMoreClick={() => setMobileMenuOpen(true)}
         />
       </div>

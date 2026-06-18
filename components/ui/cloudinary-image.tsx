@@ -121,6 +121,7 @@ import React, { useState } from "react";
 import Image, { type ImageProps } from "next/image";
 import { cloudinaryService } from "@/services/media/cloudinary";
 import { cn } from "@/lib/utils";
+import { DEFAULT_PROFILE_IMAGE, resolveProfileImage } from "@/lib/profile-image";
 
 interface CloudinaryImageProps extends Omit<ImageProps, "src"> {
   src?: string | null;
@@ -242,16 +243,28 @@ export function CloudinaryAvatar({
   className?: string;
   fallback?: React.ReactNode;
 }) {
+  const resolvedSrc = resolveProfileImage(src);
+  const defaultFallback = (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={DEFAULT_PROFILE_IMAGE}
+      width={size}
+      height={size}
+      alt={alt}
+      className={cn("rounded-sm object-cover", className)}
+    />
+  );
+
   return (
     <CloudinaryImage
-      src={src}
+      src={resolvedSrc}
       width={size}
       height={size}
       alt={alt}
       crop="thumb"
       gravity="face"
       className={cn("rounded-sm object-cover", className)}
-      fallback={fallback}
+      fallback={fallback ?? defaultFallback}
     />
   );
 }

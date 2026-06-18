@@ -182,9 +182,9 @@ function SaveRow({
 }
 
 const tabTriggerClass =
-  "inline-flex items-center gap-2 rounded-none border-b-2 border-transparent px-4 py-3 text-sm font-medium shadow-none transition-all " +
-  "text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-secondary)]/60 " +
-  "data-[state=active]:border-[var(--color-accent)] data-[state=active]:text-[var(--color-text-primary)]";
+  "inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-none border-b-2 border-transparent px-4 py-3 text-sm font-medium shadow-none transition-all " +
+  "text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)]/60 hover:text-[var(--color-text-primary)] " +
+  "data-[state=active]:border-[var(--color-accent)] data-[state=active]:bg-[var(--color-accent-light)]/40 data-[state=active]:text-[var(--color-text-primary)]";
 
 export default function SettingsPage() {
   const [isPending, startTransition] = useTransition();
@@ -421,8 +421,8 @@ export default function SettingsPage() {
             email={userEmail}
           />
 
-          <div className="flex items-center justify-between gap-2 border-t border-[var(--color-border)]/60">
-            <TabsList className="h-auto flex-1 justify-start gap-0 rounded-none bg-transparent p-0 overflow-x-auto scrollbar-none">
+          <div className="flex items-center justify-between gap-2 border-t border-[var(--color-border)]/60 bg-[var(--color-surface-secondary)]/25">
+            <TabsList className="h-auto flex-1 justify-start gap-0 overflow-x-auto rounded-none bg-transparent p-0 scrollbar-none">
               <TabsTrigger value="profile" className={tabTriggerClass}>
                 <User className="size-4 shrink-0" />
                 Profile
@@ -716,12 +716,14 @@ export default function SettingsPage() {
               </Grid>
 
               <Divider label="Affiliate program" />
-              <Toggle
-                checked={vendor.affiliate_enabled}
-                onChange={(v) => updateVendor("affiliate_enabled", v)}
-                label="Enable affiliates"
-                description="Allow partners to earn commission promoting your products"
-              />
+              <div className="overflow-hidden rounded-xl bg-[var(--color-surface)] ring-1 ring-[var(--color-border)] px-4 py-3">
+                <Toggle
+                  checked={vendor.affiliate_enabled}
+                  onChange={(v) => updateVendor("affiliate_enabled", v)}
+                  label="Enable affiliates"
+                  description="Allow partners to earn commission promoting your products"
+                />
+              </div>
 
               {vendor.affiliate_enabled ? (
                 <Field
@@ -771,7 +773,7 @@ export default function SettingsPage() {
               </p>
             </div>
 
-            <div className="space-y-4">
+            <div className="overflow-hidden rounded-xl bg-[var(--color-surface)] ring-1 ring-[var(--color-border)] divide-y divide-[var(--color-border)]">
               {[
                 {
                   key: "new_sales",
@@ -794,15 +796,16 @@ export default function SettingsPage() {
                   desc: "Critical alerts about your account",
                 },
               ].map((item) => (
-                <Toggle
-                  key={item.key}
-                  checked={notifications[item.key as keyof typeof notifications]}
-                  onChange={(v) =>
-                    setNotifications((n) => ({ ...n, [item.key]: v }))
-                  }
-                  label={item.label}
-                  description={item.desc}
-                />
+                <div key={item.key} className="px-4 py-3">
+                  <Toggle
+                    checked={notifications[item.key as keyof typeof notifications]}
+                    onChange={(v) =>
+                      setNotifications((n) => ({ ...n, [item.key]: v }))
+                    }
+                    label={item.label}
+                    description={item.desc}
+                  />
+                </div>
               ))}
             </div>
 

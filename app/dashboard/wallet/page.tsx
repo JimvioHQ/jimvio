@@ -11,7 +11,9 @@ import {
 import { useCurrency } from "@/context/CurrencyContext";
 import { getUserWalletData } from "@/lib/actions/wallet";
 import { cn } from "@/lib/utils";
-import Link from "next/link";
+import { PageHeader } from "@/components/ui/admin";
+import { Tile } from "@/components/ui/admin-tile";
+import { DashboardPage, DashboardPanel, DashboardActionLink } from "@/components/dashboard/dashboard-page";
 
 /* ── tx type meta ── */
 const TX_META: Record<string, { icon: React.ElementType; label: string; color: string; bg: string; border: string }> = {
@@ -113,114 +115,45 @@ export default function WalletDashboardPage() {
    });
 
    return (
-      <div className="min-h-screen pb-24" style={{ background: "var(--color-bg)" }}>
-         <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-8 sm:pt-12 space-y-8">
-
-            {/* ── Header ── */}
-            <div className="flex items-center justify-between">
-               <div className="flex items-center gap-4">
-                  <Link
-                     href="/dashboard"
-                     className="h-9 w-9 rounded-xl flex items-center justify-center shrink-0 transition-all"
-                     style={{
-                        border: "1px solid var(--color-border)",
-                        background: "var(--color-surface)",
-                        color: "var(--color-text-muted)",
-                     }}
-                     onMouseEnter={e => { (e.currentTarget.style.color = "var(--color-text-primary)"); (e.currentTarget.style.borderColor = "var(--color-border-strong)"); }}
-                     onMouseLeave={e => { (e.currentTarget.style.color = "var(--color-text-muted)"); (e.currentTarget.style.borderColor = "var(--color-border)"); }}
-                  >
-                     <ArrowLeft className="h-4 w-4" />
-                  </Link>
-                  <div>
-                     <h1 className="text-xl font-bold tracking-tight leading-none" style={{ color: "var(--color-text-primary)" }}>
-                        My Wallet
-                     </h1>
-                     <p className="text-xs mt-1" style={{ color: "var(--color-text-muted)" }}>
-                        Earnings, transfers and history
-                     </p>
-                  </div>
-               </div>
-
-               <Link
-                  href="/dashboard/withdrawals"
-                  className="inline-flex items-center gap-2 h-9 px-5 rounded-xl text-sm font-semibold text-white transition-all active:scale-[0.98]"
-                  style={{
-                     background: "var(--color-accent)",
-                     boxShadow: "0 4px 14px rgba(253,80,0,0.25)",
-                  }}
-                  onMouseEnter={e => (e.currentTarget.style.background = "var(--color-accent-hover)")}
-                  onMouseLeave={e => (e.currentTarget.style.background = "var(--color-accent)")}
-               >
+      <DashboardPage className="pb-24">
+         <PageHeader
+            eyebrow="Finance"
+            title="My Wallet"
+            subtitle="Earnings, transfers and history"
+            actions={
+               <DashboardActionLink href="/dashboard/withdrawals" variant="primary">
                   <ArrowUpRight className="h-3.5 w-3.5" />
                   Withdraw
-               </Link>
-            </div>
+               </DashboardActionLink>
+            }
+         />
 
-            {/* ── Balance hero ── */}
-            <div
-               className="rounded-xl overflow-hidden"
-               style={{ border: "1px solid var(--color-border)", background: "var(--color-surface)" }}
-            >
-               {/* Main balance */}
-               <div
-                  className="px-6 sm:px-8 py-6 sm:py-8 border-b"
-                  style={{ borderColor: "var(--color-border)" }}
-               >
-                  <div className="flex items-start justify-between gap-6">
-                     <div>
-                        <div className="flex items-center gap-2 mb-3">
-                           <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                           <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--color-text-muted)" }}>
-                              Available to withdraw
-                           </span>
-                        </div>
-                        <p
-                           className="text-4xl sm:text-5xl font-bold tabular-nums tracking-tight leading-none"
-                           style={{ color: "var(--color-text-primary)" }}
-                        >
-                           {formatMoney(wallet.available_balance, "USD")}
-                        </p>
-                     </div>
-                     <div
-                        className="h-12 w-12 rounded-xl flex items-center justify-center shrink-0"
-                        style={{ background: "var(--color-accent-light)", border: "1px solid var(--color-accent-subtle)" }}
-                     >
-                        <Wallet className="h-5 w-5" style={{ color: "var(--color-accent)" }} />
-                     </div>
-                  </div>
-               </div>
+         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <Tile
+               label="Available"
+               value={formatMoney(wallet.available_balance, "USD")}
+               icon={Wallet}
+               tone="success"
+            />
+            <Tile
+               label="Pending"
+               value={formatMoney(wallet.pending_balance, "USD")}
+               icon={Clock}
+               tone="warn"
+            />
+            <Tile
+               label="Total earned"
+               value={formatMoney(wallet.total_earned, "USD")}
+               icon={TrendingUp}
+            />
+         </div>
 
-               {/* Sub-stats */}
-               <div
-                  className="grid grid-cols-2 divide-x"
-                  style={{
-                     // divideColor: "var(--color-border)",
-                     borderColor: "var(--color-border)"
-                  }}
-               >
-                  {[
-                     { label: "Pending", value: formatMoney(wallet.pending_balance, "USD") },
-                     { label: "Total Earned", value: formatMoney(wallet.total_earned, "USD") },
-                  ].map(({ label, value }) => (
-                     <div key={label} className="px-5 sm:px-6 py-4" style={{ borderColor: "var(--color-border)" }}>
-                        <p className="text-[10px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: "var(--color-text-muted)" }}>
-                           {label}
-                        </p>
-                        <p className="text-lg font-bold tabular-nums tracking-tight" style={{ color: "var(--color-text-primary)" }}>
-                           {value}
-                        </p>
-                     </div>
-                  ))}
-               </div>
-            </div>
-
-            {/* ── Earning sources ── */}
-            <div className="space-y-3">
-               <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--color-text-muted)" }}>
+         <DashboardPanel padding={false} className="space-y-0">
+            <div className="space-y-3 p-4 sm:p-5 border-b border-[var(--color-border)]">
+               <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">
                   Earning sources
                </p>
-               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+               <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                   <SourceCard
                      icon={Store} label="Product Sales" value={formatMoney(agg.vendor, "USD")}
                      color="text-sky-500" bg="bg-sky-500/10" border="border-sky-500/20"
@@ -236,34 +169,22 @@ export default function WalletDashboardPage() {
                </div>
             </div>
 
-            {/* ── Escrow notice ── */}
-            <div
-               className="flex items-start gap-3 px-5 py-4 rounded-xl"
-               style={{ background: "rgba(48,164,108,0.06)", border: "1px solid rgba(48,164,108,0.2)" }}
-            >
-               <ShieldCheck className="h-4 w-4 shrink-0 mt-0.5 text-emerald-500" />
-               <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 mb-0.5">
+            <div className="flex items-start gap-3 border-b border-[var(--color-border)] px-5 py-4 sm:px-6">
+               <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+               <div className="min-w-0 flex-1">
+                  <p className="mb-0.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
                      Funds held in escrow
                   </p>
-                  <p className="text-xs leading-relaxed" style={{ color: "var(--color-text-muted)" }}>
+                  <p className="text-xs leading-relaxed text-[var(--color-text-muted)]">
                      Your earnings are secured until orders are confirmed delivered.{" "}
-                     <Link
-                        href="/dashboard/orders"
-                        className="font-semibold underline underline-offset-2 transition-colors"
-                        style={{ color: "var(--color-accent)" }}
-                     >
+                     <Link href="/dashboard/orders" className="font-semibold underline underline-offset-2 text-[var(--color-accent)]">
                         View active orders
                      </Link>
                   </p>
                </div>
             </div>
 
-            {/* ── Transaction history ── */}
-            <div
-               className="rounded-xl overflow-hidden"
-               style={{ border: "1px solid var(--color-border)", background: "var(--color-surface)" }}
-            >
+            {/* Transaction history */}
                {/* Header + tabs */}
                <div
                   className="px-5 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
@@ -430,9 +351,7 @@ export default function WalletDashboardPage() {
                      </div>
                   </div>
                )}
-            </div>
-
-         </div>
-      </div>
+         </DashboardPanel>
+      </DashboardPage>
    );
 }

@@ -1,0 +1,310 @@
+"use client";
+
+import { useState, useTransition, type ElementType } from "react";
+import Link from "next/link";
+import {
+  ShieldAlert,
+  ShieldCheck,
+  Snowflake,
+  Ban,
+  PauseCircle,
+  Trash2,
+  Save,
+  Loader2,
+} from "lucide-react";
+import {
+  BrandBtn,
+  Divider,
+  Field,
+  Grid,
+  TextInput,
+  Toast,
+  Toggle,
+  type ToastMsg,
+} from "@/components/admin/form-primitive";
+import { Textarea } from "@/components/ui/textarea";
+import { StatusPill } from "@/components/ui/admin";
+import { cn } from "@/lib/utils";
+import {
+  deleteManagedUser,
+  setUserAccountStatus,
+  toggleManagedUserRole,
+  updateAdminManagedUser,
+  type AccountStatus,
+  type AdminUserEditInput,
+} from "@/lib/actions/admin-users";
+import type { AdminUserDetail } from "@/services/admin/getAdminUsers";
+
+export function AdminUserModerationPanel({ user }: { user: AdminUserDetail }) {
+  const isAdminAccount = user.roles.some((r) => r.role === "admin" && r.is_active);
+  const [pending, startTransition] = useTransition();
+  const [toast, setToast] = useState<ToastMsg | null>(null);
+  const [reason, setReason] = useState(user.moderation_reason ?? "");
+  const [editOpen, setEditOpen] = useState(false);
+
+  const [form, setForm] = useState<AdminUserEditInput>({
+    full_name: user.full_name ?? "",
+    username: user.username ?? "",
+    phone: user.phone ?? "",
+    bio: user.bio ?? "",
+    website: user.website ?? "",
+    city: user.city ?? "",
+    country: user.country ?? "",
+    is_verified: user.is_verified,
+  });
+
+  const accountStatus = user.account_status ?? (user.is_active ? "active" : "suspended");
+
+  function run(action: () => Promise<{ success: boolean; error?: string }>) {
+    startTransition(async () => {
+      const result = await action();
+      if (!result.success) {
+        setToast({ msg: result.error ?? "Action failed", type: "err" });
+        return;
+      }
+      setToast({ msg: "Changes saved", type: "ok" });
+    });
+  }
+
+  function moderate(status: AccountStatus) {
+    if (status !== "active" && !reason.trim()) {
+      setToast({ msg: "Enter a moderation reason first", type: "err" });
+      return;
+    }
+    run(() => setUserAccountStatus(user.id, status, reason));
+  }
+
+  function removeAccess() {
+    if (!reason.trim()) {
+      setToast({ msg: "Enter a moderation reason first", type: "err" });
+      return;
+    }
+    if (!confirm(`Remove access for ${user.email}? They will be banned and deactivated.`)) return;
+    run(() => deleteManagedUser(user.id, reason));
+  }
+
+  return (
+    <>
+      {toast && (
+        <Toast message={toast.msg} type={toast.type} onClose={() => setToast(null)} />
+      )}
+
+      <div className="overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--color-border)] bg-[var(--color-surface-secondary)]/50 px-4 py-3">
+          <div className="flex items-center gap-2">
+            <ShieldAlert className="h-3.5 w-3.5 text-[var(--color-text-muted)]" />
+            <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--color-text-muted)]">
+              Account security
+            </span>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <StatusPill
+              status={accountStatus === "active" ? "active" : accountStatus === "banned" ? "banned" : "suspended"}
+              size="md"
+            />
+            {user.pending_reports > 0 && (
+              <Link
+                href="/admin/verifications?tab=reports"
+                className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700 ring-1 ring-amber-600/20 hover:bg-amber-100 dark:bg-amber-950/30 dark:text-amber-400"
+              >
+                {user.pending_reports} pending report{user.pending_reports !== 1 ? "s" : ""}
+              </Link>
+            )}
+          </div>
+        </div>
+
+        <div className="space-y-5 p-4">
+          {isAdminAccount ? (
+            <p className="text-[12.5px] leading-relaxed text-[var(--color-text-muted)]">
+              This user is a platform admin. Suspend, ban, and delete actions are disabled. You can still edit profile fields below.
+            </p>
+          ) : (
+            <>
+              {user.moderation_reason && (
+                <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-secondary)]/40 px-3 py-2.5 text-[12px] text-[var(--color-text-muted)]">
+                  <span className="font-semibold text-[var(--color-text-primary)]">Last action: </span>
+                  {user.moderation_reason}
+                  {user.moderated_at ? (
+                    <span className="ml-1 opacity-70">
+                      · {new Date(user.moderated_at).toLocaleString()}
+                    </span>
+                  ) : null}
+                </div>
+              )}
+
+              <Field label="Moderation reason" hint="Required for suspend, freeze, ban, or delete">
+                <Textarea
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                  placeholder="e.g. Repeated UGC policy violations per report #…"
+                  className="min-h-[72px] text-[13px]"
+                />
+              </Field>
+
+              <div className="flex flex-wrap gap-2">
+                {accountStatus !== "active" && (
+                  <ModerationBtn
+                    icon={ShieldCheck}
+                    label="Reactivate"
+                    tone="success"
+                    disabled={pending}
+                    onClick={() => moderate("active")}
+                  />
+                )}
+                {accountStatus !== "suspended" && (
+                  <ModerationBtn
+                    icon={PauseCircle}
+                    label="Suspend"
+                    disabled={pending}
+                    onClick={() => moderate("suspended")}
+                  />
+                )}
+                {accountStatus !== "frozen" && (
+                  <ModerationBtn
+                    icon={Snowflake}
+                    label="Freeze"
+                    disabled={pending}
+                    onClick={() => moderate("frozen")}
+                  />
+                )}
+                {accountStatus !== "banned" && (
+                  <ModerationBtn
+                    icon={Ban}
+                    label="Ban"
+                    tone="danger"
+                    disabled={pending}
+                    onClick={() => moderate("banned")}
+                  />
+                )}
+                <ModerationBtn
+                  icon={Trash2}
+                  label="Remove access"
+                  tone="danger"
+                  disabled={pending}
+                  onClick={removeAccess}
+                />
+              </div>
+            </>
+          )}
+
+          <Divider label="Edit profile" />
+
+          <button
+            type="button"
+            onClick={() => setEditOpen((v) => !v)}
+            className="text-[12px] font-semibold text-[var(--color-accent)] hover:underline"
+          >
+            {editOpen ? "Hide editor" : "Edit user details"}
+          </button>
+
+          {editOpen && (
+            <div className="space-y-4">
+              <Grid cols={2}>
+                <Field label="Full name" required>
+                  <TextInput
+                    value={form.full_name}
+                    onChange={(v) => setForm((f) => ({ ...f, full_name: v }))}
+                  />
+                </Field>
+                <Field label="Username">
+                  <TextInput
+                    value={form.username}
+                    onChange={(v) => setForm((f) => ({ ...f, username: v.toLowerCase() }))}
+                  />
+                </Field>
+                <Field label="Phone">
+                  <TextInput value={form.phone} onChange={(v) => setForm((f) => ({ ...f, phone: v }))} />
+                </Field>
+                <Field label="Country">
+                  <TextInput value={form.country} onChange={(v) => setForm((f) => ({ ...f, country: v }))} />
+                </Field>
+                <Field label="City">
+                  <TextInput value={form.city} onChange={(v) => setForm((f) => ({ ...f, city: v }))} />
+                </Field>
+                <Field label="Website">
+                  <TextInput value={form.website} onChange={(v) => setForm((f) => ({ ...f, website: v }))} />
+                </Field>
+              </Grid>
+              <Field label="Bio">
+                <Textarea
+                  value={form.bio}
+                  onChange={(e) => setForm((f) => ({ ...f, bio: e.target.value }))}
+                  className="min-h-[80px] text-[13px]"
+                />
+              </Field>
+              <Toggle
+                checked={form.is_verified}
+                onChange={(v) => setForm((f) => ({ ...f, is_verified: v }))}
+                label="Verified email"
+                description="Mark profile as verified in the platform"
+              />
+
+              <div className="flex justify-end">
+                <BrandBtn
+                  icon={pending ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />}
+                  disabled={pending}
+                  onClick={() => run(() => updateAdminManagedUser(user.id, form))}
+                >
+                  Save profile
+                </BrandBtn>
+              </div>
+            </div>
+          )}
+
+          {user.roles.filter((r) => r.role !== "admin" && r.role !== "buyer").length > 0 && (
+            <>
+              <Divider label="Roles" />
+              <div className="space-y-3">
+                {user.roles
+                  .filter((r) => r.role !== "buyer" && r.role !== "admin")
+                  .map((r) => (
+                    <Toggle
+                      key={r.role}
+                      checked={r.is_active}
+                      onChange={(active) =>
+                        run(() => toggleManagedUserRole(user.id, r.role, active))
+                      }
+                      label={r.role.replace(/_/g, " ")}
+                      description={r.is_active ? "Role is active" : "Role is disabled"}
+                      danger={!r.is_active}
+                    />
+                  ))}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+
+function ModerationBtn({
+  icon: Icon,
+  label,
+  onClick,
+  disabled,
+  tone = "default",
+}: {
+  icon: ElementType;
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+  tone?: "default" | "danger" | "success";
+}) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      className={cn(
+        "inline-flex h-8 items-center gap-1.5 rounded-lg px-3 text-[12px] font-semibold transition-colors disabled:opacity-50",
+        tone === "danger" && "bg-rose-50 text-rose-700 ring-1 ring-rose-600/20 hover:bg-rose-100 dark:bg-rose-950/30 dark:text-rose-400",
+        tone === "success" && "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20 hover:bg-emerald-100 dark:bg-emerald-950/30 dark:text-emerald-400",
+        tone === "default" && "bg-[var(--color-surface-secondary)] text-[var(--color-text-primary)] ring-1 ring-[var(--color-border)] hover:ring-[var(--color-border-strong)]",
+      )}
+    >
+      <Icon className="h-3.5 w-3.5" />
+      {label}
+    </button>
+  );
+}

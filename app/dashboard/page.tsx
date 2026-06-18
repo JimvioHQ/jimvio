@@ -5,6 +5,9 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { format, subDays, eachDayOfInterval, startOfDay } from "date-fns";
 import { useCurrency } from "@/context/CurrencyContext";
+import { PageHeader } from "@/components/ui/admin";
+import { DashboardPage } from "@/components/dashboard/dashboard-page";
+import { Settings } from "lucide-react";
 
 import { LiveTicker } from "@/components/dashboard/LiveTicker";
 import { HeroStatsRow } from "@/components/dashboard/HeroStatsRow";
@@ -217,7 +220,7 @@ export default function DashboardPage() {
     email: string;
     avatar_url: string | null;
   } | null>(null);
-  const [, setWallet] = useState<WalletRow | null>(null);
+  const [wallet, setWallet] = useState<WalletRow | null>(null);
   const [statCards, setStatCards] = useState<StatCard[]>([]);
   const [activityItems, setActivityItems] = useState<ActivityItem[]>([]);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
@@ -236,6 +239,7 @@ export default function DashboardPage() {
   const [sidebarCampaigns, setSidebarCampaigns] = useState<TrendingCampaignItem[]>([]);
   const [sidebarCreators, setSidebarCreators] = useState<RecommendedCreator[]>([]);
   const [recentSearches, setRecentSearches] = useState<RecentSearchItem[]>([]);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -301,6 +305,7 @@ export default function DashboardPage() {
         .from("notifications")
         .select("id, type, title, message, is_read, created_at, action_url")
         .eq("user_id", userId)
+        .eq("is_read", false)
         .order("created_at", { ascending: false })
         .limit(6),
       supabase
@@ -518,10 +523,11 @@ export default function DashboardPage() {
       },
     ];
 
-    // Activity items
+    // Activity items (unread only)
     const activity = (notifsRes.data ?? []).map((n: any) =>
       notifToActivity(n as NotifRow)
     );
+    setUnreadNotifications(activity.length);
 
     // ─ Campaigns mapping (for the bottom TopCampaigns card) ─
     console.log(campaignsRes);
@@ -604,9 +610,9 @@ export default function DashboardPage() {
     // ─ Sidebar: Trending Campaigns ─
     const BADGE_LABELS = ["Trending", "Hot", "New"];
     const BADGE_STYLES = [
-      "bg-[#fff3ee] text-[#fd5000] dark:bg-[#200d00]",
-      "bg-[#fff0f0] text-[#e5484d] dark:bg-[#2a1010] dark:text-[#f87171]",
-      "bg-[#e9f9ef] text-[#1a7d4a] dark:bg-[#0d2e1c] dark:text-[#6ee7a0]",
+      "bg-orange-50 text-orange-700 ring-orange-600/20 dark:bg-orange-950/30 dark:text-orange-400",
+      "bg-rose-50 text-rose-700 ring-rose-600/20 dark:bg-rose-950/30 dark:text-rose-400",
+      "bg-emerald-50 text-emerald-700 ring-emerald-600/20 dark:bg-emerald-950/30 dark:text-emerald-400",
     ];
     const mappedSidebarCampaigns: TrendingCampaignItem[] = (
       (trendingCampsRes.data ?? []) as SidebarCampaignRow[]
@@ -625,8 +631,12 @@ export default function DashboardPage() {
     });
 
     // ─ Sidebar: Recommended Creators ─
-    const CREATOR_COLORS = ["#fd5000", "#3b82f6", "#8b5cf6"];
     const CREATOR_BADGES = ["Top Creator", "Rising Star", "UGC Expert"];
+    const CREATOR_BADGE_STYLES = [
+      "bg-[var(--color-surface-secondary)] text-[var(--color-text-secondary)] ring-[var(--color-border)]",
+      "bg-blue-50 text-blue-700 ring-blue-600/20 dark:bg-blue-950/30 dark:text-blue-400",
+      "bg-violet-50 text-violet-700 ring-violet-600/20 dark:bg-violet-950/30 dark:text-violet-400",
+    ];
     const mappedCreators: RecommendedCreator[] = (
       (creatorsRes.data ?? []) as {
         id: string;
@@ -645,7 +655,7 @@ export default function DashboardPage() {
           .slice(0, 2),
         name,
         badge: CREATOR_BADGES[i % 3],
-        color: CREATOR_COLORS[i % 3],
+        badgeCls: CREATOR_BADGE_STYLES[i % 3],
         avatarUrl: p.avatar_url ?? null,
         username: p.username ?? null,
         href: p.username ? `/u/${p.username}` : `/creators/${p.id}`,
@@ -769,61 +779,40 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-bg font-[family-name:var(--font-dm-sans)]">
-      {/* ── Live ticker ── */}
       <LiveTicker items={TICKER_ITEMS} onlineCount={8447} />
 
-      {/* ── Main scroll area ── */}
-      <div className=" px-2 sm:px-6 py-6 max-w-[1400px] mx-auto">
-        {/* Welcome header */}
-        <div className="mb-5 flex items-center gap-4">
-          {loading ? (
-            <Skeleton className="w-12 h-12 rounded-full flex-shrink-0" />
-          ) : profile?.avatar_url && profile.avatar_url.trim() ? (
-            <img
-              src={profile.avatar_url}
-              alt={displayName}
-              className="w-12 h-12 rounded-full object-cover flex-shrink-0 border-2 border-border"
-            />
-          ) : (
-            <div
-              className="w-12 h-12 rounded-full flex-shrink-0 flex items-center justify-center text-white font-bold text-lg border-2 border-border"
-              style={{ background: "#fd5000" }}
+      <DashboardPage className="px-2 sm:px-0">
+        <PageHeader
+          eyebrow="Dashboard"
+          title={loading ? "Loading…" : `Welcome back, ${displayName}`}
+          subtitle={new Date().toLocaleDateString("en-US", {
+            weekday: "long",
+            month: "long",
+            day: "numeric",
+          })}
+          actions={
+            <Link
+              href="/dashboard/settings"
+              className="inline-flex h-9 items-center gap-2 rounded-lg px-3.5 text-[12.5px] font-medium text-[var(--color-text-muted)] ring-1 ring-[var(--color-border)] transition-colors hover:text-[var(--color-text-primary)]"
             >
-              {displayName[0]?.toUpperCase()}
-            </div>
-          )}
-          <div>
-            {loading ? (
-              <Skeleton className="h-8 w-64 mb-2" />
-            ) : (
-              <h1 className="text-[26px] font-extrabold tracking-tight text-text-primary">
-                Welcome back, {displayName}! 👋
-              </h1>
-            )}
-            <p className="text-[14px] text-text-muted mt-0.5">
-              {new Date().toLocaleDateString("en-US", {
-                weekday: "long",
-                month: "long",
-                day: "numeric",
-              })}
-            </p>
-          </div>
-        </div>
+              <Settings className="h-3.5 w-3.5" />
+              Settings
+            </Link>
+          }
+        />
 
-        {/* Hero quick-stats */}
         <HeroStatsRow
-          earnedToday={loading ? "..." : `${formatMoney(earnedToday, "USD")} today`}
+          earnedToday={loading ? "—" : `${formatMoney(earnedToday, "USD")} today`}
           newCampaigns={campaignsCount}
           affiliateClicks={activeLinks}
-          xpCurrent={320}
-          xpMax={500}
-          level={4}
+          walletBalance={
+            loading
+              ? "—"
+              : formatMoney(wallet?.available_balance ?? 0, "USD")
+          }
           earnedTrend={earnedTrend}
           campaignsTrend={campaignsTrend}
           linksTrend={linksTrend}
-          sparkEarned={earningsDatasets?.[0]?.data}
-          sparkCampaigns={earningsDatasets?.[1]?.data}
-          sparkLinks={earningsDatasets?.[0]?.data}
         />
 
         {/* Two-column layout */}
@@ -865,6 +854,7 @@ export default function DashboardPage() {
 
           <DashboardSidebar
             activityItems={activityItems}
+            unreadNotifications={unreadNotifications}
             trendingCampaigns={sidebarCampaigns}
             recommendedCreators={sidebarCreators}
             recentSearches={recentSearches}
@@ -891,7 +881,7 @@ export default function DashboardPage() {
             )}
           </div>
         </div>
-      </div>
+      </DashboardPage>
     </div>
   );
 }

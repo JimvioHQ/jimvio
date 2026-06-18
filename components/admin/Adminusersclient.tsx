@@ -4,7 +4,7 @@ import React, { useState, useTransition, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
     Users, ShieldCheck, Store, UserCircle2,
-    TrendingUp, BadgeCheck, ShieldAlert, CheckCircle2,
+    TrendingUp, BadgeCheck, CheckCircle2,
     XCircle, KeyRound,
 } from "lucide-react";
 import {
@@ -258,6 +258,7 @@ export function AdminUsersClient({
                                 <tr className="border-b border-[var(--color-border)] bg-[var(--color-surface-secondary)]/60">
                                     <Th>User</Th>
                                     <Th>Roles</Th>
+                                    <Th>Account</Th>
                                     <Th>Vendor</Th>
                                     <Th>Affiliate code</Th>
                                     <Th>Verified</Th>
@@ -290,12 +291,6 @@ export function AdminUsersClient({
                                                     <p className="text-[11px] text-[var(--color-text-muted)] truncate max-w-[190px]">
                                                         {u.email}
                                                     </p>
-                                                    {!u.is_active && (
-                                                        <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-rose-600 dark:text-rose-400">
-                                                            <ShieldAlert className="h-2.5 w-2.5" />
-                                                            Inactive
-                                                        </span>
-                                                    )}
                                                 </div>
                                             </div>
                                         </td>
@@ -307,6 +302,14 @@ export function AdminUsersClient({
                                                     <RoleBadge key={r} role={r} />
                                                 ))}
                                             </div>
+                                        </td>
+
+                                        {/* Account */}
+                                        <td className="px-3 py-2.5">
+                                            <StatusPill
+                                                status={u.account_status === "active" ? "active" : u.account_status}
+                                                size="sm"
+                                            />
                                         </td>
 
                                         {/* Vendor */}

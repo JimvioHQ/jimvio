@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/admin";
 import { Tile } from "@/components/ui/admin-tile";
 import { AdminUserDetail } from "@/services/admin/getAdminUsers";
+import { AdminUserModerationPanel } from "@/components/admin/admin-user-moderation-panel";
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
@@ -170,9 +171,10 @@ export function AdminUserDetailClient({ user }: { user: AdminUserDetail }) {
                             <h1 className="text-[22px] font-medium tracking-tight text-[var(--color-text-primary)] leading-tight">
                                 {displayName}
                             </h1>
-                            {!user.is_active && (
-                                <StatusPill status="inactive" size="md" />
-                            )}
+                            <StatusPill
+                                status={user.account_status === "active" ? "active" : user.account_status}
+                                size="md"
+                            />
                             {user.is_verified && (
                                 <StatusPill status="verified" size="md" />
                             )}
@@ -205,14 +207,16 @@ export function AdminUserDetailClient({ user }: { user: AdminUserDetail }) {
                 </div>
             </div>
 
+            <AdminUserModerationPanel user={user} />
+
             {/* ── Summary KPIs (same Tile style as admin/orders) ── */}
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
                 <Tile
                     label="Account"
-                    value={user.is_active ? "Active" : "Inactive"}
-                    sublabel={user.is_verified ? "Verified email" : "Unverified"}
+                    value={user.account_status.replace(/_/g, " ")}
+                    sublabel={user.pending_reports > 0 ? `${user.pending_reports} pending report(s)` : user.is_verified ? "Verified email" : "Unverified"}
                     icon={ShieldCheck}
-                    tone={user.is_active ? "success" : "danger"}
+                    tone={user.account_status === "active" ? "success" : "danger"}
                 />
                 <Tile
                     label="Recent orders"

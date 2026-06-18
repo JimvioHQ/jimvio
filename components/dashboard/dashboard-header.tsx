@@ -463,7 +463,7 @@ import {
     LogOut,
     Wallet,
     UserRound,
-    Package,
+    ShoppingBag,
     Megaphone,
     Users,
     Radio,
@@ -471,6 +471,7 @@ import {
     MoreHorizontal,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ProfileImage } from "@/components/ui/profile-image";
 import { createClient } from "@/lib/supabase/client";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { CurrencySelector } from "@/context/CurrencyContext";
@@ -502,7 +503,7 @@ interface DashboardHeaderProps {
 
 const CREATE_ITEMS = [
     {
-        icon: Package,
+        icon: ShoppingBag,
         label: "Create product",
         sub: "Add a new product",
         href: "/dashboard/products/new",
@@ -804,12 +805,6 @@ function UserMenu({ user }: { user: UserProfile }) {
     const { activeRoles } = useUserStore();
     const [currentRole, setCurrentRole] = useState("affiliate");
 
-    const initials = user.full_name
-        ? user.full_name.substring(0, 2).toUpperCase()
-        : user.email
-            ? user.email.substring(0, 2).toUpperCase()
-            : "U";
-
     const displayRole =
         ROLES.find((r) => r.key === currentRole)?.label ?? "Affiliate";
 
@@ -825,18 +820,12 @@ function UserMenu({ user }: { user: UserProfile }) {
                     )}
                 >
                     {/* Avatar */}
-                    <div className=" w-10 sm:w-6 h-10 sm:h-6 sm:ml-0 rounded-full bg-[var(--color-accent-light)] border border-[var(--color-border)] overflow-hidden flex items-center justify-center flex-shrink-0">
-                        {user.avatar_url && user.avatar_url.trim() ? (
-                            <img
-                                src={user.avatar_url}
-                                className="w-full h-full object-cover"
-                                alt=""
-                            />
-                        ) : (
-                            <span className="text-[10px] font-bold text-[var(--color-accent)]">
-                                {initials}
-                            </span>
-                        )}
+                    <div className=" w-10 sm:w-6 h-10 sm:h-6 sm:ml-0 rounded-full bg-[var(--color-surface-secondary)] border border-[var(--color-border)] overflow-hidden flex items-center justify-center flex-shrink-0">
+                        <ProfileImage
+                            src={user.avatar_url}
+                            alt={user.full_name ?? "Profile"}
+                            className="w-full h-full"
+                        />
                     </div>
                     {/* Name — hidden below sm */}
                     <span className="hidden sm:block text-[12px] font-semibold text-[var(--color-text-primary)] max-w-[100px] truncate">
@@ -952,12 +941,15 @@ export function DashboardHeader({
     });
 
     useEffect(() => {
-        async function load() {
-            const supabase = createClient();
+        let cancelled = false;
+        const supabase = createClient();
+
+        async function refreshUnreadCount() {
             const {
                 data: { user: authUser },
             } = await supabase.auth.getUser();
-            if (!authUser) return;
+            if (!authUser || cancelled) return;
+
             const [{ data }, { count }] = await Promise.all([
                 supabase
                     .from("profiles")
@@ -970,12 +962,48 @@ export function DashboardHeader({
                     .eq("user_id", authUser.id)
                     .eq("is_read", false),
             ]);
+
+            if (cancelled) return;
             if (data) setUser(data);
             if (typeof unreadNotificationsProp !== "number") {
                 setUnreadNotifications(count ?? 0);
             }
         }
-        load();
+
+        refreshUnreadCount();
+
+        let channel: ReturnType<typeof supabase.channel> | null = null;
+        (async () => {
+            const {
+                data: { user: authUser },
+            } = await supabase.auth.getUser();
+            if (!authUser || cancelled) return;
+
+            channel = supabase
+                .channel(`header-notifications-${authUser.id}`)
+                .on(
+                    "postgres_changes",
+                    {
+                        event: "*",
+                        schema: "public",
+                        table: "notifications",
+                        filter: `user_id=eq.${authUser.id}`,
+                    },
+                    () => refreshUnreadCount(),
+                )
+                .subscribe();
+        })();
+
+        return () => {
+            cancelled = true;
+            if (channel) supabase.removeChannel(channel);
+        };
+    }, [unreadNotificationsProp]);
+
+    useEffect(() => {
+        if (typeof unreadNotificationsProp === "number") {
+            setUnreadNotifications(unreadNotificationsProp);
+        }
     }, [unreadNotificationsProp]);
 
     return (

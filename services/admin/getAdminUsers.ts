@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
-import { VerificationStatus } from "@/types/db";
+import { getAdminDB } from "@/lib/supabase/admin";
+import type { AccountStatus } from "@/lib/actions/admin-users";
 
 export interface AdminUserRow {
     id: string;
@@ -9,6 +10,7 @@ export interface AdminUserRow {
     country: string | null;
     is_verified: boolean;
     is_active: boolean;
+    account_status: AccountStatus | "inactive";
     two_factor_enabled: boolean;
     created_at: string | null;
     roles: string[];
@@ -95,6 +97,7 @@ export async function getAdminUsers(
             country: p.country ?? null,
             is_verified: p.is_verified ?? false,
             is_active: p.is_active ?? true,
+            account_status: (p.is_active ?? true) ? "active" : "inactive",
             two_factor_enabled: p.two_factor_enabled ?? false,
             created_at: p.created_at ?? null,
             roles: activeRoles,
@@ -106,12 +109,17 @@ export async function getAdminUsers(
         };
     });
 
+    // Hide platform admins from the default list — show only when role=admin is selected
+    if (role !== "admin") {
+        rows = rows.filter((u) => !u.roles.includes("admin"));
+    }
+
     // Client-side role filter (Supabase can't easily filter on joined arrays)
     if (role) {
         rows = rows.filter((u) => u.roles.includes(role));
     }
 
-    return { users: rows, total: count ?? 0 };
+    return { users: rows, total: role ? rows.length : (count ?? 0) };
 }
 
 
@@ -130,6 +138,11 @@ export interface AdminUserDetail {
     language: string | null;
     is_verified: boolean;
     is_active: boolean;
+    account_status: AccountStatus;
+    moderation_reason: string | null;
+    moderated_at: string | null;
+    moderated_by: string | null;
+    pending_reports: number;
     two_factor_enabled: boolean;
     created_at: string | null;
     updated_at: string | null;
@@ -217,8 +230,28 @@ export interface AdminUserDetail {
     unread_notifications: number;
 }
 
+async function countPendingReportsForInfluencer(influencerId: string): Promise<number> {
+    const admin = getAdminDB();
+    const { data: submissions } = await admin
+        .from("ugc_submissions")
+        .select("id")
+        .eq("influencer_id", influencerId);
+
+    const submissionIds = (submissions ?? []).map((s) => s.id);
+    if (submissionIds.length === 0) return 0;
+
+    const { count } = await admin
+        .from("ugc_reports")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "pending")
+        .in("submission_id", submissionIds);
+
+    return count ?? 0;
+}
+
 export async function getAdminUserById(userId: string): Promise<AdminUserDetail | null> {
     const supabase = await createClient();
+    const admin = getAdminDB();
 
     const [
         profileRes,
@@ -230,6 +263,7 @@ export async function getAdminUserById(userId: string): Promise<AdminUserDetail 
         ordersRes,
         txRes,
         notifRes,
+        authRes,
     ] = await Promise.all([
         supabase.from("profiles").select("*").eq("id", userId).single(),
 
@@ -281,6 +315,8 @@ export async function getAdminUserById(userId: string): Promise<AdminUserDetail 
             .select("id", { count: "exact", head: true })
             .eq("user_id", userId)
             .eq("is_read", false),
+
+        admin.auth.admin.getUserById(userId),
     ]);
 
     if (profileRes.error || !profileRes.data) return null;
@@ -290,6 +326,14 @@ export async function getAdminUserById(userId: string): Promise<AdminUserDetail 
     const a = affiliateRes.data;
     const inf = influencerRes.data;
     const w = walletRes.data;
+
+    const authMeta = (authRes.data?.user?.user_metadata ?? {}) as Record<string, unknown>;
+    const accountStatus = (authMeta.account_status as AccountStatus | undefined)
+        ?? ((p.is_active ?? true) ? "active" : "suspended");
+
+    const pendingReports = inf?.id
+        ? await countPendingReportsForInfluencer(inf.id)
+        : 0;
 
     const result: AdminUserDetail = {
         id: p.id,
@@ -306,6 +350,11 @@ export async function getAdminUserById(userId: string): Promise<AdminUserDetail 
         language: p.language ?? null,
         is_verified: p.is_verified ?? false,
         is_active: p.is_active ?? true,
+        account_status: accountStatus,
+        moderation_reason: (authMeta.moderation_reason as string | null) ?? null,
+        moderated_at: (authMeta.moderated_at as string | null) ?? null,
+        moderated_by: (authMeta.moderated_by as string | null) ?? null,
+        pending_reports: pendingReports,
         two_factor_enabled: p.two_factor_enabled ?? false,
         created_at: p.created_at ?? null,
         updated_at: p.updated_at ?? null,

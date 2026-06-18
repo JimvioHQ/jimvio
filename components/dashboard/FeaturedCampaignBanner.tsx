@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Flame, ArrowRight, Clock, Eye, DollarSign, Sparkles } from "lucide-react";
+import { ProfileImage } from "@/components/ui/profile-image";
 
 interface Participant {
   initials: string;
@@ -229,24 +230,18 @@ export function FeaturedCampaignBanner({
                   {participants.map((p, i) => (
                     <div
                       key={i}
-                      className="w-7 h-7 rounded-full border-2 border-[#1a0700] flex items-center justify-center text-[10px] font-bold text-white overflow-hidden"
+                      className="w-7 h-7 rounded-full border-2 border-[#1a0700] overflow-hidden bg-[#2a2a2a]"
                       style={{
-                        background: p.color,
                         marginLeft: i === 0 ? 0 : -8,
                         zIndex: participants.length - i,
                         position: "relative",
                       }}
                     >
-                      {p.avatarUrl ? (
-                        <img
-                          src={p.avatarUrl}
-                          alt=""
-                          className="w-full h-full object-cover"
-                          onError={(e) => { e.currentTarget.style.display = "none"; }}
-                        />
-                      ) : (
-                        p.initials
-                      )}
+                      <ProfileImage
+                        src={p.avatarUrl}
+                        alt=""
+                        className="w-full h-full"
+                      />
                     </div>
                   ))}
                   {extraCount > 0 && (

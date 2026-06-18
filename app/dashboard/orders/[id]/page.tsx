@@ -17,6 +17,8 @@ import { createClient } from "@/lib/supabase/client";
 import { OrderStatusBadge } from "@/components/orders/OrderStatusBadge";
 import { TrackingCard } from "@/components/orders/TrackingCard";
 import { toast } from "sonner";
+import { PageHeader, StatusPill } from "@/components/ui/admin";
+import { DetailCard, DetailRow } from "@/components/ui/detail-panel";
 import {
   isOrderPaymentComplete,
   orderNeedsPayment,
@@ -507,7 +509,7 @@ function QuickActions({
           className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-[var(--color-border)] hover:bg-[var(--color-surface-secondary)] text-xs font-semibold text-[var(--color-text-primary)] transition-all"
         >
           <Download className="h-4 w-4 shrink-0 text-[var(--color-text-muted)]" />
-          Download Invoice
+          Download Invoice (PDF)
         </a>
         <button
           onClick={onReorder}
@@ -614,7 +616,7 @@ export default function OrderDetailPage() {
           *,
           order_items (
             id, product_id, product_name, product_image, quantity, unit_price, total_price,
-            vendor_id, product_type, digital_download_url, download_count, access_granted_at,
+            vendor_id, product_type, variant_id, digital_download_url, download_count, access_granted_at,
             vendors ( id, business_name, business_slug, business_logo )
           )
         `)
@@ -757,10 +759,26 @@ export default function OrderDetailPage() {
     setReordering(true);
     try {
       const res = await fetch(`/api/orders/${order.id}/reorder`, { method: "POST" });
-      const data = await res.json();
+      const text = await res.text();
+      let data: { error?: string; added?: number; skipped?: Array<{ reason: string }>; cartUrl?: string };
+      try {
+        data = JSON.parse(text);
+      } catch {
+        throw new Error("Could not reorder — please try again.");
+      }
       if (!res.ok) throw new Error(data.error || "Failed to reorder");
-      toast.success("Items added to your cart.");
-      if (data.cartUrl) router.push(data.cartUrl);
+
+      const skipped = data.skipped?.length ?? 0;
+      if (skipped > 0) {
+        toast.success(`Added ${data.added ?? 0} item(s) to cart`, {
+          description: `${skipped} item(s) were unavailable.`,
+        });
+      } else {
+        toast.success("Items added to your cart", {
+          description: "Prices reflect current listings.",
+        });
+      }
+      router.push(data.cartUrl || "/cart");
     } catch (e: any) {
       toast.error(e.message);
     } finally {
@@ -890,58 +908,56 @@ export default function OrderDetailPage() {
         />
       )}
 
-      <div className="min-h-screen bg-[var(--color-bg)] pt-10 pb-20">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+      <div className="space-y-6 pb-16">
+        <PageHeader
+          eyebrow="Dashboard · Orders"
+          title={`Order #${orderRef}`}
+          subtitle={formatDate(order.created_at) ?? undefined}
+          border={false}
+          actions={
+            <div className="flex flex-wrap items-center gap-2">
+              <StatusPill status={order.status ?? "pending"} size="md" />
+              <StatusPill status={order.payment_status ?? "pending"} size="md" />
+              <Link
+                href="/dashboard/orders"
+                className="inline-flex h-9 items-center gap-2 rounded-lg px-3.5 text-[12.5px] font-medium bg-[var(--color-surface)] ring-1 ring-[var(--color-border)] text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-text-primary)]"
+              >
+                <ArrowLeft className="h-3.5 w-3.5" />
+                All orders
+              </Link>
+            </div>
+          }
+        />
 
-          {/* Breadcrumb */}
-          <nav className="flex items-center gap-1.5 text-sm text-[var(--color-text-muted)] mb-7">
-            <Link href="/dashboard/orders" className="hover:text-[var(--color-accent)] transition-colors font-medium">
-              Orders
-            </Link>
-            <ChevronRight className="h-3.5 w-3.5" />
-            <span className="text-[var(--color-text-primary)] font-semibold">#{orderRef}</span>
-          </nav>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
 
             {/* ── LEFT COLUMN ── */}
             <div className="lg:col-span-2 space-y-5">
 
-              {/* Header + stepper */}
-              <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
-                <div className="flex flex-wrap items-start justify-between gap-3 mb-5">
-                  <div>
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--color-text-muted)]">Order</span>
-                    <h1 className="text-xl font-black text-[var(--color-text-primary)] mt-0.5 tracking-tight">#{orderRef}</h1>
-                    <p className="text-xs text-[var(--color-text-muted)] mt-1">{formatDate(order.created_at)}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
+              <DetailCard title="Fulfillment" icon={Package}>
+                <div className="space-y-4 p-4">
+                  <div className="flex flex-wrap items-center gap-2">
                     {isDigital && (
-                      <span className="text-[10px] font-bold uppercase tracking-wider bg-orange-500/10 text-orange-500 px-2 py-1 rounded-md">
+                      <span className="rounded-md bg-[var(--color-accent-light)] px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--color-accent)]">
                         Digital
                       </span>
                     )}
                     <OrderStatusBadge status={fulfillmentStatus} size="md" />
                   </div>
+                  <StatusStepper status={fulfillmentStatus} isDigital={isDigital} />
+                  {needsPayment && <PaymentBanner paying={paying} onPay={handlePay} />}
+                  {isRefunded && (
+                    <RefundBanner
+                      amount={Number(refundTx?.amount ?? order.total_amount)}
+                      currency={refundTx?.currency ?? currency}
+                      when={refundTx?.created_at ?? order.updated_at}
+                    />
+                  )}
                 </div>
-                <StatusStepper status={fulfillmentStatus} isDigital={isDigital} />
-                {needsPayment && (
-                  <PaymentBanner paying={paying} onPay={handlePay} />
-                )}
-                {isRefunded && (
-                  <RefundBanner
-                    amount={Number(refundTx?.amount ?? order.total_amount)}
-                    currency={refundTx?.currency ?? currency}
-                    when={refundTx?.created_at ?? order.updated_at}
-                  />
-                )}
-              </div>
+              </DetailCard>
 
-              {/* Items */}
-              <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
-                <h2 className="text-sm font-bold text-[var(--color-text-primary)] mb-1">
-                  Items ({order.order_items?.length ?? 0})
-                </h2>
+              <DetailCard title={`Items (${order.order_items?.length ?? 0})`} icon={Package}>
+                <div className="p-4">
                 <ul className="divide-y divide-[var(--color-border)]">
                   {order.order_items?.map((item: any) => (
                     <OrderItemRow
@@ -959,14 +975,15 @@ export default function OrderDetailPage() {
                       <span className={(f as any).accent ? "text-emerald-600 font-medium" : ""}>{f.value}</span>
                     </div>
                   ))}
-                  <div className="flex justify-between font-black text-base pt-2 border-t border-[var(--color-border)]">
+                  <div className="mt-4 flex justify-between border-t border-[var(--color-border)] pt-4 text-base font-semibold">
                     <span className="text-[var(--color-text-primary)]">Total</span>
-                    <span className="text-[var(--color-accent)]">
+                    <span className="text-[var(--color-accent)] tabular-nums">
                       {formatCurrency(Number(order.total_amount), currency)}
                     </span>
                   </div>
                 </div>
-              </div>
+                </div>
+              </DetailCard>
 
               {/* Buyer notes */}
               {order.notes && (
@@ -1091,25 +1108,27 @@ export default function OrderDetailPage() {
 
               {/* Technical details */}
               {detailRows.length > 0 && (
-                <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
-                  <h2 className="text-sm font-bold text-[var(--color-text-primary)] mb-4">Order Details</h2>
-                  <div className="space-y-3">
-                    {detailRows.map(row => (
-                      <div key={row.label} className="flex items-start justify-between gap-4">
-                        <span className="text-xs text-[var(--color-text-muted)] font-medium shrink-0">{row.label}</span>
-                        <div className="flex items-center gap-1.5 min-w-0">
-                          <span className="text-xs font-mono text-[var(--color-text-primary)] truncate">{row.value}</span>
+                <DetailCard title="References" icon={Key}>
+                  <div className="px-4 py-2">
+                    {detailRows.map((row) => (
+                      <DetailRow
+                        key={row.label}
+                        label={row.label}
+                        value={row.value}
+                        mono
+                        action={
                           <button
+                            type="button"
                             onClick={() => copy(String(row.value))}
-                            className="shrink-0 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors"
+                            className="shrink-0 text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-text-primary)]"
                           >
                             <Copy className="h-3 w-3" />
                           </button>
-                        </div>
-                      </div>
+                        }
+                      />
                     ))}
                   </div>
-                </div>
+                </DetailCard>
               )}
             </div>
 
@@ -1168,7 +1187,6 @@ export default function OrderDetailPage() {
                   </p>
                 </div>
               )}
-              );
               <div className="flex items-center gap-2.5 p-3 rounded-xl bg-[var(--color-surface-secondary)] border border-[var(--color-border)]">
                 <ShieldCheck className="h-4 w-4 text-emerald-500 shrink-0" />
                 <p className="text-[11px] text-[var(--color-text-muted)]">
@@ -1178,7 +1196,6 @@ export default function OrderDetailPage() {
             </div>
           </div>
         </div>
-      </div>
     </>
   );
 }

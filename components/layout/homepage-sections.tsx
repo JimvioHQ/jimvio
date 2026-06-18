@@ -6,10 +6,11 @@ import {
   ShoppingBag, Store, DollarSign, Megaphone, Users, Package,
   ArrowRight, Check, ShieldCheck, Globe, Zap, Sparkles,
   Bot, Wand2, Search, Clapperboard, Play, Instagram, Youtube,
-  ChevronDown, Layers, TrendingUp, Wallet,
+  ChevronDown, Layers, TrendingUp, Wallet, Target, Award, BarChart3, LineChart,
 } from "lucide-react";
 import { useCurrency } from "@/context/CurrencyContext";
 import { getImage, fmtCount } from "@/lib/utils";
+import { DEFAULT_PROFILE_IMAGE, resolveProfileImage } from "@/lib/profile-image";
 import type { SharedCampaignRow } from "@/components/ugc/campaign-card-shared";
 import { WorldMap, type WorldMapPin } from "@/components/ui/world-map";
 import { TakeJimvioPhonesClient } from "@/components/layout/take-jimvio-phones-client";
@@ -40,7 +41,8 @@ const ACTIONS = [
   { icon: ShoppingBag, title: "Buy Products", desc: "Shop trending products from verified global suppliers.", cta: "Start Buying", href: "/marketplace", tint: "#fff4ed", color: ORANGE },
   { icon: Store, title: "Sell Products", desc: "Launch your store and reach buyers worldwide.", cta: "Start Selling", href: "/dashboard", tint: "#eff6ff", color: BLUE },
   { icon: DollarSign, title: "Earn Commissions", desc: "Promote products and earn on every sale.", cta: "Start Earning", href: "/ugc", tint: "#f0fdf4", color: GREEN },
-  { icon: Megaphone, title: "Join Campaigns", desc: "Create content for brands and get paid per view.", cta: "See Campaigns", href: "/ugc", tint: "#f5f3ff", color: PURPLE },
+  { icon: Megaphone, title: "Create Campaigns", desc: "Launch UGC campaigns and reach creators worldwide.", cta: "Launch Campaign", href: "/dashboard/campaigns/new", tint: "#f5f3ff", color: PURPLE },
+  { icon: Target, title: "Join Campaigns", desc: "Create content for brands and get paid per view.", cta: "Join Campaigns", href: "/ugc", tint: "#eff6ff", color: BLUE },
   { icon: Users, title: "Build Communities", desc: "Grow, connect and monetize your audience.", cta: "Start Building", href: "/communities", tint: "#fffbeb", color: YELLOW },
 ];
 
@@ -49,23 +51,23 @@ export function WhatToDoToday() {
     <section className="bg-white py-10 sm:py-14">
       <div className={shell}>
         <SectionTitle sub="Choose your path and dive into your goals.">What Do You Want To Do Today?</SectionTitle>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="grid grid-cols-3 gap-3 sm:gap-4 lg:grid-cols-6">
           {ACTIONS.map((a) => (
-            <div key={a.title} className={`flex flex-col p-5 ${cardBase}`}>
+            <div key={a.title} className={`flex h-full flex-col p-3 sm:p-5 ${cardBase}`}>
               <span
-                className="mb-4 grid size-11 place-items-center rounded-xl"
+                className="mb-3 grid size-9 place-items-center rounded-xl sm:mb-4 sm:size-11"
                 style={{ background: a.tint, color: a.color }}
               >
-                <a.icon className="size-5" strokeWidth={2.2} />
+                <a.icon className="size-4 sm:size-5" strokeWidth={2.2} />
               </span>
-              <h3 className="text-[15px] font-bold text-[#111]">{a.title}</h3>
-              <p className="mt-1.5 flex-1 text-[13px] leading-snug text-[#6b7280]">{a.desc}</p>
+              <h3 className="text-[12px] font-bold leading-tight text-[#111] sm:text-[15px]">{a.title}</h3>
+              <p className="mt-1 hidden flex-1 text-[13px] leading-snug text-[#6b7280] sm:block">{a.desc}</p>
               <Link
                 href={a.href}
-                className="mt-4 inline-flex items-center gap-1 text-[13px] font-bold transition-opacity hover:opacity-80"
+                className="mt-2 inline-flex items-center gap-0.5 text-[11px] font-bold transition-opacity hover:opacity-80 sm:mt-4 sm:gap-1 sm:text-[13px]"
                 style={{ color: a.color }}
               >
-                {a.cta} <ArrowRight className="size-3.5" />
+                {a.cta} <ArrowRight className="size-3 sm:size-3.5" />
               </Link>
             </div>
           ))}
@@ -148,15 +150,17 @@ const OVERVIEW = [
   { icon: ShoppingBag, title: "Buy Products", desc: "Verified suppliers & secure checkout", color: ORANGE },
   { icon: Store, title: "Sell Products", desc: "Open your store in minutes", color: BLUE },
   { icon: DollarSign, title: "Earn Commissions", desc: "Up to 30% per sale", color: GREEN },
-  { icon: Megaphone, title: "Join Campaigns", desc: "Get paid per view", color: PURPLE },
+  { icon: Megaphone, title: "Create Campaigns", desc: "Launch and manage UGC", color: PURPLE },
+  { icon: Target, title: "Join Campaigns", desc: "Get paid per view", color: BLUE },
   { icon: Users, title: "Build Communities", desc: "Monetize your audience", color: YELLOW },
 ];
 
 export function PlatformOverviewBar() {
   return (
-    <section className="bg-white py-8">
+    <section className="bg-white py-8 sm:py-10">
       <div className={shell}>
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+        <SectionTitle>Everything You Need In One Platform</SectionTitle>
+        <div className="grid grid-cols-2 gap-x-4 gap-y-5 sm:grid-cols-2 lg:grid-cols-3">
           {OVERVIEW.map((o) => (
             <div key={o.title} className="flex items-start gap-3">
               <span
@@ -165,7 +169,7 @@ export function PlatformOverviewBar() {
               >
                 <o.icon className="size-4" strokeWidth={2.2} />
               </span>
-              <div>
+              <div className="min-w-0">
                 <div className="text-[13px] font-bold text-[#111]">{o.title}</div>
                 <div className="text-[11px] leading-snug text-[#9ca3af]">{o.desc}</div>
               </div>
@@ -180,73 +184,125 @@ export function PlatformOverviewBar() {
 /* ═══ 4. Choose your journey ═══ */
 const JOURNEYS = [
   {
-    title: "I'm a Buyer",
-    photo: "https://images.unsplash.com/photo-1483985988350-763728e1935b?w=400&h=280&fit=crop",
-    items: ["Shop verified products", "Track every order", "Buyer protection"],
+    role: "Buyer",
+    icon: ShoppingBag,
+    tint: "#fff4ed",
+    color: ORANGE,
+    image: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=240&h=320&fit=crop&crop=faces",
+    items: ["Verified sellers", "Order tracking", "Buyer protection"],
     cta: "Start as Buyer",
     href: "/marketplace",
-    color: ORANGE,
   },
   {
-    title: "I'm a Seller",
-    photo: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400&h=280&fit=crop",
-    items: ["Open your store", "Reach global buyers", "Powerful seller tools"],
+    role: "Seller",
+    icon: Store,
+    tint: "#eff6ff",
+    color: BLUE,
+    image: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=240&h=320&fit=crop&crop=faces",
+    items: ["Your own store", "Order management", "Fast payouts"],
     cta: "Start as Seller",
     href: "/dashboard",
-    color: GREEN,
   },
   {
-    title: "I'm an Affiliate",
-    photo: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&h=280&fit=crop",
-    items: ["Promote & earn", "High commissions", "Instant payouts"],
+    role: "Affiliate",
+    icon: DollarSign,
+    tint: "#f0fdf4",
+    color: GREEN,
+    image: "https://images.unsplash.com/photo-1519088936005-989ecc21b58d?w=240&h=320&fit=crop&crop=faces",
+    items: ["Unique referral links", "Up to 30% commission", "Wallet payouts"],
     cta: "Start as Affiliate",
     href: "/ugc",
-    color: YELLOW,
   },
   {
-    title: "I'm a Creator",
-    photo: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=400&h=280&fit=crop",
-    items: ["Get paid per view", "Brand campaigns", "Grow your audience"],
+    role: "Brand",
+    icon: Award,
+    tint: "#eff6ff",
+    color: BLUE,
+    image: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=240&h=320&fit=crop&crop=faces",
+    items: ["Launch UGC campaigns", "Creator partnerships", "Performance tracking"],
+    cta: "Start as Brand",
+    href: "/dashboard/campaigns/new",
+  },
+  {
+    role: "Creator",
+    icon: Clapperboard,
+    tint: "#f5f3ff",
+    color: PURPLE,
+    image: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=240&h=320&fit=crop&crop=faces",
+    items: ["Paid UGC campaigns", "Per-view earnings", "Creator dashboard"],
     cta: "Start as Creator",
     href: "/ugc",
-    color: PURPLE,
   },
   {
-    title: "I'm a Community Owner",
-    photo: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=400&h=280&fit=crop",
-    items: ["Build your space", "Monetize members", "Host live events"],
-    cta: "Start Community",
+    role: "Community Owner",
+    icon: Users,
+    tint: "#fffbeb",
+    color: YELLOW,
+    image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=240&h=320&fit=crop&crop=faces",
+    items: ["Public or private groups", "Member subscriptions", "Live sessions"],
+    cta: "Start as Owner",
     href: "/communities",
-    color: BLUE,
   },
-];
+] as const;
+
+function JourneyCta({ href, label, color }: { href: string; label: string; color: string }) {
+  return (
+    <Link
+      href={href}
+      className="flex h-10 w-full items-center justify-center gap-1 rounded-xl text-[12px] font-bold text-white transition-opacity hover:opacity-90"
+      style={{ background: color }}
+    >
+      {label} <ArrowRight className="size-3.5" />
+    </Link>
+  );
+}
 
 export function ChooseYourJourney() {
   return (
-    <section className="bg-[#fafafa] py-12 sm:py-16">
+    <section className="border-t border-[#f0f0f0] bg-white py-10 sm:py-14">
       <div className={shell}>
-        <SectionTitle sub="Whoever you are, there's a place for you on Jimvio.">Choose Your Journey</SectionTitle>
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-5">
+        <SectionTitle sub="Same platform — different ways to earn, sell, or shop.">
+          Choose Your Journey
+        </SectionTitle>
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
           {JOURNEYS.map((j) => (
-            <div key={j.title} className={`overflow-hidden ${cardBase}`}>
-              <img src={j.photo} alt={j.title} className="h-36 w-full object-cover" />
-              <div className="flex flex-col p-4">
-                <h3 className="text-[15px] font-bold text-[#111]">{j.title}</h3>
-                <ul className="my-3 space-y-1.5">
-                  {j.items.map((it) => (
-                    <li key={it} className="flex items-center gap-2 text-[12px] text-[#4b5563]">
-                      <Check className="size-3.5 shrink-0" style={{ color: j.color }} strokeWidth={3} />
-                      {it}
-                    </li>
-                  ))}
-                </ul>
-                <Link
-                  href={j.href}
-                  className="mt-auto flex w-full items-center justify-center gap-1 rounded-xl py-2.5 text-[13px] font-bold text-white"
-                  style={{ background: j.color }}
-                >
-                  {j.cta}
-                </Link>
+            <div
+              key={j.role}
+              className={`flex h-full min-h-[280px] flex-col overflow-hidden ${cardBase}`}
+            >
+              <div className="flex flex-1 gap-2 p-3 sm:gap-3 sm:p-4">
+                <div className="flex min-w-0 flex-1 flex-col">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[#9ca3af]">
+                    I&apos;m a
+                  </p>
+                  <h3 className="mt-0.5 text-[14px] font-bold leading-tight text-[#111] sm:text-[16px]">
+                    {j.role}
+                  </h3>
+                  <ul className="mt-2.5 space-y-1.5 sm:mt-3 sm:space-y-2">
+                    {j.items.map((it) => (
+                      <li key={it} className="flex items-start gap-1.5 text-[10px] leading-snug text-[#4b5563] sm:gap-2 sm:text-[12px]">
+                        <Check
+                          className="mt-0.5 size-3 shrink-0 sm:size-3.5"
+                          style={{ color: j.color }}
+                          strokeWidth={2.5}
+                        />
+                        {it}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="flex w-[72px] shrink-0 items-end justify-center sm:w-[88px]">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={j.image}
+                    alt=""
+                    className="max-h-[108px] w-full object-contain object-bottom sm:max-h-[128px]"
+                    loading="lazy"
+                  />
+                </div>
+              </div>
+              <div className="px-3 pb-3 sm:px-4 sm:pb-4">
+                <JourneyCta href={j.href} label={j.cta} color={j.color} />
               </div>
             </div>
           ))}
@@ -260,7 +316,7 @@ export function ChooseYourJourney() {
 const STEPS = [
   { n: 1, title: "Discover", desc: "Find products, campaigns and opportunities you love.", color: ORANGE },
   { n: 2, title: "Promote & Earn", desc: "Share or sell and get paid instantly.", color: GREEN },
-  { n: 3, title: "Scale", desc: "Build your income and build your brand.", color: PURPLE },
+  { n: 3, title: "Scale", desc: "Build your income and build your brand.", color: BLUE },
 ];
 
 export function HowJimvioWorks() {
@@ -461,7 +517,7 @@ export function FeaturedCommunities({ communities = [] }: { communities: Communi
         <div className="mb-6 flex items-center justify-between">
           <h2 className="text-[22px] font-black text-[#111] sm:text-[26px]">Featured Communities</h2>
           <Link href="/communities" className="text-[13px] font-bold" style={{ color: ORANGE }}>
-            Explore Communities →
+            Explore All <ArrowRight className="inline size-3" />
           </Link>
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -503,10 +559,12 @@ export function FeaturedCommunities({ communities = [] }: { communities: Communi
 
 /* ═══ 9. One platform opportunities ═══ */
 const OPPS = [
-  { title: "Marketplace", color: ORANGE, items: ["Verified suppliers", "Global shipping", "Secure payments"] },
-  { title: "Affiliate Program", color: GREEN, items: ["Up to 30% commission", "Real-time analytics", "Instant payouts"] },
-  { title: "UGC Campaigns", color: PURPLE, items: ["Paid per view", "Brand partnerships", "Content rewards"] },
-  { title: "Communities", color: BLUE, items: ["Free & paid tiers", "Live rooms", "Courses & events"] },
+  { title: "Marketplace", color: ORANGE, items: ["Verified suppliers", "Global shipping", "Secure payments"], href: "/marketplace", cta: "Explore" },
+  { title: "Affiliate Program", color: GREEN, items: ["Up to 30% commission", "Real-time analytics", "Instant payouts"], href: "/ugc", cta: "Learn More" },
+  { title: "Vendor Center", color: BLUE, items: ["Open your store", "Manage products", "Track orders"], href: "/dashboard", cta: "Open Store" },
+  { title: "Brand Growth", color: PURPLE, items: ["Launch campaigns", "Creator network", "Performance insights"], href: "/dashboard/campaigns/new", cta: "Grow Brand" },
+  { title: "UGC Campaigns", color: PURPLE, items: ["Paid per view", "Brand partnerships", "Content rewards"], href: "/ugc", cta: "View Campaigns" },
+  { title: "Communities", color: BLUE, items: ["Free & paid tiers", "Live rooms", "Courses & events"], href: "/communities", cta: "Join Now" },
 ];
 
 export function OnePlatformOpportunities() {
@@ -514,18 +572,25 @@ export function OnePlatformOpportunities() {
     <section className="bg-white py-12 sm:py-16">
       <div className={shell}>
         <SectionTitle>One Platform. Endless Opportunities.</SectionTitle>
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-3">
           {OPPS.map((o) => (
-            <div key={o.title} className="px-2">
-              <h3 className="mb-3 text-[15px] font-bold text-[#111]">{o.title}</h3>
-              <ul className="space-y-2">
+            <div key={o.title} className="flex h-full flex-col px-1 sm:px-2">
+              <h3 className="mb-2 text-[14px] font-bold text-[#111] sm:mb-3 sm:text-[15px]">{o.title}</h3>
+              <ul className="flex-1 space-y-1.5 sm:space-y-2">
                 {o.items.map((it) => (
-                  <li key={it} className="flex items-center gap-2 text-[13px] text-[#4b5563]">
-                    <Check className="size-4 shrink-0" style={{ color: GREEN }} strokeWidth={3} />
+                  <li key={it} className="flex items-center gap-2 text-[11px] text-[#4b5563] sm:text-[13px]">
+                    <Check className="size-3.5 shrink-0 sm:size-4" style={{ color: GREEN }} strokeWidth={3} />
                     {it}
                   </li>
                 ))}
               </ul>
+              <Link
+                href={o.href}
+                className="mt-3 inline-flex items-center gap-1 text-[11px] font-bold sm:mt-4 sm:text-[12px]"
+                style={{ color: o.color }}
+              >
+                {o.cta} <ArrowRight className="size-3" />
+              </Link>
             </div>
           ))}
         </div>
@@ -538,8 +603,10 @@ export function OnePlatformOpportunities() {
 const AI_TOOLS = [
   { icon: Search, title: "AI Product Finder", desc: "Discover winning products before they trend.", href: "/marketplace" },
   { icon: Wand2, title: "AI Content Generator", desc: "Create posts, captions and scripts instantly.", href: "/ugc" },
-  { icon: TrendingUp, title: "AI Product Research", desc: "Analyze demand, pricing and competition.", href: "/marketplace" },
-  { icon: Bot, title: "AI Campaign Assistant", desc: "Match with the best brand campaigns for you.", href: "/ugc" },
+  { icon: Bot, title: "AI Campaign Builder", desc: "Build high-converting campaigns in minutes.", href: "/dashboard/campaigns/new" },
+  { icon: Users, title: "AI Creator Matching", desc: "Match with the right creators for your brand.", href: "/ugc" },
+  { icon: LineChart, title: "AI Performance Analytics", desc: "Analyze demand, pricing and competition.", href: "/dashboard" },
+  { icon: Store, title: "AI Vendor Assistant", desc: "Optimize listings, pricing and inventory.", href: "/dashboard" },
 ];
 
 export function GrowthStack() {
@@ -547,15 +614,15 @@ export function GrowthStack() {
     <section className="bg-[#fafafa] py-12 sm:py-16">
       <div className={shell}>
         <SectionTitle>AI Powered Growth Tools</SectionTitle>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
           {AI_TOOLS.map((t) => (
-            <div key={t.title} className={`p-5 ${cardBase}`}>
-              <span className="mb-3 grid size-10 place-items-center rounded-xl bg-[#f5f3ff] text-[#7c3aed]">
-                <t.icon className="size-5" />
+            <div key={t.title} className={`flex h-full flex-col p-4 sm:p-5 ${cardBase}`}>
+              <span className="mb-3 grid size-9 place-items-center rounded-xl bg-[#f5f3ff] text-[#7c3aed] sm:size-10">
+                <t.icon className="size-4 sm:size-5" />
               </span>
-              <h3 className="text-[14px] font-bold text-[#111]">{t.title}</h3>
-              <p className="mt-1 text-[12px] leading-relaxed text-[#6b7280]">{t.desc}</p>
-              <Link href={t.href} className="mt-3 inline-flex items-center gap-1 text-[12px] font-bold text-[#7c3aed]">
+              <h3 className="text-[12px] font-bold text-[#111] sm:text-[14px]">{t.title}</h3>
+              <p className="mt-1 flex-1 text-[11px] leading-relaxed text-[#6b7280] sm:text-[12px]">{t.desc}</p>
+              <Link href={t.href} className="mt-3 inline-flex items-center gap-1 text-[11px] font-bold text-[#7c3aed] sm:text-[12px]">
                 Try Now <ArrowRight className="size-3" />
               </Link>
             </div>
@@ -572,6 +639,8 @@ const WHY = [
   { icon: Wallet, title: "Fast Payouts", desc: "Get your earnings quickly with instant transfers." },
   { icon: Globe, title: "Global Reach", desc: "Buy, sell and earn across 50+ countries." },
   { icon: Sparkles, title: "All-in-one Platform", desc: "Marketplace, affiliate, UGC and communities in one place." },
+  { icon: Clapperboard, title: "Creator Marketplace", desc: "Connect with creators ready to promote your brand." },
+  { icon: TrendingUp, title: "Brand Growth Network", desc: "Scale campaigns with data-driven creator partnerships." },
 ];
 
 export function WhyChooseJimvio() {
@@ -579,15 +648,15 @@ export function WhyChooseJimvio() {
     <section className="bg-white py-12 sm:py-16">
       <div className={shell}>
         <SectionTitle>Why People Choose Jimvio</SectionTitle>
-        <div className="mx-auto grid max-w-3xl grid-cols-1 gap-6 sm:grid-cols-2">
+        <div className="grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-3">
           {WHY.map((w) => (
             <div key={w.title} className="flex items-start gap-3">
-              <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-[#fff4ed]" style={{ color: ORANGE }}>
-                <w.icon className="size-5" />
+              <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-[#fff4ed] sm:size-10" style={{ color: ORANGE }}>
+                <w.icon className="size-4 sm:size-5" />
               </span>
-              <div>
-                <h3 className="text-[14px] font-bold text-[#111]">{w.title}</h3>
-                <p className="mt-0.5 text-[12px] text-[#6b7280]">{w.desc}</p>
+              <div className="min-w-0">
+                <h3 className="text-[12px] font-bold text-[#111] sm:text-[14px]">{w.title}</h3>
+                <p className="mt-0.5 text-[11px] text-[#6b7280] sm:text-[12px]">{w.desc}</p>
               </div>
             </div>
           ))}
@@ -725,18 +794,19 @@ type TopCreatorRow = {
 };
 
 const DEMO_CREATORS: TopCreatorRow[] = [
-  { id: "demo-1", display_name: "Amara K.", profile_image: AVATARS[0], role: "UGC Creator", earnings: 4820 },
-  { id: "demo-2", display_name: "David O.", profile_image: AVATARS[1], role: "Affiliate", earnings: 3150 },
-  { id: "demo-3", display_name: "Lina M.", profile_image: AVATARS[2], role: "Seller", earnings: 6240 },
+  { id: "demo-1", display_name: "Sarah M.", role: "Affiliate Marketer", earnings: 1240 },
+  { id: "demo-2", display_name: "David O.", role: "UGC Creator", earnings: 980 },
+  { id: "demo-3", display_name: "Lina K.", role: "Seller", earnings: 2150 },
 ];
 
 function normalizeCreator(c: TopCreatorRow, index: number) {
   return {
     id: c.id,
     name: c.display_name ?? c.full_name ?? "Creator",
-    image: c.profile_image ?? c.avatar_url ?? AVATARS[index % AVATARS.length],
+    image: resolveProfileImage(c.profile_image ?? c.avatar_url),
     role: c.role ?? "Creator",
     earnings: Number(c.earnings ?? c.total_earnings ?? 0),
+    rank: index + 1,
   };
 }
 
@@ -771,11 +841,21 @@ export function TopCreatorsEarnings({ creators = [] }: { creators: TopCreatorRow
       <div className={shell}>
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <div className={`p-6 ${cardBase}`}>
-            <h3 className="text-[18px] font-black text-[#111]">Top Creators This Month</h3>
-            <div className="mt-5 space-y-4">
+            <div className="mb-5 flex items-center justify-between gap-3">
+              <h3 className="text-[18px] font-black text-[#111]">Top Creators This Month</h3>
+              <Link href="/creators" className="shrink-0 text-[12px] font-bold" style={{ color: ORANGE }}>
+                View Leaderboard <ArrowRight className="inline size-3" />
+              </Link>
+            </div>
+            <div className="space-y-3">
               {list.slice(0, 3).map((c, i) => (
                 <div key={c.id} className={`flex items-center gap-3 rounded-xl p-3 ${i === 0 ? "bg-[#fafafa]" : ""}`}>
-                  <img src={c.image} alt={c.name} className="size-11 rounded-full object-cover" />
+                  <img
+                    src={c.image}
+                    alt={c.name}
+                    className="size-11 shrink-0 rounded-full object-cover"
+                    onError={(e) => { e.currentTarget.src = DEFAULT_PROFILE_IMAGE; }}
+                  />
                   <div className="min-w-0 flex-1">
                     <div className="text-[14px] font-bold text-[#111]">{c.name}</div>
                     <div className="text-[11px] text-[#9ca3af]">{c.role}</div>
@@ -786,6 +866,12 @@ export function TopCreatorsEarnings({ creators = [] }: { creators: TopCreatorRow
                     </div>
                     <div className="text-[10px] text-[#9ca3af]">this month</div>
                   </div>
+                  <span
+                    className="grid size-7 shrink-0 place-items-center rounded-full text-[11px] font-black text-white"
+                    style={{ background: i === 0 ? ORANGE : i === 1 ? BLUE : GREEN }}
+                  >
+                    {c.rank}
+                  </span>
                 </div>
               ))}
             </div>
@@ -835,7 +921,7 @@ export function TopCreatorsEarnings({ creators = [] }: { creators: TopCreatorRow
 }
 
 /* ═══ 14. First 30 minutes ═══ */
-const ONBOARD = [
+const ONBOARD_CREATORS = [
   { title: "Create Account", desc: "Sign up free in under a minute." },
   { title: "Choose Path", desc: "Pick buyer, seller, creator or community." },
   { title: "Complete Profile", desc: "Set up your store or creator profile." },
@@ -843,27 +929,63 @@ const ONBOARD = [
   { title: "Scale Business", desc: "Grow income and build your brand." },
 ];
 
+const ONBOARD_BRANDS = [
+  { title: "Create Account", desc: "Register your brand in minutes." },
+  { title: "Set Campaign Goals", desc: "Define budget, audience and deliverables." },
+  { title: "Launch Campaign", desc: "Publish your first UGC mission." },
+  { title: "Review Submissions", desc: "Approve content and track performance." },
+  { title: "Scale Growth", desc: "Expand campaigns and grow your reach." },
+];
+
 export function First30Minutes() {
+  const [tab, setTab] = useState<"creators" | "brands">("creators");
+  const steps = tab === "creators" ? ONBOARD_CREATORS : ONBOARD_BRANDS;
+
   return (
     <section className="bg-[#fafafa] py-12 sm:py-16">
       <div className={shell}>
         <SectionTitle>Your First 30 Minutes On Jimvio</SectionTitle>
-        <div className="relative">
-          <div className="pointer-events-none absolute left-[8%] right-[8%] top-5 hidden h-px border-t-2 border-dashed border-[#e5e7eb] lg:block" />
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-5">
-            {ONBOARD.map((s, i) => (
-              <div key={s.title} className="relative flex flex-col items-center text-center">
-                <span
-                  className="relative z-10 mb-3 grid size-10 place-items-center rounded-full text-sm font-black text-white"
-                  style={{ background: ORANGE }}
-                >
-                  {i + 1}
-                </span>
-                <h3 className="text-[13px] font-bold text-[#111]">{s.title}</h3>
-                <p className="mt-1 text-[11px] leading-relaxed text-[#6b7280]">{s.desc}</p>
+
+        <div className="mx-auto mb-8 flex max-w-md rounded-xl border border-[#ececec] bg-white p-1">
+          <button
+            type="button"
+            onClick={() => setTab("creators")}
+            className="flex-1 rounded-lg px-4 py-2.5 text-[13px] font-bold transition-colors"
+            style={{
+              background: tab === "creators" ? BLUE : "transparent",
+              color: tab === "creators" ? "#fff" : "#4b5563",
+            }}
+          >
+            For Creators
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab("brands")}
+            className="flex-1 rounded-lg px-4 py-2.5 text-[13px] font-bold transition-colors"
+            style={{
+              background: tab === "brands" ? BLUE : "transparent",
+              color: tab === "brands" ? "#fff" : "#4b5563",
+            }}
+          >
+            For Brands
+          </button>
+        </div>
+
+        <div className="mx-auto max-w-2xl space-y-4">
+          {steps.map((s, i) => (
+            <div key={s.title} className="flex gap-4">
+              <span
+                className="grid size-10 shrink-0 place-items-center rounded-full text-sm font-black text-white"
+                style={{ background: ORANGE }}
+              >
+                {i + 1}
+              </span>
+              <div className="pt-1">
+                <h3 className="text-[14px] font-bold text-[#111]">{s.title}</h3>
+                <p className="mt-0.5 text-[12px] leading-relaxed text-[#6b7280]">{s.desc}</p>
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </div>
       </div>
     </section>

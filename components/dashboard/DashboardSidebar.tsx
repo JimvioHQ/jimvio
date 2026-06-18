@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import {
-  Search, TrendingUp, Flame, ShoppingBag, Play, PenLine, ArrowRight,
+  Search, TrendingUp, ShoppingBag, Play, PenLine,
   ShoppingCart, CheckCircle, ArrowDownCircle, UserPlus, Zap,
-  Megaphone, Users, Activity, Sparkles, Clock, ChevronRight, Bell, History,
+  Megaphone, Users, Activity, Sparkles, Clock, Bell, History,
+  ChevronRight,
 } from "lucide-react";
 import type { ActivityItem } from "@/types/dashboard";
-import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
+import { ProfileImage } from "@/components/ui/profile-image";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -25,7 +26,7 @@ export interface RecommendedCreator {
   initials: string;
   name: string;
   badge: string;
-  color: string;
+  badgeCls: string;
   avatarUrl?: string | null;
   username?: string | null;
   href?: string;
@@ -58,7 +59,20 @@ const ICON_COLORS: Record<string, string> = {
   "#f0f4ff": "#3b82f6",
 };
 
-// ─── Reusable section header ──────────────────────────────────────────────────
+// ─── Reusable panel + section header (admin-style) ───────────────────────────
+
+const PANEL_CLASS =
+  "rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden";
+
+function SidebarPanel({
+  children,
+  className = "",
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return <div className={`${PANEL_CLASS} ${className}`}>{children}</div>;
+}
 
 function SectionHeader({
   icon: Icon,
@@ -72,30 +86,38 @@ function SectionHeader({
   href?: string;
 }) {
   return (
-    <div className="flex items-center justify-between mb-3">
-      <div className="flex items-center gap-2">
-        <div className="w-6 h-6 rounded-md bg-[#fd5000]/10 flex items-center justify-center">
-          <Icon className="w-3 h-3 text-[#fd5000]" />
-        </div>
-        <span className="text-[11px] font-bold uppercase tracking-wider text-text-primary">
+    <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-border)] bg-[var(--color-surface-secondary)]/40">
+      <div className="flex items-center gap-2 min-w-0">
+        <Icon className="w-3.5 h-3.5 text-[var(--color-text-muted)] shrink-0" />
+        <span className="text-[12px] font-semibold text-[var(--color-text-primary)] truncate">
           {title}
         </span>
         {count !== undefined && count > 0 && (
-          <span className="text-[10px] font-semibold text-text-muted bg-surface-secondary px-1.5 py-0.5 rounded-full">
-            {count}
+          <span className="text-[10px] font-medium text-[var(--color-text-muted)] tabular-nums">
+            ({count})
           </span>
         )}
       </div>
       {href && (
         <Link
           href={href}
-          className="text-[11px] text-[#fd5000] font-medium hover:underline flex items-center gap-0.5 group/link"
+          className="text-[11px] text-[var(--color-text-muted)] hover:text-[var(--color-accent)] font-medium flex items-center gap-0.5 shrink-0 transition-colors"
         >
           See all
-          <ChevronRight className="w-3 h-3 transition-transform group-hover/link:translate-x-0.5" />
+          <ChevronRight className="w-3 h-3" />
         </Link>
       )}
     </div>
+  );
+}
+
+function ListBadge({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  return (
+    <span
+      className={`text-[10px] font-medium px-1.5 py-0.5 rounded-sm ring-1 ring-inset flex-shrink-0 whitespace-nowrap ${className}`}
+    >
+      {children}
+    </span>
   );
 }
 
@@ -103,6 +125,7 @@ function SectionHeader({
 
 interface Props {
   activityItems: ActivityItem[];
+  unreadNotifications?: number;
   trendingCampaigns?: TrendingCampaignItem[];
   recommendedCreators?: RecommendedCreator[];
   recentSearches?: RecentSearchItem[];
@@ -110,6 +133,7 @@ interface Props {
 
 export function DashboardSidebar({
   activityItems,
+  unreadNotifications = 0,
   trendingCampaigns,
   recommendedCreators,
   recentSearches,
@@ -119,9 +143,9 @@ export function DashboardSidebar({
   const searches = recentSearches ?? [];
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3">
       {/* ── Trending Campaigns ── */}
-      <div className="bg-surface border border-border rounded-2xl p-4 hover:border-border-hover transition-colors duration-200">
+      <SidebarPanel>
         <SectionHeader
           icon={Megaphone}
           title="Trending campaigns"
@@ -130,21 +154,19 @@ export function DashboardSidebar({
         />
 
         {campaigns.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-6">
-            <div className="w-10 h-10 rounded-full bg-surface-secondary flex items-center justify-center mb-2">
-              <Megaphone className="w-4 h-4 text-text-muted" />
-            </div>
-            <p className="text-[11px] text-text-muted">No active campaigns</p>
+          <div className="flex flex-col items-center justify-center py-8 px-4">
+            <Megaphone className="w-4 h-4 text-[var(--color-text-muted)] mb-2" />
+            <p className="text-[11px] text-[var(--color-text-muted)]">No active campaigns</p>
           </div>
         ) : (
-          <div className="flex flex-col gap-1">
+          <div className="divide-y divide-[var(--color-border)]">
             {campaigns.map((c, i) => (
               <Link
                 key={i}
                 href={c.href ?? "/ugc"}
-                className="flex items-center gap-2.5 group p-1.5 -mx-1.5 rounded-lg hover:bg-surface-secondary transition-all duration-200"
+                className="flex items-center gap-3 px-4 py-2.5 hover:bg-[var(--color-surface-secondary)]/60 transition-colors"
               >
-                <div className="relative w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 ring-2 ring-border group-hover:ring-[#fd5000]/30 transition-all duration-200">
+                <div className="w-9 h-9 rounded-md overflow-hidden flex-shrink-0 border border-[var(--color-border)] bg-[var(--color-surface-secondary)]">
                   {c.imageUrl ? (
                     <img
                       src={c.imageUrl}
@@ -155,37 +177,28 @@ export function DashboardSidebar({
                       }}
                     />
                   ) : (
-                    <div
-                      className="w-full h-full flex items-center justify-center"
-                      style={{
-                        background: `linear-gradient(135deg, hsl(${c.name.charCodeAt(0) % 360},65%,40%), hsl(${c.name.charCodeAt(0) % 360},65%,55%))`,
-                      }}
-                    >
-                      <span className="text-white text-sm font-bold">
+                    <div className="w-full h-full flex items-center justify-center">
+                      <span className="text-[11px] font-semibold text-[var(--color-text-muted)]">
                         {c.name[0]?.toUpperCase()}
                       </span>
                     </div>
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[12px] font-semibold text-text-primary truncate group-hover:text-[#fd5000] transition-colors">
+                  <p className="text-[12px] font-medium text-[var(--color-text-primary)] truncate">
                     {c.name}
                   </p>
-                  <p className="text-[11px] text-text-muted truncate">{c.earn}</p>
+                  <p className="text-[11px] text-[var(--color-text-muted)] truncate">{c.earn}</p>
                 </div>
-                <span
-                  className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0 ${c.badgeCls}`}
-                >
-                  {c.badge}
-                </span>
+                <ListBadge className={c.badgeCls}>{c.badge}</ListBadge>
               </Link>
             ))}
           </div>
         )}
-      </div>
+      </SidebarPanel>
 
       {/* ── Recommended Creators ── */}
-      <div className="bg-surface border border-border rounded-2xl p-4 hover:border-border-hover transition-colors duration-200">
+      <SidebarPanel>
         <SectionHeader
           icon={Users}
           title="Recommended creators"
@@ -194,120 +207,102 @@ export function DashboardSidebar({
         />
 
         {creators.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-6">
-            <div className="w-10 h-10 rounded-full bg-surface-secondary flex items-center justify-center mb-2">
-              <Users className="w-4 h-4 text-text-muted" />
-            </div>
-            <p className="text-[11px] text-text-muted">No recommendations yet</p>
+          <div className="flex flex-col items-center justify-center py-8 px-4">
+            <Users className="w-4 h-4 text-[var(--color-text-muted)] mb-2" />
+            <p className="text-[11px] text-[var(--color-text-muted)]">No recommendations yet</p>
           </div>
         ) : (
-          <div className="flex flex-col gap-1">
+          <div className="divide-y divide-[var(--color-border)]">
             {creators.map((c, i) => (
               <Link
                 key={i}
                 href={c.href ?? (c.username ? `/u/${c.username}` : "/creators")}
-                className="flex items-center gap-2.5 group p-1.5 -mx-1.5 rounded-lg hover:bg-surface-secondary transition-all duration-200"
+                className="flex items-center gap-3 px-4 py-2.5 hover:bg-[var(--color-surface-secondary)]/60 transition-colors"
               >
-                <Avatar className="h-10 w-10 ring-2 rounded-full ring-white dark:ring-[#111] shrink-0">
-                  <AvatarImage src={c.avatarUrl ?? undefined} />
-                  <AvatarFallback className="bg-gradient-to-br from-[#fd5000] to-orange-600 text-white text-[11px] font-bold">
-                    {c.name?.[0] + c.name?.[1]}
-                  </AvatarFallback>
-                </Avatar>
+                <ProfileImage
+                  src={c.avatarUrl}
+                  alt={c.name}
+                  className="h-9 w-9 rounded-full shrink-0 border border-[var(--color-border)] bg-[var(--color-surface-secondary)]"
+                />
                 <div className="flex-1 min-w-0">
-                  <p className="text-[12px] font-semibold text-text-primary truncate group-hover:text-[#fd5000] transition-colors">
+                  <p className="text-[12px] font-medium text-[var(--color-text-primary)] truncate">
                     {c.name}
                   </p>
                   {c.username && (
-                    <p className="text-[10px] text-text-muted truncate">@{c.username}</p>
+                    <p className="text-[10px] text-[var(--color-text-muted)] truncate">@{c.username}</p>
                   )}
                 </div>
-                <span
-                  className="text-[9px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0 whitespace-nowrap"
-                  style={{ background: `${c.color}1a`, color: c.color }}
-                >
-                  {c.badge}
-                </span>
+                <ListBadge className={c.badgeCls}>{c.badge}</ListBadge>
               </Link>
             ))}
           </div>
         )}
-      </div>
+      </SidebarPanel>
 
       {/* ── Recent Searches ── */}
       {searches.length > 0 && (
-        <div className="bg-surface border border-border rounded-2xl p-4 hover:border-border-hover transition-colors duration-200">
+        <SidebarPanel>
           <SectionHeader icon={History} title="Recent searches" />
-          <div className="flex flex-col gap-0.5">
+          <div className="divide-y divide-[var(--color-border)]">
             {searches.map((s, i) => (
               <Link
                 key={i}
                 href={`/search?q=${encodeURIComponent(s.text)}`}
-                className="flex items-center gap-2 py-2 px-2 -mx-2 rounded-lg hover:bg-surface-secondary transition-colors group"
+                className="flex items-center gap-2.5 px-4 py-2.5 hover:bg-[var(--color-surface-secondary)]/60 transition-colors"
               >
-                <Search
-                  size={12}
-                  className="text-text-muted group-hover:text-[#fd5000] transition-colors flex-shrink-0"
-                />
-                <span className="text-[12px] text-text-secondary group-hover:text-text-primary truncate transition-colors">
+                <Search size={12} className="text-[var(--color-text-muted)] flex-shrink-0" />
+                <span className="text-[12px] text-[var(--color-text-secondary)] truncate">
                   {s.text}
                 </span>
               </Link>
             ))}
           </div>
-        </div>
+        </SidebarPanel>
       )}
 
       {/* ── Quick Actions ── */}
-      <div className="bg-surface border border-border rounded-2xl p-4 hover:border-border-hover transition-colors duration-200">
+      <SidebarPanel>
         <SectionHeader icon={Sparkles} title="Quick actions" />
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-px bg-[var(--color-border)]">
           {SIDEBAR_ACTIONS.map((a, i) => {
             const Icon = a.icon;
             return (
               <Link
                 key={i}
                 href={a.href}
-                className="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-border text-[12px] font-medium text-text-secondary hover:bg-surface-secondary hover:border-[#fd5000]/30 hover:text-text-primary transition-all duration-200 group"
+                className="flex items-center gap-2 px-3 py-2.5 bg-[var(--color-surface)] text-[12px] font-medium text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-secondary)]/60 hover:text-[var(--color-text-primary)] transition-colors"
               >
-                <span
-                  className="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0 transition-all duration-200"
-                  style={{ background: `${a.color}1a`, color: a.color }}
-                >
-                  <Icon size={13} />
-                </span>
+                <Icon size={14} className="text-[var(--color-text-muted)] shrink-0" />
                 <span className="truncate">{a.label}</span>
               </Link>
             );
           })}
         </div>
-      </div>
+      </SidebarPanel>
 
       {/* ── Recent Activity ── */}
-      <div className="bg-surface border border-border rounded-2xl p-4 hover:border-border-hover transition-colors duration-200">
+      <SidebarPanel>
         <SectionHeader
           icon={Bell}
-          title="Recent Activity"
-          count={activityItems.length}
+          title="Recent activity"
+          count={unreadNotifications}
           href="/dashboard/notifications"
         />
 
         {activityItems.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-6">
-            <div className="w-10 h-10 rounded-full bg-surface-secondary flex items-center justify-center mb-2">
-              <Activity className="w-4 h-4 text-text-muted" />
-            </div>
-            <p className="text-[11px] text-text-muted">No recent activity</p>
+          <div className="flex flex-col items-center justify-center py-8 px-4">
+            <Activity className="w-4 h-4 text-[var(--color-text-muted)] mb-2" />
+            <p className="text-[11px] text-[var(--color-text-muted)]">No recent activity</p>
           </div>
         ) : (
-          <div className="flex flex-col gap-2">
+          <div className="divide-y divide-[var(--color-border)]">
             {activityItems.map((a, i) => (
               <div
                 key={i}
-                className="flex gap-2.5 items-start py-1.5 px-1.5 -mx-1.5 rounded-lg hover:bg-surface-secondary transition-colors group cursor-pointer"
+                className="flex gap-3 items-start px-4 py-2.5 hover:bg-[var(--color-surface-secondary)]/60 transition-colors cursor-pointer"
               >
                 <div
-                  className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-105"
+                  className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 border border-[var(--color-border)]"
                   style={{
                     background: a.iconBg,
                     color: ICON_COLORS[a.iconBg] ?? "#fd5000",
@@ -316,19 +311,19 @@ export function DashboardSidebar({
                   {ACTIVITY_ICONS[a.icon]}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[12px] font-semibold text-text-primary leading-snug truncate">
+                  <p className="text-[12px] font-medium text-[var(--color-text-primary)] leading-snug truncate">
                     {a.title}
                   </p>
-                  <p className="text-[11px] text-text-muted truncate">{a.sub}</p>
+                  <p className="text-[11px] text-[var(--color-text-muted)] truncate">{a.sub}</p>
                 </div>
                 <div className="flex-shrink-0 text-right">
-                  <p className="text-[10px] text-text-muted mb-0.5 inline-flex items-center gap-0.5">
+                  <p className="text-[10px] text-[var(--color-text-muted)] mb-0.5 inline-flex items-center gap-0.5">
                     <Clock size={9} />
                     {a.time}
                   </p>
                   {a.amount && (
                     <p
-                      className={`text-[12px] font-bold ${a.positive ? "text-[#30a46c]" : "text-[#e5484d]"
+                      className={`text-[12px] font-semibold tabular-nums ${a.positive ? "text-[#30a46c]" : "text-[#e5484d]"
                         }`}
                     >
                       {a.amount}
@@ -339,43 +334,7 @@ export function DashboardSidebar({
             ))}
           </div>
         )}
-      </div>
-
-      {/* ── Streak ── */}
-      <Link
-        href="/dashboard/streak"
-        className="rounded-2xl p-4 flex items-center gap-3 hover:scale-[1.01] active:scale-[0.99] transition-transform duration-200 group relative overflow-hidden"
-        style={{
-          background: "linear-gradient(135deg, #fff3ee, #ffe8de)",
-          border: "1px solid #ffd5c2",
-        }}
-      >
-        {/* Subtle decorative ring */}
-        <div
-          className="absolute -right-6 -bottom-6 w-24 h-24 rounded-full opacity-30 pointer-events-none"
-          style={{
-            background:
-              "radial-gradient(circle, rgba(253,80,0,0.2) 0%, transparent 70%)",
-          }}
-        />
-
-        <div className="w-11 h-11 rounded-xl bg-white/60 flex items-center justify-center flex-shrink-0 shadow-sm">
-          <Flame size={22} className="text-[#fd5000]" />
-        </div>
-        <div className="flex-1 min-w-0 relative">
-          <p className="text-[13px] font-bold text-[#fd5000] flex items-center gap-1">
-            Keep it up!
-            <Sparkles size={11} className="text-[#fd5000]" />
-          </p>
-          <p className="text-[11px] text-[#c94700] truncate">
-            Stay consistent to grow your streak.
-          </p>
-        </div>
-        <ArrowRight
-          size={16}
-          className="text-[#fd5000] flex-shrink-0 transition-transform group-hover:translate-x-0.5 relative"
-        />
-      </Link>
+      </SidebarPanel>
     </div>
   );
 }

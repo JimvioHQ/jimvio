@@ -123,27 +123,38 @@ export function Toggle({
     description?: string
     danger?: boolean
 }) {
-    return (
-        <label className="flex items-start gap-3 cursor-pointer select-none group">
-            <Switch
-                checked={checked}
-                onCheckedChange={onChange}
-                className={cn(
-                    "mt-0.5 shrink-0",
-                    checked && !danger && "data-[state=checked]:bg-[var(--color-accent,#fd5000)]",
-                    checked && danger && "data-[state=checked]:bg-[var(--color-danger,#e5484d)]"
-                )}
-            />
-            <div className="flex flex-col gap-0.5">
-                <span className="text-sm font-medium" style={{ color: "var(--color-text-primary)" }}>
-                    {label}
-                </span>
-                {description && (
-                    <span className="text-[11px] leading-relaxed" style={{ color: "var(--color-text-muted)" }}>
+    const switchControl = (
+        <Switch
+            checked={checked}
+            onCheckedChange={onChange}
+            className={cn(
+                danger && "data-[state=checked]:bg-[var(--color-danger,#e5484d)]",
+            )}
+        />
+    )
+
+    if (description) {
+        return (
+            <div className="flex items-center justify-between gap-4 py-1">
+                <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-[var(--color-text-primary)]">
+                        {label}
+                    </p>
+                    <p className="mt-0.5 text-[12px] leading-relaxed text-[var(--color-text-muted)]">
                         {description}
-                    </span>
-                )}
+                    </p>
+                </div>
+                {switchControl}
             </div>
+        )
+    }
+
+    return (
+        <label className="inline-flex cursor-pointer select-none items-center gap-3">
+            {switchControl}
+            <span className="text-sm font-medium text-[var(--color-text-primary)]">
+                {label}
+            </span>
         </label>
     )
 }

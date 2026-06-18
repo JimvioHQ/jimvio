@@ -261,7 +261,7 @@ function Toggle({ checked, onChange, label, danger }: { checked: boolean; onChan
       <Switch
         checked={checked}
         onCheckedChange={onChange}
-        className={cn(danger && checked && "data-[state=checked]:bg-destructive")}
+        className={cn(danger && "data-[state=checked]:bg-[var(--color-danger,#e5484d)]")}
       />
       <span className={cn("text-sm", danger ? "text-muted-foreground" : "text-foreground")}>{label}</span>
     </label>
