@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/ui/admin";
 import { Tile } from "@/components/ui/admin-tile";
 import { DashboardPage, DashboardPanel, DashboardActionLink } from "@/components/dashboard/dashboard-page";
+import Link from "next/link";
 
 /* ── tx type meta ── */
 const TX_META: Record<string, { icon: React.ElementType; label: string; color: string; bg: string; border: string }> = {

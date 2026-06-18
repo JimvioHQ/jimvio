@@ -9,6 +9,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { PageHeader } from "@/components/ui/admin";
 import { DashboardPage, DashboardPanel } from "@/components/dashboard/dashboard-page";
+import { cn } from "@/lib/utils";
 import {
     dismissNotification,
     markAllNotificationsRead,
