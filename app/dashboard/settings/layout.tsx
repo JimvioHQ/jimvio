@@ -1,11 +1,9 @@
-export default function DashboardSettingsLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+import { ReactNode } from "react";
+
+export default function DashboardSettingsLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-screen pb-24 bg-[var(--color-bg)]">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-8 sm:pt-12">{children}</div>
+    <div className="max-w-4xl mx-auto space-y-6 pb-16">
+      {children}
     </div>
   );
 }

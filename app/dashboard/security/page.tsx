@@ -3,10 +3,12 @@ import { Suspense } from "react";
 import { Loader2, Shield, Settings } from "lucide-react";
 import { check2FAStatus, getSessions } from "@/lib/actions/security";
 import { SecurityForm } from "@/components/security/security-form";
+import { AccountSettingsHeader } from "@/components/dashboard/account-settings-header";
 
 export const metadata = {
   title: "Security · Dashboard",
-  description: "Password, two-factor authentication, and active sessions for your account.",
+  description:
+    "Password, two-factor authentication, and active sessions for your account.",
 };
 
 export default async function DashboardSecurityPage() {
@@ -29,44 +31,49 @@ export default async function DashboardSecurityPage() {
   }
 
   return (
-    <div className="min-h-screen pb-24 bg-[var(--color-bg)]">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-8 sm:pt-12 space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-7 h-7 rounded-xl flex items-center justify-center bg-[var(--color-accent-light)]">
-                <Shield className="w-3.5 h-3.5 text-[var(--color-accent)]" />
-              </div>
-              <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--color-text-muted)]">
-                Account
-              </span>
-            </div>
-            <h1 className="text-2xl font-bold tracking-tight text-[var(--color-text-primary)]">
-              Security
-            </h1>
-            <p className="mt-1 text-[13px] text-[var(--color-text-muted)] max-w-xl">
-              Manage your password, authenticator app, and devices signed in to your account.
-            </p>
-          </div>
+    <div className="max-w-4xl mx-auto space-y-6 pb-16">
+      <div className="overflow-hidden rounded-2xl bg-[var(--color-surface)] ring-1 ring-[var(--color-border)]">
+        <AccountSettingsHeader
+          title="Security"
+          description="Manage your password, authenticator app, and signed-in devices."
+        />
 
+        <div className="flex items-center border-t border-[var(--color-border)]/60 px-4 py-2 sm:px-5">
           <Link
             href="/dashboard/settings"
-            className="inline-flex items-center gap-2 h-10 px-4 rounded-xl text-sm font-semibold transition-all bg-[var(--color-surface)] ring-1 ring-[var(--color-border)] hover:ring-[var(--color-border-strong)] text-[var(--color-text-primary)] shrink-0"
+            className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-[13px] font-medium text-[var(--color-text-muted)] ring-1 ring-[var(--color-border)] transition-all hover:text-[var(--color-text-primary)] hover:ring-[var(--color-border-strong)]"
           >
-            <Settings className="h-4 w-4" />
+            <Settings className="size-4" />
             Account settings
           </Link>
         </div>
+      </div>
 
-        <div className="rounded-2xl bg-[var(--color-surface)] ring-1 ring-[var(--color-border)] p-4 sm:p-6">
-          <Suspense fallback={<PageLoader />}>
-            <SecurityForm
-              initialTwoFa={initialTwoFa}
-              initialSessions={initialSessions}
-              sessionsError={sessionsError}
-            />
-          </Suspense>
+      <div className="rounded-2xl bg-[var(--color-surface)] ring-1 ring-[var(--color-border)] p-4 sm:p-6">
+        <div className="mb-6 flex items-center gap-3">
+          <div
+            className="flex size-9 items-center justify-center rounded-lg"
+            style={{ background: "var(--color-accent-light)" }}
+          >
+            <Shield className="size-4" style={{ color: "var(--color-accent)" }} />
+          </div>
+          <div>
+            <h2 className="text-base font-semibold text-[var(--color-text-primary)]">
+              Account security
+            </h2>
+            <p className="text-[12px] text-[var(--color-text-muted)]">
+              Password, two-factor authentication, and sessions
+            </p>
+          </div>
         </div>
+
+        <Suspense fallback={<PageLoader />}>
+          <SecurityForm
+            initialTwoFa={initialTwoFa}
+            initialSessions={initialSessions}
+            sessionsError={sessionsError}
+          />
+        </Suspense>
       </div>
     </div>
   );

@@ -9,13 +9,12 @@ export function FieldInput({
         <Input
             className={cn(
                 "h-11 w-full pl-10 pr-3 text-[13px] font-medium rounded-sm",
-                "bg-[var(--color-surface)]b bg-surface border border-[var(--color-border)]",
+                "bg-[var(--color-surface)] border border-[var(--color-border)]",
                 "text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)]",
-                "focus:outline-none focus:ring-2 focus:border-transparent",
+                "focus:outline-none focus:ring-1 focus:border-[var(--color-accent)] focus:ring-[var(--color-accent)]",
                 hasError
-                    ? "border-red-500/60 focus:ring-red-500/40 focus:border-red-500/60"
-                    : "focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all duration-150",
-                "transition-all duration-150",
+                    ? "border-[var(--color-danger)] focus:ring-[var(--color-danger)] focus:border-[var(--color-danger)]"
+                    : "",
                 className
             )}
             {...props}

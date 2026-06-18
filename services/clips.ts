@@ -144,7 +144,7 @@ export async function getTopCreators(limit = 6) {
 
   const { data: byEarnings } = await admin
     .from("influencers")
-    .select("id, user_id, display_name, profile_image, total_earnings, total_conversions, total_clicks, total_followers")
+    .select("id, user_id, display_name, profile_image, total_earnings, total_followers")
     .eq("is_active", true)
     .order("total_earnings", { ascending: false })
     .limit(limit);
@@ -157,23 +157,24 @@ export async function getTopCreators(limit = 6) {
       profile_image: inf.profile_image || null,
       role: "Creator",
       earnings: Number(inf.total_earnings ?? 0),
-      total_conversions: Number(inf.total_conversions ?? 0),
-      total_clicks: Number(inf.total_clicks ?? 0),
+      total_conversions: 0,
+      total_clicks: 0,
+      total_followers: Number(inf.total_followers ?? 0),
     }));
   }
 
   const { data: clipRows } = await admin
     .from("ugc_submissions")
-    .select("influencer_id, view_count, total_earnings")
+    .select("influencer_id, total_views_earned, total_earnings")
     .eq("status", "approved");
 
   if (!clipRows?.length) return [];
 
   const viewsByInfluencer = new Map<string, number>();
   const earningsByInfluencer = new Map<string, number>();
-  for (const r of clipRows as { influencer_id: string; view_count?: number; total_earnings?: number }[]) {
+  for (const r of clipRows) {
     const id = r.influencer_id;
-    viewsByInfluencer.set(id, (viewsByInfluencer.get(id) ?? 0) + Number(r.view_count ?? 0));
+    viewsByInfluencer.set(id, (viewsByInfluencer.get(id) ?? 0) + Number(r.total_views_earned ?? 0));
     earningsByInfluencer.set(id, (earningsByInfluencer.get(id) ?? 0) + Number(r.total_earnings ?? 0));
   }
 
@@ -186,7 +187,7 @@ export async function getTopCreators(limit = 6) {
 
   const { data: influencers } = await admin
     .from("influencers")
-    .select("id, user_id, display_name, profile_image, total_earnings, total_conversions, total_clicks")
+    .select("id, user_id, display_name, profile_image, total_earnings, total_followers")
     .in("id", rankedIds)
     .eq("is_active", true);
 
@@ -202,8 +203,9 @@ export async function getTopCreators(limit = 6) {
     profile_image: inf.profile_image || null,
     role: "Creator",
     earnings: Number(inf.total_earnings ?? earningsByInfluencer.get(inf.id) ?? 0),
-    total_conversions: Number(inf.total_conversions ?? 0),
-    total_clicks: Number(inf.total_clicks ?? 0),
+    total_conversions: 0,
+    total_clicks: 0,
+    total_followers: Number(inf.total_followers ?? 0),
     total_views: viewsByInfluencer.get(inf.id) ?? 0,
   }));
 }
