@@ -29,7 +29,9 @@ export default async function HomePage() {
     campaigns,
     communitiesList,
     profile,
-    stats, spotlightRes, settings
+    stats, spotlightRes, settings,
+    trendingProducts,
+    topCreators,
   ] = await Promise.all([
     getPlatformStats().catch(() => ({
       totalUsers: 0, totalVendors: 0, totalProducts: 0,
@@ -42,17 +44,34 @@ export default async function HomePage() {
     getAffiliateProgramStats(),
     getAffiliateSpotlightProducts(9),
     getResolvedPlatformSettings(),
+    getTrendingProducts(10).catch(() => []),
+    getTopCreators(6).catch(() => []),
   ]);
 
   return (
     <HomepageRedesign
       campaigns={campaigns as never}
       communities={communitiesList as never}
+      products={trendingProducts as never}
+      creators={topCreators as never}
+      platform={{
+        totalUsers: platformStats.totalUsers,
+        totalProducts: platformStats.totalProducts,
+        totalEarnings: platformStats.totalEarnings,
+        totalVendors: platformStats.totalVendors,
+        totalCommunities: platformStats.totalCommunities,
+      }}
       stats={{
-        users: `${(platformStats.totalUsers / 1000).toFixed(0)}K+`,
+        users: platformStats.totalUsers >= 1000
+          ? `${(platformStats.totalUsers / 1000).toFixed(0)}K+`
+          : platformStats.totalUsers > 0
+            ? `${platformStats.totalUsers}+`
+            : "977K+",
         earned: "$1M+",
         secure: "99.9%",
-        countries: "50+",
+        countries:
+          platformSettingsMaybe?.social_proof?.countries_display
+          ?? PLATFORM_SETTINGS_DEFAULTS.social_proof.countries_display,
       }}
     />
   );

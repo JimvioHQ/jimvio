@@ -168,8 +168,8 @@ export function HeroBannerView({ physical, digital, initialType = "physical" }: 
 
   return (
     <section
-      className="relative overflow-hidden rounded-3xl"
-      style={{ height: 340, background: theme.bg, border: "1px solid rgba(255,255,255,0.06)" }}
+      className="relative h-[210px] overflow-hidden rounded-2xl sm:h-[280px] sm:rounded-3xl lg:h-[320px]"
+      style={{ background: theme.bg, border: "1px solid rgba(255,255,255,0.06)" }}
     >
       {/* ── Ambient glow ── */}
       <div className="pointer-events-none absolute inset-0" style={{ background: theme.glow }} />
@@ -233,7 +233,7 @@ export function HeroBannerView({ physical, digital, initialType = "physical" }: 
 
       {/* ── Left content panel ── */}
       <div
-        className="absolute inset-0 flex flex-col justify-between p-5 sm:p-7"
+        className="absolute inset-0 flex flex-col justify-between p-3.5 sm:p-6 lg:p-7"
         style={{ maxWidth: "52%", zIndex: 10 }}
       >
         {/* Badge */}
@@ -295,9 +295,9 @@ export function HeroBannerView({ physical, digital, initialType = "physical" }: 
           )}
           {/* Price */}
           <div className="flex flex-wrap items-baseline gap-2">
-            <span className="text-2xl font-black" style={{ color: theme.price }}>{price} {product.currency}</span>
+            <span className="text-xl font-black sm:text-2xl" style={{ color: theme.price }}>{price}</span>
             {oldPrice && (
-              <span className="text-sm line-through" style={{ color: theme.strikeout }}>{oldPrice} {product.currency}</span>
+              <span className="text-sm line-through" style={{ color: theme.strikeout }}>{oldPrice}</span>
             )}
             {discount && (
               <span
