@@ -377,11 +377,5 @@ export default async function CheckoutSuccessPage({
     );
   }
 
-  return (
-    <div className="min-h-screen bg-[var(--color-bg)] pt-20 pb-20">
-      <div className="max-w-[560px] mx-auto px-4">
-        <CheckoutSuccessClient order={order as CheckoutSuccessOrder} />
-      </div>
-    </div>
-  );
+  return <CheckoutSuccessClient order={order as CheckoutSuccessOrder} />;
 }

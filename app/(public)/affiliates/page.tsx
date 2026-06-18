@@ -29,7 +29,7 @@ export default async function AffiliatesPage() {
     await Promise.all([
       getTopAffiliates(5),
       getAffiliateProgramStats(),
-      getAffiliateSpotlightProducts(8),
+      getAffiliateSpotlightProducts(10),
       getResolvedPlatformSettings(),
       user ? getAffiliateById(user.id) : Promise.resolve(null),
     ]);

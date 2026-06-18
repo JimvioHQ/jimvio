@@ -8,6 +8,8 @@ import {
   ShieldCheck, AlertTriangle, MessageCircle,
 } from "lucide-react";
 import { toast } from "sonner";
+import { CheckoutResultShell, CheckoutResultCard } from "@/components/checkout/checkout-result-shell";
+import { StatusPill } from "@/components/ui/admin";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -315,13 +317,8 @@ function CancelContent() {
   const primaryLabel = info.primaryCta === "retry" && orderId ? "Try again" : "Back to cart";
 
   return (
-    <div className="min-h-screen bg-[var(--color-bg)]">
-      <div className="max-w-xl mx-auto px-4 sm:px-6 py-10 sm:py-16">
-        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-md overflow-hidden">
-          {/* Accent bar */}
-          <div className="h-0.5 w-full bg-rose-500" />
-
-          <div className="p-6 sm:p-7">
+    <CheckoutResultShell>
+      <CheckoutResultCard accent="error">
             {/* Title */}
             <div className="flex items-start gap-3 mb-5">
               <div className="h-9 w-9 rounded-full bg-rose-50 dark:bg-rose-950/40 ring-1 ring-rose-200 dark:ring-rose-900 flex items-center justify-center shrink-0 mt-0.5">
@@ -331,9 +328,12 @@ function CancelContent() {
                 />
               </div>
               <div className="flex-1 min-w-0">
-                <h1 className="text-xl font-semibold text-[var(--color-text-primary)] tracking-tight leading-snug">
-                  {info.title}
-                </h1>
+                <div className="mb-2 flex flex-wrap items-center gap-2">
+                  <h1 className="text-xl font-semibold text-[var(--color-text-primary)] tracking-tight leading-snug">
+                    {info.title}
+                  </h1>
+                  <StatusPill status="failed" size="sm" />
+                </div>
                 <p className="mt-1.5 text-sm text-[var(--color-text-secondary)] leading-relaxed">
                   {info.tagline}
                 </p>
@@ -434,11 +434,9 @@ function CancelContent() {
             {info.autoRetry && orderId && (
               <RetryCountdown orderId={orderId} total={10} />
             )}
-          </div>
-        </div>
+      </CheckoutResultCard>
 
-        {/* Footer */}
-        <div className="mt-6 px-1 text-xs text-[var(--color-text-muted)] space-y-2">
+        <div className="mt-6 text-xs text-[var(--color-text-muted)] space-y-2">
           <p className="flex items-center gap-1.5">
             <MessageCircle className="h-3 w-3" />
             <Link
@@ -475,8 +473,7 @@ function CancelContent() {
             </Link>
           </p>
         </div>
-      </div>
-    </div>
+    </CheckoutResultShell>
   );
 }
 
