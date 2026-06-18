@@ -63,7 +63,7 @@ export default function HeroCommunities() {
             <div className="text-sm text-text-muted">No communities to preview</div>
           ) : (
             items.map((c, i) => (
-              <SharedCommunityCard key={c.id} c={c} rank={i + 1} showQuickActions={false} />
+              <SharedCommunityCard key={c.id} c={c} showQuickActions={false} />
             ))
           )}
         </div>

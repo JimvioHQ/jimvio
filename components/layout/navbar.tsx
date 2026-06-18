@@ -124,8 +124,8 @@ const ConsoleButton = React.forwardRef<
     "relative inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-[13px] font-medium tracking-tight transition-all duration-150 active:scale-[0.97] select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-stone-400/60",
     active
       ? [
-        "bg-black/[0.07] text-stone-900 font-semibold shadow-[inset_0_0_0_1px_rgba(0,0,0,0.09)]",
-        "dark:bg-white/[0.11] dark:text-white dark:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.10)]",
+        "bg-[var(--color-accent-light)] text-[var(--color-accent)] font-semibold",
+        "shadow-[inset_0_0_0_1px_var(--color-accent-subtle)]",
       ]
       : orange
         ? [
@@ -415,8 +415,8 @@ export function Navbar({ user, marketing }: NavbarProps) {
                       <DropdownMenu open={marketplaceOpen} onOpenChange={setMarketplaceOpen} modal={false}>
                         <DropdownMenuTrigger asChild>
                           <ConsoleButton
-                            className="px-3.5 py-2 text-[13px] dark:text-white font-semibold tracking-[0.01em] "
-                            // Also wire enter/leave on the button itself for robustness
+                            active={active}
+                            className="px-3.5 py-2 text-[13px] font-semibold tracking-[0.01em]"
                             onMouseEnter={onMarketplaceEnter}
                             onMouseLeave={onMarketplaceLeave}
                           >
@@ -483,14 +483,14 @@ export function Navbar({ user, marketing }: NavbarProps) {
                   )
                 } else {
                   return (
-                    <ConsoleButton key={item.href} href={item.href} active={active} className={
-                      cn(active ? "font-semibold text-orange-700 dark:text-orange-400" : "text-stone-600 hover:text-orange-500 dark:text-white",
-                        "px-3.5 py-2",
-                        "px-3.5 text-[13px] font-semibold tracking-[0.01em] py-2 group"
-                      )
-                    }>
-                      <Icon className={cn("h-3.5 w-3.5 shrink-0  text-[var(--color-accent)] group-hover:text-orange-600")} />
-                      <span className={active ? "text-orange-700 dark:text-orange-400" : "text-stone-600 group-hover:text-orange-500 dark:text-white"}>{item.label}</span>
+                    <ConsoleButton
+                      key={item.href}
+                      href={item.href}
+                      active={active}
+                      className="group px-3.5 py-2 text-[13px] font-semibold tracking-[0.01em]"
+                    >
+                      <Icon className="h-3.5 w-3.5 shrink-0 text-[var(--color-accent)]" />
+                      <span>{item.label}</span>
                     </ConsoleButton>
                   );
                 }

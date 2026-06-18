@@ -49,7 +49,7 @@ function SectionTitle({ children, sub }: { children: React.ReactNode; sub?: stri
 const ACTIONS = [
   { icon: ShoppingBag, title: "Buy Products", desc: "Shop trending products from verified global suppliers.", cta: "Start Buying", href: "/marketplace", color: ORANGE },
   { icon: Store, title: "Sell Products", desc: "Launch your store and reach buyers worldwide.", cta: "Start Selling", href: "/dashboard", color: BLUE },
-  { icon: DollarSign, title: "Earn Commissions", desc: "Promote products and earn on every sale.", cta: "Start Earning", href: "/ugc", color: GREEN },
+  { icon: DollarSign, title: "Earn Commissions", desc: "Promote products and earn on every sale.", cta: "Start Earning", href: "/affiliates", color: GREEN },
   { icon: Megaphone, title: "Create Campaigns", desc: "Launch UGC campaigns and reach creators worldwide.", cta: "Launch Campaign", href: "/dashboard/campaigns/new", color: PURPLE },
   { icon: Target, title: "Join Campaigns", desc: "Create content for brands and get paid per view.", cta: "Join Campaigns", href: "/ugc", color: BLUE },
   { icon: Users, title: "Build Communities", desc: "Grow, connect and monetize your audience.", cta: "Start Building", href: "/communities", color: YELLOW },
@@ -220,7 +220,7 @@ const JOURNEYS = [
     image: "https://images.unsplash.com/photo-1519088936005-989ecc21b58d?w=240&h=320&fit=crop&crop=faces",
     items: ["Unique referral links", "Up to 30% commission", "Wallet payouts"],
     cta: "Start as Affiliate",
-    href: "/ugc",
+    href: "/affiliates",
   },
   {
     role: "Brand",
@@ -569,7 +569,7 @@ export function FeaturedCommunities({ communities = [] }: { communities: Communi
 /* ═══ 9. One platform opportunities ═══ */
 const OPPS = [
   { title: "Marketplace", color: ORANGE, items: ["Verified suppliers", "Global shipping", "Secure payments"], href: "/marketplace", cta: "Explore" },
-  { title: "Affiliate Program", color: GREEN, items: ["Up to 30% commission", "Real-time analytics", "Instant payouts"], href: "/ugc", cta: "Learn More" },
+  { title: "Affiliate Program", color: GREEN, items: ["Up to 30% commission", "Real-time analytics", "Instant payouts"], href: "/affiliates", cta: "Learn More" },
   { title: "Vendor Center", color: BLUE, items: ["Open your store", "Manage products", "Track orders"], href: "/dashboard", cta: "Open Store" },
   { title: "Brand Growth", color: PURPLE, items: ["Launch campaigns", "Creator network", "Performance insights"], href: "/dashboard/campaigns/new", cta: "Grow Brand" },
   { title: "UGC Campaigns", color: PURPLE, items: ["Paid per view", "Brand partnerships", "Content rewards"], href: "/ugc", cta: "View Campaigns" },
