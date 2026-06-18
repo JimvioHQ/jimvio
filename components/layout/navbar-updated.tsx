@@ -117,8 +117,9 @@ const IconBtn = React.forwardRef<any, {
 }>(({ children, href, onClick, badge, className, style, ...props }, ref) => {
     const cls = cn(
         "relative flex items-center justify-center h-9 w-9 shrink-0 rounded-xl",
-        "text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-white/8",
-        "hover:text-stone-800 dark:hover:text-white transition-all duration-150 active:scale-[0.94]",
+        "text-stone-500 hover:bg-black/[0.06] hover:text-stone-800",
+        "dark:text-stone-400 dark:hover:bg-white/[0.08] dark:hover:text-stone-100",
+        "transition-all duration-150 active:scale-[0.94]",
         className
     );
     const inner = (

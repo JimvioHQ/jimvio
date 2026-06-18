@@ -31,6 +31,7 @@ type Theme = {
   discountCircle: string;
   circleGlow: string;
   imageFade: string;
+  mobileOverlay: string;
 };
 
 const THEMES: Record<"physical" | "digital", Theme> = {
@@ -52,6 +53,8 @@ const THEMES: Record<"physical" | "digital", Theme> = {
     discountCircle: "linear-gradient(135deg, var(--color-accent) 0%, #ff8c00 100%)",
     circleGlow: "0 6px 28px rgba(253,80,0,0.55)",
     imageFade: "linear-gradient(to right, #0d0500 0%, rgba(13,5,0,0.70) 15%, rgba(13,5,0,0.20) 35%, transparent 55%)",
+    mobileOverlay:
+      "linear-gradient(to right, rgba(13,5,0,0.92) 0%, rgba(13,5,0,0.78) 38%, rgba(13,5,0,0.45) 62%, rgba(13,5,0,0.18) 100%)",
   },
   digital: {
     badge: "linear-gradient(90deg, #7c3aed, #a855f7)",
@@ -71,6 +74,8 @@ const THEMES: Record<"physical" | "digital", Theme> = {
     discountCircle: "linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)",
     circleGlow: "0 6px 28px rgba(139,92,246,0.55)",
     imageFade: "linear-gradient(to right, #050010 0%, rgba(5,0,16,0.70) 15%, rgba(5,0,16,0.20) 35%, transparent 55%)",
+    mobileOverlay:
+      "linear-gradient(to right, rgba(5,0,16,0.92) 0%, rgba(5,0,16,0.78) 38%, rgba(5,0,16,0.45) 62%, rgba(5,0,16,0.18) 100%)",
   },
 };
 
@@ -171,10 +176,25 @@ export function HeroBannerView({ physical, digital, initialType = "physical" }: 
       className="relative h-[210px] overflow-hidden rounded-2xl sm:h-[280px] sm:rounded-3xl lg:h-[320px]"
       style={{ background: theme.bg, border: "1px solid rgba(255,255,255,0.06)" }}
     >
-      {/* ── Ambient glow ── */}
-      <div className="pointer-events-none absolute inset-0" style={{ background: theme.glow }} />
+      {/* ── Mobile: full-bleed product image as background ── */}
+      {image ? (
+        <img
+          key={`${typeKey}-${activeIdx}-mobile`}
+          src={image}
+          alt=""
+          aria-hidden
+          className="absolute inset-0 h-full w-full object-cover object-center sm:hidden"
+        />
+      ) : null}
+      <div
+        className="pointer-events-none absolute inset-0 sm:hidden"
+        style={{ background: theme.mobileOverlay }}
+      />
 
-      <div className="absolute top-0 right-0 bottom-0" style={{ width: "52%", zIndex: 1 }}>
+      {/* ── Desktop: ambient glow + right image panel ── */}
+      <div className="pointer-events-none absolute inset-0 hidden sm:block" style={{ background: theme.glow }} />
+
+      <div className="absolute top-0 right-0 bottom-0 hidden sm:block" style={{ width: "52%", zIndex: 1 }}>
         {image ? (
           <>
             <img
@@ -193,7 +213,6 @@ export function HeroBannerView({ physical, digital, initialType = "physical" }: 
                 filter: "drop-shadow(-8px 0 24px rgba(0,0,0,0.5))",
               }}
             />
-            {/* Left fade into dark background */}
             <div
               className="absolute inset-0 pointer-events-none"
               style={{ background: theme.imageFade }}
@@ -209,16 +228,18 @@ export function HeroBannerView({ physical, digital, initialType = "physical" }: 
       {/* ── Discount circle ── */}
       {discountNum && (
         <div
-          className="absolute grid place-items-center rounded-full text-center text-white"
+          className="absolute top-3 right-3 z-20 grid size-16 place-items-center rounded-full text-center text-white sm:top-4 sm:right-4 sm:size-[76px]"
           style={{
-            top: 16, right: 16,
-            width: 76, height: 76,
             background: theme.discountCircle,
             boxShadow: theme.circleGlow,
-            zIndex: 20,
           }}
         >
-          <div>
+          <div className="sm:hidden">
+            <div className="text-[8px] font-semibold opacity-85">Up to</div>
+            <div className="text-base font-black leading-none">{discountNum}%</div>
+            <div className="text-[8px] font-semibold opacity-85">OFF</div>
+          </div>
+          <div className="hidden sm:block">
             <div className="text-[9px] font-semibold opacity-85">Up to</div>
             <div className="text-lg font-black leading-none">{discountNum}%</div>
             <div className="text-[9px] font-semibold opacity-85">OFF</div>
@@ -231,10 +252,9 @@ export function HeroBannerView({ physical, digital, initialType = "physical" }: 
         <HeroBannerClient claimedPct={product.claimed_pct ?? 0} />
       </div>
 
-      {/* ── Left content panel ── */}
+      {/* ── Content panel — left-aligned; full width on mobile, no vertical split ── */}
       <div
-        className="absolute inset-0 flex flex-col justify-between p-3.5 sm:p-6 lg:p-7"
-        style={{ maxWidth: "52%", zIndex: 10 }}
+        className="absolute inset-0 z-10 flex flex-col justify-between p-3.5 pr-[5.5rem] sm:max-w-[52%] sm:p-6 sm:pr-6 lg:p-7"
       >
         {/* Badge */}
         <div className="flex items-center gap-2">
@@ -319,24 +339,24 @@ export function HeroBannerView({ physical, digital, initialType = "physical" }: 
           )}
         </div>
 
-        {/* CTAs + thumbnails */}
+        {/* CTAs — compact on mobile */}
         <div className="flex flex-col gap-2">
           <div className="flex flex-wrap gap-2">
             <Link href={`/marketplace/${product.slug}`}>
               <button
-                className="flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold text-white transition-opacity hover:opacity-90"
+                className="flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-[11px] font-bold text-white transition-opacity hover:opacity-90 sm:px-4 sm:py-2 sm:text-xs"
                 style={{ background: theme.ctaPrimary, boxShadow: `0 4px 16px ${theme.ctaGlow}` }}
               >
-                <ShoppingCart className="size-3.5" />
+                <ShoppingCart className="size-3 sm:size-3.5" />
                 {typeKey === "digital" ? "Explore Now" : "Shop Now"}
               </button>
             </Link>
-            <Link href={`/marketplace/${product.slug}`}>
+            <Link href={`/marketplace/${product.slug}`} className="hidden sm:inline-flex">
               <button
-                className="flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-white/20"
+                className="flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-[11px] font-bold text-white transition-colors hover:bg-white/20 sm:px-4 sm:py-2 sm:text-xs"
                 style={{ background: "rgba(255,255,255,0.10)", border: "1px solid rgba(255,255,255,0.15)" }}
               >
-                <Eye className="size-3.5" /> Quick View
+                <Eye className="size-3 sm:size-3.5" /> Quick View
               </button>
             </Link>
           </div>

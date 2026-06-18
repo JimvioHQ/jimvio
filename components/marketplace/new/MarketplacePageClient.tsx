@@ -94,7 +94,7 @@ function CategoryCard({ c, type }: { c: DbCategory; type: ProductType }) {
   return (
     <Link
       href={`/marketplace?type=${type}&category=${c.slug}`}
-      className="group relative flex flex-col overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-center shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg"
+      className="group relative flex w-[132px] shrink-0 flex-col overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-center shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg snap-start sm:w-full sm:shrink"
     >
       <div className="aspect-[4/3] w-full overflow-hidden bg-[var(--color-surface-secondary)]">
         <img
@@ -604,7 +604,7 @@ export function MarketplacePageClient({
                 Explore top categories
               </button>
             </div>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
+            <div className="flex gap-2 overflow-x-auto pb-1 snap-x snap-mandatory [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden sm:grid sm:grid-cols-3 sm:gap-2 sm:overflow-visible sm:snap-none lg:grid-cols-4 xl:grid-cols-7">
               {categories.map((c) => (
                 <CategoryCard key={c.id} c={c} type={type} />
               ))}

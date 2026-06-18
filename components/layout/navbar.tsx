@@ -176,7 +176,9 @@ const ConsoleIconBtn = React.forwardRef<
   }
 >(({ children, href, onClick, badge, className, style, ...props }, ref) => {
   const cls = cn(
-    "relative flex items-center justify-center h-9 w-9 shrink-0 rounded-xl text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-white/8 hover:text-stone-800 dark:hover:text-white transition-all duration-150 active:scale-[0.94]",
+    "relative flex items-center justify-center h-9 w-9 shrink-0 rounded-xl transition-all duration-150 active:scale-[0.94]",
+    "text-stone-500 hover:bg-black/[0.06] hover:text-stone-800",
+    "dark:text-stone-400 dark:hover:bg-white/[0.08] dark:hover:text-stone-100",
     className
   );
   const inner = (
@@ -1037,7 +1039,7 @@ function MobileDrawer({
                                 key={link.href}
                                 href={link.href}
                                 onClick={onClose}
-                                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium text-stone-600 dark:text-stone-300 hover:bg-white dark:hover:bg-white/5 hover:text-stone-900 dark:hover:text-white transition-colors"
+                                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium text-stone-600 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-white/[0.05] hover:text-stone-900 dark:hover:text-white transition-colors"
                               >
                                 <link.icon className="h-4 w-4 shrink-0 text-stone-400" />
                                 {link.label}
