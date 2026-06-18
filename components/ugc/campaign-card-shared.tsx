@@ -31,8 +31,18 @@ export type SharedCampaignRow = {
   created_at?: string;
   allowed_platforms?: string[];
   media?: { url: string; usage: string }[];
-  vendors?: { business_name: string; business_slug: string; logo_url: string; business_logo?: string };
-  vendor?: { business_name: string; business_slug: string; logo_url: string; business_logo?: string };
+  vendors?: {
+    business_name: string;
+    business_slug: string;
+    logo_url?: string | null;
+    business_logo?: string | null;
+  };
+  vendor?: {
+    business_name: string;
+    business_slug: string;
+    logo_url?: string | null;
+    business_logo?: string | null;
+  };
 };
 
 export function SharedCampaignCard({ c }: { c: SharedCampaignRow }) {
@@ -106,7 +116,7 @@ export function SharedCampaignCard({ c }: { c: SharedCampaignRow }) {
         <div className="mb-2 flex items-center gap-2">
           {vendor?.business_logo || vendor?.logo_url ? (
             <img
-              src={vendor.business_logo || vendor.logo_url}
+              src={(vendor.business_logo || vendor.logo_url) ?? undefined}
               alt=""
               className="h-5 w-5 rounded-md border border-[var(--color-border)] object-cover"
             />
