@@ -24,31 +24,40 @@ const BLUE = "#2563eb";
 const YELLOW = "#ca8a04";
 
 const shell = "mx-auto w-full max-w-8xl px-4 sm:px-6";
+const section = "bg-[var(--color-surface)]";
+const sectionAlt = "bg-[var(--color-surface-secondary)]";
 const cardBase =
-  "rounded-2xl border border-[#ececec] bg-white shadow-[0_2px_12px_rgba(0,0,0,0.04)]";
+  "rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[0_2px_12px_rgba(0,0,0,0.04)] dark:shadow-[0_2px_12px_rgba(0,0,0,0.25)]";
+const textPrimary = "text-[var(--color-text-primary)]";
+const textMuted = "text-[var(--color-text-muted)]";
+const textSecondary = "text-[var(--color-text-secondary)]";
+
+function iconTintStyle(color: string) {
+  return { background: `${color}18`, color };
+}
 
 function SectionTitle({ children, sub }: { children: React.ReactNode; sub?: string }) {
   return (
     <div className="mb-8 text-center">
-      <h2 className="text-[26px] font-black tracking-tight text-[#111] sm:text-[30px]">{children}</h2>
-      {sub && <p className="mx-auto mt-2 max-w-xl text-sm text-[#6b7280]">{sub}</p>}
+      <h2 className={`text-[26px] font-black tracking-tight sm:text-[30px] ${textPrimary}`}>{children}</h2>
+      {sub && <p className={`mx-auto mt-2 max-w-xl text-sm ${textMuted}`}>{sub}</p>}
     </div>
   );
 }
 
 /* ═══ 1. What do you want to do today ═══ */
 const ACTIONS = [
-  { icon: ShoppingBag, title: "Buy Products", desc: "Shop trending products from verified global suppliers.", cta: "Start Buying", href: "/marketplace", tint: "#fff4ed", color: ORANGE },
-  { icon: Store, title: "Sell Products", desc: "Launch your store and reach buyers worldwide.", cta: "Start Selling", href: "/dashboard", tint: "#eff6ff", color: BLUE },
-  { icon: DollarSign, title: "Earn Commissions", desc: "Promote products and earn on every sale.", cta: "Start Earning", href: "/ugc", tint: "#f0fdf4", color: GREEN },
-  { icon: Megaphone, title: "Create Campaigns", desc: "Launch UGC campaigns and reach creators worldwide.", cta: "Launch Campaign", href: "/dashboard/campaigns/new", tint: "#f5f3ff", color: PURPLE },
-  { icon: Target, title: "Join Campaigns", desc: "Create content for brands and get paid per view.", cta: "Join Campaigns", href: "/ugc", tint: "#eff6ff", color: BLUE },
-  { icon: Users, title: "Build Communities", desc: "Grow, connect and monetize your audience.", cta: "Start Building", href: "/communities", tint: "#fffbeb", color: YELLOW },
+  { icon: ShoppingBag, title: "Buy Products", desc: "Shop trending products from verified global suppliers.", cta: "Start Buying", href: "/marketplace", color: ORANGE },
+  { icon: Store, title: "Sell Products", desc: "Launch your store and reach buyers worldwide.", cta: "Start Selling", href: "/dashboard", color: BLUE },
+  { icon: DollarSign, title: "Earn Commissions", desc: "Promote products and earn on every sale.", cta: "Start Earning", href: "/ugc", color: GREEN },
+  { icon: Megaphone, title: "Create Campaigns", desc: "Launch UGC campaigns and reach creators worldwide.", cta: "Launch Campaign", href: "/dashboard/campaigns/new", color: PURPLE },
+  { icon: Target, title: "Join Campaigns", desc: "Create content for brands and get paid per view.", cta: "Join Campaigns", href: "/ugc", color: BLUE },
+  { icon: Users, title: "Build Communities", desc: "Grow, connect and monetize your audience.", cta: "Start Building", href: "/communities", color: YELLOW },
 ];
 
 export function WhatToDoToday() {
   return (
-    <section className="bg-white py-10 sm:py-14">
+    <section className={`${section} py-10 sm:py-14`}>
       <div className={shell}>
         <SectionTitle sub="Choose your path and dive into your goals.">What Do You Want To Do Today?</SectionTitle>
         <div className="grid grid-cols-3 gap-3 sm:gap-4 lg:grid-cols-6">
@@ -56,12 +65,12 @@ export function WhatToDoToday() {
             <div key={a.title} className={`flex h-full flex-col p-3 sm:p-5 ${cardBase}`}>
               <span
                 className="mb-3 grid size-9 place-items-center rounded-xl sm:mb-4 sm:size-11"
-                style={{ background: a.tint, color: a.color }}
+                style={iconTintStyle(a.color)}
               >
                 <a.icon className="size-4 sm:size-5" strokeWidth={2.2} />
               </span>
-              <h3 className="text-[12px] font-bold leading-tight text-[#111] sm:text-[15px]">{a.title}</h3>
-              <p className="mt-1 hidden flex-1 text-[13px] leading-snug text-[#6b7280] sm:block">{a.desc}</p>
+              <h3 className="text-[12px] font-bold leading-tight text-[var(--color-text-primary)] sm:text-[15px]">{a.title}</h3>
+              <p className="mt-1 hidden flex-1 text-[13px] leading-snug text-[var(--color-text-muted)] sm:block">{a.desc}</p>
               <Link
                 href={a.href}
                 className="mt-2 inline-flex items-center gap-0.5 text-[11px] font-bold transition-opacity hover:opacity-80 sm:mt-4 sm:gap-1 sm:text-[13px]"
@@ -110,16 +119,16 @@ export function TrustedStrip({ usersLabel = "977K+", countriesLabel = "50+" }: {
     : countriesLabel;
 
   return (
-    <div className="border-y border-[#f0f0f0] bg-[#fafafa]">
+    <div className="border-y border-[var(--color-border)] bg-[var(--color-surface-secondary)]">
       <div className={`${shell} flex flex-wrap items-center justify-center gap-4 py-4 sm:gap-6`}>
         <div className="flex -space-x-2.5">
           {AVATARS.map((src, i) => (
-            <img key={i} src={src} alt="" className="size-8 rounded-full border-2 border-white object-cover sm:size-9" />
+            <img key={i} src={src} alt="" className="size-8 rounded-full border-2 border-[var(--color-surface)] object-cover sm:size-9" />
           ))}
         </div>
-        <p className="text-center text-sm text-[#4b5563]">
-          Trusted by <b className="text-[#111]">{usersLabel} users</b> in{" "}
-          <b className="text-[#111]">{countriesLabel} countries</b>
+        <p className="text-center text-sm text-[var(--color-text-secondary)]">
+          Trusted by <b className="text-[var(--color-text-primary)]">{usersLabel} users</b> in{" "}
+          <b className="text-[var(--color-text-primary)]">{countriesLabel} countries</b>
         </p>
         <div className="flex items-center gap-1">
           {FEATURED_COUNTRIES.map((c) => (
@@ -133,10 +142,10 @@ export function TrustedStrip({ usersLabel = "977K+", countriesLabel = "50+" }: {
               height={28}
               loading="lazy"
               decoding="async"
-              className="size-7 rounded-full border border-[#e5e7eb] bg-white object-cover shadow-sm"
+              className="size-7 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] object-cover shadow-sm"
             />
           ))}
-          <span className="ml-1 rounded-full bg-[#111] px-2 py-0.5 text-[10px] font-bold text-white">
+          <span className="ml-1 rounded-full bg-neutral-900 px-2 py-0.5 text-[10px] font-bold text-white dark:bg-neutral-700">
             {moreLabel}
           </span>
         </div>
@@ -157,7 +166,7 @@ const OVERVIEW = [
 
 export function PlatformOverviewBar() {
   return (
-    <section className="bg-white py-8 sm:py-10">
+    <section className={`${section} py-8 sm:py-10`}>
       <div className={shell}>
         <SectionTitle>Everything You Need In One Platform</SectionTitle>
         <div className="grid grid-cols-2 gap-x-4 gap-y-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -170,8 +179,8 @@ export function PlatformOverviewBar() {
                 <o.icon className="size-4" strokeWidth={2.2} />
               </span>
               <div className="min-w-0">
-                <div className="text-[13px] font-bold text-[#111]">{o.title}</div>
-                <div className="text-[11px] leading-snug text-[#9ca3af]">{o.desc}</div>
+                <div className="text-[13px] font-bold text-[var(--color-text-primary)]">{o.title}</div>
+                <div className="text-[11px] leading-snug text-[var(--color-text-muted)]">{o.desc}</div>
               </div>
             </div>
           ))}
@@ -259,7 +268,7 @@ function JourneyCta({ href, label, color }: { href: string; label: string; color
 
 export function ChooseYourJourney() {
   return (
-    <section className="border-t border-[#f0f0f0] bg-white py-10 sm:py-14">
+    <section className={`border-t border-[var(--color-border)] ${section} py-10 sm:py-14`}>
       <div className={shell}>
         <SectionTitle sub="Same platform — different ways to earn, sell, or shop.">
           Choose Your Journey
@@ -272,15 +281,15 @@ export function ChooseYourJourney() {
             >
               <div className="flex flex-1 gap-2 p-3 sm:gap-3 sm:p-4">
                 <div className="flex min-w-0 flex-1 flex-col">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[#9ca3af]">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--color-text-muted)]">
                     I&apos;m a
                   </p>
-                  <h3 className="mt-0.5 text-[14px] font-bold leading-tight text-[#111] sm:text-[16px]">
+                  <h3 className="mt-0.5 text-[14px] font-bold leading-tight text-[var(--color-text-primary)] sm:text-[16px]">
                     {j.role}
                   </h3>
                   <ul className="mt-2.5 space-y-1.5 sm:mt-3 sm:space-y-2">
                     {j.items.map((it) => (
-                      <li key={it} className="flex items-start gap-1.5 text-[10px] leading-snug text-[#4b5563] sm:gap-2 sm:text-[12px]">
+                      <li key={it} className="flex items-start gap-1.5 text-[10px] leading-snug text-[var(--color-text-secondary)] sm:gap-2 sm:text-[12px]">
                         <Check
                           className="mt-0.5 size-3 shrink-0 sm:size-3.5"
                           style={{ color: j.color }}
@@ -321,11 +330,11 @@ const STEPS = [
 
 export function HowJimvioWorks() {
   return (
-    <section className="bg-white py-12 sm:py-16">
+    <section className={`${section} py-12 sm:py-16`}>
       <div className={shell}>
         <SectionTitle>How Jimvio Works</SectionTitle>
         <div className="relative grid grid-cols-1 gap-8 md:grid-cols-3 md:gap-4">
-          <div className="pointer-events-none absolute left-[20%] right-[20%] top-7 hidden h-px border-t-2 border-dashed border-[#e5e7eb] md:block" />
+          <div className="pointer-events-none absolute left-[20%] right-[20%] top-7 hidden h-px border-t-2 border-dashed border-[var(--color-border)] md:block" />
           {STEPS.map((s) => (
             <div key={s.n} className="relative flex flex-col items-center text-center">
               <span
@@ -334,8 +343,8 @@ export function HowJimvioWorks() {
               >
                 {s.n}
               </span>
-              <h3 className="text-[16px] font-bold text-[#111]">{s.title}</h3>
-              <p className="mt-1.5 max-w-[220px] text-[13px] leading-relaxed text-[#6b7280]">{s.desc}</p>
+              <h3 className="text-[16px] font-bold text-[var(--color-text-primary)]">{s.title}</h3>
+              <p className="mt-1.5 max-w-[220px] text-[13px] leading-relaxed text-[var(--color-text-muted)]">{s.desc}</p>
             </div>
           ))}
         </div>
@@ -350,10 +359,10 @@ export function TrendingProductsRow({ products = [] }: { products: any[] }) {
   if (!products.length) return null;
 
   return (
-    <section className="bg-[#fafafa] py-12 sm:py-16">
+    <section className={`${sectionAlt} py-12 sm:py-16`}>
       <div className={shell}>
         <div className="mb-6 flex items-center justify-between">
-          <h2 className="text-[22px] font-black text-[#111] sm:text-[26px]">Trending Products</h2>
+          <h2 className="text-[22px] font-black text-[var(--color-text-primary)] sm:text-[26px]">Trending Products</h2>
           <Link href="/marketplace" className="inline-flex items-center gap-1 text-[13px] font-bold" style={{ color: ORANGE }}>
             View Marketplace <ArrowRight className="size-3.5" />
           </Link>
@@ -367,11 +376,11 @@ export function TrendingProductsRow({ products = [] }: { products: any[] }) {
                 href={`/marketplace/${p.slug}`}
                 className={`w-[168px] shrink-0 overflow-hidden sm:w-[190px] ${cardBase}`}
               >
-                <div className="flex aspect-square items-center justify-center bg-[#f8f8f8] p-3">
+                <div className="flex aspect-square items-center justify-center bg-[var(--color-surface-secondary)] p-3">
                   <img src={getImage(p.images)} alt={p.name} className="max-h-full max-w-full object-contain" loading="lazy" />
                 </div>
                 <div className="p-3">
-                  <h4 className="line-clamp-2 text-[12px] font-semibold leading-snug text-[#111]">{p.name}</h4>
+                  <h4 className="line-clamp-2 text-[12px] font-semibold leading-snug text-[var(--color-text-primary)]">{p.name}</h4>
                   <div className="mt-1.5 text-[15px] font-black" style={{ color: GREEN }}>
                     {formatMoney(p.price, p.currency)}
                   </div>
@@ -403,10 +412,10 @@ export function FeaturedUGCCampaigns({ campaigns = [] }: { campaigns: SharedCamp
   if (!list.length) return null;
 
   return (
-    <section className="bg-white py-12 sm:py-16">
+    <section className={`${section} py-12 sm:py-16`}>
       <div className={shell}>
         <div className="mb-6 flex items-center justify-between">
-          <h2 className="text-[22px] font-black text-[#111] sm:text-[26px]">Featured UGC Campaigns</h2>
+          <h2 className="text-[22px] font-black text-[var(--color-text-primary)] sm:text-[26px]">Featured UGC Campaigns</h2>
           <Link href="/ugc" className="text-[13px] font-bold" style={{ color: ORANGE }}>
             View All Campaigns →
           </Link>
@@ -422,35 +431,35 @@ export function FeaturedUGCCampaigns({ campaigns = [] }: { campaigns: SharedCamp
 
             return (
               <Link key={c.id} href={`/ugc/${c.id}`} className={`flex flex-col overflow-hidden ${cardBase}`}>
-                <div className="flex items-center gap-2 border-b border-[#f0f0f0] px-4 py-3">
-                  <span className="grid size-8 place-items-center rounded-lg bg-[#111] text-white">
+                <div className="flex items-center gap-2 border-b border-[var(--color-border)] px-4 py-3">
+                  <span className="grid size-8 place-items-center rounded-lg bg-neutral-900 text-white dark:bg-neutral-800">
                     <Icon className="size-4" />
                   </span>
                   <div className="min-w-0 flex-1">
-                    <div className="truncate text-[13px] font-bold capitalize text-[#111]">{platform}</div>
-                    <div className="truncate text-[11px] text-[#9ca3af]">{c.campaign_type ?? "UGC"}</div>
+                    <div className="truncate text-[13px] font-bold capitalize text-[var(--color-text-primary)]">{platform}</div>
+                    <div className="truncate text-[11px] text-[var(--color-text-muted)]">{c.campaign_type ?? "UGC"}</div>
                   </div>
                 </div>
                 <div className="flex flex-1 flex-col p-4">
-                  <h3 className="line-clamp-2 text-[14px] font-bold text-[#111]">{c.title}</h3>
-                  <div className="mt-2 space-y-1 text-[11px] text-[#6b7280]">
-                    <div>Budget: <b className="text-[#111]">{formatMoney(c.total_budget, "USD")}</b></div>
+                  <h3 className="line-clamp-2 text-[14px] font-bold text-[var(--color-text-primary)]">{c.title}</h3>
+                  <div className="mt-2 space-y-1 text-[11px] text-[var(--color-text-muted)]">
+                    <div>Budget: <b className="text-[var(--color-text-primary)]">{formatMoney(c.total_budget, "USD")}</b></div>
                     <div>Pay Per View: <b style={{ color: GREEN }}>{formatMoney(c.rate_per_1k_views, "USD")}</b></div>
                   </div>
                   {vendor && (
-                    <span className="mt-2 inline-flex w-fit items-center gap-1 rounded-md bg-[#f0fdf4] px-2 py-0.5 text-[10px] font-bold" style={{ color: GREEN }}>
+                    <span className="mt-2 inline-flex w-fit items-center gap-1 rounded-md bg-green-500/10 px-2 py-0.5 text-[10px] font-bold dark:bg-green-500/15" style={{ color: GREEN }}>
                       <Check className="size-3" /> Brand Verified
                     </span>
                   )}
                   <div className="mt-3 flex items-center gap-2">
-                    <span className="grid size-8 place-items-center rounded-full bg-[#f3f4f6] text-[11px] font-bold text-[#6b7280]">
+                    <span className="grid size-8 place-items-center rounded-full bg-[var(--color-surface-secondary)] text-[11px] font-bold text-[var(--color-text-muted)]">
                       {(vendor?.business_name ?? "B").slice(0, 1)}
                     </span>
                     <div className="min-w-0 flex-1">
-                      <div className="h-1.5 overflow-hidden rounded-full bg-[#f3f4f6]">
+                      <div className="h-1.5 overflow-hidden rounded-full bg-[var(--color-surface-secondary)]">
                         <div className="h-full rounded-full" style={{ width: `${pct}%`, background: ORANGE }} />
                       </div>
-                      <div className="mt-1 flex justify-between text-[10px] text-[#9ca3af]">
+                      <div className="mt-1 flex justify-between text-[10px] text-[var(--color-text-muted)]">
                         <span>{joined} / {cap} joined</span>
                         <span>4 days left</span>
                       </div>
@@ -512,10 +521,10 @@ export function FeaturedCommunities({ communities = [] }: { communities: Communi
   ]).slice(0, 4);
 
   return (
-    <section className="bg-[#fafafa] py-12 sm:py-16">
+    <section className={`${sectionAlt} py-12 sm:py-16`}>
       <div className={shell}>
         <div className="mb-6 flex items-center justify-between">
-          <h2 className="text-[22px] font-black text-[#111] sm:text-[26px]">Featured Communities</h2>
+          <h2 className="text-[22px] font-black text-[var(--color-text-primary)] sm:text-[26px]">Featured Communities</h2>
           <Link href="/communities" className="text-[13px] font-bold" style={{ color: ORANGE }}>
             Explore All <ArrowRight className="inline size-3" />
           </Link>
@@ -532,7 +541,7 @@ export function FeaturedCommunities({ communities = [] }: { communities: Communi
                   <img
                     src={profileImage}
                     alt={c.name}
-                    className="mb-4 size-12 rounded-2xl border border-[#ececec] object-cover"
+                    className="mb-4 size-12 rounded-2xl border border-[var(--color-border)] object-cover"
                   />
                 ) : (
                   <span
@@ -542,9 +551,9 @@ export function FeaturedCommunities({ communities = [] }: { communities: Communi
                     <Icon className="size-6" />
                   </span>
                 )}
-                <h3 className="text-[15px] font-bold text-[#111]">{c.name}</h3>
-                <p className="mt-1 text-[12px] text-[#9ca3af]">{fmtCount(c.member_count ?? 0)} members</p>
-                <p className="mt-2 text-[12px] leading-relaxed text-[#6b7280]">{c.tagline ?? "Connect with like-minded people."}</p>
+                <h3 className="text-[15px] font-bold text-[var(--color-text-primary)]">{c.name}</h3>
+                <p className="mt-1 text-[12px] text-[var(--color-text-muted)]">{fmtCount(c.member_count ?? 0)} members</p>
+                <p className="mt-2 text-[12px] leading-relaxed text-[var(--color-text-muted)]">{c.tagline ?? "Connect with like-minded people."}</p>
                 <span className="mt-3 inline-flex items-center gap-1 text-[12px] font-bold" style={{ color: ORANGE }}>
                   Join Community <ArrowRight className="size-3" />
                 </span>
@@ -569,16 +578,16 @@ const OPPS = [
 
 export function OnePlatformOpportunities() {
   return (
-    <section className="bg-white py-12 sm:py-16">
+    <section className={`${section} py-12 sm:py-16`}>
       <div className={shell}>
         <SectionTitle>One Platform. Endless Opportunities.</SectionTitle>
         <div className="grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-3">
           {OPPS.map((o) => (
             <div key={o.title} className="flex h-full flex-col px-1 sm:px-2">
-              <h3 className="mb-2 text-[14px] font-bold text-[#111] sm:mb-3 sm:text-[15px]">{o.title}</h3>
+              <h3 className="mb-2 text-[14px] font-bold text-[var(--color-text-primary)] sm:mb-3 sm:text-[15px]">{o.title}</h3>
               <ul className="flex-1 space-y-1.5 sm:space-y-2">
                 {o.items.map((it) => (
-                  <li key={it} className="flex items-center gap-2 text-[11px] text-[#4b5563] sm:text-[13px]">
+                  <li key={it} className="flex items-center gap-2 text-[11px] text-[var(--color-text-secondary)] sm:text-[13px]">
                     <Check className="size-3.5 shrink-0 sm:size-4" style={{ color: GREEN }} strokeWidth={3} />
                     {it}
                   </li>
@@ -611,18 +620,18 @@ const AI_TOOLS = [
 
 export function GrowthStack() {
   return (
-    <section className="bg-[#fafafa] py-12 sm:py-16">
+    <section className={`${sectionAlt} py-12 sm:py-16`}>
       <div className={shell}>
         <SectionTitle>AI Powered Growth Tools</SectionTitle>
         <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
           {AI_TOOLS.map((t) => (
             <div key={t.title} className={`flex h-full flex-col p-4 sm:p-5 ${cardBase}`}>
-              <span className="mb-3 grid size-9 place-items-center rounded-xl bg-[#f5f3ff] text-[#7c3aed] sm:size-10">
+              <span className="mb-3 grid size-9 place-items-center rounded-xl bg-violet-500/10 text-violet-600 dark:bg-violet-500/15 dark:text-violet-400 sm:size-10">
                 <t.icon className="size-4 sm:size-5" />
               </span>
-              <h3 className="text-[12px] font-bold text-[#111] sm:text-[14px]">{t.title}</h3>
-              <p className="mt-1 flex-1 text-[11px] leading-relaxed text-[#6b7280] sm:text-[12px]">{t.desc}</p>
-              <Link href={t.href} className="mt-3 inline-flex items-center gap-1 text-[11px] font-bold text-[#7c3aed] sm:text-[12px]">
+              <h3 className="text-[12px] font-bold text-[var(--color-text-primary)] sm:text-[14px]">{t.title}</h3>
+              <p className="mt-1 flex-1 text-[11px] leading-relaxed text-[var(--color-text-muted)] sm:text-[12px]">{t.desc}</p>
+              <Link href={t.href} className="mt-3 inline-flex items-center gap-1 text-[11px] font-bold text-violet-600 dark:text-violet-400 sm:text-[12px]">
                 Try Now <ArrowRight className="size-3" />
               </Link>
             </div>
@@ -645,18 +654,18 @@ const WHY = [
 
 export function WhyChooseJimvio() {
   return (
-    <section className="bg-white py-12 sm:py-16">
+    <section className={`${section} py-12 sm:py-16`}>
       <div className={shell}>
         <SectionTitle>Why People Choose Jimvio</SectionTitle>
         <div className="grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-3">
           {WHY.map((w) => (
             <div key={w.title} className="flex items-start gap-3">
-              <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-[#fff4ed] sm:size-10" style={{ color: ORANGE }}>
+              <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-orange-500/10 dark:bg-orange-500/15 sm:size-10" style={{ color: ORANGE }}>
                 <w.icon className="size-4 sm:size-5" />
               </span>
               <div className="min-w-0">
-                <h3 className="text-[12px] font-bold text-[#111] sm:text-[14px]">{w.title}</h3>
-                <p className="mt-0.5 text-[11px] text-[#6b7280] sm:text-[12px]">{w.desc}</p>
+                <h3 className="text-[12px] font-bold text-[var(--color-text-primary)] sm:text-[14px]">{w.title}</h3>
+                <p className="mt-0.5 text-[11px] text-[var(--color-text-muted)] sm:text-[12px]">{w.desc}</p>
               </div>
             </div>
           ))}
@@ -721,13 +730,13 @@ export function GlobalNetworkStats({
   ];
 
   return (
-    <section className="bg-[#fafafa] py-12 sm:py-16">
+    <section className={`${sectionAlt} py-12 sm:py-16`}>
       <div className={shell}>
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-6">
           {/* Left card — Global Network */}
           <div className={`min-w-0 flex-1 p-6 sm:p-7 ${cardBase}`}>
-            <h2 className="text-[20px] font-black text-[#111] sm:text-[22px]">Global Network</h2>
-            <p className="mt-1 text-[13px] text-[#6b7280]">{countriesLabel} Countries Connected</p>
+            <h2 className="text-[20px] font-black text-[var(--color-text-primary)] sm:text-[22px]">Global Network</h2>
+            <p className="mt-1 text-[13px] text-[var(--color-text-muted)]">{countriesLabel} Countries Connected</p>
 
             <div className="mt-5 flex flex-col gap-5 sm:flex-row sm:items-center sm:gap-6">
               <div className="w-full shrink-0 sm:w-[190px]">
@@ -736,13 +745,13 @@ export function GlobalNetworkStats({
                     <div key={row.label} className="flex items-center gap-3">
                       <span
                         className="grid size-9 shrink-0 place-items-center rounded-lg"
-                        style={{ background: row.tint, color: row.color }}
+                        style={iconTintStyle(row.color)}
                       >
                         <row.icon className="size-4" strokeWidth={2.2} />
                       </span>
                       <div className="flex min-w-0 items-baseline gap-2">
-                        <span className="text-[20px] font-black leading-none text-[#111]">{row.value}</span>
-                        <span className="text-[12px] font-medium text-[#6b7280]">{row.label}</span>
+                        <span className="text-[20px] font-black leading-none text-[var(--color-text-primary)]">{row.value}</span>
+                        <span className="text-[12px] font-medium text-[var(--color-text-muted)]">{row.label}</span>
                       </div>
                     </div>
                   ))}
@@ -757,19 +766,19 @@ export function GlobalNetworkStats({
 
           {/* Right card — Platform Stats (compact, content height only) */}
           <div className={`w-full self-start p-5 sm:p-6 lg:w-[min(100%,440px)] lg:shrink-0 ${cardBase}`}>
-            <h2 className="text-[18px] font-black text-[#111] sm:text-[20px]">Platform Stats</h2>
+            <h2 className="text-[18px] font-black text-[var(--color-text-primary)] sm:text-[20px]">Platform Stats</h2>
 
             <div className="mt-4 flex flex-wrap gap-2">
               {platformStats.map((stat) => (
                 <div
                   key={stat.label}
                   className="flex min-w-[68px] flex-1 flex-col items-center justify-center rounded-lg px-2 py-2.5 text-center"
-                  style={{ background: stat.bg }}
+                  style={{ background: `${stat.accent}18` }}
                 >
                   <div className="text-[12px] font-black leading-tight sm:text-[13px]" style={{ color: stat.accent }}>
                     {stat.value}
                   </div>
-                  <div className="mt-0.5 text-[9px] font-medium text-[#6b7280]">{stat.label}</div>
+                  <div className="mt-0.5 text-[9px] font-medium text-[var(--color-text-muted)]">{stat.label}</div>
                 </div>
               ))}
             </div>
@@ -837,19 +846,19 @@ export function TopCreatorsEarnings({ creators = [] }: { creators: TopCreatorRow
   ];
 
   return (
-    <section className="bg-white py-12 sm:py-16">
+    <section className={`${section} py-12 sm:py-16`}>
       <div className={shell}>
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <div className={`p-6 ${cardBase}`}>
             <div className="mb-5 flex items-center justify-between gap-3">
-              <h3 className="text-[18px] font-black text-[#111]">Top Creators This Month</h3>
+              <h3 className="text-[18px] font-black text-[var(--color-text-primary)]">Top Creators This Month</h3>
               <Link href="/creators" className="shrink-0 text-[12px] font-bold" style={{ color: ORANGE }}>
                 View Leaderboard <ArrowRight className="inline size-3" />
               </Link>
             </div>
             <div className="space-y-3">
               {list.slice(0, 3).map((c, i) => (
-                <div key={c.id} className={`flex items-center gap-3 rounded-xl p-3 ${i === 0 ? "bg-[#fafafa]" : ""}`}>
+                <div key={c.id} className={`flex items-center gap-3 rounded-xl p-3 ${i === 0 ? "bg-[var(--color-surface-secondary)]" : ""}`}>
                   <img
                     src={c.image}
                     alt={c.name}
@@ -857,14 +866,14 @@ export function TopCreatorsEarnings({ creators = [] }: { creators: TopCreatorRow
                     onError={(e) => { e.currentTarget.src = DEFAULT_PROFILE_IMAGE; }}
                   />
                   <div className="min-w-0 flex-1">
-                    <div className="text-[14px] font-bold text-[#111]">{c.name}</div>
-                    <div className="text-[11px] text-[#9ca3af]">{c.role}</div>
+                    <div className="text-[14px] font-bold text-[var(--color-text-primary)]">{c.name}</div>
+                    <div className="text-[11px] text-[var(--color-text-muted)]">{c.role}</div>
                   </div>
                   <div className="text-right">
                     <div className="text-[14px] font-black" style={{ color: GREEN }}>
                       ${fmtCount(c.earnings)}
                     </div>
-                    <div className="text-[10px] text-[#9ca3af]">this month</div>
+                    <div className="text-[10px] text-[var(--color-text-muted)]">this month</div>
                   </div>
                   <span
                     className="grid size-7 shrink-0 place-items-center rounded-full text-[11px] font-black text-white"
@@ -878,14 +887,14 @@ export function TopCreatorsEarnings({ creators = [] }: { creators: TopCreatorRow
           </div>
 
           <div className={`p-6 ${cardBase}`}>
-            <h3 className="text-[18px] font-black text-[#111]">How Much Could You Earn?</h3>
-            <p className="mt-1 text-[12px] text-[#6b7280]">Adjust the sliders to estimate your potential.</p>
+            <h3 className="text-[18px] font-black text-[var(--color-text-primary)]">How Much Could You Earn?</h3>
+            <p className="mt-1 text-[12px] text-[var(--color-text-muted)]">Adjust the sliders to estimate your potential.</p>
 
             {sliders.map((s) => (
               <div key={s.label} className="mt-5">
-                <div className="mb-2 flex justify-between text-[12px] font-semibold text-[#4b5563]">
+                <div className="mb-2 flex justify-between text-[12px] font-semibold text-[var(--color-text-secondary)]">
                   <span>{s.label}</span>
-                  <span className="text-[#111]">
+                  <span className="text-[var(--color-text-primary)]">
                     {fmtCount(s.val)}
                     {s.suffix ?? ""}
                   </span>
@@ -908,7 +917,7 @@ export function TopCreatorsEarnings({ creators = [] }: { creators: TopCreatorRow
               </div>
               <Link
                 href="/ugc"
-                className="mt-4 inline-flex items-center gap-1 rounded-full bg-white px-5 py-2 text-[13px] font-bold text-[#7c3aed]"
+                className="mt-4 inline-flex items-center gap-1 rounded-full bg-[var(--color-surface)] px-5 py-2 text-[13px] font-bold text-violet-600 dark:text-violet-400"
               >
                 Start Earning Now <ArrowRight className="size-3.5" />
               </Link>
@@ -942,30 +951,26 @@ export function First30Minutes() {
   const steps = tab === "creators" ? ONBOARD_CREATORS : ONBOARD_BRANDS;
 
   return (
-    <section className="bg-[#fafafa] py-12 sm:py-16">
+    <section className={`${sectionAlt} py-12 sm:py-16`}>
       <div className={shell}>
         <SectionTitle>Your First 30 Minutes On Jimvio</SectionTitle>
 
-        <div className="mx-auto mb-8 flex max-w-md rounded-xl border border-[#ececec] bg-white p-1">
+        <div className={`mx-auto mb-8 flex max-w-md rounded-xl border border-[var(--color-border)] ${section} p-1`}>
           <button
             type="button"
             onClick={() => setTab("creators")}
-            className="flex-1 rounded-lg px-4 py-2.5 text-[13px] font-bold transition-colors"
-            style={{
-              background: tab === "creators" ? BLUE : "transparent",
-              color: tab === "creators" ? "#fff" : "#4b5563",
-            }}
+            className={`flex-1 rounded-lg px-4 py-2.5 text-[13px] font-bold transition-colors ${
+              tab === "creators" ? "bg-[#2563eb] text-white" : textSecondary
+            }`}
           >
             For Creators
           </button>
           <button
             type="button"
             onClick={() => setTab("brands")}
-            className="flex-1 rounded-lg px-4 py-2.5 text-[13px] font-bold transition-colors"
-            style={{
-              background: tab === "brands" ? BLUE : "transparent",
-              color: tab === "brands" ? "#fff" : "#4b5563",
-            }}
+            className={`flex-1 rounded-lg px-4 py-2.5 text-[13px] font-bold transition-colors ${
+              tab === "brands" ? "bg-[#2563eb] text-white" : textSecondary
+            }`}
           >
             For Brands
           </button>
@@ -981,8 +986,8 @@ export function First30Minutes() {
                 {i + 1}
               </span>
               <div className="pt-1">
-                <h3 className="text-[14px] font-bold text-[#111]">{s.title}</h3>
-                <p className="mt-0.5 text-[12px] leading-relaxed text-[#6b7280]">{s.desc}</p>
+                <h3 className="text-[14px] font-bold text-[var(--color-text-primary)]">{s.title}</h3>
+                <p className="mt-0.5 text-[12px] leading-relaxed text-[var(--color-text-muted)]">{s.desc}</p>
               </div>
             </div>
           ))}
@@ -1005,7 +1010,7 @@ const FAQS = [
 export function FAQSection() {
   const [open, setOpen] = useState<number | null>(null);
   return (
-    <section className="bg-white py-12 sm:py-16">
+    <section className={`${section} py-12 sm:py-16`}>
       <div className={shell}>
         <SectionTitle>Frequently Asked Questions</SectionTitle>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -1018,14 +1023,14 @@ export function FAQSection() {
                   onClick={() => setOpen(isOpen ? null : i)}
                   className="flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left"
                 >
-                  <span className="text-[13px] font-bold text-[#111]">{f.q}</span>
+                  <span className="text-[13px] font-bold text-[var(--color-text-primary)]">{f.q}</span>
                   <ChevronDown
-                    className="size-4 shrink-0 text-[#9ca3af] transition-transform"
+                    className="size-4 shrink-0 text-[var(--color-text-muted)] transition-transform"
                     style={{ transform: isOpen ? "rotate(180deg)" : "none" }}
                   />
                 </button>
                 {isOpen && (
-                  <p className="border-t border-[#f0f0f0] px-4 py-3 text-[12px] leading-relaxed text-[#6b7280]">
+                  <p className="border-t border-[var(--color-border)] px-4 py-3 text-[12px] leading-relaxed text-[var(--color-text-muted)]">
                     {f.a}
                   </p>
                 )}
@@ -1049,14 +1054,14 @@ const BRANDS = [
 
 export function TrustedBrands() {
   return (
-    <section className="border-t border-[#f0f0f0] bg-white py-10">
+    <section className={`border-t border-[var(--color-border)] ${section} py-10`}>
       <div className={shell}>
-        <p className="mb-6 text-center text-[11px] font-bold uppercase tracking-[0.15em] text-[#9ca3af]">
+        <p className="mb-6 text-center text-[11px] font-bold uppercase tracking-[0.15em] text-[var(--color-text-muted)]">
           Trusted by leading brands &amp; platforms
         </p>
         <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-4">
           {BRANDS.map((b) => (
-            <img key={b.src} src={b.src} alt="" className={`${b.h} w-auto object-contain opacity-50 grayscale`} />
+            <img key={b.src} src={b.src} alt="" className={`${b.h} w-auto object-contain opacity-50 grayscale dark:opacity-70 dark:invert`} />
           ))}
         </div>
       </div>

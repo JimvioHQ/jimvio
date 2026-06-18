@@ -64,7 +64,7 @@ export function WorldMap({
   };
 
   return (
-    <div className={`relative aspect-[2/1] w-full overflow-hidden rounded-xl bg-white ${className}`}>
+    <div className={`relative aspect-[2/1] w-full overflow-hidden rounded-xl bg-[var(--color-surface-secondary)] ${className}`}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={mapImage}
