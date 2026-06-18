@@ -13,6 +13,7 @@ import {
   canSignInDuringMaintenance,
   MAINTENANCE_LOGIN_ERROR,
 } from "@/lib/platform-maintenance"
+import { isAccountAccessBlocked } from "@/lib/users/account-status"
 
 // ─────────────────────────────────────────────
 // Constants
@@ -191,6 +192,23 @@ export async function signIn(formData: FormData) {
 
     userId = data.user.id
     await ensureUserProfile(userId, email)
+
+    const meta = (data.user.user_metadata ?? {}) as Record<string, unknown>;
+    const accountStatus = meta.account_status as string | undefined;
+    const { data: profileGate } = await supabase
+      .from("profiles")
+      .select("is_active, email")
+      .eq("id", userId)
+      .maybeSingle();
+
+    if (isAccountAccessBlocked(accountStatus, profileGate?.email ?? email, profileGate?.is_active)) {
+      await supabase.auth.signOut();
+      return {
+        error: accountStatus === "deleted"
+          ? "This account has been deleted and can no longer sign in."
+          : "This account is suspended and cannot sign in.",
+      };
+    }
 
     const allowedDuringMaintenance = await canSignInDuringMaintenance(userId, email)
     if (!allowedDuringMaintenance) {

@@ -4,8 +4,13 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getAdminDB } from "@/lib/supabase/admin";
 import type { ActionResult } from "@/lib/actions/security";
+import {
+  type AccountStatus,
+  isDeletedAccountEmail,
+  tombstoneEmailFor,
+} from "@/lib/users/account-status";
 
-export type AccountStatus = "active" | "suspended" | "banned" | "frozen";
+export type { AccountStatus } from "@/lib/users/account-status";
 
 export type AdminUserEditInput = {
   full_name: string;
@@ -180,6 +185,10 @@ export async function setUserAccountStatus(
 
   const existingMeta = (authUser.user.user_metadata ?? {}) as Record<string, unknown>;
 
+  if (existingMeta.account_status === "deleted") {
+    return { success: false, error: "Deleted accounts cannot be modified. View them under Deleted (backup) in admin users." };
+  }
+
   if (status === "active") {
     await admin.auth.admin.updateUserById(userId, {
       ban_duration: "none",
@@ -274,8 +283,79 @@ export async function deleteManagedUser(
   }
 
   if (!reason.trim()) {
-    return { success: false, error: "A reason is required to remove a user." };
+    return { success: false, error: "A reason is required to delete a user." };
   }
 
-  return setUserAccountStatus(userId, "banned", `Account removed: ${reason.trim()}`);
+  const admin = getAdminDB();
+  const trimmedReason = reason.trim();
+  const now = new Date().toISOString();
+
+  const { data: authUser, error: authErr } = await admin.auth.admin.getUserById(userId);
+  if (authErr || !authUser?.user) {
+    return { success: false, error: authErr?.message ?? "User not found in auth." };
+  }
+
+  const existingMeta = (authUser.user.user_metadata ?? {}) as Record<string, unknown>;
+  if (existingMeta.account_status === "deleted") {
+    return { success: false, error: "This account is already deleted." };
+  }
+
+  const originalEmail = authUser.user.email ?? "";
+  const { data: profileRow } = await admin
+    .from("profiles")
+    .select("full_name, email")
+    .eq("id", userId)
+    .maybeSingle();
+
+  const tombstoneEmail = tombstoneEmailFor(userId);
+  const metadata = {
+    ...existingMeta,
+    account_status: "deleted" as const,
+    moderation_reason: `Account deleted: ${trimmedReason}`,
+    moderated_by: auth.adminId,
+    moderated_at: now,
+    deleted_at: now,
+    deleted_by: auth.adminId,
+    backup_email: originalEmail,
+    backup_full_name: profileRow?.full_name ?? null,
+  };
+
+  const { error: authUpdateErr } = await admin.auth.admin.updateUserById(userId, {
+    email: tombstoneEmail,
+    ban_duration: "876000h",
+    user_metadata: metadata,
+  });
+  if (authUpdateErr) {
+    return { success: false, error: authUpdateErr.message };
+  }
+
+  try {
+    await admin.auth.admin.signOut(userId, "global");
+  } catch {
+    // Session revocation is best-effort; ban still blocks new sign-ins.
+  }
+
+  const { error: profileErr } = await admin
+    .from("profiles")
+    .update({
+      email: tombstoneEmail,
+      full_name: "Deleted account",
+      username: null,
+      avatar_url: null,
+      bio: null,
+      website: null,
+      phone: null,
+      is_active: false,
+      updated_at: now,
+    })
+    .eq("id", userId);
+
+  if (profileErr) return { success: false, error: profileErr.message };
+
+  await applyRoleSideEffects(userId, "banned", trimmedReason);
+
+  revalidatePath(`/admin/users/${userId}`);
+  revalidatePath("/admin/users");
+  revalidatePath("/admin/verifications");
+  return { success: true };
 }

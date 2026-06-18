@@ -54,6 +54,7 @@ export function AdminUserModerationPanel({ user }: { user: AdminUserDetail }) {
   });
 
   const accountStatus = user.account_status ?? (user.is_active ? "active" : "suspended");
+  const isDeleted = accountStatus === "deleted";
 
   function run(action: () => Promise<{ success: boolean; error?: string }>) {
     startTransition(async () => {
@@ -79,7 +80,13 @@ export function AdminUserModerationPanel({ user }: { user: AdminUserDetail }) {
       setToast({ msg: "Enter a moderation reason first", type: "err" });
       return;
     }
-    if (!confirm(`Remove access for ${user.email}? They will be banned and deactivated.`)) return;
+    if (
+      !confirm(
+        `Permanently delete ${user.backup_email ?? user.email}? They will lose access immediately, be hidden across the platform, and only remain visible under Deleted (backup) in admin.`,
+      )
+    ) {
+      return;
+    }
     run(() => deleteManagedUser(user.id, reason));
   }
 
@@ -99,7 +106,7 @@ export function AdminUserModerationPanel({ user }: { user: AdminUserDetail }) {
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <StatusPill
-              status={accountStatus === "active" ? "active" : accountStatus === "banned" ? "banned" : "suspended"}
+              status={accountStatus}
               size="md"
             />
             {user.pending_reports > 0 && (
@@ -118,6 +125,36 @@ export function AdminUserModerationPanel({ user }: { user: AdminUserDetail }) {
             <p className="text-[12.5px] leading-relaxed text-[var(--color-text-muted)]">
               This user is a platform admin. Suspend, ban, and delete actions are disabled. You can still edit profile fields below.
             </p>
+          ) : isDeleted ? (
+            <div className="space-y-3">
+              <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-secondary)]/40 px-3 py-2.5 text-[12px] text-[var(--color-text-muted)]">
+                <p className="font-semibold text-[var(--color-text-primary)]">Account deleted</p>
+                <p className="mt-1">
+                  This user no longer has platform access. Profile data is anonymized everywhere except this admin backup view.
+                </p>
+                {user.backup_email ? (
+                  <p className="mt-2">
+                    <span className="font-semibold text-[var(--color-text-primary)]">Backup email: </span>
+                    {user.backup_email}
+                  </p>
+                ) : null}
+                {user.backup_full_name ? (
+                  <p className="mt-1">
+                    <span className="font-semibold text-[var(--color-text-primary)]">Backup name: </span>
+                    {user.backup_full_name}
+                  </p>
+                ) : null}
+                {user.deleted_at ? (
+                  <p className="mt-1 opacity-70">Deleted {new Date(user.deleted_at).toLocaleString()}</p>
+                ) : null}
+              </div>
+              {user.moderation_reason ? (
+                <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-secondary)]/40 px-3 py-2.5 text-[12px] text-[var(--color-text-muted)]">
+                  <span className="font-semibold text-[var(--color-text-primary)]">Reason: </span>
+                  {user.moderation_reason}
+                </div>
+              ) : null}
+            </div>
           ) : (
             <>
               {user.moderation_reason && (
@@ -178,7 +215,7 @@ export function AdminUserModerationPanel({ user }: { user: AdminUserDetail }) {
                 )}
                 <ModerationBtn
                   icon={Trash2}
-                  label="Remove access"
+                  label="Delete account"
                   tone="danger"
                   disabled={pending}
                   onClick={removeAccess}

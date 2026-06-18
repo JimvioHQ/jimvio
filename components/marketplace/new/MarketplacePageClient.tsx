@@ -94,9 +94,9 @@ function CategoryCard({ c, type }: { c: DbCategory; type: ProductType }) {
   return (
     <Link
       href={`/marketplace?type=${type}&category=${c.slug}`}
-      className="group relative flex flex-col overflow-hidden rounded-xl border border-[var(--color-border)] bg-white text-center shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg"
+      className="group relative flex flex-col overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-center shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg"
     >
-      <div className="aspect-[4/3] w-full overflow-hidden bg-white">
+      <div className="aspect-[4/3] w-full overflow-hidden bg-[var(--color-surface-secondary)]">
         <img
           src={imgSrc}
           alt={c.name}
@@ -106,11 +106,8 @@ function CategoryCard({ c, type }: { c: DbCategory; type: ProductType }) {
         />
       </div>
 
-      <div className="w-full bg-white px-2 py-2">
-        <div
-          className="line-clamp-2 text-[12px] font-bold leading-tight"
-          style={{ color: "var(--color-text-primary)" }}
-        >
+      <div className="w-full bg-[var(--color-surface)] px-2 py-2">
+        <div className="line-clamp-2 text-[12px] font-bold leading-tight text-[var(--color-text-primary)]">
           {c.name}
         </div>
       </div>
@@ -395,8 +392,7 @@ export function MarketplacePageClient({
             <button
               type="button"
               onClick={() => openAssistant(search.trim() || undefined)}
-              className="flex shrink-0 items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-bold text-white transition-opacity hover:opacity-90"
-              style={{ background: "linear-gradient(135deg, #7c3aed 0%, #ec4899 100%)" }}
+              className="flex shrink-0 items-center gap-1 rounded-lg bg-gradient-to-r from-[#fd5000] via-[#ff6a1a] to-[#ff8c00] px-2.5 py-1.5 text-xs font-bold text-white shadow-sm transition-opacity hover:opacity-90"
             >
               <Sparkles className="size-3.5" />
               AI
@@ -600,7 +596,7 @@ export function MarketplacePageClient({
         {categories.length > 0 && (
           <section>
             <div className="mb-2 flex items-center gap-2">
-              <h2 className="text-lg font-black">Shop by Category</h2>
+              <h2 className="text-lg font-black text-[var(--color-text-primary)]">Shop by Category</h2>
               <button
                 className="text-xs font-semibold"
                 style={{ color: "var(--color-accent)" }}
@@ -619,7 +615,7 @@ export function MarketplacePageClient({
         {/* ── Trending Products — skeleton only this section while loading ── */}
         <section>
           <div className="mb-2 flex flex-wrap items-center gap-2">
-            <h2 className="text-lg font-black">
+            <h2 className="text-lg font-black text-[var(--color-text-primary)]">
               {filters.category && filters.category !== "Trending Now"
                 ? filters.category
                 : `Trending ${type === "digital" ? "Digital " : ""}Products`}

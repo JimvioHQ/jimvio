@@ -18,6 +18,7 @@ import {
   Zap,
 } from "lucide-react";
 import { TICKER_ITEMS } from "@/data/dashboard";
+import { ApplePayLogo, MastercardLogo, VisaLogo } from "@/components/ui/payment-logos";
 
 const ORANGE = "#fd5000";
 const GREEN = "#16a34a";
@@ -42,9 +43,9 @@ const PARTNER_LOGOS = [
 ] as const;
 
 const PAYMENT_LOGOS = [
-  { src: "/logos/visa.svg", alt: "Visa", h: "h-5", className: "" },
-  { src: "/logos/mastercard.svg", alt: "Mastercard", h: "h-6", className: "" },
-  { src: "/logos/apple-pay.svg", alt: "Apple Pay", h: "h-5", className: "dark:invert" },
+  { id: "visa", node: <VisaLogo /> },
+  { id: "mastercard", node: <MastercardLogo /> },
+  { id: "apple-pay", node: <ApplePayLogo /> },
 ] as const;
 
 const EARN_PATHS = [
@@ -99,25 +100,23 @@ function HeroPartnerStrip() {
         <p className="mb-4 text-center text-[12px] font-medium text-[var(--color-text-muted)]">
           Trusted by 10,000+ creators and businesses worldwide
         </p>
-        <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3">
+        <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-4">
           {PARTNER_LOGOS.map((logo) => (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               key={logo.alt}
               src={logo.src}
               alt={logo.alt}
-              className={`${logo.h} w-auto object-contain opacity-60 grayscale dark:opacity-70 dark:invert`}
+              className={`${logo.h} w-auto object-contain opacity-70 dark:opacity-80 dark:brightness-0 dark:invert`}
             />
           ))}
-          {PAYMENT_LOGOS.map((logo) => (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              key={logo.alt}
-              src={logo.src}
-              alt={logo.alt}
-              className={`${logo.h} w-auto object-contain ${logo.className}`}
-            />
-          ))}
+          <div className="flex items-center gap-4">
+            {PAYMENT_LOGOS.map((logo) => (
+              <span key={logo.id} className="inline-flex shrink-0 items-center">
+                {logo.node}
+              </span>
+            ))}
+          </div>
         </div>
       </div>
     </div>

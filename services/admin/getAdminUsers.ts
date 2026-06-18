@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getAdminDB } from "@/lib/supabase/admin";
-import type { AccountStatus } from "@/lib/actions/admin-users";
+import type { AccountStatus } from "@/lib/users/account-status";
+import { isDeletedAccountEmail } from "@/lib/users/account-status";
 
 export interface AdminUserRow {
     id: string;
@@ -11,6 +12,7 @@ export interface AdminUserRow {
     is_verified: boolean;
     is_active: boolean;
     account_status: AccountStatus | "inactive";
+    backup_email: string | null;
     two_factor_enabled: boolean;
     created_at: string | null;
     roles: string[];
@@ -52,6 +54,12 @@ export async function getAdminUsers(
         )
         .order("created_at", { ascending: false })
         .range(offset, offset + limit - 1);
+
+    if (status === "deleted") {
+        query = query.ilike("email", `%@removed.jimvio`);
+    } else {
+        query = query.not("email", "ilike", `%@removed.jimvio`);
+    }
 
     if (q) {
         query = query.or(`email.ilike.%${q}%,full_name.ilike.%${q}%`);
@@ -97,7 +105,10 @@ export async function getAdminUsers(
             country: p.country ?? null,
             is_verified: p.is_verified ?? false,
             is_active: p.is_active ?? true,
-            account_status: (p.is_active ?? true) ? "active" : "inactive",
+            account_status: isDeletedAccountEmail(p.email)
+                ? "deleted"
+                : (p.is_active ?? true) ? "active" : "inactive",
+            backup_email: null,
             two_factor_enabled: p.two_factor_enabled ?? false,
             created_at: p.created_at ?? null,
             roles: activeRoles,
@@ -142,6 +153,9 @@ export interface AdminUserDetail {
     moderation_reason: string | null;
     moderated_at: string | null;
     moderated_by: string | null;
+    deleted_at: string | null;
+    backup_email: string | null;
+    backup_full_name: string | null;
     pending_reports: number;
     two_factor_enabled: boolean;
     created_at: string | null;
@@ -329,7 +343,7 @@ export async function getAdminUserById(userId: string): Promise<AdminUserDetail 
 
     const authMeta = (authRes.data?.user?.user_metadata ?? {}) as Record<string, unknown>;
     const accountStatus = (authMeta.account_status as AccountStatus | undefined)
-        ?? ((p.is_active ?? true) ? "active" : "suspended");
+        ?? (isDeletedAccountEmail(p.email) ? "deleted" : ((p.is_active ?? true) ? "active" : "suspended"));
 
     const pendingReports = inf?.id
         ? await countPendingReportsForInfluencer(inf.id)
@@ -354,6 +368,9 @@ export async function getAdminUserById(userId: string): Promise<AdminUserDetail 
         moderation_reason: (authMeta.moderation_reason as string | null) ?? null,
         moderated_at: (authMeta.moderated_at as string | null) ?? null,
         moderated_by: (authMeta.moderated_by as string | null) ?? null,
+        deleted_at: (authMeta.deleted_at as string | null) ?? null,
+        backup_email: (authMeta.backup_email as string | null) ?? null,
+        backup_full_name: (authMeta.backup_full_name as string | null) ?? null,
         pending_reports: pendingReports,
         two_factor_enabled: p.two_factor_enabled ?? false,
         created_at: p.created_at ?? null,

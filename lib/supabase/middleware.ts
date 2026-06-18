@@ -6,6 +6,7 @@ import {
   isMaintenanceExemptPath,
   userIsPlatformAdmin,
 } from "@/lib/platform-maintenance";
+import { isAccountAccessBlocked } from "@/lib/users/account-status";
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -70,8 +71,23 @@ export async function updateSession(request: NextRequest) {
       const { data: { user } } = await supabase.auth.getUser();
 
       if (user && process.env.SUPABASE_SERVICE_ROLE_KEY) {
-        const meta = extractSessionMeta(request.headers);
-        const banned = await isSessionRevoked(user.id, meta).catch((err) => {
+        const meta = (user.user_metadata ?? {}) as Record<string, unknown>;
+        const accountStatus = meta.account_status as string | undefined;
+
+        if (isAccountAccessBlocked(accountStatus, user.email, undefined)) {
+          await supabase.auth.signOut();
+          const url = request.nextUrl.clone();
+          url.pathname = "/login";
+          url.searchParams.set(
+            "error",
+            accountStatus === "deleted" ? "account_deleted" : "account_suspended",
+          );
+          url.searchParams.set("redirect", request.nextUrl.pathname);
+          return NextResponse.redirect(url);
+        }
+
+        const metaSession = extractSessionMeta(request.headers);
+        const banned = await isSessionRevoked(user.id, metaSession).catch((err) => {
           console.error("[middleware] session ban check failed:", err);
           return false;
         });

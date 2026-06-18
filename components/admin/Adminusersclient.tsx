@@ -147,6 +147,7 @@ const STATUS_OPTIONS: SelectOption<string>[] = [
     { value: "active", label: "Active" },
     { value: "inactive", label: "Inactive" },
     { value: "verified", label: "Verified" },
+    { value: "deleted", label: "Deleted (backup)" },
 ];
 
 // ─── Props ────────────────────────────────────────────────────────────────────
