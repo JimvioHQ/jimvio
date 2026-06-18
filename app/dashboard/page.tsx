@@ -210,7 +210,7 @@ function Skeleton({ className = "" }: { className?: string }) {
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
-export default function DashboardPage() {
+export default function DashboardHomePage() {
   const supabase = createClient();
   const { formatMoney } = useCurrency();
 
