@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
     const [productsRes, vendorsRes, categoriesRes] = await Promise.all([
       supabase
         .from("products")
-        .select("id, name, slug")
+        .select("id, name, slug, price, price_usd, inventory_quantity")
         .eq("status", "active")
         .eq("is_active", true)
         .ilike("name", `%${term}%`)

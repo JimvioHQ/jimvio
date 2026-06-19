@@ -2,28 +2,75 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowRight,
+  BookOpen,
   CheckCircle,
-  Clapperboard,
-  DollarSign,
   Globe,
   Headphones,
   Lock,
+  Megaphone,
+  Percent,
+  Radio,
+  Search,
   ShieldCheck,
-  ShoppingBag,
+  Sparkles,
   Store,
   TrendingUp,
-  Users,
+  Video,
   Zap,
 } from "lucide-react";
 import { TICKER_ITEMS } from "@/data/dashboard";
 import { ApplePayLogo, MastercardLogo, VisaLogo } from "@/components/ui/payment-logos";
+import { useAIStore } from "@/lib/store/use-ai-store";
+import { JimvioAIMascot } from "@/components/ui/jimvio-ai-mascot";
 
 const ORANGE = "#fd5000";
-const GREEN = "#16a34a";
-const BLUE = "#2563eb";
-const PURPLE = "#7c3aed";
+const HERO_PHRASES = [
+  "Earn Commissions",
+  "Join UGC Campaigns",
+  "Build Communities",
+  "Sell Products",
+  "Create Campaigns",
+  "Buy Products",
+  "Work With Brands",
+  "Host Live Events",
+  "Sell Courses",
+] as const;
+
+function HeroRotatingPhrase() {
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(
+      () => setIndex((current) => (current + 1) % HERO_PHRASES.length),
+      2800,
+    );
+    return () => clearInterval(timer);
+  }, []);
+
+  return (
+    <span
+      className="relative inline-block overflow-hidden align-bottom"
+      style={{ height: "1.06em", minWidth: "min(100%, 14ch)" }}
+    >
+      <AnimatePresence mode="wait">
+        <motion.span
+          key={HERO_PHRASES[index]}
+          initial={{ y: 36, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={{ y: -36, opacity: 0 }}
+          transition={{ duration: 0.36, ease: [0.22, 1, 0.36, 1] }}
+          className="block whitespace-nowrap"
+          style={{ color: ORANGE }}
+        >
+          {HERO_PHRASES[index]}
+        </motion.span>
+      </AnimatePresence>
+    </span>
+  );
+}
 
 const TRUST_BADGES = [
   { icon: CheckCircle, label: "Verified", color: "#16a34a" },
@@ -46,13 +93,6 @@ const PAYMENT_LOGOS = [
   { id: "visa", node: <VisaLogo /> },
   { id: "mastercard", node: <MastercardLogo /> },
   { id: "apple-pay", node: <ApplePayLogo /> },
-] as const;
-
-const EARN_PATHS = [
-  { icon: ShoppingBag, label: "Buy & save", href: "/marketplace", color: ORANGE },
-  { icon: Store, label: "Sell globally", href: "/dashboard", color: BLUE },
-  { icon: DollarSign, label: "Earn commissions", href: "/ugc", color: GREEN },
-  { icon: Clapperboard, label: "Create UGC", href: "/ugc", color: PURPLE },
 ] as const;
 
 function parseActiveCount(raw: string | undefined): number {
@@ -123,115 +163,124 @@ function HeroPartnerStrip() {
   );
 }
 
-function HeroHighlightCard({
-  icon: Icon,
-  label,
-  value,
-  color,
-}: {
-  icon: typeof DollarSign;
-  label: string;
-  value: string;
-  color: string;
-}) {
-  return (
-    <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[0_2px_12px_rgba(0,0,0,0.04)] dark:shadow-[0_2px_12px_rgba(0,0,0,0.2)]">
-      <span
-        className="mb-3 grid size-9 place-items-center rounded-xl"
-        style={{ background: `${color}18`, color }}
-      >
-        <Icon className="size-4" strokeWidth={2.2} />
-      </span>
-      <div className="text-[18px] font-black leading-tight text-[var(--color-text-primary)]">{value}</div>
-      <div className="mt-0.5 text-[11px] font-medium text-[var(--color-text-muted)]">{label}</div>
-    </div>
-  );
-}
+function HeroAIPanel() {
+  const openAssistant = useAIStore((s) => s.openAssistant);
+  const [prompt, setPrompt] = useState("");
 
-function HeroValuePanel({ activeCount }: { activeCount: number }) {
-  const formattedActive = activeCount >= 1000
-    ? `${(activeCount / 1000).toFixed(1).replace(/\.0$/, "")}K+`
-    : `${activeCount}+`;
+  const ask = (query?: string) => {
+    const text = (query ?? prompt).trim();
+    openAssistant(text);
+    setPrompt("");
+  };
 
   return (
-    <div className="relative mx-auto w-full max-w-[480px] lg:mx-0 lg:max-w-none">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -inset-6 rounded-[32px] opacity-60 blur-3xl"
-        style={{ background: "radial-gradient(circle at 30% 20%, rgba(253,80,0,0.18), transparent 55%), radial-gradient(circle at 80% 80%, rgba(124,58,237,0.12), transparent 50%)" }}
-      />
-
-      <div className="relative space-y-3">
-        <div className="grid grid-cols-2 gap-3">
-          <HeroHighlightCard icon={DollarSign} label="Affiliate commission" value="Up to 30%" color={GREEN} />
-          <HeroHighlightCard icon={Globe} label="Countries served" value="50+" color={BLUE} />
-          <HeroHighlightCard icon={Zap} label="Average payout" value="Within 24h" color={ORANGE} />
-          <HeroHighlightCard icon={Users} label="Active right now" value={formattedActive} color={PURPLE} />
-        </div>
-
-        <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[0_8px_24px_rgba(0,0,0,0.06)] dark:shadow-[0_8px_24px_rgba(0,0,0,0.25)]">
-          <div className="mb-3 flex items-center justify-between gap-2">
+    <div className="mx-auto w-full max-w-[560px] lg:mx-0 lg:max-w-none">
+      <div className="overflow-visible rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-4 sm:p-5">
+        <div className="grid grid-cols-1 items-end gap-4 overflow-visible sm:grid-cols-[1fr_auto]">
+          <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <span className="grid size-8 place-items-center rounded-lg bg-green-500/10 text-green-600 dark:bg-green-500/15 dark:text-green-400">
-                <TrendingUp className="size-4" />
+              <span className="grid size-8 place-items-center rounded-lg bg-gradient-to-br from-[#fd5000] to-[#ff8c42] text-white">
+                <Sparkles className="size-4" strokeWidth={2.25} />
               </span>
-              <div>
-                <div className="text-[11px] font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">
-                  Earning snapshot
-                </div>
-                <div className="text-[13px] font-bold text-[var(--color-text-primary)]">Active affiliate month</div>
-              </div>
+              <h2 className="text-[20px] font-black tracking-tight text-[#fd5000] sm:text-[22px]">
+                Jimvio AI
+              </h2>
             </div>
-            <span className="rounded-full bg-green-500/10 px-2 py-0.5 text-[10px] font-bold text-green-600 dark:bg-green-500/15 dark:text-green-400">
-              Live
+            <p className="mt-3 text-[12px] leading-relaxed text-[var(--color-text-muted)] sm:text-[13px]">
+              Jimvio AI helps you earn, sell, create, and grow — from affiliate commissions and UGC
+              campaigns to products, communities, live events, and courses.
+            </p>
+          </div>
+
+          <JimvioAIMascot size="md" className="mx-auto shrink-0 sm:mx-0" />
+        </div>
+
+        <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+          <input
+            type="text"
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") ask();
+            }}
+            placeholder="Ask about products, campaigns, earnings…"
+            className="h-11 flex-1 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-3.5 text-[13px] text-[var(--color-text-primary)] outline-none transition-colors placeholder:text-[var(--color-text-muted)] focus:border-[#fd5000]/40"
+          />
+          <button
+            type="button"
+            onClick={() => ask()}
+            className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-lg px-5 text-[13px] font-bold text-white transition-opacity hover:opacity-90"
+            style={{ background: ORANGE }}
+          >
+            Ask Jimvio AI
+            <ArrowRight className="size-4" />
+          </button>
+        </div>
+      </div>
+
+      <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {HERO_AI_FEATURES.map(({ label, query, icon: Icon }) => (
+          <button
+            key={label}
+            type="button"
+            onClick={() => ask(query)}
+            className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-3 text-left transition-colors hover:border-[#fd5000]/25 hover:bg-[var(--color-surface-secondary)]/60"
+          >
+            <span className="mb-2 grid size-7 place-items-center rounded-md bg-[#fd5000]/10 text-[#fd5000]">
+              <Icon className="size-3.5" strokeWidth={2.25} />
             </span>
-          </div>
-
-          <div className="text-[28px] font-black leading-none text-[var(--color-text-primary)]">$1,240+</div>
-          <p className="mt-1 text-[11px] text-[var(--color-text-muted)]">
-            Typical monthly earnings for creators who promote 3+ products
-          </p>
-
-          <div className="mt-4 space-y-2.5">
-            {[
-              { label: "Marketplace sales", amount: "+$680", pct: 72 },
-              { label: "UGC campaigns", amount: "+$410", pct: 48 },
-              { label: "Affiliate links", amount: "+$150", pct: 28 },
-            ].map((row) => (
-              <div key={row.label}>
-                <div className="mb-1 flex items-center justify-between text-[10px]">
-                  <span className="text-[var(--color-text-secondary)]">{row.label}</span>
-                  <span className="font-bold text-[var(--color-text-primary)]">{row.amount}</span>
-                </div>
-                <div className="h-1.5 overflow-hidden rounded-full bg-[var(--color-surface-secondary)]">
-                  <div className="h-full rounded-full" style={{ width: `${row.pct}%`, background: ORANGE }} />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-2 xl:grid-cols-4">
-          {EARN_PATHS.map((path) => (
-            <Link
-              key={path.label}
-              href={path.href}
-              className="flex items-center gap-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-3 py-2.5 text-[11px] font-bold text-[var(--color-text-primary)] transition-colors hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface)]"
-            >
-              <span
-                className="grid size-7 shrink-0 place-items-center rounded-lg"
-                style={{ background: `${path.color}18`, color: path.color }}
-              >
-                <path.icon className="size-3.5" />
-              </span>
-              {path.label}
-            </Link>
-          ))}
-        </div>
+            <span className="block text-[11px] font-semibold leading-snug text-[var(--color-text-primary)]">
+              {label}
+            </span>
+          </button>
+        ))}
       </div>
     </div>
   );
 }
+
+const HERO_AI_FEATURES = [
+  {
+    label: "Find Profitable Products",
+    query: "What are the most profitable products to promote on Jimvio right now?",
+    icon: Search,
+  },
+  {
+    label: "Top Commissions",
+    query: "Which affiliate products have the highest commission rates today?",
+    icon: Percent,
+  },
+  {
+    label: "Launch & Sell Products",
+    query: "How do I launch and sell products on Jimvio as a new vendor?",
+    icon: Store,
+  },
+  {
+    label: "Paid Creator Opportunities",
+    query: "What UGC campaigns are paying creators the most right now?",
+    icon: Video,
+  },
+  {
+    label: "High-Converting Campaigns",
+    query: "Show me high-converting campaigns I can join as a creator.",
+    icon: Megaphone,
+  },
+  {
+    label: "Trending Winning Products",
+    query: "What trending products are winning sales this week on Jimvio?",
+    icon: TrendingUp,
+  },
+  {
+    label: "Host Live Events",
+    query: "How can I host live events and monetize my audience on Jimvio?",
+    icon: Radio,
+  },
+  {
+    label: "Monetize Knowledge",
+    query: "How do I sell courses and monetize my knowledge on Jimvio?",
+    icon: BookOpen,
+  },
+] as const;
 
 export function Hero() {
   const [activeCount, setActiveCount] = useState(9313);
@@ -284,7 +333,7 @@ export function Hero() {
               >
                 The platform to
                 <br />
-                <span style={{ color: ORANGE }}>Earn Commissions</span>
+                <HeroRotatingPhrase />
                 <br />
                 Anywhere.
               </h1>
@@ -312,22 +361,24 @@ export function Hero() {
                 </Link>
               </div>
 
-              <div className="mt-8 flex flex-wrap items-center justify-center gap-x-5 gap-y-3 lg:justify-start">
+              <div className="mt-8 flex flex-nowrap items-center justify-center gap-x-2.5 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] sm:gap-x-3 [&::-webkit-scrollbar]:hidden lg:justify-start lg:overflow-visible">
                 {TRUST_BADGES.map(({ icon: Icon, label, color }) => (
-                  <div key={label} className="flex items-center gap-2">
+                  <div key={label} className="flex shrink-0 items-center gap-1.5">
                     <span
-                      className="grid size-7 place-items-center rounded-lg"
+                      className="grid size-6 place-items-center rounded-md"
                       style={{ background: `${color}18`, color }}
                     >
-                      <Icon className="size-3.5" strokeWidth={2.4} />
+                      <Icon className="size-3" strokeWidth={2.4} />
                     </span>
-                    <span className="text-[12px] font-medium text-[var(--color-text-muted)]">{label}</span>
+                    <span className="whitespace-nowrap text-[11px] font-medium text-[var(--color-text-muted)] sm:text-[12px]">
+                      {label}
+                    </span>
                   </div>
                 ))}
               </div>
             </div>
 
-            <HeroValuePanel activeCount={activeCount} />
+            <HeroAIPanel />
           </div>
         </div>
       </section>

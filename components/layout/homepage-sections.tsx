@@ -1,15 +1,15 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import {
   ShoppingBag, Store, DollarSign, Megaphone, Users, Package,
   ArrowRight, Check, ShieldCheck, Globe, Zap, Sparkles,
-  Bot, Wand2, Search, Clapperboard, Play, Instagram, Youtube,
+  Bot, Wand2, Search, Clapperboard, Play, Instagram, Youtube, Share2,
   ChevronDown, Layers, TrendingUp, Wallet, Target, Award, BarChart3, LineChart,
 } from "lucide-react";
 import { useCurrency } from "@/context/CurrencyContext";
-import { getImage, fmtCount } from "@/lib/utils";
+import { getImage, fmtCount, cn } from "@/lib/utils";
 import { DEFAULT_PROFILE_IMAGE, resolveProfileImage } from "@/lib/profile-image";
 import type { SharedCampaignRow } from "@/components/ugc/campaign-card-shared";
 import { WorldMap, type WorldMapPin } from "@/components/ui/world-map";
@@ -404,7 +404,25 @@ const PLATFORM_ICON: Record<string, typeof Play> = {
   tiktok: Play,
   instagram: Instagram,
   youtube: Youtube,
+  x: Share2,
 };
+
+function campaignVendorLogo(vendor: SharedCampaignRow["vendor"] | SharedCampaignRow["vendors"]) {
+  return vendor?.business_logo ?? vendor?.logo_url ?? null;
+}
+
+function campaignPlatforms(c: SharedCampaignRow) {
+  return (c.allowed_platforms ?? []).map((p) => p.toLowerCase()).filter(Boolean);
+}
+
+function formatCampaignType(type?: string) {
+  return (type ?? "ugc").replace(/_/g, " ");
+}
+
+function campaignDaysLeft(endsAt?: string | null) {
+  if (!endsAt) return null;
+  return Math.max(0, Math.ceil((new Date(endsAt).getTime() - Date.now()) / 86_400_000));
+}
 
 export function FeaturedUGCCampaigns({ campaigns = [] }: { campaigns: SharedCampaignRow[] }) {
   const { formatMoney } = useCurrency();
@@ -422,29 +440,56 @@ export function FeaturedUGCCampaigns({ campaigns = [] }: { campaigns: SharedCamp
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {list.map((c) => {
-            const platform = (c.allowed_platforms?.[0] ?? "tiktok").toLowerCase();
-            const Icon = PLATFORM_ICON[platform] ?? Clapperboard;
+            const platforms = campaignPlatforms(c);
+            const primaryPlatform = platforms[0];
+            const PrimaryIcon = primaryPlatform ? (PLATFORM_ICON[primaryPlatform] ?? Clapperboard) : Clapperboard;
             const joined = c.approved_count ?? c.submission_count ?? 0;
-            const cap = 100;
-            const pct = Math.min(100, (joined / cap) * 100);
+            const budgetPct = Math.min(100, ((c.spent_budget ?? 0) / (c.total_budget || 1)) * 100);
+            const daysLeft = campaignDaysLeft(c.ends_at);
+            const isFixed = c.payment_model === "fixed_per_content";
+            const payAmount = isFixed
+              ? formatMoney(c.fixed_rate ?? 0, "USD")
+              : formatMoney(c.rate_per_1k_views, "USD");
+            const payLabel = isFixed ? "Pay Per Post" : "Pay Per View";
             const vendor = c.vendor ?? c.vendors;
+            const logoUrl = campaignVendorLogo(vendor);
 
             return (
               <Link key={c.id} href={`/ugc/${c.id}`} className={`flex flex-col overflow-hidden ${cardBase}`}>
                 <div className="flex items-center gap-2 border-b border-[var(--color-border)] px-4 py-3">
-                  <span className="grid size-8 place-items-center rounded-lg bg-neutral-900 text-white dark:bg-neutral-800">
-                    <Icon className="size-4" />
+                  <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-neutral-900 text-white dark:bg-neutral-800">
+                    <PrimaryIcon className="size-4" />
                   </span>
                   <div className="min-w-0 flex-1">
-                    <div className="truncate text-[13px] font-bold capitalize text-[var(--color-text-primary)]">{platform}</div>
-                    <div className="truncate text-[11px] text-[var(--color-text-muted)]">{c.campaign_type ?? "UGC"}</div>
+                    <div className="truncate text-[13px] font-bold capitalize text-[var(--color-text-primary)]">
+                      {primaryPlatform ?? "Multi-platform"}
+                    </div>
+                    <div className="truncate text-[11px] capitalize text-[var(--color-text-muted)]">
+                      {formatCampaignType(c.campaign_type)}
+                    </div>
                   </div>
+                  {platforms.length > 0 && (
+                    <div className="flex shrink-0 items-center gap-1">
+                      {platforms.slice(0, 4).map((p) => {
+                        const PlatformIcon = PLATFORM_ICON[p] ?? Clapperboard;
+                        return (
+                          <span
+                            key={p}
+                            className="grid size-6 place-items-center rounded-md border border-[var(--color-border)] bg-[var(--color-surface-secondary)]"
+                            title={p}
+                          >
+                            <PlatformIcon className="size-3 text-[var(--color-text-muted)]" />
+                          </span>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
                 <div className="flex flex-1 flex-col p-4">
                   <h3 className="line-clamp-2 text-[14px] font-bold text-[var(--color-text-primary)]">{c.title}</h3>
                   <div className="mt-2 space-y-1 text-[11px] text-[var(--color-text-muted)]">
                     <div>Budget: <b className="text-[var(--color-text-primary)]">{formatMoney(c.total_budget, "USD")}</b></div>
-                    <div>Pay Per View: <b style={{ color: GREEN }}>{formatMoney(c.rate_per_1k_views, "USD")}</b></div>
+                    <div>{payLabel}: <b style={{ color: GREEN }}>{payAmount}</b></div>
                   </div>
                   {vendor && (
                     <span className="mt-2 inline-flex w-fit items-center gap-1 rounded-md bg-green-500/10 px-2 py-0.5 text-[10px] font-bold dark:bg-green-500/15" style={{ color: GREEN }}>
@@ -452,16 +497,30 @@ export function FeaturedUGCCampaigns({ campaigns = [] }: { campaigns: SharedCamp
                     </span>
                   )}
                   <div className="mt-3 flex items-center gap-2">
-                    <span className="grid size-8 place-items-center rounded-full bg-[var(--color-surface-secondary)] text-[11px] font-bold text-[var(--color-text-muted)]">
-                      {(vendor?.business_name ?? "B").slice(0, 1)}
-                    </span>
+                    {logoUrl ? (
+                      <img
+                        src={logoUrl}
+                        alt=""
+                        className="size-8 shrink-0 rounded-full border border-[var(--color-border)] object-cover"
+                      />
+                    ) : (
+                      <span className="grid size-8 shrink-0 place-items-center rounded-full bg-[var(--color-surface-secondary)] text-[11px] font-bold text-[var(--color-text-muted)]">
+                        {(vendor?.business_name ?? "B").slice(0, 1)}
+                      </span>
+                    )}
                     <div className="min-w-0 flex-1">
                       <div className="h-1.5 overflow-hidden rounded-full bg-[var(--color-surface-secondary)]">
-                        <div className="h-full rounded-full" style={{ width: `${pct}%`, background: ORANGE }} />
+                        <div className="h-full rounded-full" style={{ width: `${budgetPct}%`, background: ORANGE }} />
                       </div>
                       <div className="mt-1 flex justify-between text-[10px] text-[var(--color-text-muted)]">
-                        <span>{joined} / {cap} joined</span>
-                        <span>4 days left</span>
+                        <span>{joined} joined · {Math.round(budgetPct)}% used</span>
+                        <span>
+                          {daysLeft !== null
+                            ? daysLeft === 0
+                              ? "Ends today"
+                              : `${daysLeft} day${daysLeft === 1 ? "" : "s"} left`
+                            : "Open"}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -930,67 +989,215 @@ export function TopCreatorsEarnings({ creators = [] }: { creators: TopCreatorRow
 }
 
 /* ═══ 14. First 30 minutes ═══ */
-const ONBOARD_CREATORS = [
-  { title: "Create Account", desc: "Sign up free in under a minute." },
-  { title: "Choose Path", desc: "Pick buyer, seller, creator or community." },
-  { title: "Complete Profile", desc: "Set up your store or creator profile." },
-  { title: "Start Earning", desc: "Promote, sell or create your first content." },
-  { title: "Scale Business", desc: "Grow income and build your brand." },
+type OnboardStep = {
+  title: string;
+  desc: string;
+  detail: string;
+  minute: string;
+  href: string;
+};
+
+const ONBOARD_CREATORS: OnboardStep[] = [
+  {
+    title: "Create account",
+    desc: "Sign up with email or Google.",
+    detail: "No card needed. One account works for buying, selling, and creating.",
+    minute: "0–5 min",
+    href: "/register",
+  },
+  {
+    title: "Pick a path",
+    desc: "Buyer, seller, creator, or community owner.",
+    detail: "Choose what you want to do first. You can add other roles later from the dashboard.",
+    minute: "5–10 min",
+    href: "/dashboard",
+  },
+  {
+    title: "Finish your profile",
+    desc: "Add a photo, bio, and payout details.",
+    detail: "Creators need a short bio and payment method. Sellers add store name and logo.",
+    minute: "10–15 min",
+    href: "/dashboard/settings",
+  },
+  {
+    title: "Make your first move",
+    desc: "Share a link, list a product, or join a campaign.",
+    detail: "Grab an affiliate link, publish a listing, or apply to a UGC brief — pick one and ship it.",
+    minute: "15–22 min",
+    href: "/ugc",
+  },
+  {
+    title: "Check results",
+    desc: "Track clicks, sales, and earnings.",
+    detail: "Open your wallet and analytics. See what worked, then repeat or scale from there.",
+    minute: "22–30 min",
+    href: "/dashboard",
+  },
 ];
 
-const ONBOARD_BRANDS = [
-  { title: "Create Account", desc: "Register your brand in minutes." },
-  { title: "Set Campaign Goals", desc: "Define budget, audience and deliverables." },
-  { title: "Launch Campaign", desc: "Publish your first UGC mission." },
-  { title: "Review Submissions", desc: "Approve content and track performance." },
-  { title: "Scale Growth", desc: "Expand campaigns and grow your reach." },
+const ONBOARD_BRANDS: OnboardStep[] = [
+  {
+    title: "Create account",
+    desc: "Register your brand in minutes.",
+    detail: "Use your business email. Verification unlocks campaign tools and vendor features.",
+    minute: "0–5 min",
+    href: "/register",
+  },
+  {
+    title: "Set campaign goals",
+    desc: "Budget, audience, platforms, and payout model.",
+    detail: "Decide per-view or fixed pay, which platforms you need, and how much budget to allocate.",
+    minute: "5–12 min",
+    href: "/dashboard/campaigns/new",
+  },
+  {
+    title: "Launch a campaign",
+    desc: "Write the brief and publish.",
+    detail: "Add examples, hashtags, and deliverables so creators know exactly what to submit.",
+    minute: "12–20 min",
+    href: "/dashboard/campaigns/new",
+  },
+  {
+    title: "Review submissions",
+    desc: "Approve content and track views.",
+    detail: "Check posts against your brief, approve the good ones, and monitor spend in real time.",
+    minute: "20–26 min",
+    href: "/dashboard/vendor/campaigns",
+  },
+  {
+    title: "Scale what works",
+    desc: "Increase budget or spin up another campaign.",
+    detail: "Double down on creators and formats that perform. Clone a winning campaign to move faster.",
+    minute: "26–30 min",
+    href: "/dashboard/campaigns/new",
+  },
 ];
 
 export function First30Minutes() {
   const [tab, setTab] = useState<"creators" | "brands">("creators");
+  const [activeStep, setActiveStep] = useState(0);
   const steps = tab === "creators" ? ONBOARD_CREATORS : ONBOARD_BRANDS;
+  const current = steps[activeStep];
+  const progress = ((activeStep + 1) / steps.length) * 100;
+
+  useEffect(() => {
+    setActiveStep(0);
+  }, [tab]);
 
   return (
     <section className={`${sectionAlt} py-12 sm:py-16`}>
       <div className={shell}>
-        <SectionTitle>Your First 30 Minutes On Jimvio</SectionTitle>
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,320px)_minmax(0,1fr)] lg:items-start lg:gap-12">
+          <div>
+            <h2 className="text-[22px] font-black tracking-tight text-[var(--color-text-primary)] sm:text-[26px]">
+              Your first 30 minutes on Jimvio
+            </h2>
+            <p className="mt-2 text-[14px] leading-relaxed text-[var(--color-text-muted)]">
+              A realistic setup path with time estimates. Pick your role and follow the steps.
+            </p>
 
-        <div className={`mx-auto mb-8 flex max-w-md rounded-xl border border-[var(--color-border)] ${section} p-1`}>
-          <button
-            type="button"
-            onClick={() => setTab("creators")}
-            className={`flex-1 rounded-lg px-4 py-2.5 text-[13px] font-bold transition-colors ${
-              tab === "creators" ? "bg-[#2563eb] text-white" : textSecondary
-            }`}
-          >
-            For Creators
-          </button>
-          <button
-            type="button"
-            onClick={() => setTab("brands")}
-            className={`flex-1 rounded-lg px-4 py-2.5 text-[13px] font-bold transition-colors ${
-              tab === "brands" ? "bg-[#2563eb] text-white" : textSecondary
-            }`}
-          >
-            For Brands
-          </button>
-        </div>
+            <nav
+              aria-label="Onboarding path"
+              className="mt-6 flex gap-0.5 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            >
+              {(
+                [
+                  { id: "creators" as const, label: "For creators" },
+                  { id: "brands" as const, label: "For brands" },
+                ] as const
+              ).map((item) => {
+                const active = tab === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setTab(item.id)}
+                    aria-pressed={active}
+                    className={cn(
+                      "h-10 shrink-0 border-b-2 px-3 text-[13px] font-medium transition-colors sm:px-4",
+                      active
+                        ? "border-[var(--color-text-primary)] text-[var(--color-text-primary)]"
+                        : "border-transparent text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"
+                    )}
+                  >
+                    {item.label}
+                  </button>
+                );
+              })}
+            </nav>
 
-        <div className="mx-auto max-w-2xl space-y-4">
-          {steps.map((s, i) => (
-            <div key={s.title} className="flex gap-4">
-              <span
-                className="grid size-10 shrink-0 place-items-center rounded-full text-sm font-black text-white"
-                style={{ background: ORANGE }}
-              >
-                {i + 1}
-              </span>
-              <div className="pt-1">
-                <h3 className="text-[14px] font-bold text-[var(--color-text-primary)]">{s.title}</h3>
-                <p className="mt-0.5 text-[12px] leading-relaxed text-[var(--color-text-muted)]">{s.desc}</p>
+            <div className="mt-6">
+              <div className="mb-2 flex items-center justify-between text-[12px] text-[var(--color-text-muted)]">
+                <span>
+                  Step <span className="font-semibold text-[var(--color-text-primary)]">{activeStep + 1}</span> of {steps.length}
+                </span>
+                <span className="font-medium tabular-nums text-[var(--color-text-primary)]">{current.minute}</span>
+              </div>
+              <div className="h-1 overflow-hidden rounded-md bg-[var(--color-surface)]">
+                <div
+                  className="h-full rounded-md transition-all duration-300"
+                  style={{ width: `${progress}%`, background: ORANGE }}
+                />
               </div>
             </div>
-          ))}
+
+            <div className="mt-6 rounded-md bg-[var(--color-surface)] p-4">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">
+                {current.minute}
+              </p>
+              <h3 className="mt-1 text-[16px] font-bold text-[var(--color-text-primary)]">{current.title}</h3>
+              <p className="mt-2 text-[13px] leading-relaxed text-[var(--color-text-muted)]">{current.detail}</p>
+              <Link
+                href={current.href}
+                className="mt-4 inline-flex h-10 items-center gap-1.5 rounded-md px-4 text-[13px] font-bold text-white transition-opacity hover:opacity-90"
+                style={{ background: ORANGE }}
+              >
+                {tab === "creators" ? "Start this step" : "Open brand tools"}
+                <ArrowRight className="size-3.5" />
+              </Link>
+            </div>
+          </div>
+
+          <div className="min-w-0">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-1 lg:gap-2">
+              {steps.map((step, i) => {
+                const selected = activeStep === i;
+                return (
+                  <button
+                    key={step.title}
+                    type="button"
+                    onClick={() => setActiveStep(i)}
+                    aria-pressed={selected}
+                    className={cn(
+                      "grid w-full grid-cols-[auto_1fr_auto] items-center gap-3 rounded-md px-3 py-3 text-left transition-colors",
+                      selected
+                        ? "bg-[var(--color-surface)]"
+                        : "bg-transparent hover:bg-[var(--color-surface)]/70"
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "grid size-8 place-items-center rounded-md text-[12px] font-bold tabular-nums",
+                        selected
+                          ? "text-white"
+                          : "bg-[var(--color-surface)] text-[var(--color-text-muted)]"
+                      )}
+                      style={selected ? { background: ORANGE } : undefined}
+                    >
+                      {i + 1}
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block text-[14px] font-semibold text-[var(--color-text-primary)]">{step.title}</span>
+                      <span className="mt-0.5 block text-[12px] text-[var(--color-text-muted)]">{step.desc}</span>
+                    </span>
+                    <span className="shrink-0 text-[11px] font-medium tabular-nums text-[var(--color-text-muted)]">
+                      {step.minute}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -998,46 +1205,162 @@ export function First30Minutes() {
 }
 
 /* ═══ 15. FAQ ═══ */
-const FAQS = [
-  { q: "How do payouts work?", a: "Earnings are tracked in real time. Once you reach the minimum threshold, payouts are sent instantly to your preferred method." },
-  { q: "Is Jimvio free to join?", a: "Yes — creating an account is completely free. You only pay fees on successful transactions." },
-  { q: "How do I earn commissions?", a: "Share your affiliate link for any product. When someone buys, you earn up to 30% commission." },
-  { q: "Can I sell my own products?", a: "Absolutely. Open a store, list products, and reach buyers across 50+ countries." },
-  { q: "How do UGC campaigns work?", a: "Brands post campaigns. You create content and get paid per view or per approved submission." },
-  { q: "When do I get paid?", a: "Payouts are processed as soon as your balance hits the minimum — usually within 24 hours." },
+type FaqTopic = "all" | "start" | "earn" | "sell" | "ugc";
+
+const FAQ_TOPICS: { id: FaqTopic; label: string }[] = [
+  { id: "all", label: "All" },
+  { id: "start", label: "Getting started" },
+  { id: "earn", label: "Earnings" },
+  { id: "sell", label: "Selling" },
+  { id: "ugc", label: "UGC" },
+];
+
+const FAQS: { topic: Exclude<FaqTopic, "all">; q: string; a: string }[] = [
+  {
+    topic: "start",
+    q: "Does it cost anything to sign up?",
+    a: "No. Creating an account is free. Fees only apply when you complete a sale or receive a paid payout.",
+  },
+  {
+    topic: "earn",
+    q: "When do I get paid?",
+    a: "Earnings hit your wallet after sales or approved campaign work. Once you pass the minimum, request a payout — most clear within a day.",
+  },
+  {
+    topic: "earn",
+    q: "How do affiliate commissions work?",
+    a: "Grab a product link, share it, and earn the rate shown on that listing when someone buys. Rates vary by product, up to 30% on some items.",
+  },
+  {
+    topic: "sell",
+    q: "Can I open a store here?",
+    a: "Yes. List physical or digital products, set your prices, and ship to buyers in 50+ countries from your vendor dashboard.",
+  },
+  {
+    topic: "ugc",
+    q: "How do UGC campaigns pay?",
+    a: "Each campaign lists its rate upfront — per view or per approved post. Submit your content on the allowed platforms and track earnings in your dashboard.",
+  },
+  {
+    topic: "ugc",
+    q: "Do I need a big following to join a campaign?",
+    a: "Not always. Brands set their own requirements. Check the brief on each campaign before you join.",
+  },
+  {
+    topic: "start",
+    q: "Is my money safe on Jimvio?",
+    a: "Payments run through secure processors. Vendors go through verification, and transactions are tracked in your account.",
+  },
 ];
 
 export function FAQSection() {
-  const [open, setOpen] = useState<number | null>(null);
+  const [topic, setTopic] = useState<FaqTopic>("all");
+  const [open, setOpen] = useState<Set<number>>(new Set());
+
+  const filtered = useMemo(
+    () => (topic === "all" ? FAQS : FAQS.filter((f) => f.topic === topic)),
+    [topic]
+  );
+
+  useEffect(() => {
+    setOpen(new Set());
+  }, [topic]);
+
+  const toggle = (index: number) => {
+    setOpen((prev) => {
+      const next = new Set(prev);
+      if (next.has(index)) next.delete(index);
+      else next.add(index);
+      return next;
+    });
+  };
+
   return (
     <section className={`${section} py-12 sm:py-16`}>
       <div className={shell}>
-        <SectionTitle>Frequently Asked Questions</SectionTitle>
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-          {FAQS.map((f, i) => {
-            const isOpen = open === i;
+        <h2 className="text-[22px] font-black tracking-tight text-[var(--color-text-primary)] sm:text-[26px]">
+          Common questions
+        </h2>
+        <p className="mt-2 text-[14px] text-[var(--color-text-muted)]">
+          Filter by topic, open what you need.
+        </p>
+
+        <nav
+          aria-label="Filter FAQ by topic"
+          className="mt-6 flex gap-0.5 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
+          {FAQ_TOPICS.map((t) => {
+            const active = topic === t.id;
             return (
-              <div key={f.q} className={`overflow-hidden ${cardBase}`}>
-                <button
-                  type="button"
-                  onClick={() => setOpen(isOpen ? null : i)}
-                  className="flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left"
-                >
-                  <span className="text-[13px] font-bold text-[var(--color-text-primary)]">{f.q}</span>
-                  <ChevronDown
-                    className="size-4 shrink-0 text-[var(--color-text-muted)] transition-transform"
-                    style={{ transform: isOpen ? "rotate(180deg)" : "none" }}
-                  />
-                </button>
-                {isOpen && (
-                  <p className="border-t border-[var(--color-border)] px-4 py-3 text-[12px] leading-relaxed text-[var(--color-text-muted)]">
-                    {f.a}
-                  </p>
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setTopic(t.id)}
+                aria-pressed={active}
+                className={cn(
+                  "h-10 shrink-0 border-b-2 px-3 text-[13px] font-medium transition-colors sm:px-4",
+                  active
+                    ? "border-[var(--color-text-primary)] text-[var(--color-text-primary)]"
+                    : "border-transparent text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"
                 )}
-              </div>
+              >
+                {t.label}
+              </button>
             );
           })}
+        </nav>
+
+        <div className="mt-6">
+          {filtered.length === 0 ? (
+            <p className="py-8 text-center text-[13px] text-[var(--color-text-muted)]">
+              Nothing in this topic yet. Try another filter.
+            </p>
+          ) : (
+            filtered.map((f, i) => {
+              const isOpen = open.has(i);
+              return (
+                <div key={f.q}>
+                  <button
+                    type="button"
+                    onClick={() => toggle(i)}
+                    aria-expanded={isOpen}
+                    className="grid w-full grid-cols-[1fr_auto] items-start gap-3 py-4 text-left transition-colors hover:bg-[var(--color-surface-secondary)]/50"
+                  >
+                    <span className="min-w-0">
+                      <span className="block text-[14px] font-semibold leading-snug text-[var(--color-text-primary)]">
+                        {f.q}
+                      </span>
+                      {isOpen && (
+                        <span className="mt-2 block text-[13px] leading-relaxed text-[var(--color-text-muted)]">
+                          {f.a}
+                        </span>
+                      )}
+                    </span>
+                    <ChevronDown
+                      className={cn(
+                        "mt-0.5 size-4 shrink-0 text-[var(--color-text-muted)] transition-transform duration-200",
+                        isOpen && "rotate-180"
+                      )}
+                      aria-hidden
+                    />
+                  </button>
+                </div>
+              );
+            })
+          )}
         </div>
+
+        <p className="mt-4 text-[13px] text-[var(--color-text-muted)]">
+          Can&apos;t find what you&apos;re looking for?{" "}
+          <Link href="/help" className="font-semibold text-[var(--color-text-primary)] underline-offset-2 hover:underline">
+            Browse help articles
+          </Link>
+          {" "}or{" "}
+          <Link href="/contact" className="font-semibold text-[var(--color-text-primary)] underline-offset-2 hover:underline">
+            contact support
+          </Link>
+          .
+        </p>
       </div>
     </section>
   );

@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   Radio, Mic, Users, Image as ImageIcon, Video, Scissors, BarChart3,
   Layers, Target, Bot, DollarSign, Play, ChevronRight, Loader2, Flame,
-  Sparkles, Plus,
+  Sparkles, Plus, GraduationCap, Calendar, Wallet,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { FeedSection } from "@/components/community/workspace/sections/Feed";
@@ -22,13 +22,20 @@ const FEED_TABS = [
   { label: "AI Picks", filter: "ai-picks" },
 ] as const;
 
-const QUICK_ACTIONS = [
-  { icon: ImageIcon, label: "Photo" },
-  { icon: Video, label: "Video" },
-  { icon: Scissors, label: "Clip" },
-  { icon: BarChart3, label: "Poll" },
-  { icon: Target, label: "Mission", href: "/c/missions" },
-  { icon: Sparkles, label: "AI Assist" },
+const HUB_QUICK_LINKS = [
+  { icon: Radio, label: "Go Live", href: "/c/live", color: "#ef4444" },
+  { icon: Target, label: "Missions", href: "/c/missions", color: "#3b82f6" },
+  { icon: GraduationCap, label: "Courses", href: "/c/courses", color: "#8b5cf6" },
+  { icon: Calendar, label: "Events", href: "/c/events", color: "#f59e0b" },
+  { icon: Wallet, label: "Wallet", href: "/c/wallet", color: "#22c55e" },
+  { icon: Layers, label: "Spaces", href: "/c/spaces", color: "#fd5000" },
+] as const;
+
+const CREATE_LINKS = [
+  { icon: Radio, label: "Go Live", desc: "Start a live session", href: "/c/live", color: "#ef4444" },
+  { icon: Mic, label: "Voice Room", desc: "Host audio chat", href: "/c/live", color: "#8b5cf6" },
+  { icon: Scissors, label: "Upload Clip", desc: "Share a short video", href: "/c", color: "#fd5000" },
+  { icon: Target, label: "Create Mission", desc: "Challenge your community", href: "/c/missions", color: "#3b82f6" },
 ] as const;
 
 type HubDashboard = {
@@ -166,6 +173,25 @@ export function HubFeedPage() {
             />
           </div>
 
+          {/* Mobile / tablet quick links — sidebar features when right rail is hidden */}
+          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide lg:hidden">
+            {HUB_QUICK_LINKS.map(({ icon: Icon, label, href, color }) => (
+              <Link
+                key={label}
+                href={href}
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-[11px] font-semibold text-[var(--color-text-primary)] transition hover:border-[#fd5000]/30"
+              >
+                <span
+                  className="flex h-6 w-6 items-center justify-center rounded-full"
+                  style={{ background: `${color}14`, color }}
+                >
+                  <Icon className="h-3.5 w-3.5" />
+                </span>
+                {label}
+              </Link>
+            ))}
+          </div>
+
           {/* Creator challenge */}
           {challenge && (
             <HubCard>
@@ -247,7 +273,14 @@ export function HubFeedPage() {
                   />
                 </div>
                 <div className="mt-2.5 flex flex-wrap items-center gap-0.5">
-                  {QUICK_ACTIONS.map(({ icon: Icon, label, ...rest }) => {
+                  {[
+                    { icon: ImageIcon, label: "Photo" },
+                    { icon: Video, label: "Video" },
+                    { icon: Scissors, label: "Clip" },
+                    { icon: BarChart3, label: "Poll" },
+                    { icon: Target, label: "Mission", href: "/c/missions" },
+                    { icon: Sparkles, label: "AI Assist" },
+                  ].map(({ icon: Icon, label, ...rest }) => {
                     const href = "href" in rest ? rest.href : undefined;
                     const cls = "inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-[11px] font-semibold text-[var(--color-text-muted)] transition hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]";
                     if (href) {
@@ -301,16 +334,11 @@ export function HubFeedPage() {
         </div>
 
         {/* ── Right sidebar — matches mockup widgets ── */}
-        <aside className="hidden w-[300px] shrink-0 space-y-4 xl:block">
+        <aside className="hidden w-[280px] shrink-0 space-y-4 lg:block xl:w-[300px]">
           <HubCard>
             <HubSectionTitle title="Create" badge="Quick" />
             <div className="space-y-0.5">
-              {[
-                { icon: Radio, label: "Go Live", desc: "Start a live session", href: "/c/live", color: "#ef4444" },
-                { icon: Mic, label: "Voice Room", desc: "Host audio chat", href: "/c/live", color: "#8b5cf6" },
-                { icon: Scissors, label: "Upload Clip", desc: "Share a short video", href: "/c", color: "#fd5000" },
-                { icon: Target, label: "Create Mission", desc: "Challenge your community", href: "/c/missions", color: "#3b82f6" },
-              ].map(({ icon: Icon, label, desc, href, color }) => (
+              {CREATE_LINKS.map(({ icon: Icon, label, desc, href, color }) => (
                 <Link key={label} href={href} className="flex items-center gap-2.5 rounded-md px-2 py-2 transition hover:bg-[var(--color-surface-secondary)]">
                   <div className="flex h-8 w-8 items-center justify-center rounded-md" style={{ background: `${color}14`, color }}>
                     <Icon className="h-4 w-4" />

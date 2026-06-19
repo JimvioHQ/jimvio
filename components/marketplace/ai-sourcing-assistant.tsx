@@ -1,24 +1,62 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { motion, AnimatePresence } from "framer-motion";
-import { 
-  Sparkles, X, Brain, Send, Search, Package, 
-  ShieldCheck, ArrowRight, Loader2, MessageSquare, 
-  Table as TableIcon, Layers, Zap, Ship, TrendingUp, Paperclip
+import Link from "next/link";
+import { JimvioAIMascot } from "@/components/ui/jimvio-ai-mascot";
+import { useRouter } from "next/navigation";
+import {
+  Sparkles,
+  X,
+  Brain,
+  Send,
+  Package,
+  ShieldCheck,
+  ArrowRight,
+  Loader2,
+  TrendingUp,
+  Megaphone,
+  Store,
+  Percent,
+  Users,
+  Radio,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-
 import { useAIStore } from "@/lib/store/use-ai-store";
 
 const SMART_QUERIES = [
-  { icon: ShieldCheck, label: "Find verified manufacturers", query: "Who are the top verified manufacturers for consumer electronics?" },
-  { icon: Ship, label: "Compare shipping rates", query: "Compare shipping rates from China to Rwanda for bulk textile orders." },
-  { icon: TrendingUp, label: "Market trend analysis", query: "What are the rising product trends in West African fashion?" },
-  { icon: Brain, label: "Analyze bestsellers", query: "Analyze the top 10 best-selling home decor products this month." },
+  {
+    icon: TrendingUp,
+    label: "Profitable products",
+    query: "What are the most profitable products to promote on Jimvio right now?",
+  },
+  {
+    icon: Percent,
+    label: "Top commissions",
+    query: "Which affiliate products have the highest commission rates today?",
+  },
+  {
+    icon: Megaphone,
+    label: "UGC campaigns",
+    query: "What UGC campaigns are paying creators the most right now?",
+  },
+  {
+    icon: Store,
+    label: "Start selling",
+    query: "How do I launch and sell products on Jimvio as a new vendor?",
+  },
+  {
+    icon: Users,
+    label: "Grow community",
+    query: "How can I build and monetize a community on Jimvio?",
+  },
+  {
+    icon: Radio,
+    label: "Host live events",
+    query: "How can I host live events and monetize my audience on Jimvio?",
+  },
 ];
 
 interface Message {
@@ -26,31 +64,250 @@ interface Message {
   role: "user" | "ai";
   content: string;
   type?: "text" | "products" | "comparison";
-  data?: any;
+  data?: {
+    id: string;
+    name: string;
+    price: string;
+    mqo: string;
+    slug?: string;
+  }[];
   links?: { label: string; href: string }[];
   thinking?: boolean;
 }
 
+function renderMarkdownLite(text: string) {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return (
+        <strong key={i} className="font-semibold text-[var(--color-text-primary)]">
+          {part.slice(2, -2)}
+        </strong>
+      );
+    }
+    return <span key={i}>{part}</span>;
+  });
+}
+
+function ThinkingBubble() {
+  return (
+    <div className="inline-flex items-center gap-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-4 py-3">
+      <div className="flex items-center gap-1">
+        {[0, 150, 300].map((delay) => (
+          <span
+            key={delay}
+            className="size-1.5 rounded-full bg-[#fd5000] animate-bounce"
+            style={{ animationDelay: `${delay}ms` }}
+          />
+        ))}
+      </div>
+      <span className="text-[12px] font-medium text-[var(--color-text-muted)]">
+        Jimvio AI is thinking…
+      </span>
+    </div>
+  );
+}
+
 export function AISourcingAssistant() {
+  const router = useRouter();
   const { isAssistantOpen: isOpen, closeAssistant: onClose, initialQuery } = useAIStore();
   const [query, setQuery] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
+  const [isSending, setIsSending] = useState(false);
+  const [isDemoMode, setIsDemoMode] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const processedInitial = useRef(false);
+  const processedInitial = useRef("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleSend = useCallback(
+    async (text = query) => {
+      if (!text.trim() || isSending) return;
+
+      const userMsg: Message = { id: Date.now().toString(), role: "user", content: text.trim() };
+      const chatHistory = [...messages, userMsg];
+      setMessages((prev) => [...prev, userMsg]);
+      setQuery("");
+      setIsSending(true);
+
+      const aiId = (Date.now() + 1).toString();
+      setMessages((prev) => [...prev, { id: aiId, role: "ai", content: "", thinking: true }]);
+
+      try {
+        const res = await fetch("/api/ai/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            messages: chatHistory.map((m) => ({
+              role: m.role === "ai" ? "assistant" : "user",
+              content: m.content,
+            })),
+          }),
+        });
+
+        if (!res.ok) {
+          const errData = await res.json();
+          throw new Error(errData.message || "Failed to reach AI");
+        }
+
+        const aiMode = res.headers.get("X-Jimvio-AI-Mode");
+        setIsDemoMode(aiMode === "demo");
+
+        const reader = res.body?.getReader();
+        if (!reader) throw new Error("No stream found");
+        const decoder = new TextDecoder();
+        let fullContent = "";
+        let sseBuffer = "";
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          sseBuffer += decoder.decode(value, { stream: true });
+          const lines = sseBuffer.split("\n");
+          sseBuffer = lines.pop() ?? "";
+
+          for (const line of lines) {
+            if (!line.startsWith("data: ")) continue;
+            const data = line.slice(6).trim();
+            if (!data || data === "[DONE]") continue;
+
+            try {
+              const json = JSON.parse(data);
+              const content = json.choices[0]?.delta?.content || "";
+              if (!content) continue;
+              fullContent += content;
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === aiId
+                    ? { ...m, content: fullContent, thinking: !fullContent.trim() }
+                    : m
+                )
+              );
+            } catch {
+              // skip malformed stream chunk
+            }
+          }
+        }
+
+        if (sseBuffer.startsWith("data: ")) {
+          const data = sseBuffer.slice(6).trim();
+          if (data && data !== "[DONE]") {
+            try {
+              const json = JSON.parse(data);
+              const content = json.choices[0]?.delta?.content || "";
+              if (content) fullContent += content;
+            } catch {
+              // ignore trailing partial chunk
+            }
+          }
+        }
+
+        let finalContent = fullContent;
+        let productData: Message["data"];
+        let quickLinks: { label: string; href: string }[] | undefined;
+
+        const productMatch = fullContent.match(/\[PRODUCTS:\s*"(.*)"\]/);
+        const linksMatch = fullContent.match(/\[LINKS:\s*(.*)\]/);
+
+        if (productMatch) {
+          const searchQuery = productMatch[1];
+          finalContent = finalContent.replace(productMatch[0], "").trim();
+          try {
+            const prefetched = await fetch(
+              `/api/search/suggestions?q=${encodeURIComponent(searchQuery)}`
+            );
+            const d = await prefetched.json();
+            if (d.products?.length > 0) {
+              productData = d.products.map(
+                (p: {
+                  id: string;
+                  name: string;
+                  price?: number | null;
+                  price_usd?: number | null;
+                  inventory_quantity?: number | null;
+                  slug?: string;
+                }) => {
+                  const amount = p.price_usd ?? p.price ?? 0;
+                  return {
+                    id: p.id,
+                    name: p.name,
+                    price: amount > 0 ? `$${Number(amount).toLocaleString()}` : "View price",
+                    mqo: `${p.inventory_quantity ?? 1} pcs`,
+                    slug: p.slug,
+                  };
+                }
+              );
+            }
+          } catch {
+            // product suggestions are optional
+          }
+        }
+
+        if (linksMatch) {
+          try {
+            quickLinks = linksMatch[1].split(",").map((item) => {
+              const cleaned = item.replace(/"/g, "").trim();
+              const parts = cleaned.split("|");
+              return {
+                label: parts[0]?.trim() || "Open",
+                href: parts[1]?.trim() || "/",
+              };
+            });
+            finalContent = finalContent.replace(linksMatch[0], "").trim();
+          } catch {
+            // ignore parse errors
+          }
+        }
+
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === aiId
+              ? {
+                  ...m,
+                  content: finalContent.trim(),
+                  thinking: false,
+                  type: productData ? "products" : "text",
+                  data: productData,
+                  links: quickLinks,
+                }
+              : m
+          )
+        );
+      } catch (err: unknown) {
+        const errorMsg = err instanceof Error ? err.message : "Unknown error";
+        const isConfigError =
+          errorMsg.toLowerCase().includes("key") || errorMsg.includes("GOOGLE_GENERATIVE_AI");
+
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === aiId
+              ? {
+                  ...m,
+                  thinking: false,
+                  content: isConfigError
+                    ? "I'm ready to help! Add **GOOGLE_GENERATIVE_AI_API_KEY** or **OPENAI_API_KEY** to your `.env` to enable full AI responses. Until then, browse the marketplace and UGC campaigns to get started."
+                    : `Something went wrong: **${errorMsg}**. Please try again in a moment.`,
+                }
+              : m
+          )
+        );
+      } finally {
+        setIsSending(false);
+        inputRef.current?.focus();
+      }
+    },
+    [query, messages, isSending]
+  );
 
   useEffect(() => {
-    if (isOpen && initialQuery && !processedInitial.current) {
+    if (isOpen && initialQuery.trim() && processedInitial.current !== initialQuery) {
+      processedInitial.current = initialQuery;
       handleSend(initialQuery);
-      processedInitial.current = true;
     }
-  }, [isOpen, initialQuery]);
+  }, [isOpen, initialQuery, handleSend]);
 
   useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "unset";
-    }
+    document.body.style.overflow = isOpen ? "hidden" : "unset";
     return () => {
       document.body.style.overflow = "unset";
     };
@@ -59,348 +316,230 @@ export function AISourcingAssistant() {
   useEffect(() => {
     if (!isOpen) {
       setMessages([]);
-      processedInitial.current = false;
+      setQuery("");
+      processedInitial.current = "";
+      setIsSending(false);
+      setIsDemoMode(false);
     }
   }, [isOpen]);
 
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages]);
 
-  const handleSend = async (text = query) => {
-    if (!text.trim()) return;
-    
-    // 1. Add user message
-    const userMsg: Message = { id: Date.now().toString(), role: "user", content: text };
-    const chatHistory = [...messages, userMsg];
-    setMessages(prev => [...prev, userMsg]);
-    setQuery("");
-
-    // 2. Add empty AI message with thinking state
-    const aiId = (Date.now() + 1).toString();
-    setMessages(prev => [...prev, { id: aiId, role: "ai", content: "", thinking: true }]);
-
-    try {
-      // 3. Call Chat API (Streaming)
-      const res = await fetch("/api/ai/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-           messages: chatHistory.map(m => ({ role: m.role === "ai" ? "assistant" : "user", content: m.content }))
-        })
-      });
-
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.message || "Failed to reach AI");
-      }
-
-      // 4. Handle Stream (SSE Parsing)
-      const reader = res.body?.getReader();
-      if (!reader) throw new Error("No stream found");
-      const decoder = new TextDecoder();
-      let fullContent = "";
-
-      // Remove thinking state when stream starts
-      setMessages(prev => prev.map(m => m.id === aiId ? { ...m, thinking: false } : m));
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        
-        const chunk = decoder.decode(value);
-        const lines = chunk.split("\n");
-
-        for (const line of lines) {
-           if (line.startsWith("data: ")) {
-              const data = line.slice(6).trim();
-              if (data === "[DONE]") continue;
-
-              try {
-                 const json = JSON.parse(data);
-                 const content = json.choices[0]?.delta?.content || "";
-                 fullContent += content;
-
-                 // Update UI
-                 setMessages(prev => prev.map(m => m.id === aiId ? { ...m, content: fullContent } : m));
-              } catch (e) {
-                 // Skip malformed JSON in stream
-              }
-           }
-        }
-      }
-
-      let finalContent = fullContent;
-      let productData: any = undefined;
-      let quickLinks: {label: string, href: string}[] | undefined = undefined;
-
-      // 5. Post-Process (Detect Tags)
-      const productMatch = fullContent.match(/\[PRODUCTS:\s*"(.*)"\]/);
-      const linksMatch = fullContent.match(/\[LINKS:\s*(.*)\]/);
-
-      if (productMatch) {
-         const searchQuery = productMatch[1];
-         finalContent = finalContent.replace(productMatch[0], "").trim();
-         
-         const prefetched = await fetch(`/api/search/suggestions?q=${encodeURIComponent(searchQuery)}`);
-         const d = await prefetched.json();
-         if (d.products?.length > 0) {
-            productData = d.products.map((p: any) => ({
-               id: p.id,
-               name: p.name,
-               price: `$${p.price.toLocaleString()}`,
-               mqo: `${p.moq} pcs`,
-               slug: p.slug
-            }));
-         }
-      }
-
-      if (linksMatch) {
-         try {
-           const linksStr = linksMatch[1];
-           // Parse links like "Label|/path", "Label|/path"
-           const linkItems = linksStr.split(",").map(item => {
-              const cleaned = item.replace(/"/g, "").trim();
-              const parts = cleaned.split("|");
-              const label = parts[0]?.trim() || "Link";
-              const href = parts[1]?.trim() || "#";
-              return { label, href };
-           });
-           quickLinks = linkItems;
-           finalContent = finalContent.replace(linksMatch[0], "").trim();
-         } catch (e) {}
-      }
-
-      // 6. Update final state
-      setMessages(prev => prev.map(m => m.id === aiId ? { 
-         ...m, 
-         content: finalContent, 
-         type: productData ? "products" : "text", 
-         data: productData,
-         links: quickLinks 
-      } : m));
-
-    } catch (err: any) {
-      const errorMsg = err.message || "Unknown error";
-      const isConfigError = errorMsg.toLowerCase().includes("key") || errorMsg.includes("GOOGLE_GENERATIVE_AI");
-
-      console.error("[AI Assistant Error]:", errorMsg);
-
-      setMessages(prev => prev.map(m => m.id === aiId ? {
-        ...m,
-        thinking: false,
-        content: isConfigError
-          ? "I'm ready to answer any question! To activate my full intelligence, please add a **GOOGLE_GENERATIVE_AI_API_KEY** to your **.env** file from **aistudio.google.com**. Once added, I can handle everything from market trends to logistics." 
-          : `Something went wrong: **${errorMsg}**. Please check your Gemini API usage or check the console.`
-      } : m));
-    }
-  };
-
   const [portalReady, setPortalReady] = useState(false);
+  useEffect(() => setPortalReady(true), []);
 
-  useEffect(() => {
-    setPortalReady(true);
-  }, []);
+  const navigateTo = (href: string) => {
+    onClose();
+    if (href.startsWith("http")) window.open(href, "_blank");
+    else router.push(href);
+  };
 
   if (!isOpen || !portalReady) return null;
 
   return createPortal(
-    <div 
-      className="fixed top-0 left-0 right-0 bottom-0 z-[9999] bg-white dark:bg-surface w-full h-full min-h-full flex flex-col overflow-hidden"
-      style={{ height: "100%", bottom: 0, top: 0 }}
-    >
-      {/* HEADER */}
-      <div className="flex items-center justify-between px-4 sm:px-10 py-3 sm:py-5 border-b border-zinc-100 dark:border-border bg-white dark:bg-surface sticky top-0 z-20">
+    <div className="fixed inset-0 z-[9999] flex flex-col bg-[var(--color-bg)]">
+      {/* Header */}
+      <header className="sticky top-0 z-20 flex items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 sm:px-6">
         <div className="flex items-center gap-3">
-          <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-sm bg-orange-500 flex items-center justify-center text-white shadow-none shadow-orange-500/10">
-            <Brain size={16} className="sm:size-[18px]" />
-          </div>
+          <span className="grid size-9 place-items-center rounded-lg bg-gradient-to-br from-[#fd5000] to-[#ff7a45] text-white">
+            <Sparkles className="size-4" />
+          </span>
           <div>
-            <h2 className="text-[14px] sm:text-[16px] font-black text-zinc-900 dark:text-white leading-none">Jimvio AI</h2>
-            <div className="flex items-center gap-1.5 mt-0.5 sm:mt-1">
-               <span className="h-1 w-1 sm:h-1.5 sm:w-1.5 rounded-sm bg-green-500 animate-pulse" />
-               <p className="text-[8px] sm:text-[9px] font-black text-zinc-400 capitalize tracking-widest hidden xs:block">Active Assistant</p>
-            </div>
+            <h2 className="text-[15px] font-bold text-[var(--color-text-primary)]">Jimvio AI</h2>
+            <p className="flex items-center gap-1.5 text-[11px] text-[var(--color-text-muted)]">
+              <span
+                className={cn(
+                  "size-1.5 rounded-full animate-pulse",
+                  isDemoMode ? "bg-amber-500" : "bg-emerald-500"
+                )}
+              />
+              {isDemoMode ? "Demo mode · renew API keys in .env" : "Online · ready to help"}
+            </p>
           </div>
         </div>
-        <button 
+        <button
+          type="button"
           onClick={onClose}
-          className="h-9 w-9 sm:h-10 sm:w-10 flex items-center justify-center rounded-sm hover:bg-zinc-100 transition-colors"
+          aria-label="Close assistant"
+          className="grid size-9 place-items-center rounded-lg text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
         >
-          <X size={18} className="text-zinc-400" />
+          <X className="size-5" />
         </button>
-      </div>
+      </header>
 
-      {/* VIEWPORT */}
-      <div className="flex-1 overflow-hidden flex flex-col relative">
-        {/* MESSAGES / CHAT AREA */}
-        <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 sm:p-10 space-y-6 sm:space-y-8 scroll-smooth no-scrollbar">
+      {isDemoMode && (
+        <div className="border-b border-amber-500/20 bg-amber-500/10 px-4 py-2 text-center text-[12px] text-amber-800 dark:text-amber-200 sm:px-6">
+          Live AI is unavailable. Showing guided Jimvio answers until you add a valid{" "}
+          <code className="rounded bg-black/5 px-1 py-0.5 text-[11px]">OPENAI_API_KEY</code> or{" "}
+          <code className="rounded bg-black/5 px-1 py-0.5 text-[11px]">GOOGLE_GENERATIVE_AI_API_KEY</code> in{" "}
+          <code className="rounded bg-black/5 px-1 py-0.5 text-[11px]">.env</code>.
+        </div>
+      )}
+
+      {/* Messages */}
+      <div
+        ref={scrollRef}
+        className="flex-1 overflow-y-auto px-4 py-6 sm:px-6 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      >
+        <div className="mx-auto flex w-full max-w-3xl flex-col gap-5">
           {messages.length === 0 && (
-            <div className="h-full flex flex-col items-center justify-center text-center max-w-2xl mx-auto py-8 lg:py-20">
-              <div className="p-3 sm:p-4 rounded-sm sm:rounded-sm bg-orange-50 mb-6 sm:mb-8">
-                 <Sparkles className="h-8 w-8 sm:h-12 sm:w-12 text-orange-500" />
-              </div>
-              <h3 className="text-[22px] sm:text-[36px] font-black text-zinc-900 dark:text-white tracking-tight leading-tight px-4 capitalize">
-                 Describe your <span className="text-orange-500">Sourcing Goals</span>
+            <div className="py-6 text-center sm:py-10">
+              <JimvioAIMascot size="sm" showRings className="mx-auto mb-5" />
+              <h3 className="text-[22px] font-black tracking-tight text-[var(--color-text-primary)] sm:text-[28px]">
+                How can I help you <span className="text-[#fd5000]">earn more</span>?
               </h3>
-              <p className="text-[13px] sm:text-[15px] font-medium text-zinc-400 mt-3 sm:mt-4 max-w-xs sm:max-w-md px-4">
-                I'll analyze 240,000+ products and verified vendors to find you the best deals and logistics paths.
+              <p className="mx-auto mt-2 max-w-md text-[13px] leading-relaxed text-[var(--color-text-muted)]">
+                Ask about products, commissions, UGC campaigns, selling, communities, or your next growth step.
               </p>
 
-              {/* Smart Pills (Inside Modal) */}
-              <div className="mt-8 sm:mt-12 flex sm:flex-wrap gap-2 sm:gap-2.5 justify-start sm:justify-center overflow-x-auto no-scrollbar w-full px-4 pb-2">
-                 {SMART_QUERIES.map((sq, i) => (
-                    <button
-                      key={i}
-                      onClick={() => handleSend(sq.query)}
-                      className="flex-none flex items-center gap-2 px-4 py-2.5 sm:px-5 sm:py-3 rounded-sm sm:rounded-sm bg-zinc-50 dark:bg-surface/50 border border-zinc-100 dark:border-border hover:border-orange-200 hover:bg-white dark:bg-surface hover:shadow-none hover:shadow-orange-500/5 transition-all group"
-                    >
-                      <sq.icon size={14} className="text-zinc-400 group-hover:text-orange-500" />
-                      <span className="text-[12px] sm:text-[13px] font-black text-zinc-600 group-hover:text-zinc-900 dark:text-white whitespace-nowrap">{sq.label}</span>
-                    </button>
-                 ))}
+              <div className="mt-8 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {SMART_QUERIES.map((sq) => (
+                  <button
+                    key={sq.label}
+                    type="button"
+                    onClick={() => handleSend(sq.query)}
+                    disabled={isSending}
+                    className="flex items-center gap-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-left transition-colors hover:border-[#fd5000]/30 hover:bg-[var(--color-surface-secondary)] disabled:opacity-50"
+                  >
+                    <span className="grid size-8 shrink-0 place-items-center rounded-md bg-[#fd5000]/10 text-[#fd5000]">
+                      <sq.icon className="size-4" />
+                    </span>
+                    <span className="text-[13px] font-semibold text-[var(--color-text-primary)]">{sq.label}</span>
+                  </button>
+                ))}
               </div>
             </div>
           )}
 
           {messages.map((msg) => (
-            <div key={msg.id} className={cn(
-              "flex gap-3 sm:gap-6",
-              msg.role === "user" ? "flex-reverse items-end justify-end" : "items-start"
-            )}>
-              {msg.role === "ai" && (
-                <Avatar className="h-8 w-8 sm:h-10 sm:w-10 shrink-0 border border-orange-100 bg-orange-50">
-                  <AvatarFallback><Brain size={14} className="text-orange-600 sm:size-[18px]" /></AvatarFallback>
-                </Avatar>
+            <div
+              key={msg.id}
+              className={cn(
+                "flex gap-3",
+                msg.role === "user" ? "flex-row-reverse" : "flex-row"
               )}
-              
-              <div className={cn(
-                "max-w-[90%] sm:max-w-[70%] space-y-3 sm:space-y-4",
-                msg.role === "user" ? "text-right" : "text-left"
-              )}>
-                {msg.content && (
-                  <div className={cn(
-                    "p-4 sm:p-6 rounded-sm sm:rounded-sm",
-                    msg.role === "user" 
-                      ? "bg-zinc-900 text-white rounded-sm-none" 
-                      : "bg-zinc-50 dark:bg-surface/50 border border-zinc-100 dark:border-border text-zinc-800 dark:text-text-secondary text-[14px] sm:text-[16px] font-medium leading-relaxed"
-                  )}>
-                    {msg.content}
+            >
+              <Avatar className="size-8 shrink-0 border border-[var(--color-border)]">
+                <AvatarFallback
+                  className={cn(
+                    "text-[10px] font-bold",
+                    msg.role === "user"
+                      ? "bg-[var(--color-text-primary)] text-[var(--color-bg)]"
+                      : "bg-[#fd5000]/10 text-[#fd5000]"
+                  )}
+                >
+                  {msg.role === "user" ? "You" : <Brain className="size-3.5" />}
+                </AvatarFallback>
+              </Avatar>
+
+              <div
+                className={cn(
+                  "min-w-0 max-w-[85%] space-y-2",
+                  msg.role === "user" ? "items-end text-right" : "items-start text-left"
+                )}
+              >
+                {msg.thinking && !msg.content.trim() && <ThinkingBubble />}
+
+                {msg.content.trim() && (
+                  <div
+                    className={cn(
+                      "rounded-lg px-4 py-3 text-[14px] leading-relaxed",
+                      msg.role === "user"
+                        ? "bg-[var(--color-text-primary)] text-[var(--color-bg)]"
+                        : "border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-secondary)]"
+                    )}
+                  >
+                    {msg.role === "ai" ? renderMarkdownLite(msg.content) : msg.content}
+                    {msg.role === "ai" && msg.thinking && (
+                      <span className="ml-0.5 inline-block h-4 w-0.5 animate-pulse bg-[#fd5000]" />
+                    )}
                   </div>
                 )}
 
-                {msg.thinking && (
-                   <div className="flex flex-col gap-3 p-4 sm:p-6 rounded-sm sm:rounded-sm bg-zinc-50 dark:bg-surface/50 border border-dashed border-zinc-200 dark:border-border">
-                      <div className="flex items-center gap-2 text-[10px] sm:text-[11px] font-black uppercase tracking-widest text-zinc-400 animate-pulse">
-                         <Loader2 size={12} className="animate-spin" /> Analyzing data...
-                      </div>
-                      <div className="space-y-2">
-                         <div className="h-1.5 w-full bg-zinc-200 rounded-sm" />
-                         <div className="h-1.5 w-2/3 bg-zinc-200 rounded-sm" />
-                      </div>
-                   </div>
-                )}
-
                 {msg.links && msg.links.length > 0 && (
-                  <div className="flex flex-wrap gap-2 pt-2">
-                    {msg.links.map((link, idx) => (
-                      <button 
-                        key={idx}
-                        onClick={() => {
-                          if (link.href?.startsWith("http")) window.open(link.href, "_blank");
-                          else { /* handle internal navigation if needed */ }
-                        }}
-                        className="px-4 py-2 rounded-sm bg-white dark:bg-surface border border-zinc-200 dark:border-border text-[12px] font-black text-zinc-600 hover:border-orange-500 hover:text-orange-600 transition-all flex items-center gap-2 group shadow-none"
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {msg.links.map((link) => (
+                      <button
+                        key={link.href + link.label}
+                        type="button"
+                        onClick={() => navigateTo(link.href)}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-[12px] font-semibold text-[#fd5000] transition-colors hover:bg-[#fd5000]/5"
                       >
-                         {link.label} <ArrowRight size={12} className="opacity-0 group-hover:opacity-100 -translate-x-1 group-hover:translate-x-0 transition-all" />
+                        {link.label}
+                        <ArrowRight className="size-3" />
                       </button>
                     ))}
                   </div>
                 )}
 
-                {msg.type === "products" && msg.data && (
-                  <div className="flex sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-4 overflow-x-auto pb-6 sm:pb-0 px-1 sm:px-0 no-scrollbar snap-x snap-mandatory">
-                    {msg.data.map((p: any) => (
-                      <div key={p.id} className="min-w-[85%] xs:min-w-[75%] sm:min-w-0 snap-center p-4 rounded-sm border border-zinc-100 dark:border-border bg-white dark:bg-surface hover:shadow-none hover:shadow-orange-500/10 transition-all group shadow-none flex flex-col">
-                         <div className="flex items-center gap-1.5 mb-3">
-                            <div className="h-1.5 w-1.5 rounded-sm bg-green-500" />
-                            <span className="text-[10px] font-black text-zinc-400 uppercase tracking-tighter">Matches 100% requirements</span>
-                         </div>
-                         <div className="h-40 sm:h-48 w-full mb-4 rounded-sm bg-zinc-50 dark:bg-surface/50 flex flex-col items-center justify-center relative overflow-hidden group-hover:bg-zinc-100 transition-colors">
-                            <Package className="h-10 w-10 text-zinc-200 group-hover:scale-110 transition-transform duration-500" />
-                            <div className="absolute top-2 right-2 flex items-center gap-1 px-2 py-1 rounded-sm bg-white dark:bg-surface/80 border border-zinc-100 dark:border-border text-[10px] font-black shadow-none">
-                               <ShieldCheck size={12} className="text-orange-500" /> Verified
-                            </div>
-                         </div>
-                         <h4 className="text-[14px] font-black text-zinc-900 dark:text-white leading-tight mb-2 group-hover:text-orange-600 transition-colors line-clamp-2">{p.name}</h4>
-                         
-                         <div className="flex flex-col gap-1 mt-auto">
-                            <div className="flex items-end justify-between">
-                               <span className="text-orange-600 font-black text-[18px] leading-none tracking-tight">{p.price}</span>
-                               <span className="text-[10px] font-black text-zinc-400">Min: {p.mqo}</span>
-                            </div>
-                            <div className="flex items-center justify-between mt-3 pt-3 border-t border-zinc-50">
-                               <div className="flex items-center gap-2">
-                                  <div className="h-4 w-6 rounded-sm bg-zinc-100 flex items-center justify-center text-[10px] font-black text-zinc-500">CN</div>
-                                  <span className="text-[10px] font-bold text-zinc-400">6 yrs</span>
-                               </div>
-                               <Button variant="ghost" size="sm" className="h-7 px-2 rounded-sm text-zinc-400 hover:text-zinc-900 dark:text-white">
-                                  <ArrowRight size={14} />
-                                </Button>
-                            </div>
-                         </div>
-                      </div>
+                {msg.type === "products" && msg.data && msg.data.length > 0 && (
+                  <div className="grid grid-cols-1 gap-3 pt-1 sm:grid-cols-2">
+                    {msg.data.map((p) => (
+                      <Link
+                        key={p.id}
+                        href={p.slug ? `/marketplace/${p.slug}` : "/marketplace"}
+                        onClick={onClose}
+                        className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-3 transition-colors hover:border-[#fd5000]/30"
+                      >
+                        <div className="mb-3 flex h-24 items-center justify-center rounded-md bg-[var(--color-surface-secondary)]">
+                          <Package className="size-8 text-[var(--color-text-muted)]" />
+                        </div>
+                        <div className="flex items-center gap-1 mb-1">
+                          <ShieldCheck className="size-3 text-[#fd5000]" />
+                          <span className="text-[10px] font-medium text-[var(--color-text-muted)]">Suggested product</span>
+                        </div>
+                        <h4 className="line-clamp-2 text-[13px] font-bold text-[var(--color-text-primary)]">{p.name}</h4>
+                        <div className="mt-2 flex items-center justify-between text-[12px]">
+                          <span className="font-bold text-[#fd5000]">{p.price}</span>
+                          <span className="text-[var(--color-text-muted)]">MOQ {p.mqo}</span>
+                        </div>
+                      </Link>
                     ))}
                   </div>
                 )}
               </div>
-
-              {msg.role === "user" && (
-                <Avatar className="h-8 w-8 sm:h-10 sm:w-10 shrink-0 border border-zinc-200 dark:border-border">
-                  <AvatarFallback className="bg-zinc-100 font-black text-zinc-600 text-[10px] sm:text-[11px]">ME</AvatarFallback>
-                </Avatar>
-              )}
             </div>
           ))}
         </div>
-
-        {/* FLOATING ACTION BAR */}
-        <div className="px-3 sm:px-6 pb-6 sm:pb-10 pt-2 sm:pt-4 bg-white dark:bg-surface border-t border-zinc-50 sm:border-0">
-           <div className="max-w-4xl mx-auto">
-             <form 
-               onSubmit={(e) => { e.preventDefault(); handleSend(); }}
-               className="relative flex items-center"
-             >
-                <div className="absolute left-4 sm:left-6 text-orange-500">
-                  <Sparkles size={16} className="sm:size-5" />
-                </div>
-                <input 
-                  type="text"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder={messages.length === 0 ? "What are you sourcing?" : "Ask follow-up..."}
-                  className="w-full h-14 sm:h-20 pl-11 sm:pl-16 pr-20 sm:pr-24 bg-zinc-50 dark:bg-surface/50 rounded-sm border-2 border-transparent focus:border-orange-500 focus:bg-white dark:bg-surface outline-none text-[14px] sm:text-[18px] font-bold text-zinc-900 dark:text-white shadow-none transition-all"
-                />
-                <div className="absolute right-3 sm:right-4 flex items-center gap-1 sm:gap-2">
-                  <button type="button" className="p-2 sm:p-3 text-zinc-400 hover:text-orange-500 transition-colors">
-                    <Paperclip size={18} className="sm:size-5" />
-                  </button>
-                  <button 
-                    type="submit"
-                    disabled={!query.trim()}
-                    className="h-10 w-10 sm:h-12 sm:w-12 bg-zinc-900 disabled:bg-zinc-100 text-white rounded-sm flex items-center justify-center hover:scale-105 transition-all shadow-none shadow-black/10"
-                  >
-                    <Send size={15} className="sm:size-[18px]" />
-                  </button>
-                </div>
-             </form>
-           </div>
-        </div>
       </div>
+
+      {/* Input */}
+      <footer className="border-t border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-4 sm:px-6">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleSend();
+          }}
+          className="mx-auto flex w-full max-w-3xl items-center gap-2"
+        >
+          <div className="relative min-w-0 flex-1">
+            <Sparkles className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-[#fd5000]" />
+            <input
+              ref={inputRef}
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              disabled={isSending}
+              placeholder={messages.length === 0 ? "Ask Jimvio AI anything…" : "Ask a follow-up…"}
+              className="h-12 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-secondary)] pl-10 pr-4 text-[14px] text-[var(--color-text-primary)] outline-none transition-colors placeholder:text-[var(--color-text-muted)] focus:border-[#fd5000]/40 focus:bg-[var(--color-surface)] disabled:opacity-60"
+            />
+          </div>
+          <Button
+            type="submit"
+            disabled={!query.trim() || isSending}
+            className="h-12 shrink-0 rounded-lg px-4 font-bold"
+            style={{ background: query.trim() && !isSending ? "#fd5000" : undefined }}
+          >
+            {isSending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
+          </Button>
+        </form>
+        <p className="mx-auto mt-2 max-w-3xl text-center text-[10px] text-[var(--color-text-muted)]">
+          Jimvio AI can make mistakes. Verify important earnings and product details.
+        </p>
+      </footer>
     </div>,
     document.body
   );
 }
-

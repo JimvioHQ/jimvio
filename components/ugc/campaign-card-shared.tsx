@@ -29,6 +29,7 @@ export type SharedCampaignRow = {
   submission_count?: number;
   approved_count?: number;
   created_at?: string;
+  ends_at?: string | null;
   allowed_platforms?: string[];
   media?: { url: string; usage: string }[];
   vendors?: {

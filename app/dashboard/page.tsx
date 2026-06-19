@@ -19,6 +19,8 @@ import { QuickActionsStrip } from "@/components/dashboard/QuickActionsStrip";
 import { TopCampaigns } from "@/components/dashboard/TopCampaigns";
 import { TrendingProducts } from "@/components/dashboard/TrendingProducts";
 import { YourCommunities } from "@/components/dashboard/YourCommunities";
+import { DashboardInsights } from "@/components/dashboard/DashboardInsights";
+import { DashboardOpportunities } from "@/components/dashboard/DashboardOpportunities";
 import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
 import type {
   TrendingCampaignItem,
@@ -530,8 +532,6 @@ export default function DashboardHomePage() {
     setUnreadNotifications(activity.length);
 
     // ─ Campaigns mapping (for the bottom TopCampaigns card) ─
-    console.log(campaignsRes);
-
     const rawCampaigns = (campaignsRes.data ?? []) as unknown as CampaignRow[];
     const mappedCampaigns: Campaign[] = rawCampaigns.map((c) => {
       const img = c.ugc_campaign_media?.find((m) => m.type === "image");
@@ -842,6 +842,29 @@ export default function DashboardHomePage() {
               </div>
             ) : (
               <StatCardsRow cards={statCards} />
+            )}
+
+            {!loading && (
+              <DashboardOpportunities
+                campaignsCount={campaignsCount}
+                linksCount={activeLinks}
+                walletBalance={wallet?.available_balance ?? 0}
+                pendingBalance={wallet?.pending_balance ?? 0}
+              />
+            )}
+
+            {loading ? (
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                <Skeleton className="h-[280px]" />
+                <Skeleton className="h-[280px]" />
+              </div>
+            ) : (
+              <DashboardInsights
+                labels={earningsLabels ?? []}
+                datasets={earningsDatasets ?? []}
+                earnedToday={earnedToday}
+                earnedTrend={earnedTrend}
+              />
             )}
 
             {/* Earnings chart */}

@@ -17,10 +17,10 @@ import {
     Plus,
     Menu,
     Globe,
-    Compass,
     Radio,
     Layers,
     MessageSquare,
+    Target,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import HubSidebar from "./sidebar";
@@ -386,16 +386,16 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
 
             {/* ── Mobile bottom nav ── */}
             <nav
-                className="fixed inset-x-0 bottom-0 z-[60] flex h-14 items-center justify-around border-t border-[var(--color-border,#e4e4e7)] bg-[var(--color-surface,#fff)] lg:hidden"
+                className="fixed inset-x-0 bottom-0 z-[60] flex h-14 items-stretch justify-around border-t border-[var(--color-border,#e4e4e7)] bg-[var(--color-surface,#fff)] lg:hidden"
                 style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
                 aria-label="Mobile navigation"
             >
                 {[
                     { label: "Feed", href: "/c", icon: Home },
-                    { label: "Explore", href: "/communities", icon: Compass },
                     { label: "Live", href: "/c/live", icon: Radio },
                     { label: "Spaces", href: "/c/spaces", icon: Layers },
                     { label: "Messages", href: "/c/messages", icon: MessageSquare },
+                    { label: "Missions", href: "/c/missions", icon: Target },
                 ].map(({ label, href, icon: Icon }) => {
                     const active = href === "/c" ? pathname === "/c" : pathname.startsWith(href);
                     return (
@@ -413,6 +413,18 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                         </Link>
                     );
                 })}
+                <button
+                    type="button"
+                    aria-label="Open full menu"
+                    onClick={() => setMobileNavOpen(true)}
+                    className={cn(
+                        "flex flex-1 flex-col items-center justify-center gap-0.5 text-[10px] font-semibold transition-colors",
+                        mobileNavOpen ? "text-[#fd5000]" : "text-[var(--color-text-muted)]"
+                    )}
+                >
+                    <Menu className="h-5 w-5" />
+                    More
+                </button>
             </nav>
         </div>
     );

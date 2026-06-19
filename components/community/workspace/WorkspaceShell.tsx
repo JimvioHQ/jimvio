@@ -1427,13 +1427,15 @@ interface Props {
 /* ─── Nav config ──────────────────────────────────────────────────── */
 
 interface NavItem {
-  href: string;        // relative to /c/[slug]
+  href: string;        // relative to /c/[slug], or absolute when external
   label: string;
   icon: LucideIcon;
   matchExact?: boolean;
+  external?: boolean;
 }
 
 const NAV_ITEMS: NavItem[] = [
+  { href: "", label: "Feed", icon: Home, matchExact: true },
   { href: "/chats", label: "Chats", icon: MessageCircle },
   { href: "/live", label: "Live", icon: Radio },
 ];
@@ -1668,7 +1670,7 @@ function Sidebar({
   const isPremium = false; // TODO: wire to community_memberships.plan_type !== 'free'
 
   const isActive = (item: NavItem) => {
-    const fullPath = `${basePath}${item.href}`;
+    const fullPath = item.external ? item.href : `${basePath}${item.href}`;
     if (item.matchExact) return pathname === fullPath;
     return pathname === fullPath || pathname.startsWith(`${fullPath}/`);
   };
@@ -1743,14 +1745,15 @@ function Sidebar({
             { href: "/courses", label: "Courses", icon: GraduationCap, badge: overview?.courseCount ? String(overview.courseCount) : null },
             { href: "/members", label: "Members", icon: Users },
             { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
-            { href: "", label: "Challenges", icon: Target, matchExact: true },
+            { href: "/c/missions", label: "Challenges", icon: Target, external: true },
           ].map((item) => {
             const active = isActive(item);
             const Icon = item.icon;
+            const linkHref = item.external ? item.href : `${basePath}${item.href}`;
             return (
               <Link
                 key={item.label}
-                href={`${basePath}${item.href}`}
+                href={linkHref}
                 className={cn(
                   "w-full flex items-center gap-3 px-3 py-2 rounded-md text-[12px] font-medium transition-all",
                   active
