@@ -371,33 +371,19 @@ function HowJimvioConnector({
   filled,
   fromColor,
   toColor,
-  orientation = "horizontal",
 }: {
   filled: boolean;
   fromColor: string;
   toColor: string;
-  orientation?: "horizontal" | "vertical";
 }) {
-  const gradient =
-    orientation === "horizontal"
-      ? `linear-gradient(90deg, ${fromColor}, ${toColor})`
-      : `linear-gradient(180deg, ${fromColor}, ${toColor})`;
-
   return (
-    <div
-      className={cn(
-        "relative overflow-hidden rounded-full bg-[var(--color-border)]",
-        orientation === "horizontal" ? "h-0.5 flex-1" : "w-0.5 flex-1",
-      )}
-      aria-hidden
-    >
+    <div className="relative h-0.5 flex-1 overflow-hidden rounded-full bg-[var(--color-border)]" aria-hidden>
       <div
         className={cn(
-          "absolute rounded-full transition-all duration-500 ease-out",
-          orientation === "horizontal" ? "inset-y-0 left-0" : "inset-x-0 top-0",
-          filled ? (orientation === "horizontal" ? "w-full" : "h-full") : orientation === "horizontal" ? "w-0" : "h-0",
+          "absolute inset-y-0 left-0 rounded-full transition-all duration-500 ease-out",
+          filled ? "w-full" : "w-0",
         )}
-        style={{ background: gradient }}
+        style={{ background: `linear-gradient(90deg, ${fromColor}, ${toColor})` }}
       />
     </div>
   );
@@ -475,64 +461,6 @@ export function HowJimvioWorks() {
                 <span className="text-[12px] font-bold text-[var(--color-text-primary)]">{s.title}</span>
               </button>
             </Fragment>
-          ))}
-        </div>
-
-        {/* Mobile interactive connector rail */}
-        <div className="mb-5 flex flex-col gap-0 md:hidden">
-          {STEPS.map((s, index) => (
-            <div key={s.step} className="flex gap-3">
-              <div className="flex w-8 flex-col items-center">
-                <button
-                  type="button"
-                  onClick={() => focusStep(index)}
-                  aria-pressed={active === index}
-                  aria-label={`Step ${s.step}: ${s.title}`}
-                  className={cn(
-                    "grid size-8 shrink-0 place-items-center rounded-full border-2 transition-all duration-300",
-                    active === index
-                      ? "scale-110 border-transparent text-white shadow-md"
-                      : "border-[var(--color-border)] bg-[var(--color-surface)]",
-                  )}
-                  style={active === index ? { background: s.color } : { color: s.color }}
-                >
-                  <s.icon className="size-3.5" strokeWidth={2.4} />
-                </button>
-                {index < STEPS.length - 1 && (
-                  <HowJimvioConnector
-                    filled={index < active}
-                    fromColor={s.color}
-                    toColor={STEPS[index + 1].color}
-                    orientation="vertical"
-                  />
-                )}
-              </div>
-              <button
-                type="button"
-                onClick={() => focusStep(index)}
-                className={cn(
-                  "mb-3 flex-1 rounded-xl border px-3 py-2.5 text-left transition-all duration-300",
-                  active === index
-                    ? "border-transparent bg-[var(--color-surface)] shadow-[0_6px_20px_rgba(0,0,0,0.06)]"
-                    : "border-[var(--color-border)] bg-[var(--color-surface)]/70",
-                )}
-                style={
-                  active === index
-                    ? { boxShadow: `0 6px 22px ${s.color}18` }
-                    : undefined
-                }
-              >
-                <span
-                  className="font-[family-name:var(--font-jetbrains-mono)] text-[10px] font-bold tracking-widest"
-                  style={{ color: s.color }}
-                >
-                  {s.step}
-                </span>
-                <span className="mt-0.5 block text-[13px] font-bold text-[var(--color-text-primary)]">
-                  {s.title}
-                </span>
-              </button>
-            </div>
           ))}
         </div>
 
@@ -1088,18 +1016,22 @@ export function GlobalNetworkStats({
 
             <div className="mt-5 flex flex-col gap-5 sm:flex-row sm:items-center sm:gap-6">
               <div className="w-full shrink-0 sm:w-[190px]">
-                <div className="space-y-3.5">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-1 sm:gap-3.5">
                   {networkRows.map((row) => (
-                    <div key={row.label} className="flex items-center gap-3">
+                    <div key={row.label} className="flex min-w-0 items-center gap-2.5 sm:gap-3">
                       <span
-                        className="grid size-9 shrink-0 place-items-center rounded-lg"
+                        className="grid size-8 shrink-0 place-items-center rounded-lg sm:size-9"
                         style={iconTintStyle(row.color)}
                       >
-                        <row.icon className="size-4" strokeWidth={2.2} />
+                        <row.icon className="size-3.5 sm:size-4" strokeWidth={2.2} />
                       </span>
-                      <div className="flex min-w-0 items-baseline gap-2">
-                        <span className="text-[20px] font-black leading-none text-[var(--color-text-primary)]">{row.value}</span>
-                        <span className="text-[12px] font-medium text-[var(--color-text-muted)]">{row.label}</span>
+                      <div className="flex min-w-0 flex-col gap-0.5 sm:flex-row sm:items-baseline sm:gap-2">
+                        <span className="text-[17px] font-black leading-none text-[var(--color-text-primary)] sm:text-[20px]">
+                          {row.value}
+                        </span>
+                        <span className="text-[11px] font-medium text-[var(--color-text-muted)] sm:text-[12px]">
+                          {row.label}
+                        </span>
                       </div>
                     </div>
                   ))}
@@ -1691,12 +1623,21 @@ export function TakeJimvioEverywhere() {
   ];
 
   return (
-    <section className="w-full" style={{ background: ORANGE }}>
-      <div className={`${shell} py-10 sm:py-14`}>
-        <div className="flex flex-col items-center gap-10 lg:flex-row lg:items-center lg:justify-between lg:gap-6">
+    <section className="relative w-full overflow-hidden" style={{ background: ORANGE }}>
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 opacity-[0.14]"
+        style={{
+          backgroundImage:
+            "radial-gradient(circle at 20% 20%, white 0%, transparent 45%), radial-gradient(circle at 80% 80%, #000 0%, transparent 40%)",
+        }}
+      />
+
+      <div className={`relative ${shell} py-10 sm:py-14`}>
+        <div className="flex flex-col gap-8 sm:gap-10 lg:flex-row lg:items-center lg:justify-between lg:gap-8">
           {/* Left — copy */}
-          <div className="w-full shrink-0 text-white lg:max-w-[300px] lg:text-left">
-            <h2 className="text-[28px] font-black leading-tight tracking-tight sm:text-[32px]">
+          <div className="w-full shrink-0 text-left text-white lg:max-w-[300px]">
+            <h2 className="text-[28px] font-black leading-tight tracking-tight sm:text-[34px]">
               Take Jimvio
               <br />
               Everywhere
@@ -1712,13 +1653,48 @@ export function TakeJimvioEverywhere() {
                 </li>
               ))}
             </ul>
+
+            {/* Download — left-aligned row on mobile */}
+            <div className="mt-8 lg:hidden">
+              <span className="mb-3 block text-[15px] font-bold text-white">Download the App</span>
+              <div className="flex flex-row flex-wrap items-center justify-start gap-3">
+                <a
+                  href="#"
+                  aria-label="Download on the App Store"
+                  className="inline-flex shrink-0 transition-opacity hover:opacity-90 active:scale-[0.98]"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="/logos/app-store-badge.svg"
+                    alt="Download on the App Store"
+                    width={180}
+                    height={60}
+                    className="h-10 w-auto sm:h-11"
+                  />
+                </a>
+                <a
+                  href="#"
+                  aria-label="Get it on Google Play"
+                  className="inline-flex shrink-0 transition-opacity hover:opacity-90 active:scale-[0.98]"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="/logos/google-play-badge.svg"
+                    alt="Get it on Google Play"
+                    width={200}
+                    height={60}
+                    className="h-10 w-auto sm:h-11"
+                  />
+                </a>
+              </div>
+            </div>
           </div>
 
-          {/* Center — phone mockups (Android interactive + iOS static) */}
+          {/* Center — interactive phone preview */}
           <TakeJimvioPhonesClient />
 
-          {/* Right — download */}
-          <div className="flex w-full shrink-0 flex-col items-center lg:max-w-[220px] lg:items-start">
+          {/* Right — download (desktop) */}
+          <div className="hidden w-full shrink-0 flex-col items-start lg:flex lg:max-w-[220px]">
             <span className="mb-3 text-[15px] font-bold text-white">Download the App</span>
             <div className="flex w-full max-w-[220px] flex-col gap-3">
               <a

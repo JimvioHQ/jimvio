@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ShoppingBag, Wallet, Megaphone } from "lucide-react";
 import IPhoneMockup from "@/components/ui/iphone-mockup";
 import AndroidMockup from "@/components/ui/android-mockup";
+import { cn } from "@/lib/utils";
 
 const ORANGE = "#fd5000";
 const GREEN = "#16a34a";
@@ -116,16 +117,14 @@ function StaticIPhone({
   scale,
   elevated = false,
   children,
-  screenBg = "#fafafa",
 }: {
   scale: number;
   elevated?: boolean;
   children: React.ReactNode;
-  screenBg?: string;
 }) {
   return (
     <div
-      className="relative shrink-0"
+      className="relative shrink-0 transition-transform duration-300"
       style={{
         width: IPHONE_OUTER_W * scale,
         height: IPHONE_OUTER_H * scale,
@@ -136,7 +135,7 @@ function StaticIPhone({
         model="15-pro"
         color="space-black"
         scale={scale}
-        screenBg={screenBg}
+        screenBg="#fafafa"
         safeAreaOverrides={{ top: 52, bottom: 28, left: 0, right: 0 }}
       >
         {children}
@@ -145,9 +144,7 @@ function StaticIPhone({
   );
 }
 
-function InteractiveAndroidPhone() {
-  const [screen, setScreen] = useState<AppScreen>("shop");
-
+function InteractiveAndroidPhone({ screen }: { screen: AppScreen }) {
   return (
     <div
       className="relative shrink-0"
@@ -161,11 +158,30 @@ function InteractiveAndroidPhone() {
         color="graphite"
         scale={ANDROID_SCALE}
         screenBg="#fafafa"
-        safeAreaOverrides={{ top: 30, bottom: 36, left: 0, right: 0 }}
+        safeAreaOverrides={{ top: 30, bottom: 20, left: 0, right: 0 }}
       >
-        <ScreenContent screen={screen} />
+        <div key={screen} className="flex min-h-0 flex-1 flex-col animate-in fade-in duration-300">
+          <ScreenContent screen={screen} />
+        </div>
+      </AndroidMockup>
+    </div>
+  );
+}
 
-        <nav className="mt-auto flex border-t border-[#ececec] bg-white px-1 py-1.5">
+export function TakeJimvioPhonesClient() {
+  const [screen, setScreen] = useState<AppScreen>("shop");
+
+  return (
+    <div className="flex w-full flex-col gap-4 lg:flex-1 lg:gap-5">
+      <div className="w-full">
+        <p className="mb-2 text-left text-[11px] font-semibold uppercase tracking-[0.12em] text-white/75">
+          Live app preview
+        </p>
+        <div
+          className="inline-flex w-full max-w-full flex-wrap gap-1 rounded-2xl border border-white/20 bg-white/10 p-1 backdrop-blur-sm sm:w-auto"
+          role="tablist"
+          aria-label="App screens"
+        >
           {TABS.map((tab) => {
             const active = screen === tab.id;
             const Icon = tab.icon;
@@ -173,38 +189,35 @@ function InteractiveAndroidPhone() {
               <button
                 key={tab.id}
                 type="button"
+                role="tab"
+                aria-selected={active}
                 onClick={() => setScreen(tab.id)}
-                className="flex flex-1 flex-col items-center gap-0.5 rounded-md px-1 py-1 transition-colors"
-                style={{
-                  color: active ? ORANGE : "#9ca3af",
-                  background: active ? "#fff4ed" : "transparent",
-                }}
-                aria-label={`Show ${tab.label}`}
-                aria-pressed={active}
+                className={cn(
+                  "flex flex-1 items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-[12px] font-bold transition-all duration-200 sm:flex-initial sm:px-4",
+                  active
+                    ? "bg-white text-[#111] shadow-sm"
+                    : "text-white/90 hover:bg-white/10",
+                )}
               >
-                <Icon className="size-3.5" strokeWidth={2.2} />
-                <span className="text-[7px] font-bold">{tab.label}</span>
+                <Icon className="size-3.5" strokeWidth={2.3} />
+                {tab.label}
               </button>
             );
           })}
-        </nav>
-      </AndroidMockup>
-    </div>
-  );
-}
+        </div>
+      </div>
 
-export function TakeJimvioPhonesClient() {
-  return (
-    <div className="flex items-end justify-center gap-3 sm:gap-4 lg:flex-1">
-      <StaticIPhone scale={IPHONE_SCALE_SM}>
-        <EarningsContent />
-      </StaticIPhone>
+      <div className="flex items-end justify-center gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:gap-4 [&::-webkit-scrollbar]:hidden">
+        <StaticIPhone scale={IPHONE_SCALE_SM}>
+          <EarningsContent />
+        </StaticIPhone>
 
-      <InteractiveAndroidPhone />
+        <InteractiveAndroidPhone screen={screen} />
 
-      <StaticIPhone scale={IPHONE_SCALE_SM}>
-        <CampaignsContent />
-      </StaticIPhone>
+        <StaticIPhone scale={IPHONE_SCALE_SM}>
+          <CampaignsContent />
+        </StaticIPhone>
+      </div>
     </div>
   );
 }
