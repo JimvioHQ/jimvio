@@ -1635,7 +1635,7 @@ export function TakeJimvioEverywhere() {
 
       <div className={`relative ${shell} py-10 sm:py-14`}>
         <div className="flex flex-col gap-8 sm:gap-10 lg:flex-row lg:items-center lg:justify-between lg:gap-8">
-          {/* Left — copy */}
+          {/* Top on mobile — copy */}
           <div className="w-full shrink-0 text-left text-white lg:max-w-[300px]">
             <h2 className="text-[28px] font-black leading-tight tracking-tight sm:text-[34px]">
               Take Jimvio
@@ -1653,45 +1653,45 @@ export function TakeJimvioEverywhere() {
                 </li>
               ))}
             </ul>
-
-            {/* Download — left-aligned row on mobile */}
-            <div className="mt-8 lg:hidden">
-              <span className="mb-3 block text-[15px] font-bold text-white">Download the App</span>
-              <div className="flex flex-row flex-wrap items-center justify-start gap-3">
-                <a
-                  href="#"
-                  aria-label="Download on the App Store"
-                  className="inline-flex shrink-0 transition-opacity hover:opacity-90 active:scale-[0.98]"
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src="/logos/app-store-badge.svg"
-                    alt="Download on the App Store"
-                    width={180}
-                    height={60}
-                    className="h-10 w-auto sm:h-11"
-                  />
-                </a>
-                <a
-                  href="#"
-                  aria-label="Get it on Google Play"
-                  className="inline-flex shrink-0 transition-opacity hover:opacity-90 active:scale-[0.98]"
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src="/logos/google-play-badge.svg"
-                    alt="Get it on Google Play"
-                    width={200}
-                    height={60}
-                    className="h-10 w-auto sm:h-11"
-                  />
-                </a>
-              </div>
-            </div>
           </div>
 
-          {/* Center — interactive phone preview */}
+          {/* Middle on mobile — phone preview */}
           <TakeJimvioPhonesClient />
+
+          {/* Bottom on mobile — download */}
+          <div className="w-full shrink-0 lg:hidden">
+            <span className="mb-3 block text-[15px] font-bold text-white">Download the App</span>
+            <div className="flex flex-row flex-wrap items-center justify-start gap-3">
+              <a
+                href="#"
+                aria-label="Download on the App Store"
+                className="inline-flex shrink-0 transition-opacity hover:opacity-90 active:scale-[0.98]"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/logos/app-store-badge.svg"
+                  alt="Download on the App Store"
+                  width={180}
+                  height={60}
+                  className="h-10 w-auto sm:h-11"
+                />
+              </a>
+              <a
+                href="#"
+                aria-label="Get it on Google Play"
+                className="inline-flex shrink-0 transition-opacity hover:opacity-90 active:scale-[0.98]"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/logos/google-play-badge.svg"
+                  alt="Get it on Google Play"
+                  width={200}
+                  height={60}
+                  className="h-10 w-auto sm:h-11"
+                />
+              </a>
+            </div>
+          </div>
 
           {/* Right — download (desktop) */}
           <div className="hidden w-full shrink-0 flex-col items-start lg:flex lg:max-w-[220px]">
