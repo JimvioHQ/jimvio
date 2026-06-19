@@ -86,6 +86,7 @@ const SECTIONS: NavSection[] = [
     title: "Earn",
     items: [
       { label: "Earnings", href: "/dashboard/earnings", icon: TrendingUp },
+      { label: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
       { label: "Affiliate links", href: "/dashboard/links", icon: Link2, requiredRole: "affiliate" },
       { label: "Campaigns", href: "/dashboard/vendor/campaigns", icon: Megaphone, badge: "New" },
       { label: "Creator missions", href: "/ugc", icon: Target },
@@ -131,6 +132,7 @@ const SECTIONS: NavSection[] = [
       { label: "Products", href: "/dashboard/products", icon: Package, requiredRole: "vendor" },
       { label: "Orders", href: "/dashboard/vendor/orders", icon: Truck, requiredRole: "vendor" },
       { label: "Revenue", href: "/dashboard/payments", icon: DollarSign, requiredRole: "vendor" },
+      { label: "Analytics", href: "/dashboard/analytics", icon: BarChart3, requiredRole: "vendor" },
       { label: "Customers", href: "/dashboard/customers", icon: Users, requiredRole: "vendor" },
     ],
   },

@@ -8,13 +8,22 @@ import {
   Bot, Wand2, Search, Clapperboard, Play, Instagram, Youtube, Share2,
   ChevronDown, Layers, TrendingUp, Wallet, Target, Award, BarChart3, LineChart,
 } from "lucide-react";
+import dynamic from "next/dynamic";
 import { useCurrency } from "@/context/CurrencyContext";
 import { getImage, fmtCount, cn } from "@/lib/utils";
 import { DEFAULT_PROFILE_IMAGE, resolveProfileImage } from "@/lib/profile-image";
 import type { SharedCampaignRow } from "@/components/ugc/campaign-card-shared";
 import { WorldMap, type WorldMapPin } from "@/components/ui/world-map";
-import { TakeJimvioPhonesClient } from "@/components/layout/take-jimvio-phones-client";
+import { TakeJimvioDevicesSkeleton } from "@/components/layout/take-jimvio-phones-client";
 import { Slider } from "@/components/ui/slider";
+
+const TakeJimvioPhonesClient = dynamic(
+  () =>
+    import("@/components/layout/take-jimvio-phones-client").then(
+      (m) => m.TakeJimvioPhonesClient
+    ),
+  { ssr: false, loading: () => <TakeJimvioDevicesSkeleton /> }
+);
 
 /* ─── Design tokens (match mockup) ─── */
 const ORANGE = "#fd5000";

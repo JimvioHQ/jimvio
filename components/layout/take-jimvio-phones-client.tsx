@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import {
   Home,
   ShoppingBag,
@@ -8,77 +7,24 @@ import {
   Megaphone,
   User,
   Search,
-  TrendingUp,
-  LayoutDashboard,
-  BarChart3,
-  Bell,
-  Package,
   ArrowUpRight,
   Clock,
   CheckCircle2,
-  CircleDot,
 } from "lucide-react";
 import IPhoneMockup from "@/components/ui/iphone-mockup";
-
+import { cn } from "@/lib/utils";
 const ORANGE = "#fd5000";
 const GREEN = "#16a34a";
 const PURPLE = "#7c3aed";
 const BLUE = "#2563eb";
 const MUTED = "#6b7280";
 
-const PHONE_OUTER_W = 417;
-const PHONE_OUTER_H = 876;
-
 type TabId = "home" | "shop" | "wallet" | "campaigns" | "profile";
-
-function usePhoneScale() {
-  const [scale, setScale] = useState(0.2);
-
-  useEffect(() => {
-    const update = () => {
-      const w = window.innerWidth;
-      if (w >= 1024) setScale(0.28);
-      else if (w >= 768) setScale(0.24);
-      else if (w >= 640) setScale(0.21);
-      else setScale(0.19);
-    };
-    update();
-    window.addEventListener("resize", update);
-    return () => window.removeEventListener("resize", update);
-  }, []);
-
-  return scale;
-}
-
 function InitialAvatar({ label, bg }: { label: string; bg: string }) {
   return (
     <span
       className="flex size-4 shrink-0 items-center justify-center rounded text-[5px] font-bold text-white sm:size-5 sm:text-[6px]"
       style={{ background: bg }}
-    >
-      {label}
-    </span>
-  );
-}
-
-function StatusPill({
-  label,
-  tone,
-}: {
-  label: string;
-  tone: "green" | "orange" | "gray" | "purple";
-}) {
-  const tones = {
-    green: { bg: "#ecfdf5", color: GREEN },
-    orange: { bg: "#fff7ed", color: ORANGE },
-    gray: { bg: "#f3f4f6", color: MUTED },
-    purple: { bg: "#f5f3ff", color: PURPLE },
-  };
-  const t = tones[tone];
-  return (
-    <span
-      className="rounded px-1 py-px text-[4px] font-semibold leading-none sm:text-[5px]"
-      style={{ background: t.bg, color: t.color }}
     >
       {label}
     </span>
@@ -114,122 +60,129 @@ function AppTabBar({ active }: { active: TabId }) {
   );
 }
 
-/* ─── Laptop: seller ops — orders + inventory, no stock photos ─── */
+function MiniLineChart() {
+  return (
+    <svg viewBox="0 0 120 36" className="h-full w-full" preserveAspectRatio="none">
+      <polyline
+        fill="none"
+        stroke={PURPLE}
+        strokeWidth="1.5"
+        points="0,28 12,24 24,26 36,18 48,20 60,12 72,14 84,8 96,10 108,6 120,4"
+      />
+      <polyline
+        fill="none"
+        stroke="#38bdf8"
+        strokeWidth="1.2"
+        strokeDasharray="3 2"
+        points="0,32 12,30 24,28 36,26 48,22 60,24 72,18 84,20 96,16 108,18 120,14"
+      />
+    </svg>
+  );
+}
+
+function MiniBarChart() {
+  const bars = [18, 24, 20, 28, 22, 32, 26, 30];
+  return (
+    <svg viewBox="0 0 120 36" className="h-full w-full" preserveAspectRatio="none">
+      {bars.map((h, i) => {
+        const x = i * 14 + 2;
+        return (
+          <g key={i}>
+            <rect x={x} y={36 - h * 0.55} width="5" height={h * 0.55} fill="#e5e7eb" rx="0.5" />
+            <rect x={x + 6} y={36 - h * 0.7} width="5" height={h * 0.7} fill={PURPLE} rx="0.5" />
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+/* ─── Laptop: analytics dashboard (reference layout) ─── */
 function DashboardWebScreen() {
-  const nav = [
-    { label: "Dashboard", icon: LayoutDashboard, active: false },
-    { label: "Orders", icon: Package, active: true },
-    { label: "Campaigns", icon: Megaphone, active: false },
-    { label: "Analytics", icon: BarChart3, active: false },
+  const kpis = [
+    { label: "Net earnings", val: "$25,874", chg: "−3.3%", up: false, bg: "#ede9ff", color: PURPLE },
+    { label: "Pending", val: "$1,872", chg: "+2.9%", up: true, bg: "#e0f2fe", color: BLUE },
+    { label: "Store sales", val: "$18,420", chg: "+2.9%", up: true, bg: "#fef9c3", color: "#ca8a04" },
   ];
 
-  const orders = [
-    { id: "JV-48291", item: "Ceramic pour-over set", buyer: "M. Chen", amt: "$34.20", status: "Shipped", tone: "green" as const },
-    { id: "JV-48288", item: "Notion creator pack", buyer: "A. Okonkwo", amt: "$19.00", status: "Digital sent", tone: "purple" as const },
-    { id: "JV-48285", item: "Linen weekender bag", buyer: "S. Rivera", amt: "$78.50", status: "Packing", tone: "orange" as const },
-    { id: "JV-48279", item: "Affiliate · desk mat", buyer: "via @techsetup", amt: "$6.40", status: "Paid out", tone: "gray" as const },
+  const messages = [
+    { name: "Kora Studio", msg: "Shipment update for JV-48291", time: "12m" },
+    { name: "A. Okonkwo", msg: "Thanks — digital pack received", time: "1d" },
+  ];
+
+  const products = [
+    { name: "Pour-over set", sold: "139 sold", price: "$42" },
+    { name: "Notion pack", sold: "88 sold", price: "$19" },
   ];
 
   return (
-    <div className="flex h-full min-h-0 bg-[#fafafa] text-[#111]">
-      <aside className="flex w-[24%] shrink-0 flex-col border-r border-[#ececec] bg-white px-1.5 py-2">
-        <span className="text-[8px] font-black tracking-tight" style={{ color: ORANGE }}>
-          Jimvio
-        </span>
-        <p className="mt-0.5 text-[4px] font-medium text-[#9ca3af]">Vendor · Kora Studio</p>
-        <nav className="mt-2 space-y-px">
-          {nav.map((item) => {
-            const Icon = item.icon;
-            return (
-              <div
-                key={item.label}
-                className="flex items-center gap-1 rounded px-1 py-0.5 text-[5px] font-semibold"
-                style={{
-                  background: item.active ? "#111" : "transparent",
-                  color: item.active ? "#fff" : MUTED,
-                }}
-              >
-                <Icon className="size-2 shrink-0" strokeWidth={2} />
-                <span className="truncate">{item.label}</span>
+    <div className="flex h-full min-h-0 flex-col bg-[#f4f4f5] p-1 text-[#111]">
+      <div className="grid grid-cols-3 gap-0.5">
+        {kpis.map((k) => (
+          <div key={k.label} className="rounded-sm border border-[#ececec] bg-white px-1 py-0.5">
+            <div className="flex items-start justify-between">
+              <p className="text-[3.5px] font-medium text-[#9ca3af]">{k.label}</p>
+              <span className="size-2 rounded-sm" style={{ background: k.bg }} />
+            </div>
+            <p className="text-[6px] font-bold tabular-nums">{k.val}</p>
+            <p className="text-[3px] font-semibold" style={{ color: k.up ? GREEN : "#ef4444" }}>
+              {k.chg}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-0.5 grid min-h-0 flex-1 grid-cols-[1.4fr_0.8fr] gap-0.5">
+        <div className="flex min-h-0 flex-col rounded-sm border border-[#ececec] bg-white">
+          <div className="flex items-center justify-between border-b border-[#f0f0f0] px-1 py-0.5">
+            <span className="text-[4px] font-bold">Traffic</span>
+            <span className="text-[3px] text-[#9ca3af]">This year</span>
+          </div>
+          <div className="min-h-0 flex-1 px-0.5 py-0.5">
+            <MiniLineChart />
+          </div>
+        </div>
+
+        <div className="flex min-h-0 flex-col rounded-sm border border-[#ececec] bg-white">
+          <div className="border-b border-[#f0f0f0] px-1 py-0.5 text-[4px] font-bold">Messages</div>
+          <div className="flex-1 divide-y divide-[#f5f5f5]">
+            {messages.map((m) => (
+              <div key={m.name} className="px-1 py-0.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[3.5px] font-bold">{m.name}</span>
+                  <span className="text-[3px] text-[#9ca3af]">{m.time}</span>
+                </div>
+                <p className="truncate text-[3px] text-[#9ca3af]">{m.msg}</p>
               </div>
-            );
-          })}
-        </nav>
-        <div className="mt-auto border-t border-[#f0f0f0] pt-1.5">
-          <p className="text-[4px] font-medium text-[#9ca3af]">Today</p>
-          <p className="text-[8px] font-bold tabular-nums">$3,842.17</p>
-          <p className="text-[4px] font-medium" style={{ color: GREEN }}>
-            +12.4% vs yesterday
-          </p>
-        </div>
-      </aside>
-
-      <main className="flex min-w-0 flex-1 flex-col p-1.5">
-        <div className="flex items-start justify-between gap-1">
-          <div>
-            <p className="text-[7px] font-bold">Orders</p>
-            <p className="text-[4px] text-[#9ca3af]">14 need action · last sync 2m ago</p>
-          </div>
-          <div className="flex items-center gap-0.5">
-            <div className="flex items-center gap-0.5 rounded border border-[#e5e5e5] bg-white px-1 py-px">
-              <Search className="size-1.5 text-[#9ca3af]" />
-              <span className="text-[4px] text-[#9ca3af]">Filter</span>
-            </div>
-            <div className="relative">
-              <Bell className="size-2 text-[#9ca3af]" />
-              <span className="absolute -right-0.5 -top-0.5 size-1 rounded-full bg-[#ef4444]" />
-            </div>
+            ))}
           </div>
         </div>
+      </div>
 
-        <div className="mt-1 flex gap-1">
-          {[
-            { label: "Open", val: "14", accent: ORANGE },
-            { label: "Ship today", val: "6", accent: "#111" },
-            { label: "UGC due", val: "3", accent: PURPLE },
-          ].map((s) => (
-            <div key={s.label} className="flex-1 border border-[#ececec] bg-white px-1 py-0.5">
-              <p className="text-[4px] text-[#9ca3af]">{s.label}</p>
-              <p className="text-[7px] font-bold tabular-nums" style={{ color: s.accent }}>
-                {s.val}
-              </p>
-            </div>
-          ))}
-        </div>
-
-        <div className="mt-1 min-h-0 flex-1 overflow-hidden rounded border border-[#ececec] bg-white">
-          <div className="grid grid-cols-[1fr_0.5fr_0.45fr] gap-0.5 border-b border-[#f0f0f0] bg-[#fafafa] px-1 py-0.5 text-[4px] font-semibold uppercase tracking-wide text-[#9ca3af]">
-            <span>Order</span>
-            <span>Amt</span>
-            <span>Status</span>
-          </div>
-          {orders.map((o) => (
-            <div
-              key={o.id}
-              className="grid grid-cols-[1fr_0.5fr_0.45fr] items-center gap-0.5 border-b border-[#f5f5f5] px-1 py-0.5 last:border-0"
-            >
+      <div className="mt-0.5 grid grid-cols-[0.85fr_1.15fr] gap-0.5">
+        <div className="rounded-sm border border-[#ececec] bg-white">
+          <div className="border-b border-[#f0f0f0] px-1 py-0.5 text-[4px] font-bold">Top products</div>
+          {products.map((p) => (
+            <div key={p.name} className="flex items-center justify-between border-b border-[#f5f5f5] px-1 py-0.5 last:border-0">
               <div className="min-w-0">
-                <p className="truncate text-[4px] font-bold text-[#111]">{o.item}</p>
-                <p className="truncate text-[3.5px] text-[#9ca3af]">
-                  {o.id} · {o.buyer}
-                </p>
+                <p className="truncate text-[3.5px] font-semibold">{p.name}</p>
+                <p className="text-[3px] text-[#9ca3af]">{p.sold}</p>
               </div>
-              <span className="text-[4px] font-semibold tabular-nums">{o.amt}</span>
-              <StatusPill label={o.status} tone={o.tone} />
+              <span className="text-[3.5px] font-bold">{p.price}</span>
             </div>
           ))}
         </div>
 
-        <div className="mt-1 flex items-center justify-between rounded border border-[#ececec] bg-white px-1 py-0.5">
-          <div className="flex items-center gap-0.5">
-            <CircleDot className="size-1.5" style={{ color: ORANGE }} />
-            <span className="text-[4px] font-medium text-[#6b7280]">2 payouts queued</span>
+        <div className="rounded-sm border border-[#ececec] bg-white">
+          <div className="flex items-center justify-between border-b border-[#f0f0f0] px-1 py-0.5">
+            <span className="text-[4px] font-bold">Product sales</span>
+            <span className="text-[3px] text-[#9ca3af]">This year</span>
           </div>
-          <span className="text-[4px] font-bold" style={{ color: ORANGE }}>
-            Review →
-          </span>
+          <div className="h-8 px-0.5 py-0.5">
+            <MiniBarChart />
+          </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 }
@@ -430,43 +383,52 @@ function TabletShell({ children, className = "" }: { children: React.ReactNode; 
 }
 
 function IPhonePreview({
-  scale,
   elevated = false,
   children,
 }: {
-  scale: number;
   elevated?: boolean;
   children: React.ReactNode;
 }) {
   return (
     <div
-      className="relative shrink-0"
-      style={{
-        width: PHONE_OUTER_W * scale,
-        height: PHONE_OUTER_H * scale,
-        transform: elevated ? "translateY(-10px)" : undefined,
-      }}
+      className={cn(
+        "relative shrink-0",
+        "h-[166px] w-[79px] sm:h-[184px] sm:w-[88px] md:h-[210px] md:w-[100px] lg:h-[245px] lg:w-[117px]",
+        elevated && "-translate-y-2.5 sm:-translate-y-3"
+      )}
     >
-      <IPhoneMockup
-        model="15-pro"
-        color="space-black"
-        scale={scale}
-        screenBg="#fafafa"
-        safeAreaOverrides={{ top: 52, bottom: 24, left: 0, right: 0 }}
-      >
-        {children}
-      </IPhoneMockup>
+      <div className="absolute left-0 top-0 origin-top-left scale-[0.19] sm:scale-[0.21] md:scale-[0.24] lg:scale-[0.28]">
+        <IPhoneMockup
+          model="15-pro"
+          color="space-black"
+          scale={1}
+          screenBg="#fafafa"
+          safeAreaOverrides={{ top: 52, bottom: 24, left: 0, right: 0 }}
+        >
+          {children}
+        </IPhoneMockup>
+      </div>
+    </div>
+  );
+}
+
+/** Static placeholder — dimensions match IPhonePreview at default breakpoint */
+export function TakeJimvioDevicesSkeleton() {
+  return (
+    <div className="w-full overflow-hidden lg:flex-1" aria-hidden>
+      <div className="flex w-full items-end justify-center gap-1.5 px-0.5 sm:gap-2 md:gap-3 lg:gap-4">
+        <div className="h-[96px] w-[72px] shrink-0 rounded-[12px] bg-white/10 sm:h-[133px] sm:w-[100px] md:h-[173px] md:w-[130px] lg:h-[207px] lg:w-[155px] xl:h-[233px] xl:w-[175px]" />
+        <div className="h-[75px] w-[120px] shrink-0 rounded-t-lg bg-white/10 sm:h-[112px] sm:w-[180px] md:h-[150px] md:w-[240px] lg:h-[187px] lg:w-[300px] xl:h-[225px] xl:w-[360px]" />
+        <div className="h-[166px] w-[79px] shrink-0 rounded-[20px] bg-white/10 sm:h-[184px] sm:w-[88px] md:h-[210px] md:w-[100px] lg:h-[245px] lg:w-[117px]" />
+      </div>
     </div>
   );
 }
 
 export function TakeJimvioPhonesClient() {
-  const phoneScale = usePhoneScale();
-
   return (
     <div className="w-full overflow-hidden lg:flex-1">
-      <div className="flex w-full items-end justify-center gap-1.5 px-0.5 sm:gap-2 md:gap-3 lg:gap-4">
-        <TabletShell className="w-[72px] sm:w-[100px] md:w-[130px] lg:w-[155px] xl:w-[175px]">
+      <div className="flex w-full items-end justify-center gap-1.5 px-0.5 sm:gap-2 md:gap-3 lg:gap-4">        <TabletShell className="w-[72px] sm:w-[100px] md:w-[130px] lg:w-[155px] xl:w-[175px]">
           <MarketplaceTabletScreen />
         </TabletShell>
 
@@ -474,10 +436,9 @@ export function TakeJimvioPhonesClient() {
           <DashboardWebScreen />
         </LaptopShell>
 
-        <IPhonePreview scale={phoneScale} elevated>
+        <IPhonePreview elevated>
           <WalletPhoneScreen />
-        </IPhonePreview>
-      </div>
+        </IPhonePreview>      </div>
     </div>
   );
 }

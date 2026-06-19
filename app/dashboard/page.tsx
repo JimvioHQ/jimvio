@@ -7,7 +7,7 @@ import { format, subDays, eachDayOfInterval, startOfDay } from "date-fns";
 import { useCurrency } from "@/context/CurrencyContext";
 import { PageHeader } from "@/components/ui/admin";
 import { DashboardPage } from "@/components/dashboard/dashboard-page";
-import { Settings } from "lucide-react";
+import { Settings, BarChart3 } from "lucide-react";
 
 import { LiveTicker } from "@/components/dashboard/LiveTicker";
 import { HeroStatsRow } from "@/components/dashboard/HeroStatsRow";
@@ -20,6 +20,12 @@ import { TopCampaigns } from "@/components/dashboard/TopCampaigns";
 import { TrendingProducts } from "@/components/dashboard/TrendingProducts";
 import { YourCommunities } from "@/components/dashboard/YourCommunities";
 import { DashboardInsights } from "@/components/dashboard/DashboardInsights";
+import { DashboardAnalyticsBoard, type DashboardMessagePreview } from "@/components/dashboard/DashboardAnalyticsBoard";
+import {
+  StockQuantityTable,
+  mapProductToStockRow,
+  type StockQuantityRow,
+} from "@/components/dashboard/StockQuantityTable";
 import { DashboardOpportunities } from "@/components/dashboard/DashboardOpportunities";
 import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
 import type {
@@ -242,6 +248,8 @@ export default function DashboardHomePage() {
   const [sidebarCreators, setSidebarCreators] = useState<RecommendedCreator[]>([]);
   const [recentSearches, setRecentSearches] = useState<RecentSearchItem[]>([]);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [dashboardMessages, setDashboardMessages] = useState<DashboardMessagePreview[]>([]);
+  const [stockRows, setStockRows] = useState<StockQuantityRow[]>([]);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -273,6 +281,8 @@ export default function DashboardHomePage() {
       trendingCampsRes,
       creatorsRes,
       searchesRes,
+      buyerConvsRes,
+      vendorRes,
     ] = await Promise.all([
       supabase
         .from("profiles")
@@ -380,6 +390,13 @@ export default function DashboardHomePage() {
         .eq("user_id", userId)
         .order("created_at", { ascending: false })
         .limit(5),
+      supabase
+        .from("conversations")
+        .select("id, updated_at, vendors(business_name, business_logo)")
+        .eq("buyer_id", userId)
+        .order("updated_at", { ascending: false })
+        .limit(4),
+      supabase.from("vendors").select("id").eq("user_id", userId).maybeSingle(),
     ]);
 
     // Active links count
@@ -531,6 +548,66 @@ export default function DashboardHomePage() {
     );
     setUnreadNotifications(activity.length);
 
+    // Dashboard message previews
+    const buyerConvs = buyerConvsRes.data ?? [];
+    const convIds = buyerConvs.map((c: { id: string }) => c.id);
+    let lastByConv: Record<string, { body: string; created_at: string }> = {};
+
+    if (convIds.length > 0) {
+      const { data: convMsgs } = await supabase
+        .from("conversation_messages")
+        .select("conversation_id, body, created_at")
+        .in("conversation_id", convIds)
+        .order("created_at", { ascending: false });
+
+      for (const m of convMsgs ?? []) {
+        if (!lastByConv[m.conversation_id]) {
+          lastByConv[m.conversation_id] = {
+            body: m.body ?? "",
+            created_at: m.created_at,
+          };
+        }
+      }
+    }
+
+    let mappedMessages: DashboardMessagePreview[] = buyerConvs.map(
+      (c: {
+        id: string;
+        updated_at: string;
+        vendors:
+          | { business_name: string; business_logo: string | null }
+          | { business_name: string; business_logo: string | null }[]
+          | null;
+      }) => {
+        const v = Array.isArray(c.vendors) ? c.vendors[0] : c.vendors;
+        const name = v?.business_name ?? "Store";
+        const last = lastByConv[c.id];
+        const hue = name.charCodeAt(0) % 360;
+        return {
+          id: c.id,
+          name,
+          preview: last?.body?.slice(0, 72) || "No messages yet",
+          time: last ? timeAgo(last.created_at) : timeAgo(c.updated_at),
+          avatarUrl: v?.business_logo ?? null,
+          initials: name.slice(0, 2).toUpperCase(),
+          color: `hsl(${hue}, 55%, 42%)`,
+          href: `/dashboard/messages?conversation=${c.id}`,
+        };
+      }
+    );
+
+    if (mappedMessages.length === 0 && activity.length > 0) {
+      mappedMessages = activity.slice(0, 4).map((a, i) => ({
+        id: `activity-${i}`,
+        name: a.title,
+        preview: a.sub,
+        time: a.time,
+        initials: a.title.slice(0, 2).toUpperCase(),
+        color: ["#fd5000", "#7c3aed", "#2563eb", "#16a34a"][i % 4],
+        href: "/dashboard/notifications",
+      }));
+    }
+
     // ─ Campaigns mapping (for the bottom TopCampaigns card) ─
     const rawCampaigns = (campaignsRes.data ?? []) as unknown as CampaignRow[];
     const mappedCampaigns: Campaign[] = rawCampaigns.map((c) => {
@@ -670,6 +747,36 @@ export default function DashboardHomePage() {
     setSidebarCampaigns(mappedSidebarCampaigns);
     setSidebarCreators(mappedCreators);
     setRecentSearches(mappedSearches);
+    setDashboardMessages(mappedMessages);
+
+    const vendorId = vendorRes.data?.id ?? null;
+    if (vendorId) {
+      const { data: inventoryProducts } = await supabase
+        .from("products")
+        .select(
+          "id, name, slug, sku, price, currency, status, inventory_quantity, track_inventory, is_digital, images"
+        )
+        .eq("vendor_id", vendorId)
+        .is("deleted_at", null)
+        .order("sale_count", { ascending: false })
+        .limit(8);
+
+      setStockRows(
+        (inventoryProducts ?? []).map((p) => {
+          const hue = p.name.charCodeAt(0) % 360;
+          return mapProductToStockRow(
+            {
+              ...p,
+              imageUrl: getProductImage(p.images),
+              imageColor: `hsl(${hue}, 55%, 45%)`,
+            },
+            formatMoney
+          );
+        })
+      );
+    } else {
+      setStockRows([]);
+    }
 
     setProfile(profileRes.data ?? null);
     setWallet(w);
@@ -791,13 +898,22 @@ export default function DashboardHomePage() {
             day: "numeric",
           })}
           actions={
-            <Link
-              href="/dashboard/settings"
-              className="inline-flex h-9 items-center gap-2 rounded-lg px-3.5 text-[12.5px] font-medium text-[var(--color-text-muted)] ring-1 ring-[var(--color-border)] transition-colors hover:text-[var(--color-text-primary)]"
-            >
-              <Settings className="h-3.5 w-3.5" />
-              Settings
-            </Link>
+            <>
+              <Link
+                href="/dashboard/analytics"
+                className="inline-flex h-9 items-center gap-2 rounded-lg px-3.5 text-[12.5px] font-medium text-[var(--color-text-muted)] ring-1 ring-[var(--color-border)] transition-colors hover:text-[var(--color-text-primary)]"
+              >
+                <BarChart3 className="h-3.5 w-3.5" />
+                Analytics
+              </Link>
+              <Link
+                href="/dashboard/settings"
+                className="inline-flex h-9 items-center gap-2 rounded-lg px-3.5 text-[12.5px] font-medium text-[var(--color-text-muted)] ring-1 ring-[var(--color-border)] transition-colors hover:text-[var(--color-text-primary)]"
+              >
+                <Settings className="h-3.5 w-3.5" />
+                Settings
+              </Link>
+            </>
           }
         />
 
@@ -842,6 +958,22 @@ export default function DashboardHomePage() {
               </div>
             ) : (
               <StatCardsRow cards={statCards} />
+            )}
+
+            {loading ? (
+              <Skeleton className="h-[520px] w-full" />
+            ) : (
+              <DashboardAnalyticsBoard
+                wallet={wallet}
+                labels={earningsLabels ?? []}
+                datasets={earningsDatasets ?? []}
+                products={products}
+                messages={dashboardMessages}
+              />
+            )}
+
+            {!loading && stockRows.length > 0 && (
+              <StockQuantityTable rows={stockRows} />
             )}
 
             {!loading && (
