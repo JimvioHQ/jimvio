@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, Fragment } from "react";
 import Link from "next/link";
 import {
   ShoppingBag, Store, DollarSign, Megaphone, Users, Package,
@@ -195,125 +195,143 @@ const JOURNEYS = [
   {
     role: "Buyer",
     icon: ShoppingBag,
-    tint: "#fff4ed",
     color: ORANGE,
-    image: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=240&h=320&fit=crop&crop=faces",
+    metric: "Protected checkout",
+    tagline: "Browse verified suppliers and track every order in one place.",
     items: ["Verified sellers", "Order tracking", "Buyer protection"],
-    cta: "Start as Buyer",
+    cta: "Browse marketplace",
     href: "/marketplace",
   },
   {
     role: "Seller",
     icon: Store,
-    tint: "#eff6ff",
     color: BLUE,
-    image: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=240&h=320&fit=crop&crop=faces",
-    items: ["Your own store", "Order management", "Fast payouts"],
-    cta: "Start as Seller",
+    metric: "Your own storefront",
+    tagline: "List products, manage orders, and get paid without a separate tool stack.",
+    items: ["Store dashboard", "Inventory & orders", "Fast payouts"],
+    cta: "Open your store",
     href: "/dashboard",
   },
   {
     role: "Affiliate",
     icon: DollarSign,
-    tint: "#f0fdf4",
     color: GREEN,
-    image: "https://images.unsplash.com/photo-1519088936005-989ecc21b58d?w=240&h=320&fit=crop&crop=faces",
-    items: ["Unique referral links", "Up to 30% commission", "Wallet payouts"],
-    cta: "Start as Affiliate",
+    metric: "Up to 30% commission",
+    tagline: "Share referral links and earn when your audience buys.",
+    items: ["Custom links", "Real-time stats", "Wallet withdrawals"],
+    cta: "Start earning",
     href: "/affiliates",
   },
   {
     role: "Brand",
     icon: Award,
-    tint: "#eff6ff",
     color: BLUE,
-    image: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=240&h=320&fit=crop&crop=faces",
-    items: ["Launch UGC campaigns", "Creator partnerships", "Performance tracking"],
-    cta: "Start as Brand",
+    metric: "UGC at scale",
+    tagline: "Launch campaigns, brief creators, and track performance from one hub.",
+    items: ["Campaign builder", "Creator matching", "ROI tracking"],
+    cta: "Launch a campaign",
     href: "/dashboard/campaigns/new",
   },
   {
     role: "Creator",
     icon: Clapperboard,
-    tint: "#f5f3ff",
     color: PURPLE,
-    image: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=240&h=320&fit=crop&crop=faces",
-    items: ["Paid UGC campaigns", "Per-view earnings", "Creator dashboard"],
-    cta: "Start as Creator",
+    metric: "Paid per campaign",
+    tagline: "Join brand briefs, publish content, and get paid for results.",
+    items: ["Campaign marketplace", "Per-view payouts", "Creator dashboard"],
+    cta: "Find campaigns",
     href: "/ugc",
   },
   {
     role: "Community Owner",
     icon: Users,
-    tint: "#fffbeb",
     color: YELLOW,
-    image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=240&h=320&fit=crop&crop=faces",
-    items: ["Public or private groups", "Member subscriptions", "Live sessions"],
-    cta: "Start as Owner",
+    metric: "Recurring revenue",
+    tagline: "Run memberships, live sessions, and paid spaces for your audience.",
+    items: ["Public or private", "Subscriptions", "Live & courses"],
+    cta: "Build community",
     href: "/communities",
   },
 ] as const;
-
-function JourneyCta({ href, label, color }: { href: string; label: string; color: string }) {
-  return (
-    <Link
-      href={href}
-      className="flex h-10 w-full items-center justify-center gap-1 rounded-xl text-[12px] font-bold text-white transition-opacity hover:opacity-90"
-      style={{ background: color }}
-    >
-      {label} <ArrowRight className="size-3.5" />
-    </Link>
-  );
-}
 
 export function ChooseYourJourney() {
   return (
     <section className={`border-t border-[var(--color-border)] ${section} py-10 sm:py-14`}>
       <div className={shell}>
-        <SectionTitle sub="Same platform — different ways to earn, sell, or shop.">
+        <SectionTitle sub="One account — sell, earn, create, or buy depending on what you need right now.">
           Choose Your Journey
         </SectionTitle>
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
+
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
           {JOURNEYS.map((j) => (
-            <div
+            <Link
               key={j.role}
-              className={`flex h-full min-h-[280px] flex-col overflow-hidden ${cardBase}`}
+              href={j.href}
+              className="group relative flex min-h-0 flex-col overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_12px_32px_rgba(0,0,0,0.08)] sm:p-5"
             >
-              <div className="flex flex-1 gap-2 p-3 sm:gap-3 sm:p-4">
-                <div className="flex min-w-0 flex-1 flex-col">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--color-text-muted)]">
-                    I&apos;m a
-                  </p>
-                  <h3 className="mt-0.5 text-[14px] font-bold leading-tight text-[var(--color-text-primary)] sm:text-[16px]">
-                    {j.role}
-                  </h3>
-                  <ul className="mt-2.5 space-y-1.5 sm:mt-3 sm:space-y-2">
-                    {j.items.map((it) => (
-                      <li key={it} className="flex items-start gap-1.5 text-[10px] leading-snug text-[var(--color-text-secondary)] sm:gap-2 sm:text-[12px]">
-                        <Check
-                          className="mt-0.5 size-3 shrink-0 sm:size-3.5"
-                          style={{ color: j.color }}
-                          strokeWidth={2.5}
-                        />
-                        {it}
-                      </li>
-                    ))}
-                  </ul>
+              <span
+                className="absolute bottom-0 left-0 top-0 w-1 rounded-r-full transition-all duration-200 group-hover:w-1.5"
+                style={{ background: j.color }}
+                aria-hidden
+              />
+
+              <j.icon
+                className="pointer-events-none absolute -bottom-5 -right-5 size-[88px] opacity-[0.05] transition-transform duration-300 group-hover:scale-110 sm:size-[100px]"
+                style={{ color: j.color }}
+                strokeWidth={1.25}
+                aria-hidden
+              />
+
+              <div className="relative pl-2.5 sm:pl-3">
+                <div className="flex items-start gap-3">
+                  <span
+                    className="grid size-11 shrink-0 place-items-center rounded-xl transition-transform duration-200 group-hover:scale-105 sm:size-12"
+                    style={{ background: `${j.color}14`, color: j.color }}
+                  >
+                    <j.icon className="size-5 sm:size-[22px]" strokeWidth={2.2} />
+                  </span>
+                  <div className="min-w-0 flex-1 pt-0.5">
+                    <h3 className="text-[16px] font-bold leading-tight text-[var(--color-text-primary)] sm:text-[17px]">
+                      {j.role}
+                    </h3>
+                    <p
+                      className="mt-1 inline-flex rounded-md px-2 py-0.5 text-[10px] font-semibold tracking-wide sm:text-[11px]"
+                      style={{ background: `${j.color}12`, color: j.color }}
+                    >
+                      {j.metric}
+                    </p>
+                  </div>
                 </div>
-                <div className="flex w-[72px] shrink-0 items-end justify-center sm:w-[88px]">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={j.image}
-                    alt=""
-                    className="max-h-[108px] w-full object-contain object-bottom sm:max-h-[128px]"
-                    loading="lazy"
-                  />
-                </div>
+
+                <p className="mt-3 text-[12px] leading-relaxed text-[var(--color-text-secondary)] sm:mt-3.5 sm:text-[13px]">
+                  {j.tagline}
+                </p>
+
+                <ul className="mt-3 space-y-1.5 sm:mt-4">
+                  {j.items.map((it) => (
+                    <li
+                      key={it}
+                      className="flex items-center gap-2 text-[11px] text-[var(--color-text-muted)] sm:text-[12px]"
+                    >
+                      <span
+                        className="size-1.5 shrink-0 rounded-full"
+                        style={{ background: j.color }}
+                        aria-hidden
+                      />
+                      {it}
+                    </li>
+                  ))}
+                </ul>
+
+                <span
+                  className="mt-4 inline-flex items-center gap-1.5 text-[12px] font-bold transition-all group-hover:gap-2 sm:mt-5 sm:text-[13px]"
+                  style={{ color: j.color }}
+                >
+                  {j.cta}
+                  <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
+                </span>
               </div>
-              <div className="px-3 pb-3 sm:px-4 sm:pb-4">
-                <JourneyCta href={j.href} label={j.cta} color={j.color} />
-              </div>
-            </div>
+            </Link>
           ))}
         </div>
       </div>
@@ -323,31 +341,302 @@ export function ChooseYourJourney() {
 
 /* ═══ 5. How Jimvio works ═══ */
 const STEPS = [
-  { n: 1, title: "Discover", desc: "Find products, campaigns and opportunities you love.", color: ORANGE },
-  { n: 2, title: "Promote & Earn", desc: "Share or sell and get paid instantly.", color: GREEN },
-  { n: 3, title: "Scale", desc: "Build your income and build your brand.", color: BLUE },
-];
+  {
+    step: "01",
+    title: "Discover",
+    desc: "Explore products, brand campaigns, and communities before you commit to a path.",
+    detail: "Marketplace, UGC, and communities in one place.",
+    icon: Search,
+    color: ORANGE,
+  },
+  {
+    step: "02",
+    title: "Promote & earn",
+    desc: "Sell inventory, share affiliate links, or publish creator content tied to live campaigns.",
+    detail: "Payouts land in your Jimvio wallet.",
+    icon: Share2,
+    color: GREEN,
+  },
+  {
+    step: "03",
+    title: "Scale",
+    desc: "Track what converts, double down on winners, and grow store revenue or audience income.",
+    detail: "Dashboard analytics on every channel.",
+    icon: BarChart3,
+    color: BLUE,
+  },
+] as const;
+
+function HowJimvioConnector({
+  filled,
+  fromColor,
+  toColor,
+  orientation = "horizontal",
+}: {
+  filled: boolean;
+  fromColor: string;
+  toColor: string;
+  orientation?: "horizontal" | "vertical";
+}) {
+  const gradient =
+    orientation === "horizontal"
+      ? `linear-gradient(90deg, ${fromColor}, ${toColor})`
+      : `linear-gradient(180deg, ${fromColor}, ${toColor})`;
+
+  return (
+    <div
+      className={cn(
+        "relative overflow-hidden rounded-full bg-[var(--color-border)]",
+        orientation === "horizontal" ? "h-0.5 flex-1" : "w-0.5 flex-1",
+      )}
+      aria-hidden
+    >
+      <div
+        className={cn(
+          "absolute rounded-full transition-all duration-500 ease-out",
+          orientation === "horizontal" ? "inset-y-0 left-0" : "inset-x-0 top-0",
+          filled ? (orientation === "horizontal" ? "w-full" : "h-full") : orientation === "horizontal" ? "w-0" : "h-0",
+        )}
+        style={{ background: gradient }}
+      />
+    </div>
+  );
+}
 
 export function HowJimvioWorks() {
+  const [active, setActive] = useState(0);
+  const [paused, setPaused] = useState(false);
+
+  useEffect(() => {
+    if (paused) return;
+    const timer = setInterval(
+      () => setActive((current) => (current + 1) % STEPS.length),
+      4200,
+    );
+    return () => clearInterval(timer);
+  }, [paused]);
+
+  const focusStep = (index: number) => {
+    setActive(index);
+    setPaused(true);
+  };
+
   return (
-    <section className={`${section} py-12 sm:py-16`}>
+    <section className={`${sectionAlt} py-10 sm:py-14`}>
       <div className={shell}>
-        <SectionTitle>How Jimvio Works</SectionTitle>
-        <div className="relative grid grid-cols-1 gap-8 md:grid-cols-3 md:gap-4">
-          <div className="pointer-events-none absolute left-[20%] right-[20%] top-7 hidden h-px border-t-2 border-dashed border-[var(--color-border)] md:block" />
-          {STEPS.map((s) => (
-            <div key={s.n} className="relative flex flex-col items-center text-center">
-              <span
-                className="relative z-10 mb-4 grid size-14 place-items-center rounded-full text-lg font-black text-white shadow-md"
-                style={{ background: s.color }}
+        <SectionTitle sub="Three steps from browsing to earning — tap a step to follow the flow.">
+          How Jimvio Works
+        </SectionTitle>
+
+        {/* Desktop interactive connector rail */}
+        <div className="mb-6 hidden md:flex md:items-center md:gap-0">
+          {STEPS.map((s, index) => (
+            <Fragment key={s.step}>
+              {index > 0 && (
+                <HowJimvioConnector
+                  filled={index <= active}
+                  fromColor={STEPS[index - 1].color}
+                  toColor={s.color}
+                />
+              )}
+              <button
+                type="button"
+                onClick={() => focusStep(index)}
+                onMouseEnter={() => focusStep(index)}
+                aria-pressed={active === index}
+                aria-label={`Step ${s.step}: ${s.title}`}
+                className={cn(
+                  "relative z-10 flex shrink-0 flex-col items-center gap-2 rounded-2xl border px-4 py-3 transition-all duration-300",
+                  active === index
+                    ? "scale-105 border-transparent bg-[var(--color-surface)] shadow-[0_8px_24px_rgba(0,0,0,0.08)]"
+                    : "border-[var(--color-border)] bg-[var(--color-surface)]/60 opacity-80 hover:opacity-100",
+                )}
+                style={
+                  active === index
+                    ? { boxShadow: `0 8px 28px ${s.color}22` }
+                    : undefined
+                }
               >
-                {s.n}
-              </span>
-              <h3 className="text-[16px] font-bold text-[var(--color-text-primary)]">{s.title}</h3>
-              <p className="mt-1.5 max-w-[220px] text-[13px] leading-relaxed text-[var(--color-text-muted)]">{s.desc}</p>
+                <span
+                  className="grid size-11 place-items-center rounded-xl transition-colors duration-300"
+                  style={{
+                    background: active === index ? `${s.color}18` : `${s.color}10`,
+                    color: s.color,
+                  }}
+                >
+                  <s.icon className="size-5" strokeWidth={2.2} />
+                </span>
+                <span
+                  className="font-[family-name:var(--font-jetbrains-mono)] text-[10px] font-bold tracking-widest"
+                  style={{ color: s.color }}
+                >
+                  {s.step}
+                </span>
+                <span className="text-[12px] font-bold text-[var(--color-text-primary)]">{s.title}</span>
+              </button>
+            </Fragment>
+          ))}
+        </div>
+
+        {/* Mobile interactive connector rail */}
+        <div className="mb-5 flex flex-col gap-0 md:hidden">
+          {STEPS.map((s, index) => (
+            <div key={s.step} className="flex gap-3">
+              <div className="flex w-8 flex-col items-center">
+                <button
+                  type="button"
+                  onClick={() => focusStep(index)}
+                  aria-pressed={active === index}
+                  aria-label={`Step ${s.step}: ${s.title}`}
+                  className={cn(
+                    "grid size-8 shrink-0 place-items-center rounded-full border-2 transition-all duration-300",
+                    active === index
+                      ? "scale-110 border-transparent text-white shadow-md"
+                      : "border-[var(--color-border)] bg-[var(--color-surface)]",
+                  )}
+                  style={active === index ? { background: s.color } : { color: s.color }}
+                >
+                  <s.icon className="size-3.5" strokeWidth={2.4} />
+                </button>
+                {index < STEPS.length - 1 && (
+                  <HowJimvioConnector
+                    filled={index < active}
+                    fromColor={s.color}
+                    toColor={STEPS[index + 1].color}
+                    orientation="vertical"
+                  />
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => focusStep(index)}
+                className={cn(
+                  "mb-3 flex-1 rounded-xl border px-3 py-2.5 text-left transition-all duration-300",
+                  active === index
+                    ? "border-transparent bg-[var(--color-surface)] shadow-[0_6px_20px_rgba(0,0,0,0.06)]"
+                    : "border-[var(--color-border)] bg-[var(--color-surface)]/70",
+                )}
+                style={
+                  active === index
+                    ? { boxShadow: `0 6px 22px ${s.color}18` }
+                    : undefined
+                }
+              >
+                <span
+                  className="font-[family-name:var(--font-jetbrains-mono)] text-[10px] font-bold tracking-widest"
+                  style={{ color: s.color }}
+                >
+                  {s.step}
+                </span>
+                <span className="mt-0.5 block text-[13px] font-bold text-[var(--color-text-primary)]">
+                  {s.title}
+                </span>
+              </button>
             </div>
           ))}
         </div>
+
+        {/* Showcase cards */}
+        <div
+          className="grid grid-cols-1 gap-4 md:grid-cols-3 md:gap-5"
+          onMouseLeave={() => setPaused(false)}
+        >
+          {STEPS.map((s, index) => (
+            <article
+              key={s.step}
+              role="button"
+              tabIndex={0}
+              onClick={() => focusStep(index)}
+              onMouseEnter={() => focusStep(index)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  focusStep(index);
+                }
+              }}
+              className={cn(
+                "relative flex h-full cursor-pointer flex-col rounded-2xl border bg-[var(--color-surface)] p-4 transition-all duration-300 sm:p-5",
+                active === index
+                  ? "-translate-y-0.5 border-transparent shadow-[0_14px_36px_rgba(0,0,0,0.08)]"
+                  : "border-[var(--color-border)] opacity-75 hover:opacity-100",
+              )}
+              style={
+                active === index
+                  ? {
+                      boxShadow: `0 14px 36px ${s.color}20`,
+                      borderColor: `${s.color}35`,
+                    }
+                  : undefined
+              }
+            >
+              <span
+                className={cn(
+                  "absolute left-0 top-5 bottom-5 w-1 rounded-r-full transition-all duration-300",
+                  active === index ? "opacity-100" : "opacity-35",
+                )}
+                style={{ background: s.color }}
+                aria-hidden
+              />
+
+              <div className="mb-4 flex items-center justify-between gap-3 pl-2.5">
+                <span
+                  className="font-[family-name:var(--font-jetbrains-mono)] text-[11px] font-bold tracking-widest"
+                  style={{ color: s.color }}
+                >
+                  {s.step}
+                </span>
+                <span
+                  className={cn(
+                    "grid size-10 place-items-center rounded-xl transition-transform duration-300",
+                    active === index && "scale-110",
+                  )}
+                  style={{ background: `${s.color}12`, color: s.color }}
+                >
+                  <s.icon className="size-[18px]" strokeWidth={2.2} />
+                </span>
+              </div>
+
+              <h3 className="pl-2.5 text-[17px] font-bold leading-tight text-[var(--color-text-primary)] sm:text-[18px]">
+                {s.title}
+              </h3>
+              <p
+                className={cn(
+                  "mt-2 flex-1 pl-2.5 text-[13px] leading-relaxed transition-colors duration-300",
+                  active === index
+                    ? "text-[var(--color-text-secondary)]"
+                    : "text-[var(--color-text-muted)]",
+                )}
+              >
+                {s.desc}
+              </p>
+
+              <p
+                className={cn(
+                  "mt-4 border-t pt-3 pl-2.5 text-[11px] font-medium leading-snug transition-opacity duration-300 sm:text-[12px]",
+                  active === index ? "opacity-100" : "opacity-70",
+                )}
+                style={{ borderColor: `${s.color}22`, color: s.color }}
+              >
+                {s.detail}
+              </p>
+            </article>
+          ))}
+        </div>
+
+        <p className="mt-5 text-center text-[11px] text-[var(--color-text-muted)] sm:text-[12px]">
+          {paused ? "Auto-play paused" : "Showcase auto-advances every few seconds"}
+          {" · "}
+          <button
+            type="button"
+            onClick={() => {
+              setPaused((p) => !p);
+              if (paused) setActive(0);
+            }}
+            className="font-semibold text-[var(--color-text-secondary)] underline-offset-2 hover:underline"
+          >
+            {paused ? "Resume showcase" : "Pause"}
+          </button>
+        </p>
       </div>
     </section>
   );
