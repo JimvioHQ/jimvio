@@ -12,6 +12,7 @@ import { FeedSection } from "@/components/community/workspace/sections/Feed";
 import {
   HubAvatar, HubBadge, HubCard, HubLinkButton, HubSectionTitle, HubStatCard,
 } from "./hub-ui";
+import { HubAuthPrompt } from "./hub-auth-prompt";
 
 const FEED_TABS = [
   { label: "For You", filter: "for-you" },
@@ -102,6 +103,7 @@ function formatMoney(amount: number, currency: string) {
 export function HubFeedPage() {
   const [activeTab, setActiveTab] = useState<(typeof FEED_TABS)[number]["label"]>("For You");
   const [loading, setLoading] = useState(true);
+  const [needsAuth, setNeedsAuth] = useState(false);
   const [data, setData] = useState<HubDashboard | null>(null);
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const [indicator, setIndicator] = useState({ left: 0, width: 0 });
@@ -114,9 +116,16 @@ export function HubFeedPage() {
       setLoading(true);
       try {
         const res = await fetch("/api/c/hub");
+        if (res.status === 401) {
+          if (!cancelled) setNeedsAuth(true);
+          return;
+        }
         if (!res.ok) return;
         const json = (await res.json()) as HubDashboard;
-        if (!cancelled) setData(json);
+        if (!cancelled) {
+          setNeedsAuth(false);
+          setData(json);
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -142,6 +151,13 @@ export function HubFeedPage() {
       <div className="mx-auto flex max-w-[1280px] gap-5 px-4 py-5 lg:px-6">
         {/* ── Main column ── */}
         <div className="min-w-0 flex-1 space-y-4">
+          {needsAuth && (
+            <HubAuthPrompt
+              compact
+              nextPath="/c"
+              description="Sign in to see your personalized stats, post to the feed, and join community conversations."
+            />
+          )}
           {/* Stats row */}
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
             <HubStatCard

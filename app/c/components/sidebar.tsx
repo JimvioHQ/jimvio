@@ -602,6 +602,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { HubPremiumCard, HubUserCard } from "@/components/community/hub/hub-ui";
 import { aggregateMemberPoints } from "@/lib/community/points";
+import { HUB_AUTH_NAV_IDS, buildHubLoginUrl } from "@/lib/community/hub-auth";
 
 const Icons = {
     Feed: () => (
@@ -869,6 +870,7 @@ function SidebarContent({
         xp: number;
         xpMax: number;
     } | null>(null);
+    const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
     const communitiesToRender = useCommunityList([]);
 
     useEffect(() => {
@@ -876,7 +878,12 @@ function SidebarContent({
         async function loadUserCard() {
             const supabase = createClient();
             const { data: { user } } = await supabase.auth.getUser();
-            if (!user || cancelled) return;
+            if (cancelled) return;
+            if (!user) {
+                setIsAuthenticated(false);
+                return;
+            }
+            setIsAuthenticated(true);
 
             const [profileRes, pointsRes] = await Promise.all([
                 supabase
@@ -1002,6 +1009,25 @@ function SidebarContent({
                 flexShrink: 0,
             }}>
                 {!collapsed ? (
+                    isAuthenticated === false ? (
+                        <Link
+                            href={buildHubLoginUrl("/c")}
+                            onClick={onLinkClick}
+                            style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, flex: 1, textDecoration: "none" }}
+                        >
+                            <UserSidebarAvatar name="Guest" size={36} />
+                            <span style={{ minWidth: 0, display: "flex", flexDirection: "column" }}>
+                                <span style={{
+                                    fontSize: 13, fontWeight: 700, color: "var(--color-text-primary, #18181b)",
+                                }}>
+                                    Guest
+                                </span>
+                                <span style={{ fontSize: 11, fontWeight: 600, color: "var(--color-accent, #fd5000)" }}>
+                                    Sign in to participate
+                                </span>
+                            </span>
+                        </Link>
+                    ) : (
                     <Link
                         href={username ? `/c/profile/${username}` : "/c/profile"}
                         onClick={onLinkClick}
@@ -1020,6 +1046,7 @@ function SidebarContent({
                             </span>
                         </span>
                     </Link>
+                    )
                 ) : (
                     <Link href={username ? `/c/profile/${username}` : "/c/profile"} onClick={onLinkClick} style={{ display: "flex" }}>
                         <UserSidebarAvatar name={userCard?.name ?? "Member"} src={userCard?.avatarUrl} size={32} />
@@ -1066,6 +1093,9 @@ function SidebarContent({
 
                     {resolvedNav.map(({ id, label, href, icon: Icon, badgeKey }) => {
                         const active = isActive(id, href);
+                        const requiresAuth = HUB_AUTH_NAV_IDS.has(id);
+                        const locked = requiresAuth && isAuthenticated === false;
+                        const linkHref = locked ? buildHubLoginUrl(href) : href;
                         const badge =
                             badgeKey === "messages" && unreadMessages > 0 ? unreadMessages
                             : badgeKey === "new" ? "New"
@@ -1074,8 +1104,8 @@ function SidebarContent({
                         return (
                             <Link
                                 key={id}
-                                href={href}
-                                title={collapsed ? label : undefined}
+                                href={linkHref}
+                                title={collapsed ? (locked ? `${label} (sign in required)` : label) : undefined}
                                 style={navLink(active)}
                                 onClick={onLinkClick}
                                 {...hoverHandlers(active)}
@@ -1125,6 +1155,11 @@ function SidebarContent({
                                                 padding: "0 6px", height: 16, display: "flex", alignItems: "center",
                                             }}>{badge}</span>
                                         )}
+                                        {locked && (
+                                            <span style={{
+                                                fontSize: 10, fontWeight: 600, color: "var(--color-text-muted, #6a6a6a)",
+                                            }}>Sign in</span>
+                                        )}
                                     </>
                                 )}
                             </Link>
@@ -1166,7 +1201,9 @@ function SidebarContent({
                             fontSize: 11, color: "var(--color-text-muted, #6a6a6a)",
                             padding: "4px 10px", margin: 0, lineHeight: 1.5,
                         }}>
-                            You haven't joined any yet.
+                            {isAuthenticated === false
+                                ? "Sign in to see communities you've joined."
+                                : "You haven't joined any yet."}
                         </p>
                     )}
 
@@ -1236,7 +1273,7 @@ function SidebarContent({
                     </Link>
                 </div>
 
-                {!collapsed && (
+                {!collapsed && isAuthenticated !== false && (
                     <div style={{ padding: "8px", display: "flex", flexDirection: "column", gap: 8 }}>
                         <HubPremiumCard />
                         <HubUserCard
@@ -1253,43 +1290,57 @@ function SidebarContent({
 
             {/* ── Footer ── */}
             <div style={{ borderTop: "1px solid var(--color-border, rgba(255,255,255,0.06))", padding: "8px", flexShrink: 0 }}>
-                <Link
-                    href="/c/settings"
-                    title={collapsed ? "Settings" : undefined}
-                    style={{ ...footerBtnBase, display: "flex" }}
-                    onClick={onLinkClick}
-                    onMouseEnter={(e) => {
-                        e.currentTarget.style.color = "var(--color-text-primary, #ededed)";
-                        e.currentTarget.style.background = "var(--color-surface-secondary, rgba(255,255,255,0.05))";
-                    }}
-                    onMouseLeave={(e) => {
-                        e.currentTarget.style.color = "var(--color-text-muted, #6a6a6a)";
-                        e.currentTarget.style.background = "transparent";
-                    }}
-                >
-                    <Icons.Settings />
-                    {!collapsed && <span>Settings</span>}
-                </Link>
-                <button
-                    onClick={handleSignOut}
-                    title={collapsed ? "Sign out" : undefined}
-                    style={{
-                        ...footerBtnBase,
-                        display: "flex",
-                        background: "none", border: "none", cursor: "pointer", width: "100%",
-                    }}
-                    onMouseEnter={(e) => {
-                        e.currentTarget.style.color = "var(--color-danger, #f07070)";
-                        e.currentTarget.style.background = "rgba(240,112,112,0.08)";
-                    }}
-                    onMouseLeave={(e) => {
-                        e.currentTarget.style.color = "var(--color-text-muted, #6a6a6a)";
-                        e.currentTarget.style.background = "transparent";
-                    }}
-                >
-                    <Icons.SignOut />
-                    {!collapsed && <span>Sign out</span>}
-                </button>
+                {isAuthenticated === false ? (
+                    <Link
+                        href={buildHubLoginUrl("/c")}
+                        title={collapsed ? "Sign in" : undefined}
+                        style={{ ...footerBtnBase, display: "flex", color: "var(--color-accent, #fd5000)", fontWeight: 700 }}
+                        onClick={onLinkClick}
+                    >
+                        <Icons.SignOut />
+                        {!collapsed && <span>Sign in</span>}
+                    </Link>
+                ) : (
+                    <>
+                        <Link
+                            href="/c/settings"
+                            title={collapsed ? "Settings" : undefined}
+                            style={{ ...footerBtnBase, display: "flex" }}
+                            onClick={onLinkClick}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.color = "var(--color-text-primary, #ededed)";
+                                e.currentTarget.style.background = "var(--color-surface-secondary, rgba(255,255,255,0.05))";
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.color = "var(--color-text-muted, #6a6a6a)";
+                                e.currentTarget.style.background = "transparent";
+                            }}
+                        >
+                            <Icons.Settings />
+                            {!collapsed && <span>Settings</span>}
+                        </Link>
+                        <button
+                            onClick={handleSignOut}
+                            title={collapsed ? "Sign out" : undefined}
+                            style={{
+                                ...footerBtnBase,
+                                display: "flex",
+                                background: "none", border: "none", cursor: "pointer", width: "100%",
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.color = "var(--color-danger, #f07070)";
+                                e.currentTarget.style.background = "rgba(240,112,112,0.08)";
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.color = "var(--color-text-muted, #6a6a6a)";
+                                e.currentTarget.style.background = "transparent";
+                            }}
+                        >
+                            <Icons.SignOut />
+                            {!collapsed && <span>Sign out</span>}
+                        </button>
+                    </>
+                )}
             </div>
         </>
     );

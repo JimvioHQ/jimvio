@@ -62,8 +62,8 @@ export interface AnalyticsContributor {
 
 interface AnalyticsPageBoardProps {
   rings: AnalyticsRingMetric[];
-  trafficBars: { label: string; profit: number; revenue: number; ads: number }[];
-  followersBars: { month: string; followers: number; unfollows: number }[];
+  trafficBars: { label: string; store: number; campaigns: number }[];
+  followersBars: { month: string; orders: number }[];
   digitalTrend: { label: string; value: number }[];
   trafficMix: { name: string; value: number; color: string }[];
   recentSales: AnalyticsSaleRow[];
@@ -139,6 +139,140 @@ function RingCard({ metric }: { metric: AnalyticsRingMetric }) {
   );
 }
 
+function formatChartMoney(value: number): string {
+  const n = Math.abs(Number(value));
+  if (!Number.isFinite(n) || n === 0) return "0";
+  if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1)}B`;
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 10_000) return `${(n / 1_000).toFixed(0)}k`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
+  return String(Math.round(n));
+}
+
+function formatChartCount(value: number): string {
+  const n = Math.round(Number(value));
+  if (!Number.isFinite(n)) return "0";
+  return n.toLocaleString();
+}
+
+function chartYDomain(max: number, floor = 5): [number, number] {
+  const safe = Math.max(0, max);
+  if (safe <= 0) return [0, floor];
+  const padded = Math.ceil(safe * 1.15);
+  const magnitude = Math.pow(10, Math.floor(Math.log10(padded)));
+  const nice = Math.ceil(padded / magnitude) * magnitude;
+  return [0, Math.max(floor, nice)];
+}
+
+type TooltipPayload = { name?: string; value?: number; color?: string; dataKey?: string };
+
+function ChartMoneyTooltip({
+  active,
+  payload,
+  label,
+  formatValue,
+  labels,
+}: {
+  active?: boolean;
+  payload?: TooltipPayload[];
+  label?: string;
+  formatValue: (n: number) => string;
+  labels: Record<string, string>;
+}) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 shadow-md">
+      <p className="mb-1.5 text-[12px] font-bold text-[var(--color-text-primary)]">{label}</p>
+      <div className="space-y-1">
+        {payload.map((entry) => {
+          const key = String(entry.dataKey ?? entry.name ?? "");
+          const val = Number(entry.value ?? 0);
+          if (!val) return null;
+          return (
+            <div key={key} className="flex items-center justify-between gap-4 text-[11px]">
+              <span className="flex items-center gap-1.5 text-[var(--color-text-muted)]">
+                <span className="size-2 rounded-sm" style={{ background: entry.color }} />
+                {labels[key] ?? entry.name ?? key}
+              </span>
+              <span className="font-semibold tabular-nums text-[var(--color-text-primary)]">
+                {formatValue(val)}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function ChartCountTooltip({
+  active,
+  payload,
+  label,
+}: {
+  active?: boolean;
+  payload?: TooltipPayload[];
+  label?: string;
+}) {
+  if (!active || !payload?.length) return null;
+  const val = Number(payload[0]?.value ?? 0);
+  return (
+    <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 shadow-md">
+      <p className="text-[12px] font-bold text-[var(--color-text-primary)]">{label}</p>
+      <p className="mt-1 text-[11px] text-[var(--color-text-muted)]">
+        Orders: <span className="font-semibold text-[var(--color-text-primary)]">{formatChartCount(val)}</span>
+      </p>
+    </div>
+  );
+}
+
+function ChartEmpty({ message }: { message: string }) {
+  return (
+    <div className="flex h-full min-h-[180px] flex-col items-center justify-center px-4 text-center">
+      <p className="text-[13px] font-medium text-[var(--color-text-secondary)]">{message}</p>
+      <p className="mt-1 text-[12px] text-[var(--color-text-muted)]">
+        Data appears once you start earning or receiving traffic.
+      </p>
+    </div>
+  );
+}
+
+function PersonAvatar({
+  name,
+  initials,
+  color,
+  avatarUrl,
+  size = "md",
+}: {
+  name: string;
+  initials: string;
+  color: string;
+  avatarUrl?: string | null;
+  size?: "md" | "lg";
+}) {
+  const dim = size === "lg" ? "size-11 text-[12px]" : "size-9 text-[11px]";
+  if (avatarUrl) {
+    return (
+      <img
+        src={avatarUrl}
+        alt=""
+        className={cn(dim, "shrink-0 rounded-full object-cover ring-1 ring-[var(--color-border)]")}
+      />
+    );
+  }
+  return (
+    <span
+      className={cn(
+        dim,
+        "flex shrink-0 items-center justify-center rounded-full font-bold text-white ring-1 ring-black/5"
+      )}
+      style={{ background: color }}
+    >
+      {initials}
+    </span>
+  );
+}
+
 function PeriodSelect({ label = "This year" }: { label?: string }) {
   return (
     <button
@@ -151,6 +285,13 @@ function PeriodSelect({ label = "This year" }: { label?: string }) {
   );
 }
 
+const CHART_MARGIN = { top: 8, right: 12, left: 0, bottom: 0 };
+
+const TRAFFIC_LABELS: Record<string, string> = {
+  store: "Store sales",
+  campaigns: "Campaigns",
+};
+
 export function AnalyticsPageBoard({
   rings,
   trafficBars,
@@ -162,12 +303,34 @@ export function AnalyticsPageBoard({
   totalVisits = 0,
   visitTrend,
 }: AnalyticsPageBoardProps) {
-  const { formatMoney } = useCurrency();
+  const { formatMoney, displayCurrency } = useCurrency();
+
+  const formatChartValue = (n: number) => formatMoney(n, displayCurrency, displayCurrency);
 
   const mixTotal = useMemo(
     () => trafficMix.reduce((s, d) => s + d.value, 0),
     [trafficMix]
   );
+
+  const trafficMax = useMemo(
+    () => Math.max(0, ...trafficBars.map((r) => r.store + r.campaigns)),
+    [trafficBars]
+  );
+
+  const ordersMax = useMemo(
+    () => Math.max(0, ...followersBars.map((r) => r.orders)),
+    [followersBars]
+  );
+
+  const digitalMax = useMemo(
+    () => Math.max(0, ...digitalTrend.map((r) => r.value)),
+    [digitalTrend]
+  );
+
+  const hasTrafficData = trafficBars.some((r) => r.store > 0 || r.campaigns > 0);
+  const hasCustomerData = followersBars.some((r) => r.orders > 0);
+  const hasDigitalData = digitalTrend.some((r) => r.value > 0);
+  const hasVisitData = mixTotal > 0;
 
   return (
     <div className="space-y-4">
@@ -179,32 +342,43 @@ export function AnalyticsPageBoard({
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
         <Panel className="xl:col-span-2">
-          <div className="mb-4 flex items-center justify-between">
+          <div className="mb-4 flex items-center justify-between gap-2">
             <h3 className="text-[14px] font-bold text-[var(--color-text-primary)]">Traffic</h3>
-            <div className="flex items-center gap-3 text-[11px] text-[var(--color-text-muted)]">
-              <span className="flex items-center gap-1"><span className="size-2 rounded-sm bg-[#7c3aed]" />Profit</span>
-              <span className="flex items-center gap-1"><span className="size-2 rounded-sm bg-[#facc15]" />Revenue</span>
-              <span className="flex items-center gap-1"><span className="size-2 rounded-sm bg-[#22d3ee]" />Ads</span>
+            <div className="flex flex-wrap items-center gap-3 text-[11px] text-[var(--color-text-muted)]">
+              <span className="flex items-center gap-1"><span className="size-2 rounded-sm bg-[#7c3aed]" />Store sales</span>
+              <span className="flex items-center gap-1"><span className="size-2 rounded-sm bg-[#22d3ee]" />Campaigns</span>
             </div>
           </div>
           <div className="h-[200px] sm:h-[240px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={trafficBars} margin={{ top: 4, right: 4, left: -18, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
-                <XAxis dataKey="label" tick={{ fontSize: 10, fill: "var(--color-text-muted)" }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 10, fill: "var(--color-text-muted)" }} axisLine={false} tickLine={false} />
-                <Tooltip
-                  formatter={(v: number, n: string) => [
-                    formatMoney(v, "USD"),
-                    n === "profit" ? "Profit" : n === "revenue" ? "Revenue" : "Ads",
-                  ]}
-                  contentStyle={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: 8, fontSize: 12 }}
-                />
-                <Bar dataKey="profit" stackId="a" fill="#7c3aed" radius={[0, 0, 0, 0]} maxBarSize={36} />
-                <Bar dataKey="revenue" stackId="a" fill="#facc15" maxBarSize={36} />
-                <Bar dataKey="ads" stackId="a" fill="#22d3ee" radius={[6, 6, 0, 0]} maxBarSize={36} />
-              </BarChart>
-            </ResponsiveContainer>
+            {hasTrafficData ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={trafficBars} margin={CHART_MARGIN} barGap={6} barCategoryGap="20%">
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
+                  <XAxis dataKey="label" tick={{ fontSize: 10, fill: "var(--color-text-muted)" }} axisLine={false} tickLine={false} />
+                  <YAxis
+                    width={48}
+                    tick={{ fontSize: 10, fill: "var(--color-text-muted)" }}
+                    axisLine={false}
+                    tickLine={false}
+                    tickFormatter={formatChartMoney}
+                    domain={chartYDomain(trafficMax)}
+                    tickCount={5}
+                  />
+                  <Tooltip
+                    content={
+                      <ChartMoneyTooltip
+                        formatValue={formatChartValue}
+                        labels={TRAFFIC_LABELS}
+                      />
+                    }
+                  />
+                  <Bar dataKey="store" fill="#7c3aed" radius={[4, 4, 0, 0]} maxBarSize={32} />
+                  <Bar dataKey="campaigns" fill="#22d3ee" radius={[4, 4, 0, 0]} maxBarSize={32} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <ChartEmpty message="No traffic revenue in this period" />
+            )}
           </div>
         </Panel>
 
@@ -214,16 +388,28 @@ export function AnalyticsPageBoard({
             <PeriodSelect />
           </div>
           <div className="h-[200px] sm:h-[240px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={followersBars} margin={{ top: 4, right: 4, left: -18, bottom: 0 }} barGap={4}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
-                <XAxis dataKey="month" tick={{ fontSize: 10, fill: "var(--color-text-muted)" }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 10, fill: "var(--color-text-muted)" }} axisLine={false} tickLine={false} />
-                <Tooltip contentStyle={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: 8, fontSize: 12 }} />
-                <Bar dataKey="followers" fill="#7c3aed" radius={[6, 6, 0, 0]} maxBarSize={14} />
-                <Bar dataKey="unfollows" fill="#e5e7eb" radius={[6, 6, 0, 0]} maxBarSize={14} />
-              </BarChart>
-            </ResponsiveContainer>
+            {hasCustomerData ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={followersBars} margin={CHART_MARGIN} barCategoryGap="24%">
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
+                  <XAxis dataKey="month" tick={{ fontSize: 10, fill: "var(--color-text-muted)" }} axisLine={false} tickLine={false} />
+                  <YAxis
+                    width={36}
+                    allowDecimals={false}
+                    tick={{ fontSize: 10, fill: "var(--color-text-muted)" }}
+                    axisLine={false}
+                    tickLine={false}
+                    tickFormatter={formatChartCount}
+                    domain={chartYDomain(ordersMax, 4)}
+                    tickCount={5}
+                  />
+                  <Tooltip content={<ChartCountTooltip />} />
+                  <Bar dataKey="orders" name="Orders" fill="#7c3aed" radius={[4, 4, 0, 0]} maxBarSize={36} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <ChartEmpty message="No customer orders yet" />
+            )}
           </div>
         </Panel>
       </div>
@@ -232,137 +418,193 @@ export function AnalyticsPageBoard({
         <Panel>
           <div className="mb-4 flex items-center justify-between">
             <h3 className="text-[14px] font-bold text-[var(--color-text-primary)]">Digital analytics</h3>
-            <PeriodSelect />
+            <PeriodSelect label="Last 14 days" />
           </div>
-          <div className="h-[220px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={digitalTrend} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="digitalFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#7c3aed" stopOpacity={0.3} />
-                    <stop offset="100%" stopColor="#7c3aed" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
-                <XAxis dataKey="label" tick={{ fontSize: 10, fill: "var(--color-text-muted)" }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 10, fill: "var(--color-text-muted)" }} axisLine={false} tickLine={false} />
-                <Tooltip formatter={(v: number) => formatMoney(v, "USD")} contentStyle={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: 8, fontSize: 12 }} />
-                <Area type="monotone" dataKey="value" stroke="#7c3aed" strokeWidth={2} fill="url(#digitalFill)" />
-              </AreaChart>
-            </ResponsiveContainer>
+          <div className="h-[240px]">
+            {hasDigitalData ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={digitalTrend} margin={CHART_MARGIN}>
+                  <defs>
+                    <linearGradient id="digitalFill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#7c3aed" stopOpacity={0.3} />
+                      <stop offset="100%" stopColor="#7c3aed" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
+                  <XAxis
+                    dataKey="label"
+                    tick={{ fontSize: 10, fill: "var(--color-text-muted)" }}
+                    axisLine={false}
+                    tickLine={false}
+                    interval="preserveStartEnd"
+                    minTickGap={24}
+                  />
+                  <YAxis
+                    width={48}
+                    tick={{ fontSize: 10, fill: "var(--color-text-muted)" }}
+                    axisLine={false}
+                    tickLine={false}
+                    tickFormatter={formatChartMoney}
+                    domain={chartYDomain(digitalMax)}
+                    tickCount={5}
+                  />
+                  <Tooltip
+                    content={
+                      <ChartMoneyTooltip
+                        formatValue={formatChartValue}
+                        labels={{ value: "Earnings" }}
+                      />
+                    }
+                  />
+                  <Area type="monotone" dataKey="value" stroke="#7c3aed" strokeWidth={2} fill="url(#digitalFill)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            ) : (
+              <ChartEmpty message="No earnings recorded in the last 14 days" />
+            )}
           </div>
         </Panel>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
-          <Panel>
-            <h3 className="mb-3 text-[14px] font-bold text-[var(--color-text-primary)]">Traffic mix</h3>
-            <div className="relative mx-auto h-[140px] w-full max-w-[180px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={trafficMix} dataKey="value" innerRadius="58%" outerRadius="82%" paddingAngle={2} stroke="var(--color-surface)" strokeWidth={2}>
-                    {trafficMix.map((e) => (
-                      <Cell key={e.name} fill={e.color} />
-                    ))}
-                  </Pie>
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
-                <p className="text-[10px] text-[var(--color-text-muted)]">Total visits</p>
-                <p className="text-[15px] font-bold tabular-nums">{totalVisits.toLocaleString()}+</p>
-                {visitTrend && (
-                  <p className="flex items-center gap-0.5 text-[10px] font-semibold text-[#30a46c]">
-                    <ArrowUpRight className="size-3" />
-                    {visitTrend}
+        <Panel>
+          <h3 className="mb-4 text-[14px] font-bold text-[var(--color-text-primary)]">Traffic mix</h3>
+          {hasVisitData ? (
+            <>
+              <div className="relative mx-auto h-[160px] w-full max-w-[200px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={trafficMix}
+                      dataKey="value"
+                      innerRadius="58%"
+                      outerRadius="82%"
+                      paddingAngle={2}
+                      stroke="var(--color-surface)"
+                      strokeWidth={2}
+                    >
+                      {trafficMix.map((e) => (
+                        <Cell key={e.name} fill={e.color} />
+                      ))}
+                    </Pie>
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
+                  <p className="text-[10px] text-[var(--color-text-muted)]">Total visits</p>
+                  <p className="text-[18px] font-bold tabular-nums text-[var(--color-text-primary)]">
+                    {totalVisits.toLocaleString()}
                   </p>
-                )}
+                  {visitTrend && (
+                    <p className="flex items-center gap-0.5 text-[10px] font-semibold text-[#30a46c]">
+                      <ArrowUpRight className="size-3" />
+                      {visitTrend}
+                    </p>
+                  )}
+                </div>
               </div>
-            </div>
-            <div className="mt-3 space-y-1.5">
-              {trafficMix.map((s) => (
-                <div key={s.name} className="flex items-center justify-between text-[11px]">
-                  <span className="flex items-center gap-1.5 text-[var(--color-text-muted)]">
-                    <span className="size-2 rounded-full" style={{ background: s.color }} />
-                    {s.name}
-                  </span>
-                  <span className="font-semibold tabular-nums">
-                    {mixTotal > 0 ? Math.round((s.value / mixTotal) * 100) : 0}%
-                  </span>
+              <div className="mt-4 space-y-2">
+                {trafficMix.map((s) => (
+                  <div key={s.name} className="flex items-center justify-between text-[12px]">
+                    <span className="flex items-center gap-2 text-[var(--color-text-muted)]">
+                      <span className="size-2.5 rounded-full" style={{ background: s.color }} />
+                      {s.name}
+                    </span>
+                    <span className="font-semibold tabular-nums text-[var(--color-text-primary)]">
+                      {Math.round((s.value / mixTotal) * 100)}%
+                      <span className="ml-1.5 text-[11px] font-normal text-[var(--color-text-muted)]">
+                        ({s.value.toLocaleString()})
+                      </span>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <ChartEmpty message="No visit data yet" />
+          )}
+        </Panel>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <Panel>
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="text-[14px] font-bold text-[var(--color-text-primary)]">Recent sales</h3>
+            <Link href="/dashboard/orders" className="text-[11px] font-semibold text-[var(--color-accent)] hover:underline">
+              See all
+            </Link>
+          </div>
+          {recentSales.length === 0 ? (
+            <ChartEmpty message="No sales yet" />
+          ) : (
+            <div className="space-y-1">
+              {recentSales.slice(0, 5).map((s) => (
+                <div
+                  key={s.id}
+                  className="flex items-center gap-3 rounded-lg px-1 py-2.5 transition-colors hover:bg-[var(--color-surface-secondary)]/50"
+                >
+                  <PersonAvatar
+                    name={s.name}
+                    initials={s.initials}
+                    color={s.color}
+                    avatarUrl={s.avatarUrl}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[13px] font-semibold leading-snug text-[var(--color-text-primary)]">
+                      {s.name}
+                    </p>
+                    <p className="text-[11px] text-[var(--color-text-muted)]">{s.date}</p>
+                  </div>
+                  <div className="shrink-0 text-right">
+                    <p className="text-[13px] font-bold tabular-nums text-[var(--color-text-primary)]">{s.amount}</p>
+                    <span
+                      className={cn(
+                        "inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold",
+                        s.status === "success"
+                          ? "bg-emerald-50 text-emerald-700"
+                          : "bg-red-50 text-red-600"
+                      )}
+                    >
+                      {s.status === "success" ? "Success" : "Pending"}
+                    </span>
+                  </div>
                 </div>
               ))}
             </div>
-          </Panel>
+          )}
+        </Panel>
 
-          <Panel className="sm:col-span-2 xl:col-span-1">
-            <div className="mb-3 flex items-center justify-between">
-              <h3 className="text-[14px] font-bold text-[var(--color-text-primary)]">Recent sales</h3>
-              <Link href="/dashboard/orders" className="text-[11px] font-semibold text-[var(--color-accent)] hover:underline">
-                See all
-              </Link>
-            </div>
-            <div className="divide-y divide-[var(--color-border)]">
-              {recentSales.length === 0 ? (
-                <p className="py-6 text-center text-[12px] text-[var(--color-text-muted)]">No sales yet</p>
-              ) : (
-                recentSales.slice(0, 4).map((s) => (
-                  <div key={s.id} className="flex items-center gap-3 py-2.5 first:pt-0">
-                    {s.avatarUrl ? (
-                      <img src={s.avatarUrl} alt="" className="size-9 rounded-full object-cover ring-1 ring-[var(--color-border)]" />
-                    ) : (
-                      <span className="flex size-9 items-center justify-center rounded-full text-[11px] font-bold text-white" style={{ background: s.color }}>
-                        {s.initials}
-                      </span>
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-[12px] font-semibold">{s.name}</p>
-                      <p className="text-[11px] text-[var(--color-text-muted)]">{s.date}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-[12px] font-bold tabular-nums">{s.amount}</p>
-                      <span
-                        className={cn(
-                          "text-[10px] font-semibold",
-                          s.status === "success" ? "text-[#30a46c]" : "text-red-500"
-                        )}
-                      >
-                        {s.status === "success" ? "Success" : "Pending"}
-                      </span>
-                    </div>
+        <Panel>
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="text-[14px] font-bold text-[var(--color-text-primary)]">Top contributors</h3>
+            <Link href="/ugc" className="text-[11px] font-semibold text-[var(--color-accent)] hover:underline">
+              Browse UGC
+            </Link>
+          </div>
+          {topContributors.length === 0 ? (
+            <ChartEmpty message="No contributors to show yet" />
+          ) : (
+            <div className="space-y-2">
+              {topContributors.slice(0, 5).map((c) => (
+                <Link
+                  key={c.id}
+                  href={c.href ?? "#"}
+                  className="flex items-center gap-3 rounded-lg px-1 py-2 transition-colors hover:bg-[var(--color-surface-secondary)]/50"
+                >
+                  <PersonAvatar
+                    name={c.name}
+                    initials={c.initials}
+                    color={c.color}
+                    avatarUrl={c.avatarUrl}
+                    size="lg"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[13px] font-bold leading-snug text-[var(--color-text-primary)]">{c.name}</p>
+                    <p className="text-[11px] text-[var(--color-text-muted)]">{c.metric}</p>
                   </div>
-                ))
-              )}
+                  <ChevronRight className="size-4 shrink-0 text-[var(--color-text-muted)]" />
+                </Link>
+              ))}
             </div>
-          </Panel>
-
-          <Panel className="sm:col-span-3 xl:col-span-1">
-            <h3 className="mb-3 text-[14px] font-bold text-[var(--color-text-primary)]">Top contributors</h3>
-            <div className="space-y-3">
-              {topContributors.length === 0 ? (
-                <p className="py-4 text-center text-[12px] text-[var(--color-text-muted)]">No contributors yet</p>
-              ) : (
-                topContributors.slice(0, 3).map((c) => (
-                  <Link
-                    key={c.id}
-                    href={c.href ?? "#"}
-                    className="flex items-center gap-3 rounded-lg p-1 transition-colors hover:bg-[var(--color-surface-secondary)]/60"
-                  >
-                    {c.avatarUrl ? (
-                      <img src={c.avatarUrl} alt="" className="size-11 rounded-full object-cover ring-1 ring-[var(--color-border)]" />
-                    ) : (
-                      <span className="flex size-11 items-center justify-center rounded-full text-[12px] font-bold text-white" style={{ background: c.color }}>
-                        {c.initials}
-                      </span>
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-[13px] font-bold">{c.name}</p>
-                      <p className="text-[11px] text-[var(--color-text-muted)]">{c.metric}</p>
-                    </div>
-                    <ChevronRight className="size-4 shrink-0 text-[var(--color-text-muted)]" />
-                  </Link>
-                ))
-              )}
-            </div>
-          </Panel>
-        </div>
+          )}
+        </Panel>
       </div>
     </div>
   );

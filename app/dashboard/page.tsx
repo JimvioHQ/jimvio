@@ -597,7 +597,7 @@ export default function DashboardHomePage() {
     );
 
     if (mappedMessages.length === 0 && activity.length > 0) {
-      mappedMessages = activity.slice(0, 4).map((a, i) => ({
+      mappedMessages = activity.slice(0, 4).map((a: ActivityItem, i: number) => ({
         id: `activity-${i}`,
         name: a.title,
         preview: a.sub,
@@ -762,7 +762,19 @@ export default function DashboardHomePage() {
         .limit(8);
 
       setStockRows(
-        (inventoryProducts ?? []).map((p) => {
+        (inventoryProducts ?? []).map((p: {
+          id: string;
+          name: string;
+          slug: string | null;
+          sku?: string | null;
+          price: number;
+          currency?: string | null;
+          status: string;
+          inventory_quantity?: number | null;
+          track_inventory?: boolean | null;
+          is_digital?: boolean | null;
+          images?: unknown;
+        }) => {
           const hue = p.name.charCodeAt(0) % 360;
           return mapProductToStockRow(
             {

@@ -15,6 +15,41 @@ import {
   type AnalyticsSaleRow,
 } from "@/components/dashboard/AnalyticsPageBoard";
 
+const AVATAR_COLORS = ["#fd5000", "#7c3aed", "#2563eb", "#0d9488", "#ca8a04", "#e11d48"];
+
+/** Exclude corrupt outlier credits from chart aggregation */
+const MAX_CHART_CREDIT = 50_000_000;
+
+type TxRow = {
+  amount: number;
+  type: string;
+  direction: string;
+  created_at: string;
+};
+
+type ProductMetricRow = {
+  id: string;
+  view_count: number | null;
+  sale_count: number | null;
+};
+
+function safeCreditAmount(raw: unknown): number {
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n <= 0) return 0;
+  if (n > MAX_CHART_CREDIT) return 0;
+  return n;
+}
+
+function initialsFrom(name: string): string {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2) || "?";
+}
+
 function pctChange(current: number, previous: number): { label: string; up: boolean; pct: number } {
   if (previous <= 0) {
     const up = current > 0;
@@ -38,8 +73,8 @@ export default function DashboardAnalyticsPage() {
   const { formatMoney } = useCurrency();
   const [loading, setLoading] = useState(true);
   const [rings, setRings] = useState<AnalyticsRingMetric[]>([]);
-  const [trafficBars, setTrafficBars] = useState<{ label: string; profit: number; revenue: number; ads: number }[]>([]);
-  const [followersBars, setFollowersBars] = useState<{ month: string; followers: number; unfollows: number }[]>([]);
+  const [trafficBars, setTrafficBars] = useState<{ label: string; store: number; campaigns: number }[]>([]);
+  const [followersBars, setFollowersBars] = useState<{ month: string; orders: number }[]>([]);
   const [digitalTrend, setDigitalTrend] = useState<{ label: string; value: number }[]>([]);
   const [trafficMix, setTrafficMix] = useState<{ name: string; value: number; color: string }[]>([]);
   const [recentSales, setRecentSales] = useState<AnalyticsSaleRow[]>([]);
@@ -93,7 +128,7 @@ export default function DashboardAnalyticsPage() {
           ? supabase
               .from("order_items")
               .select(
-                "id, total_price, created_at, orders(status, profiles:buyer_id(full_name, avatar_url))"
+                "id, total_price, created_at, orders(status, currency, profiles:buyer_id(full_name, avatar_url))"
               )
               .eq("vendor_id", vendorId)
               .gte("created_at", since90)
@@ -102,7 +137,7 @@ export default function DashboardAnalyticsPage() {
           : supabase
               .from("order_items")
               .select(
-                "id, total_price, created_at, orders(status, profiles:buyer_id(full_name, avatar_url))"
+                "id, total_price, created_at, orders(status, currency, profiles:buyer_id(full_name, avatar_url))"
               )
               .gte("created_at", since90)
               .order("created_at", { ascending: false })
@@ -119,8 +154,8 @@ export default function DashboardAnalyticsPage() {
           .limit(3),
       ]);
 
-    const vendorProducts = productsRes.data ?? [];
-    const txs = txRes.data ?? [];
+    const vendorProducts = (productsRes.data ?? []) as ProductMetricRow[];
+    const txs = (txRes.data ?? []) as TxRow[];
     const credits = txs.filter((t) => t.direction === "credit");
     const recentCredits = credits.filter((t) => t.created_at >= since30);
     const olderCredits = credits.filter((t) => t.created_at >= since90 && t.created_at < mid15);
@@ -130,14 +165,14 @@ export default function DashboardAnalyticsPage() {
         const type = t.type.toLowerCase();
         return !type.includes("affiliate") && !type.includes("ugc");
       })
-      .reduce((s, t) => s + Number(t.amount), 0);
+      .reduce((s, t) => s + safeCreditAmount(t.amount), 0);
 
     const campaignRevenue = recentCredits
       .filter((t) => {
         const type = t.type.toLowerCase();
         return type.includes("affiliate") || type.includes("ugc");
       })
-      .reduce((s, t) => s + Number(t.amount), 0);
+      .reduce((s, t) => s + safeCreditAmount(t.amount), 0);
 
     const viewsTotal = vendorProducts.reduce((s, p) => s + Number(p.view_count ?? 0), 0);
     const clicks = Number(affiliateRes.data?.total_clicks ?? 0);
@@ -156,27 +191,27 @@ export default function DashboardAnalyticsPage() {
       {
         label: "Sales revenue",
         value: formatMoney(wallet?.total_earned ?? storeRevenue, "USD"),
-        change: salesChg.label,
+        change: storeRevenue > 0 ? salesChg.label : "No sales yet",
         up: salesChg.up,
-        percent: Math.max(salesChg.pct, storeRevenue > 0 ? 12 : 0) || 12,
+        percent: storeRevenue > 0 ? Math.min(100, salesChg.pct) : 0,
         ringColor: "#facc15",
         icon: DollarSign,
       },
       {
         label: "Campaign revenue",
         value: formatMoney(campaignRevenue, "USD"),
-        change: adsChg.label,
+        change: campaignRevenue > 0 ? adsChg.label : "No campaign earnings",
         up: adsChg.up,
-        percent: Math.max(adsChg.pct, campaignRevenue > 0 ? 18 : 0) || 18,
+        percent: campaignRevenue > 0 ? Math.min(100, adsChg.pct) : 0,
         ringColor: "#7c3aed",
         icon: TrendingUp,
       },
       {
         label: "Impressions",
         value: viewsTotal >= 1000 ? `${(viewsTotal / 1000).toFixed(1)}K` : `${viewsTotal}`,
-        change: viewsChg.label,
+        change: viewsTotal > 0 ? viewsChg.label : "No product views",
         up: viewsChg.up,
-        percent: Math.max(viewsChg.pct, viewsTotal > 0 ? 24 : 0) || 8,
+        percent: viewsTotal > 0 ? Math.min(100, viewsChg.pct) : 0,
         ringColor: "#22d3ee",
         icon: Eye,
       },
@@ -185,7 +220,7 @@ export default function DashboardAnalyticsPage() {
         value: `${convRate}%`,
         change: clicks > 0 ? `${conversions} orders from ${clicks} clicks` : "No clicks yet",
         up: convRate >= 1,
-        percent: Math.min(100, Math.max(convRate * 8, clicks > 0 ? 10 : 0)),
+        percent: clicks > 0 ? Math.min(100, Math.max(8, Math.round(convRate * 8))) : 0,
         ringColor: "#9ca3af",
         icon: MousePointerClick,
       },
@@ -197,19 +232,19 @@ export default function DashboardAnalyticsPage() {
       return { key: format(d, "yyyy-M"), label: format(d, "MMM") };
     });
 
-    const monthBuckets: Record<string, { profit: number; revenue: number; ads: number; orders: number }> =
+    const monthBuckets: Record<string, { store: number; campaigns: number; orders: number }> =
       {};
-    for (const m of months) monthBuckets[m.key] = { profit: 0, revenue: 0, ads: 0, orders: 0 };
+    for (const m of months) monthBuckets[m.key] = { store: 0, campaigns: 0, orders: 0 };
 
     for (const tx of credits) {
       const key = format(new Date(tx.created_at), "yyyy-M");
       if (!(key in monthBuckets)) continue;
-      const amt = Number(tx.amount);
+      const amt = safeCreditAmount(tx.amount);
+      if (!amt) continue;
       const isCampaign =
         tx.type.toLowerCase().includes("affiliate") || tx.type.toLowerCase().includes("ugc");
-      if (isCampaign) monthBuckets[key].ads += amt;
-      else monthBuckets[key].profit += amt;
-      monthBuckets[key].revenue += amt;
+      if (isCampaign) monthBuckets[key].campaigns += amt;
+      else monthBuckets[key].store += amt;
     }
 
     const orderRows = (orderItemsRes.data ?? []) as {
@@ -218,6 +253,7 @@ export default function DashboardAnalyticsPage() {
       created_at: string;
       orders?: {
         status?: string | null;
+        currency?: string | null;
         profiles?:
           | { full_name?: string | null; avatar_url?: string | null }
           | { full_name?: string | null; avatar_url?: string | null }[]
@@ -233,17 +269,15 @@ export default function DashboardAnalyticsPage() {
     setTrafficBars(
       months.map((m) => ({
         label: m.label,
-        profit: Math.round(monthBuckets[m.key].profit),
-        revenue: Math.round(monthBuckets[m.key].revenue * 1.05),
-        ads: Math.round(monthBuckets[m.key].ads),
+        store: Math.round(monthBuckets[m.key].store),
+        campaigns: Math.round(monthBuckets[m.key].campaigns),
       }))
     );
 
     setFollowersBars(
       months.slice(-7).map((m) => ({
         month: m.label,
-        followers: monthBuckets[m.key].orders,
-        unfollows: Math.max(0, Math.round(monthBuckets[m.key].orders * 0.15)),
+        orders: monthBuckets[m.key].orders,
       }))
     );
 
@@ -255,28 +289,34 @@ export default function DashboardAnalyticsPage() {
     for (const d of days) dayMap[format(d, "MMM d")] = 0;
     for (const tx of credits) {
       const key = format(new Date(tx.created_at), "MMM d");
-      if (key in dayMap) dayMap[key] += Number(tx.amount);
+      if (key in dayMap) dayMap[key] += safeCreditAmount(tx.amount);
     }
     setDigitalTrend(Object.entries(dayMap).map(([label, value]) => ({ label, value })));
 
     const marketplaceViews = viewsTotal;
     const affiliateViews = clicks;
     const directViews = Math.max(0, Math.round(marketplaceViews * 0.18));
-    setTrafficMix([
-      { name: "Marketplace", value: Math.max(marketplaceViews, 1), color: "#374151" },
-      { name: "Affiliate", value: Math.max(affiliateViews, 1), color: "#22d3ee" },
-      { name: "Direct", value: Math.max(directViews, 1), color: "#7c3aed" },
-    ]);
-    setTotalVisits(marketplaceViews + affiliateViews + directViews);
+    const visitTotal = marketplaceViews + affiliateViews + directViews;
+
+    setTrafficMix(
+      visitTotal > 0
+        ? [
+            { name: "Marketplace", value: marketplaceViews, color: "#374151" },
+            { name: "Affiliate", value: affiliateViews, color: "#22d3ee" },
+            { name: "Direct", value: directViews, color: "#7c3aed" },
+          ].filter((s) => s.value > 0)
+        : []
+    );
+    setTotalVisits(visitTotal);
     setVisitTrend(viewsChg.up && viewsTotal > 0 ? `${viewsChg.pct}%` : undefined);
 
     setRecentSales(
-      orderRows.map((row) => {
+      orderRows.map((row, i) => {
         const profile = Array.isArray(row.orders?.profiles)
           ? row.orders?.profiles[0]
           : row.orders?.profiles;
-        const name = profile?.full_name ?? "Customer";
-        const hue = name.charCodeAt(0) % 360;
+        const name = profile?.full_name?.trim() || "Customer";
+        const currency = row.orders?.currency?.toUpperCase() || "USD";
         const ok =
           row.orders?.status === "completed" ||
           row.orders?.status === "delivered" ||
@@ -285,11 +325,11 @@ export default function DashboardAnalyticsPage() {
           id: row.id,
           name,
           date: format(new Date(row.created_at), "MMM d, yyyy"),
-          amount: formatMoney(Number(row.total_price), "USD"),
+          amount: formatMoney(Number(row.total_price), currency),
           status: ok ? ("success" as const) : ("pending" as const),
           avatarUrl: profile?.avatar_url ?? null,
-          initials: name.slice(0, 2).toUpperCase(),
-          color: `hsl(${hue}, 55%, 45%)`,
+          initials: initialsFrom(name),
+          color: AVATAR_COLORS[i % AVATAR_COLORS.length],
         };
       })
     );
@@ -302,19 +342,20 @@ export default function DashboardAnalyticsPage() {
           username: string | null;
           avatar_url: string | null;
         }[]
-      ).map((p) => {
-        const name = p.full_name ?? p.username ?? "Creator";
-        const hue = name.charCodeAt(0) % 360;
-        return {
-          id: p.id,
-          name,
-          metric: p.username ? `@${p.username}` : "Jimvio creator",
-          avatarUrl: p.avatar_url,
-          initials: name.slice(0, 2).toUpperCase(),
-          color: `hsl(${hue}, 55%, 42%)`,
-          href: p.username ? `/u/${p.username}` : `/creators/${p.id}`,
-        };
-      })
+      )
+        .filter((p) => p.full_name?.trim() || p.username?.trim())
+        .map((p, i) => {
+          const name = p.full_name?.trim() || p.username?.trim() || "Creator";
+          return {
+            id: p.id,
+            name,
+            metric: p.username ? `@${p.username}` : "Active on Jimvio",
+            avatarUrl: p.avatar_url,
+            initials: initialsFrom(name),
+            color: AVATAR_COLORS[(i + 2) % AVATAR_COLORS.length],
+            href: p.username ? `/u/${p.username}` : `/creators/${p.id}`,
+          };
+        })
     );
 
     setLoading(false);

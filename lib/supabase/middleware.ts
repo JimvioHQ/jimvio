@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { extractSessionMeta, isSessionRevoked } from "@/lib/auth/user-sessions";
+import { isHubAuthRequired } from "@/lib/community/hub-auth";
 import {
   getMaintenanceModeEnabled,
   isMaintenanceExemptPath,
@@ -35,7 +36,8 @@ export async function updateSession(request: NextRequest) {
 
     const pathname = request.nextUrl.pathname;
     const protectedPaths = ["/dashboard", "/admin", "/settings"];
-    const isProtected = protectedPaths.some((p) => pathname.startsWith(p));
+    const isProtected =
+      protectedPaths.some((p) => pathname.startsWith(p)) || isHubAuthRequired(pathname);
 
     const hasSession = request.cookies.getAll().some(c => c.name.startsWith("sb-"));
     const maintenance = await getMaintenanceModeEnabled();

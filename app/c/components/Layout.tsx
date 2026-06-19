@@ -31,6 +31,7 @@ import { useCartStore } from "@/lib/store/use-cart-store";
 import { useAIStore } from "@/lib/store/use-ai-store";
 import { cn } from "@/lib/utils";
 import type { Tables } from "@/types/supabase";
+import { buildHubLoginUrl, getCommunitySlugFromPath } from "@/lib/community/hub-auth";
 
 type Profile = Pick<Tables<"profiles">, "id" | "username" | "full_name" | "avatar_url">;
 
@@ -71,23 +72,6 @@ function UserAvatar({ profile, size = 32 }: { profile: Profile | null; size?: nu
             {initials}
         </span>
     );
-}
-
-// ── Community route helpers ───────────────────────────────────────────────────
-const HUB_RESERVED_SEGMENTS = new Set([
-    "messages", "bookmarks", "live", "spaces", "wallet", "analytics",
-    "missions", "courses", "events", "my-communities", "community", "u", "settings", "profile",
-]);
-
-function getCommunitySlugFromPath(pathname: string): string | null {
-    const legacyMatch = pathname.match(/^\/c\/community\/([^/]+)/);
-    if (legacyMatch) return legacyMatch[1];
-
-    const match = pathname.match(/^\/c\/([^/]+)/);
-    if (!match) return null;
-    const slug = match[1];
-    if (HUB_RESERVED_SEGMENTS.has(slug)) return null;
-    return slug;
 }
 
 // ── Page title hook (mobile header) ───────────────────────────────────────────
@@ -148,6 +132,7 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
     const [collapsed, setCollapsed] = useState(false);
     const [mobileNavOpen, setMobileNavOpen] = useState(false);
     const [profile, setProfile] = useState<Profile | null>(null);
+    const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
     const [unreadMessages, setUnreadMessages] = useState(0);
     const [unreadNotifications, setUnreadNotifications] = useState(0);
 
@@ -173,7 +158,13 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
 
         async function load() {
             const { data: { user } } = await supabase.auth.getUser();
-            if (!user || cancelled) return;
+            if (cancelled) return;
+            if (!user) {
+                setIsAuthenticated(false);
+                setProfile(null);
+                return;
+            }
+            setIsAuthenticated(true);
 
             const { data: prof } = await supabase
                 .from("profiles")
@@ -216,6 +207,8 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
     }, [refreshCounts]);
 
     const profileHref = profile?.username ? `/c/profile/${profile.username}` : "/c/profile";
+    const createHref = isAuthenticated === false ? buildHubLoginUrl("/c/live") : "/c/live";
+    const loginHref = buildHubLoginUrl(pathname);
 
     return (
         <div className="flex h-screen flex-col overflow-hidden bg-[var(--color-bg,#f4f4f5)] text-[var(--color-text-primary,#18181b)]">
@@ -292,7 +285,7 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
 
                     {/* Create */}
                     <Link
-                        href="/c/live"
+                        href={createHref}
                         className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-[#fd5000] px-4 text-[13px] font-bold text-white shadow-sm transition-colors hover:bg-[#e04800]"
                     >
                         <Plus className="h-4 w-4" />
@@ -341,7 +334,15 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                         <ThemeToggle />
                     </div>
 
-                    {/* Avatar */}
+                    {/* Avatar / Sign in */}
+                    {isAuthenticated === false ? (
+                        <Link
+                            href={loginHref}
+                            className="ml-0.5 shrink-0 rounded-full border border-[#fd5000]/30 bg-[#fd5000]/10 px-3 py-1.5 text-[12px] font-bold text-[#fd5000] transition-colors hover:bg-[#fd5000]/15"
+                        >
+                            Sign in
+                        </Link>
+                    ) : (
                     <Link
                         href={profileHref}
                         aria-label="My profile"
@@ -349,6 +350,7 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                     >
                         <UserAvatar profile={profile} size={32} />
                     </Link>
+                    )}
                 </div>
             </header>
 
@@ -391,17 +393,18 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                 aria-label="Mobile navigation"
             >
                 {[
-                    { label: "Feed", href: "/c", icon: Home },
-                    { label: "Live", href: "/c/live", icon: Radio },
-                    { label: "Spaces", href: "/c/spaces", icon: Layers },
-                    { label: "Messages", href: "/c/messages", icon: MessageSquare },
-                    { label: "Missions", href: "/c/missions", icon: Target },
-                ].map(({ label, href, icon: Icon }) => {
+                    { label: "Feed", href: "/c", auth: false, icon: Home },
+                    { label: "Live", href: "/c/live", auth: true, icon: Radio },
+                    { label: "Spaces", href: "/c/spaces", auth: true, icon: Layers },
+                    { label: "Messages", href: "/c/messages", auth: true, icon: MessageSquare },
+                    { label: "Missions", href: "/c/missions", auth: true, icon: Target },
+                ].map(({ label, href, auth, icon: Icon }) => {
+                    const navHref = isAuthenticated === false && auth ? buildHubLoginUrl(href) : href;
                     const active = href === "/c" ? pathname === "/c" : pathname.startsWith(href);
                     return (
                         <Link
                             key={href}
-                            href={href}
+                            href={navHref}
                             aria-label={label}
                             className={cn(
                                 "flex flex-1 flex-col items-center justify-center gap-0.5 text-[10px] font-semibold transition-colors",

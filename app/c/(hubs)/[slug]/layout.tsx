@@ -1,4 +1,4 @@
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { WorkspaceLayout } from "@/components/community/workspace/WorkspaceShell";
 import { loadCommunityWorkspace } from "@/lib/community/load-community-workspace";
@@ -24,7 +24,10 @@ export default async function CommunitySlugLayout({
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect(`/login?next=/c/${slug}`);
+
+  if (!user) {
+    return <div className="h-full min-h-0">{children}</div>;
+  }
 
   const payload = await loadCommunityWorkspace(slug);
   if (!payload) notFound();

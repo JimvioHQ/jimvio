@@ -1,6 +1,7 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { CreatorModerationClient } from "@/components/community/creator/CreatorModerationClient";
+import { buildHubLoginUrl } from "@/lib/community/hub-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +16,7 @@ export default async function CreatorModerationPage({
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error("Unauthorized");
+  if (!user) redirect(buildHubLoginUrl("/c/community/creator/moderation"));
 
   // Get community
   const { data: community, error: communityErr } = await supabase
