@@ -122,10 +122,10 @@ export async function MarketplacePage({
     ]);
 
   return (
-    <div className="min-h-screen" style={{ background: "var(--color-bg)" }}>
+    <div className="overflow-x-hidden">
       <MarketplaceProvider>
-        <main className="mx-auto flex max-w-[1500px] gap-4 px-4 py-4">
-<div className="flex min-w-0 flex-1 flex-col gap-3">
+        <div className="mx-auto flex w-full max-w-[1500px] min-w-0 gap-4 overflow-x-hidden px-4 py-4">
+          <div className="flex min-w-0 w-full max-w-full flex-1 flex-col gap-3 overflow-x-hidden">
             <MarketplacePageClient
               initialListingCount={listingCount}
               initialType={initialType}
@@ -137,7 +137,7 @@ export async function MarketplacePage({
               heroDigital={hero.digital ?? []}
             />
           </div>
-        </main>
+        </div>
       </MarketplaceProvider>
     </div>
   );

@@ -16,6 +16,7 @@ import { ChatInput } from "@/components/messages/chat-input";
 import { QuoteRequestModal } from "@/components/messages/quote-request-modal";
 import { QuoteReplyModal } from "@/components/messages/quote-reply-modal";
 import { ProductShareModal } from "@/components/messages/product-share-modal";
+import { useCartStore } from "@/lib/store/use-cart-store";
 
 /* ─── Types ──────────────────────────────────────────────────────────── */
 type Conversation = {
@@ -182,6 +183,7 @@ export default function MessagesPage() {
   const [mobileShowChat, setMobileShowChat] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const urlParamsHandled = useRef(false);
+  const refreshCounts = useCartStore((s) => s.refreshCounts);
 
   const isVendor = !!vendorId;
   const loading = authLoading || convsLoading;
@@ -415,6 +417,20 @@ export default function MessagesPage() {
 
     return () => { supabase.removeChannel(sub); };
   }, [selectedId, userId, supabase]);
+
+  /* ── Mark message notifications read for open conversation ── */
+  useEffect(() => {
+    if (!selectedId || !userId) return;
+
+    supabase
+      .from("notifications")
+      .update({ is_read: true, read_at: new Date().toISOString() })
+      .eq("user_id", userId)
+      .eq("type", "message")
+      .eq("is_read", false)
+      .ilike("action_url", `%conversation=${selectedId}%`)
+      .then(() => refreshCounts());
+  }, [selectedId, userId, supabase, refreshCounts]);
 
   /* ── Auto-scroll ── */
   useEffect(() => {

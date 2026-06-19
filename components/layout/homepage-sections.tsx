@@ -60,7 +60,7 @@ export function WhatToDoToday() {
     <section className={`${section} py-10 sm:py-14`}>
       <div className={shell}>
         <SectionTitle sub="Choose your path and dive into your goals.">What Do You Want To Do Today?</SectionTitle>
-        <div className="grid grid-cols-3 gap-3 sm:gap-4 lg:grid-cols-6">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-6">
           {ACTIONS.map((a) => (
             <div key={a.title} className={`flex h-full flex-col p-3 sm:p-5 ${cardBase}`}>
               <span
@@ -70,7 +70,7 @@ export function WhatToDoToday() {
                 <a.icon className="size-4 sm:size-5" strokeWidth={2.2} />
               </span>
               <h3 className="text-[12px] font-bold leading-tight text-[var(--color-text-primary)] sm:text-[15px]">{a.title}</h3>
-              <p className="mt-1 hidden flex-1 text-[13px] leading-snug text-[var(--color-text-muted)] sm:block">{a.desc}</p>
+              <p className="mt-1 flex-1 text-[11px] leading-snug text-[var(--color-text-muted)] sm:text-[13px]">{a.desc}</p>
               <Link
                 href={a.href}
                 className="mt-2 inline-flex items-center gap-0.5 text-[11px] font-bold transition-opacity hover:opacity-80 sm:mt-4 sm:gap-1 sm:text-[13px]"

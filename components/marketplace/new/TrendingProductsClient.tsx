@@ -107,8 +107,8 @@ export function TrendingProductsClient({
   }, []);
 
   return (
-    <div className="space-y-5">
-      <div className="relative flex items-center gap-0.5 border-b border-[var(--color-border)]">
+    <div className="w-full max-w-full min-w-0 space-y-5 overflow-hidden">
+      <div className="relative flex w-full max-w-full flex-wrap items-center gap-0.5 overflow-hidden border-b border-[var(--color-border)]">
         <div
           className="absolute bottom-0 h-[2px] bg-[var(--color-accent)] transition-all duration-300 ease-out rounded-full"
           style={{ left: indicatorStyle.left, width: indicatorStyle.width }}

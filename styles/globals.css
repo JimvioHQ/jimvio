@@ -164,47 +164,19 @@
     border-color: #f97316 !important;
   }
 
-  #main-content::-webkit-scrollbar {
-    width: 6px;
-  }
-
-  #main-content::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  #main-content::-webkit-scrollbar-thumb {
-    background: hsl(0 0% 75%);
-    border-radius: 999px;
-  }
-
-  #main-content::-webkit-scrollbar-thumb:hover {
-    background: hsl(0 0% 55%);
-  }
-
-  #main-content {
-    scrollbar-width: thin;
-    scrollbar-color: hsl(0 0% 75%) transparent;
-  }
-
-  html,
-  body {
-    height: 100%;
+  html {
     margin: 0;
     padding: 0;
     overflow-x: hidden;
-  }
-
-  html {
     scroll-behavior: smooth;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 
-  input[type="number"] {
-    -moz-appearance: textfield;
-  }
-
   body {
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
     background-color: var(--color-bg);
     color: var(--color-text-primary);
     min-height: 100%;
@@ -213,6 +185,10 @@
     font-style: normal;
     letter-spacing: -0.01em;
     font-family: var(--font-dm-sans), sans-serif;
+  }
+
+  input[type="number"] {
+    -moz-appearance: textfield;
   }
 
   textarea {

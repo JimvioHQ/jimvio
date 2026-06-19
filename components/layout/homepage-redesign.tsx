@@ -3088,7 +3088,7 @@ export function HomepageRedesign({
     stats,
 }: HomepageRedesignProps) {
     return (
-        <div className="min-h-screen" style={{ background: "var(--color-bg)" }}>
+        <div className="min-h-screen w-full max-w-[100dvw] overflow-x-hidden" style={{ background: "var(--color-bg)" }}>
             {/* Hero */}
             <Hero />
 

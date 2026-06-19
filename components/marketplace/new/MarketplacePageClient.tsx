@@ -3,9 +3,8 @@
 import { useEffect, useState, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
-  Search, Zap, DollarSign, ShieldCheck, BadgeDollarSign,
-  CircleCheck, Truck, Users, ChevronRight, ArrowRight,
-  Sparkles, Camera, Eye,
+  Search, Zap, ChevronRight, ArrowRight,
+  Sparkles, Camera,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useAIStore } from "@/lib/store/use-ai-store";
@@ -14,9 +13,9 @@ import { TrendingProductsClient } from "./TrendingProductsClient";
 import { FlashDealsCountdown } from "./FlashDealsCountdown";
 import { LiveActivityBar } from "./Liveactivitybar";
 import { HeroBannerView } from "./HeroBannerView";
+import { MarketplaceTrustStrip } from "./MarketplaceTrustStrip";
 import type { HeroProduct } from "@/types";
 import { useMarketplace } from "./marketplace-context";
-import { fmtPrice, fmtCount } from "@/lib/utils";
 import type { DbProduct } from "@/lib/utils";
 import { Sidebar } from "./Sidebar";
 import Link from "next/link";
@@ -48,13 +47,6 @@ type Props = {
   heroPhysical: HeroProduct[] | null;
   heroDigital: HeroProduct[] | null;
 };
-
-const BADGES = [
-  { icon: ShieldCheck, title: "Secure Payments", sub: "100% safe & secure" },
-  { icon: BadgeDollarSign, title: "Buyer Protection", sub: "Money-back guarantee" },
-  { icon: CircleCheck, title: "Verified Suppliers", sub: "Trusted & reliable" },
-  { icon: Truck, title: "Fast Delivery", sub: "Worldwide shipping" },
-];
 
 // ─── Category image map — local assets from category.zip ─────────────────────
 const CATEGORY_IMAGE_BASE = "/images/categories/";
@@ -94,7 +86,7 @@ function CategoryCard({ c, type }: { c: DbCategory; type: ProductType }) {
   return (
     <Link
       href={`/marketplace?type=${type}&category=${c.slug}`}
-      className="group relative flex w-[132px] shrink-0 flex-col overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-center shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg snap-start sm:w-full sm:shrink"
+      className="group relative flex w-full flex-col overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-center shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg"
     >
       <div className="aspect-[4/3] w-full overflow-hidden bg-[var(--color-surface-secondary)]">
         <img
@@ -358,14 +350,14 @@ export function MarketplacePageClient({
     : flashDeals;
 
   return (
-    <div className="flex gap-4">
+    <div className="flex w-full max-w-full min-w-0 gap-4 overflow-x-hidden">
       {/* Sidebar — receives current type */}
       <Sidebar type={type} />
 
-      <div className="flex min-w-0 flex-1 flex-col gap-3">
+      <div className="flex min-w-0 w-full max-w-full flex-1 flex-col gap-3 overflow-x-hidden">
         {/* ── Search bar + type switcher ── */}
         <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 shadow-sm sm:gap-3 sm:px-4">
+          <div className="flex items-center gap-2 rounded-sm border border-border bg-card px-3 py-2 shadow-sm sm:gap-3 sm:px-4">
             <Search className="size-4 shrink-0 text-muted-foreground" />
             <input
               type="text"
@@ -445,101 +437,8 @@ export function MarketplacePageClient({
         {/* ── Hero banner — always rendered, doesn't depend on loading ── */}
         <HeroBannerView physical={heroPhysical} digital={heroDigital} initialType={type} />
 
-        {/* ── Trust badges — always rendered ── */}
-        <div
-          className="flex flex-wrap items-center gap-2 rounded-xl p-2.5"
-          style={{
-            background: "var(--color-surface)",
-            border: "1px solid var(--color-border)",
-            boxShadow: "var(--shadow-sm)",
-          }}
-        >
-          {BADGES.map((b) => (
-            <div
-              key={b.title}
-              className="flex min-w-0 flex-1 items-center gap-1.5 sm:min-w-[140px] sm:gap-2.5"
-            >
-              <b.icon className="size-4 shrink-0 sm:size-5" style={{ color: "var(--color-accent)" }} />
-              <div className="min-w-0">
-                <div
-                  className="text-[10px] font-bold leading-tight sm:text-xs"
-                  style={{ color: "var(--color-text-primary)" }}
-                >
-                  {b.title}
-                </div>
-                <div
-                  className="truncate text-[8px] sm:text-[10px]"
-                  style={{ color: "var(--color-text-muted)" }}
-                >
-                  {b.sub}
-                </div>
-              </div>
-            </div>
-          ))}
-          <div
-            className="hidden items-center gap-1.5 border-l pl-3 xl:flex"
-            style={{ borderColor: "var(--color-border)" }}
-          >
-            <DollarSign className="size-4" style={{ color: "var(--color-accent)" }} />
-            <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>
-              Revenue today:{" "}
-              <b className="font-bold" style={{ color: "var(--color-text-primary)" }}>
-                {fmtPrice(stats.revenue_today)}
-              </b>
-            </span>
-          </div>
-          <div
-            className="hidden items-center gap-1.5 border-l pl-3 xl:flex"
-            style={{ borderColor: "var(--color-border)" }}
-          >
-            <Users className="size-4" style={{ color: "var(--color-accent)" }} />
-            <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>
-              <b className="font-bold" style={{ color: "var(--color-text-primary)" }}>
-                {stats.creators_active}
-              </b>{" "}
-              creators active
-            </span>
-          </div>
-        </div>
-
-        {/* ── Mobile stats strip ── */}
-        <div
-          className="flex items-center justify-between gap-1 rounded-xl px-3 py-2 sm:hidden"
-          style={{
-            background: "var(--color-surface)",
-            border: "1px solid var(--color-border)",
-            boxShadow: "var(--shadow-sm)",
-          }}
-        >
-          <div className="flex min-w-0 flex-1 items-center justify-center gap-1.5">
-            <Eye className="size-3.5 shrink-0" style={{ color: "var(--color-accent)" }} />
-            <span className="truncate text-[11px]" style={{ color: "var(--color-text-muted)" }}>
-              <b className="font-bold" style={{ color: "var(--color-text-primary)" }}>
-                {fmtCount(stats.viewers_now > 0 ? stats.viewers_now : listingCount)}
-              </b>{" "}
-              {stats.viewers_now > 0 ? "viewing now" : "listings"}
-            </span>
-          </div>
-          <span className="h-5 w-px shrink-0" style={{ background: "var(--color-border)" }} />
-          <div className="flex min-w-0 flex-1 items-center justify-center gap-1.5">
-            <DollarSign className="size-3.5 shrink-0" style={{ color: "var(--color-accent)" }} />
-            <span className="truncate text-[11px]" style={{ color: "var(--color-text-muted)" }}>
-              <b className="font-bold" style={{ color: "var(--color-text-primary)" }}>
-                {fmtPrice(stats.revenue_today)}
-              </b>{" "}
-              today
-            </span>
-          </div>
-          <span className="h-5 w-px shrink-0" style={{ background: "var(--color-border)" }} />
-          <div className="flex min-w-0 flex-1 items-center justify-center gap-1.5">
-            <Users className="size-3.5 shrink-0" style={{ color: "var(--color-accent)" }} />
-            <span className="truncate text-[11px]" style={{ color: "var(--color-text-muted)" }}>
-              <b className="font-bold" style={{ color: "var(--color-text-primary)" }}>
-                {fmtCount(stats.creators_active)}
-              </b>{" "}
-              creators
-            </span>
-          </div>
+        <div className="w-full min-w-0">
+        <MarketplaceTrustStrip stats={stats} listingCount={listingCount} />
         </div>
 
         {/* ── Flash Deals — skeleton only this section while loading ── */}
@@ -604,7 +503,7 @@ export function MarketplacePageClient({
                 Explore top categories
               </button>
             </div>
-            <div className="flex gap-2 overflow-x-auto pb-1 snap-x snap-mandatory [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden sm:grid sm:grid-cols-3 sm:gap-2 sm:overflow-visible sm:snap-none lg:grid-cols-4 xl:grid-cols-7">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-2 lg:grid-cols-4 xl:grid-cols-7">
               {categories.map((c) => (
                 <CategoryCard key={c.id} c={c} type={type} />
               ))}

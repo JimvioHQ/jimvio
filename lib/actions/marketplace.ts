@@ -1409,7 +1409,7 @@ export async function getNavbarCounts() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { cartCount: 0, chatCount: 0 };
 
-    const [cartResult, notificationResult] = await Promise.all([
+    const [cartResult, messageResult] = await Promise.all([
       supabase
         .from("carts")
         .select("item_count")
@@ -1420,11 +1420,12 @@ export async function getNavbarCounts() {
         .from("notifications")
         .select("id", { count: "exact", head: true })
         .eq("user_id", user.id)
+        .eq("type", "message")
         .eq("is_read", false),
     ]);
 
     const cartCount = cartResult.data?.item_count ?? 0;
-    const chatCount = notificationResult.count ?? 0;
+    const chatCount = messageResult.count ?? 0;
 
     return { cartCount, chatCount };
   } catch (err) {

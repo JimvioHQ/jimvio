@@ -336,16 +336,12 @@ export function Sidebar({ type = "physical" }: Props) {
 
   return (
     <aside
-      className="hidden w-60 shrink-0 flex-col gap-0 lg:flex"
+      className="hidden w-60 shrink-0 flex-col gap-0 self-start lg:flex"
       style={{
-        height: "calc(100vh - var(--navbar-height) - 2rem)",
         position: "sticky",
         top: "calc(var(--navbar-height) + 1rem)",
-        overflowY: "auto",
-        scrollbarWidth: "none",
       }}
     >
-      <style>{`aside::-webkit-scrollbar { display: none; }`}</style>
 
       <div className="flex flex-col gap-3">
 

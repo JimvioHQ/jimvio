@@ -5,8 +5,9 @@ import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 const SIZES = {
-  sm: "h-28 w-28 sm:h-32 sm:w-32",
-  md: "h-[148px] w-[156px] sm:h-[168px] sm:w-[176px]",
+  xs: "h-14 w-14",
+  sm: "h-20 w-20 sm:h-28 sm:w-28",
+  md: "h-32 w-32 md:h-[168px] md:w-[176px]",
 } as const;
 
 type JimvioAIMascotProps = {
@@ -21,7 +22,14 @@ export function JimvioAIMascot({
   showRings = true,
 }: JimvioAIMascotProps) {
   return (
-    <div className={cn("relative overflow-visible", SIZES[size], className)} aria-hidden>
+    <div
+      className={cn(
+        "relative max-w-full select-none overflow-hidden",
+        SIZES[size],
+        className
+      )}
+      aria-hidden
+    >
       {showRings && (
         <>
           <span className="pointer-events-none absolute bottom-0 left-1/2 h-10 w-[72%] -translate-x-1/2 rounded-[100%] bg-[#fd5000]/30 blur-2xl" />
@@ -34,7 +42,7 @@ export function JimvioAIMascot({
       )}
 
       <motion.div
-        className="relative z-10 h-full w-full"
+        className="pointer-events-none relative z-10 h-full w-full"
         animate={{ y: [0, -6, 0] }}
         transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut" }}
       >
@@ -44,7 +52,8 @@ export function JimvioAIMascot({
           width={352}
           height={352}
           priority={size === "md"}
-          className="h-full w-full object-contain object-bottom [filter:drop-shadow(0_12px_28px_rgba(253,80,0,0.32))]"
+          draggable={false}
+          className="pointer-events-none h-full w-full select-none object-contain object-bottom [filter:drop-shadow(0_12px_28px_rgba(253,80,0,0.32))] [-webkit-user-drag:none]"
         />
       </motion.div>
     </div>

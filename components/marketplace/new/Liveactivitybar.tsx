@@ -104,9 +104,9 @@ export function LiveActivityBar() {
   if (items.length === 0) return null;
 
   return (
-    <div className="sticky bottom-0 z-40 mt-2">
+    <div className="sticky bottom-0 z-40 mt-2 w-full max-w-full min-w-0 overflow-hidden">
       <div
-        className="flex items-center gap-4 overflow-hidden rounded-xl px-4 py-2.5"
+        className="flex w-full max-w-full min-w-0 items-center gap-4 overflow-hidden rounded-xl px-4 py-2.5"
         style={{
           background: "var(--color-surface)",
           border: "1px solid var(--color-border)",
@@ -134,7 +134,7 @@ export function LiveActivityBar() {
         </span>
 
         {/* Scrolling items */}
-        <div className="flex flex-1 items-center gap-6 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="flex min-w-0 flex-1 items-center gap-4 overflow-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {items.map((a) => (
             <div
               key={a.id}
