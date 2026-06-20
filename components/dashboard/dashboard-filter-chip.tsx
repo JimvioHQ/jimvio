@@ -18,7 +18,7 @@ export function DashboardFilterChip({
       type="button"
       onClick={onClick}
       className={cn(
-        "inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-[12px] font-medium transition-all duration-150 select-none",
+        "inline-flex h-8 shrink-0 items-center gap-1.5 rounded-sm px-3 text-[12px] font-medium transition-all duration-150 select-none",
         active
           ? "bg-[var(--color-text-primary)] text-[var(--color-surface)] ring-0"
           : "bg-[var(--color-surface)] text-[var(--color-text-muted)] ring-[0.5px] ring-[var(--color-border)] hover:text-[var(--color-text-primary)] hover:ring-[var(--color-border-strong)]",

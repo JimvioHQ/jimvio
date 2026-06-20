@@ -9,7 +9,6 @@ import { PageHeader } from "@/components/ui/admin";
 import { DashboardPage } from "@/components/dashboard/dashboard-page";
 import { Settings, BarChart3 } from "lucide-react";
 
-import { LiveTicker } from "@/components/dashboard/LiveTicker";
 import { HeroStatsRow } from "@/components/dashboard/HeroStatsRow";
 import { FeaturedCampaignBanner } from "@/components/dashboard/FeaturedCampaignBanner";
 import { JimvioAIPanel } from "@/components/ui/jimvio-ai-panel";
@@ -17,11 +16,13 @@ import { StatCardsRow } from "@/components/dashboard/StatCardsRow";
 import { EarningsOverview } from "@/components/dashboard/EarningsOverview";
 import type { EarningsDataset } from "@/components/dashboard/EarningsOverview";
 import { QuickActionsStrip } from "@/components/dashboard/QuickActionsStrip";
-import { TopCampaigns } from "@/components/dashboard/TopCampaigns";
-import { TrendingProducts } from "@/components/dashboard/TrendingProducts";
-import { YourCommunities } from "@/components/dashboard/YourCommunities";
+import { DashboardDiscoveryGrid } from "@/components/dashboard/DashboardDiscoveryGrid";
 import { DashboardInsights } from "@/components/dashboard/DashboardInsights";
-import { DashboardAnalyticsBoard, type DashboardMessagePreview } from "@/components/dashboard/DashboardAnalyticsBoard";
+import { DashboardAnalyticsBoard } from "@/components/dashboard/DashboardAnalyticsBoard";
+import {
+  DashboardMessagesPanel,
+  type DashboardMessagePreview,
+} from "@/components/dashboard/DashboardMessagesPanel";
 import {
   StockQuantityTable,
   mapProductToStockRow,
@@ -42,7 +43,7 @@ import type {
   Product,
   Community,
 } from "@/types/dashboard";
-import { TICKER_ITEMS, QUICK_ACTIONS } from "@/data/dashboard";
+import { QUICK_ACTIONS } from "@/data/dashboard";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -899,8 +900,6 @@ export default function DashboardHomePage() {
 
   return (
     <div className="min-h-screen bg-bg font-[family-name:var(--font-dm-sans)]">
-      <LiveTicker items={TICKER_ITEMS} onlineCount={8447} />
-
       <DashboardPage className="px-2 sm:px-0">
         <PageHeader
           eyebrow="Dashboard"
@@ -952,9 +951,28 @@ export default function DashboardHomePage() {
             {loading ? (
               <Skeleton className="h-[220px] w-full" />
             ) : featuredProps ? (
-              <FeaturedCampaignBanner {...featuredProps} />
+              <>
+                <FeaturedCampaignBanner {...featuredProps} />
+                <DashboardMessagesPanel messages={dashboardMessages} className="xl:hidden" />
+                <DashboardDiscoveryGrid
+                  campaigns={campaigns}
+                  products={products}
+                  communities={communities}
+                  loading={loading}
+                  className="xl:hidden"
+                />
+              </>
             ) : (
-              <JimvioAIPanel />
+              <div className="flex flex-col gap-5">
+                <JimvioAIPanel />
+                <DashboardMessagesPanel messages={dashboardMessages} />
+                <DashboardDiscoveryGrid
+                  campaigns={campaigns}
+                  products={products}
+                  communities={communities}
+                  loading={loading}
+                />
+              </div>
             )}
 
             {/* Stat cards */}
@@ -976,7 +994,6 @@ export default function DashboardHomePage() {
                 labels={earningsLabels ?? []}
                 datasets={earningsDatasets ?? []}
                 products={products}
-                messages={dashboardMessages}
               />
             )}
 
@@ -1013,6 +1030,10 @@ export default function DashboardHomePage() {
             recommendedCreators={sidebarCreators}
             recentSearches={recentSearches}
             showAIPanel={!!featuredProps}
+            messages={dashboardMessages}
+            discoveryCampaigns={campaigns}
+            discoveryProducts={products}
+            discoveryCommunities={communities}
           />
         </div>
 
@@ -1027,23 +1048,6 @@ export default function DashboardHomePage() {
               pendingBalance={wallet?.pending_balance ?? 0}
             />
           )}
-
-          {/* Bottom discovery grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {loading ? (
-              <>
-                <Skeleton className="h-64" />
-                <Skeleton className="h-64" />
-                <Skeleton className="h-64" />
-              </>
-            ) : (
-              <>
-                <TopCampaigns campaigns={campaigns} />
-                <TrendingProducts products={products} />
-                <YourCommunities communities={communities} />
-              </>
-            )}
-          </div>
         </div>
       </DashboardPage>
     </div>

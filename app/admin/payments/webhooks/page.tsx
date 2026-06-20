@@ -224,8 +224,8 @@ export default async function WebhookEventsPage({
               {count === 0
                 ? "No results"
                 : totalPages > 1
-                  ? `${showingFrom.toLocaleString()}–${showingTo.toLocaleString()} of ${count.toLocaleString()}`
-                  : `${count.toLocaleString()} event${count === 1 ? "" : "s"}`}
+                  ? `${showingFrom.toLocaleString()}–${showingTo.toLocaleString()} of ${(count ?? 0).toLocaleString()}`
+                  : `${(count ?? 0).toLocaleString()} event${count === 1 ? "" : "s"}`}
               {" · "}newest first
             </p>
           </div>

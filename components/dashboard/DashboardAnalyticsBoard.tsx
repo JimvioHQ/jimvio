@@ -8,7 +8,6 @@ import {
   ChevronDown,
   HeartHandshake,
   LineChart,
-  MessageSquare,
   MoreVertical,
   ShoppingCart,
   Wallet,
@@ -30,47 +29,6 @@ import type { EarningsDataset } from "@/components/dashboard/EarningsOverview";
 import type { Product } from "@/types/dashboard";
 import { cn } from "@/lib/utils";
 
-function MessageAvatar({
-  name,
-  avatarUrl,
-  initials,
-  color,
-}: {
-  name: string;
-  avatarUrl?: string | null;
-  initials: string;
-  color: string;
-}) {
-  if (avatarUrl) {
-    return (
-      <img
-        src={avatarUrl}
-        alt=""
-        className="size-9 shrink-0 rounded-full object-cover ring-1 ring-[var(--color-border)]"
-      />
-    );
-  }
-  return (
-    <span
-      className="flex size-9 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white ring-1 ring-[var(--color-border)]"
-      style={{ background: color }}
-    >
-      {initials}
-    </span>
-  );
-}
-
-export interface DashboardMessagePreview {
-  id: string;
-  name: string;
-  preview: string;
-  time: string;
-  avatarUrl?: string | null;
-  initials: string;
-  color: string;
-  href?: string;
-}
-
 interface KpiMetric {
   label: string;
   value: string;
@@ -90,7 +48,6 @@ interface DashboardAnalyticsBoardProps {
   labels: string[];
   datasets: EarningsDataset[];
   products: Product[];
-  messages: DashboardMessagePreview[];
 }
 
 function Panel({
@@ -103,7 +60,7 @@ function Panel({
   return (
     <div
       className={cn(
-        "rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm",
+        "rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm",
         className
       )}
     >
@@ -173,7 +130,6 @@ export function DashboardAnalyticsBoard({
   labels,
   datasets,
   products,
-  messages,
 }: DashboardAnalyticsBoardProps) {
   const { formatMoney } = useCurrency();
 
@@ -281,8 +237,7 @@ export function DashboardAnalyticsBoard({
         ))}
       </div>
 
-      <div className="grid w-full grid-cols-1 gap-4 lg:grid-cols-3">
-        <Panel className="min-w-0 lg:col-span-2">
+      <Panel className="min-w-0">
           <PanelHeader
             title="Traffic"
             action={<PeriodSelect label="This year" />}
@@ -357,63 +312,6 @@ export function DashboardAnalyticsBoard({
             </div>
           </div>
         </Panel>
-
-        <Panel className="min-w-0 lg:col-span-1">
-          <PanelHeader
-            title="My messages"
-            action={
-              <Link
-                href="/dashboard/messages"
-                className="text-[11px] font-semibold text-[var(--color-accent)] hover:underline"
-              >
-                Open inbox
-              </Link>
-            }
-          />
-          <div className="divide-y divide-[var(--color-border)]">
-            {messages.length === 0 ? (
-              <div className="px-4 py-8 text-center">
-                <MessageSquare className="mx-auto size-7 text-[var(--color-text-muted)]" />
-                <p className="mt-2 text-[12px] font-medium text-[var(--color-text-secondary)]">
-                  No conversations yet
-                </p>
-                <Link
-                  href="/marketplace"
-                  className="mt-1 inline-block text-[11px] font-semibold text-[var(--color-accent)] hover:underline"
-                >
-                  Message a vendor →
-                </Link>
-              </div>
-            ) : (
-              messages.slice(0, 4).map((msg) => (
-                <Link
-                  key={msg.id}
-                  href={msg.href ?? "/dashboard/messages"}
-                  className="flex items-start gap-3 px-4 py-3 transition-colors hover:bg-[var(--color-surface-secondary)]/60"
-                >
-                  <MessageAvatar
-                    name={msg.name}
-                    avatarUrl={msg.avatarUrl}
-                    initials={msg.initials}
-                    color={msg.color}
-                  />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="truncate text-[12px] font-semibold text-[var(--color-text-primary)]">
-                        {msg.name}
-                      </p>
-                      <span className="shrink-0 text-[10px] text-[var(--color-text-muted)]">
-                        {msg.time}
-                      </span>
-                    </div>
-                    <p className="truncate text-[11px] text-[var(--color-text-muted)]">{msg.preview}</p>
-                  </div>
-                </Link>
-              ))
-            )}
-          </div>
-        </Panel>
-      </div>
 
       <div className="grid w-full grid-cols-1 gap-4 lg:grid-cols-3">
         <Panel className="min-w-0 lg:col-span-1">

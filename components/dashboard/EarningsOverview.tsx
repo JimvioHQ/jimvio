@@ -482,13 +482,13 @@ export function EarningsOverview({
               <Download size={13} />
             </button>
             {exportOpen && (
-              <div className="absolute right-0 top-9 z-50 w-36 rounded-xl bg-surface border border-border shadow-lg p-1">
+              <div className="absolute right-0 top-9 z-50 w-36 rounded-md bg-surface border border-border shadow-lg p-1">
                 <button
                   onClick={exportPNG}
                   className={cn(
                     "w-full text-left flex items-center gap-2 px-3 py-2",
                     "text-[12px] font-medium text-text-secondary",
-                    "hover:bg-surface-secondary rounded-lg transition-colors"
+                    "hover:bg-surface-secondary rounded-sm transition-colors"
                   )}
                 >
                   Export PNG
@@ -498,7 +498,7 @@ export function EarningsOverview({
                   className={cn(
                     "w-full text-left flex items-center gap-2 px-3 py-2",
                     "text-[12px] font-medium text-text-secondary",
-                    "hover:bg-surface-secondary rounded-lg transition-colors"
+                    "hover:bg-surface-secondary rounded-sm transition-colors"
                   )}
                 >
                   Export CSV
@@ -532,7 +532,7 @@ export function EarningsOverview({
               <div
                 role="listbox"
                 aria-label="Select period"
-                className="absolute right-0 top-9 z-50 w-44 rounded-xl bg-surface border border-border shadow-lg p-1"
+                className="absolute right-0 top-9 z-50 w-44 rounded-md bg-surface border border-border shadow-lg p-1"
               >
                 {PERIODS.map((p) => (
                   <button
@@ -544,7 +544,7 @@ export function EarningsOverview({
                       setPeriodOpen(false);
                     }}
                     className={cn(
-                      "w-full text-left px-3 py-2 text-[12px] font-medium rounded-lg transition-colors",
+                      "w-full text-left px-3 py-2 text-[12px] font-medium rounded-sm transition-colors",
                       activePeriod === p
                         ? "bg-[#fff3ee] dark:bg-[#200d00] text-[#fd5000]"
                         : "text-text-secondary hover:bg-surface-secondary"

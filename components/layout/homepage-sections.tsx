@@ -409,7 +409,7 @@ function HowJimvioConnector({
       aria-hidden
     >
       {Array.from({ length: squares }, (_, i) => {
-        const t = squares === 1 ? 1 : i / (squares - 1);
+        const t = i / (squares - 1);
         const squareColor = filled
           ? `color-mix(in srgb, ${fromColor} ${Math.round((1 - t) * 100)}%, ${toColor})`
           : "var(--color-border)";

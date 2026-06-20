@@ -7,9 +7,14 @@ import {
   Megaphone, Users, Activity, Sparkles, Clock, Bell, History,
   ChevronRight,
 } from "lucide-react";
-import type { ActivityItem } from "@/types/dashboard";
+import type { ActivityItem, Campaign, Community, Product } from "@/types/dashboard";
 import { ProfileImage } from "@/components/ui/profile-image";
 import { JimvioAIPanel } from "@/components/ui/jimvio-ai-panel";
+import {
+  DashboardMessagesPanel,
+  type DashboardMessagePreview,
+} from "@/components/dashboard/DashboardMessagesPanel";
+import { DashboardDiscoveryGrid } from "@/components/dashboard/DashboardDiscoveryGrid";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -131,6 +136,10 @@ interface Props {
   recommendedCreators?: RecommendedCreator[];
   recentSearches?: RecentSearchItem[];
   showAIPanel?: boolean;
+  messages?: DashboardMessagePreview[];
+  discoveryCampaigns?: Campaign[];
+  discoveryProducts?: Product[];
+  discoveryCommunities?: Community[];
 }
 
 export function DashboardSidebar({
@@ -140,6 +149,10 @@ export function DashboardSidebar({
   recommendedCreators,
   recentSearches,
   showAIPanel = false,
+  messages = [],
+  discoveryCampaigns = [],
+  discoveryProducts = [],
+  discoveryCommunities = [],
 }: Props) {
   const campaigns = trendingCampaigns ?? [];
   const creators = recommendedCreators ?? [];
@@ -339,7 +352,18 @@ export function DashboardSidebar({
         )}
       </SidebarPanel>
 
-      {showAIPanel && <JimvioAIPanel compact className="hidden xl:block" />}
+      {showAIPanel && (
+        <div className="hidden flex-col gap-3 xl:flex">
+          <JimvioAIPanel compact />
+          <DashboardMessagesPanel messages={messages} />
+          <DashboardDiscoveryGrid
+            campaigns={discoveryCampaigns}
+            products={discoveryProducts}
+            communities={discoveryCommunities}
+            variant="sidebar"
+          />
+        </div>
+      )}
     </div>
   );
 }

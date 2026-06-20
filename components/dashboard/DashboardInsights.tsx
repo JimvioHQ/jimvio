@@ -71,7 +71,7 @@ export function DashboardInsights({
 
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-      <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 sm:p-5">
+      <div className="rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] p-4 sm:p-5">
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
             <div className="flex items-center gap-2">
@@ -154,7 +154,7 @@ export function DashboardInsights({
         </div>
       </div>
 
-      <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 sm:p-5">
+      <div className="rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] p-4 sm:p-5">
         <div className="mb-4 flex items-center gap-2">
           <PieChartIcon className="size-4 text-[#8b5cf6]" />
           <div>

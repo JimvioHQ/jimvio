@@ -24,6 +24,7 @@ import { toast } from "sonner";
 import { PageHeader, Th, StatusPill, EmptyState, RowArrow } from "@/components/ui/admin";
 import { Tile } from "@/components/ui/admin-tile";
 import { DashboardFilterChip } from "@/components/dashboard/dashboard-filter-chip";
+import { Input } from "@/components/ui/input";
 
 /* ── Full status config covering every enum value ───────────────────────── */
 const STATUS_CFG: Record<string, {
@@ -751,7 +752,7 @@ export default function BuyerOrdersPage() {
                actions={
                   <Link
                      href="/marketplace"
-                     className="inline-flex h-9 items-center gap-2 rounded-lg px-3.5 text-[12.5px] font-medium bg-[var(--color-surface)] ring-1 ring-[var(--color-border)] text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
+                     className="inline-flex h-9 items-center gap-2 rounded-md px-3.5 text-[12.5px] font-medium bg-[var(--color-surface)] ring-1 ring-[var(--color-border)] text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
                   >
                      <ShoppingBag className="h-3.5 w-3.5" />
                      Browse store
@@ -789,12 +790,13 @@ export default function BuyerOrdersPage() {
 
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                <div className="relative flex-1">
-                  <Search className="pointer-events-none absolute left-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--color-text-muted)]" />
-                  <input
+                  <Input
                      value={search}
+                     icon={<Search className="pointer-events-none h-3.5 w-3.5 text-[var(--color-text-muted)]" />}
                      onChange={e => setSearch(e.target.value)}
                      placeholder="Search by order #, product, or vendor…"
-                     className="h-9 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] pl-9 pr-4 text-[13px] text-[var(--color-text-primary)] outline-none placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-accent)] focus:ring-1 focus:ring-[var(--color-accent)]"
+                     className="h-9 w-full bg-[var(--color-surface)] pl-9 pr-4 text-[13px] text-[var(--color-text-primary)] 
+                     outline-none placeholder:text-[var(--color-text-muted)]"
                   />
                   {search && (
                      <button
@@ -829,230 +831,230 @@ export default function BuyerOrdersPage() {
                </div>
             </div>
 
-               {/* ── Mobile sort bar ── */}
-               {filtered.length > 0 && (
-                  <MobileSortBar sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
-               )}
+            {/* ── Mobile sort bar ── */}
+            {filtered.length > 0 && (
+               <MobileSortBar sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
+            )}
 
-               {/* ── Empty state ── */}
-               {filtered.length === 0 ? (
-                  <EmptyState
-                     icon={<ShoppingBag className="h-5 w-5 text-[var(--color-text-muted)]" />}
-                     title={emptyMessage()}
-                     message={
-                        search
-                           ? "Try a different search term or clear filters."
-                           : filter !== "All"
-                             ? "No orders in this status bucket."
-                             : "Your purchases will appear here after checkout."
-                     }
-                     action={
-                        !search && filter === "All" ? (
-                           <Link href="/marketplace" className="inline-flex h-9 items-center gap-2 rounded-lg px-3.5 text-[12.5px] font-medium text-[var(--color-accent)] hover:underline">
-                              Start shopping <ChevronRight className="h-3.5 w-3.5" />
-                           </Link>
-                        ) : undefined
-                     }
-                  />
-               ) : (
-                  <>
-                     {/* ── DESKTOP: Table ── */}
-                     <div className="hidden lg:block overflow-hidden rounded-2xl bg-[var(--color-surface)] ring-1 ring-[var(--color-border)]">
-                        <div className="overflow-x-auto">
-                           <table className="w-full text-[12.5px]">
-                              <thead className="bg-[var(--color-surface-secondary)]/50">
-                                 <tr>
-                                    <SortHeader label="Order" sortKey="date" currentKey={sortKey} currentDir={sortDir} onSort={handleSort} />
-                                    <Th>Items</Th>
-                                    <Th>Vendor</Th>
-                                    <SortHeader label="Status" sortKey="status" currentKey={sortKey} currentDir={sortDir} onSort={handleSort} />
-                                    <Th>Payment</Th>
-                                    <SortHeader label="Total" sortKey="amount" currentKey={sortKey} currentDir={sortDir} onSort={handleSort} align="right" />
-                                    <Th>{""}</Th>
-                                 </tr>
-                              </thead>
-                              <tbody>
-                                 {paginated.map(o => {
-                                    const date = new Date(o.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-                                    const firstItem = o.order_items[0];
-                                    const itemCount = o.order_items.length;
-                                    const hasDigital = o.order_items.some((i: any) => i.product_type === "digital");
-                                    // Timeline hint: show most recent milestone
-                                    const milestone = o.delivered_at
-                                       ? `Delivered ${new Date(o.delivered_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
-                                       : o.shipped_at
-                                          ? `Shipped ${new Date(o.shipped_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
-                                          : o.paid_at
-                                             ? `Paid ${new Date(o.paid_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
-                                             : o.cancelled_at
-                                                ? `Cancelled ${new Date(o.cancelled_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
-                                                : null;
+            {/* ── Empty state ── */}
+            {filtered.length === 0 ? (
+               <EmptyState
+                  icon={<ShoppingBag className="h-5 w-5 text-[var(--color-text-muted)]" />}
+                  title={emptyMessage()}
+                  message={
+                     search
+                        ? "Try a different search term or clear filters."
+                        : filter !== "All"
+                           ? "No orders in this status bucket."
+                           : "Your purchases will appear here after checkout."
+                  }
+                  action={
+                     !search && filter === "All" ? (
+                        <Link href="/marketplace" className="inline-flex h-9 items-center gap-2 rounded-lg px-3.5 text-[12.5px] font-medium text-[var(--color-accent)] hover:underline">
+                           Start shopping <ChevronRight className="h-3.5 w-3.5" />
+                        </Link>
+                     ) : undefined
+                  }
+               />
+            ) : (
+               <>
+                  {/* ── DESKTOP: Table ── */}
+                  <div className="hidden lg:block overflow-hidden rounded-2xl bg-[var(--color-surface)] ring-1 ring-[var(--color-border)]">
+                     <div className="overflow-x-auto">
+                        <table className="w-full text-[12.5px]">
+                           <thead className="bg-[var(--color-surface-secondary)]/50">
+                              <tr>
+                                 <SortHeader label="Order" sortKey="date" currentKey={sortKey} currentDir={sortDir} onSort={handleSort} />
+                                 <Th>Items</Th>
+                                 <Th>Vendor</Th>
+                                 <SortHeader label="Status" sortKey="status" currentKey={sortKey} currentDir={sortDir} onSort={handleSort} />
+                                 <Th>Payment</Th>
+                                 <SortHeader label="Total" sortKey="amount" currentKey={sortKey} currentDir={sortDir} onSort={handleSort} align="right" />
+                                 <Th>{""}</Th>
+                              </tr>
+                           </thead>
+                           <tbody>
+                              {paginated.map(o => {
+                                 const date = new Date(o.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+                                 const firstItem = o.order_items[0];
+                                 const itemCount = o.order_items.length;
+                                 const hasDigital = o.order_items.some((i: any) => i.product_type === "digital");
+                                 // Timeline hint: show most recent milestone
+                                 const milestone = o.delivered_at
+                                    ? `Delivered ${new Date(o.delivered_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
+                                    : o.shipped_at
+                                       ? `Shipped ${new Date(o.shipped_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
+                                       : o.paid_at
+                                          ? `Paid ${new Date(o.paid_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
+                                          : o.cancelled_at
+                                             ? `Cancelled ${new Date(o.cancelled_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
+                                             : null;
 
-                                    return (
-                                       <tr key={o.id} className="border-t border-[var(--color-border)]/60 transition-colors hover:bg-[var(--color-surface-secondary)]/40">
-                                          <td className="px-4 py-3 whitespace-nowrap">
-                                             <Link href={`/dashboard/orders/${o.id}`} className="block">
-                                                <p className="text-xs font-mono font-semibold text-[var(--color-text-primary)] group-hover:text-orange-500 transition-colors">
-                                                   #{o.order_number}
+                                 return (
+                                    <tr key={o.id} className="border-t border-[var(--color-border)]/60 transition-colors hover:bg-[var(--color-surface-secondary)]/40">
+                                       <td className="px-4 py-3 whitespace-nowrap">
+                                          <Link href={`/dashboard/orders/${o.id}`} className="block">
+                                             <p className="text-xs font-mono font-semibold text-[var(--color-text-primary)] group-hover:text-orange-500 transition-colors">
+                                                #{o.order_number}
+                                             </p>
+                                             <p className="text-[10px] text-[var(--color-text-muted)] mt-0.5">{date}</p>
+                                             {milestone && (
+                                                <p className="text-[9px] text-[var(--color-text-muted)] opacity-70 mt-0.5">{milestone}</p>
+                                             )}
+                                          </Link>
+                                       </td>
+
+                                       <td className="px-4 py-3 max-w-[260px]">
+                                          <div className="flex items-center gap-2">
+                                             <div className="h-8 w-8 rounded-md bg-[var(--color-surface-secondary)] border border-[var(--color-border)] flex items-center justify-center shrink-0 text-[10px] font-bold text-[var(--color-text-muted)] uppercase">
+                                                {(firstItem?.product_name ?? "?")[0]}
+                                             </div>
+                                             <div className="min-w-0">
+                                                <p className="text-xs font-medium text-[var(--color-text-primary)] truncate">
+                                                   {firstItem?.product_name ?? "—"}
                                                 </p>
-                                                <p className="text-[10px] text-[var(--color-text-muted)] mt-0.5">{date}</p>
-                                                {milestone && (
-                                                   <p className="text-[9px] text-[var(--color-text-muted)] opacity-70 mt-0.5">{milestone}</p>
-                                                )}
-                                             </Link>
-                                          </td>
-
-                                          <td className="px-4 py-3 max-w-[260px]">
-                                             <div className="flex items-center gap-2">
-                                                <div className="h-8 w-8 rounded-md bg-[var(--color-surface-secondary)] border border-[var(--color-border)] flex items-center justify-center shrink-0 text-[10px] font-bold text-[var(--color-text-muted)] uppercase">
-                                                   {(firstItem?.product_name ?? "?")[0]}
-                                                </div>
-                                                <div className="min-w-0">
-                                                   <p className="text-xs font-medium text-[var(--color-text-primary)] truncate">
-                                                      {firstItem?.product_name ?? "—"}
-                                                   </p>
-                                                   <p className="text-[10px] text-[var(--color-text-muted)]">
-                                                      {itemCount === 1 ? `Qty ${firstItem?.quantity ?? 1}` : `+${itemCount - 1} more item${itemCount - 1 !== 1 ? "s" : ""}`}
-                                                      {hasDigital && <span className="ml-1.5 text-orange-500 font-semibold">· digital</span>}
-                                                   </p>
-                                                </div>
+                                                <p className="text-[10px] text-[var(--color-text-muted)]">
+                                                   {itemCount === 1 ? `Qty ${firstItem?.quantity ?? 1}` : `+${itemCount - 1} more item${itemCount - 1 !== 1 ? "s" : ""}`}
+                                                   {hasDigital && <span className="ml-1.5 text-orange-500 font-semibold">· digital</span>}
+                                                </p>
                                              </div>
-                                          </td>
+                                          </div>
+                                       </td>
 
-                                          <td className="px-4 py-3 max-w-[160px]">
-                                             <div className="text-xs text-[var(--color-text-secondary)]">
-                                                <VendorList items={o.order_items} compact />
-                                             </div>
-                                             <ShippingBadge address={o.shipping_address} />
-                                          </td>
+                                       <td className="px-4 py-3 max-w-[160px]">
+                                          <div className="text-xs text-[var(--color-text-secondary)]">
+                                             <VendorList items={o.order_items} compact />
+                                          </div>
+                                          <ShippingBadge address={o.shipping_address} />
+                                       </td>
 
-                                          <td className="px-3 py-3 whitespace-nowrap">
-                                             <StatusPill status={o.status ?? "pending"} />
-                                             {o.tracking_number && o.status === "shipped" && (
-                                                <p className="mt-1 truncate font-mono text-[9px] text-[var(--color-text-muted)]">{o.tracking_number}</p>
-                                             )}
-                                          </td>
+                                       <td className="px-3 py-3 whitespace-nowrap">
+                                          <StatusPill status={o.status ?? "pending"} />
+                                          {o.tracking_number && o.status === "shipped" && (
+                                             <p className="mt-1 truncate font-mono text-[9px] text-[var(--color-text-muted)]">{o.tracking_number}</p>
+                                          )}
+                                       </td>
 
-                                          <td className="px-3 py-3 whitespace-nowrap">
-                                             {o.payment_status ? (
-                                                <StatusPill status={o.payment_status} />
-                                             ) : (
-                                                <span className="text-[10px] text-[var(--color-text-muted)]">—</span>
-                                             )}
-                                          </td>
+                                       <td className="px-3 py-3 whitespace-nowrap">
+                                          {o.payment_status ? (
+                                             <StatusPill status={o.payment_status} />
+                                          ) : (
+                                             <span className="text-[10px] text-[var(--color-text-muted)]">—</span>
+                                          )}
+                                       </td>
 
-                                          <td className="px-3 py-3 text-right whitespace-nowrap tabular-nums font-medium text-[var(--color-text-primary)]">
-                                             {formatMoney(o.total_amount, o.currency)}
-                                          </td>
-
-                                          <td className="px-3 py-3 pr-5 whitespace-nowrap">
-                                             <div className="flex items-center justify-end gap-1">
-                                                <RowArrow href={`/dashboard/orders/${o.id}`} />
-                                                <OrderActions order={o} onCancel={setCancelTargetId} onReorder={setReorderTarget} />
-                                             </div>
-                                          </td>
-                                       </tr>
-                                    );
-                                 })}
-                              </tbody>
-                           </table>
-                        </div>
-                     </div>
-
-                     {/* ── MOBILE / TABLET: Cards ── */}
-                     <div className="lg:hidden space-y-3">
-                        {paginated.map(o => {
-                           const cfg = STATUS_CFG[o.status] ?? STATUS_CFG.pending;
-                           const payCfg = PAYMENT_CFG[o.payment_status] ?? null;
-                           const StatusIcon = cfg.icon;
-                           const date = new Date(o.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-                           const itemCount = o.order_items.length;
-                           const firstItem = o.order_items[0];
-
-                           return (
-                              <div key={o.id} className="rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden">
-                                 <div className="px-4 py-3 border-b border-[var(--color-border)] flex items-center justify-between gap-3">
-                                    <div className="flex items-center gap-2.5 min-w-0">
-                                       <span className={cn("h-2 w-2 rounded-full shrink-0", cfg.dot)} />
-                                       <div className="min-w-0">
-                                          <p className="text-[10px] font-mono font-semibold text-[var(--color-text-muted)] leading-none">#{o.order_number}</p>
-                                          <p className="text-xs font-bold text-[var(--color-text-primary)] mt-0.5">{date}</p>
-                                       </div>
-                                    </div>
-                                    <div className="flex items-center gap-2 shrink-0">
-                                       <p className="text-sm font-bold text-[var(--color-text-primary)] tabular-nums">
+                                       <td className="px-3 py-3 text-right whitespace-nowrap tabular-nums font-medium text-[var(--color-text-primary)]">
                                           {formatMoney(o.total_amount, o.currency)}
-                                       </p>
-                                       <OrderActions order={o} onCancel={setCancelTargetId} onReorder={setReorderTarget} />
+                                       </td>
+
+                                       <td className="px-3 py-3 pr-5 whitespace-nowrap">
+                                          <div className="flex items-center justify-end gap-1">
+                                             <RowArrow href={`/dashboard/orders/${o.id}`} />
+                                             <OrderActions order={o} onCancel={setCancelTargetId} onReorder={setReorderTarget} />
+                                          </div>
+                                       </td>
+                                    </tr>
+                                 );
+                              })}
+                           </tbody>
+                        </table>
+                     </div>
+                  </div>
+
+                  {/* ── MOBILE / TABLET: Cards ── */}
+                  <div className="lg:hidden space-y-3">
+                     {paginated.map(o => {
+                        const cfg = STATUS_CFG[o.status] ?? STATUS_CFG.pending;
+                        const payCfg = PAYMENT_CFG[o.payment_status] ?? null;
+                        const StatusIcon = cfg.icon;
+                        const date = new Date(o.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+                        const itemCount = o.order_items.length;
+                        const firstItem = o.order_items[0];
+
+                        return (
+                           <div key={o.id} className="rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden">
+                              <div className="px-4 py-3 border-b border-[var(--color-border)] flex items-center justify-between gap-3">
+                                 <div className="flex items-center gap-2.5 min-w-0">
+                                    <span className={cn("h-2 w-2 rounded-full shrink-0", cfg.dot)} />
+                                    <div className="min-w-0">
+                                       <p className="text-[10px] font-mono font-semibold text-[var(--color-text-muted)] leading-none">#{o.order_number}</p>
+                                       <p className="text-xs font-bold text-[var(--color-text-primary)] mt-0.5">{date}</p>
                                     </div>
                                  </div>
-
-                                 <div className="px-4 py-3 space-y-2.5">
-                                    <div className="flex items-center gap-2">
-                                       <div className="h-9 w-9 rounded-md bg-[var(--color-surface-secondary)] border border-[var(--color-border)] flex items-center justify-center shrink-0 text-xs font-bold text-[var(--color-text-muted)] uppercase">
-                                          {(firstItem?.product_name ?? "?")[0]}
-                                       </div>
-                                       <div className="flex-1 min-w-0">
-                                          <p className="text-sm font-semibold text-[var(--color-text-primary)] truncate">{firstItem?.product_name ?? "—"}</p>
-                                          <p className="text-[10px] text-[var(--color-text-muted)]">
-                                             <VendorList items={o.order_items} compact />
-                                             {itemCount > 1 && <span> · +{itemCount - 1} more</span>}
-                                          </p>
-                                          <ShippingBadge address={o.shipping_address} />
-                                       </div>
-                                    </div>
-
-                                    <div className="flex items-center flex-wrap gap-1.5">
-                                       <span className={cn("inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-semibold", cfg.pill)}>
-                                          <StatusIcon className="h-3 w-3" /> {cfg.label}
-                                       </span>
-                                       {payCfg && (
-                                          <span className={cn("inline-flex items-center px-2 py-1 rounded-md text-[10px] font-semibold", payCfg.pill)}>
-                                             {payCfg.label}
-                                          </span>
-                                       )}
-                                       {o.tracking_number && o.status === "shipped" && (
-                                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-mono text-[var(--color-text-secondary)] bg-[var(--color-surface-secondary)] border border-[var(--color-border)]">
-                                             <Truck className="h-3 w-3" /> {o.tracking_number}
-                                          </span>
-                                       )}
-                                       {/* Tracking status badge */}
-                                       {o.tracking_status && o.status === "shipped" && (
-                                          <span className="inline-flex items-center px-2 py-1 rounded-md text-[10px] text-[var(--color-text-muted)] bg-[var(--color-surface-secondary)] border border-[var(--color-border)] capitalize">
-                                             {o.tracking_status}
-                                          </span>
-                                       )}
-                                    </div>
-
-                                    <Link
-                                       href={`/dashboard/orders/${o.id}`}
-                                       className="flex items-center justify-center gap-1 w-full h-9 rounded-md bg-[var(--color-surface-secondary)] border border-[var(--color-border)] text-xs font-semibold text-[var(--color-text-primary)] hover:border-[var(--color-border-strong)] transition-all"
-                                    >
-                                       View Details <ChevronRight className="h-3 w-3" />
-                                    </Link>
+                                 <div className="flex items-center gap-2 shrink-0">
+                                    <p className="text-sm font-bold text-[var(--color-text-primary)] tabular-nums">
+                                       {formatMoney(o.total_amount, o.currency)}
+                                    </p>
+                                    <OrderActions order={o} onCancel={setCancelTargetId} onReorder={setReorderTarget} />
                                  </div>
                               </div>
-                           );
-                        })}
-                     </div>
 
-                     {/* ── Pagination / Load more ── */}
-                     <div className="flex flex-col items-center gap-3 pb-4">
-                        <p className="text-xs text-[var(--color-text-muted)]">
-                           Showing {paginated.length} of {filtered.length} order{filtered.length !== 1 ? "s" : ""}
-                           {orders.length >= 200 && <span className="ml-1">· latest 200</span>}
-                        </p>
-                        {hasMore && (
-                           <button
-                              onClick={() => setPage(p => p + 1)}
-                              className="h-9 px-6 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-xs font-semibold text-[var(--color-text-muted)] hover:border-[var(--color-border-strong)] hover:text-[var(--color-text-primary)] transition-all"
-                           >
-                              Load more ({filtered.length - paginated.length} remaining)
-                           </button>
-                        )}
-                     </div>
-                  </>
-               )}
+                              <div className="px-4 py-3 space-y-2.5">
+                                 <div className="flex items-center gap-2">
+                                    <div className="h-9 w-9 rounded-md bg-[var(--color-surface-secondary)] border border-[var(--color-border)] flex items-center justify-center shrink-0 text-xs font-bold text-[var(--color-text-muted)] uppercase">
+                                       {(firstItem?.product_name ?? "?")[0]}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                       <p className="text-sm font-semibold text-[var(--color-text-primary)] truncate">{firstItem?.product_name ?? "—"}</p>
+                                       <p className="text-[10px] text-[var(--color-text-muted)]">
+                                          <VendorList items={o.order_items} compact />
+                                          {itemCount > 1 && <span> · +{itemCount - 1} more</span>}
+                                       </p>
+                                       <ShippingBadge address={o.shipping_address} />
+                                    </div>
+                                 </div>
+
+                                 <div className="flex items-center flex-wrap gap-1.5">
+                                    <span className={cn("inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-semibold", cfg.pill)}>
+                                       <StatusIcon className="h-3 w-3" /> {cfg.label}
+                                    </span>
+                                    {payCfg && (
+                                       <span className={cn("inline-flex items-center px-2 py-1 rounded-md text-[10px] font-semibold", payCfg.pill)}>
+                                          {payCfg.label}
+                                       </span>
+                                    )}
+                                    {o.tracking_number && o.status === "shipped" && (
+                                       <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-mono text-[var(--color-text-secondary)] bg-[var(--color-surface-secondary)] border border-[var(--color-border)]">
+                                          <Truck className="h-3 w-3" /> {o.tracking_number}
+                                       </span>
+                                    )}
+                                    {/* Tracking status badge */}
+                                    {o.tracking_status && o.status === "shipped" && (
+                                       <span className="inline-flex items-center px-2 py-1 rounded-md text-[10px] text-[var(--color-text-muted)] bg-[var(--color-surface-secondary)] border border-[var(--color-border)] capitalize">
+                                          {o.tracking_status}
+                                       </span>
+                                    )}
+                                 </div>
+
+                                 <Link
+                                    href={`/dashboard/orders/${o.id}`}
+                                    className="flex items-center justify-center gap-1 w-full h-9 rounded-md bg-[var(--color-surface-secondary)] border border-[var(--color-border)] text-xs font-semibold text-[var(--color-text-primary)] hover:border-[var(--color-border-strong)] transition-all"
+                                 >
+                                    View Details <ChevronRight className="h-3 w-3" />
+                                 </Link>
+                              </div>
+                           </div>
+                        );
+                     })}
+                  </div>
+
+                  {/* ── Pagination / Load more ── */}
+                  <div className="flex flex-col items-center gap-3 pb-4">
+                     <p className="text-xs text-[var(--color-text-muted)]">
+                        Showing {paginated.length} of {filtered.length} order{filtered.length !== 1 ? "s" : ""}
+                        {orders.length >= 200 && <span className="ml-1">· latest 200</span>}
+                     </p>
+                     {hasMore && (
+                        <button
+                           onClick={() => setPage(p => p + 1)}
+                           className="h-9 px-6 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-xs font-semibold text-[var(--color-text-muted)] hover:border-[var(--color-border-strong)] hover:text-[var(--color-text-primary)] transition-all"
+                        >
+                           Load more ({filtered.length - paginated.length} remaining)
+                        </button>
+                     )}
+                  </div>
+               </>
+            )}
          </div>
       </>
    );

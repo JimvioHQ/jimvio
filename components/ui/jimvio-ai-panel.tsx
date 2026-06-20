@@ -349,7 +349,7 @@ export function JimvioAIPanel({
             placeholder="Ask about products, campaigns…"
             aria-label="Ask Jimvio AI"
             className={cn(
-              "h-10 w-full min-w-0 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] py-0 pl-9 pr-4 text-[12px] text-[var(--color-text-primary)] shadow-sm outline-none transition-colors placeholder:text-[var(--color-text-muted)] focus:border-[#fd5000]/50 focus:ring-2 focus:ring-[#fd5000]/15 sm:pl-10 sm:pr-[148px] sm:text-[13px]",
+              "h-10 w-full min-w-0 rounded-full border border-[var(--color-border)] bg-[var(--color-bg)] py-0 pl-9 pr-4 text-[12px] text-[var(--color-text-primary)] shadow-sm outline-none transition-colors placeholder:text-[var(--color-text-muted)] focus:border-[#fd5000]/50 focus:ring-2 focus:ring-[#fd5000]/15 sm:pl-10 sm:pr-[148px] sm:text-[13px]",
               compact ? "sm:pr-4" : "sm:h-11"
             )}
           />
@@ -357,7 +357,7 @@ export function JimvioAIPanel({
             type="button"
             onClick={() => ask()}
             className={cn(
-              "absolute right-1.5 top-1/2 z-20 inline-flex h-8 -translate-y-1/2 cursor-pointer touch-manipulation items-center justify-center gap-1.5 rounded-md px-3 text-[11px] font-bold text-white transition-opacity hover:opacity-90 sm:h-9 sm:px-3.5 sm:text-[12px]",
+              "absolute mt-4 right-1.5 top-1/2 z-20 inline-flex h-8 -translate-y-1/2 cursor-pointer touch-manipulation items-center justify-center gap-1.5 rounded-md px-3 text-[11px] font-bold text-white transition-opacity hover:opacity-90 sm:h-9 sm:px-3.5 sm:text-[12px]",
               compact ? "hidden" : "hidden sm:inline-flex"
             )}
             style={{ background: ORANGE }}

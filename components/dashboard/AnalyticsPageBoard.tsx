@@ -369,9 +369,11 @@ export function AnalyticsPageBoard({
                   />
                   <Tooltip
                     {...BAR_TOOLTIP_PROPS}
-                    content={(props) => (
+                    content={({ active, payload, label }) => (
                       <ChartMoneyTooltip
-                        {...props}
+                        active={active}
+                        payload={payload as TooltipPayload[] | undefined}
+                        label={label}
                         formatValue={formatChartValue}
                         labels={TRAFFIC_LABELS}
                       />
@@ -410,7 +412,13 @@ export function AnalyticsPageBoard({
                   />
                   <Tooltip
                     {...BAR_TOOLTIP_PROPS}
-                    content={(props) => <ChartCountTooltip {...props} />}
+                    content={({ active, payload, label }) => (
+                      <ChartCountTooltip
+                        active={active}
+                        payload={payload as TooltipPayload[] | undefined}
+                        label={label}
+                      />
+                    )}
                   />
                   <Bar dataKey="orders" name="Orders" fill="#7c3aed" radius={[4, 4, 0, 0]} maxBarSize={36} />
                 </BarChart>
@@ -460,9 +468,11 @@ export function AnalyticsPageBoard({
                     cursor={{ stroke: "var(--color-border)", strokeWidth: 1, strokeDasharray: "4 4" }}
                     allowEscapeViewBox={{ x: true, y: true }}
                     wrapperStyle={{ outline: "none", zIndex: 20 }}
-                    content={(props) => (
+                    content={({ active, payload, label }) => (
                       <ChartMoneyTooltip
-                        {...props}
+                        active={active}
+                        payload={payload as TooltipPayload[] | undefined}
+                        label={label}
                         formatValue={formatChartValue}
                         labels={{ value: "Earnings" }}
                       />
