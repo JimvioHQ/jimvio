@@ -866,20 +866,20 @@ export async function getHubLiveDashboard(userId: string) {
     }
   }
 
-  const viewers = primaryRoom?.message_count ?? stats.membersOnline;
+  const viewers = primaryRoom?.message_count ?? 0;
   const analytics: HubLiveAnalytics = {
-    viewers: Math.max(viewers, stats.liveSessions),
-    liveViewers: Math.max(Math.round(viewers * 0.85), 1),
+    viewers,
+    liveViewers: primaryRoom ? Math.round(viewers * 0.85) : 0,
     likes: chatMessages.reduce((sum, m) => sum + m.reaction_count, 0),
-    newJoins: Math.max(speakers.length, 1),
+    newJoins: speakers.length,
     messages: chatMessages.length,
     comments: chatMessages.filter((m) => m.body.length > 0).length,
-    shares: Math.round(chatMessages.length * 0.15),
+    shares: primaryRoom ? Math.round(chatMessages.length * 0.15) : 0,
     reactionsPct: chatMessages.length
       ? Math.min(99, Math.round((chatMessages.filter((m) => m.reaction_count > 0).length / chatMessages.length) * 100))
       : 0,
-    peakViewers: Math.max(viewers, stats.liveSessions * 2),
-    watchTimeMinutes: Math.max(chatMessages.length * 2, viewers),
+    peakViewers: viewers,
+    watchTimeMinutes: primaryRoom ? chatMessages.length * 2 : 0,
     revenue: earnings.total,
   };
 

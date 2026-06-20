@@ -13,62 +13,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { HubAvatar, HubBadge, HubCard, HubLinkButton, HubSectionTitle, HubStatCard } from "./hub-ui";
-
-/* ── Types ── */
-type LiveRoom = {
-  id: string;
-  name: string;
-  community_name: string;
-  message_count: number;
-  href: string;
-};
-
-type ChatMessage = {
-  id: string;
-  body: string;
-  created_at: string;
-  sender_name: string;
-  sender_avatar: string | null;
-  reaction_count: number;
-};
-
-type Speaker = {
-  id: string;
-  name: string;
-  avatar_url: string | null;
-  role: string;
-};
-
-type UpcomingSession = {
-  id: string;
-  title: string;
-  host: string;
-  start_date: string;
-  href: string;
-};
-
-type LiveDashboard = {
-  stats: { membersOnline: number; liveSessions: number; voiceRooms: number };
-  rooms: LiveRoom[];
-  relatedRooms: LiveRoom[];
-  chatMessages: ChatMessage[];
-  speakers: Speaker[];
-  upcomingSessions: UpcomingSession[];
-  analytics: {
-    viewers: number;
-    liveViewers: number;
-    likes: number;
-    newJoins: number;
-    messages: number;
-    comments: number;
-    shares: number;
-    reactionsPct: number;
-    peakViewers: number;
-    watchTimeMinutes: number;
-    revenue: number;
-  };
-  session: { title: string; host: string; href: string; tag: string; roomId: string | null };
-};
+import type { LiveDashboard, Speaker } from "@/lib/community/hub-live-types";
+import { normalizeHubLiveDashboard } from "@/lib/community/hub-live-demo";
 
 /* ── Config ── */
 const LIVE_NOW_NAV = [
@@ -116,7 +62,7 @@ const STAGE_CONTROLS = [
   { icon: Volume2, label: "Sounds" },
   { icon: Video, label: "Start Video" },
   { icon: ScreenShare, label: "Share Screen", active: true },
-  { icon: Wand2, label: "Shanny" },
+  { icon: Wand2, label: "Jiff" },
   { icon: UsersRound, label: "Invite" },
   { icon: Disc, label: "Record", danger: true },
   { icon: RotateCcw, label: "Reset" },
@@ -183,11 +129,14 @@ export function HubLivePage() {
       setLoading(true);
       try {
         const res = await fetch("/api/c/live");
-        if (!res.ok) return;
-        const json = (await res.json()) as LiveDashboard;
+        let json: LiveDashboard | null = null;
+        if (res.ok) {
+          json = (await res.json()) as LiveDashboard;
+        }
         if (!cancelled) {
-          setData(json);
-          if (json.speakers[0]) setActiveSpeakerId(json.speakers[0].id);
+          const normalized = normalizeHubLiveDashboard(json);
+          setData(normalized);
+          if (normalized.speakers[0]) setActiveSpeakerId(normalized.speakers[0].id);
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -201,11 +150,7 @@ export function HubLivePage() {
     return () => clearInterval(t);
   }, []);
 
-  const speakers = useMemo(() => {
-    const list = data?.speakers ?? [];
-    if (list.length > 0) return list;
-    return [{ id: "host", name: data?.session.host ?? "Host", avatar_url: null, role: "Host" }];
-  }, [data]);
+  const speakers = useMemo(() => data?.speakers ?? [], [data?.speakers]);
 
   const speakerLabel = (s: Speaker, index: number) => {
     if (index === 0) return "You (Host/Leader)";
@@ -213,20 +158,23 @@ export function HubLivePage() {
     return s.name;
   };
 
-  const clipCount = useMemo(() => {
-    const msgs = data?.chatMessages ?? [];
-    return Math.max(msgs.filter((m) => m.body.length > 15).length * 47, msgs.length > 0 ? 985 : 0);
-  }, [data?.chatMessages]);
+  const clipCount = useMemo(
+    () => (data?.chatMessages ?? []).filter((m) => m.body.length > 15).length,
+    [data?.chatMessages],
+  );
 
   const clips = useMemo(() => {
     const msgs = data?.chatMessages ?? [];
-    if (msgs.length === 0) return [{ id: "clip-0", author: "System", text: "EUR/USD Breakout — highlight clip", time: "Now" }];
-    return msgs.filter((m) => m.body.length > 15).slice(-3).reverse().map((m) => ({
-      id: m.id,
-      author: m.sender_name.split(" ")[0],
-      text: m.body.slice(0, 72) + (m.body.length > 72 ? "…" : ""),
-      time: formatTime(m.created_at),
-    }));
+    return msgs
+      .filter((m) => m.body.length > 15)
+      .slice(-3)
+      .reverse()
+      .map((m) => ({
+        id: m.id,
+        author: m.sender_name.split(" ")[0],
+        text: m.body.slice(0, 72) + (m.body.length > 72 ? "…" : ""),
+        time: formatTime(m.created_at),
+      }));
   }, [data?.chatMessages]);
 
   const copyUrl = async () => {
@@ -247,11 +195,12 @@ export function HubLivePage() {
 
   const analytics = data?.analytics;
   const session = data?.session ?? { title: "Community Live Room", host: "Jimvio", href: "/c/live", tag: "Live Room", roomId: null };
-  const hasSession = Boolean(data?.session.roomId || (data?.rooms.length ?? 0) > 0);
-  const extraParticipants = Math.max((analytics?.viewers ?? 0) - speakers.length, 0);
+  const hasSession = Boolean(data?.session.roomId);
+  const extraSpeakers = Math.max(speakers.length - 4, 0);
+  const extraViewers = Math.max((analytics?.viewers ?? 0) - speakers.slice(0, 4).length, 0);
   const returningViewers = Math.max((analytics?.viewers ?? 0) - (analytics?.newJoins ?? 0), 0);
   const reactionsTotal = Math.max(analytics?.comments ?? 0, analytics?.likes ?? 0);
-  const rankLabel = session.tag ? `#1 ${session.tag.split(" ")[0]}` : "#1 Trending";
+  const rankLabel = hasSession && session.tag ? `#1 ${session.tag.split(" ")[0]}` : "—";
 
   return (
     <div className="relative min-h-full bg-[#f4f4f5] pb-20">
@@ -287,8 +236,8 @@ export function HubLivePage() {
                     <HubAvatar key={s.id} name={s.name} src={s.avatar_url} size={26} className="ring-2 ring-white" />
                   ))}
                 </div>
-                {extraParticipants > 0 && (
-                  <span className="text-[10px] font-bold text-zinc-500">+{extraParticipants}</span>
+                {extraViewers > 0 && (
+                  <span className="text-[10px] font-bold text-zinc-500">+{extraViewers}</span>
                 )}
               </div>
               <span className="inline-flex items-center rounded-lg bg-emerald-50 px-2 py-1 text-[10px] font-semibold text-emerald-600">
@@ -327,7 +276,7 @@ export function HubLivePage() {
         </div>
 
         {/* ═══ MOBILE LIVE NOW NAV (visible below lg) ═══ */}
-        <HubCard className="!p-2 lg:hidden">
+        <HubCard className="!p-2 md:hidden">
           <div className="flex gap-1 overflow-x-auto scrollbar-hide">
             {LIVE_NOW_NAV.map((item) => (
               <button
@@ -346,9 +295,9 @@ export function HubLivePage() {
         </HubCard>
 
         {/* ═══ THREE-COLUMN BODY ═══ */}
-        <div className="grid gap-3 lg:grid-cols-[220px_minmax(0,1fr)_320px]">
+        <div className="grid gap-3 md:grid-cols-[220px_minmax(0,1fr)_320px]">
           {/* ── Left: Live controls ── */}
-          <aside className="hidden space-y-2.5 lg:block">
+          <aside className="hidden space-y-2.5 md:block">
             <HubCard padding className="!p-2.5">
               <p className="mb-2 px-1 text-[10px] font-black uppercase tracking-wider text-zinc-400">Live Now</p>
               <div className="max-h-[280px] space-y-0.5 overflow-y-auto scrollbar-hide">
@@ -458,10 +407,20 @@ export function HubLivePage() {
                   <div className="absolute inset-0 bg-gradient-to-br from-zinc-800 via-zinc-900 to-black" />
                   {hasSession ? (
                     <>
-                      <div className="absolute inset-0 flex flex-col items-center justify-center text-white">
-                        <Monitor className="mb-2 h-12 w-12 opacity-40" />
-                        <p className="text-[15px] font-bold">Screen shared</p>
-                        <p className="mt-1 text-[11px] text-white/40">{MODE_TABS[activeMode]}</p>
+                      <div className="absolute inset-0 flex items-center justify-center p-4">
+                        <div className="w-full max-w-[92%] overflow-hidden rounded-lg border border-white/10 bg-white shadow-2xl">
+                          <div className="flex items-center gap-1.5 border-b border-zinc-100 bg-zinc-50 px-3 py-2">
+                            <span className="h-2 w-2 rounded-full bg-red-400" />
+                            <span className="h-2 w-2 rounded-full bg-amber-400" />
+                            <span className="h-2 w-2 rounded-full bg-emerald-400" />
+                            <span className="ml-2 truncate text-[9px] text-zinc-400">jimvio.com — shared screen</span>
+                          </div>
+                          <div className="bg-gradient-to-br from-orange-50 via-white to-zinc-50 px-4 py-6 text-center">
+                            <p className="text-[11px] font-bold text-[#fd5000]">{session.host}</p>
+                            <p className="mt-2 text-[13px] font-black text-zinc-800">{session.title}</p>
+                            <p className="mt-1 text-[10px] text-zinc-500">{MODE_TABS[activeMode]}</p>
+                          </div>
+                        </div>
                       </div>
                       <HubBadge variant="live" className="absolute left-3 top-3">LIVE</HubBadge>
                       <div className="absolute bottom-3 left-3 flex gap-1.5">
@@ -488,6 +447,7 @@ export function HubLivePage() {
             </HubCard>
 
             {/* Speaker thumbnail row */}
+            {hasSession && speakers.length > 0 && (
             <div className="flex gap-2 overflow-x-auto pb-1">
               {speakers.slice(0, 4).map((s) => (
                 <div key={s.id} className="relative h-[80px] w-[110px] shrink-0 overflow-hidden rounded-2xl bg-zinc-800">
@@ -498,11 +458,14 @@ export function HubLivePage() {
                   <span className="absolute bottom-1.5 left-1.5 right-1.5 truncate rounded-lg bg-black/65 px-1.5 py-0.5 text-[9px] font-semibold text-white">{s.name}</span>
                 </div>
               ))}
+              {extraSpeakers > 0 && (
               <div className="flex h-[80px] w-[110px] shrink-0 flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-200 bg-white text-[10px] font-semibold text-zinc-400">
                 <Users className="mb-1 h-4 w-4" />
-                +{Math.max(extraParticipants, 19)} More speakers
+                +{extraSpeakers} more
               </div>
+              )}
             </div>
+            )}
 
             {/* Stage control bar */}
             <HubCard padding className="!p-2">
@@ -546,6 +509,7 @@ export function HubLivePage() {
                 peak={analytics?.peakViewers ?? 0}
                 chats={analytics?.messages ?? 0}
                 revenue={analytics?.revenue ?? 0}
+                watchMinutes={analytics?.watchTimeMinutes ?? 0}
               />
               <SourcePreviewCard title={session.title} viewers={analytics?.liveViewers ?? 0} />
             </div>
@@ -599,7 +563,10 @@ export function HubLivePage() {
             {/* Clipped */}
             <HubCard padding className="!p-2.5">
               <HubSectionTitle title="/ Clipped" badge={clipCount > 0 ? String(clipCount) : undefined} />
-              {clips.map((clip) => (
+              {clips.length === 0 ? (
+                <p className="py-3 text-[10px] text-zinc-400">No clips yet from this session.</p>
+              ) : (
+                clips.map((clip) => (
                 <div key={clip.id} className="border-t border-zinc-100 py-2 first:border-0">
                   <p className="text-[10px] font-bold text-[#fd5000]">{clip.author} · {clip.time}</p>
                   <ul className="mt-1 space-y-0.5 text-[11px] text-zinc-600">
@@ -611,10 +578,13 @@ export function HubLivePage() {
                     ))}
                   </ul>
                 </div>
-              ))}
+                ))
+              )}
+              {clips.length > 0 && (
               <button type="button" className="mt-1 w-full rounded-xl bg-zinc-50 py-1.5 text-[10px] font-semibold text-[#fd5000] hover:bg-zinc-100">
                 View more clips
               </button>
+              )}
             </HubCard>
 
             {/* Related channels */}
@@ -792,7 +762,19 @@ function EngagementCard({ likes, reactions, comments, retentionPct }: { likes: n
   );
 }
 
-function StreamStatsCard({ views, peak, chats, revenue }: { views: number; peak: number; chats: number; revenue: number }) {
+function StreamStatsCard({
+  views,
+  peak,
+  chats,
+  revenue,
+  watchMinutes,
+}: {
+  views: number;
+  peak: number;
+  chats: number;
+  revenue: number;
+  watchMinutes: number;
+}) {
   return (
     <HubCard padding className="!p-3">
       <div className="mb-2 flex items-center gap-1.5">
@@ -801,6 +783,7 @@ function StreamStatsCard({ views, peak, chats, revenue }: { views: number; peak:
       </div>
       {[
         ["Viewers", formatCount(views)],
+        ["Watch time", formatCount(watchMinutes)],
         ["Peak", formatCount(peak)],
         ["Revenue", revenue > 0 ? formatMoney(revenue) : "—"],
         ["Chats", formatCount(chats)],

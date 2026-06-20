@@ -221,7 +221,7 @@ function HeroAIFeatureRows({ onSelect }: { onSelect: (query: string) => void }) 
                   key={label}
                   type="button"
                   onClick={() => onSelect(query)}
-                  className="group shrink-0 rounded-md px-2 py-1 text-left transition-all duration-200 hover:bg-[#fd5000]/10 active:scale-[0.98]"
+                  className="group shrink-0 rounded-sm px-2 py-1 text-left transition-all duration-200 hover:bg-[#fd5000]/10 active:scale-[0.98]"
                 >
                   <span className="text-[12px] font-semibold leading-snug text-[var(--color-text-primary)] transition-colors duration-200 group-hover:text-[#fd5000] group-hover:underline group-hover:decoration-[#fd5000]/40 group-hover:underline-offset-2 sm:text-[13px]">
                     {label}
@@ -278,13 +278,13 @@ function HeroAIPanel() {
               }}
               placeholder="Ask about products, campaigns…"
               aria-label="Ask Jimvio AI"
-              className="h-11 w-full min-w-0 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] py-0 pl-10 pr-4 text-[13px] text-[var(--color-text-primary)] shadow-sm outline-none transition-colors placeholder:text-[var(--color-text-muted)] focus:border-[#fd5000]/50 focus:ring-2 focus:ring-[#fd5000]/15 sm:h-12 sm:text-[14px]"
+              className="h-11 w-full min-w-0 rounded-sm border border-[var(--color-border)] bg-[var(--color-bg)] py-0 pl-10 pr-4 text-[13px] text-[var(--color-text-primary)] shadow-sm outline-none transition-colors placeholder:text-[var(--color-text-muted)] focus:border-[#fd5000]/50 focus:ring-2 focus:ring-[#fd5000]/15 sm:h-12 sm:text-[14px]"
             />
           </div>
           <button
             type="button"
             onClick={() => ask()}
-            className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-lg px-5 text-[13px] font-bold text-white transition-opacity hover:opacity-90 sm:h-12 sm:px-6 sm:text-[14px]"
+            className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-sm px-5 text-[13px] font-bold text-white transition-opacity hover:opacity-90 sm:h-12 sm:px-6 sm:text-[14px]"
             style={{ background: ORANGE }}
           >
             Ask AI
@@ -359,7 +359,7 @@ export function Hero() {
               <div className="mt-5 flex w-full min-w-0 flex-col items-stretch gap-3 sm:mt-6 sm:flex-row sm:items-center sm:justify-center lg:justify-start">
                 <Link
                   href="/register"
-                  className="inline-flex h-12 w-full min-w-0 items-center justify-center gap-2 rounded-full px-5 text-[13px] font-bold text-white transition-opacity hover:opacity-90 sm:h-[48px] sm:w-auto sm:px-6 sm:text-[14px]"
+                  className="inline-flex h-12 w-full min-w-0 items-center justify-center gap-2 rounded-sm px-5 text-[13px] font-bold text-white transition-opacity hover:opacity-90 sm:h-[48px] sm:w-auto sm:px-6 sm:text-[14px]"
                   style={{ background: ORANGE }}
                 >
                   Start earning for Free
@@ -367,7 +367,7 @@ export function Hero() {
                 </Link>
                 <Link
                   href="/marketplace"
-                  className="inline-flex h-12 w-full min-w-0 items-center justify-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-5 text-[13px] font-bold text-[var(--color-text-primary)] transition-colors hover:bg-[var(--color-surface-secondary)] sm:h-[48px] sm:w-auto sm:px-6 sm:text-[14px]"
+                  className="inline-flex h-12 w-full min-w-0 items-center justify-center gap-2 rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] px-5 text-[13px] font-bold text-[var(--color-text-primary)] transition-colors hover:bg-[var(--color-surface-secondary)] sm:h-[48px] sm:w-auto sm:px-6 sm:text-[14px]"
                 >
                   Browse Marketplace
                   <ArrowRight className="size-4 shrink-0 opacity-60" />

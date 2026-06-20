@@ -999,93 +999,6 @@ function SidebarContent({
 
     return (
         <>
-            {/* ── User identity + collapse toggle ── */}
-            <div style={{
-                minHeight: 60, display: "flex", alignItems: "center",
-                padding: "10px 12px",
-                gap: 8,
-                justifyContent: collapsed ? "center" : "space-between",
-                borderBottom: "1px solid var(--color-border, rgba(255,255,255,0.06))",
-                flexShrink: 0,
-            }}>
-                {!collapsed ? (
-                    isAuthenticated === false ? (
-                        <Link
-                            href={buildHubLoginUrl("/c")}
-                            onClick={onLinkClick}
-                            style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, flex: 1, textDecoration: "none" }}
-                        >
-                            <UserSidebarAvatar name="Guest" size={36} />
-                            <span style={{ minWidth: 0, display: "flex", flexDirection: "column" }}>
-                                <span style={{
-                                    fontSize: 13, fontWeight: 700, color: "var(--color-text-primary, #18181b)",
-                                }}>
-                                    Guest
-                                </span>
-                                <span style={{ fontSize: 11, fontWeight: 600, color: "var(--color-accent, #fd5000)" }}>
-                                    Sign in to participate
-                                </span>
-                            </span>
-                        </Link>
-                    ) : (
-                    <Link
-                        href={username ? `/c/profile/${username}` : "/c/profile"}
-                        onClick={onLinkClick}
-                        style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, flex: 1, textDecoration: "none" }}
-                    >
-                        <UserSidebarAvatar name={userCard?.name ?? username.replace(/_/g, " ") ?? "Member"} src={userCard?.avatarUrl} size={36} />
-                        <span style={{ minWidth: 0, display: "flex", flexDirection: "column" }}>
-                            <span style={{
-                                fontSize: 13, fontWeight: 700, color: "var(--color-text-primary, #18181b)",
-                                whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-                            }}>
-                                {userCard?.name ?? (username ? username.replace(/_/g, " ") : "Member")}
-                            </span>
-                            <span style={{ fontSize: 11, fontWeight: 600, color: "var(--color-accent, #fd5000)" }}>
-                                Level {userCard?.level ?? 1} · Creator
-                            </span>
-                        </span>
-                    </Link>
-                    )
-                ) : (
-                    <Link href={username ? `/c/profile/${username}` : "/c/profile"} onClick={onLinkClick} style={{ display: "flex" }}>
-                        <UserSidebarAvatar name={userCard?.name ?? "Member"} src={userCard?.avatarUrl} size={32} />
-                    </Link>
-                )}
-
-                {/* Desktop: collapse button / Mobile drawer: close button */}
-                {showCloseButton ? (
-                    <button
-                        onClick={onClose}
-                        aria-label="Close navigation"
-                        style={{
-                            background: "none", border: "none", cursor: "pointer",
-                            color: "var(--color-text-muted, #6a6a6a)", padding: 6,
-                            borderRadius: "var(--radius-sm, 8px)",
-                            display: "flex", alignItems: "center", justifyContent: "center",
-                        }}
-                    >
-                        <Icons.Close />
-                    </button>
-                ) : (
-                    <button
-                        onClick={onToggleCollapse}
-                        title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-                        style={{
-                            background: "none", border: "none", cursor: "pointer",
-                            color: "var(--color-text-muted, #6a6a6a)", padding: 6,
-                            borderRadius: "var(--radius-sm, 8px)",
-                            display: "flex", alignItems: "center", justifyContent: "center",
-                            transition: "color 0.15s",
-                        }}
-                        onMouseEnter={(e) => (e.currentTarget.style.color = "var(--color-text-primary, #ededed)")}
-                        onMouseLeave={(e) => (e.currentTarget.style.color = "var(--color-text-muted, #6a6a6a)")}
-                    >
-                        {collapsed ? <Icons.Expand /> : <Icons.Collapse />}
-                    </button>
-                )}
-            </div>
-
             {/* ── Scrollable body ── */}
             <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden", padding: "8px 0" }}>
                 {/* Global nav */}
@@ -1276,14 +1189,14 @@ function SidebarContent({
                 {!collapsed && isAuthenticated !== false && (
                     <div style={{ padding: "8px", display: "flex", flexDirection: "column", gap: 8 }}>
                         <HubPremiumCard />
-                        <HubUserCard
+                        {/* <HubUserCard
                             name={userCard?.name ?? (username ? username.replace(/_/g, " ") : "Member")}
                             level={`Level ${userCard?.level ?? 1} · Creator`}
                             xp={userCard?.xp ?? 0}
                             xpMax={userCard?.xpMax ?? 1}
                             avatarUrl={userCard?.avatarUrl}
                             username={username || undefined}
-                        />
+                        /> */}
                     </div>
                 )}
             </div>

@@ -30,10 +30,10 @@ import { CurrencySelector } from "@/context/CurrencyContext";
 import { useCartStore } from "@/lib/store/use-cart-store";
 import { useAIStore } from "@/lib/store/use-ai-store";
 import { cn } from "@/lib/utils";
-import type { Tables } from "@/types/supabase";
+import type { Profile as DbProfile } from "@/types/db";
 import { buildHubLoginUrl, getCommunitySlugFromPath } from "@/lib/community/hub-auth";
 
-type Profile = Pick<Tables<"profiles">, "id" | "username" | "full_name" | "avatar_url">;
+type Profile = Pick<DbProfile, "id" | "username" | "full_name" | "avatar_url">;
 
 // ── Primary navigation (matches public marketing nav) ────────────────────────
 const PRIMARY_NAV: { label: string; href: string; icon: typeof Home; dropdown?: boolean }[] = [
@@ -137,6 +137,7 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
     const [unreadNotifications, setUnreadNotifications] = useState(0);
 
     const pageTitle = usePageTitle(pathname);
+    const isLiveStudio = pathname.startsWith("/c/live");
     const { cartCount, refreshCounts } = useCartStore();
     const { openAssistant } = useAIStore();
 
@@ -377,11 +378,13 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                 )}
 
                 {/* Page content */}
-                <main className="flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden">
+                <main className={cn("flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden", isLiveStudio && "bg-[#f4f4f5]")}>
                     {/* Mobile page title bar */}
+                    {!isLiveStudio && (
                     <div className="flex h-11 items-center border-b border-[var(--color-border,#e4e4e7)] bg-[var(--color-surface,#fff)] px-4 lg:hidden">
                         <h1 className="text-[14px] font-bold text-[var(--color-text-primary)]">{pageTitle}</h1>
                     </div>
+                    )}
                     <div className="flex-1 pb-14 lg:pb-0">{children}</div>
                 </main>
             </div>
